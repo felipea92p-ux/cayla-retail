@@ -98,6 +98,10 @@ export const AVIARIO = [
       // Frescura del piso (ADR-0208, paso 4b): la libreta de «Ya decidí» por prenda y sede. Vive en Inventario ▸ Frescura y
       // responde por lo que pasa con la ropa en el piso. Refresco del volcado del 2026-10-02.
       "frescura_decisiones",
+      // La vara de CAYLA de Frescura (ADR-0208, act. 2026-10-07; 20261008120000): la curva de cada categoría con las tres tiendas,
+      // calculada por el cron y leída como respaldo. Es del piso, como la libreta. Nace con dueño; hasta que se pegue y se refresque
+      // el volcado, el aviario la avisa como «no en el volcado».
+      "frescura_vara_cayla",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },

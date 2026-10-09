@@ -3324,4 +3324,70 @@ de abrir la sede de mayor volumen.
 
 **Queda abierto (decide Felipe):** qué se decide exactamente en «Por decidir» y si el semáforo se muestra con menos de 10 ventas
 (`docs/formidable/inventario-frescura.md`, «Decide Felipe»). El aviso único dice la verdad, pero no cambia qué afirma el estado.
+**→ Cerrado el 2026-10-07, abajo.**
 
+## Actualización 2026-10-07 — la vara CAYLA pasa de referencia a respaldo, el umbral de evidencia y la pantalla de dos niveles (Felipe, 4 preguntas; se construye desde el 2026-10-08)
+
+**Qué se verificó antes de decidir**, corriendo las reglas reales de `frescura-reglas.ts` (main `3e84af0f`, sin cambios en Frescura
+hasta `4613b0d53`) sobre un caso armado como la captura de TRU del 2026-10-07 y sobre la salida real guardada en
+`lib/__fixtures__/frescura-sede.json`:
+- Con 3 ventas rápidas en una categoría (días 1, 1 y 2) y 1 unidad colgada hace 10 días, la vara es «Pocos datos» y aun así una prenda
+  de **4 días** colgada sale «Se está quedando», lenta (0 vendidas contra 1,00 esperada) y «Por decidir» con «cambiar de lugar»: la
+  captura, exacta. A los 2 días, igual.
+- Con 2 ventas y no 3, la rapidez da `null` (0,83 esperadas < `RAPIDEZ_MIN_EVIDENCIA = 1`) y no hay «Por decidir»: ese umbral es hoy
+  el único freno, y está en 1. Con 1 esperada, una prenda que vende exactamente al ritmo de su categoría sale «lenta» 1 de cada 3
+  veces por azar (Poisson: e⁻¹ = 37 %).
+- En el fixture real, Vestidos con 2 ventas tiene P50 = P75 = P90 = 10 días: cualquier vestido que pase de 10 días es «Hay que moverla».
+- Juzgada contra una vara con 30 ventas (P50 37 d · P75 49 d · P90 56 d), la misma capa a los 4 días es «Recién llegada» y a los 75,
+  «Hay que moverla» y «Por decidir». La fórmula funciona con datos; lo que falla es que juzga con la misma firmeza con 3 ventas que con 30.
+
+**Decisiones de Felipe (2026-10-07):**
+1. **La medida sigue siendo relativa** (los percentiles de la categoría), sin piso de días. Descartó «relativa con piso de 14–21 días»
+   y «absoluta por categoría». La referencia mejora sola con el volumen de ventas.
+2. **Vara CAYLA de respaldo.** Si la categoría en la tienda tiene menos de 10 ventas con edad conocida y en CAYLA (las tres tiendas
+   juntas) tiene 10 o más, el tramo y la rapidez se miden contra la curva de CAYLA y la fila lo dice («contra lo que vende CAYLA»). Si
+   CAYLA tampoco llega a 10, como hoy: contra la tienda y «aproximado». **Reemplaza la decisión 6 del bloque 3 (2026-09-26: «el
+   semáforo se mide contra su propia sede, siempre; CAYLA a la vista como referencia»).** La referencia de CAYLA ya se calculaba
+   (`referenciaCayla`) pero solo se mostraba, en el detalle del líder.
+3. **Dos niveles en una pantalla.** Arriba, el tablero: una fila por categoría con la barra apilada de unidades por estado (Recién
+   llegada · En su tiempo · Se está quedando · Hay que moverla · Aún no se sabe), cuántas esperan decisión y con qué vara se juzgó
+   (Sólido · Aceptable · Aproximado · contra CAYLA · Sin ventas); tocar una fila filtra la lista. Abajo, la lista de hoy. Descartó «solo lista» y «solo tablero».
+4. **El mix vive en su propio submódulo** (Inventario ▸ Plan del piso, PR #831, ADR-0352), no en Frescura. Frescura muestra «ocupa ·
+   meta» por categoría leyéndolo de ahí y, cuando el mix esté **aprobado** (segunda entrega del plan), propone «entra una, sale una»
+   (ADR-0329, punto 10). Mientras el mix sea solo una propuesta no se propone ningún retiro desde él: proponer un retiro desde un número
+   que nadie decidió contradice «solo se guarda lo que el líder decide».
+
+**Decisiones técnicas (Claude):**
+- **DECIDÍ:** la vara CAYLA de respaldo se lee de una tabla `retail.frescura_vara_cayla` (una fila por categoría: las observaciones
+  anónimas —segundos colgada, vendida, peso— de las tres tiendas, cuántas ventas, el nivel y cuándo se calculó), llenada cada
+  madrugada por una ruta cron de la web con la misma receta de `referenciaCayla` (el patrón de la foto semanal del PR #831).
+  **DESCARTÉ:** una RPC `security definer` que lea las tres tiendas en vivo para cualquier cuenta con Frescura, porque abre por API lo
+  que `0012` y ADR-0240 cerraron (nadie lee otra sede); y calcular la curva en SQL, porque nace del FIFO de cohortes de
+  `inventario-exposicion.ts` y tendría dos fuentes de verdad. **SE ROMPE SI:** el cron no corre 3 días: la pantalla dice de cuándo es
+  la vara y, pasados 3 días, vuelve a juzgar contra la tienda como hoy.
+- **DECIDÍ:** «Por decidir» exige 2 ventas esperadas, no 1 (`rapidezParaDecidir`, que `estadoFrescura` aplica antes de `estaQuieta`;
+  el índice de rapidez se sigue calculando y mostrando desde 1). Con poca evidencia el índice solo **protege** (un pilar con 0,5
+  esperadas sigue siendo pilar: no se actúa), nunca **condena**: un pilar falso no cuesta nada, una lenta falsa manda a mover una
+  prenda que se vende. La que dejó de vender (30 días en el piso sin una venta) decide igual con menos: esos 30 días son evidencia
+  por sí solos. Con 2 esperadas, 0 ventas por azar pasa 1 de 7 veces (e⁻² = 13,5 %); con 1, 1 de 3. Es la contracción de ADR-0214 («una cifra con poca
+  muestra no es una cifra») aplicada donde no estaba. **DESCARTÉ:** un test de significancia por prenda (Poisson con α), porque cambia
+  qué significa el 100 y no se explica en una frase a la encargada; «espera a que su categoría haya vendido lo que valen 2 prendas
+  antes de llamarla lenta» sí. **SE ROMPE SI:** una prenda que de verdad no se vende en una categoría lentísima (1 esperada en 60 días)
+  tarda el doble en aparecer: la temporada pasada y «revisa sus ventas» (callada) siguen avisando antes.
+
+**Orden de construcción** (`/construir`, 2026-10-08, una actividad por commit): 0 ADR y rama al día · 1 umbral de evidencia 2 · 2 tabla y
+cron de la vara CAYLA · 3 reglas de respaldo y la fila que lo dice · 4 tablero por categoría · 5 lista con acción que ejecuta y un solo
+aviso · 6 «ocupa · meta» desde Plan del piso (espera al PR #831) · 7 cierre. Fuera de esta ronda: «sale una» por mix (segunda entrega
+del plan) y pesos por tienda en la vara CAYLA (hoy junta unidades: AQP, con 60 m², manda; se acepta hasta tener datos).
+
+
+**Revisión adversaria antes del PR (2026-10-08):** seis revisores sobre el diff y tres escépticos por hallazgo (18 hallazgos, 16
+confirmados, todos de esta rama, corregidos el mismo día con su prueba). Dos quedan escritos aquí porque son límites o consecuencias
+de las decisiones de arriba, no errores: (a) **la resta «como en la foto» rearma los apartados de entonces** (un apartado abierto en
+la foto fue una venta para el cron aunque hoy ya se haya liberado sin venderse; `limpiosEnLaFoto` en `analizarSede`). Lo que la
+lectura de hoy ya no trae —lo colgado entre el `desde` del cron y el de hoy, hasta 3 días de 120 atrás— entra como saldo sin edad y
+no se resta: a lo sumo un puñado de unidades viejas entre 10 ventas o más; se acepta y se deja dicho en el código. (b) **El «Sólido» de
+CAYLA vale para «Trasladar»:** la decisión 2 reemplaza la vara entera, su nivel incluido, así que una tienda con 3 ventas puede ver
+«Armar traslado» cuando CAYLA tiene 20 o más; la frase dice de dónde son esas ventas («de las demás en las tres tiendas»). Si Felipe
+prefiere que lo que mueve stock espere el Sólido de la propia tienda, se cambia en `estadoFrescura` (el `nivel` que recibe) y en esta
+nota.

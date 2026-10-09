@@ -1119,6 +1119,29 @@ export function recientesDe(ventasRecientes: number | null, segundosColgada: num
   return segundosColgada >= DIAS_CALLADA * 86_400 - TOL_SEGUNDOS ? "dejo_de_vender" : "no_se_sabe";
 }
 
+/**
+ * Ventas esperadas que necesita el índice de rapidez para poder DECIDIR (llamar «lenta» a una prenda y mandarla a «Por
+ * decidir»; ADR-0208, actualización 2026-10-07): su categoría, sin ella, tiene que haber vendido a esa edad lo que valen
+ * 2 prendas. Con 1 esperada, la prenda que vende exactamente al ritmo de su categoría sale «lenta» 1 de cada 3 veces por
+ * puro azar (Poisson, e⁻¹ = 37 %); con 2, 1 de 7. El índice se calcula y se muestra desde `RAPIDEZ_MIN_EVIDENCIA`;
+ * esta cifra solo frena la decisión. Verificado el 2026-10-07 con las reglas reales: con 3 ventas rápidas en una
+ * categoría (días 1, 1 y 2), una capa de 4 días colgada acumulaba 1,00 esperada y salía «Por decidir».
+ */
+export const ESPERADAS_PARA_DECIDIR = 2;
+
+/**
+ * La rapidez que puede decidir: la misma, o null si dice «lenta» (índice < 100) con menos de `ESPERADAS_PARA_DECIDIR`
+ * ventas esperadas. Con poca evidencia el índice solo PROTEGE (un pilar con 0,5 esperadas sigue siendo pilar: no se
+ * actúa), nunca CONDENA: un pilar falso no cuesta nada, una lenta falsa manda a mover una prenda que se vende. La que
+ * dejó de vender (`dejo_de_vender`: sus últimos 30 días en el piso sin una venta) pasa entera: esos 30 días son evidencia
+ * por sí solos, y es lo que la revisión 6 ya decidía. Con null, `estaQuieta` no la llama lenta y `sugerenciasDe` le da
+ * «revisa sus ventas» si es vieja, como a la que no tiene dato.
+ */
+export function rapidezParaDecidir(r: Rapidez | null, recientes: Recientes): Rapidez | null {
+  if (r === null || recientes === "dejo_de_vender" || r.indice >= RAPIDEZ_IGUAL) return r;
+  return r.esperadas >= ESPERADAS_PARA_DECIDIR - EPS ? r : null;
+}
+
 // ---------------------------------------------------------------------------
 // Quieta, sugerencias y estado
 // ---------------------------------------------------------------------------
@@ -1224,7 +1247,10 @@ export function esTemporadaPasada(p: { esClasico: boolean; temporada: string | n
 export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
   const temporadaPasada = esTemporadaPasada(e);
   const sinTemporada = e.temporada === null;
-  const rapidezUsable = e.dudosa || e.esClasico ? null : e.rapidez;
+  const recientes = recientesDe(e.ventasRecientes, e.reloj.segundos);
+  // La rapidez que decide: ni la del clásico ni la de la dudosa (tienen su propio estado), ni la que descansa en menos de
+  // 2 ventas esperadas (`rapidezParaDecidir`). La cruda se sigue mostrando en la fila y en la hoja.
+  const rapidezUsable = e.dudosa || e.esClasico ? null : rapidezParaDecidir(e.rapidez, recientes);
   let tramo: Tramo | null = null;
   let base:
     | { tipo: "semaforo"; tramo: Tramo; alMenos: boolean }
@@ -1246,7 +1272,6 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
       tramo = t.tramo;
     }
   }
-  const recientes = recientesDe(e.ventasRecientes, e.reloj.segundos);
   const quieta = estaQuieta({ tramo, temporadaPasada, rapidez: rapidezUsable, recientes, pisoHoy: e.pisoHoy });
   // D4+D6: sin tramo firme (sin referencia, sin ventas en la sede, sin edad conocida o un tramo que es solo un piso),
   // y sus últimos 30 días en el piso sin ninguna venta. Ni el clásico ni la dudosa: tienen su propio estado.
@@ -1285,7 +1310,27 @@ export type VaraCategoria = {
   vendidas: number;
   unidades: number;
   nivel: NivelConfianza | null;
+  /** La vara de CAYLA de esta categoría (ADR-0208, act. 2026-10-07), si el cron la calculó y sigue vigente; `enUso` cuando
+   *  las prendas de la categoría se juzgaron contra ella (la tienda no llega a `VENTAS_PARA_JUZGAR_SOLA`). */
+  respaldo: RespaldoCategoria | null;
 };
+
+/** La vara de CAYLA de una categoría, para la pantalla: la misma forma que la de la tienda, más cuándo se calculó y si decidió. */
+export type RespaldoCategoria = Omit<VaraCategoria, "respaldo"> & { calculadaEn: string; enUso: boolean };
+
+/**
+ * Ventas con edad conocida que necesita una categoría EN LA TIENDA para juzgar sus prendas sola (ADR-0208, actualización
+ * 2026-10-07, decisión 2 de Felipe). Con menos, y con esta cifra o más en CAYLA, el tramo y la rapidez se miden contra la
+ * curva de las tres tiendas (`RespaldoCayla`) y la fila lo dice. Es el corte de «Pocos datos» de `nivelPorVentas`: con 3
+ * ventas rápidas, P50 = 1 día y P75 = 2, y una prenda de 4 días salía «Se está quedando» (verificado el 2026-10-07).
+ */
+export const VENTAS_PARA_JUZGAR_SOLA = 10;
+
+/** La vara de CAYLA de una categoría como respaldo: la curva con las unidades de las tres tiendas (`frescura_vara_cayla`,
+ *  rearmada con `kaplanMeier`), su ventana, sus ventas, su nivel y cuándo la calculó el cron. */
+export type VaraRespaldo = { curva: Curva; ventanaDias: number; vendidas: number; nivel: NivelConfianza | null; calculadaEn: string };
+/** categoriaId → su vara de CAYLA, solo las vigentes (`leerRespaldoCayla` en `frescura-vara-cayla.ts` las filtra). */
+export type RespaldoCayla = ReadonlyMap<string, VaraRespaldo>;
 
 export type FrescuraPrenda = {
   clave: string;
@@ -1330,6 +1375,9 @@ export type FrescuraPrenda = {
    * que es mucho de su categoría puede quedar en un tramo que esos cortes no explican (D5).
    */
   categoriaSinElla: { cortes: Cortes; tMax: number; vendidas: number } | null;
+  /** Contra qué se juzgó (ADR-0208, act. 2026-10-07): su categoría en la tienda, o la de CAYLA cuando la tienda no llega a
+   *  `VENTAS_PARA_JUZGAR_SOLA` ventas y CAYLA sí. `categoriaSinElla` es la curva que de verdad la juzgó. */
+  juzgadaContra: "sede" | "cayla";
   estado: EstadoFrescura;
   /**
    * «Por decidir» (paso 4b): quieta Y sin decisión vigente. ES EL ÚNICO LUGAR que lo dice: la cifra, el filete, el filtro y
@@ -1374,7 +1422,8 @@ export type ObservacionesSede = Record<string, { nombre: string; unidadesEn: (di
 const SIN_CATEGORIA = "";
 const NOMBRE_SIN_CATEGORIA = "Sin categoría";
 
-function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): VaraCategoria {
+/** La vara, lista para la pantalla, SIN su respaldo: quien llama lo pone (la sede lo sabe; la referencia de CAYLA no tiene). */
+function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): Omit<VaraCategoria, "respaldo"> {
   return {
     categoriaId,
     categoriaNombre,
@@ -1411,7 +1460,7 @@ type UnidadesDeTalla = { enVentana: (dias: number) => UnidadesTalla; todas: () =
  * tramo y rapidez de cada prenda contra su categoría SIN ella → estado. `observaciones` sirve para la referencia de
  * CAYLA (`referenciaCayla`).
  */
-export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
+export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
   const tardiasPorOid = new Map<string, number>();
   for (const t of l.tardias) tardiasPorOid.set(t.oid, (tardiasPorOid.get(t.oid) ?? 0) + t.unidadesTardias);
   const dudosas = new Set(l.dudosas);
@@ -1449,16 +1498,33 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       }),
     });
   }
+  // Los eventos de una talla COMO LOS VIO EL CRON a la hora de la foto de CAYLA: el libro y lo apartado hasta `calculadaEn`, y
+  // recién después las tardías. No sirve cortar `limpios` por hora: ahí lo apartado ya entró con lo que se sabe HOY, y un apartado
+  // que en la foto seguía abierto (una venta para el cron) hoy puede ser una pausa (se liberó sin venderse): la resta no lo
+  // encontraría y su venta quedaría dentro de «su categoría sin ella» (revisión adversaria, 2026-10-08).
+  const limpiosEnLaFoto = (varianteId: string, calcMs: number): EventoPiso[] =>
+    excluirTardias(
+      eventosConApartados(
+        (l.eventos[varianteId] ?? []).filter((e) => ms(e.ts) <= calcMs),
+        apartados[varianteId]?.filter((a) => ms(a.ts) <= calcMs),
+      ),
+      tardiasPorOid,
+    );
   const observaciones: ObservacionesSede = {};
   for (const [cat, { nombre, ids }] of tallasDeCategoria) {
     if (ids.length === 0) continue;
     observaciones[cat] = { nombre, unidadesEn: porVentana((d) => ids.flatMap((id) => unidadesDeTalla.get(id)!.enVentana(d).observaciones)) };
   }
 
-  // La vara de cada categoría que tiene prendas en la sede (aunque no tenga unidades con edad conocida).
-  const varas = new Map<string, { nombre: string; vara: Vara }>();
+  // La vara de cada categoría que tiene prendas en la sede (aunque no tenga unidades con edad conocida), y si sus prendas se
+  // juzgan contra ella o contra la de CAYLA (ADR-0208, act. 2026-10-07): con menos de `VENTAS_PARA_JUZGAR_SOLA` ventas aquí y
+  // esa cifra o más en CAYLA, CAYLA. Lo sin categoría no tiene respaldo: no se sabe contra qué.
+  const varas = new Map<string, { nombre: string; vara: Vara; respaldo: VaraRespaldo | null; usaRespaldo: boolean }>();
   for (const [cat, { nombre }] of tallasDeCategoria) {
-    varas.set(cat, { nombre, vara: varaPorVentanas(observaciones[cat]?.unidadesEn ?? (() => [])) });
+    const vara = varaPorVentanas(observaciones[cat]?.unidadesEn ?? (() => []));
+    const r = cat === SIN_CATEGORIA ? null : (respaldo?.get(cat) ?? null);
+    const usaRespaldo = r !== null && vara.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS && r.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
+    varas.set(cat, { nombre, vara, respaldo: r, usaRespaldo });
   }
 
   // Las tallas, juntas por prenda (modelo+color).
@@ -1474,7 +1540,7 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
   for (const [clave, tallas] of porPrenda) {
     const f = tallas[0];
     const cat = f.categoriaId ?? SIN_CATEGORIA;
-    const { nombre: categoriaNombre, vara } = varas.get(cat)!;
+    const { nombre: categoriaNombre, vara, respaldo: varaCayla, usaRespaldo } = varas.get(cat)!;
     const esClasico = tallas.some((t) => t.esClasico);
     const dudosa = tallas.some((t) => dudosas.has(t.varianteId));
     const temporada = tallas.find((t) => t.temporada !== null)?.temporada ?? null;
@@ -1523,7 +1589,29 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     const enLaVara = medibles.map((u) => u.enVentana(vara.ventanaDias));
     // Con la vara de toda la lectura, lo que se resta y lo que se mide es lo mismo (y se ordena una vez).
     const propiasObs = enLaVara.every((u, k) => u === suyas[k]) ? suyasObs : enLaVara.flatMap((u) => u.observaciones);
-    const resto = medibles.length > 0 ? contraElResto(vara.curva, propiasObs, suyasObs) : null;
+    const juzgadaContra: FrescuraPrenda["juzgadaContra"] = usaRespaldo && medibles.length > 0 ? "cayla" : "sede";
+    let resto: MedidaContraElResto | null = null;
+    if (medibles.length > 0 && juzgadaContra === "cayla" && varaCayla !== null) {
+      // Contra CAYLA, sus propias unidades se restan COMO LAS VIO EL CRON (D5, «sin ella»): los mismos eventos hasta
+      // `calculadaEn` —el libro y los apartados de entonces, `limpiosEnLaFoto`—, la misma ventana y el mismo FIFO. La curva de
+      // CAYLA es una foto de la madrugada; restarle lo que la prenda tiene HOY le quitaría unidades con una edad que la foto no
+      // tenía (lo que se colgó después no está en ella, y lo que sigue colgado tiene más horas). Lo que se MIDE (`suyasObs`) sí
+      // es lo de hoy: a esa edad se espera la venta. Límite conocido: la lectura de hoy empieza hasta 3 días después que la del
+      // cron (los mismos `FRESCURA_DIAS_LECTURA`, contados desde ahora y no desde la foto), así que una unidad de la prenda
+      // colgada en esos días —120 días atrás— entra a la lectura como saldo sin edad y no se resta: a lo sumo un puñado de
+      // unidades viejas entre 10 ventas o más.
+      const calcMs = ms(varaCayla.calculadaEn);
+      const inicioMs = calcMs - varaCayla.ventanaDias * MS_POR_DIA;
+      const propiasEnLaFoto = tallas.flatMap((t) => {
+        if (!limpiosPorVariante.has(t.varianteId)) return [];
+        const hastaLaFoto = limpiosEnLaFoto(t.varianteId, calcMs);
+        const eventos = inicioMs <= desdeMs ? hastaLaFoto : recortarEventos(hastaLaFoto, new Date(inicioMs).toISOString());
+        return unidadesParaVara(eventos, varaCayla.calculadaEn).observaciones;
+      });
+      resto = contraElResto(varaCayla.curva, propiasEnLaFoto, suyasObs);
+    } else if (medibles.length > 0) {
+      resto = contraElResto(vara.curva, propiasObs, suyasObs);
+    }
     const r =
       resto === null
         ? null
@@ -1540,7 +1628,8 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       finEstacion,
       enEstacionAhora,
       ahora: l.ahora,
-      vara: resto === null ? vara : { nivel: vara.nivel, cortes: resto.cortes, curva: { tMax: resto.tMax } },
+      // El nivel es el de la vara que juzga: el de CAYLA cuando es CAYLA (de ahí sale si «Trasladar» puede sugerirse).
+      vara: resto === null ? vara : { nivel: juzgadaContra === "cayla" && varaCayla ? varaCayla.nivel : vara.nivel, cortes: resto.cortes, curva: { tMax: resto.tMax } },
       reloj,
       rapidez: r,
       pisoHoy,
@@ -1579,6 +1668,7 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       rapidez: r,
       ventasRecientes,
       categoriaSinElla: resto === null ? null : { cortes: resto.cortes, tMax: resto.tMax, vendidas: resto.vendidas },
+      juzgadaContra,
       estado,
       porDecidir: estado.quieta,
       decision: null,
@@ -1586,8 +1676,17 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
   }
   prendas.sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es") || b.reloj.segundos - a.reloj.segundos || a.clave.localeCompare(b.clave));
 
+  // El respaldo está EN USO solo si alguna prenda de la categoría se juzgó contra CAYLA: una categoría de puros clásicos (o de
+  // prendas que no cuadran) no se juzga contra nada, y el tablero no debe decir «Contra CAYLA» (revisión adversaria, 2026-10-08).
+  const juzgadasContraCayla = new Set(prendas.filter((p) => p.juzgadaContra === "cayla").map((p) => p.categoriaId));
   const categorias = [...varas.entries()]
-    .map(([id, { nombre, vara }]) => aVaraCategoria(id, nombre, vara))
+    .map(([id, { nombre, vara, respaldo: r }]) => ({
+      ...aVaraCategoria(id, nombre, vara),
+      respaldo:
+        r === null
+          ? null
+          : { ...aVaraCategoria(id, nombre, { ventanaDias: r.ventanaDias, curva: r.curva, cortes: cortes(r.curva), vendidas: r.vendidas, nivel: r.nivel }), calculadaEn: r.calculadaEn, enUso: juzgadasContraCayla.has(id) },
+    }))
     .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es"));
 
   // Cuánto vendió y cuánto estuvo colgada (libre en el piso) una prenda entre dos instantes: null si no se mide (clásica,
@@ -1666,7 +1765,7 @@ export function referenciaCayla(sedes: readonly ObservacionesSede[]): VaraCatego
   const nombres = new Map<string, string>();
   for (const sede of sedes) for (const [cat, grupo] of Object.entries(sede)) if (!nombres.has(cat)) nombres.set(cat, grupo.nombre);
   return [...nombres]
-    .map(([cat, nombre]) => aVaraCategoria(cat, nombre, varaPorVentanas((d) => sedes.flatMap((sede) => sede[cat]?.unidadesEn(d) ?? []))))
+    .map(([cat, nombre]) => ({ ...aVaraCategoria(cat, nombre, varaPorVentanas((d) => sedes.flatMap((sede) => sede[cat]?.unidadesEn(d) ?? []))), respaldo: null }))
     .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es"));
 }
 
@@ -1700,9 +1799,9 @@ export type FrescuraLider = {
 
 /** Lo que devuelve una RPC de supabase-js, sin acoplarse a su tipo. */
 export type RespuestaRpc = { data: unknown; error: { message: string; hint?: string | null } | null };
-/** Las tres lecturas de Frescura. En el servidor: `(fn, args) => supabase.rpc(fn, args)`. */
+/** Las cuatro lecturas de Frescura. En el servidor: `(fn, args) => supabase.rpc(fn, args)`. */
 export type LlamarRpcFrescura = (
-  fn: "fn_frescura_sede" | "fn_confianza_registro" | "fn_frescura_decisiones",
+  fn: "fn_frescura_sede" | "fn_confianza_registro" | "fn_frescura_decisiones" | "fn_frescura_vara_cayla",
   args: { p_ubicacion_id: string; p_dias: number } | Record<string, never>,
 ) => PromiseLike<RespuestaRpc>;
 
@@ -1739,7 +1838,7 @@ type SedeLeida = {
   medicion: { sede: FrescuraSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe; cuadres: readonly string[] } | null;
 };
 
-async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number): Promise<SedeLeida> {
+async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number, respaldo?: RespaldoCayla): Promise<SedeLeida> {
   const que = `la frescura de ${u.nombre}`;
   const fila = (lectura: FrescuraDeSede["lectura"]): FrescuraDeSede => ({ ubicacionId: u.id, nombre: u.nombre, lectura });
   const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null, medicion: null });
@@ -1757,7 +1856,7 @@ async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre:
       return fallo(avisoFrescura(que, null));
     }
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
-    const { sede, observaciones, exposicion } = analizarSede(lectura);
+    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo);
     const decisiones = await enCurso;
     const cuadres = lectura.cuadres ?? [];
     sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora, cuadres);
@@ -1788,8 +1887,8 @@ async function leerConfianzaFrescura(rpc: LlamarRpcFrescura): Promise<Tolerado<F
  * registro al colgar ni la referencia de CAYLA (las dos necesitan leer las otras tiendas, y quien no es líder no las
  * opera). Mismo camino y mismos avisos que cada tienda de la vuelta del líder.
  */
-export async function armarFrescuraSede(tienda: { id: string; nombre: string }, rpc: LlamarRpcFrescura, dias: number): Promise<FrescuraDeSede> {
-  return (await leerSedeFrescura(rpc, tienda, dias)).fila;
+export async function armarFrescuraSede(tienda: { id: string; nombre: string }, rpc: LlamarRpcFrescura, dias: number, respaldo?: RespaldoCayla): Promise<FrescuraDeSede> {
+  return (await leerSedeFrescura(rpc, tienda, dias, respaldo)).fila;
 }
 
 /**
@@ -1801,8 +1900,9 @@ export async function armarFrescuraLider(
   tiendas: readonly { id: string; nombre: string }[],
   rpc: LlamarRpcFrescura,
   dias: number,
+  respaldo?: RespaldoCayla,
 ): Promise<FrescuraLider> {
-  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias))), leerConfianzaFrescura(rpc)]);
+  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo))), leerConfianzaFrescura(rpc)]);
 
   // «La trasladé» se mide en la tienda destino con SU lectura: solo el líder, que las lee todas, puede.
   completarTraslados(

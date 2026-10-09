@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Info, Layers, Search, Shirt, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -11,6 +10,7 @@ import {
   FILTROS_ESTADO,
   SIN_FILTROS,
   TODAS_LAS_CATEGORIAS,
+  accionDeFila,
   agrupar,
   avisoPocasVentas,
   cifrasVista,
@@ -22,11 +22,13 @@ import {
   filtrosDeUrl,
   grupoVista,
   hayFiltros,
-  muchasSinTemporada,
   pasaFiltros,
   pieVista,
+  tableroVista,
   textoOtrasConPregunta,
   textoRegistro,
+  textoRespaldoCayla,
+  textoSinTemporada,
   textoUnidades,
   vistaDeEntrada,
   type AccesoFrescura,
@@ -37,11 +39,14 @@ import {
 } from "@/lib/frescura-pantalla";
 import type { FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
+import { plazoDeAccion, type AccionDecision } from "@/lib/frescura-decisiones-reglas";
 import { bloqueDeDecision, filaDeDecision, notaDelMes } from "@/lib/frescura-decisiones-pantalla";
+import { useAnotarDecision } from "./useAnotarDecision";
 import { TextoConNegritas } from "./piezas";
 import { FrescuraComoSeLee } from "./FrescuraComoSeLee";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
+import { FrescuraTablero } from "./FrescuraTablero";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
@@ -72,6 +77,11 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const botonTiendas = useRef<HTMLButtonElement | null>(null);
   const [pedidos, setPedidos] = useState<Filtros>(() => filtrosDeUrl((k) => params.get(k)));
   const [prendaAbierta, setPrendaAbierta] = useState<string | null>(() => params.get("prenda"));
+  // Con qué se abre la hoja: el detalle, o directo «Ya decidí» con una opción marcada (el botón de la fila que no pudo anotar a
+  // un toque porque falta elegir quién anota, o que pide elegir entre varias opciones).
+  const [hojaPedida, setHojaPedida] = useState<{ modo: "detalle" | "decidir"; opcion: AccionDecision | null }>({ modo: "detalle", opcion: null });
+  // EL camino para anotar lo decidido (la hoja usa el suyo, igual): el botón «La cambié de lugar» de la fila anota a un toque.
+  const anotador = useAnotarDecision({ id: datos.sede.id, nombre: datos.sede.nombre });
 
   const lectura = datos.lectura.datos;
   const sede: FrescuraSede | null = lectura && lectura.separaPiso ? lectura : null;
@@ -92,7 +102,10 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   }, [sede, datos, acceso]);
 
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
-  const muchasSin = muchasSinTemporada(enTabla);
+  // El tablero por categoría (nivel 1): se arma con TODAS las prendas de la tabla, no con las filtradas, para que no cambie al tocarlo.
+  const tablero = useMemo(() => (ctx ? tableroVista(enTabla, ctx) : []), [enTabla, ctx]);
+  // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
+  const sinTemporada = textoSinTemporada(enTabla);
   // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
   const avisoPocas = ctx ? avisoPocasVentas(enTabla, datos.sede.nombre) : null;
   const cifras = sede ? cifrasVista(sede.cifras) : null;
@@ -128,10 +141,39 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   // Al cerrar la hoja, el foco vuelve a la fila que la abrió (también si se abrió desde un enlace con `?prenda=`).
   const volverA = useRef<HTMLElement | null>(null);
   const filaDe = (clave: string) => document.querySelector<HTMLElement>(`[data-prenda="${CSS.escape(clave)}"]`);
-  const abrir = (clave: string | null) => {
+  const abrir = (clave: string | null, modo: "detalle" | "decidir" = "detalle", opcion: AccionDecision | null = null) => {
     if (clave) volverA.current = filaDe(clave);
+    setHojaPedida({ modo, opcion });
     setPrendaAbierta(clave);
     escribirUrl(filtros, clave);
+  };
+  // El botón de la fila que anota (`accionDeFila`, tipo `anotar`): a un toque si ya se sabe quién anota; si no, la hoja con la
+  // opción ya marcada, que pide lo que falta. Sin la libreta leída no se anota ni se abre «Ya decidí» (la base compararía con una
+  // última línea que no se sabe): `accionDeFila` ya no ofrece el botón, y por si acaso, aquí se abre el detalle.
+  const anotarDesdeFila = (p: (typeof enTabla)[number], accion: AccionDecision, verbo: string) => {
+    if (!ctx || !decisionesOk) {
+      abrir(p.clave, "detalle");
+      return;
+    }
+    if (!anotador.responsable.listo) {
+      abrir(p.clave, "decidir", accion);
+      return;
+    }
+    void anotador.anotar({
+      prenda: p,
+      anteriorId: p.decision?.actual.id ?? null,
+      accion,
+      plazoDias: plazoDeAccion(accion, ctx.categorias.get(p.categoriaId), ctx.cayla?.get(p.categoriaId)),
+      transferenciaId: null,
+      nota: null,
+      verbo,
+    });
+  };
+  // El error de anotar desde la fila se pinta junto a SU botón (`FrescuraFila`); «Ver» (otra persona anotó antes) refresca la lectura.
+  const limpiarErrorDeFila = () => {
+    const conVer = anotador.error?.conVer ?? false;
+    anotador.limpiarError();
+    if (conVer) router.refresh();
   };
   useEffect(() => {
     if (prendaAbierta && !volverA.current) volverA.current = filaDe(prendaAbierta);
@@ -198,6 +240,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           <EstadoSinLectura datos={datos} onReintentar={() => router.refresh()} />
         ) : (
           <>
+            {/* Nivel 1: el tablero por categoría; tocar una fila filtra la lista (con `cat` en la URL, como el combo). */}
+            <FrescuraTablero filas={tablero} elegida={filtros.cat === TODAS_LAS_CATEGORIAS ? null : filtros.cat} onElegir={(cat) => cambiar({ cat: cat ?? TODAS_LAS_CATEGORIAS })} />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
             <div className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
               <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
@@ -279,6 +323,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 registro={registro}
                 registroFallo={Boolean(datos.registro?.fallo)}
                 notasDelMes={notasDelMes}
+                respaldo={textoRespaldoCayla(datos.respaldoCayla)}
+                sinTemporada={sinTemporada === null ? null : { texto: sinTemporada, href: acceso.atributos ? "/productos/atributos?tipo=temporadas&vista=completar" : null }}
               />
             )}
             {avisoPocas && (
@@ -293,22 +339,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{sede.decisiones.aviso}</span>
-              </p>
-            )}
-            {muchasSin && (
-              <p className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  <b className="font-semibold text-tinta">
-                    {enTabla.filter((p) => p.estado.sinTemporada).length} de {enTabla.length} prendas no tienen temporada:
-                  </b>{" "}
-                  se miden igual, pero nunca van a avisar que pasó su estación.{" "}
-                  {acceso.atributos && (
-                    <Link href="/productos/atributos?tipo=temporadas&vista=completar" className="btn-cayla btn-enlace text-[13px]">
-                      Complétalas en Catálogo
-                    </Link>
-                  )}
-                </span>
               </p>
             )}
 
@@ -378,12 +408,17 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                             <FrescuraFila
                               key={p.clave}
                               fila={filaVista(p, ctx!)}
-                              muchasSinTemporada={muchasSin}
                               onAbrir={() => abrir(p.clave)}
                               decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)}
                               marcarAproximado={avisoPocas === null}
                               apariencia={datos.apariencias[p.clave] ?? null}
                               categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
+                              accion={accionDeFila(p, ctx!, p.decision?.vigente ?? false, decisionesOk)}
+                              enviando={anotador.enviando === p.clave}
+                              error={anotador.error?.clave === p.clave ? anotador.error : null}
+                              onAnotar={(accion, verbo) => anotarDesdeFila(p, accion, verbo)}
+                              onDecidir={(modo, opcion) => abrir(p.clave, modo, opcion)}
+                              onLimpiarError={limpiarErrorDeFila}
                             />
                           ))}
                         </div>
@@ -424,7 +459,16 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       </section>
 
       {abierta && ctx && contextoDecision && (
-        <FrescuraDetalle detalle={detalleVista(abierta, ctx)} sede={datos.sede.nombre} volverA={volverA} onClose={() => abrir(null)} decision={contextoDecision} />
+        <FrescuraDetalle
+          key={abierta.clave}
+          detalle={detalleVista(abierta, ctx)}
+          sede={datos.sede.nombre}
+          volverA={volverA}
+          onClose={() => abrir(null)}
+          decision={contextoDecision}
+          modoInicial={hojaPedida.modo}
+          opcionInicial={hojaPedida.opcion}
+        />
       )}
       {verTiendas && datos.tiendas && datos.registro && (
         <FrescuraTiendas tiendas={datos.tiendas} registro={datos.registro} actual={datos.sede.id} volverA={botonTiendas} onClose={() => setVerTiendas(false)} />
