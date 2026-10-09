@@ -552,8 +552,14 @@
     align-items: center;
     gap: 8px;
   }
-  .vr-botones .vr-espacio {
-    flex: 1;
+  /* Lo que retira la prenda (Desactivar/Reactivar y Eliminar) va junto y a la derecha. Es UNA caja con `margin-left: auto` y no un
+     espaciador: con seis botones la fila a veces no cabe, y un espaciador suelto dejaba el par partido (uno al final de la primera
+     línea y el otro solo bajo «Editar»). Así, si no cabe, el par baja entero y sigue a la derecha. */
+  .vr-botones .vr-retira {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
   }
   .vr-botones [data-sin-unidades="true"] {
     opacity: 0.6;
@@ -654,8 +660,9 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
     }
-    .vr-botones .vr-espacio {
-      display: none;
+    /* En celular los botones son celdas de la grilla de dos columnas: la caja desaparece y sus botones entran como uno más. */
+    .vr-botones .vr-retira {
+      display: contents;
     }
   }
 }
