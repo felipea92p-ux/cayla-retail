@@ -161,10 +161,17 @@ const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 /** El cuadre del piso (ADR-0328, 20261004200050) cambia el núcleo (y fn_frescura_sede) por reemplazo anclado. Esto lo deshace
  *  (sus anclas, leídas del archivo, en orden inverso) para los casos que prueban el orden de pegado de las migraciones
  *  ANTERIORES (T22, T37), que se escribieron sobre el núcleo de la 120200. El cuadre se prueba en cuadrar_piso.mjs (C11, C12). */
-const DESHACER_CUADRE = [...migracion("20261004200050_cuadre_piso_frescura.sql").matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
-  .reverse()
-  .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
-  .join("\n");
+const deshacer = (archivo) =>
+  [...migracion(archivo).matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .reverse()
+    .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+    .join("\n");
+const DESHACER_CUADRE = deshacer("20261004200050_cuadre_piso_frescura.sql");
+/** La vara de CAYLA (ADR-0208 act. 2026-10-07, 20261008120000) parcha fn_frescura_sede por reemplazo anclado DESPUÉS del cuadre: se
+ *  deshace ANTES que el cuadre (el último parche primero), por lo mismo. Cada parche posterior a la 120200 se suma aquí, el más
+ *  nuevo primero; si no, deshacer solo el cuadre deja un cuerpo que ninguna guarda anterior reconoce. */
+const DESHACER_VARA = deshacer("20261008120000_frescura_vara_cayla.sql");
+const DESHACER_POSTERIORES = [DESHACER_VARA, DESHACER_CUADRE].join("\n");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -970,7 +977,7 @@ const intento = (sql) => `pg_temp.intento(${comoLiteral(sql)})`;
 const abortaCon = (r, texto) => `((:'${r}')::jsonb ->> 'ok') || ',' || (position('${texto}' in (:'${r}')::jsonb ->> 'msg') > 0)`;
 correr(
   "T22 · la guarda de 20260928120100: acepta solo el cuerpo de 20260926000300; un parche en vivo la hace abortar; después de la 120200, avisa y no deshace nada",
-  `${DESHACER_CUADRE}
+  `${DESHACER_POSTERIORES}
 select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
 -- 1. Pegada otra vez sobre la base de hoy (ya con la 120200): se niega con su aviso y no toca nada.
 select ${intento(MIGRACION_NUCLEO)} as r1 \\gset
@@ -2264,7 +2271,7 @@ const FILAS_TEXTO = `(select coalesce(string_agg(concat_ws(':', r.movimiento_id,
   r.es_carga_inicial), ',' order by r.movimiento_id), '') from retail.fn_bajadas_del_piso(:'ubic') r)`;
 correr(
   "T37 · la guarda de 20260929100000 (paso 4): desde la 120200 entra y deja su puerta con las mismas filas para el líder; otra vez no cambia nada; con la puerta o el núcleo parchados aborta y no los pisa; la 120200 después aborta",
-  `${DESHACER_CUADRE}
+  `${DESHACER_POSTERIORES}
 select pg_temp.variante('ZZ-FRE-T37') as v \\gset
 select pg_temp.llega(:'v', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
 select pg_temp.bajada(:'v', 3, :'t0'::timestamptz) as _2 \\gset

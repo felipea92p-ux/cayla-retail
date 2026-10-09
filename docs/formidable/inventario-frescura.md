@@ -95,3 +95,4 @@ real guardada de la base (17 prendas, 2 por decidir; borrada al terminar) a 1440
 |---|---|---|---|---|
 | 2026-10-05 | `ab866fc82` | 4,5 (±1) · ley 1 sin nota | 5 (provisional) | — (primera corrida) |
 | 2026-10-05 | `724dd4172` | sin recalificar | medición parcial, no comparable | 1, 2 y 3 ejecutados; falta la corrida 2 con datos y personas reales |
+| 2026-10-08 | `22accd67` | sin recalificar | sin medir (`tema:auditar` necesita el Chromium de Playwright, no descargado) | ADR-0208 act. 2026-10-07 construido: umbral de evidencia 2, vara de CAYLA de respaldo, tablero por categoría (nivel 1), fila que ejecuta (nivel 2), un solo aviso; falta `/formidable` sobre la pantalla de dos niveles y la corrida 2 con personas reales |
