@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useAireParaLaLista } from "@/components/ui/useAireParaLaLista";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
@@ -69,6 +69,7 @@ export function ComboBuscable<T extends string>({
   crearArriba = false,
   caja = false,
   alEscribir,
+  campoRef,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -98,6 +99,8 @@ export function ComboBuscable<T extends string>({
   caja?: boolean;
   /** Una acción que aparece primera solo cuando lo escrito la pide (ver `OpcionAlEscribir`). */
   alEscribir?: (texto: string) => OpcionAlEscribir | null;
+  /** El input, para quien lo escucha desde afuera (la pistola de Cambios: `usePistola` necesita saber cuál es su campo). */
+  campoRef?: RefObject<HTMLInputElement | null>;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -255,7 +258,10 @@ export function ComboBuscable<T extends string>({
   return (
     <div className={`relative ${className}`}>
       <input
-        ref={input}
+        ref={(el) => {
+          input.current = el;
+          if (campoRef) campoRef.current = el;
+        }}
         id={id}
         role="combobox"
         aria-label={etiquetaAccesible}
