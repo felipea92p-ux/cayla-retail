@@ -141,8 +141,6 @@ const SOLO_PANTALLA = {
     "usan Caja e Historial.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   devoluciones: "crear_devolucion solo mira la sede; devoluciones_select y devoluciones_write son «líder o su sede».",
-  historial:
-    "Módulo de lectura: ventas_select, comprobantes_select, cambios_select y devoluciones_select dejan leer a líder o a la sede, sin preguntar por el módulo.",
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
   recibir: "recibir_lote, recibir_compras y recibir_insumo solo comprueban la sede (fn_puede_operar_ubicacion).",
   produccion:
