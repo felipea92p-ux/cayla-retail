@@ -59,6 +59,14 @@ describe("estadoDelAyudante", () => {
     expect(avisoDelAyudante("comprobando")).toBeNull();
     for (const e of ["sin-ayudante", "desactualizado", "sin-impresora", "sin-chrome"] as const) expect(avisoDelAyudante(e)?.titulo).toBeTruthy();
   });
+  it("lo que se ve es una línea que dice que SÍ se puede imprimir, sin jerga (Formidable 2026-10-09)", () => {
+    for (const e of ["sin-ayudante", "desactualizado", "sin-impresora", "sin-chrome"] as const) {
+      const r = avisoDelAyudante(e)!.resumen;
+      expect(r).toMatch(/^Puedes imprimir igual\./);
+      expect(r).not.toMatch(/Terminal|curl|instalar\.sh|red local/);
+      expect(r.length).toBeLessThanOrEqual(110);
+    }
+  });
   it("un ayudante más viejo que lo que pide la pantalla está desactualizado (ADR-0365)", () => {
     // Una respuesta sin versión cuenta como la 1.
     expect(estadoDelAyudante({ ok: true, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");

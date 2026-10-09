@@ -65,31 +65,37 @@ export function estadoDelAyudante(respuesta: unknown, versionMinima = 1): Estado
   return "listo";
 }
 
-/** Qué decir cuando la Mac no puede imprimir por el ayudante. `null` = puede. */
-export function avisoDelAyudante(estado: EstadoAyudante): { titulo: string; detalle: string } | null {
+/** Qué decir cuando la Mac no puede imprimir por el ayudante. `null` = puede.
+ *  `resumen` es lo único a la vista (Formidable, 2026-10-09): una línea que dice que SÍ se puede imprimir —por el diálogo de
+ *  Chrome— y qué falta para la medida exacta; `titulo` y `detalle`, con la línea de Terminal, van bajo «Ver cómo». */
+export function avisoDelAyudante(estado: EstadoAyudante): { resumen: string; titulo: string; detalle: string } | null {
   switch (estado) {
     case "listo":
     case "comprobando":
       return null;
     case "sin-ayudante":
       return {
+        resumen: "Puedes imprimir igual. Para que salga a la medida exacta, esta Mac necesita un paso único.",
         titulo: "Esta Mac todavía no tiene el ayudante de etiquetas",
         detalle:
           "Sin él, la Mac manda la etiqueta girada y la Brother la saca más larga de lo necesario. Se instala una vez: abre Terminal, pega la línea de abajo y presiona Enter. Si Chrome pregunta por acceso a la red local, elige Permitir.",
       };
     case "desactualizado":
       return {
+        resumen: "Puedes imprimir igual. Para que salga a la medida exacta, esta Mac necesita una actualización de un minuto.",
         titulo: "El ayudante de esta Mac es de una versión anterior",
         detalle:
           "Imprime las etiquetas de precio, pero no conoce el papel de los rótulos. Se actualiza igual que se instaló: abre Terminal, pega la línea de abajo y presiona Enter.",
       };
     case "sin-impresora":
       return {
+        resumen: "Puedes imprimir igual. Para que salga a la medida exacta, falta agregar la Brother a esta Mac.",
         titulo: "El ayudante no encuentra la Brother",
         detalle: "Agrega la impresora en Ajustes del Sistema ▸ Impresoras y escáneres (cable USB conectado y la Brother encendida) y recarga esta página.",
       };
     case "sin-chrome":
       return {
+        resumen: "Puedes imprimir igual. Para que salga a la medida exacta, esta Mac necesita Google Chrome.",
         titulo: "El ayudante necesita Google Chrome",
         detalle: "Instala Google Chrome en Aplicaciones: el ayudante lo usa, sin abrir ventanas, para preparar las etiquetas.",
       };

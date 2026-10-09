@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SignpostBig, X } from "lucide-react";
@@ -71,7 +71,7 @@ export function ImprimirRotulos({
       valor=""
       onValor={(id) => ir([...ids, id])}
       opciones={opciones}
-      marcador={lleno ? "Ya no caben más modelos" : "Agrega un modelo: nombre o código…"} // sugerir-fijo: busca en todo el catálogo, no depende de nada elegido
+      marcador={lleno ? "Ya no caben más modelos" : "Busca un modelo…"} // sugerir-fijo: busca en todo el catálogo, no depende de nada elegido
       caja
       className="w-full sm:max-w-sm"
     />
@@ -114,14 +114,14 @@ export function ImprimirRotulos({
     );
   }
 
+  // El rótulo es el protagonista (Formidable, 2026-10-09): en una columna va justo después de elegir las prendas, antes del aviso
+  // y la nota; desde 1024 px, a la derecha y pegado arriba mientras se baja, como la vista previa de Etiquetas de precio.
   return (
     <div className="space-y-6">
       {cabecera}
-      {avisoMac && (
-        <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: elige el papel «62 mm» de la Brother." />
-      )}
 
-      <section aria-label="Modelos del rótulo" className="space-y-4 rounded-xl border border-sand bg-papel p-4">
+      <div className="grid items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)]">
+      <section aria-label="Modelos del rótulo" className="space-y-4 rounded-xl border border-sand bg-papel p-4 lg:col-start-1">
         <div className="flex flex-wrap items-center gap-2">
           {modelos.map((m) => (
             <span key={m.productoId} className="inline-flex items-center gap-1 rounded-full border border-sand bg-crema py-1 pl-3 pr-1 text-sm text-tinta">
@@ -152,14 +152,14 @@ export function ImprimirRotulos({
         )}
       </section>
 
-      <section aria-label="Vista previa" className="space-y-3">
-        <p className="text-sm text-taupe">Así salen, a tamaño real (100 × 62 mm):</p>
+      <section aria-label="Vista previa" className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1">
+        <p className="text-sm text-taupe">Así salen (100 × 62 mm):</p>
         <div className="flex flex-wrap gap-6">
           {rotulos.map((r) => (
-            <figure key={r.clave} className="space-y-2">
-              <div className="ring-1 ring-sand">
+            <figure key={r.clave} className="w-full max-w-[100mm] space-y-2">
+              <VistaQueCabe>
                 <RotuloAnaquel rotulo={r} />
-              </div>
+              </VistaQueCabe>
               <figcaption className="flex items-center justify-end gap-2 text-sm text-taupe">
                 <label htmlFor={`copias-${r.clave}`}>Copias</label>
                 <input
@@ -178,12 +178,19 @@ export function ImprimirRotulos({
         </div>
       </section>
 
-      <div className="nota-cayla flex flex-wrap items-center justify-between gap-3">
+      {avisoMac && (
+        <div className="lg:col-start-1">
+          <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: elige el papel «62 mm» de la Brother." />
+        </div>
+      )}
+
+      <div className="nota-cayla flex flex-wrap items-center justify-between gap-3 lg:col-start-1">
         <span>
           <b>Sale en el mismo rollo de 62 mm que las etiquetas, cortado cada 100 mm.</b> En Windows, elige el papel «62 mm» de la
           Brother; si sale corto, chico o girado, la guía lo muestra paso a paso.
         </span>
         <BotonGuiaImpresion className="btn-cayla btn-secundario shrink-0" />
+      </div>
       </div>
 
       {montado &&
@@ -197,6 +204,32 @@ export function ImprimirRotulos({
           </div>,
           document.body,
         )}
+    </div>
+  );
+}
+
+/** 100 mm en píxeles de CSS (96 por pulgada): el ancho del rótulo dibujado a tamaño real. */
+const ANCHO_ROTULO_PX = (100 * 96) / 25.4;
+
+/**
+ * La vista previa a tamaño real si cabe; si no (celular, columna angosta), se achica entera para caber, en vez de cortarse a la
+ * derecha (Formidable, 2026-10-09: a 375 px se perdían «CAYLA» y las Copias). Solo la pantalla: la hoja de impresión no pasa por aquí.
+ */
+function VistaQueCabe({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [escala, setEscala] = useState(1);
+  useEffect(() => {
+    const caja = ref.current;
+    if (!caja) return;
+    const medir = new ResizeObserver(([e]) => setEscala(Math.min(1, e.contentRect.width / ANCHO_ROTULO_PX)));
+    medir.observe(caja);
+    return () => medir.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="w-full">
+      <div className="w-fit ring-1 ring-sand" style={{ zoom: escala }}>
+        {children}
+      </div>
     </div>
   );
 }

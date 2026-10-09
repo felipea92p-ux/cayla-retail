@@ -105,8 +105,26 @@ export function useImpresionBrother({
   };
 }
 
-/** Una Mac que todavía no puede imprimir por el ayudante (ADR-0304): qué le falta y, si es el ayudante, la línea para instalarlo. */
-export function AvisoAyudanteMac({ titulo, detalle, instalar, mientras }: { titulo: string; detalle: string; instalar: boolean; mientras: string }) {
+/**
+ * Una Mac que todavía no imprime por el ayudante (ADR-0304). A la vista, UNA línea que dice que sí se puede imprimir (por el
+ * diálogo de Chrome) y qué falta para la medida exacta; el detalle técnico —Terminal y la línea que se pega— vive bajo
+ * «Ver cómo» (Formidable de Rótulos, 2026-10-09: el párrafo entero, arriba de todo, dejaba a la colaboradora con la duda de
+ * si podía imprimir). Lo comparten Etiquetas de precio y Rótulos.
+ */
+export function AvisoAyudanteMac({
+  resumen,
+  titulo,
+  detalle,
+  instalar,
+  mientras,
+}: {
+  resumen: string;
+  titulo: string;
+  detalle: string;
+  instalar: boolean;
+  mientras: string;
+}) {
+  const [abierto, setAbierto] = useState(false);
   const copiar = () =>
     navigator.clipboard.writeText(COMANDO_INSTALAR).then(
       () => avisar.exito("Línea copiada", { detalle: "Pégala en Terminal y presiona Enter." }),
@@ -115,17 +133,27 @@ export function AvisoAyudanteMac({ titulo, detalle, instalar, mientras }: { titu
   return (
     <div role="status" className="nota-cayla space-y-2">
       <p>
-        <b>{titulo}.</b> {detalle}
+        {resumen}{" "}
+        <button type="button" className="btn-cayla btn-enlace" aria-expanded={abierto} onClick={() => setAbierto((a) => !a)}>
+          {abierto ? "Ocultar" : "Ver cómo"}
+        </button>
       </p>
-      {instalar && (
-        <div className="flex flex-wrap items-center gap-2">
-          <code className="select-all break-all rounded bg-papel px-2 py-1 font-mono text-xs text-tinta">{COMANDO_INSTALAR}</code>
-          <button type="button" className="btn-cayla btn-secundario" onClick={copiar}>
-            Copiar
-          </button>
-        </div>
+      {abierto && (
+        <>
+          <p>
+            <b>{titulo}.</b> {detalle}
+          </p>
+          {instalar && (
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="select-all break-all rounded bg-papel px-2 py-1 font-mono text-xs text-tinta">{COMANDO_INSTALAR}</code>
+              <button type="button" className="btn-cayla btn-secundario" onClick={copiar}>
+                Copiar
+              </button>
+            </div>
+          )}
+          <p className="text-xs">{mientras}</p>
+        </>
       )}
-      <p className="text-xs">{mientras}</p>
     </div>
   );
 }

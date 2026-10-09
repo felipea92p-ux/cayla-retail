@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import type { ModeloRotulo } from "@/lib/rotulos-reglas";
+import { ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 /** Un modelo que se puede sumar desde el buscador de la pantalla. */
 export type ModeloElegible = { productoId: string; referencia: string; codigo: string | null; categoria: string | null };
@@ -24,6 +25,9 @@ export async function getRotulos(productoIds: readonly string[]): Promise<{ mode
         .select("id, referencia, codigo, categoria:categorias ( nombre )")
         .eq("estado", "activo")
         .eq("estado_alta", "aprobado")
+        // Solo prendas de verdad: ni la «Prenda sin registrar» de la caja (un producto interno) ni los de prueba.
+        .eq("es_prueba", false)
+        .neq("id", ID_PRODUCTO_CARGO_ESPECIAL)
         .order("referencia")
         .order("id")
         .range(desde, hasta),
@@ -41,7 +45,7 @@ export async function leerModelos(supabase: Awaited<ReturnType<typeof createClie
     await supabase
       .from("productos")
       .select("id, referencia, codigo, categoria:categorias ( nombre ), variantes ( activo, talla:tallas ( valor ), color:colores ( nombre ) )")
-      .in("id", [...productoIds]),
+      .in("id", productoIds.filter((id) => id !== ID_PRODUCTO_CARGO_ESPECIAL)),
     "los modelos de los rótulos",
   );
   const porId = new Map(

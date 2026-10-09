@@ -42,6 +42,15 @@ existen «Piso de venta», «Almacén de tienda» y «Cuarentena» (`sububicacio
 - Inicio de Almacén pasa a siete accesos; Escanear, solo en la última fila, ocupa la fila entera.
 - Las Mac con el ayudante ya instalado tienen que reinstalarlo una vez para imprimir rótulos (la pantalla lo dice).
 
+## Actualización 2026-10-09 (tarde) — Formidable
+
+`/formidable` (informe en `docs/formidable/rotulos.md`) pidió tres cambios y Felipe los aprobó:
+1. **El rótulo primero:** desde 1024 px, dos columnas (a la izquierda qué prendas y cómo salen; a la derecha los rótulos, pegados arriba); en
+   angosto, la vista previa se achica para caber (`VistaQueCabe`, `zoom` medido con `ResizeObserver`). La hoja de impresión no cambia.
+2. **El buscador sin la «Prenda sin registrar»** (`ID_PRODUCTO_CARGO_ESPECIAL`) ni productos `es_prueba`, como las demás lecturas.
+3. **El aviso del ayudante de Mac en una línea** («Puedes imprimir igual…» + «Ver cómo»): `avisoDelAyudante` suma `resumen`, y
+   `AvisoAyudanteMac` esconde el detalle técnico bajo un toque. **Cambia también en Etiquetas de precio**, que comparte el aviso.
+
 ## Verificación
 
 - `lib/rotulos-reglas.test.ts` (13), `lib/mac-etiquetas.test.ts` (versión y medida), `scripts/mac-etiquetas/servidor.prueba.mjs`
