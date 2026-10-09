@@ -21,12 +21,12 @@ function cuando(iso: string) {
 }
 
 /**
- * El aviso al líder de ADR-0186: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
- * escribió quien abrió. «Marcar como revisada» la saca de aquí y de la cola de Inicio (`revisar_apertura_caja`,
- * solo líder). No corrige ningún monto: el efectivo se corrige con un movimiento de caja, como siempre.
+ * El aviso de ADR-0186: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
+ * escribió quien abrió. «Marcar como revisada» la saca de aquí y de la cola de Inicio (`revisar_apertura_caja`:
+ * quien gestiona la caja —líder o módulo Caja, Felipe 2026-10-09—, y solo las de su sede, que es lo único que le muestra la base). No corrige ningún monto: el efectivo se corrige con un movimiento de caja, como siempre.
  *
  * Quién la revisó sale del combo «Responsable» (ADR-0161/0162; Felipe 2026-09-23: TODA acción que guarda lo pide):
- * uno solo encima de la lista, porque cada fila guarda de un clic. Poder revisar lo sigue decidiendo la cuenta (líder).
+ * uno solo encima de la lista, porque cada fila guarda de un clic. Poder revisar lo sigue decidiendo la cuenta, no el responsable.
  */
 export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevisar[] }) {
   const router = useRouter();
