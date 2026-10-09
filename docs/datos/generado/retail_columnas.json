@@ -13681,7 +13681,7 @@
    "column_default": null,
    "column_name": "clienta_celular",
    "data_type": "text",
-   "is_nullable": "NO",
+   "is_nullable": "YES",
    "ordinal_position": 8,
    "table_name": "separaciones",
    "table_schema": "retail"
@@ -15634,6 +15634,89 @@
    "is_nullable": "YES",
    "ordinal_position": 7,
    "table_name": "venta_pagos",
+   "table_schema": "retail"
+  }
+ ],
+ "venta_pagos_correcciones": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "venta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "caja_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "persona_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "terminal_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "antes",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "despues",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "venta_pagos_correcciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "venta_pagos_correcciones",
    "table_schema": "retail"
   }
  ],

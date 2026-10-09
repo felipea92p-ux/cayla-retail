@@ -5436,7 +5436,7 @@
  },
  {
   "conname": "separacion_pedidos_clienta_completa",
-  "definicion": "CHECK ((((clienta_nombres IS NULL) = (clienta_apellidos IS NULL)) AND ((clienta_nombres IS NULL) = (clienta_celular IS NULL))))",
+  "definicion": "CHECK ((((clienta_nombres IS NULL) = (clienta_apellidos IS NULL)) AND ((clienta_celular IS NULL) OR (clienta_nombres IS NOT NULL))))",
   "tabla": "retail.separacion_pedidos"
  },
  {
@@ -6438,6 +6438,36 @@
   "conname": "venta_pagos_venta_id_fkey",
   "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
   "tabla": "retail.venta_pagos"
+ },
+ {
+  "conname": "venta_pagos_correcciones_caja_id_fkey",
+  "definicion": "FOREIGN KEY (caja_id) REFERENCES retail.cajas(id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_motivo_check",
+  "definicion": "CHECK (((motivo IS NULL) OR ((length(btrim(motivo)) >= 1) AND (length(btrim(motivo)) <= 200))))",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_terminal_id_fkey",
+  "definicion": "FOREIGN KEY (terminal_id) REFERENCES retail.terminales(id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.venta_pagos_correcciones"
  },
  {
   "conname": "trg_actividad_venta_nueva",
