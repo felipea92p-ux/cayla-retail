@@ -1,0 +1,125 @@
+/**
+ * Precio propio por sede (Felipe 2026-10-09; base: `20261010100000_precio_propio_por_sede.sql`).
+ *
+ * Una tienda puede vender una prenda a otro precio que las demás. No es un descuento ni un recargo: es EL precio de esa
+ * tienda, y el cliente ve uno solo. Este archivo es la parte pura de la ficha (leer el monto, cuánto se aleja del general,
+ * qué falta para guardar, «desde hace N días»). La regla de cuál precio vale en cada tienda vive en la base
+ * (`fn_precio_en_sede`).
+ */
+
+import type { CampoDeGuia } from "./guia-campos";
+
+/** Una sede con precio propio, como la devuelve `fn_precios_sede_producto`. */
+export type PrecioDeSede = {
+  ubicacionId: string;
+  sede: string;
+  precio: number;
+  variantes: number;
+  desde: string;
+  motivo: string;
+  creadoPor: string | null;
+};
+
+export type FilaPrecioSede = {
+  ubicacion_id: string;
+  sede: string;
+  precio: number | string;
+  variantes: number;
+  desde: string;
+  motivo: string;
+  creado_por_nombre: string | null;
+};
+
+export function leerPreciosDeSede(filas: readonly FilaPrecioSede[] | null | undefined): PrecioDeSede[] {
+  return (filas ?? []).map((f) => ({
+    ubicacionId: f.ubicacion_id,
+    sede: f.sede,
+    precio: Number(f.precio),
+    variantes: f.variantes,
+    desde: f.desde,
+    motivo: f.motivo,
+    creadoPor: f.creado_por_nombre,
+  }));
+}
+
+/** Por encima de esta diferencia con el general, la hoja pregunta «¿seguro?» (no bloquea; Felipe 2026-10-09). */
+export const AVISO_DIFERENCIA = 0.3;
+
+/** El monto como lo escribe una persona: «129,90», «S/ 129.90», «129». Nada válido → null. */
+export function leerMonto(texto: string): number | null {
+  const limpio = texto.replace(/s\/?/gi, "").replace(/\s/g, "").replace(",", ".");
+  if (limpio === "" || !/^\d+(\.\d{1,2})?$/.test(limpio)) return null;
+  const n = Number(limpio);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+}
+
+export const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+
+/** Cuánto se aleja un precio del general, en fracción (0,1 = 10 % más; −0,1 = 10 % menos). Sin general → null. */
+export function diferencia(precio: number, general: number | null): number | null {
+  if (general === null || general <= 0) return null;
+  return (precio - general) / general;
+}
+
+/** «S/ 10.00 más que el general (+8 %)», «S/ 5.00 menos que el general (−4 %)», «igual que el general». */
+export function fraseDiferencia(precio: number, general: number | null): string | null {
+  const d = diferencia(precio, general);
+  if (d === null || general === null) return null;
+  const monto = Math.abs(precio - general);
+  if (monto < 0.005) return "igual que el general";
+  const pct = Math.round(Math.abs(d) * 100);
+  return `${soles(monto)} ${precio > general ? "más" : "menos"} que el general (${precio > general ? "+" : "−"}${pct} %)`;
+}
+
+/** ¿Tan lejos del general que vale la pena preguntar si no es un error de tipeo? */
+export function muyLejos(precio: number | null, general: number | null): boolean {
+  if (precio === null) return false;
+  const d = diferencia(precio, general);
+  return d !== null && Math.abs(d) > AVISO_DIFERENCIA;
+}
+
+/** «hoy», «desde ayer», «desde hace 3 días», «desde hace 2 meses». */
+export function desdeHace(iso: string, ahora: Date = new Date()): string {
+  const dias = Math.floor((inicioDelDia(ahora) - inicioDelDia(new Date(iso))) / 86_400_000);
+  if (dias <= 0) return "desde hoy";
+  if (dias === 1) return "desde ayer";
+  if (dias < 60) return `desde hace ${dias} días`;
+  return `desde hace ${Math.floor(dias / 30)} meses`;
+}
+const inicioDelDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** Las tiendas donde esta cuenta puede poner precio y todavía no hay uno propio. */
+export function tiendasLibres<T extends { id: string }>(tiendas: readonly T[], precios: readonly PrecioDeSede[]): T[] {
+  const tomadas = new Set(precios.map((p) => p.ubicacionId));
+  return tiendas.filter((t) => !tomadas.has(t.id));
+}
+
+/** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
+export function camposPonerPrecio(h: {
+  tiendaId: string | null;
+  monto: string;
+  general: number | null;
+  motivo: string;
+  responsableListo: boolean;
+  responsableMotivo: string | null;
+}): CampoDeGuia[] {
+  const precio = leerMonto(h.monto);
+  const igual = precio !== null && h.general !== null && Math.abs(precio - h.general) < 0.005;
+  return [
+    { id: "tienda", nombre: "Tienda", requerido: true, hecho: h.tiendaId !== null, pendiente: "Elige la tienda." },
+    {
+      id: "precio",
+      nombre: "Precio en esta tienda",
+      requerido: true,
+      hecho: precio !== null && !igual,
+      pendiente: igual ? "Ese ya es el precio general: escribe otro." : "Escribe el precio de esta tienda.",
+    },
+    { id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo.trim().length >= 3, pendiente: "Escribe por qué esta tienda tiene otro precio." },
+    { id: "responsable", nombre: "Quién lo cambia", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo cambia." },
+  ];
+}
+
+/** La hoja «Quitar el precio de …»: solo quién (el motivo es opcional). */
+export function camposQuitarPrecio(h: { responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
+  return [{ id: "responsable", nombre: "Quién lo quita", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo quita." }];
+}

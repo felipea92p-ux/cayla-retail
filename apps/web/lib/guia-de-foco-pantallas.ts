@@ -235,6 +235,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": PENDIENTE, // 18 controles
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
+  "components/ficha-producto/PrecioSedeModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/PrecioSedeModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/plan-compra/PlanCategoriaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlanCategoriaModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
