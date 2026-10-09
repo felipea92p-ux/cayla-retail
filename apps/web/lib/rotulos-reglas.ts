@@ -5,28 +5,26 @@
  *
  * Desde la prueba en la tienda (Felipe, 2026-10-09, foto): sale en el MISMO papel que la etiqueta de precio (62 × 40,1 mm,
  * acostado), porque la Brother ya está configurada así y cambiar a 62 × 100 era un paso de más; y lleva el nombre lo más grande
- * que entra, la marca y el proveedor (para identificarlo mejor que con los colores, Felipe 2026-10-09) y las tallas.
+ * que entra, la marca («Marca: Mias», en vez de los colores y sin el proveedor, Felipe 2026-10-09) y las tallas.
  *
  * Lógica pura: qué dice cada rótulo, de qué tamaño va el nombre para que quepa, y los enlaces de ida y vuelta.
  */
 import { ordenTalla } from "./catalogo-grupos";
 import { conDesde, desdeSeguro } from "./vuelta-productos";
 
-/** Un modelo, con lo que el rótulo dice de él: su marca, su proveedor habitual y sus tallas ACTIVAS. */
+/** Un modelo, con lo que el rótulo dice de él: su marca y sus tallas ACTIVAS. */
 export type ModeloRotulo = {
   productoId: string;
   referencia: string;
   marca: string | null;
-  proveedor: string | null;
   tallas: string[];
 };
 
-/** Un rótulo impreso: los nombres grandes, y las marcas, proveedores y tallas de todos juntos, sin repetir. */
+/** Un rótulo impreso: los nombres grandes, y las marcas y tallas de todos juntos, sin repetir. */
 export type Rotulo = {
   clave: string;
   modelos: string[];
   marcas: string[];
-  proveedores: string[];
   tallas: string[];
 };
 
@@ -50,7 +48,6 @@ function unRotulo(modelos: readonly ModeloRotulo[]): Rotulo {
     clave: modelos.map((m) => m.productoId).join("+"),
     modelos: modelos.map((m) => m.referencia.trim()),
     marcas: unicos(modelos.flatMap((m) => (m.marca ? [m.marca] : []))),
-    proveedores: unicos(modelos.flatMap((m) => (m.proveedor ? [m.proveedor] : []))),
     tallas: unicos(modelos.flatMap((m) => m.tallas)).sort(ordenTalla),
   };
 }
@@ -71,8 +68,9 @@ function unicos(valores: readonly string[]): string[] {
 
 /** El papel (62 × 40,1 mm) menos el margen de 2,5 mm por lado: el ancho de una línea del nombre. */
 export const ANCHO_NOMBRE_MM = 57;
-/** El alto que le queda al nombre después de la marca y el proveedor (una línea cada uno) y las tallas. Medido en `app/estilos/rotulo.css`. */
-export const ALTO_NOMBRE_MM = 19.5;
+/** El alto que le queda al nombre después de la marca (una línea) y las tallas. Medido en `app/estilos/rotulo.css`: 35,1 mm útiles
+ *  − 3,9 de la marca − 4,8 de las tallas − 2 × 1,2 de separación = 24 mm; 23,5 deja medio milímetro de aire. */
+export const ALTO_NOMBRE_MM = 23.5;
 /** Ni una palabra corta («MIA») pasa de aquí: más grande ya no se lee mejor y se come el aire del rótulo. */
 export const MAX_NOMBRE_MM = 14;
 /** Interlineado del nombre (`line-height` en la hoja): las mayúsculas no tienen descendentes. */

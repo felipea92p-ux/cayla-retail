@@ -22,28 +22,26 @@ const ID_B = "00000000-0000-4000-8000-00000000000b";
 
 const modelo = (m: Partial<ModeloRotulo> & { productoId: string; referencia: string }): ModeloRotulo => ({
   marca: null,
-  proveedor: null,
   tallas: [],
   ...m,
 });
 
-const valeria = modelo({ productoId: ID_A, referencia: "Chaleco Valeria", marca: "CAYLA", proveedor: "Textiles Andina", tallas: ["L", "S", "M"] });
-const mia = modelo({ productoId: ID_B, referencia: "Chaleco Mia", marca: "CAYLA", proveedor: "Confecciones Sol", tallas: ["XL", "M"] });
+const valeria = modelo({ productoId: ID_A, referencia: "Chaleco Valeria", marca: "Mias", tallas: ["L", "S", "M"] });
+const mia = modelo({ productoId: ID_B, referencia: "Chaleco Mia", marca: "Mias", tallas: ["XL", "M"] });
 
 describe("armarRotulos", () => {
   it("uno por modelo, en el orden elegido", () => {
     const r = armarRotulos([valeria, mia], false);
     expect(r.map((x) => x.modelos)).toEqual([["Chaleco Valeria"], ["Chaleco Mia"]]);
-    expect(r[0]).toMatchObject({ marcas: ["CAYLA"], proveedores: ["Textiles Andina"], tallas: ["S", "M", "L"] });
+    expect(r[0]).toMatchObject({ marcas: ["Mias"], tallas: ["S", "M", "L"] });
   });
-  it("juntos: un rótulo, con marcas, proveedores y tallas sin repetir (el «CHALECO VALERIA MIA» a mano)", () => {
+  it("juntos: un rótulo, con marcas y tallas sin repetir (el «CHALECO VALERIA MIA» a mano)", () => {
     const [r, ...resto] = armarRotulos([valeria, mia], true);
     expect(resto).toEqual([]);
     expect(r).toEqual({
       clave: `${ID_A}+${ID_B}`,
       modelos: ["Chaleco Valeria", "Chaleco Mia"],
-      marcas: ["CAYLA"],
-      proveedores: ["Textiles Andina", "Confecciones Sol"],
+      marcas: ["Mias"],
       tallas: ["S", "M", "L", "XL"],
     });
   });
@@ -51,12 +49,10 @@ describe("armarRotulos", () => {
     expect(armarRotulos([valeria], true)).toEqual(armarRotulos([valeria], false));
     expect(armarRotulos([], true)).toEqual([]);
   });
-  it("una marca o un proveedor repetido con otra mayúscula o espacios cuenta una vez; sin marca, no se inventa", () => {
-    const otro = modelo({ productoId: ID_B, referencia: "Mia", marca: " cayla ", proveedor: null });
-    const [r] = armarRotulos([valeria, otro], true);
-    expect(r.marcas).toEqual(["CAYLA"]);
-    expect(r.proveedores).toEqual(["Textiles Andina"]);
-    expect(armarRotulos([modelo({ productoId: ID_A, referencia: "Mia" })], false)[0]).toMatchObject({ marcas: [], proveedores: [] });
+  it("una marca repetida con otra mayúscula o espacios cuenta una vez; distintas, las dos; sin marca, no se inventa", () => {
+    expect(armarRotulos([valeria, modelo({ productoId: ID_B, referencia: "Mia", marca: " mias " })], true)[0].marcas).toEqual(["Mias"]);
+    expect(armarRotulos([valeria, modelo({ productoId: ID_B, referencia: "Mia", marca: "Zara" })], true)[0].marcas).toEqual(["Mias", "Zara"]);
+    expect(armarRotulos([modelo({ productoId: ID_A, referencia: "Mia" })], false)[0]).toMatchObject({ marcas: [] });
   });
 });
 

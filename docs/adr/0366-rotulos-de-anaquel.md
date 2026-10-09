@@ -81,6 +81,14 @@ se sabría cuál es cuál). El proveedor es el habitual del modelo (`productos.p
 juntos, los distintos se separan con «/»; si un modelo no tiene marca o proveedor, esa línea no sale. Si no cabe, «…» al final: el
 nombre no pierde tamaño (usa las mismas 2 líneas que tenían los colores).
 
+## Actualización 2026-10-09 (noche, c) — solo la marca, y el rótulo desde la vista rápida
+
+Felipe: «que solo salga la marca, el proveedor no ("Marca: Mias")» y «que se pueda imprimir el rótulo desde el modal del producto».
+1. La línea dice **«Marca: Mias»** (con varias marcas juntas, «Marca: Mias / Zara»); sin marca, no sale. El proveedor ya no se lee ni se
+   imprime. La línea que se liberó vuelve al nombre: `ALTO_NOMBRE_MM` pasa de 19,5 a 23,5 mm («Body Bonita» sube de 9,1 a 11 mm).
+2. La **vista rápida del producto** (Catálogo ▸ Productos) lleva «Rótulo» junto a «Etiquetas»: abre los rótulos con ese modelo, y
+   «Volver» regresa a Productos. Es del modelo, no de las tallas elegidas, y no depende del stock.
+
 ## Verificación
 
 - `lib/rotulos-reglas.test.ts` (13), `lib/mac-etiquetas.test.ts` (versión y medida), `scripts/mac-etiquetas/servidor.prueba.mjs`

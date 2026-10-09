@@ -3,8 +3,8 @@
    vez del papel escrito a plumón. Brother QL-1110NWB, rollo DK-22205: el MISMO papel que la etiqueta de precio (62 × 40,1 mm),
    pero acostado —el rótulo mide 62 de ancho por 40,1 de alto y se lee a lo ancho del rollo— (Felipe, 2026-10-09, tras imprimir
    los de 62 × 100: la Brother ya está configurada con el papel de la etiqueta y cambiarlo era un paso de más).
-   Nombre, marca, proveedor y tallas: el nombre lleva su `font-size` en línea, calculado por `medidaNombre` (lib/rotulos-reglas.ts)
-   para el alto y el ancho que quedan aquí (57 × 19,5 mm). Si cambias un margen, cambia ANCHO_NOMBRE_MM / ALTO_NOMBRE_MM.
+   Nombre, marca y tallas: el nombre lleva su `font-size` en línea, calculado por `medidaNombre` (lib/rotulos-reglas.ts)
+   para el alto y el ancho que quedan aquí (57 × 23,5 mm). Si cambias un margen, cambia ANCHO_NOMBRE_MM / ALTO_NOMBRE_MM.
    TODO en milímetros (es papel) y solo negro sobre blanco: la térmica no imprime otro color, por eso aquí sí va #000/#fff
    literal, igual que la etiqueta de precio (globals.css). Trazo mínimo 0,2 mm: el texto chico va en 600 o 700.
    ================================================================== */
@@ -24,7 +24,7 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* El nombre ocupa todo el aire que dejan marca, proveedor y tallas, centrado en él. El navegador corta las líneas igual que el cálculo
+  /* El nombre ocupa todo el aire que dejan la marca y las tallas, centrado en él. El navegador corta las líneas igual que el cálculo
      (palabra entera que no cabe, baja); `overflow-wrap` es solo la red por si una palabra sola no entrara. */
   .rot-nombre {
     flex: 1 1 auto;
@@ -40,25 +40,16 @@
   .rot-nombre > span {
     width: 100%;
   }
-  /* Marca y proveedor: una línea cada uno (las dos que el cálculo del nombre les reserva); si no cabe, «…» al final. */
-  .rot-datos {
+  /* «Marca: Mias»: una línea (la que el cálculo del nombre le reserva); si no cabe, «…» al final. */
+  .rot-marca {
     flex: none;
-  }
-  .rot-dato {
     margin: 0;
-    font-size: 3.1mm;
+    font-size: 3.4mm;
     font-weight: 600;
     line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .rot-dato b {
-    font-size: 2.4mm;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-right: 1mm;
   }
   .rot-tallas {
     flex: none;

@@ -7,7 +7,7 @@ import { ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 export type ModeloElegible = { productoId: string; referencia: string; codigo: string | null; categoria: string | null };
 
 /**
- * Lo que necesita la pantalla de rótulos (ADR-0366): los modelos pedidos por la URL, con su marca, su proveedor y sus tallas activas, y
+ * Lo que necesita la pantalla de rótulos (ADR-0366): los modelos pedidos por la URL, con su marca y sus tallas activas, y
  * el catálogo de modelos activos para el buscador «Agregar un modelo». Solo lee: un rótulo no escribe nada en la base.
  * Las tallas son las del MODELO, no las del stock de la sede: el anaquel guarda el modelo, y una talla que hoy no
  * hay en el almacén va al mismo lugar cuando llegue.
@@ -44,7 +44,7 @@ export async function leerModelos(supabase: Awaited<ReturnType<typeof createClie
   const filas = exigir(
     await supabase
       .from("productos")
-      .select("id, referencia, marca:marcas ( nombre ), proveedor:proveedores ( nombre ), variantes ( activo, talla:tallas ( valor ) )")
+      .select("id, referencia, marca:marcas ( nombre ), variantes ( activo, talla:tallas ( valor ) )")
       .in("id", productoIds.filter((id) => id !== ID_PRODUCTO_CARGO_ESPECIAL)),
     "los modelos de los rótulos",
   );
@@ -56,10 +56,7 @@ export async function leerModelos(supabase: Awaited<ReturnType<typeof createClie
         {
           productoId: p.id,
           referencia: p.referencia,
-          // El proveedor HABITUAL del modelo (`productos.proveedor_id`); quién trajo cada lote vive en `lotes`. Si la cuenta no puede
-          // leer proveedores (RLS), llega vacío y la línea no sale: el rótulo se imprime igual.
           marca: p.marca?.nombre ?? null,
-          proveedor: p.proveedor?.nombre ?? null,
           tallas: activas.flatMap((v) => (v.talla?.valor ? [v.talla.valor] : [])),
         } satisfies ModeloRotulo,
       ] as const;

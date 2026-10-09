@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2 } from "lucide-react";
+import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -10,6 +10,7 @@ import type { StockDeModelo } from "@/components/useStockEnSede";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { corta, hrefEnExistencias, lineasDeStock, type ExistenciasProducto } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
@@ -271,6 +272,12 @@ export function VistaRapidaProducto({
               {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
             </span>
           </EnlaceEtiquetas>
+          {/* El rótulo del anaquel de este modelo (ADR-0366; Felipe 2026-10-09: «que se pueda imprimir desde el modal del producto»). Es del
+              MODELO, no de las tallas elegidas, y no depende del stock: va siempre. «Volver» regresa a esta misma vista de Productos. */}
+          <Link href={urlRotulos([producto.productoId], { productos: pantalla }) ?? "/rotulos"} className={BOTON}>
+            <SignpostBig aria-hidden className="h-4 w-4" />
+            Rótulo
+          </Link>
           {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
           <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial>
             <History aria-hidden className="h-4 w-4" />
