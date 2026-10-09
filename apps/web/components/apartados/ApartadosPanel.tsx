@@ -76,7 +76,9 @@ export function ApartadosPanel(props: Props) {
   const pestañas: { id: Vista; etiqueta: string; icono: React.ReactNode; insignia?: number }[] = [
     { id: "apartar", etiqueta: "Apartar", icono: <Bookmark className="h-5 w-5" aria-hidden /> },
     { id: "entregar", etiqueta: "Entregar", icono: <ShoppingBag className="h-5 w-5" aria-hidden /> },
-    { id: "todos", etiqueta: "Todos", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
+    // «Historial» (ADR-0367, Felipe 2026-10-09: «debe haber un apartado donde se vea el historial»): la lista de todos los
+    // apartados de la tienda, con su ticket para reimprimir. La clave sigue siendo «todos».
+    { id: "todos", etiqueta: "Historial", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
   ];
 
   // Pestañas, «Opciones» y avisos, pegados a la izquierda (Felipe, 2026-09-26, spike
@@ -120,12 +122,12 @@ export function ApartadosPanel(props: Props) {
           {props.liberadosAhora > 0 && (
             <p className="text-rojo-profundo">
               {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
-              la prenda volvió al stock y falta devolver el adelanto (ver «Todos»).
+              la prenda volvió al stock y falta devolver el adelanto (ver «Historial»).
             </p>
           )}
           {props.hayMas && (
             <p className="text-tinta/70">
-              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras de «Todos» sí los cuentan.
+              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras del Historial sí los cuentan.
             </p>
           )}
           {!props.cajaAbierta && <p className="text-ambar-profundo">No hay caja abierta en {props.ubicacionEtiqueta}: para apartar o entregar, primero abre la caja.</p>}
