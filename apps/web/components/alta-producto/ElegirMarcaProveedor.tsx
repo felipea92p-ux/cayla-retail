@@ -6,7 +6,7 @@ import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/N
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { proveedoresDeMarca, sugerenciasDeCategoria, type MarcaConProveedores, type MarcaOpcion, type ParejaUso, type ProveedorOpcion, type Vinculo } from "@/lib/marcas";
-import { alElegirMarca, alElegirProveedor, opcionesDeMarca, opcionesDeProveedor, type CambioDePareja, type ParejaElegida } from "@/lib/marca-proveedor-reglas";
+import { alElegirMarca, alElegirProveedor, opcionesDeMarca, opcionesDeProveedor, queVaciar, type CambioDePareja, type ParejaElegida, type VaciarCampos } from "@/lib/marca-proveedor-reglas";
 
 // Elegir DE QUIÉN es un producto: marca y proveedor (ADR-0109). Una marca la pueden traer varios proveedores (raro, pero pasa
 // con accesorios y chompas importadas), así que son dos datos con una regla: si hay LOS DOS, el proveedor tiene que traer esa
@@ -168,6 +168,25 @@ export function ElegirMarcaProveedor({
     emitir({ marcaId: r.marcaId, proveedorId: r.proveedorId }, { marca: r.marcaNombre, proveedor: r.proveedorNombre });
   }
 
+  // «Dejar sin …» (2026-10-09): quien escribe «sin proveedor», «ninguno» o «-» no busca un nombre, quiere dejarlo vacío. Se
+  // ofrece en vez de «+ Registrar «sin proveedor»» (así nació la marca de relleno «SIN PROVEEDOR»). Solo con campos opcionales.
+  function dejarVacio(v: VaciarCampos) {
+    const nombres = (cs: readonly string[]) => (cs.length === 2 ? "marca y proveedor" : cs[0]);
+    if (!v.marca && !v.proveedor) {
+      setNota(`Este producto ya tenía ${nombres(v.bloqueado)}: no se puede dejar vacío. Busca ${v.bloqueado.length === 2 ? "los correctos" : v.bloqueado[0] === "marca" ? "la correcta" : "el correcto"} por su nombre.`);
+      return;
+    }
+    setNota(v.bloqueado.length > 0 ? `${v.bloqueado[0] === "marca" ? "La marca ya estaba guardada y se queda" : "El proveedor ya estaba guardado y se queda"}; el ${v.marca ? "campo Marca" : "campo Proveedor"} quedó vacío.` : null);
+    emitir({ marcaId: v.marca ? "" : marcaId, proveedorId: v.proveedor ? "" : proveedorId });
+  }
+  const alEscribir = (campo: "marca" | "proveedor") =>
+    opcional
+      ? (t: string) => {
+          const v = queVaciar(t, campo, guardado);
+          return v ? { texto: v.texto, detalle: v.detalle, onElegir: () => dejarVacio(v) } : null;
+        }
+      : undefined;
+
   // ---------- registrar marca o proveedor sin salir ----------
   if (creando) {
     return (
@@ -226,6 +245,7 @@ export function ElegirMarcaProveedor({
             valor={marcaId}
             onValor={elegirMarca}
             opciones={opcionesMarca}
+            alEscribir={alEscribir("marca")}
             crearArriba
             crear={crear((q) => (q ? `+ Registrar «${q}» como marca nueva` : "+ Registrar una marca o un proveedor nuevo"))}
           />
@@ -249,6 +269,7 @@ export function ElegirMarcaProveedor({
             valor={proveedorId}
             onValor={elegirProveedor}
             opciones={opcionesProv}
+            alEscribir={alEscribir("proveedor")}
             crearArriba
             crear={crear((q) => (q ? `+ Registrar «${q}» como proveedor nuevo` : "+ Registrar una marca o un proveedor nuevo"))}
           />

@@ -6,6 +6,8 @@ import {
   opcionesDeProveedor,
   ordenarPorNombre,
   parejaYaExiste,
+  pideDejarVacio,
+  queVaciar,
   problemaAlEditar,
   registroListo,
   textoLoQueFalta,
@@ -199,5 +201,42 @@ describe("textoLoQueFalta", () => {
     expect(textoLoQueFalta(null, "Jacard")).toBe("Sin marca");
     expect(textoLoQueFalta("CAYLA", "")).toBe("Sin proveedor");
     expect(textoLoQueFalta("CAYLA", "Jacard")).toBeNull();
+  });
+});
+
+describe("pideDejarVacio («sin proveedor» no es un nombre, 2026-10-09)", () => {
+  it("reconoce las formas de decir «no hay»", () => {
+    for (const t of ["SIN PROVEEDOR", "sin marca", "Sin marca ni proveedor", "  sin  ", "-", "--", ".", "?", "x", "s/m", "S/P", "N/A", "na", "ninguno", "Ninguna", "Ningún proveedor", "nada", "no tiene", "no sé", "vacío", "por definir", "desconocido"])
+      expect(pideDejarVacio(t), t).toBe(true);
+  });
+  it("no toca nombres de verdad (los del catálogo de producción incluidos)", () => {
+    for (const t of ["", "CAYLA", "Sin Límites", "Sinfonía", "Nada Igual Store", "Xiomara", "3.20 Store", "y.j.j", "Y.J.J", "Ivanana", "Sol y Luna", "Moda Mia", "Novata Brand", "Industrias GC SAC", "NA-KD"])
+      expect(pideDejarVacio(t), t).toBe(false);
+  });
+  it("registroListo no deja registrar una marca o un proveedor así", () => {
+    expect(registroListo({ nombre: "SIN PROVEEDOR", existe: false }, { tipo: "existente", nombre: "Jacard" })).toBe(false);
+    expect(registroListo({ nombre: "Aurora", existe: false }, { tipo: "nuevo", razonSocial: "-" })).toBe(false);
+    expect(registroListo({ nombre: "Aurora", existe: false }, { tipo: "nuevo", razonSocial: "Textil Andina SAC" })).toBe(true);
+  });
+});
+
+describe("queVaciar («Dejar sin …», 2026-10-09)", () => {
+  const vacio = { marcaId: "", proveedorId: "" };
+  it("nada si lo escrito es un nombre", () => {
+    expect(queVaciar("Kysem", "marca", vacio)).toBeNull();
+  });
+  it("vacía el campo donde se escribió", () => {
+    expect(queVaciar("ninguno", "proveedor", vacio)).toMatchObject({ marca: false, proveedor: true, texto: "Dejar sin proveedor", bloqueado: [] });
+    expect(queVaciar("-", "marca", vacio)).toMatchObject({ marca: true, proveedor: false, texto: "Dejar sin marca" });
+  });
+  it("«sin proveedor» escrito en Marca (lo que pasó) o «sin marca ni proveedor» vacían los dos", () => {
+    expect(queVaciar("SIN PROVEEDOR", "marca", vacio)).toMatchObject({ marca: true, proveedor: true, texto: "Dejar sin marca ni proveedor" });
+    expect(queVaciar("sin marca ni proveedor", "proveedor", vacio)).toMatchObject({ marca: true, proveedor: true });
+    expect(queVaciar("s/m", "proveedor", vacio)).toMatchObject({ marca: true, proveedor: true });
+  });
+  it("al editar, lo ya guardado no se vacía y la opción lo dice", () => {
+    const guardado = { marcaId: "m-x", proveedorId: "p-x" };
+    expect(queVaciar("sin proveedor", "marca", guardado)).toMatchObject({ marca: false, proveedor: false, bloqueado: ["marca", "proveedor"], texto: "No se puede dejar sin marca ni proveedor" });
+    expect(queVaciar("sin proveedor", "marca", { marcaId: "m-x", proveedorId: "" })).toMatchObject({ marca: false, proveedor: true, texto: "Dejar sin proveedor", detalle: "la marca ya estaba guardada y se queda" });
   });
 });
