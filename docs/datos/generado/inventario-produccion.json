@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-10-06T17:05:31.447772+00:00",
-  "funciones_en_produccion": 906,
+  "leido_en": "2026-10-09T15:38:21.714417+00:00",
+  "funciones_en_produccion": 917,
   "tablas": [
     {
       "esquema": "retail",
@@ -56,7 +56,7 @@
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1083,
+      "filas_estimadas": 1603,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -625,7 +625,7 @@
       "tabla": "ajustes_inventario_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 139,
+      "filas_estimadas": 217,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1102,7 +1102,7 @@
       "tabla": "bajada_piso_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 311,
+      "filas_estimadas": 476,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1261,7 +1261,7 @@
       "tabla": "bajadas_piso",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 182,
+      "filas_estimadas": 291,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1365,7 +1365,7 @@
       "tabla": "caja_movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 8,
+      "filas_estimadas": 13,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1540,7 +1540,7 @@
       "tabla": "caja_traslados",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 8,
+      "filas_estimadas": 11,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1670,7 +1670,7 @@
       "tabla": "cajas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 31,
+      "filas_estimadas": 36,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1922,7 +1922,7 @@
       "tabla": "cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1,
+      "filas_estimadas": 3,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2625,7 +2625,7 @@
       "tabla": "categoria_tallas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 233,
+      "filas_estimadas": 234,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2710,7 +2710,7 @@
       "tabla": "categoria_tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 182,
+      "filas_estimadas": 187,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -3173,7 +3173,7 @@
       "tabla": "clientas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 25,
+      "filas_estimadas": 34,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4791,7 +4791,7 @@
       "tabla": "codigos_barras",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 918,
+      "filas_estimadas": 1079,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4894,7 +4894,7 @@
       "tabla": "codigos_correlativos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 29,
+      "filas_estimadas": 30,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -5166,7 +5166,7 @@
       "tabla": "colaboradores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 25,
+      "filas_estimadas": 26,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -5334,7 +5334,7 @@
       "tabla": "colaboradores_historial",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 57,
+      "filas_estimadas": 61,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -8148,7 +8148,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 235,
+      "filas_estimadas": 410,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -9850,7 +9850,7 @@
       "tabla": "configuracion_historial",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 26,
+      "filas_estimadas": 28,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13039,10 +13039,138 @@
     },
     {
       "esquema": "retail",
-      "tabla": "gastos",
+      "tabla": "frescura_vara_cayla",
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "categoria_id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "calculada_en",
+          "orden": 2,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "tiendas",
+          "orden": 3,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ventana_dias",
+          "orden": 4,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "vendidas",
+          "orden": 5,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "unidades",
+          "orden": 6,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nivel",
+          "orden": 7,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "observaciones",
+          "orden": 8,
+          "tipo": "jsonb",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "frescura_vara_cayla_categoria_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)"
+        },
+        {
+          "nombre": "frescura_vara_cayla_cifras",
+          "clase": "regla",
+          "definicion": "CHECK (((vendidas >= (0)::numeric) AND (unidades >= vendidas)))"
+        },
+        {
+          "nombre": "frescura_vara_cayla_nivel",
+          "clase": "regla",
+          "definicion": "CHECK (((nivel IS NULL) OR (nivel = ANY (ARRAY['pocos_datos'::text, 'aceptable'::text, 'solido'::text]))))"
+        },
+        {
+          "nombre": "frescura_vara_cayla_observaciones_lista",
+          "clase": "regla",
+          "definicion": "CHECK ((jsonb_typeof(observaciones) = 'array'::text))"
+        },
+        {
+          "nombre": "frescura_vara_cayla_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (categoria_id)"
+        },
+        {
+          "nombre": "frescura_vara_cayla_tiendas",
+          "clase": "regla",
+          "definicion": "CHECK ((tiendas >= 1))"
+        },
+        {
+          "nombre": "frescura_vara_cayla_ventana",
+          "clase": "regla",
+          "definicion": "CHECK ((ventana_dias = ANY (ARRAY[30, 60, 90, 120])))"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "frescura_vara_cayla_pkey",
+          "definicion": "CREATE UNIQUE INDEX frescura_vara_cayla_pkey ON retail.frescura_vara_cayla USING btree (categoria_id)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "gastos",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 1,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13978,10 +14106,77 @@
     },
     {
       "esquema": "retail",
+      "tabla": "guias_vistas",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "quien",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "guia",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ofrecida_en",
+          "orden": 3,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "completada_en",
+          "orden": 4,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "guias_vistas_guia_check",
+          "clase": "regla",
+          "definicion": "CHECK ((guia ~ '^[a-z0-9][a-z0-9._-]{0,79}$'::text))"
+        },
+        {
+          "nombre": "guias_vistas_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (quien, guia)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "guias_vistas_pkey",
+          "definicion": "CREATE UNIQUE INDEX guias_vistas_pkey ON retail.guias_vistas USING btree (quien, guia)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "historial_producto_cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 286,
+      "filas_estimadas": 541,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14642,7 +14837,7 @@
       "tabla": "lotes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1,
+      "filas_estimadas": 2,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14786,7 +14981,7 @@
       "tabla": "marca_proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 88,
+      "filas_estimadas": 90,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14862,7 +15057,7 @@
       "tabla": "marcas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 87,
+      "filas_estimadas": 89,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15336,7 +15531,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1274,
+      "filas_estimadas": 1858,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16145,7 +16340,7 @@
       "tabla": "movimientos_internos_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 5,
+      "filas_estimadas": 22,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16216,6 +16411,78 @@
         {
           "nombre": "movimientos_internos_intentos_pkey",
           "definicion": "CREATE UNIQUE INDEX movimientos_internos_intentos_pkey ON retail.movimientos_internos_intentos USING btree (token_cliente)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "parametros_analisis",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 1,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "true",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "liquidar_desde",
+          "orden": 2,
+          "tipo": "smallint",
+          "acepta_vacio": false,
+          "por_defecto": "60",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "actualizado_por",
+          "orden": 3,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "actualizado_en",
+          "orden": 4,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "parametros_analisis_liquidar_desde_rango",
+          "clase": "regla",
+          "definicion": "CHECK (((liquidar_desde >= 1) AND (liquidar_desde <= 999)))"
+        },
+        {
+          "nombre": "parametros_analisis_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "parametros_analisis_una_fila",
+          "clase": "regla",
+          "definicion": "CHECK (id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "parametros_analisis_pkey",
+          "definicion": "CREATE UNIQUE INDEX parametros_analisis_pkey ON retail.parametros_analisis USING btree (id)"
         }
       ],
       "politicas": [],
@@ -18137,7 +18404,7 @@
       "tabla": "prendas_por_regularizar",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 321,
+      "filas_estimadas": 548,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19110,7 +19377,7 @@
       "tabla": "producto_fotos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 46,
+      "filas_estimadas": 122,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19226,7 +19493,7 @@
       "tabla": "producto_origen",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 120,
+      "filas_estimadas": 147,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19317,7 +19584,7 @@
       "tabla": "productos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 121,
+      "filas_estimadas": 148,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -20071,7 +20338,7 @@
       "tabla": "proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 82,
+      "filas_estimadas": 84,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -20576,6 +20843,212 @@
     },
     {
       "esquema": "retail",
+      "tabla": "respaldo_b001_f001_renumeradas_20261007",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 193,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "comprobante_id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "serie_vieja",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "numero_viejo",
+          "orden": 3,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "serie_nueva",
+          "orden": 4,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "numero_nuevo",
+          "orden": 5,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "estado_viejo",
+          "orden": 6,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "entorno_transmision_viejo",
+          "orden": 7,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "respuesta_sunat_vieja",
+          "orden": 8,
+          "tipo": "jsonb",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "motivo_rechazo_viejo",
+          "orden": 9,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "enviado_at_viejo",
+          "orden": 10,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "intentos_transmision_viejo",
+          "orden": 11,
+          "tipo": "integer",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ultimo_error_transmision_viejo",
+          "orden": 12,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at_comprobante",
+          "orden": 13,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "respaldado_at",
+          "orden": 14,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ajuste_posterior",
+          "orden": 15,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "b005_aceptada_respuesta",
+          "orden": 16,
+          "tipo": "jsonb",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "b005_baja_motivo",
+          "orden": 17,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "b005_baja_solicitada_at",
+          "orden": 18,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "b005_baja_respuesta",
+          "orden": 19,
+          "tipo": "jsonb",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "b005_baja_pedida_por",
+          "orden": 20,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "respaldo_b001_f001_renumeradas_20261007_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (comprobante_id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "respaldo_b001_f001_renumeradas_20261007_pkey",
+          "definicion": "CREATE UNIQUE INDEX respaldo_b001_f001_renumeradas_20261007_pkey ON retail.respaldo_b001_f001_renumeradas_20261007 USING btree (comprobante_id)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "respaldo_b002_renumeradas_20261002",
       "tipo": "tabla",
       "comentario": null,
@@ -20731,7 +21204,7 @@
       "tabla": "rol_modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 50,
+      "filas_estimadas": 67,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -20792,7 +21265,7 @@
       "tabla": "roles",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 6,
+      "filas_estimadas": 7,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -20995,7 +21468,7 @@
       "tabla": "roles_historial",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 35,
+      "filas_estimadas": 41,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23139,7 +23612,7 @@
       "tabla": "series_comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 31,
+      "filas_estimadas": 41,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23273,7 +23746,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1009,
+      "filas_estimadas": 1311,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23651,7 +24124,7 @@
       "tabla": "tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 36,
+      "filas_estimadas": 38,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -25468,7 +25941,7 @@
       "tabla": "variante_etiquetas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 231,
+      "filas_estimadas": 255,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -25544,7 +26017,7 @@
       "tabla": "variantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 916,
+      "filas_estimadas": 1074,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -25837,7 +26310,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 406,
+      "filas_estimadas": 726,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -26058,7 +26531,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 244,
+      "filas_estimadas": 427,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -26193,7 +26666,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 234,
+      "filas_estimadas": 409,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [

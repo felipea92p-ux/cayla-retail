@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
 import { Ico } from "./iconos";
 
 /**
- * El botón fijo de abajo en celular: «Nuevo producto», y al lado Recibir y Escanear. Sube desde abajo cuando el botón grande
+ * El botón fijo de abajo en celular: «Nuevo producto», y al lado Recibir, Colgar en tandas (si la sede tiene piso y la cuenta ve
+ * Existencias: `hrefColgarEnTandas`) y Escanear. Sube desde abajo cuando el botón grande
  * de la cabina sale de la pantalla (mientras se ve, no se repite). Es una acción de ESTA pantalla, no una barra de
  * navegación: el menú sigue siendo el cajón ☰ (ADR-0206). Desde `sm` no existe (CSS).
  */
-export function DockAlmacen({ veRecibir }: { veRecibir: boolean }) {
+export function DockAlmacen({ veRecibir, hrefColgar }: { veRecibir: boolean; hrefColgar: string | null }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -31,6 +32,11 @@ export function DockAlmacen({ veRecibir }: { veRecibir: boolean }) {
       {veRecibir && (
         <Link href="/recibir" className="ia-ib" aria-label="Recibir mercadería">
           <Ico clave="truck" />
+        </Link>
+      )}
+      {hrefColgar && (
+        <Link href={hrefColgar} className="ia-ib" aria-label="Colgar al piso en tandas">
+          <Ico clave="camera" />
         </Link>
       )}
       <Link href="/buscar" className="ia-ib" aria-label="Escanear o buscar">

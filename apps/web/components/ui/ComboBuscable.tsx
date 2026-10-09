@@ -43,10 +43,17 @@ import { Vacio } from "@/components/ui/Vacio";
    CAYLA y no abra «crear». Sin la prop, todo queda como estaba (al final).
    ==================================================================== */
 
+/** El valor de la fila de `alEscribir`: ninguna opción real lo usa. */
+const VALOR_ACCION = "\u0000accion";
+
 /** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
 /** `claves`: otras palabras que también encuentran la opción (sinónimos: «plomo» → Gris). No se muestran, salvo cuando
  *  la opción aparece solo por una de ellas: entonces la lista dice cuál. */
 export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode; claves?: readonly string[] };
+
+/** Una opción que solo aparece por LO ESCRITO (2026-10-09: «sin proveedor» → «Dejar sin proveedor»). Va primera, ocupa el
+ *  lugar de «crear» (no se ofrece registrar «sin proveedor») y al elegirla el campo queda vacío: no es un valor, es una acción. */
+export type OpcionAlEscribir = { texto: string; detalle?: string; onElegir: () => void };
 
 export function ComboBuscable<T extends string>({
   valor,
@@ -61,6 +68,7 @@ export function ComboBuscable<T extends string>({
   crear,
   crearArriba = false,
   caja = false,
+  alEscribir,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -88,6 +96,8 @@ export function ComboBuscable<T extends string>({
   crearArriba?: boolean;
   /** Campo en caja hundida (`caja-cayla`) en vez de línea: el de los formularios con caja. */
   caja?: boolean;
+  /** Una acción que aparece primera solo cuando lo escrito la pide (ver `OpcionAlEscribir`). */
+  alEscribir?: (texto: string) => OpcionAlEscribir | null;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -114,12 +124,17 @@ export function ComboBuscable<T extends string>({
     if (!abierto) setTexto(elegida?.texto ?? "");
   }
 
-  const filtradas = useMemo(() => {
+  // La acción pedida por lo escrito (si la hay) va como una fila más, la primera, con un valor que ninguna opción usa.
+  const accion = abierto && alEscribir ? alEscribir(texto) : null;
+  const encontradas = useMemo(() => {
     const k = clave(texto);
     // Con el texto de la opción elegida sin tocar, se muestra todo: el
     // usuario abrió para cambiar, no para buscar lo que ya tiene.
     return !k || (elegida && k === clave(elegida.texto)) ? opciones : filtrarCombo(opciones, texto, (o) => o);
   }, [texto, opciones, elegida]);
+  const filtradas: readonly OpcionCombo<T>[] = accion
+    ? [{ valor: VALOR_ACCION as T, texto: accion.texto, detalle: accion.detalle }, ...encontradas]
+    : encontradas;
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   // La clave (sinónimo) por la que una opción respondió a lo escrito, si fue solo por ella: la lista la muestra.
   const porClave = (o: OpcionCombo<T>) => coincidenciaCombo(o, texto) || null;
@@ -129,7 +144,7 @@ export function ComboBuscable<T extends string>({
   // corren uno: la opción `i` es la fila `i + base`). Se alcanza con las flechas como cualquier otra. Con `pista` y el
   // campo vacío no hay opción de crear: hay un texto que no se elige.
   const hayCrearPara = (t: string) =>
-    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => mismoNombreCombo(o.texto, t));
+    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => mismoNombreCombo(o.texto, t)) && !alEscribir?.(t);
   const hayCrear = hayCrearPara(texto);
   const pistaVisible = Boolean(crear?.pista) && texto.trim() === "";
   const base = hayCrear && crearArriba ? 1 : 0;
@@ -155,6 +170,14 @@ export function ComboBuscable<T extends string>({
   }
 
   function elegir(o: OpcionCombo<T>) {
+    if (o.valor === VALOR_ACCION) {
+      // Una acción, no un valor: el campo muestra lo que tiene, no lo escrito. Si la acción lo vacía, el cambio de `valor`
+      // lo deja en blanco (arriba); si no pudo vaciarlo (lo ya guardado), sigue diciendo lo de antes.
+      setAbierto(false);
+      setTexto(elegida?.texto ?? "");
+      accion?.onElegir();
+      return;
+    }
     onValor(o.valor);
     setTexto(o.texto);
     setAbierto(false);

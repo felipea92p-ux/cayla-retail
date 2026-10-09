@@ -340,6 +340,23 @@
     transform: translateX(-130%);
     animation: ia-barre 1.5s var(--ease-cayla) 1.1s 1 forwards;
   }
+  /* «Colgar en tandas» (Felipe, 2026-10-09): la otra tarea de todos los días, junto a «Crear producto» y con su misma forma,
+     pero en contorno: la principal sigue siendo una sola. */
+  .ia-cta.ia-cta2 {
+    border: 1.5px solid var(--h-line);
+    background: transparent;
+    color: var(--h-fg);
+  }
+  .ia-cta.ia-cta2::after {
+    display: none;
+  }
+  .ia-cta.ia-cta2 .ia-plus {
+    background: var(--h-btn);
+    color: var(--h-btn-fg);
+  }
+  .ia-cta.ia-cta2:hover .ia-plus {
+    transform: none;
+  }
   .ia-tecla {
     display: inline-flex;
     align-items: center;
@@ -1490,6 +1507,14 @@
   .ia-dock svg.ia-ic {
     width: 22px;
     height: 22px;
+  }
+  /* Con cuatro botones (Colgar en tandas suma uno) a 375 px, «Nuevo producto» se partía en dos líneas: los íconos bajan a 48 px
+     (sobre el mínimo de 44 para el dedo) y el texto no se corta. */
+  .ia-dock .ia-principal {
+    white-space: nowrap;
+  }
+  .ia-dock:has(> :nth-child(4)) .ia-ib {
+    width: 48px;
   }
   @media (min-width: 640px) {
     .ia-dock {

@@ -49,6 +49,7 @@ import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 
 type Linea = { varianteId: string; cantidad: number };
@@ -269,6 +270,26 @@ export function ApartarVista({
       almacen: v.almacenAqui,
     };
   }
+
+  // La pistola, igual que en Vender (`usePistola`): lo que entra a ritmo de pistola es un código exacto o nada (nunca la fila
+  // resaltada), lee aunque la pistola no mande Enter y el campo queda vacío para la siguiente lectura, la haya encontrado o no.
+  // Con el foco en un botón del ticket, la primera tecla suelta vuelve al campo; en los pasos de la clienta y el adelanto no
+  // (ahí un combo enfocado es dueño de sus teclas), y nunca con una ventana encima.
+  const sinVentana = !pedir && !camaraAbierta && !registrado;
+  usePistola(escaner, {
+    activa: sinVentana,
+    fuera: paso === "ticket" ? "atraer" : "nada",
+    alLeer: ({ codigo }) => {
+      setTexto("");
+      setActivo(0);
+      const v = resolverCodigoV2(codigo, prendas);
+      if (!v) {
+        setMensaje({ tono: "error", texto: `No encontramos «${codigo}» en ${ubicacionEtiqueta}. Revisa el código de la etiqueta.` });
+        return;
+      }
+      agregar(v.varianteId);
+    },
+  });
 
   // La lista se arma mientras se escribe, como en el Punto de venta: lo que se puede apartar arriba, lo agotado al
   // final y sin poder elegirse (ADR-0168). El lector de código no la usa: escribe el código y manda Enter.
