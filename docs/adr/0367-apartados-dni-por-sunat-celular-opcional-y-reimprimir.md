@@ -1,7 +1,7 @@
 # ADR-0367 — Apartados: DNI por SUNAT, celular opcional y reimprimir desde el Historial
 
 - Fecha: 2026-10-09
-- Estado: aceptado (Felipe, 2026-10-09). Web lista; la migración `20261009200000_apartado_sin_celular.sql` está **solo en local**.
+- Estado: aceptado (Felipe, 2026-10-09). Migración **en producción desde el 2026-10-09** (versión `20261009231332`); web en PR.
 
 ## Contexto
 
@@ -27,7 +27,7 @@ celular no debería ser obligatorio; (3) no hay cómo reimprimir el ticket de un
 
 ## Producción
 
-`20261009200000_apartado_sin_celular.sql`: un `alter` de `retail.separaciones` (sin políticas) y cuatro reemplazos anclados
-en `separar_prendas`, con validación al final; idempotente y con `lock_timeout`. **Espera el OK de Felipe.** Hasta que se
-pegue, la web en producción con un celular vacío recibe el rechazo de la base («El celular de la clienta tiene 9 dígitos»):
-publicar la web DESPUÉS de la migración.
+`20261009231332_apartado_sin_celular.sql`: un `alter` de `retail.separaciones` (sin políticas) y cuatro reemplazos anclados
+en `separar_prendas`, con validación al final; idempotente y con `lock_timeout`. Pegada en producción el 2026-10-09 con el OK de Felipe, por MCP `apply_migration` (versión `20261009231332`, md5 de
+`separar_prendas` `9fba5b394397c78b9026847106fc0c62`). Las cuatro anclas se verificaron en el texto vivo antes de aplicar.
+La web antigua sigue funcionando igual: siempre manda celular.

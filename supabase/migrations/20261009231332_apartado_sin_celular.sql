@@ -17,6 +17,8 @@
 --   (pedir a otra sede) sigue pidiendo celular: es otro flujo y no se tocó.
 --
 -- PRODUCCIÓN: un `alter` de una tabla en uso, sin políticas (regla de deadlocks de CLAUDE.md). Idempotente.
+-- EN PRODUCCIÓN desde el 2026-10-09 (MCP `apply_migration`, versión 20261009231332; md5 de `separar_prendas`: 9fba5b39…).
+-- El archivo lleva esa misma versión (nació como 20261009200000).
 -- CÓMO SE DESHACE: `alter column clienta_celular set not null` (solo si no quedó ningún apartado sin celular) y
 -- los dos reemplazos de abajo al revés.
 -- ============================================================================
