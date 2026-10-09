@@ -324,7 +324,7 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `<Modal>` y entra con la cascada de esta regla.
 
 
-## Actualización 2026-10-09 — el gasto rápido de Caja (ADR-0367): movimiento rico, pedido por Felipe
+## Actualización 2026-10-09 — el gasto rápido de Caja (ADR-0368): movimiento rico, pedido por Felipe
 
 - **Qué:** en `components/GastoRapidoModal.tsx` (Caja ▸ Registrar gasto) el mosaico entra en ola (cada baldosa 34 ms después de la anterior);
   la ★ de lo más frecuente llega girando y se rellena, y sus «12 veces» cuentan desde cero; al tocar una baldosa la tinta se derrama desde el

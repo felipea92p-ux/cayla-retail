@@ -1,4 +1,4 @@
-# ADR-0367 — El gasto rápido de Caja: un mosaico por frecuencia
+# ADR-0368 — El gasto rápido de Caja: un mosaico por frecuencia
 
 **Fecha:** 2026-10-09 · **Decide:** Felipe · **Estado:** aceptada (solo web, sin migración)
 
