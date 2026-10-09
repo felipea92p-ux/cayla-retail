@@ -14,6 +14,8 @@
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
 @import "./estilos/rotulo.css";
+/* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
+@import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
