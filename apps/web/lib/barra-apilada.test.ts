@@ -190,3 +190,61 @@ describe("BarraApilada · lo que piden las barras de Compras", () => {
     expect(h).toContain('<i aria-hidden="true" class="barra-tramo-color" style="background:var(--color-metodo-efectivo)"></i>');
   });
 });
+
+describe("BarraApilada · lo que pidió la revisión de la migración", () => {
+  const dos: SegmentoBarra[] = [
+    { clave: "a", nombre: "Medio 1", valor: 1000, clase: "bg-tinta" },
+    { clave: "b", nombre: "Medio 2", valor: 0, clase: "bg-tinta/55" },
+  ];
+
+  it("`viva`: un tramo en 0 sigue montado (para que se reacomode sin aparecer de golpe), sin entrada creciendo", () => {
+    const h = html({ segmentos: dos, viva: true });
+    expect(h).toContain("data-viva");
+    expect(h.match(/class="barra-tramo"/g)).toHaveLength(2);
+    expect(h).not.toContain("anim-crece-x");
+    expect(h).toContain('data-cero=""'); // el que vale 0
+    expect(grows(h)[1]).toBe(0);
+    // sin `viva`, el tramo en 0 no se dibuja
+    expect(tramosDe(html({ segmentos: dos }))).toBe(1);
+  });
+
+  it("`viva` deja el hueco siempre montado (con 0 si no hay), para que también se reacomode", () => {
+    expect(html({ segmentos: dos, viva: true })).toContain('class="barra-resto" style="flex-grow:0"');
+    expect(html({ segmentos: dos, viva: true, total: 4000 })).toMatch(/class="barra-resto" style="flex-grow:75"/);
+  });
+
+  it("`sinEntrada` quita solo la entrada; el resto sigue igual", () => {
+    const h = html({ sinEntrada: true });
+    expect(h).not.toContain("anim-crece-x");
+    expect(h.match(/class="barra-tramo"/g)).toHaveLength(2);
+    expect(h).not.toContain("data-viva");
+  });
+
+  it("una barra `decorativa` no pone texto al pasar el mouse; una que se lee, sí, con la cifra bien dicha", () => {
+    expect(html({ decorativa: true })).not.toContain("title=");
+    expect(html({ formato: (n) => `S/ ${n}` })).toContain('title="Vencida: S/ 5133.6"');
+  });
+
+  it("`decorativa` gana a `respuesta`: sus tramos no serían enfocables dentro de algo oculto", () => {
+    const h = html({ decorativa: true, respuesta: { onApuntar: () => {}, onElegir: () => {} } });
+    expect(h).not.toContain("<button");
+    expect(h).toContain('aria-hidden="true"');
+  });
+
+  it("un tramo con `href` hace que la barra responda aunque la pantalla no pase `respuesta`", () => {
+    const h = html({ segmentos: [{ clave: "p", nombre: "P", valor: 1, clase: "bg-tinta", href: "/x" }, { clave: "q", nombre: "Q", valor: 1, clase: "bg-verde" }] });
+    expect(h).toContain('role="group"');
+    expect(h).toContain('<a ');
+  });
+
+  it("un valor que no es un número no borra la barra: cuenta como 0", () => {
+    const h = html({ segmentos: [{ clave: "a", nombre: "A", valor: Number.NaN, clase: "bg-tinta" }, { clave: "b", nombre: "B", valor: 4, clase: "bg-verde" }, { clave: "c", nombre: "C", valor: Number.POSITIVE_INFINITY, clase: "bg-rojo" }] });
+    expect(h).toContain('aria-label="4 unidades. B: 4"');
+    expect(tramosDe(h)).toBe(1);
+  });
+
+  it("la raíz es un <span>: válida dentro de un <span>, un <p> o un <button>", () => {
+    expect(html().startsWith("<span ")).toBe(true);
+    expect(html()).toContain("</span>");
+  });
+});

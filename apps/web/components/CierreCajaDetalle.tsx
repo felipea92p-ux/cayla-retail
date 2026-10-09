@@ -157,6 +157,8 @@ function DetalleCierreModal({
                 className="my-2.5"
                 alto={12}
                 total={100}
+                sinEntrada
+                formato={(n) => `${n} %`}
                 etiqueta={`${ruta.pctTrasladado} % trasladado, ${ruta.pctQuedo} % quedó en el cajón`}
                 segmentos={[
                   { clave: "trasladado", nombre: "Trasladado", valor: ruta.pctTrasladado, clase: "bg-rojo" },

@@ -128,7 +128,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
             ) : (
               <>
                 {/* La barra es `<BarraApilada>` (ADR-0358): cada parte del gasto, con el mismo color que su fila de abajo. */}
-                <BarraApilada alto={12} etiqueta="Reparto del gasto del Taller" segmentos={reparto.map((p) => ({ clave: p.clave, nombre: p.etiqueta, valor: p.parte, clase: COLOR_PARTE[p.clave] }))} />
+                <BarraApilada alto={12} etiqueta="Reparto del gasto del Taller" formato={soles} segmentos={reparto.map((p) => ({ clave: p.clave, nombre: p.etiqueta, valor: p.monto, clase: COLOR_PARTE[p.clave] }))} />
                 <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
                   {reparto.map((p) => (
                     <li key={p.clave} className="flex items-baseline justify-between gap-3 text-[13px]">

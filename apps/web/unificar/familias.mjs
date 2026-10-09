@@ -539,10 +539,11 @@ export const DECISIONES = {
       "[\"'`](?=[^\"'`]*(?<![\\w-])basis-0(?![\\w-]))(?=[^\"'`]*\\btransition-\\[[^\\]]*flex-grow)",
       // La barra dibujada a mano con un hilo entre tramos: una fila baja (de 4 a 14 px) separada por 1 a 3 px.
       "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|3|3\\.5|\\[5px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])gap-(?:px|0\\.5|\\[3px\\])(?![\\w.\\[-]))",
-      // La barra con pista y sin hilo: una fila de 8 a 16 px, redonda y recortada, sobre una pista de arena, hueso o tinta al 10 %
-      // (Caja, Por pagar de Producción, el reparto del gasto del Taller, el cierre de caja). Una barra de UN solo relleno que se
-      // llena (h-1.5, h-2) no entra: mide un avance, no reparte un total.
-      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:2\\.5|3|3\\.5|4)(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])overflow-hidden(?![\\w-]))(?=[^\"'`]*(?<![\\w-])rounded-full(?![\\w-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/10)(?![\\w-]))",
+      // La barra con pista y sin hilo: una fila baja (de 3 a 16 px) sobre una pista de arena, hueso o tinta al 5 o 10 % (Caja, Por pagar
+      // de Producción, el reparto del gasto del Taller, el cierre de caja). Una barra de UN solo relleno que se llena con `absolute` o sin
+      // `flex` no entra (mide un avance: `BarraAvance`, `PistaPlazo`); si alguien la dibuja con `flex`, salta y se resuelve con la pieza o con
+      // `unificar-fijo` y su motivo. Las clases, en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|2\\.5|3|3\\.5|4|\\[\\d+px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/(?:5|10))(?![\\w-]))",
       // Las barras con clase propia: la de las tarjetas de Facturación (`kpi-apilada`) y las de Notas de crédito (`nc-conc`, `nc-barra`).
       "className=\"[^\"]*(?<![\\w-])(?:kpi-apilada|nc-conc|nc-barra)(?![\\w-])",
       // Una pieza homónima (la de Facturación y Proformas, con `partes` y leyenda propia): el mismo nombre que la del sistema.

@@ -140,8 +140,8 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 alto={8}
                 etiqueta={`Producción ${Math.round((consolidado.parteProduccion ?? 0) * 100)} % de la deuda, Compras el resto`}
                 segmentos={[
-                  { clave: "produccion", nombre: "Producción", valor: consolidado.parteProduccion ?? 0, clase: "bg-tinta" },
-                  { clave: "compras", nombre: "Compras", valor: 1 - (consolidado.parteProduccion ?? 0), clase: "bg-tinta/30" },
+                  { clave: "produccion", nombre: "Producción", valor: consolidado.parteProduccion ?? 0, clase: "bg-tinta", titulo: `Producción: ${Math.round((consolidado.parteProduccion ?? 0) * 100)} %` },
+                  { clave: "compras", nombre: "Compras", valor: 1 - (consolidado.parteProduccion ?? 0), clase: "bg-tinta/30", titulo: `Compras: ${Math.round((1 - (consolidado.parteProduccion ?? 0)) * 100)} %` },
                 ]}
               />
               <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">

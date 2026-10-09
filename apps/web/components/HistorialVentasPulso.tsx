@@ -164,6 +164,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
             className="mt-2.5"
             alto={8}
             retraso={8}
+            formato={soles}
             etiqueta={`Cómo se pagó: ${porMetodo.map((m) => `${nombreMetodo(m.metodo)} ${Math.round((m.monto / cobrado) * 100)} %`).join(", ")}`}
             segmentos={porMetodo.map((m) => ({ clave: m.metodo, nombre: nombreMetodo(m.metodo), valor: m.monto, color: colorMetodo(m.metodo) }))}
           />

@@ -63,7 +63,7 @@ export function ProveedoresIndicadores({
             : `${resumen.topProveedorNombre} concentra la deuda`}
           {reparto.length > 0 && (
             // La barra es `<BarraApilada>` (ADR-0358): cada proveedor es un tramo; apuntarlo enciende su fila en la tabla y apaga las demás
-            // (`onFoco`, que también viene de la tabla: por eso se RESALTA, no queda «presionado»), tocarlo abre su vista rápida. El «Resto»
+            // (`onFoco`: apuntar no es un filtro, solo enciende la fila, por eso se RESALTA y no queda «presionado»), tocarlo abre su vista rápida. El «Resto»
             // se dibuja pero no responde ni lo oye el lector.
             <BarraApilada
               className="mt-2.5"

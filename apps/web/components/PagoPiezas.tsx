@@ -484,6 +484,7 @@ export function MediosDePago({
               los montos ya están escritos en los campos de arriba. */}
           <BarraApilada
             decorativa
+            viva
             alto={4}
             segmentos={lineas.map((l, i) => ({ clave: String(i), nombre: `Medio ${i + 1}`, valor: Math.max(0, Number(l.monto) || 0), clase: COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)] }))}
           />

@@ -611,6 +611,7 @@ function TresPartes({ reparto, monto }: { reparto: { baja: number; devuelve: num
           decorativa: las tres cifras de arriba ya lo dicen. */}
       <BarraApilada
         decorativa
+        viva
         className="col-span-full mt-2.5"
         alto={8}
         total={total}

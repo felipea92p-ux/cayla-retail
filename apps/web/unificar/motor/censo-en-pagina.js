@@ -482,7 +482,8 @@
       const esTramo = (h) => {
         if ((h.textContent || "").trim() || h.children.length > 1) return false;
         const hr = h.getBoundingClientRect();
-        if (hr.width < 1 || Math.abs(hr.height - r.height) > 2) return false;
+        // El alto de layout (`offsetHeight`) y no el pintado: un tramo estirado por el mouse encima (`scale`) mediría más que la barra.
+        if (hr.width < 1 || Math.abs((h.offsetHeight || hr.height) - r.height) > 2) return false;
         // Pintado por sí mismo o por su único hijo (el «saldo a escala» de Proveedores pinta adentro).
         return pintado(h) || (!!h.firstElementChild && pintado(h.firstElementChild));
       };

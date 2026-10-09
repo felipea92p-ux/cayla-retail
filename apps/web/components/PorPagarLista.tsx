@@ -490,7 +490,7 @@ function MezclaSeleccion({ filas, ahora }: { filas: CompraResumen[]; ahora: Date
   return (
     <span className="flex min-w-[9.5rem] max-w-[14.5rem] flex-1 flex-col gap-[5px]">
       {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, el texto de abajo ya dice lo mismo. */}
-      <BarraApilada decorativa alto={4} segmentos={(["vencidas", "semana", "despues"] as const).map((k) => ({ clave: k, nombre: TITULO_TRAMO[k], valor: suma[k], clase: COLOR[k] }))} />
+      <BarraApilada decorativa viva alto={4} segmentos={(["vencidas", "semana", "despues"] as const).map((k) => ({ clave: k, nombre: TITULO_TRAMO[k], valor: suma[k], clase: COLOR[k] }))} />
       <small className="text-xs leading-tight text-tinta/65">{detalleSeleccion(filas, soles, ahora)}</small>
     </span>
   );

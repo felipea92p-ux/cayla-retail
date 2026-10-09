@@ -24,6 +24,13 @@
   .barra-tramo:first-child { border-radius: 999px 0 0 999px; }
   .barra-tramo:last-child { border-radius: 0 999px 999px 0; }
   .barra-tramo:only-child { border-radius: 999px; }
+  /* Con un hueco al final (`total`), el último tramo dibujado también cierra redondo. */
+  .barra-tramo:has(+ .barra-resto) { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
+  /* Una barra «viva» (cambia mientras se escribe) deja todos sus tramos montados, aunque valgan 0: el recorte lo hace la pista, no cada
+     tramo, y uno en 0 no ocupa ni el mínimo. */
+  .barra-apilada[data-viva] { overflow: hidden; }
+  .barra-apilada[data-viva] .barra-tramo { border-radius: 0; }
+  .barra-tramo[data-cero] { min-width: 0; }
   .barra-tramo-color { display: block; width: 100%; height: 100%; border-radius: inherit; }
   /* Lo que falta para el 100 % cuando la pista vale más que los tramos: un hueco, la arena de la pista se ve. */
   .barra-resto { display: block; height: 100%; flex: 0 1 0%; min-width: 0; transition: flex-grow 700ms var(--ease-cayla); }
