@@ -1,90 +1,120 @@
-# ADR-0361 · Modelo nuevo desde la orden de producción: ida a Nuevo producto y vuelta con la orden lista
+# ADR-0361 · Modelo nuevo desde la orden de producción: ida y vuelta a Nuevo producto y «Modelo nuevo» dentro de la propia orden
 
-- **Fecha:** 2026-10-07 · **Estado:** **primera parte construida; la decisión de fondo está REABIERTA** (ver «Actualización 2026-10-09»). Lo construido se
-  verificó en una copia de `main` (tipos, lint, las 381 pruebas del web y el recorrido en el navegador con datos de ejemplo). **Sin migración de base de
-  datos.** Falta probarlo contra datos reales en local y pasar `/chaos` y `/formidable` (ver el backlog de la rama).
+- **Fecha:** 2026-10-07 (primera parte) y 2026-10-09 (segunda parte) · **Estado:** **construido en dos partes; falta pegar la migración en producción.**
+  - *Primera parte* (ida y vuelta a Nuevo producto): solo web, sin migración; verificada.
+  - *Segunda parte* («Modelo nuevo» dentro de «Nueva orden»): migración aditiva `supabase/migrations/20261009120000_abrir_produccion_con_modelo_nuevo.sql`
+    ensayada contra el Postgres local (20 casos, todos terminan en `ROLLBACK`) y web verificada (`tsc`, `eslint`, 387 archivos / 156.458 pruebas y el
+    recorrido en el navegador con datos de ejemplo). **Orden obligatorio: primero la migración en producción, después se publica la web** (ver «Despliegue»).
+  - **Falta:** probarlo con datos reales en local, `/formidable` y `/chaos` (ver `docs/backlog/2026-10-07-vista-inicial-taller-3c5f9a.md`).
 - **Pedido:** Felipe, 2026-10-07: «debemos rescatar la forma en que se creaban las órdenes» y «obviamente mejorarlo». De las tres formas que se le
-  propusieron eligió la 1, **«alta rápida dentro de la orden»**; este ADR explica por qué se construyó como **atajo y retorno** y no como un
-  formulario dentro de la hoja, y qué queda abierto.
-- **Complementa:** ADR-0133 (Producción), ADR-0109 y ADR-0284 (Nuevo producto y su guía), ADR-0294 (un nombre por marca), ADR-0347 (motor de demanda
-  en Nueva orden), ADR-0161 (módulos y roles), ADR-0358 (una función, una pieza).
+  propusieron eligió la 1, **«alta rápida dentro de la orden»**. La primera versión de este ADR la descartó y construyó un atajo con retorno; el 2026-10-09
+  Felipe la corrigió («el Taller no necesariamente crea productos ya existentes») y la segunda parte la construye como se pidió, con las salvaguardas de abajo.
+- **Complementa:** ADR-0133 (Producción), ADR-0109 y ADR-0284 (Nuevo producto y su guía), ADR-0294 (un nombre por marca), ADR-0347 (motor de demanda en
+  Nueva orden), ADR-0161 (módulos y roles), ADR-0358 (una función, una pieza). **Ajusta el punto 5 del ADR-0051** (ver «Decisión», 1).
+- **Precedente:** la alta al vuelo del censo, `supabase/migrations/20260918020000_censo_alta_al_vuelo.sql` (Felipe, 2026-09-18).
 
 ## El problema
 
-El 22-jul-2026 una corrida se registraba en un solo formulario: modelo nuevo o existente, tela, avíos, precio a tienda, tallas y colores escritos
-a mano, y el costo por prenda con su semáforo al instante. Desde el 2026-09-15 una orden **solo puede producir un modelo que ya existe en el
-catálogo con sus variantes** (`abrir_produccion` recibe `variante_id`; las variantes nacen en Productos, con su código y su precio, nunca al vuelo
-desde una orden: en V1 eso dejó colores duplicados y prendas sin precio). Hoy, para producir un modelo nuevo, la persona tenía que **salir de
-Producción, adivinar que se crea en Productos, crearlo y volver a abrir la orden a mano**. Ese era el hueco.
+El 22-jul-2026 una corrida se registraba en un solo formulario: modelo nuevo o existente, tela, avíos, precio a tienda, tallas y colores escritos a mano, y el
+costo por prenda con su semáforo al instante. Desde el 2026-09-15 una orden **solo puede producir un modelo que ya existe en el catálogo con sus variantes**
+(`abrir_produccion` recibe `variante_id`; ADR-0051, punto 5): en V1 las variantes nacían al vuelo desde la orden y dejaron prendas sin precio, colores
+duplicados («Negro»/«negro») y SKUs a ciegas. El remedio quitó también una necesidad legítima. **El Taller crea modelos nuevos como parte normal de su
+trabajo**: una Muestra (patronaje → muestra → escalado, donde el escalado define las tallas) es por definición el desarrollo de un modelo que todavía no
+existe. Crear un modelo exige `fn_puede_editar_catalogo()` (el líder o un rol con Productos/Atributos), que quien opera el Taller normalmente no tiene: cada
+modelo nuevo dependía de un líder y de salir de la orden a otra pantalla. El problema de V1 era el **texto libre**, no el momento de crear el modelo.
 
-## Qué cambió (y qué no)
+## Decisión
 
-**No cambió ninguna regla del catálogo, de dinero, de stock ni de permisos, ni ninguna función de la base.** Cambió el recorrido.
+1. **Una orden puede crear su modelo** *(reabre y reemplaza la decisión 1 de la primera versión; ajusta el ADR-0051, punto 5)*. Lo que ese punto prohibió son
+   los tres problemas del texto libre; se quitan sin quitar el momento: tallas y colores salen **solo del vocabulario** (`tallas`, `colores`), cada talla debe
+   estar **habilitada para la categoría** (`categoria_tallas`), el **código lo asigna la base** y el **precio** es obligatorio en una producción (una Muestra
+   puede ir sin precio y se completa al aprobarla). `abrir_produccion` no cambia: sigue sin crear variantes y con su misma firma.
+2. **Una sola función de la base, `retail.abrir_produccion_con_modelo_nuevo`** (security definer, aditiva): crea el producto, sus variantes y llama a
+   `abrir_produccion` al final. **Una llamada, una transacción, un token**: o pasa todo o no queda nada, así que no puede existir «un modelo sin su orden»
+   (principio 2). El mismo `p_token` va a `productos.token_cliente` y a `producciones.token_cliente`; reintentar tras perder la red devuelve la orden que ya
+   se abrió, sin duplicar el modelo. Sustituye a la «RPC atómica» que la primera versión dejó como alternativa descartada.
+3. **Quién:** quien opera el Taller (`fn_puede_operar_ubicacion` + `ubicaciones.tipo = 'taller'`, comprobado **antes** de tocar el catálogo para que nadie
+   averigüe nombres ni vocabulario sin permiso), **sin** el candado del líder. El estado del modelo lo decide `productos_estado_alta_biut`, no la función:
+   **`pendiente`** si quien lo crea no edita el catálogo (se puede usar de inmediato; un líder lo revisa) y **`aprobado`** si lo edita. Es la misma regla
+   proponer/aprobar del censo.
+4. **Qué se pide y qué no.** Se piden nombre, categoría, tallas, colores (opcionales: una prenda puede no tener color), precio y cantidades. **No** se piden
+   marca, proveedor, tejido, patrón ni fotos: el modelo nace sin ellos y quedan en «Para completar» de Editar producto. La base exige tejido y patrón en
+   Indumentaria dentro de `crear_producto_con_variantes`, no en una restricción de la tabla; el modelo que nace de una orden queda **incompleto en esos campos**
+   hasta que quien edita el catálogo lo complete (la misma concesión del censo). `variantes.costo` nace en 0: el costo real se pega al **cerrar** la orden
+   (D-31), como hoy. El material en texto libre de julio **no vuelve**.
+5. **Validación por conjuntos, no fila por fila.** Tallas pedidas `EXCEPT` habilitadas para la categoría; colores pedidos `EXCEPT` activos; y «la misma celda
+   dos veces» se detecta contando filas contra filas distintas, antes de que el índice `variantes_identidad_unica` la rechace con un error técnico. Las
+   cantidades se validan con una expresión regular dentro de un `CASE`, para que «3.5» diga una frase clara y no un error de conversión.
+6. **Nombre repetido: se elige el existente, no se falla.** La función usa `buscar_productos_parecidos` contra los modelos sin marca (el modelo nace sin marca; el
+   nombre es único por marca, ADR-0294). Un nombre idéntico se rechaza con `hint = nombre_duplicado` y el id del existente en `detail`: la pantalla ofrece
+   **«Usar ese modelo»** y cambia a «Ya existe» con ese modelo elegido. Uno que difiere en una letra pide confirmación (`nombre_casi_igual`): **«Es otro modelo,
+   crearlo igual»** reenvía con `p_confirmo_distinto = true` y el mismo token.
+7. **La pantalla es de quien opera el Taller, no solo del líder.** Un selector «Ya existe / Modelo nuevo» en la hoja de «Nueva orden»; con «Modelo nuevo» se piden
+   los campos de arriba con la guía de foco (ADR-0284). El **modelo se construye «virtual»** a partir del borrador, de modo que la matriz de cantidades, el costo
+   por prenda y el margen son **el mismo código** de siempre, no una copia. Sin modelos en el catálogo ya no se apaga el botón: se ofrece «+ Crear el primer
+   modelo». Si no se pudieron leer las tallas y los colores, la pantalla lo dice y deja elegir un modelo que ya exista (el botón queda apagado). Si la función
+   aún no está en la base, avisa en una frase y la hoja conserva lo escrito.
+8. **El enlace a Productos se conserva como «alta completa, con fotos»** para quien edita el catálogo (primera parte): ida con `?desde=produccion&tipo=…`
+   y vuelta con `?nueva=<modelo>&tipo=…` por la URL, no por estado escondido (`lib/modelo-nuevo-orden-reglas.ts`); un parámetro roto cae al valor de siempre.
+9. **Permisos y dinero no cambian.** El margen y el semáforo siguen siendo solo del líder (`decision` solo le llega a él; ya no dependen de que la red
+   responda). El costo por prenda sale de `costoUnitario` y `semaforoMargen` de `lib/produccion-reglas.ts`, la misma fórmula de la base
+   (`producciones.costo_unitario`, a 2 decimales).
+10. **Sin conexión:** «Nueva orden» (con un modelo que ya existe o con «Modelo nuevo») se abre en línea, como siempre: no pasa por la cola sin conexión, y con
+    «Modelo nuevo» además necesita a la base para repartir los códigos. Solo la alta completa en Nuevo producto puede quedar en la cola (ADR-0210); entonces el
+    producto aún no tiene `id` y no hay enlace de vuelta: la pantalla de éxito lo dice y manda a abrir la orden desde Producción cuando el producto suba.
+
+## Qué cambió
 
 | Antes | Ahora |
 |---|---|
-| «¿Falta una talla o un color? Se agrega en Productos» (un enlace a la lista, sin retorno) | Bajo «Modelo»: «¿El modelo es nuevo? Créalo en Productos y vuelves aquí con la orden lista» → Nuevo producto con `?desde=produccion&tipo=…` |
-| Al guardar el alta, las salidas eran fotos, otro parecido o la lista de productos | Si venía de una orden, la **salida principal es «Abrir la orden de producción/muestra»**: vuelve a Órdenes con `?nueva=<modelo>&tipo=…`, el modelo ya elegido y su matriz de tallas y colores lista. Las fotos pasan a secundaria |
-| Sin modelos en el catálogo: un aviso y el botón apagado | El mismo aviso con **«+ Crear el primer modelo»** (o a quién pedírselo, si la cuenta no edita el catálogo) |
-| El margen y el semáforo de «Nueva orden» desaparecían para el líder si fallaba la lectura de la red (`decision.datos` nulo) | El líder los ve siempre: dependen del precio y del costo, no de la red |
-| Un modelo sin precio no decía nada: el margen simplemente no salía | «Este modelo no tiene precio en el catálogo, así que no hay margen que calcular» con enlace a Editar producto (solo líder) |
-| La pista de la matriz enviaba a `/productos` | Envía a **Editar producto de ese modelo** (quien edita el catálogo) o dice a quién pedirlo |
+| Un modelo que no existía obligaba a salir de Producción, crearlo en Productos (si la cuenta podía) y volver a abrir la orden a mano | «Nueva orden ▸ Modelo nuevo»: nombre, categoría, tallas, colores, precio y cantidades; un solo botón («Crear modelo y abrir orden») |
+| Quien opera el Taller sin permiso de catálogo dependía de un líder para cada modelo nuevo | Puede crearlo; nace `pendiente` y se usa de inmediato |
+| Un nombre repetido solo se descubría al fallar el alta | La pantalla ofrece «Usar ese modelo» o «Es otro modelo, crearlo igual» |
+| Sin modelos: aviso y botón apagado | «+ Crear el primer modelo» abre la misma hoja |
+| El margen y el semáforo del líder dependían de que la red respondiera | Los ve siempre; un modelo sin precio lo dice |
+| Al guardar el alta completa, las salidas eran fotos, otro parecido o la lista | Si venía de una orden, la salida principal es «Abrir la orden de producción/muestra» |
 
-## Decisiones
+## Despliegue (el orden importa)
 
-1. **No se copia el alta del catálogo dentro de la hoja de «Nueva orden»** *(reabierta el 2026-10-07: ver la actualización al final)*. Se evaluó y se descartó por cuatro hechos del propio repo: (a) Nuevo
-   producto es **página propia y no modal por decisión escrita** (la tabla talla × color puede llegar a 9 × 8; mismo criterio que `/compras/nueva`);
-   (b) la base **exige tejido y patrón en Indumentaria**, con sus catálogos habilitados por categoría (`tejido_obligatorio`, `patron_obligatorio`);
-   (c) el nombre es **único por marca** y la pantalla avisa mientras se escribe (ADR-0294); (d) las tallas deben estar **habilitadas para la categoría**.
-   Un formulario paralelo duplicaría esas reglas y se desfasaría de ellas (principio 3; «una función, una pieza», ADR-0358).
-2. **Todo viaja por la URL**, no por estado escondido (`lib/modelo-nuevo-orden-reglas.ts`): `desde=produccion` marca el origen y `tipo` conserva si
-   era producción o muestra (una muestra suele ser la **primera** orden de un modelo nuevo). Un parámetro roto cae al valor de siempre, nunca
-   rompe la pantalla (probado). La pantalla de éxito lee la URL por sí misma, así `NuevoProductoForm.tsx` —el archivo más disputado del repo según
-   `SESIONES-ACTIVAS.md`— **no se toca**.
-3. **Permiso:** el enlace de ida y el de «Editar producto» solo se ofrecen con `puede(persona, "editarCatalogo")` (en la base, `fn_puede_editar_catalogo()`:
-   el líder **o un rol que ve Productos o Atributos**, no solo el líder). Es visibilidad: el candado real sigue en la base y en la página de destino,
-   que ya redirige a quien no lo tiene.
-4. **El margen sigue siendo solo del líder.** No se amplió ningún permiso: `decision` solo le llega al líder, y esa es la señal que decide si se ve el
-   margen. Lo único que cambia es que ya no depende de que la red responda. Quien no es líder sigue viendo el costo por prenda, como antes.
-5. **El costo por prenda sale de la fórmula de siempre** (`costoUnitario` y `semaforoMargen` de `lib/produccion-reglas.ts`), la misma que usa la base
-   (`producciones.costo_unitario`, a 2 decimales) y la tarjeta de la orden, en vez de una cuenta propia del formulario.
-6. **Sin conexión no hay enlace de vuelta:** el producto aún no tiene `id` (queda en la cola, ADR-0210). La pantalla de éxito lo dice y manda a abrir la
-   orden desde Producción cuando el producto suba.
+Vercel publica la web al fusionar con `main`; la migración la pega Felipe en producción (SQL Editor, una sola parte: solo una función y sus permisos). **La
+migración va PRIMERO.** Si se publica la web antes, «Modelo nuevo» muestra «Crear un modelo desde la orden todavía no está activo en la base de datos» (la
+pantalla no se cae y lo escrito se conserva), pero nadie puede usarlo. Antes de pegarla, ensayo con `begin; …; rollback;`. La migración comprueba al inicio que
+`abrir_produccion(uuid, uuid, jsonb, numeric, numeric, numeric, boolean, date, text, uuid)` exista con esa firma exacta y aborta sin crear nada si no.
+
+## Se rompe si
+
+- `abrir_produccion` cambia de firma (el ancla de la migración lo detecta; la prueba SQL también).
+- `productos_estado_alta_biut` deja de marcar `pendiente` a quien no edita el catálogo: el modelo del Taller nacería aprobado sin que nadie lo revise.
+- Alguien agrega una talla o un color sin pasar por el vocabulario (la validación por conjuntos lo frena).
+- El Taller deja de ser `ubicaciones.tipo = 'taller'`.
+- La web cambia el nombre de un parámetro del RPC: `lib/modelo-nuevo-reglas.test.ts` compara los nombres contra la firma de la migración y contra
+  `packages/database/src/types.ts`.
 
 ## Alternativas descartadas
 
-- **Mini-alta dentro de la hoja** (nombre, categoría, tallas, colores, precio): la opción que se imaginó primero; ver la decisión 1.
-- **Una RPC atómica `abrir_produccion_con_modelo_nuevo`** (crear el modelo y abrir la orden en una transacción): sería lo más limpio contra «cero estados
-  inconsistentes», pero exige **una migración en producción** (decisión de Felipe) y reimplementar las exigencias del alta. Hoy no hace falta: crear un
-  modelo sin abrir su orden no deja ningún estado imposible (es solo catálogo, sin stock), y el alta es idempotente por su token. Queda como endurecimiento
-  posible si algún día el recorrido de dos pasos resulta lento para el Taller.
+- **Copiar el alta del catálogo dentro de la hoja** (formulario propio con todas sus reglas): la razón de la primera versión de este ADR (Nuevo producto es página
+  propia por decisión escrita; la base exige tejido y patrón; nombre único por marca; tallas por categoría). Duplicaría esas reglas y se desfasaría de ellas
+  (principio 3; «una función, una pieza», ADR-0358). La segunda parte no copia nada: pide lo mínimo y deja que la base valide.
+- **Llamar `crear_producto_con_variantes` desde la orden:** exige `fn_puede_editar_catalogo()`, justo lo que el Taller no tiene.
+- **Material (tela) en texto libre, como en julio:** devuelve el problema de V1. El tejido es vocabulario y lo completa quien edita el catálogo.
 - **Ampliar el margen a todo el Taller:** es un permiso sobre dinero y precios; es de Felipe.
 
-## Actualización 2026-10-09 — Felipe reabre la decisión 1
+## Hueco conocido (fuera de esta construcción)
 
-Al ver «Nueva orden» con la pestaña **Muestra** y un modelo ya existente, Felipe dijo: «el Taller no necesariamente crea productos ya existentes». Tiene razón,
-y lo que esta primera parte resuelve es menos de lo que parecía:
-
-- **Qué sí resuelve:** quien edita el catálogo (el líder, o un rol con Productos) ya no tiene que adivinar el camino ni volver a abrir la orden a mano.
-- **Qué no resuelve:** quien opera el Taller pero no edita el catálogo ni siquiera ve el enlace «Créalo en Productos», así que sigue dependiendo de un líder.
-  Y una **Muestra** (patronaje → muestra → escalado, donde el escalado define las tallas) es por definición el desarrollo de un modelo que **todavía no existe**:
-  exigir que esté completo en el catálogo antes de desarrollarlo invierte el proceso real.
-- **De dónde venía la regla:** ADR-0051 punto 5 (2026-09-15, «al comparar con V1»), que prohibió crear variantes desde la orden por tres problemas reales —prendas sin
-  precio, colores duplicados («Negro»/«negro») y SKUs a ciegas—. El remedio quitó también una necesidad legítima: el problema era el **texto libre**, no el momento
-  de crear el modelo.
-- **Precedente en el propio repo:** la alta al vuelo del censo (`20260918020000_censo_alta_al_vuelo.sql`, Felipe 2026-09-18) resolvió lo mismo para las
-  encargadas: `censo_crear_variante` sin el candado del líder, con tallas y colores del vocabulario (talla activa y habilitada para la categoría, color activo), el
-  producto nace `pendiente` por el disparador `productos_estado_alta_biut` y se puede usar de inmediato, y un líder lo revisa después.
-- **Lo que sigue (pendiente de aprobar por Felipe, no construido):** «+ Modelo nuevo» dentro de la orden, con una función nueva
-  `abrir_produccion_con_modelo_nuevo` que crea el modelo y abre la orden en **una sola transacción** (un solo token) siguiendo ese precedente y llamando a
-  `abrir_produccion` sin tocarla. Es la «RPC atómica» que esta ADR dejó como alternativa descartada: queda **reabierta**. Cuando se construya, este ADR se
-  reescribe y se ajusta el punto 5 del ADR-0051.
-- **Esta primera parte se conserva** como el camino de la alta completa (con fotos, tejido y patrón) para el líder.
+La web **no tiene pantalla para aprobar o rechazar los productos `pendiente`**: `revisar_producto_censo` existe en la base pero nadie la llama. Hoy los modelos del
+Taller (y los del censo) quedan `pendientes` hasta que alguien los apruebe a mano. Conviene una tarea aparte.
 
 ## Cómo se verifica
 
-- Pruebas: `lib/modelo-nuevo-orden-reglas.test.ts` (14): tipo y origen desde la URL con basura y con parámetros repetidos, ida y vuelta conservan el
-  tipo, el id se codifica igual que los otros enlaces a «nueva orden» (Análisis, Resumen), y las dos rutas existen y leen esos parámetros.
-- En el navegador (copia de `main`, componentes reales, datos de ejemplo): el tipo llega preelegido; el líder ve margen y «Gana» con la red caída; el
-  modelo sin precio avisa; quien no edita el catálogo no ve ningún enlace de alta ni de edición; la pantalla de éxito ofrece la orden como salida
-  principal (`/produccion/ordenes?nueva=<id>&tipo=muestra`) y, sin origen o sin conexión, queda como antes.
+- **Reglas puras** — `lib/modelo-nuevo-reglas.test.ts` (40 pruebas): vocabulario (solo categorías hoja, tallas activas en su orden), problemas del borrador, líneas y
+  parámetros del RPC, lectura de los errores de la base y de la función ausente; dos pruebas con semilla fija (2.000 borradores: «si no falta nada, lo que se manda
+  cumple la regla de la base»; 3.000: la guía de foco y la validación dicen lo mismo); la paridad de nombres con la migración y con los tipos generados; y que
+  **ningún `<Boton>` del formulario envíe sin querer** (todos llevan `type="button"`). Comprobado por mutación: se rompió una regla y la prueba falló en tres lugares.
+- **Base** — `pnpm pruebas:abrir-produccion-modelo-nuevo` (20 casos contra el Postgres local, todos con `ROLLBACK`): un líder crea el modelo y abre su orden en una
+  llamada; un colaborador del Taller sin permiso de catálogo también (nace `pendiente`) y uno con Productos lo crea `aprobado`; un token; una transacción (si la orden
+  falla no queda modelo); permisos (otra sede, otra ubicación, `anon`); precio; vocabulario (talla de otra categoría, color inexistente, celda repetida, cantidad en
+  cero o con decimales, matriz vacía); nombre idéntico y casi igual; y que la migración se pueda volver a pegar.
+- **Navegador** (copia de `main`, componentes reales, servidor de la base simulado): éxito; nombre repetido → «Usar ese modelo»; casi igual → «crearlo igual» con
+  el mismo token y `p_confirmo_distinto = true`; función ausente; vocabulario caído (el botón queda apagado); y sin modelos. **El recorrido encontró un error real:**
+  los botones del aviso no tenían `type="button"` y, dentro del `<form>`, «Usar ese modelo» volvía a enviar la orden (dos llamadas al servidor). Corregido y con prueba.
+- **No verificado todavía:** contra datos reales de la base local, a 375 px, ni con `/chaos` (doble clic, pestaña vieja abierta) ni `/formidable`.
