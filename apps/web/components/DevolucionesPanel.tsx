@@ -262,6 +262,7 @@ export function DevolucionesPanel({
           onBuscar={buscar}
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
+          pistola={!anulando}
         />
 
         {busqueda &&

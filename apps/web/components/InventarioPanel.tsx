@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Tag, TriangleAlert, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -34,7 +34,7 @@ import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, ty
 import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import { AnilloMision } from "@/components/existencias/AnilloMision";
 import { mejorOrigen } from "@/lib/existencias-flujos";
-import { LECTOR_VACIO, teclaDePistola } from "@/lib/existencias-pistola";
+import { usePistola } from "@/components/ui/usePistola";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -559,45 +559,31 @@ export function InventarioPanel({
       return siguientes;
     });
   }
-  /** Un código leído (pistola con Enter, o la cámara): abre la prenda parada en esa talla. Si no es de ninguna prenda de
-   *  esta sede, queda escrito en el buscador y el estado vacío explica por qué no aparece. */
-  function abrirPorCodigo(codigo: string): boolean {
+  /** Un código leído (la pistola o la cámara): abre la prenda parada en esa talla. Si no es de ninguna prenda de esta sede,
+   *  queda escrito en el buscador y el estado vacío explica por qué no aparece. `antes`: lo que la persona tenía escrito en el
+   *  buscador antes de que la pistola escribiera encima; vuelve a su sitio (el filtro que tenía puesto no se pierde). `null`: la
+   *  lectura llegó con el cursor fuera del buscador y lo escrito no se toca. */
+  function abrirPorCodigo(codigo: string, antes: string | null = ""): boolean {
     const f = tallaPorCodigo(stock, codigo);
     if (!f) {
       setBusqueda(codigo.trim());
       return false;
     }
-    setBusqueda("");
+    if (antes !== null) setBusqueda(antes);
     // Como la maqueta: la etiqueta leída abre el panel de ESA talla, sin salir de las tarjetas.
     abrirPrenda(agruparPorPrenda([f])[0], f.varianteId);
     return true;
   }
 
-  // La pistola sin tocar el buscador (maqueta): una ráfaga de teclas terminada en Enter abre el panel de esa talla, esté el cursor donde
-  // esté (menos en una caja de texto, donde la pistola escribe ahí). Escucha en la captura, antes que el panel y sus atajos 1–7.
-  const lector = useRef(LECTOR_VACIO);
-  const alLeerCodigo = useEffectEvent((codigo: string) => {
-    abrirPorCodigo(codigo);
+  // La pistola, la misma pieza de Vender (`usePistola`): escanear abre el panel lateral de esa talla, mande o no Enter la pistola,
+  // esté el cursor en el buscador (lo leído no se pega a lo que había escrito) o fuera de él. Fuera, `leer` no mueve el foco: con
+  // el panel abierto, 1–7 son sus atajos y no se le pueden robar (el panel ya ignora un dígito que llega en ráfaga).
+  const buscadorRef = useRef<HTMLInputElement>(null);
+  usePistola(buscadorRef, {
+    fuera: "leer",
+    // Fuera del buscador nadie tocó lo escrito: si la talla aparece, se queda como estaba.
+    alLeer: ({ codigo, antes, dentro }) => abrirPorCodigo(codigo, dentro ? antes : null),
   });
-  useEffect(() => {
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) {
-        lector.current = LECTOR_VACIO;
-        return;
-      }
-      const r = teclaDePistola(lector.current, e.key, e.timeStamp || performance.now());
-      lector.current = r.lector;
-      if (r.codigo) {
-        e.preventDefault();
-        e.stopPropagation();
-        alLeerCodigo(r.codigo);
-      }
-    };
-    document.addEventListener("keydown", alTeclear, true);
-    return () => document.removeEventListener("keydown", alTeclear, true);
-  }, []);
 
   // «Ver recomendaciones» / «Ver análisis de cobertura» ya no viven en Existencias (rediseño 2026-09-28, cabecera de
   // «Prioridades de hoy» más abajo): `abrirDesdeRecomendacion` (main, PR #575) resolvía un clic dentro de ese overlay
@@ -783,6 +769,7 @@ export function InventarioPanel({
           <FiltrosExistencias
             busqueda={busqueda}
             onTeclear={teclear}
+            buscadorRef={buscadorRef}
             onSoltar={soltarBusqueda}
             // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda. Si no (un nombre,
             // un pedazo), Enter no hace nada y la lista sigue filtrada por lo escrito.

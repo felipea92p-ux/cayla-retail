@@ -39,9 +39,9 @@ type Props = {
   resultados: VarianteBusqueda[];
   activo: number;
   aviso: string | null;
-  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. `cuando` es la hora de la
-   *  tecla (`timeStamp` del evento): con ella el padre distingue a la pistola de una persona (`lib/lectura-pistola.ts`). */
-  onEscribir: (valor: string, cuando: number) => void;
+  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. La pistola la distingue
+   *  `usePistola` escuchando el campo, no esta prop. */
+  onEscribir: (valor: string) => void;
   /** El botón ×: solo borra el texto (no toca activo ni aviso — así era). */
   onLimpiarBusqueda: () => void;
   onTeclado: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -227,7 +227,7 @@ export function PuntoDeVentaCatalogo({
               autoFocus
               disabled={bloqueado}
               valor={q}
-              onCambio={(v, e) => onEscribir(v, e?.timeStamp ?? performance.now())}
+              onCambio={(v) => onEscribir(v)}
               onBorrar={() => onLimpiarBusqueda()}
               onKeyDown={onTeclado}
               placeholder="Escanea la etiqueta o busca la prenda"

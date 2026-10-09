@@ -195,6 +195,7 @@ export function CambiosPanel({
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
           onCamara={() => setCamara(true)}
+          pistola={!camara}
           extra={
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
             <span className="flex items-center gap-2 text-sm text-tinta/70">
