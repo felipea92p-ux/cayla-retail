@@ -198,6 +198,19 @@ Commit `fcd9638b` (los tres juntos: son la misma pantalla y se verifican con la 
   «Comparada con las 3 tiendas» (pizarra; texto fijo: si abre una cuarta tienda hay que tocarlo); «Sin ventas» → «Sin ventas aún» (apagado,
   sin tachar).
 
+## Re-análisis 2026-10-10 (b) · la tienda de un vistazo (ADR-0208, act. 2026-10-10 (b)) — PARCIAL, solo el paso 1 (medir)
+
+- **SHA:** `4f11e41f` · base local sembrada (Tienda Lima: «Zz Fx Blusa Vieja» + 12 blusas vendidas; la tienda NO pasa la puerta: «Todavía no se puede saber»).
+- **Medido, 1440×900 (Tienda Lima):** 0 blancos < 24 px; 0 contrastes bajos; 2 filas de controles con alturas desiguales y 2 bordes casi alineados
+  (buscador 333/334 px, conteo 1221/1224), heredados; 7 radios distintos (heredado). **Lo por decidir quedó bajo el pliegue:** «Camisas y Blusas» con su
+  «La cambié de lugar» empieza en y = 1083 (1440×900) y en y = 1255 (1024×768); el cambio del 2026-10-10 la tenía sin scroll. Lo empujaron la barra por
+  familia (≈270 px) y «Lo que más se llevan», que sin piso cuadrado ni anotadas solo dice que algún día dirá algo (≈146 px).
+- **Medido, CAYLA Global 1440×900:** 0 blancos < 24 px, 0 contrastes bajos, 0 bordes torcidos; «aún no se saben» de la cuadrícula en 11,5 px (bajo 12).
+- **Medido, 375×812:** sin desplazamiento lateral; enlaces de 28 px de alto (bajo 44 con dedo): «¿Cómo se lee esto?», «Ver todas las prendas», «¿Por qué?», el nombre de la prenda.
+- **Falta:** la prueba ciega (incluida la de «Fresca / Vigente / Envejeciendo»), el escéptico, las notas y los 3 cambios propuestos. Candidatos que ya se ven
+  (Opinión, sin escéptico): (1) callar «Lo que más se llevan» cuando no tiene nada que decir y devolver lo por decidir sobre el pliegue; (2) «Comparar las
+  2 tiendas» repite CAYLA Global (ley 8); (3) «aún no se saben» a 12 px.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
@@ -207,3 +220,4 @@ Commit `fcd9638b` (los tres juntos: son la misma pantalla y se verifican con la 
 | 2026-10-09 | `d6acc5ce1` (PR #889 fusionado) | sin recalificar | `tema:auditar` (admin, 1440×900, claro y oscuro, 3 escenarios: lista «Categoría», lista «Estado», una categoría del tablero elegida): **0 hallazgos solo en oscuro, 0 heredados, 0 manchas, 0 velos**; capturas miradas (`tema/.salida/20261009-1606`) | revisión adversaria antes del PR (16 arreglos); la migración pegada y verificada en producción; falta `/formidable` y `/chaos` sobre la pantalla nueva |
 | 2026-10-09 | `75e5a910` (`main` con #889 y #892) | **6,9 (±0,5)** · ley 1: 6 (ciega: pasa con dudas; real sin probar) · la más baja, ley 8: 5 | **7** (10 pasan / 4 fallan; sin blocker) | re-análisis con base sembrada y los 4 agentes: cambios 1 y 3 del 2026-10-05 cerrados, 2 parcial; **3 cambios nuevos propuestos, esperan el OK de Felipe** |
 | 2026-10-10 | `fcd9638b` | sin recalificar (la ciega sobre la pantalla nueva está pendiente) | `medir-oficio.js` a 1440: 0 blancos de la pantalla < 24 px (antes 2); `tema:auditar` claro y oscuro, 3 escenarios: 0 hallazgos | **los 3 cambios del 2026-10-09 ejecutados** y medidos a 1440/1024/375: tablero compacto con algo por decidir (la fila por decidir sin scroll a 1440×900), cada cosa una vez («1» ×6 → ×3, pie plegado, «Sólido»/«Aceptable» callados, «Sin ventas aún» sin tachar), la consecuencia antes del botón, «Anotar lo que hice», puente «Nada por decidir» |
+| 2026-10-10 | `4f11e41f` | sin calificar (solo paso 1) | medido a 1440/1024/375 en las dos vistas: lo por decidir cayó bajo el pliegue (y = 1083) | — (falta la ciega, el escéptico y los 3 cambios) |
