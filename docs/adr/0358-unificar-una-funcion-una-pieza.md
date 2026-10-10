@@ -112,6 +112,13 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   `<Buscador>`: la caja hundida con lupa viva y el mostrador que se despega; Felipe pidió además que «Buscando…» salga solo cuando hace
   falta (espera de más de 350 ms) y que se busque mientras se escribe. Al cerrar, Felipe sumó Finanzas y Análisis, dejó el ícono en vez del colibrí y pidió que todo vacío de búsqueda lo
   deshaga ahí mismo; migrado entero el mismo día, deuda 0. Registros: `docs/unificar/vacio.md`, `aviso.md`, `buscador.md`.
+- **2026-10-09 · ronda 5b, la barra apilada, tocándola.** Nació de la deuda que dejó Frescura (ADR-0208, act. 2026-10-07): su rama
+  creó `ui/BarraApilada` con la forma de la barra de «Deuda por vencimiento» (Compras). El motor aprendió a ver una barra hecha con cajas
+  (antes solo veía SVG) y se partió la familia: `grafico.barra` (la barra que reparte un total) queda decidida y `grafico` (línea, barras
+  mensuales, dona) sigue por analizar. Quince archivos la dibujaban a mano con casi diez caras; Felipe eligió **P**: la pista de arena de
+  Frescura y Facturación con todo el movimiento de Compras, tres altos (12 · 8 · 4), 24 px para el mouse y una sola voz para el lector.
+  Migrada «Deuda por vencimiento»; **deuda 14 archivos**, módulo por módulo con su OK; ese mismo día Felipe pidió migrar las otras y **quedó migrada entera, módulo por módulo (deuda 0)**. Las barras de Análisis (ADR-0357) y la del aviso de cierre de
+  Caja (ADR-0359) quedan a propósito hasta que Felipe diga. Registro: `docs/unificar/grafico.barra.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

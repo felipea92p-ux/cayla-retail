@@ -228,10 +228,12 @@
         if (r.selectorText !== undefined) {
           const sel = padre && r.selectorText.includes("&") ? r.selectorText.replace(/&/g, padre) : padre ? `${padre} ${r.selectorText}` : r.selectorText;
           if (r.style && r.style.length) {
-            const estado = ESTADOS_CSS.find(([, re]) => re.test(sel));
-            if (estado) {
+            // Cada parte de un selector compuesto («a:hover, a:focus-visible») se clasifica por SU estado: antes la regla entera caía en
+            // el primero que coincidía (el foco) y su `:hover` se perdía (2026-10-09, la barra apilada).
+            {
               for (const parte of sel.split(/,(?![^(]*\))/)) {
-                if (!estado[1].test(parte)) continue;
+                const estado = ESTADOS_CSS.find(([, re]) => re.test(parte));
+                if (!estado) continue;
                 // El barrido de `.mov-boton` vive en su `::after`: el pseudo-elemento es parte de la pieza, y `matches()` no lo acepta.
                 const base = parte
                   .replace(/:(hover|active|focus-visible|focus-within|focus)\b/g, "")
@@ -348,7 +350,7 @@
     return res;
   }
   // Las familias que la persona toca o que se mueven solas. Los iconos, títulos y tablas no: se mueven con lo que los contiene.
-  const CON_MOVIMIENTO = new Set(["boton", "enlace", "pestanas", "casilla", "combo", "campo", "buscador", "cifra", "estado", "contador", "modal", "aviso", "paginacion", "grafico", "avatar"]);
+  const CON_MOVIMIENTO = new Set(["boton", "enlace", "pestanas", "casilla", "combo", "campo", "buscador", "cifra", "estado", "contador", "modal", "aviso", "paginacion", "grafico", "grafico.barra", "avatar"]);
 
   // ---------- el registro ----------
   let siguienteId = 1;
@@ -458,6 +460,56 @@
       }
       const paleta = [...colores.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([n]) => n).sort().join(" + ") || "—";
       anotar("grafico", el, { tipo, colores: paleta, ...(textos ? { textos } : {}) });
+      marcar(el);
+    }
+  }
+
+  // Una barra apilada hecha con CAJAS, no con SVG («Deuda por vencimiento» de Compras, las tarjetas de Facturación, «Cómo se pagó»
+  // de Historial, el costo de una orden, el tablero de Frescura): una fila baja (de 2 a 24 px) y ancha (80 px o más) de dos o más
+  // tramos pintados de un solo color, sin texto, cuyos anchos suman el de la fila. `censarGraficos` no la ve porque no es un dibujo
+  // (2026-10-09, ronda de `grafico`). Una barra escondida al lector (`aria-hidden`) también cuenta: que lo esté es parte de su huella
+  // («lector»), no un motivo para saltarla. Cuántos tramos tiene y de qué colores es DATO (qué se reparte), no forma: no van en la huella.
+  function censarBarrasApiladas() {
+    for (const el of document.querySelectorAll("main div, main span, main ul, [role='dialog'] div, [role='dialog'] span")) {
+      if (usados.has(el) || !vis(el) || fueraDelCenso(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height < 2 || r.height > 24 || r.width < 80) continue;
+      const s = estilo(el);
+      if (!/^(inline-)?(flex|grid)$/.test(s.display)) continue;
+      const hijos = [...el.children].filter(vis);
+      if (hijos.length < 2 || hijos.length > 24) continue;
+      const pintado = (h) => alfaDe(estilo(h).backgroundColor) > 0.1;
+      const esTramo = (h) => {
+        if ((h.textContent || "").trim() || h.children.length > 1) return false;
+        const hr = h.getBoundingClientRect();
+        // El alto de layout (`offsetHeight`) y no el pintado: un tramo estirado por el mouse encima (`scale`) mediría más que la barra.
+        if (hr.width < 1 || Math.abs((h.offsetHeight || hr.height) - r.height) > 2) return false;
+        // Pintado por sí mismo o por su único hijo (el «saldo a escala» de Proveedores pinta adentro).
+        return pintado(h) || (!!h.firstElementChild && pintado(h.firstElementChild));
+      };
+      if (!hijos.every(esTramo)) continue;
+      const cajas = hijos.map((h) => h.getBoundingClientRect());
+      // Una fila de puntos (todos cuadrados) no es una barra: es un conteo (`Puntos` de Facturación).
+      if (cajas.every((c) => c.width <= c.height * 1.5)) continue;
+      // Seis o más marcas del MISMO ancho tampoco reparten un total: cuentan días o pasos (la «Racha» de 14 días del Motor de demanda).
+      // Una barra real con seis partes exactamente iguales no existe en la práctica.
+      if (cajas.length >= 6 && cajas.every((c) => Math.abs(c.width - cajas[0].width) <= 1.5)) continue;
+      const suma = cajas.reduce((a, c) => a + c.width, 0);
+      if (suma < r.width * 0.6 || suma > r.width * 1.05) continue;
+      const aires = cajas.slice(1).map((c, i) => c.left - cajas[i].right).filter((g) => g >= 0 && g < 12);
+      const aire = aires.length ? Math.round(aires.reduce((a, b) => a + b, 0) / aires.length) : 0;
+      const responde = hijos.some((h) => h.matches(CLICABLE));
+      const role = el.getAttribute("role");
+      const lector = escondido(el) ? "oculta (aria-hidden)" : role ? `role=${role}${el.getAttribute("aria-label") ? " con resumen" : " sin resumen"}` : "sin nombre";
+      anotar("grafico.barra", el, {
+        tipo: "barra apilada",
+        alto: par(r.height),
+        pista: fondoDe(s),
+        radio: radio(s, r.height),
+        tramo: `radio ${radio(estilo(hijos[0]), r.height)} · aire ${aire}px`,
+        responde: responde ? "sí (los tramos se tocan)" : "no",
+        lector,
+      });
       marcar(el);
     }
   }
@@ -822,6 +874,7 @@
     // contar como botón suelto.
     censarHojas();
     censarGraficos();
+    censarBarrasApiladas();
     censarPestanas();
     censarPaginacion();
     censarCombos();
@@ -852,7 +905,7 @@
   window.__unificarEstado = (uid) => {
     const el = document.querySelector(`[data-unificar-id="${uid}"]`);
     if (!el) return null;
-    const PROPS = [["backgroundColor", "fondo"], ["color", "color"], ["borderTopColor", "borde"], ["boxShadow", "sombra o anillo"], ["transform", "se mueve"], ["opacity", "opacidad"], ["textDecorationLine", "subrayado"]];
+    const PROPS = [["backgroundColor", "fondo"], ["color", "color"], ["borderTopColor", "borde"], ["boxShadow", "sombra o anillo"], ["transform", "se mueve"], ["scale", "cambia de tamaño"], ["opacity", "opacidad"], ["textDecorationLine", "subrayado"]];
     const nodos = [el, ...[...el.querySelectorAll("*")].slice(0, 20)];
     const valores = nodos.map((n) => {
       const s = getComputedStyle(n);

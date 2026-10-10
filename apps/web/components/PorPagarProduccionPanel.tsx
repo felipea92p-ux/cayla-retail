@@ -12,6 +12,7 @@ import { diasHasta, etiquetaTipo, type ComprobanteProduccion } from "@/lib/compr
 import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes } from "@/lib/por-pagar-produccion-reglas";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -134,17 +135,22 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
               </p>
             </div>
             <div>
-              <div className="flex h-2.5 overflow-hidden rounded-full bg-sand" role="img" aria-label={`Producción ${Math.round((consolidado.parteProduccion ?? 0) * 100)} % de la deuda, Compras el resto`}>
-                <span className="bg-tinta" style={{ width: `${(consolidado.parteProduccion ?? 0) * 100}%` }} />
-                <span className="bg-tinta/30" style={{ width: `${(1 - (consolidado.parteProduccion ?? 0)) * 100}%` }} />
-              </div>
+              {/* La barra es `<BarraApilada>` (ADR-0358): Producción contra Compras, el 100 % de la deuda. */}
+              <BarraApilada
+                alto={8}
+                etiqueta={`Producción ${Math.round((consolidado.parteProduccion ?? 0) * 100)} % de la deuda, Compras el resto`}
+                segmentos={[
+                  { clave: "produccion", nombre: "Producción", valor: consolidado.parteProduccion ?? 0, clase: "bg-tinta", titulo: `Producción: ${Math.round((consolidado.parteProduccion ?? 0) * 100)} %` },
+                  { clave: "compras", nombre: "Compras", valor: 1 - (consolidado.parteProduccion ?? 0), clase: "bg-tinta/30", titulo: `Compras: ${Math.round((1 - (consolidado.parteProduccion ?? 0)) * 100)} %` },
+                ]}
+              />
               <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
                 <span>
-                  <i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-tinta align-middle" />
+                  <MuestraTramo clase="bg-tinta" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Producción {soles(consolidado.porOrigen.produccion.saldo)} · {plural(consolidado.porOrigen.produccion.proveedores, "proveedor", "proveedores")}
                 </span>
                 <span>
-                  <i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-tinta/30 align-middle" />
+                  <MuestraTramo clase="bg-tinta/30" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Compras {soles(consolidado.porOrigen.compras.saldo)} · {plural(consolidado.porOrigen.compras.proveedores, "proveedor", "proveedores")}
                 </span>
               </p>

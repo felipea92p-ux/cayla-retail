@@ -125,7 +125,7 @@ if (typeof args.lamina === "string") {
   const familiasLamina = censo.familias.filter((f) => quiereFamiliaDe(lista(args.familia))(f.id)).map((f) => ({ ...f, ...(familiaPorId(f.id) ?? {}), subgrupos: f.subgrupos }));
   const lam = escribirLamina(dir, { ...censo, familias: familiasLamina }, { propuestasDir: join(REPO, "docs", "unificar", "propuestas"), foco: censo.foco });
   if (!args["sin-comparativas"]) {
-    const nav = await chromium.launch({ headless: true });
+    const nav = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
     await fotografiarLamina(nav, lam, familiasLamina, dir);
     await nav.close();
   }
@@ -226,7 +226,7 @@ async function capturar(pagina, inst, destino) {
  * Lo que de verdad pasa al pasar el mouse sobre una pieza (Felipe 2026-10-07): qué cambia y qué animación corre. Solo MUEVE el
  * mouse —nunca hace clic ni presiona—, así que no guarda nada. Es la prueba de lo que la huella leyó en el CSS.
  */
-const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra)/;
+const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra|grafico\.barra)/;
 async function medirEncima(pagina, uid) {
   const caja = await pagina.evaluate((u) => window.__unificarEnfocar(u), uid);
   if (!caja) return null;
@@ -330,7 +330,7 @@ async function visitar(ctx, cuenta, visita) {
   return res;
 }
 
-const navegador = await chromium.launch({ headless: true });
+const navegador = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
 let visitasHechas = 0;
 try {
   for (const cuenta of cuentas) {
