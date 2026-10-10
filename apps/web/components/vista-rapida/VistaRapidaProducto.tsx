@@ -15,7 +15,7 @@ import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { rangoSoles } from "@/lib/productos-vista";
-import { alternarVariantes, armarMatriz, etiquetasDeLaSeleccion, soloLasQueExisten } from "@/lib/vista-rapida-producto-reglas";
+import { alternarVariantes, armarMatriz, etiquetasDeLaSeleccion, fichaCorta, soloLasQueExisten } from "@/lib/vista-rapida-producto-reglas";
 import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
@@ -206,8 +206,7 @@ export function VistaRapidaProducto({
             </div>
             <p className="vr-pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
           </div>
-          {/* Lo que se escribió en «Descripción» al crear o editar la prenda: es de la prenda, no del color, por eso va aparte y no cambia
-              con la foto. Sin descripción no se dibuja nada: el campo es opcional. */}
+          {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
           {producto.descripcion && (
             <div className="vr-desc">
               <span className="vr-rotulo label-cayla">Descripción</span>
@@ -230,6 +229,17 @@ export function VistaRapidaProducto({
             alVistaPrevia={setVista}
             alQuitar={() => setElegidas(new Set())}
           />
+          {/* La ficha corta (Felipe 2026-10-09): material, patrón y marca —lo que el cliente pregunta— y cuánto se vendió en 30 días en todas
+              las sedes —lo que ayuda a recomendarla—. Es de la prenda, no del color: no cambia con la foto. Lo que no está registrado se dice
+              («Sin registrar»), porque es justo lo que falta completar en «Editar». */}
+          <dl className="vr-ficha">
+            {fichaCorta(producto).map((d) => (
+              <div key={d.clave} className="vr-ficha-fila" data-ficha={d.clave}>
+                <dt className="vr-rotulo label-cayla">{d.rotulo}</dt>
+                <dd className={d.valor ? undefined : "vr-ficha-falta"}>{d.valor ?? "Sin registrar"}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </div>
 
