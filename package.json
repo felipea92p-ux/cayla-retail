@@ -108,6 +108,7 @@
     "pruebas:campana-redondeo": "node scripts/pruebas/campana_redondeo.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",
     "pruebas:prendas-por-regularizar": "node scripts/pruebas/prendas_por_regularizar.mjs",
+    "pruebas:piezas-liquidacion": "node scripts/pruebas/piezas_liquidacion.mjs",
     "pruebas:cola-arranque": "node scripts/pruebas/cola_arranque.mjs",
     "pruebas:corregir-prenda-sin-registrar": "node scripts/pruebas/corregir_prenda_sin_registrar.mjs",
     "pruebas:cola-arranque-concurrencia": "node scripts/pruebas/cola_arranque_concurrencia.mjs",
