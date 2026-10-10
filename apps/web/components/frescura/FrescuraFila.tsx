@@ -75,7 +75,8 @@ function Prenda({ fila, apariencia, categoria, onAbrir }: { fila: FilaVista; apa
             onAbrir();
           }}
           aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
-          className="block text-left text-[15px] font-semibold leading-tight hover:underline focus-visible:underline"
+          // `min-h-7`: un blanco de 24 px o más con el mouse (medía 19; oficio visual, Formidable 2026-10-09).
+          className="block min-h-7 py-0.5 text-left text-[15px] font-semibold leading-tight hover:underline focus-visible:underline"
         >
           {fila.nombre}
         </button>
@@ -113,6 +114,7 @@ function Estado({ fila, marcarAproximado }: { fila: FilaVista; marcarAproximado:
  */
 function Accion({
   accion,
+  consecuencia,
   enviando,
   error,
   onAnotar,
@@ -121,6 +123,8 @@ function Accion({
   onLimpiarError,
 }: {
   accion: AccionFila | null;
+  /** Lo que pasa al tocar el botón que anota, dicho antes (`textoConsecuenciaFila`); null si el botón no anota. */
+  consecuencia: string | null;
   enviando: boolean;
   error: ErrorAnotar | null;
   onAnotar: (accion: AccionDecision, verbo: string) => void;
@@ -163,7 +167,7 @@ function Accion({
       )}
       <button
         type="button"
-        className="btn-cayla btn-enlace text-[13px]"
+        className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]"
         onClick={(e) => {
           detener(e);
           onAbrir();
@@ -171,6 +175,10 @@ function Accion({
       >
         ¿Por qué?
       </button>
+      {/* La consecuencia ANTES de tocar (Formidable 2026-10-09): el botón afirma un hecho; esta línea dice cuándo tocarlo y qué pasa. */}
+      {consecuencia && accion?.tipo === "anotar" && !error && (
+        <span className="basis-full text-[12.5px] leading-snug text-taupe md:text-right">{consecuencia}</span>
+      )}
       {error && (
         <span role="alert" className="basis-full text-[12.5px] leading-snug text-tinta/80 md:text-right">
           {error.texto}{" "}
@@ -201,6 +209,7 @@ export function FrescuraFila({
   apariencia,
   categoria,
   accion,
+  consecuencia,
   enviando,
   error,
   onAnotar,
@@ -216,6 +225,8 @@ export function FrescuraFila({
   categoria: CategoriaVisual | null;
   /** El botón de la fila (`accionDeFila`), o null si no hay nada que hacer. */
   accion: AccionFila | null;
+  /** Lo que pasa al tocar el botón que anota, dicho antes de tocarlo; null si el botón no anota. */
+  consecuencia: string | null;
   /** Se está anotando ESTA prenda. */
   enviando: boolean;
   /** Falló anotar ESTA prenda: se dice junto a su botón. */
@@ -236,7 +247,7 @@ export function FrescuraFila({
         <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
-        <Accion accion={accion} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
+        <Accion accion={accion} consecuencia={consecuencia} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
       </div>
 
       {/* Celular: una tarjeta con lo mismo, apilado. */}
@@ -244,7 +255,7 @@ export function FrescuraFila({
         <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
-        <Accion accion={accion} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
+        <Accion accion={accion} consecuencia={consecuencia} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
       </div>
     </div>
   );
