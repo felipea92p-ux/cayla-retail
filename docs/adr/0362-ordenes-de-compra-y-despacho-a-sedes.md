@@ -1,7 +1,10 @@
 # ADR-0362 · Órdenes de compra, comprobante y despacho a las sedes
 
-- **Fecha:** 2026-10-07 · **Estado:** BORRADOR — en ronda de preguntas con Felipe. Nada construido, ninguna migración.
-- **Rama:** `claude/purchase-order-flow-6207e9`. Migraciones reservadas: `20261008100000`–`20261008109999`.
+- **Fecha:** 2026-10-07 · **Estado:** BORRADOR — decisiones 1–35 tomadas (32–35 el 2026-10-10); falta precisar dos puntos de la 34
+  y aprobar el plan de la fase 1. Nada construido, ninguna migración.
+- **Rama:** diseño en `claude/purchase-order-flow-6207e9` (2026-10-07 → 10); desde el 2026-10-10 sigue en
+  `claude/purchase-order-redesign-9b0c82`, al día con `main`. El rango reservado (`20261008100000`–`…109999`) quedó atrás de lo que
+  entró a `main` (hasta `20261010150000`): las versiones se eligen el día que se escriba cada migración.
 - **Contrato con:** ADR-0361 (sesión «Recibir Mercadería», rama `claude/recepcion-mercaderia-inventario-16e55e`): la recepción en
   la sede es de Inventario y la construye esa sesión; esta construye la orden de compra, el comprobante y el despacho.
 - **Reemplaza:** de ADR-0035, «CAYLA no emite pedidos formales» (ya los emite). Vuelve a existir la orden de compra, con tablas nuevas:
@@ -42,6 +45,10 @@
 | 29 | Fondo del Taller | Quien compra para el Taller **también recibe un monto asignado y lo rinde al final** (Felipe 2026-10-08) |
 | 30 | Módulo de fondos | Para que alguien tenga fondo **tiene que existir un módulo para pasar plata de la empresa al fondo de la persona**; diseño en curso (Felipe 2026-10-08) |
 | 31 | Fases | Felipe **aprobó las 7 fases**, pidiendo que todo sea intuitivo; antes de arrancar pidió el mapa de módulos de punta a punta (2026-10-08) |
+| 32 | Fondo que no alcanza | La compradora **paga de su bolsillo** y queda «CAYLA te debe S/ X», que se le devuelve al rendir con comprobante o foto. **Sin tope**: no tendrá mucho dinero para prestar y lo más probable es que pida que le abonen más fondo (Felipe 2026-10-10) |
+| 33 | Rendición de un líder | La aprueba **un Admin distinto de él** (escalera de ADR-0178). «Nadie aprueba lo suyo» no tiene excepción. Hoy hay 14 líderes activos y 6 Admin (consultado el 2026-10-10) (Felipe 2026-10-10) |
+| 34 | El módulo es la llave | **Quien tiene el módulo ve todo lo que hay dentro, sin restricciones**: no hay permisos «solo tus órdenes». **Toda persona del sistema puede tener un fondo**; si se le da plata o no lo decide quien administra los fondos (Felipe 2026-10-10, al preguntarle por los precios del Taller). Lo que falta precisar, en «Por decidir» |
+| 35 | Quién entrega fondos | **Quien tenga el módulo para asignar dinero** (`fondos`, delegable, nace solo para el líder como todo módulo nuevo). Se mantienen los dos candados del diseño: nadie se entrega plata a sí mismo y quien entrega no aprueba esa rendición (Felipe 2026-10-10; los candados, por defecto) |
 
 ## Fuente: el brief de Felipe
 
@@ -51,14 +58,20 @@ lo pegó en la sesión; las decisiones 9, 14, 16, 17 y 18 se tomaron contrastán
 
 ## Por decidir (Felipe)
 
-- El mapa de módulos de punta a punta y el módulo de fondos (en diseño).
+- ~~El mapa de módulos de punta a punta y el módulo de fondos (en diseño).~~ Respondido con las decisiones 31–35.
+- **Dos lugares donde la 34 choca con una restricción de hoy** (consultado en producción el 2026-10-10):
+  - Compras muestra a cada persona **solo su tienda** (ADR-0184; hoy 12 personas que no son líder ven «Facturas de proveedor»).
+    ¿«Órdenes de compra» muestra todas las sedes a quien tiene el módulo, o sigue esa regla? Hace falta para la fase 1.
+  - El dinero del Taller (`verDinero`) es **solo del líder** y no se delega. Si la orden de insumos vive dentro de Producción, la 34
+    lo abre a quien tenga Producción (hoy 1 persona que no es líder); si es un módulo propio, solo abre sus órdenes. Hace falta para la fase 7.
 
 ## Lo que decido por defecto (Felipe puede cambiarlo)
 
 Correlativo `OC-000001`; solo soles; una orden de compra se edita mientras no tenga comprobante ni envío; anular pide motivo y solo
 sin comprobante ni envío vivo; un envío se anula mientras la sede no lo abrió; se conserva Por pagar para el crédito; un fondo por
-persona con una rendición por viaje; el módulo «Órdenes de compra» nace solo para el líder (regla de módulos) y cada encargada de
-tienda ve las órdenes de su sede, la general todas. Comparar contra el Plan de campaña queda para una fase posterior.
+persona con una rendición por viaje; el módulo «Órdenes de compra» nace solo para el líder (regla de módulos) y ~~cada encargada de
+tienda ve las órdenes de su sede, la general todas~~ (en revisión por la decisión 34). Comparar contra el Plan de campaña queda para
+una fase posterior.
 
 ## Para el contador (no bloquea programar, dice el brief)
 
