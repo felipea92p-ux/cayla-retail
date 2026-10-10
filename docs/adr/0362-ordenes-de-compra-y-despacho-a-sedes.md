@@ -88,7 +88,9 @@ desde el diálogo de impresión, como la guía de traslado, y el archivo se llam
 nunca bloquea: en Gamarra muchas veces no se sabe); si el proveedor trae una sola marca, se pone sola en las líneas sin marca; los
 números se leen con la costumbre del ERP (punto decimal, coma de miles: «1,950.50»), con una sola tolerancia —«12,50» sin punto es
 doce cincuenta, porque leerlo como 1250 multiplicaría el precio por cien sin que nadie lo note—; y el descuento se escribe en % o en
-S/ con un selector y se muestra el otro valor calculado al lado.
+S/ con un selector. El otro valor, ya calculado, va junto al subtotal de la línea («S/ 399.60» con «−S/ 44.40» debajo; en la
+tarjeta angosta, en la misma línea). Antes iba debajo de la caja del descuento, pero se veía mal y descuadraba la fila (Felipe,
+2026-10-10).
 
 **Al construir «ver una orden» y los filtros de la lista (actividad 3, 2026-10-10), por defecto:** tocar una fila abre la orden en una
 ventana sobre la lista (como el detalle de una factura); recargar o compartir el enlace muestra la misma orden en página completa, en

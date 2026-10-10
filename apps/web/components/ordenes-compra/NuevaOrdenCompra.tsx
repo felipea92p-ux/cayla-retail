@@ -387,13 +387,12 @@ function LineaOrden({
 }) {
   const id = `linea-${l.clave}`;
   const c = calcularLinea(l);
-  // El otro lado del descuento, ya calculado: «= S/ 40.00» si se escribió en %, «= 9.17 %» si se escribió en soles.
-  const equivalente =
-    c.brutoCentimos == null || c.descuentoCentimos === 0
-      ? null
-      : l.modoDescuento === "pct"
-        ? `= ${soles(c.descuentoCentimos / 100)}`
-        : `= ${aTexto(Math.round((c.pctEscalado ?? 0) / 100), 2)} %`;
+  // El otro lado del descuento, ya calculado: «−S/ 40.00» si se escribió en %, «−9.17 %» si se escribió en soles. Va junto al subtotal
+  // de la línea, no bajo la caja del descuento (Felipe, 2026-10-10: debajo de la caja se veía mal y descuadraba la fila): ahí se lee
+  // como lo que es, cuánto le quitó el descuento a la línea.
+  const descuentoSoles = c.brutoCentimos == null || c.descuentoCentimos === 0 ? null : soles(c.descuentoCentimos / 100);
+  const descuentoPct = descuentoSoles ? `${aTexto(Math.round((c.pctEscalado ?? 0) / 100), 2)} %` : null;
+  const equivalente = descuentoSoles ? (l.modoDescuento === "pct" ? `−${descuentoSoles}` : `−${descuentoPct}`) : null;
   const quitar = (clase: string) => (
     <button type="button" onClick={onQuitar} className={`btn-cayla btn-sutil h-8 w-8 shrink-0 p-0 ${clase}`} aria-label={`Quitar la línea ${numero}`} title="Quitar esta línea">
       <X aria-hidden className="h-4 w-4" />
@@ -461,11 +460,19 @@ function LineaOrden({
               onCambio={(clave) => onCambio({ modoDescuento: clave as ModoDescuento, descuento: "" })}
             />
           </div>
-          {equivalente && <p className="mt-0.5 text-xs tabular-nums text-taupe">{equivalente}</p>}
         </div>
         <div className="col-span-2 flex items-baseline justify-between gap-3 border-t border-sand pt-2 @min-[56rem]:col-span-1 @min-[56rem]:block @min-[56rem]:border-0 @min-[56rem]:pt-0 @min-[56rem]:text-right">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Subtotal</p>
-          <p className="font-display text-lg tabular-nums text-tinta">{c.subtotalCentimos == null ? "—" : soles(c.subtotalCentimos / 100)}</p>
+          {/* En la tarjeta, el descuento va delante del monto, en la misma línea; en la fila ancha, debajo del monto. */}
+          <p className="flex items-baseline justify-end gap-x-2 @min-[56rem]:flex-col-reverse @min-[56rem]:items-end @min-[56rem]:gap-0">
+            {equivalente && (
+              <span className="text-xs tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
+                {equivalente}
+                <span className="sr-only"> de descuento</span>
+              </span>
+            )}
+            <span className="font-display text-lg tabular-nums text-tinta">{c.subtotalCentimos == null ? "—" : soles(c.subtotalCentimos / 100)}</span>
+          </p>
         </div>
         <div className="hidden justify-end @min-[56rem]:flex">{quitar("")}</div>
       </div>
