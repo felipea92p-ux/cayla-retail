@@ -65,7 +65,7 @@ aleja más de un 30 % del general, y todo queda en el Historial de la prenda y e
 
 ## Producción
 
-Pegar en este orden: `20261010100000` → `20261010100100` → `20261010100200` → `20261010100300`. Ninguna tiene políticas ni
+Pegar en este orden: `20261010100000` → `20261010100100` → `20261010100200` → `20261010100300` → `20261010100400` (una prenda con precio propio frena «eliminar») → `20261010100500` (poner o quitar un precio de sede sube la versión del catálogo: toda pantalla abierta se pone al día sola). Ninguna tiene políticas ni
 `drop trigger`; todas son re-ejecutables y fallan sin tocar nada si una función viva cambió. La web nueva se puede publicar antes o
 después: sin la tabla, lee cero precios propios y cobra el general, que es lo mismo que exige la base vieja.
 

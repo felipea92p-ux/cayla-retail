@@ -10,6 +10,7 @@ import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 
 /** El precio que más se repite (59.9 y 59.90 son el mismo); sin precios, null. */
 function masComun(precios: number[]): number | null {
@@ -38,7 +39,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, preciosDeSede] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -60,6 +61,8 @@ export default async function EditarProductoPage({
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
     // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
     supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
+    // El precio propio de ESTA tienda: la vista previa de «Imprimir lo que entró» sale con él, como la etiqueta impresa.
+    getPreciosPorSede([persona.ubicacionId]),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -132,7 +135,7 @@ export default async function EditarProductoPage({
         puedeCorregir={puedeCorregir}
         ajusteStock={ajusteStock}
         lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
-        preciosSede={{ tiendas: tiendasPrecio, general: precioGeneral }}
+        preciosSede={{ tiendas: tiendasPrecio, general: precioGeneral, aqui: preciosDeSede[persona.ubicacionId] ?? {} }}
         producto={producto}
         volverA={volverA}
       />

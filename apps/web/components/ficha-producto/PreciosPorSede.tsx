@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Store } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +37,7 @@ export function PreciosPorSede({
   tiendas: readonly Tienda[];
   deshabilitado?: boolean;
 }) {
+  const router = useRouter();
   const [precios, setPrecios] = useState<PrecioDeSede[] | null>(null);
   const [hoja, setHoja] = useState<
     | { k: "poner"; actual?: PrecioDeSede }
@@ -65,6 +67,8 @@ export function PreciosPorSede({
   const cerrarYLeer = () => {
     setHoja(null);
     setLectura((n) => n + 1);
+    // La ficha también lee el precio de esta tienda (la vista previa de las etiquetas): se rehace sin perder lo editado.
+    router.refresh();
   };
 
   return (

@@ -285,6 +285,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
+            preciosAqui={preciosTiendas.porSede[persona.ubicacionId]}
           />
         ) : (
           <ProductosTabla

@@ -221,6 +221,25 @@ select (total = :general + 10)::text from retail.proformas where id = :'pf';`;
   esperar("una proforma en Trujillo al precio general se rechaza", !general.ok, general);
 }
 
+// 12b. Poner o quitar el precio de una tienda sube la versión del catálogo: las pantallas abiertas se ponen al día solas.
+{
+  const r = correr(FELIPE, `
+select version as v0 from retail.catalogo_version where id = 1 \\gset
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Versión');
+select version as v1 from retail.catalogo_version where id = 1 \\gset
+select retail.quitar_precio_sede(:'p1', :'tru', null);
+select concat_ws('|', (:v1 > :v0)::text, ((select version from retail.catalogo_version where id = 1) > :v1)::text);`);
+  esperar("poner y quitar el precio de una tienda suben la versión del catálogo (las pantallas abiertas se refrescan)", ultima(r) === "true|true", r);
+}
+
+// 12c. Una prenda que tuvo precio propio no se elimina: lo dice y se desactiva (20261010100400).
+{
+  const r = correr(FELIPE, `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Historia');
+select (select concepto from retail.fn_producto_historia(:'p1') where orden = 22) || '|' || (select n from retail.fn_producto_historia(:'p1') where orden = 22) || '|' || (select borrable from retail.fn_producto_historia(:'p1') where orden = 22)::text;`);
+  esperar("fn_producto_historia nombra «precios propios de una tienda» y no es borrable", /^precios propios de una tienda\|\d+\|false$/.test(ultima(r)), r);
+}
+
 // 13. Guardián: toda función que cobra, aparta, cotiza, cambia o regulariza toma el precio de `fn_precio_en_sede`.
 {
   const r = correr(FELIPE, `

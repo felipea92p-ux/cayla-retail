@@ -86,8 +86,13 @@ export function precioBaseDe(precios: readonly number[]): number {
 const unidadesDe = (stock: StockPorVariante, id: string): number | null => (stock === null ? null : Math.max(0, stock.get(id) ?? 0));
 const sumar = (xs: readonly (number | null)[]): number | null => (xs.some((x) => x === null) ? null : xs.reduce<number>((t, x) => t + (x ?? 0), 0));
 
-export function armarMatriz(variantes: readonly VarianteListado[], stock: StockPorVariante): Matriz {
-  const lista = variantesQueSeVenden(variantes);
+export function armarMatriz(
+  variantes: readonly VarianteListado[],
+  stock: StockPorVariante,
+  /** Precio propio de la sede que se mira, por variante (ADR-0370): la matriz dice lo que cobra su caja. */
+  preciosAqui: Readonly<Record<string, number>> = {},
+): Matriz {
+  const lista = variantesQueSeVenden(variantes).map((v) => (preciosAqui[v.varianteId] !== undefined ? { ...v, precio: preciosAqui[v.varianteId]! } : v));
   const base = precioBaseDe(lista.map((v) => v.precio));
   const unidades = new Map(lista.map((v) => [v.varianteId, unidadesDe(stock, v.varianteId)]));
   const maximo = Math.max(1, ...[...unidades.values()].map((u) => u ?? 0));

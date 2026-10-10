@@ -266,7 +266,7 @@ export function ProductoForm({
   lecturaStock?: LecturaStockFicha | null;
   /** Precio por tienda (Felipe 2026-10-09): las tiendas donde esta cuenta puede poner precio y el precio general guardado.
    *  `null` = no se muestra (alta). */
-  preciosSede?: { tiendas: Tienda[]; general: number | null } | null;
+  preciosSede?: { tiendas: Tienda[]; general: number | null; aqui?: Record<string, number> } | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
   /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
@@ -942,7 +942,7 @@ export function ProductoForm({
     // Entró stock (subió una talla o un color nuevo nació con unidades) y no hubo correcciones: la hoja grande «Etiquetas de lo
     // que entró» (Felipe 2026-10-03), con una etiqueta por cada prenda que entró. Tras corregir color o talla se reimprime TODO
     // (lo pegado ya no dice lo correcto): eso sigue siendo el botón del aviso.
-    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres) : [];
+    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosSede?.aqui) : [];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
     setGuardado(true);
     if (lineas.length > 0 && hrefSubidas) {

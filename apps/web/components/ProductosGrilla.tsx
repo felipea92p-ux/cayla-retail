@@ -56,10 +56,13 @@ export function ProductosGrilla({
   hrefLimpiar,
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
   preciosTienda = {},
+  preciosAqui,
 }: {
   productos: ProductoListado[];
   /** Por prenda, las tiendas que la venden a otro precio: la insignia «2 precios» (Felipe 2026-10-09). */
   preciosTienda?: Record<string, PrecioDeTienda[]>;
+  /** Precio propio de esta sede por variante: la vista rápida muestra el que cobra su caja (ADR-0370). */
+  preciosAqui?: Record<string, number>;
   /** El tamaño de las tarjetas que la persona dejó la última vez (cookie, leída en el servidor). */
   tamanoInicial?: TamanoGrilla;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
@@ -117,6 +120,7 @@ export function ProductosGrilla({
           puedeEliminar={puedeEliminar}
           compacta={tamano === "pequeno"}
           otrosPrecios={preciosTienda[p.productoId]}
+          preciosAqui={preciosAqui}
         />
       ))}
     </div>
@@ -135,9 +139,11 @@ function TarjetaProducto({
   puedeEliminar,
   compacta = false,
   otrosPrecios,
+  preciosAqui,
 }: {
   producto: ProductoListado;
   otrosPrecios?: PrecioDeTienda[];
+  preciosAqui?: Record<string, number>;
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
   veMovimientos: boolean;
@@ -278,6 +284,7 @@ function TarjetaProducto({
           existencias={existencias}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
+          preciosAqui={preciosAqui}
           veExistencias={veExistencias}
           veMovimientos={veMovimientos}
           puedeEditar={puedeEditar}
