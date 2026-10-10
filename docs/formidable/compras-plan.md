@@ -78,7 +78,31 @@ CAYLA, lo que de verdad se recupera en la liquidación de enero, fijado por un l
   guardó (chaos RS-03): se corrige con el aviso honesto del sistema.
 - **Persona sin contexto:** el ciego completó la tarea; real: sin probar.
 
+
+## Después de los 3 cambios (2026-10-10, en local; medido en el navegador)
+Recalificada **sin una prueba ciega nueva** (pendiente): las notas que cambian se apoyan en lo medido y en lo observado en el navegador.
+
+| Eje | Antes | Después | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 5 | 6 (provisional) | [Medido] las dudas del ciego tienen respuesta en su lugar: una pregunta agrupa los tres diciembres, «Lo que sobre» dice lo que produce, «Por llenar primero» pasó a «Las que más venden, sin plan». Falta la ciega sobre la pantalla nueva |
+| 2 Una pregunta, una respuesta | 5 | 7 | [Medido] una sola acción primaria («Empezar por Vestidos» / «Seguir con …») cuando hay algo por empezar, y 0 cuando todo está hecho; las filas ya no tienen botones negros |
+| 3 Simplicidad profunda | 5 | 7 | [Medido] ningún texto dice «de cada 100»; el porqué y «Lo que sobre» hablan en veredictos (pruebas de `lecturaDelCuantil`) |
+| 4 Lenguaje de tienda | 6 | 7 | [Medido] sin «en la red» ni «escenarios» en la cabecera; la nota de abajo todavía dice «escenarios» |
+| 5 Contenido primero | 4 | 6 | [Medido] la respuesta de la hoja va en el pie fijo, siempre a la vista; la lista entra a 1440 × 900 (y = 812) pero a 1024 × 768 sigue bajo el pliegue (y = 923; el aviso de stock mide 153 px) |
+| 6 Lo difícil, a un toque | 6 | 6 | sin cambio: la nota del cálculo y la de la curva siguen a la vista |
+| 7 Perdonar antes que preguntar | 4 | 8 | [Observado] Escape, la ✕, el velo, «Cancelar», un enlace y «Atrás» preguntan «¿Salir sin guardar?» con la hoja a la vista; en el paso a paso, también al saltar, cambiar de categoría o volver a la tabla |
+| 8 Quitar antes de agregar | 6 | 6 | [Medido] el subtítulo bajó a una frase; la curva sigue abierta |
+| 9 De punta a punta | 5 | 8 | [Medido] campaña inexistente → la más reciente con su aviso; número absurdo → la guía lo frena; respuesta perdida → aviso honesto; 375 px sin scroll horizontal; sin campañas, el líder ve «Nueva campaña» |
+| **Leyes (promedio)** | **5,1** | **6,8 (provisional)** | ninguna ley bajo 6 |
+| **Oficio visual** | **7** | **9** | [Medido] las tres cajas de diciembre a la misma altura (415,6 px) antes y después de que la luz pase al siguiente campo; precio y costo alineados; el selector de campaña mide 40 px como «Exportar». Sigue fallando la jerarquía (más de 4 tamaños de texto, varios del marco) |
+
+**Cambios cerrados:** 1 (la hoja dice la respuesta y no pierde lo escrito), 2 (las preguntas en palabras de tienda) y 3 (una sola acción principal,
+subtítulo corto, píldoras que caben, selector a la altura). De la lista aparte quedan la curva plegada, la lupa del buscador (global), el contraste del
+segmento «modo» (global) y la señal de «corregir» en una fila con plan. Nueva para la lista aparte: compactar el aviso de stock a 1024 px (la maqueta lleva
+una píldora por tienda; sin ellas la lista subiría unos 60 px) y la marca de la guía, que mide 3,5 px menos en «Sigue aquí» en todas las hojas guiadas.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-10 | `b274c507` | 5,1 | 7 | — (primera medición) |
+| 2026-10-10 | rama `claude/elegant-bose-201880` (sin publicar) | 6,8 (provisional) | 9 | los 3 |
