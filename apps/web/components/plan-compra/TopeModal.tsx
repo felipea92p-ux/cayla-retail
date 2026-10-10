@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto } from "@/components/ui/campos";
@@ -9,7 +9,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { camposDelTope } from "@/lib/plan-compra-guia";
@@ -24,15 +24,22 @@ export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId:
   const responsable = useResponsable();
   const [texto, setTexto] = useState(topeActual === null ? "" : String(topeActual));
   const [trabajando, setTrabajando] = useState(false);
+  // Un segundo envío mientras el primero viaja (doble clic, Enter repetido) no sale (chaos 2026-10-10).
+  const enviando = useRef(false);
   const guia = useGuiaCampos(camposDelTope(texto, { listo: responsable.listo, motivo: responsable.motivo }));
 
   async function guardar(valor: string | null, cerrar: () => void) {
+    if (enviando.current) return;
     if (valor !== null && !guia.puedeConfirmar) return;
     if (valor === null && !responsable.listo) return void avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
+    enviando.current = true;
     setTrabajando(true);
     const { error } = await firmar(createClient().rpc(RPC_GUARDAR_TOPE as never, argsGuardarTope(planId, valor) as never), responsable.firma());
     responsable.despues(error);
     setTrabajando(false);
+    enviando.current = false;
+    // Fijar el tope es idempotente: si la respuesta se perdió, volver a guardarlo deja lo mismo.
+    if (error && esFalloDeRed(error)) return void avisar.error("Se cortó la conexión mientras guardabas el tope: no sabemos si llegó. Vuelve a pulsar el botón; si ya se había guardado, queda igual.");
     if (error) return void avisar.error(traducirError(error, "guardar el tope"));
     const nuevo = valor === null ? null : argsGuardarTope(planId, valor).p_tope;
     avisar.exito(nuevo === null ? "Tope quitado" : "Tope guardado", { detalle: nuevo === null ? planNombre : `${solesES(nuevo)} · ${planNombre}` });

@@ -37,11 +37,12 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
         ) : undefined
       }
     >
-      {sinAlDia.length === 1 ? `${sinAlDia[0].nombre} no tiene` : `${sinAlDia.map((s) => s.nombre).join(", ")} no tienen`} su stock al día: el sistema cree que ahí hay menos de lo que hay y te
-      pediría <b className="font-semibold">comprar de más</b>. Cuéntalo antes de decidir.
+      {sinAlDia.length === 1 ? `${sinAlDia[0].nombre} no tiene` : `${sinAlDia.map((s) => s.nombre).join(" y ")} no tienen`} su stock al día, así que el plan te pediría{" "}
+      <b className="font-semibold">comprar de más</b>. Cuéntalo antes de decidir.
+      {/* Una píldora por tienda. Es un dato, no una frase: a 375 px salta de línea dentro de su tarjeta en vez de salirse (Formidable 2026-10-10). */}
       <span className="mt-2 flex flex-wrap gap-2">
         {confianza.sedes.map((s) => (
-          <Chip key={s.nombre} tono={s.alDia ? "verde" : "ambar"}>
+          <Chip key={s.nombre} tono={s.alDia ? "verde" : "ambar"} className="max-w-full whitespace-normal!">
             {s.nombre} · {s.alDia ? "al día" : s.falta}
           </Chip>
         ))}

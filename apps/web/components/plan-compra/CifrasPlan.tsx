@@ -1,4 +1,5 @@
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { enteroES, segmentosDelTope, solesES, type EstadoCampana, type FilaPlan, type FiltroPlan, type TotalesPlan } from "@/lib/plan-compra-reglas";
 
@@ -38,20 +39,25 @@ export function CifrasPlan({
   const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
       <TarjetaCifra
         etiqueta="Categorías con plan"
-        valor={`${totales.conPlan} de ${totales.total}`}
+        valor={
+          <>
+            <CifraQueCuenta valor={totales.conPlan} alMontar /> de {enteroES.format(totales.total)}
+          </>
+        }
         activa={filtro === "con"}
         onClick={() => onFiltro(filtro === "con" ? "todas" : "con")}
       >
         {totales.conPlan === 0 ? "Empieza por las que más venden" : "Las demás no suman a la compra"}
       </TarjetaCifra>
-      <TarjetaCifra etiqueta="Prendas a comprar" valor={enteroES.format(totales.aComprar)}>
+      <TarjetaCifra etiqueta="Prendas a comprar" valor={<CifraQueCuenta valor={totales.aComprar} alMontar />}>
         Lo que conviene tener menos lo que ya hay
       </TarjetaCifra>
       <TarjetaCifra
         etiqueta="Inversión al costo"
-        valor={solesES(totales.inversion)}
+        valor={<CifraQueCuenta valor={totales.inversion} formato="soles" alMontar />}
         detalleTono={excede > 0 ? "text-ambar-profundo" : undefined}
         accion={tope.soportado && onTope ? { texto: tope.valor === null ? "Poner un tope" : "Editar el tope", onClick: onTope } : undefined}
         pie={
@@ -78,12 +84,13 @@ export function CifrasPlan({
           {estado === "durante" ? "Hasta hoy, todas las categorías" : "Todas las categorías"}
         </TarjetaCifra>
       ) : lasQueMasVenden.length === 0 ? (
-        <TarjetaCifra etiqueta="Por llenar primero" valor={null}>
+        <TarjetaCifra etiqueta="Las que más venden, sin plan" valor={null}>
           Todavía no hay ventas de los últimos 90 días para decir cuáles venden más
         </TarjetaCifra>
       ) : (
-        <TarjetaCifra etiqueta="Por llenar primero" valor={enteroES.format(faltan)} onClick={faltan > 0 ? onSeguirLlenando : undefined}>
-          {faltan === 0 ? `Las ${lasQueMasVenden.length} que más venden ya tienen plan` : `de las ${lasQueMasVenden.length} que más venden, sin plan todavía`}
+        // «Por llenar primero» no se entendía (prueba ciega, 2026-10-10): la etiqueta dice qué se cuenta.
+        <TarjetaCifra etiqueta="Las que más venden, sin plan" valor={<CifraQueCuenta valor={faltan} alMontar />} onClick={faltan > 0 ? onSeguirLlenando : undefined}>
+          {faltan === 0 ? `Las ${lasQueMasVenden.length} ya tienen plan` : `de ${lasQueMasVenden.length} · llénalas una por una`}
         </TarjetaCifra>
       )}
     </div>
