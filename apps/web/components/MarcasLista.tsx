@@ -297,7 +297,9 @@ export function MarcasLista({
       )}
 
       {/* UNA tarjeta: buscador, filtros y lista (CLAUDE.md «Paleta y orden de pantalla»). */}
-      <section ref={cajaRef} className="card-cayla scroll-mt-20 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
+      {/* `@container`: el acomodo depende del ancho de ESTA tarjeta, no de la ventana. Con el menú lateral abierto en una ventana angosta
+          (o en un celular) la tarjeta mide 300–400 px aunque la ventana mida más (Felipe 2026-10-10). */}
+      <section ref={cajaRef} className="card-cayla @container scroll-mt-20 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <Buscador
             valor={busqueda}
@@ -306,7 +308,7 @@ export function MarcasLista({
             etiqueta="Buscar marca o proveedor"
             atajo
             sombra={{ cola: prediccion?.cola ?? "", alAceptar: (ir) => prediccion && aceptarPrediccion(prediccion.marca.id, prediccion.marca.nombre, ir) }}
-            className="min-w-0 basis-full sm:flex-1 sm:basis-0 sm:max-w-[34rem]"
+            className="min-w-0 basis-full @2xl:flex-1 @2xl:basis-0 @2xl:max-w-[34rem]"
           />
           <p className="text-sm text-tinta/70" aria-live="polite">
             {verDesactivadas ? `${lista.length} desactivada${lista.length === 1 ? "" : "s"}` : buscandoAlgo || filtro !== "activas" ? `${lista.length} de ${resumen.activas}` : `${resumen.activas} marcas activas`}
@@ -377,7 +379,7 @@ export function MarcasLista({
         )}
 
         {lista.length > 0 && (
-          <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+          <ul className="grid gap-3 @2xl:grid-cols-2 @6xl:grid-cols-3">
             {pag.filas.map((m, i) => (
               <TarjetaMarca
                 key={m.id}
