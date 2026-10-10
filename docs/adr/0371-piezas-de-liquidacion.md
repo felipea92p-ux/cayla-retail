@@ -1,7 +1,8 @@
 # ADR-0371 — Las prendas sueltas que se liquidan no entran al catálogo: se etiquetan como «piezas de liquidación»
 
-**Fecha:** 2026-10-10 · **Estado:** aceptado (Felipe, 10 preguntas + «ok»), construido y verificado en local. **No está en
-producción:** la migración `20261010190000_piezas_de_liquidacion.sql` espera el OK de Felipe (toca `registrar_venta`).
+**Fecha:** 2026-10-10 · **Estado:** aceptado (Felipe, 10 preguntas + «ok»), construido y verificado en local. **En producción desde el
+2026-10-10** (OK de Felipe; por el MCP, versión registrada `20261010172258`): las 13 funciones nuevas tienen el mismo md5 que en
+local y `registrar_venta` quedó igual a la local salvo una línea de comentario que ya difería antes (la del redondeo, ADR-0311).
 
 ## Contexto
 
