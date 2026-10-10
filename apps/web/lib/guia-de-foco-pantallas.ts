@@ -156,6 +156,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
+  "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
   // ---- recibir ----
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
   // (`RecepcionEnvio`) sigue declarada como modal pendiente más abajo.
@@ -243,6 +244,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ficha-producto/PrecioSedeModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/PrecioSedeModal.tsx"] },
   "components/GastoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/GastoRapidoModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
+  "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
   "components/plan-compra/PlanCategoriaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlanCategoriaModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
   "components/NuevaOrdenProduccionForm.tsx": PENDIENTE, // 11 controles

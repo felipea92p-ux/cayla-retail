@@ -121,6 +121,14 @@ exito(
   comoPersona(
     FELIPE,
     `${venta()}${corregir("Vestido largo crema")}${corregir("Vestido largo hueso")}
+-- Dentro de UNA transacción \`now()\` no cambia: las dos correcciones nacerían con la misma hora y \`first_value(antes) over (order by
+-- creado_en, id)\` desempataría por un uuid aleatorio (la prueba fallaba ~4 de cada 10 corridas, y rompió el CI de main el 2026-10-10).
+-- En la tienda cada corrección es su propia transacción, con su hora. Se retrocede la primera un minuto; la tabla es de solo agregar,
+-- así que el disparador se apaga solo durante esta línea (todo termina en ROLLBACK).
+set local session_replication_role = replica;
+update retail.prendas_por_regularizar_correcciones set creado_en = creado_en - interval '1 minute'
+ where prenda_id = :'fila' and despues ->> 'descripcion' = 'Vestido largo crema';
+set local session_replication_role = origin;
 set local role authenticated;
 select veces, antes ->> 'descripcion' from retail.fn_correcciones_prenda_sin_registrar(array[:'fila'::uuid]) limit 1;
 rollback;`,
