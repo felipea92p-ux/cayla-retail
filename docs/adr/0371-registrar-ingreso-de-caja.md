@@ -1,6 +1,9 @@
 # ADR-0371 — Caja ▸ Registrar ingreso: «Depósito o retiro» deja la cabecera
 
-**Fecha:** 2026-10-10 · **Decide:** Felipe · **Estado:** aceptada (web + migraciones `20261010160000_caja_motivos_de_ingreso.sql` y `20261010170000_caja_ingresos_con_su_origen.sql`, **aplicadas en local, pendientes en producción, en ese orden**)
+**Fecha:** 2026-10-10 · **Decide:** Felipe · **Estado:** aceptada (web + migraciones `20261010160000_caja_motivos_de_ingreso.sql` y `20261010170000_caja_ingresos_con_su_origen.sql`, **EN PRODUCCIÓN desde el 2026-10-10**, en ese orden, aplicadas por el MCP de Supabase a pedido de Felipe; `apply_migration` las registró
+con la hora de aplicación, `20261010144148` y `20261010144250`, no con la del archivo. Antes de aplicarlas se verificó que cada ancla
+apareciera exactamente una vez en producción y que el md5 de `fn_movimientos_dinero_validar` fuera el revisado (`49e42887…`). Después se
+verificó cada función parchada, la columna nueva y los permisos, que siguen iguales)
 
 ## Problema
 
@@ -110,7 +113,8 @@ ahora porque le falta su ingreso de caja) y `candado_dinero_caja_cambios_devoluc
 
 ## Pendiente
 
-- Aplicar en producción `20261010160000` y después `20261010170000` **antes** de publicar la web. Sin ellas, la hoja llama a una
-  función que no existe (`registrar_ingreso_caja`) y no registra nada.
+- ~~Aplicar en producción `20261010160000` y `20261010170000`~~: hecho el 2026-10-10 (ver Estado).
+- Refrescar el diccionario (`docs/datos/generado/`) con un volcado nuevo de producción: `movimientos_dinero.caja_ingreso_id` y
+  `registrar_ingreso_caja` todavía no están ahí.
 - ~~Finanzas lee estas entradas como «otros ingresos»~~ y ~~«Compra de insumos» sigue entre las salidas~~: resuelto en la
   actualización (b).

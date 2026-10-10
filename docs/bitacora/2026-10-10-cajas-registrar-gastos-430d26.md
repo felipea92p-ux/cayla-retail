@@ -7,3 +7,8 @@ Felipe se lleva: probado en local (otra sede, S/ 120,50, guardado con motivo, no
 Qué hice: `registrar_ingreso_caja` y la columna `movimientos_dinero.caja_ingreso_id` (`20261010170000`). Ahora la caja fuerte, el efectivo por rendir y el cajón de la otra sede bajan en la misma operación, o la entrada queda como aporte del dueño, y el flujo y el balance la leen así. En «Lo trae el líder» la hoja pregunta de qué plata es. Quité «Compra de insumos» de las salidas y cerré un hueco viejo: los motivos de sistema se podían tipear sueltos por un NULL.
 Por qué así: sin esto, la plata de la caja fuerte se contaba dos veces y el flujo la leía como si CAYLA la hubiera ganado. Es el espejo de cómo ya se respaldaba lo que sale de un cajón.
 Felipe se lleva: 31 casos contra Postgres (`pnpm pruebas:caja-ingresos`, en el CI) y las pruebas de Finanzas y Caja en verde; probado en el navegador con la base restaurada (respeté un cambio de otra sesión en `modulos`). **Pendiente tuyo: aplicar 160000 y 170000 en producción, en ese orden, antes de publicar.**
+
+## 2026-10-10 (las dos migraciones de Registrar ingreso, en producción)
+Qué hice: apliqué `20261010160000` y `20261010170000` en producción por el MCP de Supabase, a pedido de Felipe (versiones `20261010144148` y `20261010144250`). Antes verifiqué que cada ancla apareciera una sola vez y que la huella del disparador fuera la revisada; después revisé cada función, la columna nueva y los permisos.
+Por qué así: los parches por ancla se detienen solos si producción no es la que se revisó; las dos se aplicaron sin error.
+Felipe se lleva: la web ya puede publicarse (la hoja llama a `registrar_ingreso_caja`, que ya existe). Pendiente: refrescar el diccionario desde un volcado nuevo.
