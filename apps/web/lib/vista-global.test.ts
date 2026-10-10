@@ -64,6 +64,9 @@ describe("la barrera de rutas y el menú dicen lo mismo", () => {
     expect(rutaDeLaVistaGlobal("/")).toBe(true);
     expect(rutaDeLaVistaGlobal("/vender")).toBe(false);
     expect(rutaDeLaVistaGlobal("/inventario")).toBe(false);
+    // Frescura del piso sí (ADR-0208, act. 2026-10-10 (b): una barra por tienda); lo demás de Inventario, no.
+    expect(rutaDeLaVistaGlobal("/inventario/frescura")).toBe(true);
+    expect(rutaDeLaVistaGlobal("/inventario/movimientos")).toBe(false);
     expect(rutaDeLaVistaGlobal(RUTA_ELEGIR_SEDE)).toBe(true);
     expect(rutaDeLaVistaGlobal("/global")).toBe(true);
   });

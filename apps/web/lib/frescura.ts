@@ -16,6 +16,7 @@ import { avisoDatosDeHoy } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
+import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
 import type { ResumenDecisiones } from "@/lib/frescura-decisiones-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
@@ -306,3 +307,70 @@ export async function getFrescuraPantalla(
     ...(await deLaSede(lecturaDeSede)),
   };
 }
+
+// ---------------------------------------------------------------------------
+// CAYLA Global ▸ Frescura del piso (ADR-0208, act. 2026-10-10 (b), decisión 4)
+// ---------------------------------------------------------------------------
+
+/** Lo que dibuja la vista de CAYLA entera: un resumen por tienda (nunca sus prendas), o por qué no se lee. */
+export type DatosRed = { tiendas: ResumenTienda[]; esLider: boolean };
+
+/**
+ * Las tres tiendas para la vista CAYLA Global. Solo el líder las lee: `fn_frescura_sede` deja leer una sede a quien la opera, y el líder
+ * opera todas. Un gerente que no es líder con CAYLA Global necesita que esa función también pregunte por `cayla_global` (una migración,
+ * con OK de Felipe: fuera de esta ronda); mientras tanto la pantalla lo dice. Cada tienda falla por su cuenta; la suma de CAYLA no afirma
+ * nada si falta una (`resumenCayla`).
+ */
+export async function getFrescuraRed(persona: Pick<PersonaActualV2, "rol">, dias: number = FRESCURA_DIAS_LECTURA): Promise<DatosRed> {
+  if (persona.rol !== "lider") return { tiendas: [], esLider: false };
+  const supabase = await createClient();
+  const rpc = rpcFrescura(supabase);
+  const [ubicaciones, { respaldo }, familias, puertas] = await Promise.all([
+    getUbicaciones(),
+    leerRespaldoCayla(rpc, new Date().toISOString()),
+    familiasDelCatalogo(supabase),
+    puertasDeLasTiendas(supabase),
+  ]);
+  const tiendas = ubicaciones.filter((u) => u.tipo === "tienda" && u.activo);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior);
+  const sedes = lider.sedes.map((s) => ({
+    id: s.ubicacionId,
+    nombre: s.nombre,
+    sede: s.lectura.datos && s.lectura.datos.separaPiso ? s.lectura.datos : null,
+    fallo: s.lectura.fallo,
+  }));
+  // La familia de cada categoría de las tres tiendas (hoy y hace 4 semanas). Si falla, todo va en una sola barra por tienda.
+  const ids = [...new Set(sedes.flatMap((t) => [...(t.sede?.prendas ?? []).map((p) => p.categoriaId), ...(t.sede?.haceUnMes?.porCategoria ?? []).map((c) => c.categoriaId)]).filter((id) => id !== ""))];
+  const familiaDe = await familiasDeCategorias(supabase, ids);
+  return { esLider: true, tiendas: sedes.map((t) => resumenDeTienda(t, { familiaDe, familias, puerta: puertas.get(t.id) ?? null })) };
+}
+
+/** La familia de cada categoría, por id. Si la lectura falla, ninguna (la barra no se parte por familia). Nunca lanza. */
+async function familiasDeCategorias(supabase: Supabase, ids: string[]): Promise<(categoriaId: string) => string | null> {
+  if (ids.length === 0) return () => null;
+  try {
+    const { data, error } = await supabase.from("categorias").select("id, familia").in("id", ids);
+    if (error || !data) return () => null;
+    const m = new Map(data.map((c) => [c.id, c.familia ?? null]));
+    return (id) => m.get(id) ?? null;
+  } catch {
+    return () => null;
+  }
+}
+
+/** La puerta de cada tienda que la cuenta puede leer (la misma de Análisis, sin sede: todas las del líder). Nunca lanza. */
+async function puertasDeLasTiendas(supabase: Supabase): Promise<Map<string, PuertaPiso>> {
+  try {
+    const { data, error } = await supabase.rpc(RPC_PREPARACION as never, {} as never);
+    if (error) return new Map();
+    return new Map(
+      leerPreparacion(data).map((f) => {
+        const p = { ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy, primeraVenta: f.primeraVenta };
+        return [f.ubicacionId, { puedeHablar: p.puedeHablar, aviso: avisoDatosDeHoy(p), pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple) }] as const;
+      }),
+    );
+  } catch {
+    return new Map();
+  }
+}
+

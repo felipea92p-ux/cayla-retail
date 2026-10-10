@@ -3566,3 +3566,19 @@ más barata para que el cliente que vuelve vea algo nuevo, y la mitad «entra un
 - **Sin verificar en el navegador:** el stack local de Supabase se cayó en la sesión (Docker se detuvo); la lógica y los textos quedan en
   las pruebas, y la mirada en la pantalla va con el cierre.
 
+
+**Construido (actividad 7, 2026-10-10): CAYLA Global ▸ Frescura del piso.** `frescura` entra a la vista global (`lib/vista-global.ts`) y
+la misma ruta, con el selector en CAYLA Global, dibuja `FrescuraRed` en vez de una tienda: arriba, CAYLA (la suma de la familia principal
+de cada tienda) con su barra y su «hace 4 semanas»; debajo, una barra por tienda en la MISMA escala; al final, «Qué envejece en cada
+tienda», la cuadrícula categoría × tienda (de cada 100 unidades que ya se saben, cuántas envejecen; las que aún no se saben, aparte), con
+la pieza `Tabla`. La frase de la cabecera es «¿Está fresco el piso de CAYLA?» y **solo afirma si todas las tiendas con algo colgado pasan
+su puerta y ninguna falló al leerse**: una suma que mezcla una tienda que no registra lo que vende (lo vendido sigue «colgado») o que
+deja fuera una tienda caída miente sobre CAYLA, y entonces dice cuál falta y por qué. «Hace 4 semanas» de CAYLA, solo si todas lo tienen.
+A la pantalla viajan solo resúmenes (`lib/frescura-red.ts`, puro, `frescura-red.test.ts`), nunca las prendas de las tres tiendas; el
+servidor reusa `armarFrescuraLider` (las tres lecturas en paralelo, la misma vara de respaldo), la puerta compartida con Análisis
+(`fn_motor_demanda_preparacion` sin sede) y la familia de cada categoría.
+- **Por ahora solo la lee el líder.** La decisión 4 dice «para quien tenga CAYLA Global», pero `fn_frescura_sede` solo deja leer a una
+  cuenta las sedes que puede operar (`fn_puede_operar_ubicacion`), y el líder las opera todas: un gerente con `cayla_global` que no es líder vería tres «sin acceso».
+  Le sale un vacío que lo dice y lo manda al selector. Abrirlo es una migración del candado de `fn_frescura_sede` (que acepte, para leer,
+  `fn_ve_modulo('cayla_global')` en lugar de operar la sede), es de permisos y espera el OK de Felipe: va al backlog junto con la foto diaria.
+- **Sin verificar en el navegador** (el stack local sigue caído); lo verifican las pruebas, y la mirada va con el cierre.
