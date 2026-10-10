@@ -85,7 +85,12 @@ export function AnalisisPantalla({
     setLiquidarDesde(datos.liquidarDesde);
   }
 
-  const prendas = useMemo(() => (q.trim() ? datos.prendas.filter((p) => coincideBusqueda(p, q)) : datos.prendas), [datos.prendas, q]);
+  // Un modelo pasa el buscador por su nombre o categoría, o por el color o la talla de cualquiera de sus prendas («camel» halla el
+  // Chaleco que tiene ese color).
+  const prendas = useMemo(
+    () => (q.trim() ? datos.prendas.filter((m) => coincideBusqueda(m, q) || m.variantes.some((v) => coincideBusqueda(v, q))) : datos.prendas),
+    [datos.prendas, q],
+  );
   // Cuántos días de ventas tiene la tienda en el ERP (hasta 30), del cargador: el ritmo y «vendiste 38 en 8 días».
   const ventana = datos.diasDeVentas;
 

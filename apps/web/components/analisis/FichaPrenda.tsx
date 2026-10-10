@@ -6,8 +6,8 @@ import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
-import { grupoDe } from "@/lib/analisis-reglas";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
+import { grupoDe, plural } from "@/lib/analisis-reglas";
 import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
@@ -17,6 +17,7 @@ import {
   dondeHay,
   grillaDelModelo,
   hechosDe,
+  queSaleMas,
   sedeParaPedir,
   subtituloFicha,
   type TonoFicha,
@@ -53,7 +54,7 @@ export function FichaPrenda({ varianteId, onCerrar }: { varianteId: string; onCe
   return <Ficha prenda={prenda} onCerrar={onCerrar} />;
 }
 
-function Ficha({ prenda: p, onCerrar }: { prenda: PrendaAnalisis; onCerrar: () => void }) {
+function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () => void }) {
   const { datos, acceso, liquidarDesde, pedir } = useAnalisis();
   // Refs con estado: la hoja es un portal que Radix monta un render después; el tooltip se engancha cuando ya existe.
   const [raiz, setRaiz] = useState<HTMLDivElement | null>(null);
@@ -68,7 +69,8 @@ function Ficha({ prenda: p, onCerrar }: { prenda: PrendaAnalisis; onCerrar: () =
   const hechos = hechosDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
   const barras = barrasSemanas(p.semanas, datos.hoy);
   const donde = dondeHay(p, datos.sedes, datos.sede.id);
-  const grilla = grillaDelModelo(p, datos.prendas);
+  const grilla = grillaDelModelo(p, datos.tallas);
+  const sale = queSaleMas(p, datos.diasDeVentas);
   const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
   const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
@@ -140,6 +142,41 @@ function Ficha({ prenda: p, onCerrar }: { prenda: PrendaAnalisis; onCerrar: () =
               ))}
             </div>
           </div>
+
+          {(sale.tallas.length > 0 || sale.colores.length > 0) && (
+            <div className="h-sec">
+              <h3>Lo que más sale</h3>
+              {[
+                { clave: "tallas", titulo: "Talla", filas: sale.tallas },
+                { clave: "colores", titulo: "Color", filas: sale.colores },
+              ]
+                .filter((l) => l.filas.length > 0)
+                .map((l) => (
+                  <div key={l.clave} className="donde" style={{ marginBottom: 12 }}>
+                    <div className="dn-cab">
+                      <span>{l.titulo}</span>
+                      <span>
+                        Vendiste en {datos.diasDeVentas} {plural(datos.diasDeVentas, "día", "días")}
+                      </span>
+                      <span>Tienes</span>
+                    </div>
+                    {l.filas.map((f, j) => (
+                      <div key={f.nombre} className="dn" tabIndex={0} data-tip={f.tip} aria-label={f.tip}>
+                        <span className="nm">
+                          {f.punto !== null && <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto }} />}
+                          {f.nombre}
+                        </span>
+                        <span className="tq">
+                          <i className="cx" style={{ ["--d" as string]: j, ["--n" as string]: f.ancho }} />
+                          <b>{f.vendio}</b>
+                        </span>
+                        <span>{f.tiene}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+            </div>
+          )}
 
           {grilla && (
             <div className="h-sec">

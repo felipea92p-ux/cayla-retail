@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { ChipEstado, Cuenta, nombreLargo, TilePrenda } from "@/components/analisis/piezas";
+import { queTiene } from "@/lib/analisis-modelo";
 import {
   alcancePorTipo,
   cuentaNavidad,
@@ -48,7 +49,8 @@ export function PestanaPedir() {
     () => alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso),
     [datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso],
   );
-  const curva = useMemo(() => curvaDeTallas(datos.prendas, categoria), [datos.prendas, categoria]);
+  // Las tallas se comparan talla por talla (las filas de la base), no por modelo.
+  const curva = useMemo(() => curvaDeTallas(datos.tallas, categoria), [datos.tallas, categoria]);
   const tops = masVendidas(prendas, categoria);
   const maxVenta = ventaMaxima(datos.prendas);
   const quitar = () => setCategoria(null);
@@ -122,9 +124,7 @@ export function PestanaPedir() {
                     <TilePrenda prenda={p} tamano={32} />
                     <span className="nm">
                       <b>{p.nombre}</b>
-                      <span>
-                        {p.color} · {p.talla}
-                      </span>
+                      <span>{queTiene(p)}</span>
                     </span>
                     <span className="tr">
                       <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: n }} />
