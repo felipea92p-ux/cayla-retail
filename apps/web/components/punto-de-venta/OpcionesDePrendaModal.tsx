@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip } from "@/components/ui/Chip";
-import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money, type ItemCarrito, type OrigenDeLinea, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable } from "@/lib/vender-stock-local";
@@ -33,7 +33,8 @@ type Props = {
   colorClave?: string;
   ubicacionEtiqueta: string;
   carrito: ItemCarrito[];
-  onAgregar: (v: VarianteBusqueda) => void;
+  /** `origen`: la línea nació de «Combina bien con» (queda marcada en la venta). */
+  onAgregar: (v: VarianteBusqueda, opciones?: { origen?: OrigenDeLinea }) => void;
   onClose: () => void;
   alCerrarEnfocar: RefObject<HTMLElement | null>;
   /** Debajo de los colores, para el color que se está viendo: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
@@ -190,7 +191,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 colorFijo={elegido.color}
                 enTicket={enTicket}
                 onTocar={(t, bajable) => {
-                  onAgregar(t.variante);
+                  onAgregar(t.variante, { origen: "combina_bien_con" });
                   if (bajable) cerrar();
                   else setRecien((r) => ({ id: t.variante.varianteId, pulso: (r?.pulso ?? 0) + 1 }));
                 }}

@@ -215,7 +215,12 @@ export type ItemCarrito = {
   campana?: CampanaLinea | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
+  /** De dónde salió la línea si no la buscó la colaboradora: la tocó en «Combina bien con» de «Todo de la prenda» (Felipe 2026-10-10).
+   *  Viaja a `registrar_venta` como `origen_sugerencia` (migración 20261010220000); hasta que esté pegada, la base lo ignora. */
+  origen?: OrigenDeLinea;
 };
+
+export type OrigenDeLinea = "combina_bien_con";
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
  *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
@@ -884,7 +889,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  repetiría lo mismo tapándole la ✕.
    *  `confirmar`: lo que entra por el campo de escaneo (lector o teclado) dice «Agregada al ticket», como la cámara del
    *  teléfono; una tarjeta o una fila tocadas no lo piden: ahí la prenda se ve entrar donde se tocó. */
-  function agregar(v: VarianteBusqueda, { silencioso = false, confirmar = false }: { silencioso?: boolean; confirmar?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+  function agregar(
+    v: VarianteBusqueda,
+    { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
+  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
     if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
@@ -937,6 +945,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               razonDescuentoOtro: "",
               argumentoDescuento: "",
               campana: v.campana ?? null,
+              // La marca solo nace con la fila: subir la cantidad de una línea que ya estaba no la convierte en «sugerida».
+              ...(origen ? { origen } : {}),
             }),
           ];
         }
@@ -1546,6 +1556,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
+        // De dónde salió la línea (Felipe 2026-10-10): `registrar_venta` la guarda en `venta_items.origen_sugerencia` cuando la
+        // migración 20261010220100 esté pegada; antes, la ignora. Sin origen la clave ni aparece.
+        origen_sugerencia: it.origen,
       })),
       // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
       // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
