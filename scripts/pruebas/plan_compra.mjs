@@ -30,6 +30,11 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261005220000_plan_de_campana.sql"), "utf8");
+// ADR-0372, entrega 2: la lectura ampliada (B1) redefine `fn_plan_compra` sumándole claves; cada caso la carga después de la original.
+const MIGRACION_B1 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010190000_plan_compra_lectura_ampliada.sql"), "utf8");
+// ADR-0372, entrega 2 · B2: el tope de inversión (columna + `guardar_plan_compra_tope`; vuelve a definir `fn_plan_compra` para traerlo).
+const MIGRACION_B2 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010191000_plan_compra_tope_de_inversion.sql"), "utf8");
+const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -53,7 +58,11 @@ const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local 
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
-${MIGRACION.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "")}
+${sinControl(MIGRACION)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_B1)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_B2)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -102,6 +111,32 @@ function caso(nombre, sql, esperado) {
   }
 }
 const curva = (o) => JSON.stringify(o).replace(/'/g, "''");
+
+// Una prenda de «PC Polos» con stock en Trujillo (7 en el piso con 2 apartadas = 5 libres; 5 en Cuarentena, que no cuentan), una venta
+// de hace 10 días (3) y otra el 5 de diciembre (4, dentro de la campaña). Termina con la hoja leída como Felipe en `:'h'`.
+const FIXTURE_PRENDA = `
+   create function pg_temp.prenda(p_cat uuid, p_talla uuid) returns uuid language plpgsql as $f$
+   declare p uuid; v uuid;
+   begin
+     insert into retail.productos (referencia, categoria_id, marca_id, proveedor_id)
+       select 'ZZ PC polo', p_cat, mp.marca_id, mp.proveedor_id from retail.marca_proveedores mp order by mp.created_at limit 1
+       returning id into p;
+     insert into retail.variantes (producto_id, sku, precio, costo, talla_id) values (p, 'ZZ-PC-M', 80, 30, p_talla) returning id into v;
+     return v;
+   end $f$;
+   select pg_temp.prenda(:'cat', :'t_m') as v \\gset
+   select id as tienda from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+   insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+     values (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'piso_venta'), 7, 2),
+            (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'cuarentena'), 5, 0);
+   -- Vendida hace 10 días (curva) y una el 5 de diciembre (campaña).
+   with v1 as (insert into retail.ventas (ubicacion_id, estado, created_at) values (:'tienda', 'completada', now() - interval '10 days') returning id)
+   insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, :'v', 3, 80, 30 from v1;
+   with v2 as (insert into retail.ventas (ubicacion_id, estado, created_at) values (:'tienda', 'completada', timestamptz '2026-12-05 12:00-05') returning id)
+   insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, :'v', 4, 80, 30 from v2;
+   ${como(FELIPE)}
+   select retail.fn_plan_compra() as h \\gset
+`;
 
 // M. MÓDULO ---------------------------------------------------------------------------------------------------------------
 caso(
@@ -160,27 +195,7 @@ caso(
   "L1 la hoja trae la línea, el stock libre de la red, la curva vendida en 90 días y lo vendido dentro de la campaña",
   `select pg_temp.guarda(jsonb_build_object(:'t_s', 20, :'t_m', 50, :'t_l', 30));
    reset role;
-   create function pg_temp.prenda(p_cat uuid, p_talla uuid) returns uuid language plpgsql as $f$
-   declare p uuid; v uuid;
-   begin
-     insert into retail.productos (referencia, categoria_id, marca_id, proveedor_id)
-       select 'ZZ PC polo', p_cat, mp.marca_id, mp.proveedor_id from retail.marca_proveedores mp order by mp.created_at limit 1
-       returning id into p;
-     insert into retail.variantes (producto_id, sku, precio, costo, talla_id) values (p, 'ZZ-PC-M', 80, 30, p_talla) returning id into v;
-     return v;
-   end $f$;
-   select pg_temp.prenda(:'cat', :'t_m') as v \\gset
-   select id as tienda from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
-   insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
-     values (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'piso_venta'), 7, 2),
-            (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'cuarentena'), 5, 0);
-   -- Vendida hace 10 días (curva) y una el 5 de diciembre (campaña).
-   with v1 as (insert into retail.ventas (ubicacion_id, estado, created_at) values (:'tienda', 'completada', now() - interval '10 days') returning id)
-   insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, :'v', 3, 80, 30 from v1;
-   with v2 as (insert into retail.ventas (ubicacion_id, estado, created_at) values (:'tienda', 'completada', timestamptz '2026-12-05 12:00-05') returning id)
-   insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, :'v', 4, 80, 30 from v2;
-   ${como(FELIPE)}
-   select retail.fn_plan_compra() as h \\gset
+${FIXTURE_PRENDA}
    select concat_ws(',',
      (select l ->> 'normal' from jsonb_array_elements((:'h')::jsonb -> 'lineas') l where l ->> 'categoria_id' = :'cat'),
      (select s ->> 'unidades' from jsonb_array_elements((:'h')::jsonb -> 'stock') s where s ->> 'categoria_id' = :'cat'),
@@ -188,6 +203,58 @@ caso(
      (select w ->> 'unidades' from jsonb_array_elements((:'h')::jsonb -> 'vendido') w where w ->> 'categoria_id' = :'cat'),
      (select jsonb_array_length(c -> 'tallas') from jsonb_array_elements((:'h')::jsonb -> 'categorias') c where c ->> 'id' = :'cat'));`,
   "120,5,3,4,3"
+);
+
+caso(
+  "L2 la lectura ampliada suma `catalogo`, `stock_sedes` y `vendido_30` sin quitar ninguna clave de antes",
+  `select pg_temp.guarda(jsonb_build_object(:'t_s', 20, :'t_m', 50, :'t_l', 30));
+   ${FIXTURE_PRENDA}
+   select concat_ws(',',
+     (select (c ->> 'precio') || '/' || (c ->> 'costo') from jsonb_array_elements((:'h')::jsonb -> 'catalogo') c where c ->> 'categoria_id' = :'cat'),
+     (select (s ->> 'ubicacion') || ':' || (s ->> 'unidades') from jsonb_array_elements((:'h')::jsonb -> 'stock_sedes') s where s ->> 'categoria_id' = :'cat'),
+     (select w ->> 'unidades' from jsonb_array_elements((:'h')::jsonb -> 'vendido_30') w where w ->> 'categoria_id' = :'cat'),
+     (select string_agg(k, '+' order by k) from jsonb_object_keys((:'h')::jsonb) k));`,
+  "80.00/30.00,Tienda Trujillo:5,3,catalogo+categorias+curvas+hoy+lineas+plan+planes+stock+stock_sedes+vendido+vendido_30"
+);
+
+// T. TOPE DE INVERSIÓN (ADR-0372 · B2) ------------------------------------------------------------------------------------
+caso(
+  "T1 un líder fija el tope, la hoja lo trae con su autor, y quitarlo lo deja en NULL sin perder quién lo tocó",
+  `select retail.guardar_plan_compra_tope(:'plan', 12000.456);
+   select (retail.fn_plan_compra() -> 'plan' ->> 'tope_inversion') as con \\gset
+   select retail.guardar_plan_compra_tope(:'plan', null);
+   select :'con' || ',' || coalesce((retail.fn_plan_compra() -> 'plan' ->> 'tope_inversion'), 'sin') || ',' ||
+     (select (tope_actualizado_por is not null)::text from retail.planes_compra where id = :'plan');`,
+  "12000.46,sin,true"
+);
+caso(
+  "T2 rechaza un tope de cero, negativo o absurdo, con su mensaje",
+  `select concat_ws(' / ',
+     split_part(pg_temp.intento(format('select retail.guardar_plan_compra_tope(%L, 0)', :'plan')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.guardar_plan_compra_tope(%L, -5)', :'plan')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.guardar_plan_compra_tope(%L, 99999999999)', :'plan')), '|', 2));`,
+  "El tope tiene que ser mayor que cero (o déjalo vacío para quitarlo). / El tope tiene que ser mayor que cero (o déjalo vacío para quitarlo). / El tope tiene que ser mayor que cero (o déjalo vacío para quitarlo)."
+);
+caso(
+  "T3 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie escribe la tabla directo",
+  `reset role;
+   select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
+   ${como(MICAELA)}
+   select split_part(pg_temp.intento(format('select retail.guardar_plan_compra_tope(%L, 100)', :'plan')), '|', 1) as sin_modulo \\gset
+   reset role;
+   insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'plan_compra') on conflict do nothing;
+   ${como(MICAELA)}
+   select :'sin_modulo' || ',' || pg_temp.intento(format('select retail.guardar_plan_compra_tope(%L, 100)', :'plan')) || ',' ||
+     has_function_privilege('anon', 'retail.guardar_plan_compra_tope(uuid,numeric)', 'execute');`,
+  "42501,42501|Solo un líder fija cuánto invertir en una campaña,false"
+);
+caso(
+  "T4 el esquema hace imposible un tope sin autor o no positivo (aunque alguien escriba la tabla a mano)",
+  `reset role;
+   select concat_ws(' / ',
+     split_part(pg_temp.intento(format('update retail.planes_compra set tope_inversion = 100 where id = %L', :'plan')), '|', 1),
+     split_part(pg_temp.intento(format('update retail.planes_compra set tope_inversion = 0, tope_actualizado_por = (select id from public.personas limit 1), tope_actualizado_en = now() where id = %L', :'plan')), '|', 1));`,
+  "23514 / 23514"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien.`);
