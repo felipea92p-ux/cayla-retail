@@ -41,9 +41,11 @@ comment on column retail.movimientos_dinero.caja_ingreso_id is
   'El ingreso de caja que respalda lo que ENTRA a un cajón (espejo de caja_movimiento_id, que respalda lo que sale). No nulo ⇔ el destino es un cajón. Lo crea registrar_ingreso_caja (ADR-0371).';
 
 -- 2. El parche por ancla -----------------------------------------------------------------------------------------------------
+-- Con sufijo y borrada al final: `supabase start` corre todas las migraciones en UNA sesión y `pg_temp` dura toda la sesión;
+-- otras migraciones ya crean un `pg_temp.parchar` con la misma firma (lo encontró el CI, «function parchar already exists»).
 -- Cambia `p_viejo` por `p_nuevo` en la única función `retail.<p_nombre>`. Si la función ya trae `p_marca`, se salta (ya se
 -- aplicó). Si no, exige que `p_viejo` aparezca exactamente una vez.
-create function pg_temp.parchar(p_nombre text, p_viejo text, p_nuevo text, p_marca text)
+create function pg_temp.parchar_220100(p_nombre text, p_viejo text, p_nuevo text, p_marca text)
 returns void
 language plpgsql
 as $$
@@ -72,22 +74,22 @@ $$;
 -- 3. El vocabulario de la caja --------------------------------------------------------------------------------------------
 -- Salidas: sin «Compra de insumos»; «Préstamo a otra sede» solo de sistema. Entradas: caja fuerte, líder y otra sede solo de
 -- sistema (llegan con su contraparte por `registrar_ingreso_caja`); «Devolución de un retiro» sigue tipeable.
-select pg_temp.parchar('registrar_movimiento_caja',
+select pg_temp.parchar_220100('registrar_movimiento_caja',
   $a$'Ajuste de caja (faltante)', 'Compra de insumos', 'Otro')$a$,
   $a$'Ajuste de caja (faltante)', 'Otro')$a$,
   $a$'Ajuste de caja (faltante)', 'Otro')$a$);
 -- `coalesce`: sin él, en una sesión donde la marca nunca se puso `current_setting(…, true)` es NULL, `not (… and NULL)` es NULL
 -- y el `if` no rechaza: un motivo de sistema se podía tipear suelto (pasaba también con «Pago a proveedor» y «Reembolso de
 -- proveedor» desde 20260925150000; lo encontró scripts/pruebas/caja_ingresos_con_origen.mjs).
-select pg_temp.parchar('registrar_movimiento_caja',
+select pg_temp.parchar_220100('registrar_movimiento_caja',
   $a$p_motivo = 'Pago a proveedor' and current_setting('retail.movimiento_de_sistema', true) = 'si')$a$,
   $a$p_motivo in ('Pago a proveedor', 'Préstamo a otra sede') and coalesce(current_setting('retail.movimiento_de_sistema', true), '') = 'si')$a$,
   $a$'Préstamo a otra sede'$a$);
-select pg_temp.parchar('registrar_movimiento_caja',
+select pg_temp.parchar_220100('registrar_movimiento_caja',
   $a$'Sencillo de la caja fuerte', 'Entrega del líder', 'Préstamo de otra sede', 'Devolución de un retiro')$a$,
   $a$'Devolución de un retiro')$a$,
   $a$p_motivo in ('Reembolso de proveedor',$a$);
-select pg_temp.parchar('registrar_movimiento_caja',
+select pg_temp.parchar_220100('registrar_movimiento_caja',
   $a$p_motivo = 'Reembolso de proveedor' and current_setting('retail.movimiento_de_sistema', true) = 'si')$a$,
   $a$p_motivo in ('Reembolso de proveedor', 'Sencillo de la caja fuerte', 'Entrega del líder', 'Préstamo de otra sede')
          and coalesce(current_setting('retail.movimiento_de_sistema', true), '') = 'si')$a$,
@@ -208,13 +210,13 @@ begin
 end $function$;
 
 -- 5. El libro de cuentas: el cajón no lleva su saldo en el libro (sale de sus cajas), igual que ya no llevaba lo que sale de él.
-select pg_temp.parchar('fn_dinero_libro',
+select pg_temp.parchar_220100('fn_dinero_libro',
   $a$where d.estado = 'vigente' and d.cuenta_destino_id is not null and d.fecha <= p_hasta$a$,
   $a$where d.estado = 'vigente' and d.cuenta_destino_id is not null and d.caja_ingreso_id is null and d.fecha <= p_hasta$a$,
   $a$d.caja_ingreso_id is null$a$);
 
 -- 6. El flujo: un ingreso de caja con su movimiento es plata del dueño (aporte o préstamo) o plata que cambió de lugar.
-select pg_temp.parchar('fn_flujo_lineas',
+select pg_temp.parchar_220100('fn_flujo_lineas',
   $a$then 'efectivo' else coalesce(vi.categoria, 'otros_ingresos') end$a$,
   $a$then 'efectivo' else coalesce(vi.categoria,
                     (select case when di.tipo in ('aporte', 'prestamo') then 'dueno_pone' else 'entre_cuentas' end
@@ -223,7 +225,7 @@ select pg_temp.parchar('fn_flujo_lineas',
   $a$di.caja_ingreso_id = m.id$a$);
 
 -- 7. El balance: un ingreso con su movimiento ya está en el diario (por el movimiento), no es un «ingreso sin origen».
-select pg_temp.parchar('fn_bal_causas_dinero',
+select pg_temp.parchar_220100('fn_bal_causas_dinero',
   $a$and not (cm.id = any (v_reemb_ids))$a$,
   $a$and not (cm.id = any (v_reemb_ids)
                 or exists (select 1 from retail.movimientos_dinero di where di.caja_ingreso_id = cm.id and di.estado = 'vigente'))$a$,
@@ -231,7 +233,7 @@ select pg_temp.parchar('fn_bal_causas_dinero',
 
 -- 8. Anular: lo que entró a un cajón desde Caja no se anula en Finanzas, porque la plata ya se contó en la caja y el ingreso no
 --    se deshace. Si quedaría a medias (el ingreso sin su origen), mejor no dejarlo.
-select pg_temp.parchar('anular_movimiento_dinero',
+select pg_temp.parchar_220100('anular_movimiento_dinero',
   $a$  v_actor := retail.fn_actor_persona_id(true);$a$,
   $a$  if v_m.caja_ingreso_id is not null then
     raise exception 'Este movimiento nació en Caja, con la plata que entró al cajón, y no se anula aquí: el ingreso ya está contado en la caja. Si fue un error, se corrige con una salida del cajón.' using errcode = 'P0001';
@@ -387,5 +389,7 @@ comment on function retail.registrar_ingreso_caja(uuid, text, numeric, text, tex
   'Caja ▸ Registrar ingreso (ADR-0371): el ingreso de caja y, según el concepto, de qué cuenta sale (caja fuerte, efectivo por rendir, aporte del dueño o el cajón de otra sede), todo o nada. Idempotente por p_token.';
 revoke all on function retail.registrar_ingreso_caja(uuid, text, numeric, text, text, uuid, uuid) from public, anon;
 grant execute on function retail.registrar_ingreso_caja(uuid, text, numeric, text, text, uuid, uuid) to authenticated;
+
+drop function pg_temp.parchar_220100(text, text, text, text);
 
 reset lock_timeout;
