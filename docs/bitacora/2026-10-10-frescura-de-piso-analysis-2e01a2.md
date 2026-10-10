@@ -1,0 +1,4 @@
+## 2026-10-10 (Frescura del piso: la tienda de un vistazo — análisis y decisiones)
+Qué hice: leí todo Frescura (ADR, SQL, reglas, pantalla, módulos vecinos, producción y la industria) y lo verifiqué con simulaciones; Felipe decidió en 7 preguntas que la regla sigue relativa a su categoría, con la vara congelada por mes, el % por familia, la meta contra el mes anterior, CAYLA en la vista CAYLA Global y las palabras Fresca · Vigente · Envejeciendo.
+Por qué así: recalculada a diario, la vara se ajusta sola y el % de la tienda sale casi igual (≈50/25/15/10) se haga bien o mal; y el reloj del modelo castigaba lo que se repone (97 % «Hay que moverla» con 6 unidades).
+Felipe se lleva: la lista de 9 actividades aprobada (ADR-0208, act. 2026-10-10 (b)), y el dato de que hoy nada puede salir «envejeciendo» todavía: el sistema tiene 10 días de historia y AQP registra 5 de cada 325 ventas.
