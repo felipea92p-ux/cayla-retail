@@ -85,8 +85,8 @@ select concat_ws('|', (:n = :nvar)::text,
 {
   const r = correr(FELIPE, `
 select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'En Trujillo se vende más');
-select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Otra vez');`);
-  esperar("el mismo precio otra vez devuelve 0 cambios", ultima(r) === "0", r);
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'En Trujillo se vende más');`);
+  esperar("el mismo precio y el mismo motivo otra vez devuelven 0 cambios", ultima(r) === "0", r);
 }
 
 // 3. El precio general no es una excepción.
@@ -219,6 +219,18 @@ select (total = :general + 10)::text from retail.proformas where id = :'pf';`;
   esperar("una proforma en Trujillo cotiza al precio de Trujillo", ultima(propio) === "true", propio);
   const general = correr(FELIPE, cotizar(":general"));
   esperar("una proforma en Trujillo al precio general se rechaza", !general.ok, general);
+}
+
+// 12a. «Cambiar» con el mismo precio y otro motivo guarda el motivo nuevo (20261010100600): archiva y crea otra fila.
+{
+  const r = correr(FELIPE, `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Motivo mal escrito');
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Motivo corregido') as n \\gset
+select concat_ws('|', (:n = :nvar)::text,
+  (select bool_and(motivo = 'Motivo corregido') from retail.precios_sede ps join retail.variantes v on v.id = ps.variante_id
+    where v.producto_id = :'p1' and ps.ubicacion_id = :'tru' and ps.archivado_en is null)::text,
+  (retail.fn_precio_en_sede(:'v1', :'tru') = :general + 10)::text);`);
+  esperar("cambiar solo el motivo lo guarda (y el precio sigue igual)", ultima(r) === "true|true|true", r);
 }
 
 // 12b. Poner o quitar el precio de una tienda sube la versión del catálogo: las pantallas abiertas se ponen al día solas.

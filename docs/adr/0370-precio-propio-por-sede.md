@@ -74,7 +74,9 @@ archivo): `20261010002553 precio_propio_por_sede`, `20261010002608 precio_sede_e
 venta_cobra_precio_de_sede`, `20261010002633 apartados_cambios_proformas_precio_de_sede`. Antes de aplicarlas se comprobó que cada
 ancla calzaba en producción (1, 1, 1, 1, 1, 2 apariciones). Después: las seis funciones usan `fn_precio_en_sede`, `precios_sede`
 vacía y con RLS encendido. El 2026-10-10 se sumaron `20261010125615 precio_sede_frena_eliminar_producto` y `20261010125617
-precio_sede_sube_version_del_catalogo`, verificadas (renglón 22 en `fn_producto_historia`, disparador de versión en `precios_sede`).
+precio_sede_sube_version_del_catalogo`, verificadas (renglón 22 en `fn_producto_historia`, disparador de versión en `precios_sede`). Y `20261010130947
+precio_sede_cambiar_solo_el_motivo` (archivo `20261010100600`): corregir solo el motivo no se guardaba; lo destapó la prueba ciega de
+`/formidable` (`docs/formidable/catalogo-precio-por-tienda.md`).
 
 ## Cómo se verifica
 

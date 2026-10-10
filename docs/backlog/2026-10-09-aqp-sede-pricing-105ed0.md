@@ -9,4 +9,6 @@
 - [x] ~~Vender: marca vieja en la línea del ticket~~ — no existía: el ticket no dibuja la marca; la tarjeta y la lista la toman del sondeo en vivo.
 - [x] Eliminar producto: una prenda que tuvo precio propio frena el borrado (renglón 22 de `fn_producto_historia`, `20261010100400`); se desactiva.
 - [x] CI: las pruebas que vigilan la huella vieja de `registrar_venta` (redondeo, club) la miden sobre su punto de partida (`scripts/pruebas/registrar-venta-antes-de-precio-sede.mjs`).
-- [ ] `/formidable` del bloque «Precio por tienda» y de su hoja: pendiente de correr con Felipe (propone cambios y espera su OK).
+- [x] `/formidable` del bloque «Precio por tienda» y su hoja (2026-10-10): leyes 7,7 · oficio 8 (`docs/formidable/catalogo-precio-por-tienda.md`). La prueba ciega destapó que corregir solo el motivo no se guardaba: corregido (`20261010100600`, en producción `20261010130947`).
+- [ ] **Esperan OK de Felipe** (presentación): botones de 32 px en la fila y «Quitar» en rojo; el enlace nombra la tienda cuando queda una sola libre; línea de detalle legible (≥ 4,5:1) sin la palabra «general».
+- [ ] Pasada con una colaboradora real de AQP (cuenta «Almacén Arequipa»): hasta entonces la ley 1 no pasa de 8.

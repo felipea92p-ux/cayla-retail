@@ -71,7 +71,7 @@ export function PonerPrecioSedeModal({
       return;
     }
     setGuardando(true);
-    const { error } = await firmar(
+    const { data: cambiadas, error } = await firmar(
       createClient().rpc("poner_precio_sede", { p_producto_id: productoId, p_ubicacion_id: tienda.id, p_precio: precio, p_motivo: motivo.trim() }),
       responsable.firma(),
     );
@@ -79,6 +79,12 @@ export function PonerPrecioSedeModal({
     responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "guardar el precio de la tienda"));
+      return;
+    }
+    // La base no cambió nada (ya tenía ese precio y ese motivo): decirlo, no anunciar «guardado».
+    if (cambiadas === 0) {
+      avisar.aviso(`No había nada que cambiar en ${tienda.nombre}`, { detalle: "Ya tenía ese precio y ese motivo." });
+      onGuardado();
       return;
     }
     avisar.exito(`Precio de ${tienda.nombre} guardado`, { detalle: `Ahí se vende a ${soles(precio)}. Las etiquetas que se impriman ahí saldrán con este precio.` });
