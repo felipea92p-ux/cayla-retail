@@ -97,7 +97,8 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
   const pasos = [
     `Pega la etiqueta «APARTADO · ${a.codigo}» en la prenda.`,
     a.estante ? `Guárdala en el estante ${a.estante} de Apartados, no en el piso.` : "Guárdala en «Apartados» del almacén, no en el piso.",
-    `Envía la boleta por WhatsApp al ${a.celular}.`,
+    // Sin celular (ADR-0367) no hay a dónde enviarla: la boleta impresa es la que se lleva.
+    ...(a.celular ? [`Envía la boleta por WhatsApp al ${a.celular}.`] : ["Entrégale la boleta impresa: no dejó celular."]),
   ];
   const [mes, dia, semana] = [
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { month: "short", timeZone: "UTC" }).replace(".", "").toUpperCase(),
@@ -210,6 +211,50 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
           </div>
           <Botones cerrar={cerrar} principal="Imprimir y entregar" />
           <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * «Reimprimir» (ADR-0367, Felipe 2026-10-09): el ticket de un apartado ya registrado, desde el Historial. Sale con «COPIA»
+ * para que nadie lo confunda con uno nuevo. Un apartado entregado tiene dos: el del anticipo y el final; se elige cuál.
+ * No escribe nada: solo vuelve a dibujar lo que la base ya tiene.
+ */
+export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
+  const a = apartado;
+  const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
+  const [cual, setCual] = useState<"anticipo" | "final">(conFinal ? "final" : "anticipo");
+  const numero = cual === "final" ? a.comprobanteFinal : a.comprobanteAnticipo;
+  useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
+  return (
+    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-sm" conCerrar>
+      {() => (
+        <div className="space-y-4">
+          {conFinal && (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Qué ticket imprimir">
+              <button type="button" aria-pressed={cual === "final"} onClick={() => setCual("final")} className="pildora-cayla">Boleta final</button>
+              <button type="button" aria-pressed={cual === "anticipo"} onClick={() => setCual("anticipo")} className="pildora-cayla">Anticipo</button>
+            </div>
+          )}
+          <div className="card-cayla space-y-1.5 p-4 text-sm">
+            <p className="flex items-baseline justify-between gap-3">
+              <span className="text-tinta">
+                Boleta <span className="font-mono">{numero ?? "—"}</span>
+              </span>
+              <span className="text-[11px] text-tinta/60">{cual === "final" ? "final" : "anticipo"}</span>
+            </p>
+            <p className="text-xs text-tinta/70">
+              {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
+            </p>
+            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(a.creadaEn.slice(0, 10))} · sale marcado como COPIA.</p>
+          </div>
+          <button type="button" autoFocus onClick={() => window.print()} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
+            <Printer className="h-4 w-4" aria-hidden />
+            Imprimir
+          </button>
+          <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />
         </div>
       )}
     </Modal>

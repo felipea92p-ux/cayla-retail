@@ -584,6 +584,11 @@
   "relkind": "v",
   "rls": false
  },
+ "precios_sede": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "prendas_danadas": {
   "forzado": false,
   "relkind": "r",
@@ -600,6 +605,11 @@
   "rls": true
  },
  "prendas_por_regularizar": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_por_regularizar_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -840,6 +850,11 @@
   "rls": true
  },
  "venta_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "venta_pagos_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true

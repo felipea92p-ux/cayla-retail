@@ -13,6 +13,9 @@
 @import "./estilos/inicio-almacen.css";
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
+@import "./estilos/rotulo.css";
+/* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
+@import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
@@ -30,6 +33,7 @@
 @import "./estilos/traslados-pases.css";
 @import "./estilos/traslados-guia.css";
 @import "./estilos/analisis.css";
+@import "./estilos/gasto-rapido.css";
 @import "./estilos/analisis-hoy.css";
 @import "./estilos/analisis-acaba.css";
 @import "./estilos/analisis-quieta.css";
@@ -959,9 +963,12 @@ body {
     display: block;
     width: 72mm;
     box-sizing: border-box;
-    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba y abajo lo
-       justo (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. */
-    padding: 2mm 4mm 6mm;
+    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba lo justo
+       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo 18 mm (antes 6,
+       Felipe 2026-10-09): la cuchilla de la térmica está más arriba que el cabezal, y con 6 mm el
+       corte caía sobre el pie y el QR salía partido. Este blanco es lo que el papel avanza hasta
+       la cuchilla después de la última línea. */
+    padding: 2mm 4mm 18mm;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;

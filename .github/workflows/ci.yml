@@ -402,6 +402,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:historial-prenda
 
+      # Precio propio por sede (Felipe 2026-10-09): cambia solo en esa tienda, deja historial firmado, solo tu propia sede,
+      # sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
+      - name: pruebas:precio-sede
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:precio-sede
+
       # Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
       # sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
       - name: pruebas:actividad-gestion
@@ -1205,6 +1211,13 @@ jobs:
       - name: pruebas:cola-arranque
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cola-arranque
+
+      # Corregir lo anotado de una venta sin registrar (ADR-0369): cambia solo descripción, categoría, talla y color de una venta
+      # pendiente o cerrada sin prenda; ni precio, ni stock, ni la línea de venta. Deja su foto y su línea en Actividad. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:corregir-prenda-sin-registrar
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:corregir-prenda-sin-registrar
 
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una

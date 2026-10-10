@@ -6,6 +6,7 @@
 import type { OpcionCombo } from "@/components/ui/ComboBuscable";
 import type { LineaVentaReciente } from "./ventas-v2";
 import { condicionForzada, unidadesDisponibles, varianteLegible, type CondicionCambio, type MetodoDiferencia, type MotivoCambio } from "./cambios-reglas";
+import { resolverCodigoV2 } from "./buscar-prenda-v2";
 import { compararTallas } from "./tallas";
 import { textoOtrasSedes, type SedeConStock } from "./stock-por-sede";
 import { sinStockPorApartado, textoSinStock } from "./vender-reglas";
@@ -27,6 +28,8 @@ export type VarianteCatalogo = {
   apartadoAqui: number;
   /** Dónde más hay — «no queda L aquí, pero hay 2 en Trujillo». */
   stockOtrasSedes: SedeConStock[];
+  /** Los códigos de etiqueta y de fábrica: lo que lee la pistola o la cámara para elegir la prenda sin buscarla. */
+  codigosBarras: string[];
 };
 
 /** Lo que la colaboradora va eligiendo en el paso "Reemplazo". Nada viene elegido a
@@ -66,13 +69,28 @@ export function agruparCatalogo(catalogo: readonly VarianteCatalogo[]): Map<stri
 }
 
 /** La que compró va primero y siempre (aunque hoy no quede ninguna aquí: así se ve
- *  dónde más hay); de las demás, solo las que tienen algo que entregar en esta sede. */
-export function opcionesDePrenda(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>): OpcionCombo<string>[] {
+ *  dónde más hay); de las demás, solo las que tienen algo que entregar en esta sede, y la ELEGIDA aunque no tenga
+ *  (`elegidoId`): una prenda escaneada sin stock aquí tiene que verse en el campo, con su aviso de dónde más hay. */
+export function opcionesDePrenda(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>, elegidoId?: string): OpcionCombo<string>[] {
   const otras = [...porProducto.entries()]
-    .filter(([id, vs]) => id !== linea.productoId && vs.some((v) => v.stockAqui > 0))
+    .filter(([id, vs]) => id !== linea.productoId && (id === elegidoId || vs.some((v) => v.stockAqui > 0)))
     .map(([id, vs]) => ({ valor: id, texto: vs[0]!.referencia, detalle: `desde S/ ${Math.min(...vs.map((v) => v.precio)).toFixed(2)}` }))
     .sort((a, b) => a.texto.localeCompare(b.texto, "es"));
   return [{ valor: linea.productoId, texto: linea.referencia, detalle: "la que compró" }, ...otras];
+}
+
+/** Lo que hace una LECTURA (pistola o cámara) en el paso «Reemplazo» (Felipe 2026-10-09: «que se escanee y se seleccione
+ *  automáticamente»): la etiqueta dice la prenda exacta, así que deja elegidas la prenda, la talla y el color de una vez.
+ *  Mismo reconocimiento que Vender (`resolverCodigoV2`: código de etiqueta o de fábrica, exacto o nada). No decide si se
+ *  puede entregar: si no queda en el piso, el paso lo dice igual que si se hubiera elegido a mano (`avisoSinStock`). */
+export type LecturaReemplazo =
+  | { tipo: "elegida"; cambio: Pick<Seleccion, "productoId" | "talla" | "color">; variante: VarianteCatalogo }
+  | { tipo: "no-encontrada"; codigo: string };
+
+export function seleccionDesdeLectura(codigo: string, catalogo: readonly VarianteCatalogo[]): LecturaReemplazo {
+  const v = resolverCodigoV2(codigo, catalogo.slice());
+  if (!v) return { tipo: "no-encontrada", codigo: codigo.trim() };
+  return { tipo: "elegida", cambio: { productoId: v.productoId, talla: v.talla, color: v.color }, variante: v };
 }
 
 /** Todo lo que se deriva de la selección, calculado UNA vez: el formulario, la

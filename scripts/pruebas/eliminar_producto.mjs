@@ -321,6 +321,8 @@ select pg_temp.huella(:'va');`);
     "pedidos_no_atendidos", "separacion_pedidos", "frescura_decisiones", "cuadre_piso_items",
     // ADR-0328 act. 17: una prenda subida para mandarla a otra sede frena el borrado, como un pedido a otra sede.
     "prendas_para_enviar",
+    // ADR-0370: el precio propio de una tienda nunca se borra; una prenda que lo tuvo se desactiva, no se elimina.
+    "precios_sede",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
 import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
@@ -73,6 +73,7 @@ export function FiltrosProductos({
   sede,
   temporadas,
   facetas,
+  junto,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
@@ -93,6 +94,8 @@ export function FiltrosProductos({
   temporadas: Opcion[] | null;
   /** Cuántas prendas hay en cada opción y los tramos de precio (`fn_productos_facetas`); `null` = no se pudo saber. */
   facetas: FacetasProductos | null;
+  /** Lo que va a la derecha del conteo, al final de su fila: el tamaño de las tarjetas en la Grilla (2026-10-09). */
+  junto?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -291,6 +294,18 @@ export function FiltrosProductos({
 
   // Conteo arriba y un solo «Ordenar por», fuera del panel (Felipe, 2026-10-02): ordenar no quita prendas, solo las acomoda.
   // Vive aquí (y no en la página) para que el orden y lo tecleado se apliquen sobre la misma URL vigente (`consultaVigente`).
+  const ordenar = (soloIconoEnCelular: boolean) => (
+    <DesplegablePildora
+      encoger
+      soloIconoEnCelular={soloIconoEnCelular}
+      icono={ArrowUpDown}
+      etiqueta="Ordenar por"
+      valor={orden}
+      valorPorDefecto={ORDEN_POR_DEFECTO}
+      onValor={(v) => aplicar({ orden: v === ORDEN_POR_DEFECTO ? "" : v })}
+      opciones={ORDENES_MENU.map((o) => ({ valor: o as string, texto: ROTULO_ORDEN_PRODUCTOS[o] }))}
+    />
+  );
   const barraResultados = (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p className="flex items-baseline gap-3 text-sm text-tinta/70">
@@ -323,17 +338,9 @@ export function FiltrosProductos({
           <Link2 aria-hidden className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Copiar enlace</span>
         </button>
-        <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
-          <DesplegablePildora
-            encoger
-            icono={ArrowUpDown}
-            etiqueta="Ordenar por"
-            valor={orden}
-            valorPorDefecto={ORDEN_POR_DEFECTO}
-            onValor={(v) => aplicar({ orden: v === ORDEN_POR_DEFECTO ? "" : v })}
-            opciones={ORDENES_MENU.map((o) => ({ valor: o as string, texto: ROTULO_ORDEN_PRODUCTOS[o] }))}
-          />
-        </div>
+        {/* En el celular «Ordenar» vive junto al buscador, como ícono (2026-10-09): aquí su fila le cedía el ancho a «Tamaño». */}
+        <div className="hidden min-w-0 rounded-lg bg-sand/50 p-0.5 sm:block">{ordenar(false)}</div>
+        {junto}
       </div>
     </div>
   );
@@ -524,7 +531,13 @@ export function FiltrosProductos({
           placeholder="Prenda, código o código de barras…"
           className="flex-1"
         />
-        <div className="shrink-0">
+        {/* Celular (2026-10-09): «Ordenar» y «Filtros» como dos cuadrados de 40 px, para que el buscador conserve su ancho y el
+            conteo, el enlace y el tamaño quepan en UNA fila debajo: antes eran tres filas antes de la primera prenda. */}
+        <div className="shrink-0 rounded-xl border border-sand bg-papel sm:hidden">{ordenar(true)}</div>
+        <div className="shrink-0 sm:hidden">
+          <BotonFiltros soloIcono abierto={hojaAbierta} activos={activos} onClick={alTocarFiltros} />
+        </div>
+        <div className="hidden shrink-0 sm:block">
           <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
         </div>
       </div>

@@ -8,8 +8,11 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { IconoCategoria } from "@/components/IconoCategoria";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { camposGuiaPrenda } from "@/lib/prenda-sin-registrar-guia";
+import { arranqueDeCorreccion, cambioEnCorreccion, type AnotadoPorCaja } from "@/lib/corregir-prenda-sin-registrar-reglas";
 import {
   faltaEnPrendaSinRegistrar,
   gruposDeTallas,
@@ -54,25 +57,39 @@ const tallasDe = (listas: ListasPrendaLibre, id: string): Talla[] =>
  * categoría → talla → color → descripción → precio; a la derecha se arma la etiqueta provisional que almacén va a recibir.
  * Las tallas son SOLO las de la categoría (`categoria_tallas`): las habituales adelante, las otras más tenues y «Estándar»
  * aparte; si la categoría tiene una sola («Única»), se pone sola. La guía de foco (ADR-0284) enciende el campo que sigue.
+ *
+ * Con `corregir` (ADR-0369) es la misma hoja para cambiar lo anotado DESPUÉS de la venta, desde Ventas sin registrar: arranca con lo
+ * que anotó caja, el precio queda fijo (es dinero: lo dice la venta y el comprobante), pide el «Responsable» y guarda con «Guardar
+ * cambios», que solo se enciende si algo cambió. Una sola hoja para anotar y corregir: lo que se corrige es lo que la caja ofrece.
  */
 export function PrendaSinRegistrarModal({
   listas,
   onAgregar,
   onClose,
   alCerrarEnfocar,
+  corregir,
 }: {
   listas: ListasPrendaLibre;
-  onAgregar: (d: DatosPrendaSinRegistrar) => void;
+  /** Vender: agrega la prenda al ticket. (En modo `corregir` no se usa.) */
+  onAgregar?: (d: DatosPrendaSinRegistrar) => void;
   onClose: () => void;
-  alCerrarEnfocar: RefObject<HTMLInputElement | null>;
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
+  corregir?: {
+    inicial: AnotadoPorCaja;
+    responsable: ControlResponsable;
+    guardando: boolean;
+    onGuardar: (d: DatosPrendaSinRegistrar) => void;
+  };
 }) {
-  const [categoriaId, setCategoriaId] = useState("");
-  const [tallaId, setTallaId] = useState("");
-  const [colorCodigo, setColorCodigo] = useState("");
+  // Al corregir arranca con lo anotado; la descripción sigue a la sugerencia solo si era la sugerencia (si caja la escribió, es suya).
+  const [arranque] = useState(() => (corregir ? arranqueDeCorreccion(corregir.inicial, listas) : null));
+  const [categoriaId, setCategoriaId] = useState(arranque?.categoriaId ?? "");
+  const [tallaId, setTallaId] = useState(arranque?.tallaId ?? "");
+  const [colorCodigo, setColorCodigo] = useState(arranque?.colorCodigo ?? "");
   // La descripción se arma sola con categoría, color y talla (spike del Punto de venta, 2026-09-26): mientras la
   // colaboradora no la toque, sigue a la sugerencia; apenas escribe, es suya.
-  const [descripcionEscrita, setDescripcionEscrita] = useState<string | null>(null);
-  const [precio, setPrecio] = useState("");
+  const [descripcionEscrita, setDescripcionEscrita] = useState<string | null>(arranque ? arranque.descripcionEscrita : null);
+  const [precio, setPrecio] = useState(corregir ? corregir.inicial.precio.toFixed(2) : "");
   const idDescripcion = useId();
   const idPrecio = useId();
 
@@ -91,7 +108,13 @@ export function PrendaSinRegistrarModal({
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
-  const guia = useGuiaCampos(camposGuiaPrenda(datos));
+  const cambio = corregir ? cambioEnCorreccion(corregir.inicial, datos) : true;
+  const guia = useGuiaCampos(
+    corregir
+      ? [...camposGuiaPrenda(datos), { id: "responsable", nombre: "Responsable", requerido: true, hecho: corregir.responsable.listo, pendiente: "Elige quién hace la corrección." }]
+      : camposGuiaPrenda(datos),
+  );
+  const puedeConfirmar = falta === null && cambio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
 
   const opcionesCategoria = useMemo(
     () =>
@@ -154,7 +177,12 @@ export function PrendaSinRegistrarModal({
     });
   }
 
-  const agregar = () => onAgregar({ ...datos, descripcion: descripcion.trim() });
+  const agregar = () => {
+    if (!puedeConfirmar) return;
+    const d = { ...datos, descripcion: descripcion.trim() };
+    if (corregir) corregir.onGuardar(d);
+    else onAgregar?.(d);
+  };
 
   const botonTalla = (t: Talla, menor = false, ancho = false) => (
     <button
@@ -177,12 +205,19 @@ export function PrendaSinRegistrarModal({
 
   return (
     <Modal
-      titulo="Prenda sin registrar"
-      subtitulo="La etiqueta provisional se arma mientras eliges. Almacén la registra después con estos datos."
+      titulo={corregir ? "Corregir lo anotado" : "Prenda sin registrar"}
+      subtitulo={
+        corregir
+          ? "Cambia categoría, talla, color o descripción si caja se equivocó. El precio, el stock y el comprobante no cambian."
+          : "La etiqueta provisional se arma mientras eliges. Almacén la registra después con estos datos."
+      }
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
       variante="hoja"
       ancho="max-w-4xl"
+      bloqueado={corregir?.guardando ?? false}
+      // Al corregir todo viene lleno: el foco va a la hoja y ninguna lista se abre sola (en Vender sí: se empieza por la categoría).
+      focoEnLaHoja={Boolean(corregir)}
     >
       {/* Una sola copia de cada pieza, ubicada por áreas: en celular la etiqueta va arriba y el botón al pie; desde md, los campos
           a la izquierda y la etiqueta con el botón a la derecha.
@@ -201,7 +236,7 @@ export function PrendaSinRegistrarModal({
               opciones={opcionesCategoria}
               marcador="Busca la categoría"
               etiquetaAccesible="Categoría"
-              autoFocus
+              autoFocus={!corregir}
               caja
             />
           </CampoGuiado>
@@ -267,7 +302,7 @@ export function PrendaSinRegistrarModal({
                   <span className="text-tinta/65">Se armó sola con lo que elegiste. Puedes agregarle detalles.</span>
                 ) : descripcionEscrita !== null && sugerencia && descripcionEscrita.trim() !== sugerencia ? (
                   <span className="flex flex-wrap items-baseline gap-x-2 text-tinta/65">
-                    <span>{descripcion.trim() === "" ? "Vacía." : "Escrita por ti."}</span>
+                    <span>{descripcion.trim() === "" ? "Vacía." : corregir && descripcion === corregir.inicial.descripcion ? "Escrita a mano en caja." : "Escrita por ti."}</span>
                     <button type="button" onClick={volverASugerencia} className="btn-cayla btn-enlace">
                       Usar «{sugerencia}»
                     </button>
@@ -279,6 +314,17 @@ export function PrendaSinRegistrarModal({
 
           {/* Un campo de verdad en vez del teclado de pantalla (spike 2026-09-26): en escritorio se escribe con el teclado
               y Enter agrega; en el teléfono `inputMode="decimal"` abre el teclado numérico del propio celular. */}
+          {corregir ? (
+            <CampoGuiado id="precio" guia={guia}>
+              <div className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+                <span className="min-w-0 text-[13px] text-tinta">
+                  <span className="font-semibold">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
+                  <span className="mt-0.5 block text-xs text-tinta/65">No cambia: es lo que entró a caja.</span>
+                </span>
+                <span className="shrink-0 font-display text-3xl text-tinta">S/ {corregir.inicial.precio.toFixed(2)}</span>
+              </div>
+            </CampoGuiado>
+          ) : (
           <CampoGuiado id="precio" guia={guia}>
             <label htmlFor={idPrecio} className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
               <span className="min-w-0 text-[13px] font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
@@ -305,6 +351,7 @@ export function PrendaSinRegistrarModal({
               </span>
             </label>
           </CampoGuiado>
+          )}
         </div>
 
         {/* `-top-6`: la hoja tiene `p-6`, y sin restarlo la etiqueta se pegaba 24 px más abajo, con el texto pasando por encima. */}
@@ -320,15 +367,23 @@ export function PrendaSinRegistrarModal({
         </div>
 
         <div className="[grid-area:pie] md:self-start">
-          <PieGuia guia={guia} listo="Lista para el ticket. Enter en el precio también la agrega." />
+          {corregir && (
+            <CampoGuiado id="responsable" guia={guia} className="mb-3">
+              <ComboResponsable control={corregir.responsable} deshabilitado={corregir.guardando} />
+            </CampoGuiado>
+          )}
+          <PieGuia
+            guia={guia}
+            listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
+          />
           <button
             type="button"
             onClick={agregar}
-            disabled={falta !== null}
+            disabled={!puedeConfirmar}
             title={guia.frase ?? undefined}
             className={`${botonPrimario} mt-3 w-full ${guia.claseConfirmar}`}
           >
-            Agregar al ticket
+            {corregir ? (corregir.guardando ? "Guardando…" : "Guardar cambios") : "Agregar al ticket"}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
@@ -17,9 +18,7 @@ import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
 import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { elegirComprobante, diaDeLima, type VentaCruda } from "@/lib/ventas-historial-reglas";
 import type { CampanaLinea } from "@/lib/vender-reglas";
-import { ordenTalla } from "@/lib/catalogo-grupos";
-import { getEjesPorCategoria } from "@/lib/catalogo-v2";
-import { usoDeColores, type ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
+import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
@@ -58,7 +57,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -69,13 +68,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
     // producción (PGRST202) no hay campañas que aplicar: sin aviso.
     supabase.rpc("campanas_vigentes"),
-    // Listas cerradas del modal «Prenda sin registrar» (ADR-0179). Si alguna no carga, la caja
-    // sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
-    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
-    supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
-    // Las tallas de cada categoría (`categoria_tallas`) y sus habituales. Si no cargan, el modal ofrece todas: la caja no se cae por esto.
-    getEjesPorCategoria().catch(() => null),
+    // Listas cerradas del modal «Prenda sin registrar» (ADR-0179), las mismas que usa Ventas sin registrar al corregir (ADR-0369).
+    // Si alguna no carga, la caja sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
+    leerListasPrendaLibre(),
     // Las ventas de hoy de esta sede: la píldora «Hoy» de la cabecera y su lista (spike 2026-09-26). Secundario: si
     // falla, la caja vende igual y la lista lo dice. Siempre esta sede, no un consolidado (para eso está Facturación).
     supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: persona.ubicacionId }),
@@ -94,7 +89,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     supabase.rpc("fn_opciones_apartados", { p_ubicacion_id: persona.ubicacionId }),
     // Lo que esta tienda pidió para un cliente y llegó o no va a llegar: la franja de los clientes por avisar. Secundario: vacío si falla.
     getPedidosConCliente(persona.ubicacionId),
+    // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
+    // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
+    supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
   ]);
+  const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
     (resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]),
@@ -119,7 +118,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
       marca: v.marca,
-      precio: v.precio,
+      precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
+      precioDeSede: preciosDeEstaSede.has(v.varianteId),
       campana: campanaPorVariante.get(v.varianteId) ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
@@ -195,16 +195,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const fondoUltimoCierre = ultimoCierre?.montoFondo ?? null;
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
   // catálogo que ya carga la caja (sin otra consulta): los usados en esa categoría se ofrecen primero.
-  const categoriasLibre = resCategorias.data ?? [];
-  const coloresLibre = (resColores.data ?? []).map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }));
-  const listasPrendaLibre: ListasPrendaLibre = {
-    categorias: categoriasLibre,
-    tallas: [...(resTallas.data ?? [])].sort((a, b) => ordenTalla(a.valor, b.valor)),
-    tallasPorCategoria: ejes?.tallas ?? null,
-    habitualesPorCategoria: ejes?.habituales ?? {},
-    colores: coloresLibre,
-    usoColores: usoDeColores(variantes, categoriasLibre, coloresLibre),
-  };
+  const listasPrendaLibre = armarListasPrendaLibre(listasLeidas, variantes);
 
   const ventasHoy = tolerar(resVentasHoy, "las ventas de hoy");
   const club = clubDeLaCaja(resTextosClub.error ? null : resTextosClub.data, resWhatsappTienda.error ? null : resWhatsappTienda.data?.whatsapp_numero);

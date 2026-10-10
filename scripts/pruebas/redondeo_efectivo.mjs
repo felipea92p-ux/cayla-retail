@@ -36,6 +36,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { efectivoACobrar, redondeoDelEfectivo } from "../../apps/web/lib/redondeo-efectivo-reglas.ts";
+import { DESHACER_PRECIO_SEDE, REHACER_PRECIO_SEDE } from "./registrar-venta-antes-de-precio-sede.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION_REGLA = "supabase/migrations/20261003100000_redondeo_efectivo_regla.sql";
@@ -453,7 +454,8 @@ alter table retail.venta_pagos add constraint venta_pagos_metodo_check check (me
   const venta = readFileSync(MIGRACION_VENTA, "utf8");
   const bandera = readFileSync(MIGRACION_BANDERA, "utf8");
   const huellaVenta = (venta.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
-  const r28 = correr(`begin;\n${venta}\n${venta}\n${bandera}\n${bandera}
+  // Sobre SU punto de partida: la base ya tiene el precio por sede (ADR-0370), que cambió una línea de registrar_venta.
+  const r28 = correr(`begin;\n${DESHACER_PRECIO_SEDE}\n${venta}\n${venta}\n${bandera}\n${bandera}
 select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta';
 select 'sobrecargas|' || count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_venta';
@@ -611,7 +613,8 @@ rollback;`);
 
   // ---- 36. Cada parte, pegada ENTERA como un solo texto, termina con su fila «QUEDÓ BIEN» ----
   for (const parte of PARTES_A_PEGAR) {
-    const r = pegarComoEditor(textoDe(parte));
+    // La de registrar_venta se pega sobre su punto de partida y después se rehace el precio por sede (ADR-0370): la base termina igual.
+    const r = pegarComoEditor(parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_PRECIO_SEDE}\n${textoDe(parte)}\n${REHACER_PRECIO_SEDE}` : textoDe(parte));
     esperar(`${parte.slice(0, 14)} pegada entera (como la pega el editor) termina con su fila «QUEDÓ BIEN»`, r.ok && r.salida.split("\n").filter((l) => l.includes("QUEDÓ BIEN") && l.startsWith(parte.slice(0, 14))).length === 1, r.ok ? r.salida.slice(-400) : r.mensaje);
   }
 
@@ -642,6 +645,8 @@ rollback;`);
   const REVISADAS = {
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0311 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
+    corregir_pagos_venta:
+      "ADR-0365: reparte lo cobrado (con el redondeo de antes) y vuelve a calcular el redondeo con fn_redondeo_efectivo si queda efectivo y la caja redondea; sin efectivo, la fila de redondeo desaparece. La suma de filas no cambia.",
     entregar_separacion: "PARCHADA (20261003135000, actividad 6): el saldo en efectivo al entregar acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
@@ -651,6 +656,7 @@ rollback;`);
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
     fn_flujo_lineas: "Efectivo = metodo 'efectivo' (lo físico), igual que fn_calcular_esperado_caja. No se toca.",
+    fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
     fn_ventas_del_dia: "PARCHADA (20261003111000): la lista de medios de la venta no incluye el redondeo.",

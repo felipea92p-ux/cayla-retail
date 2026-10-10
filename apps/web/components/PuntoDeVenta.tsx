@@ -12,7 +12,7 @@ import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
-  atendioCorto,
+  atendioDelTicket,
   conCodigoDelCatalogo,
   descuentoResultante,
   descuentoUnitarioPorPorcentaje,
@@ -153,6 +153,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
   precio: number;
+  /** El precio de arriba es el de ESTA tienda (precio propio, Felipe 2026-10-09): la tarjeta se lo dice a la colaboradora con
+   *  «Precio de Trujillo». El cliente no lo ve: para él es el precio. Ausente = el general. */
+  precioDeSede?: boolean;
   /** La campaña de mayor % que rige HOY para esta prenda (`campanas_vigentes()`), o null.
    *  La base la elige y la vuelve a verificar al cobrar; acá solo se muestra y se aplica. */
   campana?: CampanaLinea | null;
@@ -756,6 +759,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         });
       }
     },
+    ubicacionId,
   );
 
   /** Tras una venta que la base aceptó (en línea o al subir la cola): descuenta lo vendido al instante, relee esas
@@ -1651,7 +1655,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           pagos: pagosCobrados(pagos, redondeoEfectivoDisponible).pagos,
           redondeo: pagosCobrados(pagos, redondeoEfectivoDisponible).redondeo,
           tasaIgv: 0.18,
-          atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
+          atendio: atendioDelTicket(responsable.lista.elegibles, responsable.elegidoId),
           // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
           cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
           // Lo mismo con el vale de aniversario: cuánto del descuento de las prendas es del vale.

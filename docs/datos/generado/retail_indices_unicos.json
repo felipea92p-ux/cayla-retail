@@ -950,6 +950,16 @@
   "tablename": "planes_compra_lineas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX precios_sede_pkey ON retail.precios_sede USING btree (id)",
+  "indexname": "precios_sede_pkey",
+  "tablename": "precios_sede"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX precios_sede_vigente_unico ON retail.precios_sede USING btree (variante_id, ubicacion_id) WHERE (archivado_en IS NULL)",
+  "indexname": "precios_sede_vigente_unico",
+  "tablename": "precios_sede"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)",
   "indexname": "prendas_danadas_cambio_id_key",
   "tablename": "prendas_danadas"
@@ -998,6 +1008,11 @@
   "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_venta_item_id_key ON retail.prendas_por_regularizar USING btree (venta_item_id)",
   "indexname": "prendas_por_regularizar_venta_item_id_key",
   "tablename": "prendas_por_regularizar"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_correcciones_pkey ON retail.prendas_por_regularizar_correcciones USING btree (id)",
+  "indexname": "prendas_por_regularizar_correcciones_pkey",
+  "tablename": "prendas_por_regularizar_correcciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX presupuestos_pkey ON retail.presupuestos USING btree (id)",
@@ -1443,6 +1458,11 @@
   "indexdef": "CREATE UNIQUE INDEX venta_pagos_un_redondeo_por_venta ON retail.venta_pagos USING btree (venta_id) WHERE (metodo = 'redondeo'::text)",
   "indexname": "venta_pagos_un_redondeo_por_venta",
   "tablename": "venta_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX venta_pagos_correcciones_pkey ON retail.venta_pagos_correcciones USING btree (id)",
+  "indexname": "venta_pagos_correcciones_pkey",
+  "tablename": "venta_pagos_correcciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX ventas_pkey ON retail.ventas USING btree (id)",

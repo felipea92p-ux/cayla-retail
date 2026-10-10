@@ -49,6 +49,7 @@ export function ProformasPanel({
   ubicacionActualId,
   esLider,
   fotos,
+  preciosPorSede = {},
 }: {
   proformas: Proforma[];
   periodo: string;
@@ -62,6 +63,8 @@ export function ProformasPanel({
   esLider: boolean;
   /** Foto y color de cada prenda de estas proformas (`getFotosDeVariantes`). */
   fotos: Record<string, FotoDePrenda>;
+  /** Precio propio de cada tienda (`getPreciosPorSede`): la hoja cotiza al de la tienda elegida. */
+  preciosPorSede?: Record<string, Record<string, number>>;
 }) {
   // «Nueva proforma» vacía (`true`) o como copia de otra (Duplicar / Renovar).
   const [nueva, setNueva] = useState<true | Proforma | null>(null);
@@ -268,6 +271,7 @@ export function ProformasPanel({
           prendas={prendas}
           ubicaciones={tiendas}
           ubicacionActualId={ubicacionActualId}
+          preciosPorSede={preciosPorSede}
           esLider={esLider}
           inicial={nueva === true ? null : nueva}
         />

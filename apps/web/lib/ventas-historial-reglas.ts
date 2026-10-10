@@ -10,6 +10,7 @@ import {
   type PeriodoMovimientos,
 } from "./movimientos-reglas";
 import { NOMBRE_METODO, textoNumeroRecibo } from "./recibo-reglas";
+import { fotoDeVariante } from "./producto-fotos-reglas";
 
 // Historial de ventas (Ventas ▸ Historial, ADR-0147): reglas puras — lo que decide qué se
 // pide, qué se muestra y qué se suma. Sin Supabase ni React: las importan la página, los
@@ -180,7 +181,10 @@ export type ItemCrudo = {
     color_codigo?: string | null;
     talla: { valor: string } | null;
     color: { nombre: string; hex?: string | null } | null;
-    producto: { referencia: string; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
+    producto: {
+      referencia: string;
+      producto_fotos?: { url: string; color_codigo: string | null; orden?: number; es_principal?: boolean }[] | null;
+    } | null;
   } | null;
   /** Los cambios hechos sobre esta línea (`cambios.venta_item_id`). */
   cambios?: { created_at: string }[] | null;
@@ -238,7 +242,13 @@ export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
       referencia: v?.producto?.referencia ?? "Prenda",
       detalle: [v?.talla?.valor, v?.color?.nombre].filter(Boolean).join(" · "),
       cantidad: i.cantidad,
-      fotoUrl: v?.color_codigo ? (v.producto?.producto_fotos?.find((f) => f.color_codigo === v.color_codigo)?.url ?? null) : null,
+      // La principal antes que el orden (`fotoDeVariante`): con dos fotos del mismo color, la que se marcó, no la más vieja.
+      fotoUrl: v?.color_codigo
+        ? fotoDeVariante(
+            (v.producto?.producto_fotos ?? []).map((f) => ({ url: f.url, color_codigo: f.color_codigo, orden: f.orden ?? 0, es_principal: f.es_principal ?? false })),
+            v.color_codigo
+          )
+        : null,
       colorHex: v?.color?.hex ?? null,
     };
     const igual = piezas.find((p) => p.referencia === pieza.referencia && p.detalle === pieza.detalle);

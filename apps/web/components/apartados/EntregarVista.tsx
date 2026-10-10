@@ -167,9 +167,7 @@ export function EntregarVista({
                 <div>
                   <p className="font-display text-2xl leading-tight text-tinta">{a.nombres} {a.apellidos}</p>
                   <p className="text-[12.5px] text-tinta/60 tabular-nums">
-                    {formatoCelular(a.celular)}
-                    {a.dni && ` · DNI ${a.dni}`}
-                    {a.asesora && ` · atendió ${a.asesora}`}
+                    {[a.celular && formatoCelular(a.celular), a.dni && `DNI ${a.dni}`, a.asesora && `atendió ${a.asesora}`].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </div>
@@ -227,7 +225,7 @@ export function EntregarVista({
                       </Boton>
                     }
                   >
-                    Si ya venció y se liberó, está en «Todos».
+                    Si ya venció y se liberó, está en «Historial».
                   </Vacio>
                 ) : (
                   <Vacio icono={<ShoppingBag />} titulo="No hay apartados por recoger">
