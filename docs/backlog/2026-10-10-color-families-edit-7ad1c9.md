@@ -1,0 +1,8 @@
+## 🎨 «Estampado» deja de ser una familia de color (2026-10-10) — rama `claude/color-families-edit-7ad1c9`
+
+- [x] `FAMILIAS_COLOR` sin `estampado` (`lib/colores-familias.ts`), `color-alta-reglas.ts` y pruebas ajustadas; ADR-0312 con su «Actualización 2026-10-10» y `docs/datos/modulos/02-catalogo-y-vocabulario.md` al día.
+- [x] Migración `20261010160000_colores_sin_familia_estampado.sql` escrita y probada en local dentro de una transacción con rollback (archiva EST, MUL, ANI y reemplaza el candado por 10 familias).
+- [x] **Migración pegada en producción por Felipe (2026-10-10)**, ANTES de fusionar la web (el orden previsto era al revés). Verificado en solo lectura: el candado acepta las 10 familias, EST/MUL/ANI quedaron `activo = false` y sin familia, y ninguna fila conserva `estampado`. Hasta que la web se fusione, el combo viejo ofrece «Estampado» y guardar con él falla.
+- [ ] **Refrescar el volcado de `docs/datos/generado/`** (`COMO-REFRESCAR.md`, 9 consultas en el SQL Editor de producción) y correr `pnpm datos:generar:produccion` + `pnpm datos:comparar`: el diccionario aún dice «once» familias. No se hizo en este PR a propósito: la última foto es del 2026-09-23 y refrescarla trae toda la deriva de producción desde entonces, no solo este candado.
+- [ ] **Decisión que confirmar con Felipe:** las 3 filas (Estampado, Multicolor, Animal print) quedan archivadas y sin familia. Si prefiere que Multicolor siga disponible como color, hay que asignarle una familia real o sumar otra decisión de modelo.
+- [ ] La base local compartida sigue con las 3 filas activas hasta que alguien aplique la migración (verificado: la web las muestra en una píldora «Estampado» sin errores mientras tanto).
