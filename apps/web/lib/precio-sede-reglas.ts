@@ -117,6 +117,20 @@ export function conPreciosDeSede(generales: ReadonlyMap<string, number>, propios
   return out;
 }
 
+/** Prendas con el precio de UNA tienda (el de `getPreciosPorSede` para esa sede): la que tiene precio propio lo toma; las demás
+ *  quedan igual. Devuelve el mismo arreglo si la tienda no tiene ninguno. */
+export function conPrecioDeLaSede<P extends { precio: number }>(
+  prendas: P[],
+  propios: Readonly<Record<string, number>> | undefined,
+  idDe: (p: P) => string,
+): P[] {
+  if (!propios || Object.keys(propios).length === 0) return prendas;
+  return prendas.map((p) => {
+    const propio = propios[idDe(p)];
+    return propio !== undefined ? { ...p, precio: propio } : p;
+  });
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;

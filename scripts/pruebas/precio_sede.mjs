@@ -209,6 +209,28 @@ select (precio_unitario = :vv_general + 10)::text from retail.venta_items where 
   esperar("en Trujillo, el precio general se rechaza («el precio cambió»)", fallaCon(general, "venta_precio_cambiado"), general);
 }
 
+// 12. Proformas: se cotiza al precio de la tienda (`crear_proforma` y su candado, 20261010100300).
+{
+  const cotizar = (precio) => `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Cotizar');
+select retail.crear_proforma(:'tru', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', ${precio})), 'Cliente de prueba') as pf \\gset
+select (total = :general + 10)::text from retail.proformas where id = :'pf';`;
+  const propio = correr(FELIPE, cotizar(":general + 10"));
+  esperar("una proforma en Trujillo cotiza al precio de Trujillo", ultima(propio) === "true", propio);
+  const general = correr(FELIPE, cotizar(":general"));
+  esperar("una proforma en Trujillo al precio general se rechaza", !general.ok, general);
+}
+
+// 13. Guardián: toda función que cobra, aparta, cotiza, cambia o regulariza toma el precio de `fn_precio_en_sede`.
+{
+  const r = correr(FELIPE, `
+select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'retail'
+   and p.proname in ('registrar_venta', 'separar_prendas', 'editar_separacion', 'registrar_cambio', 'crear_proforma', 'regularizar_prenda')
+   and pg_get_functiondef(p.oid) not like '%fn_precio_en_sede(%';`);
+  esperar("las seis funciones que fijan un precio usan fn_precio_en_sede", r.ok && (ultima(r) === "" || ultima(r) === "-"), r);
+}
+
 if (fallos) {
   console.log(`\n${fallos} fallo(s).`);
   process.exit(1);

@@ -3,6 +3,7 @@ import { sePuedeConfirmar } from "./guia-campos";
 import {
   camposPonerPrecio,
   conPreciosDeSede,
+  conPrecioDeLaSede,
   etiquetaPrecioDeSede,
   leerPreciosEnSede,
   desdeHace,
@@ -93,5 +94,16 @@ describe("el precio en una tienda, sobre lo ya leído", () => {
   it("la marca para la colaboradora dice la tienda corta", () => {
     expect(etiquetaPrecioDeSede("Tienda Arequipa")).toBe("Precio de Arequipa");
     expect(etiquetaPrecioDeSede("Taller")).toBe("Precio de Taller");
+  });
+});
+
+describe("prendas con el precio de una tienda", () => {
+  const prendas = [{ id: "a", precio: 79.9 }, { id: "b", precio: 59.9 }];
+  it("la que tiene precio propio lo toma; la otra queda igual", () => {
+    expect(conPrecioDeLaSede(prendas, { a: 89.9 }, (p) => p.id)).toEqual([{ id: "a", precio: 89.9 }, { id: "b", precio: 59.9 }]);
+  });
+  it("sin precios propios, el mismo arreglo", () => {
+    expect(conPrecioDeLaSede(prendas, undefined, (p) => p.id)).toBe(prendas);
+    expect(conPrecioDeLaSede(prendas, {}, (p) => p.id)).toBe(prendas);
   });
 });

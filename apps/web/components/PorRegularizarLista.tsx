@@ -40,6 +40,7 @@ export function PorRegularizarLista({
   filas,
   prendas,
   disponibles,
+  preciosPorSede = {},
   ubicacionEtiqueta,
   variasSedes,
   esLider,
@@ -51,6 +52,8 @@ export function PorRegularizarLista({
   prendas: PrendaParaRegularizar[];
   /** Unidades libres por tienda y por prenda; una tienda que falta = no se pudo leer (la pantalla sigue, sin cifras de stock). */
   disponibles: Record<string, Record<string, number>>;
+  /** Precio propio de cada tienda (`getPreciosPorSede`): el oficial de una venta es el de su tienda. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   /** Para el mensaje de «no hay nada»: la sede que se mira, o «tus tiendas» si es el líder. */
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
@@ -212,6 +215,7 @@ export function PorRegularizarLista({
               elegidaAlAbrir={elegidaAlAbrir}
               prendas={prendas}
               disponibles={disponibles}
+              preciosPorSede={preciosPorSede}
               variasSedes={variasSedes}
               esLider={esLider}
               ahora={ahora}
@@ -249,7 +253,7 @@ export function PorRegularizarLista({
         mes y el anterior.
       </p>
 
-      {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
+      {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} preciosPorSede={preciosPorSede} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
       {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
       {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>
