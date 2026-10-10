@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { ChipEstado, Cuenta, nombreLargo, TilePrenda } from "@/components/analisis/piezas";
@@ -17,6 +17,11 @@ import {
   finEjeAlcance,
   LARGO_RANKING,
   masVendidas,
+  cuantasVendidas,
+  fraseDelTipo,
+  topsPosibles,
+  TOP_DEFECTO,
+  type Top,
   notaRindeVacio,
   RINDE_POCO,
   rielNavidad,
@@ -51,9 +56,31 @@ export function PestanaPedir() {
   );
   // Las tallas se comparan talla por talla (las filas de la base), no por modelo.
   const curva = useMemo(() => curvaDeTallas(datos.tallas, categoria), [datos.tallas, categoria]);
-  const tops = masVendidas(prendas, categoria);
+  // «Lo que más se vende»: los 5 primeros por defecto; la persona elige ver 10, 15 o 20 (Felipe 2026-10-10). Solo se ofrecen los
+  // «Top» que tienen más modelos vendidos que el anterior; si el elegido ya no cabe (otro tipo), se marca el más grande que sí.
+  const [top, setTop] = useState<Top>(TOP_DEFECTO);
+  const vendidos = cuantasVendidas(prendas, categoria);
+  const opcionesTop = topsPosibles(vendidos);
+  const topMarcado = opcionesTop.includes(top) ? top : opcionesTop[opcionesTop.length - 1];
+  const tops = masVendidas(prendas, categoria, top);
   const maxVenta = ventaMaxima(datos.prendas);
+  const elegido = categoria ? (tipos.find((t) => t.categoria === categoria) ?? null) : null;
+  const panel = useRef<HTMLElement>(null);
   const quitar = () => setCategoria(null);
+  // Opción A (Felipe 2026-10-10): tocar un tipo cambia el panel de al lado en el acto. Si el panel quedó debajo (pantalla angosta,
+  // una sola columna) y no se ve, se lleva a la vista: el efecto del toque nunca pasa fuera de la pantalla.
+  const elegir = (c: string) => {
+    const nueva = c === categoria ? null : c;
+    setCategoria(nueva);
+    const el = panel.current;
+    if (!nueva || !el) return;
+    window.requestAnimationFrame(() => {
+      const r = el.getBoundingClientRect();
+      if (r.top > window.innerHeight - 120 || r.bottom < 80) {
+        el.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      }
+    });
+  };
 
   return (
     <>
@@ -74,33 +101,40 @@ export function PestanaPedir() {
         )}
       </section>
 
-      <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
-        <div className="b-cab">
-          <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
-          {categoria ? (
-            <button type="button" className="chip info quitar" onClick={quitar} aria-label={`Quitar el filtro: ${categoria}`}>
-              {categoria} ✕
-            </button>
-          ) : (
-            <span className="b-nota">{textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas</span>
-          )}
-        </div>
-        <TablaAlcance tipos={tipos} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={(c) => setCategoria(c === categoria ? null : c)} />
-      </section>
-
-      <div className="dos">
-        <BloqueCurva c={curva} categoria={categoria} />
-
-        <section className="tarjeta bloque entra" style={{ ["--i" as string]: 3 }}>
+      <div className="pedir-ad">
+        <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
           <div className="b-cab">
-            <h3 className="b-tit">Lo que más se vende{categoria ? ` · ${categoria}` : ""}</h3>
-            {categoria ? (
-              <button type="button" className="chip info quitar" onClick={quitar}>
-                Quitar filtro ✕
+            <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
+            <span className="b-nota">
+              {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende <span aria-hidden="true">→</span>
+            </span>
+          </div>
+          <TablaAlcance tipos={tipos} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
+        </section>
+
+        {/* El panel del tipo elegido (o de toda la tienda): siempre a la vista junto a la lista mientras se recorre. */}
+        <aside ref={panel} className="tarjeta bloque entra panel-tipo" style={{ ["--i" as string]: 2 }} aria-live="polite" aria-label={`Detalle de ${categoria ?? "todos los tipos"}`}>
+          <div className="b-cab">
+            <h3 className="b-tit">{categoria ?? "Todos los tipos"}</h3>
+            {categoria && (
+              <button type="button" className="chip info quitar" onClick={quitar} aria-label={`Quitar el filtro: ${categoria}`}>
+                Ver todos los tipos ✕
               </button>
-            ) : (
-              <span className="b-nota">
-                Últimos {diasDeVentas} {plural(diasDeVentas, "día", "días")}
+            )}
+          </div>
+          <p className="pt-frase">{fraseDelTipo(elegido, tipos, diasDeVentas)}</p>
+
+          <BloqueCurva c={curva} categoria={categoria} />
+
+          <div className="pt-cab">
+            <h4 className="pt-sub">Lo que más se vende</h4>
+            {opcionesTop.length > 1 && (
+              <span className="filtro-a" role="group" aria-label="Cuántos modelos ver">
+                {opcionesTop.map((t) => (
+                  <button key={t} type="button" className="pildora" aria-pressed={topMarcado === t} onClick={() => setTop(t)}>
+                    Top {t}
+                  </button>
+                ))}
               </span>
             )}
           </div>
@@ -138,7 +172,12 @@ export function PestanaPedir() {
               })
             )}
           </div>
-        </section>
+          {vendidos > tops.length && tops.length > 0 && (
+            <p className="b-nota pt-de">
+              Ves {tops.length} de {vendidos} modelos que se vendieron · Últimos {diasDeVentas} {plural(diasDeVentas, "día", "días")}
+            </p>
+          )}
+        </aside>
       </div>
 
       <BloqueRinde />
@@ -171,10 +210,28 @@ function Riel({ r }: { r: RielNavidad }) {
 
 /**
  * «¿Para cuánto te alcanza?»: cada tipo, para cuánto te alcanza lo que tienes al ritmo de los días de ventas, con la línea de
- * Navidad: lo que no llega va en ámbar con su ▲ (pídelo). Al lado, lo que tienes y cuánto de eso nunca salió al piso (antes de
- * pedir, bájalo). Cada tipo es un botón que filtra tallas y ranking.
+ * Navidad: lo que no llega va en ámbar con su ▲ (pídelo). Cada tipo es un botón que cambia el panel de al lado (opción A, Felipe
+ * 2026-10-10). La lista se desplaza por dentro y, mientras queden tipos abajo, lo dice («↓ 6 tipos más», que baja al tocarlo).
  */
 function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: AlcanceTipo[]; hastaNavidad: number; categoria: string | null; onElegir: (c: string) => void }) {
+  const lista = useRef<HTMLDivElement>(null);
+  const [ocultos, setOcultos] = useState(0);
+  // Cuántos tipos quedan bajo el borde de la lista (más de la mitad de su fila fuera de la vista).
+  const medir = useCallback(() => {
+    const el = lista.current;
+    if (!el) return;
+    const fondo = el.scrollTop + el.clientHeight;
+    setOcultos([...el.querySelectorAll<HTMLElement>(".al-f")].filter((f) => f.offsetTop + f.offsetHeight / 2 > fondo).length);
+  }, []);
+  useEffect(() => {
+    medir();
+    const el = lista.current;
+    if (!el) return;
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [medir, tipos.length]);
+
   if (tipos.length === 0) return <p className="b-nota">Todavía no hay ventas ni prendas que comparar.</p>;
   const fin = finEjeAlcance(hastaNavidad);
   const semanas = Math.round(hastaNavidad / 7);
@@ -189,38 +246,40 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
           </span>
         </span>
         <span>Te alcanza</span>
-        <span>Lo que tienes</span>
       </div>
-      {tipos.map((t, k) => (
-        <button key={t.categoria} type="button" className={`al-f ${t.pide ? "pide" : ""}`} aria-pressed={categoria === t.categoria} onClick={() => onElegir(t.categoria)}>
-          <span className="ico">
-            <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-[18px] w-[18px]" />
-          </span>
-          <span className="n">
-            <b>{t.categoria}</b>
-            <small>vendiste {t.vendidas}</small>
-          </span>
-          <span className="p">
-            {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}
-            <span className="nav" />
-          </span>
-          <span className="v">
-            {t.pide ? "▲ " : ""}
-            {textoAlcance(t.dias)}
-          </span>
-          <span className="tienes">
-            Tienes <b>{t.tiene}</b>
-            {t.nunca ? (
-              <>
-                {" · "}
-                <span className={t.nunca * 2 >= t.tiene ? "ojo" : undefined}>
-                  {t.nunca} nunca {plural(t.nunca, "salió", "salieron")} al piso
-                </span>
-              </>
-            ) : null}
-          </span>
-        </button>
-      ))}
+      <div ref={lista} className="al-lista" onScroll={medir}>
+        {tipos.map((t, k) => (
+          <button key={t.categoria} type="button" className={`al-f ${t.pide ? "pide" : ""}`} aria-pressed={categoria === t.categoria} onClick={() => onElegir(t.categoria)}>
+            <span className="ico">
+              <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-[18px] w-[18px]" />
+            </span>
+            <span className="n">
+              <b>{t.categoria}</b>
+              <small>
+                vendiste {t.vendidas} · tienes {t.tiene}
+              </small>
+            </span>
+            <span className="p">
+              {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}
+              <span className="nav" />
+            </span>
+            <span className="v">
+              {t.pide ? "▲ " : ""}
+              {textoAlcance(t.dias)}
+              {categoria === t.categoria && <span aria-hidden="true"> →</span>}
+            </span>
+          </button>
+        ))}
+        {ocultos > 0 && (
+          <button
+            type="button"
+            className="al-mas"
+            onClick={() => lista.current?.scrollBy({ top: lista.current.clientHeight * 0.8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}
+          >
+            ↓ {ocultos} {plural(ocultos, "tipo más", "tipos más")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -228,12 +287,13 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
 /** «Las tallas que se llevan»: por talla, se vende (tinta) contra tienes (claro); o el aviso de talla única. */
 function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | null }) {
   const { diasDeVentas } = useAnalisis();
-  const titulo = <h3 className="b-tit">Las tallas que se llevan{categoria ? ` · ${categoria}` : ""}</h3>;
+  // Va dentro del panel del tipo (opción A): el título del panel ya dice el tipo.
+  const titulo = <h4 className="pt-sub">Las tallas que se llevan</h4>;
   if (c.tipo !== "tallas") {
     const unica = c.tipo === "unica";
     return (
-      <section className="tarjeta bloque entra" style={{ ["--i" as string]: 2 }}>
-        <div className="b-cab">
+      <div className="pt-bloque">
+        <div className="pt-cab">
           {titulo}
           {unica && <ChipEstado est="info">Talla única</ChipEstado>}
         </div>
@@ -244,12 +304,12 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
           <b>{unica ? (categoria ? `${categoria}: se venden en talla única` : "Todo se vende en talla única") : "Todavía no hay tallas que comparar"}</b>
           <span>{unica ? "No hay tallas que comparar. Mira el color y el modelo en «Lo que más se vende»." : "Aparecen cuando haya ventas o prendas con talla."}</span>
         </div>
-      </section>
+      </div>
     );
   }
   return (
-    <section className="tarjeta bloque entra" style={{ ["--i" as string]: 2 }}>
-      <div className="b-cab">
+    <div className="pt-bloque">
+      <div className="pt-cab">
         {titulo}
         {c.falta ? <ChipEstado est="ate">Falta {c.falta}</ChipEstado> : <ChipEstado est="bien">Parejo</ChipEstado>}
       </div>
@@ -284,7 +344,7 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
           {c.nota}
         </p>
       )}
-    </section>
+    </div>
   );
 }
 
