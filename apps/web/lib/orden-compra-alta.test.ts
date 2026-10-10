@@ -4,6 +4,7 @@ import {
   POR_REPARTIR,
   aTexto,
   argsCrearOrden,
+  textoParaBase,
   argsEditarOrden,
   borradorDeDetalle,
   calcularLinea,
@@ -30,6 +31,21 @@ const CTX: ContextoValidacion = {
 const linea = (o: Partial<LineaBorrador> = {}): LineaBorrador => ({ ...lineaVacia("l1"), categoriaId: "cat", marcaId: "marca", cantidad: "1", precio: "10", ...o });
 const orden = (o: Partial<OrdenBorrador> = {}): OrdenBorrador => ({ proveedorId: "prov", destino: "tru", entrega: "", nota: "", lineas: [linea()], ...o });
 const SIN_COMBO = { pide: false, listo: true, motivo: null };
+
+describe("textoParaBase: lo invisible no viaja a la base (chaos 2026-10-10)", () => {
+  it("quita los caracteres de control (el nulo, la campana…) pero deja saltos de línea y tabulaciones", () => {
+    expect(textoParaBase("hola\u0000mundo")).toBe("holamundo");
+    expect(textoParaBase("a\u0007b\u001Fc\u007F")).toBe("abc");
+    expect(textoParaBase("  línea 1\nlínea 2\tfin  ")).toBe("línea 1\nlínea 2\tfin");
+    expect(textoParaBase("\u0000")).toBe("");
+  });
+  it("la nota y las descripciones salen limpias en los argumentos de la orden; una nota que solo era invisible, no viaja", () => {
+    const args = argsCrearOrden("id-1", orden({ nota: "hola\u0000mundo", lineas: [linea({ descripcion: "Cuello\u0000 alto" })] }));
+    expect(args.p_nota).toBe("holamundo");
+    expect(args.p_lineas[0]?.descripcion).toBe("Cuello alto");
+    expect(argsCrearOrden("id-2", orden({ nota: "\u0000" })).p_nota).toBeNull();
+  });
+});
 
 describe("leerNumero: lo que se tipea en el puesto", () => {
   it("el punto es el decimal (la costumbre del ERP); espacios y «S/» se ignoran; céntimos exactos", () => {

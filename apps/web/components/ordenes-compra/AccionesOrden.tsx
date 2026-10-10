@@ -21,6 +21,7 @@ import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { MAX_MOTIVO_ANULACION, avisoDeCorte, numeroOrdenCompra, problemaDeMotivo, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
+import { textoParaBase } from "@/lib/orden-compra-alta";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
 // solo mientras está «generada». Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda, como «Anular comprobante» en
@@ -140,7 +141,7 @@ function AnularOrdenModal({
     try {
       setGuardando(true);
       const firma = esPersona ? firmaOmitida("orden_compra_anular") : responsable.firma();
-      const { version, error } = await anularOrdenCompra({ p_id: orden.id, p_version_esperada: orden.version, p_motivo: motivo.trim() }, firma);
+      const { version, error } = await anularOrdenCompra({ p_id: orden.id, p_version_esperada: orden.version, p_motivo: textoParaBase(motivo) }, firma);
       setGuardando(false);
       if (!esPersona) responsable.despues(error);
       if (error || version == null) {

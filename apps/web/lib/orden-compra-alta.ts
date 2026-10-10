@@ -348,6 +348,13 @@ export type ArgsCrearOrden = {
   p_lineas: LineaParaBase[];
 };
 
+/** Un texto tal como viaja a la base: sin caracteres de control invisibles (el nulo, la campana…) y sin espacios en las puntas. Los saltos
+ *  de línea y las tabulaciones se quedan. Un nulo pegado desde otro programa hacía que la base rechazara el guardado con un error técnico
+ *  («unsupported Unicode escape sequence») que no decía qué borrar (chaos 2026-10-10). */
+export function textoParaBase(texto: string): string {
+  return texto.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim();
+}
+
 /** Los argumentos de `crear_orden_compra`. Solo se llama con la orden lista (la guía sin nada requerido pendiente). */
 export function argsCrearOrden(id: string, o: OrdenBorrador): ArgsCrearOrden {
   return {
@@ -355,7 +362,7 @@ export function argsCrearOrden(id: string, o: OrdenBorrador): ArgsCrearOrden {
     p_proveedor_id: o.proveedorId,
     p_destino_id: o.destino === POR_REPARTIR ? null : o.destino,
     p_fecha_entrega_estimada: o.entrega || null,
-    p_nota: o.nota.trim() || null,
+    p_nota: textoParaBase(o.nota) || null,
     p_lineas: lineasParaBase(o.lineas),
   };
 }
@@ -403,7 +410,8 @@ function lineasParaBase(lineas: readonly LineaBorrador[]): LineaParaBase[] {
       cantidad: cant.tipo === "ok" ? aTexto(cant.escalado, 0) : "",
       precio_unitario: precio.tipo === "ok" ? aTexto(precio.escalado, 2) : "",
     };
-    if (l.descripcion.trim()) linea.descripcion = l.descripcion.trim();
+    const descripcion = textoParaBase(l.descripcion);
+    if (descripcion) linea.descripcion = descripcion;
     if (l.modoDescuento === "pct") {
       const p = leerNumero(l.descuento, 4);
       if (p.tipo === "ok" && p.escalado > 0) linea.descuento_pct = aTexto(p.escalado, 4, { recortar: true });
