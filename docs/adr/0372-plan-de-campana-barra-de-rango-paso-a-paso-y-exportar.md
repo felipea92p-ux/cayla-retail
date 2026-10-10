@@ -1,7 +1,7 @@
 # ADR-0372 — Plan de campaña: barra de rango, paso a paso, aviso de stock y exportar (entrega 1, solo web)
 
 - Fecha: 2026-10-10
-- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1, B2 y B3 **en producción desde el 2026-10-10** (OK de Felipe, una por una, cada una con ensayo en transacción revertida y huella igual a local).
+- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1, B2 y B3 **en producción desde el 2026-10-10**; B4 (versión de cada categoría) también, el mismo día (OK de Felipe, una por una, cada una con ensayo en transacción revertida y huella igual a local).
 - Continúa a [ADR-0349](0349-plan-de-campana.md). Maqueta aprobada: `docs/maquetas/plan-de-campana-2026-10/` (con su `PROMPT.md`).
 - Sin migración: todo sale de lo que `fn_plan_compra` y `fn_motor_demanda_preparacion` ya devuelven, más la tabla `familias`.
 
@@ -88,3 +88,30 @@ Migraciones `20261010190000` (B1), `20261010191000` (B2) y `20261010192000` (B3)
 - **Verificado:** SQL 16/16; 102 pruebas de reglas y suite completa; navegador local: tope (poner, quitar, firma en la base), hoja con stock por sede y
   ventas de 30 días, crear «Navidad 2026» desde su etiqueta y volver con el selector. La precarga del catálogo se probó con pruebas unitarias y SQL (en la base
   local las únicas categorías con catálogo ya tenían plan de otra persona).
+
+## Actualización 2026-10-10 (b) — /chaos y /formidable, y lo que se arregló
+
+Corridas sobre lo ya publicado (PR #931): `/chaos` con semilla 931 (informe local `.chaos/informes/plan-campana-2026-10-10.md`) y `/formidable`
+(`docs/formidable/compras-plan.md`: leyes 5,1, oficio 7, con prueba ciega y escéptico). Felipe dio el OK a todo («Termina lo que te falta e implementa»).
+
+- **Dos personas guardando la misma categoría (chaos NAV-05, gravedad 2).** **DECIDÍ** el control de versión de ADR-0193 en `planes_compra_lineas`
+  (migración `20261010200000`, B4): columna `version` con el disparador de siempre (`fn_subir_version`), `p_version_esperada` en
+  `guardar_plan_compra_linea` (0 = la hoja abrió sin plan) y PT409 `version_cambiada` con quién y a qué hora guardó. Una diferencia con ADR-0193: si lo
+  que se manda es IGUAL a lo guardado, no hay conflicto (un reintento después de que se perdió la respuesta no debe chocar consigo mismo).
+  **DESCARTÉ** usar `updated_at` como versión (ya viajaba en la lectura y no pedía columna): sería el mismo problema resuelto de dos formas en el ERP
+  (integridad conceptual). **DESCARTÉ** bloquear la hoja mientras alguien la edita: un candado que se queda puesto cuando alguien cierra la pestaña.
+  **SE ROMPE SI** alguien escribe `planes_compra_lineas` sin pasar por la función (hoy nadie: RLS sin políticas) o si dos personas guardan exactamente
+  lo mismo (no es un conflicto, y no se avisa). La web es retrocompatible: manda la versión solo si la lectura trae `con_version` (orden de pegado libre).
+- **«¿Salir sin guardar?» antes de que la hoja se vaya.** `<Modal>` suma `antesDeCerrar(cerrar)`: Escape, el velo y la ✕ preguntan con la hoja todavía
+  a la vista. Pasado por `onClose`, la pregunta llegaba después de animar la salida y, con «Seguir editando», la hoja quedaba invisible.
+  **DESCARTÉ** `bloqueado` mientras hay cambios: Escape dejaría de responder sin decir por qué.
+- **La vista «Paso a paso» en la URL (`?vista=paso`, con `history.pushState`):** «Atrás» vuelve a la tabla en vez de salir de la pantalla; volver con
+  el botón retira esa entrada (marca `__planVistaPaso`) en vez de apilar otra. **DESCARTÉ** `router.push`: vuelve a pedir la página al servidor (con el
+  loader) solo para cambiar de pestaña.
+- **Una campaña de la URL que no existe** muestra la más reciente y lo dice (`planPedidoNoExiste`); un id que no es uuid no se le manda a la base.
+- **Lo que no cambió de regla:** el cálculo, las validaciones de la base y quién puede qué. Los topes nuevos de la hoja (100 000 prendas, S/ 100 000 por
+  prenda) son contra un error de tipeo, no reglas de negocio.
+- **B4 en producción desde el 2026-10-10** (OK de Felipe; ensayo revertido; versión registrada `20261010204108`, huellas `f283d296` de `fn_plan_compra` y
+  `006bd08e` de `guardar_plan_compra_linea`, iguales a local). El candado actúa cuando se publica la web que manda la versión.
+- **Pendiente de Felipe:** el número que más mueve la compra, «Lo que sobra», sigue escribiéndose por categoría:
+  con el margen de CAYLA, desde un 39 % el sistema compra para el diciembre bueno. Propuesta: un solo % de CAYLA, fijado por un líder.

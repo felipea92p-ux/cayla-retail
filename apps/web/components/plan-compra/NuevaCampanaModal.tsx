@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
@@ -11,7 +11,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { camposDeLaCampana } from "@/lib/plan-compra-guia";
@@ -36,17 +36,27 @@ export function NuevaCampanaModal({ etiquetas, nombresEnUso, onClose }: { etique
   const libres = useMemo(() => etiquetas.filter((e) => e.planId === null), [etiquetas]);
   const [b, setB] = useState<BorradorCampana>(() => borradorDeCampana(null));
   const [trabajando, setTrabajando] = useState(false);
+  // Un segundo envío mientras el primero viaja (doble clic, Enter repetido) no sale (chaos 2026-10-10).
+  const enviando = useRef(false);
   const guia = useGuiaCampos(camposDeLaCampana(b, etiquetas, nombresEnUso, { listo: responsable.listo, motivo: responsable.motivo }));
   const opciones: Opcion<string>[] = libres.map((e) => ({ valor: e.id, texto: `${e.nombre} · ${fechaCortaES(e.desde)} – ${fechaCortaES(e.hasta)}` }));
   const nota = diferenciaConLaEtiqueta(b, etiquetas.find((e) => e.id === b.etiquetaId));
 
   async function crear(cerrar: () => void) {
-    if (!guia.puedeConfirmar) return;
+    if (!guia.puedeConfirmar || enviando.current) return;
+    enviando.current = true;
     setTrabajando(true);
     const { data, error } = await firmar(createClient().rpc(RPC_CREAR_CAMPANA as never, argsCrearCampana(b) as never), responsable.firma());
     responsable.despues(error);
     setTrabajando(false);
-    if (error) return void avisar.error(traducirError(error, "crear la campaña"));
+    enviando.current = false;
+    if (error) {
+      // Puede que la campaña SÍ se haya creado (se cortó la red después de guardar) u otra persona la creó recién: se vuelven a leer las
+      // campañas, así el selector la muestra y esta hoja dice que esa etiqueta ya tiene su plan (chaos 2026-10-10: decía «No se guardó nada»).
+      router.refresh();
+      if (esFalloDeRed(error)) return void avisar.error("Se cortó la conexión mientras creabas la campaña: puede que se haya creado. Mírala en el selector antes de volver a intentarlo.");
+      return void avisar.error(traducirError(error, "crear la campaña"));
+    }
     const id = (data as { id?: string } | null)?.id;
     avisar.exito("Campaña creada", { detalle: b.nombre.trim() });
     cerrar();

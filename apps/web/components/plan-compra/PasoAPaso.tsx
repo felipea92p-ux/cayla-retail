@@ -23,6 +23,12 @@ export function PasoAPaso({
   totales,
   tope,
   familias,
+  conVersion,
+  versiones,
+  onGuardado,
+  onCambios,
+  pedirSalida,
+  antesDeRefrescar,
   onTabla,
 }: {
   planId: string;
@@ -33,6 +39,17 @@ export function PasoAPaso({
   /** El tope de la campaña (null = sin tope). */
   tope: number | null;
   familias: readonly FamiliaPlan[];
+  /** La base ya compara versiones al guardar (B4) y lo que devolvió cada guardado de esta visita, por categoría. */
+  conVersion: boolean;
+  versiones: Readonly<Record<string, number>>;
+  /** Se guardó una categoría (con su versión nueva, si la base la devuelve): la pantalla la recuerda y enciende su fila. */
+  onGuardado: (categoriaId: string, version: number | null) => void;
+  /** ¿Hay algo escrito sin guardar en la categoría de ahora? */
+  onCambios: (sucio: boolean) => void;
+  /** Pasar a otra categoría, saltarla o cambiar el alcance con algo escrito pregunta antes («¿Salir sin guardar?»). */
+  pedirSalida: (hacer: () => void) => void;
+  /** Lo que se hace antes de refrescar la lectura al guardar (retirar la guardia de esa pregunta). */
+  antesDeRefrescar: () => Promise<void>;
   /** «Ver la tabla»: de vuelta a la lista. */
   onTabla: () => void;
 }) {
@@ -49,11 +66,12 @@ export function PasoAPaso({
   const cuantasTodas = colaDelPaso(filas, "todas").length;
   const nombreFamilia = actual?.c.familia ? (familias.find((f) => f.codigo === actual.c.familia)?.nombre ?? actual.c.familia) : null;
 
-  const cambiarAlcance = (a: AlcancePaso) => {
-    setAlcance(a);
-    setSaltadas([]);
-    setElegida(null);
-  };
+  const cambiarAlcance = (a: AlcancePaso) =>
+    pedirSalida(() => {
+      setAlcance(a);
+      setSaltadas([]);
+      setElegida(null);
+    });
 
   const lado = (
     <aside className="space-y-3 lg:sticky lg:top-4">
@@ -70,7 +88,7 @@ export function PasoAPaso({
               <button
                 key={f.c.id}
                 type="button"
-                onClick={() => setElegida(f.c.id)}
+                onClick={() => (f.c.id === actual?.c.id ? undefined : pedirSalida(() => setElegida(f.c.id)))}
                 title={f.c.nombre}
                 aria-label={`${f.c.nombre}${hecha ? ", con plan" : ""}${aqui ? ", la que estás armando" : ""}`}
                 aria-current={aqui ? "step" : undefined}
@@ -156,8 +174,13 @@ export function PasoAPaso({
             tope={tope}
             inversionDeLasDemas={totales.inversion - (actual.calculo?.inversion ?? 0)}
             enPantalla
+            conVersion={conVersion}
+            versionConocida={versiones[actual.c.id]}
+            onCambios={onCambios}
+            antesDeRefrescar={antesDeRefrescar}
             irAlMontar={hechas.length > 0 || elegida !== null || saltadas.length > 0}
-            onGuardado={() => {
+            onGuardado={(_seguir, version) => {
+              onGuardado(actual.c.id, version);
               setHechas((h) => [...h, actual.c.id]);
               setElegida(null);
             }}
@@ -166,16 +189,20 @@ export function PasoAPaso({
                 <Boton
                   type="button"
                   disabled={siguiente === null}
-                  onClick={() => {
-                    setSaltadas((s) => [...s, actual.c.id]);
-                    setElegida(null);
-                  }}
+                  onClick={() =>
+                    pedirSalida(() => {
+                      setSaltadas((s) => [...s, actual.c.id]);
+                      setElegida(null);
+                    })
+                  }
                 >
                   Saltar por ahora
                 </Boton>
                 <Boton type="submit" data-seguir="1" peso="primario" cargando={guardando} disabled={!puedeGuardar} title={motivo} className={claseConfirmar}>
-                  {siguiente ? `Guardar y seguir con ${siguiente.c.nombre}` : "Guardar y terminar"}
-                  <ArrowRight aria-hidden className="h-4 w-4" />
+                  <span className="inline-flex items-center gap-2">
+                    {siguiente ? `Guardar y seguir con ${siguiente.c.nombre}` : "Guardar y terminar"}
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </span>
                 </Boton>
               </div>
             )}

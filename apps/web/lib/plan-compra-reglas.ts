@@ -45,6 +45,8 @@ export type LineaPlan = {
   nota: string | null;
   actualizadoPor: string | null;
   actualizadoEn: string | null;
+  /** La versión de la línea (ADR-0193 aplicada al plan, migración B4): sube en cada guardado. null = la base todavía no la manda. */
+  version: number | null;
 };
 export type LecturaPlan = {
   plan: { id: string; nombre: string; desde: string; hasta: string };
@@ -69,6 +71,8 @@ export type LecturaPlan = {
   vendido30: Map<string, number> | null;
   /** El tope de inversión: `soportado` = la base ya sabe de topes; `valor` null = sin tope. */
   tope: { soportado: boolean; valor: number | null };
+  /** La base ya compara versiones al guardar una categoría (B4): la web le manda la que leyó. false = base vieja, se guarda como antes. */
+  conVersion: boolean;
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -118,6 +122,7 @@ export function leerPlan(v: unknown): LecturaPlan | null {
       nota: texto(l.nota),
       actualizadoPor: texto(l.actualizado_por),
       actualizadoEn: texto(l.updated_at),
+      version: typeof l.version === "number" && Number.isInteger(l.version) ? l.version : null,
     });
   }
 
@@ -172,6 +177,7 @@ export function leerPlan(v: unknown): LecturaPlan | null {
       : null,
     vendido30: hay("vendido_30") ? porCategoria(v.vendido_30) : null,
     tope: { soportado: v.plan.tope_inversion !== undefined, valor: topeLeido !== null && topeLeido > 0 ? topeLeido : null },
+    conVersion: v.con_version === true,
   };
 }
 
@@ -215,13 +221,35 @@ export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "prec
   return { cuantil, objetivo, stock, comprar, inversion: Math.round(comprar * l.costo * 100) / 100 };
 }
 
-/** «Pasarse cuesta poco: conviene cubrir hasta un diciembre bueno.» El porqué del número, en palabras de Compras. */
+/**
+ * El cuantil crítico dicho como lo diría quien compra (ley 3 de Formidable: un veredicto, nunca «62 de cada 100 diciembres»): qué cuesta
+ * más, sobrar o quedarse corto, y hacia qué diciembre empuja la compra. Las cinco franjas son las del número, no una regla nueva.
+ */
+export function lecturaDelCuantil(cuantil: number): { costo: string; compra: string } {
+  if (cuantil >= 0.99) return { costo: "lo que sobra se vende casi al costo: sobrar no te cuesta", compra: "cubrir hasta un diciembre bueno" };
+  if (cuantil >= 0.75) return { costo: "sobrar te cuesta poco frente a quedarte corto", compra: "comprar más cerca del diciembre bueno" };
+  if (cuantil > 0.6) return { costo: "quedarte corto te cuesta un poco más que sobrar", compra: "comprar un poco por encima del diciembre normal" };
+  if (cuantil >= 0.4) return { costo: "quedarte corto y sobrar te cuestan parecido", compra: "comprar cerca del diciembre normal" };
+  return { costo: "sobrar te cuesta caro", compra: "comprar más cerca del diciembre flojo" };
+}
+
+/** «Lo que sobra se vende casi al costo: sobrar no te cuesta, así que conviene cubrir hasta un diciembre bueno.» El porqué del número. */
 export function porQue(c: Calculo): string {
-  const pct = Math.round(c.cuantil * 100);
-  if (pct >= 99) return "Lo que sobra se vende casi al costo: sobrar no cuesta, así que se compra para cubrir hasta un diciembre bueno.";
-  if (c.cuantil >= 0.75) return `Sobrar cuesta poco frente a quedarse corto: se compra para cubrir ${pct} de cada 100 diciembres posibles.`;
-  if (c.cuantil <= 0.4) return `Sobrar cuesta caro: se compra para cubrir solo ${pct} de cada 100 diciembres posibles.`;
-  return `Quedarse corto y sobrar cuestan parecido: se compra para cubrir ${pct} de cada 100 diciembres posibles.`;
+  const { costo, compra } = lecturaDelCuantil(c.cuantil);
+  return `${costo.charAt(0).toUpperCase()}${costo.slice(1)}, así que conviene ${compra}.`;
+}
+
+/**
+ * Lo que produce el porcentaje de «Lo que sobra» con el precio y el costo de la hoja, dicho junto al campo mientras se escribe: el número que
+ * más mueve la compra no se llena a ciegas (Formidable, 2026-10-10). null mientras falte el precio, el costo o el porcentaje.
+ */
+export function veredictoDeLoQueSobra(b: Pick<Borrador, "precio" | "costo" | "recupero">): string | null {
+  const precio = leerNumeroDeMonto(b.precio);
+  const costo = leerNumeroDeMonto(b.costo);
+  const recupero = entero(b.recupero);
+  if (precio === null || costo === null || recupero === null || precio <= 0 || costo >= precio || recupero > 100) return null;
+  const { costo: cuesta, compra } = lecturaDelCuantil(cuantilCritico(precio, costo, recupero));
+  return `Con ${recupero} %, ${cuesta}. Conviene ${compra}.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -272,10 +300,23 @@ export type Borrador = { flojo: string; normal: string; bueno: string; precio: s
 export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "recupero" | "curva";
 
 const entero = (s: string): number | null => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : null);
-const monto = (s: string): number | null => {
-  const t = s.trim().replace(",", ".");
-  return /^\d+(\.\d{1,2})?$/.test(t) ? Number(t) : null;
-};
+
+/**
+ * Un monto en soles tal como lo escribe la persona: «1299.50», «1299,50», «1,299.50» o «1 299,50» (las comas o espacios de miles se aceptan;
+ * la coma sola, como decimal). Cero vale. null si no se entiende. La MISMA lectura para el tope, el precio y el costo (chaos 2026-10-10: el
+ * precio rechazaba «1,299.50» con «Falta: Precio» mientras el tope de la misma pantalla lo aceptaba).
+ */
+export function leerNumeroDeMonto(t: string): number | null {
+  const limpio = t.replace(/\s+/g, "");
+  if (!limpio) return null;
+  const sinMiles = /^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(limpio) ? limpio.replace(/,/g, "") : limpio.replace(",", ".");
+  return /^\d+(\.\d{1,2})?$/.test(sinMiles) ? Number(sinMiles) : null;
+}
+
+/** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en un diciembre ni una prenda cuesta
+ *  S/ 100 000. Sin ellos, un «999999999999» pasaba la guía y la base respondía un error técnico (chaos 2026-10-10). */
+export const MAX_UNIDADES_ESCENARIO = 100_000;
+export const MAX_MONTO_PRENDA = 100_000;
 
 /** Lo que impide guardar, campo por campo (vacío = se puede). Cada texto dice qué hacer. */
 export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]): Partial<Record<CampoPlan, string>> {
@@ -283,15 +324,22 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   const flojo = entero(b.flojo);
   const normal = entero(b.normal);
   const bueno = entero(b.bueno);
+  const demasiadas = `Revisa el número: más de ${MAX_UNIDADES_ESCENARIO.toLocaleString("es-PE")} prendas en un diciembre no parece de una categoría.`;
   if (flojo === null) p.flojo = "Escribe cuántas venderías en un diciembre flojo (puede ser 0).";
+  else if (flojo > MAX_UNIDADES_ESCENARIO) p.flojo = demasiadas;
   if (normal === null) p.normal = "Escribe cuántas venderías en un diciembre normal.";
+  else if (normal > MAX_UNIDADES_ESCENARIO) p.normal = demasiadas;
   else if (flojo !== null && normal < flojo) p.normal = "Un diciembre normal no vende menos que uno flojo.";
   if (bueno === null) p.bueno = "Escribe cuántas venderías en un diciembre bueno.";
+  else if (bueno > MAX_UNIDADES_ESCENARIO) p.bueno = demasiadas;
   else if (normal !== null && bueno < normal) p.bueno = "Un diciembre bueno no vende menos que uno normal.";
-  const precio = monto(b.precio);
-  const costo = monto(b.costo);
+  const precio = leerNumeroDeMonto(b.precio);
+  const costo = leerNumeroDeMonto(b.costo);
+  const caro = `Revisa el monto: más de S/ ${MAX_MONTO_PRENDA.toLocaleString("es-PE")} por prenda no parece real.`;
   if (precio === null || precio <= 0) p.precio = "Escribe el precio de venta promedio de la categoría.";
+  else if (precio > MAX_MONTO_PRENDA) p.precio = caro;
   if (costo === null) p.costo = "Escribe el costo promedio por prenda.";
+  else if (costo > MAX_MONTO_PRENDA) p.costo = caro;
   else if (precio !== null && costo >= precio) p.costo = "El costo tiene que ser menor que el precio de venta.";
   const recupero = entero(b.recupero);
   if (recupero === null || recupero > 100) p.recupero = "Escribe a qué % del precio vendes lo que sobre (de 0 a 100).";
@@ -305,8 +353,11 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   return p;
 }
 
-/** Los argumentos de `guardar_plan_compra_linea` desde un borrador válido. */
-export function argsGuardar(planId: string, categoriaId: string, b: Borrador, tallas: readonly TallaPlan[], nota: string) {
+/**
+ * Los argumentos de `guardar_plan_compra_linea` desde un borrador válido. `versionEsperada` (B4, ADR-0193): la versión de la línea que la hoja
+ * leyó al abrirse (0 = no había plan). Solo se manda si la base ya compara versiones (`conVersion`); sin ella, la llamada es la de siempre.
+ */
+export function argsGuardar(planId: string, categoriaId: string, b: Borrador, tallas: readonly TallaPlan[], nota: string, versionEsperada?: number) {
   const curva: Record<string, number> = {};
   if (tallas.some((t) => (b.curva[t.id] ?? "").trim() !== "")) for (const t of tallas) curva[t.id] = Number((b.curva[t.id] ?? "0").trim() || "0");
   return {
@@ -315,12 +366,25 @@ export function argsGuardar(planId: string, categoriaId: string, b: Borrador, ta
     p_flojo: Number(b.flojo.trim()),
     p_normal: Number(b.normal.trim()),
     p_bueno: Number(b.bueno.trim()),
-    p_precio: Number(b.precio.trim().replace(",", ".")),
-    p_costo: Number(b.costo.trim().replace(",", ".")),
+    p_precio: leerNumeroDeMonto(b.precio) ?? NaN,
+    p_costo: leerNumeroDeMonto(b.costo) ?? NaN,
     p_recupero_pct: Number(b.recupero.trim()),
     p_curva: curva,
     p_nota: nota.trim() === "" ? null : nota.trim(),
+    ...(versionEsperada !== undefined ? { p_version_esperada: versionEsperada } : {}),
   };
+}
+
+/** La versión que manda la hoja: la mayor entre la que leyó la pantalla y la que devolvió el último guardado de esta tanda (la lectura del
+ *  servidor tarda un instante en traerla). 0 = la categoría no tenía plan. undefined = la base todavía no compara versiones. */
+export function versionParaGuardar(conVersion: boolean, leida: number | null | undefined, local: number | undefined): number | undefined {
+  if (!conVersion) return undefined;
+  return Math.max(leida ?? 0, local ?? 0);
+}
+
+/** La versión nueva que devuelve `guardar_plan_compra_linea` (B4); null si la base todavía no la manda. */
+export function versionDevuelta(data: unknown): number | null {
+  return esObjeto(data) && typeof data.version === "number" && Number.isInteger(data.version) ? data.version : null;
 }
 
 /** El borrador para una categoría: lo guardado, o vacío con la curva que propone el sistema. */
@@ -688,12 +752,8 @@ export function nombreDelArchivoDeCompra(planNombre: string): string {
  * grupos de tres cifras («12,000») es de miles; cualquier otra coma es el decimal. Devuelve null si no es un monto o no es mayor que cero.
  */
 export function leerMonto(t: string): number | null {
-  const limpio = t.replace(/\s+/g, "");
-  if (!limpio) return null;
-  const sinMiles = /^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(limpio) ? limpio.replace(/,/g, "") : limpio.replace(",", ".");
-  if (!/^\d+(\.\d{1,2})?$/.test(sinMiles)) return null;
-  const n = Number(sinMiles);
-  return n > 0 && n <= 9_999_999_999 ? n : null;
+  const n = leerNumeroDeMonto(t);
+  return n !== null && n > 0 && n <= 9_999_999_999 ? n : null;
 }
 
 /** Lo que impide guardar el tope (vacío = se puede). */
@@ -772,6 +832,10 @@ export type CampoCampana = "etiqueta" | "nombre" | "desde" | "hasta";
 /** El borrador que arranca al elegir una etiqueta: su nombre y sus fechas. */
 export const borradorDeCampana = (e: EtiquetaCampana | null): BorradorCampana => (e ? { etiquetaId: e.id, nombre: nombreDeLaCampana(e), desde: e.desde, hasta: e.hasta } : { etiquetaId: "", nombre: "", desde: "", hasta: "" });
 
+/** Un nombre de plan para compararlo con otro: sin tildes, sin mayúsculas y con un solo espacio entre palabras. «Navídad  2026» y «navidad 2026»
+ *  son el mismo nombre en el selector (chaos 2026-10-10: convivían). */
+export const nombreComparable = (t: string) => sinTildes(t).replace(/\s+/g, " ").trim();
+
 /** Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechaza `crear_plan_compra`. */
 export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[] = []): Partial<Record<CampoCampana, string>> {
   const p: Partial<Record<CampoCampana, string>> = {};
@@ -780,7 +844,7 @@ export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly Eti
   else if (e.planId) p.etiqueta = "Esa campaña ya tiene su plan: ábrelo desde el selector.";
   const nombre = b.nombre.trim();
   if (!nombre) p.nombre = "Ponle un nombre al plan.";
-  else if (nombresEnUso.some((n) => n.trim().toLowerCase() === nombre.toLowerCase())) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  else if (nombresEnUso.some((n) => nombreComparable(n) === nombreComparable(nombre))) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
   if (!fechaIso(b.desde)) p.desde = "Escribe desde cuándo empieza.";
   if (!fechaIso(b.hasta)) p.hasta = "Escribe hasta cuándo dura.";
   else if (fechaIso(b.desde) && b.hasta < b.desde) p.hasta = "La campaña no puede terminar antes de empezar.";
@@ -788,10 +852,20 @@ export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly Eti
 }
 
 /** Los argumentos de `crear_plan_compra`. */
-export const argsCrearCampana = (b: BorradorCampana) => ({ p_etiqueta_id: b.etiquetaId, p_nombre: b.nombre.trim() || null, p_desde: b.desde, p_hasta: b.hasta });
+export const argsCrearCampana = (b: BorradorCampana) => ({ p_etiqueta_id: b.etiquetaId, p_nombre: b.nombre.replace(/\s+/g, " ").trim() || null, p_desde: b.desde, p_hasta: b.hasta });
 
 /** Si las fechas del plan no son las de su etiqueta, lo dice (la diferencia nunca es silenciosa); si coinciden, null. */
 export function diferenciaConLaEtiqueta(b: Pick<BorradorCampana, "desde" | "hasta">, e: Pick<EtiquetaCampana, "nombre" | "desde" | "hasta"> | undefined): string | null {
   if (!e || (b.desde === e.desde && b.hasta === e.hasta)) return null;
   return `«${e.nombre}» en Etiquetas va del ${fechaCortaES(e.desde)} al ${fechaCortaES(e.hasta)}. Un plan de compra puede ser más ancho que la campaña de venta: ajusta las fechas solo si lo quieres así.`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 15. La URL: qué campaña y qué vista (chaos 2026-10-10)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** ¿Es un id de campaña con forma de uuid? Un `?plan=` escrito a mano o viejo no se le manda a la base (respondería un error técnico). */
+export const esIdDePlan = (t: string | null | undefined): t is string => typeof t === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.trim());
+
+/** La vista de la tabla vive en la URL (`?vista=paso`): así «Atrás» desde el paso a paso vuelve a la tabla en vez de salir de la pantalla. */
+export const vistaDeLaUrl = (v: string | null | undefined): "tabla" | "guiado" => (v === "paso" ? "guiado" : "tabla");

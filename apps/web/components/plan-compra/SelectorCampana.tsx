@@ -30,6 +30,8 @@ export function SelectorCampana({ campanas, actualId, puedeCrear, onNueva }: { c
       alineacion="derecha"
       etiquetaAccesible="Campaña"
       marcador="Campaña"
+      // En la cabecera mide lo mismo que «Exportar» (40 px): la pastilla de la sede mide 30 y quedaba más baja en la misma fila.
+      className="[&>button]:h-10"
     />
   );
 }

@@ -11,6 +11,7 @@
  *   M  EL MÓDULO: existe en Compras, orden 195, delegable, y nace SIN rol (ningún `rol_modulos`). La campaña «Diciembre 2026» existe.
  *   P  PUERTAS: Felipe (líder) lee y guarda; Micaela (sin el módulo) recibe 42501 en las dos; nadie lee las tablas directo.
  *   G  GUARDAR: rechaza lo incoherente con su mensaje; guardar dos veces la misma categoría deja UNA línea con lo último; firma.
+ *   V  VERSIÓN (B4): una hoja vieja no pisa lo que otra persona guardó entre medio; un reintento con lo mismo pasa; sin versión, como antes.
  *   L  LEER: la línea guardada, el stock libre de la red (sin apartados ni Cuarentena), lo vendido por talla en 90 días y lo vendido
  *      dentro de las fechas de la campaña (lo de antes no cuenta).
  *
@@ -36,6 +37,8 @@ const MIGRACION_B1 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010
 const MIGRACION_B2 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010191000_plan_compra_tope_de_inversion.sql"), "utf8");
 // ADR-0372, entrega 2 · B3: crear una campaña desde una etiqueta (`crear_plan_compra`) y la lectura del selector (`fn_planes_compra`).
 const MIGRACION_B3 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010192000_plan_compra_crear_campana.sql"), "utf8");
+// ADR-0372 · B4 (ADR-0193 aplicada al plan): la versión de cada línea; `guardar_plan_compra_linea` gana `p_version_esperada` (cambia su firma).
+const MIGRACION_B4 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010200000_plan_compra_version_de_linea.sql"), "utf8");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -67,6 +70,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B2)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B3)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_B4)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -169,7 +174,7 @@ caso(
    reset role;
    select :'directo' || ',' || concat_ws(',', (select count(*) from retail.planes_compra) > 0,
      has_function_privilege('anon', 'retail.fn_plan_compra(uuid)', 'execute'),
-     has_function_privilege('anon', 'retail.guardar_plan_compra_linea(uuid,uuid,integer,integer,integer,numeric,numeric,integer,jsonb,text)', 'execute'));`,
+     has_function_privilege('anon', 'retail.guardar_plan_compra_linea(uuid,uuid,integer,integer,integer,numeric,numeric,integer,jsonb,text,integer)', 'execute'));`,
   "0,0,t,f,f"
 );
 
@@ -194,6 +199,38 @@ caso(
   "1,130,50,t"
 );
 
+// V. VERSIÓN (B4: dos personas no se pisan) ---------------------------------------------------------------------------------
+caso(
+  "V1 con la versión: crea la línea en 1; guardar con la que leyó la sube; una hoja vieja con OTRA cosa recibe PT409 con quién y a qué hora; con lo MISMO, pasa",
+  `select (retail.guardar_plan_compra_linea(:'plan', :'cat', 80, 120, 180, 79.90, 32, 50, '{}'::jsonb, null, 0) ->> 'version') as v1 \\gset
+   select (retail.guardar_plan_compra_linea(:'plan', :'cat', 10, 20, 30, 79.90, 32, 50, '{}'::jsonb, null, :v1) ->> 'version') as v2 \\gset
+   select pg_temp.intento(format('select retail.guardar_plan_compra_linea(%L, %L, 80, 120, 180, 79.90, 32, 50, ''{}''::jsonb, null, %s)', :'plan', :'cat', :'v1')) as choque \\gset
+   select (retail.guardar_plan_compra_linea(:'plan', :'cat', 10, 20, 30, 79.90, 32, 50, '{}'::jsonb, null, :v1) ->> 'version') as v3 \\gset
+   reset role;
+   select concat_ws(' / ', :'v1', :'v2', split_part(:'choque', '|', 1), split_part(:'choque', '|', 2) like '% guardó otro plan de PC Polos a las %: lo tuyo no se guardó.%', :'v3',
+     (select normal from retail.planes_compra_lineas where plan_id = :'plan' and categoria_id = :'cat'));`,
+  "1 / 2 / PT409 / t / 3 / 20"
+);
+caso(
+  "V2 sin la versión guarda como siempre (la web de antes); la hoja trae la versión de cada línea y con_version",
+  `select pg_temp.guarda('{}'::jsonb);
+   select pg_temp.guarda('{}'::jsonb, 130);
+   select retail.fn_plan_compra(:'plan') as h \\gset
+   select concat_ws(',', :'h'::jsonb ->> 'con_version',
+     (select l ->> 'version' from jsonb_array_elements(:'h'::jsonb -> 'lineas') l where l ->> 'categoria_id' = :'cat'),
+     (select l ->> 'normal' from jsonb_array_elements(:'h'::jsonb -> 'lineas') l where l ->> 'categoria_id' = :'cat'));`,
+  "true,2,130"
+);
+caso(
+  "V3 una hoja que se abrió sin plan (0) cuando otra persona ya lo creó: con otra cosa, PT409; con lo mismo, pasa sin duplicar",
+  `select pg_temp.guarda('{}'::jsonb);
+   select split_part(pg_temp.intento(format('select retail.guardar_plan_compra_linea(%L, %L, 5, 6, 7, 79.90, 32, 50, ''{}''::jsonb, null, 0)', :'plan', :'cat')), '|', 1) as otra \\gset
+   select (retail.guardar_plan_compra_linea(:'plan', :'cat', 80, 120, 180, 79.90, 32, 50, '{}'::jsonb, null, 0) ->> 'version') as misma \\gset
+   reset role;
+   select concat_ws(',', :'otra', :'misma', (select count(*) from retail.planes_compra_lineas where plan_id = :'plan' and categoria_id = :'cat'));`,
+  "PT409,2,1"
+);
+
 // L. LEER -----------------------------------------------------------------------------------------------------------------
 caso(
   "L1 la hoja trae la línea, el stock libre de la red, la curva vendida en 90 días y lo vendido dentro de la campaña",
@@ -210,7 +247,7 @@ ${FIXTURE_PRENDA}
 );
 
 caso(
-  "L2 la lectura ampliada suma `catalogo`, `stock_sedes` y `vendido_30` sin quitar ninguna clave de antes",
+  "L2 la lectura ampliada suma `catalogo`, `stock_sedes`, `vendido_30` y `con_version` (B4) sin quitar ninguna clave de antes",
   `select pg_temp.guarda(jsonb_build_object(:'t_s', 20, :'t_m', 50, :'t_l', 30));
    ${FIXTURE_PRENDA}
    select concat_ws(',',
@@ -218,7 +255,7 @@ caso(
      (select (s ->> 'ubicacion') || ':' || (s ->> 'unidades') from jsonb_array_elements((:'h')::jsonb -> 'stock_sedes') s where s ->> 'categoria_id' = :'cat'),
      (select w ->> 'unidades' from jsonb_array_elements((:'h')::jsonb -> 'vendido_30') w where w ->> 'categoria_id' = :'cat'),
      (select string_agg(k, '+' order by k) from jsonb_object_keys((:'h')::jsonb) k));`,
-  "80.00/30.00,Tienda Trujillo:5,3,catalogo+categorias+curvas+hoy+lineas+plan+planes+stock+stock_sedes+vendido+vendido_30"
+  "80.00/30.00,Tienda Trujillo:5,3,catalogo+categorias+con_version+curvas+hoy+lineas+plan+planes+stock+stock_sedes+vendido+vendido_30"
 );
 
 // T. TOPE DE INVERSIÓN (ADR-0372 · B2) ------------------------------------------------------------------------------------
@@ -271,8 +308,9 @@ caso(
    select retail.crear_plan_compra(:'et') ->> 'nombre' as nombre \\gset
    select :'nombre' || ',' || (select p.desde || '/' || p.hasta || '/' || (p.etiqueta_id = :'et') || '/' || (p.creado_por is not null) from retail.planes_compra p where p.etiqueta_id = :'et') || ',' ||
      (select (e ->> 'plan_id') is not null from jsonb_array_elements(retail.fn_planes_compra() -> 'etiquetas') e where e ->> 'id' = :'et') || ',' ||
-     (select count(*) from jsonb_array_elements(retail.fn_planes_compra() -> 'planes'));`,
-  "ZZ Campaña de prueba 2027,2027-05-01/2027-05-10/true/true,true,2"
+     -- El selector ve TODAS las campañas: las que ya había en la base y la nueva (sin depender de cuántas había: la base local es compartida).
+     ((select count(*) from jsonb_array_elements(retail.fn_planes_compra() -> 'planes')) = (select count(*) from retail.planes_compra));`,
+  "ZZ Campaña de prueba 2027,2027-05-01/2027-05-10/true/true,true,true"
 );
 caso(
   "C2 las fechas del plan se pueden ajustar (una ventana de compra más ancha que la de la etiqueta) y el nombre se puede poner",

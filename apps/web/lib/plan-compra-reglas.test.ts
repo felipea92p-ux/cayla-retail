@@ -31,6 +31,16 @@ import {
   fraseDeLoReal,
   leerCampanas,
   leerMonto,
+  leerNumeroDeMonto,
+  lecturaDelCuantil,
+  MAX_MONTO_PRENDA,
+  MAX_UNIDADES_ESCENARIO,
+  nombreComparable,
+  esIdDePlan,
+  vistaDeLaUrl,
+  veredictoDeLoQueSobra,
+  versionDevuelta,
+  versionParaGuardar,
   leerPlan,
   lineaDeBorrador,
   momentoDeLaCampana,
@@ -101,7 +111,8 @@ describe("calcular", () => {
     expect(c.objetivo).toBe(Math.ceil(cuantilTriangular(80, 120, 180, 0.6)));
     expect(c.comprar).toBe(c.objetivo - 30);
     expect(c.inversion).toBeCloseTo(c.comprar * 40);
-    expect(porQue(c)).toContain("60 de cada 100");
+    expect(porQue(c)).toContain("cerca del diciembre normal");
+    expect(porQue(c)).not.toMatch(/de cada 100/);
   });
   it("si sobrar no cuesta, el porqué lo dice en palabras (no «100 de cada 100»)", () => {
     expect(porQue(calcular({ flojo: 1, normal: 2, bueno: 3, precio: 100, costo: 40, recuperoPct: 50 }, 0))).toContain("casi al costo");
@@ -191,7 +202,7 @@ describe("borrador, args y lo real", () => {
     const vacio = borradorDe(undefined, TALLAS, undefined);
     expect(vacio.flojo).toBe("");
     expect(vacio.curva).toEqual({ s: "25", m: "25", l: "25", xl: "25" });
-    const guardado = borradorDe({ categoriaId: "c", flojo: 1, normal: 2, bueno: 3, precio: 50, costo: 20, recuperoPct: 40, curva: { s: 100 }, nota: null, actualizadoPor: null, actualizadoEn: null }, TALLAS, undefined);
+    const guardado = borradorDe({ categoriaId: "c", flojo: 1, normal: 2, bueno: 3, precio: 50, costo: 20, recuperoPct: 40, curva: { s: 100 }, nota: null, actualizadoPor: null, actualizadoEn: null, version: null }, TALLAS, undefined);
     expect(guardado).toMatchObject({ flojo: "1", precio: "50.00", recupero: "40", curva: { s: "100" } });
   });
   it("los argumentos van como los espera la base", () => {
@@ -614,7 +625,7 @@ describe("la lectura ampliada (ADR-0372, B1 y B2) y su retrocompatibilidad", () 
     expect(borradorDe(undefined, TALLAS, undefined, { precio: 69.9, costo: 28 })).toMatchObject({ precio: "69.90", costo: "28.00" });
     expect(borradorDe(undefined, TALLAS, undefined)).toMatchObject({ precio: "", costo: "" });
     expect(borradorDe(undefined, TALLAS, undefined, null)).toMatchObject({ precio: "", costo: "" });
-    const guardado = borradorDe({ categoriaId: "c", flojo: 1, normal: 2, bueno: 3, precio: 50, costo: 20, recuperoPct: 40, curva: {}, nota: null, actualizadoPor: null, actualizadoEn: null }, TALLAS, undefined, { precio: 99, costo: 9 });
+    const guardado = borradorDe({ categoriaId: "c", flojo: 1, normal: 2, bueno: 3, precio: 50, costo: 20, recuperoPct: 40, curva: {}, nota: null, actualizadoPor: null, actualizadoEn: null, version: null }, TALLAS, undefined, { precio: 99, costo: 9 });
     expect(guardado).toMatchObject({ precio: "50.00", costo: "20.00" });
   });
 });
@@ -730,5 +741,92 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
     expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, ["navidad 2026"], listo))).toBe(false);
     expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, [], { listo: false, motivo: "Elige quién" }))).toBe(false);
     expect(camposDeLaCampana(borradorDeCampana(null), etiquetas, [], listo)[0].pendiente).toMatch(/Elige la campaña/);
+  });
+});
+
+describe("Formidable y chaos, 2026-10-10: lo que la hoja dice y lo que acepta", () => {
+  const valido: Borrador = { flojo: "10", normal: "20", bueno: "35", precio: "120", costo: "50", recupero: "60", curva: {} };
+
+  it("precio y costo se leen como el tope: miles con coma o espacio, decimal con punto o coma", () => {
+    expect(leerNumeroDeMonto("1,299.50")).toBe(1299.5);
+    expect(leerNumeroDeMonto("1 299,50")).toBe(1299.5);
+    expect(leerNumeroDeMonto("1299")).toBe(1299);
+    expect(leerNumeroDeMonto("0")).toBe(0);
+    for (const t of ["", "abc", "12.3.4", "-5", "S/ 10"]) expect(leerNumeroDeMonto(t), t).toBeNull();
+    expect(problemasDelBorrador({ ...valido, precio: "1,299.50", costo: "1,000" }, []).precio).toBeUndefined();
+    expect(argsGuardar("p", "c", { ...valido, precio: "1,299.50" }, [], "").p_precio).toBe(1299.5);
+    // El tope sigue igual: cero no vale como tope.
+    expect(leerMonto("0")).toBeNull();
+    expect(leerMonto("12,000")).toBe(12000);
+  });
+
+  it("un número absurdo se frena en la guía, con un texto que dice qué revisar (antes llegaba a la base: «out of range»)", () => {
+    const p = problemasDelBorrador({ ...valido, flojo: "1", normal: "2", bueno: "999999999999" }, []);
+    expect(p.bueno).toMatch(/Revisa el número/);
+    expect(problemasDelBorrador({ ...valido, bueno: String(MAX_UNIDADES_ESCENARIO) }, []).bueno).toBeUndefined();
+    expect(problemasDelBorrador({ ...valido, precio: String(MAX_MONTO_PRENDA + 1) }, []).precio).toMatch(/Revisa el monto/);
+    expect(problemasDelBorrador({ ...valido, costo: String(MAX_MONTO_PRENDA + 1), precio: "100" }, []).costo).toMatch(/Revisa el monto/);
+  });
+
+  it("el porqué traduce el cuantil a un veredicto, nunca «N de cada 100»", () => {
+    for (const q of [0, 0.2, 0.4, 0.5, 0.6, 0.61, 0.75, 0.9, 0.99, 1]) {
+      const l = lecturaDelCuantil(q);
+      expect(`${l.costo} ${l.compra}`, String(q)).not.toMatch(/de cada|cuantil|%/);
+    }
+    expect(lecturaDelCuantil(0.99).compra).toMatch(/diciembre bueno/);
+    expect(lecturaDelCuantil(0.3).compra).toMatch(/diciembre flojo/);
+    expect(lecturaDelCuantil(0.5).compra).toMatch(/diciembre normal/);
+  });
+
+  it("«Lo que sobra» dice lo que produce, con el margen de CAYLA (Vestidos: 143,23 / 55,33)", () => {
+    const vestidos = { precio: "143.23", costo: "55.33" };
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "60" })).toMatch(/^Con 60 %, .*cubrir hasta un diciembre bueno\.$/);
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "39" })).toMatch(/cubrir hasta un diciembre bueno/);
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "0" })).toMatch(/un poco por encima del diciembre normal/);
+    // Margen chico y sobrar caro: hacia el flojo.
+    expect(veredictoDeLoQueSobra({ precio: "100", costo: "80", recupero: "0" })).toMatch(/diciembre flojo/);
+    // Falta un dato o el costo no es menor que el precio: no dice nada (no adivina).
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "" })).toBeNull();
+    expect(veredictoDeLoQueSobra({ precio: "50", costo: "50", recupero: "20" })).toBeNull();
+    expect(veredictoDeLoQueSobra({ precio: "", costo: "50", recupero: "20" })).toBeNull();
+  });
+
+  it("la versión (B4): se manda solo si la base la compara, y nunca hacia atrás", () => {
+    expect(versionParaGuardar(false, 3, 5)).toBeUndefined();
+    expect(versionParaGuardar(true, null, undefined)).toBe(0);
+    expect(versionParaGuardar(true, 3, undefined)).toBe(3);
+    expect(versionParaGuardar(true, 3, 5)).toBe(5);
+    expect(versionParaGuardar(true, 7, 5)).toBe(7);
+    expect("p_version_esperada" in argsGuardar("p", "c", valido, [], "")).toBe(false);
+    expect(argsGuardar("p", "c", valido, [], "", 0).p_version_esperada).toBe(0);
+    expect(versionDevuelta({ id: "x", version: 4 })).toBe(4);
+    expect(versionDevuelta({ id: "x" })).toBeNull();
+    expect(versionDevuelta(null)).toBeNull();
+  });
+
+  it("leerPlan: la versión de cada línea y si la base ya compara versiones", () => {
+    const base = { plan: { id: "p", nombre: "x", desde: "2026-12-01", hasta: "2026-12-31" }, hoy: "2026-10-10" };
+    const l = { categoria_id: "c", flojo: 1, normal: 2, bueno: 3, precio: 10, costo: 5, recupero_pct: 0, curva: {} };
+    expect(leerPlan({ ...base, lineas: [l] })!.conVersion).toBe(false);
+    expect(leerPlan({ ...base, lineas: [l] })!.lineas.get("c")!.version).toBeNull();
+    const nueva = leerPlan({ ...base, con_version: true, lineas: [{ ...l, version: 3 }] })!;
+    expect(nueva.conVersion).toBe(true);
+    expect(nueva.lineas.get("c")!.version).toBe(3);
+  });
+
+  it("nombres de campaña casi iguales son el mismo (sin tildes, mayúsculas ni espacios dobles)", () => {
+    expect(nombreComparable("Navídad  2026 ")).toBe(nombreComparable("navidad 2026"));
+    const etiquetas = [{ id: "e1", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", planId: null }];
+    const b = { etiquetaId: "e1", nombre: "Navídad  2026", desde: "2026-12-11", hasta: "2026-12-25" };
+    expect(problemasDeLaCampana(b, etiquetas, ["Navidad 2026"]).nombre).toMatch(/Ya hay un plan/);
+    expect(argsCrearCampana({ ...b, nombre: "  Fiestas   Patrias 2026 " }).p_nombre).toBe("Fiestas Patrias 2026");
+  });
+
+  it("la URL: un id que no es uuid no se le manda a la base; la vista del paso a paso vive en ?vista=paso", () => {
+    expect(esIdDePlan("a1a5ae04-dfbb-46dc-9393-dffe31cb2c24")).toBe(true);
+    for (const t of ["", "basura", "a1a5ae04", "'; drop table", null, undefined]) expect(esIdDePlan(t as string | null | undefined), String(t)).toBe(false);
+    expect(vistaDeLaUrl("paso")).toBe("guiado");
+    expect(vistaDeLaUrl(null)).toBe("tabla");
+    expect(vistaDeLaUrl("otra")).toBe("tabla");
   });
 });

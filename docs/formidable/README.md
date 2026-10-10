@@ -17,7 +17,7 @@ Formidable porque sus modales lo sean, ni al revés.
 | Inventario | Rótulos de anaquel (`/rotulos`) | ciega ✓ (sobre capturas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-09) | 8,0 · ley 1: 7 | 8 | [rotulos](rotulos.md) | 2026-10-09 |
 | Catálogo | Editar producto ▸ «Precio por tienda» y su hoja (`/productos/[id]/editar`) | ciega ✓ · real sin probar; un error corregido y los 3 cambios hechos (2026-10-10) | 8,3 · ley 1: 7 | 10 | [catalogo-precio-por-tienda](catalogo-precio-por-tienda.md) | 2026-10-10 |
 | Inventario | Análisis (`/inventario/resumen`), por modelo (ADR-0357 decisión 12) | sin probar: solo medido (`rapido`); sin desbordes a 1440, 1024 ni 375 | — | — | [inventario-resumen](inventario-resumen.md) | 2026-10-10 |
-| Compras | Plan de campaña (`/compras/plan`): barra de rango, paso a paso, aviso de stock y exportar | sin probar (entrega 1 construida 2026-10-10, ADR-0372) | — | — | — | — |
+| Compras | Plan de campaña (`/compras/plan`): la pantalla, su hoja de categoría, el paso a paso, «Poner el tope» y «Nueva campaña» | ciega ✓ · real sin probar; **los 3 cambios hechos y medidos (2026-10-10)**, sin publicar; falta la ciega sobre la pantalla nueva | 6,8 (provisional; antes 5,1) · ley 1: 6 | 9 (antes 7) | [compras-plan](compras-plan.md) | 2026-10-10 |
 
 ## Orden de despliegue (módulo por módulo, decidido 2026-10-05)
 Inventario (piloto: Frescura del piso) → el resto del módulo → siguiente módulo que Felipe indique. El orden dentro de un módulo sale de

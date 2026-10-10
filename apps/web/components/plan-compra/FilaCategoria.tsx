@@ -16,14 +16,14 @@ export function columnasDelPlan(estado: EstadoCampana): Columna[] {
   return [
     { titulo: "Categoría" },
     { titulo: "Venta esperada", subtitulo: "flojo · normal · bueno" },
-    { titulo: "Hay hoy", subtitulo: "en la red", alinear: "der" },
+    { titulo: "Hay hoy", subtitulo: "tiendas y Taller", alinear: "der" },
     { titulo: "Comprar", alinear: "der" },
     { titulo: "Inversión", subtitulo: "al costo", alinear: "der" },
     ...(estado !== "antes" ? [{ titulo: estado === "durante" ? "Vendido hasta hoy" : "Lo que pasó" } as Columna] : []),
   ];
 }
 
-export function FilaCategoria({ f, estado, indice, onAbrir }: { f: FilaPlan; estado: EstadoCampana; indice: number; onAbrir: () => void }) {
+export function FilaCategoria({ f, estado, indice, recienGuardada = false, onAbrir }: { f: FilaPlan; estado: EstadoCampana; indice: number; recienGuardada?: boolean; onAbrir: () => void }) {
   const { c, linea, stock, calculo, vendido, ventas, puesto } = f;
   const verReal = estado !== "antes";
   const plantilla = plantillaDelPlan(verReal);
@@ -34,7 +34,8 @@ export function FilaCategoria({ f, estado, indice, onAbrir }: { f: FilaPlan; est
       type="button"
       onClick={onAbrir}
       style={{ ["--i" as string]: paso }}
-      className={`${fila(plantilla)} anim-sube w-full text-left transition-colors hover:bg-sand/30`}
+      // La fila que se acaba de guardar se enciende en verde una vez y se apaga sola (la confirmación de Por pagar, `anim-destello-ok`).
+      className={`${fila(plantilla)} ${recienGuardada ? "anim-destello-ok" : "anim-sube"} w-full text-left transition-colors hover:bg-sand/30`}
       aria-label={`${linea ? "Corregir" : "Armar"} el plan de ${c.nombre}`}
     >
       <span className={celda("izq", "min-w-0")}>
@@ -52,7 +53,8 @@ export function FilaCategoria({ f, estado, indice, onAbrir }: { f: FilaPlan; est
         ) : (
           <span className="flex flex-wrap items-center gap-3">
             <Chip tono="pizarra">Sin plan</Chip>
-            <span className={`btn-cayla ${puesto !== null ? "btn-primario" : "btn-secundario"}`}>Armar plan</span>
+            {/* Secundario siempre: la acción principal de la pantalla es UNA, arriba («Empezar por …»), no una por fila (Formidable 2026-10-10). */}
+            <span className="btn-cayla btn-secundario">Armar plan</span>
           </span>
         )}
       </span>
