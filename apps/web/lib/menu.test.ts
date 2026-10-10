@@ -263,7 +263,11 @@ const TOPE_HIJAS = 6;
 // mercadería sin ver Compras (hoy no existe). Se descartó el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba
 // el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
 // Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7 };
+// COMPRAS, 7 — TEMPORAL (Felipe, 2026-10-10; ADR-0362, decisión 38): «Órdenes de compra» entra como séptima hija mientras
+// «Recibir mercadería» siga en Compras. ADR-0361 la muda a Inventario (la base ya la tiene en ese grupo desde el 2026-10-07; falta
+// la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete son puertas de uso
+// diario y la mudanza ya está decidida.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7, compras: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -404,11 +408,12 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los seis módulos ve las seis pantallas desde una tienda o un almacén, en el orden plan → proveedor → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los siete módulos ve las siete pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → recepción → pago → notas de crédito", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.plan",
         "compras.proveedores",
+        "compras.ordenesCompra",
         "compras.comprobantes",
         "compras.recibir",
         "compras.porPagar",
@@ -460,9 +465,17 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(notas && !esGrupoMenu(notas) ? notas.contador : undefined).toBeUndefined();
   });
 
-  it("sin `verDineroCompras` no ve Compras, esté donde esté", () => {
+  // Hasta el 2026-10-10 decía «sin `verDineroCompras` no ve Compras». La decisión 34 de ADR-0362 (el módulo es la llave) lo cambió a
+  // propósito: Órdenes de compra trae sus precios y no pide el dinero de las facturas. Lo que sigue en pie: sin ese permiso no se ve
+  // NINGUNA pantalla de dinero de Compras, y con los módulos de hoy (sin Órdenes de compra) Compras no aparece.
+  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo Órdenes de compra ve solo esa pantalla (ADR-0362)", () => {
+    const deHoy = MODULOS_DE_HOY.integrante.map((m) => m.clave);
     for (const ubicacionTipo of TIPOS_UBICACION) {
-      expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo }).riel.some((f) => f.id === "compras")).toBe(false);
+      expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: deHoy }).riel.some((f) => f.id === "compras"), ubicacionTipo).toBe(false);
+      const compras = menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: [...deHoy, "ordenes_compra"] }).riel.find((f) => f.id === "compras");
+      const rutas = compras ? (esGrupoMenu(compras) ? hojasDe(compras).map((h) => h.href) : [compras.href]) : [];
+      // En el Taller, Compras no se muestra (es de las tiendas), tenga el módulo que tenga.
+      expect(rutas, ubicacionTipo).toEqual(ubicacionTipo === "taller" ? [] : ["/compras/ordenes"]);
     }
   });
 

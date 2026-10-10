@@ -59,6 +59,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/factura/[compraId]": PENDIENTE,
   "/compras/notas-credito": PENDIENTE,
   "/compras/nueva": PENDIENTE,
+  "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
   "/compras/parte/[compraId]": PENDIENTE,
   "/compras/por-pagar": PENDIENTE,
   "/compras/plan": { estado: "no-aplica", motivo: "Tabla del plan de campaña, una fila por categoría: no hay campos en la pantalla. Lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en la ventana de cada categoría, con su guía en el registro de modales (ADR-0349)." },

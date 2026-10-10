@@ -127,6 +127,11 @@
       ]
      },
      {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
+     },
+     {
       "grupo": "clientas",
       "etiqueta": "Clientes",
       "icono": "club",
@@ -287,6 +292,11 @@
         "icono": "atributos"
        }
       ]
+     },
+     {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
      },
      {
       "grupo": "clientas",
@@ -525,6 +535,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",
@@ -766,6 +781,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",
@@ -2031,6 +2051,11 @@
       ]
      },
      {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
+     },
+     {
       "grupo": "clientas",
       "etiqueta": "Clientes",
       "icono": "club",
@@ -2191,6 +2216,11 @@
         "icono": "atributos"
        }
       ]
+     },
+     {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
      },
      {
       "grupo": "clientas",
@@ -2429,6 +2459,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",
@@ -2670,6 +2705,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",

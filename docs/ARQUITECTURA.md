@@ -1362,6 +1362,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   - `/compras/plan` («Plan de campaña», ADR-0349, módulo `plan_compra`, pide `verDineroCompras`) → `lib/plan-compra.ts`
     (`fn_plan_compra`) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación) +
     `lib/plan-compra-guia.ts` + `components/plan-compra/PlanCampana.tsx` y `PlanCategoriaModal.tsx` (`guardar_plan_compra_linea`).
+  - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
+    ve las de todas las sedes) → `lib/ordenes-compra.ts` (`fn_ordenes_compra`) + `lib/ordenes-compra-reglas.ts` (número `OC-000001`,
+    destino, estados, lectura defensiva). Cabecera `EncabezadoPagina`; 7.ª entrada temporal de Compras hasta que Recibir pase a
+    Inventario (ADR-0361).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 
