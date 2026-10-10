@@ -5,6 +5,8 @@
    «Piso · Almacén · Ambos» deja UNA fila con los números grandes del lugar elegido; «Ambos» (de entrada) vuelve a las dos,
    como el «Todas» de un desplegable. Es una forma de VER la lista, no un filtro: no quita prendas ni tallas, y las cifras son
    las mismas LIBRES de la tarjeta (`celdaTarjeta`). Se recuerda por aparato (como el tema), no en la URL.
+   En «Piso» SÍ se esconde lo que no tiene nada colgado (Felipe, 2026-10-09): el color sin una unidad libre en el piso, y la
+   tarjeta entera si ninguno de sus colores tiene. Lo escondido se cuenta y se dice, con «Ver ambos» para traerlo de vuelta.
    ==================================================================== */
 
 export type LugarVista = "ambos" | "piso" | "almacen";
@@ -42,6 +44,24 @@ export function unidadesPorLugar(filas: readonly { pisoDisponible?: number | nul
     almacen += Math.max(0, f.almacenDisponible ?? 0);
   }
   return { piso, almacen };
+}
+
+/** «Piso»: deja solo los colores con algo LIBRE colgado (alguna talla con `pisoDisponible` > 0) y las tarjetas que conservan alguno.
+ *  Las tallas de un color que queda no se tocan: la tarjeta sigue mostrando su curva, con el 0 donde no hay. Otro lugar (o una sede
+ *  que no separa): la lista tal cual. `escondidas` = cuántas tarjetas salieron. */
+export function tarjetasDelLugar<M extends { colores: readonly C[] }, C extends { tallas: readonly { pisoDisponible?: number | null }[] }>(
+  modelos: readonly M[],
+  lugar: LugarVista,
+  separa: boolean
+): { modelos: M[]; escondidas: number } {
+  if (lugar !== "piso" || !separa) return { modelos: [...modelos], escondidas: 0 };
+  const quedan: M[] = [];
+  for (const m of modelos) {
+    const colores = m.colores.filter((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
+    if (colores.length === 0) continue;
+    quedan.push(colores.length === m.colores.length ? m : { ...m, colores });
+  }
+  return { modelos: quedan, escondidas: modelos.length - quedan.length };
 }
 
 /* --- Lo guardado en el aparato, para `useSyncExternalStore` (como el tema): el servidor y la primera pintura dicen «ambos». --- */
