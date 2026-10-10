@@ -3668,3 +3668,24 @@ toda su categoría); o el enlace de CAYLA Global se vuelve un `<Link>` con prefe
 
 **Pendiente:** abrir CAYLA Global ▸ Frescura a un gerente que no es líder (migración de permisos de `fn_frescura_sede`), la foto diaria, y
 medir el pliegue con el piso cuadrado y 3 tarjetas de la aguja (con datos que lo permitan).
+
+**Revisión adversaria (2026-10-10 (c), commit `251c5810`).** Cuatro lentes (lógica y fórmulas, coherencia entre vistas, decisiones y reglas
+del ERP, la gemela) y un escéptico por lente: 36 hallazgos, ninguno refutado. Lo que cambió por ellos:
+- **La gemela, mejor acotada.** Solo deja una unidad fantasma la venta hecha cuando el sistema tenía en el piso algo de esa categoría, talla
+  y color (la cola de arranque se vendió ANTES de la carga inicial, que contó lo que había sin la vendida). DESCARTÉ filtrar por «ya colgaba
+  al venderse»: las tandas son FIFO del libro y no dicen cuándo colgó cada unidad física. Una prenda con TODO en duda tiene su propio estado
+  (`vendida_sin_registrar`: «Aún no se sabe», sin «Por decidir» aunque haya pasado su temporada); antes salía «Vigente · 0 días». La carga
+  es paginada y ordenada, y si falla la tarjeta lo dice.
+- **«Hace 4 semanas» compara lo mismo con lo mismo:** la tendencia usa el piso de hoy contado sin apartar (`sinApartar`), como el de
+  entonces; si no, cada venta pendiente daba un falso «más fresco».
+- **Una sola vara, de verdad:** `juzgadoraDe` (la regla de `varaQueJuzgo` con forma de vara) en la ayuda, en «contándola a ella» de la hoja
+  y en la rama sin vara; la línea del mes calla cuando juzga CAYLA (se contradecía con la de CAYLA); la vara del mes dice «de los 90 días
+  antes del día 1».
+- **La puerta dice su caso:** «faltan días seguidos cobrando con la prenda», «todavía no hay ventas en el ERP» o «no todas las ventas llevan
+  su prenda» (los mismos tres de `avisoDatosDeHoy`); CAYLA Global: «en LIM falta cuadrar el piso; en TRU y AQP faltan días seguidos…».
+- **La parte vieja esperada** usa el riesgo promedio desde 0 (λ = H(t)/t, como `cortesConCola`): con P75 y P90 pegados (escalones de
+  Kaplan-Meier) se desplomaba a casi 0 y hacía saltar «Envejeciendo» en falso. La cuadrícula resalta solo con el piso cuadrado.
+- **CAYLA Global:** «Aproximado» cuando falta una tienda, una línea por familia (`familiasDeCayla`), celdas que se leen con lector de pantalla.
+- **La tarjeta:** el «¿Por qué?» se despliega en su lugar (`CifraSinSaber`; flotando tapaba el botón de la puerta), los clásicos tienen su
+  muestra, sale el aviso que repetía «aproximado», la regla de la hoja mide su ancho real.
+- **La rapidez** suma lo anotado en caja solo desde que el piso está cuadrado (`cuadradoEn`): antes no hay con qué medir lo colgado.
