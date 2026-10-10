@@ -109,6 +109,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const contador = useRef(editar ? editar.inicial.lineas.length : 1);
   // El id de la orden se genera al primer «Guardar» y se reusa en cada reintento: la base devuelve la misma orden si llega dos veces.
   const idOrden = useRef<string | null>(null);
+  // El candado contra dos clics en el mismo instante (ver `guardar`).
+  const enVuelo = useRef(false);
 
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
@@ -209,46 +211,54 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (guardando) return;
+    // Dos clics en el MISMO instante: `guardando` es estado de React y se aplica después del clic, así que dejaba pasar dos llamadas (la base
+    // guardaba una orden, pero la pantalla quedaba en el formulario y se gastaba un número; chaos 2026-10-10). El candado es el de la casa
+    // (Ajustar inventario, Editar meta): una ref que se pone en el mismo tick y se suelta al terminar.
+    if (guardando || enVuelo.current) return;
     if (!guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    if (editar) return guardarCambios(editar);
-    const id = (idOrden.current ??= crypto.randomUUID());
-    setGuardando(true);
-    const firma = esPersona ? firmaOmitida("orden_compra_crear") : responsable.firma();
-    const { numero, error } = await crearOrdenCompra(argsCrearOrden(id, orden), firma);
-    setGuardando(false);
-    if (!esPersona) responsable.despues(error);
-    if (error || numero == null) {
-      // Se cortó la señal: el pedido pudo llegar a la base y perderse solo la respuesta. Reintentar sin cambiar nada es seguro (el mismo
-      // id no crea otra orden); decir «no se guardó nada» invitaba a corregir algo creyendo que no existía (Formidable, 2026-10-10).
-      if (error && esFalloDeRed(error)) {
-        avisar.error(avisoDeCorte("crear"));
+    enVuelo.current = true;
+    try {
+      if (editar) return await guardarCambios(editar);
+      const id = (idOrden.current ??= crypto.randomUUID());
+      setGuardando(true);
+      const firma = esPersona ? firmaOmitida("orden_compra_crear") : responsable.firma();
+      const { numero, error } = await crearOrdenCompra(argsCrearOrden(id, orden), firma);
+      setGuardando(false);
+      if (!esPersona) responsable.despues(error);
+      if (error || numero == null) {
+        // Se cortó la señal: el pedido pudo llegar a la base y perderse solo la respuesta. Reintentar sin cambiar nada es seguro (el mismo
+        // id no crea otra orden); decir «no se guardó nada» invitaba a corregir algo creyendo que no existía (Formidable, 2026-10-10).
+        if (error && esFalloDeRed(error)) {
+          avisar.error(avisoDeCorte("crear"));
+          return;
+        }
+        // Sí se había guardado, con lo de antes, y la persona corrigió algo entre un intento y otro: se corrige en la orden misma.
+        if (error?.hint === HINT_YA_GUARDADA) {
+          avisar.error(traducirError(error, "guardar la orden de compra"), {
+            accion: { texto: "Corregirla", onClick: () => void irA(`/compras/ordenes/editar/${id}`) },
+          });
+          return;
+        }
+        avisar.error(traducirError(error, "guardar la orden de compra"));
         return;
       }
-      // Sí se había guardado, con lo de antes, y la persona corrigió algo entre un intento y otro: se corrige en la orden misma.
-      if (error?.hint === HINT_YA_GUARDADA) {
-        avisar.error(traducirError(error, "guardar la orden de compra"), {
-          accion: { texto: "Corregirla", onClick: () => void irA(`/compras/ordenes/editar/${id}`) },
-        });
-        return;
-      }
-      avisar.error(traducirError(error, "guardar la orden de compra"));
-      return;
+      avisar.exito(`${numeroOrdenCompra(numero)} guardada`, {
+        detalle:
+          datos.siguiente != null && numero !== datos.siguiente
+            ? `Otra orden tomó la ${numeroOrdenCompra(datos.siguiente)} un momento antes: esta quedó como ${numeroOrdenCompra(numero)}.`
+            : detalleGuardada(),
+      });
+      // De vuelta a la lista en el destino de ESTA orden, con ella marcada: volver a la sede de quien trabaja escondía una orden para otra
+      // tienda, y las dos pruebas ciegas dudaron si se había guardado (Formidable, 2026-10-10).
+      await irA(hrefOrdenGuardada(orden.destino === POR_REPARTIR ? null : orden.destino, id));
+      router.refresh();
+    } finally {
+      enVuelo.current = false;
     }
-    avisar.exito(`${numeroOrdenCompra(numero)} guardada`, {
-      detalle:
-        datos.siguiente != null && numero !== datos.siguiente
-          ? `Otra orden tomó la ${numeroOrdenCompra(datos.siguiente)} un momento antes: esta quedó como ${numeroOrdenCompra(numero)}.`
-          : detalleGuardada(),
-    });
-    // De vuelta a la lista en el destino de ESTA orden, con ella marcada: volver a la sede de quien trabaja escondía una orden para otra
-    // tienda, y las dos pruebas ciegas dudaron si se había guardado (Formidable, 2026-10-10).
-    await irA(hrefOrdenGuardada(orden.destino === POR_REPARTIR ? null : orden.destino, id));
-    router.refresh();
   }
 
   // «Textiles Andina SAC · S/ 1,260.00 · llega a Tienda TRU»: lo guardado, dicho como se ve en la lista.

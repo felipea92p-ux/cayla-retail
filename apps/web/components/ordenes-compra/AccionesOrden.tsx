@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Ban, Printer } from "lucide-react";
@@ -96,6 +96,7 @@ function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAnular; onClose:
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const enVuelo = useRef(false);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
   const nombre = numeroOrdenCompra(orden.numero);
@@ -111,35 +112,41 @@ function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAnular; onClose:
   const guia = useGuiaCampos(campos);
 
   async function confirmar() {
-    if (guardando) return;
+    // Dos clics en el mismo instante: el candado se pone en el mismo tick (ver `guardar` en NuevaOrdenCompra; chaos 2026-10-10).
+    if (guardando || enVuelo.current) return;
     if (!guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    setGuardando(true);
-    const firma = esPersona ? firmaOmitida("orden_compra_anular") : responsable.firma();
-    const { version, error } = await anularOrdenCompra({ p_id: orden.id, p_version_esperada: orden.version, p_motivo: motivo.trim() }, firma);
-    setGuardando(false);
-    if (!esPersona) responsable.despues(error);
-    if (error || version == null) {
-      // Se cortó la señal: pudo anularse. Con el mismo motivo, reintentar no repite nada (Formidable, 2026-10-10).
-      if (error && esFalloDeRed(error)) {
-        avisar.error(avisoDeCorte("anular"));
+    enVuelo.current = true;
+    try {
+      setGuardando(true);
+      const firma = esPersona ? firmaOmitida("orden_compra_anular") : responsable.firma();
+      const { version, error } = await anularOrdenCompra({ p_id: orden.id, p_version_esperada: orden.version, p_motivo: motivo.trim() }, firma);
+      setGuardando(false);
+      if (!esPersona) responsable.despues(error);
+      if (error || version == null) {
+        // Se cortó la señal: pudo anularse. Con el mismo motivo, reintentar no repite nada (Formidable, 2026-10-10).
+        if (error && esFalloDeRed(error)) {
+          avisar.error(avisoDeCorte("anular"));
+          return;
+        }
+        if (esVersionCambiada(error)) {
+          // Otra persona la editó (o la anuló) mientras se miraba: se recarga para ver qué dice ahora, antes de decidir.
+          avisar.error(traducirError(error, "anular la orden"), { accion: { texto: "Recargar", onClick: () => router.refresh() } });
+          onClose();
+          return;
+        }
+        avisar.error(traducirError(error, "anular la orden"));
         return;
       }
-      if (esVersionCambiada(error)) {
-        // Otra persona la editó (o la anuló) mientras se miraba: se recarga para ver qué dice ahora, antes de decidir.
-        avisar.error(traducirError(error, "anular la orden"), { accion: { texto: "Recargar", onClick: () => router.refresh() } });
-        onClose();
-        return;
-      }
-      avisar.error(traducirError(error, "anular la orden"));
-      return;
+      avisar.exito(`${nombre} anulada`, { detalle: "Deja de contar en lo pedido. Su número no vuelve a usarse." });
+      onClose();
+      router.refresh();
+    } finally {
+      enVuelo.current = false;
     }
-    avisar.exito(`${nombre} anulada`, { detalle: "Deja de contar en lo pedido. Su número no vuelve a usarse." });
-    onClose();
-    router.refresh();
   }
 
   return (
