@@ -1,7 +1,7 @@
 # ADR-0370 — Precio propio por sede
 
 - **Fecha:** 2026-10-09
-- **Estado:** aceptado (construido en local; migraciones sin pegar en producción)
+- **Estado:** aceptado y **en producción** (las 4 migraciones, 2026-10-09, por el MCP de Supabase)
 - **Decidió:** Felipe (qué y quién); Claude (cómo se guarda y se aplica)
 
 ## Contexto
@@ -68,6 +68,12 @@ aleja más de un 30 % del general, y todo queda en el Historial de la prenda y e
 Pegar en este orden: `20261010100000` → `20261010100100` → `20261010100200` → `20261010100300`. Ninguna tiene políticas ni
 `drop trigger`; todas son re-ejecutables y fallan sin tocar nada si una función viva cambió. La web nueva se puede publicar antes o
 después: sin la tabla, lee cero precios propios y cobra el general, que es lo mismo que exige la base vieja.
+
+**Aplicadas en producción el 2026-10-09** con `apply_migration` (que registra la hora de aplicación como versión, no la del
+archivo): `20261010002553 precio_propio_por_sede`, `20261010002608 precio_sede_en_actividad`, `20261010002617
+venta_cobra_precio_de_sede`, `20261010002633 apartados_cambios_proformas_precio_de_sede`. Antes de aplicarlas se comprobó que cada
+ancla calzaba en producción (1, 1, 1, 1, 1, 2 apariciones). Después: las seis funciones usan `fn_precio_en_sede`, `precios_sede`
+vacía y con RLS encendido.
 
 ## Cómo se verifica
 
