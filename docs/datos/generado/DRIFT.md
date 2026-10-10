@@ -1,17 +1,17 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 488 llamadas `.rpc` de `apps/web` contra 931 funciones del schema `retail` en producción: 410 con los parámetros leídos (se comparan uno por uno), 53 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 25 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-10 04:59 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 491 llamadas `.rpc` de `apps/web` contra 932 funciones del schema `retail` en producción: 413 con los parámetros leídos (se comparan uno por uno), 53 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 25 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-10-10 14:28 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (658 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (659 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 198 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 460 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 199 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 460 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -112,7 +112,7 @@ foto ni ninguna migración del repo conocen.
 - `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:670` — los parámetros no van escritos ahí mismo
 - `registrar_activo` · `apps/web/components/RegistrarGastoModal.tsx:202` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `registrar_gasto` · `apps/web/components/RegistrarGastoModal.tsx:202` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
-- `registrar_nota_credito_compra` · `apps/web/components/RegistrarNotaCreditoModal.tsx:207` — el objeto se arma con «...», no se puede leer entero
+- `registrar_nota_credito_compra` · `apps/web/components/RegistrarNotaCreditoModal.tsx:208` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/ResolverDanadosModal.tsx:196` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:61` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/analisis/HojaLiquidarDesde.tsx:58` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -190,7 +190,7 @@ foto ni ninguna migración del repo conocen.
 - `retirar_del_piso` · `apps/web/lib/retiro-reglas.ts:21` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 58
+## Funciones sin llamada detectada desde `apps/web` — 57
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -249,7 +249,6 @@ select p.proname from pg_proc p
 - `registrar_movimiento`
 - `registrar_pago_compra`
 - `resumen_sin_comprobante`
-- `revisar_producto_censo`
 - `trg_actividad_caja_movimientos`
 - `trg_actividad_caja_traslados`
 - `trg_actividad_cajas`
