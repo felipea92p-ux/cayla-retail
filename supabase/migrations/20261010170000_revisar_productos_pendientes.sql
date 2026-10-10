@@ -11,7 +11,8 @@
 -- 1. `fn_productos_por_revisar(p_limite, p_desde)` — la lectura. Una fila por producto pendiente (los de prueba no
 --    entran, D-54), del más viejo al más nuevo, con lo que el líder necesita para decidir SIN abrir la ficha: quién lo
 --    propuso, desde qué sede o terminal nació (`producto_origen`, ADR-0292), sus variantes (tallas, colores, precio
---    mínimo y máximo), el stock que ya tiene y cuántas órdenes de producción en proceso cuelgan de él. Sin costos: el
+--    mínimo y máximo), el stock que ya tiene y cuántas órdenes de producción en proceso cuelgan de él; y el prefijo y la
+--    familia de su categoría y un color, para dibujar su miniatura sin foto (ADR-0333). Sin costos: el
 --    costo es de quien ve el dinero (20260923193700). Solo quien edita el catálogo; cualquier otra cuenta recibe 42501.
 --
 -- 2. `revisar_producto_censo(p_producto_id, p_aprobar)` — misma firma, mismo `returns void`, tres cambios:
@@ -46,13 +47,20 @@ set search_path = retail, public, extensions;
 -- ---------------------------------------------------------------------------
 -- 1. La cola: qué hay por revisar
 -- ---------------------------------------------------------------------------
+-- `drop function if exists` primero: es la única forma de cambiar las columnas que devuelve una función con `create or replace`, y
+-- deja volver a pegar esta migración aunque la función ya exista con otra forma (no toma los candados de `auth`/`storage`).
+drop function if exists retail.fn_productos_por_revisar(integer, integer);
+
 create or replace function retail.fn_productos_por_revisar(p_limite integer default 50, p_desde integer default 0)
 returns table (
   producto_id          uuid,
   referencia           text,
   codigo               text,
   categoria            text,
+  categoria_prefijo    text,
+  categoria_familia    text,
   marca                text,
+  color_hex            text,
   creado_en            timestamptz,
   propuesto_por_nombre text,
   sede                 text,
@@ -78,7 +86,7 @@ begin
   end if;
 
   return query
-  select p.id, p.referencia, p.codigo, c.nombre, m.nombre, p.created_at,
+  select p.id, p.referencia, p.codigo, c.nombre, c.prefijo, c.familia, m.nombre, v.color_hex, p.created_at,
          nullif(btrim(concat_ws(' ', pe.nombres, pe.apellidos)), ''),
          u.nombre, u.tipo, t.nombre,
          coalesce(v.n, 0)::integer, coalesce(v.tallas, '{}'::text[]), coalesce(v.colores, '{}'::text[]), v.precio_min, v.precio_max,
@@ -96,7 +104,8 @@ begin
              array_agg(distinct ta.valor) filter (where ta.valor is not null) as tallas,
              array_agg(distinct co.nombre) filter (where co.nombre is not null) as colores,
              min(va.precio) as precio_min,
-             max(va.precio) as precio_max
+             max(va.precio) as precio_max,
+             min(co.hex) as color_hex
         from retail.variantes va
         left join retail.tallas ta on ta.id = va.talla_id
         left join retail.colores co on co.codigo = va.color_codigo

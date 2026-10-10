@@ -7264,7 +7264,10 @@ export type Database = {
         Args: { p_desde?: number; p_limite?: number }
         Returns: {
           categoria: string | null
+          categoria_familia: string | null
+          categoria_prefijo: string | null
           codigo: string | null
+          color_hex: string | null
           colores: string[]
           creado_en: string
           marca: string | null
