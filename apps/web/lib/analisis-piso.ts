@@ -47,12 +47,12 @@ export function modelosEnElPiso(prendas: readonly Pick<PrendaAnalisis, "producto
 }
 
 /** Un tipo de prenda de la pestaña: sus prendas que nunca salieron y lo que se dice de él. */
-export type TipoPiso = {
+export type TipoPiso<T extends PrendaAnalisis = PrendaAnalisis> = {
   categoria: string;
   prefijo: string | null;
   familia: string | null;
   /** Las que nunca salieron (las que deja ver el buscador), de la que más espera a la que menos. */
-  prendas: PrendaAnalisis[];
+  prendas: T[];
   /** Sus unidades guardadas. */
   unidades: number;
   /** Lo que se vendió del tipo en la tienda (todas sus prendas, no solo las guardadas): el orden de la pestaña. */
@@ -64,10 +64,10 @@ export type TipoPiso = {
  * venta, el de más unidades guardadas; después, por nombre. `todas` son las prendas de la tienda (para lo vendido); `visibles`,
  * las que deja ver el buscador.
  */
-export function tiposPiso(todas: readonly PrendaAnalisis[], visibles: readonly PrendaAnalisis[], hoy: string): TipoPiso[] {
+export function tiposPiso<T extends PrendaAnalisis>(todas: readonly PrendaAnalisis[], visibles: readonly T[], hoy: string): TipoPiso<T>[] {
   const vendidasPorTipo = new Map<string, number>();
   for (const p of todas) vendidasPorTipo.set(categoriaDe(p), (vendidasPorTipo.get(categoriaDe(p)) ?? 0) + Math.max(0, p.vendidas30));
-  const porTipo = new Map<string, PrendaAnalisis[]>();
+  const porTipo = new Map<string, T[]>();
   for (const p of prendasSinSalir(visibles, hoy)) {
     const c = categoriaDe(p);
     porTipo.set(c, [...(porTipo.get(c) ?? []), p]);

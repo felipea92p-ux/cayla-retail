@@ -6,7 +6,7 @@ import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import { IconoCategoria } from "@/components/IconoCategoria";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { plural } from "@/lib/analisis-reglas";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import {
@@ -73,7 +73,7 @@ export function PestanaPiso() {
   });
 
   // La pista: los días que lleva en la tienda desde que llegó, sobre un eje de un mes (o de los meses que hagan falta).
-  const pista = (p: PrendaAnalisis) => {
+  const pista = (p: ModeloAnalisis) => {
     const dias = diasEnAlmacen(p, datos.hoy);
     if (dias === null) {
       return (
@@ -101,7 +101,7 @@ export function PestanaPiso() {
     );
   };
 
-  const pildoras = (p: PrendaAnalisis) => (
+  const pildoras = (p: ModeloAnalisis) => (
     <>
       <span className="pil">
         <b>{p.almacen}</b> en el almacén
@@ -110,7 +110,7 @@ export function PestanaPiso() {
     </>
   );
 
-  const accion = (p: PrendaAnalisis) => {
+  const accion = (p: ModeloAnalisis) => {
     const href = hrefReponerPiso([p], acceso);
     return href ? (
       <Link href={href} className="btn-cayla btn-secundario btn-s" aria-label={`Bajar al piso: ${nombreLargo(p)}`}>

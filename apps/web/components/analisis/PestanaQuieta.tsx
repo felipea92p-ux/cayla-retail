@@ -8,7 +8,7 @@ import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
 import { hrefEnviar, hrefLiquidar } from "@/lib/analisis-acciones";
@@ -164,7 +164,7 @@ export function PestanaQuieta() {
     </span>
   );
 
-  const pista = (p: PrendaAnalisis) => {
+  const pista = (p: ModeloAnalisis) => {
     const dias = p.diasSinVender ?? 0;
     const { n, zona, cifraALaIzquierda } = pistaQuieta(dias, liquidarDesde);
     return (
@@ -182,7 +182,7 @@ export function PestanaQuieta() {
     );
   };
 
-  const pildoras = (p: PrendaAnalisis, g: GrupoCarril) => {
+  const pildoras = (p: ModeloAnalisis, g: GrupoCarril) => {
     const vende = g.clave === "enviar" ? sedeQueMasVende(p.otras) : null;
     const sede = vende ? sedeDe(vende.sedeId) : undefined;
     if (vende && sede) {
@@ -199,7 +199,7 @@ export function PestanaQuieta() {
     );
   };
 
-  const accion = (p: PrendaAnalisis, g: GrupoCarril) => {
+  const accion = (p: ModeloAnalisis, g: GrupoCarril) => {
     if (g.clave === "enviar") {
       const vende = sedeQueMasVende(p.otras);
       const href = vende ? hrefEnviar([p], { id: vende.sedeId }, acceso) : null;

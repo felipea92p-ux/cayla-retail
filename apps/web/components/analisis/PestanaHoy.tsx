@@ -7,7 +7,7 @@ import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
 import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
-import { diasQueQuedan, esTallaUnica, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
+import { diasQueQuedan, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
 import { alcancePorTipo, diasANavidad, textoAlcance, textoRitmo, tipoCorto, type AlcanceTipo } from "@/lib/analisis-pedir";
 import {
@@ -292,7 +292,7 @@ function ListaTip({ titulo, prendas }: { titulo: string; prendas: readonly Prend
         {mostradas.map((p) => (
           <span key={p.varianteId}>
             <i style={{ ["--prenda" as string]: p.colorHex ?? "var(--color-grafico-neutro)" }} data-color-dato />
-            {[p.nombre, p.color, esTallaUnica(p.talla) ? null : p.talla].filter(Boolean).join(" · ")}
+            {nombreLargo(p)}
           </span>
         ))}
         {resto > 0 && <span>y {resto} más</span>}

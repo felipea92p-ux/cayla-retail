@@ -242,9 +242,10 @@ function tipCelda(color: string, talla: string, tiene: number, vendio: number): 
  * tiene una sola talla y un solo color (no hay nada más que ver). El color de la prenda va primero; las tallas, en el orden de
  * tienda (`compararTallas`). Una combinación que no está en los datos no tiene nada ni se vendió: «no hay».
  */
-export function grillaDelModelo(p: PrendaAnalisis, prendas: readonly PrendaAnalisis[]): GrillaModelo | null {
-  const delModelo = prendas.filter((x) => x.productoId === p.productoId);
-  if (!delModelo.some((x) => x.varianteId === p.varianteId)) delModelo.push(p);
+export function grillaDelModelo(p: PrendaAnalisis & { variantes?: readonly PrendaAnalisis[] }, prendas: readonly PrendaAnalisis[]): GrillaModelo | null {
+  // De un modelo (ADR-0357, decisión 12), sus propias tallas y colores; de una talla suelta, las de su modelo más ella.
+  const delModelo = p.variantes ? [...p.variantes] : prendas.filter((x) => x.productoId === p.productoId);
+  if (!p.variantes && !delModelo.some((x) => x.varianteId === p.varianteId)) delModelo.push(p);
   const tallas = [...new Set(delModelo.map((x) => x.talla))].sort(compararTallas);
   const colores = [...new Set(delModelo.map((x) => x.color))].sort((a, b) => (a === p.color ? -1 : b === p.color ? 1 : a.localeCompare(b, "es")));
   if (tallas.length < 2 && colores.length < 2) return null;

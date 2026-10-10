@@ -32,12 +32,12 @@ export type EstadoHoy = "urg" | "ate" | "bien" | "info" | "nd";
 // ───────────────────────── Las cuatro tarjetas ─────────────────────────
 
 /** «¿Qué se acaba?»: lo que se está acabando, de lo más urgente a lo menos (la tarjeta muestra las 5 primeras). */
-export function seAcabanHoy(prendas: readonly PrendaAnalisis[], liquidarDesde: number): PrendaAnalisis[] {
+export function seAcabanHoy<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): T[] {
   return prendasDe(prendas, GRUPOS_ACABA, liquidarDesde).sort(ordenSeAcaba);
 }
 
 /** «¿Qué no se mueve?»: lo quieto desde el umbral (mandar o liquidar), de lo que más espera a lo que menos. */
-export function quietasHoy(prendas: readonly PrendaAnalisis[], liquidarDesde: number): PrendaAnalisis[] {
+export function quietasHoy<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): T[] {
   return prendasDe(prendas, GRUPOS_QUIETAS, liquidarDesde).sort(ordenQuietas);
 }
 

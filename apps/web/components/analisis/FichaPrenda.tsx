@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { grupoDe } from "@/lib/analisis-reglas";
 import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
@@ -53,7 +53,7 @@ export function FichaPrenda({ varianteId, onCerrar }: { varianteId: string; onCe
   return <Ficha prenda={prenda} onCerrar={onCerrar} />;
 }
 
-function Ficha({ prenda: p, onCerrar }: { prenda: PrendaAnalisis; onCerrar: () => void }) {
+function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () => void }) {
   const { datos, acceso, liquidarDesde, pedir } = useAnalisis();
   // Refs con estado: la hoja es un portal que Radix monta un render después; el tooltip se engancha cuando ya existe.
   const [raiz, setRaiz] = useState<HTMLDivElement | null>(null);
@@ -68,7 +68,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: PrendaAnalisis; onCerrar: () =
   const hechos = hechosDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
   const barras = barrasSemanas(p.semanas, datos.hoy);
   const donde = dondeHay(p, datos.sedes, datos.sede.id);
-  const grilla = grillaDelModelo(p, datos.prendas);
+  const grilla = grillaDelModelo(p, datos.tallas);
   const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
   const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);

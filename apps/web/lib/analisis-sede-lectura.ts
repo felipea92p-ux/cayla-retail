@@ -24,6 +24,8 @@ export type LecturaDeSede = {
   /** Si las filas traen `salio_al_piso` (la función de 20261007120000). Sin la clave, «nunca salió al piso» no se puede saber:
    *  `salioAlPiso` vendría null en todas, como si nada hubiera salido nunca. */
   sabePiso: boolean;
+  /** Si las filas traen `ultima_venta` (la función de 20261010120000): con ella se cuentan los días sin venderse del modelo. */
+  sabeUltimaVenta: boolean;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -138,7 +140,8 @@ export function leerAnalisisSede(v: unknown): LecturaDeSede | null {
   if (!ubicacionId || !esFecha(v.hoy) || !Array.isArray(v.prendas)) return null;
   // Sin filas no hay nada que no se sepa; con filas, basta que una traiga la clave (la función nueva la pone en todas).
   const sabePiso = v.prendas.length === 0 || v.prendas.some((p) => esObjeto(p) && "salio_al_piso" in p);
-  return { ubicacionId, hoy: v.hoy, rebajaDe100: deCada100(v.rebaja_de_100), prendas: leerPrendasSede(v.prendas), sabePiso };
+  const sabeUltimaVenta = v.prendas.length === 0 || v.prendas.some((p) => esObjeto(p) && "ultima_venta" in p);
+  return { ubicacionId, hoy: v.hoy, rebajaDe100: deCada100(v.rebaja_de_100), prendas: leerPrendasSede(v.prendas), sabePiso, sabeUltimaVenta };
 }
 
 /**

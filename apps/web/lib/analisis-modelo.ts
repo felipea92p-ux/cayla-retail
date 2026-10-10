@@ -12,8 +12,12 @@
 // no cambian: cambia la pieza que miden. Lógica pura, probada en `analisis-modelo.test.ts`.
 
 import type { LlegadaPrenda, PrendaAnalisis, PrendaEnOtraSede } from "./analisis-tipos";
-import { totalEnTienda } from "./analisis-reglas";
+import { esTallaUnica, totalEnTienda } from "./analisis-reglas";
+import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
+
+/** La falla que se dice una vez si la base todavía no dice la última venta de cada prenda (sin la migración 20261010120000). */
+export const FALLA_ULTIMA_VENTA = "No se pudo saber la última venta de cada prenda: los días sin venderse de cada modelo son aproximados";
 
 /**
  * Un modelo de mi tienda: todas sus tallas y colores juntos. Tiene la forma de una prenda para que las reglas lo midan igual, con
@@ -172,3 +176,15 @@ export function armarModelos(prendas: readonly PrendaAnalisis[], hoy: string): M
 
 /** Las tallas y colores de unos modelos, para lo que se hace prenda por prenda (bajar, mandar, liquidar, pedir). */
 export const variantesDe = (modelos: readonly Pick<ModeloAnalisis, "variantes">[]): PrendaAnalisis[] => modelos.flatMap((m) => m.variantes);
+
+/**
+ * Lo que el modelo tiene, en una línea bajo su nombre: su color si es uno («Arena»), o cuántos («3 colores»); y sus tallas en orden
+ * («S, M, L»; con más de tres, «XS a XL»). La talla única no se nombra. Ejemplo inventado: «2 colores · S, M, L».
+ */
+export function queTiene(m: Pick<ModeloAnalisis, "colores" | "tallas">): string {
+  const colores = m.colores.filter((c) => c.trim() !== "");
+  const color = colores.length === 0 ? null : colores.length === 1 ? colores[0] : `${colores.length} colores`;
+  const tallas = m.tallas.filter((t) => t.trim() !== "" && !esTallaUnica(t)).sort(compararTallas);
+  const talla = tallas.length === 0 ? null : tallas.length <= 3 ? tallas.join(", ") : `${tallas[0]} a ${tallas[tallas.length - 1]}`;
+  return [color, talla].filter(Boolean).join(" · ");
+}
