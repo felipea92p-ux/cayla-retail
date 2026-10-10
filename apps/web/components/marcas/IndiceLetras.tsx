@@ -9,7 +9,7 @@ import { ALFABETO } from "@/lib/marcas";
  */
 export function IndiceLetras({ presentes, enEstaPagina, onLetra }: { presentes: ReadonlySet<string>; enEstaPagina: ReadonlySet<string>; onLetra: (letra: string) => void }) {
   return (
-    <div role="group" aria-label="Ir a la letra" className="flex items-center gap-0.5 overflow-x-auto pb-1">
+    <div role="group" aria-label="Ir a la letra" className="flex items-center gap-0.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <span className="label-cayla mr-2 whitespace-nowrap text-[11px] text-tinta/65">Ir a</span>
       {ALFABETO.map((letra) => {
         const hay = presentes.has(letra);
@@ -20,7 +20,7 @@ export function IndiceLetras({ presentes, enEstaPagina, onLetra }: { presentes: 
             disabled={!hay}
             aria-label={letra === "#" ? "Ir a las marcas que empiezan con un número" : `Ir a la ${letra}`}
             onClick={() => onLetra(letra)}
-            className={`h-[30px] min-w-[30px] rounded-lg text-[12.5px] font-semibold transition-colors motion-reduce:transition-none ${
+            className={`h-[30px] min-w-[30px] shrink-0 rounded-lg text-[12.5px] font-semibold transition-colors motion-reduce:transition-none ${
               enEstaPagina.has(letra) ? "bg-sand" : ""
             } ${hay ? "text-tinta/80 hover:bg-hueso" : "cursor-default text-tinta/30"}`}
           >
