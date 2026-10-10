@@ -62,6 +62,8 @@ export type ItemRegistrarVenta = {
   categoria_id?: string;
   talla_id?: string;
   color_codigo?: string;
+  /** Solo en una pieza de liquidación (ADR-0371): el código de su etiqueta vigente. */
+  pieza_liquidacion_codigo?: string;
 };
 
 /** El payload completo de `registrar_venta` (18 parámetros desde la tanda 1g; la caja manda los 14 de abajo: `p_cliente_id`

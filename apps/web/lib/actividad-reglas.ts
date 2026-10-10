@@ -16,7 +16,7 @@ import { MODULOS, type ClaveModulo } from "./modulos";
  *  mostraba nada (2026-10-02). */
 const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "vender", "historial", "apartados", "caja", "cambios", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "productos", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
+  "existencias", "conteos", "traslados", "productos", "liquidacion", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
 ]);
 export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = MODULOS.map((m) => m.clave).filter((c) => ANOTAN.has(c));
 

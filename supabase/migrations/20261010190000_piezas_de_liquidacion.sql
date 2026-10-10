@@ -584,9 +584,9 @@ create or replace trigger trg_devolucion_items_liquidacion_venta_final
 
 -- ---------- 11. El módulo (ADR-0161: nace sin rol, solo lo ve el líder) ----------
 insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable) values
-  ('liquidacion', 'Inventario', 'Liquidación',
+  ('liquidacion', 'Catálogo', 'Liquidación',
    'Etiquetar las prendas sueltas que se liquidan sin registrarlas en el catálogo, bajarles el precio con una etiqueta nueva y retirarlas',
-   117, false, true)
+   145, false, true)
 on conflict (clave) do nothing;
 
 select retail.fn_rls_una_vez_por_consulta();

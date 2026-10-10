@@ -5730,6 +5730,31 @@ export type Database = {
         Args: { p_ids: string[] }
         Returns: { prenda_id: string; veces: number; ultima_en: string; ultima_por: string | null; antes: Json }[]
       }
+      // ADR-0371 (20261010190000): las piezas de liquidación.
+      crear_pieza_liquidacion: {
+        Args: { p_ubicacion_id: string; p_categoria_id: string; p_precio: number }
+        Returns: Json
+      }
+      cambiar_precio_pieza_liquidacion: {
+        Args: { p_codigo: string; p_precio: number }
+        Returns: Json
+      }
+      retirar_pieza_liquidacion: {
+        Args: { p_codigo: string; p_motivo: string }
+        Returns: Json
+      }
+      guardar_precio_minimo_liquidacion: {
+        Args: { p_minimo: number }
+        Returns: number
+      }
+      fn_pieza_liquidacion: {
+        Args: { p_codigo: string }
+        Returns: Json
+      }
+      fn_piezas_liquidacion: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

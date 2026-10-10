@@ -230,6 +230,8 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
   // Pulso (ADR-0275): «Salud del negocio» de CAYLA Global. No el velocímetro: ese ya es Finanzas ▸ Resumen, en el mismo menú.
   pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
+  // Etiqueta colgante con una flecha que baja: la prenda que se liquida y su precio que se va bajando (ADR-0371).
+  liquidacion: "M3.5 12.5l8-8H20v8.5l-8 8zM15.5 8.5h.01M10 12v5m-2-2l2 2 2-2",
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
   // dueña de un acceso), esta es la clienta que vuelve.
   clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
