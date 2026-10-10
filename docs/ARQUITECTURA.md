@@ -1363,9 +1363,16 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     (`fn_plan_compra`) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación) +
     `lib/plan-compra-guia.ts` + `components/plan-compra/PlanCampana.tsx` y `PlanCategoriaModal.tsx` (`guardar_plan_compra_linea`).
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
-    ve las de todas las sedes) → `lib/ordenes-compra.ts` (`fn_ordenes_compra`) + `lib/ordenes-compra-reglas.ts` (número `OC-000001`,
-    destino, estados, lectura defensiva). Cabecera `EncabezadoPagina`; 7.ª entrada temporal de Compras hasta que Recibir pase a
-    Inventario (ADR-0361).
+    ve las de todas las sedes) → `lib/ordenes-compra.ts` (`fn_ordenes_compra`, `fn_ordenes_compra_resumen`, `getDestinosOrden`) +
+    `lib/ordenes-compra-reglas.ts` (número `OC-000001`, destino, estados, lectura defensiva; filtros en la URL `?destino=&estado=&q=&cursor=`
+    que arrancan en la sede donde se trabaja, píldoras, vacío, página de 50 pidiendo 51) + `components/ordenes-compra/BuscadorOrdenes.tsx`
+    (número o proveedor, sin loader) + `PaginacionCursor`. Cabecera `EncabezadoPagina`; cifras que no cambian con los filtros (total,
+    la sede donde se trabaja, por repartir); columnas por el ancho de la tabla (`@container`). 7.ª entrada temporal de Compras hasta que
+    Recibir pase a Inventario (ADR-0361).
+  - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
+    sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
+    «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
+    reescritura `beforeFiles`).
   - `/compras/ordenes/nueva` («Nueva orden de compra») → `lib/ordenes-compra.ts:getDatosNuevaOrden` (proveedores, marcas, vínculos,
     categorías, destinos y `fn_ordenes_compra_siguiente`) + `components/ordenes-compra/NuevaOrdenCompra.tsx` →
     `lib/ordenes-compra-acciones.ts:crearOrdenCompra` (`crear_orden_compra`, firma `orden_compra_crear`: persona sin combo, terminal

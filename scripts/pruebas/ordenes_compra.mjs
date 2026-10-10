@@ -22,6 +22,9 @@
  *      previa; el mismo `p_id` dos veces devuelve la misma orden; cada regla rechaza con su motivo SIN gastar número; firma una persona
  *      sin combo con `orden_compra_crear` (también sin ser Admin y con el responsable obligatorio encendido), pero una terminal no
  *      puede crearla sin elegir a alguien; sin el módulo, 42501; anon no la ejecuta.
+ *   D  VER Y CONTAR (`20261010231500`): el detalle trae cabecera, quién la creó, las líneas con el nombre de categoría y marca, las
+ *      unidades y el total; NULL si no existe; el resumen cuenta por destino (cada tienda y «por repartir») las generadas, su monto y
+ *      las anuladas; las dos exigen el módulo y anon no las ejecuta.
  *
  * USO
  *   pnpm pruebas:ordenes-compra                         → contra la base `postgres` del stack local
@@ -43,7 +46,11 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 // En orden: cada actividad de la fase 1 suma la suya.
-const MIGRACION = ["20261010214500_ordenes_compra_modulo_y_tablas.sql", "20261010223500_ordenes_compra_crear.sql"]
+const MIGRACION = [
+  "20261010214500_ordenes_compra_modulo_y_tablas.sql",
+  "20261010223500_ordenes_compra_crear.sql",
+  "20261010231500_ordenes_compra_detalle_y_resumen.sql",
+]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
 
@@ -397,6 +404,47 @@ caso(
    select :'micaela' || ',' ||
      has_function_privilege('anon', 'retail.crear_orden_compra(uuid,uuid,uuid,date,text,jsonb)', 'execute') || ',' ||
      has_function_privilege('anon', 'retail.fn_ordenes_compra_siguiente()', 'execute');`,
+  "42501,42501,false,false"
+);
+
+// D. VER Y CONTAR ---------------------------------------------------------------------------------------------------------
+caso(
+  "D1 el detalle trae la cabecera, quién la creó, las líneas con sus nombres en orden, las unidades y el total",
+  `${TRES_ORDENES}
+   select retail.fn_orden_compra_detalle(:'o1') as d \\gset
+   select concat_ws(' / ',
+     (:'d'::jsonb ->> 'estado') || ':' || (:'d'::jsonb -> 'proveedor' ->> 'nombre') || ':' || (:'d'::jsonb -> 'destino' ->> 'nombre')
+       || ':' || ${si("(:'d'::jsonb ->> 'creada_por') like 'Felipe%'", "felipe", "otra")},
+     (select string_agg((l ->> 'posicion') || ':' || (l ->> 'categoria') || ':' || (l ->> 'marca') || ':' || (l ->> 'cantidad') || 'x'
+                        || (l ->> 'precio_unitario') || '-' || (l ->> 'descuento') || '=' || (l ->> 'subtotal'), ' ')
+        from jsonb_array_elements(:'d'::jsonb -> 'lineas') l),
+     (:'d'::jsonb ->> 'unidades') || ':' || (:'d'::jsonb ->> 'total'),
+     coalesce(retail.fn_orden_compra_detalle(:'o2') ->> 'destino', 'por repartir'),
+     coalesce(retail.fn_orden_compra_detalle(gen_random_uuid())::text, 'no existe'));`,
+  "generada:Confecciones Peña OC Prueba:Tienda Trujillo:felipe / 1:OC Polos Prueba:OC Marca Prueba:10x25.50-0.00=255.00 2:OC Polos Prueba:OC Marca Prueba:4x100.00-40.00=360.00 / 14:615.00 / por repartir / no existe"
+);
+caso(
+  "D2 el resumen cuenta por destino: generadas, su monto y anuladas (Trujillo y «por repartir» de la prueba)",
+  `${TRES_ORDENES}
+   select concat_ws(' / ',
+     (select generadas || ':' || monto_generadas || ':' || anuladas from retail.fn_ordenes_compra_resumen() where ubicacion_destino_id = :'tru'),
+     (select generadas || ':' || monto_generadas || ':' || anuladas from retail.fn_ordenes_compra_resumen() where ubicacion_destino_id is null));`,
+  (obtenido) => {
+    // La base puede tener otras órdenes: se exige AL MENOS lo de la prueba (Trujillo: 1 generada de 615, 1 anulada; por repartir: 1 de 150).
+    const [tru, rep] = obtenido.split(" / ").map((s) => s.split(":").map(Number));
+    return !!tru && !!rep && tru[0] >= 1 && tru[1] >= 615 && tru[2] >= 1 && rep[0] >= 1 && rep[1] >= 150;
+  }
+);
+caso(
+  "D3 sin el módulo, ni el detalle ni el resumen (42501); anon no ejecuta ninguno",
+  `${TRES_ORDENES}
+   ${como(MICAELA)}
+   select split_part(pg_temp.intento(format('select retail.fn_orden_compra_detalle(%L)', :'o1')), '|', 1) || ',' ||
+          split_part(pg_temp.intento('select * from retail.fn_ordenes_compra_resumen()'), '|', 1) as micaela \\gset
+   reset role;
+   select :'micaela' || ',' ||
+     has_function_privilege('anon', 'retail.fn_orden_compra_detalle(uuid)', 'execute') || ',' ||
+     has_function_privilege('anon', 'retail.fn_ordenes_compra_resumen()', 'execute');`,
   "42501,42501,false,false"
 );
 

@@ -90,6 +90,16 @@ números se leen con la costumbre del ERP (punto decimal, coma de miles: «1,950
 doce cincuenta, porque leerlo como 1250 multiplicaría el precio por cien sin que nadie lo note—; y el descuento se escribe en % o en
 S/ con un selector y se muestra el otro valor calculado al lado.
 
+**Al construir «ver una orden» y los filtros de la lista (actividad 3, 2026-10-10), por defecto:** tocar una fila abre la orden en una
+ventana sobre la lista (como el detalle de una factura); recargar o compartir el enlace muestra la misma orden en página completa, en
+`/compras/ordenes/ver/<id>` —con «ver» delante porque Next trata una ruta interceptada como una reescritura que va antes que las páginas,
+y una `ordenes/<id>` se tragaba «Nueva orden de compra»—. La lista filtra por **a dónde llega** (arranca en la sede donde se trabaja,
+decisión 37; «Todas las sedes» y «Por repartir» a un toque, cada píldora con su número) y por **estado** (Generadas / Anuladas; tocar el
+puesto lo quita); busca por el número («OC-000012», «oc12» o «12») o por el proveedor, sin tildes ni mayúsculas. Arriba, tres cifras que
+no cambian con los filtros, una por cada quien mira: lo pedido en total (generadas, las anuladas no suman), lo que llega a la sede donde
+se trabaja y lo que está por repartir. Las columnas las decide el ancho de la tabla y no el de la ventana: con el menú abierto en una
+pantalla chica el proveedor se quedaba en cero.
+
 ## Para el contador (no bloquea programar, dice el brief)
 
 Gastos de llegada fuera del costo (decisión 20: la NIC 2 los pone dentro; que el contador lo confirme); el fondo como anticipo (101 o
