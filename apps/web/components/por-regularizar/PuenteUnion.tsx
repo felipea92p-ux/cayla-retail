@@ -11,6 +11,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { IconoVisto, MosaicoDePrenda, MosaicoDeVenta, soles } from "./piezas";
 import { PorQue } from "./PorQue";
+import { LineaCorregida } from "./LineaCorregida";
 
 /** Un rótulo pegado a una marca de la regla no se sale de ella: cerca de un borde se alinea hacia adentro. */
 const alinear = (pos: number): "ini" | "fin" | undefined => (pos < 24 ? "ini" : pos > 76 ? "fin" : undefined);
@@ -34,6 +35,7 @@ export function PuenteUnion({
   guardando,
   hecho,
   onGuardar,
+  onCorregir,
   alCrecer,
 }: {
   venta: FilaPorRegularizar;
@@ -48,6 +50,8 @@ export function PuenteUnion({
   /** Ya se guardó: las dos mitades se juntan y cae el sello. */
   hecho: boolean;
   onGuardar: () => void;
+  /** «Corregir» lo que anotó caja (ADR-0369): abre la hoja con lo anotado. */
+  onCorregir: () => void;
   /** El puente creció (se abrió una nota «¿Por qué?»): quien lo pinta lo trae a la vista. */
   alCrecer?: () => void;
 }) {
@@ -70,7 +74,12 @@ export function PuenteUnion({
           <b>{venta.descripcion}</b>
           {anotadoPorCaja(venta) && <small className="vsr-sl-anotado">{anotadoPorCaja(venta)}</small>}
           <small>{venta.vendidoPor}</small>
+          <LineaCorregida fila={venta} />
           <span className="vsr-sl-pr">{soles(venta.precioCobrado)} cobrado</span>
+          {/* Caja anota a ojo (ADR-0369): si la categoría, la talla o el color no eran, se corrigen aquí, antes de buscar la prenda. */}
+          <button type="button" onClick={onCorregir} disabled={guardando || hecho} className="btn-cayla btn-enlace vsr-sl-corregir text-xs">
+            Corregir lo anotado
+          </button>
         </div>
       </div>
 
