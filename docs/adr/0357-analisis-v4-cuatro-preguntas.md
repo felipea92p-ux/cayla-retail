@@ -223,11 +223,36 @@ de qué días hablaba. Elegido mirando la página «Piso y qué pedir» (artifac
   entre 30 hacía durar cada prenda casi 4 veces más y «Se está acabando» perdía lo que se acaba en 4 a 14 días (en TRU, de 49 a 74). Cada
   texto dice sus días («Al ritmo de los últimos 8 días», «Vendiste 7 en 8 días»).
 
+**12. Análisis mide por MODELO, no por talla de un color (Felipe, 2026-10-10).** «Si una prenda fue presentada, pero alguna variante no fue
+pasada al piso, indica que se acaba o que no se mueve; no debería manejarse así.» El problema era la pieza: Análisis medía cada talla de cada
+color sola, y con 1 a 3 unidades por talla el mismo modelo colgado salía a la vez como «Se agotó, cómprala» (la S vendida) y «Nunca salió al
+piso» (la L guardada). Medido en TRU el 10 de octubre (solo lectura): de 424 tallas «que nunca salieron», 140 eran de un modelo ya colgado (39
+del mismo color, 101 de otro); de 159 que «se acababan», en 87 el modelo entero duraba más de dos semanas, y 132 entraban con una sola venta en
+11 días. Felipe eligió el **modelo entero** —«si dice Chaleco Cecia, incluye todas las tallas y todos los colores»— frente a modelo y color
+(que yo recomendaba) y frente a dejarlo por talla, **en las cuatro pestañas** (y por arrastre en Hoy); y que el detalle del modelo diga **qué
+tallas y qué colores salen más**.
+
+- **Cómo:** la base sigue entregando una fila por talla y color (`fn_analisis_sede`); `lib/analisis-modelo.ts` las junta por `productoId` en
+  una fila con la misma forma de una prenda (`ModeloAnalisis`), y las reglas de siempre (`seEstaAcabando`, `grupoDe`, `nuncaSalio`) la miden
+  sin cambiar. Se suma lo que se cuenta (stock, ventas, semanas, otras tiendas, lo que viene); salió al piso la primera vez que se colgó
+  cualquiera; **los días sin venderse cuentan desde su última venta o desde que el modelo salió, y colgar otra talla después no reinicia la
+  cuenta**. Para eso la base dice la última venta de cada talla (`ultima_venta`, migración `20261010120000`).
+- **Lo que sigue siendo por talla:** la curva de tallas de «Qué pedir» (`datos.tallas`), la grilla «Todo el modelo en tu tienda», el dinero de
+  las cifras (cada talla con su costo y su precio, nunca el promedio) y lo que se hace con el modelo: Bajar, Mandar, Liquidar y Pedir se llevan
+  todas sus tallas (Bajar, solo las guardadas).
+- **Cómo se ve:** cada fila dice sus colores y tallas («2 colores · S, M, L»); «Se está acabando» dice qué talla falta («Falta L Beige»); el
+  detalle suma «Lo que más sale» (tallas y colores, de lo más vendido a lo menos, con lo que tienes); los textos cuentan modelos. «Nunca salió al
+  piso» pierde la cifra «son de un modelo que ya está en el piso»: por definición ya no puede pasar.
+- **Lo que se paga:** un color que nadie vio, guardado mientras cuelga otro color del mismo modelo, ya no sale en «Nunca salió al piso»; y
+  «Repón el piso» de Hoy deja de avisar de una talla vacía en el piso si el modelo tiene otra colgada (Existencias y Frescura la siguen viendo).
+- **Sin la migración** (`ultima_venta` ausente), los días del modelo se cuentan con lo más reciente de sus tallas y se dice una vez arriba
+  (`FALLA_ULTIMA_VENTA`): casi siempre da lo mismo; difiere si se colgó una talla después de la última venta.
+
 ## Lo que se tomó del estudio
 
 | Del estudio | En CAYLA | Por qué |
 |---|---|---|
-| Talla × color como pieza principal | La prenda es una talla de un color; la ficha muestra el modelo entero | Es lo que se acaba y lo que se pide |
+| Talla × color como pieza principal | ~~La prenda es una talla de un color~~ — **reemplazado por la decisión 12 (2026-10-10):** la pieza es el modelo; la talla y el color, en su detalle | Con 1 a 3 unidades por talla, la talla sola decía «cómprala» y «nunca salió» del mismo modelo colgado |
 | Cada alerta con su acción | Cada grupo y cada fila con su botón | Una alerta sin salida es ruido |
 | Venta perdida | «Te pidieron y no había», **anotada**, no estimada | Estimarla con pocos datos es inventarla |
 | Confianza del dato a la vista | El chip «Datos confiables / incompletos» y «Todavía no» | Decisión 2 |
@@ -270,6 +295,7 @@ una con el OK de Felipe, antes de publicar la web:
 | `20261006215000_analisis_por_llegar.sql` | `fn_analisis_por_llegar(p_ubicacion_id)`: lo que viene en camino a una tienda, por prenda: de dónde (compra, almacén, Taller u otra tienda), cuántas y cuándo se espera, sin dinero (decisión 6). Las mismas dos puertas que `fn_analisis_sede`. Un `create or replace`, sin políticas: una sola parte. Prueba: `scripts/pruebas/analisis_lecturas.mjs`. |
 | `20261007100000_analisis_liquidar_desde_sin_tope.sql` | «Liquidar desde» sin tope: el check de `parametros_analisis` y `guardar_liquidar_desde` aceptan de 1 a 999 días (antes 30 a 85). Un `alter` de una tabla que solo leen las funciones de Análisis y el reemplazo de una función con la misma firma: una sola ejecución. Pegada en producción el 2026-10-07 (actualización 2 de la decisión 5). |
 | `20261007120000_analisis_salio_al_piso.sql` | `fn_analisis_sede` devuelve `salio_al_piso` (la primera vez en un piso de venta de la tienda, o su primera venta; NULL si nunca salió) y `llego` (la primera entrada), y `dias_sin_vender` cuenta desde el piso (NULL si nunca salió). Mismo cuerpo de `20261006214000` (huella verificada contra producción) con esos cambios: un `create or replace` con la misma firma, sin políticas ni `alter`, una sola parte. **Pegada en producción el 2026-10-07** (antes de fusionar la web; huella verificada). Sin ella, la pestaña diría que todavía no lo puede saber. Prueba: `scripts/pruebas/analisis_lecturas.mjs` (casos F3, D1, D2 y D3). Decisión 11. |
+| `20261010120000_analisis_ultima_venta.sql` | `fn_analisis_sede` suma `ultima_venta` a cada fila (la última venta en la tienda, sin tope; NULL si nunca se vendió): con ella se cuentan los días sin venderse del modelo (decisión 12). Mismo cuerpo de `20261007120000` (huella `874919d9…` verificada contra producción el 2026-10-10) más una clave; huella nueva `15598f29697b4a6229ba3d78d8630d5a`. Un `create or replace` con la misma firma, sin políticas ni `alter`, una sola parte. **Sin pegar en producción: pide el OK de Felipe, antes de fusionar la web.** Prueba: `scripts/pruebas/analisis_lecturas.mjs` (casos F3, D4 y M1). |
 | `20261006216000_analisis_liquidar_desde.sql` | «Liquidar desde»: la tabla `parametros_analisis` (una sola fila, de 30 a 85 días, 60 de fábrica), `fn_liquidar_desde()` (la lee toda cuenta de retail) y `guardar_liquidar_desde(p_dias)` (lo cambia quien ve Análisis, firma con el responsable y deja el antes y el después en `configuracion_historial`). Sin `alter` de tablas en uso ni políticas: una sola ejecución (decisión 5). |
 
 «Lo que más rinde» no necesita migración: lee `fn_resumen_comparacion_json`, la misma del Análisis viejo, con los últimos 90 días de la tienda
@@ -280,7 +306,8 @@ calla (principio 9).
 
 ## Cómo se verifica
 
-- **Reglas puras, con su prueba:** `lib/analisis-reglas.test.ts` (grupos, días que quedan con los días de ventas de la tienda, umbral, edad),
+- **Reglas puras, con su prueba:** `lib/analisis-modelo.test.ts` (el modelo: qué se suma, salió al piso, días sin venderse que no se reinician,
+  el caso del chaleco que decía «cómprala» y «nunca salió» a la vez), `lib/analisis-reglas.test.ts` (grupos, días que quedan con los días de ventas de la tienda, umbral, edad),
   `lib/analisis-piso.test.ts` («Nunca salió al piso»: qué entra, el orden por tipo, las cifras, el eje), `lib/analisis-pedir.test.ts` (para
   cuánto alcanza cada tipo contra Navidad),
   `lib/analisis-acciones.test.ts` (a dónde lleva cada botón y que no se dibuje sin acceso), `lib/analisis-armado.test.ts` (el cruce de las tres
