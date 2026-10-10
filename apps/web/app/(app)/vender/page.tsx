@@ -121,6 +121,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     .filter((v) => v.activo)
     .map((v) => ({
       varianteId: v.varianteId,
+      productoId: v.productoId,
       sku: v.sku,
       codigo: v.codigo,
       referencia: v.referencia,

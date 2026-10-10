@@ -2,7 +2,9 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { bordeDeMuestra, fondoDeMuestra } from "@/lib/colores-familias";
-import type { Companero, FichaDelColor as Ficha } from "@/lib/ficha-del-color";
+import { ETIQUETA_COMBINA, type Companero, type FichaDelColor as Ficha } from "@/lib/ficha-del-color";
+
+export { ETIQUETA_COMBINA };
 
 // La ficha de un color a la vista (ADR-0316; Felipe 2026-10-10): «Combina bien con» y los compañeros como círculos; el nombre del
 // compañero sale al pasar el mouse o al tocarlo (en la tablet no hay hover), siempre en el mismo lugar y con alto fijo, para
@@ -13,9 +15,6 @@ import type { Companero, FichaDelColor as Ficha } from "@/lib/ficha-del-color";
 //
 // Con stock de la sede (`companero.aqui`), un compañero que no cuelga aquí se ve apagado y su nombre dice «no hay aquí»: en el
 // mostrador solo sirve sugerir un color que de verdad se puede ofrecer.
-
-/** Cómo se presenta la lista de compañeros. Un solo lugar para cambiarla (Felipe, 2026-10-10: «si hay mejor expresión, búscala»). */
-export const ETIQUETA_COMBINA = "Combina bien con";
 
 type Props = {
   ficha: Ficha | null;

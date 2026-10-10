@@ -12,8 +12,20 @@ import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
+import type { AnclaLook, SugerenciaLook } from "@/lib/combinar-reglas";
 
 type Color = GrupoCatalogo<VarianteBusqueda>;
+
+/** Lo que «Combina bien con» dice de un color de la prenda: la frase (en reposo) y las prendas concretas (al fijar). */
+export type CombinaDeColor = { frase: string | null; sugerencias: SugerenciaLook<Color>[] };
+
+/** La prenda en un color, como ancla de la regla: su modelo, su categoría y su color. */
+function anclaDe(prenda: PrendaCatalogo<VarianteBusqueda>, c: Color): AnclaLook {
+  const v = c.tallas[0]?.variante;
+  return { productoId: v?.productoId ?? prenda.referencia, categoriaPrefijo: v?.categoriaPrefijo ?? null, colorCodigo: v?.colorCodigo ?? null };
+}
 
 type Props = {
   prenda: PrendaCatalogo<VarianteBusqueda>;
@@ -29,6 +41,8 @@ type Props = {
   /** La ficha del color que se mira (ADR-0316; Felipe 2026-10-10): con qué se combina, con lo que cuelga aquí primero, y por qué.
    *  Ausente o `null` = la hoja no dice nada del color. */
   fichaDelColorDe?: (colorCodigo: string | null | undefined) => FichaDelColorTipo | null;
+  /** «Combina bien con» (Felipe 2026-10-10): la frase para el color que se mira y, al fijarlo, hasta 3 prendas con stock aquí. */
+  combinaDe?: (ancla: AnclaLook) => CombinaDeColor;
 };
 
 /** Primero lo que se cobra aquí, después lo del almacén, al final lo que no está: el orden en que se le ofrece al cliente. */
@@ -46,7 +60,7 @@ function rango(c: Color): number {
  * casilla dibuja un visto y la fila cuenta cuántas lleva. Una talla del almacén cierra la ventana: el aviso de la caja
  * ofrece registrar la bajada (ADR-0321) y no debe quedar tapado. Reemplaza a `ElegirTallaModal` (un color a la vez).
  */
-export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie, fichaDelColorDe }: Props) {
+export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie, fichaDelColorDe, combinaDe }: Props) {
   const inicial = prenda.colores.find((c) => c.clave === colorClave) ?? colorInicial(prenda);
   const [fijo, setFijo] = useState(inicial?.clave);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
@@ -58,6 +72,9 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
   if (!elegido || !mostrado) return null;
   const varMostrada = mostrado.tallas[0]?.variante;
   const llevaMostrado = mostrado.tallas.reduce((a, t) => a + enTicket(t.variante.varianteId), 0);
+  // La frase sigue al color que se MIRA (pasar por una fila la cambia); las prendas concretas, solo al FIJAR (Felipe 2026-10-10).
+  const combinaMostrado = combinaDe?.(anclaDe(prenda, mostrado)) ?? null;
+  const combinaFijo = mostrado.clave === elegido.clave ? combinaMostrado : (combinaDe?.(anclaDe(prenda, elegido)) ?? null);
 
   return (
     <Modal
@@ -109,6 +126,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
               </div>
             </div>
 
+            <div className="min-w-0">
             {/* Un color por fila. Pasar el mouse por una fila anticipa su color a la izquierda; tocar su nombre lo fija. */}
             {/* `@container`: las casillas se acomodan al ancho de la LISTA (en el celular, tres por fila con el texto corto). */}
             <ul className="@container min-w-0 divide-y divide-sand border-y border-sand" aria-label="Colores y tallas" onPointerLeave={() => setVistaPrevia(null)}>
@@ -164,6 +182,22 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 );
               })}
             </ul>
+            {combinaDe && (
+              <CombinaBienCon
+                key={elegido.clave}
+                frase={combinaMostrado?.frase ?? null}
+                sugerencias={combinaFijo?.sugerencias ?? []}
+                colorFijo={elegido.color}
+                enTicket={enTicket}
+                onTocar={(t, bajable) => {
+                  onAgregar(t.variante);
+                  if (bajable) cerrar();
+                  else setRecien((r) => ({ id: t.variante.varianteId, pulso: (r?.pulso ?? 0) + 1 }));
+                }}
+                recien={recien}
+              />
+            )}
+            </div>
           </div>
 
           <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
@@ -175,6 +209,91 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
         </>
       )}
     </Modal>
+  );
+}
+
+/**
+ * «Combina bien con» bajo la lista de colores (Felipe 2026-10-10). En reposo, la frase del color que se mira («Combina bien con un jean o
+ * una cartera»): una línea de alto fijo, así pasar por las filas no mueve nada. Con el color FIJADO, hasta 3 prendas que cuelgan aquí,
+ * una por papel (`lib/combinar-reglas.ts`): miniatura, nombre, color y cuántas; tocar una despliega sus tallas —las mismas casillas de
+ * la lista— y tocar la talla la suma al ticket. «¿Por qué?» a un toque dice el color, el papel y el piso. Sin nada que combine, solo la
+ * frase; sin frase, nada: nunca un cartel de «no hay».
+ */
+function CombinaBienCon({
+  frase,
+  sugerencias,
+  colorFijo,
+  enTicket,
+  onTocar,
+  recien,
+}: {
+  frase: string | null;
+  sugerencias: SugerenciaLook<Color>[];
+  colorFijo: string | null;
+  enTicket: (id: string) => number;
+  onTocar: (t: Color["tallas"][number], bajable: boolean) => void;
+  recien: { id: string; pulso: number } | null;
+}) {
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const [porQueDe, setPorQueDe] = useState<string | null>(null);
+  if (!frase && sugerencias.length === 0) return null;
+  return (
+    <section className="mt-4" aria-label="Combina bien con">
+      <p className="min-h-5 truncate text-[13px] text-tinta">{frase}</p>
+      {sugerencias.length > 0 && (
+        <ul className="@container mt-2 divide-y divide-sand rounded-xl border border-sand bg-papel" aria-label={`Prendas que combinan con ${colorFijo ?? "este color"}`}>
+          {sugerencias.map((s, i) => {
+            const t = s.tarjeta;
+            const g = t.origen;
+            const clave = `${t.productoId}|${t.colorCodigo ?? ""}`;
+            const v = g?.tallas[0]?.variante;
+            return (
+              <li key={clave} className="anim-entra px-3 py-2" style={{ "--i": i } as CSSProperties}>
+                <div className="flex items-center gap-3">
+                  <MiniaturaPrenda fotoUrl={t.fotoUrl} colorHex={t.colorHex} tamano="md" {...categoriaDe(v)} />
+                  <button
+                    type="button"
+                    onClick={() => setAbierta((a) => (a === clave ? null : clave))}
+                    aria-expanded={abierta === clave}
+                    className="min-w-0 flex-1 text-left outline-none focus-visible:underline"
+                  >
+                    <span className="block truncate text-[13.5px] font-semibold text-tinta">{t.referencia}</span>
+                    <span className="block truncate text-[12px] text-tinta/60">{t.colorNombre ?? "Sin color"}</span>
+                  </button>
+                  <Chip tono="pizarra" tachado={false}>
+                    {s.unidadesAqui} aquí
+                  </Chip>
+                  <button
+                    type="button"
+                    onClick={() => setPorQueDe((p) => (p === clave ? null : clave))}
+                    aria-expanded={porQueDe === clave}
+                    className="btn-cayla btn-enlace !px-0 text-[12px]"
+                  >
+                    {porQueDe === clave ? "Cerrar" : "¿Por qué?"}
+                  </button>
+                </div>
+                {porQueDe === clave && <p className="anim-revelar mt-1.5 pl-14 text-[12px] text-tinta/70">{s.porQue.join(" · ")}</p>}
+                {abierta === clave && g && (
+                  <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-1.5 pl-14 @sm:grid-cols-[repeat(auto-fill,minmax(6.75rem,1fr))]" role="group" aria-label={`Tallas de ${t.referencia} ${t.colorNombre ?? ""}`}>
+                    {g.tallas.map((talla) => (
+                      <Casilla
+                        key={talla.variante.varianteId}
+                        t={talla}
+                        color={g}
+                        precioBase={g.precioMin}
+                        enTicket={enTicket(talla.variante.varianteId)}
+                        recien={recien?.id === talla.variante.varianteId ? recien.pulso : null}
+                        onTocar={(bajable) => onTocar(talla, bajable)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

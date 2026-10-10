@@ -13,6 +13,10 @@
 //   ASUME: nada de la base; el mapa viene de un select con `activo = true`.
 import { MAX_COMBINA_CON } from "./color-referencias";
 
+/** Cómo se presenta la lista de compañeros, en pantalla y en la frase de prendas. Un solo lugar (Felipe eligió «Combina bien con»
+ *  el 2026-10-10 entre H&M «Combina con», Shopify «Combina bien con» y Farfetch «Completa tu look con»). */
+export const ETIQUETA_COMBINA = "Combina bien con";
+
 export type ColorConFicha = {
   codigo: string;
   nombre: string;

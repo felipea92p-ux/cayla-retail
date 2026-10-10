@@ -8,7 +8,8 @@ import { esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-es
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
-import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
+import { agruparCatalogo, agruparPorPrenda, filtrarConStock, type GrupoCatalogo } from "@/lib/catalogo-grupos";
+import { categoriasQueCombinan, claveAnotada, fraseCombina, indiceDeColores, sugerirCombina, type AnclaLook, type TarjetaLook } from "@/lib/combinar-reglas";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
@@ -146,6 +147,9 @@ export { ID_CARGO_ESPECIAL };
 const SIN_COLORES: ColorConFicha[] = [];
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
+  /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
+   *  compara por referencia. */
+  productoId?: string;
   /** Código de etiqueta (`variantes.codigo`) — lo que se le MUESTRA a la colaboradora con
    *  `codigoPrenda`. El escáner no lo necesita aparte: el disparador que lo acuña también
    *  lo registra en `codigos_barras`. */
@@ -530,6 +534,42 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const unidadesAqui = unidadesPorColor(variantesVisibles);
     return (codigo: string | null | undefined) => fichaDelColor(codigo, porCodigo, { unidadesAqui });
   }, [colores, variantesVisibles]);
+  // «Combina bien con» (Felipe 2026-10-10; `lib/combinar-reglas.ts`): la frase («…un jean o una cartera») y hasta 3 prendas que combinan
+  // con la que se mira, de lo que CUELGA AQUÍ. Una tarjeta por prenda×color sobre las variantes visibles (stock en vivo); el índice de
+  // las fichas se arma una vez por sesión. Es una función del módulo vender (ADR-0306): no toca el ticket ni Cobrar.
+  const indiceColores = useMemo(() => indiceDeColores(colores), [colores]);
+  const tarjetasLook = useMemo<TarjetaLook<GrupoCatalogo<VarianteBusqueda>>[]>(
+    () =>
+      agruparCatalogo(variantesVisibles).map((g) => {
+        const v = g.tallas[0]?.variante;
+        return {
+          productoId: v?.productoId ?? g.referencia,
+          referencia: g.referencia,
+          categoriaPrefijo: v?.categoriaPrefijo ?? null,
+          colorCodigo: v?.colorCodigo ?? null,
+          colorNombre: g.color,
+          colorHex: v?.colorHex ?? null,
+          fotoUrl: g.fotoUrl,
+          tallas: g.tallas.map((t) => ({ varianteId: t.variante.varianteId, talla: t.talla, stockAqui: t.stockAqui })),
+          origen: g,
+        };
+      }),
+    [variantesVisibles]
+  );
+  const combinaDe = useMemo(() => {
+    if (colores.length === 0) return () => ({ frase: null as string | null, sugerencias: [] as ReturnType<typeof sugerirCombina<GrupoCatalogo<VarianteBusqueda>>> });
+    const nombres = new Map(colores.map((c) => [c.codigo, c.nombre]));
+    const productoDe = new Map(variantes.map((v) => [v.varianteId, v.productoId ?? v.referencia]));
+    const prefijoDe = new Map(listasPrendaLibre.categorias.map((c) => [c.id, c.prefijo ?? null]));
+    // Lo que ya está en el ticket no se vuelve a sugerir: por prenda, y por categoría+color en lo anotado como «Prenda sin registrar».
+    const enTicket = new Set(carrito.filter((it) => !it.prendaLibre).map((it) => productoDe.get(it.varianteId) ?? it.referencia));
+    const anotados = new Set(carrito.filter((it) => it.prendaLibre).map((it) => claveAnotada(prefijoDe.get(it.prendaLibre!.categoriaId), it.prendaLibre!.colorCodigo)));
+    const opciones = { enTicket, anotadosEnTicket: anotados, nombreDeColor: (c: string) => nombres.get(c) ?? c, sede: ubicacionEtiqueta };
+    return (ancla: AnclaLook) => ({
+      frase: fraseCombina(categoriasQueCombinan(ancla, tarjetasLook, indiceColores, opciones)),
+      sugerencias: sugerirCombina(ancla, tarjetasLook, indiceColores, opciones),
+    });
+  }, [colores, variantes, listasPrendaLibre.categorias, carrito, tarjetasLook, indiceColores, ubicacionEtiqueta]);
   // El ticket topa con el piso de AHORA (`conPisoAlDia`): cada línea guarda el piso de cuando se agregó, y sin esto
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
@@ -2087,6 +2127,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
           fichaDelColorDe={fichaDelColorDe}
+          combinaDe={combinaDe}
           pie={(color) => {
             // ADR-0328 act. 17: la talla que aquí no hay y otra tienda tiene se puede pedir y apartar para el cliente.
             const candidatos = pedirAOtraSede
