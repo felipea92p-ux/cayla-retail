@@ -8,7 +8,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { EditarMarcaModal, type MarcaEditada } from "@/components/EditarMarcaModal";
-import { filtrarMarcas, sePuedeEliminarMarca, textoProductosMarca, type ProveedorOpcion } from "@/lib/marcas";
+import { filtrarMarcas, sePuedeEliminarMarca, type MarcaFila, type ProveedorOpcion } from "@/lib/marcas";
+import { TarjetaMarca } from "@/components/marcas/TarjetaMarca";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
@@ -42,16 +43,7 @@ import { Vacio } from "@/components/ui/Vacio";
  * el combo propio de `NuevaMarcaForm`.
  */
 
-export type MarcaFila = {
-  id: string;
-  nombre: string;
-  activo: boolean;
-  /** Productos activos de la marca (todas sus parejas). */
-  productos: number;
-  /** `productos`: los activos (lo que se muestra). `productosTotal`: también los descontinuados — mientras haya uno, la
-   *  pareja no se puede quitar (la llave de `productos` la sigue citando). */
-  proveedores: { id: string; nombre: string; productos: number; productosTotal: number }[];
-};
+export type { MarcaFila };
 
 type Modo = { tipo: "nueva" } | { tipo: "editar"; marca: MarcaFila };
 
@@ -200,56 +192,15 @@ export function MarcasLista({
 
       <ul className="grid gap-3 md:grid-cols-2">
         {activasVisibles.map((m) => (
-          <li key={m.id} className="card-cayla space-y-3 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-              <div>
-                <p className="text-base font-medium text-tinta">{m.nombre}</p>
-                <p className="text-xs text-tinta/60">{textoProductosMarca(m.productos, m.proveedores.reduce((n, p) => n + p.productosTotal, 0))}</p>
-              </div>
-              {puedeEditar && (
-                <div className="flex shrink-0 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setModo({ tipo: "editar", marca: m })}
-                    className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
-                    disabled={trabajando === m.id}
-                    className="btn-cayla btn-peligro"
-                  >
-                    Desactivar
-                  </button>
-                  {sePuedeEliminarMarca(m.proveedores) && (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
-                      disabled={trabajando === m.id}
-                      className="btn-cayla btn-peligro"
-                    >
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <p className="label-cayla text-[10.5px] text-tinta/55">La trae</p>
-              <ul className="mt-1.5 flex flex-wrap gap-1.5">
-                {m.proveedores.map((p) => (
-                  <li key={p.id} className="rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
-                    {p.nombre}
-                    <span className="ml-1.5 text-tinta/45">· {p.productos} prod.</span>
-                  </li>
-                ))}
-                {m.proveedores.length === 0 && <li className="text-xs text-rojo-profundo">Sin proveedor: no se puede usar en un producto.</li>}
-              </ul>
-            </div>
-          </li>
+          <TarjetaMarca
+            key={m.id}
+            marca={m}
+            puedeEditar={puedeEditar}
+            trabajando={trabajando === m.id}
+            onEditar={() => setModo({ tipo: "editar", marca: m })}
+            onDesactivar={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
+            onEliminar={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
+          />
         ))}
       </ul>
 

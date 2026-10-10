@@ -183,6 +183,18 @@ export function filtrarMarcas<T extends FilaBuscable>(filas: T[], consulta: stri
   return filas.filter((f) => sinTildes(f.nombre).includes(q) || f.proveedores.some((p) => sinTildes(p.nombre).includes(q)));
 }
 
+/** Una marca como la pinta Catálogo ▸ Marcas: con sus proveedores y cuántos productos usan a cada uno. */
+export type MarcaFila = {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  /** Productos activos de la marca (todas sus parejas). */
+  productos: number;
+  /** `productos`: los activos (lo que se muestra). `productosTotal`: también los descontinuados — mientras haya uno, la
+   *  pareja no se puede quitar (la llave de `productos` la sigue citando). */
+  proveedores: { id: string; nombre: string; productos: number; productosTotal: number }[];
+};
+
 /** Un proveedor que la marca ya tiene. `productosTotal` cuenta TODOS sus productos (también descontinuados): la llave de
  *  `productos` los sigue citando, así que mientras haya uno la pareja no se puede quitar. */
 export type ParejaDeMarca = { id: string; nombre: string; productosTotal: number };
