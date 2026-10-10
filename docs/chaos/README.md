@@ -13,6 +13,7 @@ semilla anotada) · `no aplica` (solo lectura; con su motivo).
 
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|
+| Catálogo | Liquidación (`/productos/liquidacion`) y la pieza en Vender (ADR-0371) | atacada, con hallazgos abiertos | 371 | 0 / 1 / 0 / 1 | `.chaos/informes/liquidacion-2026-10-10.md` (local) | 2026-10-10 |
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | atacada; los 4 hallazgos de gravedad 4 cerrados (2026-10-07), falta el núcleo que escribe | 7 | 0 / 0 / 0 / 0 | `.chaos/informes/ventas-sin-registrar-2026-10-07.md` (local) | 2026-10-07 |
 
 ## Qué pantallas deben pasar primero (decidido 2026-10-06)
