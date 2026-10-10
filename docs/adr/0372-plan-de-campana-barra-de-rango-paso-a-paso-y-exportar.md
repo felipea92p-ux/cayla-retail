@@ -1,7 +1,7 @@
 # ADR-0372 — Plan de campaña: barra de rango, paso a paso, aviso de stock y exportar (entrega 1, solo web)
 
 - Fecha: 2026-10-10
-- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1 y B2 **en producción desde el 2026-10-10** (OK de Felipe); B3 construida y probada en local, **sin pegar en producción** (espera su OK).
+- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1, B2 y B3 **en producción desde el 2026-10-10** (OK de Felipe, una por una, cada una con ensayo en transacción revertida y huella igual a local).
 - Continúa a [ADR-0349](0349-plan-de-campana.md). Maqueta aprobada: `docs/maquetas/plan-de-campana-2026-10/` (con su `PROMPT.md`).
 - Sin migración: todo sale de lo que `fn_plan_compra` y `fn_motor_demanda_preparacion` ya devuelven, más la tabla `familias`.
 
@@ -77,6 +77,7 @@ Migraciones `20261010190000` (B1), `20261010191000` (B2) y `20261010192000` (B3)
   `fn_plan_compra` y `e16562ef…` de `guardar_plan_compra_tope`, iguales a local). Antes se ensayó en transacción con rollback.
 - **B3, varias campañas.** Felipe eligió que la campaña nazca de una etiqueta (Catálogo ▸ Etiquetas) y que el selector pase entre las existentes.
   **DECIDÍ** `planes_compra.etiqueta_id` (única por etiqueta) + `crear_plan_compra(etiqueta, nombre, desde, hasta)` (módulo y líder) + `fn_planes_compra()` para el selector.
+  **En producción** (versión registrada `20261010175916`, huellas `f91bef63…` de `fn_planes_compra` y `85863d6c…` de `crear_plan_compra`, iguales a local).
   **DESCARTÉ** la fecha única literal: «Navidad» en Etiquetas es del 11 al 25 de diciembre (campaña de venta con descuento) y «Diciembre 2026» es del 1 al 31
   (ventana de compra, a propósito: diciembre triplica un mes entero); atarla a la etiqueta movería el plan ya sembrado. El plan arranca con las fechas de la
   etiqueta y se pueden ajustar; si difieren, la hoja lo dice. «Diciembre 2026» queda sin etiqueta.

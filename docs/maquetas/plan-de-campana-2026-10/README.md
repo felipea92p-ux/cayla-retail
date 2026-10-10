@@ -1,6 +1,6 @@
 # Spike visual · Compras ▸ Plan de campaña (2026-10-10)
 
-> **Estado: construida (2026-10-10, [ADR-0372](../../adr/0372-plan-de-campana-barra-de-rango-paso-a-paso-y-exportar.md)).** Entrega 1 (barra de rango, filtros, paso a paso, aviso de stock, exportar) y entrega 2: precio y costo del catálogo, stock por sede, ventas de 30 días y tope de inversión (B1 y B2, **en producción**) y el selector con «Nueva campaña» (B3, construida y probada en local, **sin pegar en producción**). Lo único que NO se construyó es «Finanzas dice…» (toca dos módulos). La «Nueva campaña» nace de una etiqueta de Catálogo ▸ Etiquetas y NO copia precios ni costos (la maqueta lo proponía: una línea no se guarda sin sus tres escenarios).
+> **Estado: construida (2026-10-10, [ADR-0372](../../adr/0372-plan-de-campana-barra-de-rango-paso-a-paso-y-exportar.md)).** Entrega 1 (barra de rango, filtros, paso a paso, aviso de stock, exportar) y entrega 2: precio y costo del catálogo, stock por sede, ventas de 30 días y tope de inversión y el selector con «Nueva campaña» (B1, B2 y B3, **las tres en producción**). Lo único que NO se construyó es «Finanzas dice…» (toca dos módulos). La «Nueva campaña» nace de una etiqueta de Catálogo ▸ Etiquetas y NO copia precios ni costos (la maqueta lo proponía: una línea no se guarda sin sus tres escenarios).
 >
 > Nada de lo que no está en esa lista está en la app. Rediseña la pantalla de
 > [ADR-0349](../../adr/0349-plan-de-campana.md) y le suma lo que Felipe pidió el 2026-10-10: exportar, tope de inversión,
