@@ -282,8 +282,13 @@ export function curvaDeTallas(
 
 /* ───────── «Lo que más se vende» ───────── */
 
-/** Cuántas prendas muestra el ranking. */
-export const PRENDAS_EN_RANKING = 8;
+/**
+ * Cuántos modelos muestra «Lo que más se vende»: los 5 primeros por defecto, y la persona elige ver 10, 15 o 20 (Felipe 2026-10-10,
+ * opción A de «Qué pedir»).
+ */
+export const TOPS = [5, 10, 15, 20] as const;
+export type Top = (typeof TOPS)[number];
+export const TOP_DEFECTO: Top = 5;
 /** Lo que ocupa la barra más larga del ranking (deja lugar a su cifra). */
 export const LARGO_RANKING = 0.82;
 
@@ -291,6 +296,7 @@ export const LARGO_RANKING = 0.82;
 export function masVendidas<T extends Pick<PrendaAnalisis, "categoria" | "vendidas30" | "nombre" | "color" | "talla">>(
   prendas: readonly T[],
   categoria: string | null,
+  cuantos: number = TOP_DEFECTO,
 ): T[] {
   return prendas
     .filter((p) => p.vendidas30 > 0 && (categoria === null || categoriaDe(p) === categoria))
@@ -301,7 +307,39 @@ export function masVendidas<T extends Pick<PrendaAnalisis, "categoria" | "vendid
         a.color.localeCompare(b.color, "es") ||
         compararTallas(a.talla, b.talla),
     )
-    .slice(0, PRENDAS_EN_RANKING);
+    .slice(0, Math.max(1, Math.round(cuantos)));
+}
+
+/** Cuántos modelos se vendieron (del tipo elegido, si hay): para saber qué «Top» ofrecer y decir «de 23». */
+export const cuantasVendidas = (prendas: readonly Pick<PrendaAnalisis, "categoria" | "vendidas30">[], categoria: string | null): number =>
+  prendas.filter((p) => p.vendidas30 > 0 && (categoria === null || categoriaDe(p) === categoria)).length;
+
+/** Los «Top» que tiene sentido ofrecer: el 5 siempre; los demás, solo si hay más modelos vendidos que el anterior. */
+export function topsPosibles(vendidos: number): Top[] {
+  return TOPS.filter((t, k) => k === 0 || vendidos > TOPS[k - 1]);
+}
+
+/**
+ * La frase del panel de un tipo (opción A): para cuánto te alcanza contra Navidad y lo que tienes, o, sin tipo elegido, lo de toda la
+ * tienda. Ejemplos inventados: «Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.»
+ */
+export function fraseDelTipo(t: AlcanceTipo | null, todos: readonly AlcanceTipo[], diasDeVentas: number): string {
+  const enDias = `${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
+  if (!t) {
+    const vendidas = todos.reduce((s, x) => s + x.vendidas, 0);
+    const tiene = todos.reduce((s, x) => s + x.tiene, 0);
+    const pide = todos.filter((x) => x.pide).length;
+    const base = `Vendiste ${vendidas} en ${enDias} y tienes ${tiene}.`;
+    return pide > 0 ? `${base} ${pide} ${plural(pide, "tipo no llega", "tipos no llegan")} a Navidad.` : base;
+  }
+  const alcance =
+    t.dias === null
+      ? `No se vendió en ${enDias}.`
+      : t.dias <= 0
+        ? "Ya no te queda: no llega a Navidad."
+        : `Te alcanza para ${textoAlcance(t.dias).toLowerCase()}: ${t.pide ? "no llega" : "llega"} a Navidad.`;
+  const nunca = t.nunca ? ` · ${t.nunca} nunca ${plural(t.nunca, "salió", "salieron")} al piso` : "";
+  return `${alcance} Tienes ${t.tiene}${nunca}.`;
 }
 
 /** La venta más alta de la tienda: el ranking se mide contra ella, aunque haya un filtro (así un tipo no parece vender más). */

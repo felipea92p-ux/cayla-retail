@@ -248,6 +248,20 @@ tallas y qué colores salen más**.
 - **Sin la migración** (`ultima_venta` ausente), los días del modelo se cuentan con lo más reciente de sus tallas y se dice una vez arriba
   (`FALLA_ULTIMA_VENTA`): casi siempre da lo mismo; difiere si se colgó una talla después de la última venta.
 
+**12 (b). El detalle del modelo y «Qué pedir», elegidos mirando (Felipe, 2026-10-10, noche).**
+
+- **El detalle del modelo, opción B** (lámina privada `4mRrK4dotpJUnDg5tis9u2`, siete propuestas): «Dónde hay», «Lo que más sale» y la
+  grilla talla × color decían los mismos números tres veces, con dos ventanas de días («30» y «11» para la misma cifra) y «0» rayados en
+  rojo que había que adivinar. Ahora: una frase («Vendiste 10 en 11 días y te queda 1»), UNA tabla donde cada celda dice qué pasó («2
+  vendidas · no queda», «queda 1 · sin ventas», «no hay»), con totales y **los colores que más se venden arriba**, y las otras tiendas en
+  una línea (con «sus últimos 30 días», para no mezclarlos con los de la tuya). Lo agotado va en ámbar: es una tarea, no un error.
+  `lib/analisis-ficha.ts` (`fraseDelModelo`, `tablaDelModelo`, `lineaOtrasTiendas`).
+- **«Qué pedir», opción A** (lámina privada `CGrMNmo8b9Z1SKMe16axBs`, cuatro propuestas): no se notaba que la lista seguía ni que tocar un
+  tipo filtraba lo de abajo (quedaba fuera de la vista). Ahora la lista va a la izquierda (se desplaza por dentro y dice «↓ N tipos más») y
+  a la derecha, fijo, el panel del tipo elegido o de toda la tienda: una frase, las tallas y lo que más se vende. En una columna, tocar un
+  tipo lleva la vista al panel. **«Lo que más se vende» muestra 5 por defecto y se elige Top 10, 15 o 20** (pedido de Felipe); solo se
+  ofrecen los que tienen modelos para llenarse. `lib/analisis-pedir.ts` (`TOPS`, `topsPosibles`, `fraseDelTipo`).
+
 ## Lo que se tomó del estudio
 
 | Del estudio | En CAYLA | Por qué |
