@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -52,6 +52,9 @@ export function PiezaLiquidacionModal({
   const [precio, setPrecio] = useState("");
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
+  // /chaos (DC-01): dos clics en «Cambiar precio» rebajaban una vez pero mostraban «Precio cambiado» y «Esa etiqueta ya no vale» a la
+  // vez. `enVuelo` traba el botón en el mismo instante; el estado de React llega tarde dentro de un mismo clic.
+  const enVuelo = useRef(false);
   // Recién rebajada: la etiqueta de arriba es la nueva y hay que pegarla en lugar de la vieja.
   const [rebajadaDe, setRebajadaDe] = useState<number | null>(null);
 
@@ -66,6 +69,8 @@ export function PiezaLiquidacionModal({
   );
 
   async function llamar(fn: "cambiar_precio" | "retirar", que: string) {
+    if (enVuelo.current) return null;
+    enVuelo.current = true;
     setGuardando(true);
     const supabase = createClient();
     const codigo = pieza.codigo ?? "";
@@ -74,6 +79,7 @@ export function PiezaLiquidacionModal({
         ? supabase.rpc("cambiar_precio_pieza_liquidacion", { p_codigo: codigo, p_precio: precioDeTexto(precio) ?? 0 })
         : supabase.rpc("retirar_pieza_liquidacion", { p_codigo: codigo, p_motivo: motivo.trim() });
     const { data, error } = await firmar(peticion, responsable.firma());
+    enVuelo.current = false;
     setGuardando(false);
     responsable.despues(error);
     if (error || !data) {

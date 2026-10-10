@@ -57,3 +57,12 @@ venta sin stock movido y sin fila para almacén, venta mixta, precio distinto, d
 otra sede, retirada, anular, cambio rechazado y mínimo solo del líder. Vitest: `liquidacion-reglas`, `liquidacion-guia`,
 `ticket-linea-reglas`. En el navegador (local, 2026-10-10): etiquetar, la etiqueta impresa, rebajar, leer la etiqueta vieja en
 la pantalla y en Vender, la pieza en el ticket a 375 px.
+
+## Actualización 2026-10-10 — /chaos: la pieza no se crea dos veces
+
+`/chaos` (semilla 371) encontró que tres clics seguidos en «Etiquetar» creaban tres piezas, y que dos clics en «Cambiar precio»
+mostraban éxito y error a la vez. Arreglo, como en Ajustar inventario: las tres hojas que guardan se traban con un `enVuelo`
+(un `useRef`: el estado de React llega tarde dentro de un mismo clic) y `crear_pieza_liquidacion` recibe `p_token`
+(migración `20261010200000`): el mismo token devuelve la pieza ya creada, también con dos llamadas simultáneas (índice único
+parcial + `on conflict do nothing`). Así un reintento tras una respuesta perdida no deja una pieza fantasma. Prueba:
+`pnpm pruebas:piezas-liquidacion` («el mismo token dos veces…») y la carrera real con dos sesiones (una pieza, una etiqueta).

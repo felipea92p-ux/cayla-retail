@@ -230,9 +230,11 @@ export function LiquidacionPantalla({
                   <span className="truncate font-medium text-tinta">{p.categoria}</span>
                 </span>
                 <span className="hidden font-mono text-[13px] text-taupe lg:block">{p.codigo ?? "—"}</span>
-                <span className="text-right tabular-nums text-tinta">
-                  {p.precioInicial > p.precio && <span className="liq-tachado mr-2 text-[12px]">{soles(p.precioInicial)}</span>}
-                  S/ {soles(p.precio)}
+                {/* El precio que cobra la caja arriba y, si se rebajó, el de entrada tachado DEBAJO: lado a lado se partían en dos líneas
+                    a 800 px (/chaos, 2026-10-10). */}
+                <span className="flex flex-col items-end tabular-nums text-tinta">
+                  <span className="whitespace-nowrap">S/ {soles(p.precio)}</span>
+                  {p.precioInicial > p.precio && <span className="liq-tachado text-[12px] leading-tight">S/ {soles(p.precioInicial)}</span>}
                 </span>
                 <span className="text-[13px] text-taupe">
                   {p.estado === "disponible"

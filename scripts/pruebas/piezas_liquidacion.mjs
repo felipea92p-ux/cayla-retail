@@ -99,6 +99,17 @@ rollback;`),
   ([estado, formato, vigentes]) => estado === "disponible" && formato === "t" && vigentes === "1"
 );
 
+exito(
+  "el mismo token dos veces (doble clic o respuesta perdida) deja UNA pieza y devuelve la misma",
+  comoPersona(FELIPE, `${fixture()}
+select gen_random_uuid() as tok \\gset
+select retail.crear_pieza_liquidacion(:'ubic', :'cat', 30, :'tok') ->> 'id' as p1 \\gset
+select retail.crear_pieza_liquidacion(:'ubic', :'cat', 30, :'tok') ->> 'id' as p2 \\gset
+select :'p1' = :'p2', (select count(*) from retail.piezas_liquidacion where token = :'tok'::uuid);
+rollback;`),
+  ([misma, n]) => misma === "t" && n === "1"
+);
+
 error(
   "un precio cero no se etiqueta",
   comoPersona(FELIPE, `${fixture()}${etiquetar(0)}rollback;`),

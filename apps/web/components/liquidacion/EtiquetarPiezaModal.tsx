@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, type Opcion } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -46,6 +46,10 @@ export function EtiquetarPiezaModal({
   const [precio, setPrecio] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [lista, setLista] = useState<PiezaLiquidacion | null>(null);
+  // /chaos (DC-01, RS-03): tres clics seguidos creaban tres piezas. `enVuelo` traba el botón en el mismo instante (el estado de
+  // React llega tarde dentro de un mismo clic) y `token` hace que un reintento devuelva la pieza ya creada en vez de otra.
+  const enVuelo = useRef(false);
+  const token = useRef<string>(crypto.randomUUID());
 
   const campos = camposDeEtiquetar({ categoriaId, precio, minimo, esLider, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
@@ -58,12 +62,14 @@ export function EtiquetarPiezaModal({
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     const monto = precioDeTexto(precio);
-    if (guardando || !guia.puedeConfirmar || monto === null) return;
+    if (enVuelo.current || !guia.puedeConfirmar || monto === null) return;
+    enVuelo.current = true;
     setGuardando(true);
     const { data, error } = await firmar(
-      createClient().rpc("crear_pieza_liquidacion", { p_ubicacion_id: ubicacionId, p_categoria_id: categoriaId, p_precio: monto }),
+      createClient().rpc("crear_pieza_liquidacion", { p_ubicacion_id: ubicacionId, p_categoria_id: categoriaId, p_precio: monto, p_token: token.current }),
       responsable.firma(),
     );
+    enVuelo.current = false;
     setGuardando(false);
     responsable.despues(error);
     if (error || !data) {
@@ -73,6 +79,8 @@ export function EtiquetarPiezaModal({
       return;
     }
     const pieza = piezaDeJson(data as unknown as Record<string, unknown>);
+    // La pieza ya existe: la próxima es otra, con su propio token.
+    token.current = crypto.randomUUID();
     setLista(pieza);
     onEtiquetada(pieza);
     avisar.exito("Pieza etiquetada", { detalle: `${pieza.categoria} a S/ ${soles(pieza.precio)}. Imprime su etiqueta y pégala en la prenda.` });

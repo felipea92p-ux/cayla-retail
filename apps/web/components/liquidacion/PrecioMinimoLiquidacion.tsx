@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -20,17 +20,20 @@ export function PrecioMinimoLiquidacion({ minimo, esLider }: { minimo: number; e
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(String(minimo));
   const [guardando, setGuardando] = useState(false);
+  const enVuelo = useRef(false);
   const nuevo = precioDeTexto(valor);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (guardando || nuevo === null) return;
+    if (enVuelo.current || nuevo === null) return;
     if (nuevo === minimo) {
       setEditando(false);
       return;
     }
+    enVuelo.current = true;
     setGuardando(true);
     const { error } = await firmar(createClient().rpc("guardar_precio_minimo_liquidacion", { p_minimo: nuevo }), responsable.firma());
+    enVuelo.current = false;
     setGuardando(false);
     responsable.despues(error);
     if (error) {

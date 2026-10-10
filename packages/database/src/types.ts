@@ -5732,7 +5732,7 @@ export type Database = {
       }
       // ADR-0371 (20261010190000): las piezas de liquidación.
       crear_pieza_liquidacion: {
-        Args: { p_ubicacion_id: string; p_categoria_id: string; p_precio: number }
+        Args: { p_ubicacion_id: string; p_categoria_id: string; p_precio: number; p_token?: string }
         Returns: Json
       }
       cambiar_precio_pieza_liquidacion: {
