@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261010180000_abrir_produccion_con_modelo_nuevo.sql — ADR-0361 (segunda parte)
+-- 20261010210000_abrir_produccion_con_modelo_nuevo.sql — ADR-0361 (segunda parte)
 --
 -- EL PROBLEMA PRIMERO. `abrir_produccion` solo acepta variantes que YA existen (ADR-0051, punto 5: las variantes nacen en Productos, nunca desde
 -- una orden). Pero el Taller crea modelos nuevos como parte normal de su trabajo: una Muestra (patronaje → muestra → escalado) es el desarrollo de un

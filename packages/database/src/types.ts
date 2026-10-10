@@ -5359,7 +5359,13 @@ export type Database = {
       // Apartados con adelanto (ADR-0166, 20260923090000_separaciones.sql). Escritos a mano con la forma que da
       // `supabase gen types` (esta sesión no pudo levantar el stack): regenerar al pegar la migración en producción.
       buscar_separaciones: {
-        Args: { p_estados?: string[]; p_texto?: string; p_ubicacion_id: string }
+        Args: {
+          p_desde?: string
+          p_estados?: string[]
+          p_hasta?: string
+          p_texto?: string
+          p_ubicacion_id: string
+        }
         Returns: {
           adelanto: number
           asesora: string | null

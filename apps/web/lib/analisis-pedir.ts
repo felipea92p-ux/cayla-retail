@@ -136,7 +136,8 @@ export type AlcanceTipo = {
  * Por tipo de prenda, para cuánto te alcanza lo que tienes al ritmo de lo vendido en los días de ventas de la tienda (hasta 30):
  * lo que tienes entre lo que vendes por día. Pide lo que no llega a Navidad. Del que menos dura al que más; lo que no se vendió, al
  * final (sin ritmo no se sabe para cuánto alcanza). Reemplaza a la mariposa «de cada 100» (Felipe, 2026-10-07: «no sé si es de los
- * últimos 30 días o desde siempre»): habla en semanas y dice de qué días.
+ * últimos 30 días o desde siempre»): habla en semanas y dice de qué días. Con los MODELOS (ADR-0357, decisión 12), «nunca salió»
+ * cuenta solo lo del modelo del que nada se colgó: la talla guardada de un modelo colgado ya está presentada.
  */
 export function alcancePorTipo(
   prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso">[],

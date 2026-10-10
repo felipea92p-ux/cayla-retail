@@ -244,7 +244,7 @@ describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-
     expect(tieneCaracterDeControl("Blusa 👗 Ñandú “comillas” — M")).toBe(false);
   });
   it("los topes de la pantalla son LOS MISMOS que los de la función de la base (si alguien cambia uno, esta prueba lo dice)", () => {
-    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261010210000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
     const numero = (re: RegExp) => Number(re.exec(sql)?.[1]);
     expect(numero(/char_length\(v_ref\) > (\d+)/)).toBe(MAX_NOMBRE_MODELO);
     expect(numero(/char_length\(btrim\(coalesce\(p_nota, ''\)\)\) > (\d+)/)).toBe(MAX_NOTA_ORDEN_BASE);
@@ -353,7 +353,7 @@ describe("paramsRpcModeloNuevo — los nombres coinciden con la base", () => {
     expect(sin.p_nota).toBeUndefined();
   });
   it("los parámetros son exactamente los de la firma de la migración", () => {
-    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261010210000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
     const firma = sql.slice(sql.indexOf("create or replace function retail.abrir_produccion_con_modelo_nuevo("), sql.indexOf("returns uuid"));
     const enSql = [...firma.matchAll(/^\s*(p_\w+)/gm)].map((m) => m[1]).sort();
     expect(Object.keys(params).sort()).toEqual(enSql);
@@ -366,7 +366,7 @@ describe("paramsRpcModeloNuevo — los nombres coinciden con la base", () => {
     expect(Object.keys(params).sort()).toEqual(enTipos);
   });
   it("la migración usa los hint que la pantalla lee (nombre repetido): si alguien los renombra, aquí se nota", () => {
-    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261010210000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
     expect(sql).toContain("hint = 'nombre_duplicado'");
     expect(sql).toContain("hint = 'nombre_casi_igual'");
   });

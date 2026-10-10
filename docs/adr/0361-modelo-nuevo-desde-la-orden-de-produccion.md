@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-07 (primera parte) y 2026-10-09 (segunda parte) · **Estado:** **construido en dos partes; falta pegar la migración en producción.**
   - *Primera parte* (ida y vuelta a Nuevo producto): solo web, sin migración; verificada.
-  - *Segunda parte* («Modelo nuevo» dentro de «Nueva orden»): migración aditiva `supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql`
+  - *Segunda parte* («Modelo nuevo» dentro de «Nueva orden»): migración aditiva `supabase/migrations/20261010210000_abrir_produccion_con_modelo_nuevo.sql`
     ensayada contra el Postgres local (20 casos, todos terminan en `ROLLBACK`) y web verificada (`tsc`, `eslint`, 387 archivos / 156.458 pruebas y el
     recorrido en el navegador con datos de ejemplo). **Orden obligatorio: primero la migración en producción, después se publica la web** (ver «Despliegue»).
   - **Hecho el 2026-10-10:** recorrido con datos reales en local (como líder), `/chaos` (semilla 1010) y `/formidable`; y **los arreglos que Felipe eligió** de esas dos

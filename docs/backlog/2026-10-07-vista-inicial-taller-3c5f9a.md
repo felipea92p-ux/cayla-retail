@@ -11,7 +11,7 @@
 
 Decisiones por defecto que Felipe aprobó con el plan: precio obligatorio en una producción y opcional en una muestra; el costo de la variante nace en 0 y el real se pega al cerrar (D-31); el material libre de julio no vuelve (el tejido es vocabulario y lo completa quien edita el catálogo); lo puede crear quien opera el Taller, y el modelo nace `pendiente` si no edita el catálogo.
 
-- [x] `supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql`: función `retail.abrir_produccion_con_modelo_nuevo` (aditiva, precedente `censo_crear_variante`): modelo + variantes + orden en una transacción y con un token; tallas y colores validados por conjuntos; llama a `abrir_produccion` sin tocarla.
+- [x] `supabase/migrations/20261010210000_abrir_produccion_con_modelo_nuevo.sql`: función `retail.abrir_produccion_con_modelo_nuevo` (aditiva, precedente `censo_crear_variante`): modelo + variantes + orden en una transacción y con un token; tallas y colores validados por conjuntos; llama a `abrir_produccion` sin tocarla.
 - [x] `scripts/pruebas/abrir_produccion_con_modelo_nuevo.mjs` (20 casos contra el Postgres local, todos con `ROLLBACK`; Felipe la corrió dos veces: 20/20), `pnpm pruebas:abrir-produccion-modelo-nuevo` y su paso en el CI.
 - [x] `lib/modelo-nuevo-reglas.ts` (+ prueba de 40, con dos pruebas de azar con semilla fija y la paridad de nombres con la migración y los tipos generados) y `getVocabularioModeloNuevo`.
 - [x] «Modelo nuevo» dentro de «Nueva orden» (`ModeloNuevoCampos.tsx`, guía de foco); un nombre repetido ofrece «Usar ese modelo» y uno casi igual «Es otro modelo, crearlo igual»; el tablero sin modelos ofrece «+ Crear el primer modelo»; el enlace a Productos queda como alta completa con fotos.
@@ -26,7 +26,7 @@ Decisiones por defecto que Felipe aprobó con el plan: precio obligatorio en una
 - [x] **`/formidable`** (`docs/formidable/produccion-nueva-orden.md`): leyes 4,8 y oficio 5; ciega ✓ con Opus (el ciego con Sonnet cayó dos veces por el filtro de seguridad), real sin probar; veredicto del escéptico sobre cada hallazgo. Fila en `docs/formidable/README.md`.
 - [x] Corregido en los documentos: «un líder lo revisa» era falso cuando se escribió (Felipe había quitado el aviso «Pendiente de revisar» el 2026-10-02); desde que `main` trae la cola «Por revisar» (ADR-0371) sí se revisa ahí (ADR-0361, «Lo que “pendiente” significa»).
 - [x] **Arreglos aplicados (Felipe: «Reglas de la función», «Precio antes de Colores y carta cerrada», «“Falta” que explica y costos con coma», «“Pierde” y botón recortado, más los de gravedad 4»; la coma solo se explica, no se acepta)**, cada grupo en su commit, con la prueba que falla primero:
-  - [x] La función valida nombre ≤ 80 y nota ≤ 200, precio a céntimos ≥ 0.01 y ≤ 99,999.99 sin `NaN`, costos sin `NaN`/negativos y ≤ 999,999.99, talla obligatoria en categorías con tallas y uuid mal escrito (migración `20261010180000`, 35 casos SQL: 12 de los nuevos fallan contra la migración vieja).
+  - [x] La función valida nombre ≤ 80 y nota ≤ 200, precio a céntimos ≥ 0.01 y ≤ 99,999.99 sin `NaN`, costos sin `NaN`/negativos y ≤ 999,999.99, talla obligatoria en categorías con tallas y uuid mal escrito (migración `20261010210000`, 35 casos SQL: 12 de los nuevos fallan contra la migración vieja).
   - [x] La pantalla lee los montos estricto y dice qué hacer a la vista (`PieGuia conFrase`); nombre con `maxLength` y sin caracteres de control; Tela, Avíos y Maquila dicen «Opcional».
   - [x] Precio antes de Colores y la carta de 89 colores cerrada solo en «Modelo nuevo» (`ElegirColores cartaAbierta`, por defecto `true`).
   - [x] «Pierde» → «Margen bajo» (una sola fuente en `lib/produccion-reglas.ts`) y el botón «Crear y abrir orden» cabe a 375 px.
@@ -41,7 +41,7 @@ Decisiones por defecto que Felipe aprobó con el plan: precio obligatorio en una
 
 ### Pendiente — en este orden
 
-- [ ] **Felipe: pegar la migración `20261010180000` en producción ANTES de fusionar y publicar la web.** Una sola parte (solo una función y sus permisos), idempotente; ensayar antes con `begin; …; rollback;`. Verificar después con `select proname from pg_proc where proname = 'abrir_produccion_con_modelo_nuevo'` (1 fila). Si los arreglos #1, #2 y #4 se aprueban, van **dentro de esta misma migración** (todavía no está en producción). Si la web sale antes, «Modelo nuevo» avisa que aún no está activo y no se cae.
+- [ ] **Felipe: pegar la migración `20261010210000` en producción ANTES de fusionar y publicar la web.** Una sola parte (solo una función y sus permisos), idempotente; ensayar antes con `begin; …; rollback;`. Verificar después con `select proname from pg_proc where proname = 'abrir_produccion_con_modelo_nuevo'` (1 fila). Si los arreglos #1, #2 y #4 se aprueban, van **dentro de esta misma migración** (todavía no está en producción). Si la web sale antes, «Modelo nuevo» avisa que aún no está activo y no se cae.
 - [ ] **Ver la pantalla del colaborador del Taller sin permiso de catálogo** (no se hizo en el navegador por decisión de Felipe de no tocar permisos; en SQL está probado, casos 2 y 2b). Receta **validada con `ROLLBACK`** (Micaela pasa a poder operar el Taller y a no poder editar el catálogo), solo en la base local:
   ```bash
   node scripts/flujo-de-negocio/estado.mjs guardar vista-colaborador --reemplazar

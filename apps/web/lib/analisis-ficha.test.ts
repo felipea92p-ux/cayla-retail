@@ -14,11 +14,13 @@ import {
   hechosDe,
   iniciosDeSemana,
   PUNTOS_MAX,
+  queSaleMas,
   SEMANAS_FICHA,
   sedeParaPedir,
   solesFicha,
   subtituloFicha,
 } from "./analisis-ficha";
+import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba (no son de producción): una red de tres tiendas y prendas de un modelo de ensayo.
 const SEDES: SedeAnalisis[] = [
@@ -373,5 +375,38 @@ describe("los botones del pie", () => {
     expect(sedeParaPedir(p, "comprar", SEDES, { pedir: false })).toBeNull();
     expect(sedeParaPedir(p, "liquidar", SEDES, TODO)).toBeNull();
     expect(sedeParaPedir(prenda({ vendidas30: 5 }), "comprar", SEDES, TODO)).toBeNull();
+  });
+});
+
+describe("el detalle del modelo (ADR-0357, decisión 12)", () => {
+  const HOY_FICHA = "2026-10-10";
+  const m = modeloDe(
+    [
+      prenda({ varianteId: "a", color: "Arena", colorHex: "#c2b280", talla: "S", vendidas30: 1, precio: 100 }),
+      prenda({ varianteId: "b", color: "Arena", colorHex: "#c2b280", talla: "M", piso: 1, almacen: 2, precio: 100 }),
+      prenda({ varianteId: "c", color: "Tostado", colorHex: "#8b5a2b", talla: "M", vendidas30: 4, precio: 90 }),
+      prenda({ varianteId: "d", color: "Tostado", colorHex: "#8b5a2b", talla: "L", almacen: 1, precio: 100 }),
+    ],
+    HOY_FICHA,
+  );
+
+  it("«Lo que más sale»: tallas y colores de lo más vendido a lo menos, con lo que tienes y su barra", () => {
+    const sale = queSaleMas(m, 11);
+    expect(sale.tallas.map((t) => [t.nombre, t.vendio, t.tiene])).toEqual([["M", 4, 3], ["S", 1, 0], ["L", 0, 1]]);
+    expect(sale.tallas[0]).toMatchObject({ ancho: 0.8, tip: "M: vendiste 4 en 11 días · tienes 3" });
+    expect(sale.colores.map((c) => [c.nombre, c.vendio, c.tiene])).toEqual([["Tostado", 4, 1], ["Arena", 1, 3]]);
+    expect(sale.colores[0].punto).not.toBeNull();
+    expect(sale.tallas[0].punto).toBeNull();
+  });
+
+  it("una sola talla o un solo color no se lista (no hay nada que comparar); la talla única tampoco", () => {
+    const uno = modeloDe([prenda({ varianteId: "x", talla: "Única", color: "Arena" }), prenda({ varianteId: "y", talla: "Única", color: "Tostado" })], HOY_FICHA);
+    const sale = queSaleMas(uno, 11);
+    expect(sale.tallas).toEqual([]);
+    expect(sale.colores).toHaveLength(2);
+  });
+
+  it("el subtítulo dice sus colores y tallas, y el precio «desde» el menor si varía", () => {
+    expect(subtituloFicha(m)).toBe("2 colores · S, M, L · desde S/ 90");
   });
 });

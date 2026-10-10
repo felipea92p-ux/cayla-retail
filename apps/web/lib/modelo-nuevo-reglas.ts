@@ -5,7 +5,7 @@ import { compararTallas } from "./tallas";
 // «Modelo nuevo» dentro de la orden de producción (ADR-0361, segunda parte): las reglas puras. Sin Supabase ni `next/*`, para que las importen la
 // página (servidor) y el formulario (cliente), y para que la pantalla pueda DECIR qué falta con las mismas reglas que la base va a aplicar.
 //
-// La base es la que manda: `abrir_produccion_con_modelo_nuevo` (20261010180000) valida todo otra vez. Acá solo se adelanta, en la pantalla, lo que ya
+// La base es la que manda: `abrir_produccion_con_modelo_nuevo` (20261010210000) valida todo otra vez. Acá solo se adelanta, en la pantalla, lo que ya
 // se sabe, y se reutiliza lo del alta de producto (`alta-producto.ts`: celdas, cantidades, espejo de nombre y clave) en vez de copiarlo: dos formas de
 // armar una matriz talla × color terminan dando dos matrices distintas.
 

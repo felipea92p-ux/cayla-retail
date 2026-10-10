@@ -5,6 +5,7 @@ import {
   colorDias,
   cuentasFiltroAcaba,
   EJE_ACABA,
+  faltanDelModelo,
   FILTROS_ACABA,
   LINEA_SEMANA,
   lineasPorLlegar,
@@ -20,6 +21,7 @@ import {
   UNA_SEMANA,
   vacioAcaba,
 } from "./analisis-acaba";
+import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba (no son de producción).
 function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
@@ -209,5 +211,42 @@ describe("cuando no hay carril", () => {
   });
   it("una tienda sin prendas y sin fallas: nada se acaba", () => {
     expect(vacioAcaba({ prendas: 0, seAcaban: 0, fallas: 0 })).toBe("nada");
+  });
+});
+
+describe("lo que falta de un modelo que se acaba (ADR-0357, decisión 12)", () => {
+  const HOY = "2026-10-10";
+  it("nombra la talla y el color agotados, de lo más vendido a lo menos; el color solo si el modelo tiene varios", () => {
+    const m = modeloDe(
+      [
+        prenda({ varianteId: "a", color: "Lila", talla: "S", vendidas30: 1 }),
+        prenda({ varianteId: "b", color: "Lila", talla: "M", piso: 1 }),
+        prenda({ varianteId: "c", color: "Ocre", talla: "M", vendidas30: 3 }),
+      ],
+      HOY,
+    );
+    expect(faltanDelModelo(m)).toEqual({ texto: "Faltan M Ocre y S Lila", todas: ["M Ocre", "S Lila"] });
+    const unColor = modeloDe([prenda({ varianteId: "a", talla: "S", vendidas30: 1 }), prenda({ varianteId: "b", talla: "M", piso: 2 })], HOY);
+    expect(faltanDelModelo(unColor)?.texto).toBe("Falta S");
+  });
+
+  it("con más de dos, las cuenta y las nombra todas aparte; la talla única no se nombra", () => {
+    const m = modeloDe(
+      [
+        prenda({ varianteId: "a", talla: "S" }),
+        prenda({ varianteId: "b", talla: "M" }),
+        prenda({ varianteId: "c", talla: "L" }),
+        prenda({ varianteId: "d", talla: "XL", almacen: 1 }),
+      ],
+      HOY,
+    );
+    expect(faltanDelModelo(m)).toEqual({ texto: "Faltan 3", todas: ["S", "M", "L"] });
+    const unica = modeloDe([prenda({ varianteId: "a", talla: "Única", color: "Lila" }), prenda({ varianteId: "b", talla: "Única", color: "Ocre", piso: 1 })], HOY);
+    expect(faltanDelModelo(unica)?.texto).toBe("Falta Lila");
+  });
+
+  it("nada que decir si no falta ninguna o si se agotó el modelo entero (lo dice su pista)", () => {
+    expect(faltanDelModelo(modeloDe([prenda({ piso: 1 })], HOY))).toBeNull();
+    expect(faltanDelModelo(modeloDe([prenda({ varianteId: "a", vendidas30: 2 }), prenda({ varianteId: "b", talla: "L", vendidas30: 1 })], HOY))).toBeNull();
   });
 });

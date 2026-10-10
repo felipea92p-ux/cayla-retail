@@ -1,5 +1,5 @@
 /**
- * Prueba de `abrir_produccion_con_modelo_nuevo` — ADR-0361 (segunda parte). Migración 20261010180000.
+ * Prueba de `abrir_produccion_con_modelo_nuevo` — ADR-0361 (segunda parte). Migración 20261010210000.
  *
  * Qué garantiza (cada caso termina en ROLLBACK, sin rastro en el Postgres local compartido; cada caso aplica la migración DENTRO de su transacción,
  * así que corre igual antes y después de que el stack la traiga, y de paso prueba que se puede volver a pegar). «Colaborador del Taller» = Micaela
@@ -29,7 +29,7 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261010210000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — fija a Tienda Trujillo
