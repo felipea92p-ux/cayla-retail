@@ -23,6 +23,7 @@ import {
   type DestinoTraslado,
 } from "@/lib/caja-cierre-reglas";
 import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-reglas";
+import { useEnLinea } from "@/lib/useEnLinea";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 
@@ -133,9 +134,10 @@ export function CerrarCajaModalV2({
   }, [cajaId]);
 
   const efectivoEncolado = totalEfectivoEncolado(cola);
-  // `navigator.onLine` solo promete "hay una interfaz de red arriba", no "el servidor responde" — por eso el bloqueo
-  // es temporal (le da tiempo al latido de 30 s de `PuntoDeVenta.tsx` para subir la venta sola) y nunca definitivo.
-  const enLinea = typeof navigator !== "undefined" && navigator.onLine;
+  // `useEnLinea`: el navegador o una respuesta reciente de la base (el navegador puede decir «sin red» con internet,
+  // 2026-10-10). Ni así promete que el servidor responda — por eso el bloqueo es temporal (le da tiempo al latido de
+  // 30 s de `PuntoDeVenta.tsx` para subir la venta sola) y nunca definitivo.
+  const enLinea = useEnLinea();
   // Bloquea SOLO con red Y plata encolada: con conexión, más vale esperar los ~30 s del reintento automático que
   // forzar un cierre con un sobrante fantasma. Sin red se deja cerrar, con el aviso bien visible.
   const bloqueaCierre = efectivoEncolado > 0 && enLinea;

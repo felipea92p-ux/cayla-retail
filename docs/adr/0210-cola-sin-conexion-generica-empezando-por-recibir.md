@@ -144,3 +144,20 @@ Probado en local:
 - «Salir» mostró la pregunta.
 - El alta sin red mostró qué necesita internet.
 - Vender a 375 px bajó `jsQR` sin abrir la cámara.
+
+## Actualización 2026-10-10 — `navigator.onLine` también miente al decir «sin red»
+
+Hasta hoy se asumía que `navigator.onLine` dice «sin red» con certeza y que solo «con red» podía mentir. Es falso: el Mac de la
+caja de Trujillo lo tuvo en `false` toda una mañana con internet (15 ventas subieron). El ERP le creía. Mostraba «Sin conexión»,
+apagaba todos los sondeos y la lista de turno se quedaba congelada en la última lectura: quien volvía del refrigerio seguía
+«en pausa».
+
+Decisión: una respuesta real de la base pesa más que el navegador. `useEnLinea` (única fuente para avisar) es `true` si el navegador
+lo dice o si llegó una respuesta de Supabase hace menos de 90 s (`hayRedReal`, `lib/sin-conexion-reglas.ts`, con prueba). Un
+observador de `fetch` anota esas respuestas. Los sondeos ya no miran `navigator.onLine`: sin red de verdad la lectura falla al
+instante y cada uno tiene su retroceso o su próximo intento. El aviso de la cabecera, mientras parece no haber red, consulta
+`/auth/v1/health` cada 20 s y dice «Sin conexión» solo si eso también falla. Guardar sigue sin depender de nada de esto: se
+intenta y, si falla, se encola.
+
+Descarté consultar a la base antes de cada sondeo: duplicaría las lecturas para corregir un caso raro, y el propio sondeo ya
+sirve de consulta.

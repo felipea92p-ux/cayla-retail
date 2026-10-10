@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { diaLima, esCopiaGuardada, PANTALLAS_SIN_CONEXION, pantallaSinConexion } from "./sin-conexion-reglas";
+import { diaLima, esCopiaGuardada, hayRedReal, PANTALLAS_SIN_CONEXION, pantallaSinConexion, pruebaRed, VENTANA_RED_MS } from "./sin-conexion-reglas";
 
 // Qué pantallas abren sin internet (ADR-0210, paso 3) y cómo se reconoce una copia guardada.
 
@@ -57,5 +57,34 @@ describe("esCopiaGuardada", () => {
 
   it("una fecha rota no se toma por copia", () => {
     expect(esCopiaGuardada("x", ahora)).toBe(false);
+  });
+});
+
+describe("hayRedReal (navigator.onLine puede mentir «sin red», 2026-10-10)", () => {
+  const ahoraMs = 1_000_000;
+  it("si el navegador dice que hay red, hay red", () => {
+    expect(hayRedReal({ navegadorDice: true, ultimaRespuestaMs: null, ahoraMs })).toBe(true);
+  });
+  it("el navegador dice «sin red» y la base nunca respondió: sin red", () => {
+    expect(hayRedReal({ navegadorDice: false, ultimaRespuestaMs: null, ahoraMs })).toBe(false);
+  });
+  it("el navegador dice «sin red» pero la base respondió hace poco: hay red (el caso de la caja de TRU)", () => {
+    expect(hayRedReal({ navegadorDice: false, ultimaRespuestaMs: ahoraMs - 5_000, ahoraMs })).toBe(true);
+    expect(hayRedReal({ navegadorDice: false, ultimaRespuestaMs: ahoraMs - (VENTANA_RED_MS - 1), ahoraMs })).toBe(true);
+  });
+  it("la última respuesta ya es vieja: vuelve a mandar el navegador", () => {
+    expect(hayRedReal({ navegadorDice: false, ultimaRespuestaMs: ahoraMs - VENTANA_RED_MS, ahoraMs })).toBe(false);
+  });
+  it("una respuesta «del futuro» (reloj movido) no prueba nada", () => {
+    expect(hayRedReal({ navegadorDice: false, ultimaRespuestaMs: ahoraMs + 10_000, ahoraMs })).toBe(false);
+  });
+});
+
+describe("pruebaRed", () => {
+  it("solo una respuesta de la base prueba que hay red", () => {
+    expect(pruebaRed("https://abc.supabase.co/rest/v1/rpc/fn_asesoras_de_turno", "abc.supabase.co")).toBe(true);
+    expect(pruebaRed("https://cayla-retail.vercel.app/vender", "abc.supabase.co")).toBe(false);
+    expect(pruebaRed("/_next/static/x.js", "abc.supabase.co")).toBe(false);
+    expect(pruebaRed("https://abc.supabase.co/x", null)).toBe(false);
   });
 });

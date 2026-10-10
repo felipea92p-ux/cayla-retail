@@ -90,7 +90,8 @@ export function usePreciosEnVivo(
     versionRef.current = null;
     generalesRef.current = null;
     const sondear = async () => {
-      if (enCurso || document.visibilityState !== "visible" || !navigator.onLine) return;
+      // Sin mirar `navigator.onLine` (puede decir «sin red» con internet, 2026-10-10): sin red de verdad, falla y ya.
+      if (enCurso || document.visibilityState !== "visible") return;
       enCurso = true;
       try {
         const version = await leerVersion();
