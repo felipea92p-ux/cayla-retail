@@ -64,6 +64,7 @@ const MIGRACION = [
   "20261010231500_ordenes_compra_detalle_y_resumen.sql",
   "20261010235000_ordenes_compra_editar.sql",
   "20261010235500_ordenes_compra_anular.sql",
+  "20261010235800_ordenes_compra_entrega_sin_fecha.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -638,6 +639,17 @@ caso(
      split_part(${edita({ version: ":'v'::int + 1", prov: ":'prov_off'", entrega: "retail.fn_hoy_lima() - 3" })}, '|', 2),
      split_part(${edita({ version: ":'v'::int + 1", entrega: "retail.fn_hoy_lima() - 2" })}, '|', 2));`,
   "OK,orden_compra_proveedor,orden_compra_entrega"
+);
+caso(
+  "E7b una orden SIN entrega no recibe al editarla una fecha fuera de rango: a más de un año ni pasada (chaos 2026-10-10: con la fecha anterior NULL, la excepción de «lo que no se tocó» apagaba la regla)",
+  `${UNA_ORDEN}
+   select ${edita({ entrega: "retail.fn_hoy_lima() + 400" })} as lejos \\gset
+   select ${edita({ entrega: "retail.fn_hoy_lima() - 1" })} as pasada \\gset
+   select ${edita({ entrega: "retail.fn_hoy_lima() + 5" })} as buena \\gset
+   reset role;
+   select concat_ws(',', split_part(:'lejos', '|', 2), split_part(:'pasada', '|', 2), split_part(:'buena', ':', 1),
+     (select fecha_entrega_estimada - retail.fn_hoy_lima() from retail.ordenes_compra where id = :'oc'));`,
+  "orden_compra_entrega,orden_compra_entrega,OK,5"
 );
 caso(
   "E8 las reglas son las de crear: una línea mal escrita se rechaza con su motivo y la orden queda como estaba",

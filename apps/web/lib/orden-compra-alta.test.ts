@@ -145,6 +145,15 @@ describe("camposDeLaOrden: la guía de foco", () => {
     expect(siguienteDe(campos)?.id).toBe("proveedor");
     expect(sePuedeConfirmar(campos)).toBe(false);
   });
+  it("una entrega ESCRITA fuera de rango sí bloquea (la base la rechazaría): la guía no dice «puedes seguir así» (chaos 2026-10-10)", () => {
+    for (const entrega of ["2999-01-01", "2026-10-09"]) {
+      const campos = camposDeLaOrden(orden({ entrega }), CTX, SIN_COMBO);
+      expect(campos.find((c) => c.id === "entrega")).toMatchObject({ requerido: true, hecho: false });
+      expect(sePuedeConfirmar(campos)).toBe(false);
+    }
+    // Al editar, la que ya tenía y no se tocó sigue sin juzgarse (E7 de la base).
+    expect(sePuedeConfirmar(camposDeLaOrden(orden({ entrega: "2026-10-01" }), { ...CTX, entregaOriginal: "2026-10-01" }, SIN_COMBO))).toBe(true);
+  });
   it("la entrega estimada no bloquea: sin ella se puede guardar", () => {
     const campos = camposDeLaOrden(orden(), CTX, SIN_COMBO);
     expect(sePuedeConfirmar(campos)).toBe(true);

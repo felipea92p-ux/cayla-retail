@@ -242,6 +242,24 @@ function campoDestino(o: OrdenBorrador, ctx: ContextoValidacion): CampoDeGuia {
 }
 
 /**
+ * «Entrega estimada» en la guía. Vacía es «sugerida»: avisa y nunca bloquea (en Gamarra muchas veces no se sabe). Pero una fecha ESCRITA
+ * que la base rechazaría (pasada, o a más de un año) bloquea: antes la guía decía «puedes seguir así» con el error a la vista bajo el campo, y
+ * `/chaos` (2026-10-10) guardó el año 2999 editando una orden sin fecha. La guía sale de lo que la base valida (ADR-0284, regla 5).
+ */
+function campoEntrega(o: OrdenBorrador, ctx: ContextoValidacion): CampoDeGuia {
+  const problema = problemaDeEntrega(o.entrega, ctx.hoy, ctx.entregaOriginal);
+  if (o.entrega && problema) return { id: "entrega", nombre: "Entrega estimada", requerido: true, hecho: false, pendiente: problema };
+  return {
+    id: "entrega",
+    nombre: "Entrega estimada",
+    requerido: false,
+    sugerido: true,
+    hecho: !!o.entrega,
+    pendiente: "¿Cuándo crees que llega? Sirve para saber si se atrasa.",
+  };
+}
+
+/**
  * Los campos de la guía de foco, en el orden de la pantalla. `hecho` y `requerido` son las reglas de la base: la guía no inventa
  * ninguna. La entrega estimada es «sugerida»: avisa, nunca bloquea. `responsable` solo cuenta en una terminal (decisión 39).
  */
@@ -253,14 +271,7 @@ export function camposDeLaOrden(
   const campos: CampoDeGuia[] = [
     { id: "proveedor", nombre: "Proveedor", requerido: true, hecho: !!o.proveedorId && ctx.proveedoresActivos.has(o.proveedorId), pendiente: "Elige el proveedor." },
     campoDestino(o, ctx),
-    {
-      id: "entrega",
-      nombre: "Entrega estimada",
-      requerido: false,
-      sugerido: true,
-      hecho: !!o.entrega && problemaDeEntrega(o.entrega, ctx.hoy, ctx.entregaOriginal) === null,
-      pendiente: problemaDeEntrega(o.entrega, ctx.hoy, ctx.entregaOriginal) ?? "¿Cuándo crees que llega? Sirve para saber si se atrasa.",
-    },
+    campoEntrega(o, ctx),
   ];
   if (o.lineas.length === 0) {
     campos.push({ id: "lineas", nombre: "Prendas", requerido: true, hecho: false, pendiente: "Agrega al menos una prenda." });
