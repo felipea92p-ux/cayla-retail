@@ -9,12 +9,13 @@ import { Boton } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { EditarMarcaModal, type MarcaEditada } from "@/components/EditarMarcaModal";
 import {
-  filtrarMarcas,
   letrasDeMarcas,
   MARCAS_POR_PAGINA,
   marcasDelFiltro,
   paginaDeLaPosicion,
+  ordenarPorPrediccion,
   posicionDeLaLetra,
+  prediccionDe,
   rangoDeNombres,
   resumenDeMarcas,
   type FiltroMarcas,
@@ -32,6 +33,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Ayuda } from "@/components/Ayuda";
 import { ResumenMarcas } from "@/components/marcas/ResumenMarcas";
@@ -114,8 +116,11 @@ export function MarcasLista({
   const desactivadas = marcas.filter((m) => !m.activo);
   const resumen = resumenDeMarcas(marcas);
   const buscandoAlgo = busqueda.trim() !== "";
-  // Lo que se ve: las desactivadas, o las activas del filtro; siempre las que coinciden con la búsqueda, por orden de nombre.
-  const lista = filtrarMarcas(verDesactivadas ? desactivadas : marcasDelFiltro(marcas, filtro), busqueda).sort(porNombre);
+  // Lo que se ve: las desactivadas, o las activas del filtro. Sin búsqueda, por nombre; escribiendo, por lo más probable (ADR-0372),
+  // y si nada coincide, las parecidas («wayy» → Wayi). La sombra del buscador completa la marca más probable que EMPIEZA así.
+  const base = verDesactivadas ? desactivadas : marcasDelFiltro(marcas, filtro);
+  const { lista, parecidas } = ordenarPorPrediccion(base, busqueda);
+  const prediccion = buscandoAlgo ? prediccionDe(base, busqueda) : null;
   const pag = paginar(lista, pagina, MARCAS_POR_PAGINA);
   const presentes = letrasDeMarcas(lista);
   const enEstaPagina = letrasDeMarcas(pag.filas);
@@ -198,6 +203,13 @@ export function MarcasLista({
     setPagina(1);
   }
 
+  // Tab o → completan la sombra; Enter además va a esa marca (queda sola en su página y destella una vez).
+  function aceptarPrediccion(id: string, nombre: string, ir: boolean) {
+    setBusqueda(nombre);
+    setPagina(1);
+    if (ir) setDestacada(id);
+  }
+
   // Desactivar y reactivar una marca van sin responsable (Felipe, 2026-09-29); eliminar la conserva.
   async function cambiarEstado(m: MarcaFila) {
     setTrabajando(m.id);
@@ -265,6 +277,7 @@ export function MarcasLista({
             placeholder="Busca una marca o un proveedor"
             etiqueta="Buscar marca o proveedor"
             atajo
+            sombra={{ cola: prediccion?.cola ?? "", alAceptar: (ir) => prediccion && aceptarPrediccion(prediccion.marca.id, prediccion.marca.nombre, ir) }}
             className="min-w-0 flex-1 sm:max-w-[34rem]"
           />
           <p className="text-sm text-tinta/70" aria-live="polite">
@@ -325,8 +338,14 @@ export function MarcasLista({
               </Boton>
             }
           >
-            Ninguna marca ni proveedor se llama así. Prueba con otra palabra.
+            Ninguna marca ni proveedor se llama así, ni parecido. Prueba con otra palabra.
           </Vacio>
+        )}
+
+        {parecidas && lista.length > 0 && (
+          <Aviso tono="atencion" chico>
+            Nada se llama «{busqueda.trim()}». ¿Buscabas alguna de estas?
+          </Aviso>
         )}
 
         {lista.length > 0 && (

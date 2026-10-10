@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   borradorCambia,
+  distanciaDeEdicion,
+  ordenarPorPrediccion,
+  prediccionDe,
   ALFABETO,
   estadoDeMarca,
   letraDeMarca,
@@ -381,5 +384,147 @@ describe("páginas, letras y rango", () => {
     expect(rangoDeNombres([{ nombre: "Cala" }, { nombre: "Dalia" }, { nombre: "Gala" }])).toBe("de Cala a Gala");
     expect(rangoDeNombres([{ nombre: "Sola" }])).toBe("de Sola a Sola");
     expect(rangoDeNombres([])).toBeNull();
+  });
+});
+
+// ---------- predicción del buscador ----------
+const m = (nombre: string, productos: number, ...proveedores: string[]) => ({ nombre, productos, proveedores: proveedores.map((p) => ({ nombre: p })) });
+const CATALOGO = [
+  m("3.20 Store", 0, "Hilandería Norte SA"),
+  m("Alma Costa", 0, "Grupo Tejedoras SAC"),
+  m("Amat", 1, "Textiles Pacífico SAC"),
+  m("Amaru", 9, "Confecciones Mirador EIRL"),
+  m("Amuza", 2, "Confecciones Mirador EIRL", "Hilandería Norte SA"),
+  m("Camila Rey", 9, "Moda Andina Mayorista"),
+  m("Sol Andino", 5, "Importaciones Sol Naciente SAC"),
+  m("Girasol", 0, "Taller Hilván SRL"),
+  m("Valeria Mia", 3, "Valeria Mia Peru Moda EIRL"),
+  m("Wayi", 4, "Corporaciones Wayi SAC"),
+  m("Ñusta", 0, "Taller Hilván SRL"),
+  m("ZENIT", 4, "ZENIT"),
+];
+const nombres = (xs: readonly { nombre: string }[]) => xs.map((x) => x.nombre);
+
+describe("ordenarPorPrediccion", () => {
+  it("sin texto devuelve todas, por nombre, y sin tocar lo que recibe", () => {
+    const entrada = [...CATALOGO];
+    const r = ordenarPorPrediccion(entrada, "  ");
+    expect(r.parecidas).toBe(false);
+    expect(nombres(r.lista)).toEqual([...nombres(CATALOGO)].sort((a, b) => a.localeCompare(b, "es")));
+    expect(entrada).toEqual(CATALOGO);
+  });
+
+  it("empieza con lo escrito antes que una palabra suya, y esa antes que «lo contiene»", () => {
+    // «sol»: Sol Andino (empieza) · Girasol (contiene) · y Sol Naciente es de un proveedor (0,5): al final
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "sol").lista)).toEqual(["Sol Andino", "Girasol"]);
+    // «mia»: «Valeria Mia» tiene una palabra que empieza así
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "mia").lista)[0]).toBe("Valeria Mia");
+  });
+
+  it("a igual coincidencia manda la más usada, y después el nombre", () => {
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "am").lista).slice(0, 3)).toEqual(["Amaru", "Amuza", "Amat"]);
+    const empate = [m("Beta", 2), m("Alfa", 2), m("Bola", 7)];
+    expect(nombres(ordenarPorPrediccion(empate, "b").lista)).toEqual(["Bola", "Beta"]);
+    expect(nombres(ordenarPorPrediccion([m("Beta", 2), m("Bata", 2)], "b").lista)).toEqual(["Bata", "Beta"]);
+  });
+
+  it("no distingue tildes ni mayúsculas", () => {
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "ÑUS").lista)).toEqual(["Ñusta"]);
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "nusta").lista)).toEqual(["Ñusta"]);
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "zénit").lista)[0]).toBe("ZENIT");
+  });
+
+  it("también encuentra por el proveedor, pero después de las marcas que se llaman así", () => {
+    const r = nombres(ordenarPorPrediccion(CATALOGO, "mirador").lista);
+    expect(r).toEqual(["Amaru", "Amuza"]);
+    expect(ordenarPorPrediccion(CATALOGO, "mirador").parecidas).toBe(false);
+  });
+
+  it("escribir una marca COMPLETA la pone primera, para TODAS las marcas", () => {
+    for (const marca of CATALOGO) {
+      const r = ordenarPorPrediccion(CATALOGO, marca.nombre);
+      expect(r.lista[0].nombre, `escribiendo «${marca.nombre}»`).toBe(marca.nombre);
+      expect(r.parecidas).toBe(false);
+    }
+    // aunque otra marca más usada empiece igual
+    expect(nombres(ordenarPorPrediccion([m("Amat Moda", 50), m("Amat", 1)], "Amat").lista)[0]).toBe("Amat");
+  });
+
+  it("una errata de una letra encuentra la marca, y avisa que son parecidas", () => {
+    for (const marca of CATALOGO.filter((x) => x.nombre.replace(/[^\p{L}]/gu, "").length >= 4)) {
+      const mal = marca.nombre.slice(0, 2) + "#" + marca.nombre.slice(3);
+      const r = ordenarPorPrediccion(CATALOGO, mal);
+      expect(nombres(r.lista), `escribiendo «${mal}»`).toContain(marca.nombre);
+      expect(r.parecidas).toBe(true);
+    }
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "wayy").lista)).toEqual(["Wayi"]);
+    // una marca de varias palabras con la errata en la segunda
+    expect(nombres(ordenarPorPrediccion(CATALOGO, "alma cosa").lista)).toEqual(["Alma Costa"]);
+  });
+
+  it("no adivina con menos de 3 letras ni con algo que no se parece a nada", () => {
+    expect(ordenarPorPrediccion(CATALOGO, "qz")).toEqual({ lista: [], parecidas: true });
+    expect(ordenarPorPrediccion(CATALOGO, "zzzzzzzz")).toEqual({ lista: [], parecidas: true });
+  });
+
+  it("es determinista: la misma entrada da la misma salida, también al revés", () => {
+    for (const q of ["a", "am", "sol", "wayy", "mirador", ""]) {
+      const a = nombres(ordenarPorPrediccion(CATALOGO, q).lista);
+      expect(nombres(ordenarPorPrediccion([...CATALOGO].reverse(), q).lista)).toEqual(a);
+    }
+  });
+});
+
+describe("prediccionDe (la sombra)", () => {
+  it("completa con lo que falta de la marca más usada que empieza así", () => {
+    expect(prediccionDe(CATALOGO, "am")).toMatchObject({ cola: "aru" });
+    expect(prediccionDe(CATALOGO, "am")?.marca.nombre).toBe("Amaru");
+    expect(prediccionDe(CATALOGO, "wa")).toMatchObject({ cola: "yi" });
+  });
+
+  it("conserva lo que la persona escribió: solo agrega la cola", () => {
+    const p = prediccionDe(CATALOGO, "AMU");
+    expect(p?.marca.nombre).toBe("Amuza");
+    expect(p?.cola).toBe("za");
+  });
+
+  it("sin tildes: «nus» completa «Ñusta»", () => {
+    expect(prediccionDe(CATALOGO, "ñus")?.marca.nombre).toBe("Ñusta");
+  });
+
+  it("nada que completar: nombre entero, nada que empiece así, vacío o con espacio delante", () => {
+    expect(prediccionDe(CATALOGO, "Amaru")).toBeNull();
+    expect(prediccionDe(CATALOGO, "xyz")).toBeNull();
+    expect(prediccionDe(CATALOGO, "")).toBeNull();
+    expect(prediccionDe(CATALOGO, "  am")).toBeNull();
+    // «ola» está dentro de Girasol pero no la empieza: no se predice por el medio
+    expect(prediccionDe(CATALOGO, "ras")).toBeNull();
+  });
+
+  it("nunca ofrece completar con algo que NO empieza con lo escrito (para toda marca y todo prefijo)", () => {
+    for (const marca of CATALOGO) {
+      for (let i = 1; i < marca.nombre.length; i++) {
+        const escrito = marca.nombre.slice(0, i);
+        const p = prediccionDe(CATALOGO, escrito);
+        if (!p) continue;
+        expect(escrito.toLowerCase() === p.marca.nombre.slice(0, i).toLowerCase() || p.marca.nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().startsWith(escrito.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())).toBe(true);
+        expect(escrito + p.cola).toBe(p.marca.nombre.slice(0, i) + p.marca.nombre.slice(i));
+      }
+    }
+  });
+
+  it("a igual coincidencia, la más usada; y no muta lo que recibe", () => {
+    const entrada = [m("Cala", 1), m("Calma", 8)];
+    expect(prediccionDe(entrada, "cal")?.marca.nombre).toBe("Calma");
+    expect(entrada.map((x) => x.nombre)).toEqual(["Cala", "Calma"]);
+  });
+});
+
+describe("distanciaDeEdicion", () => {
+  it("cuenta letras cambiadas, puestas o quitadas", () => {
+    expect(distanciaDeEdicion("wayy", "wayi")).toBe(1);
+    expect(distanciaDeEdicion("amaru", "amru")).toBe(1);
+    expect(distanciaDeEdicion("", "abc")).toBe(3);
+    expect(distanciaDeEdicion("igual", "igual")).toBe(0);
   });
 });

@@ -355,3 +355,85 @@ export function rangoDeNombres(filas: readonly { nombre: string }[]): string | n
   if (filas.length === 0) return null;
   return `de ${filas[0].nombre} a ${filas[filas.length - 1].nombre}`;
 }
+
+// ---------- Catálogo ▸ Marcas: predicción del buscador (ADR-0372) ----------
+//
+// Felipe, 2026-10-10: «si el buscador ya busca dentro de las marcas, una lista desplegable es innecesaria». La predicción vive en
+// dos sitios que ya existen: una sombra en el campo con lo que falta de la marca más probable, y las tarjetas, que se ordenan
+// por lo probable mientras se escribe.
+//
+// CONTRATO
+//   PROMETE: ante lo que se escribió, (1) dejar las marcas que coinciden ordenadas de la más a la menos probable, y (2) decir
+//            qué marca completa lo escrito. Es determinista: la misma entrada da siempre la misma salida (sin azar ni red).
+//   ASUME:   que `productos` son los activos: a igual coincidencia, la marca más usada es la que más probablemente se busca.
+//   NO HACE: no cambia qué marcas existen ni las filtra por estado (eso es `marcasDelFiltro`, antes de buscar).
+
+/** `texto` sin tildes y en minúscula, SIN recortar: para predecir importa cada espacio que la persona escribió. */
+function aMinusculasSinTildes(texto: string): string {
+  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+const palabrasDe = (nombre: string): string[] => aMinusculasSinTildes(nombre).split(/[\s.&·-]+/).filter(Boolean);
+
+/** Cuánto coincide `nombre` con lo escrito `q` (ya normalizado): igual 4 · empieza con eso 3 · una palabra suya empieza así 2 ·
+ *  lo contiene 1 · nada 0. */
+function puntajeDeCoincidencia(nombre: string, q: string): number {
+  const n = aMinusculasSinTildes(nombre);
+  if (n === q) return 4;
+  if (n.startsWith(q)) return 3;
+  if (palabrasDe(nombre).some((w) => w.startsWith(q))) return 2;
+  return n.includes(q) ? 1 : 0;
+}
+
+/** Letras que hay que cambiar, poner o quitar para pasar de `a` a `b` (distancia de Levenshtein; los nombres son cortos). */
+export function distanciaDeEdicion(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  }
+  return d[a.length][b.length];
+}
+
+/** «Parecida» = lo escrito está a una letra de una palabra de la marca o de su nombre entero (a dos si lo escrito tiene 6 o más);
+ *  también contra su comienzo, para que una errata a mitad de camino («wayy», «alma cosa») encuentre «Wayi» y «Alma Costa».
+ *  Con menos de 3 letras no se adivina nada. */
+function seParece(nombre: string, q: string): boolean {
+  if (q.length < 3) return false;
+  const tope = q.length >= 6 ? 2 : 1;
+  const comparables = [aMinusculasSinTildes(nombre), ...palabrasDe(nombre)];
+  return comparables.some((w) => Math.min(distanciaDeEdicion(q, w), distanciaDeEdicion(q, w.slice(0, q.length))) <= tope);
+}
+
+type MarcaBuscable = { nombre: string; productos: number; proveedores: readonly { nombre: string }[] };
+
+/** Las marcas que coinciden con lo escrito, de la más a la menos probable: igual > empieza con eso > una palabra suya empieza así
+ *  > lo contiene > la trae un proveedor con ese nombre; a igual puntaje, la de más productos; y por nombre. Sin coincidencia
+ *  devuelve las PARECIDAS (`parecidas: true`) para que la pantalla pregunte «¿buscabas alguna de estas?» en vez de quedar vacía.
+ *  Sin texto, todas por nombre. No modifica lo que recibe. */
+export function ordenarPorPrediccion<T extends MarcaBuscable>(marcas: readonly T[], consulta: string): { lista: T[]; parecidas: boolean } {
+  const q = aMinusculasSinTildes(consulta).trim();
+  const porNombre = (a: T, b: T) => a.nombre.localeCompare(b.nombre, "es");
+  if (!q) return { lista: [...marcas].sort(porNombre), parecidas: false };
+  const nota = (m: T) => Math.max(puntajeDeCoincidencia(m.nombre, q), m.proveedores.some((p) => puntajeDeCoincidencia(p.nombre, q) > 0) ? 0.5 : 0);
+  const directas = marcas
+    .map((m) => ({ m, n: nota(m) }))
+    .filter((x) => x.n > 0)
+    .sort((a, b) => b.n - a.n || b.m.productos - a.m.productos || porNombre(a.m, b.m))
+    .map((x) => x.m);
+  if (directas.length > 0) return { lista: directas, parecidas: false };
+  return { lista: marcas.filter((m) => seParece(m.nombre, q)).sort((a, b) => b.productos - a.productos || porNombre(a, b)), parecidas: true };
+}
+
+/** La marca que completa lo escrito, y lo que le falta (`cola`): solo si lo escrito es su COMIENZO, y la más usada primero. Sin nada
+ *  que completar (lo escrito ya es el nombre entero, o no empieza ninguna marca así) devuelve null. Lo escrito no se corrige: la
+ *  sombra solo agrega lo que falta, así la persona conserva sus mayúsculas hasta que acepta. */
+export function prediccionDe<T extends { nombre: string; productos: number }>(marcas: readonly T[], consulta: string): { marca: T; cola: string } | null {
+  if (!consulta.trim() || consulta !== consulta.trimStart()) return null;
+  const q = aMinusculasSinTildes(consulta);
+  const candidatas = marcas
+    .filter((m) => m.nombre.length > consulta.length && aMinusculasSinTildes(m.nombre).length === m.nombre.length && aMinusculasSinTildes(m.nombre).startsWith(q))
+    .sort((a, b) => b.productos - a.productos || a.nombre.localeCompare(b.nombre, "es"));
+  const marca = candidatas[0];
+  return marca ? { marca, cola: marca.nombre.slice(consulta.length) } : null;
+}
