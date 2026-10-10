@@ -1,6 +1,9 @@
--- Caja ▸ Registrar ingreso, segunda parte (Felipe 2026-10-10, ADR-0371 «Actualización»): cada entrada dice de qué CUENTA sale.
+-- ADR-0375. Nació como `20261010170000` y ADR-0371 (los dos números chocaron con otros PR que entraron antes a main). Ya está
+-- en producción (versión `20261010144250`). Lo de adentro de las funciones, el comentario de la columna y el de
+-- `registrar_ingreso_caja` quedaron guardados con «ADR-0371» y no se tocan, para que el repo y producción sigan iguales.
+-- Caja ▸ Registrar ingreso, segunda parte (Felipe 2026-10-10, ADR-0375 «Actualización»): cada entrada dice de qué CUENTA sale.
 --
--- EL PROBLEMA. `20261010160000` le dio nombre a las entradas del cajón, pero el dinero seguía apareciendo sin origen. La caja
+-- EL PROBLEMA. `20261010220000` le dio nombre a las entradas del cajón, pero el dinero seguía apareciendo sin origen. La caja
 -- fuerte es una cuenta de Finanzas ▸ Cuentas y dinero con su propio saldo: sube con cada cierre que guarda ahí y solo baja con
 -- un depósito o un retiro. No había forma de devolver plata de la caja fuerte al cajón: un movimiento de dinero no podía tener
 -- un cajón como destino. Si se sacaban S/ 100 de la caja fuerte para sencillo, el cajón subía S/ 100, la caja fuerte no bajaba,
@@ -25,7 +28,7 @@
 --
 -- CÓMO. Columna nueva y función nueva. Las funciones vivas se parchan por ancla, con una marca que las hace idempotentes; si un
 -- ancla no aparece exactamente una vez, se detiene sin tocar nada. Sin políticas: se pega en una sola parte (ADR-0195).
--- Depende de `20261010160000` (sus motivos), que va antes.
+-- Depende de `20261010220000` (sus motivos), que va antes.
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';

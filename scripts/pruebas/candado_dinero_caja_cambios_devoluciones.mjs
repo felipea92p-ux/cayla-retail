@@ -9,7 +9,7 @@
  *   1. `registrar_movimiento_caja`: la base decide `es_ajuste` del MOTIVO, no de lo que manda
  *      el navegador (`p_es_ajuste` queda ignorado); el vocabulario de motivos es cerrado; y
  *      "Depósito bancario"/"Otro" exigen una referencia. Los motivos normales de siempre
- *      (Retiro de efectivo; y, desde ADR-0371, Devolución de un retiro en lugar de Compra de insumos,
+ *      (Retiro de efectivo; y, desde ADR-0375, Devolución de un retiro en lugar de Compra de insumos,
  *      que dejó de ser una salida) siguen funcionando igual para una colaboradora.
  *   2. `registrar_cambio`: el candado de líder para una diferencia NEGATIVA se sumó y se
  *      REVIRTIÓ el mismo día (`20260923110500_cambios_sin_candado_de_lider.sql`, decisión de
@@ -322,7 +322,7 @@ rollback;
 );
 
 exito(
-  "colaboradora: los motivos normales de siempre siguen funcionando igual — Retiro de efectivo (con nota) y Devolución de un retiro (sin nota, no la exige; ADR-0371)",
+  "colaboradora: los motivos normales de siempre siguen funcionando igual — Retiro de efectivo (con nota) y Devolución de un retiro (sin nota, no la exige; ADR-0375)",
   comoPersona(
     FELIPE,
     `${CAJA_TRUJILLO_MICAELA}select retail.registrar_movimiento_caja(:'caja', 'egreso', 20, 'Retiro de efectivo', 'para vuelto') as m1 \\gset

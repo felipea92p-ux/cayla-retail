@@ -274,8 +274,8 @@ export function turnoLargo(minutosAbierta: number, umbralHoras = HORAS_TURNO_LAR
 export const MOTIVO_AJUSTE_INGRESO = "Ajuste de caja (sobrante)";
 export const MOTIVO_AJUSTE_EGRESO = "Ajuste de caja (faltante)";
 
-// «Compra de insumos» ya no es una salida (Felipe 2026-10-10, ADR-0371): es un gasto y va por el gasto rápido. La base la rechaza
-// desde 20261010170000; lo ya registrado con ese motivo no cambia (Gastos lo sigue sugiriendo como gasto al clasificarlo).
+// «Compra de insumos» ya no es una salida (Felipe 2026-10-10, ADR-0375): es un gasto y va por el gasto rápido. La base la rechaza
+// desde 20261010220100; lo ya registrado con ese motivo no cambia (Gastos lo sigue sugiriendo como gasto al clasificarlo).
 const MOTIVOS_EGRESO = ["Retiro de efectivo", "Depósito bancario", MOTIVO_AJUSTE_EGRESO, "Otro"];
 const MOTIVOS_INGRESO = [MOTIVO_AJUSTE_INGRESO, "Otro"];
 

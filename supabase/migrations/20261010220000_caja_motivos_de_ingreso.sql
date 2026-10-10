@@ -1,3 +1,6 @@
+-- ADR-0375. Nació como `20261010160000` y ADR-0371: los dos números chocaron con otros PR que entraron antes a main
+-- («colores_sin_familia_estampado» y «Por revisar»). Ya está en producción (versión `20261010144148`); el comentario que guardó
+-- en la base dice ADR-0371 y se deja así para que el repo y producción sigan iguales.
 -- Caja ▸ Registrar ingreso (Felipe 2026-10-10): los motivos de una ENTRADA de plata al cajón que no es una venta.
 --
 -- EL PROBLEMA. `registrar_movimiento_caja` tiene el vocabulario cerrado del modal de Caja (20260922235000), y para una

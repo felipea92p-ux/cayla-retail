@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0371 — Caja ▸ Registrar ingreso con su origen (`20261010160000` + `20261010170000`).
+ * Prueba de ADR-0375 — Caja ▸ Registrar ingreso con su origen (`20261010220000` + `20261010220100`).
  *
  * QUÉ CUBRE
  *   · Caja fuerte → cajón: el cajón sube, la caja fuerte BAJA, el flujo lo lee como «entre cuentas» (suma cero) y el balance

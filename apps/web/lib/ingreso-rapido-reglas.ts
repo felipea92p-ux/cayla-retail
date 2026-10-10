@@ -6,8 +6,8 @@
 // otra sede, lo que vuelve de un retiro— quedaba sin nombre, y al cerrar nadie sabía de dónde salió.
 //
 // CONTRATO
-//   PROMETE: (1) a cada concepto, un motivo que la base acepta (20261010160000; la prueba lee la migración) y, si el concepto tiene
-//            contraparte, de qué cuenta sale: lo arma `registrar_ingreso_caja` (20261010170000), que baja la caja fuerte, el
+//   PROMETE: (1) a cada concepto, un motivo que la base acepta (20261010220000; la prueba lee la migración) y, si el concepto tiene
+//            contraparte, de qué cuenta sale: lo arma `registrar_ingreso_caja` (20261010220100), que baja la caja fuerte, el
 //            efectivo por rendir o el cajón de la otra sede en la misma operación, o lo anota como aporte del dueño;
 //            (2) pedir lo que la base exige: «quién la trajo» y «qué sede» se guardan en la nota, que la base pide para esos dos
 //            motivos y para «Otro»; (3) la guía de foco sale de lo mismo que `validarIngreso` bloquea (la prueba exige que coincidan).

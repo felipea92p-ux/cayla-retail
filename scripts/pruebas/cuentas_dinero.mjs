@@ -249,7 +249,7 @@ select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''aport
   esperar("un préstamo con devoluciones no se anula antes que ellas", r.ok && conDevolucion.includes("anula primero las devoluciones"), r);
   esperar("aporte y préstamo suben el banco; devolución y retiro lo bajan", r.ok && saldo === "3400.00", r);
   esperar("la plata del dueño lista las cuatro", r.ok && lista === "aporte:1000.00,devolucion_prestamo:500.00,prestamo:2000.00,retiro:100.00", r);
-  // ADR-0371: un aporte puede llegar al cajón, pero solo con su ingreso de caja (lo arma `registrar_ingreso_caja` desde Caja).
+  // ADR-0375: un aporte puede llegar al cajón, pero solo con su ingreso de caja (lo arma `registrar_ingreso_caja` desde Caja).
   esperar("la plata del dueño no entra directo al cajón (eso es un ingreso de caja)", r.ok && aCajon.includes("necesita su ingreso de caja"), r);
   esperar("un aporte no tiene cuenta de origen", r.ok && conOrigen !== "SIN_ERROR", r);
 }

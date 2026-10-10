@@ -14,7 +14,7 @@ import {
   type EstadoIngresoRapido,
 } from "./ingreso-rapido-reglas";
 
-const MIGRACION = readFileSync(join(__dirname, "../../../supabase/migrations/20261010160000_caja_motivos_de_ingreso.sql"), "utf8");
+const MIGRACION = readFileSync(join(__dirname, "../../../supabase/migrations/20261010220000_caja_motivos_de_ingreso.sql"), "utf8");
 const SEDES = [
   { id: "lim", nombre: "Tienda Lima" },
   { id: "aqp", nombre: "Tienda Arequipa" },
@@ -67,7 +67,7 @@ describe("la nota que se guarda", () => {
 });
 
 describe("lo que se manda a registrar_ingreso_caja", () => {
-  const MIGRACION_ORIGEN = readFileSync(join(__dirname, "../../../supabase/migrations/20261010170000_caja_ingresos_con_su_origen.sql"), "utf8");
+  const MIGRACION_ORIGEN = readFileSync(join(__dirname, "../../../supabase/migrations/20261010220100_caja_ingresos_con_su_origen.sql"), "utf8");
 
   it("cada concepto es uno que la función conoce, con el mismo motivo", () => {
     for (const c of CONCEPTOS_INGRESO) expect(MIGRACION_ORIGEN).toContain(`when '${c.clave}' then '${c.motivo}'`);

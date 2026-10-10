@@ -33,8 +33,8 @@ import {
 
 // Caja ▸ Registrar ingreso (Felipe 2026-10-10): la hermana del gasto rápido, con su misma hoja, su mosaico y su sello. Reemplaza a
 // «Depósito o retiro» en la cabecera de Caja: aquí solo ENTRA plata al cajón abierto, en efectivo y hoy. Cada concepto ya trae su
-// motivo de la base (20261010160000) y pide lo que hace falta para rastrearlo al cerrar: quién la trajo y de qué plata es, qué sede
-// la presta o qué fue. Guarda con `registrar_ingreso_caja` (20261010170000), que en la misma operación baja la cuenta de donde sale
+// motivo de la base (20261010220000) y pide lo que hace falta para rastrearlo al cerrar: quién la trajo y de qué plata es, qué sede
+// la presta o qué fue. Guarda con `registrar_ingreso_caja` (20261010220100), que en la misma operación baja la cuenta de donde sale
 // la plata: la caja fuerte, el efectivo por rendir o el cajón de la otra sede (o la anota como aporte del dueño). Movimiento: el del gasto rápido (ADR-0136 act. 2026-10-09), heredado de sus mismas clases `gr-*`.
 
 const ICONOS: Record<ClaveIngreso, LucideIcon> = {
