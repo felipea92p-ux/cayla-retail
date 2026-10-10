@@ -318,3 +318,40 @@ export function monogramaDeMarca(nombre: string): string {
   const t = limpia(palabras[0]).slice(0, 1) + limpia(palabras[1]).slice(0, 1);
   return t ? t.toUpperCase() : "·";
 }
+
+// ---------- Catálogo ▸ Marcas: páginas, letras y «dónde quedó» (ADR-0372) ----------
+
+/** 24 marcas por página (Felipe, 2026-10-10): se reparte exacto en 2, 3 y 4 columnas, así que la última fila nunca queda coja.
+ *  20 no cabe en 3 columnas ni 30 en 4. Es fija: la colaboradora no elige cuántas ve. */
+export const MARCAS_POR_PAGINA = 24;
+
+/** El índice «Ir a»: los números van juntos bajo «#». */
+export const ALFABETO: readonly string[] = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+
+/** La letra bajo la que cae una marca en el índice: la primera letra o número de su nombre, sin tildes («Ñusta» → N, «y.j.j» → Y,
+ *  «3.20 Store» → #). Un nombre sin letras ni números cae en «#». */
+export function letraDeMarca(nombre: string): string {
+  const c = sinTildes(nombre).match(/[a-z0-9]/)?.[0];
+  if (!c || /[0-9]/.test(c)) return "#";
+  return c.toUpperCase();
+}
+
+export function letrasDeMarcas(marcas: readonly { nombre: string }[]): Set<string> {
+  return new Set(marcas.map((m) => letraDeMarca(m.nombre)));
+}
+
+/** En qué lugar (desde 0) de una lista YA ORDENADA por nombre empieza una letra; -1 si no hay marcas con ella. */
+export function posicionDeLaLetra(marcas: readonly { nombre: string }[], letra: string): number {
+  return marcas.findIndex((m) => letraDeMarca(m.nombre) === letra);
+}
+
+/** La página (desde 1) en que cae el lugar `posicion` (desde 0). */
+export function paginaDeLaPosicion(posicion: number, porPagina: number = MARCAS_POR_PAGINA): number {
+  return Math.floor(Math.max(0, posicion) / Math.max(1, porPagina)) + 1;
+}
+
+/** «de Cala a Gala»: de qué marca a qué marca va la página que se ve. Vacío si la página está vacía. */
+export function rangoDeNombres(filas: readonly { nombre: string }[]): string | null {
+  if (filas.length === 0) return null;
+  return `de ${filas[0].nombre} a ${filas[filas.length - 1].nombre}`;
+}

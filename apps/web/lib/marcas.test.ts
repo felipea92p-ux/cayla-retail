@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   borradorCambia,
+  ALFABETO,
   estadoDeMarca,
+  letraDeMarca,
+  letrasDeMarcas,
+  MARCAS_POR_PAGINA,
+  paginaDeLaPosicion,
+  posicionDeLaLetra,
+  rangoDeNombres,
   FILTROS_MARCAS,
   marcasDelFiltro,
   monogramaDeMarca,
@@ -331,5 +338,48 @@ describe("monograma de una marca", () => {
     expect(monogramaDeMarca("   ")).toBe("·");
     expect(monogramaDeMarca("...")).toBe("·");
     expect(monogramaDeMarca("Ñusta")).toBe("Ñu");
+  });
+});
+
+describe("páginas, letras y rango", () => {
+  it("24 por página llena 2, 3 y 4 columnas sin dejar una fila coja", () => {
+    for (const columnas of [2, 3, 4]) expect(MARCAS_POR_PAGINA % columnas).toBe(0);
+  });
+
+  it("la letra de una marca: sin tildes, los números juntos bajo «#»", () => {
+    expect(letraDeMarca("Alma Costa")).toBe("A");
+    expect(letraDeMarca("Ñusta")).toBe("N");
+    expect(letraDeMarca("Álamo")).toBe("A");
+    expect(letraDeMarca("y.j.j")).toBe("Y");
+    expect(letraDeMarca("3.20 Store")).toBe("#");
+    expect(letraDeMarca("...")).toBe("#");
+    expect(letraDeMarca("  zenit")).toBe("Z");
+  });
+
+  it("toda marca cae bajo una letra que existe en el índice", () => {
+    for (const n of ["Alma", "Ñusta", "3.20", "y.j.j", "ZENIT", "", "  ", "¿Qué?"]) expect(ALFABETO).toContain(letraDeMarca(n));
+  });
+
+  it("las letras presentes y dónde empieza cada una en una lista ordenada", () => {
+    const lista = [{ nombre: "3.20 Store" }, { nombre: "Amat" }, { nombre: "Amuza" }, { nombre: "Bambú" }, { nombre: "Zoe" }];
+    expect([...letrasDeMarcas(lista)].sort()).toEqual(["#", "A", "B", "Z"]);
+    expect(posicionDeLaLetra(lista, "A")).toBe(1);
+    expect(posicionDeLaLetra(lista, "Z")).toBe(4);
+    expect(posicionDeLaLetra(lista, "W")).toBe(-1);
+  });
+
+  it("la página de un lugar: el 24.º (posición 23) sigue en la 1; el 25.º (24) pasa a la 2", () => {
+    expect(paginaDeLaPosicion(0)).toBe(1);
+    expect(paginaDeLaPosicion(23)).toBe(1);
+    expect(paginaDeLaPosicion(24)).toBe(2);
+    expect(paginaDeLaPosicion(71)).toBe(3);
+    expect(paginaDeLaPosicion(72)).toBe(4);
+    expect(paginaDeLaPosicion(-5)).toBe(1);
+  });
+
+  it("el rango dice de qué marca a cuál; vacío si no hay página", () => {
+    expect(rangoDeNombres([{ nombre: "Cala" }, { nombre: "Dalia" }, { nombre: "Gala" }])).toBe("de Cala a Gala");
+    expect(rangoDeNombres([{ nombre: "Sola" }])).toBe("de Sola a Sola");
+    expect(rangoDeNombres([])).toBeNull();
   });
 });

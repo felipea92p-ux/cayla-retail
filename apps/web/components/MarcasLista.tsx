@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, SearchX, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -8,7 +8,22 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { EditarMarcaModal, type MarcaEditada } from "@/components/EditarMarcaModal";
-import { filtrarMarcas, marcasDelFiltro, resumenDeMarcas, sePuedeEliminarMarca, type FiltroMarcas, type MarcaFila, type ProveedorOpcion } from "@/lib/marcas";
+import {
+  filtrarMarcas,
+  letrasDeMarcas,
+  MARCAS_POR_PAGINA,
+  marcasDelFiltro,
+  paginaDeLaPosicion,
+  posicionDeLaLetra,
+  rangoDeNombres,
+  resumenDeMarcas,
+  type FiltroMarcas,
+  type MarcaFila,
+  type ProveedorOpcion,
+} from "@/lib/marcas";
+import { paginar } from "@/lib/paginacion";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { IndiceLetras } from "@/components/marcas/IndiceLetras";
 import { TarjetaMarca } from "@/components/marcas/TarjetaMarca";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
@@ -83,6 +98,11 @@ export function MarcasLista({
   // El resumen nace colapsado (Felipe, 2026-10-10: las marcas primero) y no recuerda si quedó abierto.
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [filtro, setFiltro] = useState<FiltroMarcas>("activas");
+  const [verDesactivadas, setVerDesactivadas] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  // La marca que destella una vez: la que acabas de guardar o a la que saltaste con una letra.
+  const [destacada, setDestacada] = useState<string | null>(null);
+  const listaRef = useRef<HTMLUListElement>(null);
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
   // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
@@ -93,22 +113,37 @@ export function MarcasLista({
   const activas = marcas.filter((m) => m.activo);
   const desactivadas = marcas.filter((m) => !m.activo);
   const resumen = resumenDeMarcas(marcas);
-  const activasVisibles = filtrarMarcas(marcasDelFiltro(marcas, filtro), busqueda);
-  const desactivadasVisibles = filtrarMarcas(desactivadas, busqueda);
   const buscandoAlgo = busqueda.trim() !== "";
+  // Lo que se ve: las desactivadas, o las activas del filtro; siempre las que coinciden con la búsqueda, por orden de nombre.
+  const lista = filtrarMarcas(verDesactivadas ? desactivadas : marcasDelFiltro(marcas, filtro), busqueda).sort(porNombre);
+  const pag = paginar(lista, pagina, MARCAS_POR_PAGINA);
+  const presentes = letrasDeMarcas(lista);
+  const enEstaPagina = letrasDeMarcas(pag.filas);
   // Contra estas pregunta el formulario «¿no será una marca que ya existe?» (las mismas que ofrece Nuevo producto).
   const existentes = activas.map((m) => ({ id: m.id, nombre: m.nombre, proveedores: m.proveedores.map((p) => p.nombre) }));
 
+  const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Después de guardar, la lista te lleva a donde quedó la marca: el orden es alfabético y una marca nueva (o renombrada) puede caer
+  // en otra página. Suelta el filtro y la búsqueda para que se vea, y la destella una vez.
+  function irAMarca(id: string, todas: MarcaFila[]) {
+    const i = todas.filter((m) => m.activo).sort(porNombre).findIndex((m) => m.id === id);
+    setFiltro("activas");
+    setVerDesactivadas(false);
+    setBusqueda("");
+    setPagina(i >= 0 ? paginaDeLaPosicion(i) : 1);
+    setDestacada(id);
+  }
+
   function alGuardar(r: MarcaGuardada) {
     if (r.proveedorNuevo) setProveedores((prev) => [...prev, { id: r.proveedorId, nombre: r.proveedorNombre }]);
-    setMarcas((prev) => {
-      const existente = prev.find((m) => m.id === r.marcaId);
-      const par = { id: r.proveedorId, nombre: r.proveedorNombre, productos: 0, productosTotal: 0 };
-      if (existente) {
-        return prev.map((m) => (m.id === r.marcaId && !m.proveedores.some((p) => p.id === r.proveedorId) ? { ...m, proveedores: [...m.proveedores, par] } : m));
-      }
-      return [...prev, { id: r.marcaId, nombre: r.marcaNombre, activo: true, productos: 0, proveedores: [par] }].sort(porNombre);
-    });
+    const par = { id: r.proveedorId, nombre: r.proveedorNombre, productos: 0, productosTotal: 0 };
+    const existente = marcas.find((m) => m.id === r.marcaId);
+    const nuevas: MarcaFila[] = existente
+      ? marcas.map((m) => (m.id === r.marcaId && !m.proveedores.some((p) => p.id === r.proveedorId) ? { ...m, proveedores: [...m.proveedores, par] } : m))
+      : [...marcas, { id: r.marcaId, nombre: r.marcaNombre, activo: true, productos: 0, proveedores: [par] }].sort(porNombre);
+    setMarcas(nuevas);
+    irAMarca(r.marcaId, nuevas);
     avisar.exito(`${r.marcaNombre} · ${r.proveedorNombre}`, { detalle: "Guardado." });
     setModo(null);
   }
@@ -118,23 +153,49 @@ export function MarcasLista({
   function alEditar(m: MarcaFila, r: MarcaEditada) {
     const registrados = r.proveedores.filter((p) => !m.proveedores.some((x) => x.id === p.id) && !proveedores.some((x) => x.id === p.id));
     if (registrados.length > 0) setProveedores((prev) => [...prev, ...registrados].sort(porNombre));
-    setMarcas((prev) =>
-      prev
-        .map((x) =>
-          x.id !== m.id
-            ? x
-            : {
-                ...x,
-                nombre: r.nombre,
-                proveedores: r.proveedores.map((p) => {
-                  const antes = x.proveedores.find((y) => y.id === p.id);
-                  return { id: p.id, nombre: p.nombre, productos: antes?.productos ?? 0, productosTotal: antes?.productosTotal ?? 0 };
-                }),
-              }
-        )
-        .sort(porNombre)
-    );
+    const nuevas = marcas
+      .map((x) =>
+        x.id !== m.id
+          ? x
+          : {
+              ...x,
+              nombre: r.nombre,
+              proveedores: r.proveedores.map((p) => {
+                const antes = x.proveedores.find((y) => y.id === p.id);
+                return { id: p.id, nombre: p.nombre, productos: antes?.productos ?? 0, productosTotal: antes?.productosTotal ?? 0 };
+              }),
+            }
+      )
+      .sort(porNombre);
+    setMarcas(nuevas);
+    irAMarca(m.id, nuevas);
     avisar.exito(`${r.nombre} guardada`, { detalle: r.proveedores.map((p) => p.nombre).join(" · ") });
+  }
+
+  // La que destella queda a la vista (centrada) y el destello se apaga solo.
+  useEffect(() => {
+    if (!destacada) return;
+    document.querySelector(`[data-marca="${destacada}"]`)?.scrollIntoView({ block: "center", behavior: sinMovimiento() ? "auto" : "smooth" });
+    const t = window.setTimeout(() => setDestacada(null), 1200);
+    return () => window.clearTimeout(t);
+  }, [destacada]);
+
+  // Cambiar de página lleva la vista al inicio de la lista (ADR-0185): una paginación al pie no se queda abajo.
+  function irAPagina(n: number) {
+    setPagina(n);
+    listaRef.current?.scrollIntoView({ block: "start", behavior: sinMovimiento() ? "auto" : "smooth" });
+  }
+
+  function irALetra(letra: string) {
+    const i = posicionDeLaLetra(lista, letra);
+    if (i < 0) return;
+    setPagina(paginaDeLaPosicion(i));
+    setDestacada(lista[i].id);
+  }
+
+  function alBuscar(v: string) {
+    setBusqueda(v);
+    setPagina(1);
   }
 
   // Desactivar y reactivar una marca van sin responsable (Felipe, 2026-09-29); eliminar la conserva.
@@ -144,6 +205,7 @@ export function MarcasLista({
     setTrabajando(null);
     if (error) return avisar.error(traducirError(error, m.activo ? "desactivar la marca" : "reactivar la marca"));
     setMarcas((prev) => prev.map((x) => (x.id === m.id ? { ...x, activo: !x.activo } : x)));
+    if (!m.activo && desactivadas.length === 1) setVerDesactivadas(false); // reactivó la última: ya no hay vista que ver
     avisar.exito(m.activo ? `${m.nombre} desactivada` : `${m.nombre} reactivada`);
   }
 
@@ -159,7 +221,11 @@ export function MarcasLista({
   }
 
   // Tocar el filtro puesto lo suelta (vuelve a «Todas»): una cifra que filtra se apaga como se enciende.
-  const alFiltrar = (f: FiltroMarcas) => setFiltro((actual) => (actual === f && f !== "activas" ? "activas" : f));
+  const alFiltrar = (f: FiltroMarcas) => {
+    setVerDesactivadas(false);
+    setPagina(1);
+    setFiltro((actual) => (actual === f && f !== "activas" ? "activas" : f));
+  };
 
   return (
     <div className="space-y-6">
@@ -183,7 +249,7 @@ export function MarcasLista({
             )
           }
         />
-        <ResumenMarcas resumen={resumen} filtro={filtro} onFiltro={alFiltrar} abierto={resumenAbierto} />
+        <ResumenMarcas resumen={resumen} filtro={verDesactivadas ? null : filtro} onFiltro={alFiltrar} abierto={resumenAbierto} />
       </div>
 
       {modo?.tipo === "nueva" && (
@@ -195,107 +261,107 @@ export function MarcasLista({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <Buscador
             valor={busqueda}
-            onCambio={setBusqueda}
+            onCambio={alBuscar}
             placeholder="Busca una marca o un proveedor"
             etiqueta="Buscar marca o proveedor"
             atajo
             className="min-w-0 flex-1 sm:max-w-[34rem]"
           />
           <p className="text-sm text-tinta/70" aria-live="polite">
-            {buscandoAlgo || filtro !== "activas" ? `${activasVisibles.length} de ${resumen.activas}` : `${resumen.activas} marcas activas`}
+            {verDesactivadas ? `${lista.length} desactivada${lista.length === 1 ? "" : "s"}` : buscandoAlgo || filtro !== "activas" ? `${lista.length} de ${resumen.activas}` : `${resumen.activas} marcas activas`}
           </p>
-          <button
-            type="button"
-            className="btn-cayla btn-sutil ml-auto inline-flex items-center gap-1.5"
-            aria-expanded={resumenAbierto}
-            aria-controls="resumen-marcas"
-            onClick={() => setResumenAbierto((a) => !a)}
-          >
-            Resumen
-            <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${resumenAbierto ? "rotate-180" : ""}`} />
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {desactivadas.length > 0 && (
+              <button
+                type="button"
+                className="pildora-cayla"
+                aria-pressed={verDesactivadas}
+                onClick={() => {
+                  setVerDesactivadas((v) => !v);
+                  setFiltro("activas");
+                  setPagina(1);
+                }}
+              >
+                Desactivadas
+                <span className="ml-1 font-medium tabular-nums opacity-60 dark:opacity-85">{desactivadas.length}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-cayla btn-sutil inline-flex items-center gap-1.5"
+              aria-expanded={resumenAbierto}
+              aria-controls="resumen-marcas"
+              onClick={() => setResumenAbierto((a) => !a)}
+            >
+              Resumen
+              <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${resumenAbierto ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
 
-        {!resumenAbierto && <FiltrosMarcas resumen={resumen} filtro={filtro} onFiltro={alFiltrar} />}
+        {!resumenAbierto && <FiltrosMarcas resumen={resumen} filtro={verDesactivadas ? null : filtro} onFiltro={alFiltrar} />}
 
-      {activas.length === 0 && (
-        <div className="card-cayla">
+        {lista.length > 0 && !buscandoAlgo && <IndiceLetras presentes={presentes} enEstaPagina={enEstaPagina} onLetra={irALetra} />}
+
+        {activas.length === 0 && !verDesactivadas && !buscandoAlgo && (
           <Vacio icono={<Tag />} titulo="Todavía no hay marcas activas">
             {puedeEditar ? "Registra la primera con «+ Nueva marca»." : "Cuando se registre una marca, aparece aquí."}
           </Vacio>
-        </div>
-      )}
+        )}
 
-      {activas.length > 0 && !buscandoAlgo && activasVisibles.length === 0 && (
-        <Vacio icono={<Tag />} titulo="Aquí no hay marcas">
-          Ninguna marca cae en este filtro. Toca «Todas» para ver las demás.
-        </Vacio>
-      )}
+        {lista.length === 0 && activas.length > 0 && !buscandoAlgo && (
+          <Vacio icono={<Tag />} titulo="Aquí no hay marcas">
+            Ninguna marca cae en este filtro. Toca «Todas» para ver las demás.
+          </Vacio>
+        )}
 
-      {buscandoAlgo && activasVisibles.length + desactivadasVisibles.length === 0 && (
-        <Vacio
-          icono={<SearchX />}
-          titulo={<>Nada coincide con «{busqueda.trim()}»</>}
-          acciones={
-            <Boton type="button" peso="fantasma" onClick={() => setBusqueda("")}>
-              Borrar la búsqueda
-            </Boton>
-          }
-        >
-          Ninguna marca ni proveedor se llama así. Prueba con otra palabra.
-        </Vacio>
-      )}
+        {lista.length === 0 && buscandoAlgo && (
+          <Vacio
+            icono={<SearchX />}
+            titulo={<>Nada coincide con «{busqueda.trim()}»</>}
+            acciones={
+              <Boton type="button" peso="fantasma" onClick={() => alBuscar("")}>
+                Borrar la búsqueda
+              </Boton>
+            }
+          >
+            Ninguna marca ni proveedor se llama así. Prueba con otra palabra.
+          </Vacio>
+        )}
 
-      <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-        {activasVisibles.map((m, i) => (
-          <TarjetaMarca
-            key={m.id}
-            marca={m}
-            puedeEditar={puedeEditar}
-            trabajando={trabajando === m.id}
-            busqueda={busqueda}
-            indice={i}
-            onEditar={() => setModo({ tipo: "editar", marca: m })}
-            onReactivar={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}
-            onDesactivar={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
-            onEliminar={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
-          />
-        ))}
-      </ul>
-
-      {desactivadasVisibles.length > 0 && (
-        <div className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/60">Desactivadas</p>
-          <ul className="flex flex-wrap gap-2">
-            {desactivadasVisibles.map((m) => (
-              <li key={m.id} className="flex items-center gap-2 rounded-md border border-tinta/15 px-2.5 py-1.5 text-sm text-tinta/60">
-                {m.nombre}
-                {puedeEditar && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}
-                    disabled={trabajando === m.id}
-                    className="btn-cayla btn-secundario"
-                  >
-                    Reactivar
-                  </button>
-                )}
-                {puedeEditar && sePuedeEliminarMarca(m.proveedores) && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
-                    disabled={trabajando === m.id}
-                    className="btn-cayla btn-peligro"
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </li>
+        {lista.length > 0 && (
+          <ul ref={listaRef} className="grid scroll-mt-24 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+            {pag.filas.map((m, i) => (
+              <TarjetaMarca
+                key={m.id}
+                marca={m}
+                puedeEditar={puedeEditar}
+                trabajando={trabajando === m.id}
+                busqueda={busqueda}
+                indice={i}
+                destello={destacada === m.id}
+                onEditar={() => setModo({ tipo: "editar", marca: m })}
+                onDesactivar={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
+                onReactivar={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}
+                onEliminar={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
+              />
             ))}
           </ul>
-        </div>
-      )}
+        )}
 
+        {lista.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-sand pt-4">
+            <p className="text-sm text-tinta/70" aria-live="polite">
+              Mostrando{" "}
+              <b className="font-semibold text-tinta">
+                {pag.desde}–{pag.hasta}
+              </b>{" "}
+              de <b className="font-semibold text-tinta">{lista.length}</b>
+              {!buscandoAlgo && rangoDeNombres(pag.filas) && <> · {rangoDeNombres(pag.filas)}</>}
+            </p>
+            <PaginacionLocal pagina={pag.pagina} totalPaginas={pag.totalPaginas} onPagina={irAPagina} grande />
+          </div>
+        )}
       </section>
 
       <p className="nota-cayla">
