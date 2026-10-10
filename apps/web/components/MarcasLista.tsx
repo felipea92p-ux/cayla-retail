@@ -118,7 +118,7 @@ export function MarcasLista({
   const desactivadas = marcas.filter((m) => !m.activo);
   const resumen = resumenDeMarcas(marcas);
   const buscandoAlgo = busqueda.trim() !== "";
-  // Lo que se ve: las desactivadas, o las activas del filtro. Sin búsqueda, por nombre; escribiendo, por lo más probable (ADR-0372),
+  // Lo que se ve: las desactivadas, o las activas del filtro. Sin búsqueda, por nombre; escribiendo, por lo más probable (ADR-0373),
   // y si nada coincide, las parecidas («wayy» → Wayi). La sombra del buscador completa la marca más probable que EMPIEZA así.
   const base = verDesactivadas ? desactivadas : marcasDelFiltro(marcas, filtro);
   const { lista, parecidas } = ordenarPorPrediccion(base, busqueda);

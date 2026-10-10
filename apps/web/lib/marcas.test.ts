@@ -276,7 +276,7 @@ describe("/productos?marca=sin y ?proveedor=sin (ADR-0283)", () => {
   });
 });
 
-// ---------- estado, resumen y filtro (ADR-0372) ----------
+// ---------- estado, resumen y filtro (ADR-0373) ----------
 const par = (productosTotal: number) => ({ id: `p${productosTotal}`, nombre: "Prov", productos: productosTotal, productosTotal });
 const fila = (activo: boolean, productos: number, proveedores: ReturnType<typeof par>[]) => ({ id: "m", nombre: "M", activo, productos, proveedores });
 

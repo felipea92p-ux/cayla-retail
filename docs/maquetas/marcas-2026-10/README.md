@@ -1,8 +1,8 @@
 # Spike visual · Catálogo ▸ Marcas (2026-10-10, v2)
 
-> **Estado: propuesta, sin decidir.** Nada de esto está en la app. Es la prueba que pidió Felipe para ver cómo se lleva
-> «Marcas» a un diseño más vivo, con las marcas como protagonistas y 89 marcas paginadas. El prompt para construirla de verdad
-> está en [`PROMPT.md`](PROMPT.md).
+> **Estado: construida en la app (ADR-0373, 2026-10-10).** Esta carpeta queda como registro de la maqueta que Felipe fue ajustando y de
+> lo que se midió; la pantalla real es `apps/web/components/MarcasLista.tsx` con `components/marcas/`. El prompt con el que se pidió
+> construirla está en [`PROMPT.md`](PROMPT.md).
 
 `spike.html`: un solo archivo, se abre con doble clic o con el servidor `maquetas` de `.claude/launch.json`
 (`/marcas-2026-10/spike.html`). Arriba, una barra punteada con los controles de la maqueta (no es parte del ERP).

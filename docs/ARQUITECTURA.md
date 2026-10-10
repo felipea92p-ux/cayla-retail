@@ -764,7 +764,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
-  `MarcasLista.tsx` (buscador por marca o proveedor, `lib/marcas.ts:filtrarMarcas`) + `EditarMarcaModal.tsx`
+  `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
+  píldoras `FiltrosMarcas.tsx`, tarjeta `TarjetaMarca.tsx` con el estado en el monograma y lo peligroso en `MenuAcciones`, 24 por
+  página con `IndiceLetras.tsx` y `PaginacionLocal grande`, buscador con predicción: `<Buscador sombra>` + `lib/marcas.ts:ordenarPorPrediccion`
+  y `prediccionDe`; estado y conteos `estadoDeMarca`/`resumenDeMarcas`; CSS `app/estilos/marcas.css`) + `EditarMarcaModal.tsx`
   (RPC `editar_marca`, `20260926150000`: nombre + sumar/quitar proveedores + registrar uno nuevo, todo o nada;
   reglas puras `problemaEdicionMarca`/`borradorCambia`). Crear: `NuevaMarcaForm` → `crear_marca`. Desactivar: UPDATE
   directo a `marcas` (policy + trigger `fn_marcas_desactivar_candado`). Eliminar: RPC `eliminar_marca`

@@ -21,7 +21,7 @@ const CLASE_FRASE: Record<EstadoMarca, string> = {
 };
 
 /**
- * La tarjeta de una marca en Catálogo ▸ Marcas (ADR-0372): el estado se ve sin leer (monograma de color), el nombre manda, la
+ * La tarjeta de una marca en Catálogo ▸ Marcas (ADR-0373): el estado se ve sin leer (monograma de color), el nombre manda, la
  * cifra de productos es un dato de apoyo (compacta, Felipe 2026-10-10) y lo peligroso vive en «Más ▾» —con el motivo a la vista
  * cuando no se puede— en vez de dos botones rojos por tarjeta (con 89 marcas eran 178: el rojo vale máximo 2 por pantalla).
  *

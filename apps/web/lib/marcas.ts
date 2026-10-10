@@ -249,7 +249,7 @@ export function borradorCambia(nombreActual: string, b: BorradorMarca): boolean 
   return b.nombre.trim().replace(/\s+/g, " ") !== nombreActual || b.quitar.length > 0 || b.sumar.length > 0 || b.nuevos.length > 0;
 }
 
-// ---------- Catálogo ▸ Marcas: estado, resumen y filtro (ADR-0372) ----------
+// ---------- Catálogo ▸ Marcas: estado, resumen y filtro (ADR-0373) ----------
 //
 // CONTRATO
 //   PROMETE: decir, de cada marca, en cuál de cuatro estados está, y contar cuántas hay en cada uno. Son los MISMOS cuatro
@@ -319,7 +319,7 @@ export function monogramaDeMarca(nombre: string): string {
   return t ? t.toUpperCase() : "·";
 }
 
-// ---------- Catálogo ▸ Marcas: páginas, letras y «dónde quedó» (ADR-0372) ----------
+// ---------- Catálogo ▸ Marcas: páginas, letras y «dónde quedó» (ADR-0373) ----------
 
 /** 24 marcas por página (Felipe, 2026-10-10): se reparte exacto en 2, 3 y 4 columnas, así que la última fila nunca queda coja.
  *  20 no cabe en 3 columnas ni 30 en 4. Es fija: la colaboradora no elige cuántas ve. */
@@ -356,7 +356,7 @@ export function rangoDeNombres(filas: readonly { nombre: string }[]): string | n
   return `de ${filas[0].nombre} a ${filas[filas.length - 1].nombre}`;
 }
 
-// ---------- Catálogo ▸ Marcas: predicción del buscador (ADR-0372) ----------
+// ---------- Catálogo ▸ Marcas: predicción del buscador (ADR-0373) ----------
 //
 // Felipe, 2026-10-10: «si el buscador ya busca dentro de las marcas, una lista desplegable es innecesaria». La predicción vive en
 // dos sitios que ya existen: una sombra en el campo con lo que falta de la marca más probable, y las tarjetas, que se ordenan
