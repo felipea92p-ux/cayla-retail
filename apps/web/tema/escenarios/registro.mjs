@@ -659,6 +659,11 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
     },
   },
+  // ADR-0371 · «Por revisar»: las dos hojas (Aprobar, y Rechazar con y sin bloqueo). La del rechazo sin bloqueo necesita una prenda sin stock ni
+  // orden en proceso; si no hay ninguna en la base local, abre la bloqueada (también es una hoja que auditar) y `abre` sigue exigiendo la ventana.
+  { id: "por-revisar.aprobar", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · la hoja «Aprobar»", async preparar(pagina) { await pagina.getByRole("button", { name: /^Aprobar$/ }).first().click({ timeout: 8000 }); await esperar(pagina, 1300); } },
+  { id: "por-revisar.rechazar-bloqueado", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · «Rechazar» con stock o una orden en proceso (la hoja que explica qué lo frena)", async preparar(pagina) { const fila = pagina.locator("ul[data-resultados] > li").filter({ hasText: /en stock|en proceso/ }).first(); await fila.getByRole("button", { name: /^Rechazar$/ }).click({ timeout: 8000 }); await esperar(pagina, 1300); } },
+  { id: "por-revisar.rechazar", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · «Rechazar» de una prenda sin nada colgado (la advertencia de que es permanente)", async preparar(pagina) { const limpias = pagina.locator("ul[data-resultados] > li").filter({ hasNotText: /en stock|en proceso/ }); const fila = (await limpias.count()) > 0 ? limpias.first() : pagina.locator("ul[data-resultados] > li").first(); await fila.getByRole("button", { name: /^Rechazar$/ }).click({ timeout: 8000 }); await esperar(pagina, 1300); } },
   { id: "nuevo.familia", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 1: las categorías de una familia", preparar: nuevoHasta("familia") },
   { id: "nuevo.como-es", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 2: cómo es (marca, nombre, tejido, patrón)", preparar: nuevoHasta("como-es") },
   { id: "nuevo.tallas", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 3: tallas y colores", preparar: nuevoHasta("tallas") },
