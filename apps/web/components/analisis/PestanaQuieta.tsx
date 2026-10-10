@@ -87,7 +87,7 @@ export function PestanaQuieta() {
       icono: "camion",
       est: "ate",
       prendas: enviar,
-      lote: lote(enviarTodas, "Enviar todas", `Enviar todas a ${sedeDestino?.ciudad ?? "otra tienda"}`),
+      lote: lote(enviarTodas, "Enviar todos", `Enviar todos a ${sedeDestino?.ciudad ?? "otra tienda"}`),
     },
     {
       clave: "liquidar",
@@ -96,7 +96,7 @@ export function PestanaQuieta() {
       icono: "etiqueta",
       est: "ate",
       prendas: liquidar,
-      lote: lote(liquidarTodas, "Liquidar todas", `Liquidar todas: ${liquidar.length} ${plural(liquidar.length, "prenda", "prendas")}`),
+      lote: lote(liquidarTodas, "Liquidar todos", `Liquidar todos: ${liquidar.length} ${plural(liquidar.length, "modelo", "modelos")}`),
     },
     {
       clave: "vigila",
@@ -226,7 +226,7 @@ export function PestanaQuieta() {
     <>
       <div className="dos d21">
         <section className="tarjeta bloque q-numeros entra" style={{ ["--i" as string]: 0 }}>
-          <Numero valor={nf(cifras.prendas)} et={plural(cifras.prendas, "prenda quieta", "prendas quietas")} sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}`} />
+          <Numero valor={nf(cifras.prendas)} et={plural(cifras.prendas, "modelo quieto", "modelos quietos")} sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}`} />
           <Numero
             valor={cifras.costo === null ? "—" : soles(cifras.costo)}
             et={
@@ -246,7 +246,7 @@ export function PestanaQuieta() {
       {sinSalir > 0 && (
         <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 1 }}>
           <span className="b-nota">
-            <b>{nf(sinSalir)}</b> {plural(sinSalir, "prenda nunca salió al piso: no cuenta aquí.", "prendas nunca salieron al piso: no cuentan aquí.")}
+            <b>{nf(sinSalir)}</b> {plural(sinSalir, "modelo nunca salió al piso: no cuenta aquí.", "modelos nunca salieron al piso: no cuentan aquí.")}
           </span>
           <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("piso")}>
             Nunca salió al piso <Icono nombre="sigue" />
