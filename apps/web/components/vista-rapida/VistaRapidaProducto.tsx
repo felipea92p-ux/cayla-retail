@@ -20,6 +20,10 @@ import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
+import { FichaDelColor } from "@/components/ui/FichaDelColor";
+import { fichaDelColor, type ColorConFicha } from "@/lib/ficha-del-color";
+
+const SIN_COLORES: ColorConFicha[] = [];
 
 const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
 // El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
@@ -55,10 +59,13 @@ export function VistaRapidaProducto({
   onEliminar,
   onCambiarEstado,
   preciosAqui,
+  colores = SIN_COLORES,
 }: {
   producto: ProductoListado;
   /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
   preciosAqui?: Record<string, number>;
+  /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): bajo la foto, con qué se combina el color que está en ella. Vacío = nada. */
+  colores?: ColorConFicha[];
   stock: StockDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
@@ -99,6 +106,14 @@ export function VistaRapidaProducto({
   const detalleOtras = existencias ? lineasDeStock(existencias).detalle : null;
   const claveEnFoto = vista ?? fijado;
   const filaEnFoto = matriz.filas.find((f) => f.clave === claveEnFoto) ?? matriz.filas[0];
+  // La ficha del color que está en la foto: la fila de la matriz lleva el NOMBRE del color (único en el vocabulario, `colores_clave_unica`),
+  // y por él se llega al código y a su ficha. Sin stock del catálogo entero a mano, los compañeros no dicen cuántos cuelgan aquí.
+  const vocabularioColores = useMemo(() => {
+    const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
+    const codigoPorNombre = new Map(colores.map((c) => [c.nombre, c.codigo]));
+    return { porCodigo, codigoPorNombre };
+  }, [colores]);
+  const fichaEnFoto = filaEnFoto ? fichaDelColor(vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre), vocabularioColores.porCodigo) : null;
   const etiquetas = etiquetasDeLaSeleccion(matriz, elegidas, producto.referencia);
   const idsTodos = producto.variantes.map((v) => v.varianteId);
   const elegidasIds = matriz.celdas.filter((c) => elegidas.has(c.varianteId)).map((c) => c.varianteId);
@@ -208,6 +223,13 @@ export function VistaRapidaProducto({
               <span className="vr-est">{vista !== null && vista !== fijado ? "vista previa" : "fijado"}</span>
             </div>
             <p className="vr-pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
+            {/* Con qué se combina el color de la foto (ADR-0316; Felipe 2026-10-10): sigue a la foto (vista previa al pasar, fijado al clic),
+                en una caja de alto fijo para que la hoja no cambie de tamaño bajo el mouse (ADR-0185); la frase, tras «¿Por qué?». */}
+            {fichaEnFoto && (
+              <div className="vr-color-ficha">
+                <FichaDelColor key={filaEnFoto?.clave} ficha={fichaEnFoto} forma="bloque" />
+              </div>
+            )}
           </div>
           {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
           {producto.descripcion && (

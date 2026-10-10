@@ -5,6 +5,7 @@ import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
 import {
   filtrosProductosDesdeParams,
   conSede,
@@ -103,7 +104,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo").eq("activo", true).order("nombre"),
+    // Con su ficha (descripción y «combina con», ADR-0316): la vista rápida la lee bajo la foto del color que se mira (Felipe 2026-10-10).
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -153,6 +155,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return c ? { ...p, categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : p;
   });
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
+  const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({
+    codigo: c.codigo,
+    nombre: c.nombre,
+    hex: c.hex,
+    familiaColor: c.familia_color ?? "",
+    tipo: c.tipo,
+    descripcion: c.descripcion ?? null,
+    combinaCon: c.combina_con ?? [],
+  }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
     .map((t) => ({ id: t.id, nombre: t.valor }))
@@ -287,6 +298,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
             preciosAqui={preciosTiendas.porSede[persona.ubicacionId]}
+            colores={fichasDeColor}
           />
         ) : (
           <ProductosTabla
