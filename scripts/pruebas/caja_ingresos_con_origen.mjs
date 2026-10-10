@@ -57,6 +57,10 @@ $f$;
 create function pg_temp.saldo(p_id uuid) returns numeric language sql as $f$
   select saldo from retail.fn_cuentas_dinero_saldos() where id = p_id;
 $f$;
+-- Lo que el balance de hoy cuenta como «ingresos sin origen» (en monto: la semilla del CI, cargada hoy, ya trae uno suyo).
+create function pg_temp.sin_origen() returns numeric language sql as $f$
+  select coalesce(sum(monto), 0) from retail.fn_bal_causas_dinero(retail.fn_hoy_lima(), retail.fn_hoy_lima()) where clave = 'ingreso_sin_origen';
+$f$;
 create function pg_temp.flujo(p_cat text) returns numeric language sql as $f$
   select coalesce(sum(monto), 0) from retail.fn_flujo_lineas(retail.fn_hoy_lima(), retail.fn_hoy_lima()) where categoria = p_cat;
 $f$;
@@ -90,6 +94,7 @@ select pg_temp.saldo(:'fuerte_tru') as f0 \\gset
 select ${esperado("caja")} as e0 \\gset
 select pg_temp.flujo('entre_cuentas') as ec0 \\gset
 select pg_temp.flujo('otros_ingresos') as oi0 \\gset
+select pg_temp.sin_origen() as so0 \\gset
 ${cambiaA(MICAELA)}
 select retail.registrar_ingreso_caja(:'caja', 'caja_fuerte', 100, null, null, null, gen_random_uuid()) as ing \\gset
 ${cambiaA(FELIPE)}
@@ -99,7 +104,7 @@ select (select motivo from retail.caja_movimientos where id = :'ing');
 select (select tipo || ':' || (cuenta_origen_id = :'fuerte_tru') from retail.movimientos_dinero where caja_ingreso_id = :'ing');
 select pg_temp.flujo('entre_cuentas') - :ec0;
 select pg_temp.flujo('otros_ingresos') - :oi0;
-select count(*) from retail.fn_bal_causas_dinero(retail.fn_hoy_lima(), retail.fn_hoy_lima()) where clave = 'ingreso_sin_origen';
+select pg_temp.sin_origen() - :so0;
 `);
   const [dFuerte, dCajon, motivo, md, dEntre, dOtros, sinOrigen] = lineas(r);
   esperar("caja fuerte: la caja fuerte baja S/ 100", Number(dFuerte) === -100, r);
@@ -108,7 +113,7 @@ select count(*) from retail.fn_bal_causas_dinero(retail.fn_hoy_lima(), retail.fn
   esperar("caja fuerte: su movimiento es entre cuentas desde la caja fuerte", md === "entre_cuentas:true", r);
   esperar("caja fuerte: el flujo lo ve entre cuentas, sumando cero", Number(dEntre) === 0, r);
   esperar("caja fuerte: el flujo NO lo cuenta como otro ingreso", Number(dOtros) === 0, r);
-  esperar("caja fuerte: el balance no lo cuenta sin origen", Number(sinOrigen) === 0, r);
+  esperar("caja fuerte: el balance no lo suma a los ingresos sin origen", Number(sinOrigen) === 0, r);
 }
 
 // 2. Lo trae el líder: de un cierre y del dueño.
