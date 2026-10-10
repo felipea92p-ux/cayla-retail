@@ -32,6 +32,7 @@ import {
   argsCrearOrden,
   argsEditarOrden,
   calcularLinea,
+  dudaDeLinea,
   camposDeLaOrden,
   lineaVacia,
   problemaDeEntrega,
@@ -530,6 +531,8 @@ function LineaOrden({
 }) {
   const id = `linea-${l.clave}`;
   const c = calcularLinea(l);
+  // Miles con punto («1.000», «1.500»): no se adivina, se dice a la vista cómo escribirlo (chaos 2026-10-10).
+  const duda = dudaDeLinea(l);
   // El otro lado del descuento, ya calculado: «−S/ 40.00» si se escribió en %, «−9.17 %» si se escribió en soles. Va junto al subtotal
   // de la línea, no bajo la caja del descuento (Felipe, 2026-10-10: debajo de la caja se veía mal y descuadraba la fila): ahí se lee
   // como lo que es, cuánto le quitó el descuento a la línea.
@@ -620,6 +623,11 @@ function LineaOrden({
         </div>
         <div className="hidden justify-end @min-[56rem]:flex">{quitar("")}</div>
       </div>
+      {duda && (
+        <Aviso tono="atencion" chico className="mt-2">
+          {duda}
+        </Aviso>
+      )}
     </CampoGuiado>
   );
 }

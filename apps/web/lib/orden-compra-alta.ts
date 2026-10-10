@@ -203,6 +203,19 @@ function dudaDeMonto(texto: string): string {
   return `¿«${t}» es S/ ${miles} o S/ ${decimal}? Escríbelo sin punto (${miles}) o con dos decimales (${decimal}).`;
 }
 
+/** Si la línea tiene un número escrito con miles con punto, la frase que lo explica (para decirla A LA VISTA bajo la línea, no solo al
+ *  pasar el mouse por «Falta: Línea N»); null si no hay duda. */
+export function dudaDeLinea(l: LineaBorrador): string | null {
+  const ambiguo = (texto: string, decimales: number) => {
+    const r = leerNumero(texto, decimales);
+    return r.tipo === "mal" && r.motivo === "ambiguo";
+  };
+  if (ambiguo(l.cantidad, 0)) return dudaDeCantidad(l.cantidad);
+  if (ambiguo(l.precio, 2)) return dudaDeMonto(l.precio);
+  if (l.modoDescuento === "soles" && ambiguo(l.descuento, 2)) return dudaDeMonto(l.descuento);
+  return null;
+}
+
 /** El primer problema de una línea, en una frase para quien la llena; null si la línea está lista. */
 export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): string | null {
   if (!l.categoriaId || !ctx.categoriasActivas.has(l.categoriaId)) return "Elige la categoría.";

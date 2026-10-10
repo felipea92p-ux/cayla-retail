@@ -4,6 +4,7 @@ import {
   POR_REPARTIR,
   aTexto,
   argsCrearOrden,
+  dudaDeLinea,
   textoParaBase,
   argsEditarOrden,
   borradorDeDetalle,
@@ -96,6 +97,13 @@ describe("leerNumero: lo que se tipea en el puesto", () => {
     expect(problemaDeLinea(linea({ cantidad: "2", precio: "1.500" }), CTX)).toBe(
       "¿«1.500» es S/ 1500 o S/ 1.50? Escríbelo sin punto (1500) o con dos decimales (1.50).",
     );
+  });
+  it("la duda se dice a la vista bajo la línea (no solo al pasar el mouse): cantidad, precio o descuento en soles; sin duda, nada", () => {
+    expect(dudaDeLinea(linea({ cantidad: "1.000" }))).toBe("¿«1.000» son 1000? Escribe la cantidad sin punto: 1000.");
+    expect(dudaDeLinea(linea({ precio: "12.500" }))).toBe("¿«12.500» es S/ 12500 o S/ 12.50? Escríbelo sin punto (12500) o con dos decimales (12.50).");
+    expect(dudaDeLinea(linea({ modoDescuento: "soles", descuento: "1.000" }))).toContain("¿«1.000» es S/ 1000 o S/ 1.00?");
+    expect(dudaDeLinea(linea({ modoDescuento: "pct", descuento: "1.000" }))).toBeNull();
+    expect(dudaDeLinea(linea())).toBeNull();
   });
   it("aTexto escribe el número canónico que viaja a la base", () => {
     expect(aTexto(2550, 2)).toBe("25.50");
