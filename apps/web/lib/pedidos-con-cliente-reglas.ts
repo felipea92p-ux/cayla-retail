@@ -446,7 +446,8 @@ export function faltaParaPedir(d: DatosPedirYApartar): { talla: boolean; tienda:
     tienda: d.tiendaId === "",
     nombres: d.nombres.trim() === "",
     apellidos: d.apellidos.trim() === "",
-    celular: !celularValido(d.celular),
+    // Opcional (ADR-0367): vacío pasa; el que se escribe tiene que ser un celular.
+    celular: soloDigitos(d.celular) !== "" && !celularValido(d.celular),
   };
 }
 

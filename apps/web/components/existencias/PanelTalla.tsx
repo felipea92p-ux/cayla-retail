@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Archive, ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
+import { Archive, ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X, ZoomIn } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useArrastrarParaCerrar } from "@/components/ui/useArrastrarParaCerrar";
@@ -15,6 +15,7 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
+import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
 import { accionesDeTalla, origenesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
@@ -178,6 +179,10 @@ export function PanelTalla({
   const [hecho, setHecho] = useState<string | null>(null);
   // «¿Cómo se vende?» del pie: el ritmo y el código, plegados (2026-10-07).
   const [verRitmo, setVerRitmo] = useState(false);
+  // «Todas»: ver solo lo del piso o solo lo del almacén (Felipe, 2026-10-09). `null` = las dos mitades de cada celda.
+  const [capa, setCapa] = useState<"piso" | "almacen" | null>(null);
+  // La foto a tamaño completo, al tocar la miniatura de la cabecera.
+  const [fotoGrande, setFotoGrande] = useState(false);
   // Cada vez que la tarjeta pide algo nuevo (otra talla, otra acción rápida), el panel lo toma sin cerrarse ni abrirse de nuevo.
   const [pedida, setPedida] = useState({ claveInicial, varianteInicial, flujoInicial, vistaInicial });
   if (pedida.claveInicial !== claveInicial || pedida.varianteInicial !== varianteInicial || pedida.flujoInicial !== flujoInicial || pedida.vistaInicial !== vistaInicial) {
@@ -401,6 +406,35 @@ export function PanelTalla({
     );
   };
 
+  /** «Todas»: la casilla del piso o del almacén es también el filtro de la tabla (Felipe, 2026-10-09). Lleva el mismo ícono y el
+   *  mismo tono que su mitad de la celda (percha verde arriba, caja pizarra abajo); tocarla deja ver solo esa mitad, y tocarla otra vez
+   *  vuelve a las dos. La que no está elegida se apaga para que se note cuál manda. */
+  const casillaCapa = (cual: "piso" | "almacen", valor: number) => {
+    const elegida = capa === cual;
+    const apagada = capa !== null && !elegida;
+    const Icono = cual === "piso" ? IconoPercha : Archive;
+    const rotulo = cual === "piso" ? "En el piso" : "En almacén";
+    const tono = cual === "piso" ? "bg-verde/[0.12] text-verde" : "bg-pizarra/[0.12] text-pizarra";
+    return (
+      <button
+        type="button"
+        aria-pressed={elegida}
+        onClick={() => setCapa(elegida ? null : cual)}
+        title={elegida ? "Ver piso y almacén" : `Ver solo lo ${cual === "piso" ? "del piso" : "del almacén"}`}
+        className={`relative grid gap-1 rounded-[11px] border px-2 py-2 text-left transition-[opacity,box-shadow,border-color] ${tono} ${
+          elegida ? "border-tinta shadow-[0_0_0_1px_var(--color-tinta)]" : "border-transparent hover:border-tinta/30"
+        } ${apagada ? "opacity-45" : ""}`}
+      >
+        <span className="flex items-center gap-1.5">
+          <Icono aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+          <b className="block font-display text-[22px] font-medium leading-none tabular-nums text-tinta">{valor}</b>
+        </span>
+        <small className="whitespace-nowrap text-[12px] font-semibold text-tinta sm:text-[12.5px]">{rotulo}</small>
+        {elegida && <Check aria-hidden className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-tinta" strokeWidth={2.2} />}
+      </button>
+    );
+  };
+
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
@@ -436,9 +470,25 @@ export function PanelTalla({
           <div aria-hidden className="mx-auto mt-2.5 h-[5px] w-[46px] shrink-0 rounded-full bg-sand sm:hidden" />
           {/* Cabecera: la prenda, su marca, categoría y precio. */}
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-sand px-[18px] pb-2.5 pt-3">
-            <div className="h-14 w-[46px] shrink-0 overflow-hidden rounded-[10px] bg-sand/50">
-              {prenda.fotoUrl ? <Image src={prenda.fotoUrl} alt="" width={92} height={112} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={prenda.colorHex} {...categoriaDe(prenda)} />}
-            </div>
+            {prenda.fotoUrl ? (
+              // Con foto, la miniatura se toca y abre la foto entera (Felipe, 2026-10-09); sin foto no hay nada que agrandar.
+              <button
+                type="button"
+                onClick={() => setFotoGrande(true)}
+                aria-label={`Ver la foto de ${prenda.referencia} en grande`}
+                title="Ver la foto en grande"
+                className="group relative h-14 w-[46px] shrink-0 overflow-hidden rounded-[10px] bg-sand/50 outline-none ring-tinta/40 transition-shadow hover:ring-2 focus-visible:ring-2"
+              >
+                <Image src={prenda.fotoUrl} alt="" width={92} height={112} unoptimized className="h-full w-full object-cover" />
+                <span aria-hidden className="absolute bottom-0.5 right-0.5 grid h-[18px] w-[18px] place-items-center rounded-full bg-papel/90 text-tinta shadow-[0_1px_3px_color-mix(in_srgb,var(--color-sombra)_25%,transparent)]">
+                  <ZoomIn className="h-3 w-3" strokeWidth={2} />
+                </span>
+              </button>
+            ) : (
+              <div className="h-14 w-[46px] shrink-0 overflow-hidden rounded-[10px] bg-sand/50">
+                <SinFoto tamano="h-full w-full" colorHex={prenda.colorHex} {...categoriaDe(prenda)} />
+              </div>
+            )}
             <div className="min-w-0">
               <Dialog.Title asChild>
                 <h2 className="truncate font-display text-[21px] leading-tight text-tinta">{prenda.referencia}</h2>
@@ -731,27 +781,39 @@ export function PanelTalla({
                       </p>
                     </div>
                     <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
-                      {casilla(sumaModelo.piso, separa ? "en el piso" : "disponibles")}
-                      {separa && casilla(sumaModelo.almacen, "en almacén")}
+                      {separa ? casillaCapa("piso", sumaModelo.piso) : casilla(sumaModelo.piso, "disponibles")}
+                      {separa && casillaCapa("almacen", sumaModelo.almacen)}
                       {casilla(sumaModelo.apartado, sumaModelo.apartado === 1 ? "apartada" : "apartadas", "apartada")}
                       {casilla(sumaModelo.danado, sumaModelo.danado === 1 ? "dañada" : "dañadas", "danada")}
                     </div>
-                    {separa && (
-                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-taupe">
-                        <span className="inline-flex items-center gap-1.5">
-                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] bg-verde/[0.22]" />
-                          arriba: en el piso
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand" />
-                          abajo: en almacén
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] bg-ambar/[0.22]" />
-                          falta colgar
-                        </span>
-                      </p>
-                    )}
+                    {separa &&
+                      (capa ? (
+                        // Con una capa elegida, la línea dice qué se está viendo y cómo volver a ver las dos.
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-tinta">
+                          {capa === "piso" ? <IconoPercha aria-hidden className="h-3.5 w-3.5 text-verde" strokeWidth={1.8} /> : <Archive aria-hidden className="h-3.5 w-3.5 text-pizarra" strokeWidth={1.8} />}
+                          <span>
+                            Solo lo que está <b className="font-semibold">{capa === "piso" ? "en el piso" : "en almacén"}</b>
+                          </span>
+                          <button type="button" onClick={() => setCapa(null)} className="btn-cayla btn-enlace text-[12.5px]">
+                            Ver piso y almacén
+                          </button>
+                        </p>
+                      ) : (
+                        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-taupe">
+                          <span className="inline-flex items-center gap-1.5">
+                            <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-verde/[0.22]" />
+                            Arriba: en el piso
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-pizarra/[0.16]" />
+                            Abajo: en almacén
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.22]" />
+                            Falta colgar
+                          </span>
+                        </p>
+                      ))}
                     <div className="scroll-cayla overflow-x-auto">
                       <table className="w-full table-fixed border-separate border-spacing-y-2 text-center text-sm">
                         <colgroup>
@@ -786,7 +848,21 @@ export function PanelTalla({
                                   irA(c, f);
                                   setVista("talla");
                                 };
-                                const lectura = `${c.color ?? "Sin color"} ${t}: ${celda.estado === "agotada" ? "se acabó" : separa ? `${celda.piso} en el piso, ${celda.almacen} en almacén` : `${celda.piso} disponibles`}. Ver esta talla`;
+                                const lectura = `${c.color ?? "Sin color"} ${t}: ${
+                                  celda.estado === "agotada"
+                                    ? "se acabó"
+                                    : !separa
+                                      ? `${celda.piso} disponibles`
+                                      : capa === "piso"
+                                        ? `${celda.piso} en el piso`
+                                        : capa === "almacen"
+                                          ? `${celda.almacen} en almacén`
+                                          : `${celda.piso} en el piso, ${celda.almacen} en almacén`
+                                }. Ver esta talla`;
+                                // Con una capa elegida, la celda muestra SOLO esa mitad, a todo el alto y con el número más grande.
+                                const verPiso = !separa || capa !== "almacen";
+                                const verAlmacen = separa && capa !== "piso";
+                                const grande = separa && capa !== null;
                                 return (
                                   <td key={t} className="px-[3px]">
                                     {celda.estado === "agotada" ? (
@@ -795,13 +871,15 @@ export function PanelTalla({
                                       </button>
                                     ) : (
                                       <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[46px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
-                                        <span className={`flex w-full flex-1 items-center justify-center gap-1 text-[13.5px] font-bold tabular-nums ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.14] text-verde" : "text-taupe/70"}`}>
-                                          <IconoPercha aria-hidden className="h-3 w-3" strokeWidth={1.8} />
-                                          {celda.piso}
-                                        </span>
-                                        {separa && (
-                                          <span className={`flex w-full flex-1 items-center justify-center gap-1 border-t border-sand text-[13.5px] font-semibold tabular-nums text-taupe ${celda.almacen === 0 ? "opacity-55" : ""}`}>
-                                            <Archive aria-hidden className="h-3 w-3" strokeWidth={1.8} />
+                                        {verPiso && (
+                                          <span className={`flex w-full flex-1 items-center justify-center gap-1 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[13.5px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe/70"}`}>
+                                            <IconoPercha aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
+                                            {celda.piso}
+                                          </span>
+                                        )}
+                                        {verAlmacen && (
+                                          <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-[17px] font-bold" : "border-t border-sand text-[13.5px] font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
+                                            <Archive aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
                                             {celda.almacen}
                                           </span>
                                         )}
@@ -892,6 +970,7 @@ export function PanelTalla({
         </Dialog.Content>
       </Dialog.Portal>
       {aviso}
+      {fotoGrande && prenda.fotoUrl && <FotoAmpliada fotoUrl={prenda.fotoUrl} referencia={prenda.referencia} color={prenda.color} onCerrar={() => setFotoGrande(false)} />}
     </Dialog.Root>
   );
 }

@@ -1212,6 +1212,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cola-arranque
 
+      # Corregir lo anotado de una venta sin registrar (ADR-0369): cambia solo descripción, categoría, talla y color de una venta
+      # pendiente o cerrada sin prenda; ni precio, ni stock, ni la línea de venta. Deja su foto y su línea en Actividad. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:corregir-prenda-sin-registrar
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:corregir-prenda-sin-registrar
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un

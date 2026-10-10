@@ -1445,6 +1445,11 @@
   "tablename": "venta_pagos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX venta_pagos_correcciones_pkey ON retail.venta_pagos_correcciones USING btree (id)",
+  "indexname": "venta_pagos_correcciones_pkey",
+  "tablename": "venta_pagos_correcciones"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX ventas_pkey ON retail.ventas USING btree (id)",
   "indexname": "ventas_pkey",
   "tablename": "ventas"

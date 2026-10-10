@@ -12,6 +12,8 @@ import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
+import { CorregirPrendaSinRegistrarModal } from "@/components/CorregirPrendaSinRegistrarModal";
+import type { ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 import { FranjaAvance } from "@/components/por-regularizar/FranjaAvance";
 import { MesaRegularizar } from "@/components/por-regularizar/MesaRegularizar";
@@ -47,6 +49,7 @@ export function PorRegularizarLista({
   plazos,
   sedeInicial,
   abrirItemId = null,
+  listas,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
@@ -66,12 +69,15 @@ export function PorRegularizarLista({
   sedeInicial: string | null;
   /** La línea de venta (`?item=`) con que llega Historial: si su prenda sigue pendiente, esa venta entra elegida. */
   abrirItemId?: string | null;
+  /** Las listas de la hoja «Prenda sin registrar» (las mismas de la caja), para «Corregir lo anotado» (ADR-0369). */
+  listas: ListasPrendaLibre;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
   const [soloVencidas, setSoloVencidas] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
+  const [corrigiendo, setCorrigiendo] = useState<FilaPorRegularizar | null>(null);
   const [sugiriendo, setSugiriendo] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const ahora = useMemo(() => new Date(), []);
@@ -223,6 +229,7 @@ export function PorRegularizarLista({
               etiquetaSede={ubicacionEtiqueta}
               soloPendientes={filtro === "pendiente"}
               onReabrir={setReabriendo}
+              onCorregir={setCorrigiendo}
               onHecha={(id) => setHechasLocal((previas) => new Set(previas).add(id))}
               vacio={
                 busqueda.trim()
@@ -255,6 +262,7 @@ export function PorRegularizarLista({
 
       {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} preciosPorSede={preciosPorSede} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
       {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
+      {corrigiendo && <CorregirPrendaSinRegistrarModal fila={corrigiendo} listas={listas} onClose={() => setCorrigiendo(null)} />}
       {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>
   );

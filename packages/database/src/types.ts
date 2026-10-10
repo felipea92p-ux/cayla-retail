@@ -5722,6 +5722,14 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: { variante_id: string; precio: number }[]
       }
+      corregir_prenda_sin_registrar: {
+        Args: { p_id: string; p_descripcion: string; p_categoria_id: string; p_talla_id: string; p_color_codigo: string }
+        Returns: Json
+      }
+      fn_correcciones_prenda_sin_registrar: {
+        Args: { p_ids: string[] }
+        Returns: { prenda_id: string; veces: number; ultima_en: string; ultima_por: string | null; antes: Json }[]
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

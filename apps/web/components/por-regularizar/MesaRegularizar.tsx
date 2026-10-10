@@ -49,6 +49,7 @@ export function MesaRegularizar({
   etiquetaSede,
   soloPendientes = false,
   onReabrir,
+  onCorregir,
   onHecha,
   vacio,
   pie,
@@ -71,6 +72,8 @@ export function MesaRegularizar({
   /** El filtro es «Pendientes»: el chip «Pendiente» de cada talón sobra. */
   soloPendientes?: boolean;
   onReabrir: (f: FilaPorRegularizar) => void;
+  /** «Corregir lo anotado» (ADR-0369): la lista abre la hoja. */
+  onCorregir: (f: FilaPorRegularizar) => void;
   /** Una venta se regularizó: la franja de arriba baja su cuenta sin esperar a que se relea la lista. */
   onHecha: (id: string) => void;
   /** Lo que se dice si no hay ninguna fila que mostrar. */
@@ -222,12 +225,18 @@ export function MesaRegularizar({
     }, MS_AL_GUARDAR);
   }
 
+  // En el celular la mesa vive en una hoja: se cierra antes de abrir la de corregir (dos hojas apiladas no se entienden).
+  function abrirCorreccion(f: FilaPorRegularizar) {
+    if (modo === "hoja") setHojaAbierta(false);
+    onCorregir(f);
+  }
+
   const panelPrendas = sel && pendiente && (
     <PanelPrendas key={sel.id} venta={sel} prendas={prendas} indice={indice} disponible={disponibleDeSede} sede={sedeCorta(sel.sede)} seleccionadaId={prendaId} guia={guia} onElegir={elegirPrenda} onApuntar={setApuntadaId} />
   );
   const puente = sel && pendiente && (
     <div className="vsr-puente" ref={puenteRef}>
-      <PuenteUnion venta={sel} prenda={prenda} disponible={unidadesDeLaPrenda} forma={forma} onForma={elegirForma} responsable={responsable} guia={guia} guardando={guardando} hecho={hecho} onGuardar={() => void guardar()} alCrecer={traerElBotonALaVista} />
+      <PuenteUnion venta={sel} prenda={prenda} disponible={unidadesDeLaPrenda} forma={forma} onForma={elegirForma} responsable={responsable} guia={guia} guardando={guardando} hecho={hecho} onGuardar={() => void guardar()} onCorregir={() => abrirCorreccion(sel)} alCrecer={traerElBotonALaVista} />
     </div>
   );
   const derecha = !sel ? (
@@ -235,7 +244,7 @@ export function MesaRegularizar({
       <TodoCuadrado sede={etiquetaSede} />
     ) : null
   ) : !pendiente ? (
-    <ResumenResuelta fila={sel} esLider={esLider} onReabrir={onReabrir} />
+    <ResumenResuelta fila={sel} esLider={esLider} onReabrir={onReabrir} onCorregir={onCorregir} />
   ) : modo === "tres" ? (
     <>
       {puente}
