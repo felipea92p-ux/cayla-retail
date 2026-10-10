@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ALTO_CONTROL, Campo, Hilo } from "@/components/ui/campos";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 
 /* ====================================================================
    CampoFecha · elegir un día (2026-09-14)
@@ -27,6 +29,17 @@ import { ALTO_CONTROL, Campo, Hilo } from "@/components/ui/campos";
    Hacia afuera el valor sigue siendo ISO `aaaa-mm-dd` (o "" si está
    vacío), igual que devolvía el input nativo: ningún llamador cambia su
    lógica ni sus consultas.
+
+   El calendario FLOTA (2026-10-10, ADR-0211): va en `fixed`, medido contra
+   el campo y colgado en un portal (`useDestinoFlotante`: el `body`, o la
+   capa de listas de la hoja si está en un <Modal>), como las listas de los
+   combos. Antes iba en `absolute` dentro del campo, y cualquier ancestro con
+   contexto de apilamiento propio lo atrapaba: con la luz de la guía de foco
+   encendida en «Entrega estimada» (`hilo-luz` aísla su contenido) o dentro
+   de una tarjeta `@container`, las cajas de la sección siguiente se pintaban
+   ENCIMA del calendario aunque tuviera `z-50` (Nueva orden de compra,
+   Felipe 2026-10-10). Dentro de una hoja, además, el `overflow` de la hoja
+   lo recortaba. Abre hacia abajo si cabe entero; si no, hacia arriba.
 
    Modo `estricto` (2026-09-21, los rangos de Análisis) — opt-in. Volver en
    silencio a la última fecha válida es lo correcto para un campo suelto,
@@ -102,6 +115,9 @@ function conBarras(crudo: string): string {
 /** `w-[17rem]` del calendario, en px (con la letra raíz de 16 px), y el aire mínimo que se le deja al borde de la pantalla. */
 const ANCHO_CALENDARIO = 272;
 const MARGEN_PANTALLA = 8;
+/** Lo que mide el calendario de alto (mes, días de la semana, seis semanas y el pie con «Hoy»), con un poco de holgura: decide si
+ *  abre hacia abajo o hacia arriba (`usePosicionLista` con `entero`). Si en ninguno de los dos cabe, se desplaza por dentro. */
+const ALTO_CALENDARIO = 340;
 
 export function CampoFecha({
   etiqueta,
@@ -157,8 +173,13 @@ export function CampoFecha({
   // El día con foco dentro de la grilla (teclado) y el mes que se muestra.
   const [cursor, setCursor] = useState<Dia>(elegido ?? hoy());
   const raiz = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const grilla = useRef<HTMLDivElement>(null);
   const entrada = useRef<HTMLInputElement>(null);
+  // Al abrir, el foco va a la grilla en cuanto el calendario existe: flota en un portal que se monta un instante después que el campo.
+  const enfocarAlMontar = useRef(false);
+  const pos = usePosicionLista(raiz, abierto, ALTO_CALENDARIO, 6, { entero: true });
+  const destino = useDestinoFlotante(raiz, abierto);
 
   // Si el valor cambia desde afuera (se limpió el filtro, cambió la
   // condición de pago), el texto acompaña — ajustado en el render, como en
@@ -173,7 +194,9 @@ export function CampoFecha({
   useEffect(() => {
     if (!abierto) return;
     function afuera(e: MouseEvent) {
-      if (!raiz.current?.contains(e.target as Node)) setAbierto(false);
+      // El calendario vive en un portal, fuera del campo: un clic en él no es «afuera».
+      const t = e.target as Node;
+      if (!raiz.current?.contains(t) && !panel.current?.contains(t)) setAbierto(false);
     }
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -184,8 +207,8 @@ export function CampoFecha({
     const campo = raiz.current?.getBoundingClientRect();
     if (campo) setHaciaIzquierda(campo.left + ANCHO_CALENDARIO > window.innerWidth - MARGEN_PANTALLA && campo.right - ANCHO_CALENDARIO >= MARGEN_PANTALLA);
     setCursor(elegido ?? hoy());
+    enfocarAlMontar.current = true;
     setAbierto(true);
-    requestAnimationFrame(() => grilla.current?.focus());
   }
 
   function elegir(dia: Dia) {
@@ -271,6 +294,15 @@ export function CampoFecha({
   const sinFecha = estricto && (texto === "" ? required : deTexto(texto) === null);
   const conError = sinFecha && (revelarError || (tocado && !enfocado));
 
+  // Dónde se dibuja: debajo del campo (o encima, si abajo no cabe entero), pegado a su borde izquierdo, o al derecho si a la derecha
+  // no hay lugar (`haciaIzquierda`). `pos` viene en el marco donde cuelga el portal (en una hoja que está entrando, el de la hoja).
+  const estiloPanel: CSSProperties | null = pos && {
+    position: "fixed",
+    left: haciaIzquierda ? pos.left + pos.width - ANCHO_CALENDARIO : pos.left,
+    maxHeight: pos.maxHeight,
+    ...("top" in pos ? { top: pos.top } : { bottom: pos.bottom }),
+  };
+
   return (
     <Campo
       etiqueta={etiqueta}
@@ -316,113 +348,126 @@ export function CampoFecha({
         </button>
         {!caja && <Hilo activo={enfocado || abierto} />}
 
-        {abierto && (
-          <div
-            role="dialog"
-            aria-label="Calendario"
-            className={`anim-revelar absolute top-full z-50 mt-1.5 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md ${haciaIzquierda ? "right-0" : "left-0"}`}
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <button
-                type="button"
-                aria-label="Mes anterior"
-                onClick={() => setCursor(sumarMeses(cursor, -1))}
-                className="rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta"
-              >
-                <Flecha lado="izq" />
-              </button>
-              <p className="font-display text-base text-tinta" aria-live="polite">
-                {MESES[cursor.m]} <span className="text-tinta/55">{cursor.a}</span>
-              </p>
-              <button
-                type="button"
-                aria-label="Mes siguiente"
-                onClick={() => setCursor(sumarMeses(cursor, 1))}
-                className="rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta"
-              >
-                <Flecha lado="der" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 text-center">
-              {DIAS_SEMANA.map((d, i) => (
-                <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45 dark:text-tinta/60">
-                  {d}
-                </span>
-              ))}
-            </div>
-
+        {abierto &&
+          estiloPanel &&
+          destino &&
+          createPortal(
             <div
-              ref={grilla}
-              role="grid"
-              tabIndex={0}
-              aria-activedescendant={`${id}-dia-${aIso(cursor)}`}
-              onKeyDown={tecladoGrilla}
-              className="grid grid-cols-7 gap-y-0.5 outline-none"
+              ref={panel}
+              role="dialog"
+              aria-label="Calendario"
+              style={estiloPanel}
+              // `anim-revelar`: la misma entrada que las listas de los combos y el selector de sede (240 ms, sin espera).
+              className="anim-revelar z-50 w-[17rem] overflow-y-auto rounded-lg border border-sand bg-papel p-3 shadow-md"
             >
-              {celdas.map((dia) => {
-                const delMes = dia.m === cursor.m;
-                const esElegido = mismoDia(dia, elegido);
-                const esHoy = mismoDia(dia, elHoy);
-                const conCursor = mismoDia(dia, cursor);
-                const marcado = !!marcados?.has(aIso(dia));
-                return (
-                  <button
-                    key={aIso(dia)}
-                    id={`${id}-dia-${aIso(dia)}`}
-                    type="button"
-                    role="gridcell"
-                    tabIndex={-1}
-                    aria-selected={esElegido}
-                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}`}
-                    // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
-                    // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
-                    onMouseEnter={() => delMes && setCursor(dia)}
-                    onClick={() => elegir(dia)}
-                    className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
-                      esElegido
-                        ? "bg-rojo text-crema"
-                        : conCursor
-                          ? "bg-rojo/10 text-tinta"
-                          : delMes
-                            ? "text-tinta hover:bg-rojo/10"
-                            : "text-tinta/30 hover:bg-rojo/10 dark:text-tinta/55"
-                    }`}
-                  >
-                    {dia.d}
-                    {esHoy && !esElegido && <span aria-hidden className="absolute bottom-1 h-1 w-1 rounded-full bg-rojo" />}
-                    {marcado && !(esHoy && !esElegido) && <span aria-hidden className={`absolute bottom-1 h-1 w-1 rounded-full ${esElegido ? "bg-crema" : "bg-taupe"}`} />}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
-              <button type="button" onClick={() => elegir(elHoy)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
-                Hoy
-              </button>
-              {marcados && (
-                <span className="flex items-center gap-1.5 text-[11px] text-tinta/55">
-                  <span aria-hidden className="h-1 w-1 rounded-full bg-taupe" />
-                  {descripcionMarcado}
-                </span>
-              )}
-              {!required && elegido && (
+              <div className="mb-2 flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => {
-                    setTexto("");
-                    setAbierto(false);
-                    onValor("");
-                  }}
-                  className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
+                  aria-label="Mes anterior"
+                  onClick={() => setCursor(sumarMeses(cursor, -1))}
+                  className="rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta"
                 >
-                  Limpiar
+                  <Flecha lado="izq" />
                 </button>
-              )}
-            </div>
-          </div>
-        )}
+                <p className="font-display text-base text-tinta" aria-live="polite">
+                  {MESES[cursor.m]} <span className="text-tinta/55">{cursor.a}</span>
+                </p>
+                <button
+                  type="button"
+                  aria-label="Mes siguiente"
+                  onClick={() => setCursor(sumarMeses(cursor, 1))}
+                  className="rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta"
+                >
+                  <Flecha lado="der" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 text-center">
+                {DIAS_SEMANA.map((d, i) => (
+                  <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45 dark:text-tinta/60">
+                    {d}
+                  </span>
+                ))}
+              </div>
+
+              <div
+                ref={(el) => {
+                  grilla.current = el;
+                  if (el && enfocarAlMontar.current) {
+                    enfocarAlMontar.current = false;
+                    el.focus({ preventScroll: true });
+                  }
+                }}
+                role="grid"
+                tabIndex={0}
+                aria-activedescendant={`${id}-dia-${aIso(cursor)}`}
+                onKeyDown={tecladoGrilla}
+                className="grid grid-cols-7 gap-y-0.5 outline-none"
+              >
+                {celdas.map((dia) => {
+                  const delMes = dia.m === cursor.m;
+                  const esElegido = mismoDia(dia, elegido);
+                  const esHoy = mismoDia(dia, elHoy);
+                  const conCursor = mismoDia(dia, cursor);
+                  const marcado = !!marcados?.has(aIso(dia));
+                  return (
+                    <button
+                      key={aIso(dia)}
+                      id={`${id}-dia-${aIso(dia)}`}
+                      type="button"
+                      role="gridcell"
+                      tabIndex={-1}
+                      aria-selected={esElegido}
+                      aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}`}
+                      // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
+                      // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
+                      onMouseEnter={() => delMes && setCursor(dia)}
+                      onClick={() => elegir(dia)}
+                      className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
+                        esElegido
+                          ? "bg-rojo text-crema"
+                          : conCursor
+                            ? "bg-rojo/10 text-tinta"
+                            : delMes
+                              ? "text-tinta hover:bg-rojo/10"
+                              : "text-tinta/30 hover:bg-rojo/10 dark:text-tinta/55"
+                      }`}
+                    >
+                      {dia.d}
+                      {esHoy && !esElegido && <span aria-hidden className="absolute bottom-1 h-1 w-1 rounded-full bg-rojo" />}
+                      {marcado && !(esHoy && !esElegido) && <span aria-hidden className={`absolute bottom-1 h-1 w-1 rounded-full ${esElegido ? "bg-crema" : "bg-taupe"}`} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
+                <button type="button" onClick={() => elegir(elHoy)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
+                  Hoy
+                </button>
+                {marcados && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-tinta/55">
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-taupe" />
+                    {descripcionMarcado}
+                  </span>
+                )}
+                {!required && elegido && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTexto("");
+                      setAbierto(false);
+                      onValor("");
+                    }}
+                    className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+            </div>,
+            destino,
+          )}
       </div>
     </Campo>
   );

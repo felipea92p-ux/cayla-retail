@@ -190,3 +190,32 @@ hoja; que el hook la use; y que los cuatro archivos de combo cuelguen su lista c
 Un bloque que se revela al elegir una opción espera hasta ~0,6 s y entra en 500 ms. Hoy se esquiva a mano con
 `data-sin-cascada` en 14 bloques (Gastos, Cuentas y dinero, Registrar gasto, Nueva proforma, Cerrar caja, la cámara de
 Vender). Ver el BACKLOG.
+
+## Actualización 2026-10-10 — el calendario de `CampoFecha` también flota
+
+**El problema (Felipe, en «Nueva orden de compra»):** al abrir el calendario de «Entrega estimada», las cajas de la sección
+siguiente («Lo que pides») se pintaban encima de él. El calendario era el único panel que todavía iba en `absolute` dentro de su
+campo, y lo atrapaban dos contextos de apilamiento:
+- la luz de la guía de foco (`hilo-luz`, que aísla su contenido con `isolation: isolate`);
+- la tarjeta `@container` de la sección.
+
+Su `z-50` solo valía dentro de ellos. Dentro de una hoja, además, el `overflow` de la hoja lo recortaba.
+
+**El arreglo:** el calendario es un panel flotante más:
+- va en `fixed`, medido contra el campo con `usePosicionLista`;
+- se cuelga donde dice `useDestinoFlotante` (el `body`, o la capa de listas de la hoja);
+- entra con `anim-revelar`.
+
+**Una sola diferencia con las listas:** el calendario no se desplaza por dentro, así que abre hacia abajo solo si cabe entero.
+Si no cabe, abre hacia arriba. Es la opción `{ entero: true }` de `usePosicionLista`; sin ella, todo sigue igual. Un clic dentro
+del calendario ya no cuenta como «afuera», aunque viva fuera del campo. Al abrirse, el foco pasa a la grilla de días en cuanto
+el calendario existe.
+
+**Lo vigila** `lib/combos-fuera-de-la-cascada.test.ts`: `CampoFecha` entró a su lista de paneles flotantes.
+
+**Verificado en el navegador**, sobre el banco de pruebas:
+- En «Nueva orden de compra», con la guía encendida en la fecha: el calendario queda encima de «Lo que pides», a 6 px del
+  campo. Teclado, clic, Escape y clic afuera funcionan.
+- En Movimientos → «Personalizado»: elige el día y filtra.
+- En la hoja «Registrar nota de crédito»: se cuelga en la capa de la hoja y queda encima. Al elegir un día, la hoja sigue
+  abierta.
