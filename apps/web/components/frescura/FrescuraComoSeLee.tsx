@@ -85,7 +85,7 @@ export function FrescuraComoSeLee({
       )}
       <p>
         <b>Lo apartado para un cliente no está colgado:</b> no envejece ni recibe sugerencias, y cuenta como vendido. Lo que llegó sin fecha (carga inicial, un ajuste) nunca
-        es «Recién llegada»: no se sabe cuándo llegó. Aquí no se rebaja: la rebaja se decide aparte.
+        es «Fresca»: no se sabe cuándo llegó. Aquí no se rebaja: la rebaja se decide aparte.
       </p>
       {esLider ? (
         <p>

@@ -765,6 +765,31 @@ export function cortes(curva: Supervivencia): Cortes {
   return { p50: corteEn(curva, 0.5), p75: corteEn(curva, 0.25), p90: corteEn(curva, 0.1) };
 }
 
+/** El último instante con venta de una curva: cuánto se vendió hasta ahí (supervivencia y riesgo acumulado) y cuántas ventas la forman. */
+export type FinDeCurva = { t: number; s: number; h: number; vendidas: number };
+
+export function finDeCurva(c: Pick<Curva, "tiempos" | "supervivencia" | "riesgoAcumulado" | "vendidas">): FinDeCurva | null {
+  const i = c.tiempos.length - 1;
+  return i < 0 ? null : { t: c.tiempos[i], s: c.supervivencia[i], h: c.riesgoAcumulado[i], vendidas: c.vendidas };
+}
+
+/**
+ * Los cortes que la curva no alcanza, extendidos con su PROPIO ritmo (ADR-0208, act. 2026-10-10 (b), actividad 6). Cuando una categoría se
+ * estanca, sus unidades sin vender sostienen la curva: nunca llega a «3 de cada 4 vendidas», el corte queda vacío y NADA de ella sale
+ * Envejeciendo (lo mostró el ensayo: Jeans de 25 días, «Vigentes»). Pasado lo observado se supone que sigue vendiendo a su ritmo
+ * promedio —el riesgo acumulado entre los días, λ = H(t)/t—: S(t + x) = S(t)·e^(−λx), así que el corte q está en t + ln(S(t)/q)/λ.
+ * Solo con `VENTAS_PARA_JUZGAR_SOLA` ventas o más (con menos, el ritmo es ruido: «aún aprendiendo») y solo P75 y P90, cuando P50 se alcanzó
+ * de verdad: una categoría que ni vendió la mitad sigue «aún sin referencia». Extrapolar su mitad la estiraría (Casacas: 25 % vendido en 60
+ * días daba una mitad a los ~115) y sus prendas de 60 días saldrían Frescas: lo contrario de lo que se busca. Un corte alcanzado no cambia.
+ */
+export function cortesConCola(c: Cortes, fin: FinDeCurva | null): Cortes {
+  if (c.p50 === null || fin === null || fin.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS || fin.t <= 0 || fin.h <= EPS) return c;
+  const lambda = fin.h / fin.t;
+  const extender = (corte: number | null, queda: number): number | null =>
+    corte !== null || fin.s <= queda + EPS ? corte : fin.t + Math.log(fin.s / queda) / lambda;
+  return { p50: c.p50, p75: extender(c.p75, 0.25), p90: extender(c.p90, 0.1) };
+}
+
 /** El nivel de confianza por unidades vendidas CON EDAD CONOCIDA: 0 → null (no hay vara), 1-9, 10-19, 20 o más. */
 export function nivelPorVentas(vendidas: number): NivelConfianza | null {
   if (vendidas <= 0) return null;
@@ -1024,6 +1049,8 @@ export type MedidaContraElResto = {
   vendidas: number;
   /** Σ peso × riesgo acumulado del resto en los segundos de cada unidad de `suyas`: lo que la rapidez espera. */
   esperadas: number;
+  /** El último instante con venta del resto (de ahí sale la cola de sus cortes). */
+  fin: FinDeCurva | null;
 };
 
 /**
@@ -1069,6 +1096,7 @@ function restar(curva: Curva, propias: readonly Observacion[], consultas: readon
   let s = 1;
   let vendidasResto = 0;
   let esperadas = 0;
+  let tUltima = 0;
   // Los cortes se cruzan en orden (la supervivencia no sube): el que falta es `umbral`.
   const umbrales = [0.5 + EPS, 0.25 + EPS, 0.1 + EPS, -Infinity];
   const cortesHallados: (number | null)[] = [null, null, null];
@@ -1108,6 +1136,7 @@ function restar(curva: Curva, propias: readonly Observacion[], consultas: readon
       h += tasa;
       s *= 1 - tasa;
       vendidasResto += vendidas;
+      tUltima = t;
       while (s <= umbral) {
         cortesHallados[u++] = t;
         umbral = umbrales[u];
@@ -1117,9 +1146,17 @@ function restar(curva: Curva, propias: readonly Observacion[], consultas: readon
     while (j < mias.length && mias[j].segundos <= g) misEnRiesgo -= mias[j++].peso;
     if (g === Infinity) break;
   }
-  while (q < nc) esperadas += consP[q++] * h;
+  // Una unidad más vieja que la última venta del resto espera lo acumulado hasta ahí MÁS la cola: seguir vendiendo a su ritmo promedio
+  // (λ = H/t; el mismo supuesto que `cortesConCola`). Antes el riesgo quedaba plano y a una unidad de 100 días se le esperaba lo de 30: su
+  // índice salía inflado hacia «pilar». Con pocas ventas del resto, sin cola (el ritmo sería ruido).
+  const cola = vendidasResto >= VENTAS_PARA_JUZGAR_SOLA - EPS && tUltima > 0 ? h / tUltima : 0;
+  while (q < nc) {
+    esperadas += consP[q] * (h + cola * Math.max(0, consT[q] - tUltima));
+    q++;
+  }
   const [p50, p75, p90] = cortesHallados;
-  return { cortes: { p50, p75, p90 }, tMax: tMaxSin(curva, mias), vendidas: vendidasResto, esperadas };
+  const fin: FinDeCurva | null = vendidasResto > EPS ? { t: tUltima, s, h, vendidas: vendidasResto } : null;
+  return { cortes: cortesConCola({ p50, p75, p90 }, fin), tMax: tMaxSin(curva, mias), vendidas: vendidasResto, esperadas, fin };
 }
 
 /** La observación más larga del resto: el último instante observado al que le queda algo que no es de la prenda. */
@@ -1204,26 +1241,45 @@ export function recientesDe(ventasRecientes: number | null, segundosColgada: num
 }
 
 /**
- * Ventas esperadas que necesita el índice de rapidez para poder DECIDIR (llamar «lenta» a una prenda y mandarla a «Por
- * decidir»; ADR-0208, actualización 2026-10-07): su categoría, sin ella, tiene que haber vendido a esa edad lo que valen
- * 2 prendas. Con 1 esperada, la prenda que vende exactamente al ritmo de su categoría sale «lenta» 1 de cada 3 veces por
- * puro azar (Poisson, e⁻¹ = 37 %); con 2, 1 de 7. El índice se calcula y se muestra desde `RAPIDEZ_MIN_EVIDENCIA`;
- * esta cifra solo frena la decisión. Verificado el 2026-10-07 con las reglas reales: con 3 ventas rápidas en una
- * categoría (días 1, 1 y 2), una capa de 4 días colgada acumulaba 1,00 esperada y salía «Por decidir».
+ * El cuantil de una Gamma(forma a, tasa b) por la aproximación de Wilson-Hilferty (la Gamma elevada a 1/3 es casi normal). Con a ≥ 1 el
+ * error es de centésimas, de sobra para decir de qué lado de un umbral cae. Lo usan «lenta» (aquí) y la acogida (`frescura-aguja.ts`).
  */
-export const ESPERADAS_PARA_DECIDIR = 2;
+export function cuantilGamma(a: number, b: number, z: number): number {
+  const c = 1 / (9 * a);
+  return (a / b) * Math.max(0, 1 - c + z * Math.sqrt(c)) ** 3;
+}
 
 /**
- * La rapidez que puede decidir: la misma, o null si dice «lenta» (índice < 100) con menos de `ESPERADAS_PARA_DECIDIR`
- * ventas esperadas. Con poca evidencia el índice solo PROTEGE (un pilar con 0,5 esperadas sigue siendo pilar: no se
- * actúa), nunca CONDENA: un pilar falso no cuesta nada, una lenta falsa manda a mover una prenda que se vende. La que
- * dejó de vender (`dejo_de_vender`: sus últimos 30 días en el piso sin una venta) pasa entera: esos 30 días son evidencia
- * por sí solos, y es lo que la revisión 6 ya decidía. Con null, `estaQuieta` no la llama lenta y `sugerenciasDe` le da
- * «revisa sus ventas» si es vieja, como a la que no tiene dato.
+ * Cuánta evidencia hace falta para llamar «lenta» a una prenda (ADR-0208, act. 2026-10-10 (b)). Su rapidez se contrae hacia 1 como si
+ * llevara `PRIOR_LENTA` ventas de su categoría —Gamma(3 + vendidas, 3 + esperadas)— y se mira su cota de 9 de cada 10. Dos escalones,
+ * según lo que cuesta equivocarse:
+ *   · LENTA (`COTA_LENTA`, 1): con 9 de cada 10 de confianza vende más lento que su categoría. Basta para «Por decidir» y «cambiar de
+ *     lugar», que es barato: una prenda que se vende como las demás sale lenta 1 de cada 10 veces. Antes bastaba vender menos que lo esperado
+ *     con 2 esperadas o más: con 2, «lenta» es vender 0 o 1, y salía lenta el 41 % de las veces (no «1 de 7», como decía este comentario:
+ *     e⁻²·(1 + 2)); con el volumen de TRU, unas 33 falsas «Por decidir» por semana contra 14 de verdad.
+ *   · MUY LENTA (`COTA_LENTA_FUERTE`, 0,7): con 9 de cada 10 de confianza vende menos de 7 de cada 10 de lo que su categoría. La pide
+ *     «Trasladar», que mueve mercadería entre tiendas (simulado: de 31 % a 80 % de acierto).
+ */
+export const PRIOR_LENTA = 3;
+export const COTA_LENTA = 1;
+export const COTA_LENTA_FUERTE = 0.7;
+const Z90 = 1.2816;
+
+/**
+ * La rapidez que puede decidir: la misma, o null si dice «lenta» (índice < 100) sin la evidencia de arriba. Con poca evidencia el índice
+ * solo PROTEGE (un pilar con 0,5 esperadas sigue siendo pilar: no se actúa), nunca CONDENA: un pilar falso no cuesta nada, una lenta falsa
+ * manda a mover una prenda que se vende. La que dejó de vender (`dejo_de_vender`: sus últimos 30 días en el piso sin una venta) pasa
+ * entera: esos 30 días son evidencia por sí solos, y es lo que la revisión 6 ya decidía. Con null, `estaQuieta` no la llama lenta y
+ * `sugerenciasDe` le da «revisa sus ventas» si es vieja, como a la que no tiene dato.
  */
 export function rapidezParaDecidir(r: Rapidez | null, recientes: Recientes): Rapidez | null {
   if (r === null || recientes === "dejo_de_vender" || r.indice >= RAPIDEZ_IGUAL) return r;
-  return r.esperadas >= ESPERADAS_PARA_DECIDIR - EPS ? r : null;
+  return esLentaConEvidencia(r) ? r : null;
+}
+
+/** Su rapidez, contraída, queda bajo `cota` con 9 de cada 10 de confianza (`COTA_LENTA` o, para mover mercadería, `COTA_LENTA_FUERTE`). */
+export function esLentaConEvidencia(r: Pick<Rapidez, "vendidas" | "esperadas">, cota: number = COTA_LENTA): boolean {
+  return cuantilGamma(PRIOR_LENTA + r.vendidas, PRIOR_LENTA + r.esperadas, Z90) < cota;
 }
 
 // ---------------------------------------------------------------------------
@@ -1256,7 +1312,14 @@ export function estaQuieta(p: { tramo: Tramo | null; temporadaPasada: boolean; r
  * de las 30 ventas de su categoría tenía vara «Sólido» y se medía contra 2 (revisión 4).
  */
 export function puedeTrasladar(p: { nivel: NivelConfianza | null; almacenHoy: number; rapidez: Rapidez | null }): boolean {
-  return p.nivel === "solido" && p.almacenHoy > 0 && p.rapidez !== null && nivelPorVentas(p.rapidez.referencia) === "solido";
+  return (
+    p.nivel === "solido" &&
+    p.almacenHoy > 0 &&
+    p.rapidez !== null &&
+    nivelPorVentas(p.rapidez.referencia) === "solido" &&
+    // Mueve mercadería: además de lenta, muy lenta con evidencia (act. 2026-10-10 (b)).
+    (p.rapidez.indice >= RAPIDEZ_IGUAL || esLentaConEvidencia(p.rapidez, COTA_LENTA_FUERTE))
+  );
 }
 
 /**
@@ -1585,7 +1648,7 @@ function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): 
     categoriaId,
     categoriaNombre,
     ventanaDias: v.ventanaDias,
-    cortes: v.cortes,
+    cortes: cortesConCola(v.cortes, finDeCurva(v.curva)),
     tMax: v.curva.tMax,
     vendidoAlFinal: 1 - supervivenciaEn(v.curva, v.curva.tMax),
     vendidas: v.vendidas,

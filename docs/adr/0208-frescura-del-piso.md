@@ -3549,3 +3549,20 @@ temporada ni el clásico fuera de su estación, las más recién llegadas primer
 por talla (12 como mucho). Solo con el piso cuadrado: si no, lo «nunca colgado» puede estar colgado sin registrar (AQP hoy). Es la palanca
 más barata para que el cliente que vuelve vea algo nuevo, y la mitad «entra una» de «entra una, sale una» (ADR-0329).
 
+**Construido (actividad 6, 2026-10-10): las prendas con el mismo idioma y el rigor de la curva.**
+- **La cola de la curva** (`cortesConCola`): con 10 ventas o más y la mitad vendida de verdad, P75 y P90 que la curva no alcanza salen de su
+  propio ritmo promedio (λ = H(t)/t; el corte q en t + ln(S(t)/q)/λ). Arregla lo que destapó la actividad 4: la categoría estancada entera
+  no llegaba a P75 y nada de ella envejecía. **No se extrapola la mitad:** una categoría que ni vendió la mitad sigue «aún sin referencia»
+  (Casacas: 25 % en 60 días daba una mitad a los ~115 y sus prendas de 60 días habrían salido Frescas). La misma cola entra a las ventas
+  esperadas de la rapidez: pasada la última venta de su categoría, una unidad sigue esperando a su ritmo (antes el riesgo quedaba plano y
+  el índice de lo muy viejo salía inflado hacia «pilar»; hallazgo 8 del análisis).
+- **«Lenta» con evidencia, en dos escalones** (`esLentaConEvidencia`, Gamma(3 + vendidas, 3 + esperadas) y su cota de 9 de cada 10):
+  bajo 1 para «Por decidir» y «cambiar de lugar» (una prenda que se vende como las demás sale lenta 1 de cada 10 veces, no 4); bajo 0,7
+  para «Trasladar», que mueve mercadería. Se retira `ESPERADAS_PARA_DECIDIR` y el comentario del «1 de 7».
+- **Las palabras de Felipe en toda la pantalla:** `NOMBRE_TRAMO` = Fresca · Vigente · Envejeciendo (Envejecida y Crítica, el mismo nombre y
+  el mismo ámbar); el filtro de estado junta las dos en «Envejeciendo» (un enlace viejo con `estado=critica` cae ahí); la regla dibujada y
+  la escala de cada categoría tienen tres zonas. La fila, la regla y el porqué dicen los días del reloj que decidió (`relojQueDecide`): un
+  éxito repuesto ayer «lleva 1 día», y su porqué aclara que su modelo ya no es Fresco.
+- **Sin verificar en el navegador:** el stack local de Supabase se cayó en la sesión (Docker se detuvo); la lógica y los textos quedan en
+  las pruebas, y la mirada en la pantalla va con el cierre.
+

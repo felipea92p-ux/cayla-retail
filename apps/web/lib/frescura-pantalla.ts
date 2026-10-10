@@ -4,7 +4,6 @@ import type { AccionDecision } from "./frescura-decisiones-reglas";
 import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, PREGUNTA_PISO, TRAMOS_PISO, tramosDeLaPrenda, type RespuestaPiso, type TramoPiso } from "./frescura-piso";
 import {
   DIAS_CALLADA,
-  ESPERADAS_PARA_DECIDIR,
   RAPIDEZ_IGUAL,
   nivelPorVentas,
   rapidezParaDecidir,
@@ -43,14 +42,20 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Los cuatro estados en palabras de tienda (Formidable, ADR-0350; aprobado por Felipe el 2026-10-05). Antes: Nueva, Vigente,
- * Envejecida, Crítica: nombres de la base, no de quien atiende. UNA sola lista: la fila, el filtro, la regla dibujada, la hoja
- * y las frases usan estos mismos nombres (una sola mente), y las claves internas (`nueva`, `vigente`…) no cambian.
+ * Los estados en las palabras de Felipe (ADR-0208, act. 2026-10-10 (b), decisión 6): Fresca · Vigente · Envejeciendo. «Hay que moverla»
+ * dejó de ser un estado y es la acción de la fila («Cámbiala de lugar»): Envejecida y Crítica se dicen igual. Antes (Formidable, 2026-10-05):
+ * Recién llegada · En su tiempo · Se está quedando · Hay que moverla. UNA sola lista: la fila, el filtro, la regla dibujada, la hoja, las
+ * frases y la barra de la tienda (`frescura-piso.ts`) usan estos nombres, y las claves internas (`nueva`, `vigente`…) no cambian.
  */
-export const NOMBRE_TRAMO: Record<Tramo, string> = { nueva: "Recién llegada", vigente: "En su tiempo", envejecida: "Se está quedando", critica: "Hay que moverla" };
+export const NOMBRE_TRAMO: Record<Tramo, string> = { nueva: "Fresca", vigente: "Vigente", envejecida: "Envejeciendo", critica: "Envejeciendo" };
 
-/** Colores A (Felipe, 2026-09-28). La Crítica usa el tono `tinta` de `Chip` (contorno de tinta, letra gruesa): nunca rojo. */
-export const TONO_TRAMO: Record<Tramo, TonoChip> = { nueva: "verde", vigente: "neutro", envejecida: "ambar", critica: "tinta" };
+/** Colores A (Felipe, 2026-09-28): verde · neutro · ámbar, nunca rojo. Envejecida y Crítica, el mismo ámbar: son el mismo estado. */
+export const TONO_TRAMO: Record<Tramo, TonoChip> = { nueva: "verde", vigente: "neutro", envejecida: "ambar", critica: "ambar" };
+
+/** El reloj que decidió el estado (act. 2026-10-10 (b)): Fresca, el del modelo; pasada la mitad, el de su unidad más vieja colgada. */
+export function relojQueDecide(p: Pick<FrescuraPrenda, "estado" | "reloj" | "relojUnidad">): FrescuraPrenda["reloj"] {
+  return p.estado.tipo === "semaforo" && p.estado.tramo !== "nueva" ? p.relojUnidad : p.reloj;
+}
 
 /** Lo que dice una prenda juzgada con pocas ventas de las demás (menos de 10): «Aproximado», no «con pocos datos». */
 export const APROXIMADO = "aproximado";
@@ -270,9 +275,9 @@ function nivelSinElla(p: FrescuraPrenda): NivelConfianza | null {
   return p.categoriaSinElla ? nivelPorVentas(p.categoriaSinElla.vendidas) : null;
 }
 
-/** El nombre de un estado «al menos» como se dice en una frase: «En su tiempo, o más»; el último, solo. */
+/** El nombre de un estado «al menos» como se dice en una frase: «Vigente, o más»; Envejeciendo es el último, solo. */
 export function nombreAlMenos(tramo: Tramo): string {
-  return tramo === "critica" ? NOMBRE_TRAMO.critica : `${NOMBRE_TRAMO[tramo]}, o más`;
+  return tramo === "critica" || tramo === "envejecida" ? NOMBRE_TRAMO[tramo] : `${NOMBRE_TRAMO[tramo]}, o más`;
 }
 
 // ---------------------------------------------------------------------------
@@ -450,10 +455,12 @@ export type FilaVista = {
 };
 
 /** «Lleva 6 días» (con «o más» si no se sabe desde cuándo está); la apartada, «En pausa: está apartada»; la que no cuadra, nada. */
-export function llevaTexto(p: Pick<FrescuraPrenda, "estado" | "reloj">, apartada: boolean): string | null {
+export function llevaTexto(p: Pick<FrescuraPrenda, "estado" | "reloj" | "relojUnidad">, apartada: boolean): string | null {
   if (p.estado.tipo === "dudosa") return null;
   if (apartada) return "En pausa: está apartada";
-  return `Lleva ${textoDias(diasDe(p.reloj.segundos))}${p.reloj.alMenos ? " o más" : ""}`;
+  // Los días del reloj que decidió el estado: lo que cuelga, si ya no es Fresca (un éxito repuesto ayer «lleva 1 día», no los 40 de su modelo).
+  const r = relojQueDecide(p);
+  return `Lleva ${textoDias(diasDe(r.segundos))}${r.alMenos ? " o más" : ""}`;
 }
 
 export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
@@ -470,7 +477,7 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
     temporadaPasada: p.estado.temporadaPasada ? textoTemporadaPasada(p, ctx) : null,
     sinTemporada: p.estado.sinTemporada,
     tallas: p.tallas.map((t) => ({ varianteId: t.varianteId, talla: t.talla ?? "Única", piso: t.pisoHoy, almacen: t.almacenHoy, apartadas: t.apartadasHoy })),
-    dias: dudosa ? null : diasDe(p.reloj.segundos),
+    dias: dudosa ? null : diasDe(relojQueDecide(p).segundos),
     llevaTexto: llevaTexto(p, apartada),
     quizaMas: !dudosa && p.reloj.alMenos,
     apartada,
@@ -492,8 +499,8 @@ export const FILTROS_ESTADO = [
   { valor: "todos", texto: "Todos los estados" },
   { valor: "nueva", texto: NOMBRE_TRAMO.nueva, grupo: "Cuánto lleva" },
   { valor: "vigente", texto: NOMBRE_TRAMO.vigente, grupo: "Cuánto lleva" },
-  { valor: "envejecida", texto: NOMBRE_TRAMO.envejecida, grupo: "Cuánto lleva" },
-  { valor: "critica", texto: NOMBRE_TRAMO.critica, grupo: "Cuánto lleva" },
+  // Envejecida y Crítica son un solo estado (act. 2026-10-10 (b)); un enlace viejo con `?estado=envejecida` o `critica` cae aquí.
+  { valor: "envejeciendo", texto: NOMBRE_TRAMO.envejecida, grupo: "Cuánto lleva" },
   { valor: "sin_comparar", texto: "Aún no se sabe", grupo: "Otros" },
   { valor: "clasico", texto: "Clásicos", grupo: "Otros" },
   { valor: "dudosa", texto: "Su stock no cuadra", grupo: "Otros" },
@@ -519,7 +526,7 @@ export function filtrosDeUrl(leer: (clave: string) => string | null | undefined)
   const estado = leer("estado");
   return {
     cat: leer("cat") ?? TODAS_LAS_CATEGORIAS,
-    estado: estado && ES_FILTRO_ESTADO.has(estado) ? (estado as FiltroEstado) : "todos",
+    estado: estado === "envejecida" || estado === "critica" ? "envejeciendo" : estado && ES_FILTRO_ESTADO.has(estado) ? (estado as FiltroEstado) : "todos",
     porDecidir: leer("pordecidir") === "1",
     decididas: leer("decididas") === "1",
     q: (leer("q") ?? "").slice(0, 80),
@@ -571,6 +578,8 @@ export function pasaEstado(p: FrescuraPrenda, estado: FiltroEstado): boolean {
       return e.tipo === "dudosa";
     case "sin_comparar":
       return e.tipo === "sin_ventas_sede" || e.tipo === "sin_vara" || e.tipo === "sin_edad_conocida";
+    case "envejeciendo":
+      return e.tipo === "semaforo" && !apartada && (e.tramo === "envejecida" || e.tramo === "critica");
     default:
       return e.tipo === "semaforo" && !apartada && e.tramo === estado;
   }
@@ -629,12 +638,11 @@ function escalaDe(v: VaraCategoria | undefined): { nombre: string; rango: string
   if (!v || v.cortes.p50 === null) return [];
   const d50 = diasDeCorte(v.cortes.p50);
   const d75 = v.cortes.p75 === null ? null : diasDeCorte(v.cortes.p75);
-  const d90 = v.cortes.p90 === null ? null : diasDeCorte(v.cortes.p90);
+  // Tres estados (act. 2026-10-10 (b)): Envejecida y Crítica son un solo «Envejeciendo», desde 3 de cada 4.
   return [
     { nombre: NOMBRE_TRAMO.nueva, rango: `antes de ${d50} d` },
     { nombre: NOMBRE_TRAMO.vigente, rango: d75 !== null ? rangoDias(d50, d75) : `desde ${d50} d` },
-    { nombre: NOMBRE_TRAMO.envejecida, rango: d75 !== null ? (d90 !== null ? rangoDias(d75, d90) : `desde ${d75} d`) : "sin datos aún" },
-    { nombre: NOMBRE_TRAMO.critica, rango: d90 !== null ? `más de ${d90} d` : "sin datos aún" },
+    { nombre: NOMBRE_TRAMO.envejecida, rango: d75 !== null ? `desde ${d75} d` : "sin datos aún" },
   ];
 }
 
@@ -846,7 +854,8 @@ export function reglaVista(p: FrescuraPrenda): ReglaVista | null {
   const p75 = s.cortes.p75 === null ? null : dia(s.cortes.p75);
   const p90 = s.cortes.p90 === null ? null : dia(s.cortes.p90);
   const tMax = dia(s.tMax);
-  const suyos = dia(p.reloj.segundos);
+  const reloj = relojQueDecide(p);
+  const suyos = dia(reloj.segundos);
   const tope = Math.max((p90 ?? tMax) * 1.2, suyos * 1.12, 30);
   const pct = (d: number) => Math.min(100, (d / tope) * 100);
   const zonas: ReglaVista["zonas"] = [];
@@ -858,16 +867,16 @@ export function reglaVista(p: FrescuraPrenda): ReglaVista | null {
   };
   sumar("nueva", NOMBRE_TRAMO.nueva, p50);
   sumar("vigente", NOMBRE_TRAMO.vigente, p75 ?? tMax);
-  if (p75 !== null) sumar("envejecida", NOMBRE_TRAMO.envejecida, p90 ?? tMax);
-  if (p90 !== null) sumar("critica", NOMBRE_TRAMO.critica, tope);
+  // Envejeciendo es una sola zona desde P75 (Envejecida y Crítica se dicen igual); sin P75, lo que sigue no se sabe todavía.
+  if (p75 !== null) sumar("envejecida", NOMBRE_TRAMO.envejecida, tope);
   else sumar("nada", "no se sabe", tope);
   const alinear = (pos: number): "inicio" | "medio" | "fin" => (pos < 6 ? "inicio" : pos > 90 ? "fin" : "medio");
   const marca = (d: number, abajo: string) => ({ pos: pct(d), arriba: `${diasDeCorte(d * SEGUNDOS_DIA)} d`, abajo, alinear: alinear(pct(d)) });
   const marcas: ReglaVista["marcas"] = [{ pos: 0, arriba: "0", abajo: "", alinear: "inicio" }, marca(p50, "la mitad")];
   if (p75 !== null) marcas.push(marca(p75, "3 de 4"));
   marcas.push(p90 !== null ? marca(p90, "9 de 10") : marca(tMax, "lo más largo visto"));
-  const d = diasDe(p.reloj.segundos);
-  return { zonas, marcas, ella: { pos: pct(suyos), texto: p.reloj.alMenos ? `${d} d ${QUIZA_MAS}` : `${d} d` } };
+  const d = diasDe(reloj.segundos);
+  return { zonas, marcas, ella: { pos: pct(suyos), texto: reloj.alMenos ? `${d} d ${QUIZA_MAS}` : `${d} d` } };
 }
 
 /** Un texto con partes en negrita: `**así**`. La pantalla lo pinta con `<b>`. */
@@ -953,23 +962,31 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
     const mitad = s?.cortes.p50 != null ? `${noLlega(d, diasDeCorte(s.cortes.p50), "todavía no pasa")} días en que ya se vendió la mitad de las demás, pero ` : "";
     return `${causaAlMenos(p, ctx)} Lleva **${dTxt}**: ${mitad}no se puede decir que sea nueva.`;
   }
-  // El semáforo, contra las demás de su categoría SIN ella (D5).
+  // El semáforo, contra las demás de su categoría SIN ella (D5), con el reloj que lo decidió (act. 2026-10-10 (b)): Fresca, el de su
+  // modelo; pasada la mitad, el de lo más viejo que cuelga.
+  const reloj = relojQueDecide(p);
+  const du = diasDe(reloj.segundos);
+  const duTxt = reloj.alMenos ? `${textoDias(du)} ${QUIZA_MAS}` : textoDias(du);
+  const repuesta = e.tramo !== "nueva" && d - du >= 1;
+  const quien = repuesta ? "Lo más viejo que cuelga lleva" : "Lleva";
   const c50 = s?.cortes.p50 != null ? diasDeCorte(s.cortes.p50) : null;
   const c75 = s?.cortes.p75 != null ? diasDeCorte(s.cortes.p75) : null;
   const c90 = s?.cortes.p90 != null ? diasDeCorte(s.cortes.p90) : null;
   let base: string;
   if (e.tramo === "nueva") base = `Lleva **${dTxt}**: ${noLlega(d, c50 ?? 0)} en que ya se vendió la mitad de las demás.`;
   else if (e.tramo === "vigente")
-    base = `Lleva **${dTxt}**: ${yaPaso(d, c50 ?? 0)} en que se vende la mitad de las demás${c75 !== null ? `, pero ${noLlega(d, c75, "no")} en que ya se vendieron 3 de cada 4.` : "."}`;
+    base = `${quien} **${duTxt}**: ${yaPaso(du, c50 ?? 0)} en que se vende la mitad de las demás${c75 !== null ? `, pero ${noLlega(du, c75, "no")} en que ya se vendieron 3 de cada 4.` : "."}`;
   else if (e.tramo === "envejecida")
-    base = `Lleva **${dTxt}**: ${yaPaso(d, c75 ?? 0)} en que ya se vendieron 3 de cada 4 de las demás${c90 !== null ? (d === c90 ? `; ${noLlega(d, c90)} en que se vendieron 9 de cada 10.` : `; a los ${c90} se vendieron 9 de cada 10.`) : "."}`;
-  else base = `Lleva **${dTxt}**: ${yaPaso(d, c90 ?? 0)} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
-  if (e.alMenos && p.reloj.alMenos)
+    base = `${quien} **${duTxt}**: ${yaPaso(du, c75 ?? 0)} en que ya se vendieron 3 de cada 4 de las demás${c90 !== null ? (du === c90 ? `; ${noLlega(du, c90)} en que se vendieron 9 de cada 10.` : `; a los ${c90} se vendieron 9 de cada 10.`) : "."}`;
+  else base = `${quien} **${duTxt}**: ${yaPaso(du, c90 ?? 0)} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
+  // Un éxito que se repone: su modelo ya no es Fresco, pero lo que cuelga es nuevo (no se pinta de viejo).
+  if (repuesta) base += ` Su modelo lleva ${dTxt} en el piso: ya no es Fresca, aunque lo que cuelga hoy se colgó después.`;
+  if (e.alMenos && reloj.alMenos)
     base += ` ${causaAlMenos(p, ctx)}${e.tramo === "critica" ? ` Aunque lleve más, ya es «${NOMBRE_TRAMO.critica}».` : ` Por eso es «${nombreAlMenos(e.tramo)}» y nunca «${NOMBRE_TRAMO.nueva}».`}`;
   else if (e.alMenos && s) {
-    const sig = e.tramo === "vigente" ? NOMBRE_TRAMO.envejecida : NOMBRE_TRAMO.critica;
+    const sig = NOMBRE_TRAMO.envejecida;
     const tMax = diasDeCorte(s.tMax);
-    base += ` Lo más largo que se vio de las demás en ${ctx.sede}, sin contarla, son ${textoDias(tMax)}, y ella ya ${d === tMax ? "los alcanzó" : "los pasó"}: todavía no hay ventas para saber dónde empieza «${sig}». Por eso es «${nombreAlMenos(e.tramo)}».`;
+    base += ` Lo más largo que se vio de las demás en ${ctx.sede}, sin contarla, son ${textoDias(tMax)}, y ella ya ${du === tMax ? "los alcanzó" : "los pasó"}: todavía no hay ventas para saber dónde empieza «${sig}». Por eso es «${nombreAlMenos(e.tramo)}».`;
   }
   // La comparación sale de las demás SIN ella (D5): sus ventas dicen cuánto creerle, no las de toda la categoría.
   if (s && nivelSinElla(p) === "pocos_datos") base += ` La comparación sale de solo ${textoVentas(s.vendidas)} de las demás: tómala con cuidado.`;
@@ -999,7 +1016,7 @@ function porqueRapidez(p: FrescuraPrenda): { texto: TextoRico | null; nivel: Niv
   const contra = nivel === "solido" ? "" : ` Se midió contra solo ${textoVentas(r.referencia)} de las demás.`;
   if (k === "poca_evidencia")
     return {
-      texto: `Vendió **${v}** cuando para una prenda de su categoría con los mismos días en el piso ${esperaban} **${esp}**. Con menos de ${ESPERADAS_PARA_DECIDIR} esperadas no se puede decir que sea lenta: una que se vende como las demás saldría «lenta» 1 de cada 3 veces por puro azar. Se vuelve a mirar cuando su categoría venda más.${contra}`,
+      texto: `Vendió **${v}** cuando para una prenda de su categoría con los mismos días en el piso ${esperaban} **${esp}**. Todavía no se puede decir que sea lenta: con estas ventas, la diferencia puede ser azar. Se vuelve a mirar cuando haya más.${contra}`,
       nivel,
     };
   if (k === "sin_medida")
@@ -1075,7 +1092,7 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
           texto: estaCallada(p)
             ? `En sus últimos ${DIAS_CALLADA} días en el piso no se vendió ninguna. Antes de moverla, mira si está a la vista, si tiene sus tallas y su etiqueta de precio.`
             : claveRapidez(p) === "poca_evidencia" && p.rapidez
-              ? `Vendió ${decimal(p.rapidez.vendidas)} cuando ${seEsperaban(decimal(p.rapidez.esperadas))}: parece lenta, pero con menos de ${ESPERADAS_PARA_DECIDIR} ventas esperadas no se puede afirmar. Mira sus ventas antes de decidir.`
+              ? `Vendió ${decimal(p.rapidez.vendidas)} cuando ${seEsperaban(decimal(p.rapidez.esperadas))}: parece lenta, pero la diferencia todavía puede ser azar. Mira sus ventas antes de decidir.`
               : `No se sabe qué tan rápido se vende: ${porqueSinDato(p)}. Mira sus ventas antes de decidir.`,
           botones: ventas,
         };
@@ -1186,7 +1203,7 @@ export function detalleVista(p: FrescuraPrenda, ctx: ContextoFrescura): DetalleV
         : temporada
           ? { tipo: "tiene", nombre: temporada }
           : null,
-    dias: dudosa ? null : diasDe(p.reloj.segundos),
+    dias: dudosa ? null : diasDe(relojQueDecide(p).segundos),
     quizaMas: !dudosa && p.reloj.alMenos,
     pausa: apartada,
     estado: estadoVista(p),

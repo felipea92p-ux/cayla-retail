@@ -1,5 +1,5 @@
 import { tramosDeLaPrenda } from "./frescura-piso";
-import type { FrescuraPrenda, RitmoCategoria } from "./frescura-reglas";
+import { cuantilGamma, type FrescuraPrenda, type RitmoCategoria } from "./frescura-reglas";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): las categorías de mayor impacto, con su acción. El ejemplo de Felipe: «Jeans está
 // envejeciendo: rótalo, mejora la exhibición o completa tallas» y «Polos tiene mayor acogida». Dos señales, cada una con su vara:
@@ -37,14 +37,8 @@ export const PARTE_VIEJA = 0.3;
 /** Cuántas tarjetas: hasta dos que se quedan y una que se lleva más (o lo que haya). */
 export const MAX_TARJETAS = 3;
 
-/**
- * El cuantil de una Gamma(forma a, tasa b) por la aproximación de Wilson-Hilferty (la Gamma elevada a 1/3 es casi normal). Con a ≥ 1 el
- * error es de centésimas, de sobra para decir de qué lado de 0,75 o 1,33 cae.
- */
-export function cuantilGamma(a: number, b: number, z: number): number {
-  const c = 1 / (9 * a);
-  return (a / b) * Math.max(0, 1 - c + z * Math.sqrt(c)) ** 3;
-}
+/** El cuantil de una Gamma (Wilson-Hilferty): vive con la rapidez en `frescura-reglas.ts` y se reexporta aquí. */
+export { cuantilGamma };
 
 export type Acogida = {
   categoriaId: string;
