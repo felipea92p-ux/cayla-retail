@@ -131,6 +131,43 @@ export function conPrecioDeLaSede<P extends { precio: number }>(
   });
 }
 
+/** Una tienda con precio propio para una prenda, como se ve en Catálogo ▸ Productos. */
+export type PrecioDeTienda = { sede: string; precio: number };
+
+/** Por prenda, qué tiendas la venden a otro precio (uno por tienda y precio, ordenado por tienda). Las prendas sin ninguno no
+ *  aparecen. `porSede` es lo de `getPreciosPorSede`; `nombres`, el nombre de cada tienda. */
+export function preciosDeTiendaPorProducto(
+  productos: readonly { productoId: string; varianteIds: readonly string[] }[],
+  porSede: Readonly<Record<string, Readonly<Record<string, number>>>>,
+  nombres: ReadonlyMap<string, string>,
+): Record<string, PrecioDeTienda[]> {
+  const out: Record<string, PrecioDeTienda[]> = {};
+  for (const p of productos) {
+    const vistos = new Set<string>();
+    const lista: PrecioDeTienda[] = [];
+    for (const [sedeId, precios] of Object.entries(porSede)) {
+      for (const id of p.varianteIds) {
+        const precio = precios[id];
+        if (precio === undefined) continue;
+        const clave = `${sedeId}|${precio}`;
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        lista.push({ sede: nombreCorto(nombres.get(sedeId) ?? "otra tienda"), precio });
+      }
+    }
+    if (lista.length > 0) out[p.productoId] = lista.sort((a, b) => a.sede.localeCompare(b.sede, "es") || a.precio - b.precio);
+  }
+  return out;
+}
+
+/** La insignia junto al precio: «2 precios» (el general más los de tienda) y lo que dice al pasar el mouse o al lector. */
+export function insigniaPrecios(lista: readonly PrecioDeTienda[]): { texto: string; detalle: string } {
+  return {
+    texto: `${lista.length + 1} precios`,
+    detalle: `Otro precio en ${lista.map((t) => `${t.sede} ${soles(t.precio)}`).join(" · ")}`,
+  };
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;

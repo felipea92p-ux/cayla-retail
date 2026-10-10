@@ -4,6 +4,8 @@ import {
   camposPonerPrecio,
   conPreciosDeSede,
   conPrecioDeLaSede,
+  insigniaPrecios,
+  preciosDeTiendaPorProducto,
   etiquetaPrecioDeSede,
   leerPreciosEnSede,
   desdeHace,
@@ -105,5 +107,20 @@ describe("prendas con el precio de una tienda", () => {
   it("sin precios propios, el mismo arreglo", () => {
     expect(conPrecioDeLaSede(prendas, undefined, (p) => p.id)).toBe(prendas);
     expect(conPrecioDeLaSede(prendas, {}, (p) => p.id)).toBe(prendas);
+  });
+});
+
+describe("«2 precios» en Catálogo ▸ Productos", () => {
+  const nombres = new Map([["aqp", "Tienda Arequipa"], ["lim", "Tienda Lima"]]);
+  it("junta por prenda las tiendas con otro precio, una vez por tienda y precio", () => {
+    const r = preciosDeTiendaPorProducto(
+      [{ productoId: "blusa", varianteIds: ["b1", "b2"] }, { productoId: "falda", varianteIds: ["f1"] }],
+      { aqp: { b1: 129.9, b2: 129.9 }, lim: { b1: 109.9 } },
+      nombres,
+    );
+    expect(r).toEqual({ blusa: [{ sede: "Arequipa", precio: 129.9 }, { sede: "Lima", precio: 109.9 }] });
+  });
+  it("la insignia cuenta el general más los de tienda y dice cuáles", () => {
+    expect(insigniaPrecios([{ sede: "Arequipa", precio: 129.9 }])).toEqual({ texto: "2 precios", detalle: "Otro precio en Arequipa S/ 129.90" });
   });
 });

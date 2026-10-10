@@ -29,6 +29,8 @@ import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, type TamanoGrilla } from "@/l
 import { FunnelX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
+import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
@@ -53,8 +55,11 @@ export function ProductosGrilla({
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
   hrefLimpiar,
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
+  preciosTienda = {},
 }: {
   productos: ProductoListado[];
+  /** Por prenda, las tiendas que la venden a otro precio: la insignia «2 precios» (Felipe 2026-10-09). */
+  preciosTienda?: Record<string, PrecioDeTienda[]>;
   /** El tamaño de las tarjetas que la persona dejó la última vez (cookie, leída en el servidor). */
   tamanoInicial?: TamanoGrilla;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
@@ -111,6 +116,7 @@ export function ProductosGrilla({
           puedeEditar={puedeEditar}
           puedeEliminar={puedeEliminar}
           compacta={tamano === "pequeno"}
+          otrosPrecios={preciosTienda[p.productoId]}
         />
       ))}
     </div>
@@ -128,8 +134,10 @@ function TarjetaProducto({
   puedeEditar,
   puedeEliminar,
   compacta = false,
+  otrosPrecios,
 }: {
   producto: ProductoListado;
+  otrosPrecios?: PrecioDeTienda[];
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
   veMovimientos: boolean;
@@ -209,7 +217,10 @@ function TarjetaProducto({
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
-          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => v.precio)) ?? "—"}</span>
+          <span className="text-[15px] font-semibold tabular-nums text-tinta">
+            {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => v.precio)) ?? "—"}
+            <InsigniaPrecios lista={otrosPrecios} className="ml-1.5 align-middle" />
+          </span>
           <span
             title={EXPLICACION_STOCK_TOTAL}
             className={`ml-auto font-semibold tabular-nums ${compacta ? "text-[11.5px]" : "whitespace-nowrap text-[12.5px]"} ${tonoStock}`}

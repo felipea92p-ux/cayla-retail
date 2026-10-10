@@ -26,3 +26,15 @@ export async function getPreciosPorSede(ubicacionIds: readonly string[]): Promis
   );
   return Object.fromEntries(lecturas.filter((l): l is NonNullable<typeof l> => l !== null));
 }
+
+/** Las tiendas abiertas y sus precios propios, para las pantallas que miran todas las sedes (Catálogo ▸ Productos). */
+export async function getPreciosDeLasTiendas(): Promise<{ nombres: Map<string, string>; porSede: Record<string, Record<string, number>> }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true);
+    if (error || !data) return { nombres: new Map(), porSede: {} };
+    return { nombres: new Map(data.map((u) => [u.id, u.nombre])), porSede: await getPreciosPorSede(data.map((u) => u.id)) };
+  } catch {
+    return { nombres: new Map(), porSede: {} };
+  }
+}

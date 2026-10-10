@@ -31,6 +31,8 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { urlRotulos } from "@/lib/rotulos-reglas";
+import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
+import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -127,9 +129,18 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const existencias = await getExistenciasProductos(
-    resultado.productos.map((p) => p.productoId),
-    persona.ubicacionId
+  const [existencias, preciosTiendas] = await Promise.all([
+    getExistenciasProductos(
+      resultado.productos.map((p) => p.productoId),
+      persona.ubicacionId
+    ),
+    // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
+    getPreciosDeLasTiendas(),
+  ]);
+  const preciosTienda = preciosDeTiendaPorProducto(
+    resultado.productos.map((p) => ({ productoId: p.productoId, varianteIds: p.variantes.map((v) => v.varianteId) })),
+    preciosTiendas.porSede,
+    preciosTiendas.nombres,
   );
 
   const categoriasLeidas = exigir(categorias, "las categorías");
@@ -273,6 +284,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
+            preciosTienda={preciosTienda}
           />
         ) : (
           <ProductosTabla
@@ -286,6 +298,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             veDinero={puede(persona, "verDineroCompras")}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             hrefLimpiar="/productos?vista=tabla"
+            preciosTienda={preciosTienda}
           />
         )}
 

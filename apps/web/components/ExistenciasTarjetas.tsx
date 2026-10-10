@@ -359,7 +359,13 @@ export function ExistenciasTarjetas({
                   {p.apartado > 0 && <span className="shrink-0 rounded-full bg-pizarra/[0.12] px-1.5 text-[11px] font-semibold text-pizarra">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</span>}
                 </span>
               </span>
-              {p.precio != null && <span className="self-start font-display text-[15px] tabular-nums text-tinta">S/ {p.precio.toFixed(2)}</span>}
+              {p.precio != null && (
+                <span className="flex flex-col items-end self-start">
+                  <span className="font-display text-[15px] tabular-nums text-tinta">S/ {p.precio.toFixed(2)}</span>
+                  {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
+                  {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+                </span>
+              )}
             </div>
             <span className="sr-only">{separa && <EstadoParaLector prenda={p} />}</span>
 
