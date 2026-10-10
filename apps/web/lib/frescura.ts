@@ -101,7 +101,12 @@ export type DatosFrescura = {
   /** La puerta compartida con Análisis y el motor (`preparacionDeSede`): si la tienda ya registra lo que vende. Sin ella la barra se ve
    *  pero la frase no afirma nada. Null si no se pudo leer o la sede no es tienda. */
   puerta: PuertaPiso;
+  /** Lo vendido «sin registrar» en la tienda (anotado en caja: trae categoría, no prenda), por categoría, en los últimos 14 y 28 días. Es
+   *  el control de la acogida y, sin piso cuadrado, lo que se dice que se llevan los clientes. Vacío si no se pudo leer. */
+  anotadas: AnotadasCategoria[];
 };
+
+export type AnotadasCategoria = { categoriaId: string; nombre: string; d14: number; d28: number };
 
 /**
  * La miniatura de cada prenda de la tabla (ADR-0333: sin foto, el ícono de su categoría sobre su color; nunca el isotipo). La
@@ -189,9 +194,38 @@ async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<Puerta
     const fila = leerPreparacion(data).find((f) => f.ubicacionId === sedeId);
     if (!fila) return null;
     const p = { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy, primeraVenta: fila.primeraVenta };
-    return { puedeHablar: p.puedeHablar, aviso: avisoDatosDeHoy(p) };
+    return { puedeHablar: p.puedeHablar, aviso: avisoDatosDeHoy(p), pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple) };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Lo vendido «sin registrar» de los últimos 28 días en la tienda, por categoría (`prendas_por_regularizar`: lo pendiente y lo cerrado sin
+ * prenda; lo regularizado ya es una venta con su prenda y lo anulado no se vendió). La RLS deja leer la propia sede. Nunca lanza.
+ */
+async function anotadasDeLaSede(supabase: Supabase, sedeId: string): Promise<AnotadasCategoria[]> {
+  try {
+    const ahora = Date.now();
+    const desde = new Date(ahora - 28 * 86_400_000).toISOString();
+    const corte14 = ahora - 14 * 86_400_000;
+    const { data, error } = await supabase
+      .from("prendas_por_regularizar")
+      .select("categoria_id, vendido_en, categoria:categorias ( nombre )")
+      .eq("ubicacion_id", sedeId)
+      .in("estado", ["pendiente", "cerrada_sin_prenda"])
+      .gte("vendido_en", desde);
+    if (error || !data) return [];
+    const porCategoria = new Map<string, AnotadasCategoria>();
+    for (const f of data as { categoria_id: string; vendido_en: string; categoria: { nombre: string } | null }[]) {
+      const c = porCategoria.get(f.categoria_id) ?? { categoriaId: f.categoria_id, nombre: f.categoria?.nombre ?? "Sin categoría", d14: 0, d28: 0 };
+      c.d28 += 1;
+      if (Date.parse(f.vendido_en) >= corte14) c.d14 += 1;
+      porCategoria.set(f.categoria_id, c);
+    }
+    return [...porCategoria.values()];
+  } catch {
+    return [];
   }
 }
 
@@ -231,12 +265,13 @@ export async function getFrescuraPantalla(
   const respaldoCayla = { calculadaEn, fallo: falloRespaldo };
   // Lo que acompaña a la lectura de la sede, todo a la vez y tolerante: miniaturas, precios y la puerta.
   const deLaSede = async (lectura: DatosFrescura["lectura"]) => {
-    const [miniaturas, precios, puerta] = await Promise.all([
+    const [miniaturas, precios, puerta, anotadas] = await Promise.all([
       miniaturasDeLaTabla(supabase, lectura),
       preciosDelPiso(supabase, sede.id, lectura),
       sede.tienda ? puertaDelPiso(supabase, sede.id) : Promise.resolve(null),
+      sede.tienda ? anotadasDeLaSede(supabase, sede.id) : Promise.resolve([]),
     ]);
-    return { ...miniaturas, familias, precios, puerta };
+    return { ...miniaturas, familias, precios, puerta, anotadas };
   };
 
   if (persona.rol !== "lider") {

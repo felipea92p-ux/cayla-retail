@@ -3529,3 +3529,17 @@ medir el de cada tienda. No compara si hace 4 semanas no se podía afirmar (la c
 mostró el ensayo:** mientras una categoría aún aprende su ritmo (su vara del mes no llega a 10 ventas), si se estanca entera la curva de hoy
 no llega a P75 y sus prendas viejas salen Vigentes: es el efecto de la vara viva que la del mes corrige apenas junta 10 ventas.
 
+**Construido (actividad 4, 2026-10-10): lo que mueve la aguja.** Hasta tres tarjetas —dos que se quedan y una que se lleva más— con dos
+señales (`lib/frescura-aguja.ts`): **la edad** (un hecho: 3 unidades o más, y 3 de cada 10 de su piso, ya pasaron P75 de su categoría) y **la
+acogida** (una inferencia: lo que vende contra lo que tocaría por su espacio al ritmo del RESTO de la tienda, en 14 días o 28 si en 14 no
+alcanza; contraída con Gamma(5 + x/1,5, 5 + E/1,5), como Rendimiento, y solo si su cota de 9 de cada 10 sale de 0,75–1,33; con 5 ventas esperadas
+o más, que salen de lo que estuvo colgado: no hay otro umbral de piso, porque las cifras del piso las decide `piso-plan.ts`, ADR-0328). La exposición es la de «¿sirvió?» (`exposicionDeEventos`, sin mirar la edad: funciona aunque casi todo sea carga
+inicial), sumada por categoría en `analizarSede` (`ritmoPorCategoria`). Lo anotado en caja (`prendas_por_regularizar`, pendiente o cerrado
+sin prenda) es el CONTROL: si con él la acogida cruza 1, no habla. Sin el piso cuadrado (la puerta del motor) no hay veredictos: la tarjeta
+dice qué se llevan los clientes en 14 días, registrado y anotado («Lo que más se llevan»), lo único que vale para AQP hoy. Acciones, en el
+orden de la industria: **Completa tallas** (Bajar al piso con las tallas guardadas de modelos que ya cuelgan), **Ver cuáles cambiar de
+lugar** (filtra la lista), **Cuelga más** (Bajar al piso con lo del almacén) o «conviene pedir más»; el precio nunca. **Sin histéresis:**
+la tarjeta puede ir y venir de una semana a otra en el borde (guardarla pide la foto diaria). **Lo que destapó el ensayo:** una categoría
+estancada entera no llega a P75 (sus propias unidades sin vender, censuradas, sostienen la curva) y nada de ella sale Envejeciendo; se
+corrige en la actividad 6 extendiendo la curva con su propio ritmo de venta pasado lo observado.
+

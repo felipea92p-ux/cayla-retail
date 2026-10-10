@@ -1560,7 +1560,17 @@ export type FrescuraSede = {
   /** El piso de hace 4 semanas, por categoría (ADR-0208, act. 2026-10-10 (b): la meta es contra el mes anterior). Lo pone quien lee la
    *  sede si se lo piden (`pisoAnterior`, `frescura-piso.ts`); null si no se pudo reconstruir o la lectura no llega tan atrás. */
   haceUnMes?: PisoAnterior | null;
+  /** Cuánto estuvo colgada y cuánto vendió cada categoría en los últimos 14 y 28 días (ADR-0208, act. 2026-10-10 (b): lo que mueve la
+   *  aguja). Unidad·días LIBRES en el piso y ventas registradas (lo apartado cuenta como venta), sin mirar la edad: funciona aunque casi todo
+   *  sea carga inicial. Sin clásicos ni lo que no cuadra, como la barra. */
+  ritmoPorCategoria: RitmoCategoria[];
 };
+
+/** El ritmo de una categoría en una ventana: lo que pesa en el piso (unidad·días) contra lo que vende. */
+export type RitmoCategoria = { categoriaId: string; dias: number; unidadDias: number; vendidas: number };
+
+/** Las ventanas del ritmo: 14 días manda; 28 si en 14 todavía no hay con qué juzgar. */
+export const DIAS_RITMO = [14, 28] as const;
 
 /** Lo que una sede aporta a la referencia de CAYLA: por categoría, sus unidades con edad conocida en cada ventana (se
  *  calculan al pedirlas y quedan guardadas). Vive en el servidor: no va a la pantalla. */
@@ -1911,6 +1921,23 @@ export function analizarSede(
     return { unidadSegundos, vendidas };
   };
 
+  // El ritmo de cada categoría (lo que mueve la aguja): la exposición de siempre (`exposicionDeEventos`, la medida de «¿sirvió?»), sumada.
+  const ritmoPorCategoria: RitmoCategoria[] = [];
+  for (const dias of DIAS_RITMO) {
+    const desdeRitmo = new Date(Math.max(desdeMs, ahoraMs - dias * MS_POR_DIA)).toISOString();
+    for (const [cat, { ids }] of tallasDeCategoria) {
+      if (ids.length === 0) continue;
+      let unidadSegundos = 0;
+      let vendidas = 0;
+      for (const id of ids) {
+        const e = exposicionDeEventos(limpiosPorVariante.get(id) ?? [], desdeRitmo, l.ahora);
+        unidadSegundos += e.unidadSegundos;
+        vendidas += e.vendidas;
+      }
+      ritmoPorCategoria.push({ categoriaId: cat, dias, unidadDias: unidadSegundos / 86_400, vendidas });
+    }
+  }
+
   return {
     sede: {
       separaPiso: true,
@@ -1918,6 +1945,7 @@ export function analizarSede(
       ahora: l.ahora,
       categorias,
       prendas,
+      ritmoPorCategoria,
       cifras: cifrasSede(prendas),
       // Hasta que `aplicarDecisiones` lea la libreta, no se sabe nada de lo decidido.
       decisiones: { estado: "sin_lectura", aviso: "" },

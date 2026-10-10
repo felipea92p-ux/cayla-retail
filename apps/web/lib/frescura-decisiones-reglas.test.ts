@@ -118,6 +118,7 @@ function sedeCon(prendas: FrescuraPrenda[]): FrescuraSede {
     ahora: AHORA,
     categorias: [],
     prendas,
+    ritmoPorCategoria: [],
     cifras: { unidadesEnPiso: 0, edadDelPisoDias: null, edadDelPisoAlMenos: false, unidadesNuevas: 0, unidadesConTramo: 0, pctNuevas: null, porDecidir: 0, decididas: 0 },
     decisiones: { estado: "sin_lectura", aviso: "" },
   };

@@ -230,7 +230,12 @@ export function conteoDeFamilia(
 }
 
 /** Lo que dice la puerta compartida (`preparacionDeSede` del motor de demanda, la misma de Análisis): si la tienda ya registra lo que vende. */
-export type PuertaPiso = { puedeHablar: boolean; aviso: string } | null;
+export type PuertaPiso = {
+  puedeHablar: boolean;
+  aviso: string;
+  /** El piso ya se cuadró (el sistema sabe qué cuelga): sin esto, las categorías no reciben veredicto (`loQueMueveLaAguja`). */
+  pisoCuadrado?: boolean;
+} | null;
 
 /** «Aún no se sabe» desde esta parte del piso, la frase no afirma nada: con tanto gris, el porcentaje de frescas podría ser otro. */
 export const PARTE_SIN_SABER_QUE_CALLA = 0.2;

@@ -49,6 +49,8 @@ import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./Frescura
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTablero } from "./FrescuraTablero";
 import { FrescuraPiso } from "./FrescuraPiso";
+import { FrescuraAguja } from "./FrescuraAguja";
+import { loQueMueveLaAguja, loQueSeLlevan } from "@/lib/frescura-aguja";
 import { conteoDeFamilia, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
@@ -125,6 +127,24 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       ? conteoDeFamilia(sede.haceUnMes, piso[0].codigo, { familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null, familias: datos.familias })
       : null;
   const respuesta = sede ? respuestaDelPiso(piso[0] ?? null, datos.puerta, antes) : null;
+  // Lo que mueve la aguja: las categorías que se quedan y la que se lleva más (con lo anotado en caja como control).
+  const pisoCuadrado = datos.puerta?.pisoCuadrado === true;
+  const anotadasDe = useMemo(() => {
+    const m = new Map(datos.anotadas.map((a) => [a.categoriaId, a]));
+    return (cat: string, dias: number) => {
+      const a = m.get(cat);
+      return a ? (dias <= 14 ? a.d14 : a.d28) : 0;
+    };
+  }, [datos.anotadas]);
+  const senales = useMemo(
+    () => (sede ? loQueMueveLaAguja(sede.prendas, sede.ritmoPorCategoria, { pisoCuadrado, anotadas: datos.anotadas.length > 0 ? anotadasDe : undefined }) : []),
+    [sede, pisoCuadrado, datos.anotadas, anotadasDe],
+  );
+  const seLlevan = useMemo(() => {
+    if (!sede || pisoCuadrado) return [];
+    const nombres = new Map<string, string>([...sede.categorias.map((c) => [c.categoriaId, c.categoriaNombre] as const), ...datos.anotadas.map((a) => [a.categoriaId, a.nombre] as const)]);
+    return loQueSeLlevan(sede.ritmoPorCategoria, anotadasDe, datos.anotadas.map((a) => a.categoriaId), (cat) => nombres.get(cat) ?? "Sin categoría");
+  }, [sede, pisoCuadrado, datos.anotadas, anotadasDe]);
   // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
   const sinTemporada = textoSinTemporada(enTabla);
   // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
@@ -268,7 +288,21 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
 
       {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} antes={respuesta?.antes ?? null} />}
 
-      <section aria-label="Prendas por categoría" className="card-cayla overflow-hidden" data-resultados>
+      {sede && datos.sede.tienda && (
+        <FrescuraAguja
+          senales={senales}
+          pisoCuadrado={pisoCuadrado}
+          seLlevan={seLlevan}
+          puedeBajar={acceso.existencias}
+          onVerCategoria={(cat) => {
+            cambiar({ cat });
+            const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            document.getElementById("frescura-prendas")?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" });
+          }}
+        />
+      )}
+
+      <section id="frescura-prendas" aria-label="Prendas por categoría" className="card-cayla scroll-mt-4 overflow-hidden" data-resultados>
         {!sede ? (
           <EstadoSinLectura datos={datos} onReintentar={() => router.refresh()} />
         ) : (
