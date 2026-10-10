@@ -328,6 +328,9 @@ export const enteroES = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 
 export const solesES = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const fechaLargaES = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
 
+/** Cuántas categorías son «las que más venden». */
+export const TOP_VENTAS = 10;
+
 export type FilaPlan = {
   c: CategoriaPlan;
   linea: LineaPlan | undefined;
@@ -336,20 +339,40 @@ export type FilaPlan = {
   calculo: Calculo | null;
   /** Lo que se vendió dentro de las fechas de la campaña. */
   vendido: number;
+  /** Lo que se vendió en los últimos 90 días, de todas las tallas (con su prenda o anotado «sin registrar»). */
+  ventas: number;
+  /** Su lugar entre las que más venden (1 a `TOP_VENTAS`), o null si no está entre ellas. Una categoría sin ventas nunca entra. */
+  puesto: number | null;
 };
 
+const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
+
+function porVentas(a: FilaPlan, b: FilaPlan): number {
+  return b.ventas - a.ventas || b.stock - a.stock || a.c.nombre.localeCompare(b.c.nombre, "es");
+}
+
 /**
- * Una fila por categoría activa, con su cuenta hecha. Primero lo que ya tiene plan; después, lo que más stock tiene (lo que más
- * pesa para la campaña); a igual stock, por nombre. El orden es estable: dos lecturas iguales dan la misma tabla.
+ * Una fila por categoría activa, con su cuenta hecha, ordenada por lo que más vende (la que más vende primero; a igual venta, la de más
+ * stock; a igual stock, por nombre). El orden es estable: dos lecturas iguales dan la misma tabla. `ordenarFilas` la reordena.
  */
 export function armarFilas(plan: LecturaPlan): FilaPlan[] {
-  return plan.categorias
+  const filas = plan.categorias
     .map((c): FilaPlan => {
       const linea = plan.lineas.get(c.id);
       const stock = plan.stock.get(c.id) ?? 0;
-      return { c, linea, stock, calculo: linea ? calcular(linea, stock) : null, vendido: plan.vendidoEnCampana.get(c.id) ?? 0 };
+      return {
+        c,
+        linea,
+        stock,
+        calculo: linea ? calcular(linea, stock) : null,
+        vendido: plan.vendidoEnCampana.get(c.id) ?? 0,
+        ventas: sumaDe(plan.vendidoPorTalla.get(c.id)),
+        puesto: null,
+      };
     })
-    .sort((a, b) => Number(!!b.linea) - Number(!!a.linea) || b.stock - a.stock || a.c.nombre.localeCompare(b.c.nombre, "es"));
+    .sort(porVentas);
+  let lugar = 0;
+  return filas.map((f) => (f.ventas > 0 && lugar < TOP_VENTAS ? { ...f, puesto: ++lugar } : f));
 }
 
 export type TotalesPlan = {
@@ -375,3 +398,84 @@ export function totalesDelPlan(filas: readonly FilaPlan[]): TotalesPlan {
     vendido: filas.reduce((s, f) => s + f.vendido, 0),
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 7. Filtrar, ordenar, plegar y decir en qué momento está la campaña
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type FiltroPlan = "todas" | "sin" | "con" | "top" | "agotadas";
+export type OrdenPlan = "ventas" | "inversion" | "nombre";
+
+/** Vendía y ya no hay nada: la que primero hay que mirar antes de una campaña. */
+export const esAgotada = (f: FilaPlan) => f.stock === 0 && f.ventas > 0;
+/** Sin plan, sin stock y sin ventas en 90 días: no hace falta planearla ahora. */
+export const sinMovimiento = (f: FilaPlan) => !f.linea && f.stock === 0 && f.ventas === 0;
+
+const PASA: Record<FiltroPlan, (f: FilaPlan) => boolean> = {
+  todas: () => true,
+  sin: (f) => !f.linea,
+  con: (f) => !!f.linea,
+  top: (f) => f.puesto !== null,
+  agotadas: esAgotada,
+};
+
+/** Sin tildes ni mayúsculas, como busca el resto del ERP. */
+export const sinTildes = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Lo que dicen la familia y el buscador. Los conteos de las píldoras se sacan de AQUÍ, antes de elegir la píldora. */
+export function filtrarFilas(filas: readonly FilaPlan[], { familia = "todas", q = "" }: { familia?: string; q?: string }): FilaPlan[] {
+  const buscado = sinTildes(q.trim());
+  return filas.filter((f) => (familia === "todas" || f.c.familia === familia) && (!buscado || sinTildes(f.c.nombre).includes(buscado)));
+}
+
+export const aplicarFiltro = (filas: readonly FilaPlan[], filtro: FiltroPlan): FilaPlan[] => filas.filter(PASA[filtro]);
+
+/** Cuántas filas tendría cada píldora con lo que dicen la familia y el buscador. */
+export function conteosDeFiltros(filas: readonly FilaPlan[]): Record<FiltroPlan, number> {
+  return { todas: filas.length, sin: aplicarFiltro(filas, "sin").length, con: aplicarFiltro(filas, "con").length, top: aplicarFiltro(filas, "top").length, agotadas: aplicarFiltro(filas, "agotadas").length };
+}
+
+/** Una copia reordenada. «Mayor inversión» deja al final las que no tienen plan (no tienen inversión); a igual cifra, por lo que más venden. */
+export function ordenarFilas(filas: readonly FilaPlan[], orden: OrdenPlan): FilaPlan[] {
+  const copia = [...filas];
+  if (orden === "nombre") return copia.sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, "es"));
+  if (orden === "inversion") return copia.sort((a, b) => (b.calculo?.inversion ?? -1) - (a.calculo?.inversion ?? -1) || porVentas(a, b));
+  return copia.sort(porVentas);
+}
+
+/** Las que no hace falta ver ahora (sin plan, sin stock, sin ventas) aparte de las que sí. */
+export function plegarSinMovimiento(filas: readonly FilaPlan[]): { visibles: FilaPlan[]; plegadas: FilaPlan[] } {
+  return { visibles: filas.filter((f) => !sinMovimiento(f)), plegadas: filas.filter(sinMovimiento) };
+}
+
+export type Momento = { estado: EstadoCampana; /** Lo importante, en negrita: «Faltan 52 días». */ fuerte: string; /** Lo que sigue. */ resto: string };
+
+/** Días de calendario entre dos fechas `AAAA-MM-DD`, sin que el huso o el horario de verano muevan el resultado. */
+export const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
+
+/** En qué momento está la campaña, dicho como lo diría una persona: cuánto falta, en qué día va o hace cuánto terminó. */
+export function momentoDeLaCampana(hoy: string, desde: string, hasta: string): Momento {
+  const estado = estadoCampana(hoy, desde, hasta);
+  const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
+  if (estado === "antes") {
+    const n = diasEntre(hoy, desde);
+    return { estado, fuerte: n === 1 ? "Falta 1 día" : `Faltan ${n} días`, resto: "para que empiece" };
+  }
+  if (estado === "durante") return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: "lo que se vendió hasta hoy va al lado" };
+  return { estado, fuerte: `Terminó hace ${dias(diasEntre(hasta, hoy))}`, resto: "mira lo que pasó contra lo que supusiste" };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 8. La barra de rango
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Lo que vale el 100 % de la barra de una categoría: lo más lejos que llega algo (el bueno, lo que conviene tener, lo que ya hay o lo
+ * vendido) con un 10 % de aire, para que ninguna marca quede pegada al borde. Todo el dibujo se mide contra este número.
+ */
+export function escalaDeRango(l: Pick<LineaPlan, "bueno">, calculo: Pick<Calculo, "objetivo" | "stock">, vendido = 0): number {
+  return Math.max(l.bueno, calculo.objetivo, calculo.stock, vendido, 1) * 1.1;
+}
+
+/** Dónde cae un valor en la escala, de 0 a 100. */
+export const posicionEnEscala = (valor: number, escala: number): number => (escala > 0 ? Math.min(100, Math.max(0, (valor / escala) * 100)) : 0);

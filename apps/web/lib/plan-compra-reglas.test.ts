@@ -1,20 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
+  aplicarFiltro,
   argsGuardar,
   armarFilas,
   borradorDe,
   calcular,
   comprarPorTalla,
   cuantilCritico,
+  conteosDeFiltros,
   cuantilTriangular,
   curvaSugerida,
+  diasEntre,
+  escalaDeRango,
+  esAgotada,
   estadoCampana,
+  filtrarFilas,
   fraseDeLoReal,
   leerPlan,
   lineaDeBorrador,
+  momentoDeLaCampana,
+  ordenarFilas,
+  plegarSinMovimiento,
   porQue,
+  posicionEnEscala,
   problemasDelBorrador,
   repartir,
+  TOP_VENTAS,
   totalesDelPlan,
   type Borrador,
   type TallaPlan,
@@ -204,41 +215,157 @@ describe("leerPlan", () => {
 });
 
 describe("armarFilas y totalesDelPlan: la hoja", () => {
+  // Polos vendió 5 en 90 días, Bodys 9, Faldas 0 (pero tiene plan), Abrigos 0 y sin nada. Faldas: precio 100, costo 40, lo que sobra a la
+  // mitad → cubre todo (cuantil 1) → objetivo = bueno (180).
   const plan = () =>
     leerPlan({
       plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
       hoy: "2026-10-05",
       categorias: [
-        { id: "a", nombre: "Polos", tallas: [] },
-        { id: "b", nombre: "Bodys", tallas: [] },
-        { id: "c", nombre: "Abrigos", tallas: [] },
-        { id: "d", nombre: "Faldas", tallas: [] },
+        { id: "a", nombre: "Polos", familia: "indumentaria", tallas: [] },
+        { id: "b", nombre: "Bodys", familia: "indumentaria", tallas: [] },
+        { id: "c", nombre: "Abrigos", familia: "indumentaria", tallas: [] },
+        { id: "d", nombre: "Faldas", familia: "indumentaria", tallas: [] },
+        { id: "e", nombre: "Anillos", familia: "bisuteria", tallas: [] },
       ],
-      // Solo Faldas tiene plan: precio 100, costo 40, lo que sobra a la mitad → cubre todo (cuantil 1) → objetivo = bueno (180).
       lineas: [{ categoria_id: "d", flojo: 80, normal: 120, bueno: 180, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null }],
-      stock: [{ categoria_id: "a", unidades: 30 }, { categoria_id: "b", unidades: 30 }, { categoria_id: "d", unidades: 30 }],
+      stock: [{ categoria_id: "a", unidades: 30 }, { categoria_id: "b", unidades: 10 }, { categoria_id: "d", unidades: 30 }],
+      curvas: [
+        { categoria_id: "a", talla_id: "s", unidades: 3 },
+        { categoria_id: "a", talla_id: "m", unidades: 2 },
+        { categoria_id: "b", talla_id: "s", unidades: 9 },
+        { categoria_id: "e", talla_id: "u", unidades: 4 },
+      ],
       vendido: [{ categoria_id: "a", unidades: 5 }, { categoria_id: "d", unidades: 7 }],
     })!;
+  const nombres = (f: { c: { nombre: string } }[]) => f.map((x) => x.c.nombre);
 
-  it("primero lo que tiene plan; después el stock; a igual stock, por nombre", () => {
+  it("por defecto, la que más vende primero; a igual venta, la de más stock; a igual stock, por nombre", () => {
+    expect(nombres(armarFilas(plan()))).toEqual(["Bodys", "Polos", "Anillos", "Faldas", "Abrigos"]);
+  });
+  it("las ventas de 90 días suman todas las tallas, y las que más venden llevan su puesto (una sin ventas nunca entra)", () => {
     const f = armarFilas(plan());
-    expect(f.map((x) => x.c.nombre)).toEqual(["Faldas", "Bodys", "Polos", "Abrigos"]);
+    expect(f.map((x) => [x.c.nombre, x.ventas, x.puesto])).toEqual([["Bodys", 9, 1], ["Polos", 5, 2], ["Anillos", 4, 3], ["Faldas", 0, null], ["Abrigos", 0, null]]);
+  });
+  it("solo las TOP_VENTAS que más venden llevan puesto", () => {
+    const categorias = Array.from({ length: 14 }, (_, i) => ({ id: `c${i}`, nombre: `Cat ${String(i).padStart(2, "0")}`, tallas: [] }));
+    const curvas = categorias.map((c, i) => ({ categoria_id: c.id, talla_id: "s", unidades: i + 1 }));
+    const f = armarFilas(leerPlan({ plan: { id: "p", nombre: "x", desde: "2026-12-01", hasta: "2026-12-31" }, hoy: "2026-10-05", categorias, curvas })!);
+    expect(f.filter((x) => x.puesto !== null)).toHaveLength(TOP_VENTAS);
+    expect(f[0].c.nombre).toBe("Cat 13");
+    expect(f[0].puesto).toBe(1);
+    expect(f[TOP_VENTAS - 1].puesto).toBe(TOP_VENTAS);
+    expect(f[TOP_VENTAS].puesto).toBeNull();
   });
   it("la cuenta de cada fila es la de `calcular` con el stock de la red; sin plan no hay cuenta", () => {
     const f = armarFilas(plan());
-    expect(f[0].calculo).toEqual(calcular({ flojo: 80, normal: 120, bueno: 180, precio: 100, costo: 40, recuperoPct: 50 }, 30));
-    expect(f[0].calculo?.comprar).toBe(150);
-    expect(f[1].calculo).toBeNull();
-    expect(f[3].stock).toBe(0);
+    const faldas = f.find((x) => x.c.nombre === "Faldas")!;
+    expect(faldas.calculo).toEqual(calcular({ flojo: 80, normal: 120, bueno: 180, precio: 100, costo: 40, recuperoPct: 50 }, 30));
+    expect(faldas.calculo?.comprar).toBe(150);
+    expect(f.find((x) => x.c.nombre === "Bodys")!.calculo).toBeNull();
+    expect(f.find((x) => x.c.nombre === "Abrigos")!.stock).toBe(0);
   });
   it("los totales suman solo lo que tiene plan, pero lo vendido es de todas", () => {
-    const t = totalesDelPlan(armarFilas(plan()));
-    expect(t).toEqual({ conPlan: 1, total: 4, aComprar: 150, inversion: 6000, vendido: 12 });
+    expect(totalesDelPlan(armarFilas(plan()))).toEqual({ conPlan: 1, total: 5, aComprar: 150, inversion: 6000, vendido: 12 });
   });
   it("sin categorías, todo en cero", () => {
     expect(totalesDelPlan([])).toEqual({ conPlan: 0, total: 0, aComprar: 0, inversion: 0, vendido: 0 });
   });
   it("el mismo plan da siempre el mismo orden", () => {
     expect(armarFilas(plan()).map((x) => x.c.id)).toEqual(armarFilas(plan()).map((x) => x.c.id));
+  });
+});
+
+describe("filtrar, ordenar y plegar la hoja", () => {
+  const base = () =>
+    armarFilas(
+      leerPlan({
+        plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
+        hoy: "2026-10-05",
+        categorias: [
+          { id: "a", nombre: "Polos", familia: "indumentaria", tallas: [] },
+          { id: "b", nombre: "Camisas y Blusas", familia: "indumentaria", tallas: [] },
+          { id: "c", nombre: "Abrigos", familia: "indumentaria", tallas: [] },
+          { id: "d", nombre: "Faldas", familia: "indumentaria", tallas: [] },
+          { id: "e", nombre: "Anillos", familia: "bisuteria", tallas: [] },
+          { id: "f", nombre: "Kimonos", familia: "indumentaria", tallas: [] },
+        ],
+        lineas: [{ categoria_id: "d", flojo: 80, normal: 120, bueno: 180, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null }],
+        stock: [{ categoria_id: "a", unidades: 30 }, { categoria_id: "b", unidades: 10 }],
+        // Kimonos: vendía 6 y se agotó. Anillos: nada. Abrigos: nada. Faldas: tiene plan sin movimiento.
+        curvas: [{ categoria_id: "a", talla_id: "s", unidades: 5 }, { categoria_id: "f", talla_id: "s", unidades: 6 }],
+      })!,
+    );
+  const nombres = (f: { c: { nombre: string } }[]) => f.map((x) => x.c.nombre);
+
+  it("las píldoras: sin plan, con plan, las que más venden, las que se agotaron", () => {
+    const f = base();
+    expect(nombres(aplicarFiltro(f, "con"))).toEqual(["Faldas"]);
+    expect(nombres(aplicarFiltro(f, "sin"))).toEqual(["Kimonos", "Polos", "Camisas y Blusas", "Abrigos", "Anillos"]);
+    expect(nombres(aplicarFiltro(f, "top"))).toEqual(["Kimonos", "Polos"]);
+    expect(nombres(aplicarFiltro(f, "agotadas"))).toEqual(["Kimonos"]);
+    expect(aplicarFiltro(f, "todas")).toHaveLength(6);
+  });
+  it("«se agotó» pide que vendiera: lo que no vende y no tiene no está agotado, solo está quieto", () => {
+    const f = base();
+    expect(esAgotada(f.find((x) => x.c.nombre === "Abrigos")!)).toBe(false);
+    expect(esAgotada(f.find((x) => x.c.nombre === "Kimonos")!)).toBe(true);
+  });
+  it("la familia y el buscador (sin tildes ni mayúsculas) mueven los conteos de las píldoras", () => {
+    const f = base();
+    expect(nombres(filtrarFilas(f, { familia: "bisuteria" }))).toEqual(["Anillos"]);
+    expect(nombres(filtrarFilas(f, { q: "CAMISAS" }))).toEqual(["Camisas y Blusas"]);
+    expect(nombres(filtrarFilas(f, { q: "  fáldas " }))).toEqual(["Faldas"]);
+    expect(filtrarFilas(f, { familia: "todas", q: "" })).toHaveLength(6);
+    expect(conteosDeFiltros(filtrarFilas(f, { familia: "indumentaria" }))).toEqual({ todas: 5, sin: 4, con: 1, top: 2, agotadas: 1 });
+  });
+  it("el orden: por ventas, por inversión (las sin plan al final) y por nombre; no toca la lista que recibe", () => {
+    const f = base();
+    const antes = nombres(f);
+    expect(nombres(ordenarFilas(f, "nombre"))).toEqual(["Abrigos", "Anillos", "Camisas y Blusas", "Faldas", "Kimonos", "Polos"]);
+    expect(nombres(ordenarFilas(f, "inversion"))[0]).toBe("Faldas");
+    expect(nombres(ordenarFilas(f, "ventas"))).toEqual(antes);
+    expect(nombres(f)).toEqual(antes);
+  });
+  it("se pliegan las que no tienen plan, stock ni ventas; una con plan nunca se esconde", () => {
+    const { visibles, plegadas } = plegarSinMovimiento(base());
+    expect(nombres(plegadas)).toEqual(["Abrigos", "Anillos"]);
+    expect(nombres(visibles)).toContain("Faldas");
+    expect(visibles).toHaveLength(4);
+  });
+});
+
+describe("momentoDeLaCampana", () => {
+  it("antes: cuántos días faltan, en singular cuando es uno", () => {
+    expect(momentoDeLaCampana("2026-10-10", "2026-12-01", "2026-12-31")).toEqual({ estado: "antes", fuerte: "Faltan 52 días", resto: "para que empiece" });
+    expect(momentoDeLaCampana("2026-11-30", "2026-12-01", "2026-12-31").fuerte).toBe("Falta 1 día");
+  });
+  it("durante: en qué día va, contando el primero como el día 1", () => {
+    expect(momentoDeLaCampana("2026-12-01", "2026-12-01", "2026-12-31").fuerte).toBe("Día 1 de 31");
+    expect(momentoDeLaCampana("2026-12-15", "2026-12-01", "2026-12-31").fuerte).toBe("Día 15 de 31");
+    expect(momentoDeLaCampana("2026-12-31", "2026-12-01", "2026-12-31").fuerte).toBe("Día 31 de 31");
+  });
+  it("después: hace cuántos días terminó", () => {
+    expect(momentoDeLaCampana("2027-01-08", "2026-12-01", "2026-12-31").fuerte).toBe("Terminó hace 8 días");
+    expect(momentoDeLaCampana("2027-01-01", "2026-12-01", "2026-12-31").fuerte).toBe("Terminó hace 1 día");
+  });
+  it("los días entre dos fechas no se mueven con el horario de verano de ninguna parte", () => {
+    expect(diasEntre("2026-03-01", "2026-04-01")).toBe(31);
+    expect(diasEntre("2026-12-31", "2027-01-01")).toBe(1);
+  });
+});
+
+describe("la barra de rango", () => {
+  it("la escala llega un 10 % más allá de lo más lejano, y nunca es cero", () => {
+    expect(escalaDeRango({ bueno: 180 }, { objetivo: 150, stock: 30 })).toBeCloseTo(198);
+    expect(escalaDeRango({ bueno: 100 }, { objetivo: 100, stock: 400 })).toBeCloseTo(440);
+    expect(escalaDeRango({ bueno: 100 }, { objetivo: 100, stock: 30 }, 500)).toBeCloseTo(550);
+    expect(escalaDeRango({ bueno: 0 }, { objetivo: 0, stock: 0 })).toBeGreaterThan(0);
+  });
+  it("la posición queda entre 0 y 100, también con valores raros", () => {
+    expect(posicionEnEscala(50, 200)).toBe(25);
+    expect(posicionEnEscala(-5, 200)).toBe(0);
+    expect(posicionEnEscala(999, 200)).toBe(100);
+    expect(posicionEnEscala(5, 0)).toBe(0);
   });
 });

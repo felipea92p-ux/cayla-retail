@@ -2,22 +2,29 @@
 
 import { useMemo, useState } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { Encabezado, Tabla } from "@/components/ui/Tabla";
+import { Chip } from "@/components/ui/Chip";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
-import { FilaCategoria, columnasDelPlan, plantillaDelPlan } from "@/components/plan-compra/FilaCategoria";
+import { ListaCategorias } from "@/components/plan-compra/ListaCategorias";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
-import { armarFilas, estadoCampana, fechaLargaES, leerPlan, totalesDelPlan, type CategoriaPlan } from "@/lib/plan-compra-reglas";
-import { CalendarDays, Tags } from "lucide-react";
+import { armarFilas, fechaLargaES, leerPlan, momentoDeLaCampana, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
+import type { FamiliaPlan } from "@/lib/plan-compra";
+import { CalendarDays } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 
-// Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: sus tres escenarios, lo que ya hay en la red, cuánto comprar y cuánto
-// cuesta; al abrirla, su ventana para armar o corregir el plan. Durante y después de la campaña, lo que se vendió de verdad al lado.
-// Toda la cuenta vive en lib/plan-compra-reglas.ts (con su prueba); aquí solo se arma la pantalla con sus piezas.
+// Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: su barra de rango (los tres escenarios contra lo que ya hay y lo que hay
+// que comprar), cuánto cuesta; al abrirla, su ventana para armar o corregir el plan. Durante y después de la campaña, lo que se vendió de
+// verdad al lado. Toda la cuenta vive en lib/plan-compra-reglas.ts (con su prueba); aquí solo se arma la pantalla con sus piezas y se
+// guarda qué filtros están puestos (las cifras y la lista los comparten).
 
-export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | null }) {
+export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla: string | null; familias: FamiliaPlan[] }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
+  const [filtro, setFiltro] = useState<FiltroPlan>("todas");
+  const [familia, setFamilia] = useState("todas");
+  const [q, setQ] = useState("");
+  const [orden, setOrden] = useState<OrdenPlan>("ventas");
+  const [sinMovAbiertas, setSinMovAbiertas] = useState(false);
   const filas = useMemo(() => (plan ? armarFilas(plan) : []), [plan]);
 
   if (!plan) {
@@ -37,7 +44,7 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
     );
   }
 
-  const estado = estadoCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
+  const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
   const totales = totalesDelPlan(filas);
 
   return (
@@ -46,20 +53,31 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
         sede="Todas las tiendas"
         titulo="Plan de campaña"
         subtitulo={`${plan.plan.nombre}, del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}: cuánto comprar por categoría, con tres escenarios. En enero, al lado, lo que se vendió de verdad.`}
+        pie={
+          <Chip tono={momento.estado === "durante" ? "verde" : "pizarra"}>
+            <b className="font-semibold">{momento.fuerte}</b> · {momento.resto}
+          </Chip>
+        }
       />
 
-      <CifrasPlan totales={totales} estado={estado} />
+      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} />
 
-      <Tabla>
-        <Encabezado columnas={columnasDelPlan(estado)} plantilla={plantillaDelPlan(estado !== "antes")} />
-        {filas.length === 0 ? (
-          <Vacio tamano="chico" icono={<Tags />} accion={{ texto: "Ir a Categorías", href: "/productos/categorias" }}>
-            No hay categorías activas.
-          </Vacio>
-        ) : (
-          filas.map((f) => <FilaCategoria key={f.c.id} f={f} estado={estado} onAbrir={() => setAbierta(f.c)} />)
-        )}
-      </Tabla>
+      <ListaCategorias
+        filas={filas}
+        estado={momento.estado}
+        familias={familias}
+        filtro={filtro}
+        onFiltro={setFiltro}
+        familia={familia}
+        onFamilia={setFamilia}
+        q={q}
+        onQ={setQ}
+        orden={orden}
+        onOrden={setOrden}
+        sinMovAbiertas={sinMovAbiertas}
+        onSinMov={setSinMovAbiertas}
+        onAbrir={(f) => setAbierta(f.c)}
+      />
 
       <p className="nota-cayla">
         Cómo se calcula: con tus tres escenarios, el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente a
