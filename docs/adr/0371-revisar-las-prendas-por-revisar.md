@@ -1,8 +1,9 @@
 # ADR-0371 — Revisar las prendas pendientes: la cola «Por revisar» y el rechazo que no deja nada colgado
 
 - **Fecha:** 2026-10-10
-- **Estado:** construido y verificado en local; **falta pegar la migración en producción y publicar la web (en ese orden)**.
-  Migración `supabase/migrations/20261010170000_revisar_productos_pendientes.sql` (solo funciones: una parte, sin políticas).
+- **Estado:** construido y verificado en local. Migración `supabase/migrations/20261010170000_revisar_productos_pendientes.sql` (solo funciones:
+  una parte, sin políticas) **EN PRODUCCIÓN desde el 2026-10-10** (la pegó Felipe; comprobado por el MCP de solo lectura: mismas huellas md5 que
+  en local, `fn_productos_por_revisar` `96d76abe…` y `revisar_producto_censo` `30f08e68…`, con sus permisos). **Falta publicar la web.**
 - **Pedido y decisiones de Felipe (2026-10-10, por AskUserQuestion):**
   1. **Alcance:** «cola en Productos, sin aviso en la ficha». La cola es una vista de Catálogo ▸ Productos; Editar producto solo lleva una insignia.
   2. **Rechazar:** «bloquear hasta anular la orden». Rechazar se niega con una orden de producción en proceso o con stock.
