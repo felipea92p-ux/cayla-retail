@@ -297,18 +297,21 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
           )}
 
           {/* Con lugar, una FILA por línea (Felipe, 2026-10-10): los títulos van una sola vez, aquí arriba, y no sobre cada caja. Los
-              lectores de pantalla tienen la etiqueta de cada caja, por eso este encabezado se les oculta. */}
+              lectores de pantalla tienen la etiqueta de cada caja, por eso este encabezado se les oculta. Hablan con la misma voz que
+              los títulos de los campos de arriba (13 px, semibold, tinta): en 12 px y taupe no se leían (Felipe, 2026-10-10). */}
           {orden.lineas.length > 0 && (
-            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-xs text-taupe @min-[56rem]:grid ${FILA_ANCHA}`}>
+            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[56rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Categoría</span>
               <span>Marca</span>
-              <span>
-                Descripción <span className="opacity-80">· opcional</span>
+              <span className="truncate">
+                Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
               </span>
               <span>Cantidad</span>
               <span>Precio u.</span>
-              <span>Descuento</span>
+              <span className="truncate">
+                Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+              </span>
               <span className="text-right">Subtotal</span>
               <span />
             </div>
