@@ -5,7 +5,7 @@
    «Piso · Almacén · Ambos» deja UNA fila con los números grandes del lugar elegido; «Ambos» (de entrada) vuelve a las dos,
    como el «Todas» de un desplegable. Es una forma de VER la lista, no un filtro: no quita prendas ni tallas, y las cifras son
    las mismas LIBRES de la tarjeta (`celdaTarjeta`). Se recuerda por aparato (como el tema), no en la URL.
-   En «Piso» SÍ se esconde lo que no tiene nada colgado (Felipe, 2026-10-09): el color sin una unidad libre en el piso, y la
+   En «Piso» y en «Almacén» SÍ se esconde lo que no está ahí (Felipe, 2026-10-09): el color sin una unidad libre en ese lugar, y la
    tarjeta entera si ninguno de sus colores tiene. Lo escondido se cuenta y se dice, con «Ver ambos» para traerlo de vuelta.
    ==================================================================== */
 
@@ -46,22 +46,37 @@ export function unidadesPorLugar(filas: readonly { pisoDisponible?: number | nul
   return { piso, almacen };
 }
 
-/** «Piso»: deja solo los colores con algo LIBRE colgado (alguna talla con `pisoDisponible` > 0) y las tarjetas que conservan alguno.
- *  Las tallas de un color que queda no se tocan: la tarjeta sigue mostrando su curva, con el 0 donde no hay. Otro lugar (o una sede
- *  que no separa): la lista tal cual. `escondidas` = cuántas tarjetas salieron. */
-export function tarjetasDelLugar<M extends { colores: readonly C[] }, C extends { tallas: readonly { pisoDisponible?: number | null }[] }>(
+/** «Piso» o «Almacén»: deja solo los colores con algo LIBRE en ese lugar (alguna talla con `pisoDisponible` o `almacenDisponible` > 0)
+ *  y las tarjetas que conservan alguno. Las tallas de un color que queda no se tocan: la tarjeta sigue mostrando su curva, con el 0
+ *  donde no hay. «Ambos» (o una sede que no separa): la lista tal cual. `escondidas` = cuántas tarjetas salieron. */
+export function tarjetasDelLugar<
+  M extends { colores: readonly C[] },
+  C extends { tallas: readonly { pisoDisponible?: number | null; almacenDisponible?: number | null }[] },
+>(
   modelos: readonly M[],
   lugar: LugarVista,
   separa: boolean
 ): { modelos: M[]; escondidas: number } {
-  if (lugar !== "piso" || !separa) return { modelos: [...modelos], escondidas: 0 };
+  if (lugar === "ambos" || !separa) return { modelos: [...modelos], escondidas: 0 };
+  const hay = (t: { pisoDisponible?: number | null; almacenDisponible?: number | null }) => ((lugar === "piso" ? t.pisoDisponible : t.almacenDisponible) ?? 0) > 0;
   const quedan: M[] = [];
   for (const m of modelos) {
-    const colores = m.colores.filter((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
+    const colores = m.colores.filter((c) => c.tallas.some(hay));
     if (colores.length === 0) continue;
     quedan.push(colores.length === m.colores.length ? m : { ...m, colores });
   }
   return { modelos: quedan, escondidas: modelos.length - quedan.length };
+}
+
+/** Las palabras del aviso y del vacío de cada lugar: «colgado en el piso» o «guardado en el almacén». */
+export function textosDelLugar(lugar: Exclude<LugarVista, "ambos">, escondidas: number): { aviso: string; vacioTitulo: string; vacioFrase: string } {
+  const participio = lugar === "piso" ? "colgado" : "guardado";
+  const donde = lugar === "piso" ? "en el piso" : "en el almacén";
+  return {
+    aviso: escondidas === 1 ? `1 prenda sin nada ${participio} no se muestra` : `${escondidas} prendas sin nada ${participio} no se muestran`,
+    vacioTitulo: `Nada ${participio} ${donde}`,
+    vacioFrase: escondidas === 1 ? `La prenda de esta lista no tiene nada ${participio} ${donde}.` : `Ninguna de las ${escondidas} prendas de esta lista tiene algo ${participio} ${donde}.`,
+  };
 }
 
 /* --- Lo guardado en el aparato, para `useSyncExternalStore` (como el tema): el servidor y la primera pintura dicen «ambos». --- */

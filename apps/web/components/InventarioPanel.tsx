@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { guardarLugar, leerLugar, LUGARES, suscribirLugar, tarjetasDelLugar, unidadesPorLugar, type LugarVista } from "@/lib/existencias-lugar";
+import { guardarLugar, leerLugar, LUGARES, suscribirLugar, tarjetasDelLugar, textosDelLugar, unidadesPorLugar, type LugarVista } from "@/lib/existencias-lugar";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, Shirt, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { IconoPercha } from "@/components/ui/IconoPercha";
@@ -442,10 +442,10 @@ export function InventarioPanel({
   const opcionesDeOrden = opcionesOrden(resumen.separaPisoAlmacen);
   const ordenEfectivo = opcionesDeOrden.some((o) => o.valor === orden) ? orden : "relevancia";
   const tarjetasOrdenadas = useMemo(() => ordenarModelos(tarjetasDeExistencias(prendas, elegidos.hoy), ordenEfectivo), [prendas, elegidos.hoy, ordenEfectivo]);
-  // «Ver unidades en: Piso» esconde lo que no tiene nada colgado (Felipe, 2026-10-09); lo escondido se cuenta bajo el selector.
+  // «Ver unidades en: Piso / Almacén» esconde lo que no está en ese lugar (Felipe, 2026-10-09); lo escondido se cuenta bajo el selector.
   const delLugar = useMemo(() => tarjetasDelLugar(tarjetasOrdenadas, lugar, resumen.separaPisoAlmacen), [tarjetasOrdenadas, lugar, resumen.separaPisoAlmacen]);
   const paginaTarjetas = paginar(delLugar.modelos, pagina, FILAS_POR_PAGINA);
-  // Las tallas del pie: con «Piso», solo las de las tarjetas que quedan.
+  // Las tallas del pie: con «Piso» o «Almacén», solo las de las tarjetas que quedan.
   const tallasEnTarjetas = delLugar.escondidas > 0 ? delLugar.modelos.reduce((n, m) => n + m.colores.reduce((k, c) => k + c.tallas.length, 0), 0) : filtradas.length;
   // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar». En las tarjetas,
   // cuenta las que se ven (con «Piso», sin las escondidas); la tabla no sigue el selector.
@@ -973,12 +973,13 @@ export function InventarioPanel({
               />
             </div>
           )}
-          {/* «Piso» escondió tarjetas sin nada colgado: se dice cuántas y se traen de vuelta de un toque. Si no queda ninguna, el vacío. */}
+          {/* «Piso» o «Almacén» escondió tarjetas sin nada ahí: se dice cuántas y se traen de vuelta de un toque. Si no queda ninguna, el vacío. */}
           {delLugar.escondidas > 0 &&
+            lugar !== "ambos" &&
             (delLugar.modelos.length === 0 ? (
               <Vacio
                 icono={<Shirt />}
-                titulo="Nada colgado en el piso"
+                titulo={textosDelLugar(lugar, delLugar.escondidas).vacioTitulo}
                 className="card-cayla mb-3"
                 acciones={
                   <Boton peso="fantasma" onClick={() => guardarLugar("ambos")}>
@@ -986,11 +987,11 @@ export function InventarioPanel({
                   </Boton>
                 }
               >
-                {delLugar.escondidas === 1 ? "La prenda de esta lista está" : `Las ${delLugar.escondidas} prendas de esta lista están`} solo en el almacén.
+                {textosDelLugar(lugar, delLugar.escondidas).vacioFrase}
               </Vacio>
             ) : (
               <p className="mb-3 text-right text-xs text-taupe">
-                {delLugar.escondidas === 1 ? "1 prenda sin nada colgado no se muestra" : `${delLugar.escondidas} prendas sin nada colgado no se muestran`}.{" "}
+                {textosDelLugar(lugar, delLugar.escondidas).aviso}.{" "}
                 <button type="button" onClick={() => guardarLugar("ambos")} className="btn-enlace text-xs">
                   Ver ambos
                 </button>
@@ -1025,7 +1026,7 @@ export function InventarioPanel({
             // Tocar una talla con algo en almacén: el panel de esa talla, ya en «Colgar en el piso» (Felipe, 2026-10-07).
             onColgarTalla={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" } })}
           />
-          {/* Sin tarjetas a la vista («Piso» escondió todas) el pie no tiene qué contar: lo dice el vacío de arriba. */}
+          {/* Sin tarjetas a la vista («Piso» o «Almacén» escondió todas) el pie no tiene qué contar: lo dice el vacío de arriba. */}
           {delLugar.modelos.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
