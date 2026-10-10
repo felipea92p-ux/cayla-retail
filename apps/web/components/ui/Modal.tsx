@@ -41,6 +41,9 @@ type Props = {
   /** La ✕ de cerrar arriba a la derecha, en cualquier variante (la «papel» ya la trae). Hoy: la vista rápida de producto, que se abre
       también en el celular, donde el velo no siempre se alcanza a tocar. Sale de la cascada (`data-sin-cascada`) para no correr el turno. */
   conCerrar?: boolean;
+  /** Algo ENCIMA del título, dentro de la cascada: la vuelta a la hoja de atrás cuando un modal pasa de una vista a otra dentro de la misma
+      hoja (hoy, el detalle de un cierre de caja dentro de «Historial de cierres»: flecha + a dónde vuelve, 2026-10-10). */
+  arriba?: ReactNode;
   /** Título de 26 px (el de las hojas «de ficha»: una prenda, un cliente) en vez de los 18 px de un formulario corto. */
   tituloGrande?: boolean;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
@@ -66,7 +69,7 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, arriba, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
   // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
@@ -176,6 +179,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
               <X aria-hidden className="h-4 w-4" />
             </button>
           )}
+          {arriba}
           <Dialog.Title asChild>
             <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : tituloGrande ? "text-[26px] leading-[1.1]" : "text-lg"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
