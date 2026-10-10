@@ -12,6 +12,7 @@ import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
 import {
   cuentasFiltroAcaba,
   EJE_ACABA,
+  faltanDelModelo,
   FILTROS_ACABA,
   LINEA_SEMANA,
   lineasPorLlegar,
@@ -123,8 +124,14 @@ function Pildoras({ p }: { p: ModeloAnalisis }) {
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra ? sedeDe(otra.sedeId) : undefined;
   const proveedor = textoProveedor(p.origen);
+  const faltan = faltanDelModelo(p);
   return (
     <>
+      {faltan && (
+        <span className="pil" data-tip={faltan.todas.length > 1 ? `Ya no hay: ${faltan.todas.join(", ")}` : undefined}>
+          {faltan.texto}
+        </span>
+      )}
       {llega > 0 && (
         <span className="pil llega">
           <Icono nombre="llega" />
