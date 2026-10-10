@@ -206,3 +206,28 @@ export function avisoSinUnidadesAqui(sede: string, detalleOtrasSedes: string | n
   const donde = sede.trim() || "tu sede";
   return detalleOtrasSedes ? `Sin unidades en ${donde}. En otras sedes: ${detalleOtrasSedes}.` : `Sin unidades en ${donde}.`;
 }
+
+/* ---- La ficha corta de la prenda (Felipe 2026-10-09: «debería salir el material, el patrón y algo útil») ----
+   De qué está hecha y cómo es la tela —lo que el cliente pregunta en el mostrador—, de quién es, y cuánto se vendió: lo que
+   la colaboradora usa para recomendarla. Todo viene ya en la fila del listado; aquí solo se redacta. */
+
+export type DatoFicha = { clave: "tejido" | "patron" | "marca" | "vendidas"; rotulo: string; valor: string | null };
+
+/** Unidades vendidas en 30 días, todas las sedes, a partir del promedio diario de `fn_productos_listado` (ventas de 30 días ÷ 30):
+ *  se dice el total, no el promedio, para no hablar de estadística en la tienda (ADR-0350, ley 4). */
+export function vendidasEn30Dias(demandaDiaria: number): string {
+  const n = Math.round((Number.isFinite(demandaDiaria) ? demandaDiaria : 0) * 30);
+  if (n <= 0) return "Ninguna en 30 días";
+  return `${n} ${n === 1 ? "unidad" : "unidades"} en 30 días`;
+}
+
+/** Los datos de la ficha corta, en su orden. `valor: null` = sin registrar (se dice así, no se esconde: es lo que falta en la ficha). */
+export function fichaCorta(p: { tejido: string | null; patron: string | null; marca: string | null; demandaDiaria: number }): DatoFicha[] {
+  const limpio = (t: string | null) => t?.trim() || null;
+  return [
+    { clave: "tejido", rotulo: "Material", valor: limpio(p.tejido) },
+    { clave: "patron", rotulo: "Patrón", valor: limpio(p.patron) },
+    { clave: "marca", rotulo: "Marca", valor: limpio(p.marca) },
+    { clave: "vendidas", rotulo: "Vendidas", valor: vendidasEn30Dias(p.demandaDiaria) },
+  ];
+}
