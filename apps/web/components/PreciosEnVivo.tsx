@@ -46,7 +46,8 @@ export function PreciosEnVivo() {
         firma = null; // al salir de esa pantalla se parte de cero: lo que ya aplicó ella no se refresca otra vez
         return;
       }
-      if (enCurso || document.visibilityState !== "visible" || !navigator.onLine) return;
+      // Sin mirar `navigator.onLine` (puede decir «sin red» con internet, 2026-10-10): sin red de verdad, falla y ya.
+      if (enCurso || document.visibilityState !== "visible") return;
       enCurso = true;
       try {
         const supabase = createClient();

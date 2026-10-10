@@ -158,6 +158,9 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
     setBusqueda("");
     mostrarDesde(Math.max(0, opciones.findIndex((p) => p.personaId === elegidoId)));
     setAbierto(true);
+    // Al abrir se relee quién está de turno (2026-10-10): quien acaba de marcar su vuelta del refrigerio aparece en la lista
+    // abierta sin esperar el próximo sondeo. Sin giro ni bloqueo: la lista que ya había sigue a la vista mientras llega.
+    void control.recargar();
   }
 
   function elegir(p: PersonaDeTurno) {

@@ -33,7 +33,9 @@ export function useCajaEnVivo(cajaId: string, cadaMs = 5000) {
     let saltar = 0;
 
     async function sondear() {
-      if (enCurso || document.visibilityState !== "visible" || !navigator.onLine) return;
+      // Sin mirar `navigator.onLine`: puede decir «sin red» con internet (caja de TRU, 2026-10-10). Sin red de verdad,
+      // la lectura falla al instante y el retroceso de abajo espacia los intentos.
+      if (enCurso || document.visibilityState !== "visible") return;
       if (saltar > 0) {
         saltar--;
         return;
