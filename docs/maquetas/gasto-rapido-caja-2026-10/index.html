@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gasto rápido de Caja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Maqueta: Caja ▸ Registrar gasto, tres caminos (2026-10-09). Solo tokens de la guía CAYLA Dynamic (ADR-0169), oscuro de ADR-0336. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c;
+  --rojo:#b8412d; --rojo-profundo:#8b2a1f; --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e; --sombra:#1a1a18;
+  --efectivo:#d19a12;
+  --ease:cubic-bezier(.22,.8,.24,1);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38; --tinta:#f5f0e8; --taupe:#c4a898;
+  --rojo:#e8806a; --rojo-profundo:#f29a86; --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd; --sombra:#000;
+}}
+:root[data-theme="dark"]{
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38; --tinta:#f5f0e8; --taupe:#c4a898;
+  --rojo:#e8806a; --rojo-profundo:#f29a86; --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd; --sombra:#000;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45}
+button,input{font:inherit;color:inherit}
+.serif{font-family:"EB Garamond",Georgia,serif}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--sand);padding-bottom:18px}
+.kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);display:flex;gap:10px;align-items:center}
+.kicker::before{content:"";width:28px;height:1px;background:var(--taupe)}
+h1{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-size:44px;line-height:1;margin:8px 0 6px}
+.frase{color:color-mix(in srgb,var(--tinta) 65%,transparent);max-width:640px;margin:0}
+.tema{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:7px 14px;cursor:pointer;font-size:12px}
+
+/* Pestañas de vidrio (pieza única de ADR-0358) */
+.pestanas{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--papel) 70%,transparent);border:1px solid var(--sand);margin:22px 0 8px;flex-wrap:wrap}
+.pestanas button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;cursor:pointer;color:var(--taupe)}
+.pestanas button[aria-selected="true"]{background:var(--tinta);color:var(--crema)}
+.idea{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start;margin-top:14px}
+@media (max-width:900px){.idea{grid-template-columns:1fr}}
+
+/* Fondo de Caja borroso detrás de la hoja */
+.escena{position:relative;border-radius:18px;overflow:hidden;background:var(--crema);border:1px solid var(--sand);min-height:640px;display:flex;justify-content:center;align-items:flex-start;padding:40px 16px}
+.escena::before{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(0deg,transparent 0 46px,color-mix(in srgb,var(--sand) 80%,transparent) 46px 47px);opacity:.6}
+.escena::after{content:"";position:absolute;inset:0;z-index:0;background:color-mix(in srgb,var(--sombra) 22%,transparent);backdrop-filter:blur(3px)}
+@media (max-width:600px){.escena{padding:16px 8px;min-height:0}}
+
+.hoja{position:relative;z-index:2;width:100%;max-width:520px;background:var(--papel);border-radius:16px;padding:22px 22px 18px;
+  box-shadow:0 18px 50px color-mix(in srgb,var(--sombra) 28%,transparent);animation:sube .42s var(--ease) both}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.hoja h2{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-size:28px;margin:0;line-height:1.1}
+.hoja .bajada{margin:4px 0 16px;color:color-mix(in srgb,var(--tinta) 62%,transparent);font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cerrar{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:999px;border:0;background:transparent;cursor:pointer;font-size:18px;color:var(--taupe)}
+.cerrar:hover{background:var(--hueso)}
+.punto{width:8px;height:8px;border-radius:99px;background:var(--efectivo);display:inline-block}
+.etq{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.etq .marca{font-size:10px;letter-spacing:.06em;text-transform:none;font-weight:500;padding:2px 8px;border-radius:99px}
+.marca.hecho{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.marca.sigue{color:var(--tinta);background:var(--hueso)}
+.marca.opc{color:var(--taupe)}
+
+/* Guía de foco: el bloque que sigue se enciende (ADR-0284) */
+.bloque{border-radius:12px;padding:2px 10px 10px;margin:0 -10px;transition:box-shadow .3s var(--ease),background .3s var(--ease)}
+.bloque.ahora{box-shadow:0 0 0 3px color-mix(in srgb,var(--taupe) 22%,transparent);background:color-mix(in srgb,var(--hueso) 35%,transparent)}
+
+/* Atajos: lo de siempre */
+.atajos{display:flex;gap:8px;flex-wrap:wrap}
+.atajo{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--crema);border-radius:999px;padding:7px 12px 7px 8px;cursor:pointer;font-size:13px;transition:transform .2s var(--ease),border-color .2s}
+.atajo:hover{transform:translateY(-1px);border-color:var(--taupe)}
+.atajo .ic{width:24px;height:24px;border-radius:99px;background:var(--hueso);display:grid;place-items:center}
+.atajo b{font-weight:600}
+.atajo small{color:var(--taupe)}
+
+/* Mosaico de categorías */
+.mosaico{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:420px){.mosaico{grid-template-columns:repeat(3,1fr)}}
+.tile{border:1px solid var(--sand);background:var(--crema);border-radius:12px;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:500;min-height:76px;transition:transform .2s var(--ease),background .2s,border-color .2s}
+.tile:hover{transform:translateY(-2px);border-color:var(--taupe)}
+.tile svg{width:24px;height:24px;stroke:var(--tinta);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tile[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.tile[aria-pressed="true"] svg{stroke:var(--crema)}
+.tile.otro{border-style:dashed}
+.cuenta-de{font-size:11.5px;color:var(--taupe);margin-top:6px;min-height:16px}
+
+/* Monto */
+.monto{display:flex;align-items:baseline;gap:8px;background:var(--hueso);border-radius:12px;padding:10px 14px;border:1px solid transparent}
+.monto:focus-within{border-color:var(--taupe)}
+.monto span{font-family:"EB Garamond",Georgia,serif;font-size:26px;color:var(--taupe)}
+.monto input{border:0;background:transparent;outline:0;font-family:"EB Garamond",Georgia,serif;font-size:34px;width:100%;font-variant-numeric:tabular-nums}
+.rapidos{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.rapidos button{border:1px solid var(--sand);background:transparent;border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer}
+.rapidos button:hover{background:var(--hueso)}
+.caja{width:100%;border:1px solid transparent;background:var(--hueso);border-radius:10px;padding:10px 12px;outline:0}
+.caja:focus{border-color:var(--taupe);background:var(--papel)}
+.caja.falta{box-shadow:0 0 0 3px color-mix(in srgb,var(--ambar) 25%,transparent)}
+
+/* Factura desplegable */
+details.factura{border-top:1px solid var(--sand);margin-top:14px;padding-top:10px}
+details.factura summary{cursor:pointer;list-style:none;font-size:13px;color:var(--taupe);display:flex;align-items:center;gap:8px}
+details.factura summary::-webkit-details-marker{display:none}
+details.factura summary::before{content:"+";width:20px;height:20px;border-radius:99px;border:1px solid var(--sand);display:grid;place-items:center;transition:transform .25s var(--ease)}
+details.factura[open] summary::before{transform:rotate(45deg)}
+.fact-campos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.fact-campos .full{grid-column:1/-1}
+.seg{display:inline-flex;background:var(--sand);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer;color:var(--taupe)}
+.seg button[aria-pressed="true"]{background:var(--papel);color:var(--tinta)}
+
+/* Pie */
+.pie{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--sand);flex-wrap:wrap}
+.resp{font-size:12.5px;display:flex;align-items:center;gap:8px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.resp .av{width:26px;height:26px;border-radius:99px;background:var(--hueso);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--taupe)}
+.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:600;cursor:pointer;transition:transform .2s var(--ease),background .2s,box-shadow .2s;font-size:13.5px}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+.btn.prim:hover:not(:disabled){background:var(--rojo-profundo);transform:translateY(-2px);box-shadow:0 8px 18px color-mix(in srgb,var(--sombra) 25%,transparent)}
+.btn.prim:disabled{opacity:.35;cursor:not-allowed}
+.btn.sec{background:transparent;border:1px solid var(--sand)}
+.falta-txt{font-size:12px;color:var(--taupe);margin-top:8px;text-align:right}
+.falta-txt a{color:var(--tinta);text-decoration:underline;cursor:pointer}
+
+/* Listo */
+.listo{position:absolute;inset:0;background:var(--papel);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px;animation:sube .35s var(--ease) both}
+.listo svg{width:56px;height:56px;stroke:var(--verde);fill:none;stroke-width:2;stroke-dasharray:60;stroke-dashoffset:60;animation:dibuja .5s .1s var(--ease) forwards}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+.listo h3{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-size:26px;margin:4px 0 0}
+.listo p{margin:0;color:color-mix(in srgb,var(--tinta) 65%,transparent)}
+
+/* B: teclado */
+.pantalla-b{text-align:center;padding:18px 0 6px}
+.pantalla-b .cifra{font-family:"EB Garamond",Georgia,serif;font-size:58px;line-height:1;font-variant-numeric:tabular-nums}
+.pantalla-b .cifra small{font-size:28px;color:var(--taupe);margin-right:6px}
+.teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.teclado button{border:1px solid var(--sand);background:var(--crema);border-radius:12px;padding:14px 0;font-size:20px;cursor:pointer;font-variant-numeric:tabular-nums;transition:transform .15s var(--ease),background .15s}
+.teclado button:hover{background:var(--hueso)}
+.teclado button:active{transform:scale(.96)}
+.carril{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
+.carril .tile{min-width:78px;flex:0 0 auto}
+.adivino{display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--pizarra) 10%,transparent);border-radius:10px;padding:8px 12px;font-size:13px;margin-top:10px;animation:sube .3s var(--ease) both}
+.adivino button{margin-left:auto;border:0;background:var(--tinta);color:var(--crema);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-weight:600}
+.link{border:0;background:none;color:var(--taupe);text-decoration:underline;cursor:pointer;font-size:12.5px;padding:0}
+
+/* C: una frase */
+.frase-in{display:flex;align-items:center;gap:10px;background:var(--hueso);border-radius:14px;padding:14px 16px;border:1px solid transparent}
+.frase-in:focus-within{border-color:var(--taupe);background:var(--papel)}
+.frase-in input{border:0;background:transparent;outline:0;font-size:20px;width:100%}
+.frase-in kbd,.kbd{font-family:inherit;font-size:11px;border:1px solid var(--sand);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--taupe);background:var(--papel)}
+.ticket{margin-top:12px;border:1px dashed var(--sand);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;min-height:68px;transition:border-color .2s}
+.ticket.ok{border-style:solid;border-color:color-mix(in srgb,var(--verde) 45%,transparent)}
+.ticket .ic{width:40px;height:40px;border-radius:10px;background:var(--hueso);display:grid;place-items:center}
+.ticket .ic svg{width:22px;height:22px;stroke:var(--tinta);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ticket .que{font-weight:600}
+.ticket .det{font-size:12px;color:var(--taupe)}
+.ticket .cuanto{font-family:"EB Garamond",Georgia,serif;font-size:26px;font-variant-numeric:tabular-nums}
+.ticket .vacio{grid-column:1/-1;color:var(--taupe);font-size:13px}
+.sugs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.sugs button{border:1px solid var(--sand);background:transparent;border-radius:99px;padding:5px 10px;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.sugs button svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+.sugs button:hover{background:var(--hueso)}
+.hoy{margin-top:16px;border-top:1px solid var(--sand);padding-top:10px}
+.hoy-fila{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid color-mix(in srgb,var(--sand) 60%,transparent);animation:sube .3s var(--ease) both}
+.hoy-fila span:last-child{font-variant-numeric:tabular-nums}
+.hoy-total{display:flex;justify-content:space-between;font-weight:600;padding-top:8px;font-size:13px}
+
+/* Panel lateral: por qué */
+.porque{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:18px}
+.porque h3{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-size:24px;margin:0 0 6px}
+.porque p{margin:0 0 10px;color:color-mix(in srgb,var(--tinta) 75%,transparent)}
+.porque ul{margin:0 0 12px;padding-left:18px}
+.porque li{margin-bottom:5px}
+.toques{display:flex;gap:10px;margin:12px 0}
+.toques div{flex:1;background:var(--hueso);border-radius:10px;padding:10px;text-align:center}
+.toques b{display:block;font-family:"EB Garamond",Georgia,serif;font-size:30px;font-weight:500;line-height:1}
+.toques span{font-size:11px;color:var(--taupe)}
+.nota{background:var(--hueso);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:10px}
+.mapa{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.mapa td{padding:5px 4px;border-bottom:1px solid var(--sand)}
+.mapa td:last-child{color:var(--taupe);text-align:right}
+.oculto{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="kicker">Caja · Trujillo · maqueta 2026-10-09</div>
+      <h1>Registrar gasto</h1>
+      <p class="frase">Tres caminos para que pagar el agua, unas bolsas o los S/ 0.80 del baño se registre en segundos. Las tres sacan el dinero del cajón abierto, sin preguntar, y dejan la factura en un desplegable para cuando haga falta.</p>
+    </div>
+    <button class="tema" id="tema">Cambiar a oscuro</button>
+  </header>
+
+  <div class="pestanas" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="a">A · Mosaico</button>
+    <button role="tab" aria-selected="false" data-tab="b">B · Monto primero</button>
+    <button role="tab" aria-selected="false" data-tab="c">C · Una frase</button>
+  </div>
+
+  <!-- ============ A: MOSAICO ============ -->
+  <section class="idea" data-panel="a">
+    <div class="escena">
+      <div class="hoja" id="hojaA">
+        <button class="cerrar" aria-label="Cerrar">×</button>
+        <h2>Registrar gasto</h2>
+        <div class="bajada"><span class="punto"></span> Sale del cajón de Trujillo · caja abierta</div>
+
+        <div class="etq">Lo de siempre aquí</div>
+        <div class="atajos" id="atajosA"></div>
+
+        <div class="bloque" id="bA-cat">
+          <div class="etq">¿En qué se gastó? <span class="marca" id="mA-cat"></span></div>
+          <div class="mosaico" id="mosaicoA"></div>
+          <div class="cuenta-de" id="cuentaA"></div>
+          <input class="caja oculto" id="otroA" placeholder="Escribe qué fue, por ejemplo: «pilas para el control»">
+        </div>
+
+        <div class="bloque" id="bA-monto">
+          <div class="etq">¿Cuánto? <span class="marca" id="mA-monto"></span></div>
+          <label class="monto"><span>S/</span><input id="montoA" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>
+          <div class="rapidos" id="rapidosA"></div>
+        </div>
+
+        <div class="etq">Nota <span class="marca opc">opcional</span></div>
+        <input class="caja" id="notaA" placeholder="Algo más que quieras anotar">
+
+        <details class="factura">
+          <summary>¿Te dieron factura o boleta?</summary>
+          <div class="fact-campos">
+            <div class="full"><div class="seg" data-seg><button aria-pressed="true">Boleta</button><button aria-pressed="false">Factura</button><button aria-pressed="false">Recibo por honorarios</button></div></div>
+            <input class="caja" placeholder="Proveedor (busca o súmalo)">
+            <input class="caja" placeholder="Serie y número: B001-0042">
+          </div>
+        </details>
+
+        <div class="pie">
+          <div class="resp"><span class="av">MR</span> María R. · en turno</div>
+          <button class="btn prim" id="okA" disabled>Registrar gasto</button>
+        </div>
+        <div class="falta-txt" id="faltaA"></div>
+      </div>
+    </div>
+    <aside class="porque">
+      <h3>Mosaico de botones</h3>
+      <p>Se ve todo de una vez: arriba, los atajos de esta sede, y abajo, las categorías con su dibujo. Sirve igual con el mouse que con el dedo.</p>
+      <div class="toques"><div><b>2</b><span>toques para el baño (atajo + registrar)</span></div><div><b>3</b><span>toques + el monto para un gasto nuevo</span></div></div>
+      <ul>
+        <li>Los atajos son los <b>últimos gastos de esta sede</b>, con su monto. Se aprenden solos.</li>
+        <li>Debajo de la categoría elegida aparece en gris a qué cuenta contable va. Nadie tiene que elegirla.</li>
+        <li>«Otro» pide escribir qué fue (es obligatorio).</li>
+        <li>La factura solo aparece si alguien abre «¿Te dieron factura?».</li>
+      </ul>
+      <div class="nota"><b>Va bien para:</b> la encargada y la colaboradora por igual. Es la más fácil de aprender: se entiende en 5 segundos.</div>
+    </aside>
+  </section>
+
+  <!-- ============ B: MONTO PRIMERO ============ -->
+  <section class="idea oculto" data-panel="b">
+    <div class="escena">
+      <div class="hoja" id="hojaB">
+        <button class="cerrar" aria-label="Cerrar">×</button>
+        <h2>Registrar gasto</h2>
+        <div class="bajada"><span class="punto"></span> Sale del cajón de Trujillo · caja abierta</div>
+
+        <div class="pantalla-b">
+          <div class="cifra"><small>S/</small><span id="cifraB">0.00</span></div>
+          <div class="cuenta-de" id="cuentaB">Escribe el monto con el teclado o tocando los números</div>
+        </div>
+        <div id="adivinoB"></div>
+        <div class="teclado" id="tecladoB"></div>
+
+        <div class="bloque" id="bB-cat">
+          <div class="etq">¿En qué? <span class="marca" id="mB-cat"></span></div>
+          <div class="carril" id="carrilB"></div>
+          <input class="caja oculto" id="otroB" placeholder="Escribe qué fue, por ejemplo: «pilas para el control»">
+        </div>
+
+        <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">
+          <button class="link" id="notaBtnB">+ Agregar una nota</button>
+          <button class="link" id="factBtnB">+ Tengo factura o boleta</button>
+        </div>
+        <input class="caja oculto" id="notaB" style="margin-top:8px" placeholder="Algo más que quieras anotar">
+        <div class="fact-campos oculto" id="factB">
+          <div class="full"><div class="seg" data-seg><button aria-pressed="true">Boleta</button><button aria-pressed="false">Factura</button><button aria-pressed="false">Recibo por honorarios</button></div></div>
+          <input class="caja" placeholder="Proveedor (busca o súmalo)">
+          <input class="caja" placeholder="Serie y número: B001-0042">
+        </div>
+
+        <div class="pie">
+          <div class="resp"><span class="av">MR</span> María R. · en turno</div>
+          <button class="btn prim" id="okB" disabled>Registrar</button>
+        </div>
+        <div class="falta-txt" id="faltaB"></div>
+      </div>
+    </div>
+    <aside class="porque">
+      <h3>Monto primero</h3>
+      <p>Funciona como pagar con Yape: primero el número grande y después en qué fue. Cuando el monto coincide con algo de siempre, el sistema lo adivina.</p>
+      <div class="toques"><div><b>4</b><span>toques para el baño (0 · 8 · 0 + «Sí, es Baño»)</span></div><div><b>1</b><span>pantalla, sin bajar</span></div></div>
+      <ul>
+        <li>Escribe <b>0.80</b> y aparece: «¿Es el baño de siempre?». Con un toque queda lista.</li>
+        <li>Las categorías van en un carril que se desliza: se ve primero la más usada en esta sede.</li>
+        <li>La nota y la factura son enlaces. Si nadie los toca, no ocupan lugar.</li>
+      </ul>
+      <div class="nota"><b>Va bien para:</b> tablet o celular en el mostrador. Con mouse se siente más lenta que A o C.</div>
+    </aside>
+  </section>
+
+  <!-- ============ C: UNA FRASE ============ -->
+  <section class="idea oculto" data-panel="c">
+    <div class="escena">
+      <div class="hoja" id="hojaC">
+        <button class="cerrar" aria-label="Cerrar">×</button>
+        <h2>Registrar gasto</h2>
+        <div class="bajada"><span class="punto"></span> Sale del cajón de Trujillo · caja abierta</div>
+
+        <div class="etq">Escribe el monto y qué fue</div>
+        <label class="frase-in">
+          <input id="fraseC" placeholder="0.80 baño" autocomplete="off">
+          <kbd>Enter</kbd>
+        </label>
+        <div class="sugs" id="sugsC"></div>
+        <div class="ticket" id="ticketC"><div class="vacio">Prueba con «0.80 baño», «5 mototaxi» o «12.50 bolsas».</div></div>
+
+        <details class="factura">
+          <summary>¿Te dieron factura o boleta?</summary>
+          <div class="fact-campos">
+            <div class="full"><div class="seg" data-seg><button aria-pressed="true">Boleta</button><button aria-pressed="false">Factura</button><button aria-pressed="false">Recibo por honorarios</button></div></div>
+            <input class="caja" placeholder="Proveedor (busca o súmalo)">
+            <input class="caja" placeholder="Serie y número: B001-0042">
+          </div>
+        </details>
+
+        <div class="hoy">
+          <div class="etq" style="margin-top:0">Gastos de hoy en esta caja</div>
+          <div id="hoyC"></div>
+          <div class="hoy-total"><span>Total salido del cajón</span><span id="totalC"></span></div>
+        </div>
+
+        <div class="pie">
+          <div class="resp"><span class="av">MR</span> María R. · en turno</div>
+          <button class="btn prim" id="okC" disabled>Registrar</button>
+        </div>
+      </div>
+    </div>
+    <aside class="porque">
+      <h3>Una frase</h3>
+      <p>Pensada para el Mac mini con teclado: escribes «0.80 baño», presionas Enter y queda registrado. La hoja <b>no se cierra</b>: queda lista para el siguiente gasto y abajo se va armando la lista del día.</p>
+      <div class="toques"><div><b>1</b><span>línea + Enter</span></div><div><b>0</b><span>clics con el mouse</span></div></div>
+      <ul>
+        <li>Lee el número y la palabra en cualquier orden: «baño 0.80» también funciona.</li>
+        <li>Entiende sinónimos: «moto», «taxi» y «colectivo» son Movilidad; «lejía» y «trapeador», Limpieza.</li>
+        <li>Si no reconoce la palabra, lo deja como «Otro» y usa lo que escribiste como descripción.</li>
+        <li>La lista del día deja ver enseguida si algo se registró dos veces.</li>
+      </ul>
+      <div class="nota"><b>Va bien para:</b> la encargada que cuadra la caja en la tarde y registra 5 recibos seguidos. Para la colaboradora nueva le falta lo visual de A.</div>
+    </aside>
+  </section>
+
+  <section style="margin-top:34px" class="porque">
+    <h3>Cómo se traduce cada botón a la contabilidad</h3>
+    <p>La tienda ve palabras de tienda, y la base guarda la categoría contable que ya existe (`categorias_gasto`). No hace falta tocar el plan de cuentas, salvo en dos casos marcados con «?».</p>
+    <table class="mapa" id="mapa"></table>
+  </section>
+</div>
+
+<script>
+// ——— Iconos (trazo simple, estilo lucide) ———
+const I = {
+  agua:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  luz:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  internet:'<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r=".8"/>',
+  bano:'<circle cx="8" cy="5" r="1.8"/><circle cx="16" cy="5" r="1.8"/><path d="M8 8v13M6 9h4l1 6H5zM16 8v13M14 9h4v6h-4z"/>',
+  movilidad:'<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h6l3-7h3M9 10h4l2 7"/>',
+  encomienda:'<path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/>',
+  bolsas:'<path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  limpieza:'<path d="M9 3h6v4H9zM10 7h4l2 4v10H8V11z"/><path d="M15 3h3"/>',
+  utiles:'<path d="M8 12.5 15 5.5a2.5 2.5 0 0 1 3.5 3.5L10 17.5a4 4 0 0 1-5.6-5.6L11.5 5"/>',
+  arreglo:'<path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3z"/><path d="M5 5l4 4"/>',
+  comida:'<path d="M4 11h16a8 8 0 0 1-16 0zM8 7c0-1 1-1 1-2M12 7c0-1 1-1 1-2M16 7c0-1 1-1 1-2"/>',
+  otro:'<path d="M12 5v14M5 12h14"/>',
+};
+const ico = (k, s=24) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}">${I[k]}</svg>`;
+
+// ——— Categorías de tienda → categoría contable existente ———
+const CATS = [
+  {k:'agua', n:'Agua', c:'Servicios básicos', syn:['agua','sedapal','sedalib','recibo de agua']},
+  {k:'luz', n:'Luz', c:'Servicios básicos', syn:['luz','hidrandina','enel','electricidad']},
+  {k:'internet', n:'Internet y celular', c:'Servicios básicos', syn:['internet','celular','recarga','telefono','teléfono','wifi']},
+  {k:'bano', n:'Baño', c:'Servicios básicos ?', syn:['baño','bano','sshh','ss.hh','servicio higienico','servicio higiénico']},
+  {k:'movilidad', n:'Movilidad', c:'Transporte y movilidad', syn:['movilidad','moto','mototaxi','taxi','colectivo','pasaje','combi']},
+  {k:'encomienda', n:'Envío', c:'Transporte y movilidad', syn:['envio','envío','encomienda','olva','shalom','delivery','courier']},
+  {k:'bolsas', n:'Bolsas', c:'Suministros y útiles', syn:['bolsa','bolsas','empaque']},
+  {k:'limpieza', n:'Limpieza', c:'Suministros y útiles', syn:['limpieza','lejia','lejía','trapeador','detergente','escoba','papel higienico','papel higiénico']},
+  {k:'utiles', n:'Útiles', c:'Suministros y útiles', syn:['utiles','útiles','cinta','ganchos','papel','rollo','tickets','plumon','plumón','lapicero','pilas']},
+  {k:'arreglo', n:'Arreglo', c:'Mantenimiento y reparaciones', syn:['arreglo','reparacion','reparación','tecnico','técnico','foco','cerrajero','pintura']},
+  {k:'comida', n:'Refrigerio', c:'¿Nueva? — hoy no existe', syn:['refrigerio','comida','almuerzo','cafe','café','agua de mesa','galletas']},
+  {k:'otro', n:'Otro', c:'Lo revisa el líder', syn:[], otro:true},
+];
+const RECIENTES = [{k:'bano',m:0.80},{k:'movilidad',m:5},{k:'bolsas',m:12},{k:'agua',m:48.30}];
+const cat = k => CATS.find(c=>c.k===k);
+const soles = v => 'S/ ' + Number(v).toFixed(2);
+const num = s => { const v = parseFloat(String(s).replace(',','.')); return isFinite(v) && v>0 ? v : null; };
+
+// ——— Tema y pestañas ———
+const root = document.documentElement, btnTema = document.getElementById('tema');
+const oscuroInicial = matchMedia('(prefers-color-scheme: dark)').matches;
+let oscuro = oscuroInicial;
+const pintarTema = () => { root.dataset.theme = oscuro ? 'dark' : 'light'; btnTema.textContent = oscuro ? 'Cambiar a claro' : 'Cambiar a oscuro'; };
+pintarTema(); btnTema.onclick = () => { oscuro = !oscuro; pintarTema(); };
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x===b));
+  document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('oculto', p.dataset.panel !== b.dataset.tab));
+  if (b.dataset.tab === 'c') document.getElementById('fraseC').focus();
+});
+document.querySelectorAll('[data-seg]').forEach(s => s.querySelectorAll('button').forEach(b => b.onclick = () => s.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x===b))));
+
+function marca(el, estado){ el.className = 'marca ' + ({hecho:'hecho',sigue:'sigue'}[estado]||''); el.textContent = estado==='hecho'?'✓ listo':estado==='sigue'?'Sigue aquí':''; }
+function listo(hoja, texto, sub, alVolver){
+  const d = document.createElement('div'); d.className='listo';
+  d.innerHTML = `<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><h3>${texto}</h3><p>${sub}</p><button class="btn sec" style="margin-top:10px">Registrar otro</button>`;
+  hoja.appendChild(d); d.querySelector('button').onclick = () => { d.remove(); alVolver(); };
+}
+
+// ============ A ============
+(() => {
+  const s = {k:null, m:''};
+  const mos = document.getElementById('mosaicoA'), mont = document.getElementById('montoA'), otro = document.getElementById('otroA');
+  mos.innerHTML = CATS.filter(c=>c.k!=='comida').map(c => `<button class="tile ${c.otro?'otro':''}" data-k="${c.k}" aria-pressed="false">${ico(c.k)}${c.n}</button>`).join('');
+  document.getElementById('atajosA').innerHTML = RECIENTES.map(r => `<button class="atajo" data-k="${r.k}" data-m="${r.m}"><span class="ic">${ico(r.k,14)}</span><b>${cat(r.k).n}</b><small>${soles(r.m)}</small></button>`).join('');
+  document.getElementById('rapidosA').innerHTML = [0.8,1,2,5,10,20].map(v=>`<button data-v="${v}">${soles(v)}</button>`).join('');
+  const pintar = () => {
+    mos.querySelectorAll('.tile').forEach(t => t.setAttribute('aria-pressed', t.dataset.k===s.k));
+    const c = cat(s.k);
+    document.getElementById('cuentaA').textContent = c ? (c.otro ? 'Escribe qué fue: el líder lo ubica en su cuenta.' : 'Va a: ' + c.c.replace(' ?','')) : '';
+    otro.classList.toggle('oculto', !c?.otro);
+    const catOk = c && (!c.otro || otro.value.trim().length >= 3), montoOk = num(s.m) !== null;
+    marca(document.getElementById('mA-cat'), catOk?'hecho':'sigue');
+    marca(document.getElementById('mA-monto'), montoOk?'hecho':(catOk?'sigue':''));
+    document.getElementById('bA-cat').classList.toggle('ahora', !catOk);
+    document.getElementById('bA-monto').classList.toggle('ahora', catOk && !montoOk);
+    const ok = document.getElementById('okA'); ok.disabled = !(catOk && montoOk);
+    ok.textContent = montoOk ? `Registrar ${soles(num(s.m))}` : 'Registrar gasto';
+    const f = [!catOk && (c?.otro ? 'qué fue' : 'en qué se gastó'), !montoOk && 'cuánto'].filter(Boolean);
+    document.getElementById('faltaA').innerHTML = f.length ? 'Falta: ' + f.map(x=>`<a>${x}</a>`).join(' · ') : '';
+  };
+  mos.onclick = e => { const t = e.target.closest('.tile'); if(!t) return; s.k = t.dataset.k; pintar(); if (cat(s.k).otro) otro.focus(); else if (!num(s.m)) mont.focus(); };
+  document.getElementById('atajosA').onclick = e => { const a = e.target.closest('.atajo'); if(!a) return; s.k=a.dataset.k; s.m=Number(a.dataset.m).toFixed(2); mont.value=s.m; pintar(); };
+  document.getElementById('rapidosA').onclick = e => { const b=e.target.closest('button'); if(!b) return; s.m=Number(b.dataset.v).toFixed(2); mont.value=s.m; pintar(); };
+  mont.oninput = () => { s.m = mont.value; pintar(); };
+  otro.oninput = pintar;
+  document.getElementById('okA').onclick = () => listo(document.getElementById('hojaA'), `${cat(s.k).otro ? otro.value : cat(s.k).n} · ${soles(num(s.m))}`, 'Salió del cajón: la caja ya lo descuenta.', () => { s.k=null; s.m=''; mont.value=''; otro.value=''; pintar(); });
+  pintar();
+})();
+
+// ============ B ============
+(() => {
+  const s = {k:null, cents:0, adivinoNo:false};
+  const carril = document.getElementById('carrilB'), otro = document.getElementById('otroB');
+  // El carril se ordena por uso en esta sede (aquí, simulado: primero los atajos).
+  const orden = [...RECIENTES.map(r=>r.k), ...CATS.map(c=>c.k).filter(k=>!RECIENTES.some(r=>r.k===k) && k!=='comida')];
+  carril.innerHTML = orden.map(k => { const c=cat(k); return `<button class="tile ${c.otro?'otro':''}" data-k="${k}" aria-pressed="false">${ico(k)}${c.n}</button>`; }).join('');
+  document.getElementById('tecladoB').innerHTML = ['1','2','3','4','5','6','7','8','9','00','0','⌫'].map(t=>`<button data-t="${t}">${t}</button>`).join('');
+  const pintar = () => {
+    const m = s.cents/100;
+    document.getElementById('cifraB').textContent = m.toFixed(2);
+    carril.querySelectorAll('.tile').forEach(t => t.setAttribute('aria-pressed', t.dataset.k===s.k));
+    const c = cat(s.k);
+    otro.classList.toggle('oculto', !c?.otro);
+    document.getElementById('cuentaB').textContent = c ? (c.otro ? 'Escribe qué fue.' : 'Va a: ' + c.c.replace(' ?','')) : (m ? 'Ahora elige en qué fue' : 'Escribe el monto con el teclado o tocando los números');
+    const rec = RECIENTES.find(r => Math.round(r.m*100) === s.cents);
+    document.getElementById('adivinoB').innerHTML = rec && !s.k && !s.adivinoNo
+      ? `<div class="adivino">${ico(rec.k,18)}<span>¿Es <b>${cat(rec.k).n.toLowerCase()}</b>, como siempre?</span><button data-k="${rec.k}">Sí, es ${cat(rec.k).n.toLowerCase()}</button></div>` : '';
+    const catOk = c && (!c.otro || otro.value.trim().length>=3), montoOk = s.cents>0;
+    marca(document.getElementById('mB-cat'), catOk?'hecho':(montoOk?'sigue':''));
+    document.getElementById('bB-cat').classList.toggle('ahora', montoOk && !catOk);
+    const ok = document.getElementById('okB'); ok.disabled = !(catOk && montoOk);
+    ok.textContent = montoOk ? `Registrar ${soles(m)}` : 'Registrar';
+    const f = [!montoOk && 'el monto', !catOk && 'en qué fue'].filter(Boolean);
+    document.getElementById('faltaB').innerHTML = f.length ? 'Falta: ' + f.join(' · ') : '';
+  };
+  const tecla = t => { if (t==='⌫') s.cents = Math.floor(s.cents/10); else if (t==='00') s.cents = Math.min(s.cents*100, 999999); else s.cents = Math.min(s.cents*10 + Number(t), 999999); s.adivinoNo=false; pintar(); };
+  document.getElementById('tecladoB').onclick = e => { const b=e.target.closest('button'); if(b) tecla(b.dataset.t); };
+  document.addEventListener('keydown', e => {
+    if (document.querySelector('[data-panel="b"]').classList.contains('oculto') || e.target.tagName==='INPUT') return;
+    if (/^[0-9]$/.test(e.key)) tecla(e.key); else if (e.key==='Backspace') tecla('⌫');
+  });
+  carril.onclick = e => { const t=e.target.closest('.tile'); if(!t) return; s.k=t.dataset.k; pintar(); if(cat(s.k).otro) otro.focus(); };
+  document.getElementById('adivinoB').onclick = e => { const b=e.target.closest('button'); if(b){ s.k=b.dataset.k; pintar(); } };
+  otro.oninput = pintar;
+  document.getElementById('notaBtnB').onclick = () => { document.getElementById('notaB').classList.toggle('oculto'); };
+  document.getElementById('factBtnB').onclick = () => { document.getElementById('factB').classList.toggle('oculto'); };
+  document.getElementById('okB').onclick = () => listo(document.getElementById('hojaB'), `${cat(s.k).otro ? otro.value : cat(s.k).n} · ${soles(s.cents/100)}`, 'Salió del cajón: la caja ya lo descuenta.', () => { s.k=null; s.cents=0; otro.value=''; pintar(); });
+  pintar();
+})();
+
+// ============ C ============
+(() => {
+  const inp = document.getElementById('fraseC');
+  const hoy = [{t:'Baño', m:0.8, h:'09:12'}, {t:'Mototaxi al banco', m:5, h:'11:40'}];
+  const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const leer = txt => {
+    const m = txt.match(/(\d+(?:[.,]\d{1,2})?)/);
+    const monto = m ? num(m[1]) : null;
+    const resto = norm(txt.replace(m ? m[0] : '', '').replace(/s\/|soles?/gi,'').trim());
+    let c = null;
+    if (resto) c = CATS.find(x => x.syn.some(w => resto.includes(norm(w)))) || CATS.find(x => !x.otro && norm(x.n).startsWith(resto));
+    return { monto, resto, c: c || (resto ? cat('otro') : null), desc: txt.replace(m ? m[0] : '', '').trim() };
+  };
+  const pintarHoy = () => {
+    document.getElementById('hoyC').innerHTML = hoy.map(g => `<div class="hoy-fila"><span>${g.h} · ${g.t}</span><span>${soles(g.m)}</span></div>`).join('');
+    document.getElementById('totalC').textContent = soles(hoy.reduce((a,g)=>a+g.m,0));
+  };
+  const pintar = () => {
+    const r = leer(inp.value), t = document.getElementById('ticketC');
+    const ok = r.monto && r.c && (!r.c.otro || r.desc.length>=3);
+    t.classList.toggle('ok', !!ok);
+    if (!inp.value.trim()) t.innerHTML = '<div class="vacio">Prueba con «0.80 baño», «5 mototaxi» o «12.50 bolsas».</div>';
+    else t.innerHTML = `<div class="ic">${ico(r.c ? r.c.k : 'otro')}</div>
+      <div><div class="que">${r.c ? (r.c.otro ? (r.desc || 'Otro') : r.c.n) : '¿En qué fue?'}</div>
+      <div class="det">${r.c ? (r.c.otro ? 'No reconocí la palabra: queda como «Otro», con tu texto' : r.c.c.replace(' ?','') + ' · del cajón') : 'Escribe una palabra: baño, bolsas, moto…'}</div></div>
+      <div class="cuanto">${r.monto ? soles(r.monto) : '<span style="font-size:13px;color:var(--taupe)">falta el monto</span>'}</div>`;
+    const sug = r.resto ? CATS.filter(x => !x.otro && (norm(x.n).includes(r.resto) || x.syn.some(w=>norm(w).startsWith(r.resto)))).slice(0,4) : CATS.filter(x=>['bano','movilidad','bolsas','limpieza','agua'].includes(x.k));
+    document.getElementById('sugsC').innerHTML = sug.map(x => `<button data-k="${x.k}">${ico(x.k,14)}${x.n}</button>`).join('');
+    const b = document.getElementById('okC'); b.disabled = !ok; b.textContent = ok ? `Registrar ${soles(r.monto)}` : 'Registrar';
+  };
+  const registrar = () => {
+    const r = leer(inp.value); if (!(r.monto && r.c && (!r.c.otro || r.desc.length>=3))) return;
+    const d = new Date(); hoy.push({ t: r.c.otro ? r.desc : (r.desc && norm(r.desc)!==norm(r.c.n) ? r.desc[0].toUpperCase()+r.desc.slice(1) : r.c.n), m: r.monto, h: d.toTimeString().slice(0,5) });
+    inp.value=''; pintar(); pintarHoy(); inp.focus();
+  };
+  inp.oninput = pintar;
+  inp.onkeydown = e => { if (e.key==='Enter') registrar(); };
+  document.getElementById('okC').onclick = registrar;
+  document.getElementById('sugsC').onclick = e => { const b=e.target.closest('button'); if(!b) return; const r=leer(inp.value); inp.value = `${r.monto ? r.monto.toFixed(2)+' ' : ''}${cat(b.dataset.k).n.toLowerCase()}`; pintar(); inp.focus(); };
+  pintar(); pintarHoy();
+})();
+
+// ——— Tabla de traducción ———
+document.getElementById('mapa').innerHTML = CATS.map(c => `<tr><td>${ico(c.k,16)}</td><td><b>${c.n}</b></td><td>${c.syn.slice(0,4).join(', ') || 'texto obligatorio'}</td><td>${c.c}</td></tr>`).join('');
+</script>
+</body>
+</html>

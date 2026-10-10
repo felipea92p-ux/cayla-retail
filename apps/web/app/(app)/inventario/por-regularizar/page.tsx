@@ -4,6 +4,7 @@ import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar"
 import { getDisponiblePorSede } from "@/lib/por-regularizar-stock";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { PorRegularizarLista } from "@/components/PorRegularizarLista";
@@ -24,10 +25,12 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
   // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
-  const [filas, catalogo, plazos] = await Promise.all([
+  // Las listas de la hoja con que caja anota la prenda: «Corregir lo anotado» (ADR-0369) usa la misma.
+  const [filas, catalogo, plazos, listasLeidas] = await Promise.all([
     getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId),
     getCatalogo(),
     esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
+    leerListasPrendaLibre(),
   ]);
   // Cuántas unidades libres hay de cada prenda en la tienda de cada venta pendiente (para «3 en TRU» y la sugerida). Es lo accesorio:
   // si no se puede leer, la pantalla sigue y se regulariza igual (`getDisponiblePorSede` nunca lanza).
@@ -70,6 +73,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         plazos={plazos}
         sedeInicial={unaSede?.id ?? null}
         abrirItemId={item ?? null}
+        listas={armarListasPrendaLibre(listasLeidas, catalogo)}
       />
     </div>
   );
