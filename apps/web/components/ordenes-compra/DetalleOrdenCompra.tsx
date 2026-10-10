@@ -27,6 +27,7 @@ const porcentaje = (pct: number) => `${pct.toLocaleString("es-PE", { maximumFrac
 export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
   const estado = ESTADO_ORDEN[d.estado];
   const creada = diaYHoraLima(d.creadaEn);
+  const editada = d.actualizadaEn ? diaYHoraLima(d.actualizadaEn) : null;
   const anulada = d.anuladaEn ? diaYHoraLima(d.anuladaEn) : null;
   return (
     <div className="@container space-y-5">
@@ -119,6 +120,8 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
+          {/* La última edición (actividad 4): quién y cuándo. Lo que decía antes queda en el archivo y en la Actividad. */}
+          {editada && ` · editada por ${d.actualizadaPor ?? "alguien sin nombre en Dynamic"} el ${editada.dia} a las ${editada.hora}`}
         </span>
       </p>
     </div>

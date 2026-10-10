@@ -158,7 +158,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
   const opcionesDestino = useMemo(
-    () => [...datos.destinos.map((d) => ({ valor: d.id, texto: d.nombre })), { valor: POR_REPARTIR, texto: "Por repartir (llega a Lima)" }],
+    // «Por repartir», corto como en las píldoras de la lista: «(llega a Lima)» partía la caja en dos renglones en una pantalla angosta, y
+    // la frase de abajo ya lo explica.
+    () => [...datos.destinos.map((d) => ({ valor: d.id, texto: d.nombre })), { valor: POR_REPARTIR, texto: "Por repartir" }],
     [datos.destinos],
   );
   const categoriaPor = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
