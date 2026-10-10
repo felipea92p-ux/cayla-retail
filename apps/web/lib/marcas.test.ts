@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   borradorCambia,
+  estadoDeMarca,
+  FILTROS_MARCAS,
+  marcasDelFiltro,
+  resumenDeMarcas,
+  textoEstadoMarca,
   buscarMarcaProveedor,
   contarParejasPorCategoria,
   filtrarMarcas,
@@ -257,5 +262,53 @@ describe("/productos?marca=sin y ?proveedor=sin (ADR-0283)", () => {
     expect(filtroDeMarcaOProveedor("cayla")).toBeUndefined();
     expect(filtroDeMarcaOProveedor("")).toBeUndefined();
     expect(filtroDeMarcaOProveedor(undefined)).toBeUndefined();
+  });
+});
+
+// ---------- estado, resumen y filtro (ADR-0372) ----------
+const par = (productosTotal: number) => ({ id: `p${productosTotal}`, nombre: "Prov", productos: productosTotal, productosTotal });
+const fila = (activo: boolean, productos: number, proveedores: ReturnType<typeof par>[]) => ({ id: "m", nombre: "M", activo, productos, proveedores });
+
+describe("estado de una marca", () => {
+  it("los cuatro estados, sin solaparse", () => {
+    expect(estadoDeMarca(fila(true, 3, [par(3)]))).toBe("con");
+    expect(estadoDeMarca(fila(true, 0, [par(0)]))).toBe("sin");
+    expect(estadoDeMarca(fila(true, 0, []))).toBe("sin-proveedor");
+    expect(estadoDeMarca(fila(false, 5, [par(5)]))).toBe("desactivada");
+  });
+
+  it("sin proveedor gana sobre «sin productos»: es el que pide una acción", () => {
+    expect(estadoDeMarca(fila(true, 0, []))).not.toBe("sin");
+  });
+
+  it("la frase dice el estado y, si solo quedan descontinuados, lo avisa (explica por qué no se elimina)", () => {
+    expect(textoEstadoMarca(fila(true, 2, [par(2)]))).toBe("Ya la usamos");
+    expect(textoEstadoMarca(fila(true, 0, [par(0)]))).toBe("Nadie la ha usado todavía");
+    expect(textoEstadoMarca(fila(true, 0, [par(1)]))).toBe("Sin productos activos · 1 descontinuado");
+    expect(textoEstadoMarca(fila(true, 0, []))).toMatch(/^Sin proveedor/);
+    expect(textoEstadoMarca(fila(false, 0, []))).toBe("Desactivada");
+  });
+});
+
+describe("resumen y filtro de marcas", () => {
+  const marcas = [fila(true, 3, [par(3)]), fila(true, 1, [par(1)]), fila(true, 0, [par(0)]), fila(true, 0, []), fila(false, 0, [par(0)])];
+
+  it("cuenta solo las activas, y cada activa cae en exactamente un estado", () => {
+    const r = resumenDeMarcas(marcas);
+    expect(r).toEqual({ activas: 4, con: 2, sin: 1, "sin-proveedor": 1 });
+    expect(r.con + r.sin + r["sin-proveedor"]).toBe(r.activas);
+  });
+
+  it("el filtro devuelve lo mismo que el resumen cuenta, para cada filtro", () => {
+    const r = resumenDeMarcas(marcas);
+    for (const f of FILTROS_MARCAS) expect(marcasDelFiltro(marcas, f)).toHaveLength(r[f]);
+  });
+
+  it("una desactivada no aparece en ningún filtro", () => {
+    for (const f of FILTROS_MARCAS) expect(marcasDelFiltro(marcas, f).every((m) => m.activo)).toBe(true);
+  });
+
+  it("sin marcas: todo en cero", () => {
+    expect(resumenDeMarcas([])).toEqual({ activas: 0, con: 0, sin: 0, "sin-proveedor": 0 });
   });
 });

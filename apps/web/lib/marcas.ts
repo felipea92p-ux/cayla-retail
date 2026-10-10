@@ -248,3 +248,59 @@ export function problemaEdicionMarca(actuales: ParejaDeMarca[], b: BorradorMarca
 export function borradorCambia(nombreActual: string, b: BorradorMarca): boolean {
   return b.nombre.trim().replace(/\s+/g, " ") !== nombreActual || b.quitar.length > 0 || b.sumar.length > 0 || b.nuevos.length > 0;
 }
+
+// ---------- Catálogo ▸ Marcas: estado, resumen y filtro (ADR-0372) ----------
+//
+// CONTRATO
+//   PROMETE: decir, de cada marca, en cuál de cuatro estados está, y contar cuántas hay en cada uno. Son los MISMOS cuatro
+//            números que se ven como píldoras y, abiertas, como tarjetas: nunca dos cuentas distintas.
+//   ASUME:   `productos` son los activos y `proveedores` ya trae `productosTotal` (lo arma `productos/marcas/page.tsx`).
+//   NO HACE: no decide si se puede desactivar o eliminar (eso es `sePuedeEliminarMarca` y los candados de la base).
+
+/** En qué está una marca. `sin-proveedor` es el único estado que pide una acción: no se puede usar en un producto. */
+export type EstadoMarca = "con" | "sin" | "sin-proveedor" | "desactivada";
+
+export function estadoDeMarca(m: Pick<MarcaFila, "activo" | "productos" | "proveedores">): EstadoMarca {
+  if (!m.activo) return "desactivada";
+  if (m.proveedores.length === 0) return "sin-proveedor";
+  return m.productos > 0 ? "con" : "sin";
+}
+
+/** La línea que dice el estado en palabras de tienda, bajo el nombre. */
+export function textoEstadoMarca(m: Pick<MarcaFila, "activo" | "productos" | "proveedores">): string {
+  const estado = estadoDeMarca(m);
+  if (estado === "desactivada") return "Desactivada";
+  if (estado === "sin-proveedor") return "Sin proveedor: no se puede usar en un producto";
+  if (estado === "con") return "Ya la usamos";
+  const descontinuados = m.proveedores.reduce((n, p) => n + p.productosTotal, 0);
+  return descontinuados > 0 ? `Sin productos activos · ${descontinuados} descontinuado${descontinuados === 1 ? "" : "s"}` : "Nadie la ha usado todavía";
+}
+
+/** Los cuatro filtros del resumen. `activas` es «todas las activas» (no filtra nada más). */
+export type FiltroMarcas = "activas" | "con" | "sin" | "sin-proveedor";
+export const FILTROS_MARCAS: readonly FiltroMarcas[] = ["activas", "con", "sin", "sin-proveedor"];
+
+export type ResumenMarcas = Record<FiltroMarcas, number>;
+
+/** Cuántas marcas ACTIVAS hay en cada filtro. Las desactivadas no cuentan: viven aparte («Desactivadas»). */
+export function resumenDeMarcas(marcas: readonly Pick<MarcaFila, "activo" | "productos" | "proveedores">[]): ResumenMarcas {
+  const r: ResumenMarcas = { activas: 0, con: 0, sin: 0, "sin-proveedor": 0 };
+  for (const m of marcas) {
+    const e = estadoDeMarca(m);
+    if (e === "desactivada") continue;
+    r.activas++;
+    if (e === "con") r.con++;
+    else if (e === "sin") r.sin++;
+    else r["sin-proveedor"]++;
+  }
+  return r;
+}
+
+/** Las marcas activas que caen en el filtro. */
+export function marcasDelFiltro<T extends Pick<MarcaFila, "activo" | "productos" | "proveedores">>(marcas: readonly T[], filtro: FiltroMarcas): T[] {
+  return marcas.filter((m) => {
+    const e = estadoDeMarca(m);
+    if (e === "desactivada") return false;
+    return filtro === "activas" || e === filtro;
+  });
+}

@@ -1,0 +1,34 @@
+/* ====================================================================
+   Catálogo ▸ Marcas (ADR-0372, Felipe 2026-10-10) — lo que solo esta pantalla necesita.
+   Todo con tokens (ADR-0169, ADR-0336) y movimiento de ADR-0136: sin rebote, sin bucle; quieto con `prefers-reduced-motion`.
+   ==================================================================== */
+
+/* El resumen (las cuatro cifras que filtran) nace colapsado: las marcas son lo primero que se ve. Se abre con «Resumen ▾» y
+   se despliega con una transición de alto (de 0fr a 1fr: no hay que medir nada). Cerrado, nada de adentro recibe foco ni se lee. */
+.marcas-resumen {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 360ms var(--ease-cayla), visibility 0s linear 360ms;
+}
+.marcas-resumen[data-abierto] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 360ms var(--ease-cayla), visibility 0s;
+}
+/* El recorte lleva un respiro a los lados: la tarjeta que se levanta al pasar el mouse y su anillo de foco no se cortan. */
+.marcas-resumen-clip {
+  min-height: 0;
+  overflow: hidden;
+  margin-inline: -6px;
+  padding-inline: 6px;
+}
+.marcas-resumen-in {
+  padding-block: 1.5rem 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marcas-resumen,
+  .marcas-resumen[data-abierto] {
+    transition: none;
+  }
+}
