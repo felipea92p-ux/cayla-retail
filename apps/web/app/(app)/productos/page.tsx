@@ -254,8 +254,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
         // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
-        // prendas. Solo en la Grilla: la Tabla no tiene tarjetas.
-        junto={vista === "grilla" && resultado.totalProductos > 0 ? <SelectorTamanoGrilla inicial={tamanoGrilla} /> : null}
+        // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
+        // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
+        junto={vista === "grilla" && resultado.totalProductos > 0 ? <SelectorTamanoGrilla key="tamano-grilla" inicial={tamanoGrilla} /> : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
