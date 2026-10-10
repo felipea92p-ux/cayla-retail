@@ -10,7 +10,7 @@ Formidable porque sus modales lo sean, ni al revés.
 
 | Módulo | Pantalla / modal | Estado | Leyes | Oficio | Informe | Última medición |
 |---|---|---|---|---|---|---|
-| Inventario | Frescura del piso (`/inventario/frescura`) | ciega ✓ · real sin probar; re-análisis 2026-10-09 con base sembrada y 4 agentes (dos niveles y vara de CAYLA en `main`, PR #889); 3 cambios propuestos, esperan el OK de Felipe | 6,9 (±0,5) · ley 1: 6 · ley 8: 5 | 7 (10/14 pasan, sin blocker) | [inventario-frescura](inventario-frescura.md) | 2026-10-09 |
+| Inventario | Frescura del piso (`/inventario/frescura`) | ciega ✓ · real sin probar; re-análisis 2026-10-09 con base sembrada y 4 agentes; **los 3 cambios hechos y medidos el 2026-10-10** (`fcd9638b`); falta la ciega sobre la pantalla nueva, recalificar y `/chaos` | 6,9 (±0,5) · ley 1: 6 · ley 8: 5 (sin recalificar) | 7 (sin recalificar; 0 blancos de la pantalla < 24 px) | [inventario-frescura](inventario-frescura.md) | 2026-10-10 |
 | Inventario | Traslados, billetera de pases (`/inventario/traslados`) | ciega ✓ · real sin probar; cambios 1–3 hechos (2026-10-06) | 7,5 · ley 1: 7 | 7 | [inventario-traslados](inventario-traslados.md) | 2026-10-06 |
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | ciega ✓✓ (dos pruebas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-07) | 7,0 (provisional) · ley 1: 8 | 6 (provisional) | [inventario-ventas-sin-registrar](inventario-ventas-sin-registrar.md) | 2026-10-07 |
 

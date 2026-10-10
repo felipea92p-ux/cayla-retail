@@ -166,6 +166,38 @@ Lo que el medidor marcó y el escéptico **refutó**: los «bordes casi alineado
 - **Caída externa:** la libreta sin lectura → aviso único, la fila solo ofrece «Ver por qué» y la hoja dice por qué no se puede anotar [Medido]; la vara de CAYLA sin leer o vieja → se juzga contra la tienda y «¿Cómo se lee esto?» lo dice [Medido]; anotar sin red → 3 líneas junto al botón, sin anotar dos veces [Medido].
 - **Persona sin contexto:** ciega **pasa con dudas** (13 toques, 11 dudas); real **sin probar**. **Calificada, no certificada.**
 
+### Después de ejecutar los 3 cambios (2026-10-10; Felipe: «dale a los tres, y sí calla Sólido y Aceptable»)
+Commit `fcd9638b` (los tres juntos: son la misma pantalla y se verifican con la misma corrida). Verificado contra la base local sembrada
+(Tienda Lima, «Zz Fx Blusa Vieja» por decidir) a 1440×900, 1024×768 y 375×812; `tema:auditar` en claro y oscuro.
+- **[Medido] Cambio 1:** la fila por decidir entera, con su botón y su consecuencia, en **y 758–869 a 1440×900, sin scroll** (antes 821–910,
+  cortada por el pliegue); el tablero compacto mide 28 px por fila y «¿Cómo se lee esto?» ya no cae a una segunda línea. A 1024×768 el botón
+  pide 217 px de scroll (antes 237 la fila) y la consecuencia 304: ahí la cabecera del módulo apila las cifras bajo el título (pieza
+  compartida, `EncabezadoPagina`). A 375: botón 138×44, sin scroll horizontal. Todas las barras miden igual (493 px en compacto, 590 en
+  completo) porque las columnas viven en la grilla madre y cada fila las hereda con `subgrid`: antes cada fila era su propia grilla y la que
+  llevaba chip medía 497 contra 530.
+- **[Medido] Cambio 2:** con 1 por decidir el «1» aparece **3 veces** (cabecera, tablero —por categoría—, píldora; antes 6: la franja
+  «Esperan tu decisión» ya no lo repite); «Decididas» no aparece con 0; «Nada por decidir» ×2 (cabecera y puente; antes ×5); el pie son 2
+  frases con «Ver cuáles» (antes 6 renglones de nombres); «Sin ventas aún» sin tachar (captura); `varaTablero` probado para los 5 casos
+  (`frescura-pantalla.test.ts`, `frescura-respaldo-cayla.test.ts`).
+- **[Medido] Cambio 3:** la consecuencia bajo el botón antes de tocarlo (captura); al tocarlo, aviso con Deshacer, la fila pasa a «Decidida»,
+  el tablero vuelve a su forma completa y aparece el puente «Nada por decidir. Estas son todas las prendas colgadas en Tienda Lima.»;
+  `medir-oficio.js` a 1440: **0 blancos de la pantalla bajo 24 px** (queda «Salir» 37×16,5, del chrome); «¿Por qué?» 60×28 y el nombre 28
+  de alto.
+- **`tema:auditar`** (admin, 1440×900, 3 escenarios, claro y oscuro): 0 hallazgos; capturas en `apps/web/tema/.salida/20261010-1347`
+  (antes: `20261009-1617`), miradas: la cabecera, el tablero compacto, la fila con su consecuencia y el pie plegado caben en 987 px de alto
+  (antes la página medía 1184).
+- **Lo que NO se puede afirmar:** las leyes **no se recalificaron** (exige los 4 agentes y 3 a 5 colaboradoras reales) y la ciega **no volvió
+  a correr** sobre la pantalla nueva: el cambio 3 se da por verificado solo cuando pase con ≤ 2 toques y 0 dudas sobre el botón. Del chrome
+  global el medidor marca lo mismo del 2026-10-09 («Salir», «Buscar…» 4,15:1, «Ctrl»/«K» 3,32:1, la línea sede·fecha a 11 px). Marca, nuevo,
+  5 «bordes casi alineados» de 1–3 px: la caja del buscador contra su `<input>` (refutado el 2026-10-09) y las cifras de la barra de filas
+  distintas, que van alineadas a la derecha y por eso no comparten borde izquierdo: no es un defecto. A 375 los enlaces `btn-enlace`
+  («Comparar las 2 tiendas», «¿Cómo se lee esto?», «Ver todas las prendas») miden 28 de alto, bajo los 44 con dedo: es la pieza única
+  (ADR-0358), no de Frescura; va a la lista aparte.
+- **Decisión que cambió (ADR-0208, actualización 2026-10-10):** de los cinco nombres de la vara en el tablero, «Sólido» y «Aceptable» se
+  callan (siguen en «¿Cómo se lee esto?» y en «Las N tiendas»); «Aproximado» → «Pocas ventas: aproximado» (ámbar); «Contra CAYLA» →
+  «Comparada con las 3 tiendas» (pizarra; texto fijo: si abre una cuarta tienda hay que tocarlo); «Sin ventas» → «Sin ventas aún» (apagado,
+  sin tachar).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
@@ -174,3 +206,4 @@ Lo que el medidor marcó y el escéptico **refutó**: los «bordes casi alineado
 | 2026-10-08 | `22accd67` | sin recalificar | sin medir (`tema:auditar` necesita el Chromium de Playwright, no descargado) | ADR-0208 act. 2026-10-07 construido: umbral de evidencia 2, vara de CAYLA de respaldo, tablero por categoría (nivel 1), fila que ejecuta (nivel 2), un solo aviso; falta `/formidable` sobre la pantalla de dos niveles y la corrida 2 con personas reales |
 | 2026-10-09 | `d6acc5ce1` (PR #889 fusionado) | sin recalificar | `tema:auditar` (admin, 1440×900, claro y oscuro, 3 escenarios: lista «Categoría», lista «Estado», una categoría del tablero elegida): **0 hallazgos solo en oscuro, 0 heredados, 0 manchas, 0 velos**; capturas miradas (`tema/.salida/20261009-1606`) | revisión adversaria antes del PR (16 arreglos); la migración pegada y verificada en producción; falta `/formidable` y `/chaos` sobre la pantalla nueva |
 | 2026-10-09 | `75e5a910` (`main` con #889 y #892) | **6,9 (±0,5)** · ley 1: 6 (ciega: pasa con dudas; real sin probar) · la más baja, ley 8: 5 | **7** (10 pasan / 4 fallan; sin blocker) | re-análisis con base sembrada y los 4 agentes: cambios 1 y 3 del 2026-10-05 cerrados, 2 parcial; **3 cambios nuevos propuestos, esperan el OK de Felipe** |
+| 2026-10-10 | `fcd9638b` | sin recalificar (la ciega sobre la pantalla nueva está pendiente) | `medir-oficio.js` a 1440: 0 blancos de la pantalla < 24 px (antes 2); `tema:auditar` claro y oscuro, 3 escenarios: 0 hallazgos | **los 3 cambios del 2026-10-09 ejecutados** y medidos a 1440/1024/375: tablero compacto con algo por decidir (la fila por decidir sin scroll a 1440×900), cada cosa una vez («1» ×6 → ×3, pie plegado, «Sólido»/«Aceptable» callados, «Sin ventas aún» sin tachar), la consecuencia antes del botón, «Anotar lo que hice», puente «Nada por decidir» |

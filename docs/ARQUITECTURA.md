@@ -501,7 +501,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   prenda, firma, aviso con Deshacer 10 s), que usan la hoja y la fila. Sobre la tabla queda un solo aviso (pocas ventas); «sin
   temporada» y de cuándo es la vara de CAYLA viven en `FrescuraComoSeLee`. Pruebas: `frescura-vara-cayla.test.ts`,
   `frescura-respaldo-cayla.test.ts` y los 12 casos SQL de `scripts/pruebas/frescura_vara_cayla.mjs`
-  (`pnpm pruebas:frescura-vara-cayla`, paso del CI).
+  (`pnpm pruebas:frescura-vara-cayla`, paso del CI). **Desde el 2026-10-10 (Formidable, 3 cambios con el OK de Felipe):** con algo por
+  decidir el tablero se dibuja compacto (prop `compacto`; una línea por categoría, columnas de la grilla madre heredadas con `subgrid`) y
+  completo si no hay nada por decidir; la vara solo habla en la excepción (`varaTablero` devuelve `null` para sólido y aceptable); el pie
+  son dos frases plegadas (`resumenPie`); bajo el botón de la fila va `textoConsecuenciaFila` (qué pasa al tocarlo); la hoja dice «Anotar
+  lo que hice» y la silueta de `loading.tsx` dibuja el tablero.
 - `/inventario/resumen` (**Análisis**, ADR-0357, 2026-10-06: cinco pestañas —Hoy · Se está acabando · No se vende · Nunca salió al piso
   (2026-10-07, decisión 11) · Qué pedir—;
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
