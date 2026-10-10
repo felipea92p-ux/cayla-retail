@@ -677,6 +677,32 @@ ESCENARIOS.push(
   { id: "atributos.campana", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Configurar campaña»", preparar: clicRol("button", /Configurar campaña/i) },
   { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
   { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },
+  // ADR-0373: los estados que no se ven al cargar. El resumen cerrado es lo de siempre; abierto trae las cuatro tarjetas de cifra.
+  { id: "marcas.resumen", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "#resumen-marcas[data-abierto]", nombre: "Marcas · «Resumen» abierto (las cuatro cifras)", preparar: clicRol("button", /^Resumen/i) },
+  { id: "marcas.menu-mas", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=menu]", nombre: "Marcas · el menú «Más» (Desactivar y Eliminar, con su motivo si no se puede)", preparar: clicRol("button", /Más acciones/i) },
+  {
+    id: "marcas.sombra",
+    ruta: "/productos/marcas",
+    cuentas: CATALOGO,
+    abre: ".buscador-sombra",
+    nombre: "Marcas · el buscador con la sombra que completa la marca",
+    async preparar(pagina) {
+      // Una marca que el seed trae (CAYLA): con «cay» la sombra completa «la». Hace falta el cursor adentro (la sombra solo se ve así).
+      await pagina.getByPlaceholder(/Busca una marca/i).first().fill("cay");
+      await esperar(pagina, 700);
+    },
+  },
+  {
+    id: "marcas.parecidas",
+    ruta: "/productos/marcas",
+    cuentas: CATALOGO,
+    abre: ".aviso-linea",
+    nombre: "Marcas · una errata de una letra muestra las parecidas con su aviso",
+    async preparar(pagina) {
+      await pagina.getByPlaceholder(/Busca una marca/i).first().fill("cayka");
+      await esperar(pagina, 800);
+    },
+  },
   { id: "familias.agregar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Agregar familia»", preparar: clicRol("button", /Agregar familia/i) },
   { id: "familias.editar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Editar» una familia", preparar: clicRol("button", /^Editar/i) },
 );
