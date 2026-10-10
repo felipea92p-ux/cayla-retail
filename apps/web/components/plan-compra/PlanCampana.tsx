@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
+import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import { armarFilas, confianzaDelStock, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
@@ -13,6 +14,7 @@ import type { FamiliaPlan } from "@/lib/plan-compra";
 import type { LecturaMotor } from "@/lib/motor-demanda";
 import { CalendarDays } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: su barra de rango (los tres escenarios contra lo que ya hay y lo que hay
@@ -32,6 +34,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
   const [orden, setOrden] = useState<OrdenPlan>("ventas");
   const [sinMovAbiertas, setSinMovAbiertas] = useState(false);
   const [vista, setVista] = useState<VistaPlan>("tabla");
+  const [exportando, setExportando] = useState(false);
   const filas = useMemo(() => (plan ? armarFilas(plan) : []), [plan]);
 
   if (!plan) {
@@ -53,6 +56,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
 
   const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
   const totales = totalesDelPlan(filas);
+  const confianza = confianzaDelStock(preparacion);
   const siguiente = abierta ? (siguienteSinPlan(filas, [...hechas, abierta.id])?.c ?? null) : null;
   const cerrarHoja = () => {
     setAbierta(null);
@@ -65,6 +69,13 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
         sede="Todas las tiendas"
         titulo="Plan de campaña"
         subtitulo={`${plan.plan.nombre}, del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}: cuánto comprar por categoría, con tres escenarios. En enero, al lado, lo que se vendió de verdad.`}
+        acciones={
+          totales.conPlan > 0 ? (
+            <Boton peso="fantasma" onClick={() => setExportando(true)}>
+              Exportar
+            </Boton>
+          ) : undefined
+        }
         pie={
           <Chip tono={momento.estado === "durante" ? "verde" : "pizarra"}>
             <b className="font-semibold">{momento.fuerte}</b> · {momento.resto}
@@ -72,7 +83,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
         }
       />
 
-      <AvisoStock confianza={confianzaDelStock(preparacion)} puedeContar={puedeContar} />
+      <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
       <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => setVista("guiado")} />
 
@@ -102,6 +113,8 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
         diciembre bueno; si se pierde, conviene quedarse más cerca del flojo. No hay historia de ventas de diciembre en el ERP: estos
         números son tus supuestos, y en enero se comparan con lo que pasó.
       </p>
+
+      {exportando && <ExportarPlan planNombre={plan.plan.nombre} filas={filas} confianza={confianza} onClose={() => setExportando(false)} />}
 
       {abierta && (
         <PlanCategoriaModal

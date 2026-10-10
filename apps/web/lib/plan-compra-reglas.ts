@@ -20,6 +20,7 @@
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
+import { compararTallas } from "./tallas";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
@@ -570,4 +571,56 @@ export function confianzaDelStock(lectura: { sedes: readonly Pick<PreparacionSed
     return { nombre: s.nombre, alDia: faltan.length === 0, falta: faltan.length === 0 ? null : faltan.join(" y ") };
   });
   return { estado: sedes.every((x) => x.alDia) ? "confiable" : "incompleto", sedes };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 12. La lista de compra (exportar)
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type FilaListaCompra = {
+  categoria: string;
+  comprar: number;
+  /** «S 20 · M 35 · L 30»: cuántas de cada talla, en el orden de siempre; «—» si la categoría no tiene tallas. */
+  porTalla: string;
+  inversion: number;
+};
+
+/**
+ * Lo que se lleva al proveedor: solo las categorías con plan y algo que comprar, la que más cuesta primero (a igual cifra, por nombre).
+ * Una categoría con plan que no necesita comprar (ya hay de sobra) no es una línea de la lista, pero tampoco cambia el total.
+ */
+export function filasDeLaListaDeCompra(filas: readonly FilaPlan[]): FilaListaCompra[] {
+  return filas
+    .flatMap((f): FilaListaCompra[] => {
+      if (!f.linea || !f.calculo || f.calculo.comprar <= 0) return [];
+      const tallas = [...f.c.tallas].sort((a, b) => compararTallas(a.valor, b.valor));
+      const reparto = comprarPorTalla(f.calculo.comprar, tallas, f.linea.curva);
+      const porTalla = tallas
+        .map((t) => [t.valor, reparto.get(t.id) ?? 0] as const)
+        .filter(([, n]) => n > 0)
+        .map(([v, n]) => `${v} ${n}`)
+        .join(" · ");
+      return [{ categoria: f.c.nombre, comprar: f.calculo.comprar, porTalla: porTalla || "—", inversion: f.calculo.inversion }];
+    })
+    .sort((a, b) => b.inversion - a.inversion || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/** Un texto que empieza con = + - @ lo lee Excel como una fórmula: se le antepone una comilla para que sea solo texto. */
+export const comoTextoDeExcel = (t: string): string => (/^[=+\-@\t\r]/.test(t) ? `'${t}` : t);
+
+export const ENCABEZADOS_LISTA_COMPRA = ["Categoría", "Comprar", "Por talla", "Inversión (S/)"] as const;
+
+/** Las filas del CSV, con el total al final. */
+export function filasDelCsvDeCompra(lista: readonly FilaListaCompra[]): (string | number)[][] {
+  const total = lista.reduce((s, f) => ({ comprar: s.comprar + f.comprar, inversion: s.inversion + f.inversion }), { comprar: 0, inversion: 0 });
+  return [
+    ...lista.map((f) => [comoTextoDeExcel(f.categoria), f.comprar, comoTextoDeExcel(f.porTalla), f.inversion.toFixed(2)]),
+    ["Total", total.comprar, "", total.inversion.toFixed(2)],
+  ];
+}
+
+/** «lista-de-compra-diciembre-2026.csv»: sin tildes, sin espacios ni signos. */
+export function nombreDelArchivoDeCompra(planNombre: string): string {
+  const limpio = sinTildes(planNombre).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `lista-de-compra-${limpio || "campana"}.csv`;
 }

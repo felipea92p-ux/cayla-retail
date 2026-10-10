@@ -7,6 +7,7 @@ import {
   borradorDe,
   calcular,
   colaDelPaso,
+  comoTextoDeExcel,
   comprarPorTalla,
   cuantilCritico,
   confianzaDelStock,
@@ -14,14 +15,18 @@ import {
   cuantilTriangular,
   curvaSugerida,
   diasEntre,
+  ENCABEZADOS_LISTA_COMPRA,
   escalaDeRango,
   esAgotada,
   estadoCampana,
+  filasDeLaListaDeCompra,
+  filasDelCsvDeCompra,
   filtrarFilas,
   fraseDeLoReal,
   leerPlan,
   lineaDeBorrador,
   momentoDeLaCampana,
+  nombreDelArchivoDeCompra,
   ordenarFilas,
   pendientesDelPaso,
   plegarSinMovimiento,
@@ -488,5 +493,68 @@ describe("confianzaDelStock: ¿se le puede creer al «Hay hoy»?", () => {
     const c = confianzaDelStock({ sedes: [{ nombre: "TRU", condiciones: [] }], falla: null });
     expect(c.estado).toBe("incompleto");
     expect(c.sedes[0].falta).toBe("piso sin cuadrar y almacén sin contar");
+  });
+});
+
+describe("la lista de compra: lo que se exporta", () => {
+  const filas = () =>
+    armarFilas(
+      leerPlan({
+        plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
+        hoy: "2026-10-05",
+        categorias: [
+          { id: "a", nombre: "Camisas y Blusas", tallas: [{ id: "xl", valor: "XL" }, { id: "s", valor: "S" }, { id: "m", valor: "M" }] },
+          { id: "b", nombre: "Anillos", tallas: [] },
+          { id: "c", nombre: "Sobra", tallas: [] },
+          { id: "d", nombre: "=SUMA(1;1)", tallas: [] },
+          { id: "e", nombre: "Sin plan", tallas: [] },
+        ],
+        // precio 100, costo 40, lo que sobra a la mitad: cuantil 1 → se compra hasta el bueno.
+        lineas: [
+          { categoria_id: "a", flojo: 10, normal: 20, bueno: 100, precio: "100", costo: "40", recupero_pct: 50, curva: { s: 50, m: 30, xl: 20 }, nota: null },
+          { categoria_id: "b", flojo: 5, normal: 10, bueno: 20, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null },
+          { categoria_id: "c", flojo: 5, normal: 10, bueno: 20, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null },
+          { categoria_id: "d", flojo: 1, normal: 2, bueno: 3, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null },
+        ],
+        stock: [{ categoria_id: "c", unidades: 50 }],
+      })!,
+    );
+
+  it("solo lo que tiene plan y algo que comprar, lo que más cuesta primero", () => {
+    const l = filasDeLaListaDeCompra(filas());
+    expect(l.map((x) => x.categoria)).toEqual(["Camisas y Blusas", "Anillos", "=SUMA(1;1)"]);
+    expect(l.map((x) => [x.comprar, x.inversion])).toEqual([[100, 4000], [20, 800], [3, 120]]);
+  });
+  it("las tallas van en el orden de siempre (S, M, XL) y suman lo que se compra; sin tallas, «—»", () => {
+    const [camisas, anillos] = filasDeLaListaDeCompra(filas());
+    expect(camisas.porTalla).toBe("S 50 · M 30 · XL 20");
+    expect(anillos.porTalla).toBe("—");
+  });
+  it("una con plan que ya tiene de sobra no es una línea de la lista", () => {
+    expect(filasDeLaListaDeCompra(filas()).some((x) => x.categoria === "Sobra")).toBe(false);
+  });
+  it("el CSV lleva el total al final, el dinero con dos decimales y las «fórmulas» como texto", () => {
+    const csv = filasDelCsvDeCompra(filasDeLaListaDeCompra(filas()));
+    expect(csv[0]).toEqual(["Camisas y Blusas", 100, "S 50 · M 30 · XL 20", "4000.00"]);
+    expect(csv[2][0]).toBe("'=SUMA(1;1)");
+    expect(csv[csv.length - 1]).toEqual(["Total", 123, "", "4920.00"]);
+    expect(ENCABEZADOS_LISTA_COMPRA).toEqual(["Categoría", "Comprar", "Por talla", "Inversión (S/)"]);
+  });
+  it("un texto que empieza con = + - @ se vuelve texto; los demás no se tocan", () => {
+    expect(comoTextoDeExcel("=1+1")).toBe("'=1+1");
+    expect(comoTextoDeExcel("+51 999")).toBe("'+51 999");
+    expect(comoTextoDeExcel("-3")).toBe("'-3");
+    expect(comoTextoDeExcel("@a")).toBe("'@a");
+    expect(comoTextoDeExcel("Polos")).toBe("Polos");
+    expect(comoTextoDeExcel("A-B")).toBe("A-B");
+  });
+  it("el nombre del archivo, sin tildes ni signos", () => {
+    expect(nombreDelArchivoDeCompra("Diciembre 2026")).toBe("lista-de-compra-diciembre-2026.csv");
+    expect(nombreDelArchivoDeCompra("Día de la Madre 2027")).toBe("lista-de-compra-dia-de-la-madre-2027.csv");
+    expect(nombreDelArchivoDeCompra("¡¡!!")).toBe("lista-de-compra-campana.csv");
+  });
+  it("sin nada que comprar, la lista está vacía y el total en cero", () => {
+    expect(filasDeLaListaDeCompra([])).toEqual([]);
+    expect(filasDelCsvDeCompra([])).toEqual([["Total", 0, "", "0.00"]]);
   });
 });
