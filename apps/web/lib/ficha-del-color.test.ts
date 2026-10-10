@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_COMBINA_CON } from "./color-referencias";
-import { fichaDelColor, primeraFrase, type ColorConFicha } from "./ficha-del-color";
+import { fichaDelColor, primeraFrase, unidadesPorColor, type ColorConFicha } from "./ficha-del-color";
 
 function color(codigo: string, extra: Partial<ColorConFicha> = {}): ColorConFicha {
   return { codigo, nombre: `Nombre ${codigo}`, hex: "#123456", familiaColor: "neutro", tipo: "solido", ...extra };
@@ -79,6 +79,19 @@ describe("fichaDelColor", () => {
     const a = JSON.stringify(fichaDelColor("BEI", VOCABULARIO));
     const b = JSON.stringify(fichaDelColor("BEI", VOCABULARIO));
     expect(a).toBe(b);
+  });
+});
+
+describe("unidadesPorColor", () => {
+  it("suma el piso cobrable por color e ignora lo sin color o sin piso", () => {
+    const m = unidadesPorColor([
+      { colorCodigo: "AZM", stockAqui: 2 },
+      { colorCodigo: "AZM", stockAqui: 3 },
+      { colorCodigo: "NEG", stockAqui: 0 },
+      { colorCodigo: null, stockAqui: 9 },
+      { stockAqui: 4 },
+    ]);
+    expect([...m]).toEqual([["AZM", 5]]);
   });
 });
 

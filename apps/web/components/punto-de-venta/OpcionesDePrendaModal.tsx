@@ -10,6 +10,8 @@ import { colorInicial, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo 
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
+import { FichaDelColor } from "@/components/ui/FichaDelColor";
+import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
 
 type Color = GrupoCatalogo<VarianteBusqueda>;
 
@@ -24,6 +26,9 @@ type Props = {
   alCerrarEnfocar: RefObject<HTMLElement | null>;
   /** Debajo de los colores, para el color que se está viendo: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
   pie?: (color: Color) => ReactNode;
+  /** La ficha del color que se mira (ADR-0316; Felipe 2026-10-10): con qué se combina, con lo que cuelga aquí primero, y por qué.
+   *  Ausente o `null` = la hoja no dice nada del color. */
+  fichaDelColorDe?: (colorCodigo: string | null | undefined) => FichaDelColorTipo | null;
 };
 
 /** Primero lo que se cobra aquí, después lo del almacén, al final lo que no está: el orden en que se le ofrece al cliente. */
@@ -41,7 +46,7 @@ function rango(c: Color): number {
  * casilla dibuja un visto y la fila cuenta cuántas lleva. Una talla del almacén cierra la ventana: el aviso de la caja
  * ofrece registrar la bajada (ADR-0321) y no debe quedar tapado. Reemplaza a `ElegirTallaModal` (un color a la vez).
  */
-export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie }: Props) {
+export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie, fichaDelColorDe }: Props) {
   const inicial = prenda.colores.find((c) => c.clave === colorClave) ?? colorInicial(prenda);
   const [fijo, setFijo] = useState(inicial?.clave);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
@@ -98,6 +103,9 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                     </Chip>
                   </span>
                 )}
+                {/* Con qué se combina el color que se mira (pasar por una fila lo anticipa, tocarla lo fija): los compañeros como
+                    círculos, con lo que cuelga aquí primero; la frase del color detrás de «¿Por qué?». Sin ficha, nada. */}
+                <FichaDelColor key={`ficha-${mostrado.clave}`} ficha={fichaDelColorDe?.(varMostrada?.colorCodigo) ?? null} forma="bloque" className="mt-2" />
               </div>
             </div>
 

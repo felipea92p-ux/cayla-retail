@@ -32,7 +32,8 @@ export function FichaDelColor({ ficha, forma = "bloque", className = "" }: Props
 
   const nombreDe = (c: Companero) => (c.aqui === null ? c.nombre : c.aqui > 0 ? `${c.nombre} · ${c.aqui} aquí` : `${c.nombre} · no hay aquí`);
   const circulos = companeros.length > 0 && (
-    <span className="inline-flex items-center gap-1.5" onMouseLeave={() => setSenalado(null)}>
+    // `flex-wrap`: en la franja del celular (foto chica + datos) los seis círculos no caben en una línea y bajan, nunca se cortan.
+    <span className={`${forma === "linea" ? "inline-flex" : "flex flex-wrap"} items-center gap-x-1.5 gap-y-1`} onMouseLeave={() => setSenalado(null)}>
       <span className="shrink-0 text-tinta">{ETIQUETA_COMBINA}</span>
       <span className="inline-flex items-center gap-1" role="list" aria-label={companeros.map(nombreDe).join(", ")}>
         {companeros.map((c) => (
@@ -71,13 +72,14 @@ export function FichaDelColor({ ficha, forma = "bloque", className = "" }: Props
   );
 }
 
-/** Un compañero: círculo de 20 px con su color. Hover, foco y toque lo señalan; un segundo toque lo suelta. */
+/** Un compañero: círculo de 20 px con su color. Hover, foco, toque y Enter lo señalan (un toque no lo suelta: en la tablet el toque
+ *  dispara primero el «mouse encima» y un toggle lo apagaría en el acto); se suelta al señalar otro o al salir del bloque. */
 function Circulo({ companero, activo, enfocable, onSenalar }: { companero: Companero; activo: boolean; enfocable: boolean; onSenalar: (c: Companero | null) => void }) {
   const apagado = companero.aqui === 0;
   const teclado = (e: KeyboardEvent<HTMLSpanElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onSenalar(activo ? null : companero);
+      onSenalar(companero);
     }
   };
   return (
@@ -89,7 +91,7 @@ function Circulo({ companero, activo, enfocable, onSenalar }: { companero: Compa
       onMouseEnter={() => onSenalar(companero)}
       onFocus={() => onSenalar(companero)}
       onBlur={() => onSenalar(null)}
-      onClick={() => onSenalar(activo ? null : companero)}
+      onClick={() => onSenalar(companero)}
       onKeyDown={teclado}
       className={`inline-block h-5 w-5 shrink-0 cursor-default rounded-full border border-tinta/20 transition-transform duration-150 ${activo ? "scale-125 ring-2 ring-tinta/30 ring-offset-1 ring-offset-crema" : ""} ${apagado ? "opacity-40" : ""}`}
       style={{ background: fondoDeMuestra(companero.hex, companero.familiaColor, companero.tipo) ?? "transparent", borderColor: bordeDeMuestra(companero.hex) }}

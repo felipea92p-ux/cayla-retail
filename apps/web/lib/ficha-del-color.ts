@@ -48,6 +48,16 @@ export function primeraFrase(texto: string | null | undefined): string | null {
   return corte > 0 ? t.slice(0, corte + 1) : t;
 }
 
+/** Cuántas unidades cuelgan aquí de cada color: la suma del piso cobrable de las variantes de ese color (Vender ya lo tiene en memoria). */
+export function unidadesPorColor(variantes: readonly { colorCodigo?: string | null; stockAqui: number }[]): Map<string, number> {
+  const suma = new Map<string, number>();
+  for (const v of variantes) {
+    if (!v.colorCodigo || v.stockAqui <= 0) continue;
+    suma.set(v.colorCodigo, (suma.get(v.colorCodigo) ?? 0) + v.stockAqui);
+  }
+  return suma;
+}
+
 export function fichaDelColor(
   codigo: string | null | undefined,
   porCodigo: ReadonlyMap<string, ColorConFicha>,
