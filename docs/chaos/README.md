@@ -14,7 +14,7 @@ semilla anotada) · `no aplica` (solo lectura; con su motivo).
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | atacada; los 4 hallazgos de gravedad 4 cerrados (2026-10-07), falta el núcleo que escribe | 7 | 0 / 0 / 0 / 0 | `.chaos/informes/ventas-sin-registrar-2026-10-07.md` (local) | 2026-10-07 |
-| Compras | Plan de campaña (`/compras/plan`): la hoja de una categoría y el paso a paso guardan una línea del plan | sin atacar (entrega 1 construida 2026-10-10, ADR-0372; la RPC ya tiene `unique (plan_id, categoria_id)`) | — | — | — | — |
+| Compras | Plan de campaña (`/compras/plan`): la hoja de una categoría y el paso a paso guardan una línea del plan | atacada, con hallazgos abiertos (también «Poner el tope» y «Nueva campaña»; la base resistió: 0 invariantes rotas, 0 líneas duplicadas) | 931 | 0 / 1 / 1 / 7 | `.chaos/informes/plan-campana-2026-10-10.md` (local) | 2026-10-10 |
 
 ## Qué pantallas deben pasar primero (decidido 2026-10-06)
 Donde un fallo es de gravedad 1: **Vender** (`/vender`, `/vender/apartados`), **Caja** (`/caja`), **Cambios** y **Devoluciones**, **Inventario**
