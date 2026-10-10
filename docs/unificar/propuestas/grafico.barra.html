@@ -1,0 +1,123 @@
+<!-- Propuesta de /unificar para la familia «grafico», pregunta «la barra apilada» (ADR-0358, 2026-10-09). Fragmento: la lámina lo
+     envuelve con el CSS real del ERP, en claro y en oscuro. Solo tokens (`var(--color-…)`), movimiento de ADR-0136 (sin rebote ni bucle). -->
+<style>
+  @keyframes prop-crece-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .prop-fila { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; margin: 0 0 18px; }
+  .prop-etq { font: 500 11px/1.3 var(--font-dm-sans), system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe); width: 100%; }
+  .prop-caso { display: flex; flex-direction: column; gap: 8px; width: 300px; max-width: 100%; }
+  .prop-caso small { font: 400 12px/1.4 var(--font-dm-sans), system-ui, sans-serif; color: var(--color-taupe); }
+
+  /* La barra: una píldora de arena (la pista dice «esto es el 100 %», y vacía dice «no hay nada») con tramos de un solo token,
+     separados por un hilo de 2 px de la misma arena. No se recorta: un tramo puede crecer al pasar el mouse. */
+  .prop-barra { position: relative; display: flex; gap: 2px; width: 100%; height: 12px; border-radius: 999px; background: var(--color-sand); }
+  .prop-barra[data-tam="8"] { height: 8px; }
+  .prop-barra[data-tam="4"] { height: 4px; gap: 1px; }
+  .prop-tramo { position: relative; display: block; height: 100%; min-width: 3px; flex: var(--v, 1) 1 0%; margin: 0; padding: 0; border: 0;
+    transform-origin: left center; background: var(--color-tinta);
+    transition: flex-grow 700ms var(--ease-cayla), opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
+    animation: prop-crece-x 620ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 38ms + 220ms); }
+  .prop-tramo:first-child { border-radius: 999px 0 0 999px; }
+  .prop-tramo:last-child { border-radius: 0 999px 999px 0; }
+  .prop-tramo:only-child { border-radius: 999px; }
+  .prop-rojo { background: var(--color-rojo); } .prop-ambar { background: var(--color-ambar); } .prop-verde { background: var(--color-verde); }
+  .prop-taupe { background: var(--color-taupe); } .prop-pizarra { background: var(--color-pizarra); }
+  .prop-tinta-50 { background: color-mix(in srgb, var(--color-tinta) 50%, transparent); }
+  .prop-tinta-20 { background: color-mix(in srgb, var(--color-tinta) 20%, transparent); }
+  .prop-tinta-25 { background: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+
+  /* Si un tramo RESPONDE (filtra, apunta) es un botón: el área que siente el mouse mide 24 px aunque la barra pinte 12 (Formidable,
+     oficio: 24 px mínimo con mouse). Al pasar el mouse se estira a 1,35× (como en Compras) y los demás se atenúan al 35 %. */
+  button.prop-tramo { cursor: pointer; }
+  button.prop-tramo::before { content: ""; position: absolute; inset: -6px 0; }
+  button.prop-tramo:hover, button.prop-tramo:focus-visible, .prop-tramo.prop-encima { transform: scaleY(1.35); }
+  .prop-barra:has(button.prop-tramo:hover) .prop-tramo:not(:hover), .prop-barra.prop-apuntada .prop-tramo:not(.prop-encima) { opacity: .35; }
+  .prop-barra.prop-filtro .prop-tramo:not([aria-pressed="true"]) { opacity: .35; }
+  button.prop-tramo:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 4px; border-radius: 999px; }
+
+  /* La leyenda va aparte, en texto: la barra da la proporción; el número, la cifra (como hoy en Compras y Frescura). */
+  .prop-leyenda { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 10px; margin-top: 10px; }
+  .prop-leyenda button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin: -4px -6px; padding: 4px 6px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--color-tinta); font: 400 12px/1.3 var(--font-dm-sans), system-ui, sans-serif; text-align: left; cursor: pointer; transition: background 200ms var(--ease-cayla); }
+  .prop-leyenda button:hover, .prop-leyenda button[aria-pressed="true"] { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
+  .prop-leyenda .n { display: flex; align-items: center; gap: 6px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .prop-leyenda .n i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; }
+  .prop-leyenda .c { font: 500 19px/1.1 var(--font-eb-garamond), Georgia, serif; font-variant-numeric: tabular-nums; }
+  .prop-leyenda .p { font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); font-variant-numeric: tabular-nums; }
+  .prop-tarjeta { width: 100%; max-width: 440px; padding: 20px; border-radius: 16px; background: var(--color-papel); border: 1px solid var(--color-sand); }
+  .prop-tarjeta .t { font: 500 11px/1.3 var(--font-dm-sans), system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); margin: 0 0 14px; }
+  .prop-filaTablero { display: grid; grid-template-columns: 150px 1fr 90px; gap: 16px; align-items: center; width: 100%; max-width: 560px; padding: 10px 0; border-top: 1px solid var(--color-sand); border-bottom: 1px solid var(--color-sand); font: 400 13px/1.3 var(--font-dm-sans), system-ui, sans-serif; }
+  .prop-filaTablero b { display: block; font-weight: 600; font-size: 15px; } .prop-filaTablero small { color: var(--color-taupe); }
+  .prop-cifra { width: 260px; padding: 14px 16px; border-radius: 14px; background: var(--color-papel); border: 1px solid var(--color-sand); font: 400 12px/1.3 var(--font-dm-sans), system-ui, sans-serif; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .prop-cifra .v { display: block; font: 500 28px/1.1 var(--font-eb-garamond), Georgia, serif; color: var(--color-tinta); margin: 4px 0 8px; }
+  .prop-filaLista { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 480px; padding: 8px 0; font: 400 13px/1.3 var(--font-dm-sans), system-ui, sans-serif; }
+  .prop-filaLista .prop-barra { width: 150px; }
+</style>
+
+<div class="prop-fila"><span class="prop-etq">Estados (12 px, la de un panel; cada tramo responde)</span>
+  <div class="prop-caso"><div class="prop-barra" role="group" aria-label="Deuda por vencimiento">
+      <button class="prop-tramo prop-rojo" style="--v:5134;--i:0" aria-label="Vencida: S/ 5,134"></button>
+      <button class="prop-tramo prop-ambar" style="--v:2300;--i:1" aria-label="0–7 días: S/ 2,300"></button>
+      <button class="prop-tramo prop-tinta-50" style="--v:4100;--i:2" aria-label="8–30 días: S/ 4,100"></button>
+      <button class="prop-tramo prop-tinta-20" style="--v:7453;--i:3" aria-label="Más de 30: S/ 7,453"></button>
+    </div><small>En reposo: entró creciendo de izquierda a derecha, un tramo tras otro</small></div>
+  <div class="prop-caso"><div class="prop-barra prop-apuntada" role="group" aria-label="Deuda por vencimiento">
+      <button class="prop-tramo prop-rojo prop-encima" style="--v:5134;--i:0"></button>
+      <button class="prop-tramo prop-ambar" style="--v:2300;--i:1"></button>
+      <button class="prop-tramo prop-tinta-50" style="--v:4100;--i:2"></button>
+      <button class="prop-tramo prop-tinta-20" style="--v:7453;--i:3"></button>
+    </div><small>Apuntado: el tramo se estira a 1,35× y los demás se atenúan al 35 %</small></div>
+  <div class="prop-caso"><div class="prop-barra prop-filtro" role="group" aria-label="Deuda por vencimiento">
+      <button class="prop-tramo prop-rojo" style="--v:5134;--i:0" aria-pressed="true"></button>
+      <button class="prop-tramo prop-ambar" style="--v:2300;--i:1" aria-pressed="false"></button>
+      <button class="prop-tramo prop-tinta-50" style="--v:4100;--i:2" aria-pressed="false"></button>
+      <button class="prop-tramo prop-tinta-20" style="--v:7453;--i:3" aria-pressed="false"></button>
+    </div><small>Con un filtro puesto: solo el elegido queda entero</small></div>
+  <div class="prop-caso"><div class="prop-barra" role="img" aria-label="0 soles. Sin deuda"></div><small>Vacía: la pista sola dice que no hay nada</small></div>
+</div>
+
+<div class="prop-fila"><span class="prop-etq">Tres altos, en múltiplos de 4: 12 (un panel) · 8 (dentro de una tarjeta de cifra) · 4 (un hilo junto a un número)</span>
+  <div class="prop-caso"><div class="prop-barra" role="img" aria-label="13 unidades. Recién llegada: 6 · En su tiempo: 4 · Se está quedando: 2 · Hay que moverla: 1">
+      <span class="prop-tramo prop-verde" style="--v:6;--i:0"></span><span class="prop-tramo prop-tinta-25" style="--v:4;--i:1"></span><span class="prop-tramo prop-ambar" style="--v:2;--i:2"></span><span class="prop-tramo" style="--v:1;--i:3"></span>
+    </div><small>12 px · no responde: solo se lee (role=img con su resumen)</small></div>
+  <div class="prop-caso"><div class="prop-barra" data-tam="8" role="img" aria-label="Deuda por proveedor">
+      <span class="prop-tramo" style="--v:62;--i:0"></span><span class="prop-tramo prop-tinta-50" style="--v:21;--i:1"></span><span class="prop-tramo prop-tinta-20" style="--v:17;--i:2"></span>
+    </div><small>8 px</small></div>
+  <div class="prop-caso"><div class="prop-barra" data-tam="4" role="img" aria-label="Tela 58 % · Avíos 22 % · Mano de obra 20 %">
+      <span class="prop-tramo" style="--v:58;--i:0"></span><span class="prop-tramo prop-taupe" style="--v:22;--i:1"></span><span class="prop-tramo prop-tinta-20" style="--v:20;--i:2"></span>
+    </div><small>4 px, el hilo</small></div>
+</div>
+
+<div class="prop-fila"><span class="prop-etq">En contexto · Compras ▸ Por pagar («Deuda por vencimiento»: tocar un tramo o su cifra filtra la lista)</span>
+  <div class="prop-tarjeta"><p class="t">Deuda por vencimiento</p>
+    <div class="prop-barra prop-filtro" role="group" aria-label="Deuda por vencimiento">
+      <button class="prop-tramo prop-rojo" style="--v:5134;--i:0" aria-pressed="true" aria-label="Vencida: S/ 5,134. Filtrar la lista"></button>
+      <button class="prop-tramo prop-ambar" style="--v:2300;--i:1" aria-pressed="false" aria-label="0–7 días: S/ 2,300. Filtrar la lista"></button>
+      <button class="prop-tramo prop-tinta-50" style="--v:4100;--i:2" aria-pressed="false" aria-label="8–30 días: S/ 4,100. Filtrar la lista"></button>
+      <button class="prop-tramo prop-tinta-20" style="--v:7453;--i:3" aria-pressed="false" aria-label="Más de 30: S/ 7,453. Filtrar la lista"></button>
+    </div>
+    <div class="prop-leyenda">
+      <button aria-pressed="true"><span class="n"><i class="prop-rojo"></i>Vencida</span><span class="c">S/ 5,134</span><span class="p">27 %</span></button>
+      <button><span class="n"><i class="prop-ambar"></i>0–7 días</span><span class="c">S/ 2,300</span><span class="p">12 %</span></button>
+      <button><span class="n"><i class="prop-tinta-50"></i>8–30 días</span><span class="c">S/ 4,100</span><span class="p">22 %</span></button>
+      <button><span class="n"><i class="prop-tinta-20"></i>Más de 30</span><span class="c">S/ 7,453</span><span class="p">39 %</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="prop-fila"><span class="prop-etq">En contexto · Inventario ▸ Frescura («Cómo está el piso», una fila por categoría: la barra solo se lee)</span>
+  <div class="prop-filaTablero"><span><b>Blusas</b><small>6 prendas · 13 unidades</small></span>
+    <span><div class="prop-barra" role="img" aria-label="13 unidades. Recién llegada: 6 · En su tiempo: 4 · Se está quedando: 2 · Hay que moverla: 1">
+      <span class="prop-tramo prop-verde" style="--v:6;--i:0"></span><span class="prop-tramo prop-tinta-25" style="--v:4;--i:1"></span><span class="prop-tramo prop-ambar" style="--v:2;--i:2"></span><span class="prop-tramo" style="--v:1;--i:3"></span>
+    </div></span>
+    <small>2 por decidir</small></div>
+</div>
+
+<div class="prop-fila"><span class="prop-etq">En contexto · dentro de una tarjeta de cifra (8 px) y en una fila de lista (el hilo de 4 px)</span>
+  <div class="prop-cifra">Concentración<span class="v">62 %</span>Textiles del Sur concentra la deuda
+    <div class="prop-barra" data-tam="8" role="group" aria-label="Reparto de la deuda por proveedor" style="margin-top:10px">
+      <button class="prop-tramo" style="--v:62;--i:0" aria-label="Textiles del Sur: 62 %"></button><button class="prop-tramo prop-tinta-50" style="--v:21;--i:1" aria-label="Hilos Lima: 21 %"></button><span class="prop-tramo prop-tinta-20" style="--v:17;--i:2"></span>
+    </div></div>
+  <div class="prop-filaLista"><span style="flex:1">Orden 24 · Casaca Nora</span>
+    <div class="prop-barra" data-tam="4" role="img" aria-label="Tela 58 % · Avíos 22 % · Mano de obra 20 %"><span class="prop-tramo" style="--v:58;--i:0"></span><span class="prop-tramo prop-taupe" style="--v:22;--i:1"></span><span class="prop-tramo prop-tinta-20" style="--v:20;--i:2"></span></div>
+    <span>S/ 48</span></div>
+</div>

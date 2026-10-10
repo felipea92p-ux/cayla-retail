@@ -1,3 +1,4 @@
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import type { Tramo } from "@/lib/comprobantes-graficos-reglas";
 import { soles } from "@/lib/compras-reglas";
 
@@ -7,14 +8,12 @@ import { soles } from "@/lib/compras-reglas";
 
 export type Parte = { valor: number; clase: "g-tinta" | "g-taupe" | "g-neutro" | "g-alza" | "g-baja"; texto: string; mostrar?: string };
 
-/** Una barra partida en tramos proporcionales, con su leyenda debajo. */
-export function BarraApilada({ partes }: { partes: Parte[] }) {
-  const total = partes.reduce((s, p) => s + Math.max(0, p.valor), 0);
+/** Una barra partida en tramos proporcionales, con su leyenda debajo. La barra es `<BarraApilada>`, la del sistema (ADR-0358); esta pieza
+ *  le pone la leyenda de las tarjetas de Facturación y dice todo en texto, así que el lector no oye ninguna de las dos. */
+export function BarraConLeyenda({ partes }: { partes: Parte[] }) {
   return (
     <div aria-hidden>
-      <div className="kpi-apilada">
-        {total > 0 && partes.filter((p) => p.valor > 0).map((p) => <i key={p.texto} className={p.clase} style={{ flex: p.valor / total }} />)}
-      </div>
+      <BarraApilada decorativa alto={8} className="mt-3" segmentos={partes.map((p) => ({ clave: p.texto, nombre: p.texto, valor: p.valor, clase: p.clase }))} />
       <div className="kpi-leyenda">
         {partes.map((p) => (
           <span key={p.texto}>

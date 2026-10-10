@@ -10,6 +10,16 @@ import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+
+/** El precio que más se repite (59.9 y 59.90 son el mismo); sin precios, null. */
+function masComun(precios: number[]): number | null {
+  const cuenta = new Map<number, number>();
+  for (const p of precios) cuenta.set(p, (cuenta.get(p) ?? 0) + 1);
+  let mejor: number | null = null;
+  for (const [p, n] of cuenta) if (mejor === null || n > (cuenta.get(mejor) ?? 0)) mejor = p;
+  return mejor;
+}
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
@@ -29,7 +39,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, preciosDeSede] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -49,6 +59,10 @@ export default async function EditarProductoPage({
     // decide sola quién corrige una variante vendida. Si la función NO EXISTE, la base tampoco sabe corregir (es el mismo
     // SQL): ver `puedeCorregir`, abajo.
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
+    // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
+    supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
+    // El precio propio de ESTA tienda: la vista previa de «Imprimir lo que entró» sale con él, como la etiqueta impresa.
+    getPreciosPorSede([persona.ubicacionId]),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -92,6 +106,13 @@ export default async function EditarProductoPage({
       }
     : null;
 
+  // Precio por tienda: quien edita Productos lo pone en SU tienda; el líder, en cualquiera (la base vuelve a exigirlo:
+  // `poner_precio_sede`). El general es el más común de las variantes activas, como lo guarda la ficha.
+  const tiendas = resTiendas.data ?? [];
+  const tiendasPrecio = esLider ? tiendas : tiendas.filter((t) => t.id === persona.ubicacionId);
+  const preciosActivos = (producto.variantes ?? []).filter((v) => v.activo).map((v) => Number(v.precio)).filter((n) => n > 0);
+  const precioGeneral = masComun(preciosActivos);
+
   return (
     <div className="space-y-6">
       <div>
@@ -114,6 +135,7 @@ export default async function EditarProductoPage({
         puedeCorregir={puedeCorregir}
         ajusteStock={ajusteStock}
         lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
+        preciosSede={{ tiendas: tiendasPrecio, general: precioGeneral, aqui: preciosDeSede[persona.ubicacionId] ?? {} }}
         producto={producto}
         volverA={volverA}
       />

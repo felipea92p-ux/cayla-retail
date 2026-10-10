@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Archive, Bell, Check, MessageCircle, SearchX, SlidersHorizontal } from "lucide-react";
+import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
@@ -23,7 +23,7 @@ import {
   type ClaveEstado,
 } from "@/lib/separaciones-reglas";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, LiberarModal, RecordarModal } from "@/components/apartados/ModalesApartado";
+import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 import { envioConCliente, type PedidoParaSubir } from "@/lib/pedidos-con-cliente-reglas";
@@ -114,6 +114,8 @@ export function TodosVista({
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   const [extender, setExtender] = useState<Apartado | null>(null);
+  // «Reimprimir» (ADR-0367): el ticket de cualquier apartado de la lista, abierto o cerrado.
+  const [reimprimir, setReimprimir] = useState<Apartado | null>(null);
   // Recordar (Apartados v2, paso 1): la cola del día o una sola clienta desde su fila. Lo avisado en esta visita se
   // marca al instante; la base lo confirma al refrescar.
   const [recordar, setRecordar] = useState<Apartado[] | null>(null);
@@ -335,7 +337,7 @@ export function TodosVista({
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-tinta">{a.nombres} {a.apellidos}</p>
                         <p className="text-xs text-tinta/60 tabular-nums">
-                          {ver.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
+                          {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
                             <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-2.5 w-2.5" aria-hidden />{a.estante}</span>
                           )}
@@ -368,7 +370,18 @@ export function TodosVista({
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {(e.clave === "vigente" || e.clave === "porvencer" || e.clave === "vencida") &&
+                      {a.comprobanteAnticipo && (
+                        <button
+                          type="button"
+                          onClick={() => setReimprimir(a)}
+                          aria-label={`Reimprimir el ticket de ${a.codigo}`}
+                          title="Reimprimir el ticket"
+                          className={`${BOTON_CHICO} inline-flex items-center`}
+                        >
+                          <Printer className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                      )}
+                      {(e.clave === "vigente" || e.clave === "porvencer" || e.clave === "vencida") && a.celular !== "" &&
                         (() => {
                           // El botón de cada fila abre la misma ventana que el lote, con esta sola clienta: así todo
                           // aviso queda registrado, y el que ya se dio hoy se ve en verde.
@@ -424,6 +437,7 @@ export function TodosVista({
           onClose={() => setRecordar(null)}
         />
       )}
+      {reimprimir && <ReimprimirApartadoModal apartado={reimprimir} sede={ubicacionEtiqueta} onClose={() => setReimprimir(null)} />}
       {extender && <ExtenderModal apartado={extender} ubicacion={ubicacion} onClose={() => setExtender(null)} />}
       {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
       {devolver && <DevolverModal apartado={devolver} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}

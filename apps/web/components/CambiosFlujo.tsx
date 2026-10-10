@@ -23,12 +23,16 @@ import {
   useFocoAlCambiarDePaso,
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { usePistola } from "@/components/ui/usePistola";
+import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import { CambioTicketHoja, type TicketCambio } from "@/components/CambioTicket";
 import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import {
   agruparCatalogo,
   derivarReemplazo,
   opcionesDePrenda,
+  seleccionDesdeLectura,
   seleccionInicial,
   type Seleccion,
   type VarianteCatalogo,
@@ -145,6 +149,10 @@ export function CambiosFlujo({
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<TicketCambio | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
+  const [camara, setCamara] = useState(false);
+  const [esperandoPistola, setEsperandoPistola] = useState(false);
+  const [lectura, setLectura] = useState<{ tono: TonoAvisoLinea; texto: string } | null>(null);
+  const campoPrenda = useRef<HTMLInputElement>(null);
   // Reintento (doble clic, o red que se corta después del commit y antes de la
   // respuesta — ADR-0032) debe mandar el MISMO token para que el índice único de
   // `retail.cambios.token_cliente` lo reconozca como el mismo envío.
@@ -157,7 +165,8 @@ export function CambiosFlujo({
   const refMetodo = useRef<HTMLButtonElement>(null);
 
   const porProducto = useMemo(() => agruparCatalogo(catalogo), [catalogo]);
-  const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto) : []), [linea, porProducto]);
+  const elegidoId = seleccion?.productoId;
+  const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto, elegidoId) : []), [linea, porProducto, elegidoId]);
   const r = linea && seleccion ? derivarReemplazo(linea, porProducto, seleccion) : null;
 
   const validaciones: Validacion[] =
@@ -206,13 +215,48 @@ export function CambiosFlujo({
     else if (paso === 3) setPaso(2);
     else onCerrar();
   }
-  useEscapeRetrocede(retroceder, !enviando && paso !== "exito");
+  useEscapeRetrocede(retroceder, !enviando && paso !== "exito" && !camara);
+
+  // Escanear la prenda que se lleva (Felipe 2026-10-09: «que se escanee y se seleccione automáticamente»). La pistola
+  // escucha todo el paso 3, dentro del combo de prenda o con el foco en cualquier botón (`fuera: "leer"`, sin robar
+  // teclas a «¿Cuántas cambia?»); en el celular, la cámara. Lo leído elige prenda, talla y color de una vez.
+  function alLeerPrenda(codigo: string) {
+    setCamara(false);
+    setEsperandoPistola(false);
+    const r = seleccionDesdeLectura(codigo, catalogo);
+    if (r.tipo === "no-encontrada") {
+      setLectura({ tono: "atencion", texto: `No encontramos «${r.codigo}» en el catálogo. Revisa la etiqueta o búscala por su nombre.` });
+      return;
+    }
+    navigator.vibrate?.(35);
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, ...r.cambio } : actual));
+    const detalle = varianteLegible(r.variante);
+    setLectura({ tono: "exito", texto: `Escaneada: ${r.variante.referencia}${detalle ? ` · ${detalle}` : ""}` });
+  }
+  usePistola(campoPrenda, {
+    activa: paso === 3 && !camara,
+    fuera: "leer",
+    alLeer: ({ codigo, dentro }) => {
+      // Lo que la pistola escribió en el combo no es una búsqueda: se suelta el campo y vuelve a mostrar la prenda elegida.
+      if (dentro) campoPrenda.current?.blur();
+      alLeerPrenda(codigo);
+    },
+  });
+  function escanearPrenda() {
+    setLectura(null);
+    // Un teléfono no tiene pistola: con pantalla táctil, se lee con la cámara (mismo criterio que `BuscadorVentas`).
+    if (window.matchMedia?.("(pointer: coarse)").matches) return setCamara(true);
+    setEsperandoPistola(true);
+    campoPrenda.current?.focus();
+  }
 
   function elegirLinea(id: string) {
     const nueva = venta.find((l) => l.ventaItemId === id);
     if (!nueva) return;
     setLineaId(id);
     setSeleccion(seleccionInicial(nueva));
+    setLectura(null);
   }
 
   function continuarDesdePrenda() {
@@ -376,10 +420,28 @@ export function CambiosFlujo({
                 refMetodo={refMetodo}
                 onCambio={(cambio) => {
                   setAvisoContinuar(null);
+                  // Elegir a mano otra prenda deja viejo lo que dijo la última lectura.
+                  if (cambio.productoId !== undefined) setLectura(null);
                   setSeleccion((actual) => (actual ? { ...actual, ...cambio } : actual));
                 }}
                 salidas={{ sedes, ubicacionId, sede, esLider, responsable }}
+                campoPrenda={campoPrenda}
+                onEscanear={escanearPrenda}
+                lectura={lectura}
+                esperandoPistola={esperandoPistola}
               />
+              {camara && (
+                <EscanerBusqueda
+                  titulo="Escanear la prenda nueva"
+                  pista="Centra la etiqueta de la prenda que se lleva en el cuadro"
+                  onCodigo={alLeerPrenda}
+                  onEscribir={() => {
+                    setCamara(false);
+                    requestAnimationFrame(() => campoPrenda.current?.focus());
+                  }}
+                  onClose={() => setCamara(false)}
+                />
+              )}
             </div>
             {/* Con la prenda nueva ya elegida, el panel muestra también qué pasará en el
                 inventario y en la caja: se ve mientras se elige, no solo en la confirmación. */}

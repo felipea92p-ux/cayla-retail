@@ -279,6 +279,10 @@ export type ProductoListado = {
   /** Lo que se escribió en «Descripción» al crear o editar la prenda (corte, largo, detalles). No viene de la RPC: lo pega
    *  `listarProductos` con una consulta aparte. `null` = no tiene, o no se pudo leer. */
   descripcion: string | null;
+  /** Nombre del tejido y del patrón de la prenda (`productos.tejido_id` / `patron_id`), pegados por la misma consulta que la
+   *  descripción, para la vista rápida. `null` = sin registrar, o no se pudo leer. */
+  tejido: string | null;
+  patron: string | null;
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
@@ -369,6 +373,8 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
         productoId: f.producto_id,
         referencia: f.referencia,
         descripcion: null,
+        tejido: null,
+        patron: null,
         codigo: f.codigo,
         categoriaId: f.categoria_id,
         categoria: f.categoria_nombre,
@@ -408,9 +414,9 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   // tuviera foto (pasó con «Blusa V», 2026-09-26). Se completa con la General de la prenda, nunca con la de otro color
   // — la misma regla de `fotoDeVariante`. Una consulta más, solo si en la página falta alguna foto.
   const sinFoto = [...porProducto.values()].filter((p) => p.variantes.some((v) => v.fotoUrl === null)).map((p) => p.productoId);
-  // La descripción de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no la trae y no vale una
-  // migración en producción por un texto que solo se lee. Una consulta de ≤ 20 filas, a la vez que la de las fotos. Si falla, la
-  // vista rápida se abre igual, sin descripción.
+  // La descripción, el tejido y el patrón de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no
+  // los trae y no vale una migración en producción por textos que solo se leen. Una consulta de ≤ 20 filas, a la vez que la de
+  // las fotos. Si falla, la vista rápida se abre igual, sin esos datos.
   const [{ data: generales }, { data: descripciones }] = await Promise.all([
     sinFoto.length > 0
       ? supabase
@@ -420,12 +426,18 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
           .is("color_codigo", null)
       : Promise.resolve({ data: null }),
     porProducto.size > 0
-      ? supabase.from("productos").select("id, descripcion").in("id", [...porProducto.keys()]).not("descripcion", "is", null)
+      ? supabase
+          .from("productos")
+          .select("id, descripcion, tejido:tejidos ( nombre ), patron:patrones ( nombre )")
+          .in("id", [...porProducto.keys()])
       : Promise.resolve({ data: null }),
   ]);
   for (const d of descripciones ?? []) {
     const p = porProducto.get(d.id);
-    if (p) p.descripcion = d.descripcion?.trim() || null;
+    if (!p) continue;
+    p.descripcion = d.descripcion?.trim() || null;
+    p.tejido = d.tejido?.nombre ?? null;
+    p.patron = d.patron?.nombre ?? null;
   }
   if (sinFoto.length > 0) {
     // Si esta consulta falla, la página se dibuja igual con lo que trajo `fn_productos`: la foto es un extra.

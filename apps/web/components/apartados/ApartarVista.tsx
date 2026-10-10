@@ -21,6 +21,8 @@ import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
+import { nombresYApellidos } from "@/lib/club-registro-reglas";
+import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
@@ -198,7 +200,8 @@ export function ApartarVista({
   const [clientaQ, setClientaQ] = useState("");
   const [clientaId, setClientaId] = useState<string | null>(null);
   const [buscandoClienta, setBuscandoClienta] = useState(false);
-  const [sinFicha, setSinFicha] = useState(false);
+  // Qué pasó al buscar y no haber ficha: «padron» = el nombre vino de SUNAT; «nada» = hay que escribirlo (ADR-0367).
+  const [sinFicha, setSinFicha] = useState<null | "padron" | "nada">(null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
@@ -387,37 +390,66 @@ export function ApartarVista({
     setF((x) => ({ ...x, pagos: x.pagos.length ? [{ ...x.pagos[0], monto, recibido: undefined }] : [{ metodo: "yape", monto }] }));
   }
 
+  /** Los largos que acepta el buscador: con el módulo Clientas, DNI (8) o celular (9); sin él, solo DNI, que va al padrón. */
+  const largosBuscables = conClienta ? [8, 9] : [8];
+
   async function buscarFicha() {
     const t = soloDigitos(clientaQ);
-    if (t.length !== 8 && t.length !== 9) return;
+    if (!largosBuscables.includes(t.length)) return;
     setBuscandoClienta(true);
-    const { clientas, error } = await buscarClienta(t);
-    setBuscandoClienta(false);
-    if (error) return avisar.error(traducirError(error, "buscar al cliente"));
-    // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
-    // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
-    const exacta = clientas.find((x) =>
-      t.length === 8 ? x.documentoTipo === "dni" && x.documentoNumero === t : soloDigitos(x.telefonoWhatsapp ?? "") === t,
-    );
-    const c = exacta ?? clientas[0];
-    if (!c) {
-      setClientaId(null);
-      setSinFicha(true);
-      setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
-      return;
+    // 1) La ficha de clientes, si la cuenta la ve: trae nombre, celular y liga el apartado a su historial.
+    if (conClienta) {
+      const { clientas, error } = await buscarClienta(t);
+      if (error) {
+        setBuscandoClienta(false);
+        return avisar.error(traducirError(error, "buscar al cliente"));
+      }
+      // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
+      // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
+      const exacta = clientas.find((x) =>
+        t.length === 8 ? x.documentoTipo === "dni" && x.documentoNumero === t : soloDigitos(x.telefonoWhatsapp ?? "") === t,
+      );
+      const c = exacta ?? clientas[0];
+      if (c) {
+        // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
+        const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
+        setClientaId(c.id);
+        setSinFicha(null);
+        setBuscandoClienta(false);
+        setF((x) => ({
+          ...x,
+          nombres: nombres || x.nombres,
+          apellidos: resto.join(" ") || x.apellidos,
+          celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
+          // El apartado guarda solo DNI (`separaciones.clienta_dni`): un carné o un pasaporte no se copia ahí.
+          dni: c.documentoTipo === "dni" && c.documentoNumero ? c.documentoNumero : x.dni,
+        }));
+        return;
+      }
     }
-    // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
-    const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
-    setClientaId(c.id);
-    setSinFicha(false);
-    setF((x) => ({
-      ...x,
-      nombres: nombres || x.nombres,
-      apellidos: resto.join(" ") || x.apellidos,
-      celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
-      // El apartado guarda solo DNI (`separaciones.clienta_dni`): un carné o un pasaporte no se copia ahí.
-      dni: c.documentoTipo === "dni" && c.documentoNumero ? c.documentoNumero : x.dni,
-    }));
+    setClientaId(null);
+    setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
+    // 2) Sin ficha y con DNI: el padrón (SUNAT público primero, el de pago si no responde; `app/api/padron`, ADR-0008).
+    //    Si no contesta o no lo conoce, se escribe a mano: un tercero caído nunca frena el apartado (principio 9).
+    const nombre = t.length === 8 ? await nombreDelPadron(t) : null;
+    setBuscandoClienta(false);
+    if (nombre) {
+      setF((x) => ({ ...x, nombres: nombre.nombres, apellidos: nombre.apellidos }));
+    }
+    setSinFicha(nombre ? "padron" : "nada");
+  }
+
+  /** El nombre de un DNI según el padrón, en las dos cajas. null si no responde o no lo conoce. */
+  async function nombreDelPadron(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
+    try {
+      const r = await fetch(`/api/padron?tipo=dni&numero=${dni}`);
+      if (!r.ok) return null;
+      const datos = (await r.json()) as RespuestaPadron;
+      // SUNAT público trae «apellidos nombres»; el proveedor de pago, «nombres apellidos» (`lib/padron.ts`).
+      return nombresYApellidos(datos.nombre, datos.via === "proveedor" ? "nombres_primero" : "apellidos_primero");
+    } catch {
+      return null;
+    }
   }
 
   async function confirmar() {
@@ -479,7 +511,7 @@ export function ApartarVista({
     setTocados(new Set());
     setClientaId(null);
     setClientaQ("");
-    setSinFicha(false);
+    setSinFicha(null);
     setPaso("ticket");
     setUltima(null);
     setMensaje(null);
@@ -756,41 +788,47 @@ export function ApartarVista({
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
                   <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
-                  {conClienta && (
-                    <div className="space-y-1.5">
-                      {clientaId ? (
-                        <Aviso
-                          tono="exito"
-                          chico
-                          accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
-                        >
-                          Ficha encontrada: el apartado queda ligado a su historial.
-                        </Aviso>
-                      ) : (
-                        <div className="flex gap-2">
-                          {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
-                              cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
-                          <Buscador
-                            valor={clientaQ}
-                            onCambio={(v) => { setClientaQ(v); setSinFicha(false); }}
-                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
-                            inputMode="numeric"
-                            placeholder="DNI (8) o celular (9) del cliente"
-                            etiqueta="Buscar al cliente por DNI o celular"
-                            className="min-w-0 flex-1"
-                          />
-                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-10 shrink-0">
-                            {buscandoClienta ? "Buscando…" : "Buscar"}
-                          </button>
-                        </div>
-                      )}
-                      {sinFicha && <p className="text-xs text-tinta/60">No tiene ficha todavía: completa sus datos abajo.</p>}
-                    </div>
-                  )}
+                  {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
+                  <div className="space-y-1.5">
+                    {clientaId ? (
+                      <Aviso
+                        tono="exito"
+                        chico
+                        accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
+                      >
+                        Ficha encontrada: el apartado queda ligado a su historial.
+                      </Aviso>
+                    ) : (
+                      <div className="flex gap-2">
+                        {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
+                            cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
+                        <Buscador
+                          valor={clientaQ}
+                          onCambio={(v) => { setClientaQ(v); setSinFicha(null); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                          inputMode="numeric"
+                          placeholder={conClienta ? "DNI (8) o celular (9) del cliente" : "DNI del cliente (8 dígitos)"}
+                          etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
+                          className="min-w-0 flex-1"
+                        />
+                        <button type="button" onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-10 shrink-0">
+                          {buscandoClienta ? "Buscando…" : "Buscar"}
+                        </button>
+                      </div>
+                    )}
+                    {sinFicha === "padron" && (
+                      <p className="text-xs text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
+                    )}
+                    {sinFicha === "nada" && (
+                      <p className="text-xs text-tinta/60">
+                        {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo abajo.` : "No tiene ficha todavía: completa sus datos abajo."}
+                      </p>
+                    )}
+                  </div>
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
                     <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
-                    <Campo etiqueta="Celular · WhatsApp" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="Celular · WhatsApp (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                     <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                   </div>
                   <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
@@ -879,7 +917,7 @@ export function ApartarVista({
                   {f.devolucionMedio === "transferencia" ? (
                     <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                   ) : (
-                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "el mismo celular"} className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className={`${CAMPO} font-mono`} /></Campo>
                   )}
                   <p className="text-xs text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
                 </fieldset>

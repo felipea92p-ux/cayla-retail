@@ -19,15 +19,14 @@ import { hoyLima } from "@/lib/fechas-lima";
  *   con su propia historia y su propio botón, porque ahí la colaboradora ya encontró UNA
  *   prenda puntual (por SKU escaneado o nombre) y ese es el punto de partida natural.
  *
- * «Anular venta» es de la compra entera, no de una prenda, y solo de un líder: va en el
- * encabezado de cada compra en los dos modos (lo pinta `ComprasAgrupadas`). Solo se ofrece
+ * «Anular venta» es de la compra entera, no de una prenda, y la hace quien ve Devoluciones
+ * (la caja incluida, Felipe 2026-10-09; lo exige `anular_venta`): va en el encabezado de cada compra en los dos modos (lo pinta `ComprasAgrupadas`). Solo se ofrece
  * el mismo día de Lima en que se vendió (PL-29, lo exige `anular_venta`): después, Cambio o
  * Devolución.
  */
 export function DevolucionesVentas({
   lineas,
   ahora,
-  esLider,
   resumen = false,
   onIniciar,
   onAnular,
@@ -36,7 +35,6 @@ export function DevolucionesVentas({
 }: {
   lineas: LineaVentaReciente[];
   ahora: Date;
-  esLider: boolean;
   /** Abre el detalle de la venta (prendas, pago, comprobante y reimpresión). */
   onVerVenta?: (linea: LineaVentaReciente) => void;
   /** La cuenta ve el módulo Cambios: la tarjeta ofrece «Cambiar» (R-37, ADR-0161). */
@@ -49,7 +47,7 @@ export function DevolucionesVentas({
   onAnular: (linea: LineaVentaReciente) => void;
 }) {
   const accionCompra = (compra: LineaVentaReciente) =>
-    esLider && !compra.anulada && hoyLima(new Date(compra.creadoEn)) === hoyLima(ahora) ? (
+    !compra.anulada && hoyLima(new Date(compra.creadoEn)) === hoyLima(ahora) ? (
       <button
         type="button"
         onClick={() => onAnular(compra)}

@@ -5690,6 +5690,46 @@ export type Database = {
         Args: { p_id: string; p_celular: string }
         Returns: boolean
       }
+      corregir_pagos_venta: {
+        Args: { p_venta_id: string; p_pagos: Json; p_motivo?: string | null }
+        Returns: Json
+      }
+      poner_precio_sede: {
+        Args: { p_producto_id: string; p_ubicacion_id: string; p_precio: number; p_motivo: string }
+        Returns: number
+      }
+      quitar_precio_sede: {
+        Args: { p_producto_id: string; p_ubicacion_id: string; p_motivo?: string | null }
+        Returns: number
+      }
+      fn_precio_en_sede: {
+        Args: { p_variante_id: string; p_ubicacion_id: string }
+        Returns: number
+      }
+      fn_precios_sede_producto: {
+        Args: { p_producto_id: string }
+        Returns: {
+          ubicacion_id: string
+          sede: string
+          precio: number
+          variantes: number
+          desde: string
+          motivo: string
+          creado_por_nombre: string | null
+        }[]
+      }
+      fn_precios_en_sede: {
+        Args: { p_ubicacion_id: string }
+        Returns: { variante_id: string; precio: number }[]
+      }
+      corregir_prenda_sin_registrar: {
+        Args: { p_id: string; p_descripcion: string; p_categoria_id: string; p_talla_id: string; p_color_codigo: string }
+        Returns: Json
+      }
+      fn_correcciones_prenda_sin_registrar: {
+        Args: { p_ids: string[] }
+        Returns: { prenda_id: string; veces: number; ultima_en: string; ultima_por: string | null; antes: Json }[]
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

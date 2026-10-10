@@ -2,8 +2,10 @@
 
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
+import { ScanLine } from "lucide-react";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { Desplegable } from "@/components/ui/campos";
+import { Aviso, type TonoAvisoLinea } from "@/components/ui/Aviso";
 import { ComparacionPrendas } from "@/components/CambioResumen";
 import { CambioSalidas } from "@/components/CambioSalidas";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -39,6 +41,10 @@ export function CambioReemplazo({
   refMetodo,
   onCambio,
   salidas,
+  campoPrenda,
+  onEscanear,
+  lectura,
+  esperandoPistola,
 }: {
   linea: LineaVentaReciente;
   seleccion: Seleccion;
@@ -51,6 +57,14 @@ export function CambioReemplazo({
   onCambio: (cambio: Partial<Seleccion>) => void;
   /** Lo que necesitan las salidas cuando la talla no está aquí (`CambioSalidas`). */
   salidas: { sedes: SedeConId[]; ubicacionId: string; sede: string; esLider: boolean; responsable: ControlResponsable };
+  /** El input del combo de prenda: lo que la pistola escribe ahí es una lectura, no una búsqueda. */
+  campoPrenda: RefObject<HTMLInputElement | null>;
+  /** «Escanear etiqueta»: la cámara en el celular, la pistola lista en el mostrador. */
+  onEscanear: () => void;
+  /** Lo que dijo la última lectura («Leímos …» o «No encontramos …»). */
+  lectura: { tono: TonoAvisoLinea; texto: string } | null;
+  /** El botón se tocó en el mostrador: el campo espera a la pistola. */
+  esperandoPistola: boolean;
 }) {
   const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
@@ -79,15 +93,22 @@ export function CambioReemplazo({
           ¿Qué se lleva?
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <ComboBuscable
-            id={`${idBase}-prenda`}
-            valor={s.productoId}
-            onValor={(productoId) => onCambio({ productoId, talla: null, color: null })}
-            opciones={opcionesPrenda}
-            etiquetaAccesible="Prenda que se lleva"
-            marcador="Busca otra prenda…"
-            className="w-full max-w-sm"
-          />
+          <div className="flex w-full max-w-md items-end gap-2">
+            <ComboBuscable
+              id={`${idBase}-prenda`}
+              campoRef={campoPrenda}
+              valor={s.productoId}
+              onValor={(productoId) => onCambio({ productoId, talla: null, color: null })}
+              opciones={opcionesPrenda}
+              etiquetaAccesible="Prenda que se lleva"
+              marcador={esperandoPistola ? "Escanea la etiqueta…" : "Escanea su etiqueta o búscala…"}
+              className="min-w-0 flex-1"
+            />
+            <button type="button" onClick={onEscanear} className="btn-cayla btn-secundario h-10 shrink-0 gap-2">
+              <ScanLine className="h-4 w-4" aria-hidden />
+              Escanear
+            </button>
+          </div>
           <Link
             href={`/devoluciones?item=${linea.ventaItemId}`}
             className="text-sm text-tinta/75 underline decoration-tinta/30 underline-offset-4 transition-colors duration-200 hover:text-tinta hover:decoration-tinta"
@@ -95,6 +116,17 @@ export function CambioReemplazo({
             ¿Nada de su agrado? Pasar a devolución
           </Link>
         </div>
+        {lectura ? (
+          <Aviso key={lectura.texto} tono={lectura.tono} chico className="mt-3 max-w-md">
+            {lectura.texto}
+          </Aviso>
+        ) : (
+          esperandoPistola && (
+            <p className="anim-revelar mt-2 text-xs text-tinta/70" role="status">
+              Listo para escanear: apunta la pistola a la etiqueta. La prenda, la talla y el color se eligen solos.
+            </p>
+          )
+        )}
 
         {r.tallas.length > 1 && (
           <fieldset className="mt-6">

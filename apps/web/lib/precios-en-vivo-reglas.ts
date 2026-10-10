@@ -11,7 +11,13 @@ import { conCampanas, esDescuentoDeCampana, type CampanaLinea } from "./vender-r
 
 /** Lo releído de la base: el precio de etiqueta de cada prenda y la campaña que rige hoy por prenda. `campanas` es
  *  `null` si esa lectura falló: la pantalla se queda con las campañas que ya mostraba (nunca las borra por un error). */
-export type PreciosReleidos = { precios: Map<string, number>; campanas: Map<string, CampanaLinea> | null };
+export type PreciosReleidos = {
+  precios: Map<string, number>;
+  campanas: Map<string, CampanaLinea> | null;
+  /** Las prendas cuyo precio de `precios` es el de ESTA tienda (precio propio, Felipe 2026-10-09). Ausente: no se sabe y cada
+   *  prenda conserva su marca. */
+  propios?: Set<string> | null;
+};
 
 function mismaCampana(a: CampanaLinea | null | undefined, b: CampanaLinea | null | undefined): boolean {
   if (!a || !b) return !a && !b;
@@ -31,7 +37,7 @@ export function mismosPrecios(a: PreciosReleidos, b: PreciosReleidos): boolean {
 /** Las prendas de la grilla y del buscador con el precio y la campaña de AHORA. Una prenda que la lectura no trajo
  *  conserva su precio (no se inventa un 0); sin campañas releídas, conserva la suya. Devuelve el MISMO arreglo si nada
  *  cambió, para no recalcular lo que depende de él. */
-export function conPreciosAlDia<V extends { varianteId: string; precio: number; campana?: CampanaLinea | null }>(
+export function conPreciosAlDia<V extends { varianteId: string; precio: number; campana?: CampanaLinea | null; precioDeSede?: boolean }>(
   variantes: V[],
   releido: PreciosReleidos | null,
 ): V[] {
@@ -40,9 +46,10 @@ export function conPreciosAlDia<V extends { varianteId: string; precio: number; 
   const nuevas = variantes.map((v) => {
     const precio = releido.precios.get(v.varianteId) ?? v.precio;
     const campana = releido.campanas ? (releido.campanas.get(v.varianteId) ?? null) : (v.campana ?? null);
-    if (precio === v.precio && mismaCampana(campana, v.campana)) return v;
+    const precioDeSede = releido.propios ? releido.propios.has(v.varianteId) : v.precioDeSede;
+    if (precio === v.precio && mismaCampana(campana, v.campana) && Boolean(precioDeSede) === Boolean(v.precioDeSede)) return v;
     cambio = true;
-    return { ...v, precio, campana };
+    return { ...v, precio, campana, precioDeSede };
   });
   return cambio ? nuevas : variantes;
 }

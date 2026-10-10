@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2 } from "lucide-react";
+import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -10,17 +10,21 @@ import type { StockDeModelo } from "@/components/useStockEnSede";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { corta, hrefEnExistencias, lineasDeStock, type ExistenciasProducto } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { rangoSoles } from "@/lib/productos-vista";
-import { alternarVariantes, armarMatriz, etiquetasDeLaSeleccion, soloLasQueExisten } from "@/lib/vista-rapida-producto-reglas";
+import { alternarVariantes, armarMatriz, etiquetasDeLaSeleccion, fichaCorta, soloLasQueExisten } from "@/lib/vista-rapida-producto-reglas";
 import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
 
 const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
+// El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
+// Compacto, para que la línea de datos no crezca: 32 px con mouse y 44 con el dedo (ADR-0350).
+const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-[12px] max-sm:min-h-11";
 
 /**
  * La vista rápida de una prenda (Catálogo ▸ Productos ▸ Grilla, al tocar una tarjeta). Maqueta A «Matriz», elegida por Felipe el 2026-10-05
@@ -50,8 +54,11 @@ export function VistaRapidaProducto({
   puedeEliminar,
   onEliminar,
   onCambiarEstado,
+  preciosAqui,
 }: {
   producto: ProductoListado;
+  /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
+  preciosAqui?: Record<string, number>;
   stock: StockDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
@@ -82,7 +89,7 @@ export function VistaRapidaProducto({
     void leer([producto.productoId]);
   }, [producto, leer]);
 
-  const matriz = useMemo(() => armarMatriz(producto.variantes, mapa), [producto.variantes, mapa]);
+  const matriz = useMemo(() => armarMatriz(producto.variantes, mapa, preciosAqui), [producto.variantes, mapa, preciosAqui]);
   const [fijado, setFijado] = useState<string>(() => (matriz.filas.find((f) => f.clave === colorInicial) ?? matriz.filas[0])?.clave ?? "");
   const [vista, setVista] = useState<string | null>(null);
   const [elegidasCrudas, setElegidas] = useState<ReadonlySet<string>>(new Set());
@@ -140,10 +147,19 @@ export function VistaRapidaProducto({
           <span className="vr-dato" style={{ ["--vr-j" as string]: 1 }}>
             {producto.categoria ?? "sin categoría"}
           </span>
-          <span className="vr-dato" style={{ ["--vr-j" as string]: 2 }}>
+          {/* El estado y lo que lo cambia, juntos: ves «Activo» y ahí mismo está «Desactivar». «Desactivar» NO borra nada (sale de la lista de
+              activas y su historia queda); es la salida de una prenda que ya se vendió, que «Eliminar» no deja borrar. Una descontinuada ofrece
+              «Reactivar», que no es peligroso. Quien edita el catálogo (`puedeEditar`, el permiso de `cambiar_estado_productos`). */}
+          <span className="vr-dato vr-estado-prenda" style={{ ["--vr-j" as string]: 2 }}>
             <Chip tono={descontinuado ? "apagado" : "verde"} tachado={false}>
               {descontinuado ? "Descontinuado" : "Activo"}
             </Chip>
+            {puedeEditar && (
+              <button type="button" onClick={onCambiarEstado} className={`${BOTON_ESTADO} ${descontinuado ? "btn-secundario" : "btn-peligro"}`} data-cambiar-estado>
+                {descontinuado ? <PlayCircle aria-hidden className="h-3.5 w-3.5" /> : <PauseCircle aria-hidden className="h-3.5 w-3.5" />}
+                {descontinuado ? "Reactivar" : "Desactivar"}
+              </button>
+            )}
           </span>
           <span className="vr-dato vr-sep" style={{ ["--vr-j" as string]: 3 }}>
             {matriz.precioUnico ? (
@@ -193,8 +209,7 @@ export function VistaRapidaProducto({
             </div>
             <p className="vr-pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
           </div>
-          {/* Lo que se escribió en «Descripción» al crear o editar la prenda: es de la prenda, no del color, por eso va aparte y no cambia
-              con la foto. Sin descripción no se dibuja nada: el campo es opcional. */}
+          {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
           {producto.descripcion && (
             <div className="vr-desc">
               <span className="vr-rotulo label-cayla">Descripción</span>
@@ -217,6 +232,17 @@ export function VistaRapidaProducto({
             alVistaPrevia={setVista}
             alQuitar={() => setElegidas(new Set())}
           />
+          {/* La ficha corta (Felipe 2026-10-09): material, patrón y marca —lo que el cliente pregunta— y cuánto se vendió en 30 días en todas
+              las sedes —lo que ayuda a recomendarla—. Es de la prenda, no del color: no cambia con la foto. Lo que no está registrado se dice
+              («Sin registrar»), porque es justo lo que falta completar en «Editar». */}
+          <dl className="vr-ficha">
+            {fichaCorta(producto).map((d) => (
+              <div key={d.clave} className="vr-ficha-fila" data-ficha={d.clave}>
+                <dt className="vr-rotulo label-cayla">{d.rotulo}</dt>
+                <dd className={d.valor ? undefined : "vr-ficha-falta"}>{d.valor ?? "Sin registrar"}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </div>
 
@@ -259,6 +285,12 @@ export function VistaRapidaProducto({
               {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
             </span>
           </EnlaceEtiquetas>
+          {/* El rótulo del anaquel de este modelo (ADR-0366; Felipe 2026-10-09: «que se pueda imprimir desde el modal del producto»). Es del
+              MODELO, no de las tallas elegidas, y no depende del stock: va siempre. «Volver» regresa a esta misma vista de Productos. */}
+          <Link href={urlRotulos([producto.productoId], { productos: pantalla }) ?? "/rotulos"} className={BOTON}>
+            <SignpostBig aria-hidden className="h-4 w-4" />
+            Rótulo
+          </Link>
           {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
           <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial>
             <History aria-hidden className="h-4 w-4" />
@@ -270,26 +302,13 @@ export function VistaRapidaProducto({
               Ver en Existencias
             </Link>
           )}
-          {/* Lo que retira la prenda, juntos y a la derecha, en UNA caja (`vr-retira`): si la fila no cabe, el par baja entero. «Desactivar» NO borra
-              nada (sale de la lista de activas y su historia queda); es la salida de una prenda que ya se vendió, que «Eliminar» no deja borrar.
-              Una descontinuada ofrece «Reactivar», que no es peligroso. */}
-          {(puedeEditar || puedeEliminar) && (
-            <div className="vr-retira">
-              {puedeEditar && (
-                <button type="button" onClick={onCambiarEstado} className={descontinuado ? BOTON : "btn-cayla btn-peligro min-h-10 text-[12.5px]"} data-cambiar-estado>
-                  {descontinuado ? <PlayCircle aria-hidden className="h-4 w-4" /> : <PauseCircle aria-hidden className="h-4 w-4" />}
-                  {descontinuado ? "Reactivar" : "Desactivar"}
-                </button>
-              )}
-              {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
-                  qué no y ofrece desactivarla. */}
-              {puedeEliminar && (
-                <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
-                  <Trash2 aria-hidden className="h-4 w-4" />
-                  Eliminar
-                </button>
-              )}
-            </div>
+          {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
+              qué no y ofrece desactivarla (el botón «Desactivar» del encabezado hace lo mismo sin pasar por aquí). */}
+          {puedeEliminar && (
+            <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro vr-eliminar min-h-10 text-[12.5px]">
+              <Trash2 aria-hidden className="h-4 w-4" />
+              Eliminar
+            </button>
           )}
         </div>
       </div>
