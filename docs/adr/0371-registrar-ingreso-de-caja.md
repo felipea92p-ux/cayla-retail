@@ -1,6 +1,6 @@
 # ADR-0371 — Caja ▸ Registrar ingreso: «Depósito o retiro» deja la cabecera
 
-**Fecha:** 2026-10-10 · **Decide:** Felipe · **Estado:** aceptada (web + migración `20261010160000_caja_motivos_de_ingreso.sql`, **aplicada en local, pendiente en producción**)
+**Fecha:** 2026-10-10 · **Decide:** Felipe · **Estado:** aceptada (web + migraciones `20261010160000_caja_motivos_de_ingreso.sql` y `20261010170000_caja_ingresos_con_su_origen.sql`, **aplicadas en local, pendientes en producción, en ese orden**)
 
 ## Problema
 
@@ -54,10 +54,63 @@ botón por «Registrar ingreso», con la misma hoja que el gasto.
 - **Un combo de colaboradores para «quién la trajo»**: el líder puede ser de otra sede o de Dynamic, y un texto libre de 3
   caracteres basta para rastrearlo al cerrar.
 
+## Actualización 2026-10-10 (b): cada ingreso baja la cuenta de donde sale
+
+**El problema que apareció.** En Finanzas ▸ Cuentas y dinero, la caja fuerte es una cuenta con saldo propio: sube con cada
+cierre que guarda ahí y solo baja con un depósito o un retiro. No había camino de vuelta al cajón: un movimiento de dinero no
+podía tener un cajón como destino. Con la baldosa «Caja fuerte», el cajón subía y la caja fuerte no bajaba, así que la plata se
+contaba dos veces, y el flujo la leía como «otros ingresos», como si CAYLA la hubiera ganado. Lo mismo pasaba con la plata que
+trae el líder (el efectivo por rendir de un cierre «entregado al líder») y con el préstamo de otra sede (a la sede que prestaba le
+faltaba esa plata al cerrar).
+
+**Lo que decidió Felipe:**
+- **Caja fuerte:** baja sola la caja fuerte de esa sede (movimiento «entre cuentas»).
+- **Lo trae el líder:** la hoja pregunta «¿De qué plata es?». Con «Se la llevó en un cierre» baja el efectivo por rendir; con
+  «Es plata del dueño» queda como aporte del dueño. Son dos píldoras sin opción por defecto, porque es plata y se elige a
+  conciencia (el segmento subrayaba la primera opción aunque no se hubiera elegido nada).
+- **Otra sede:** las dos puntas van juntas. Sale del cajón de la sede que presta (su caja tiene que estar abierta) con el motivo
+  «Préstamo a otra sede» y entra a este. Quien ve Caja puede hacerlo aunque la otra caja no sea suya: lo decidió Felipe.
+- **«Compra de insumos»** deja de ser una salida: es un gasto y se registra con el gasto rápido. Lo ya registrado no se toca.
+
+**El modelo.** Es el espejo de lo que ya existía. Lo que SALE de un cajón se respaldaba con su egreso de caja
+(`movimientos_dinero.caja_movimiento_id`); ahora lo que ENTRA a un cajón se respalda con su ingreso (`caja_ingreso_id`, columna
+nueva, única entre los movimientos vigentes). El disparador `fn_movimientos_dinero_validar` acepta un cajón como destino de un
+aporte, de un préstamo del dueño o de un «entre cuentas» desde otro cajón, la caja fuerte o el efectivo por rendir, siempre con
+su ingreso: uno, del mismo monto y de esa tienda. Con eso el diario, el flujo y el balance lo leen como cualquier otro movimiento
+de dinero: 101 contra 101 si es entre cuentas, 101 contra 52 si es aporte. Los cambios en Finanzas son:
+- `fn_dinero_libro` no lleva al libro la punta que llega al cajón (su saldo sale de sus cajas).
+- `fn_flujo_lineas` lee el ingreso como plata del dueño o como entre cuentas.
+- `fn_bal_causas_dinero` ya no lo cuenta como «ingreso sin origen».
+- `anular_movimiento_dinero` no anula lo que nació en Caja: el ingreso ya está contado en la caja y anularlo dejaría el ingreso
+  sin origen.
+
+**`registrar_ingreso_caja`** hace todo en una sola operación (la llama la hoja): registra el ingreso con la misma
+`registrar_movimiento_caja` de siempre y crea su contraparte. Los tres motivos que tienen contraparte («Sencillo de la caja
+fuerte», «Entrega del líder», «Préstamo de otra sede») y «Préstamo a otra sede» pasan a ser **de sistema**: solo se aceptan
+cuando los registra esta función, así que no puede quedar un ingreso de la caja fuerte sin su contraparte. Si dos sedes se
+prestan plata al mismo tiempo en sentido contrario, las dos cajas se bloquean juntas, en orden de id y en modo compartido: no se
+traban entre sí y las ventas no esperan.
+
+**Un hueco viejo que salió en la prueba.** En una sesión donde nunca se había puesto la marca `retail.movimiento_de_sistema`,
+`current_setting(…, true)` devolvía NULL, `not (… and NULL)` daba NULL y el `if` no rechazaba. Por eso «Pago a proveedor» y
+«Reembolso de proveedor» se podían tipear sueltos desde `20260925150000`. Se corrigió con `coalesce`.
+
+**Cómo se vigila:** `scripts/pruebas/caja_ingresos_con_origen.mjs` (`pnpm pruebas:caja-ingresos`, en el CI) cubre 31 casos.
+Se actualizaron dos pruebas que dependían de lo anterior: `cuentas_dinero.mjs` (un aporte directo al cajón sigue rechazado,
+ahora porque le falta su ingreso de caja) y `candado_dinero_caja_cambios_devoluciones.mjs` («Compra de insumos» ya no es salida).
+
+**Lo que queda abierto:**
+- **Saldos negativos:** la caja fuerte o el efectivo por rendir pueden quedar en negativo si un cierre anterior no se registró
+  bien. No se bloquea: el negativo avisa que falta un registro, y bloquear frenaría a la tienda por un error de otro día. Si
+  Felipe prefiere que se bloquee, va en `registrar_ingreso_caja`.
+- **«Vuelve de un retiro»** sigue sin contraparte: aparece en el flujo como «otros ingresos» y en el balance como «ingreso sin
+  origen». Para unirlo hay que saber a qué retiro devuelve la plata.
+- **Abrir la caja con más plata de la que dejó el cierre** sigue contándose como «Diferencias al abrir la caja». Es otro camino
+  de la caja fuerte al cajón, anterior a este ADR.
+
 ## Pendiente
 
-- Aplicar `20261010160000` en producción **antes** de publicar la web: sin la migración, la base rechaza las baldosas nuevas con
-  «Motivo de ingreso desconocido». Sobrante y Otro sí funcionan sin ella.
-- Finanzas sigue leyendo todas estas entradas como «otros ingresos» (`fn_flujo_lineas`). Separar «Lo trae el líder» como aporte del
-  dueño o «Otra sede» como préstamo entre sedes es un paso aparte.
-- «Compra de insumos» sigue entre las salidas de «Retiro o depósito», aunque es un gasto. Quitarla es una decisión aparte.
+- Aplicar en producción `20261010160000` y después `20261010170000` **antes** de publicar la web. Sin ellas, la hoja llama a una
+  función que no existe (`registrar_ingreso_caja`) y no registra nada.
+- ~~Finanzas lee estas entradas como «otros ingresos»~~ y ~~«Compra de insumos» sigue entre las salidas~~: resuelto en la
+  actualización (b).

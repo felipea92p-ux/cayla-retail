@@ -20,6 +20,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import {
   INGRESO_RAPIDO_VACIO,
+  OPCIONES_DE_DONDE_LIDER,
   conceptoIngresoPorClave,
   conceptosIngresoVisibles,
   limpiarMontoIngreso,
@@ -32,8 +33,9 @@ import {
 
 // Caja ▸ Registrar ingreso (Felipe 2026-10-10): la hermana del gasto rápido, con su misma hoja, su mosaico y su sello. Reemplaza a
 // «Depósito o retiro» en la cabecera de Caja: aquí solo ENTRA plata al cajón abierto, en efectivo y hoy. Cada concepto ya trae su
-// motivo de la base (`registrar_movimiento_caja`, 20261010160000) y pide lo que hace falta para rastrearlo al cerrar: quién la trajo,
-// qué sede la presta o qué fue. Movimiento: el del gasto rápido (ADR-0136 act. 2026-10-09), heredado de sus mismas clases `gr-*`.
+// motivo de la base (20261010160000) y pide lo que hace falta para rastrearlo al cerrar: quién la trajo y de qué plata es, qué sede
+// la presta o qué fue. Guarda con `registrar_ingreso_caja` (20261010170000), que en la misma operación baja la cuenta de donde sale
+// la plata: la caja fuerte, el efectivo por rendir o el cajón de la otra sede (o la anota como aporte del dueño). Movimiento: el del gasto rápido (ADR-0136 act. 2026-10-09), heredado de sus mismas clases `gr-*`.
 
 const ICONOS: Record<ClaveIngreso, LucideIcon> = {
   caja_fuerte: Landmark,
@@ -84,6 +86,7 @@ export function IngresoRapidoModal({
   const conceptos = conceptosIngresoVisibles(esLider);
   const elegido = conceptoIngresoPorClave(e.concepto);
   const detalle = elegido?.detalle ?? "ninguno";
+  const deDondeElegido = OPCIONES_DE_DONDE_LIDER.find((o) => o.valor === e.deDonde) ?? null;
 
   const campos = [
     ...camposDeIngresoRapido(e),
@@ -112,7 +115,8 @@ export function IngresoRapidoModal({
     // Lo que sigue: el dato que pide el concepto (si se escribe); si no, el monto (si todavía no está).
     requestAnimationFrame(() => {
       const id = ID_DETALLE[clave];
-      if (id) document.getElementById(id)?.focus();
+      // «Lo trae el líder» primero pregunta de qué plata es (dos píldoras): el cursor va a «quién» después de elegir.
+      if (id && clave !== "lider") document.getElementById(id)?.focus();
       else if (!e.monto && conceptoIngresoPorClave(clave)?.detalle === "ninguno") montoRef.current?.focus({ preventScroll: true });
     });
   }
@@ -130,14 +134,18 @@ export function IngresoRapidoModal({
     if (!v.ok) return avisar.error(v.error);
     setGuardando(true);
     const { error } = await firmar(
-      createClient().rpc("registrar_movimiento_caja", {
-        p_caja_id: caja.id,
-        p_tipo: v.valor.p_tipo,
-        p_monto: v.valor.p_monto,
-        p_motivo: v.valor.p_motivo,
-        p_nota: v.valor.p_nota ?? undefined,
-        p_token: token,
-      }),
+      createClient().rpc(
+        "registrar_ingreso_caja" as never,
+        {
+          p_caja_id: caja.id,
+          p_concepto: v.valor.p_concepto,
+          p_monto: v.valor.p_monto,
+          p_nota: v.valor.p_nota,
+          p_de_donde: v.valor.p_de_donde,
+          p_sede_origen_id: v.valor.p_sede_origen_id,
+          p_token: token,
+        } as never,
+      ),
       responsable.firma(),
     );
     setGuardando(false);
@@ -222,7 +230,37 @@ export function IngresoRapidoModal({
           {/* Lo que pide cada concepto. Uno solo a la vez, en un bloque: los cerrados no dejan aire entre el mosaico y el monto. */}
           <div>
             <div className="gr-plegable" data-abierto={detalle === "quien" || undefined} data-sin-cascada>
-              <div className="gr-plegable-dentro">
+              <div className="gr-plegable-dentro space-y-3">
+                <CampoGuiado id="de-donde" guia={guia} titulo="¿De qué plata es?">
+                  <div role="radiogroup" aria-label="De qué plata es" className="flex flex-wrap gap-2">
+                    {OPCIONES_DE_DONDE_LIDER.map((o) => (
+                      <button
+                        key={o.valor}
+                        type="button"
+                        role="radio"
+                        aria-checked={e.deDonde === o.valor}
+                        data-activa={e.deDonde === o.valor || undefined}
+                        tabIndex={detalle === "quien" ? 0 : -1}
+                        className="pildora-cayla"
+                        onClick={() => {
+                          poner("deDonde", o.valor);
+                          requestAnimationFrame(() => document.getElementById(ID_DETALLE.lider ?? "")?.focus());
+                        }}
+                      >
+                        {o.texto}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="gr-va-a" aria-live="polite">
+                    {deDondeElegido ? (
+                      <span key={deDondeElegido.valor} className="gr-va-a-texto">
+                        {deDondeElegido.ayuda}
+                      </span>
+                    ) : (
+                      " "
+                    )}
+                  </p>
+                </CampoGuiado>
                 <CampoGuiado id="quien" guia={guia} titulo="¿Quién la trajo?">
                   <CampoTexto
                     id={ID_DETALLE.lider}

@@ -6,7 +6,9 @@
 // otra sede, lo que vuelve de un retiro— quedaba sin nombre, y al cerrar nadie sabía de dónde salió.
 //
 // CONTRATO
-//   PROMETE: (1) a cada concepto, un motivo que `registrar_movimiento_caja` acepta (20261010160000; la prueba lee la migración);
+//   PROMETE: (1) a cada concepto, un motivo que la base acepta (20261010160000; la prueba lee la migración) y, si el concepto tiene
+//            contraparte, de qué cuenta sale: lo arma `registrar_ingreso_caja` (20261010170000), que baja la caja fuerte, el
+//            efectivo por rendir o el cajón de la otra sede en la misma operación, o lo anota como aporte del dueño;
 //            (2) pedir lo que la base exige: «quién la trajo» y «qué sede» se guardan en la nota, que la base pide para esos dos
 //            motivos y para «Otro»; (3) la guía de foco sale de lo mismo que `validarIngreso` bloquea (la prueba exige que coincidan).
 //   ASUME:   entra en efectivo al cajón abierto, hoy. El sobrante es un ajuste: solo el líder lo ve (la base lo exige igual).
@@ -73,11 +75,20 @@ export function conceptosIngresoVisibles(esLider: boolean): ConceptoIngreso[] {
 
 export type SedeIngreso = { id: string; nombre: string };
 
+/** «Lo trae el líder»: de qué plata es. Decide de qué cuenta sale (Felipe 2026-10-10). */
+export type DeDondeLider = "cierre" | "dueno";
+export const OPCIONES_DE_DONDE_LIDER: readonly { valor: DeDondeLider; texto: string; ayuda: string }[] = [
+  { valor: "cierre", texto: "Se la llevó en un cierre", ayuda: "La que el líder se llevó al cerrar una caja: vuelve al cajón." },
+  { valor: "dueno", texto: "Es plata del dueño", ayuda: "Plata nueva que pone el dueño: queda como aporte." },
+];
+
 export type EstadoIngresoRapido = {
   concepto: ClaveIngreso | "";
   monto: string;
   /** «Lo trae el líder»: quién la trajo. */
   quien: string;
+  /** «Lo trae el líder»: de qué plata es. */
+  deDonde: DeDondeLider | "";
   /** «Préstamo de otra sede»: cuál. */
   sedeId: string;
   /** «Otro»: qué fue. */
@@ -85,7 +96,7 @@ export type EstadoIngresoRapido = {
   nota: string;
 };
 
-export const INGRESO_RAPIDO_VACIO: EstadoIngresoRapido = { concepto: "", monto: "", quien: "", sedeId: "", otroTexto: "", nota: "" };
+export const INGRESO_RAPIDO_VACIO: EstadoIngresoRapido = { concepto: "", monto: "", quien: "", deDonde: "", sedeId: "", otroTexto: "", nota: "" };
 
 /** «Otro» y «quién la trajo» necesitan al menos esto para decir algo. */
 export const MIN_TEXTO = 3;
@@ -128,7 +139,10 @@ export function camposDeIngresoRapido(e: EstadoIngresoRapido): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [
     { id: "concepto", nombre: "De dónde viene", requerido: true, hecho: c !== null, pendiente: "Toca de dónde viene la plata." },
   ];
-  if (c?.detalle === "quien") campos.push({ id: "quien", nombre: "Quién la trajo", requerido: true, hecho: lleno(e.quien), pendiente: "Escribe quién la trajo." });
+  if (c?.detalle === "quien") {
+    campos.push({ id: "de-donde", nombre: "De qué plata es", requerido: true, hecho: e.deDonde !== "", pendiente: "Di de qué plata es." });
+    campos.push({ id: "quien", nombre: "Quién la trajo", requerido: true, hecho: lleno(e.quien), pendiente: "Escribe quién la trajo." });
+  }
   if (c?.detalle === "sede") campos.push({ id: "sede", nombre: "Qué sede", requerido: true, hecho: e.sedeId !== "", pendiente: "Elige qué sede la presta." });
   if (c?.detalle === "que") campos.push({ id: "otro-texto", nombre: "Qué fue", requerido: true, hecho: lleno(e.otroTexto), pendiente: "Escribe qué fue." });
   campos.push({ id: "monto", nombre: "Cuánto", requerido: true, hecho: parsearMonto(e.monto).ok, pendiente: "Escribe cuánto entra." });
@@ -136,7 +150,16 @@ export function camposDeIngresoRapido(e: EstadoIngresoRapido): CampoDeGuia[] {
   return campos;
 }
 
-export type ArgumentosIngreso = { p_tipo: "ingreso"; p_monto: number; p_motivo: string; p_nota: string | null };
+/** Los argumentos de `registrar_ingreso_caja` (sin la caja ni el token, que pone la pantalla). */
+export type ArgumentosIngreso = {
+  p_concepto: ClaveIngreso;
+  p_monto: number;
+  p_nota: string | null;
+  p_de_donde: DeDondeLider | null;
+  p_sede_origen_id: string | null;
+  /** El motivo que guardará la base (para el aviso y la prueba contra la migración). */
+  motivo: string;
+};
 
 /** La misma regla que la base, antes de enviar. El token y la caja los pone la pantalla. */
 export function validarIngreso(
@@ -147,10 +170,21 @@ export function validarIngreso(
   const c = conceptoIngresoPorClave(e.concepto);
   if (!c) return { ok: false, error: "Toca de dónde viene la plata." };
   if (c.soloLider && !esLider) return { ok: false, error: "Un sobrante es un ajuste: lo registra un líder de equipo." };
+  if (c.detalle === "quien" && !e.deDonde) return { ok: false, error: "Di si es plata de un cierre o del dueño." };
   if (c.detalle === "quien" && !lleno(e.quien)) return { ok: false, error: "Escribe quién la trajo." };
   if (c.detalle === "sede" && !sedes.some((s) => s.id === e.sedeId)) return { ok: false, error: "Elige qué sede la presta." };
   if (c.detalle === "que" && !lleno(e.otroTexto)) return { ok: false, error: "Escribe qué fue." };
   const monto = parsearMonto(e.monto);
   if (!monto.ok) return { ok: false, error: monto.error };
-  return { ok: true, valor: { p_tipo: "ingreso", p_monto: monto.valor, p_motivo: c.motivo, p_nota: notaDeIngreso(e, sedes) } };
+  return {
+    ok: true,
+    valor: {
+      p_concepto: c.clave,
+      p_monto: monto.valor,
+      p_nota: notaDeIngreso(e, sedes),
+      p_de_donde: c.detalle === "quien" && e.deDonde ? e.deDonde : null,
+      p_sede_origen_id: c.detalle === "sede" ? e.sedeId : null,
+      motivo: c.motivo,
+    },
+  };
 }

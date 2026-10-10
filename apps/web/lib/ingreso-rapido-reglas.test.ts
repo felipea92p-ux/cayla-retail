@@ -66,6 +66,26 @@ describe("la nota que se guarda", () => {
   });
 });
 
+describe("lo que se manda a registrar_ingreso_caja", () => {
+  const MIGRACION_ORIGEN = readFileSync(join(__dirname, "../../../supabase/migrations/20261010170000_caja_ingresos_con_su_origen.sql"), "utf8");
+
+  it("cada concepto es uno que la función conoce, con el mismo motivo", () => {
+    for (const c of CONCEPTOS_INGRESO) expect(MIGRACION_ORIGEN).toContain(`when '${c.clave}' then '${c.motivo}'`);
+  });
+
+  it("las opciones de «de dónde» del líder son las que la función acepta", () => {
+    expect(MIGRACION_ORIGEN).toContain("p_de_donde = 'cierre'");
+    expect(MIGRACION_ORIGEN).toContain("p_de_donde = 'dueno'");
+  });
+
+  it("solo el líder lleva «de dónde» y solo otra sede lleva la sede", () => {
+    const lider = validarIngreso(con({ concepto: "lider", monto: "50", deDonde: "dueno", quien: "Felipe", sedeId: "lim" }), SEDES, true);
+    expect(lider.ok && lider.valor).toMatchObject({ p_concepto: "lider", p_de_donde: "dueno", p_sede_origen_id: null, p_monto: 50 });
+    const sede = validarIngreso(con({ concepto: "otra_sede", monto: "80", sedeId: "lim", deDonde: "cierre" }), SEDES, true);
+    expect(sede.ok && sede.valor).toMatchObject({ p_concepto: "otra_sede", p_de_donde: null, p_sede_origen_id: "lim", p_nota: "De Tienda Lima" });
+  });
+});
+
 describe("el monto", () => {
   it("la coma es decimal y no pasa de dos decimales", () => {
     expect(limpiarMontoIngreso("0,50")).toBe("0.50");
@@ -81,9 +101,11 @@ describe("la guía de foco dice lo mismo que validarIngreso", () => {
     ["caja fuerte sin monto", con({ concepto: "caja_fuerte" })],
     ["caja fuerte con monto", con({ concepto: "caja_fuerte", monto: "50" })],
     ["caja fuerte con monto cero", con({ concepto: "caja_fuerte", monto: "0" })],
-    ["líder sin quién", con({ concepto: "lider", monto: "100" })],
-    ["líder con quién corto", con({ concepto: "lider", monto: "100", quien: "Sa" })],
-    ["líder completo", con({ concepto: "lider", monto: "100", quien: "Sandra" })],
+    ["líder sin quién", con({ concepto: "lider", monto: "100", deDonde: "cierre" })],
+    ["líder con quién corto", con({ concepto: "lider", monto: "100", deDonde: "cierre", quien: "Sa" })],
+    ["líder sin de dónde", con({ concepto: "lider", monto: "100", quien: "Sandra" })],
+    ["líder de un cierre", con({ concepto: "lider", monto: "100", deDonde: "cierre", quien: "Sandra" })],
+    ["líder del dueño", con({ concepto: "lider", monto: "100", deDonde: "dueno", quien: "Felipe" })],
     ["otra sede sin sede", con({ concepto: "otra_sede", monto: "80" })],
     ["otra sede completa", con({ concepto: "otra_sede", monto: "80", sedeId: "aqp" })],
     ["vuelve de un retiro", con({ concepto: "vuelve_retiro", monto: "20.5" })],
