@@ -63,7 +63,7 @@ export function FrescuraPiso({
   const cerrada = puerta === null || !puerta.puedeHablar;
   const paso = pasoDeLaPuerta(puerta, acceso);
   return (
-    <section aria-labelledby="frescura-piso-titulo" className="card-cayla px-4 py-4 sm:px-5 sm:py-5">
+    <section aria-labelledby="frescura-piso-titulo" className="card-cayla px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="frescura-piso-titulo" className="flex items-center gap-2 font-display text-[22px] leading-tight">
           {principal.nombre}
@@ -71,6 +71,8 @@ export function FrescuraPiso({
         </h2>
         <span className="text-[13px] tabular-nums text-taupe">
           {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
+          {/* Los soles van en la misma línea (antes, una franja propia de 45 px): el total arriba, lo que envejece en su cifra. */}
+          {principal.soles && <> · {solesEnteros(TRAMOS_DEL_100.reduce((s, t) => s + principal.soles![t], 0))} a precio de venta</>}
         </span>
       </div>
 
@@ -82,12 +84,16 @@ export function FrescuraPiso({
             <dt className="flex items-center gap-1.5 text-[13px] text-taupe">
               <MuestraTramo clase={CLASE_TRAMO_PISO[t]} />
               {NOMBRE_TRAMO_PISO[t]}
+              {t === "sin_saber" && <PorQueNoSeSabe familia={principal} />}
             </dt>
-            <dd className="mt-0.5 flex items-baseline gap-2">
-              <span className="font-display text-[28px] leading-none tabular-nums">{pct[t]} %</span>
-              <span className="text-[12.5px] tabular-nums text-taupe">{unidades(principal.unidades[t])}</span>
+            <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              {/* La cifra nunca se parte («25» arriba y «%» abajo a 375 px): lo que va al lado baja de línea. */}
+              <span className="whitespace-nowrap font-display text-[28px] leading-none tabular-nums">{pct[t]} %</span>
+              <span className="text-[12.5px] tabular-nums text-taupe">
+                {unidades(principal.unidades[t])}
+                {t === "envejeciendo" && principal.soles && principal.soles.envejeciendo > 0 && <> · {solesEnteros(principal.soles.envejeciendo)}</>}
+              </span>
             </dd>
-            {t === "sin_saber" && <PorQueNoSeSabe familia={principal} />}
           </div>
         ))}
       </dl>
@@ -98,12 +104,6 @@ export function FrescuraPiso({
         </p>
       )}
 
-      {principal.soles && (
-        <p className="mt-3 border-t border-sand pt-3 text-[13px] tabular-nums text-taupe">
-          {solesEnteros(TRAMOS_DEL_100.reduce((s, t) => s + principal.soles![t], 0))} colgados a precio de venta
-          {principal.soles.envejeciendo > 0 && <> · {solesEnteros(principal.soles.envejeciendo)} envejeciendo</>}
-        </p>
-      )}
 
       {otras.length > 0 && (
         <ul aria-label="Las demás familias" className="mt-4 divide-y divide-sand border-t border-sand">
@@ -129,7 +129,7 @@ export function FrescuraPiso({
         <Aviso
           tono="atencion"
           chico
-          className="mt-4"
+          className="mt-3"
           accion={
             paso ? (
               <BotonEnlace href={paso.href} peso="fantasma">
@@ -153,9 +153,9 @@ function PorQueNoSeSabe({ familia }: { familia: FamiliaPiso }) {
   const causas = CAUSAS_SIN_SABER.filter((c) => familia.sinSaberPor[c] > 0);
   if (causas.length === 0) return null;
   return (
-    <details className="group mt-1 text-[12.5px] leading-snug">
-      <summary className="btn-cayla btn-enlace inline-flex min-h-6 cursor-pointer list-none items-center text-[12.5px] [&::-webkit-details-marker]:hidden">¿Por qué?</summary>
-      <ul className="mt-1 space-y-0.5 text-taupe">
+    <details className="group relative text-[12.5px] leading-snug">
+      <summary className="btn-cayla btn-enlace -my-[3px] inline-flex min-h-6 cursor-pointer list-none items-center text-[12.5px] [&::-webkit-details-marker]:hidden">¿Por qué?</summary>
+      <ul className="absolute right-0 top-full z-10 mt-1 w-64 space-y-0.5 rounded-xl border border-sand bg-papel px-3 py-2 text-taupe shadow-[0_8px_24px_color-mix(in_srgb,var(--color-sombra)_18%,transparent)]">
         {causas.map((c) => (
           <li key={c}>
             <span className="tabular-nums text-tinta">{unidades(familia.sinSaberPor[c])}</span>: {TEXTO_CAUSA_SIN_SABER[c]}.

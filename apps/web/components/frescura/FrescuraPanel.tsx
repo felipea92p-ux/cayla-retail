@@ -170,6 +170,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const { primeroLoDecidible, efectivos } = vistaDeEntrada(filtros, cifras?.porDecidir ?? 0);
   const visibles = enTabla.filter((p) => pasaFiltros(p, efectivos));
   const grupos = agrupar(visibles);
+  // Lo por decidir es de UNA categoría: su nombre va en la franja «Esperan tu decisión» y no en una franja propia.
+  const franjaUnica = primeroLoDecidible && grupos.length === 1;
 
   const cambiar = (cambio: Partial<Filtros>) => {
     const f = { ...filtros, ...cambio };
@@ -269,7 +271,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
       <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} />
 
@@ -304,7 +306,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               acciones={botonComoSeLee}
             />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
-            <div className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
               <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
                 <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
                 <input
@@ -396,9 +398,16 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             )}
 
             {primeroLoDecidible ? (
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-3 sm:px-5">
-                {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces). */}
-                <span className="text-sm font-semibold text-tinta">Esperan tu decisión</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-2.5 sm:px-5">
+                {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces).
+                    Con un solo grupo, su nombre va en esta misma franja y no en una propia (Formidable 2026-10-10 (c): 57 px menos). */}
+                {franjaUnica ? (
+                  <h2 className="text-sm font-semibold text-tinta">
+                    Esperan tu decisión <span className="font-normal text-taupe">· {grupos[0].nombre}</span>
+                  </h2>
+                ) : (
+                  <span className="text-sm font-semibold text-tinta">Esperan tu decisión</span>
+                )}
                 <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13.5px]" onClick={() => cambiar({ todas: true })}>
                   Ver todas las prendas ({enTabla.length})
                 </button>
@@ -442,6 +451,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               grupos.map((g) => {
                 return (
                   <Fragment key={g.categoriaId}>
+                    {!franjaUnica && (
                     <div className="border-t border-sand px-4 pb-3 pt-4 sm:px-5">
                       <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
                         <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">
@@ -455,6 +465,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                         </h2>
                       </div>
                     </div>
+                    )}
                     <div className="overflow-x-auto [scrollbar-width:thin]">
                       <div className={ANCHO_MINIMO_TABLA}>
                         <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">

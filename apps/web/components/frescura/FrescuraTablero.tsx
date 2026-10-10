@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
-import { CLASE_TRAMO_BARRA, NOMBRE_TRAMO_BARRA, TRAMOS_BARRA, segmentosDe, type FilaTablero } from "@/lib/frescura-pantalla";
+import { segmentosDe, type FilaTablero } from "@/lib/frescura-pantalla";
 
 // El tablero por categoría de Frescura del piso (nivel 1; ADR-0208, act. 2026-10-07, decisión 3 de Felipe): «¿Cómo está el piso?»
 // de un vistazo. Una fila por categoría: su nombre, la barra de sus unidades por estado (los colores A de los chips: verde recién
@@ -32,7 +32,6 @@ export function FrescuraTablero({
   acciones?: ReactNode;
 }) {
   if (filas.length === 0) return null;
-  const conUnidades = TRAMOS_BARRA.filter((t) => filas.some((f) => f.unidades[t] > 0));
   // Las columnas viven en la grilla madre y cada fila las hereda con `subgrid`: si cada fila fuera su propia grilla, la que lleva
   // chip de vara y la que no tendrían columnas de ancho distinto y las barras saldrían de largos distintos (medido el 2026-10-10:
   // 530 px contra 497). Las dos de la derecha son `auto`: miden lo más ancho que haya en TODAS las filas y se achican a cero si
@@ -107,16 +106,8 @@ export function FrescuraTablero({
           );
         })}
       </div>
-      {/* La leyenda con la muestra del sistema (el rayado de «Aún no se sabe» se ve igual que en la barra). Sin la instrucción «Toca una
-          categoría…»: las filas ya se ven tocables (Formidable 2026-10-10 (c), ley 8). */}
-      <ul aria-label="Qué significa cada color" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-taupe">
-        {conUnidades.map((t) => (
-          <li key={t} className="flex items-center gap-1.5">
-            <MuestraTramo clase={CLASE_TRAMO_BARRA[t]} />
-            {NOMBRE_TRAMO_BARRA[t]}
-          </li>
-        ))}
-      </ul>
+      {/* Sin leyenda propia: la tarjeta de la tienda, justo arriba, ya dice qué es cada color con las mismas muestras (Formidable
+          2026-10-10 (c), ley 8; liberaba espacio para que lo por decidir se vea sin bajar). Tampoco la instrucción «Toca una categoría…». */}
     </section>
   );
 }

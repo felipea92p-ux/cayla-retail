@@ -97,7 +97,6 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                   <ChevronRight aria-hidden strokeWidth={1.8} className="h-3.5 w-3.5" />
                 </a>
                 {t.principal && <span className="text-[12.5px] font-normal tabular-nums text-taupe"> · {unidades(t.principal.total)}</span>}
-                <RegistroDeTienda t={t} />
               </span>
               {t.fallo ? (
                 <span className="text-[13px] text-taupe sm:col-span-2">{t.fallo}</span>
@@ -112,6 +111,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
               ) : (
                 <span className="text-[13px] text-taupe sm:col-span-2">Nada colgado todavía.</span>
               )}
+              <RegistroDeTienda t={t} />
             </li>
           ))}
         </ul>
@@ -173,7 +173,8 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
 function RegistroDeTienda({ t }: { t: DatosRed["tiendas"][number] }) {
   if (t.registro.length === 0 && !t.decidido) return null;
   return (
-    <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-normal leading-snug text-taupe">
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-snug text-taupe sm:col-span-3">
+      {t.registro.length > 0 && <span>Registro al colgar:</span>}
       {t.registro.map((r) => (
         <span key={r.mes} className="inline-flex items-center gap-1.5">
           <span>

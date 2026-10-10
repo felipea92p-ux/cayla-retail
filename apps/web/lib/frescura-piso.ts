@@ -55,7 +55,7 @@ export const CAUSAS_SIN_SABER: readonly CausaSinSaber[] = ["ritmo", "fecha", "du
 export const TEXTO_CAUSA_SIN_SABER: Record<CausaSinSaber, string> = {
   ritmo: "su categoría todavía no tiene un ritmo de venta en esta tienda",
   fecha: "no se sabe desde cuándo está colgada",
-  dudosa: "su stock no cuadra: hay que contarla",
+  dudosa: "su stock no cuadra (hay que contarla)",
 };
 export type ConteoSinSaber = Record<CausaSinSaber, number>;
 const sinSaberVacio = (): ConteoSinSaber => ({ ritmo: 0, fecha: 0, dudosa: 0 });
