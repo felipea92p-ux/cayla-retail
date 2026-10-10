@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ChevronDown, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Desplegable, Boton, type Opcion } from "@/components/ui/campos";
 import { Encabezado, Tabla } from "@/components/ui/Tabla";
@@ -31,6 +32,8 @@ const ORDENES: Opcion<OrdenPlan>[] = [
   { valor: "nombre", texto: "A–Z" },
 ];
 
+export type VistaPlan = "tabla" | "guiado";
+
 /** «indumentaria» → «Indumentaria», cuando la lectura de las familias no trajo su nombre. */
 const ponerNombre = (codigo: string) => codigo.charAt(0).toUpperCase() + codigo.slice(1);
 
@@ -49,6 +52,9 @@ export function ListaCategorias({
   sinMovAbiertas,
   onSinMov,
   onAbrir,
+  vista,
+  onVista,
+  pasoAPaso,
 }: {
   filas: readonly FilaPlan[];
   estado: EstadoCampana;
@@ -64,6 +70,11 @@ export function ListaCategorias({
   sinMovAbiertas: boolean;
   onSinMov: (abiertas: boolean) => void;
   onAbrir: (f: FilaPlan) => void;
+  /** Cómo se llena el plan: la tabla (cada categoría se abre en su hoja) o el paso a paso (una a la vez, aquí mismo). */
+  vista: VistaPlan;
+  onVista: (v: VistaPlan) => void;
+  /** Lo que se dibuja en vez de la tabla cuando la vista es «Paso a paso». */
+  pasoAPaso: ReactNode;
 }) {
   const verReal = estado !== "antes";
   const nombreDe = useMemo(() => new Map(familias.map((f) => [f.codigo, f.nombre])), [familias]);
@@ -97,22 +108,47 @@ export function ListaCategorias({
     <Tabla>
       <div className="space-y-3 px-5 py-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Buscador valor={q} onCambio={onQ} placeholder="Buscar una categoría" etiqueta="Buscar una categoría" atajo className="min-w-0 flex-1 sm:max-w-sm" />
-          <span className="ml-auto flex flex-wrap items-center gap-2">
-            <Desplegable valor={familia} onValor={onFamilia} opciones={opcionesFamilia} forma="cajaBaja" etiquetaAccesible="Familia" className="w-52" />
-            <Desplegable valor={orden} onValor={onOrden} opciones={ORDENES} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="w-52" />
-          </span>
+          {vista === "tabla" ? (
+            <Buscador valor={q} onCambio={onQ} placeholder="Buscar una categoría" etiqueta="Buscar una categoría" atajo className="min-w-0 flex-1 sm:max-w-sm" />
+          ) : (
+            <p className="min-w-0 flex-1 text-sm text-tinta/70">Una categoría a la vez, de la que más vende a la que menos.</p>
+          )}
+          <SegmentoDeslizante
+            forma="modo"
+            etiqueta="Cómo llenar el plan"
+            valor={vista}
+            onCambio={(v) => onVista(v as VistaPlan)}
+            opciones={[
+              { clave: "tabla", etiqueta: "Tabla" },
+              { clave: "guiado", etiqueta: "Paso a paso" },
+            ]}
+            className="ml-auto"
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar categorías">
-          {PILDORAS.map((p) => (
-            <BotonFiltro key={p.clave} activo={filtro === p.clave} cuenta={conteos[p.clave]} onClick={() => onFiltro(filtro === p.clave && p.clave !== "todas" ? "todas" : p.clave)}>
-              {p.texto}
-            </BotonFiltro>
-          ))}
-        </div>
-        <LeyendaRango conVendido={verReal} />
+        {vista === "tabla" && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar categorías">
+                {PILDORAS.map((p) => (
+                  <BotonFiltro key={p.clave} activo={filtro === p.clave} cuenta={conteos[p.clave]} onClick={() => onFiltro(filtro === p.clave && p.clave !== "todas" ? "todas" : p.clave)}>
+                    {p.texto}
+                  </BotonFiltro>
+                ))}
+              </span>
+              <span className="ml-auto flex flex-wrap items-center gap-2">
+                <Desplegable valor={familia} onValor={onFamilia} opciones={opcionesFamilia} forma="cajaBaja" etiquetaAccesible="Familia" className="w-52" />
+                <Desplegable valor={orden} onValor={onOrden} opciones={ORDENES} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="w-52" />
+              </span>
+            </div>
+            <LeyendaRango conVendido={verReal} />
+          </>
+        )}
       </div>
 
+      {vista === "guiado" ? (
+        pasoAPaso
+      ) : (
+      <>
       <Encabezado columnas={columnasDelPlan(estado)} plantilla={plantillaDelPlan(verReal)} />
 
       {filas.length === 0 ? (
@@ -154,6 +190,8 @@ export function ListaCategorias({
             </>
           )}
         </>
+      )}
+      </>
       )}
     </Tabla>
   );

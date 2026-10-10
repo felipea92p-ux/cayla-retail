@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   aplicarFiltro,
   argsGuardar,
+  avanceDelPaso,
   armarFilas,
   borradorDe,
   calcular,
+  colaDelPaso,
   comprarPorTalla,
   cuantilCritico,
   conteosDeFiltros,
@@ -20,6 +22,7 @@ import {
   lineaDeBorrador,
   momentoDeLaCampana,
   ordenarFilas,
+  pendientesDelPaso,
   plegarSinMovimiento,
   porQue,
   posicionEnEscala,
@@ -408,5 +411,53 @@ describe("propuestaDeNormal y siguienteSinPlan", () => {
   });
   it("una sin ventas ni stock no se ofrece; si no queda ninguna, null", () => {
     expect(siguienteSinPlan(filas(), ["a", "d"])).toBeNull();
+  });
+});
+
+describe("el paso a paso: cola, pendientes y avance", () => {
+  // Cat 0 a 11 con ventas 12, 11, …, 1 (las 10 primeras son las que más venden). «Con plan» ya tiene plan. «Quieta» no vende ni tiene stock.
+  const filas = () =>
+    armarFilas(
+      leerPlan({
+        plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
+        hoy: "2026-10-05",
+        categorias: [
+          ...Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, nombre: `Cat ${String(i).padStart(2, "0")}`, tallas: [] })),
+          { id: "quieta", nombre: "Quieta", tallas: [] },
+          { id: "stock", nombre: "Solo stock", tallas: [] },
+        ],
+        lineas: [{ categoria_id: "c1", flojo: 1, normal: 2, bueno: 3, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null }],
+        stock: [{ categoria_id: "stock", unidades: 2 }],
+        curvas: Array.from({ length: 12 }, (_, i) => ({ categoria_id: `c${i}`, talla_id: "s", unidades: 12 - i })),
+      })!,
+    );
+  const ids = (f: { c: { id: string } }[]) => f.map((x) => x.c.id);
+
+  it("«top» son las 10 que más venden; «todas» suma las que se mueven (ventas o stock) y deja fuera las quietas", () => {
+    expect(ids(colaDelPaso(filas(), "top"))).toEqual(["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"]);
+    const todas = ids(colaDelPaso(filas(), "todas"));
+    expect(todas).toHaveLength(13);
+    expect(todas).toContain("stock");
+    expect(todas).not.toContain("quieta");
+  });
+  it("lo pendiente no incluye lo que ya tiene plan ni lo guardado en esta tanda", () => {
+    const cola = colaDelPaso(filas(), "top");
+    expect(ids(pendientesDelPaso(cola))).toEqual(["c0", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"]);
+    expect(ids(pendientesDelPaso(cola, ["c0", "c2"]))[0]).toBe("c3");
+  });
+  it("las saltadas pasan al final, en su orden, y no se pierden", () => {
+    const cola = colaDelPaso(filas(), "top");
+    expect(ids(pendientesDelPaso(cola, [], ["c0", "c3"]))).toEqual(["c2", "c4", "c5", "c6", "c7", "c8", "c9", "c0", "c3"]);
+  });
+  it("el avance cuenta las que venían con plan y las guardadas ahora", () => {
+    const cola = colaDelPaso(filas(), "top");
+    expect(avanceDelPaso(cola)).toEqual({ hechas: 1, total: 10 });
+    expect(avanceDelPaso(cola, ["c0", "c2"])).toEqual({ hechas: 3, total: 10 });
+    expect(avanceDelPaso(cola, ["c1"])).toEqual({ hechas: 1, total: 10 });
+  });
+  it("sin ventas, «top» está vacío y no hay nada que recorrer", () => {
+    const sinVentas = armarFilas(leerPlan({ plan: { id: "p", nombre: "x", desde: "2026-12-01", hasta: "2026-12-31" }, hoy: "2026-10-05", categorias: [{ id: "a", nombre: "A", tallas: [] }] })!);
+    expect(colaDelPaso(sinVentas, "top")).toEqual([]);
+    expect(avanceDelPaso([])).toEqual({ hechas: 0, total: 0 });
   });
 });

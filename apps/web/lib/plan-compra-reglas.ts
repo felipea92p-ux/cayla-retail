@@ -508,3 +508,30 @@ export function propuestaDeNormal(ventas90: number): number | null {
 export function siguienteSinPlan(filas: readonly FilaPlan[], excluir: readonly string[] = []): FilaPlan | null {
   return filas.find((f) => !f.linea && !excluir.includes(f.c.id) && (f.stock > 0 || f.ventas > 0)) ?? null;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 10. El paso a paso: una categoría a la vez
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Qué recorre el paso a paso: solo las que más venden, o todas las que se mueven. */
+export type AlcancePaso = "top" | "todas";
+
+/** Las categorías de la tanda, en el orden en que vienen (`armarFilas`: la que más vende primero). Las que no se mueven no entran a «todas». */
+export function colaDelPaso(filas: readonly FilaPlan[], alcance: AlcancePaso): FilaPlan[] {
+  return filas.filter((f) => (alcance === "top" ? f.puesto !== null : f.stock > 0 || f.ventas > 0 || !!f.linea));
+}
+
+/**
+ * Lo que falta por llenar de la tanda, en el orden en que se ofrece: primero las que nadie ha saltado, y las saltadas al final (no se
+ * pierden, vuelven cuando no queda otra). `hechas` son las que se guardaron en esta tanda: la lectura del servidor tarda un instante en
+ * traerlas y no deben volver a ofrecerse.
+ */
+export function pendientesDelPaso(cola: readonly FilaPlan[], hechas: readonly string[] = [], saltadas: readonly string[] = []): FilaPlan[] {
+  const faltan = cola.filter((f) => !f.linea && !hechas.includes(f.c.id));
+  return [...faltan.filter((f) => !saltadas.includes(f.c.id)), ...faltan.filter((f) => saltadas.includes(f.c.id))];
+}
+
+/** Cuántas de la tanda ya tienen plan (las que ya venían con plan y las guardadas ahora). */
+export function avanceDelPaso(cola: readonly FilaPlan[], hechas: readonly string[] = []): { hechas: number; total: number } {
+  return { hechas: cola.filter((f) => !!f.linea || hechas.includes(f.c.id)).length, total: cola.length };
+}

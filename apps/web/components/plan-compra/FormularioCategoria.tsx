@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -63,6 +63,8 @@ export function FormularioCategoria({
   vendidoPorTalla,
   onGuardado,
   pie,
+  enPantalla = false,
+  irAlMontar = false,
 }: {
   planId: string;
   categoria: CategoriaPlan;
@@ -75,6 +77,11 @@ export function FormularioCategoria({
   onGuardado: (seguir: boolean) => void;
   /** Los botones de abajo, dentro del `<form>`. */
   pie: (p: PieDelFormulario) => ReactNode;
+  /** El formulario vive en la pantalla y no en una hoja (el paso a paso): la guía de foco lleva el campo a la vista de la ventana y el
+   *  pie no se pega al borde de abajo. */
+  enPantalla?: boolean;
+  /** Al aparecer, lleva el cursor al primer campo: se pasó a la siguiente categoría y el botón que se tocó ya no existe. */
+  irAlMontar?: boolean;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -84,7 +91,17 @@ export function FormularioCategoria({
   const [guardando, setGuardando] = useState(false);
 
   const campos = camposDelPlan(b, tallas, { listo: responsable.listo, motivo: responsable.motivo });
-  const guia = useGuiaCampos(campos);
+  const guia = useGuiaCampos(campos, { enModal: !enPantalla });
+  // `guia.ir` cambia en cada render: el efecto de abajo lee siempre el último, sin volver a correr.
+  const irAlCampo = useRef(guia.ir);
+  useEffect(() => {
+    irAlCampo.current = guia.ir;
+  });
+  useEffect(() => {
+    if (!irAlMontar) return;
+    const t = window.setTimeout(() => irAlCampo.current("flojo"), 80);
+    return () => window.clearTimeout(t);
+  }, [irAlMontar]);
   const lineaViva = lineaDeBorrador(b, tallas);
   const calculo = lineaViva ? calcular(lineaViva, stock) : null;
   const porTalla = calculo ? comprarPorTalla(calculo.comprar, tallas, lineaViva!.curva) : null;
@@ -212,7 +229,7 @@ export function FormularioCategoria({
         <ComboResponsable control={responsable} deshabilitado={guardando} />
       </CampoGuiado>
 
-      <div className="pie-hoja-fijo">
+      <div className={enPantalla ? undefined : "pie-hoja-fijo"}>
         <PieGuia guia={guia} listo="Todo listo para guardar." />
         {pie({ guardando, puedeGuardar: guia.puedeConfirmar, motivo: responsable.motivo ?? guia.frase ?? undefined, claseConfirmar: guia.claseConfirmar })}
       </div>

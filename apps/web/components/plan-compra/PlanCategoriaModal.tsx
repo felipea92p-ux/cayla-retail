@@ -20,6 +20,7 @@ export function PlanCategoriaModal({
   ventas,
   vendidoPorTalla,
   siguiente,
+  enSerie,
   onGuardado,
   onClose,
 }: {
@@ -32,6 +33,8 @@ export function PlanCategoriaModal({
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
   /** La que sigue si se guarda con «Guardar y seguir»; null si no queda ninguna (el botón no se dibuja). */
   siguiente: CategoriaPlan | null;
+  /** Ya se guardó alguna en esta tanda: esta llegó por «Guardar y seguir» y el cursor va a su primer campo. */
+  enSerie: boolean;
   /** Se guardó la categoría. `seguir`: con «Guardar y seguir» (y hay una siguiente); si no, la hoja se cierra. */
   onGuardado: (seguir: boolean) => void;
   onClose: () => void;
@@ -47,6 +50,7 @@ export function PlanCategoriaModal({
           stock={stock}
           ventas={ventas}
           vendidoPorTalla={vendidoPorTalla}
+          irAlMontar={enSerie}
           onGuardado={(seguir) => {
             onGuardado(seguir && siguiente !== null);
             if (!(seguir && siguiente !== null)) cerrar();

@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
-import { ListaCategorias } from "@/components/plan-compra/ListaCategorias";
+import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
+import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import { armarFilas, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
@@ -28,6 +29,7 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
   const [q, setQ] = useState("");
   const [orden, setOrden] = useState<OrdenPlan>("ventas");
   const [sinMovAbiertas, setSinMovAbiertas] = useState(false);
+  const [vista, setVista] = useState<VistaPlan>("tabla");
   const filas = useMemo(() => (plan ? armarFilas(plan) : []), [plan]);
 
   if (!plan) {
@@ -68,7 +70,7 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
         }
       />
 
-      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} />
+      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => setVista("guiado")} />
 
       <ListaCategorias
         filas={filas}
@@ -85,6 +87,9 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
         sinMovAbiertas={sinMovAbiertas}
         onSinMov={setSinMovAbiertas}
         onAbrir={(f) => setAbierta(f.c)}
+        vista={vista}
+        onVista={setVista}
+        pasoAPaso={<PasoAPaso planId={plan.plan.id} filas={filas} vendidoPorTalla={plan.vendidoPorTalla} totales={totales} familias={familias} onTabla={() => setVista("tabla")} />}
       />
 
       <p className="nota-cayla">
@@ -104,6 +109,7 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
           ventas={filas.find((f) => f.c.id === abierta.id)?.ventas ?? 0}
           vendidoPorTalla={plan.vendidoPorTalla.get(abierta.id)}
           siguiente={siguiente}
+          enSerie={hechas.length > 0}
           onGuardado={(seguir) => {
             if (seguir && siguiente) {
               setHechas((h) => [...h, abierta.id]);

@@ -11,12 +11,15 @@ export function CifrasPlan({
   filas,
   filtro,
   onFiltro,
+  onSeguirLlenando,
 }: {
   totales: TotalesPlan;
   estado: EstadoCampana;
   filas: readonly FilaPlan[];
   filtro: FiltroPlan;
   onFiltro: (f: FiltroPlan) => void;
+  /** «Por llenar primero» lleva al paso a paso. */
+  onSeguirLlenando: () => void;
 }) {
   const verReal = estado !== "antes";
   const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
@@ -46,7 +49,7 @@ export function CifrasPlan({
           Todavía no hay ventas de los últimos 90 días para decir cuáles venden más
         </TarjetaCifra>
       ) : (
-        <TarjetaCifra etiqueta="Por llenar primero" valor={enteroES.format(faltan)}>
+        <TarjetaCifra etiqueta="Por llenar primero" valor={enteroES.format(faltan)} onClick={faltan > 0 ? onSeguirLlenando : undefined}>
           {faltan === 0 ? `Las ${lasQueMasVenden.length} que más venden ya tienen plan` : `de las ${lasQueMasVenden.length} que más venden, sin plan todavía`}
         </TarjetaCifra>
       )}
