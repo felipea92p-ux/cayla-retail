@@ -13,6 +13,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
+import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -290,10 +291,16 @@ export function PuntoDeVentaCatalogo({
                             {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                             {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
                             {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
-                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">{money(v.precio)}</span>
+                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">
+                              {money(v.precio)}
+                              {v.precioDeSede && <span className="ml-1 text-[10.5px] text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                            </span>
                           </span>
                         </span>
-                        <span className="hidden shrink-0 text-right text-sm font-semibold tabular-nums text-tinta @[26rem]:block">{money(v.precio)}</span>
+                        <span className="hidden shrink-0 text-right @[26rem]:block">
+                          <span className="block text-sm font-semibold tabular-nums text-tinta">{money(v.precio)}</span>
+                          {v.precioDeSede && <span className="block whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                        </span>
                       </button>
                     </li>
                     );
@@ -451,6 +458,7 @@ export function PuntoDeVentaCatalogo({
                 pulsoTope={topeTarjeta?.clave === p.clave ? topeTarjeta.pulso : null}
                 onAgregar={onAgregar}
                 onAbrir={onAbrirPrenda}
+                etiquetaPrecioSede={etiquetaPrecioDeSede(ubicacionEtiqueta)}
               />
             ))}
           </div>

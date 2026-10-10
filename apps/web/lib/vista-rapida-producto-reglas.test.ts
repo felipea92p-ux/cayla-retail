@@ -240,3 +240,16 @@ describe("fichaCorta (material, patrón, marca y ventas)", () => {
     expect(vendidasEn30Dias(Number.NaN)).toBe("Ninguna en 30 días");
   });
 });
+
+describe("armarMatriz · el precio de la sede que se mira (ADR-0370)", () => {
+  it("una prenda con precio propio aquí muestra ese precio en cada talla, y sin otro precio distinto, ninguna celda lo marca", () => {
+    const vs = nuki();
+    const aqui = Object.fromEntries(vs.map((x) => [x.varianteId, 89.9]));
+    const m = armarMatriz(vs, stock({}), aqui);
+    expect(m.celdas.every((c) => c.precio === 89.9 && !c.precioDistinto)).toBe(true);
+  });
+  it("sin precios propios, la matriz es la de siempre", () => {
+    const m = armarMatriz(nuki(), stock({}), {});
+    expect(m.celdas.every((c) => c.precio === 79.9)).toBe(true);
+  });
+});

@@ -4270,6 +4270,41 @@
   "tabla": "retail.planes_compra_lineas"
  },
  {
+  "conname": "precios_sede_archivado_por_fkey",
+  "definicion": "FOREIGN KEY (archivado_por) REFERENCES personas(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_creado_por_fkey",
+  "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_motivo_no_vacio",
+  "definicion": "CHECK ((length(btrim(motivo)) >= 3))",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_precio_positivo",
+  "definicion": "CHECK ((precio > (0)::numeric))",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
   "conname": "prendas_danadas_arreglo_con_nota",
   "definicion": "CHECK (((estado <> 'se_arreglo'::text) OR (char_length(btrim(COALESCE(nota, ''::text))) >= 3)))",
   "tabla": "retail.prendas_danadas"
@@ -4528,6 +4563,26 @@
   "conname": "prendas_por_regularizar_venta_item_id_key",
   "definicion": "UNIQUE (venta_item_id)",
   "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_prenda_id_fkey",
+  "definicion": "FOREIGN KEY (prenda_id) REFERENCES retail.prendas_por_regularizar(id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_terminal_id_fkey",
+  "definicion": "FOREIGN KEY (terminal_id) REFERENCES retail.terminales(id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
  },
  {
   "conname": "presupuestos_cuenta_fkey",

@@ -4,19 +4,19 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 171 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 173 · **Sin pájaro:** 0
 
 ## Por pájaro
 
 | # | Pájaro | Módulo | Tablas |
 |---|---|---|---|
 | 01 | **Ganso** | Identidad y acceso | `acciones_sin_responsable` · `colaboradores` · `colaboradores_historial` · `colaboradores_suspendidos` · `guias_vistas` · `lider_modulos_ocultos` · `modulos` · `rol_modulos` · `roles` · `roles_historial` · `terminales` · `ubicaciones` |
-| 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `producto_color_temporadas` · `producto_fotos` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` |
+| 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `precios_sede` · `producto_color_temporadas` · `producto_fotos` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
 | 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_en_mano` · `bajadas_piso` · `capacidad_piso` · `categoria_grupo_mix` · `costo_historial` · `cuadre_piso_items` · `cuadres_piso` · `envio_extras` · `envio_traslados` · `envios` · `frescura_decisiones` · `frescura_vara_cayla` · `grupos_mix` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `parametros_analisis` · `prendas_danadas` · `prendas_para_enviar` · `prendas_para_enviar_salidas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
-| 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `cierres_cola_arranque` · `clientas` · `clientas_fusiones` · `club_aniversario_escala` · `club_avisos_enviados` · `club_canjes` · `club_etiquetas` · `club_intentos_registro` · `club_invitaciones` · `club_permisos` · `club_textos` · `codigos_descuento` · `cola_arranque_plazo` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `metas_persona_ajustes` · `pedidos_no_atendidos` · `prendas_por_regularizar` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `venta_pagos_correcciones` · `ventas` |
+| 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `cierres_cola_arranque` · `clientas` · `clientas_fusiones` · `club_aniversario_escala` · `club_avisos_enviados` · `club_canjes` · `club_etiquetas` · `club_intentos_registro` · `club_invitaciones` · `club_permisos` · `club_textos` · `codigos_descuento` · `cola_arranque_plazo` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `metas_persona_ajustes` · `pedidos_no_atendidos` · `prendas_por_regularizar` · `prendas_por_regularizar_correcciones` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `venta_pagos_correcciones` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobante_anticipos` · `comprobantes` · `configuracion_empresa` · `proformas` · `respaldo_b001_f001_renumeradas_20261007` · `respaldo_b002_renumeradas_20261002` · `series_comprobantes` · `ubicacion_datos_fiscales` |
 | 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_item_destinos` · `compra_item_reparto_resumen` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compra_parte_por_tienda` · `compra_reasignaciones` · `compradores_de_tienda` · `compras` · `compras_resumen` · `planes_compra` · `planes_compra_lineas` · `proveedor_creditos` · `proveedores` |
 | 10 | **Gallito** | Producción del Taller | `comprobantes_produccion` · `comprobantes_produccion_cierres` · `comprobantes_produccion_items` · `comprobantes_produccion_pagos` · `comprobantes_produccion_recepciones` · `cotizaciones_maquila` · `insumo_lotes` · `insumos` · `movimientos_insumo` · `produccion_etapas_historial` · `produccion_lineas` · `producciones` · `proveedores_produccion` · `v_insumo_saldos` |
@@ -148,10 +148,12 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `planes_compra` | 09 · Pelícano |
 | `planes_compra_lineas` | 09 · Pelícano |
 | `planilla_por_sede` | 11 · Garza |
+| `precios_sede` | 02 · Loro |
 | `prendas_danadas` | 05 · Halcón |
 | `prendas_para_enviar` | 05 · Halcón |
 | `prendas_para_enviar_salidas` | 05 · Halcón |
 | `prendas_por_regularizar` | 07 · Colibrí |
+| `prendas_por_regularizar_correcciones` | 07 · Colibrí |
 | `presupuestos` | 11 · Garza |
 | `produccion_etapas_historial` | 10 · Gallito |
 | `produccion_lineas` | 10 · Gallito |

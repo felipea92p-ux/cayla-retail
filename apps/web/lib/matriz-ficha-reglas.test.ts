@@ -404,6 +404,19 @@ describe("lineasParaImprimir", () => {
     expect(r.map((l) => `${l.color} ${l.talla} ×${l.unidades} ${l.precio}`)).toEqual(["CRU S ×1 69", "CRU M ×3 140", "NEG S ×2 null", "Lila Única ×1 null"]);
     expect(r[1].etiquetaIds).toEqual(["et-nuevo"]);
   });
+  it("con precio propio de esta tienda, la línea sale con ese precio (ADR-0370); las demás, con el de la ficha", () => {
+    const filas = [fila("CRU", "m", { precio: "140" }), fila("CRU", "s", { precio: "140" })];
+    const r = lineasParaImprimir(
+      [
+        { varianteId: "CRU-m", color: "CRU", talla: "M", unidades: 1 },
+        { varianteId: "CRU-s", color: "CRU", talla: "S", unidades: 1 },
+      ],
+      filas,
+      n,
+      { "CRU-m": 155 },
+    );
+    expect(r.map((l) => `${l.talla} ${l.precio}`)).toEqual(["S 140", "M 155"]);
+  });
 });
 
 describe("comoLlenarHueco — la celda «—» agrega la combinación (Felipe 2026-10-03)", () => {

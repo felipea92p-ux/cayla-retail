@@ -22,6 +22,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
 export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; precio: number; fotoUrl: string | null; colorHex: string | null };
@@ -38,9 +39,10 @@ const CONTROL = "rounded-md border border-tinta/15 bg-vidrio/60 px-1.5 py-1 text
 // arranca como copia de otra: «Duplicar» o, si venció, «Renovar» (precios de hoy, sin los descuentos de antes).
 export function NuevaProformaModal({
   onCerrar,
-  prendas,
+  prendas: prendasCatalogo,
   ubicaciones,
   ubicacionActualId,
+  preciosPorSede = {},
   esLider,
   inicial = null,
 }: {
@@ -48,6 +50,8 @@ export function NuevaProformaModal({
   prendas: PrendaParaProforma[];
   ubicaciones: { id: string; nombre: string }[];
   ubicacionActualId: string;
+  /** Precio propio de cada tienda (Felipe 2026-10-09): se cotiza al de la tienda elegida, como lo guarda `crear_proforma`. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   esLider: boolean;
   inicial?: Proforma | null;
 }) {
@@ -56,6 +60,8 @@ export function NuevaProformaModal({
   // Crear una proforma guarda en Facturación: pide Responsable (ADR-0161, A7).
   const responsable = useResponsable();
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
+  // Las prendas al precio de la tienda elegida: cambiar la tienda cambia el precio de las filas (cada fila toma la prenda de AHORA).
+  const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.varianteId), [prendasCatalogo, preciosPorSede, ubicacionId]);
   const lineasIniciales = lineasDeLaProforma(inicial?.items) ?? [];
   const [filasGuardadas, setFilas] = useState<Fila[]>(() =>
     lineasIniciales.flatMap((l) => {

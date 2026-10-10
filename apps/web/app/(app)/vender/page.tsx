@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
@@ -56,7 +57,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -88,7 +89,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     supabase.rpc("fn_opciones_apartados", { p_ubicacion_id: persona.ubicacionId }),
     // Lo que esta tienda pidió para un cliente y llegó o no va a llegar: la franja de los clientes por avisar. Secundario: vacío si falla.
     getPedidosConCliente(persona.ubicacionId),
+    // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
+    // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
+    supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
   ]);
+  const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
     (resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]),
@@ -113,7 +118,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
       marca: v.marca,
-      precio: v.precio,
+      precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
+      precioDeSede: preciosDeEstaSede.has(v.varianteId),
       campana: campanaPorVariante.get(v.varianteId) ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
 import { mismosPrecios, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
 import { registrarPreciosPropios } from "@/lib/precios-en-vivo-registro";
+import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import type { CampanaLinea } from "@/lib/vender-reglas";
 
 export type { PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
@@ -40,6 +41,15 @@ async function leerCampanas(): Promise<Map<string, CampanaLinea> | null> {
   return new Map((data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]));
 }
 
+// Los precios propios de esta tienda (Felipe 2026-10-09). Se leen en CADA vuelta: poner o quitar uno no toca `variantes`, así
+// que no sube la versión del catálogo; la lista es corta (solo las excepciones). Si la función aún no existe (PGRST202), no
+// hay precios propios; si la lectura falla, `null`: se conservan los últimos.
+async function leerPropios(ubicacionId: string): Promise<Map<string, number> | null> {
+  const { data, error } = await createClient().rpc("fn_precios_en_sede", { p_ubicacion_id: ubicacionId });
+  if (error) return error.code === "PGRST202" ? new Map() : null;
+  return leerPreciosEnSede(data);
+}
+
 async function leerVersion(): Promise<number | null> {
   const { data, error } = await createClient().rpc("fn_catalogo_version");
   return error || data === null ? null : Number(data);
@@ -51,7 +61,13 @@ async function leerVersion(): Promise<number | null> {
  * también al volver a la pestaña —el caso de Felipe: cambia el precio en otra pestaña y vuelve a Vender— y a la red;
  * nunca con la pestaña oculta ni sin conexión. `conocidos` y `alLeer` se leen por ref, como en `useStockEnVivo`.
  */
-export function usePreciosEnVivo(conocidos: string[], activo: boolean, alLeer: (releido: PreciosReleidos) => void, cadaMs = 10_000) {
+export function usePreciosEnVivo(
+  conocidos: string[],
+  activo: boolean,
+  alLeer: (releido: PreciosReleidos) => void,
+  ubicacionId: string,
+  cadaMs = 10_000,
+) {
   const conocidosRef = useRef(conocidos);
   const alLeerRef = useRef(alLeer);
   useEffect(() => {
@@ -60,6 +76,9 @@ export function usePreciosEnVivo(conocidos: string[], activo: boolean, alLeer: (
   });
   const ultimoRef = useRef<PreciosReleidos | null>(null);
   const versionRef = useRef<number | null>(null);
+  // El general y los de la tienda por separado: el general se relee solo si sube la versión; los propios, siempre.
+  const generalesRef = useRef<Map<string, number> | null>(null);
+  const propiosRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!activo) return;
@@ -69,21 +88,29 @@ export function usePreciosEnVivo(conocidos: string[], activo: boolean, alLeer: (
     let enCurso = false;
     ultimoRef.current = null;
     versionRef.current = null;
+    generalesRef.current = null;
     const sondear = async () => {
       if (enCurso || document.visibilityState !== "visible" || !navigator.onLine) return;
       enCurso = true;
       try {
         const version = await leerVersion();
-        const hayPrecios = ultimoRef.current !== null;
+        const hayPrecios = generalesRef.current !== null;
         const releerPrecios = !hayPrecios || version === null || version !== versionRef.current;
-        const [precios, campanas] = await Promise.all([
-          releerPrecios ? leerPrecios(new Set(conocidosRef.current)) : Promise.resolve(ultimoRef.current!.precios),
+        const [generales, campanas, propios] = await Promise.all([
+          releerPrecios ? leerPrecios(new Set(conocidosRef.current)) : Promise.resolve(generalesRef.current),
           leerCampanas(),
+          leerPropios(ubicacionId),
         ]);
-        if (cancelado || !precios) return;
+        if (cancelado || !generales) return;
         versionRef.current = version;
+        generalesRef.current = generales;
+        if (propios) propiosRef.current = propios;
         // Campañas que no cargaron: se conservan las últimas releídas (o las del servidor, si aún no hay ninguna).
-        const releido: PreciosReleidos = { precios, campanas: campanas ?? ultimoRef.current?.campanas ?? null };
+        const releido: PreciosReleidos = {
+          precios: conPreciosDeSede(generales, propiosRef.current),
+          campanas: campanas ?? ultimoRef.current?.campanas ?? null,
+          propios: new Set(propiosRef.current.keys()),
+        };
         if (ultimoRef.current && mismosPrecios(ultimoRef.current, releido)) return;
         ultimoRef.current = releido;
         alLeerRef.current(releido);
@@ -107,5 +134,5 @@ export function usePreciosEnVivo(conocidos: string[], activo: boolean, alLeer: (
       window.removeEventListener("focus", alVolver);
       window.removeEventListener("online", sondear);
     };
-  }, [activo, cadaMs]);
+  }, [activo, cadaMs, ubicacionId]);
 }

@@ -450,6 +450,16 @@
   "src_table": "planes_compra_lineas"
  },
  {
+  "conname": "precios_sede_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede"
+ },
+ {
+  "conname": "precios_sede_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
@@ -473,6 +483,11 @@
   "conname": "prendas_por_regularizar_vendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_por_regularizar_correcciones"
  },
  {
   "conname": "produccion_etapas_historial_hecho_por_fkey",

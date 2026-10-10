@@ -2,6 +2,7 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { getProformasMes, type FotoDePrenda } from "@/lib/proformas";
 import { lineasDeLaProforma } from "@/lib/proformas-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
 import { mesDeParametro, montoPorVencer, periodoDelMes, resumenProformas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
@@ -49,6 +50,8 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
   );
 
   const tiendas = tiendasOperativas(ubicaciones).map(({ id, nombre }) => ({ id, nombre }));
+  // Precio propio de cada tienda (Felipe 2026-10-09): la hoja cotiza al precio de la tienda elegida, como `crear_proforma`.
+  const preciosPorSede = await getPreciosPorSede(tiendas.map((t) => t.id));
 
   return (
     <div className="space-y-6">
@@ -65,6 +68,7 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
         ubicacionActualId={ubicacionActualDe(tiendas, persona.ubicacionId)}
         esLider={persona.rol === "lider"}
         fotos={fotos}
+        preciosPorSede={preciosPorSede}
       />
     </div>
   );

@@ -43,6 +43,8 @@ import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede"
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
+import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -75,6 +77,8 @@ type Fila = {
   lineas: LineasStock | null;
   rotacion: string | null;
   descontinuado: boolean;
+  /** Tiendas que la venden a otro precio (Felipe 2026-10-09); vacío = un solo precio. */
+  otrosPrecios: PrecioDeTienda[];
 };
 
 type Permisos = {
@@ -94,8 +98,11 @@ export function ProductosTabla({
   veDinero,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
   hrefLimpiar,
+  preciosTienda = {},
 }: {
   productos: ProductoListado[];
+  /** Por prenda, las tiendas que la venden a otro precio (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
+  preciosTienda?: Record<string, PrecioDeTienda[]>;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   ubicacionId: string;
@@ -127,8 +134,9 @@ export function ProductosTabla({
         lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
         rotacion: describirRotacion(p.demandaDiaria),
         descontinuado: p.estado !== "activo",
+        otrosPrecios: preciosTienda[p.productoId] ?? [],
       })),
-    [productos, existencias],
+    [productos, existencias, preciosTienda],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -483,7 +491,10 @@ function FilaAncha({
         <td className="hidden px-3 py-3 align-middle @6xl:table-cell">
           <Tallas tallas={tallas} />
         </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">{fila.precio}</td>
+        <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">
+          {fila.precio}
+          <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
+        </td>
         {conMargen && (
           <td className="hidden whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta/65 @4xl:table-cell">
             {fila.costo ?? <span className="text-[12px] text-tinta/45">sin costo</span>}
@@ -622,7 +633,10 @@ function TarjetaFila({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
-            <p className="shrink-0 text-[14px] tabular-nums text-tinta">{fila.precio}</p>
+            <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
+              {fila.precio}
+              <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
+            </p>
           </div>
           <p className="mt-0.5 truncate text-[11px] text-tinta/55">
             <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"} · {p.marca ?? "sin marca"}

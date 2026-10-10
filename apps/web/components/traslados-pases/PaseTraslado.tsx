@@ -9,6 +9,7 @@ import { RUTA_TRASLADOS, rutaDelPase, useVecinos } from "@/components/traslados-
 import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/traslados-pases-reglas";
 import type { LoSiguiente } from "@/lib/traslados-recepcion-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 // El escenario: el pase grande que GIRA (ADR-0355). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
 // caja (contar, revisar, ver lo enviado). Al terminar, el pase vuelve al frente, le cae un sello y, un momento después, se abre
@@ -37,6 +38,7 @@ export function PaseTraslado({
   accion,
   siguiente,
   volverA,
+  avisoPrecio = null,
 }: {
   vista: VistaPase;
   /** Lo que va al reverso: el botón del frente da vuelta el pase. */
@@ -47,6 +49,8 @@ export function PaseTraslado({
   /** «Lo siguiente» de lo recién recibido (bajar al piso, imprimir etiquetas): va en el frente. Llega como dato y no como elemento
    *  armado en el servidor (un elemento del servidor dentro de este cliente salía en React como hijo de una lista sin clave). */
   siguiente?: LoSiguiente | null;
+  /** Prendas que llegan con una etiqueta que en destino no vale (precio propio, Felipe 2026-10-09): una franja sobre el pase. */
+  avisoPrecio?: string | null;
   /** «← Movimientos» si se llegó desde ahí (ADR-0234). */
   volverA?: { href: string; a: string } | null;
 }) {
@@ -115,6 +119,11 @@ export function PaseTraslado({
         </div>
         {volverA && (
           <Volver href={volverA.href} a={volverA.a} />
+        )}
+        {avisoPrecio && (
+          <Aviso tono="atencion" titulo="Otro precio en la tienda que recibe" chico>
+            {avisoPrecio}
+          </Aviso>
         )}
         <div className="tp-escenario" ref={escenario}>
           <div key={vista.id} className="tp-giro tp-entra">

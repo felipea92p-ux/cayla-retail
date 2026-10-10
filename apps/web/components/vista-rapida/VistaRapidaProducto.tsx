@@ -54,8 +54,11 @@ export function VistaRapidaProducto({
   puedeEliminar,
   onEliminar,
   onCambiarEstado,
+  preciosAqui,
 }: {
   producto: ProductoListado;
+  /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
+  preciosAqui?: Record<string, number>;
   stock: StockDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
@@ -86,7 +89,7 @@ export function VistaRapidaProducto({
     void leer([producto.productoId]);
   }, [producto, leer]);
 
-  const matriz = useMemo(() => armarMatriz(producto.variantes, mapa), [producto.variantes, mapa]);
+  const matriz = useMemo(() => armarMatriz(producto.variantes, mapa, preciosAqui), [producto.variantes, mapa, preciosAqui]);
   const [fijado, setFijado] = useState<string>(() => (matriz.filas.find((f) => f.clave === colorInicial) ?? matriz.filas[0])?.clave ?? "");
   const [vista, setVista] = useState<string | null>(null);
   const [elegidasCrudas, setElegidas] = useState<ReadonlySet<string>>(new Set());

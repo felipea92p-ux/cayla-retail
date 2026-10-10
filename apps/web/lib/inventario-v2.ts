@@ -4,6 +4,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
@@ -36,6 +37,8 @@ export type FilaStock = {
   /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
    *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
   precio?: number | null;
+  /** El precio de arriba es el de ESTA sede (precio propio, Felipe 2026-10-09): la tarjeta dice «Precio de Lima». */
+  precioDeSede?: boolean;
   categoria: string | null;
   /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
    *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
@@ -143,6 +146,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       : exigir(conColumna, "el inventario de esta ubicación");
 
   const cantidades = sumarCantidades(filas);
+  // El precio de ESTA sede (precio propio, Felipe 2026-10-09). Si no se puede leer, el general: nunca se cae por esto.
+  const propios = (await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {};
   const porVariante = new Map<string, Omit<FilaStock, keyof Cantidades>>();
   for (const f of filas) {
     if (porVariante.has(f.variante_id)) continue;
@@ -159,7 +164,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
-      precio: f.variante?.precio ?? null,
+      precio: propios[f.variante_id] ?? f.variante?.precio ?? null,
+      ...(propios[f.variante_id] !== undefined ? { precioDeSede: true } : {}),
     });
   }
   const separaPisoAlmacen = [...cantidades.values()].some((c) => c.piso !== null);
