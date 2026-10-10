@@ -1,7 +1,7 @@
 # ADR-0362 · Órdenes de compra, comprobante y despacho a las sedes
 
-- **Fecha:** 2026-10-07 · **Estado:** BORRADOR — decisiones 1–35 tomadas (32–35 el 2026-10-10); falta precisar dos puntos de la 34
-  y aprobar el plan de la fase 1. Nada construido, ninguna migración.
+- **Fecha:** 2026-10-07 · **Estado:** ACEPTADO por fases — decisiones 1–38 (32–38 el 2026-10-10). **Fase 1 aprobada y en
+  construcción desde el 2026-10-10**; las fases 2 a 7 siguen en diseño. Nada en producción todavía.
 - **Rama:** diseño en `claude/purchase-order-flow-6207e9` (2026-10-07 → 10); desde el 2026-10-10 sigue en
   `claude/purchase-order-redesign-9b0c82`, al día con `main`. El rango reservado (`20261008100000`–`…109999`) quedó atrás de lo que
   entró a `main` (hasta `20261010150000`): las versiones se eligen el día que se escriba cada migración.
@@ -49,6 +49,9 @@
 | 33 | Rendición de un líder | La aprueba **un Admin distinto de él** (escalera de ADR-0178). «Nadie aprueba lo suyo» no tiene excepción. Hoy hay 14 líderes activos y 6 Admin (consultado el 2026-10-10) (Felipe 2026-10-10) |
 | 34 | El módulo es la llave | **Quien tiene el módulo ve todo lo que hay dentro, sin restricciones**: no hay permisos «solo tus órdenes». **Toda persona del sistema puede tener un fondo**; si se le da plata o no lo decide quien administra los fondos (Felipe 2026-10-10, al preguntarle por los precios del Taller). Lo que falta precisar, en «Por decidir» |
 | 35 | Quién entrega fondos | **Quien tenga el módulo para asignar dinero** (`fondos`, delegable, nace solo para el líder como todo módulo nuevo). Se mantienen los dos candados del diseño: nadie se entrega plata a sí mismo y quien entrega no aprueba esa rendición (Felipe 2026-10-10; los candados, por defecto) |
+| 36 | Cabecera | Órdenes de compra usa **`EncabezadoPagina`** (sede y fecha arriba, título de 46 px). El resto de Compras sigue sin cabecera decidida (Felipe 2026-10-10) |
+| 37 | Quién ve las órdenes | Quien tiene el módulo ve las órdenes de **todas las sedes** y las «por repartir»; la lista **arranca filtrada en la sede donde está** y puede pasar a «Todas». Es la 34 aplicada: no sigue la regla de Compras por tienda (ADR-0184) (Felipe 2026-10-10) |
+| 38 | Menú | «Órdenes de compra» entra como **7.ª entrada de Compras, temporal**, con la excepción de tope que ya prevé `menu.test.ts`; se quita cuando Recibir mercadería pase a Inventario (Felipe 2026-10-10) |
 
 ## Fuente: el brief de Felipe
 
@@ -60,8 +63,8 @@ lo pegó en la sesión; las decisiones 9, 14, 16, 17 y 18 se tomaron contrastán
 
 - ~~El mapa de módulos de punta a punta y el módulo de fondos (en diseño).~~ Respondido con las decisiones 31–35.
 - **Dos lugares donde la 34 choca con una restricción de hoy** (consultado en producción el 2026-10-10):
-  - Compras muestra a cada persona **solo su tienda** (ADR-0184; hoy 12 personas que no son líder ven «Facturas de proveedor»).
-    ¿«Órdenes de compra» muestra todas las sedes a quien tiene el módulo, o sigue esa regla? Hace falta para la fase 1.
+  - ~~Compras muestra a cada persona **solo su tienda** (ADR-0184; hoy 12 personas que no son líder ven «Facturas de proveedor»).
+    ¿«Órdenes de compra» muestra todas las sedes a quien tiene el módulo, o sigue esa regla?~~ Respondido con la 37: todas.
   - El dinero del Taller (`verDinero`) es **solo del líder** y no se delega. Si la orden de insumos vive dentro de Producción, la 34
     lo abre a quien tenga Producción (hoy 1 persona que no es líder); si es un módulo propio, solo abre sus órdenes. Hace falta para la fase 7.
 
@@ -70,8 +73,15 @@ lo pegó en la sesión; las decisiones 9, 14, 16, 17 y 18 se tomaron contrastán
 Correlativo `OC-000001`; solo soles; una orden de compra se edita mientras no tenga comprobante ni envío; anular pide motivo y solo
 sin comprobante ni envío vivo; un envío se anula mientras la sede no lo abrió; se conserva Por pagar para el crédito; un fondo por
 persona con una rendición por viaje; el módulo «Órdenes de compra» nace solo para el líder (regla de módulos) y ~~cada encargada de
-tienda ve las órdenes de su sede, la general todas~~ (en revisión por la decisión 34). Comparar contra el Plan de campaña queda para
-una fase posterior.
+tienda ve las órdenes de su sede, la general todas~~ (reemplazado por la 37). Comparar contra el Plan de campaña queda para una fase
+posterior.
+
+**Fase 1, aprobada por Felipe el 2026-10-10 junto con sus 8 actividades:** cada orden tiene un campo **«Llega a»** con las tiendas y
+«Por repartir (llega a Lima)», que arranca en la sede donde se trabaja: así no hace falta marcar a nadie como «encargada general» (la 19
+se cumple por el destino de la orden, no por quién la crea). La fecha de emisión es la de hoy y no se edita. La marca de cada línea
+ofrece primero las de ese proveedor pero acepta cualquiera, y la orden no toca el catálogo. El número se ve bloqueado al crear; si dos
+personas guardan a la vez, la segunda toma el siguiente y se le avisa. Un doble clic en «Guardar» no crea dos órdenes. El PDF se guarda
+desde el diálogo de impresión, como la guía de traslado, y el archivo se llama como la orden (`OC-000001.pdf`).
 
 ## Para el contador (no bloquea programar, dice el brief)
 
