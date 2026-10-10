@@ -1,7 +1,7 @@
 # ADR-0372 — Plan de campaña: barra de rango, paso a paso, aviso de stock y exportar (entrega 1, solo web)
 
 - Fecha: 2026-10-10
-- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1, B2 y B3 **en producción desde el 2026-10-10** (OK de Felipe, una por una, cada una con ensayo en transacción revertida y huella igual a local).
+- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1, B2 y B3 **en producción desde el 2026-10-10**; B4 (versión de cada categoría) también, el mismo día (OK de Felipe, una por una, cada una con ensayo en transacción revertida y huella igual a local).
 - Continúa a [ADR-0349](0349-plan-de-campana.md). Maqueta aprobada: `docs/maquetas/plan-de-campana-2026-10/` (con su `PROMPT.md`).
 - Sin migración: todo sale de lo que `fn_plan_compra` y `fn_motor_demanda_preparacion` ya devuelven, más la tabla `familias`.
 
@@ -111,5 +111,7 @@ Corridas sobre lo ya publicado (PR #931): `/chaos` con semilla 931 (informe loca
 - **Una campaña de la URL que no existe** muestra la más reciente y lo dice (`planPedidoNoExiste`); un id que no es uuid no se le manda a la base.
 - **Lo que no cambió de regla:** el cálculo, las validaciones de la base y quién puede qué. Los topes nuevos de la hoja (100 000 prendas, S/ 100 000 por
   prenda) son contra un error de tipeo, no reglas de negocio.
-- **Pendiente de Felipe:** pegar B4 en producción (OK puntual); y el número que más mueve la compra, «Lo que sobra», sigue escribiéndose por categoría:
+- **B4 en producción desde el 2026-10-10** (OK de Felipe; ensayo revertido; versión registrada `20261010204108`, huellas `f283d296` de `fn_plan_compra` y
+  `006bd08e` de `guardar_plan_compra_linea`, iguales a local). El candado actúa cuando se publica la web que manda la versión.
+- **Pendiente de Felipe:** el número que más mueve la compra, «Lo que sobra», sigue escribiéndose por categoría:
   con el margen de CAYLA, desde un 39 % el sistema compra para el diciembre bueno. Propuesta: un solo % de CAYLA, fijado por un líder.
