@@ -8,5 +8,6 @@
 - [ ] **Felipe:** darle «Liquidación» a los roles de las terminales de almacén y caja (Roles y accesos).
 - [ ] **Sin probar:** imprimir una etiqueta real en la Brother y leerla con la pistola Zebra; cobrar una pieza desde el navegador (lo cubre la prueba contra Postgres, no se cobró en local para no tocar la caja compartida).
 - [x] `/chaos` (semilla 371): 2 hallazgos cerrados (doble pieza con token + candado; doble aviso con candado), precio tachado debajo; INV-13 nueva.
-- [ ] **Producción:** pegar `20261010200000` (token de `crear_pieza_liquidacion`) ANTES de publicar la web, que ya manda `p_token`.
-- [ ] `/formidable` (en curso).
+- [x] **Producción (2026-10-10):** `20261010200000` (token, versión `20261010201508`) y `20261010210000` (descripción, `20261010201543`); md5 de las 13 funciones igual al local.
+- [x] `/formidable`: 6,6 → 7,7 en leyes (dos pruebas ciegas sobre capturas); los 3 cambios y la descripción opcional hechos.
+- [ ] Prueba con colaboradoras reales (ley 1 no pasa de 7 sin ella).

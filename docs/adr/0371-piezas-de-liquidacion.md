@@ -66,3 +66,14 @@ mostraban éxito y error a la vez. Arreglo, como en Ajustar inventario: las tres
 (migración `20261010200000`): el mismo token devuelve la pieza ya creada, también con dos llamadas simultáneas (índice único
 parcial + `on conflict do nothing`). Así un reintento tras una respuesta perdida no deja una pieza fantasma. Prueba:
 `pnpm pruebas:piezas-liquidacion` («el mismo token dos veces…») y la carrera real con dos sesiones (una pieza, una etiqueta).
+
+## Actualización 2026-10-10 (b) — «Para reconocerla» y lo que pidió /formidable
+
+La prueba ciega mostró que con dos «Camisas y Blusas» a la venta no había cómo distinguirlas. Felipe aprobó una **descripción corta y
+opcional** al etiquetar (`piezas_liquidacion.descripcion`, hasta 60 letras; migración `20261010210000`): sale en la etiqueta, en la
+lista, en el buscador y en la boleta («Liquidación · Blusa beige, manga globo»). Su ejemplo sigue a la categoría elegida
+(`lib/sugerencias-liquidacion.ts`, ADR-0290). En pantalla se dice **«prenda»**, nunca «pieza» (la tabla y el código siguen con
+`piezas_liquidacion`); el estado es «Precio bajado» y filtra la lista como las otras cifras.
+
+**En producción el 2026-10-10** (OK de Felipe): `20261010200000` (token) y `20261010210000` (descripción), por el MCP, con las versiones
+registradas `20261010201508` y `20261010201543`. Las 13 funciones `%liquidacion%` tienen el mismo md5 en producción y en local.

@@ -64,3 +64,12 @@ resolvería, pero cambia tu decisión de «solo categoría y precio»: es tuya.
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-10 | `ec4f1f41f` | 6,6 · ley 1: 5 | 8 | — (propuestos) |
+| 2026-10-10 (b) | `ffd644a3e` | 7,7 · ley 1: 7 | 8 | los 3 + «Para reconocerla» + la ✕ de «Lista para imprimir» |
+
+## Recalificación 2026-10-10 (b) — después de los 3 cambios
+Hechos (OK de Felipe): «prenda» en toda la pantalla, «Precio bajado», «Crear etiqueta» + «Después la imprimes y la pegas en la prenda»; un
+solo rótulo de precio y nota de una línea; las tres cifras filtran y en celular van en una fila (la lista sube de ~880 a **576 px** a 375 ×
+812, **Medido**); «Para reconocerla» opcional, con ejemplo que sigue a la categoría (**Medido**: con «Camisas y Blusas», «Blusa beige, manga
+globo»). La 2.ª prueba ciega (**Observado**) ya no dudó de «pieza» ni de «Etiquetar / Imprimir», y usó «Para reconocerla» sin que se lo
+dijeran; su error «duplicaría la blusa de 30» venía de los datos de prueba (la captura ya traía esa blusa creada). Pidió una ✕ en «Lista
+para imprimir»: hecha. Notas: 1 → 7 · 2 → 8 · 4 → 7 · 8 → 8 · 9 → 8; el resto igual. **Leyes 7,7 · oficio 8.** Colaboradora real: sin probar.

@@ -14,7 +14,7 @@ Formidable porque sus modales lo sean, ni al revés.
 | Inventario | Traslados, billetera de pases (`/inventario/traslados`) | ciega ✓ · real sin probar; cambios 1–3 hechos (2026-10-06) | 7,5 · ley 1: 7 | 7 | [inventario-traslados](inventario-traslados.md) | 2026-10-06 |
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | ciega ✓✓ (dos pruebas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-07) | 7,0 (provisional) · ley 1: 8 | 6 (provisional) | [inventario-ventas-sin-registrar](inventario-ventas-sin-registrar.md) | 2026-10-07 |
 | Inventario | Rótulos de anaquel (`/rotulos`) | ciega ✓ (sobre capturas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-09) | 8,0 · ley 1: 7 | 8 | [rotulos](rotulos.md) | 2026-10-09 |
-| Catálogo | Liquidación (`/productos/liquidacion`, ADR-0371) | ciega ✓ (sobre capturas) · real sin probar; 3 cambios propuestos, esperan el OK | 6,6 · ley 1: 5 | 8 | [productos-liquidacion](productos-liquidacion.md) | 2026-10-10 |
+| Catálogo | Liquidación (`/productos/liquidacion`, ADR-0371) | ciega ✓✓ (dos, sobre capturas) · real sin probar; los 3 cambios y «Para reconocerla» hechos y recalificada (2026-10-10) | 7,7 · ley 1: 7 | 8 | [productos-liquidacion](productos-liquidacion.md) | 2026-10-10 |
 | Catálogo | Editar producto ▸ «Precio por tienda» y su hoja (`/productos/[id]/editar`) | ciega ✓ · real sin probar; un error corregido y los 3 cambios hechos (2026-10-10) | 8,3 · ley 1: 7 | 10 | [catalogo-precio-por-tienda](catalogo-precio-por-tienda.md) | 2026-10-10 |
 
 ## Orden de despliegue (módulo por módulo, decidido 2026-10-05)
