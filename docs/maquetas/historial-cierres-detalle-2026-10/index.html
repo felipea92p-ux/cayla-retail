@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Historial de cierres — cerrar, volver y detalle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* Maqueta 2026-10-10 — tokens copiados de apps/web/app/globals.css (ADR-0169). Solo para mirar: no es código del ERP.
+   Datos del historial y del cierre del vie 9 de octubre: REALES (capturas de Felipe). Montos por medio de pago: EJEMPLO INVENTADO
+   (hoy el detalle solo sabe los nombres de los medios, no cuánto fue cada uno). */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--verde:#48603f;--verde-profundo:#44583a;--ambar:#74501a;--pizarra:#4c5d6e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#d9d2c5;font-family:"DM Sans",system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;font-size:14px}
+.serif{font-family:"EB Garamond",Georgia,serif}
+.num{font-variant-numeric:tabular-nums}
+.lam{width:max-content;min-width:100%;padding:46px 40px 40px;position:relative}
+.rotulo{position:absolute;top:14px;left:40px;font:600 11px/1 "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:#4a443d}
+.fila-marcos{display:flex;gap:36px;justify-content:center;align-items:flex-start}
+.marco{position:relative;border-radius:14px;padding:28px 0 28px;background:#8f897d;display:flex;justify-content:center;overflow:hidden}
+.marco .pie{position:absolute;left:0;right:0;bottom:6px;text-align:center;font:600 10px "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:rgba(245,240,232,.75)}
+.etq{max-width:620px;font:600 11px/1 "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:#4a443d;margin:0 0 10px 2px}
+
+/* La hoja del Modal */
+.hoja{width:576px;background:var(--crema);border:1px solid var(--sand);border-radius:18px;box-shadow:0 20px 50px rgba(26,26,24,.35);padding:28px 28px 22px;position:relative}
+.hoja h2{font-family:"EB Garamond";font-weight:500;font-size:19px;margin:0;line-height:1.25;padding-right:34px}
+.hoja .sub{font-size:12px;color:rgba(26,26,24,.7);margin:4px 0 16px}
+.x{position:absolute;right:16px;top:16px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:rgba(26,26,24,.55)}
+.x svg{width:16px;height:16px}
+.nuevo{outline:2px solid var(--rojo);outline-offset:3px}
+.x.nuevo{outline:2px solid var(--rojo);outline-offset:3px;color:var(--tinta)}
+.label{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px}
+.cifra{padding:12px 14px}
+.cifra .e{font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.cifra .v{font-family:"EB Garamond";font-size:22px;line-height:1.1;margin-top:6px}
+.cifra .s{font-size:12px;color:rgba(26,26,24,.6);margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-verde{background:color-mix(in srgb,var(--verde) 12%,transparent);color:var(--verde-profundo)}
+.c-rojo{background:color-mix(in srgb,var(--rojo) 12%,transparent);color:var(--rojo-profundo)}
+.c-ambar{background:color-mix(in srgb,#a8741f 16%,transparent);color:var(--ambar)}
+.c-piz{background:color-mix(in srgb,var(--pizarra) 10%,transparent);color:var(--pizarra)}
+.pild{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap}
+.pild.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+
+/* Lista */
+.mes{font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:rgba(26,26,24,.6);padding:12px 0 4px}
+.li{position:relative;display:grid;grid-template-columns:2.75rem 1fr auto 1rem;gap:12px;align-items:center;padding:10px 4px 10px 12px;border-top:1px solid var(--sand)}
+.li:last-child{border-bottom:1px solid var(--sand)}
+.li .b{position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0}
+.li .d{text-align:center;line-height:1}.li .d b{display:block;font:500 22px "EB Garamond"}.li .d i{font-style:normal;font-size:10px;font-weight:600;letter-spacing:.13em;color:rgba(26,26,24,.6)}
+.li .n{font-weight:600;font-size:14px}.li .h{font-size:12px;color:rgba(26,26,24,.6)}
+.li .ch{color:rgba(26,26,24,.4);width:16px;height:16px}
+.li.sel{background:color-mix(in srgb,var(--sand) 55%,transparent)}
+.li.sel .ch{color:var(--rojo)}
+
+/* Volver (pieza única ADR-0358: la flecha redonda) */
+.volver{width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--tinta);flex:none}
+.volver svg{width:16px;height:16px}
+.migas{display:flex;align-items:center;gap:10px}
+.migas .t{font-size:12px;color:var(--taupe);font-weight:600}
+
+/* Detalle */
+.vered{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--tinta);color:var(--crema);border-radius:16px;padding:16px 20px}
+.vered .g{font:500 26px/1.1 "EB Garamond"}
+.vered .c{text-align:right}.vered .c b{display:block;font:500 28px/1 "EB Garamond"}.vered .c i{font-style:normal;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:rgba(245,240,232,.7);font-weight:600}
+.sec{margin-top:22px}
+.sec>.cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.sec>.cab .l{font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.sec>.cab .r{font-size:12px;color:rgba(26,26,24,.6)}
+.linea{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 0;border-top:1px solid var(--sand);font-size:14px}
+.linea:first-of-type{border-top:0}
+.linea .k{color:rgba(26,26,24,.75)} .linea .k small{display:block;font-size:12px;color:rgba(26,26,24,.55)}
+.linea.tot{font-weight:600;color:var(--tinta)}
+.linea.dest{border-top:1.5px solid var(--tinta);margin-top:4px;padding-top:10px}
+.mas{color:var(--verde-profundo)}.menos{color:var(--rojo-profundo)}
+.bar{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--sand);gap:2px;margin:6px 0 10px}
+.bar i{display:block;height:100%}
+.pto{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;flex:none}
+.aviso{display:flex;gap:10px;align-items:flex-start;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--ambar);border-radius:10px;padding:9px 12px;font-size:13px;color:rgba(26,26,24,.85);margin-top:10px}
+.aviso svg{width:15px;height:15px;color:var(--ambar);flex:none;margin-top:2px}
+.turno{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+.turno .q{font-size:12px;color:rgba(26,26,24,.6)}.turno .p{font-weight:600;font-size:14px}
+.turno .du{background:var(--hueso);border-radius:999px;padding:2px 10px;font-size:12px;color:rgba(26,26,24,.7);white-space:nowrap}
+.mov{display:grid;grid-template-columns:4.1rem 1.5rem 1fr auto;gap:8px;align-items:center;padding:8px 2px;border-top:1px solid var(--sand);font-size:13.5px}
+.mov:first-child{border-top:0}
+.mov .t{font-size:12px;color:rgba(26,26,24,.6)}
+.mov .ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center}
+.mov .ic svg{width:12px;height:12px}
+.ic.m{background:color-mix(in srgb,var(--verde) 15%,transparent);color:var(--verde-profundo)}
+.ic.n{background:color-mix(in srgb,var(--rojo) 10%,transparent);color:var(--rojo-profundo)}
+.mov .tx small{color:rgba(26,26,24,.55);font-size:13.5px}
+.scrollbox{max-height:none}
+.nota-cierre{font-size:12px;font-style:italic;color:rgba(26,26,24,.65);margin-top:14px}
+
+/* Pestañas (vidrio con píldora oscura) */
+.tabs{display:inline-flex;background:color-mix(in srgb,#fff 55%,transparent);border:1px solid var(--sand);border-radius:999px;padding:3px;gap:2px}
+.tabs span{padding:6px 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:rgba(26,26,24,.65)}
+.tabs span.on{background:var(--tinta);color:var(--crema)}
+
+/* Pila: hoja de atrás asomando */
+.pila{position:relative}
+.atras{position:absolute;left:50%;transform:translateX(-50%);width:536px;top:-18px;height:60px;background:var(--crema);border:1px solid var(--sand);border-radius:16px 16px 0 0;opacity:.78;padding:9px 20px;font-size:12px;color:rgba(26,26,24,.7);display:flex;align-items:center;gap:8px;font-family:"EB Garamond";font-size:15px}
+.atras svg{width:14px;height:14px}
+
+/* Globos de aviso de cambios */
+.globo{position:absolute;background:var(--rojo);color:#fff;font:600 11px/1.3 "DM Sans";padding:6px 10px;border-radius:8px;max-width:210px;z-index:5}
+.globo b{display:block;letter-spacing:.1em;text-transform:uppercase;font-size:10px;margin-bottom:2px;opacity:.85}
+.leyenda{font-size:12px;color:#4a443d;max-width:576px;margin:10px 2px 0;line-height:1.45}
+.ejemplo{display:inline-block;background:#f6ead3;border:1px solid #e9cf9f;color:#6e4a12;border-radius:6px;padding:1px 7px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-left:6px;vertical-align:middle}
+
+/* Lado a lado */
+.ancha{width:1060px;padding:0;display:grid;grid-template-columns:400px 1fr;overflow:hidden;min-height:760px}
+.ancha .izq{padding:28px 20px 22px 28px;border-right:1px solid var(--sand);background:color-mix(in srgb,var(--sand) 18%,var(--crema))}
+.ancha .der{padding:28px 28px 22px}
+.ancha .izq .li{grid-template-columns:2.4rem 1fr auto;padding-right:6px}
+.ancha .izq .li .ch{display:none}
+.ancha .izq .li .chip{font-size:11.5px;padding:2px 8px}
+
+/* A ampliada */
+.hoja.w{width:1000px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:32px;align-items:start;margin-top:4px}
+.cols{margin-top:0}
+.movs{position:sticky;top:0}
+.movs .caja{border:1px solid var(--sand);border-radius:14px;background:var(--papel);padding:6px 14px 4px}
+.mov.w{grid-template-columns:4.1rem 1.5rem 1fr auto;padding:9px 2px}
+.mov.w .tx small.q{display:block;font-size:11.5px;color:rgba(26,26,24,.5)}
+.mov.w:first-child{border-top:0}
+.fade{height:26px;margin:-26px 0 0;position:relative;background:linear-gradient(transparent,var(--papel));border-radius:0 0 14px 14px;pointer-events:none}
+.thumb{position:absolute;right:5px;top:70px;width:5px;height:210px;border-radius:3px;background:rgba(26,26,24,.2)}
+</style>
+</head>
+<body>
+<script>
+const I = {
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  atras:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>',
+  der:'<svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  aviso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7M12 19V5"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>',
+};
+const LISTA = [
+  ['9','VIE','Janis Revilla','08:02 a. m. – 07:50 p. m. · contó S/ 969.60','c-ambar','Sobró S/ 2.00','var(--ambar)'],
+  ['8','JUE','Felipe Alvarez','09:40 a. m. – 08:49 p. m. · contó S/ 977.20','c-rojo','Faltó S/ 114.60','var(--rojo)'],
+  ['7','MIÉ','Janis Revilla','08:19 a. m. – 08:13 p. m. · contó S/ 1,132.50','c-rojo','Faltó S/ 5.60','var(--rojo)'],
+  ['6','MAR','Janis Revilla','08:37 a. m. – 08:07 p. m. · contó S/ 1,446.00','c-verde','Cuadró','var(--verde)'],
+  ['5','LUN','Janis Revilla','07:45 a. m. – 07:43 p. m. · contó S/ 1,047.00','c-verde','Cuadró','var(--verde)'],
+  ['4','DOM','Janis Revilla','11:32 a. m. – 04:55 p. m. · contó S/ 1,392.60','c-ambar','Sobró S/ 31.40','var(--ambar)'],
+  ['4','DOM','Melany Enrriquez','10:48 a. m. – 11:32 a. m. · contó S/ 1,550.00','c-rojo','Faltó S/ 511.40','var(--rojo)'],
+];
+function lista(sel, max){
+  return `<div class="mes">Octubre 2026</div>` + LISTA.slice(0,max||LISTA.length).map((f,i)=>`
+   <div class="li ${sel===i?'sel':''}"><span class="b" style="background:${f[6]}"></span>
+    <span class="d"><b>${f[0]}</b><i>${f[1]}</i></span>
+    <span><span class="n" style="display:block">${f[2]}</span><span class="h" style="display:block">${f[3]}</span></span>
+    <span class="chip ${f[4]}">${f[5]}</span>${I.der}</div>`).join('');
+}
+function cifras3(){
+  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px">
+   <div class="card cifra"><div class="e">Cierres</div><div class="v">9</div></div>
+   <div class="card cifra"><div class="e">Cuadraron</div><div class="v" style="color:var(--verde-profundo)">4</div><div class="s">de 9</div></div>
+   <div class="card cifra"><div class="e">Diferencia neta</div><div class="v" style="color:var(--rojo-profundo)">-S/ 598.20</div><div class="s">faltó en total</div></div></div>
+   <div style="display:flex;gap:8px;margin-top:14px"><span class="pild on">Todos</span><span class="pild">Con diferencia · 5</span></div>`;
+}
+const MEDIOS = [
+  ['Efectivo',712.10,'var(--verde)','30 %','11 ventas'],
+  ['Tarjeta',845.50,'var(--tinta)','35 %','9 ventas'],
+  ['Yape',486.00,'var(--pizarra)','20 %','7 ventas'],
+  ['Transferencia',230.00,'var(--ambar)','10 %','2 ventas'],
+  ['Plin',120.00,'var(--taupe)','5 %','2 ventas'],
+];
+const m2 = n => 'S/ ' + n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+function barraMedios(){
+  return `<div class="bar">${[...MEDIOS].map(m=>`<i style="width:${parseFloat(m[3])}%;background:${m[2]}"></i>`).join('')}</div>`;
+}
+function filasMedios(conN){
+  return MEDIOS.map(m=>`<div class="linea"><span class="k"><span class="pto" style="background:${m[2]}"></span>${m[0]}${conN?` <span style="color:rgba(26,26,24,.5)">· ${m[4]}</span>`:''}</span><span class="num">${m2(m[1])}${conN?` <span style="color:rgba(26,26,24,.5);margin-left:8px">${m[3]}</span>`:''}</span></div>`).join('');
+}
+const MOVS = [
+  ['08:59 a. m.','m','up','Venta · 7 prendas <small>· efectivo</small>','+S/ 251.30','mas'],
+  ['09:03 a. m.','m','up','Venta · 1 prenda <small>· efectivo</small>','+S/ 69.00','mas'],
+  ['09:41 a. m.','n','down','Retiro de efectivo <small>· Baño Angie</small>','-S/ 0.80','menos'],
+  ['09:59 a. m.','m','up','Venta · 1 prenda <small>· yape</small>','+S/ 45.90','mas'],
+  ['10:12 a. m.','m','up','Venta · 3 prendas <small>· tarjeta</small>','+S/ 189.00','mas'],
+];
+function movs(n){
+  return MOVS.slice(0,n).map(m=>`<div class="mov"><span class="t">${m[0]}</span><span class="ic ${m[1]}">${I[m[2]]}</span><span class="tx">${m[3]}</span><span class="num ${m[5]}">${m[4]}</span></div>`).join('');
+}
+/* Bloques del detalle (los mismos datos de hoy, reordenados) */
+const VEREDICTO = `<div class="vered"><div><div class="g">Sobró S/ 2.00</div></div><div class="c"><b class="num">S/ 969.60</b><i>Contado</i></div></div>`;
+const TURNO = `<div class="turno"><div><div class="q">Abrió · 08:02 a. m.</div><div class="p">Melany Enrriquez</div></div><span class="du">11 h 47 min</span><div style="text-align:right"><div class="q">Cerró · 07:50 p. m.</div><div class="p">Janis Revilla</div></div></div>
+ <div class="aviso">${I.aviso}<span>Abrió con S/ 277.20 y el cierre anterior había dejado S/ 977.20: «Especificaron mal el monto».</span></div>`;
+const CUADRE = `<div class="linea"><span class="k">Apertura</span><span class="num">S/ 277.20</span></div>
+ <div class="linea"><span class="k">Entró al cajón <small>ventas en efectivo menos retiros y devoluciones</small></span><span class="num mas">+ S/ 690.40</span></div>
+ <div class="linea tot"><span class="k" style="color:var(--tinta)">El sistema esperaba</span><span class="num">S/ 967.60</span></div>
+ <div class="linea"><span class="k">Se contó en el cajón</span><span class="num">S/ 969.60</span></div>
+ <div class="linea tot dest"><span class="k" style="color:var(--tinta)">Diferencia</span><span class="num" style="color:var(--ambar)">Sobró S/ 2.00</span></div>`;
+const DESTINO = `<div class="bar" style="margin-top:2px"><i style="width:72%;background:var(--rojo)"></i><i style="width:28%;background:var(--verde)"></i></div>
+ <div class="linea"><span class="k"><span class="pto" style="background:var(--rojo)"></span>Caja fuerte de la sede</span><span class="num">S/ 700.00</span></div>
+ <div class="linea tot"><span class="k" style="color:var(--tinta)"><span class="pto" style="background:var(--verde)"></span>Quedó en el cajón</span><span class="num">S/ 269.60</span></div>
+ <div class="aviso">${I.aviso}<span>Dejó menos del fondo: el día pedía S/ 300.00.</span></div>`;
+const NOTA_MEDIOS = `<div style="font-size:12.5px;color:rgba(26,26,24,.7);background:var(--hueso);border-radius:10px;padding:9px 12px;margin-top:8px">Solo el <b>efectivo</b> pasa por el cajón (S/ 712.10, de los que salieron S/ 21.70 en retiros y devoluciones). Los otros S/ 1,681.50 van al banco o al POS.</div>`;
+const SECC = (l,r,c)=>`<section class="sec"><div class="cab"><span class="l">${l}</span>${r?`<span class="r">${r}</span>`:''}</div>${c}</section>`;
+</script>
+
+<!-- ============ LÁMINA 0: la lista, con su ✕ ============ -->
+<section class="lam" id="l0" >
+  <div class="rotulo">Lámina 0 · Historial de cierres — se le suma la ✕ (igual en las tres opciones)</div>
+  <div class="fila-marcos" id="l0f"></div>
+</section>
+
+<!-- ============ LÁMINA A ============ -->
+<section class="lam" id="la" >
+  <div class="rotulo">Opción A · Una sola hoja que avanza — el detalle reemplaza a la lista y tiene su «Volver»</div>
+  <div class="fila-marcos" id="laf"></div>
+</section>
+
+
+<!-- ============ LÁMINA A2 ============ -->
+<section class="lam" id="ld">
+  <div class="rotulo">Opción A ampliada · el detalle hace crecer la hoja y los movimientos quedan a la derecha</div>
+  <div class="fila-marcos" id="ldf"></div>
+</section>
+
+<!-- ============ LÁMINA B ============ -->
+<section class="lam" id="lb" >
+  <div class="rotulo">Opción B · Hoja encima con el historial asomando por detrás, y el detalle en 3 pestañas</div>
+  <div class="fila-marcos" id="lbf"></div>
+</section>
+
+<!-- ============ LÁMINA C ============ -->
+<section class="lam" id="lc" >
+  <div class="rotulo">Opción C · Lado a lado — la lista queda a la izquierda y el detalle a la derecha: no hay nada a lo que «volver»</div>
+  <div class="fila-marcos" id="lcf"></div>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- L0 ---------- */
+$('l0f').innerHTML = `
+<div><div class="etq">Hoy</div><div class="marco" style="width:620px;height:560px;align-items:flex-start;padding-top:24px"><div class="hoja" style="width:576px;height:500px;overflow:hidden">
+   <h2>Historial de cierres</h2><div class="sub">Tienda TRU · últimos 9</div>${cifras3()}${lista(-1,3)}</div></div></div>
+<div><div class="etq">Propuesta</div><div class="marco" style="width:620px;height:560px;align-items:flex-start;padding-top:24px"><div class="hoja" style="width:576px;height:500px;overflow:hidden">
+   <span class="x nuevo">${I.x}</span>
+   <h2>Historial de cierres</h2><div class="sub">Tienda TRU · últimos 9</div>${cifras3()}${lista(-1,3)}</div></div></div>`;
+
+/* ---------- A ---------- */
+const cabA = `<div class="migas" style="margin-bottom:14px"><span class="volver nuevo">${I.atras}</span><span class="t">Historial de cierres</span></div>
+ <span class="x">${I.x}</span>
+ <h2>Cierre · Tienda TRU</h2><div class="sub" style="margin-bottom:16px">viernes, 9 de octubre</div>`;
+$('laf').innerHTML = `
+<div><div class="etq">1 · Tocas un cierre…</div><div class="marco" style="width:620px;height:660px;align-items:flex-start;padding-top:24px"><div class="hoja" style="height:600px;overflow:hidden">
+   <span class="x">${I.x}</span><h2>Historial de cierres</h2><div class="sub">Tienda TRU · últimos 9</div>${cifras3()}${lista(0,4)}</div>
+   <div class="pie">la hoja se desliza a la izquierda ⟶</div></div></div>
+<div><div class="etq">2 · …y el detalle ocupa la misma hoja (contenido completo; en pantalla la hoja se desplaza)</div>
+ <div class="marco" style="width:620px;padding-top:24px;padding-bottom:36px"><div class="hoja">
+  ${cabA}
+  ${VEREDICTO}
+  ${SECC('Cómo abrió y cerró la caja','',TURNO)}
+  ${SECC('Qué se cobró','Total vendido S/ 2,393.60',barraMedios()+filasMedios(true)+NOTA_MEDIOS)}
+  ${SECC('Cómo cuadró el efectivo','',CUADRE)}
+  ${SECC('A dónde fue el efectivo','de S/ 969.60',DESTINO)}
+  ${SECC('Lo que pasó en el turno','36 movimientos',`<div style="display:flex;gap:6px;margin-bottom:6px"><span class="pild on">Todo</span><span class="pild">Ventas</span><span class="pild">Mueve el cajón</span></div>`+movs(5))}
+ </div></div>
+ <div class="leyenda"><b>Medios de pago:</b> montos de <b>ejemplo inventado</b><span class="ejemplo">ejemplo</span>. Lo demás es el cierre real del vie 9: misma información de hoy, reordenada en 5 bloques sin recuadros dentro de recuadros.</div></div>`;
+
+/* ---------- B ---------- */
+const cabB = `<span class="x">${I.x}</span>
+ <div class="migas" style="margin-bottom:10px"><span class="volver nuevo" style="width:auto;padding:0 12px 0 9px;gap:6px;border-radius:999px;display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:var(--taupe)">${I.atras} Historial</span></div>
+ <h2>Cierre · Tienda TRU</h2><div class="sub" style="margin-bottom:12px">viernes, 9 de octubre</div>`;
+const tabsB = on => `<div style="margin:14px 0 0"><div class="tabs"><span class="${on==0?'on':''}">Resumen</span><span class="${on==1?'on':''}">Cobros</span><span class="${on==2?'on':''}">Movimientos · 36</span></div></div>`;
+$('lbf').innerHTML = `
+<div><div class="etq">Pestaña «Resumen»</div><div class="marco" style="width:620px;padding:46px 0 36px"><div class="pila"><div class="atras nuevo" style="outline-offset:-2px">${I.atras} Historial de cierres</div><div class="hoja" style="margin-top:0;position:relative;z-index:2">
+  ${cabB}${VEREDICTO}${tabsB(0)}
+  ${SECC('Cómo abrió y cerró la caja','',TURNO)}
+  ${SECC('Cómo cuadró el efectivo','',CUADRE)}
+  ${SECC('A dónde fue el efectivo','de S/ 969.60',DESTINO)}
+ </div></div></div></div>
+<div><div class="etq">Pestaña «Cobros»</div><div class="marco" style="width:620px;padding:46px 0 36px;align-self:flex-start"><div class="pila"><div class="atras nuevo" style="outline-offset:-2px">${I.atras} Historial de cierres</div><div class="hoja" style="position:relative;z-index:2">
+  ${cabB}${VEREDICTO}${tabsB(1)}
+  ${SECC('Qué se cobró','Total vendido S/ 2,393.60',barraMedios()+filasMedios(true)+NOTA_MEDIOS)}
+  ${SECC('De los cobros en efectivo','',`<div class="linea"><span class="k">Cobrado en efectivo</span><span class="num">S/ 712.10</span></div><div class="linea"><span class="k">Retiros y devoluciones</span><span class="num menos">- S/ 21.70</span></div><div class="linea tot"><span class="k" style="color:var(--tinta)">Entró al cajón</span><span class="num">S/ 690.40</span></div>`)}
+ </div></div>
+ <div class="pie" style="position:static;margin-top:0"></div></div>
+ </div>
+<div><div class="etq">Pestaña «Movimientos»</div><div class="marco" style="width:620px;padding:46px 0 36px;align-self:flex-start"><div class="pila"><div class="atras nuevo" style="outline-offset:-2px">${I.atras} Historial de cierres</div><div class="hoja" style="position:relative;z-index:2">
+  ${cabB}${VEREDICTO}${tabsB(2)}
+  ${SECC('Lo que pasó en el turno','36 movimientos',`<div style="display:flex;gap:6px;margin-bottom:6px"><span class="pild on">Todo</span><span class="pild">Ventas</span><span class="pild">Mueve el cajón</span></div>`+movs(5))}
+ </div></div></div></div>`;
+/* B va en 3 marcos: se acomodan en 2 filas para que quepan */
+$('lbf').style.gap='20px';
+[...$('lbf').children].forEach(c=>{c.querySelector('.marco').style.width='420px';});
+document.querySelectorAll('#lbf .hoja').forEach(h=>{h.style.width='376px';h.style.padding='24px 20px 20px';});
+document.querySelectorAll('#lbf .atras').forEach(a=>{a.style.width='340px'});
+document.querySelectorAll('#lbf .vered .g').forEach(g=>g.style.fontSize='22px');
+document.querySelectorAll('#lbf .vered .c b').forEach(g=>g.style.fontSize='22px');
+document.querySelectorAll('#lbf .tabs span').forEach(s=>{s.style.padding='5px 10px';s.style.fontSize='10px'});
+document.querySelectorAll('#lbf .turno').forEach(t=>t.style.gridTemplateColumns='1fr auto 1fr');
+
+/* ---------- C ---------- */
+$('lcf').innerHTML = `
+<div><div class="etq">Un solo marco, más ancho (escritorio). En celular y tablet vuelve a la opción A.</div>
+<div class="marco" style="width:1100px;padding:30px 0 40px"><div class="hoja ancha">
+  <div class="izq">
+    <h2>Historial de cierres</h2><div class="sub">Tienda TRU · últimos 9</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <div class="card cifra" style="padding:9px 10px"><div class="e">Cierres</div><div class="v" style="font-size:19px">9</div></div>
+      <div class="card cifra" style="padding:9px 10px"><div class="e">Cuadraron</div><div class="v" style="font-size:19px;color:var(--verde-profundo)">4</div></div>
+      <div class="card cifra" style="padding:9px 10px"><div class="e">Dif. neta</div><div class="v" style="font-size:19px;color:var(--rojo-profundo)">-598.20</div></div></div>
+    <div style="display:flex;gap:6px;margin:12px 0 0"><span class="pild on">Todos</span><span class="pild">Con diferencia · 5</span></div>
+    ${lista(0)}
+    <div style="font-size:12px;color:rgba(26,26,24,.6);margin-top:14px">Toca un cierre para ver su detalle</div>
+  </div>
+  <div class="der">
+    <span class="x">${I.x}</span>
+    <h2>Cierre · Tienda TRU</h2><div class="sub" style="margin-bottom:16px">viernes, 9 de octubre</div>
+    ${VEREDICTO}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+      <div>${SECC('Cómo abrió y cerró la caja','',TURNO)}${SECC('Cómo cuadró el efectivo','',CUADRE)}</div>
+      <div>${SECC('Qué se cobró','S/ 2,393.60',barraMedios()+filasMedios(false))}${SECC('A dónde fue el efectivo','de S/ 969.60',DESTINO)}</div>
+    </div>
+    ${SECC('Lo que pasó en el turno','36 movimientos',movs(3))}
+  </div>
+</div></div>
+<div class="leyenda" style="max-width:none"><b>Medios de pago:</b> montos de <b>ejemplo inventado</b><span class="ejemplo">ejemplo</span>. Lo demás es el cierre real del vie 9.</div></div>`;
+</script>
+
+<script>
+const MOVS2 = [
+ ['08:59 a. m.','m','up','Venta · 7 prendas <small>· efectivo</small>','Janis Revilla','+S/ 251.30','mas'],
+ ['09:03 a. m.','m','up','Venta · 1 prenda <small>· efectivo</small>','Janis Revilla','+S/ 69.00','mas'],
+ ['09:41 a. m.','n','down','Retiro de efectivo <small>· Baño Angie</small>','Melany Enrriquez','-S/ 0.80','menos'],
+ ['09:59 a. m.','m','up','Venta · 1 prenda <small>· yape</small>','Janis Revilla','+S/ 45.90','mas'],
+ ['10:12 a. m.','m','up','Venta · 3 prendas <small>· tarjeta</small>','Melany Enrriquez','+S/ 189.00','mas'],
+ ['10:36 a. m.','m','up','Venta · 2 prendas <small>· tarjeta</small>','Janis Revilla','+S/ 128.00','mas'],
+ ['11:05 a. m.','n','down','Devolución <small>· reembolso efectivo</small>','Janis Revilla','-S/ 20.90','menos'],
+ ['11:20 a. m.','m','up','Venta · 1 prenda <small>· plin</small>','Melany Enrriquez','+S/ 60.00','mas'],
+ ['12:02 p. m.','m','up','Venta · 4 prendas <small>· efectivo</small>','Janis Revilla','+S/ 172.00','mas'],
+ ['12:48 p. m.','m','up','Venta · 2 prendas <small>· transferencia</small>','Janis Revilla','+S/ 110.00','mas'],
+ ['01:15 p. m.','m','up','Venta · 5 prendas <small>· tarjeta</small>','Melany Enrriquez','+S/ 245.50','mas'],
+ ['01:40 p. m.','m','up','Venta · 1 prenda <small>· yape</small>','Janis Revilla','+S/ 52.00','mas'],
+ ['02:22 p. m.','m','up','Venta · 3 prendas <small>· efectivo</small>','Janis Revilla','+S/ 138.00','mas'],
+ ['03:10 p. m.','m','up','Venta · 2 prendas <small>· yape</small>','Melany Enrriquez','+S/ 96.00','mas'],
+];
+const movs2 = MOVS2.map(m=>`<div class="mov w"><span class="t">${m[0]}</span><span class="ic ${m[1]}">${I[m[2]]}</span><span class="tx">${m[3]}<small class="q">${m[4]}</small></span><span class="num ${m[6]}">${m[5]}</span></div>`).join('');
+const cabD = `<div class="migas" style="margin-bottom:14px"><span class="volver nuevo">${I.atras}</span><span class="t">Historial de cierres</span></div>
+ <span class="x">${I.x}</span>
+ <h2>Cierre · Tienda TRU</h2><div class="sub" style="margin-bottom:16px">viernes, 9 de octubre</div>`;
+$('ldf').innerHTML = `<div><div class="etq" style="max-width:none">Detalle ampliado (≈1000 px de ancho, contenido completo; en pantalla se desplaza y la columna de movimientos se queda fija a la vista)</div>
+<div class="marco" style="width:1090px;padding:26px 0 32px"><div class="hoja w">
+  ${cabD}
+  ${VEREDICTO}
+  <div class="cols">
+   <div>
+    ${SECC('Cómo abrió y cerró la caja','',TURNO)}
+    ${SECC('Qué se cobró','Total vendido S/ 2,393.60',barraMedios()+filasMedios(true)+NOTA_MEDIOS)}
+    ${SECC('Cómo cuadró el efectivo','',CUADRE)}
+    ${SECC('A dónde fue el efectivo','de S/ 969.60',DESTINO)}
+   </div>
+   <div class="movs">
+    <section class="sec" style="margin-top:22px"><div class="cab"><span class="l nuevo" style="padding:2px 6px;margin:-2px -6px">Lo que pasó en el turno</span><span class="r">36 movimientos</span></div>
+     <div style="display:flex;gap:6px;margin-bottom:10px"><span class="pild on">Todo</span><span class="pild">Ventas</span><span class="pild">Mueve el cajón</span></div>
+     <div class="caja">${movs2}</div><div class="fade"></div>
+     <div style="font-size:12px;color:rgba(26,26,24,.55);text-align:center;margin-top:8px">22 movimientos más al bajar</div>
+    </section>
+   </div>
+  </div>
+ </div></div>
+ <div class="leyenda" style="max-width:none"><b style="color:var(--rojo)">Contorno rojo = lo nuevo.</b> La hoja pasa de 576 a ~1000 px al abrir un cierre (crece con el mismo movimiento de las hojas; en celular y tablet vuelve a una sola columna, como la opción A). Los movimientos tienen su propia columna con scroll y ahora dicen <b>quién</b> los registró (el dato ya viaja: <code>colaboradorNombre</code>). <b>Medios de pago y nombres del turno:</b> montos de <b>ejemplo inventado</b><span class="ejemplo">ejemplo</span>; el resto es el cierre real del vie 9.</div></div>`;
+</script>
+<script>if(location.hash){document.querySelectorAll('.lam').forEach(l=>{if('#'+l.id!==location.hash)l.style.display='none'});document.body.style.background='#d9d2c5'}</script>
+<script>
+const nota=(id,t)=>{const d=document.createElement('div');d.className='leyenda';d.style.maxWidth='none';d.innerHTML='<b style="color:var(--rojo)">Contorno rojo = lo nuevo.</b> '+t;$(id).appendChild(d)};
+nota('l0','La ✕ de cerrar arriba a la derecha, igual que en el detalle y en el resto de hojas del ERP.');
+nota('lb','La flecha con «Historial» dice a dónde vuelves, y la hoja de atrás asoma arriba para que se note que el detalle está encima.');
+nota('lc','La fila elegida queda marcada a la izquierda mientras ves su detalle. Para volver a otra fila, solo tocas otra.');
+document.querySelector('#lc .li.sel').classList.add('nuevo');
+</script>
+</body>
+</html>
