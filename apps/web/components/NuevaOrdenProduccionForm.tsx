@@ -30,12 +30,14 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import {
   TEXTO_FUNCION_AUSENTE,
   camposDeGuiaOrden,
+  MAX_NOTA_ORDEN_BASE,
   celdasDelBorrador,
   leerErrorModeloNuevo,
   ordenarTallas,
   nombreDelModelo,
   paramsRpcModeloNuevo,
   precioDelBorrador,
+  problemaDeCostos,
   problemasDelModelo,
   resumenCantidades,
   tallasHabituales,
@@ -226,7 +228,7 @@ export function NuevaOrdenProduccionForm({
   const semaforo = semaforoMargen(precio, unitario);
 
   // La guía de foco (ADR-0284): qué está hecho, qué sigue y qué falta. Sale de la misma validación que apaga el botón.
-  const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total }));
+  const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total, costos: { tela, avios, maquila } }));
 
   function usarCurva() {
     const nuevas: Record<string, string> = {};
@@ -271,7 +273,7 @@ export function NuevaOrdenProduccionForm({
 
   /** Modelo nuevo + orden en UNA llamada. `confirmoDistinto`: la persona dijo que un nombre casi igual es otro modelo de verdad. */
   async function abrirConModeloNuevo(confirmoDistinto: boolean) {
-    const faltas = problemasDelModelo(borrador, celdasNuevas);
+    const faltas = problemasDelModelo(borrador, celdasNuevas, { tela, avios, maquila });
     if (faltas.length > 0) {
       avisar.error(faltas[0].texto);
       return;
@@ -326,6 +328,12 @@ export function NuevaOrdenProduccionForm({
     }
     if (lineas.length === 0) {
       avisar.error("Indica cuántas prendas de al menos una talla o color.");
+      return;
+    }
+    // Un costo que no se lee como monto («12,50») ya no se guarda como 0 en silencio: se dice (/chaos 2026-10-10, hallazgo #3).
+    const costoMalo = problemaDeCostos({ tela, avios, maquila });
+    if (costoMalo) {
+      avisar.error(costoMalo);
       return;
     }
     if (!responsable.listo) {
@@ -628,11 +636,13 @@ export function NuevaOrdenProduccionForm({
           </section>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <CampoMonto etiqueta="Tela" pie="De toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
-          <CampoMonto etiqueta="Avíos" pie="Botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
-          <CampoMonto etiqueta="Maquila" pie="Lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
-        </div>
+        <CampoGuiado id="costos" guia={guia}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <CampoMonto etiqueta="Tela" pie="Opcional · de toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
+            <CampoMonto etiqueta="Avíos" pie="Opcional · botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
+            <CampoMonto etiqueta="Maquila" pie="Opcional · lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
+          </div>
+        </CampoGuiado>
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand/60 px-3 py-2 text-sm">
           <span className="text-tinta/70">
@@ -657,7 +667,7 @@ export function NuevaOrdenProduccionForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
-          <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} />
+          <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
 
         <ComboResponsable control={responsable} deshabilitado={cargando} />
@@ -685,7 +695,7 @@ export function NuevaOrdenProduccionForm({
         )}
 
         <div className="pie-hoja-fijo space-y-2">
-          <PieGuia guia={guia} listo="Todo listo para abrir la orden." />
+          <PieGuia guia={guia} listo="Todo listo para abrir la orden." conFrase />
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className={botonCancelar}>
               Cancelar

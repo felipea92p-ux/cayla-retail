@@ -4,10 +4,17 @@ import { describe, expect, it } from "vitest";
 import { claveCelda } from "./alta-producto";
 import {
   BORRADOR_VACIO,
+  COSTO_MAXIMO,
+  MAX_NOMBRE_MODELO,
+  MAX_NOTA_ORDEN_BASE,
+  PRECIO_MAXIMO,
+  PRECIO_MINIMO,
+  aCentimos,
   armarVocabulario,
   camposDeGuiaOrden,
   cantidadDeCelda,
   celdasDelBorrador,
+  leerDinero,
   leerErrorModeloNuevo,
   lineasRpc,
   nombreDelModelo,
@@ -15,9 +22,12 @@ import {
   ordenarTallas,
   paramsRpcModeloNuevo,
   precioDelBorrador,
+  problemaDeCostos,
+  problemaDePrecio,
   problemasDelModelo,
   resumenCantidades,
   tallasHabituales,
+  tieneCaracterDeControl,
   type BorradorModelo,
   type CategoriaDeModelo,
   type ColorDeModelo,
@@ -168,6 +178,83 @@ describe("problemasDelModelo — lo que falta, en el orden de la pantalla", () =
   });
 });
 
+describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-10)", () => {
+  it("un monto se lee ESTRICTO: solo dígitos y un punto; «12,50», «S/ 50», «1e9» y «0x10» no son un monto", () => {
+    expect(leerDinero("")).toEqual({ tipo: "vacio" });
+    expect(leerDinero("  ")).toEqual({ tipo: "vacio" });
+    for (const t of ["0", "12", "12.5", "12.50", ".5", "5.", " 39.9 ", "99999999.99"]) expect(leerDinero(t).tipo, t).toBe("ok");
+    for (const t of ["-1", "-0.01", "- 5"]) expect(leerDinero(t).tipo, t).toBe("negativo");
+    for (const t of ["12,50", "1,299.50", "1.299,50", "0,5"]) expect(leerDinero(t).tipo, t).toBe("coma");
+    for (const t of ["S/ 50", "50 soles", "1e9", "0x10", "abc", "NaN", "Infinity", "0.1+0.2", "1 2", "٣"]) expect(leerDinero(t).tipo, t).toBe("invalido");
+  });
+  it("a céntimos como la base: la mitad sube, aun con el ruido binario (12.345 → 12.35, 1.005 → 1.01, 0.001 → 0)", () => {
+    expect(aCentimos(12.345)).toBe(12.35);
+    expect(aCentimos(1.005)).toBe(1.01);
+    expect(aCentimos(0.001)).toBe(0);
+    expect(aCentimos(0.005)).toBe(0.01);
+    expect(aCentimos(99999.99)).toBe(99999.99);
+  });
+  it("el precio: producción pide al menos S/ 0.01 (antes 0.001 pasaba y se guardaba como 0,00); una muestra puede ir sin precio", () => {
+    const pp = (precio: string, esMuestra = false) => problemaDePrecio(borrador({ precio, esMuestra }));
+    expect(pp("40")).toBeNull();
+    expect(pp("0.01")).toBeNull();
+    expect(pp("0.001")).toBe("El precio mínimo es S/ 0.01.");
+    expect(pp("0")).toBe("Pon el precio a tienda. Una muestra sí puede ir sin precio.");
+    expect(pp("")).toBe("Pon el precio a tienda. Una muestra sí puede ir sin precio.");
+    expect(pp("0.001", true)).toBeNull();
+    expect(pp("", true)).toBeNull();
+    expect(pp("99999.99")).toBeNull();
+    expect(pp("100000")).toBe("El precio no puede pasar de S/ 99,999.99.");
+    expect(pp("1e9")).toBe("El precio tiene que ser un número, por ejemplo 12.50.");
+    expect(pp("-1", true)).toBe("El precio no puede ser negativo.");
+  });
+  it("el precio con coma se EXPLICA con un ejemplo (no se acepta, no se adivina: leer dinero distinto es decisión de Felipe)", () => {
+    expect(problemaDePrecio(borrador({ precio: "12,50" }))).toBe("Escribe el precio con punto, por ejemplo 12.50.");
+    expect(problemaDePrecio(borrador({ precio: "12,50", esMuestra: true }))).toBe("Escribe el precio con punto, por ejemplo 12.50.");
+    expect(Number.isNaN(precioDelBorrador(borrador({ precio: "12,50" })))).toBe(true);
+  });
+  it("los costos: vacío vale 0; coma, «S/», texto, negativo o enorme se DICEN (antes viajaban como null y se guardaban como 0)", () => {
+    const c = (tela = "", avios = "", maquila = "") => problemaDeCostos({ tela, avios, maquila });
+    expect(c()).toBeNull();
+    expect(c("700", "140.5", "0")).toBeNull();
+    expect(c("999999.99")).toBeNull();
+    expect(c("12,50")).toBe("Escribe el costo de la tela con punto, por ejemplo 12.50.");
+    expect(c("", "S/ 50")).toBe("El costo de los avíos tiene que ser un número, por ejemplo 12.50.");
+    expect(c("", "", "-0.01")).toBe("El costo de la maquila no puede ser negativo.");
+    expect(c("1000000")).toBe("El costo de la tela no puede pasar de S/ 999,999.99.");
+    expect(c("1e9")).toBe("El costo de la tela tiene que ser un número, por ejemplo 12.50.");
+    expect(c("12,50", "S/ 5")).toBe("Escribe el costo de la tela con punto, por ejemplo 12.50.");
+  });
+  it("un costo mal escrito es una falta del campo «costos» (bloquea el botón) y se ve junto a los demás problemas", () => {
+    const b = conCantidades(borrador(), "5");
+    expect(problemasDelModelo(b, celdas(b), { tela: "", avios: "", maquila: "" })).toEqual([]);
+    expect(problemasDelModelo(b, celdas(b), { tela: "12,50", avios: "", maquila: "" }).map((x) => x.campo)).toEqual(["costos"]);
+    expect(problemasDelModelo(b, celdas(b)).map((x) => x.campo)).toEqual([]);
+  });
+  it("el nombre: hasta 80 letras; más, o con un carácter que la base no guarda (NUL), se dice antes de enviar", () => {
+    const largo = (n: number) => "Modelo ".repeat(20).slice(0, n);
+    const campos = (nombre: string) => problemasDelModelo(conCantidades(borrador({ nombre }), "5"), celdas(conCantidades(borrador({ nombre }), "5"))).map((x) => x.campo);
+    expect(nombreDelModelo(borrador({ nombre: largo(80) })).length).toBeLessThanOrEqual(MAX_NOMBRE_MODELO);
+    expect(campos(largo(80))).toEqual([]);
+    expect(campos(largo(81))).toEqual(["nombre"]);
+    expect(problemasDelModelo(conCantidades(borrador({ nombre: largo(300) }), "5"), celdas(conCantidades(borrador({ nombre: largo(300) }), "5")))[0].texto).toBe("El nombre es muy largo: máximo 80 letras.");
+    expect(campos("a\u0000b")).toEqual(["nombre"]);
+    expect(tieneCaracterDeControl("a\u0000b")).toBe(true);
+    expect(tieneCaracterDeControl("línea uno\nlínea dos\tOK")).toBe(false);
+    expect(tieneCaracterDeControl("Blusa 👗 Ñandú “comillas” — M")).toBe(false);
+  });
+  it("los topes de la pantalla son LOS MISMOS que los de la función de la base (si alguien cambia uno, esta prueba lo dice)", () => {
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261009120000_abrir_produccion_con_modelo_nuevo.sql"), "utf8");
+    const numero = (re: RegExp) => Number(re.exec(sql)?.[1]);
+    expect(numero(/char_length\(v_ref\) > (\d+)/)).toBe(MAX_NOMBRE_MODELO);
+    expect(numero(/char_length\(btrim\(coalesce\(p_nota, ''\)\)\) > (\d+)/)).toBe(MAX_NOTA_ORDEN_BASE);
+    expect(numero(/v_precio > ([\d.]+)/)).toBe(PRECIO_MAXIMO);
+    expect(numero(/v_precio < (0\.\d+)/)).toBe(PRECIO_MINIMO);
+    expect(numero(/v_costo > ([\d.]+)/)).toBe(COSTO_MAXIMO);
+    for (const hint of ["nombre_largo", "nota_larga", "precio_invalido", "precio_obligatorio", "costo_invalido", "talla_obligatoria"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+  });
+});
+
 describe("la pantalla no promete lo que la base rechaza (al azar, con semilla fija)", () => {
   // PRNG determinista (mulberry32): una corrida exacta se repite.
   const prng = (semilla: number) => () => {
@@ -178,6 +265,8 @@ describe("la pantalla no promete lo que la base rechaza (al azar, con semilla fi
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
   const elegir = <X,>(r: () => number, xs: X[]) => xs[Math.floor(r() * xs.length)];
+  /** Los valores buenos pesan 3 a 1 frente a los hostiles: si no, casi ningún borrador llega a «todo en orden» y la prueba no probaría nada. */
+  const casiSiempreBueno = <X,>(buenos: X[], hostiles: X[]) => [...buenos, ...buenos, ...buenos, ...hostiles];
 
   it("si no falta nada, lo que se manda cumple lo que exige la función (celdas únicas, tallas de la categoría, enteros 1–9999, precio si es producción)", () => {
     const r = prng(361);
@@ -186,17 +275,22 @@ describe("la pantalla no promete lo que la base rechaza (al azar, con semilla fi
     for (let i = 0; i < 2000; i++) {
       const categoria = elegir(r, [BLUSAS, SIN_TALLAS, null]);
       const b: BorradorModelo = {
-        nombre: elegir(r, ["Short Sastre", "", "...", "  blusa  CAMILA ", "Ñandú 2"]),
+        nombre: elegir(r, casiSiempreBueno(["Short Sastre", "  blusa  CAMILA ", "Ñandú 2"], ["", "...", "Modelo ".repeat(13), "a\u0000b"])),
         categoria,
         tallaIds: [...(categoria?.tallas ?? []), { id: "t-ajena" }].filter(() => r() < 0.5).map((t) => t.id),
         colorCodigos: COLORES.filter(() => r() < 0.5).map((c) => c.codigo),
-        precio: elegir(r, ["", "0", "40", "39.9", "-1", "abc"]),
+        precio: elegir(r, casiSiempreBueno(["40", "39.9", "99999.99", "12.345"], ["", "0", "-1", "abc", "0.001", "12,50", "100000", "1e9"])),
         esMuestra: r() < 0.5,
         cantidades: {},
       };
       const c = celdas(b);
       b.cantidades = Object.fromEntries(c.map((x) => [x.clave, elegir(r, textos)]));
-      if (problemasDelModelo(b, c).length > 0) continue;
+      const costos = {
+        tela: elegir(r, casiSiempreBueno(["", "700"], ["12,50", "S/ 5", "-1", "1000000"])),
+        avios: elegir(r, casiSiempreBueno(["", "140.5"], ["abc"])),
+        maquila: elegir(r, casiSiempreBueno(["", "0", "0.001"], ["1e9"])),
+      };
+      if (problemasDelModelo(b, c, costos).length > 0) continue;
       sinProblemas += 1;
 
       const lineas = lineasRpc(b, c);
@@ -208,8 +302,15 @@ describe("la pantalla no promete lo que la base rechaza (al azar, con semilla fi
       expect(new Set(lineas.map((l) => claveCelda(l.talla_id, l.color_codigo))).size).toBe(lineas.length);
       const precio = precioDelBorrador(b);
       expect(Number.isNaN(precio) || precio < 0).toBe(false);
-      if (!b.esMuestra) expect(precio).toBeGreaterThan(0);
+      expect(aCentimos(precio)).toBeLessThanOrEqual(PRECIO_MAXIMO);
+      if (!b.esMuestra) expect(aCentimos(precio)).toBeGreaterThanOrEqual(PRECIO_MINIMO);
       expect(b.nombre.trim()).not.toBe("");
+      expect(nombreDelModelo(b).length).toBeLessThanOrEqual(MAX_NOMBRE_MODELO);
+      expect(tieneCaracterDeControl(b.nombre)).toBe(false);
+      const params = paramsRpcModeloNuevo({ ubicacionId: "u", borrador: b, celdas: c, costos, fechaEntrega: "", nota: "", confirmoDistinto: false, token: "t" });
+      for (const costo of [params.p_costo_tela, params.p_costo_avios, params.p_costo_maquila]) {
+        expect(Number.isFinite(costo) && costo >= 0 && aCentimos(costo) <= COSTO_MAXIMO).toBe(true);
+      }
     }
     // Que el azar de verdad llegue a «todo en orden» (si no, la prueba no probaría nada).
     expect(sinProblemas).toBeGreaterThan(20);
@@ -346,6 +447,10 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
   it("con un modelo que ya existe solo hay dos cosas por decidir: cuál y cuántas", () => {
     const campos = guia(BORRADOR_VACIO, { esNuevo: false, hayModelo: false });
     expect(faltanDe(campos).map((c) => c.id)).toEqual(["modelo", "cantidades"]);
+    // …y un costo mal escrito también frena a un modelo que ya existe (antes «12,50» se guardaba como 0).
+    const conCosto = camposDeGuiaOrden({ esNuevo: false, hayModelo: true, borrador: BORRADOR_VACIO, celdas: [], totalExistente: 12, costos: { tela: "12,50", avios: "", maquila: "" } });
+    expect(faltanDe(conCosto).map((c) => c.id)).toEqual(["costos"]);
+    expect(sePuedeConfirmar(conCosto)).toBe(false);
     expect(sePuedeConfirmar(guia(BORRADOR_VACIO, { esNuevo: false, hayModelo: true, totalExistente: 12 }))).toBe(true);
     expect(sePuedeConfirmar(guia(BORRADOR_VACIO, { esNuevo: false, hayModelo: true, totalExistente: 0 }))).toBe(false);
   });
@@ -378,20 +483,21 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
     const elegir = <X,>(xs: X[]) => xs[Math.floor(r() * xs.length)];
     let completos = 0;
     for (let i = 0; i < 3000; i++) {
-      const categoria = elegir([BLUSAS, SIN_TALLAS, null]);
+      const categoria = elegir([BLUSAS, BLUSAS, BLUSAS, SIN_TALLAS, null]);
       const b: BorradorModelo = {
-        nombre: elegir(["Short Sastre", "", "...", "Ñandú 2"]),
+        nombre: elegir(["Short Sastre", "Short Sastre", "Ñandú 2", "", "...", "Modelo ".repeat(13)]),
         categoria,
         tallaIds: [...(categoria?.tallas ?? []), { id: "t-ajena" }].filter(() => r() < 0.5).map((t) => t.id),
         colorCodigos: COLORES.filter(() => r() < 0.5).map((c) => c.codigo),
-        precio: elegir(["", "0", "40", "-1", "abc"]),
+        precio: elegir(["40", "40", "40", "39.9", "", "0", "-1", "abc", "0.001", "12,50", "100000"]),
         esMuestra: r() < 0.5,
         cantidades: {},
       };
       const c = celdas(b);
-      b.cantidades = Object.fromEntries(c.map((x) => [x.clave, elegir(["", "0", "5", "1.5", "abc"])]));
-      const problemas = problemasDelModelo(b, c);
-      const campos = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: c, totalExistente: 0 });
+      b.cantidades = Object.fromEntries(c.map((x) => [x.clave, elegir(["5", "5", "5", "", "0", "1.5", "abc"])]));
+      const costos = { tela: elegir(["", "", "700", "12,50"]), avios: elegir(["", "", "140", "S/ 5"]), maquila: elegir(["", "", "0", "-1"]) };
+      const problemas = problemasDelModelo(b, c, costos);
+      const campos = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: c, totalExistente: 0, costos });
       expect(sePuedeConfirmar(campos), JSON.stringify(b)).toBe(problemas.length === 0);
       expect(faltanDe(campos).map((x) => x.id), JSON.stringify(b)).toEqual(problemas.map((p) => p.campo));
       if (problemas.length === 0) completos += 1;

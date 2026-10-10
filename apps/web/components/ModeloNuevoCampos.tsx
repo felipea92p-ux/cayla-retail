@@ -12,7 +12,7 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
 import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { hrefAltaDesdeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
-import type { CategoriaDeModelo, VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
+import { MAX_NOMBRE_MODELO, type CategoriaDeModelo, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Los campos de «Modelo nuevo» dentro de «Nueva orden» (ADR-0361, segunda parte). El Taller crea modelos nuevos como parte normal de su trabajo (una Muestra
 // desarrolla un modelo que todavía no existe): acá se piden SOLO los datos que la base necesita para abrir la orden, con tallas y colores del vocabulario (nunca
@@ -99,6 +99,7 @@ export function ModeloNuevoCampos({
             onChange={(e) => onNombre(e.target.value)}
             placeholder={sugerencia.texto}
             autoComplete="off"
+            maxLength={MAX_NOMBRE_MODELO}
           />
         </CampoGuiado>
         <CampoGuiado id="categoria" guia={guia}>

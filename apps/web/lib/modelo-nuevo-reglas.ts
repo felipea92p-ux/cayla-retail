@@ -143,21 +143,90 @@ export function lineasRpc(b: BorradorModelo, celdas: readonly CeldaAlta[]): { ta
   return lineas;
 }
 
-/** El precio escrito: 0 si está vacío, `NaN` si no es un número (la pantalla lo cuenta como falta). */
-export function precioDelBorrador(b: BorradorModelo): number {
-  const t = b.precio.trim();
-  return t === "" ? 0 : Number(t);
+/** Los topes de `abrir_produccion_con_modelo_nuevo` (/chaos 2026-10-10). La base manda: si cambia uno allá, una prueba compara estos números con la migración. */
+export const MAX_NOMBRE_MODELO = 80;
+export const MAX_NOTA_ORDEN_BASE = 200;
+export const PRECIO_MINIMO = 0.01;
+export const PRECIO_MAXIMO = 99999.99;
+export const COSTO_MAXIMO = 999999.99;
+
+export type LecturaDinero = { tipo: "vacio" } | { tipo: "ok"; valor: number } | { tipo: "negativo" } | { tipo: "coma" } | { tipo: "invalido" };
+
+/** Un monto escrito, leído de forma ESTRICTA: solo dígitos y un punto. «12,50», «S/ 50», «50 soles», «1e9» o «0x10» no son un monto (antes `Number()` leía
+ *  «1e9» y «0x10» y convertía «12,50» en `NaN`, que viajaba como `null` y se guardaba como 0 sin avisar). Vacío es «vacío»: cada campo decide si eso es 0 o es una falta. */
+export function leerDinero(texto: string): LecturaDinero {
+  const t = texto.trim();
+  if (t === "") return { tipo: "vacio" };
+  if (/^(\d+\.?\d*|\.\d+)$/.test(t)) return { tipo: "ok", valor: Number(t) };
+  if (/^-\s*(\d+\.?\d*|\.\d+)$/.test(t)) return { tipo: "negativo" };
+  if (/^[\d.,]+$/.test(t) && t.includes(",")) return { tipo: "coma" };
+  return { tipo: "invalido" };
 }
 
-export type ProblemaModelo = { campo: "nombre" | "categoria" | "tallas" | "precio" | "cantidades"; texto: string };
+/** A céntimos como lo hace la base (`round(x, 2)` de numeric: la mitad sube). `toPrecision(15)` quita el ruido binario (12.345 × 100 = 1234.4999999999998). */
+export function aCentimos(n: number): number {
+  return Math.round(Number((n * 100).toPrecision(15))) / 100;
+}
+
+/** El precio escrito: 0 si está vacío, el número si lo es, y `NaN` si no lo es (la pantalla lo cuenta como falta). Un negativo sigue siendo negativo. */
+export function precioDelBorrador(b: BorradorModelo): number {
+  const l = leerDinero(b.precio);
+  if (l.tipo === "vacio") return 0;
+  if (l.tipo === "ok") return l.valor;
+  if (l.tipo === "negativo") return Number(b.precio.replace(/\s+/g, ""));
+  return Number.NaN;
+}
+
+/** Lo que la pantalla dice del precio (o `null` si está bien): lo mismo que rechaza la base, con una frase que dice QUÉ hacer. */
+export function problemaDePrecio(b: BorradorModelo): string | null {
+  const l = leerDinero(b.precio);
+  if (l.tipo === "coma") return "Escribe el precio con punto, por ejemplo 12.50.";
+  if (l.tipo === "invalido") return "El precio tiene que ser un número, por ejemplo 12.50.";
+  if (l.tipo === "negativo") return "El precio no puede ser negativo.";
+  const valor = l.tipo === "ok" ? aCentimos(l.valor) : 0;
+  if (valor > PRECIO_MAXIMO) return "El precio no puede pasar de S/ 99,999.99.";
+  if (!b.esMuestra && valor < PRECIO_MINIMO) return l.tipo === "ok" && l.valor > 0 ? "El precio mínimo es S/ 0.01." : "Pon el precio a tienda. Una muestra sí puede ir sin precio.";
+  return null;
+}
+
+const COSTOS = [
+  { campo: "tela", cual: "la tela" },
+  { campo: "avios", cual: "los avíos" },
+  { campo: "maquila", cual: "la maquila" },
+] as const;
+
+/** Lo que la pantalla dice de Tela, Avíos y Maquila (o `null`): vacío vale 0; lo que no se lee como monto se DICE, ya no se guarda como 0 en silencio. */
+export function problemaDeCostos(c: TextosDeOrden): string | null {
+  for (const { campo, cual } of COSTOS) {
+    const l = leerDinero(c[campo]);
+    if (l.tipo === "coma") return `Escribe el costo de ${cual} con punto, por ejemplo 12.50.`;
+    if (l.tipo === "invalido") return `El costo de ${cual} tiene que ser un número, por ejemplo 12.50.`;
+    if (l.tipo === "negativo") return `El costo de ${cual} no puede ser negativo.`;
+    if (l.tipo === "ok" && aCentimos(l.valor) > COSTO_MAXIMO) return `El costo de ${cual} no puede pasar de S/ 999,999.99.`;
+  }
+  return null;
+}
+
+/** Un carácter de control (NUL, etc.) que la base no puede guardar en un texto: llega al servidor como «unsupported Unicode escape sequence». Tab, salto de línea y retorno no cuentan. */
+export function tieneCaracterDeControl(texto: string): boolean {
+  for (const ch of texto) {
+    const c = ch.codePointAt(0) ?? 0;
+    if (c < 9 || (c > 13 && c < 32) || c === 127) return true;
+  }
+  return false;
+}
+
+export type ProblemaModelo = { campo: "nombre" | "categoria" | "tallas" | "precio" | "cantidades" | "costos"; texto: string };
 
 /** Lo que falta para abrir la orden, en el orden en que la persona lo encuentra en pantalla. Sale de lo que la base rechaza (nombre con al menos una
  *  letra o un número, categoría activa, tallas de la categoría, precio en una producción, cantidades enteras y al menos una celda con prendas), más lo que el
  *  alta de producto también exige (elegir al menos una talla). Lo OPCIONAL de verdad —los colores, el precio de una muestra— no es una falta. */
-export function problemasDelModelo(b: BorradorModelo, celdas: readonly CeldaAlta[]): ProblemaModelo[] {
+export function problemasDelModelo(b: BorradorModelo, celdas: readonly CeldaAlta[], costos?: TextosDeOrden): ProblemaModelo[] {
   const p: ProblemaModelo[] = [];
   if (!b.nombre.trim()) p.push({ campo: "nombre", texto: "Escribe el nombre del modelo." });
   else if (claveReferencia(b.nombre) === "") p.push({ campo: "nombre", texto: "El nombre necesita al menos una letra o un número." });
+  else if (nombreDelModelo(b).length > MAX_NOMBRE_MODELO) p.push({ campo: "nombre", texto: `El nombre es muy largo: máximo ${MAX_NOMBRE_MODELO} letras.` });
+  else if (tieneCaracterDeControl(b.nombre)) p.push({ campo: "nombre", texto: "El nombre tiene un carácter que no se puede guardar." });
 
   if (!b.categoria) {
     p.push({ campo: "categoria", texto: "Elige la categoría." });
@@ -167,13 +236,15 @@ export function problemasDelModelo(b: BorradorModelo, celdas: readonly CeldaAlta
     p.push({ campo: "tallas", texto: "Elige al menos una talla." });
   }
 
-  const precio = precioDelBorrador(b);
-  if (Number.isNaN(precio) || precio < 0) p.push({ campo: "precio", texto: "El precio tiene que ser un número, de 0 para arriba." });
-  else if (!b.esMuestra && precio <= 0) p.push({ campo: "precio", texto: "Pon el precio a tienda. Una muestra sí puede ir sin precio." });
+  const delPrecio = problemaDePrecio(b);
+  if (delPrecio) p.push({ campo: "precio", texto: delPrecio });
 
   const { total, invalidas } = resumenCantidades(b, celdas);
   if (invalidas > 0) p.push({ campo: "cantidades", texto: "Las cantidades son números enteros, de 0 a 9999." });
   else if (total === 0) p.push({ campo: "cantidades", texto: "Escribe cuántas prendas de cada talla y color." });
+
+  const delCosto = costos ? problemaDeCostos(costos) : null;
+  if (delCosto) p.push({ campo: "costos", texto: delCosto });
   return p;
 }
 
@@ -196,7 +267,10 @@ export function paramsRpcModeloNuevo(o: {
   confirmoDistinto: boolean;
   token: string;
 }) {
-  const numero = (t: string) => (t.trim() === "" ? 0 : Number(t));
+  const numero = (t: string) => {
+    const l = leerDinero(t);
+    return l.tipo === "ok" ? l.valor : l.tipo === "vacio" ? 0 : Number.NaN;
+  };
   return {
     p_ubicacion_id: o.ubicacionId,
     p_referencia: nombreDelModelo(o.borrador),
@@ -235,15 +309,24 @@ export function leerErrorModeloNuevo(error: { message: string; code?: string | n
 /** Los campos de la guía de foco de «Nueva orden» (ADR-0284): qué está hecho, qué sigue y qué falta. NO agrega reglas: sale de `problemasDelModelo` (lo que la base
  *  rechaza) y la prueba exige que coincidan. Con un modelo que ya existe solo hay dos cosas que decidir: cuál y cuántas. Lo opcional de verdad (el precio de una
  *  muestra, los colores) no figura como falta: un campo es «requerido» si la regla lo exige, o si ya tiene un problema (un precio escrito mal en una muestra). */
-export function camposDeGuiaOrden(o: { esNuevo: boolean; hayModelo: boolean; borrador: BorradorModelo; celdas: readonly CeldaAlta[]; totalExistente: number }): CampoDeGuia[] {
+export function camposDeGuiaOrden(o: {
+  esNuevo: boolean;
+  hayModelo: boolean;
+  borrador: BorradorModelo;
+  celdas: readonly CeldaAlta[];
+  totalExistente: number;
+  costos?: TextosDeOrden;
+}): CampoDeGuia[] {
+  const costoMalo = o.costos ? problemaDeCostos(o.costos) : null;
   if (!o.esNuevo) {
     return [
       { id: "modelo", nombre: "Modelo", requerido: true, hecho: o.hayModelo, pendiente: "Elige el modelo que se va a producir." },
       { id: "cantidades", nombre: "Cuántas prendas", requerido: true, hecho: o.totalExistente > 0, pendiente: "Escribe cuántas prendas de cada talla y color." },
+      { id: "costos", nombre: "Costos", requerido: costoMalo !== null, hecho: costoMalo === null, pendiente: costoMalo ?? "" },
     ];
   }
   const b = o.borrador;
-  const problemas = problemasDelModelo(b, o.celdas);
+  const problemas = problemasDelModelo(b, o.celdas, o.costos);
   const hay = (campo: ProblemaModelo["campo"]) => problemas.some((p) => p.campo === campo);
   const frase = (campo: ProblemaModelo["campo"]) => problemas.find((p) => p.campo === campo)?.texto ?? "";
   const conCategoria = b.categoria !== null;
@@ -254,6 +337,7 @@ export function camposDeGuiaOrden(o: { esNuevo: boolean; hayModelo: boolean; bor
     { id: "tallas", nombre: "Tallas", requerido: conCategoria || hay("tallas"), hecho: conCategoria && !hay("tallas"), pendiente: frase("tallas") },
     { id: "precio", nombre: "Precio", requerido: !b.esMuestra || hay("precio"), hecho: !hay("precio") && (conPrecio || !b.esMuestra), pendiente: frase("precio") },
     { id: "cantidades", nombre: "Cuántas prendas", requerido: true, hecho: !hay("cantidades"), pendiente: frase("cantidades") },
+    { id: "costos", nombre: "Costos", requerido: hay("costos"), hecho: !hay("costos"), pendiente: frase("costos") },
   ];
 }
 
