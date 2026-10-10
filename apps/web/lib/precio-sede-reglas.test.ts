@@ -4,6 +4,7 @@ import {
   camposPonerPrecio,
   conPreciosDeSede,
   conPrecioDeLaSede,
+  textoPonerPrecio,
   avisoEtiquetasDeTraslado,
   prendasConOtroPrecio,
   insigniaPrecios,
@@ -140,5 +141,14 @@ describe("traslados: la etiqueta que hay que cambiar", () => {
     expect(avisoEtiquetasDeTraslado(2, "Tienda Trujillo", "Tienda Arequipa", "destino")).toBe("2 prendas se venden aquí a otro precio que en Trujillo: al recibirlas, cámbiales la etiqueta.");
     expect(avisoEtiquetasDeTraslado(2, "Tienda Trujillo", "Tienda Arequipa", "otro")).toBeNull();
     expect(avisoEtiquetasDeTraslado(0, "Tienda Trujillo", "Tienda Arequipa", "destino")).toBeNull();
+  });
+});
+
+describe("el botón que abre la hoja nombra la tienda si queda una sola", () => {
+  it("una libre: la nombra; varias: una u otra; ninguna: sin botón", () => {
+    expect(textoPonerPrecio([{ nombre: "Tienda Lima" }], true)).toBe("Precio distinto en Tienda Lima");
+    expect(textoPonerPrecio([{ nombre: "Tienda Lima" }, { nombre: "Tienda AQP" }], false)).toBe("Precio distinto en una tienda");
+    expect(textoPonerPrecio([{ nombre: "Tienda Lima" }, { nombre: "Tienda AQP" }], true)).toBe("Precio distinto en otra tienda");
+    expect(textoPonerPrecio([], true)).toBeNull();
   });
 });

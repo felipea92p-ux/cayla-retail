@@ -10,5 +10,5 @@
 - [x] Eliminar producto: una prenda que tuvo precio propio frena el borrado (renglón 22 de `fn_producto_historia`, `20261010100400`); se desactiva.
 - [x] CI: las pruebas que vigilan la huella vieja de `registrar_venta` (redondeo, club) la miden sobre su punto de partida (`scripts/pruebas/registrar-venta-antes-de-precio-sede.mjs`).
 - [x] `/formidable` del bloque «Precio por tienda» y su hoja (2026-10-10): leyes 7,7 · oficio 8 (`docs/formidable/catalogo-precio-por-tienda.md`). La prueba ciega destapó que corregir solo el motivo no se guardaba: corregido (`20261010100600`, en producción `20261010130947`).
-- [ ] **Esperan OK de Felipe** (presentación): botones de 32 px en la fila y «Quitar» en rojo; el enlace nombra la tienda cuando queda una sola libre; línea de detalle legible (≥ 4,5:1) sin la palabra «general».
+- [x] Los 3 cambios de presentación (OK de Felipe, 2026-10-10): botones de 35 px y «Quitar» en rojo; «Precio distinto en Tienda Lima» cuando queda una libre; «Las demás tiendas: S/ … · desde …» y el motivo debajo, a 6,30:1.
 - [ ] Pasada con una colaboradora real de AQP (cuenta «Almacén Arequipa»): hasta entonces la ley 1 no pasa de 8.

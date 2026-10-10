@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Store } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { Boton } from "@/components/ui/campos";
 import { createClient } from "@/lib/supabase/client";
 import {
   desdeHace,
   leerPreciosDeSede,
   soles,
   tiendasLibres,
+  textoPonerPrecio,
   type PrecioDeSede,
 } from "@/lib/precio-sede-reglas";
 import {
@@ -64,6 +66,7 @@ export function PreciosPorSede({
   const puedeTocar = (ubicacionId: string) =>
     tiendas.some((t) => t.id === ubicacionId);
   const libres = tiendasLibres(tiendas, precios);
+  const textoPoner = textoPonerPrecio(libres, precios.length > 0);
   const cerrarYLeer = () => {
     setHoja(null);
     setLectura((n) => n + 1);
@@ -91,17 +94,16 @@ export function PreciosPorSede({
             todas las tiendas.
           </p>
         )}
-        {libres.length > 0 && (
-          <button
+        {textoPoner && (
+          <Boton
             type="button"
-            className="btn-cayla btn-enlace ml-auto text-[12.5px]"
+            peso="discreto"
+            className="ml-auto"
             disabled={deshabilitado}
             onClick={() => setHoja({ k: "poner" })}
           >
-            {precios.length === 0
-              ? "Precio distinto en una sede"
-              : "Precio distinto en otra sede"}
-          </button>
+            {textoPoner}
+          </Boton>
         )}
       </div>
 
@@ -120,31 +122,35 @@ export function PreciosPorSede({
                 {soles(p.precio)}
               </span>
               <Chip tono="ambar">Precio propio</Chip>
-              <span className="min-w-0 text-[12px] text-tinta/60">
-                {general !== null && <>general {soles(general)} · </>}
+              {/* Formidable 2026-10-10: en palabras de tienda («las demás tiendas», no «general») y el motivo en su línea, con contraste ≥ 4,5:1. */}
+              <span className="basis-full text-[12.5px] text-tinta/70">
+                {general !== null && <>Las demás tiendas: {soles(general)} · </>}
                 {desdeHace(p.desde)}
-                {p.creadoPor ? ` · ${p.creadoPor}` : ""} · «{p.motivo}»
+              </span>
+              <span className="min-w-0 flex-1 text-[12.5px] text-tinta/70">
+                «{p.motivo}»{p.creadoPor ? ` · ${p.creadoPor}` : ""}
               </span>
               {puedeTocar(p.ubicacionId) && (
-                <span className="ml-auto flex gap-3">
-                  <button
+                <span className="ml-auto flex gap-2">
+                  <Boton
                     type="button"
-                    className="btn-cayla btn-enlace text-[12.5px]"
+                    peso="discreto"
                     disabled={deshabilitado}
                     aria-label={`Cambiar el precio de ${p.sede}`}
                     onClick={() => setHoja({ k: "poner", actual: p })}
                   >
                     Cambiar
-                  </button>
-                  <button
+                  </Boton>
+                  {/* Quitar es lo peligroso: rojo desde el principio (pieza única, ADR-0358). */}
+                  <Boton
                     type="button"
-                    className="btn-cayla btn-enlace text-[12.5px]"
+                    peso="peligro"
                     disabled={deshabilitado}
                     aria-label={`Quitar el precio de ${p.sede}`}
                     onClick={() => setHoja({ k: "quitar", precio: p })}
                   >
                     Quitar
-                  </button>
+                  </Boton>
                 </span>
               )}
             </li>

@@ -194,6 +194,14 @@ export function avisoEtiquetasDeTraslado(n: number, origen: string, destino: str
     : `${prendas} a otro precio en ${nombreCorto(destino)}: allá le${uno ? "" : "s"} cambiarán la etiqueta.`;
 }
 
+/** El botón que abre la hoja (Formidable 2026-10-10): si queda UNA tienda sin precio propio, la nombra («Precio distinto en Tienda Lima»);
+ *  si quedan varias, «en una tienda» (ninguna tiene precio aún) u «en otra tienda». Sin tiendas libres, `null`: no hay botón. */
+export function textoPonerPrecio(libres: readonly { nombre: string }[], hayPrecios: boolean): string | null {
+  if (libres.length === 0) return null;
+  if (libres.length === 1) return `Precio distinto en ${libres[0]!.nombre}`;
+  return hayPrecios ? "Precio distinto en otra tienda" : "Precio distinto en una tienda";
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;

@@ -25,7 +25,7 @@ Aparte (piezas del sistema, no bajan la nota): en la hoja, «Sigue aquí» de 10
 ## Ya corregido en esta corrida (era un error, no presentación)
 - **Corregir solo el motivo no se guardaba** — CONFIRMADO [Medido]: `poner_precio_sede` con el mismo precio y otro motivo devolvía 0 y la hoja decía «guardado». `20261010100600` (en producción, versión `20261010130947`): un motivo distinto es un cambio (archiva y crea otra fila); la hoja dice «No había nada que cambiar» si de verdad no cambió nada. Prueba en `pruebas:precio-sede`; verificado en el navegador con el caso del ciego.
 
-## Los 3 cambios de mayor impacto (esperan tu OK; son presentación)
+## Los 3 cambios de mayor impacto (Felipe dio el OK el 2026-10-10: HECHOS)
 1. **«Cambiar», «Quitar» y «Precio distinto…» como botones de verdad.** Antes: enlaces de 15,6 px, y «Quitar» sin el rojo de lo peligroso. Después: `btn-sutil` de 32 px para Cambiar y el enlace de arriba, y `btn-peligro` chico para Quitar (pieza única «Lo peligroso», ADR-0358). Ley 9 + oficio. Verifica: `medir-oficio` sin blancos bajo 24. Esfuerzo S. Decide: Felipe (presentación).
 2. **El enlace nombra la tienda cuando hay una sola libre.** Antes: «Precio distinto en otra sede», con la cabecera diciendo «TIENDA LIMA» y Lima como la única libre: el ciego dudó si servía para Lima. Después: «Precio distinto en Tienda Lima» si queda una; «…en otra tienda» si quedan varias. Ley 1 y 4. Verifica: repetir la prueba ciega. Esfuerzo S. Decide: Felipe.
 3. **Línea de detalle legible y más corta.** Antes: «general S/ 79.90 · desde hoy · Felipe Alvarez · «motivo»» a 4,45:1. Después: «Las demás tiendas: S/ 79.90 · desde hoy» arriba y el motivo solo debajo, con `text-tinta/70` (≥ 4,5:1). Ley 4 y 8 + oficio. Verifica: contraste medido y la palabra «general» fuera. Esfuerzo S. Decide: Felipe.
@@ -53,4 +53,5 @@ Aparte (piezas del sistema, no bajan la nota): en la hoja, «Sigue aquí» de 10
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
-| 2026-10-10 | cc3ec4bd | 7,7 | 8 | error del motivo corregido; los 3 de presentación esperan OK |
+| 2026-10-10 (antes) | cc3ec4bd | 7,7 | 8 | error del motivo corregido; los 3 de presentación esperan OK |
+| 2026-10-10 (después) | — | 8,3 | 10 | los 3 hechos: botones de 35 px y «Quitar» en rojo [Medido]; «Precio distinto en Tienda Lima» cuando queda una [Medido]; «Las demás tiendas: S/ 79.90 · desde hoy» y el motivo debajo a 6,30:1 [Medido]; 375 px y oscuro sin desbordes [Observado] |
