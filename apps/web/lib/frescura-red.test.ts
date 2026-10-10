@@ -43,15 +43,21 @@ describe("resumenCayla", () => {
 });
 
 describe("cuadricula", () => {
-  it("una fila por categoría, ordenada por lo que más envejece; el % sale de lo que se sabe y lo que no se sabe se dice", () => {
+  it("una fila por categoría, ordenada por lo que más envejece; el % es de TODAS las colgadas (el 100 de las barras) y lo que no se sabe se dice", () => {
     const jeans = (env: number, sinSaber = 0) => ({ categoriaId: "jea", nombre: "Jeans", unidades: { ...conteoVacio(), fresca: 10 - env, envejeciendo: env, sin_saber: sinSaber } });
     const polos = { categoriaId: "pol", nombre: "Polos", unidades: { ...conteoVacio(), fresca: 8, vigente: 2 } };
     const filas = cuadricula([tienda("TRU", { porCategoria: [jeans(4), polos] }), tienda("AQP", { porCategoria: [jeans(1, 5)] })]);
     expect(filas.map((f) => f.nombre)).toEqual(["Jeans", "Polos"]);
     expect(filas[0].celdas).toEqual([
       { unidades: 10, envejeciendo: 40, sinSaber: 0 },
-      { unidades: 15, envejeciendo: 10, sinSaber: 5 },
+      // 1 vieja de 15 colgadas (5 aún sin saber): 7 de cada 100, no 10 (que saldría de las 10 que ya se saben).
+      { unidades: 15, envejeciendo: 7, sinSaber: 5 },
     ]);
     expect(filas[1].celdas).toEqual([{ unidades: 10, envejeciendo: 0, sinSaber: 0 }, null]);
+  });
+
+  it("2 viejas de 4 colgadas son 50 de cada 100, nunca «100 %» (lo que se vio en el navegador)", () => {
+    const camisas = { categoriaId: "cam", nombre: "Camisas", unidades: { ...conteoVacio(), envejeciendo: 2, sin_saber: 2 } };
+    expect(cuadricula([tienda("LIM", { porCategoria: [camisas] })])[0].celdas).toEqual([{ unidades: 4, envejeciendo: 50, sinSaber: 2 }]);
   });
 });

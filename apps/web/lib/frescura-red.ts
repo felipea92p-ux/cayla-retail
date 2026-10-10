@@ -87,7 +87,8 @@ export type FilaCuadricula = { categoriaId: string; nombre: string; celdas: ({ u
 
 /**
  * La cuadrícula categoría × tienda, ordenada por lo que más envejece en la red. La celda dice las unidades colgadas y cuántas de cada 100
- * envejecen (las que aún no se saben no cuentan en ese porcentaje, pero se dicen: «de 12, 5 aún no se saben»).
+ * COLGADAS envejecen: el mismo 100 de las barras de arriba («25 % envejeciendo · 75 % aún no se sabe»). Sobre las que ya se saben, 2 viejas
+ * de 4 colgadas se leían «100 % de 4» (visto en el navegador el 2026-10-10); las que aún no se saben se dicen aparte.
  */
 export function cuadricula(tiendas: readonly ResumenTienda[]): FilaCuadricula[] {
   const nombres = new Map<string, string>();
@@ -99,9 +100,8 @@ export function cuadricula(tiendas: readonly ResumenTienda[]): FilaCuadricula[] 
       if (!c) return null;
       const unidades = total(c.unidades);
       if (unidades <= 0) return null;
-      const sabidas = unidades - c.unidades.sin_saber;
       viejas += c.unidades.envejeciendo;
-      return { unidades, envejeciendo: sabidas > 0 ? Math.round((c.unidades.envejeciendo * 100) / sabidas) : 0, sinSaber: c.unidades.sin_saber };
+      return { unidades, envejeciendo: Math.round((c.unidades.envejeciendo * 100) / unidades), sinSaber: c.unidades.sin_saber };
     });
     return { categoriaId, nombre, celdas, viejas };
   });

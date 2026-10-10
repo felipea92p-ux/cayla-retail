@@ -120,7 +120,8 @@ export function FrescuraAguja({
             <span className="font-semibold">
               Sin estrenar: {estrenar.prendas} {estrenar.prendas === 1 ? "prenda" : "prendas"}
             </span>{" "}
-            que tu cliente nunca vio colgadas esperan en el almacén ({unidades(estrenar.unidades)}). Colgarlas refresca el piso sin comprar nada.
+            {estrenar.prendas === 1 ? "que tu cliente nunca vio colgada espera" : "que tu cliente nunca vio colgadas esperan"} en el almacén (
+            {unidades(estrenar.unidades)}). {estrenar.prendas === 1 ? "Colgarla" : "Colgarlas"} refresca el piso sin comprar nada.
           </p>
           {puedeBajar && estrenar.lineas.length > 0 && (
             <BotonEnlace href={enlaceBajar(estrenar.lineas)}>Estrenar en el piso</BotonEnlace>

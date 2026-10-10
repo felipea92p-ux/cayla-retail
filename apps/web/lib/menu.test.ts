@@ -770,3 +770,19 @@ describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre 
     expect(m.riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
   });
 });
+
+describe("en CAYLA Global, Inventario es solo Frescura del piso y se llama así (ADR-0208, act. 2026-10-10 (b))", () => {
+  const conModulos = (modulos: ClaveModulo[]) =>
+    menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
+
+  it("la fila dice «Frescura del piso» y abre su pantalla, no «Inventario»", () => {
+    const riel = conModulos(["frescura"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/inventario/frescura"]);
+  });
+
+  it("con otra pantalla de Inventario al lado, el grupo sigue llamándose «Inventario»", () => {
+    const riel = conModulos(["frescura", "existencias"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+  });
+});

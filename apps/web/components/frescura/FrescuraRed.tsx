@@ -16,6 +16,7 @@ import type { DatosRed } from "@/lib/frescura";
 // JavaScript propio: lo arma `frescura-red.ts` en el servidor.
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
+const colgadas = (n: number) => `${n} ${n === 1 ? "unidad colgada" : "unidades colgadas"}`;
 
 /** La plantilla de la cuadrícula según cuántas tiendas hay: escrita entera, porque Tailwind solo genera las clases que ve escritas. */
 const PLANTILLAS: Record<number, string> = {
@@ -69,7 +70,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
           <h2 id="red-titulo" className="font-display text-[22px] leading-tight">
             {principal ? `${principal.nombre}, las tiendas juntas` : "Las tiendas"}
           </h2>
-          {principal && <span className="text-[13px] tabular-nums text-taupe">{unidades(principal.total)} colgadas</span>}
+          {principal && <span className="text-[13px] tabular-nums text-taupe">{colgadas(principal.total)}</span>}
         </div>
         {principal && (
           <>
@@ -137,7 +138,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                     <>
                       <span className={c.envejeciendo >= PARTE_VIEJA * 100 ? "font-semibold text-ambar-profundo" : ""}>{c.envejeciendo} %</span>
                       <span className="text-[12px] text-taupe"> de {c.unidades}</span>
-                      {c.sinSaber > 0 && <span className="block text-[11.5px] text-taupe">{c.sinSaber} aún no se saben</span>}
+                      {c.sinSaber > 0 && <span className="block text-[11.5px] text-taupe">{c.sinSaber === 1 ? "1 aún no se sabe" : `${c.sinSaber} aún no se saben`}</span>}
                     </>
                   )}
                 </span>

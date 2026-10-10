@@ -11,6 +11,7 @@ import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, porcentajes, soles
 const tramosConNumero = (f: FamiliaPiso): TramoPiso[] => TRAMOS_DEL_100.filter((t) => t !== "sin_saber" || f.unidades.sin_saber > 0);
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
+const colgadas = (n: number) => `${n} ${n === 1 ? "unidad colgada" : "unidades colgadas"}`;
 
 function segmentos(f: FamiliaPiso) {
   return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
@@ -45,7 +46,7 @@ export function FrescuraPiso({
           {principal.nombre}
         </h2>
         <span className="text-[13px] tabular-nums text-taupe">
-          {unidades(principal.total)} colgadas · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
+          {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
         </span>
       </div>
 

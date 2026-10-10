@@ -3581,4 +3581,8 @@ servidor reusa `armarFrescuraLider` (las tres lecturas en paralelo, la misma var
   cuenta las sedes que puede operar (`fn_puede_operar_ubicacion`), y el líder las opera todas: un gerente con `cayla_global` que no es líder vería tres «sin acceso».
   Le sale un vacío que lo dice y lo manda al selector. Abrirlo es una migración del candado de `fn_frescura_sede` (que acepte, para leer,
   `fn_ve_modulo('cayla_global')` en lugar de operar la sede), es de permisos y espera el OK de Felipe: va al backlog junto con la foto diaria.
-- **Sin verificar en el navegador** (el stack local sigue caído); lo verifican las pruebas, y la mirada va con el cierre.
+- **Mirado en el navegador (stack local de vuelta, 1440 claro y oscuro, 375 sin desplazamiento lateral)** y corregido lo que se vio:
+  la celda decía «100 % de 4» con 2 viejas de 4 (el porcentaje salía de las que ya se saben): ahora es de TODAS las colgadas, el
+  mismo 100 de las barras; elegir CAYLA Global parado en Frescura mandaba al tablero: el selector deja en su pantalla a quien está en
+  una que también funciona en esa vista (`rutaDeLaVistaGlobal`; Finanzas, Clientes y Configuración ganan lo mismo); y en esa vista
+  la fila del menú dice «Frescura del piso», no «Inventario» (`conservaNombre`, el mismo caso que «Recibir mercadería»).
