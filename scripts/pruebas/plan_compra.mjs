@@ -12,6 +12,7 @@
  *   P  PUERTAS: Felipe (líder) lee y guarda; Micaela (sin el módulo) recibe 42501 en las dos; nadie lee las tablas directo.
  *   G  GUARDAR: rechaza lo incoherente con su mensaje; guardar dos veces la misma categoría deja UNA línea con lo último; firma.
  *   V  VERSIÓN (B4): una hoja vieja no pisa lo que otra persona guardó entre medio; un reintento con lo mismo pasa; sin versión, como antes.
+ *   E  EDITAR Y QUITAR (B5): nombre y fechas con sus reglas; vacía se borra, con algo se archiva; restaurar; permisos; lo imposible.
  *   L  LEER: la línea guardada, el stock libre de la red (sin apartados ni Cuarentena), lo vendido por talla en 90 días y lo vendido
  *      dentro de las fechas de la campaña (lo de antes no cuenta).
  *
@@ -39,6 +40,8 @@ const MIGRACION_B2 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010
 const MIGRACION_B3 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010192000_plan_compra_crear_campana.sql"), "utf8");
 // ADR-0372 · B4 (ADR-0193 aplicada al plan): la versión de cada línea; `guardar_plan_compra_linea` gana `p_version_esperada` (cambia su firma).
 const MIGRACION_B4 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010200000_plan_compra_version_de_linea.sql"), "utf8");
+// ADR-0372 · B5: editar, quitar (borrar si está vacía, archivar si no) y restaurar una campaña.
+const MIGRACION_B5 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010210000_plan_compra_editar_y_quitar.sql"), "utf8");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -72,6 +75,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B3)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B4)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_B5)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -229,6 +234,70 @@ caso(
    reset role;
    select concat_ws(',', :'otra', :'misma', (select count(*) from retail.planes_compra_lineas where plan_id = :'plan' and categoria_id = :'cat'));`,
   "PT409,2,1"
+);
+
+// E. EDITAR Y QUITAR (B5) --------------------------------------------------------------------------------------------------
+caso(
+  "E1 un líder edita nombre y fechas (firmado); rechaza nombre repetido sin importar mayúsculas, vacío y fechas al revés",
+  `reset role;
+   insert into retail.planes_compra (nombre, desde, hasta) values ('ZZ Otra', date '2027-03-01', date '2027-03-10');
+   select id as otra from retail.planes_compra where nombre = 'ZZ Otra' \\gset
+   ${como(FELIPE)}
+   select retail.editar_plan_compra(:'otra', '  ZZ   Renombrada ', date '2027-03-02', date '2027-03-20') ->> 'nombre' as nuevo \\gset
+   select concat_ws(' / ', :'nuevo',
+     (select desde || '..' || hasta || '/' || (editado_por is not null) || '/' || (editado_en is not null) from retail.planes_compra where id = :'otra'),
+     split_part(pg_temp.intento(format('select retail.editar_plan_compra(%L, ''diciembre 2026'', date ''2027-03-02'', date ''2027-03-20'')', :'otra')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.editar_plan_compra(%L, ''   '', date ''2027-03-02'', date ''2027-03-20'')', :'otra')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.editar_plan_compra(%L, ''ZZ X'', date ''2027-03-20'', date ''2027-03-02'')', :'otra')), '|', 2));`,
+  "ZZ Renombrada / 2027-03-02..2027-03-20/true/true / Ya hay un plan con ese nombre: ponle otro. / Ponle un nombre al plan. / La campaña no puede terminar antes de empezar."
+);
+caso(
+  "E2 quitar: vacía se borra; con una categoría se archiva (sale del selector y de la hoja por defecto); con tope también; restaurar la devuelve",
+  `reset role;
+   insert into retail.planes_compra (nombre, desde, hasta) values ('ZZ Vacía', date '2027-04-01', date '2027-04-10'), ('ZZ Con tope', date '2027-05-01', date '2027-05-10');
+   select id as vacia from retail.planes_compra where nombre = 'ZZ Vacía' \\gset
+   select id as contope from retail.planes_compra where nombre = 'ZZ Con tope' \\gset
+   ${como(FELIPE)}
+   select retail.guardar_plan_compra_tope(:'contope', 5000);
+   select pg_temp.guarda('{}'::jsonb);
+   select (retail.quitar_plan_compra(:'vacia') ->> 'accion') || ',' || (retail.quitar_plan_compra(:'plan') ->> 'accion') || ',' || (retail.quitar_plan_compra(:'contope') ->> 'accion') as acciones \\gset
+   select concat_ws(' / ', :'acciones',
+     (select count(*) from retail.planes_compra where id = :'vacia'),
+     (select (p ->> 'archivado') from jsonb_array_elements(retail.fn_planes_compra() -> 'planes') p where p ->> 'id' = :'plan'),
+     coalesce((retail.fn_plan_compra() -> 'plan' ->> 'id') <> :'plan', true),
+     (retail.fn_plan_compra(:'plan') -> 'plan' ->> 'archivado'),
+     -- La archivada conserva sus categorías (la base local puede traer otras de antes: se mira que no se perdió ninguna).
+     (select count(*) > 0 from retail.planes_compra_lineas where plan_id = :'plan')) as antes \\gset
+   select retail.restaurar_plan_compra(:'plan') ->> 'nombre' as restaurada \\gset
+   select concat_ws(' / ', :'antes', :'restaurada',
+     (select archivado_en is null and archivado_por is null from retail.planes_compra where id = :'plan'));`,
+  "borrado,archivado,archivado / 0 / true / t / true / t / Diciembre 2026 / t"
+);
+caso(
+  "E3 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie ejecuta como anon",
+  `reset role;
+   select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
+   ${como(MICAELA)}
+   select split_part(pg_temp.intento(format('select retail.quitar_plan_compra(%L)', :'plan')), '|', 1) as sin_modulo \\gset
+   reset role;
+   insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'plan_compra') on conflict do nothing;
+   ${como(MICAELA)}
+   select concat_ws(',', :'sin_modulo',
+     split_part(pg_temp.intento(format('select retail.editar_plan_compra(%L, ''ZZ'', date ''2027-01-01'', date ''2027-01-02'')', :'plan')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.quitar_plan_compra(%L)', :'plan')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.restaurar_plan_compra(%L)', :'plan')), '|', 2),
+     has_function_privilege('anon', 'retail.quitar_plan_compra(uuid)', 'execute'),
+     has_function_privilege('anon', 'retail.editar_plan_compra(uuid,text,date,date)', 'execute'));`,
+  "42501,Solo un líder edita una campaña del plan,Solo un líder quita una campaña del plan,Solo un líder restaura una campaña del plan,f,f"
+);
+caso(
+  "E4 el esquema hace imposible una campaña archivada sin autor y borrar una campaña con categorías (aunque alguien escriba la tabla a mano)",
+  `select pg_temp.guarda('{}'::jsonb);
+   reset role;
+   select concat_ws(',',
+     split_part(pg_temp.intento(format('update retail.planes_compra set archivado_en = now() where id = %L', :'plan')), '|', 1),
+     split_part(pg_temp.intento(format('delete from retail.planes_compra where id = %L', :'plan')), '|', 1));`,
+  "23514,23503"
 );
 
 // L. LEER -----------------------------------------------------------------------------------------------------------------
