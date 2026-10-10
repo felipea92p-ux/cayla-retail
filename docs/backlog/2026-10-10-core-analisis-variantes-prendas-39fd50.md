@@ -1,5 +1,5 @@
 ## Análisis por modelo (2026-10-10, ADR-0357 decisión 12)
-- [ ] **Felipe: pegar `20261010120000_analisis_ultima_venta.sql` en producción ANTES de fusionar la web** (una parte, sin políticas; huella esperada `15598f29697b4a6229ba3d78d8630d5a`). Sin ella la web no se cae: cuenta los días del modelo con lo más reciente de sus tallas y lo dice arriba.
+- [x] **Pegada en producción el 2026-10-10** (huella verificada). Antes: «Felipe: pegar `20261010120000_analisis_ultima_venta.sql` en producción ANTES de fusionar la web» (una parte, sin políticas; huella esperada `15598f29697b4a6229ba3d78d8630d5a`). Sin ella la web no se cae: cuenta los días del modelo con lo más reciente de sus tallas y lo dice arriba.
 - [ ] **Refrescar el diccionario** cuando esté en producción (`pnpm datos:generar:produccion`): `fn_analisis_sede` suma `ultima_venta`.
 - [ ] **Ver con una encargada real** que «2 colores · S, M, L» y «Falta L Beige» se entienden sin explicar.
 - [ ] **El ruido de una sola venta:** en TRU, 132 de 159 tallas que «se acababan» entraban con UNA venta en 11 días. Por modelo baja mucho, pero con pocos días de ventas un modelo de 2 unidades que vendió 1 sigue «acabándose». Decidir si «Se está acabando» pide un mínimo de ventas.
