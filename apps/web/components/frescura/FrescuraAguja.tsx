@@ -5,7 +5,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { enlaceBajar, pct, type SenalCategoria, type SinEstrenar } from "@/lib/frescura-aguja";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): hasta tres categorías —las que se quedan y la que se lleva más—, cada una con lo que
-// dice de ella y UN botón que lleva a hacerlo (completar tallas o colgar más en Bajar al piso; cambiar de lugar filtra la lista de abajo).
+// dice de ella y UN botón en segundo plano (el único negro de la pantalla es el de la prenda por decidir, Formidable 2026-10-10 (c)) que lleva a hacerlo (completar tallas o colgar más en Bajar al piso; cambiar de lugar filtra la lista de abajo).
 // Sin el piso cuadrado no hay veredictos: dice qué se llevan los clientes (registrado y anotado en caja), que no necesita saber qué cuelga;
 // y si tampoco hay eso, no se dibuja (Felipe, Formidable 2026-10-10 (c): un bloque que solo promete ocupaba 146 px y empujaba lo por
 // decidir bajo el pliegue; lo que falta para que hable ya lo dice el aviso de la tarjeta de la tienda, con su botón).
@@ -20,7 +20,8 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
     <li className="flex min-w-0 flex-col gap-2 rounded-xl border border-sand bg-papel px-4 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[16px] font-semibold leading-tight">{s.nombre}</span>
-        <Chip tono={s.tipo === "se_queda" ? "ambar" : "verde"}>{s.tipo === "se_queda" ? "Se está quedando" : "Se lleva más"}</Chip>
+        {/* Dos causas, dos nombres (Felipe, Formidable 2026-10-10 (c)): lo colgado es viejo para su categoría, o ocupa más de lo que vende. */}
+        <Chip tono={s.tipo === "se_queda" ? "ambar" : "verde"}>{s.tipo === "se_lleva" ? "Se lleva más" : s.motivo === "edad" ? "Envejeciendo" : "Le sobra piso"}</Chip>
       </div>
       {a && (
         <p className="text-[13.5px] leading-snug">
@@ -39,7 +40,7 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
               {accion.lineas.length === 1 ? "1 talla guardada" : `${accion.lineas.length} tallas guardadas`} de modelos que ya cuelgan: una talla que falta hace parecer lento al modelo.
             </p>
             {puedeBajar ? (
-              <BotonEnlace href={enlaceBajar(accion.lineas)} peso="primario">
+              <BotonEnlace href={enlaceBajar(accion.lineas)}>
                 Completa tallas
               </BotonEnlace>
             ) : null}
@@ -54,7 +55,7 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
           <>
             <p className="mb-2 text-[12.5px] leading-snug text-taupe">Tienes {unidades(accion.enAlmacen)} en el almacén.</p>
             {puedeBajar ? (
-              <BotonEnlace href={enlaceBajar(accion.lineas)} peso="primario">
+              <BotonEnlace href={enlaceBajar(accion.lineas)}>
                 Cuelga más
               </BotonEnlace>
             ) : null}

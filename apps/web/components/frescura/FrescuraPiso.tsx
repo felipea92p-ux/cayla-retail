@@ -18,14 +18,14 @@ import {
   type TramoPiso,
 } from "@/lib/frescura-piso";
 
-// La tienda de un vistazo (ADR-0208, act. 2026-10-10 (b)): «¿tu piso está fresco?» con UNA barra por familia. La primera (Indumentaria)
-// manda y va grande, con cada estado en número; las demás (Bisutería, Accesorios…) van debajo, una línea cada una, para que 35 anillos
-// no tapen la ropa. Lo que todavía no se sabe se ve siempre (gris), y si la tienda no registra lo que vende lo dice el aviso de la puerta
+// La tienda de un vistazo (ADR-0208, act. 2026-10-10 (b) y (c)): «¿tu piso está fresco?». Arriba y en grande, TODA la tienda (Felipe en
+// Formidable: «Toda la tienda arriba»), con cada estado en número; debajo, una línea por familia (Indumentaria, Bisutería, Accesorios…),
+// porque en el total 35 anillos pesan lo que 35 casacas. Lo que todavía no se sabe se ve siempre, y si la tienda no registra lo que vende lo dice el aviso de la puerta
 // compartida con Análisis: la barra se ve igual, marcada «Aproximado», la frase de la cabecera dice por qué no afirma y el aviso trae el
 // botón que lo arregla (Felipe, Formidable 2026-10-10 (c): «% con aviso + el paso»). «Aún no se sabe» va rayado y su porqué está a un toque.
 // Sin estado propio: lo arma `frescura-piso.ts`.
 
-/** Los estados de la familia principal que se dicen en número: siempre los tres; «aún no se sabe», solo si hay. */
+/** Los estados de toda la tienda que se dicen en número: siempre los tres; «aún no se sabe», solo si hay. */
 const tramosConNumero = (f: FamiliaPiso): TramoPiso[] => TRAMOS_DEL_100.filter((t) => t !== "sin_saber" || f.unidades.sin_saber > 0);
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
@@ -35,7 +35,7 @@ function segmentos(f: FamiliaPiso) {
   return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
 }
 
-/** «58 % fresca · 20 % envejeciendo»: lo que dice una familia de las de abajo, en una línea (sin los estados vacíos). */
+/** «58 % fresca · 20 % envejeciendo»: lo que dice una familia, en una línea (sin los estados vacíos). */
 function lineaDeFamilia(f: FamiliaPiso): string {
   const pct = porcentajes(f.unidades);
   return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
@@ -44,20 +44,28 @@ function lineaDeFamilia(f: FamiliaPiso): string {
 }
 
 export function FrescuraPiso({
+  tienda,
   familias,
   puerta,
   acceso,
   antes = null,
+  pocasVentas = false,
 }: {
+  /** Toda la tienda (`pisoDeLaTienda`): la barra grande. */
+  tienda: FamiliaPiso | null;
+  /** Cada familia, en su línea debajo (solo si hay más de una: con una, la línea repetiría la barra grande). */
   familias: readonly FamiliaPiso[];
   puerta: PuertaPiso;
   /** Qué pantallas ve quien mira: el botón de la puerta solo lleva a una que puede abrir. */
   acceso: AccesoPuerta;
-  /** Los porcentajes de la familia principal hace 4 semanas, si se pudo comparar (la frase de la cabecera dice si mejoró). */
+  /** Los porcentajes de toda la tienda hace 4 semanas, si se pudo comparar (la frase de la cabecera dice si mejoró). */
   antes?: Record<TramoPiso, number> | null;
+  /** La mayoría de lo colgado se compara con menos de 10 ventas de su categoría (`mayoriaAproximada`): se dice aquí, una vez. */
+  pocasVentas?: boolean;
 }) {
-  const [principal, ...otras] = familias;
+  const principal = tienda;
   if (!principal) return null;
+  const lineas = familias.length > 1 ? familias : [];
   const pct = porcentajes(principal.unidades);
   const clasicos = familias.reduce((s, f) => s + f.unidades.clasico, 0);
   const cerrada = puerta === null || !puerta.puedeHablar;
@@ -67,7 +75,7 @@ export function FrescuraPiso({
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="frescura-piso-titulo" className="flex items-center gap-2 font-display text-[22px] leading-tight">
           {principal.nombre}
-          {cerrada && <Chip tono="pizarra">Aproximado</Chip>}
+          {(cerrada || pocasVentas) && <Chip tono="pizarra">Aproximado</Chip>}
         </h2>
         <span className="text-[13px] tabular-nums text-taupe">
           {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
@@ -105,9 +113,9 @@ export function FrescuraPiso({
       )}
 
 
-      {otras.length > 0 && (
-        <ul aria-label="Las demás familias" className="mt-4 divide-y divide-sand border-t border-sand">
-          {otras.map((f) => (
+      {lineas.length > 0 && (
+        <ul aria-label="Cada familia" className="mt-4 divide-y divide-sand border-t border-sand">
+          {lineas.map((f) => (
             <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2.5 sm:grid-cols-[minmax(140px,1fr)_minmax(180px,2fr)_minmax(0,2fr)]">
               <span className="text-[14px] font-semibold leading-tight">
                 {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
@@ -139,6 +147,11 @@ export function FrescuraPiso({
           }
         >
           {avisoDeLaPuerta(puerta)}
+        </Aviso>
+      )}
+      {!cerrada && pocasVentas && (
+        <Aviso tono="info" chico className="mt-3">
+          Casi todo se compara con menos de 10 ventas de su categoría: tómalo como aproximado. Cada venta registrada lo afina.
         </Aviso>
       )}
     </section>

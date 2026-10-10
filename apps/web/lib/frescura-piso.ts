@@ -50,15 +50,16 @@ export const CLASE_TRAMO_PISO: Record<TramoPiso, string> = {
 };
 
 /** Por qué una unidad cae en «Aún no se sabe», en palabras de tienda: lo que se dice al tocar su «¿Por qué?». */
-export type CausaSinSaber = "ritmo" | "fecha" | "dudosa";
-export const CAUSAS_SIN_SABER: readonly CausaSinSaber[] = ["ritmo", "fecha", "dudosa"];
+export type CausaSinSaber = "ritmo" | "fecha" | "dudosa" | "venta";
+export const CAUSAS_SIN_SABER: readonly CausaSinSaber[] = ["ritmo", "fecha", "dudosa", "venta"];
 export const TEXTO_CAUSA_SIN_SABER: Record<CausaSinSaber, string> = {
   ritmo: "su categoría todavía no tiene un ritmo de venta en esta tienda",
   fecha: "no se sabe desde cuándo está colgada",
   dudosa: "su stock no cuadra (hay que contarla)",
+  venta: "puede ser una que se vendió sin registrar (se sabrá al regularizar esa venta)",
 };
 export type ConteoSinSaber = Record<CausaSinSaber, number>;
-const sinSaberVacio = (): ConteoSinSaber => ({ ritmo: 0, fecha: 0, dudosa: 0 });
+export const sinSaberVacio = (): ConteoSinSaber => ({ ritmo: 0, fecha: 0, dudosa: 0, venta: 0 });
 
 export type ConteoPiso = Record<TramoPiso, number>;
 export const conteoVacio = (): ConteoPiso => ({ fresca: 0, vigente: 0, envejeciendo: 0, sin_saber: 0, clasico: 0 });
@@ -129,8 +130,11 @@ export function tramosDeLaPrenda(
       restante -= n;
       if (restante <= 0) break;
     }
-    // Lo que el stock dice colgado sin una tanda en el libro: no se sabe desde cuándo.
-    sumar("sin_saber", restante, t.varianteId, "fecha");
+    // Lo que el stock dice colgado sin una tanda: primero lo que apartó una venta sin registrar (puede ser la vendida); lo demás,
+    // que el libro no trae, no se sabe desde cuándo cuelga.
+    const vendidas = Math.min(restante, t.dudadas ?? 0);
+    sumar("sin_saber", vendidas, t.varianteId, "venta");
+    sumar("sin_saber", restante - vendidas, t.varianteId, "fecha");
   }
   return { unidades, soles, sinPrecio, sinSaberPor };
 }
@@ -197,6 +201,30 @@ export function pisoPorFamilia(
     }));
 }
 
+/** El nombre de la barra grande: toda la tienda, con todas las familias juntas (Felipe, 2026-10-10 (c): «Toda la tienda arriba»). */
+export const NOMBRE_TODA_LA_TIENDA = "Toda la tienda";
+
+/**
+ * Toda la tienda: la suma de sus familias (Felipe, Formidable 2026-10-10 (c): «qué porcentaje de la tienda está fresco»; antes la cifra
+ * grande era solo Indumentaria). Se cuentan unidades, así que un anillo pesa lo mismo que una casaca: por eso cada familia sigue en su
+ * línea debajo. Soles solo si todas las familias los tienen. Null si no hay nada colgado.
+ */
+export function pisoDeLaTienda(familias: readonly FamiliaPiso[]): FamiliaPiso | null {
+  if (familias.length === 0) return null;
+  const unidades = conteoVacio();
+  const sinSaberPor = sinSaberVacio();
+  let soles: ConteoPiso | null = conteoVacio();
+  let prendas = 0;
+  for (const f of familias) {
+    for (const k of TRAMOS_PISO) unidades[k] += f.unidades[k];
+    for (const c of CAUSAS_SIN_SABER) sinSaberPor[c] += f.sinSaberPor[c];
+    prendas += f.prendas;
+    if (soles && f.soles) for (const k of TRAMOS_PISO) soles[k] += f.soles[k];
+    else soles = null;
+  }
+  return { codigo: null, nombre: NOMBRE_TODA_LA_TIENDA, unidades, total: TRAMOS_DEL_100.reduce((s, k) => s + unidades[k], 0), prendas, soles, sinSaberPor };
+}
+
 /**
  * De cada 100: los porcentajes enteros de los tramos del 100 % que suman exactamente 100 (el resto mayor se lleva lo que falta), para que
  * «58 % · 22 % · 20 %» nunca sume 99. Sin unidades, todo 0.
@@ -243,6 +271,13 @@ export function pisoAnterior(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
     porCategoria.set(p.categoriaId, c);
   }
   return { fecha, porCategoria: [...porCategoria].map(([categoriaId, unidades]) => ({ categoriaId, unidades })) };
+}
+
+/** Las unidades de hace 4 semanas de toda la tienda: todas sus categorías (la misma suma que `pisoDeLaTienda` hoy). */
+export function conteoDeTodo(anterior: PisoAnterior): ConteoPiso {
+  const c = conteoVacio();
+  for (const fila of anterior.porCategoria) for (const k of TRAMOS_PISO) c[k] += fila.unidades[k];
+  return c;
 }
 
 /** Las unidades de hace 4 semanas de UNA familia (la misma regla de familia que la barra de hoy). */
@@ -363,7 +398,7 @@ const COLA_TENDENCIA: Record<Tendencia, string> = {
 };
 
 /**
- * La respuesta de la cabecera, mirando la familia principal (la primera: Indumentaria). Habla solo si la tienda pasa la puerta (registra lo
+ * La respuesta de la cabecera, mirando toda la tienda (`pisoDeLaTienda`). Habla solo si la tienda pasa la puerta (registra lo
  * que vende: si no, lo vendido sigue «colgado» y envejece en falso) y si lo que no se sabe es poco; si no, dice por qué todavía no. Si el
  * piso de hace 4 semanas también se podía afirmar, dice si está más fresco, más viejo o igual (la meta de Felipe: contra el mes anterior).
  */
@@ -376,10 +411,11 @@ export function respuestaDelPiso(principal: FamiliaPiso | null, puerta: PuertaPi
   }
   if (!sePuedeDecir(principal.unidades)) {
     const n = porcentajes(principal.unidades).sin_saber;
-    return { ...base, respuesta: `Todavía no se puede decir: aún no se sabe de ${n} de cada 100 prendas colgadas.`, afirma: false };
+    return { ...base, respuesta: `Todavía no se puede decir: aún no se sabe de ${n} de cada 100 unidades colgadas.`, afirma: false };
   }
   const f = porcentajes(principal.unidades).fresca;
-  const dato = `${f} de cada 100 prendas colgadas están frescas`;
+  // «unidades», no «prendas»: en esta pantalla una prenda es un modelo y color, y la barra cuenta piezas (Formidable 2026-10-10 (c)).
+  const dato = `${f} de cada 100 unidades colgadas están frescas`;
   if (antes === null || !sePuedeDecir(antes)) return { ...base, respuesta: `${dato}.`, afirma: true };
   const tendencia = tendenciaDe(principal.unidades, antes);
   return { pregunta: PREGUNTA_PISO, respuesta: `${dato}${COLA_TENDENCIA[tendencia]}`, afirma: true, tendencia, antes: porcentajes(antes) };

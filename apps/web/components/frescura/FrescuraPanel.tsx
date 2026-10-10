@@ -11,7 +11,7 @@ import {
   TODAS_LAS_CATEGORIAS,
   accionDeFila,
   agrupar,
-  avisoPocasVentas,
+  mayoriaAproximada,
   cifrasVista,
   consultaDe,
   fraseEncabezado,
@@ -38,7 +38,7 @@ import {
   resumenPie,
   textoConsecuenciaFila,
 } from "@/lib/frescura-pantalla";
-import type { FrescuraSede } from "@/lib/frescura-reglas";
+import { varaQueJuzgo, type FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
 import { plazoDeAccion, type AccionDecision } from "@/lib/frescura-decisiones-reglas";
 import { bloqueDeDecision, filaDeDecision, notaDelMes } from "@/lib/frescura-decisiones-pantalla";
@@ -51,7 +51,7 @@ import { FrescuraTablero } from "./FrescuraTablero";
 import { FrescuraPiso } from "./FrescuraPiso";
 import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
-import { conteoDeFamilia, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
+import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -118,12 +118,11 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
         : [],
     [sede, datos.categoriasVisuales, datos.familias, datos.precios],
   );
-  // Contra hace 4 semanas (la meta de Felipe): la misma familia, reconstruida del mismo libro en el servidor.
-  const antes =
-    sede?.haceUnMes && piso[0]
-      ? conteoDeFamilia(sede.haceUnMes, piso[0].codigo, { familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null, familias: datos.familias })
-      : null;
-  const respuesta = sede ? respuestaDelPiso(piso[0] ?? null, datos.puerta, antes) : null;
+  // Arriba, toda la tienda (Felipe, Formidable 2026-10-10 (c)); cada familia va debajo en su línea.
+  const tienda = useMemo(() => pisoDeLaTienda(piso), [piso]);
+  // Contra hace 4 semanas (la meta de Felipe): toda la tienda, reconstruida del mismo libro en el servidor.
+  const antes = sede?.haceUnMes && tienda ? conteoDeTodo(sede.haceUnMes) : null;
+  const respuesta = sede ? respuestaDelPiso(tienda, datos.puerta, antes) : null;
   // Lo que mueve la aguja: las categorías que se quedan y la que se lleva más (con lo anotado en caja como control).
   const pisoCuadrado = datos.puerta?.pisoCuadrado === true;
   const anotadasDe = useMemo(() => {
@@ -134,7 +133,16 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
     };
   }, [datos.anotadas]);
   const senales = useMemo(
-    () => (sede ? loQueMueveLaAguja(sede.prendas, sede.ritmoPorCategoria, { pisoCuadrado, anotadas: datos.anotadas.length > 0 ? anotadasDe : undefined }) : []),
+    () => {
+      if (!sede) return [];
+      // La vara que juzgó a cada categoría: «se queda por edad» compara lo viejo contra lo que ELLA espera (Formidable 2026-10-10 (c)).
+      const varas = new Map(sede.categorias.map((v) => [v.categoriaId, varaQueJuzgo(v).cortes]));
+      return loQueMueveLaAguja(sede.prendas, sede.ritmoPorCategoria, {
+        pisoCuadrado,
+        anotadas: datos.anotadas.length > 0 ? anotadasDe : undefined,
+        varaDe: (cat) => varas.get(cat) ?? null,
+      });
+    },
     [sede, pisoCuadrado, datos.anotadas, anotadasDe],
   );
   const seLlevan = useMemo(() => {
@@ -144,8 +152,10 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   }, [sede, pisoCuadrado, datos.anotadas, anotadasDe]);
   // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
   const sinTemporada = textoSinTemporada(enTabla);
-  // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
-  const avisoPocas = ctx ? avisoPocasVentas(enTabla, datos.sede.nombre) : null;
+  // Lo aproximado se dice UNA vez, en la tarjeta de la tienda, cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada
+  // fila lo marca. Con la puerta cerrada ya lo dice su aviso.
+  const aproximadoEsLaRegla = ctx ? mayoriaAproximada(enTabla) : false;
+  const puertaCerrada = datos.puerta === null || !datos.puerta.puedeHablar;
   const cifras = sede ? cifrasVista(sede.cifras) : null;
   const pie = sede ? pieVista(sede.prendas) : null;
   const resumenDelPie = pie ? resumenPie(pie) : null;
@@ -275,7 +285,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
       <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} />
 
-      {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} acceso={acceso} antes={respuesta?.antes ?? null} />}
+      {sede && <FrescuraPiso tienda={tienda} familias={piso} puerta={datos.puerta} acceso={acceso} antes={respuesta?.antes ?? null} pocasVentas={aproximadoEsLaRegla} />}
 
       {sede && datos.sede.tienda && (
         <FrescuraAguja
@@ -382,14 +392,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 sinTemporada={sinTemporada === null ? null : { texto: sinTemporada, href: acceso.atributos ? "/productos/atributos?tipo=temporadas&vista=completar" : null }}
               />
             )}
-            {avisoPocas && (
-              <p role="status" className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  <TextoConNegritas texto={avisoPocas} />
-                </span>
-              </p>
-            )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
@@ -426,7 +428,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">
                 {filtros.porDecidir && !hayFiltros({ ...filtros, porDecidir: false }) ? (
                   <>
-                    <b className="font-semibold text-tinta">{avisoPocas === null ? "Nada por decidir: todo en orden." : "Nada por decidir por ahora."}</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
+                    <b className="font-semibold text-tinta">{aproximadoEsLaRegla || puertaCerrada ? "Nada por decidir por ahora." : "Nada por decidir: todo en orden."}</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => cambiar({ porDecidir: false, todas: true })}>
                       Ver todas las prendas
                     </button>
@@ -488,7 +490,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                                 fila={filaVista(p, ctx!)}
                                 onAbrir={() => abrir(p.clave)}
                                 decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)}
-                                marcarAproximado={avisoPocas === null}
+                                marcarAproximado={!aproximadoEsLaRegla}
                                 apariencia={datos.apariencias[p.clave] ?? null}
                                 categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
                                 accion={accion}

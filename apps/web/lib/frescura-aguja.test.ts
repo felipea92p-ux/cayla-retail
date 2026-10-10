@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EstadoFrescura, FrescuraPrenda, RitmoCategoria } from "./frescura-reglas";
-import { acogidas, cuantilGamma, enlaceBajar, loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "./frescura-aguja";
+import { acogidas, cuantilGamma, enlaceBajar, envejeceDeMas, loQueMueveLaAguja, loQueSeLlevan, parteViejaEsperada, sinEstrenar } from "./frescura-aguja";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): la edad (un hecho) y la acogida (contraída, con su cota prudente), con lo anotado en
 // caja como control y sin veredictos si el piso no está cuadrado.
@@ -61,12 +61,14 @@ describe("loQueMueveLaAguja", () => {
   const r = ritmo([["jea", 100, 5], ["pol", 100, 30], ["cam", 100, 20]]);
 
   it("Jeans se queda (envejece y vende menos de lo que ocupa) y pide completar tallas; Polos se lleva más y pide colgar más", () => {
-    const s = loQueMueveLaAguja(prendas, r, { pisoCuadrado: true });
+    const s = loQueMueveLaAguja(prendas, r, { pisoCuadrado: true, varaDe: () => POLOS.cortes });
     expect(s.map((x) => [x.nombre, x.tipo, x.accion.tipo])).toEqual([
       ["Jeans", "se_queda", "completar_tallas"],
       ["Polos", "se_lleva", "colgar_mas"],
     ]);
-    expect(s[0]).toMatchObject({ envejeciendo: 6, piso: 6, accion: { lineas: [{ varianteId: "j1-l", cantidad: 1 }] } });
+    // La edad manda el nombre: sus 6 unidades pasaron la marca de 3 de cada 4 y su vara esperaba ~7 de cada 100 viejas.
+    expect(s[0]).toMatchObject({ motivo: "edad", envejeciendo: 6, piso: 6, accion: { lineas: [{ varianteId: "j1-l", cantidad: 1 }] } });
+    expect(s[1].motivo).toBeNull();
     expect(s[1]).toMatchObject({ accion: { enAlmacen: 10 } });
   });
 
@@ -74,11 +76,25 @@ describe("loQueMueveLaAguja", () => {
     expect(loQueMueveLaAguja(prendas, r, { pisoCuadrado: false })).toEqual([]);
   });
 
-  it("lo anotado en caja es el control: si con él la acogida cruza 1, no habla; la edad sigue hablando", () => {
-    const anotadas = (c: string) => (c === "jea" ? 40 : 0);
-    const s = loQueMueveLaAguja(prendas, r, { pisoCuadrado: true, anotadas });
-    const jea = s.find((x) => x.nombre === "Jeans")!;
-    expect(jea).toMatchObject({ tipo: "se_queda", acogida: null, envejeciendo: 6 });
+  it("lo anotado en caja cuenta como venta de su categoría (Felipe, «rapidez sí, días no»): Jeans con 60 anotadas se lleva más", () => {
+    const anotadas = (c: string) => (c === "jea" ? 60 : 0);
+    const sin = loQueMueveLaAguja(prendas, r, { pisoCuadrado: true });
+    expect(sin.find((x) => x.nombre === "Jeans")).toMatchObject({ tipo: "se_queda", motivo: "espacio" });
+    const con = loQueMueveLaAguja(prendas, r, { pisoCuadrado: true, anotadas });
+    expect(con.find((x) => x.nombre === "Jeans")).toMatchObject({ tipo: "se_lleva" });
+  });
+
+  it("sin su vara, la edad no habla (no se sabe cuánto viejo es normal): habla solo la acogida", () => {
+    const s = loQueMueveLaAguja([prenda("j1", "jea", "Jeans", 6, 20), prenda("c1", "cam", "Camisas y Blusas", 6, 20)], ritmo([["jea", 100, 20], ["cam", 100, 20]]), { pisoCuadrado: true });
+    expect(s).toEqual([]);
+  });
+
+  it("completa tallas solo si la talla rota es de la categoría: 1 de 4 modelos con talla guardada no alcanza, 2 de 4 sí", () => {
+    const uno = [prenda("j1", "jea", "Jeans", 6, 20, { guardada: 1 }), prenda("j2", "jea", "Jeans", 6, 20), prenda("j3", "jea", "Jeans", 6, 20), prenda("j4", "jea", "Jeans", 6, 20)];
+    const dos = [prenda("j1", "jea", "Jeans", 6, 20, { guardada: 1 }), prenda("j2", "jea", "Jeans", 6, 20, { guardada: 1 }), prenda("j3", "jea", "Jeans", 6, 20), prenda("j4", "jea", "Jeans", 6, 20)];
+    const conVara = { pisoCuadrado: true, varaDe: () => POLOS.cortes };
+    expect(loQueMueveLaAguja(uno, ritmo([["jea", 400, 5], ["cam", 100, 20]]), conVara)[0].accion.tipo).toBe("cambiar_lugar");
+    expect(loQueMueveLaAguja(dos, ritmo([["jea", 400, 5], ["cam", 100, 20]]), conVara)[0].accion.tipo).toBe("completar_tallas");
   });
 
   it("sin tallas guardadas, lo que se queda pide cambiar de lugar; lo que se lleva sin almacén, pedir", () => {
@@ -96,6 +112,38 @@ describe("loQueMueveLaAguja", () => {
 
   it("con pocas esperadas (poco tiempo colgado), la acogida calla", () => {
     expect(loQueMueveLaAguja([prenda("p1", "pol", "Polos", 2, 3)], ritmo([["pol", 4, 3], ["cam", 4, 0]]), { pisoCuadrado: true })).toEqual([]);
+  });
+});
+
+describe("la edad contra lo que espera su vara (Formidable 2026-10-10 (c): sin el 30 % fijo)", () => {
+  it("con una curva exponencial, 1 de cada 4 de lo colgado ya pasó P75: la vieja «normal»", () => {
+    expect(parteViejaEsperada({ p50: Math.log(2) * D, p75: Math.log(4) * D, p90: Math.log(10) * D })).toBeCloseTo(0.25, 2);
+  });
+
+  it("una categoría que vende casi todo junto (P50 9, P75 11, P90 13 días) espera poca vieja; sin P75, no se sabe", () => {
+    const q = parteViejaEsperada(POLOS.cortes)!;
+    expect(q).toBeGreaterThan(0.05);
+    expect(q).toBeLessThan(0.1);
+    expect(parteViejaEsperada({ p50: 9 * D, p75: null, p90: null })).toBeNull();
+    // Sin P90, la cola sale del ritmo de P50 a P75 y sigue siendo una parte (entre 0 y 1).
+    const sinP90 = parteViejaEsperada({ p50: 9 * D, p75: 11 * D, p90: null })!;
+    expect(sinP90).toBeGreaterThan(0);
+    expect(sinP90).toBeLessThan(1);
+  });
+
+  it("6 viejas de 10 donde se esperan 1 de cada 4 envejecen de más; 4 de 10 todavía no; con menos de 3, nunca", () => {
+    expect(envejeceDeMas(6, 10, 0.25)).toBe(true);
+    expect(envejeceDeMas(4, 10, 0.25)).toBe(false);
+    expect(envejeceDeMas(2, 2, 0.01)).toBe(false);
+    expect(envejeceDeMas(6, 10, null)).toBe(false);
+  });
+
+  it("una categoría sana (1 de cada 4 vieja) casi nunca salta por azar: menos de 4 de cada 100 veces con 12 unidades", () => {
+    // Binomial(12, 0,25): la probabilidad de las cuentas que dispararían el aviso.
+    const comb = (n: number, k: number): number => (k === 0 ? 1 : (comb(n, k - 1) * (n - k + 1)) / k);
+    let saltos = 0;
+    for (let k = 0; k <= 12; k++) if (envejeceDeMas(k, 12, 0.25)) saltos += comb(12, k) * 0.25 ** k * 0.75 ** (12 - k);
+    expect(saltos).toBeLessThan(0.04);
   });
 });
 

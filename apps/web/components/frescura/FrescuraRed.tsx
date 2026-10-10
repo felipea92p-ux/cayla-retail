@@ -5,7 +5,6 @@ import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, porcentajes, type FamiliaPiso } from "@/lib/frescura-piso";
 import { trozosRicos } from "@/lib/frescura-pantalla";
-import { PARTE_VIEJA } from "@/lib/frescura-aguja";
 import { cuadricula, enlaceATienda, razonDeLaTienda, resumenCayla } from "@/lib/frescura-red";
 import type { DatosRed } from "@/lib/frescura";
 import { NivelChip } from "./piezas";
@@ -69,7 +68,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
       <section aria-labelledby="red-titulo" className="card-cayla px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 id="red-titulo" className="font-display text-[22px] leading-tight">
-            {principal ? `${principal.nombre}, las tiendas juntas` : "Las tiendas"}
+            {principal ? "CAYLA, las tiendas juntas" : "Las tiendas"}
           </h2>
           {principal && <span className="text-[13px] tabular-nums text-taupe">{colgadas(principal.total)}</span>}
         </div>
@@ -129,7 +128,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         <Tabla>
           <div className="px-5 py-4">
             <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">Qué envejece en cada tienda</h2>
-            <p className="mt-1 text-[12.5px] text-taupe">De cada 100 prendas colgadas de la categoría, cuántas ya pasaron lo que tarda en venderse.</p>
+            <p className="mt-1 text-[12.5px] text-taupe">De cada 100 unidades colgadas de la categoría, cuántas ya pasaron lo que tarda en venderse.</p>
           </div>
           <Encabezado plantilla={plantilla} columnas={[{ titulo: "Categoría" }, ...red.tiendas.map((t) => ({ titulo: t.nombre, alinear: "der" as const }))]} />
           {filas.map((f) => (
@@ -150,7 +149,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                           <span className="text-taupe">Aún no se sabe · {c.unidades}</span>
                         ) : (
                           <>
-                            <span className={c.envejeciendo >= PARTE_VIEJA * 100 ? "font-semibold text-ambar-profundo" : ""}>{c.envejeciendo} %</span>
+                            <span className={c.deMas ? "font-semibold text-ambar-profundo" : ""}>{c.envejeciendo} %</span>
                             <span className="text-[12px] text-taupe"> de {c.unidades}</span>
                             {c.sinSaber > 0 && <span className="block text-[12px] text-taupe">{c.sinSaber === 1 ? "1 aún no se sabe" : `${c.sinSaber} aún no se saben`}</span>}
                           </>

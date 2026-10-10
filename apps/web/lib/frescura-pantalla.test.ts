@@ -44,7 +44,7 @@ import {
   tableroVista,
   tramoBarraDe,
   varaTablero,
-  avisoPocasVentas,
+  mayoriaAproximada,
   esAproximada,
   resumenPie,
   textoConsecuenciaFila,
@@ -325,7 +325,7 @@ describe("dónde está cada prenda: la tabla es lo colgado (o apartado desde el 
     expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo })).toBe("Se juzga contra lo que vende CAYLA: 30 ventas de los últimos 120 días en las tres tiendas; aquí, 3 ventas.");
     expect(con({ vendidas: 0, nivel: null, respaldo })).toBe("Se juzga contra lo que vende CAYLA: 30 ventas de los últimos 120 días en las tres tiendas; aquí, ninguna venta todavía.");
     expect(con({ vendidas: 12, nivel: "aceptable", respaldo: { ...respaldo, enUso: false } })).toBe("Aquí ya hay 12 ventas: se juzga sola; la vara de CAYLA (30 ventas) queda de apoyo.");
-    expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo: { ...respaldo, vendidas: 5, nivel: "pocos_datos", enUso: false } })).toBe("La vara de CAYLA tampoco alcanza (5 ventas): se juzga con lo de aquí.");
+    expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo: { ...respaldo, vendidas: 5, nivel: "pocos_datos", enUso: false } })).toBe("La vara de CAYLA tampoco alcanza (5 ventas): se juzga con lo de aquí, que es aproximado.");
     // CAYLA alcanza y aquí no, pero nada se juzgó contra ella (puros clásicos, o prendas que no cuadran).
     expect(con({ vendidas: 0, nivel: null, respaldo: { ...respaldo, enUso: false } })).toBe("Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (30 ventas) queda de apoyo.");
     expect(con({ respaldo: null })).toBeNull();
@@ -486,14 +486,10 @@ describe("los filtros viven en la URL", () => {
 });
 
 describe("la cabecera de cada categoría", () => {
-  it("con la curva completa: la mitad, 3 de cada 4, casi todas; la escala y la base", () => {
+  it("con la curva completa: la mitad, 3 de cada 4, casi todas, y la base (sin escala propia: vive en la hoja de cada prenda)", () => {
     const g = grupoVista("blu", "Blusas", ctx());
     expect(g.comparacion).toBe("A los 18 días ya se vendió la mitad de las prendas de Blusas en Tienda Trujillo; a los 34, 3 de cada 4; a los 52, casi todas.");
-    expect(g.escala).toEqual([
-      { nombre: "Fresca", rango: "antes de 18 d" },
-      { nombre: "Vigente", rango: "18–34 d" },
-      { nombre: "Envejeciendo", rango: "desde 34 d" },
-    ]);
+    expect("escala" in g).toBe(false);
     expect(g.base).toBe("con 37 ventas de los últimos 60 días");
     expect(g.cayla).toBeNull(); // quien no es líder no ve la referencia de CAYLA
   });
@@ -590,9 +586,10 @@ describe("la hoja de detalle", () => {
 
   it("el porqué de una Crítica: los días de las demás SIN ella (D5) y los días que no cuentan", () => {
     const d = detalleVista(prenda({ primeraExhibicion: "2026-07-01T15:00:00.000Z" }), ctx());
-    expect(d.porque).toContain("Lleva **61 días**: pasó los 51 en que ya se vendieron 9 de cada 10 de las demás de Tienda Trujillo.");
+    // Envejeciendo empieza en la marca de 3 de cada 4: el porqué cita esa línea y, después, la de 9 de cada 10 (Formidable 2026-10-10 (c)).
+    expect(d.porque).toContain("Lleva **61 días**: pasó los 33 en que ya se vendieron 3 de cada 4 de las demás; a los 51 ya iban 9 de cada 10.");
     expect(d.porque).toContain("De los 89 días desde que se colgó por primera vez, 28 estuvo sin nada libre en el piso");
-    expect(d.sinContarla).toBe("Sin contarla, las demás: la mitad se vende antes de 18 días, 3 de cada 4 antes de 33, 9 de cada 10 antes de 51 (la cabecera de Blusas, con todas: 18, 34, 52).");
+    expect(d.sinContarla).toBe("Sin contarla, las demás: la mitad se vende antes de 18 días, 3 de cada 4 antes de 33, 9 de cada 10 antes de 51 (contándola a ella: 18, 34, 52).");
   });
 
   it("«al menos»: la causa que la pantalla puede saber (llegó sin fecha, o se colgó antes de lo que mira)", () => {
@@ -699,9 +696,19 @@ describe("corrección del paso 4 · el redondeo de los días no choca en la mism
       }
     }
   });
-  it("la escala junta dos cortes que caen en el mismo día: «Vigente 18 d», nunca «18–18 d»", () => {
-    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { cortes: { p50: 17.6 * DIA, p75: 18.3 * DIA, p90: 52 * DIA } })]]) }));
-    expect(g.escala.map((e) => `${e.nombre} ${e.rango}`)).toEqual(["Fresca antes de 18 d", "Vigente 18 d", "Envejeciendo desde 18 d"]);
+  it("con la vara del mes en uso, la comparación es la de esa vara (la que juzgó) y dice si la categoría se puso más lenta", () => {
+    const delMes = { ...vara("blu", { cortes: { p50: 9 * DIA, p75: 12 * DIA, p90: 20 * DIA }, vendidas: 24 }), corte: "2026-10-01T05:00:00Z", enUso: true };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { cortes: { p50: 15 * DIA, p75: 24 * DIA, p90: 40 * DIA }, delMes })]]) }));
+    // La misma escala de las prendas (9 / 12 / 20), no la de hoy (15 / 24 / 40): la encargada vio dos y no supo cuál era (Formidable 2026-10-10 (c)).
+    expect(g.comparacion).toBe("A los 9 días ya se vendió la mitad de las prendas de Blusas en Tienda Trujillo; a los 12, 3 de cada 4; a los 20, casi todas.");
+    expect(g.mes).toBe("Su vara de este mes quedó fija el día 1: la mitad se vendía antes de 9 días; con lo de hoy, antes de 15 (se puso más lenta).");
+  });
+
+  it("si la vara del mes todavía no llega a sus ventas, lo dice una vez: aprende su ritmo", () => {
+    const delMes = { ...vara("blu", { vendidas: 4 }), corte: "2026-10-01T05:00:00Z", enUso: false };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { delMes })]]) }));
+    expect(g.mes).toBe("Todavía aprende su ritmo: este mes se juzga con lo vendido hasta hoy.");
+    expect(grupoVista("blu", "Blusas", ctx()).mes).toBeNull();
   });
 });
 
@@ -876,8 +883,8 @@ describe("Formidable (ADR-0350) · una fila, una prenda, una frase", () => {
 describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", () => {
   it("la frase bajo el título es la PREGUNTA de Felipe y su respuesta de hoy (ADR-0208, act. 2026-10-10 (b))", () => {
     expect(fraseEncabezado(null)).toBe("¿Tu piso está fresco?");
-    expect(fraseEncabezado({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true, tendencia: null, antes: null })).toBe(
-      "¿Tu piso está fresco? **58 de cada 100 prendas colgadas están frescas.**",
+    expect(fraseEncabezado({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 unidades colgadas están frescas.", afirma: true, tendencia: null, antes: null })).toBe(
+      "¿Tu piso está fresco? **58 de cada 100 unidades colgadas están frescas.**",
     );
     // Sin la puerta (la tienda no registra lo que vende), la respuesta es un «todavía no», nunca un porcentaje.
     expect(fraseEncabezado(respuestaDelPiso(pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0] ?? null, null))).toBe(
@@ -921,12 +928,11 @@ describe("Formidable (ADR-0350) · lo aproximado se dice UNA vez cuando es la re
     expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false } }))).toBe(false);
   });
 
-  it("con MÁS de la mitad aproximada hay un solo aviso, con el nombre de la sede; con la mitad o menos, ninguno", () => {
-    const aviso = avisoPocasVentas([conPocas("a"), conPocas("b"), conFirmes("c")], "Tienda TRU");
-    expect(aviso).toBe("**Todavía hay pocas ventas en Tienda TRU.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.");
-    expect(avisoPocasVentas([conPocas("a"), conFirmes("b")], "Tienda TRU")).toBeNull();
-    expect(avisoPocasVentas([conFirmes("a"), conFirmes("b")], "Tienda TRU")).toBeNull();
-    expect(avisoPocasVentas([], "Tienda TRU")).toBeNull();
+  it("con MÁS de la mitad aproximada, lo aproximado es la regla (se dice una vez en la tarjeta); con la mitad o menos, la excepción", () => {
+    expect(mayoriaAproximada([conPocas("a"), conPocas("b"), conFirmes("c")])).toBe(true);
+    expect(mayoriaAproximada([conPocas("a"), conFirmes("b")])).toBe(false);
+    expect(mayoriaAproximada([conFirmes("a"), conFirmes("b")])).toBe(false);
+    expect(mayoriaAproximada([])).toBe(false);
   });
 });
 

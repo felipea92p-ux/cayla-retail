@@ -5,9 +5,11 @@ import {
   avisoDeLaPuerta,
   CAUSAS_SIN_SABER,
   conteoDeFamilia,
+  conteoDeTodo,
   conteoVacio,
   pasoDeLaPuerta,
   pisoAnterior,
+  pisoDeLaTienda,
   pisoPorFamilia,
   porcentajes,
   respuestaDelPiso,
@@ -90,13 +92,13 @@ describe("tramosDeLaPrenda: dónde cae cada unidad colgada", () => {
 
   it("«Aún no se sabe» dice por qué: sin ritmo de su categoría, sin fecha o porque no cuadra (Formidable 2026-10-10 (c))", () => {
     // Sin ritmo: su categoría no tiene vara.
-    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(40)], estado: { ...SEMAFORO, tipo: "sin_vara" } })).sinSaberPor).toEqual({ ritmo: 1, fecha: 0, dudosa: 0 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(40)], estado: { ...SEMAFORO, tipo: "sin_vara" } })).sinSaberPor).toEqual({ ritmo: 1, fecha: 0, dudosa: 0, venta: 0 });
     // No cuadra: hay que contarla.
-    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [], piso: 2, estado: { ...SEMAFORO, tipo: "dudosa" } })).sinSaberPor).toEqual({ ritmo: 0, fecha: 0, dudosa: 2 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [], piso: 2, estado: { ...SEMAFORO, tipo: "dudosa" } })).sinSaberPor).toEqual({ ritmo: 0, fecha: 0, dudosa: 2, venta: 0 });
     // Sin fecha: la tanda entró sin fecha y no pasó P75, el modelo no se sabe si pasó la mitad, o el stock no tiene tanda en el libro.
-    expect(tramosDeLaPrenda(prenda({ modelo: 3, alMenos: true, colgadas: [tanda(3, 2, true)] })).sinSaberPor).toEqual({ ritmo: 0, fecha: 2, dudosa: 0 });
-    expect(tramosDeLaPrenda(prenda({ modelo: 3, alMenos: true, colgadas: [tanda(2)] })).sinSaberPor).toEqual({ ritmo: 0, fecha: 1, dudosa: 0 });
-    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(20)], piso: 3 })).sinSaberPor).toEqual({ ritmo: 0, fecha: 2, dudosa: 0 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 3, alMenos: true, colgadas: [tanda(3, 2, true)] })).sinSaberPor).toEqual({ ritmo: 0, fecha: 2, dudosa: 0, venta: 0 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 3, alMenos: true, colgadas: [tanda(2)] })).sinSaberPor).toEqual({ ritmo: 0, fecha: 1, dudosa: 0, venta: 0 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(20)], piso: 3 })).sinSaberPor).toEqual({ ritmo: 0, fecha: 2, dudosa: 0, venta: 0 });
   });
 
   it("las causas suman exactamente «Aún no se sabe», en cualquier mezcla", () => {
@@ -166,6 +168,53 @@ describe("pisoPorFamilia", () => {
   });
 });
 
+describe("pisoDeLaTienda: toda la tienda arriba (Felipe, Formidable 2026-10-10 (c))", () => {
+  const FAMILIAS = [
+    { codigo: "indumentaria", nombre: "Indumentaria", orden: 1 },
+    { codigo: "bisuteria", nombre: "Bisutería", orden: 2 },
+  ];
+  const familiaDe = (cat: string) => (cat === "anillos" ? "bisuteria" : "indumentaria");
+
+  it("suma todas las familias: unidades, causas de lo que no se sabe, prendas y clásicos aparte", () => {
+    const prendas = [
+      prenda({ modelo: 8, colgadas: [tanda(8, 3)], varianteId: "a" }),
+      prenda({ modelo: 40, colgadas: [tanda(40, 2)], categoriaId: "anillos", varianteId: "b" }),
+      prenda({ modelo: 40, colgadas: [tanda(40)], estado: { ...SEMAFORO, tipo: "sin_vara" }, varianteId: "c" }),
+    ];
+    const familias = pisoPorFamilia(prendas, { familiaDe, familias: FAMILIAS });
+    const tienda = pisoDeLaTienda(familias)!;
+    expect(tienda.nombre).toBe("Toda la tienda");
+    expect(tienda.unidades).toMatchObject({ fresca: 3, envejeciendo: 2, sin_saber: 1 });
+    expect(tienda.total).toBe(6);
+    expect(tienda.prendas).toBe(3);
+    expect(tienda.sinSaberPor.ritmo).toBe(1);
+    // Es la suma exacta de las barras de cada familia.
+    for (const k of ["fresca", "vigente", "envejeciendo", "sin_saber", "clasico"] as const) {
+      expect(tienda.unidades[k]).toBe(familias.reduce((s, f) => s + f.unidades[k], 0));
+    }
+  });
+
+  it("los soles solo si todas las familias los tienen; sin nada colgado, nada", () => {
+    const prendas = [prenda({ modelo: 8, colgadas: [tanda(8)], varianteId: "a" }), prenda({ modelo: 8, colgadas: [tanda(8)], categoriaId: "anillos", varianteId: "b" })];
+    const conPrecio = pisoDeLaTienda(pisoPorFamilia(prendas, { familiaDe, familias: FAMILIAS, precioDe: () => 50 }))!;
+    expect(conPrecio.soles?.fresca).toBe(100);
+    const sinUno = pisoDeLaTienda(pisoPorFamilia(prendas, { familiaDe, familias: FAMILIAS, precioDe: (v) => (v === "a" ? 50 : null) }))!;
+    expect(sinUno.soles).toBeNull();
+    expect(pisoDeLaTienda([])).toBeNull();
+  });
+
+  it("conteoDeTodo: hace 4 semanas, todas las categorías juntas", () => {
+    const c = conteoDeTodo({
+      fecha: "2026-09-01T00:00:00Z",
+      porCategoria: [
+        { categoriaId: "polos", unidades: { ...conteoVacio(), fresca: 2 } },
+        { categoriaId: "anillos", unidades: { ...conteoVacio(), envejeciendo: 3 } },
+      ],
+    });
+    expect(c).toMatchObject({ fresca: 2, envejeciendo: 3 });
+  });
+});
+
 describe("porcentajes", () => {
   it("enteros que suman exactamente 100, sin contar los clásicos", () => {
     const p = porcentajes({ ...conteoVacio(), fresca: 1, vigente: 1, envejeciendo: 1, clasico: 7 });
@@ -178,12 +227,12 @@ describe("porcentajes", () => {
 describe("respuestaDelPiso: la frase de la cabecera", () => {
   const familia = (u: Partial<ReturnType<typeof conteoVacio>>) => {
     const unidades = { ...conteoVacio(), ...u };
-    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0 } };
+    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0, venta: 0 } };
   };
   const LISTA = { puedeHablar: true, aviso: "" };
 
   it("afirma solo si la tienda registra lo que vende y casi todo se sabe", () => {
-    expect(respuestaDelPiso(familia({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA)).toEqual({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true, tendencia: null, antes: null });
+    expect(respuestaDelPiso(familia({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA)).toEqual({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 unidades colgadas están frescas.", afirma: true, tendencia: null, antes: null });
   });
 
   it("si la tienda no registra lo que vende, todavía no se puede saber (lo vendido sigue «colgado» y envejece en falso)", () => {
@@ -201,7 +250,7 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
   });
 
   it("con mucho «aún no se sabe» no afirma un porcentaje que podría ser otro", () => {
-    expect(respuestaDelPiso(familia({ fresca: 50, sin_saber: 50 }), LISTA)).toMatchObject({ respuesta: "Todavía no se puede decir: aún no se sabe de 50 de cada 100 prendas colgadas.", afirma: false });
+    expect(respuestaDelPiso(familia({ fresca: 50, sin_saber: 50 }), LISTA)).toMatchObject({ respuesta: "Todavía no se puede decir: aún no se sabe de 50 de cada 100 unidades colgadas.", afirma: false });
   });
 
   it("sin nada colgado lo dice", () => {
@@ -263,6 +312,44 @@ function lecturaDosMeses(): LecturaFrescuraConPiso {
   return { separaPiso: true, desde: ts(0), ahora: ts(120), tallas, eventos, tardias: [], dudosas: [] };
 }
 
+describe("lo vendido sin registrar aparta su gemela (Felipe, Formidable 2026-10-10 (c): «rapidez sí, días no»)", () => {
+  const POLO_M_NEGRO = { categoriaId: "polos", talla: "M", colorCodigo: "NEG" };
+  const de = (sede: ReturnType<typeof analizarSede>["sede"], id: string) => sede.prendas.find((p) => p.tallas[0].varianteId === id)!;
+
+  it("sin ventas anotadas, A (35 días colgada) envejece y B (10 días) es Vigente", () => {
+    const { sede } = analizarSede(lecturaDosMeses());
+    expect(tramosDeLaPrenda(de(sede, "A")).unidades.envejeciendo).toBe(1);
+    expect(tramosDeLaPrenda(de(sede, "B")).unidades.vigente).toBe(1);
+  });
+
+  it("una venta anotada de polo M negro aparta la unidad más vieja que coincide: A deja de juzgarse y no pide decisión", () => {
+    const { sede } = analizarSede(lecturaDosMeses(), undefined, { dudas: [POLO_M_NEGRO] });
+    const a = de(sede, "A");
+    expect(a.tallas[0]).toMatchObject({ dudadas: 1, colgadas: [] });
+    expect(tramosDeLaPrenda(a).unidades).toMatchObject({ sin_saber: 1, envejeciendo: 0 });
+    expect(tramosDeLaPrenda(a).sinSaberPor.venta).toBe(1);
+    expect(a.porDecidir).toBe(false);
+    // B no se toca.
+    expect(tramosDeLaPrenda(de(sede, "B")).unidades.vigente).toBe(1);
+  });
+
+  it("dos ventas apartan A y B; una tercera ya no encuentra qué apartar; otro color, nada", () => {
+    const dos = analizarSede(lecturaDosMeses(), undefined, { dudas: [POLO_M_NEGRO, POLO_M_NEGRO] }).sede;
+    expect([de(dos, "A").tallas[0].dudadas, de(dos, "B").tallas[0].dudadas]).toEqual([1, 1]);
+    const tres = analizarSede(lecturaDosMeses(), undefined, { dudas: [POLO_M_NEGRO, POLO_M_NEGRO, POLO_M_NEGRO] }).sede;
+    expect(tres.prendas.reduce((s, p) => s + (p.tallas[0].dudadas ?? 0), 0)).toBe(2);
+    const otro = analizarSede(lecturaDosMeses(), undefined, { dudas: [{ ...POLO_M_NEGRO, colorCodigo: "AZU" }] }).sede;
+    expect(de(otro, "A").tallas[0].dudadas).toBeUndefined();
+  });
+
+  it("no toca la vara de días: las observaciones de la categoría son las mismas", () => {
+    const sin = analizarSede(lecturaDosMeses());
+    const con = analizarSede(lecturaDosMeses(), undefined, { dudas: [POLO_M_NEGRO] });
+    expect(JSON.stringify(con.observaciones)).toBe(JSON.stringify(sin.observaciones));
+    expect(con.sede.categorias.map((c) => c.cortes)).toEqual(sin.sede.categorias.map((c) => c.cortes));
+  });
+});
+
 describe("lecturaAl: la sede como era", () => {
   it("el libro hasta ese instante, lo libre en el piso que salía de él y la primera exhibición solo si ya había pasado", () => {
     const l = lecturaDosMeses();
@@ -310,24 +397,24 @@ describe("la frase contra hace 4 semanas", () => {
   const LISTA = { puedeHablar: true, aviso: "" };
   const fam = (u: Partial<ReturnType<typeof conteoVacio>>) => {
     const unidades = { ...conteoVacio(), ...u };
-    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0 } };
+    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0, venta: 0 } };
   };
 
   it("envejeciendo sube 7 puntos o más: ojo, más viejo", () => {
     const r = respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 60, vigente: 28, envejeciendo: 12 });
-    expect(r).toMatchObject({ tendencia: "mas_viejo", respuesta: "58 de cada 100 prendas colgadas están frescas: ojo, tu piso está más viejo que hace 4 semanas.", antes: { envejeciendo: 12 } });
+    expect(r).toMatchObject({ tendencia: "mas_viejo", respuesta: "58 de cada 100 unidades colgadas están frescas: ojo, tu piso está más viejo que hace 4 semanas.", antes: { envejeciendo: 12 } });
   });
 
   it("baja lo que envejece o sube lo fresco: más fresco; poco cambio: igual", () => {
     expect(respuestaDelPiso(fam({ fresca: 70, vigente: 20, envejeciendo: 10 }), LISTA, { ...conteoVacio(), fresca: 55, vigente: 25, envejeciendo: 20 }).tendencia).toBe("mas_fresco");
     expect(respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 55, vigente: 27, envejeciendo: 18 })).toMatchObject({
       tendencia: "igual",
-      respuesta: "58 de cada 100 prendas colgadas están frescas, igual que hace 4 semanas.",
+      respuesta: "58 de cada 100 unidades colgadas están frescas, igual que hace 4 semanas.",
     });
   });
 
   it("si hace 4 semanas casi nada se sabía (la carga inicial), no compara", () => {
-    expect(respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 5, sin_saber: 95 })).toMatchObject({ tendencia: null, antes: null, respuesta: "58 de cada 100 prendas colgadas están frescas." });
+    expect(respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 5, sin_saber: 95 })).toMatchObject({ tendencia: null, antes: null, respuesta: "58 de cada 100 unidades colgadas están frescas." });
   });
 
   it("tendenciaDe: envejeciendo manda aunque lo fresco también suba", () => {

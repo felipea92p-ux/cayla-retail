@@ -6,7 +6,7 @@ import { cuadricula, razonDeLaTienda, resumenCayla, type ResumenTienda } from ".
 
 const familia = (u: Partial<ConteoPiso>): FamiliaPiso => {
   const unidades = { ...conteoVacio(), ...u };
-  return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0 } };
+  return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0, venta: 0 } };
 };
 const LISTA = { puedeHablar: true, aviso: "" };
 const tienda = (nombre: string, o: Partial<ResumenTienda> = {}): ResumenTienda => ({ id: nombre, nombre, principal: null, antes: null, puerta: LISTA, porCategoria: [], fallo: null, registro: [], decidido: null, ...o });
@@ -15,7 +15,7 @@ describe("resumenCayla", () => {
   it("suma las tiendas y afirma si todas registran lo que venden", () => {
     const r = resumenCayla([tienda("TRU", { principal: familia({ fresca: 30, vigente: 10, envejeciendo: 10 }) }), tienda("AQP", { principal: familia({ fresca: 20, vigente: 20, envejeciendo: 10 }) })]);
     expect(r.principal?.unidades).toMatchObject({ fresca: 50, vigente: 30, envejeciendo: 20 });
-    expect(r.respuesta).toMatchObject({ pregunta: "¿Está fresco el piso de CAYLA?", respuesta: "50 de cada 100 prendas colgadas están frescas.", afirma: true });
+    expect(r.respuesta).toMatchObject({ pregunta: "¿Está fresco el piso de CAYLA?", respuesta: "50 de cada 100 unidades colgadas están frescas.", afirma: true });
   });
 
   it("si una tienda no pasa su puerta, CAYLA no afirma y dice cuál y qué le falta", () => {
@@ -67,15 +67,23 @@ describe("cuadricula", () => {
     const filas = cuadricula([tienda("TRU", { porCategoria: [jeans(4), polos] }), tienda("AQP", { porCategoria: [jeans(1, 5)] })]);
     expect(filas.map((f) => f.nombre)).toEqual(["Jeans", "Polos"]);
     expect(filas[0].celdas).toEqual([
-      { unidades: 10, envejeciendo: 40, sinSaber: 0 },
+      { unidades: 10, envejeciendo: 40, sinSaber: 0, deMas: false },
       // 1 vieja de 15 colgadas (5 aún sin saber): 7 de cada 100, no 10 (que saldría de las 10 que ya se saben).
-      { unidades: 15, envejeciendo: 7, sinSaber: 5 },
+      { unidades: 15, envejeciendo: 7, sinSaber: 5, deMas: false },
     ]);
-    expect(filas[1].celdas).toEqual([{ unidades: 10, envejeciendo: 0, sinSaber: 0 }, null]);
+    expect(filas[1].celdas).toEqual([{ unidades: 10, envejeciendo: 0, sinSaber: 0, deMas: false }, null]);
   });
 
   it("2 viejas de 4 colgadas son 50 de cada 100, nunca «100 %» (lo que se vio en el navegador)", () => {
     const camisas = { categoriaId: "cam", nombre: "Camisas", unidades: { ...conteoVacio(), envejeciendo: 2, sin_saber: 2 } };
-    expect(cuadricula([tienda("LIM", { porCategoria: [camisas] })])[0].celdas).toEqual([{ unidades: 4, envejeciendo: 50, sinSaber: 2 }]);
+    expect(cuadricula([tienda("LIM", { porCategoria: [camisas] })])[0].celdas).toEqual([{ unidades: 4, envejeciendo: 50, sinSaber: 2, deMas: false }]);
+  });
+
+  it("se resalta lo que envejece de más para SU vara, no un 30 % fijo", () => {
+    const jeans = (env: number, esperada: number | null) => ({ categoriaId: "jea", nombre: "Jeans", unidades: { ...conteoVacio(), fresca: 10 - env, envejeciendo: env }, esperada });
+    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(6, 0.25)] })])[0].celdas[0]?.deMas).toBe(true);
+    // 4 de 10 (40 %) ya habría pasado el 30 % fijo; contra su vara (1 de cada 4), todavía no es de más.
+    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(4, 0.25)] })])[0].celdas[0]?.deMas).toBe(false);
+    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(6, null)] })])[0].celdas[0]?.deMas).toBe(false);
   });
 });

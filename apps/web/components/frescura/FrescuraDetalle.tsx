@@ -30,8 +30,15 @@ const ZONA: Record<Tramo | "nada", string> = {
 
 const TRASLADO: Record<"inicio" | "medio" | "fin", string> = { inicio: "translate-x-0", medio: "-translate-x-1/2", fin: "-translate-x-full" };
 
+/**
+ * ¿Cabe el nombre dentro de su zona? La hoja mide ~520 px de regla: cada letra de 12 px ocupa ~7 px más el relleno. Lo que no cabe no se
+ * corta («Vige…», la ciega no supo leerlo, Formidable 2026-10-10 (c)): va debajo de la regla, con su muestra.
+ */
+const cabeElNombre = (nombre: string, anchoPct: number): boolean => anchoPct * 5.2 >= nombre.length * 7 + 12;
+
 function Regla({ regla }: { regla: ReglaVista }) {
   const alinearElla = regla.ella.pos < 8 ? "inicio" : regla.ella.pos > 92 ? "fin" : "medio";
+  const sinLugar = regla.zonas.filter((z) => !cabeElNombre(z.nombre, z.ancho));
   return (
     <div className="relative mt-3.5 pt-7" role="img" aria-label={`Dónde cae entre las demás de su categoría: ${regla.ella.texto}`}>
       <span
@@ -49,7 +56,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
             className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[12px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
             style={{ width: `${z.ancho}%` }}
           >
-            <span className="truncate">{z.nombre}</span>
+            {cabeElNombre(z.nombre, z.ancho) && <span className="truncate">{z.nombre}</span>}
           </span>
         ))}
       </div>
@@ -70,6 +77,16 @@ function Regla({ regla }: { regla: ReglaVista }) {
           </span>
         ))}
       </div>
+      {sinLugar.length > 0 && (
+        <ul aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-taupe">
+          {sinLugar.map((z, i) => (
+            <li key={`${z.clave}-${i}`} className="flex items-center gap-1.5">
+              <span className={`inline-block h-2.5 w-2.5 rounded-sm shadow-[inset_0_0_0_1px_var(--color-taupe)] ${ZONA[z.clave]}`} />
+              {z.nombre}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import { tramosDeLaPrenda } from "./frescura-piso";
-import { cuantilGamma, type FrescuraPrenda, type RitmoCategoria } from "./frescura-reglas";
+import { cuantilGamma, type Cortes, type FrescuraPrenda, type RitmoCategoria } from "./frescura-reglas";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): las categorías de mayor impacto, con su acción. El ejemplo de Felipe: «Jeans está
 // envejeciendo: rótalo, mejora la exhibición o completa tallas» y «Polos tiene mayor acogida». Dos señales, cada una con su vara:
 //
 //   1. LA EDAD (un hecho): cuántas unidades de la categoría ya pasaron el tiempo en que su categoría vende 3 de cada 4 (Envejeciendo en la
-//      barra). Habla con 3 unidades o más que sean al menos 3 de cada 10 de su piso.
+//      barra), contra las que SU PROPIA VARA espera que estén ahí (Felipe, Formidable 2026-10-10 (c)): con entradas parejas, una categoría
+//      sana ya tiene cerca de 1 de cada 4 colgadas pasada esa marca (la edad de lo colgado se reparte como su curva), así que un corte fijo
+//      de 30 % saltaba por azar. Habla con 3 unidades o más y si, con 97,5 de cada 100 de confianza, son más de las que espera su vara.
 //   2. LA ACOGIDA (una inferencia): cuánto pesa la categoría en el piso contra cuánto vende. θ = ventas ÷ las que tocarían por su espacio al
 //      ritmo del RESTO de la tienda (1 = vende lo que ocupa). Con pocas ventas, una cifra sola es ruido (ADR-0214): se acerca a 1 con una
 //      Gamma(5 + x/φ, 5 + E/φ) —como el «soles por hora» de Rendimiento acerca a la persona hacia su tienda— y solo habla si su cota
@@ -13,9 +15,10 @@ import { cuantilGamma, type FrescuraPrenda, type RitmoCategoria } from "./frescu
 //      Simulado con el volumen de TRU (18 categorías, ~45 unidades al día): una falsa alarma cada ~35 semanas con φ = 1,5 (cada ~5 con el
 //      peor φ medido), y una caída real a la mitad se ve en ~2 semanas. φ (cuántas unidades se llevan juntas) no está medido todavía.
 //
-// LO ANOTADO EN CAJA (las ventas «sin registrar», que traen categoría pero no prenda) no entra a la cifra: no dice si la prenda salió del
-// piso. Sirve de CONTROL: si sumándolo la acogida cae del otro lado de 1, la categoría no recibe veredicto. Y cuando el piso no se cuadró
-// todavía (el sistema no sabe qué cuelga), no hay veredictos: se dice qué se llevan los clientes, que no necesita el piso.
+// LO ANOTADO EN CAJA (las ventas «sin registrar», que traen categoría, talla y color pero no el modelo) SÍ cuenta como venta de su
+// categoría (Felipe, Formidable 2026-10-10 (c): «rapidez sí, días no»): es venta real y dice qué se lleva el cliente. No entra a la vara de
+// días, porque no se sabe desde cuándo colgaba. Y cuando el piso no se cuadró todavía (el sistema no sabe qué cuelga), no hay veredictos:
+// se dice qué se llevan los clientes, que no necesita el piso.
 //
 // Sin React ni Supabase; lo prueba `frescura-aguja.test.ts`.
 
@@ -31,9 +34,13 @@ const Z90 = 1.2816;
  *  categoría con 1 o 2 prendas en el piso no llega sola; no hace falta otro umbral de piso (y no debe haberlo: las cifras del piso las
  *  decide `piso-plan.ts`, ADR-0328). */
 export const ESPERADAS_MINIMAS = 5;
-/** La edad habla con 3 unidades envejeciendo que sean al menos 3 de cada 10 de su piso. */
+/** La edad habla con 3 unidades envejeciendo o más, y si son más de las que su vara espera con esta confianza (97,5 de cada 100, de un
+ *  lado: con 18 categorías, una falsa alarma cada ~2 semanas de una categoría sana; con 90 de cada 100 serían casi dos por semana). */
 export const VIEJAS_MINIMAS = 3;
-export const PARTE_VIEJA = 0.3;
+const Z_EDAD = 1.96;
+/** «Completa tallas» solo cuando la talla rota es de la categoría y no de un modelo: al menos 3 de cada 10 modelos colgados tienen una talla
+ *  guardada que falta en el piso. Con una sola, la sugerencia mandaba más de una categoría que ya ocupa de más (Formidable 2026-10-10 (c)). */
+export const PARTE_TALLAS_ROTAS = 0.3;
 /** Cuántas tarjetas: hasta dos que se quedan y una que se lleva más (o lo que haya). */
 export const MAX_TARJETAS = 3;
 
@@ -92,7 +99,41 @@ export function acogidas(ritmo: readonly RitmoCategoria[], extra?: (categoriaId:
   return r;
 }
 
+/**
+ * La parte de lo colgado de una categoría sana que ya pasó P75 (Envejeciendo). Con entradas parejas, la edad de lo colgado se reparte como
+ * la curva S(t) de la categoría (cuánto sigue colgado a los t días), así que esa parte es el área de S más allá de P75 sobre su área total.
+ * S se aproxima por tramos rectos entre los cortes (1 → ½ → ¼ → 1/10) y, desde P90, una cola exponencial con el ritmo de P75 a P90.
+ * Con una curva exponencial da exactamente 1/4. Null si la categoría no llega a P75 (sin P75 nada envejece).
+ */
+export function parteViejaEsperada(c: Cortes): number | null {
+  const { p50, p75 } = c;
+  if (p50 === null || p75 === null || p75 <= p50) return null;
+  const p90 = c.p90 !== null && c.p90 > p75 ? c.p90 : null;
+  const a1 = 0.75 * p50;
+  const a2 = 0.375 * (p75 - p50);
+  // Sin P90, la cola sale del ritmo de P50 a P75 (de ½ a ¼).
+  const lambda = p90 !== null ? Math.log(0.25 / 0.1) / (p90 - p75) : Math.log(2) / (p75 - p50);
+  const vieja = p90 !== null ? 0.175 * (p90 - p75) + 0.1 / lambda : 0.25 / lambda;
+  return vieja / (a1 + a2 + vieja);
+}
+
+/**
+ * ¿Envejecen de más? `viejas` de `sabidas` (las unidades con estado: Fresca, Vigente o Envejeciendo) contra la parte que su vara espera. La
+ * cota inferior de Wilson con las unidades contadas de a φ (las de un mismo modelo no son independientes), de un lado y al 97,5.
+ */
+export function envejeceDeMas(viejas: number, sabidas: number, esperada: number | null): boolean {
+  if (esperada === null || viejas < VIEJAS_MINIMAS || sabidas <= 0) return false;
+  const n = sabidas / PHI_ACOGIDA;
+  const p = viejas / sabidas;
+  const z2 = Z_EDAD * Z_EDAD;
+  const centro = (p + z2 / (2 * n)) / (1 + z2 / n);
+  const margen = (Z_EDAD * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / (1 + z2 / n);
+  return centro - margen > esperada;
+}
+
 export type TipoSenal = "se_queda" | "se_lleva";
+/** Por qué se queda: lo colgado es viejo para su categoría, o ocupa más piso del que vende. Se dicen distinto (Formidable 2026-10-10 (c)). */
+export type MotivoQueda = "edad" | "espacio";
 
 /** Lo que se le propone a una categoría, en el orden de la industria: tallas, luego exhibición; el precio nunca se toca solo. */
 export type AccionAguja =
@@ -109,6 +150,8 @@ export type SenalCategoria = {
   categoriaId: string;
   nombre: string;
   tipo: TipoSenal;
+  /** Si se queda, por qué (la edad manda si son las dos: es un hecho). Null si se lleva más. */
+  motivo: MotivoQueda | null;
   /** Unidades colgadas hoy y cuántas envejecen. */
   piso: number;
   envejeciendo: number;
@@ -122,13 +165,22 @@ export type SenalCategoria = {
 /** Hasta cuántas tallas se ponen en una bajada sugerida: una por talla, las de los modelos ya colgados primero. */
 const MAX_LINEAS = 12;
 
-/** Las tallas guardadas sin colgar de los modelos que ya cuelgan en la categoría (la «talla rota» que se arregla bajando una). */
+/**
+ * Las tallas guardadas sin colgar de los modelos que ya cuelgan en la categoría (la «talla rota» que se arregla bajando una), solo si la
+ * talla rota es de la categoría: al menos `PARTE_TALLAS_ROTAS` de sus modelos colgados tienen alguna. Si no, nada (la acción es otra).
+ */
 function tallasPorColgar(prendas: readonly FrescuraPrenda[]): { varianteId: string; cantidad: number }[] {
   const lineas: { varianteId: string; cantidad: number }[] = [];
+  let colgados = 0;
+  let rotos = 0;
   for (const p of prendas) {
     if (p.pisoHoy <= 0) continue;
-    for (const t of p.tallas) if (t.pisoHoy <= 0 && t.almacenHoy > 0) lineas.push({ varianteId: t.varianteId, cantidad: 1 });
+    colgados += 1;
+    const suyas = p.tallas.filter((t) => t.pisoHoy <= 0 && t.almacenHoy > 0);
+    if (suyas.length > 0) rotos += 1;
+    for (const t of suyas) lineas.push({ varianteId: t.varianteId, cantidad: 1 });
   }
+  if (colgados === 0 || rotos < PARTE_TALLAS_ROTAS * colgados) return [];
   return lineas.slice(0, MAX_LINEAS);
 }
 
@@ -142,16 +194,16 @@ function paraColgarMas(prendas: readonly FrescuraPrenda[]): { varianteId: string
 /**
  * Las categorías que mueven la aguja: hasta dos que se quedan (por las unidades que sobran) y una que se lleva más (por su cota prudente), o
  * lo que haya hasta tres. Sin el piso cuadrado no hay veredictos (vacío): el sistema no sabe qué cuelga. `anotadas`: lo vendido «sin
- * registrar» por categoría y ventana, para el control de la acogida.
+ * registrar» por categoría y ventana, que cuenta como venta de su categoría. `varaDe`: la vara que juzgó a cada categoría (`varaQueJuzgo`),
+ * para saber cuánto de lo colgado espera que ya esté viejo.
  */
 export function loQueMueveLaAguja(
   prendas: readonly FrescuraPrenda[],
   ritmo: readonly RitmoCategoria[],
-  o: { pisoCuadrado: boolean; anotadas?: (categoriaId: string, dias: number) => number },
+  o: { pisoCuadrado: boolean; anotadas?: (categoriaId: string, dias: number) => number; varaDe?: (categoriaId: string) => Cortes | null },
 ): SenalCategoria[] {
   if (!o.pisoCuadrado) return [];
-  const registradas = acogidas(ritmo);
-  const conAnotadas = o.anotadas ? acogidas(ritmo, o.anotadas) : null;
+  const acogidaDe = acogidas(ritmo, o.anotadas);
   const porCategoria = new Map<string, FrescuraPrenda[]>();
   for (const p of prendas) if (p.categoriaId !== "") porCategoria.set(p.categoriaId, [...(porCategoria.get(p.categoriaId) ?? []), p]);
 
@@ -159,19 +211,19 @@ export function loQueMueveLaAguja(
   for (const [categoriaId, lista] of porCategoria) {
     let piso = 0;
     let envejeciendo = 0;
+    let sabidas = 0;
     for (const p of lista) {
       const t = tramosDeLaPrenda(p).unidades;
       piso += p.pisoHoy;
       envejeciendo += t.envejeciendo;
+      sabidas += t.fresca + t.vigente + t.envejeciendo;
     }
     if (piso <= 0) continue;
-    const a = registradas.get(categoriaId) ?? null;
-    // El control: si con lo anotado la acogida cae del otro lado de 1, la acogida no habla (la edad sí, es un hecho).
-    const control = conAnotadas?.get(categoriaId) ?? null;
-    const vetada = a !== null && control !== null && a.indice < 1 !== control.indice < 1;
-    const acogidaHabla = a !== null && !vetada && a.esperadas >= ESPERADAS_MINIMAS;
+    const a = acogidaDe.get(categoriaId) ?? null;
+    const acogidaHabla = a !== null && a.esperadas >= ESPERADAS_MINIMAS;
     const quedaPorAcogida = acogidaHabla && a.alto < ACOGIDA_BAJA;
-    const quedaPorEdad = envejeciendo >= VIEJAS_MINIMAS && envejeciendo >= PARTE_VIEJA * piso;
+    const vara = o.varaDe?.(categoriaId) ?? null;
+    const quedaPorEdad = envejeceDeMas(envejeciendo, sabidas, vara ? parteViejaEsperada(vara) : null);
     const llevaMas = acogidaHabla && a.bajo > ACOGIDA_ALTA;
     const nombre = lista[0].categoriaNombre;
     if (quedaPorAcogida || quedaPorEdad) {
@@ -180,6 +232,7 @@ export function loQueMueveLaAguja(
         categoriaId,
         nombre,
         tipo: "se_queda",
+        motivo: quedaPorEdad ? "edad" : "espacio",
         piso,
         envejeciendo,
         acogida: acogidaHabla ? a : null,
@@ -193,6 +246,7 @@ export function loQueMueveLaAguja(
         categoriaId,
         nombre,
         tipo: "se_lleva",
+        motivo: null,
         piso,
         envejeciendo,
         acogida: a,

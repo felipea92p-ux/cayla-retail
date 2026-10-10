@@ -605,17 +605,18 @@ export type GrupoVista = {
   /** La frase de la comparación en palabras de tienda. */
   comparacion: string;
   nivel: NivelConfianza | null;
-  /** «Nueva antes de 18 d», «Vigente 18–34 d»… (vacío sin comparación). */
-  escala: { nombre: string; rango: string }[];
-  /** «con 37 ventas de los últimos 60 días». */
+  /** «con 37 ventas de los últimos 60 días». Sin escala propia: la escala de cada prenda vive en su hoja, con la vara que la juzgó
+   *  (Formidable 2026-10-10 (c): la ayuda dibujaba otra y la encargada vio dos escalas para la misma categoría). */
   base: string | null;
+  /** La vara del mes contra la de hoy (act. 2026-10-10 (b) y (c)): «antes 9 días, ahora 15», o que todavía aprende su ritmo. */
+  mes: string | null;
   /** La referencia de CAYLA (solo el líder: null para los demás, que no la ven). */
   cayla: string | null;
   /** Si sus prendas se juzgan contra la vara de CAYLA, y si no, por qué (act. 2026-10-07). Null sin vara de CAYLA para ella. */
   respaldo: string | null;
 };
 
-function textoComparacion(v: VaraCategoria | undefined, nombre: string, sede: string): string {
+function textoComparacion(v: Omit<VaraCategoria, "respaldo" | "delMes"> | undefined, nombre: string, sede: string): string {
   const deCategoria = `las prendas de ${nombre}`;
   if (!v || v.vendidas <= 0) return `Todavía no se vendió ninguna prenda de ${nombre} en ${sede} con fecha de llegada conocida: no hay con qué comparar.`;
   const { p50, p75, p90 } = v.cortes;
@@ -631,21 +632,6 @@ function textoComparacion(v: VaraCategoria | undefined, nombre: string, sede: st
   return t;
 }
 
-/** «18–34 d»; si los dos cortes caen en el mismo día, «18 d» (nunca «18–18 d»). */
-const rangoDias = (desde: number, hasta: number): string => (desde === hasta ? `${desde} d` : `${desde}–${hasta} d`);
-
-function escalaDe(v: VaraCategoria | undefined): { nombre: string; rango: string }[] {
-  if (!v || v.cortes.p50 === null) return [];
-  const d50 = diasDeCorte(v.cortes.p50);
-  const d75 = v.cortes.p75 === null ? null : diasDeCorte(v.cortes.p75);
-  // Tres estados (act. 2026-10-10 (b)): Envejecida y Crítica son un solo «Envejeciendo», desde 3 de cada 4.
-  return [
-    { nombre: NOMBRE_TRAMO.nueva, rango: `antes de ${d50} d` },
-    { nombre: NOMBRE_TRAMO.vigente, rango: d75 !== null ? rangoDias(d50, d75) : `desde ${d50} d` },
-    { nombre: NOMBRE_TRAMO.envejecida, rango: d75 !== null ? `desde ${d75} d` : "sin datos aún" },
-  ];
-}
-
 /** La referencia de CAYLA de una categoría, sin punto final (quien la usa arma la frase). */
 export function textoCayla(v: VaraCategoria | undefined): string {
   if (!v || v.cortes.p50 === null) return "todavía no alcanza (las tiendas juntas no tienen ventas suficientes con fecha de llegada)";
@@ -653,15 +639,33 @@ export function textoCayla(v: VaraCategoria | undefined): string {
   return `todas las tiendas juntas, la mitad se vende antes de ${diasDeCorte(v.cortes.p50)} días${d75}`;
 }
 
+/**
+ * La vara del mes dicha una vez por categoría: si juzgó, cuánto tardaba la mitad el día 1 y cuánto con lo de hoy (si cambió en 2 días o más:
+ * «se puso más lenta» o «más rápida»); si todavía no llega a sus ventas, que aprende su ritmo y este mes se juzga con lo de hoy.
+ */
+function textoMes(v: VaraCategoria | undefined): string | null {
+  const m = v?.delMes;
+  if (!v || !m) return null;
+  if (!m.enUso) return m.vendidas > 0 || v.vendidas > 0 ? "Todavía aprende su ritmo: este mes se juzga con lo vendido hasta hoy." : null;
+  const antes = m.cortes.p50 === null ? null : diasDeCorte(m.cortes.p50);
+  const ahora = v.cortes.p50 === null ? null : diasDeCorte(v.cortes.p50);
+  const base = `Su vara de este mes quedó fija el día 1${antes !== null ? `: la mitad se vendía antes de ${antes} días` : ""}`;
+  if (antes === null || ahora === null || Math.abs(ahora - antes) < 2) return `${base}.`;
+  return `${base}; con lo de hoy, antes de ${ahora} (${ahora > antes ? "se puso más lenta" : "se puso más rápida"}).`;
+}
+
 export function grupoVista(categoriaId: string, nombre: string, ctx: ContextoFrescura): GrupoVista {
   const v = ctx.categorias.get(categoriaId);
+  // La comparación se dice con la vara que JUZGÓ (la del mes, la de CAYLA o la de hoy): la misma de las prendas.
+  const juzgo = v?.delMes?.enUso ? v.delMes : v?.respaldo?.enUso ? v.respaldo : v;
+  const deCayla = juzgo !== undefined && juzgo === v?.respaldo;
   return {
     categoriaId,
     nombre,
-    comparacion: textoComparacion(v, nombre, ctx.sede),
-    nivel: v?.nivel ?? null,
-    escala: escalaDe(v),
-    base: v && v.vendidas > 0 ? `con ${textoVentas(v.vendidas)} de los últimos ${v.ventanaDias} días` : null,
+    comparacion: textoComparacion(juzgo, nombre, deCayla ? "las tres tiendas juntas" : ctx.sede),
+    nivel: juzgo?.nivel ?? null,
+    base: juzgo && juzgo.vendidas > 0 ? `con ${textoVentas(juzgo.vendidas)} de los últimos ${juzgo.ventanaDias} días` : null,
+    mes: textoMes(v),
     cayla: ctx.cayla === null ? null : (ctx.caylaFallo ?? `${textoCayla(ctx.cayla.get(categoriaId))}.`),
     respaldo: textoRespaldo(v),
   };
@@ -686,14 +690,13 @@ export function agrupar<T extends { categoriaId: string; categoriaNombre: string
 export const esAproximada = (p: FrescuraPrenda): boolean => (p.estado.tipo === "semaforo" && nivelSinElla(p) === "pocos_datos") || p.estado.tipo === "sin_ventas_sede" || p.estado.tipo === "sin_vara";
 
 /**
- * UN aviso arriba cuando la mayoría de lo que se ve se juzgó con pocas ventas (TRU hoy: 4 ventas en 120 días): la regla se dice
- * UNA vez y no en cada fila (Formidable, ADR-0350, ley 9). Si es la minoría, no hay aviso y cada fila aproximada lo marca: la
- * excepción se marca, la regla se dice. Null si no hace falta.
+ * ¿La mayoría de lo que se ve se juzgó con pocas ventas? Entonces lo aproximado es la regla y se dice UNA vez, en la tarjeta de la tienda
+ * (no en cada fila): la excepción se marca, la regla se dice (Formidable, ADR-0350, ley 9). Antes lo decía un aviso propio que prometía
+ * «en unas semanas se afina», y cuando la causa era no registrar lo que se vende, esperar no lo arreglaba (Formidable 2026-10-10 (c): sale;
+ * lo que falta para hablar lo dice el aviso de la puerta, con su botón).
  */
-export function avisoPocasVentas(prendas: readonly FrescuraPrenda[], sede: string): TextoRico | null {
-  if (prendas.length === 0) return null;
-  if (prendas.filter(esAproximada).length * 2 <= prendas.length) return null;
-  return `**Todavía hay pocas ventas en ${sede}.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.`;
+export function mayoriaAproximada(prendas: readonly FrescuraPrenda[]): boolean {
+  return prendas.length > 0 && prendas.filter(esAproximada).length * 2 > prendas.length;
 }
 
 /**
@@ -720,7 +723,11 @@ export function textoRespaldo(v: VaraCategoria | undefined): string | null {
   if (!v || !r) return null;
   const aqui = v.vendidas > 0 ? textoVentas(v.vendidas) : "ninguna venta todavía";
   if (r.enUso) return `Se juzga contra lo que vende CAYLA: ${textoVentas(r.vendidas)} de los últimos ${r.ventanaDias} días en las tres tiendas; aquí, ${aqui}.`;
-  if (r.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `La vara de CAYLA tampoco alcanza (${textoVentas(r.vendidas)}): se juzga con lo de aquí.`;
+  if (r.vendidas < VENTAS_PARA_JUZGAR_SOLA)
+    return v.vendidas > 0
+      ? `La vara de CAYLA tampoco alcanza (${textoVentas(r.vendidas)}): se juzga con lo de aquí, que es aproximado.`
+      : // Sin ventas aquí ni bastantes en CAYLA no hay con qué juzgar (la ciega: «¿con qué se juzga si no hay nada?», Formidable 2026-10-10 (c)).
+        "Ni aquí ni en CAYLA hay ventas suficientes todavía: por ahora sus prendas no se juzgan («Aún no se sabe»).";
   // Pocas ventas aquí y CAYLA alcanza, pero nada se juzgó contra ella: la categoría no tiene prendas que medir.
   if (v.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
   return `Aquí ya hay ${textoVentas(v.vendidas)}: se juzga sola; la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
@@ -954,7 +961,7 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
       const deEllas =
         suyas >= cat.vendidas ? (cat.vendidas === 1 ? "**la única venta es suya**" : `**las ${decimal(cat.vendidas)} ventas son suyas**`) : `**${decimal(suyas)} de las ${decimal(cat.vendidas)} ventas son suyas**`;
       const lasDemas = sinVentasDeLasDemas(s) ? "ninguna de las demás se vendió todavía" : `las demás vendieron solo ${decimal(s.vendidas)}`;
-      return `La cabecera dice que la mitad de ${deCategoria} se vende antes de ${textoDias(diasDeCorte(cat.cortes.p50))}, pero eso lo hace ella: ${deEllas}. Sin ella, ${lasDemas} (lo más largo que se vio: ${textoDias(diasDeCorte(s.tMax))}): todavía no se sabe cuánto tardan. Lleva ${dTxt} en el piso.`;
+      return `Contándola, la mitad de ${deCategoria} se vende antes de ${textoDias(diasDeCorte(cat.cortes.p50))}, pero eso lo hace ella: ${deEllas}. Sin ella, ${lasDemas} (lo más largo que se vio: ${textoDias(diasDeCorte(s.tMax))}): todavía no se sabe cuánto tardan. Lleva ${dTxt} en el piso.`;
     }
     return `Todavía no se vendió ni la mitad de ${deCategoria} en ${ctx.sede}: no se sabe cuánto tardan. Lleva **${dTxt}** en el piso.`;
   }
@@ -978,7 +985,13 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
     base = `${quien} **${duTxt}**: ${yaPaso(du, c50 ?? 0)} en que se vende la mitad de las demás${c75 !== null ? `, pero ${noLlega(du, c75, "no")} en que ya se vendieron 3 de cada 4.` : "."}`;
   else if (e.tramo === "envejecida")
     base = `${quien} **${duTxt}**: ${yaPaso(du, c75 ?? 0)} en que ya se vendieron 3 de cada 4 de las demás${c90 !== null ? (du === c90 ? `; ${noLlega(du, c90)} en que se vendieron 9 de cada 10.` : `; a los ${c90} se vendieron 9 de cada 10.`) : "."}`;
-  else base = `${quien} **${duTxt}**: ${yaPaso(du, c90 ?? 0)} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
+  // Pasada la marca de 9 de cada 10 sigue siendo Envejeciendo, que empieza en la de 3 de cada 4: el porqué cita la línea que lo define (la
+  // ciega dudó si Envejeciendo empezaba en 12 o en 20, Formidable 2026-10-10 (c)).
+  else
+    base =
+      c75 !== null
+        ? `${quien} **${duTxt}**: ${yaPaso(du, c75)} en que ya se vendieron 3 de cada 4 de las demás; a los ${c90 ?? c75} ya iban 9 de cada 10.`
+        : `${quien} **${duTxt}**: ${yaPaso(du, c90 ?? 0)} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
   // Un éxito que se repone: su modelo ya no es Fresco, pero lo que cuelga es nuevo (no se pinta de viejo).
   if (repuesta) base += ` Su modelo lleva ${dTxt} en el piso: ya no es Fresca, aunque lo que cuelga hoy se colgó después.`;
   if (e.alMenos && reloj.alMenos)
@@ -1171,7 +1184,7 @@ export function detalleVista(p: FrescuraPrenda, ctx: ContextoFrescura): DetalleV
       if (s.cortes.p75 !== null) partes.push(`3 de cada 4 antes de ${diasDeCorte(s.cortes.p75)}`);
       if (s.cortes.p90 !== null) partes.push(`9 de cada 10 antes de ${diasDeCorte(s.cortes.p90)}`);
       const conTodas = [cat.cortes.p50, cat.cortes.p75, cat.cortes.p90].filter((x): x is number => x !== null).map(diasDeCorte);
-      sinContarla = `Sin contarla, las demás: ${partes.join(", ")}${conTodas.length ? ` (la cabecera de ${p.categoriaNombre}, con todas: ${conTodas.join(", ")})` : ""}.`;
+      sinContarla = `Sin contarla, las demás: ${partes.join(", ")}${conTodas.length ? ` (contándola a ella: ${conTodas.join(", ")})` : ""}.`;
     } else sinContarla = sinVentasDeLasDemas(s) ? "Sin contarla, ninguna de las demás se vendió todavía." : `Sin contarla, las demás vendieron solo ${decimal(s.vendidas)}.`;
   }
   const nivel = sinContarla !== null ? nivelSinElla(p) : null;

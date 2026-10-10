@@ -134,6 +134,9 @@ export type Sugerencia =
 export type Recientes = "vendio" | "dejo_de_vender" | "no_se_sabe";
 
 /** Una talla de la lectura de la sede (una fila de `prendas` de `fn_frescura_sede`). */
+/** Una venta anotada en caja sin su prenda que sigue pendiente: lo que se sabe de ella (ADR-0208, act. 2026-10-10 (c)). */
+export type DudaVendida = { categoriaId: string; talla: string | null; colorCodigo: string | null };
+
 export type TallaFrescuraCruda = {
   varianteId: string;
   productoId: string;
@@ -1503,6 +1506,17 @@ export type VaraCategoria = {
   delMes: VaraDelMesCategoria | null;
 };
 
+/**
+ * La vara que JUZGÓ a la categoría (la que decide Fresca · Vigente · Envejeciendo de sus prendas): la del mes si llegó a sus ventas, si no la
+ * de CAYLA si se usó de respaldo, y si no la de hoy. Una sola definición para la pantalla y la aguja (Formidable 2026-10-10 (c): la ayuda
+ * dibujaba la escala de hoy mientras las prendas se juzgaban con la del mes, y la encargada vio dos escalas para la misma categoría).
+ */
+export function varaQueJuzgo(v: VaraCategoria): { cortes: Cortes; ventanaDias: number; vendidas: number; cual: "mes" | "cayla" | "hoy" } {
+  if (v.delMes?.enUso) return { cortes: v.delMes.cortes, ventanaDias: v.delMes.ventanaDias, vendidas: v.delMes.vendidas, cual: "mes" };
+  if (v.respaldo?.enUso) return { cortes: v.respaldo.cortes, ventanaDias: v.respaldo.ventanaDias, vendidas: v.respaldo.vendidas, cual: "cayla" };
+  return { cortes: v.cortes, ventanaDias: v.ventanaDias, vendidas: v.vendidas, cual: "hoy" };
+}
+
 /** La vara de CAYLA de una categoría, para la pantalla: la misma forma que la de la tienda, más cuándo se calculó y si decidió. */
 export type RespaldoCategoria = Omit<VaraCategoria, "respaldo" | "delMes"> & { calculadaEn: string; enUso: boolean };
 
@@ -1540,8 +1554,12 @@ export type FrescuraPrenda = {
     apartadasHoy: number;
     apartadasPisoHoy: number;
     /** Lo colgado hoy de esta talla, cada tanda con sus segundos (`colgadasDe`): lo que cuenta la barra del piso, unidad por
-     *  unidad (ADR-0208, act. 2026-10-10 (b)). Vacío para la clásica y la que no cuadra, que no se juzgan. */
+     *  unidad (ADR-0208, act. 2026-10-10 (b)). Vacío para la clásica y la que no cuadra, que no se juzgan. Sin las unidades que
+     *  apartó lo vendido sin registrar (`dudadas`). */
     colgadas: UnidadColgada[];
+    /** Unidades colgadas que puede ser que ya se vendieron sin registrar (una venta anotada en caja de su categoría, talla y color):
+     *  no se juzgan y van a «Aún no se sabe» (ADR-0208, act. 2026-10-10 (c)). */
+    dudadas?: number;
   }[];
   /** Lo libre en el piso y en el almacén (sin lo apartado: R7-1). */
   pisoHoy: number;
@@ -1683,11 +1701,12 @@ type UnidadesDeTalla = { enVentana: (dias: number) => UnidadesTalla; todas: () =
  * categoría se juzga contra su curva con lo ocurrido hasta ese instante (los `DIAS_VARA_DEL_MES` anteriores), congelada todo
  * el mes, cuando esa curva llega a `VENTAS_PARA_JUZGAR_SOLA` ventas; si no, como sin él. Sin él, la vara es la de hoy: así lo
  * pide el cron de CAYLA, que guarda las unidades de hoy.
+ * `opciones.dudas` (act. 2026-10-10 (c)): lo vendido sin registrar que sigue pendiente; cada una aparta una unidad colgada (ver abajo).
  */
 export function analizarSede(
   l: LecturaFrescuraConPiso,
   respaldo?: RespaldoCayla,
-  opciones: { corteDelMes?: string } = {},
+  opciones: { corteDelMes?: string; dudas?: readonly DudaVendida[] } = {},
 ): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
   const tardiasPorOid = new Map<string, number>();
   for (const t of l.tardias) tardiasPorOid.set(t.oid, (tardiasPorOid.get(t.oid) ?? 0) + t.unidadesTardias);
@@ -1788,6 +1807,29 @@ export function analizarSede(
     else porPrenda.set(k, [talla]);
   }
 
+  // Lo vendido sin registrar (act. 2026-10-10 (c); Felipe: «rapidez sí, días no»): cada venta anotada en caja que sigue pendiente aparta la
+  // unidad colgada MÁS VIEJA de su categoría, talla y color —puede ser la que se vendió— y esa unidad deja de juzgarse: no empuja a su
+  // prenda a «Por decidir» y en la barra cuenta como «Aún no se sabe». No toca el stock ni la vara de días (las observaciones no cambian:
+  // no se sabe desde cuándo colgaba). Es un puente: lo colgado sin etiqueta se va vendiendo o etiquetando, y con eso se acaba.
+  const colgadasConDudas = new Map<string, UnidadColgada[]>();
+  const dudadasDeTalla = new Map<string, number>();
+  for (const d of opciones.dudas ?? []) {
+    let mejor: { varianteId: string; i: number; segundos: number } | null = null;
+    for (const t of l.tallas) {
+      if (t.pisoHoy <= 0 || (t.categoriaId ?? SIN_CATEGORIA) !== d.categoriaId || t.talla !== d.talla || t.colorCodigo !== d.colorCodigo) continue;
+      const eventos = limpiosPorVariante.get(t.varianteId);
+      if (!eventos) continue; // clásica o que no cuadra: no se juzga, no hay qué apartar
+      if (!colgadasConDudas.has(t.varianteId)) colgadasConDudas.set(t.varianteId, colgadasDe(eventos, l.ahora).map((u) => ({ ...u })));
+      const lista = colgadasConDudas.get(t.varianteId)!;
+      for (let i = 0; i < lista.length; i++) {
+        if (lista[i].unidades > 0 && (mejor === null || lista[i].segundos > mejor.segundos)) mejor = { varianteId: t.varianteId, i, segundos: lista[i].segundos };
+      }
+    }
+    if (mejor === null) continue;
+    colgadasConDudas.get(mejor.varianteId)![mejor.i].unidades -= 1;
+    dudadasDeTalla.set(mejor.varianteId, (dudadasDeTalla.get(mejor.varianteId) ?? 0) + 1);
+  }
+
   const prendas: FrescuraPrenda[] = [];
   for (const [clave, tallas] of porPrenda) {
     const f = tallas[0];
@@ -1846,6 +1888,8 @@ export function analizarSede(
     // El reloj de su unidad más vieja colgada: el FIFO de los eventos ya limpios (los mismos de la vara). La clásica y la que no
     // cuadra no tienen eventos limpios: no se juzgan, su reloj de unidad queda en 0.
     const colgadasPorTalla = tallas.map((t) => {
+      const conDudas = colgadasConDudas.get(t.varianteId);
+      if (conDudas) return conDudas.filter((u) => u.unidades > 0);
       const eventos = limpiosPorVariante.get(t.varianteId);
       return eventos ? colgadasDe(eventos, l.ahora) : [];
     });
@@ -1926,6 +1970,8 @@ export function analizarSede(
         apartadasHoy: t.apartadasHoy,
         apartadasPisoHoy: t.apartadasPisoHoy,
         colgadas: colgadasPorTalla[k],
+        // Solo cuando hay: la forma de la talla no cambia para la inmensa mayoría.
+        ...(dudadasDeTalla.has(t.varianteId) ? { dudadas: dudadasDeTalla.get(t.varianteId)! } : {}),
       })),
       pisoHoy,
       almacenHoy,
@@ -2138,18 +2184,23 @@ type SedeLeida = {
  *  dependa de la barra. */
 export type CalcularAnterior = (lectura: LecturaFrescuraConPiso, respaldo?: RespaldoCayla) => PisoAnterior | null;
 
+/** Cómo se piden las ventas sin registrar pendientes de una sede (lo pasa el servidor; si falla, ninguna: la pantalla sigue entera). */
+export type CargarDudas = (ubicacionId: string) => Promise<readonly DudaVendida[]>;
+
 async function leerSedeFrescura(
   rpc: LlamarRpcFrescura,
   u: { id: string; nombre: string },
   dias: number,
   respaldo?: RespaldoCayla,
   anterior?: CalcularAnterior,
+  cargarDudas?: CargarDudas,
 ): Promise<SedeLeida> {
   const que = `la frescura de ${u.nombre}`;
   const fila = (lectura: FrescuraDeSede["lectura"]): FrescuraDeSede => ({ ubicacionId: u.id, nombre: u.nombre, lectura });
   const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null, medicion: null });
   // Las dos lecturas salen a la vez: la de decisiones no espera a la del piso.
   const enCurso = leerDecisionesDeSede(rpc, u, dias);
+  const dudasEnCurso: Promise<readonly DudaVendida[]> = cargarDudas ? cargarDudas(u.id).catch(() => []) : Promise.resolve([]);
   try {
     const { data, error } = await rpc("fn_frescura_sede", { p_ubicacion_id: u.id, p_dias: dias });
     if (error) {
@@ -2163,7 +2214,7 @@ async function leerSedeFrescura(
     }
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
     // La pantalla juzga contra la vara del mes (act. 2026-10-10 (b)); el cron de CAYLA, que guarda las unidades de hoy, no.
-    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora) });
+    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora), dudas: await dudasEnCurso });
     // El piso de hace 4 semanas (la meta es contra el mes anterior): si no se puede reconstruir, la pantalla no compara y sigue entera.
     if (anterior) {
       try {
@@ -2209,8 +2260,9 @@ export async function armarFrescuraSede(
   dias: number,
   respaldo?: RespaldoCayla,
   anterior?: CalcularAnterior,
+  cargarDudas?: CargarDudas,
 ): Promise<FrescuraDeSede> {
-  return (await leerSedeFrescura(rpc, tienda, dias, respaldo, anterior)).fila;
+  return (await leerSedeFrescura(rpc, tienda, dias, respaldo, anterior, cargarDudas)).fila;
 }
 
 /**
@@ -2224,8 +2276,9 @@ export async function armarFrescuraLider(
   dias: number,
   respaldo?: RespaldoCayla,
   anterior?: CalcularAnterior,
+  cargarDudas?: CargarDudas,
 ): Promise<FrescuraLider> {
-  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo, anterior))), leerConfianzaFrescura(rpc)]);
+  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo, anterior, cargarDudas))), leerConfianzaFrescura(rpc)]);
 
   // «La trasladé» se mide en la tienda destino con SU lectura: solo el líder, que las lee todas, puede.
   completarTraslados(

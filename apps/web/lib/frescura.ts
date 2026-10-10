@@ -5,6 +5,7 @@ import { enLaTabla } from "@/lib/frescura-pantalla";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
+  type CargarDudas,
   type FilaConfianza,
   type FrescuraSede,
   type LlamarRpcFrescura,
@@ -205,6 +206,32 @@ async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<Puerta
 }
 
 /**
+ * Lo vendido sin registrar que sigue PENDIENTE en una tienda (`prendas_por_regularizar`), con su categoría, talla y color: cada una aparta
+ * en la lectura la unidad colgada que puede ser la vendida (ADR-0208, act. 2026-10-10 (c)). La RLS deja leer la propia sede (el líder, todas).
+ * Nunca lanza: si falla, ninguna, y la pantalla juzga como antes.
+ */
+function cargarDudasCon(supabase: Supabase): CargarDudas {
+  return async (sedeId) => {
+    try {
+      const { data, error } = await supabase
+        .from("prendas_por_regularizar")
+        .select("categoria_id, color_codigo, tallas ( valor )")
+        .eq("ubicacion_id", sedeId)
+        .eq("estado", "pendiente")
+        .limit(1000);
+      if (error || !data) return [];
+      return (data as unknown as { categoria_id: string; color_codigo: string; tallas: { valor: string } | null }[]).map((r) => ({
+        categoriaId: r.categoria_id,
+        colorCodigo: r.color_codigo,
+        talla: r.tallas?.valor ?? null,
+      }));
+    } catch {
+      return [];
+    }
+  };
+}
+
+/**
  * Lo vendido «sin registrar» de los últimos 28 días en la tienda, por categoría (`prendas_por_regularizar`: lo pendiente y lo cerrado sin
  * prenda; lo regularizado ya es una venta con su prenda y lo anulado no se vendió). La RLS deja leer la propia sede. Nunca lanza.
  */
@@ -279,12 +306,12 @@ export async function getFrescuraPantalla(
   };
 
   if (persona.rol !== "lider") {
-    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo, pisoAnterior)).lectura : sinPiso;
+    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo, pisoAnterior, cargarDudasCon(supabase))).lectura : sinPiso;
     return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, temporadas, ...(await deLaSede(lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
-  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior, cargarDudasCon(supabase));
   const propia = lider.sedes.find((s) => s.ubicacionId === sede.id);
   const lecturaDeSede = propia ? propia.lectura : sinPiso;
   return {
@@ -323,7 +350,7 @@ export async function getFrescuraRed(persona: Pick<PersonaActualV2, "rol">, dias
     puertasDeLasTiendas(supabase),
   ]);
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda" && u.activo);
-  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior, cargarDudasCon(supabase));
   const sedes = lider.sedes.map((s) => ({
     id: s.ubicacionId,
     nombre: s.nombre,
