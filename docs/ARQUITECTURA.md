@@ -1212,6 +1212,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/finanzas/activos`, `/finanzas/patrimonio`, `/finanzas/comparativo` →
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `GastoRapidoModal.tsx` (Caja ▸ Registrar gasto, ADR-0368) → `lib/gasto-rapido-reglas.ts` (conceptos, orden por frecuencia; el orden lo calcula `caja/page.tsx` con `getGastosDeUbicacion`) → `validarGasto` → RPC `registrar_gasto`; su enlace «formulario completo» abre `RegistrarGastoModal`.
+- `IngresoRapidoModal.tsx` (Caja ▸ Registrar ingreso, ADR-0371) → `lib/ingreso-rapido-reglas.ts` (conceptos → motivo de la base, nota con quién/qué sede/qué fue) → RPC `registrar_movimiento_caja`; su enlace «Retiro o depósito» (también en el gasto rápido) abre `MovimientoCajaModal soloSalida`.
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
 - `/vender/comprobantes/**` (se llamó `/vender/facturacion` hasta 2026-09-22, que redirige; ADR-0124,

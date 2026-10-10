@@ -20,10 +20,23 @@ const TEXTO_TIPO = { ingreso: "Entrada", egreso: "Salida" } as const;
 // registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true, que
 // la RPC exige de líder (ADR-0056). Las listas y las reglas viven en lib/caja-panel-reglas.ts.
 
-export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: string; esLider: boolean; onClose: () => void }) {
+export function MovimientoCajaModal({
+  cajaId,
+  esLider,
+  soloSalida = false,
+  onClose,
+}: {
+  cajaId: string;
+  esLider: boolean;
+  /** Desde 2026-10-10 Caja abre este modal solo para SACAR plata («Retiro o depósito»): las entradas tienen su hoja,
+   *  «Registrar ingreso» (`IngresoRapidoModal`). Con esto el tipo viene fijo y no se muestra. */
+  soloSalida?: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
   // Nada viene elegido de antemano (auditoría de /caja, #6): un movimiento de plata se decide, no se acepta por defecto.
-  const [tipo, setTipo] = useState<"ingreso" | "egreso" | null>(null);
+  // Salvo cuando se abre solo para salidas: ahí el tipo ya lo dijo el botón que se tocó.
+  const [tipo, setTipo] = useState<"ingreso" | "egreso" | null>(soloSalida ? "egreso" : null);
   const [monto, setMonto] = useState("");
   const [motivoRapido, setMotivoRapido] = useState("");
   const [motivoLibre, setMotivoLibre] = useState("");
@@ -92,10 +105,10 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
   }
 
   return (
-    <Modal titulo="Entrada o salida de caja" onClose={onClose}>
+    <Modal titulo={soloSalida ? "Retiro o depósito" : "Entrada o salida de caja"} onClose={onClose}>
       {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
+        <div className={soloSalida ? "hidden" : "space-y-1.5"}>
           <span className={campoEtiqueta}>Tipo</span>
           <div className="flex gap-2">
             {(["ingreso", "egreso"] as const).map((t) => (
