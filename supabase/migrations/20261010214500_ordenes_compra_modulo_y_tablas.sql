@@ -14,7 +14,9 @@
 --   2. `retail.orden_compra_items`: las líneas, con categoría y marca obligatorias (decisión 4). El descuento se guarda EN SOLES, que
 --      es lo que se paga; si se escribió como porcentaje, `descuento_pct` lo recuerda y un candado exige que los dos cuadren. El
 --      subtotal es una columna calculada: el total de una orden no puede dejar de ser la suma de sus líneas.
---   3. El módulo `ordenes_compra` (Compras, orden 145), SIN rol: nace solo para el líder (ADR-0161). Delegable, porque sus funciones
+--   3. El módulo `ordenes_compra` (Compras, orden 148: justo antes de «Facturas de compra», 150; el 145 que se había reservado lo tomó
+--      `liquidacion` en `main` mientras esta rama se construía, visto en producción el 2026-10-10), SIN rol: nace solo para el líder
+--      (ADR-0161). Delegable, porque sus funciones
 --      preguntan por el módulo y no por el líder. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios (decisiones 34 y
 --      37): no pasa por `fn_compras_ubicaciones` (Compras por tienda, ADR-0184).
 --   4. `fn_ordenes_compra(...)`: la lista (lectura), con el total y las unidades de cada orden, filtrable por destino, estado,
@@ -104,7 +106,7 @@ alter table retail.orden_compra_items enable row level security;
 insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable) values
   ('ordenes_compra', 'Compras', 'Órdenes de compra',
    'Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, y descargar su PDF',
-   145, false, true)
+   148, false, true)
 on conflict (clave) do nothing;
 
 -- ---------- 4. La lista (lectura) ----------

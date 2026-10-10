@@ -10,7 +10,7 @@
  * crear una orden no deje dos por un doble clic, no gaste números en lo que rechaza y siempre diga quién la creó (decisión 39).
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK).
- *   M  EL MÓDULO: existe en Compras, orden 145, delegable, y nace SIN rol (ningún `rol_modulos`). La migración se vuelve a cargar
+ *   M  EL MÓDULO: existe en Compras, orden 148, delegable, y nace SIN rol (ningún `rol_modulos`). La migración se vuelve a cargar
  *      sin error (idempotente: así se pega en producción).
  *   P  PUERTAS: Felipe (líder) lee; Micaela, sin el módulo, recibe 42501; con el módulo en su rol, ve también las órdenes de otra
  *      sede; nadie lee las tablas directo (RLS sin políticas) y `anon` no ejecuta la lista.
@@ -227,11 +227,11 @@ function caso(nombre, sql, esperado) {
 
 // M. MÓDULO ---------------------------------------------------------------------------------------------------------------
 caso(
-  "M1 el módulo está en Compras (orden 145, delegable, no «solo líder») y nace SIN rol",
+  "M1 el módulo está en Compras (orden 148, delegable, no «solo líder») y nace SIN rol",
   `reset role;
    select concat_ws(',', (select grupo || ':' || orden || ':' || delegable || ':' || solo_lider from retail.modulos where clave = 'ordenes_compra'),
      (select count(*) from retail.rol_modulos where modulo = 'ordenes_compra'));`,
-  "Compras:145:true:false,0"
+  "Compras:148:true:false,0"
 );
 caso(
   "M2 la migración se vuelve a cargar sin error (idempotente) y no duplica el módulo",
