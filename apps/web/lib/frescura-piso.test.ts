@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { EventoPiso } from "./inventario-exposicion";
 import { analizarSede, inicioDelMesLima, lecturaAl, type EstadoFrescura, type FrescuraPrenda, type LecturaFrescuraConPiso, type TallaFrescuraCruda, type UnidadColgada } from "./frescura-reglas";
 import {
+  avisoDeLaPuerta,
+  CAUSAS_SIN_SABER,
   conteoDeFamilia,
   conteoVacio,
+  pasoDeLaPuerta,
   pisoAnterior,
   pisoPorFamilia,
   porcentajes,
@@ -85,6 +88,32 @@ describe("tramosDeLaPrenda: dónde cae cada unidad colgada", () => {
     expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [], piso: 2, estado: { ...SEMAFORO, tipo: "dudosa" } })).unidades).toMatchObject({ sin_saber: 2 });
   });
 
+  it("«Aún no se sabe» dice por qué: sin ritmo de su categoría, sin fecha o porque no cuadra (Formidable 2026-10-10 (c))", () => {
+    // Sin ritmo: su categoría no tiene vara.
+    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(40)], estado: { ...SEMAFORO, tipo: "sin_vara" } })).sinSaberPor).toEqual({ ritmo: 1, fecha: 0, dudosa: 0 });
+    // No cuadra: hay que contarla.
+    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [], piso: 2, estado: { ...SEMAFORO, tipo: "dudosa" } })).sinSaberPor).toEqual({ ritmo: 0, fecha: 0, dudosa: 2 });
+    // Sin fecha: la tanda entró sin fecha y no pasó P75, el modelo no se sabe si pasó la mitad, o el stock no tiene tanda en el libro.
+    expect(tramosDeLaPrenda(prenda({ modelo: 3, alMenos: true, colgadas: [tanda(3, 2, true)] })).sinSaberPor).toEqual({ ritmo: 0, fecha: 2, dudosa: 0 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 3, alMenos: true, colgadas: [tanda(2)] })).sinSaberPor).toEqual({ ritmo: 0, fecha: 1, dudosa: 0 });
+    expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(20)], piso: 3 })).sinSaberPor).toEqual({ ritmo: 0, fecha: 2, dudosa: 0 });
+  });
+
+  it("las causas suman exactamente «Aún no se sabe», en cualquier mezcla", () => {
+    const casos = [
+      prenda({ modelo: 3, alMenos: true, colgadas: [tanda(3, 2, true), tanda(15, 1, true), tanda(2)], piso: 6 }),
+      prenda({ modelo: 40, colgadas: [tanda(1, 2), tanda(20, 2)], piso: 5 }),
+      prenda({ modelo: 40, colgadas: [tanda(40)], estado: { ...SEMAFORO, tipo: "sin_ventas_sede" } }),
+      prenda({ modelo: 8, colgadas: [tanda(8, 3)] }),
+    ];
+    for (const p of casos) {
+      const t = tramosDeLaPrenda(p);
+      expect(CAUSAS_SIN_SABER.reduce((s, c) => s + t.sinSaberPor[c], 0)).toBe(t.unidades.sin_saber);
+    }
+    const [familia] = pisoPorFamilia(casos, { familiaDe: () => null, familias: [] });
+    expect(CAUSAS_SIN_SABER.reduce((s, c) => s + familia.sinSaberPor[c], 0)).toBe(familia.unidades.sin_saber);
+  });
+
   it("suma siempre lo que dice el stock: lo que el libro no trae aún no se sabe; lo que trae de más se corta por lo más viejo", () => {
     expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(20)], piso: 3 })).unidades).toMatchObject({ envejeciendo: 1, sin_saber: 2 });
     expect(tramosDeLaPrenda(prenda({ modelo: 40, colgadas: [tanda(1, 2), tanda(20, 2)], piso: 3 })).unidades).toMatchObject({ envejeciendo: 2, vigente: 1 });
@@ -149,7 +178,7 @@ describe("porcentajes", () => {
 describe("respuestaDelPiso: la frase de la cabecera", () => {
   const familia = (u: Partial<ReturnType<typeof conteoVacio>>) => {
     const unidades = { ...conteoVacio(), ...u };
-    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null };
+    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0 } };
   };
   const LISTA = { puedeHablar: true, aviso: "" };
 
@@ -160,6 +189,15 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
   it("si la tienda no registra lo que vende, todavía no se puede saber (lo vendido sigue «colgado» y envejece en falso)", () => {
     expect(respuestaDelPiso(familia({ fresca: 58, vigente: 22, envejeciendo: 20 }), { puedeHablar: false, aviso: "Solo 2 de cada 100 ventas tienen su prenda" })).toMatchObject({ respuesta: "Todavía no se puede saber.", afirma: false });
     expect(respuestaDelPiso(familia({ fresca: 58 }), null).afirma).toBe(false);
+  });
+
+  it("si sabe qué le falta, la frase lo dice (Felipe, Formidable 2026-10-10 (c): «% con aviso + el paso»)", () => {
+    const u = familia({ fresca: 58, vigente: 22, envejeciendo: 20 });
+    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "piso_cuadrado" }).respuesta).toBe("Todavía no se puede saber: falta cuadrar el piso.");
+    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "almacen_contado" }).respuesta).toBe("Todavía no se puede saber: falta contar el almacén.");
+    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "venta_identificada" }).respuesta).toBe(
+      "Todavía no se puede saber: todavía no todas las ventas llevan su prenda.",
+    );
   });
 
   it("con mucho «aún no se sabe» no afirma un porcentaje que podría ser otro", () => {
@@ -272,7 +310,7 @@ describe("la frase contra hace 4 semanas", () => {
   const LISTA = { puedeHablar: true, aviso: "" };
   const fam = (u: Partial<ReturnType<typeof conteoVacio>>) => {
     const unidades = { ...conteoVacio(), ...u };
-    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null };
+    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0 } };
   };
 
   it("envejeciendo sube 7 puntos o más: ojo, más viejo", () => {
@@ -294,5 +332,35 @@ describe("la frase contra hace 4 semanas", () => {
 
   it("tendenciaDe: envejeciendo manda aunque lo fresco también suba", () => {
     expect(tendenciaDe({ ...conteoVacio(), fresca: 60, envejeciendo: 40 }, { ...conteoVacio(), fresca: 50, vigente: 30, envejeciendo: 20 })).toBe("mas_viejo");
+  });
+});
+
+describe("la puerta cerrada: por qué son aproximados y el botón que lo arregla", () => {
+  const TODO = { existencias: true, conteos: true };
+  const NADA = { existencias: false, conteos: false };
+
+  it("cada falta lleva a la pantalla que la hace, con la misma regla que «Todavía no» de Análisis", () => {
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "piso_cuadrado" }, TODO)).toEqual({ texto: "Cuadrar el piso", href: "/inventario/cuadrar" });
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "almacen_contado" }, TODO)).toEqual({ texto: "Contar el almacén", href: "/inventario/conteo" });
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 7 }, TODO)).toEqual({
+      texto: "Registrar 7 sin prenda",
+      href: "/inventario/por-regularizar",
+    });
+  });
+
+  it("nunca un botón que termina en «Sin acceso», ni uno sin nada que registrar, ni cuando la tienda pasa", () => {
+    for (const falta of ["piso_cuadrado", "almacen_contado", "venta_identificada"] as const) {
+      expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta, sinPrenda: 3 }, NADA)).toBeNull();
+    }
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 0 }, TODO)).toBeNull();
+    expect(pasoDeLaPuerta({ puedeHablar: true, aviso: "", falta: null }, TODO)).toBeNull();
+    expect(pasoDeLaPuerta(null, TODO)).toBeNull();
+  });
+
+  it("el aviso dice por qué los porcentajes son aproximados; sin saber qué falta, el aviso compartido con Análisis", () => {
+    expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "x", falta: "piso_cuadrado" })).toMatch(/^Mientras el piso no esté cuadrado.*aproximados\.$/);
+    expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "x", falta: "venta_identificada" })).toMatch(/lo vendido sigue contando como colgado/);
+    expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "Falta algo: estas cifras pueden fallar.", falta: null })).toBe("Falta algo: estas cifras pueden fallar.");
+    expect(avisoDeLaPuerta(null)).toMatch(/No se pudo saber/);
   });
 });

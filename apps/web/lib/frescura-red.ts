@@ -1,5 +1,23 @@
-import { conteoDeFamilia, conteoVacio, pisoPorFamilia, respuestaDelPiso, TRAMOS_PISO, tramosDeLaPrenda, type ConteoPiso, type Familia, type FamiliaPiso, type PuertaPiso, type RespuestaPiso } from "./frescura-piso";
-import type { FrescuraSede } from "./frescura-reglas";
+import {
+  CAUSAS_SIN_SABER,
+  conteoDeFamilia,
+  conteoVacio,
+  pisoPorFamilia,
+  RAZON_PUERTA,
+  respuestaDelPiso,
+  TRAMOS_PISO,
+  tramosDeLaPrenda,
+  type ConteoPiso,
+  type ConteoSinSaber,
+  type Familia,
+  type FaltaPuerta,
+  type FamiliaPiso,
+  type PuertaPiso,
+  type RespuestaPiso,
+} from "./frescura-piso";
+import { resumenCorto } from "./frescura-decisiones-pantalla";
+import { registroCorto } from "./frescura-pantalla";
+import type { FilaConfianza, FrescuraSede, NivelConfianza } from "./frescura-reglas";
 
 // CAYLA Global ▸ Frescura del piso (ADR-0208, act. 2026-10-10 (b), decisión 4 de Felipe: «la vista de las tres tiendas es la de CAYLA Global
 // del selector, para quien tenga ese módulo»). Lo que se ve: una barra por tienda, en la misma escala y con las mismas palabras que la
@@ -19,13 +37,18 @@ export type ResumenTienda = {
   porCategoria: { categoriaId: string; nombre: string; unidades: ConteoPiso }[];
   /** Por qué no se pudo leer, si no se pudo. */
   fallo: string | null;
+  /** El registro al colgar, mes a mes (lo que antes vivía en «Las N tiendas»: se trae aquí para no perder el dato al quitarla). */
+  registro: { mes: string; texto: string; nivel: NivelConfianza | null }[];
+  /** Lo decidido este mes en su lista «Por decidir», en una línea; null si nada o si no se pudo leer. */
+  decidido: string | null;
 };
 
 export function resumenDeTienda(
   t: { id: string; nombre: string; sede: FrescuraSede | null; fallo: string | null },
-  o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[]; puerta: PuertaPiso },
+  o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[]; puerta: PuertaPiso; registro?: readonly FilaConfianza[] | null },
 ): ResumenTienda {
-  if (t.sede === null) return { id: t.id, nombre: t.nombre, principal: null, antes: null, puerta: o.puerta, porCategoria: [], fallo: t.fallo };
+  const registro = o.registro ? registroCorto(o.registro, t.id) : [];
+  if (t.sede === null) return { id: t.id, nombre: t.nombre, principal: null, antes: null, puerta: o.puerta, porCategoria: [], fallo: t.fallo, registro, decidido: null };
   const familias = pisoPorFamilia(t.sede.prendas, { familiaDe: o.familiaDe, familias: o.familias });
   const principal = familias[0] ?? null;
   const antes = principal && t.sede.haceUnMes ? conteoDeFamilia(t.sede.haceUnMes, principal.codigo, o) : null;
@@ -37,7 +60,8 @@ export function resumenDeTienda(
     for (const k of TRAMOS_PISO) fila.unidades[k] += u[k];
     porCategoria.set(p.categoriaId, fila);
   }
-  return { id: t.id, nombre: t.nombre, principal, antes, puerta: o.puerta, porCategoria: [...porCategoria.values()], fallo: null };
+  const decidido = t.sede.decisiones.estado === "ok" ? resumenCorto(t.sede.decisiones.resumen) : null;
+  return { id: t.id, nombre: t.nombre, principal, antes, puerta: o.puerta, porCategoria: [...porCategoria.values()], fallo: null, registro, decidido };
 }
 
 /** La suma de unas cuentas por tramo. */
@@ -57,8 +81,12 @@ const total = (c: ConteoPiso) => c.fresca + c.vigente + c.envejeciendo + c.sin_s
 export function resumenCayla(tiendas: readonly ResumenTienda[]): { principal: FamiliaPiso | null; respuesta: RespuestaPiso; faltan: string[] } {
   const conPiso = tiendas.filter((t) => t.principal !== null && t.principal.total > 0);
   const unidades = sumar(conPiso.map((t) => t.principal!.unidades));
+  const sinSaberPor: ConteoSinSaber = { ritmo: 0, fecha: 0, dudosa: 0 };
+  for (const t of conPiso) for (const c of CAUSAS_SIN_SABER) sinSaberPor[c] += t.principal!.sinSaberPor[c];
   const principal: FamiliaPiso | null =
-    conPiso.length === 0 ? null : { codigo: conPiso[0].principal!.codigo, nombre: conPiso[0].principal!.nombre, unidades, total: total(unidades), prendas: conPiso.reduce((s, t) => s + t.principal!.prendas, 0), soles: null };
+    conPiso.length === 0
+      ? null
+      : { codigo: conPiso[0].principal!.codigo, nombre: conPiso[0].principal!.nombre, unidades, total: total(unidades), prendas: conPiso.reduce((s, t) => s + t.principal!.prendas, 0), soles: null, sinSaberPor };
   const caidas = tiendas.filter((t) => t.fallo !== null).map((t) => t.nombre);
   const sinRegistro = conPiso.filter((t) => !t.puerta?.puedeHablar).map((t) => t.nombre);
   const faltan = [...caidas, ...sinRegistro];
@@ -71,10 +99,28 @@ export function resumenCayla(tiendas: readonly ResumenTienda[]): { principal: Fa
   if (!respuesta.afirma && principal !== null && caidas.length > 0)
     return { principal, faltan, respuesta: { ...respuesta, pregunta, respuesta: `Todavía no se puede saber: no se pudo leer ${listar(caidas)}.` } };
   if (!respuesta.afirma && principal !== null && sinRegistro.length > 0) {
-    const verbo = sinRegistro.length === 1 ? "aún no registra lo que vende" : "aún no registran lo que venden";
-    return { principal, faltan, respuesta: { ...respuesta, pregunta, respuesta: `Todavía no se puede saber: ${listar(sinRegistro)} ${verbo}.` } };
+    // Cada tienda con SU razón (Formidable 2026-10-10 (c): a Lima le faltaba cuadrar el piso y la frase decía que no registraba lo que vende).
+    const porRazon = new Map<FaltaPuerta | null, string[]>();
+    for (const t of conPiso.filter((x) => !x.puerta?.puedeHablar)) porRazon.set(t.puerta?.falta ?? null, [...(porRazon.get(t.puerta?.falta ?? null) ?? []), t.nombre]);
+    const partes = [...porRazon].map(([falta, nombres]) => `a ${listar(nombres)} ${falta ? RAZON_FALTA_TIENDA[falta] : "no se sabe qué le falta"}`);
+    return { principal, faltan, respuesta: { ...respuesta, pregunta, respuesta: `Todavía no se puede saber: ${partes.join("; ")}.` } };
   }
   return { principal, faltan, respuesta: { ...respuesta, pregunta } };
+}
+
+/** Lo que le falta a una tienda, dicho después de su nombre: «a Tienda Lima le falta cuadrar el piso». */
+const RAZON_FALTA_TIENDA: Record<FaltaPuerta, string> = {
+  piso_cuadrado: "le falta cuadrar el piso",
+  almacen_contado: "le falta contar el almacén",
+  venta_identificada: "le faltan ventas con su prenda",
+};
+
+/** La razón de UNA tienda, para su fila: «Falta cuadrar el piso: sus cifras son aproximadas.» */
+export function razonDeLaTienda(puerta: PuertaPiso): string | null {
+  if (puerta === null) return "No se pudo saber si registra lo que vende: sus cifras pueden fallar.";
+  if (puerta.puedeHablar) return null;
+  const razon = puerta.falta ? RAZON_PUERTA[puerta.falta] : "no se sabe qué le falta";
+  return `${razon[0].toUpperCase()}${razon.slice(1)}: sus cifras son aproximadas.`;
 }
 
 /** «TRU, AQP y LIM». */
@@ -106,4 +152,15 @@ export function cuadricula(tiendas: readonly ResumenTienda[]): FilaCuadricula[] 
     return { categoriaId, nombre, celdas, viejas };
   });
   return filas.sort((a, b) => b.viejas - a.viejas || a.nombre.localeCompare(b.nombre, "es")).map((f) => ({ categoriaId: f.categoriaId, nombre: f.nombre, celdas: f.celdas }));
+}
+
+/**
+ * El enlace que lleva de CAYLA Global a UNA tienda en Frescura, con la categoría ya elegida si se da (Felipe, Formidable 2026-10-10 (c):
+ * «quitar y conectar»). Pasa por la ruta que cambia la tienda del selector (`/inventario/frescura/tienda`), porque una página no puede
+ * escribir la cookie mientras se dibuja.
+ */
+export function enlaceATienda(ubicacionId: string, categoriaId?: string): string {
+  const q = new URLSearchParams({ tienda: ubicacionId });
+  if (categoriaId) q.set("cat", categoriaId);
+  return `/inventario/frescura/tienda?${q.toString()}`;
 }

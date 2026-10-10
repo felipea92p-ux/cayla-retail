@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { conteoVacio, type ConteoPiso, type FamiliaPiso } from "./frescura-piso";
-import { cuadricula, resumenCayla, type ResumenTienda } from "./frescura-red";
+import { cuadricula, razonDeLaTienda, resumenCayla, type ResumenTienda } from "./frescura-red";
 
 // CAYLA Global ▸ Frescura del piso (ADR-0208, act. 2026-10-10 (b)): la suma de las tiendas, la frase de CAYLA y la cuadrícula categoría × tienda.
 
 const familia = (u: Partial<ConteoPiso>): FamiliaPiso => {
   const unidades = { ...conteoVacio(), ...u };
-  return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null };
+  return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null, sinSaberPor: { ritmo: unidades.sin_saber, fecha: 0, dudosa: 0 } };
 };
 const LISTA = { puedeHablar: true, aviso: "" };
-const tienda = (nombre: string, o: Partial<ResumenTienda> = {}): ResumenTienda => ({ id: nombre, nombre, principal: null, antes: null, puerta: LISTA, porCategoria: [], fallo: null, ...o });
+const tienda = (nombre: string, o: Partial<ResumenTienda> = {}): ResumenTienda => ({ id: nombre, nombre, principal: null, antes: null, puerta: LISTA, porCategoria: [], fallo: null, registro: [], decidido: null, ...o });
 
 describe("resumenCayla", () => {
   it("suma las tiendas y afirma si todas registran lo que venden", () => {
@@ -18,10 +18,28 @@ describe("resumenCayla", () => {
     expect(r.respuesta).toMatchObject({ pregunta: "¿Está fresco el piso de CAYLA?", respuesta: "50 de cada 100 prendas colgadas están frescas.", afirma: true });
   });
 
-  it("si una tienda no registra lo que vende, CAYLA no afirma y dice cuál", () => {
-    const r = resumenCayla([tienda("TRU", { principal: familia({ fresca: 30 }) }), tienda("AQP", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "" } })]);
-    expect(r.respuesta).toMatchObject({ afirma: false, respuesta: "Todavía no se puede saber: AQP aún no registra lo que vende." });
+  it("si una tienda no pasa su puerta, CAYLA no afirma y dice cuál y qué le falta", () => {
+    const r = resumenCayla([
+      tienda("TRU", { principal: familia({ fresca: 30 }) }),
+      tienda("AQP", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada" } }),
+    ]);
+    expect(r.respuesta).toMatchObject({ afirma: false, respuesta: "Todavía no se puede saber: a AQP le faltan ventas con su prenda." });
     expect(r.faltan).toEqual(["AQP"]);
+  });
+
+  it("cada tienda con SU razón: a Lima le falta cuadrar el piso, no registrar lo que vende (lo vio la ciega, Formidable 2026-10-10 (c))", () => {
+    const r = resumenCayla([
+      tienda("LIM", { principal: familia({ fresca: 30 }), puerta: { puedeHablar: false, aviso: "", falta: "piso_cuadrado" } }),
+      tienda("TRU", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada" } }),
+      tienda("AQP", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada" } }),
+    ]);
+    expect(r.respuesta.respuesta).toBe("Todavía no se puede saber: a LIM le falta cuadrar el piso; a TRU y AQP le faltan ventas con su prenda.");
+  });
+
+  it("la fila de cada tienda dice su razón, o nada si pasa", () => {
+    expect(razonDeLaTienda({ puedeHablar: false, aviso: "", falta: "piso_cuadrado" })).toBe("Falta cuadrar el piso: sus cifras son aproximadas.");
+    expect(razonDeLaTienda({ puedeHablar: true, aviso: "" })).toBeNull();
+    expect(razonDeLaTienda(null)).toMatch(/No se pudo saber/);
   });
 
   it("si una tienda no se pudo leer, CAYLA no afirma: una cifra con una tienda menos miente", () => {

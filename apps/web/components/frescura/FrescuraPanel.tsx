@@ -52,7 +52,6 @@ import { FrescuraPiso } from "./FrescuraPiso";
 import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeFamilia, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
-import { FrescuraTiendas } from "./FrescuraTiendas";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -74,12 +73,10 @@ function escribirUrl(f: Filtros, prenda: string | null) {
 export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso: AccesoFrescura }) {
   const params = useSearchParams();
   const router = useRouter();
-  const [verTiendas, setVerTiendas] = useState(false);
   const [comoSeLee, setComoSeLee] = useState(false);
   // El pie dice cifras; los nombres se despliegan a un toque (Formidable 2026-10-09, ley 8).
   const [verGuardadas, setVerGuardadas] = useState(false);
   const [verNuncaColgadas, setVerNuncaColgadas] = useState(false);
-  const botonTiendas = useRef<HTMLButtonElement | null>(null);
   const [pedidos, setPedidos] = useState<Filtros>(() => filtrosDeUrl((k) => params.get(k)));
   const [prendaAbierta, setPrendaAbierta] = useState<string | null>(() => params.get("prenda"));
   // Con qué se abre la hoja: el detalle, o directo «Ya decidí» con una opción marcada (el botón de la fila que no pudo anotar a
@@ -253,18 +250,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       : null;
 
   // ---- La cabecera ----
-  // Solo el atajo a las otras tiendas (líder). El registro al colgar y «Ventas a pedido» (que aún no tiene dato) ya no ocupan la cabecera:
-  // el registro vive en «¿Cómo se lee esto?».
-  const pieCabecera =
-    datos.esLider && datos.tiendas && datos.tiendas.length > 1 ? (
-      <p className="max-w-[30rem] text-[13px] leading-relaxed text-taupe">
-        {/* «Comparar», no «Ver»: la ciega leyó «Ver las 2 tiendas» como cambiar de tienda (Formidable 2026-10-09). */}
-        <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]">
-          Comparar las {datos.tiendas.length} tiendas
-        </button>
-      </p>
-    ) : undefined;
-
+  // Sin atajo a las otras tiendas: comparar tiendas es CAYLA Global ▸ Frescura, una sola forma de hacerlo (Felipe, Formidable 2026-10-10 (c):
+  // «Comparar las N tiendas» mostraba el % Nueva y la edad promedio que el ADR ya había retirado). El registro al colgar vive en «¿Cómo se lee esto?».
 
   // «¿Cómo se lee esto?» va junto al título del tablero (cabía de milagro en la fila de filtros: a 1440 caía solo a una segunda
   // línea y costaba 38 px de pantalla); sin tablero (nada colgado), vuelve a la fila de filtros.
@@ -284,9 +271,9 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   return (
     <div className="space-y-6">
       {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
-      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} pie={pieCabecera} />
+      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} />
 
-      {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} antes={respuesta?.antes ?? null} />}
+      {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} acceso={acceso} antes={respuesta?.antes ?? null} />}
 
       {sede && datos.sede.tienda && (
         <FrescuraAguja
@@ -565,9 +552,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           modoInicial={hojaPedida.modo}
           opcionInicial={hojaPedida.opcion}
         />
-      )}
-      {verTiendas && datos.tiendas && datos.registro && (
-        <FrescuraTiendas tiendas={datos.tiendas} registro={datos.registro} actual={datos.sede.id} volverA={botonTiendas} onClose={() => setVerTiendas(false)} />
       )}
     </div>
   );

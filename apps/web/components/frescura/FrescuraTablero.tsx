@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { CLASE_TRAMO_BARRA, NOMBRE_TRAMO_BARRA, TRAMOS_BARRA, segmentosDe, type FilaTablero } from "@/lib/frescura-pantalla";
 
 // El tablero por categoría de Frescura del piso (nivel 1; ADR-0208, act. 2026-10-07, decisión 3 de Felipe): «¿Cómo está el piso?»
@@ -58,7 +58,7 @@ export function FrescuraTablero({
             <span aria-hidden className={`flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] leading-snug text-taupe tabular-nums ${compacto ? "shrink-0" : "mt-1"}`}>
               {segmentos.map((s) => (
                 <span key={s.clave} className="flex items-center gap-1" title={s.nombre}>
-                  <span className={`inline-block h-2 w-2 rounded-full ${s.clase}`} />
+                  <MuestraTramo clase={s.clase} />
                   {s.valor}
                 </span>
               ))}
@@ -107,17 +107,16 @@ export function FrescuraTablero({
           );
         })}
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-taupe">
-        <ul aria-label="Qué significa cada color" className="flex flex-wrap gap-x-4 gap-y-1">
-          {conUnidades.map((t) => (
-            <li key={t} className="flex items-center gap-1.5">
-              <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-full ${CLASE_TRAMO_BARRA[t]}`} />
-              {NOMBRE_TRAMO_BARRA[t]}
-            </li>
-          ))}
-        </ul>
-        <span>Toca una categoría para ver solo sus prendas</span>
-      </div>
+      {/* La leyenda con la muestra del sistema (el rayado de «Aún no se sabe» se ve igual que en la barra). Sin la instrucción «Toca una
+          categoría…»: las filas ya se ven tocables (Formidable 2026-10-10 (c), ley 8). */}
+      <ul aria-label="Qué significa cada color" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-taupe">
+        {conUnidades.map((t) => (
+          <li key={t} className="flex items-center gap-1.5">
+            <MuestraTramo clase={CLASE_TRAMO_BARRA[t]} />
+            {NOMBRE_TRAMO_BARRA[t]}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

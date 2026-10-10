@@ -12,12 +12,11 @@ import {
   type VaraCategoria,
 } from "@/lib/frescura-reglas";
 import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
-import { avisoDatosDeHoy } from "@/lib/analisis-aviso";
+import { avisoDatosDeHoy, ventas30 } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
-import type { ResumenDecisiones } from "@/lib/frescura-decisiones-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
@@ -58,11 +57,6 @@ function rpcFrescura(supabase: Supabase): LlamarRpcFrescura {
           : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
 }
 
-/**
- * Las cifras de una tienda para «Las N tiendas» —con la suma de lo decidido este mes (paso 4b), null si no se pudo leer—, o
- * `{ separaPiso: false }` si no separa piso y almacén.
- */
-export type CifrasDeTienda = (FrescuraSede["cifras"] & { resumen: ResumenDecisiones | null }) | { separaPiso: false };
 
 /** El color y la foto de una prenda (modelo+color): la misma fuente y regla que Existencias (`getAparienciaVariantes`). */
 export type AparienciaPrenda = { colorHex: string | null; fotoUrl: string | null };
@@ -83,8 +77,6 @@ export type DatosFrescura = {
   /** La vara de CAYLA de respaldo (ADR-0208, act. 2026-10-07): de cuándo es (null = ninguna vigente) o por qué no se leyó. Lo
    *  que decidió con ella viaja en cada prenda (`juzgadaContra`) y en cada categoría (`respaldo`). */
   respaldoCayla: { calculadaEn: string | null; fallo: string | null };
-  /** Solo el líder: cada tienda con sus cifras, para «Las N tiendas». */
-  tiendas: { id: string; nombre: string; lectura: Tolerado<CifrasDeTienda> }[] | null;
   /** clave → nombre de cada temporada y la estación en que empieza. Vacío si no se pudo leer (la pantalla dice «su
    *  estación» en las frases y muestra la clave junto al color). */
   temporadas: NombresDeTemporadas;
@@ -188,14 +180,25 @@ async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: Datos
  * el almacén contado. Sin ella, lo vendido sin registrar sigue «colgado» y envejece en falso, así que la frase de Frescura no afirma nada.
  * Null si no se pudo leer. Nunca lanza.
  */
+/** La puerta de una tienda desde su fila de preparación: si habla, el aviso compartido con Análisis, si el piso está cuadrado y lo primero que falta. */
+function puertaDeFila(fila: ReturnType<typeof leerPreparacion>[number]): NonNullable<PuertaPiso> {
+  const p = { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy, primeraVenta: fila.primeraVenta };
+  return {
+    puedeHablar: p.puedeHablar,
+    aviso: avisoDatosDeHoy(p),
+    pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple),
+    falta: p.condiciones.find((c) => !c.cumple)?.clave ?? null,
+    sinPrenda: ventas30(p).sinPrenda,
+  };
+}
+
 async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<PuertaPiso> {
   try {
     const { data, error } = await supabase.rpc(RPC_PREPARACION as never, { p_ubicacion_id: sedeId } as never);
     if (error) return null;
     const fila = leerPreparacion(data).find((f) => f.ubicacionId === sedeId);
     if (!fila) return null;
-    const p = { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy, primeraVenta: fila.primeraVenta };
-    return { puedeHablar: p.puedeHablar, aviso: avisoDatosDeHoy(p), pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple) };
+    return puertaDeFila(fila);
   } catch {
     return null;
   }
@@ -277,7 +280,7 @@ export async function getFrescuraPantalla(
 
   if (persona.rol !== "lider") {
     const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo, pisoAnterior)).lectura : sinPiso;
-    return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, tiendas: null, temporadas, ...(await deLaSede(lectura)) };
+    return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, temporadas, ...(await deLaSede(lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
@@ -291,18 +294,6 @@ export async function getFrescuraPantalla(
     registro: lider.confianza,
     cayla: lider.referenciaCayla,
     respaldoCayla,
-    tiendas: lider.sedes.map((s) => ({
-      id: s.ubicacionId,
-      nombre: s.nombre,
-      lectura: s.lectura.datos
-        ? {
-            datos: s.lectura.datos.separaPiso
-              ? { ...s.lectura.datos.cifras, resumen: s.lectura.datos.decisiones.estado === "ok" ? s.lectura.datos.decisiones.resumen : null }
-              : { separaPiso: false as const },
-            fallo: null,
-          }
-        : { datos: null, fallo: s.lectura.fallo },
-    })),
     temporadas,
     ...(await deLaSede(lecturaDeSede)),
   };
@@ -342,7 +333,8 @@ export async function getFrescuraRed(persona: Pick<PersonaActualV2, "rol">, dias
   // La familia de cada categoría de las tres tiendas (hoy y hace 4 semanas). Si falla, todo va en una sola barra por tienda.
   const ids = [...new Set(sedes.flatMap((t) => [...(t.sede?.prendas ?? []).map((p) => p.categoriaId), ...(t.sede?.haceUnMes?.porCategoria ?? []).map((c) => c.categoriaId)]).filter((id) => id !== ""))];
   const familiaDe = await familiasDeCategorias(supabase, ids);
-  return { esLider: true, tiendas: sedes.map((t) => resumenDeTienda(t, { familiaDe, familias, puerta: puertas.get(t.id) ?? null })) };
+  const registro = lider.confianza.datos;
+  return { esLider: true, tiendas: sedes.map((t) => resumenDeTienda(t, { familiaDe, familias, puerta: puertas.get(t.id) ?? null, registro })) };
 }
 
 /** La familia de cada categoría, por id. Si la lectura falla, ninguna (la barra no se parte por familia). Nunca lanza. */
@@ -364,10 +356,7 @@ async function puertasDeLasTiendas(supabase: Supabase): Promise<Map<string, Puer
     const { data, error } = await supabase.rpc(RPC_PREPARACION as never, {} as never);
     if (error) return new Map();
     return new Map(
-      leerPreparacion(data).map((f) => {
-        const p = { ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy, primeraVenta: f.primeraVenta };
-        return [f.ubicacionId, { puedeHablar: p.puedeHablar, aviso: avisoDatosDeHoy(p), pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple) }] as const;
-      }),
+      leerPreparacion(data).map((f) => [f.ubicacionId, puertaDeFila(f)] as const),
     );
   } catch {
     return new Map();

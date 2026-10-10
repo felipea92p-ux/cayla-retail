@@ -6,7 +6,9 @@ import { enlaceBajar, pct, type SenalCategoria, type SinEstrenar } from "@/lib/f
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): hasta tres categorías —las que se quedan y la que se lleva más—, cada una con lo que
 // dice de ella y UN botón que lleva a hacerlo (completar tallas o colgar más en Bajar al piso; cambiar de lugar filtra la lista de abajo).
-// Sin el piso cuadrado no hay veredictos: dice qué se llevan los clientes (registrado y anotado en caja), que no necesita saber qué cuelga.
+// Sin el piso cuadrado no hay veredictos: dice qué se llevan los clientes (registrado y anotado en caja), que no necesita saber qué cuelga;
+// y si tampoco hay eso, no se dibuja (Felipe, Formidable 2026-10-10 (c): un bloque que solo promete ocupaba 146 px y empujaba lo por
+// decidir bajo el pliegue; lo que falta para que hable ya lo dice el aviso de la tarjeta de la tienda, con su botón).
 // Las reglas viven en `frescura-aguja.ts`; aquí solo se dibujan.
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
@@ -82,26 +84,21 @@ export function FrescuraAguja({
   puedeBajar: boolean;
   onVerCategoria: (categoriaId: string) => void;
 }) {
+  if (!pisoCuadrado && seLlevan.length === 0) return null;
   return (
     <section aria-labelledby="frescura-aguja-titulo" className="card-cayla px-4 py-4 sm:px-5">
       <h2 id="frescura-aguja-titulo" className="font-display text-[20px] leading-tight sm:text-[22px]">
         {pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}
       </h2>
       {!pisoCuadrado ? (
-        seLlevan.length > 0 ? (
-          <>
-            <p className="mt-1 text-[13.5px] leading-snug">
-              {seLlevan.map((c) => `${c.nombre} ${c.unidades}`).join(" · ")} <span className="text-taupe">en 14 días, con lo anotado en caja.</span>
-            </p>
-            <p className="mt-1 text-[12.5px] leading-snug text-taupe">
-              Cuando el piso esté cuadrado, aquí vas a ver qué categoría se queda y cuál se lleva más que lo que ocupa.
-            </p>
-          </>
-        ) : (
-          <Vacio tamano="chico" alinear="izquierda" icono={<Gauge strokeWidth={1.5} />} className="mt-2">
-            Cuando el piso esté cuadrado, aquí vas a ver qué categoría se queda y cuál se lleva más.
-          </Vacio>
-        )
+        <>
+          <p className="mt-1 text-[13.5px] leading-snug">
+            {seLlevan.map((c) => `${c.nombre} ${c.unidades}`).join(" · ")} <span className="text-taupe">en 14 días, con lo anotado en caja.</span>
+          </p>
+          <p className="mt-1 text-[12.5px] leading-snug text-taupe">
+            Cuando el piso esté cuadrado, aquí vas a ver qué categoría se queda y cuál se lleva más que lo que ocupa.
+          </p>
+        </>
       ) : senales.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" icono={<Gauge strokeWidth={1.5} />} className="mt-2">
           Esta semana ninguna categoría se sale de lo normal.

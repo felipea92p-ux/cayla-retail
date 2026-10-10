@@ -8,6 +8,7 @@ import {
   type RespaldoCayla,
   type UnidadColgada,
 } from "./frescura-reglas";
+import { pasoParaHablar } from "./analisis-aviso";
 
 // Frescura del piso, la tienda de un vistazo (ADR-0208, act. 2026-10-10 (b)): «¿tu piso está fresco?» con una barra por familia
 // (Indumentaria arriba; Bisutería y Accesorios, cada una en su línea) que reparte TODAS las unidades colgadas en tres estados —las
@@ -35,37 +36,56 @@ export const NOMBRE_TRAMO_PISO: Record<TramoPiso, string> = {
   sin_saber: "Aún no se sabe",
   clasico: "Clásico",
 };
-/** El color de cada tramo: verde · neutro · ámbar, nunca rojo (los colores A de ADR-0208); lo que no se sabe, apagado. */
+/**
+ * El color de cada tramo: verde · neutro · ámbar, nunca rojo (los colores A de ADR-0208). Lo que no se sabe va RAYADO, no en otro gris:
+ * liso, su taupe y el neutro de Vigente median 1,06 : 1 de luminosidad y la gerente ciega no supo cuál era cuál (Formidable 2026-10-10 (c),
+ * decisión de Felipe: «mismo nombre, se distingue»). Las rayas son las de la regla de la hoja de detalle, la zona «no se sabe».
+ */
 export const CLASE_TRAMO_PISO: Record<TramoPiso, string> = {
   fresca: "bg-verde",
   vigente: "bg-tinta/25",
   envejeciendo: "bg-ambar",
-  sin_saber: "bg-taupe/35",
+  sin_saber: "bg-[repeating-linear-gradient(135deg,var(--color-taupe)_0_2px,transparent_2px_5px)]",
   clasico: "bg-pizarra/60",
 };
+
+/** Por qué una unidad cae en «Aún no se sabe», en palabras de tienda: lo que se dice al tocar su «¿Por qué?». */
+export type CausaSinSaber = "ritmo" | "fecha" | "dudosa";
+export const CAUSAS_SIN_SABER: readonly CausaSinSaber[] = ["ritmo", "fecha", "dudosa"];
+export const TEXTO_CAUSA_SIN_SABER: Record<CausaSinSaber, string> = {
+  ritmo: "su categoría todavía no tiene un ritmo de venta en esta tienda",
+  fecha: "no se sabe desde cuándo está colgada",
+  dudosa: "su stock no cuadra: hay que contarla",
+};
+export type ConteoSinSaber = Record<CausaSinSaber, number>;
+const sinSaberVacio = (): ConteoSinSaber => ({ ritmo: 0, fecha: 0, dudosa: 0 });
 
 export type ConteoPiso = Record<TramoPiso, number>;
 export const conteoVacio = (): ConteoPiso => ({ fresca: 0, vigente: 0, envejeciendo: 0, sin_saber: 0, clasico: 0 });
 
-/** Dónde cae una tanda colgada de una prenda que se juzga (con los cortes de su categoría sin ella). */
-function tramoDeLaTanda(p: FrescuraPrenda, u: UnidadColgada): TramoPiso {
+/**
+ * Dónde cae una tanda colgada de una prenda que se juzga (con los cortes de su categoría sin ella) y, si no se sabe, por qué: sin ritmo de su
+ * categoría o sin fecha (la de ella o la de su modelo).
+ */
+function tramoYCausa(p: FrescuraPrenda, u: UnidadColgada): { tramo: TramoPiso; causa: CausaSinSaber | null } {
+  const conCausa = (tramo: TramoPiso, causa: CausaSinSaber) => ({ tramo, causa: tramo === "sin_saber" ? causa : null });
   const vara = p.categoriaSinElla;
-  if (vara === null || vara.cortes.p50 === null) return "sin_saber";
+  if (vara === null || vara.cortes.p50 === null) return conCausa("sin_saber", "ritmo");
   const { cortes, tMax } = vara;
   const p50 = vara.cortes.p50;
   // Su modelo todavía no llega a la mitad: Fresca (si se sabe desde cuándo está; si no, puede ser Fresca o Vigente).
   const modeloFresco = tramoDosRelojes(p.reloj.segundos, p.reloj.segundos, cortes, tMax)?.tramo === "nueva";
-  if (modeloFresco && !p.reloj.alMenos) return "fresca";
+  if (modeloFresco && !p.reloj.alMenos) return conCausa("fresca", "fecha");
   // Pasada la mitad (o sin saberlo), lo dicen los días de la unidad. Con el modelo puesto al menos en P50 la regla ya no puede
   // decir Fresca: queda Vigente o Envejeciendo.
   const t = tramoDosRelojes(Math.max(p.reloj.segundos, p50), u.segundos, cortes, tMax);
-  if (t === null) return "sin_saber";
+  if (t === null) return conCausa("sin_saber", "ritmo");
   const envejece = t.tramo === "envejecida" || t.tramo === "critica";
   // Sin fecha, sus días son un piso: si ya pasó P75 se sabe que envejece; si no, no se sabe.
-  if (u.edadDesconocida) return envejece ? "envejeciendo" : "sin_saber";
+  if (u.edadDesconocida) return conCausa(envejece ? "envejeciendo" : "sin_saber", "fecha");
   // El modelo entró sin fecha y no se sabe si pasó la mitad: lo que tampoco la pasó puede ser Fresco.
-  if (p.reloj.alMenos && modeloFresco && u.segundos < p50) return "sin_saber";
-  return envejece ? "envejeciendo" : "vigente";
+  if (p.reloj.alMenos && modeloFresco && u.segundos < p50) return conCausa("sin_saber", "fecha");
+  return conCausa(envejece ? "envejeciendo" : "vigente", "fecha");
 }
 
 /**
@@ -73,13 +93,18 @@ function tramoDeLaTanda(p: FrescuraPrenda, u: UnidadColgada): TramoPiso {
  * menos tandas colgadas que lo que dice el stock (no debería), lo que falta cae en «Aún no se sabe», nunca desaparece; si trae más,
  * cuenta hasta el stock, de la más vieja a la más nueva.
  */
-export function tramosDeLaPrenda(p: FrescuraPrenda, precioDe?: (varianteId: string) => number | null): { unidades: ConteoPiso; soles: ConteoPiso; sinPrecio: number } {
+export function tramosDeLaPrenda(
+  p: FrescuraPrenda,
+  precioDe?: (varianteId: string) => number | null,
+): { unidades: ConteoPiso; soles: ConteoPiso; sinPrecio: number; sinSaberPor: ConteoSinSaber } {
   const unidades = conteoVacio();
   const soles = conteoVacio();
+  const sinSaberPor = sinSaberVacio();
   let sinPrecio = 0;
-  const sumar = (tramo: TramoPiso, n: number, varianteId: string) => {
+  const sumar = (tramo: TramoPiso, n: number, varianteId: string, causa: CausaSinSaber | null = null) => {
     if (n <= 0) return;
     unidades[tramo] += n;
+    if (tramo === "sin_saber") sinSaberPor[causa ?? "ritmo"] += n;
     const precio = precioDe?.(varianteId) ?? null;
     if (precio === null) sinPrecio += n;
     else soles[tramo] += n * precio;
@@ -92,19 +117,22 @@ export function tramosDeLaPrenda(p: FrescuraPrenda, precioDe?: (varianteId: stri
       continue;
     }
     if (!juzgable) {
-      sumar("sin_saber", t.pisoHoy, t.varianteId);
+      // Sin juicio: o su libro no cuadra (hay que contarla) o su categoría todavía no tiene ritmo aquí.
+      sumar("sin_saber", t.pisoHoy, t.varianteId, p.estado.tipo === "dudosa" ? "dudosa" : "ritmo");
       continue;
     }
     let restante = t.pisoHoy;
     for (const u of [...t.colgadas].sort((a, b) => b.segundos - a.segundos)) {
       const n = Math.min(u.unidades, restante);
-      sumar(tramoDeLaTanda(p, u), n, t.varianteId);
+      const { tramo, causa } = tramoYCausa(p, u);
+      sumar(tramo, n, t.varianteId, causa);
       restante -= n;
       if (restante <= 0) break;
     }
-    sumar("sin_saber", restante, t.varianteId);
+    // Lo que el stock dice colgado sin una tanda en el libro: no se sabe desde cuándo.
+    sumar("sin_saber", restante, t.varianteId, "fecha");
   }
-  return { unidades, soles, sinPrecio };
+  return { unidades, soles, sinPrecio, sinSaberPor };
 }
 
 export type Familia = { codigo: string; nombre: string; orden: number };
@@ -120,6 +148,8 @@ export type FamiliaPiso = {
   /** Prendas (modelo+color) con algo colgado, clásicos incluidos. */
   prendas: number;
   soles: ConteoPiso | null;
+  /** Las unidades de «Aún no se sabe», por qué: suman exactamente `unidades.sin_saber`. */
+  sinSaberPor: ConteoSinSaber;
 };
 
 const SIN_FAMILIA = "Otras";
@@ -145,13 +175,14 @@ export function pisoPorFamilia(
     const codigo = familiaResuelta(p.categoriaId, o.familiaDe, porCodigo);
     const g =
       grupos.get(codigo) ??
-      ({ codigo, nombre: codigo === null ? SIN_FAMILIA : porCodigo.get(codigo)!.nombre, unidades: conteoVacio(), total: 0, prendas: 0, soles: conteoVacio(), sinPrecio: 0 } as FamiliaPiso & { sinPrecio: number });
+      ({ codigo, nombre: codigo === null ? SIN_FAMILIA : porCodigo.get(codigo)!.nombre, unidades: conteoVacio(), total: 0, prendas: 0, soles: conteoVacio(), sinPrecio: 0, sinSaberPor: sinSaberVacio() } as FamiliaPiso & { sinPrecio: number });
     grupos.set(codigo, g);
     const t = tramosDeLaPrenda(p, o.precioDe);
     for (const k of TRAMOS_PISO) {
       g.unidades[k] += t.unidades[k];
       g.soles![k] += t.soles[k];
     }
+    for (const c of CAUSAS_SIN_SABER) g.sinSaberPor[c] += t.sinSaberPor[c];
     g.sinPrecio += o.precioDe ? t.sinPrecio : 1;
     g.prendas += 1;
   }
@@ -229,13 +260,56 @@ export function conteoDeFamilia(
   return c;
 }
 
+/** Lo primero que le falta a una tienda para pasar la puerta (las condiciones de `preparacionDeSede`, en su orden). */
+export type FaltaPuerta = "venta_identificada" | "piso_cuadrado" | "almacen_contado";
+
 /** Lo que dice la puerta compartida (`preparacionDeSede` del motor de demanda, la misma de Análisis): si la tienda ya registra lo que vende. */
 export type PuertaPiso = {
   puedeHablar: boolean;
   aviso: string;
   /** El piso ya se cuadró (el sistema sabe qué cuelga): sin esto, las categorías no reciben veredicto (`loQueMueveLaAguja`). */
   pisoCuadrado?: boolean;
+  /** Lo PRIMERO que falta (null si pasa o si no se pudo saber). Decide la razón de la frase y el botón del aviso. */
+  falta?: FaltaPuerta | null;
+  /** Ventas de los últimos 30 días sin su prenda (lo que «Registrar N sin prenda» lleva a regularizar). */
+  sinPrenda?: number;
 } | null;
+
+/** La razón corta, para la frase de arriba: «Todavía no se puede saber: falta cuadrar el piso.» */
+export const RAZON_PUERTA: Record<FaltaPuerta, string> = {
+  piso_cuadrado: "falta cuadrar el piso",
+  almacen_contado: "falta contar el almacén",
+  venta_identificada: "todavía no todas las ventas llevan su prenda",
+};
+
+/**
+ * El aviso de la tarjeta mientras la tienda no pasa la puerta (decisión de Felipe, Formidable 2026-10-10 (c): «% con aviso + el paso»): en una
+ * frase, por qué los porcentajes son aproximados. Lo que hay que hacer lo dice el botón (`pasoDeLaPuerta`), no el texto.
+ */
+export function avisoDeLaPuerta(puerta: PuertaPiso): string {
+  switch (puerta?.falta) {
+    case "piso_cuadrado":
+      return "Mientras el piso no esté cuadrado, el sistema no sabe con certeza qué está colgado: estos porcentajes son aproximados.";
+    case "almacen_contado":
+      return "Mientras el almacén no esté contado, algo guardado puede contarse como colgado: estos porcentajes son aproximados.";
+    case "venta_identificada":
+      return "Mientras haya ventas sin su prenda, lo vendido sigue contando como colgado: estos porcentajes son aproximados.";
+    default:
+      return puerta?.aviso || "No se pudo saber si esta tienda ya registra lo que vende: estos porcentajes pueden fallar.";
+  }
+}
+
+/** Qué pantallas ve quien mira (las de `AccesoFrescura`): Cuadrar y Por regularizar son de Existencias; contar, de Conteo. */
+export type AccesoPuerta = { existencias: boolean; conteos: boolean };
+
+/**
+ * El botón que hace lo que falta, con la MISMA regla que «Todavía no» de Análisis (`pasoParaHablar`): registrar las ventas sin su prenda,
+ * cuadrar el piso o contar el almacén. Null si pasa, si no hay qué registrar o si no ve esa pantalla (nunca un botón a «Sin acceso»).
+ */
+export function pasoDeLaPuerta(puerta: PuertaPiso, acceso: AccesoPuerta): { texto: string; href: string } | null {
+  if (puerta === null || puerta.puedeHablar) return null;
+  return pasoParaHablar(puerta.falta ?? null, puerta.sinPrenda ?? 0, { regularizar: acceso.existencias, cuadrar: acceso.existencias, conteo: acceso.conteos });
+}
 
 /** «Aún no se sabe» desde esta parte del piso, la frase no afirma nada: con tanto gris, el porcentaje de frescas podría ser otro. */
 export const PARTE_SIN_SABER_QUE_CALLA = 0.2;
@@ -296,7 +370,10 @@ const COLA_TENDENCIA: Record<Tendencia, string> = {
 export function respuestaDelPiso(principal: FamiliaPiso | null, puerta: PuertaPiso, antes: ConteoPiso | null = null): RespuestaPiso {
   const base = { pregunta: PREGUNTA_PISO, tendencia: null, antes: null };
   if (principal === null || principal.total <= 0) return { ...base, respuesta: "Todavía no hay nada colgado.", afirma: false };
-  if (puerta === null || !puerta.puedeHablar) return { ...base, respuesta: "Todavía no se puede saber.", afirma: false };
+  if (puerta === null || !puerta.puedeHablar) {
+    const razon = puerta?.falta ? RAZON_PUERTA[puerta.falta] : null;
+    return { ...base, respuesta: razon ? `Todavía no se puede saber: ${razon}.` : "Todavía no se puede saber.", afirma: false };
+  }
   if (!sePuedeDecir(principal.unidades)) {
     const n = porcentajes(principal.unidades).sin_saber;
     return { ...base, respuesta: `Todavía no se puede decir: aún no se sabe de ${n} de cada 100 prendas colgadas.`, afirma: false };
