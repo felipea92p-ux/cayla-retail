@@ -8,6 +8,7 @@ import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { PorRegularizarLista } from "@/components/PorRegularizarLista";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 
 // Ventas sin registrar (ADR-0179), en Existencias desde el 2026-10-04 (ADR-0330): prendas que caja vendió antes de estar en el
 // sistema. Hasta hoy eran la tercera pestaña de Recibir mercadería, que es de lo que LLEGA; esto es una diferencia de stock que deja
@@ -34,7 +35,9 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   ]);
   // Cuántas unidades libres hay de cada prenda en la tienda de cada venta pendiente (para «3 en TRU» y la sugerida). Es lo accesorio:
   // si no se puede leer, la pantalla sigue y se regulariza igual (`getDisponiblePorSede` nunca lanza).
-  const disponibles = await getDisponiblePorSede(filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId));
+  const sedesPendientes = filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId);
+  // El precio OFICIAL de cada venta es el de su tienda (precio propio, Felipe 2026-10-09): así lo guarda `regularizar_prenda`.
+  const [disponibles, preciosPorSede] = await Promise.all([getDisponiblePorSede(sedesPendientes), getPreciosPorSede(sedesPendientes)]);
   const etiqueta = esLider ? (unaSede?.nombre ?? "tus tiendas") : persona.ubicacionEtiqueta;
   // De vuelta a Existencias en la misma sede que se miraba (la de la cabecera no necesita el parámetro).
   const volverA = unaSede && unaSede.id !== persona.ubicacionId ? `/inventario?ubicacion=${unaSede.id}` : "/inventario";
@@ -67,6 +70,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         filas={filas}
         prendas={prendas}
         disponibles={disponibles}
+        preciosPorSede={preciosPorSede}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
         esLider={esLider}

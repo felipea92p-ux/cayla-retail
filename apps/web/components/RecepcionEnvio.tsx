@@ -1539,7 +1539,7 @@ export function RecepcionEnvio({
             className="anim-barra"
             medidor={
               // contado (verde) · faltante (ámbar) · lo que falta contar (arena): cuánto falta, de un vistazo
-              <div aria-hidden className="flex h-[3px] bg-sand">
+              <div aria-hidden /* unificar-fijo: franja de 3 px pegada al borde de la barra fija, un medidor sin extremos; otro diseño a propósito (docs/unificar/grafico.barra.md) */ className="flex h-[3px] bg-sand">
                 <span className="bg-verde transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100)}%` }} />
                 <span className="bg-ambar transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100 - Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100), (totales.faltantes / Math.max(1, totales.esperadas)) * 100)}%` }} />
               </div>

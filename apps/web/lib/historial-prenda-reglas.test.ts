@@ -180,3 +180,28 @@ describe("resumen, personas y filtros", () => {
     expect(etiquetaDia("2025-12-31T16:00:00Z", "2026-10-06")).toBe("mié 31 dic 2025");
   });
 });
+
+// Precio propio por tienda (Felipe 2026-10-09): 6 variantes con el mismo cambio son UN cambio que nombra la tienda.
+describe("precio de una tienda", () => {
+  const t = "2026-10-09T15:00:00Z";
+  const precioSede = (antes: object, despues: object, variante: string) =>
+    fila({ campo: "precio_sede", created_at: t, entidad: "variante", variante_id: variante, valor_anterior: JSON.stringify(antes), valor_nuevo: JSON.stringify(despues) });
+  it("poner: un solo cambio, en la familia Precio, con la tienda y el motivo", () => {
+    const filas = ["v1", "v2", "v3"].map((v) =>
+      precioSede({ tienda: "Tienda Arequipa", precio: 119.9, propio: false }, { tienda: "Tienda Arequipa", precio: 129.9, propio: true, motivo: "Mercado" }, v),
+    );
+    const cambios = cambiosDe(filas);
+    expect(cambios).toEqual([
+      { k: "tienda", tienda: "Tienda Arequipa", antes: 119.9, despues: 129.9, propio: true, antesPropio: false, motivo: "Mercado", variantes: 3 },
+    ]);
+    expect(tituloDe(cambios)).toBe("puso precio propio en Tienda Arequipa");
+    expect(armarEventos(filas)[0]?.familia).toBe("precio");
+  });
+  it("cambiar y quitar se dicen distinto", () => {
+    const cambiar = cambiosDe([precioSede({ tienda: "Tienda Arequipa", precio: 129.9, propio: true }, { tienda: "Tienda Arequipa", precio: 139.9, propio: true }, "v1")]);
+    expect(tituloDe(cambiar)).toBe("cambió el precio de Tienda Arequipa");
+    const quitar = cambiosDe([precioSede({ tienda: "Tienda Arequipa", precio: 129.9, propio: true }, { tienda: "Tienda Arequipa", precio: 119.9, propio: false }, "v1")]);
+    expect(tituloDe(quitar)).toBe("quitó el precio propio de Tienda Arequipa");
+    expect(tituloDe([...cambiar, ...quitar])).toBe("cambió el precio de Tienda Arequipa");
+  });
+});

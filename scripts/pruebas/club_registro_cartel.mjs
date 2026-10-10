@@ -43,6 +43,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DESHACER_PRECIO_SEDE } from "./registrar-venta-antes-de-precio-sede.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -678,7 +679,8 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // =====================================================================================================================
 caso(
   `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí, y registrarse_en_el_club el de 20261003235000) y los «antes» son los de producción el 2026-10-01`,
-  VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
+  // registrar_venta se mide antes del precio por sede (ADR-0370, que le cambió una línea después): la cadena que se vigila es la del club.
+  DESHACER_PRECIO_SEDE + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   (s) =>
     s === VERSIONES.map(despuesHoy).join("\n") &&
     VERSIONES.find((v) => v.firma === RV_HOY)?.despues === SIN_CODIGO_ANTES &&

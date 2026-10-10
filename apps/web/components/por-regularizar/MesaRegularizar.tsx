@@ -18,6 +18,7 @@ import { PuenteUnion } from "./PuenteUnion";
 import { HilosMesa } from "./HilosMesa";
 import { ResumenResuelta, TodoCuadrado } from "./ResumenResuelta";
 import { sedeCorta } from "./piezas";
+import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Cuánto dura lo que pasa al guardar antes de releer la lista: las dos mitades del puente se juntan, cae el sello y el talón se pliega. */
 const MS_AL_GUARDAR = 1700;
@@ -37,7 +38,8 @@ const MS_AL_GUARDAR = 1700;
  */
 export function MesaRegularizar({
   filas,
-  prendas,
+  prendas: prendasCatalogo,
+  preciosPorSede = {},
   disponibles,
   variasSedes,
   esLider,
@@ -55,6 +57,8 @@ export function MesaRegularizar({
   /** Las filas de la página actual, ya filtradas y ordenadas. */
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
+  /** Precio propio de cada tienda: la venta elegida se compara con el precio de SU tienda. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   /** Unidades libres por tienda y por prenda (`getDisponiblePorSede`); una tienda que falta = no se pudo leer. */
   disponibles: Record<string, Record<string, number>>;
   variasSedes: boolean;
@@ -121,6 +125,12 @@ export function MesaRegularizar({
   const sel = filas.find((f) => f.id === efectivaId) ?? null;
   const pendiente = sel?.estado === "pendiente";
 
+  // Las prendas al precio de la tienda de la venta elegida (precio propio, Felipe 2026-10-09): el «oficial» del puente.
+  const sedeElegida = sel?.ubicacionId;
+  const prendas = useMemo(
+    () => conPrecioDeLaSede(prendasCatalogo, sedeElegida ? preciosPorSede[sedeElegida] : undefined, (p) => p.id),
+    [prendasCatalogo, preciosPorSede, sedeElegida],
+  );
   const indice = useMemo(() => indexarPrendas(prendas), [prendas]);
   const mapas = useMemo(() => Object.fromEntries(Object.entries(disponibles).map(([u, o]) => [u, new Map(Object.entries(o))])), [disponibles]);
   const disponibleDeSede = sel ? (mapas[sel.ubicacionId] ?? null) : null;

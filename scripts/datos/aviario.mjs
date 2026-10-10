@@ -48,7 +48,7 @@ export const AVIARIO = [
       "acciones_sin_responsable"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
-      "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -123,7 +123,7 @@ export const AVIARIO = [
       "pedidos_no_atendidos",
       // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
       // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
-      "caja_traslados", "prendas_por_regularizar",
+      "caja_traslados", "prendas_por_regularizar", "prendas_por_regularizar_correcciones",
       // El cierre de arranque de esas ventas sin registrar (ADR-0334): el registro de cada cierre y el plazo por tienda. Mismo pájaro
       // que la cola que cierran: nacen de la misma venta. Entran al volcado cuando se pegue la migración 20261005100000.
       "cierres_cola_arranque", "cola_arranque_plazo",

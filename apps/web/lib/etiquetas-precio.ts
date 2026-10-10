@@ -12,6 +12,7 @@ import {
 } from "@/lib/etiqueta-precio-reglas";
 import { vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { fondoDeMuestra } from "@/lib/colores-familias";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 
 type Cliente = Awaited<ReturnType<typeof crearCliente>>;
 
@@ -21,8 +22,9 @@ type Cliente = Awaited<ReturnType<typeof crearCliente>>;
  *  - `campana`: las prendas que una campaña alcanza y que hay en la tienda; una por unidad en stock.
  *  - `producto`: las tallas y colores de un modelo que hay en la tienda; una por unidad en stock. */
 export type OrigenEtiquetas =
-  | { tipo: "lotes"; ids: string[] }
-  | { tipo: "produccion"; id: string }
+  /** `ubicacionId` en todos: la etiqueta sale con el precio de la tienda donde se imprime (precio propio, Felipe 2026-10-09). */
+  | { tipo: "lotes"; ids: string[]; ubicacionId: string }
+  | { tipo: "produccion"; id: string; ubicacionId: string }
   | { tipo: "campana"; id: string; ubicacionId: string }
   | { tipo: "producto"; id: string; ubicacionId: string }
   /** Tallas sueltas, las marcadas en Existencias (ADR-0237); una por unidad en stock, como `producto`. Con `unidades` (lo que
@@ -116,7 +118,9 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
   );
 
   // La campaña de HOY de cada prenda: la etiqueta dice lo que la caja cobra hoy, venga de donde venga.
-  const deHoy = await campanasDe(supabase, hoy, [...entradas.keys()]);
+  // Y el precio de ESTA tienda (precio propio, Felipe 2026-10-09): la etiqueta que se imprime aquí dice lo que cobra la caja de aquí.
+  const [deHoy, preciosSede] = await Promise.all([campanasDe(supabase, hoy, [...entradas.keys()]), getPreciosPorSede([origen.ubicacionId])]);
+  const propios = preciosSede[origen.ubicacionId] ?? {};
   const etiquetaIds = [...new Set(deHoy.map((f) => f.etiqueta_id))];
   const hastas = new Map(
     etiquetaIds.length === 0
@@ -138,7 +142,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         prenda: v.producto?.referencia ?? "",
         codigo: v.codigo,
         sku: v.sku,
-        precio: Number(v.precio),
+        precio: propios[v.id] ?? Number(v.precio),
         colorCodigo: v.color_codigo,
         color: v.color?.nombre ?? null,
         colorMuestra: fondoDeMuestra(v.color?.hex ?? null, v.color?.familia_color, v.color?.tipo) ?? null,

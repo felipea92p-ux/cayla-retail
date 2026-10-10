@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -39,7 +40,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo] = await Promise.all([
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
     getApartadosDeTienda(persona.ubicacionId),
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
@@ -52,7 +53,10 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo, al entregar el saldo? (20261003135000 y 20261003140000, ADR-0311).
     // Si la función no existe todavía, o dice false, la entrega cobra exacto como siempre: nunca se ofrece algo que la base rechazaría.
     supabase.rpc("fn_acepta_redondeo_efectivo"),
+    // Precio propio de esta tienda (Felipe 2026-10-09): el apartado se separa a ese precio (`separar_prendas`).
+    getPreciosPorSede([persona.ubicacionId]),
   ]);
+  const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
 
   if (!datos.instalado) {
     return (
@@ -85,7 +89,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
       marca: v.marca,
-      precio: v.precio,
+      precio: preciosAqui[v.varianteId] ?? v.precio,
       campana: campana.get(v.varianteId) ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
