@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useImpresionBrother } from "@/components/impresion/useImpresionBrother";
 import { EtiquetaLiquidacion } from "@/components/liquidacion/EtiquetaLiquidacion";
 
-export type EtiquetaParaImprimir = { codigo: string; categoria: string; precio: number };
+export type EtiquetaParaImprimir = { codigo: string; categoria: string; descripcion?: string | null; precio: number };
 
 /** Cómo manda la hoja esta computadora: la MISMA preferencia que Etiquetas de precio (es la misma Brother y el mismo driver). */
 const modoGuardado = (): "girada" | "derecha" => {
@@ -34,7 +34,7 @@ export function useImprimirLiquidacion(etiquetas: readonly EtiquetaParaImprimir[
           <div id="etiquetas-precio-print" data-modo={modoGuardado()} aria-hidden>
             {etiquetas.map((e) => (
               <div key={e.codigo} className="etq-hoja">
-                <EtiquetaLiquidacion codigo={e.codigo} categoria={e.categoria} precio={e.precio} impreso={impreso} />
+                <EtiquetaLiquidacion codigo={e.codigo} categoria={e.categoria} descripcion={e.descripcion} precio={e.precio} impreso={impreso} />
               </div>
             ))}
           </div>,

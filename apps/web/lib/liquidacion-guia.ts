@@ -20,10 +20,14 @@ const precio = (texto: string, minimo: number, esLider: boolean, nombre: string)
   return { id: "precio", nombre, requerido: true, hecho: problema === null, pendiente: problema ?? "" };
 };
 
-/** «Etiquetar una pieza»: la categoría, el precio y quién etiqueta. */
-export function camposDeEtiquetar(h: { categoriaId: string; precio: string; minimo: number; esLider: boolean } & Responsable): CampoDeGuia[] {
+/** «Etiquetar una prenda»: la categoría, el precio y quién etiqueta; «Para reconocerla» es opcional (nunca bloquea ni se lista como
+ *  «falta»): la base acepta la prenda sin ella. */
+export function camposDeEtiquetar(
+  h: { categoriaId: string; precio: string; descripcion?: string; minimo: number; esLider: boolean } & Responsable,
+): CampoDeGuia[] {
   return [
     { id: "categoria", nombre: "Categoría", requerido: true, hecho: h.categoriaId !== "", pendiente: "Elige qué prenda es." },
+    { id: "descripcion", nombre: "Para reconocerla", requerido: false, hecho: (h.descripcion ?? "").trim() !== "", pendiente: "" },
     precio(h.precio, h.minimo, h.esLider, "Precio"),
     responsable(h),
   ];

@@ -6,6 +6,12 @@ import { problemaDePrecio } from "./liquidacion-reglas";
 const listo = { responsableListo: true, responsableMotivo: null };
 
 describe("Etiquetar una pieza", () => {
+  it("«Para reconocerla» es opcional: sin ella se confirma igual y no sale como «falta»", () => {
+    const campos = camposDeEtiquetar({ categoriaId: "c1", precio: "25", descripcion: "", minimo: 10, esLider: false, ...listo });
+    expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(campos.find((c) => c.id === "descripcion")!.requerido).toBe(false);
+  });
+
   it("se confirma solo con categoría, un precio válido y quién etiqueta", () => {
     expect(sePuedeConfirmar(camposDeEtiquetar({ categoriaId: "c1", precio: "25", minimo: 10, esLider: false, ...listo }))).toBe(true);
     expect(sePuedeConfirmar(camposDeEtiquetar({ categoriaId: "", precio: "25", minimo: 10, esLider: false, ...listo }))).toBe(false);

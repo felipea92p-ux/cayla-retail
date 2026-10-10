@@ -9,7 +9,20 @@ const LADO_QR_MM = 19;
  * «LIQUIDACIÓN», la categoría, el precio y, al pie, el código escrito y el QR que lee la caja. Cada cambio de precio imprime una
  * nueva con otro código: la vieja ya no se cobra. Lo dice al pie («Venta final»): no tiene cambio ni devolución.
  */
-export function EtiquetaLiquidacion({ codigo, categoria, precio, impreso }: { codigo: string; categoria: string; precio: number; impreso: string }) {
+export function EtiquetaLiquidacion({
+  codigo,
+  categoria,
+  descripcion = null,
+  precio,
+  impreso,
+}: {
+  codigo: string;
+  categoria: string;
+  /** Lo que la reconoce («Blusa beige, manga globo»), si se escribió: va bajo la categoría. */
+  descripcion?: string | null;
+  precio: number;
+  impreso: string;
+}) {
   const cifra = soles(precio);
   return (
     <article data-papel className="etiqueta-precio" aria-label={`Etiqueta de liquidación ${codigo}`}>
@@ -25,6 +38,7 @@ export function EtiquetaLiquidacion({ codigo, categoria, precio, impreso }: { co
       </header>
       <p className="etq-liq-banda">LIQUIDACIÓN</p>
       <p className="etq-liq-categoria">{categoria}</p>
+      {descripcion && <p className="etq-liq-descripcion">{descripcion}</p>}
       <p className="etq-liq-final">Venta final · sin cambio ni devolución</p>
       <p className={cifra.length >= 8 ? "etq-precio etq-precio-largo" : "etq-precio"}>
         <small>S/</small>

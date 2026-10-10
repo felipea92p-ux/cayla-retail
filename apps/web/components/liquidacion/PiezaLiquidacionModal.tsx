@@ -64,7 +64,7 @@ export function PiezaLiquidacionModal({
   const guiaPrecio = useGuiaCampos(camposPrecio);
   const guiaRetiro = useGuiaCampos(camposRetiro);
   const impresion = useImprimirLiquidacion(
-    pieza.estado === "disponible" && pieza.codigo ? [{ codigo: pieza.codigo, categoria: pieza.categoria, precio: pieza.precio }] : [],
+    pieza.estado === "disponible" && pieza.codigo ? [{ codigo: pieza.codigo, categoria: pieza.categoria, descripcion: pieza.descripcion, precio: pieza.precio }] : [],
     impreso,
   );
 
@@ -112,10 +112,10 @@ export function PiezaLiquidacionModal({
   async function retirar(e: React.FormEvent) {
     e.preventDefault();
     if (guardando || !guiaRetiro.puedeConfirmar || !pieza.codigo) return;
-    const nueva = await llamar("retirar", "retirar la pieza");
+    const nueva = await llamar("retirar", "retirar la prenda");
     if (!nueva) return;
     setModo("ver");
-    avisar.exito("Pieza retirada", { detalle: "Ya no se puede cobrar. Queda en la lista de retiradas." });
+    avisar.exito("Prenda retirada", { detalle: "Ya no se puede cobrar. Queda en la lista de retiradas." });
   }
 
   const dias = diasALaVenta(pieza, hoy);
@@ -127,11 +127,11 @@ export function PiezaLiquidacionModal({
         : `A la venta ${dias <= 0 ? "desde hoy" : `hace ${tiempoALaVenta(dias)}`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
 
   return (
-    <Modal titulo={pieza.categoria || "Pieza de liquidación"} subtitulo={subtitulo} onClose={onClose} variante="hoja" ancho="max-w-md" conCerrar>
+    <Modal titulo={pieza.descripcion ?? (pieza.categoria || "Prenda de liquidación")} subtitulo={subtitulo} onClose={onClose} variante="hoja" ancho="max-w-md" conCerrar>
       <div className="space-y-4">
         {codigoViejo && codigoViejo !== pieza.codigo && pieza.estado === "disponible" && (
           <Aviso tono="atencion" titulo="Esa etiqueta ya no vale">
-            Leíste {codigoViejo}, una etiqueta vieja de esta pieza. La que se cobra es la de abajo: imprímela y cámbiala en la prenda.
+            Leíste {codigoViejo}, una etiqueta vieja de esta prenda. La que se cobra es la de abajo: imprímela y cámbiala en la prenda.
           </Aviso>
         )}
         {rebajadaDe !== null && (
@@ -142,7 +142,7 @@ export function PiezaLiquidacionModal({
 
         <div className="flex flex-wrap items-center gap-2">
           <Chip tono={pieza.estado === "disponible" ? "verde" : pieza.estado === "vendida" ? "pizarra" : "apagado"}>
-            {pieza.estado === "disponible" ? "A la venta" : pieza.estado === "vendida" ? "Vendida" : "Retirada"}
+            {pieza.estado === "disponible" ? (pieza.etiquetas > 1 ? "Precio bajado" : "A la venta") : pieza.estado === "vendida" ? "Vendida" : "Retirada"}
           </Chip>
           {pieza.precioInicial > pieza.precio && (
             <span className="text-[13px] text-taupe">
@@ -153,7 +153,7 @@ export function PiezaLiquidacionModal({
 
         {pieza.estado === "disponible" && pieza.codigo && (
           <div className="liq-previa" key={pieza.codigo}>
-            <EtiquetaLiquidacion codigo={pieza.codigo} categoria={pieza.categoria} precio={pieza.precio} impreso={impreso} />
+            <EtiquetaLiquidacion codigo={pieza.codigo} categoria={pieza.categoria} descripcion={pieza.descripcion} precio={pieza.precio} impreso={impreso} />
           </div>
         )}
 

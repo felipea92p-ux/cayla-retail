@@ -3,6 +3,7 @@ import {
   cifrasDe,
   codigoDeLiquidacion,
   diasALaVenta,
+  textoBuscable,
   tiempoALaVenta,
   errorDeLiquidacion,
   fechaLima,
@@ -24,6 +25,7 @@ const pieza = (p: Partial<PiezaLiquidacion> = {}): PiezaLiquidacion => ({
   ubicacion: "Tienda Trujillo",
   categoriaId: "c1",
   categoria: "Blusas",
+  descripcion: null,
   prefijo: "BLU",
   familia: "superior",
   codigo: "LQ7K3M9P",
@@ -117,13 +119,25 @@ describe("la línea en la venta", () => {
     expect(nombreEnVenta("Blusas")).toBe("Liquidación · Blusas");
     expect(nombreEnVenta(" ")).toBe("Liquidación");
   });
+  it("si se escribió para reconocerla, la boleta dice eso y no la categoría", () => {
+    expect(nombreEnVenta("Camisas y Blusas", "Blusa beige, manga globo")).toBe("Liquidación · Blusa beige, manga globo");
+    expect(nombreEnVenta("Camisas y Blusas", "  ")).toBe("Liquidación · Camisas y Blusas");
+  });
+  it("«Precio bajado» filtra solo las que siguen a la venta con etiqueta nueva", () => {
+    const ps = [pieza({ id: "a" }), pieza({ id: "b", etiquetas: 2 }), pieza({ id: "c", estado: "vendida", etiquetas: 3, vendidaEn: "x" })];
+    expect(filtrar(ps, "rebajadas").map((p) => p.id)).toEqual(["b"]);
+  });
+  it("el buscador encuentra por lo que la reconoce", () => {
+    expect(textoBuscable(pieza({ descripcion: "Blusa beige" }))).toContain("Blusa beige");
+  });
 });
 
 describe("los errores", () => {
   it("traduce cada marca de la base y conserva el detalle", () => {
     expect(errorDeLiquidacion("liquidacion_etiqueta_vieja Esa etiqueta ya no vale: la pieza cuesta ahora S/ 20.00")).toEqual({
       titulo: "Esa etiqueta ya no vale",
-      detalle: "Esa etiqueta ya no vale: la pieza cuesta ahora S/ 20.00",
+      // En pantalla se dice «prenda» aunque la base, ya en producción, diga «pieza» (/formidable, ley 4).
+      detalle: "Esa etiqueta ya no vale: la prenda cuesta ahora S/ 20.00",
       releer: true,
     });
     expect(errorDeLiquidacion("liquidacion_bajo_minimo x")?.titulo).toBe("Ese precio necesita un líder");

@@ -1069,7 +1069,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   async function agregarPiezaLiquidacion(codigo: string) {
     if (bloqueado) return;
     if (carrito.some((it) => it.liquidacion?.codigo === codigo)) {
-      avisar.aviso("Esa pieza ya está en el ticket", { detalle: "Cada pieza de liquidación es una sola prenda." });
+      avisar.aviso("Esa prenda ya está en el ticket", { detalle: "Cada prenda de liquidación es una sola unidad." });
       return;
     }
     const { data, error } = await createClient().rpc("fn_pieza_liquidacion", { p_codigo: codigo });
@@ -1083,17 +1083,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
     if (leida.tipo === "otra_sede" || leida.pieza.ubicacionId !== ubicacionId) {
-      avisar.error("Esa pieza es de otra tienda", { detalle: "Las piezas de liquidación se venden en la tienda que las etiquetó." });
+      avisar.error("Esa prenda es de otra tienda", { detalle: "Las prendas de liquidación se venden en la tienda que las etiquetó." });
       return;
     }
     const pieza = leida.pieza;
     if (pieza.estado !== "disponible") {
-      avisar.error(pieza.estado === "vendida" ? "Esa pieza ya se vendió" : "Esa pieza ya no está a la venta");
+      avisar.error(pieza.estado === "vendida" ? "Esa prenda ya se vendió" : "Esa prenda ya no está a la venta");
       return;
     }
     if (!leida.vigente) {
       avisar.error("Esa etiqueta ya no vale", {
-        detalle: `La pieza cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
+        detalle: `La prenda cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
       });
       return;
     }
@@ -1107,7 +1107,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               claveLinea: `liq-${codigo}`,
               varianteId: ID_CARGO_ESPECIAL,
               // «Liquidación · Blusas»: el nombre de la línea en el ticket y en la boleta.
-              referencia: nombreEnVenta(pieza.categoria),
+              referencia: nombreEnVenta(pieza.categoria, pieza.descripcion),
               sku: "LIQUIDACION",
               codigo,
               cantidad: 1,
@@ -1396,7 +1396,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // ADR-0371: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
   const liquidacionConClub =
     conVentajaDelClub && carrito.some((it) => it.liquidacion)
-      ? "Las piezas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
+      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
       : null;
   const motivoBloqueo = liquidacionConClub ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
@@ -1625,7 +1625,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // ADR-0371: una pieza de liquidación tampoco se encola: es UNA prenda y otra caja podría venderla, o rebajarla, mientras tanto.
         if (carrito.some((it) => it.liquidacion)) {
           setLoading(false);
-          avisar.error("Sin conexión no se cobra una pieza de liquidación", {
+          avisar.error("Sin conexión no se cobra una prenda de liquidación", {
             detalle: "Es una sola prenda y la base tiene que confirmar que sigue a la venta. Espera a que vuelva el internet, o sácala del ticket y cobra lo demás.",
           });
           return;

@@ -15,7 +15,8 @@ export default async function LiquidacionPage() {
   const supabase = await createClient();
   const [lectura, categorias] = await Promise.all([
     supabase.rpc("fn_piezas_liquidacion", { p_ubicacion_id: persona.ubicacionId }),
-    supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
+    // Con prefijo y familia: el ejemplo de «Para reconocerla» sigue a la categoría elegida (ADR-0290).
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
   ]);
   const datos = (lectura.data ?? {}) as { precio_minimo?: number | string; piezas?: Record<string, unknown>[] };
   const hoy = hoyLima();

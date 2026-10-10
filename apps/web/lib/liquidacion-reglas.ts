@@ -16,6 +16,8 @@ export type PiezaLiquidacion = {
   ubicacion: string;
   categoriaId: string;
   categoria: string;
+  /** Unas palabras para reconocerla («Blusa beige, manga globo»), opcionales (Felipe 2026-10-10). */
+  descripcion: string | null;
   prefijo: string | null;
   familia: string | null;
   /** El código de la etiqueta vigente (null si ya no está a la venta). */
@@ -53,6 +55,7 @@ export function piezaDeJson(j: Record<string, unknown>): PiezaLiquidacion {
     ubicacion: texto(j.ubicacion),
     categoriaId: texto(j.categoria_id),
     categoria: texto(j.categoria),
+    descripcion: textoONulo(j.descripcion),
     prefijo: textoONulo(j.prefijo),
     familia: textoONulo(j.familia),
     codigo: textoONulo(j.codigo),
@@ -86,10 +89,19 @@ export function codigoDeLiquidacion(leido: string): string | null {
   return PATRON_CODIGO.test(limpio) ? limpio : null;
 }
 
-/** El nombre de la línea en la venta, el ticket y la boleta ante SUNAT (va como `descripcion_libre`). */
-export function nombreEnVenta(categoria: string): string {
-  const c = categoria.trim();
+/** Lo más largo de «Para reconocerla»: lo mismo que acepta la base (`piezas_liquidacion_descripcion_corta`). */
+export const MAX_DESCRIPCION_LIQUIDACION = 60;
+
+/** El nombre de la línea en la venta, el ticket y la boleta ante SUNAT (va como `descripcion_libre`): lo que la reconoce, si lo tiene;
+ *  si no, su categoría. */
+export function nombreEnVenta(categoria: string, descripcion?: string | null): string {
+  const c = (descripcion ?? "").trim() || categoria.trim();
   return c ? `Liquidación · ${c}` : "Liquidación";
+}
+
+/** Lo que el buscador de la pantalla mira de cada prenda: lo que la reconoce, su categoría, su código y su precio. */
+export function textoBuscable(p: PiezaLiquidacion): string {
+  return `${p.descripcion ?? ""} ${p.categoria} ${p.codigo ?? ""} ${soles(p.precio)}`;
 }
 
 /** «25», «25.5», «25,50» → 25.5. Null si no es un precio que se pueda guardar (cero, negativo, más de dos decimales). */
@@ -162,9 +174,11 @@ export function diasALaVenta(p: PiezaLiquidacion, hoy: string): number {
   return Math.max(0, Math.round((Date.parse(hoy) - Date.parse(desde)) / 86_400_000));
 }
 
-export type Filtro = "disponibles" | "vendidas" | "retiradas";
+export type Filtro = "disponibles" | "rebajadas" | "vendidas" | "retiradas";
 
+/** «Precio bajado» son las que siguen a la venta y ya tienen una etiqueta nueva: un subconjunto de «A la venta» (/formidable, H5). */
 export function filtrar(piezas: readonly PiezaLiquidacion[], filtro: Filtro): PiezaLiquidacion[] {
+  if (filtro === "rebajadas") return piezas.filter((p) => p.estado === "disponible" && p.etiquetas > 1);
   const estado: EstadoPieza = filtro === "disponibles" ? "disponible" : filtro === "vendidas" ? "vendida" : "retirada";
   return piezas.filter((p) => p.estado === estado);
 }
@@ -173,16 +187,17 @@ export function filtrar(piezas: readonly PiezaLiquidacion[], filtro: Filtro): Pi
 export function errorDeLiquidacion(mensaje: string): { titulo: string; detalle?: string; releer?: boolean } | null {
   const pista = (m: RegExp) => m.test(mensaje);
   // El hint de la base trae el detalle con el precio y el código vigentes: se muestra tal cual.
-  const detalle = mensaje.replace(/^[\s\S]*?liquidacion_[a-z_]+\s*/, "").trim() || undefined;
+  // En pantalla se dice «prenda» (/formidable, ley 4): los textos de la base, ya en producción, dicen «pieza».
+  const detalle = mensaje.replace(/^[\s\S]*?liquidacion_[a-z_]+\s*/, "").replace(/\bpieza\b/g, "prenda").trim() || undefined;
   if (pista(/liquidacion_bajo_minimo/)) return { titulo: "Ese precio necesita un líder", detalle };
   if (pista(/liquidacion_etiqueta_vieja/)) return { titulo: "Esa etiqueta ya no vale", detalle, releer: true };
-  if (pista(/liquidacion_ya_vendida/)) return { titulo: "Esa pieza ya se vendió", detalle, releer: true };
-  if (pista(/liquidacion_retirada/)) return { titulo: "Esa pieza ya no está a la venta", detalle, releer: true };
-  if (pista(/liquidacion_otra_sede/)) return { titulo: "Esa pieza es de otra tienda", detalle };
+  if (pista(/liquidacion_ya_vendida/)) return { titulo: "Esa prenda ya se vendió", detalle, releer: true };
+  if (pista(/liquidacion_retirada/)) return { titulo: "Esa prenda ya no está a la venta", detalle, releer: true };
+  if (pista(/liquidacion_otra_sede/)) return { titulo: "Esa prenda es de otra tienda", detalle };
   if (pista(/liquidacion_precio_distinto/)) return { titulo: "El precio no es el de la etiqueta", detalle, releer: true };
-  if (pista(/liquidacion_sin_descuentos/)) return { titulo: "Las piezas de liquidación no llevan descuento", detalle };
+  if (pista(/liquidacion_sin_descuentos/)) return { titulo: "Las prendas de liquidación no llevan descuento", detalle };
   if (pista(/liquidacion_venta_final/)) return { titulo: "Es venta final", detalle };
-  if (pista(/liquidacion_no_existe/)) return { titulo: "No encontramos esa pieza", detalle };
+  if (pista(/liquidacion_no_existe/)) return { titulo: "No encontramos esa prenda", detalle };
   if (pista(/liquidacion_sin_cambios/)) return { titulo: "Ese ya es su precio" };
   if (pista(/liquidacion_datos_invalidos/)) return { titulo: "Revisa los datos", detalle };
   return null;

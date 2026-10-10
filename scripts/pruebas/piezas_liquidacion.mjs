@@ -110,6 +110,20 @@ rollback;`),
   ([misma, n]) => misma === "t" && n === "1"
 );
 
+exito(
+  "la descripción opcional se guarda limpia (sin espacios de más) y vuelve en la pieza",
+  comoPersona(FELIPE, `${fixture()}
+select retail.crear_pieza_liquidacion(:'ubic', :'cat', 30, null, '  Blusa   beige, manga globo ') ->> 'descripcion';
+rollback;`),
+  ([d]) => d === "Blusa beige, manga globo"
+);
+
+error(
+  "una descripción de más de 60 letras no se guarda",
+  comoPersona(FELIPE, `${fixture()}select retail.crear_pieza_liquidacion(:'ubic', :'cat', 30, null, repeat('a', 61)); rollback;`),
+  "liquidacion_datos_invalidos"
+);
+
 error(
   "un precio cero no se etiqueta",
   comoPersona(FELIPE, `${fixture()}${etiquetar(0)}rollback;`),

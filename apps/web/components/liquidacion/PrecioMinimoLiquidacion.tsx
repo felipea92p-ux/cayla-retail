@@ -48,7 +48,7 @@ export function PrecioMinimoLiquidacion({ minimo, esLider }: { minimo: number; e
   if (!esLider || !editando) {
     return (
       <p>
-        El precio mínimo es <b>S/ {soles(minimo)}</b>: por debajo, la pieza la etiqueta un líder.{" "}
+        El precio mínimo es <b>S/ {soles(minimo)}</b>: por debajo, la prenda la etiqueta un líder.{" "}
         {esLider && (
           <button type="button" className="btn-cayla btn-enlace" onClick={() => setEditando(true)}>
             Cambiarlo
