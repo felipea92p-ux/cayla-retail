@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cambiarUbicacionActiva } from "@/app/actions/ubicacion";
 import { AvisoCambioDeSede } from "@/components/AvisoCambioDeSede";
 import { Desplegable } from "@/components/ui/campos";
-import { NOMBRE_VISTA_GLOBAL, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
+import { NOMBRE_VISTA_GLOBAL, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 
 // Selector de ubicación del líder (Fase 2 — pendiente desde
 // app/(app)/layout.tsx, "Fase 1 no lo pedía como prop"): "pararse" en
@@ -63,9 +63,10 @@ export function UbicacionSwitcher({
           setValor(elegido);
           startTransition(async () => {
             await cambiarUbicacionActiva(elegido);
-            // Desde el Inicio se queda en el Inicio: el del Admin (el Observatorio, ADR-0322) vuelve al país entero; a quien
-            // no es Admin, la página lo manda al tablero.
-            if (elegido === VALOR_VISTA_GLOBAL && pathname !== "/") router.push("/global");
+            // Una pantalla que también funciona en CAYLA Global se queda donde está y se repinta para toda la empresa (Frescura
+            // del piso: «la tienda» pasa a «las tiendas», ADR-0208 act. 2026-10-10 (b)); el Inicio también: el del Admin (el
+            // Observatorio, ADR-0322) vuelve al país entero y a quien no es Admin la página lo manda al tablero. Las demás, al tablero.
+            if (elegido === VALOR_VISTA_GLOBAL && !rutaDeLaVistaGlobal(pathname)) router.push("/global");
             else if (elegido === VALOR_VISTA_GLOBAL) router.refresh();
             else if (pathname === "/global" || pathname.startsWith("/global/")) router.push("/");
             else router.refresh();

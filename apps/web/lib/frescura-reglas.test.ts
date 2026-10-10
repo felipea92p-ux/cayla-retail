@@ -7,7 +7,9 @@ import {
   contraElResto,
   cortes,
   elegirVentana,
-  ESPERADAS_PARA_DECIDIR,
+  esLentaConEvidencia,
+  cortesConCola,
+  finDeCurva,
   estadoFrescura,
   estaQuieta,
   eventosConApartados,
@@ -494,16 +496,28 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
       const curva = kaplanMeier([...resto, ...propias]);
       const armada = kaplanMeier(resto);
       const m = contraElResto(curva, propias, suyas);
-      expect(m.cortes).toEqual(cortes(armada));
+      // Con la cola del resto (act. 2026-10-10 (b)): pasada su última venta, sigue a su ritmo promedio si tiene 10 ventas o más.
+      const fin = finDeCurva(armada);
+      const cola = fin && fin.vendidas >= 10 - 1e-9 && fin.t > 0 ? fin.h / fin.t : 0;
+      const riesgo = (seg: number) => riesgoEn(armada, seg) + (fin && seg > fin.t ? cola * (seg - fin.t) : 0);
+      const cortesDelResto = cortesConCola(cortes(armada), fin);
+      for (const k of ["p50", "p75", "p90"] as const) {
+        if (cortesDelResto[k] === null) expect(m.cortes[k]).toBeNull();
+        else expect(m.cortes[k]!).toBeCloseTo(cortesDelResto[k]!, 3);
+      }
       expect(m.tMax).toBe(armada.tMax);
       expect(m.vendidas).toBeCloseTo(armada.vendidas, 9);
-      const esperadas = suyas.reduce((s, o) => s + o.peso * riesgoEn(armada, o.segundos), 0);
+      const esperadas = suyas.reduce((s, o) => s + o.peso * riesgo(o.segundos), 0);
       expect(m.esperadas).toBeCloseTo(esperadas, 9);
       // Unidad por unidad, también en los instantes intermedios (medio día antes y después de cada instante posible).
-      for (let t = 0.5; t <= 13; t += 0.5) expect(contraElResto(curva, propias, [colgada(t)]).esperadas).toBeCloseTo(riesgoEn(armada, t * D), 9);
+      for (let t = 0.5; t <= 13; t += 0.5) expect(contraElResto(curva, propias, [colgada(t)]).esperadas).toBeCloseTo(riesgo(t * D), 9);
       expect(rapidez(vendidasDe(suyas), m.esperadas, m.vendidas)).toEqual(rapidez(vendidasDe(suyas), esperadas, armada.vendidas));
       // Y la vara sin nada que restar es la misma curva.
-      expect(contraElResto(armada, [], suyas).cortes).toEqual(cortes(armada));
+      const sinRestar = contraElResto(armada, [], suyas).cortes;
+      for (const k of ["p50", "p75", "p90"] as const) {
+        if (cortesDelResto[k] === null) expect(sinRestar[k]).toBeNull();
+        else expect(sinRestar[k]!).toBeCloseTo(cortesDelResto[k]!, 3);
+      }
       if (m.cortes.p50 !== null) conCortes++;
     }
     expect(conCortes).toBeGreaterThan(100);
@@ -540,9 +554,9 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
   });
 });
 
-/** Una rapidez medida contra `referencia` ventas del resto de su categoría (20: «Sólido»), con evidencia de sobra para
- *  decidir (5 esperadas ≥ `ESPERADAS_PARA_DECIDIR`): lo que estas pruebas miran es la regla «vieja y lenta», no el umbral. */
-const r = (indice: number, referencia = 20): Rapidez => ({ indice, vendidas: 1, esperadas: 5, referencia });
+/** Una rapidez medida contra `referencia` ventas del resto de su categoría (20: «Sólido»). Estas pruebas llaman a `estaQuieta` con la
+ *  rapidez ya decidida: lo que miran es la regla «vieja y lenta», no la evidencia (eso lo prueba `rapidezParaDecidir`, abajo). */
+const r = (indice: number, referencia = 20): Rapidez => ({ indice, vendidas: 1, esperadas: 12, referencia });
 
 describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca por vieja", () => {
   it("un pilar de venta no está quieto por viejo, aunque sea Crítica; por su temporada pasada SÍ (D2, Felipe 2026-09-27)", () => {
@@ -582,7 +596,7 @@ describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca por viej
   });
 });
 
-describe("rapidezParaDecidir: «lenta» necesita 2 ventas esperadas (ADR-0208, actualización 2026-10-07)", () => {
+describe("rapidezParaDecidir: «lenta» necesita evidencia fuerte (ADR-0208, act. 2026-10-10 (b): antes, 2 ventas esperadas)", () => {
   // 0 vendidas contra `esperadas`: el índice es 0 («lenta») con cualquier evidencia; lo que cambia es si puede decidir.
   const rap = (indice: number, esperadas: number): Rapidez => ({ indice, vendidas: 0, esperadas, referencia: 3 });
 
@@ -594,16 +608,26 @@ describe("rapidezParaDecidir: «lenta» necesita 2 ventas esperadas (ADR-0208, a
     expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: ["revisar_ventas"] });
   });
 
-  it("con 2,1 esperadas sí decide: quieta y «cambiar de lugar»", () => {
-    expect(rapidezParaDecidir(rap(0, 2.1), "no_se_sabe")).toEqual(rap(0, 2.1));
+  it("con 2,1 esperadas ya NO decide (antes sí): vender 0 o 1 de 2 pasa por azar el 41 % de las veces", () => {
+    expect(rapidezParaDecidir(rap(0, 2.1), "no_se_sabe")).toBeNull();
     const e = estadoFrescura(entrada({ reloj: { segundos: 25 * D, alMenos: false }, rapidez: rap(0, 2.1), ventasRecientes: 0 }));
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: ["revisar_ventas"] });
+  });
+
+  it("con 3 esperadas y ninguna vendida sí decide: quieta y «cambiar de lugar»", () => {
+    expect(rapidezParaDecidir(rap(0, 3), "no_se_sabe")).toEqual(rap(0, 3));
+    const e = estadoFrescura(entrada({ reloj: { segundos: 25 * D, alMenos: false }, rapidez: rap(0, 3), ventasRecientes: 0 }));
     expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true, sugerencias: ["cambiar_lugar"] });
   });
 
-  it("exactamente 2,00 cuenta (ESPERADAS_PARA_DECIDIR, con tolerancia de coma flotante); 1,99 no", () => {
-    expect(ESPERADAS_PARA_DECIDIR).toBe(2);
-    expect(rapidezParaDecidir(rap(50, 2), "vendio")).not.toBeNull();
-    expect(rapidezParaDecidir(rap(50, 1.99), "vendio")).toBeNull();
+  it("esLentaConEvidencia: la cota de 9 de cada 10 de Gamma(3 + vendidas, 3 + esperadas); lenta bajo 1, muy lenta bajo 0,7", () => {
+    expect(esLentaConEvidencia({ vendidas: 0, esperadas: 2 })).toBe(false);
+    expect(esLentaConEvidencia({ vendidas: 0, esperadas: 3 })).toBe(true);
+    expect(esLentaConEvidencia({ vendidas: 1, esperadas: 5 })).toBe(true);
+    expect(esLentaConEvidencia({ vendidas: 1, esperadas: 5 }, 0.7)).toBe(false);
+    expect(esLentaConEvidencia({ vendidas: 0, esperadas: 8 }, 0.7)).toBe(true);
+    // Vende al ritmo de su categoría: nunca lenta, por mucho que espere.
+    expect(esLentaConEvidencia({ vendidas: 30, esperadas: 30 })).toBe(false);
   });
 
   it("la que dejó de vender decide con 1,0 esperada: 30 días en el piso sin una venta son evidencia por sí solos (la revisión 6 sigue)", () => {
@@ -1100,9 +1124,13 @@ describe("analizarSede: casos de la revisión 4 (con las historias que el reviso
     expect(sede.categorias[0]).toMatchObject({ nivel: "solido", cortes: { p50: 30 * D, p75: 50 * D, p90: 50 * D } });
     const k = sede.prendas.find((p) => p.productoId === "K")!;
     const u = sede.prendas.find((p) => p.productoId === "U")!;
-    expect(k.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: false, quieta: false, sugerencias: [] });
+    // Sus modelos llevan 60 días (pasaron P50: ya no son Frescos), pero lo colgado hoy son las 4 de la reposición del día 95: 25
+    // días, antes de P75 (50). Con los dos relojes (ADR-0208, act. 2026-10-10 (b)) son Vigentes; con el del modelo salían Críticos.
+    // U ya no pide «revisa sus ventas»: lo que cuelga tiene fecha y no lleva ni la mitad de lo que tarda su categoría.
+    expect(k.relojUnidad).toEqual({ segundos: 25 * D, alMenos: false });
+    expect(k.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: false, quieta: false, sugerencias: [] });
     expect(k.rapidez?.indice).toBeGreaterThanOrEqual(100); // un pilar
-    expect(u.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
+    expect(u.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: false, quieta: false, sugerencias: [] });
     expect(u.rapidez).toBeNull();
   });
 
@@ -1140,9 +1168,12 @@ describe("analizarSede: casos de la revisión 4 (con las historias que el reviso
     tallas.push(talla("Z", "carga-70d", { ...cat("pantalones", "Pantalones"), primeraExhibicion: ts(50), pisoHoy: 3 }));
     eventos.Z = [bajada(50, 3, { edadDesconocida: true })];
     const { sede } = analizarSede(lectura(tallas, eventos));
-    expect(sede.categorias[0]).toMatchObject({ cortes: { p50: 10 * D, p75: 30 * D, p90: null }, tMax: 45 * D });
+    // Con 16 ventas, el P90 que la curva no alcanza sale de su propio ritmo (act. 2026-10-10 (b)): ~49 días.
+    expect(sede.categorias[0]).toMatchObject({ cortes: { p50: 10 * D, p75: 30 * D }, tMax: 45 * D });
+    expect(sede.categorias[0].cortes.p90! / D).toBeGreaterThan(45);
     const z = sede.prendas.find((p) => p.productoId === "carga-70d")!;
-    expect(z.estado).toMatchObject({ tipo: "semaforo", tramo: "envejecida", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
+    // Sus 70 días (un piso: llegó sin fecha) ya pasan ese P90: la parte más vieja de Envejeciendo, «al menos». Sin dato de rapidez: «revisa sus ventas».
+    expect(z.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
   });
 
   it("el pantalón de 70 días con edad conocida y 0 de 3 vendidas: contra su categoría SIN él es «al menos Envejecida» y, lento, «Por decidir» (D5, 2026-09-27; antes Vigente)", () => {
@@ -1153,13 +1184,14 @@ describe("analizarSede: casos de la revisión 4 (con las historias que el reviso
     tallas.push(talla("Z2", "lote-70d", { ...cat("pantalones", "Pantalones"), primeraExhibicion: ts(50), pisoHoy: 3 }));
     eventos.Z2 = [bajada(50, 3)];
     const { sede } = analizarSede(lectura(tallas, eventos));
-    expect(sede.categorias[0]).toMatchObject({ cortes: { p50: 30 * D, p75: null, p90: null }, tMax: 70 * D });
+    expect(sede.categorias[0]).toMatchObject({ cortes: { p50: 30 * D }, tMax: 70 * D });
     const z2 = sede.prendas.find((p) => p.productoId === "lote-70d")!;
-    expect(z2.categoriaSinElla).toEqual({ cortes: { p50: 10 * D, p75: 30 * D, p90: null }, tMax: 45 * D, vendidas: 16 });
+    expect(z2.categoriaSinElla).toMatchObject({ cortes: { p50: 10 * D, p75: 30 * D }, tMax: 45 * D, vendidas: 16 });
+    expect(z2.categoriaSinElla!.cortes.p90! / D).toBeGreaterThan(45);
     expect(z2.rapidez?.indice).toBe(0);
-    // Lento y vieja: «cambiar de lugar». Sin venta en 30 días y con un tramo que es solo un piso: también «revisa sus
-    // ventas» (D4+D6). Sin «trasladar»: la vara es «Aceptable» (16 ventas) y no hay nada en el almacén.
-    expect(z2.estado).toMatchObject({ tipo: "semaforo", tramo: "envejecida", alMenos: true, quieta: true, sugerencias: ["revisar_ventas", "cambiar_lugar"] });
+    // Lento y vieja: «cambiar de lugar». Con la cola (act. 2026-10-10 (b)) su tramo ya no es solo un piso: pasó el P90 de su
+    // categoría sin él. Sin «trasladar»: la vara es «Aceptable» (16 ventas) y no hay nada en el almacén.
+    expect(z2.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias: ["cambiar_lugar"] });
     expect(sede.cifras.porDecidir).toBe(1);
   });
 
@@ -1261,7 +1293,9 @@ describe("analizarSede: casos de la revisión 6", () => {
     };
     const sede = rotas(null);
     const p = prendaDe(sede, "rotas");
-    expect(p.rapidez?.indice).toBeGreaterThanOrEqual(100);
+    // Con la cola del riesgo (act. 2026-10-10 (b)), sus 6 unidades de 115 días esperan más de lo que vendió: el índice de toda la
+    // lectura ya no dice «pilar» (antes el riesgo quedaba plano pasada la última venta de su categoría y lo inflaba).
+    expect(p.rapidez?.indice).toBeLessThan(100);
     expect(p.ventasRecientes).toBe(0);
     expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: false, temporadaPasada: false, quieta: true, sugerencias: ["cambiar_lugar"] });
     expect(sede.cifras.porDecidir).toBe(1);
@@ -1406,7 +1440,7 @@ describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas c
     const ap = prendaDe(sede, "apartada");
     const libre = prendaDe(sede, "libre");
     expect(ap).toMatchObject({ pisoHoy: 0, apartadasHoy: 3, reloj: { segundos: 10 * D, alMenos: false } });
-    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3 }]);
+    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3, colgadas: [] }]);
     expect(ap.estado).toMatchObject({ quieta: false, sugerencias: [] });
     expect(libre.reloj.segundos).toBe(60 * D);
     expect(libre.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
@@ -1491,7 +1525,10 @@ describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas c
     // Sus últimos 30 días en el piso: el de ayer y los días 56 a 85 (30 ventas).
     expect(p.ventasRecientes).toBe(30);
     expect(p.rapidez?.indice).toBeGreaterThanOrEqual(100);
-    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: [] });
+    // Lo colgado es lo de ayer: Vigente, no Crítica (los dos relojes, ADR-0208, act. 2026-10-10 (b)). Su modelo, con 61 días, ya
+    // no es Fresco.
+    expect(p.relojUnidad).toEqual({ segundos: 1 * D, alMenos: false });
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", quieta: false, sugerencias: [] });
     expect(agotado(ts(100)).estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["sigue_vendiendo"] });
   });
 
@@ -1764,7 +1801,8 @@ describe("revisión 9: lo apartado junto a una bajada tardía, la pausa que vuel
     };
     const apartada = res("apartada");
     const guardada = res("guardada");
-    expect(guardada.rapidez?.indice).toBeGreaterThanOrEqual(100);
+    // La cola del riesgo (act. 2026-10-10 (b)) le baja el índice a 98: a la par de su categoría; sin evidencia de lenta, «sigue vendiendo».
+    expect(guardada.rapidez?.indice).toBeGreaterThanOrEqual(95);
     expect(guardada.estado.sugerencias).toEqual(["sigue_vendiendo"]);
     expect(apartada.rapidez).toEqual(guardada.rapidez);
     expect(apartada.estado).toEqual(guardada.estado);
@@ -1843,7 +1881,10 @@ describe("revisión 9: lo apartado junto a una bajada tardía, la pausa que vuel
     const tardias: TardiaCruda[] = [{ oid: "st", varianteId: "TR-S", bajadaEn: ts(110), unidadesTardias: 1 }];
     const tr = prendaDe(analizarSede(lectura(tallas, eventos, { tardias })).sede, "TR");
     expect(tr.ventasRecientes).toBe(1);
-    expect(tr.estado.quieta).toBe(false);
+    // Su M lleva 100 días colgada sin venderse mientras su categoría vende en 10: con la cola del riesgo (act. 2026-10-10 (b)) es lenta
+    // con evidencia y va a «Por decidir». Antes el riesgo plano la dejaba de pilar. Lo que esta prueba vigila sigue: la venta tardía
+    // cuenta en sus ventas recientes.
+    expect(tr.estado.quieta).toBe(true);
     // La única historia es una bajada tardía vendida a los 3 minutos: su reloj son esos 3 minutos (no 0).
     const solo = fondoDeBlusas();
     solo.tallas.push(talla("F", "F", { primeraExhibicion: ts(110) }));
@@ -1895,10 +1936,12 @@ describe("R7-4 a R7-7: las pruebas que faltaban", () => {
     // sin contarlas, 0. Las dos cuentas no dicen lo mismo (R7-3): sin dato. Tomando la L (día 118) como la primera con
     // edad, esas ventas «no esconden nada», la rapidez es 0 y la prenda de 80 días va a «Por decidir» con «Trasladar».
     const { tallas, eventos } = fondoDeBlusas();
-    tallas.push(talla("T-S", "T", { talla: "S", primeraExhibicion: ts(40), pisoHoy: 6 }));
+    tallas.push(talla("T-S", "T", { talla: "S", primeraExhibicion: ts(40), pisoHoy: 5 }));
     tallas.push(talla("T-M", "T", { talla: "M", primeraExhibicion: ts(40), pisoHoy: 1 }));
     tallas.push(talla("T-L", "T", { talla: "L", primeraExhibicion: ts(40), pisoHoy: 4, almacenHoy: 1 }));
-    eventos["T-S"] = [bajada(60, 10, { edadDesconocida: true }), venta(70, 1), venta(75, 1), venta(80, 1), venta(85, 1)];
+    // 20 ventas de la carga entre los días 66 y 85 (con la cola del riesgo, la M de 80 días espera ~18: contadas como de lo conocido
+    // dicen «pilar»; sin contarlas, 0).
+    eventos["T-S"] = [bajada(60, 25, { edadDesconocida: true }), ...Array.from({ length: 20 }, (_, k) => venta(66 + k, 1))];
     eventos["T-M"] = [bajada(40, 1)];
     eventos["T-L"] = [bajada(118, 4)];
     const t = prendaDe(analizarSede(lectura(tallas, eventos)).sede, "T");
@@ -2044,3 +2087,34 @@ describe("clavePrendaDe (la misma prenda en Análisis y en Frescura)", () => {
     expect(clavePrendaDe("p1", null, null)).toBe("p1|");
   });
 });
+
+describe("cortesConCola: la categoría estancada también envejece (ADR-0208, act. 2026-10-10 (b), actividad 6)", () => {
+  it("con 10 ventas o más, el corte que la curva no alcanza se extiende con su propio ritmo; el que alcanza no cambia", () => {
+    // Quedó el 34 % sin vender a los 13 días, con un riesgo acumulado de 1,0: su ritmo promedio es 1/13 por día.
+    const fin = { t: 13 * D, s: 0.34, h: 1.0, vendidas: 23 };
+    const c = cortesConCola({ p50: 9 * D, p75: null, p90: null }, fin);
+    expect(c.p50).toBe(9 * D);
+    expect(c.p75! / D).toBeCloseTo(13 + Math.log(0.34 / 0.25) * 13, 6);
+    expect(c.p90! / D).toBeCloseTo(13 + Math.log(0.34 / 0.1) * 13, 6);
+  });
+
+  it("con menos de 10 ventas, el ritmo es ruido: el corte sigue vacío («aún aprendiendo»)", () => {
+    expect(cortesConCola({ p50: 2 * D, p75: null, p90: null }, { t: 3 * D, s: 0.4, h: 0.7, vendidas: 3 })).toEqual({ p50: 2 * D, p75: null, p90: null });
+    expect(cortesConCola({ p50: null, p75: null, p90: null }, null)).toEqual({ p50: null, p75: null, p90: null });
+    // Sin la mitad vendida de verdad tampoco: extrapolarla la estiraría y lo viejo saldría Fresco.
+    expect(cortesConCola({ p50: null, p75: null, p90: null }, { t: 49 * D, s: 0.745, h: 0.29, vendidas: 28 })).toEqual({ p50: null, p75: null, p90: null });
+  });
+
+  it("el ensayo: Jeans de 25 días en una categoría que vendió 23 y se estancó con 12 colgadas ya no es Vigente, envejece", () => {
+    const u = (dias: number, vendida: boolean, peso = 1): Observacion => ({ segundos: dias * D, vendida, peso });
+    const vendidos = [3, 5, 7, 9, 11, 13].flatMap((d) => [u(d, true), u(d, true), u(d, true), u(d, true)]).slice(1);
+    const propias = [u(16, false, 2)];
+    const curva = kaplanMeier([...vendidos, u(16, false, 10), ...propias]);
+    const resto = contraElResto(curva, propias, [u(25, false, 2)]);
+    expect(resto.cortes.p75).not.toBeNull();
+    const e = estadoFrescura(entrada({ vara: { nivel: "solido", cortes: resto.cortes, curva: { tMax: resto.tMax } }, reloj: { segundos: 25 * D, alMenos: false }, pisoHoy: 2 }));
+    expect(e).toMatchObject({ tipo: "semaforo" });
+    expect(["envejecida", "critica"]).toContain((e as { tramo: string }).tramo);
+  });
+});
+

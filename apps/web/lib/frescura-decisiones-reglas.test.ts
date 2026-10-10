@@ -85,6 +85,7 @@ function prenda(p: Partial<FrescuraPrenda> & { clave: string }): FrescuraPrenda 
     apartadasHoy: 0,
     apartadasPisoHoy: 0,
     reloj: { segundos: 60 * DIA, alMenos: false },
+    relojUnidad: { segundos: 60 * DIA, alMenos: false },
     primeraExhibicion: lima("2026-07-01T12:00:00"),
     ultimaLlegada: lima("2026-07-01T12:00:00"),
     ultimaLlegadaCayla: lima("2026-07-01T12:00:00"),
@@ -96,6 +97,7 @@ function prenda(p: Partial<FrescuraPrenda> & { clave: string }): FrescuraPrenda 
     ventasRecientes: 0,
     categoriaSinElla: null,
     juzgadaContra: "sede",
+    varaDelMes: false,
     estado: ESTADO_QUIETA,
     porDecidir: ESTADO_QUIETA.quieta,
     decision: null,
@@ -116,6 +118,7 @@ function sedeCon(prendas: FrescuraPrenda[]): FrescuraSede {
     ahora: AHORA,
     categorias: [],
     prendas,
+    ritmoPorCategoria: [],
     cifras: { unidadesEnPiso: 0, edadDelPisoDias: null, edadDelPisoAlMenos: false, unidadesNuevas: 0, unidadesConTramo: 0, pctNuevas: null, porDecidir: 0, decididas: 0 },
     decisiones: { estado: "sin_lectura", aviso: "" },
   };

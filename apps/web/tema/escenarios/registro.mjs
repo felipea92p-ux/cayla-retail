@@ -871,6 +871,18 @@ ESCENARIOS.push(
   { id: "frescura.estado", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
   // ADR-0208 (act. 2026-10-07): el tablero por categoría; una fila tocada queda «elegida» (arena) y filtra la lista.
   { id: "frescura.tablero", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[aria-pressed=true]", nombre: "Frescura · una categoría del tablero elegida", preparar: clicRol("button", /^Camisas y Blusas/i) },
+  // ADR-0208 (Formidable 2026-10-10 (c)): el «¿Por qué?» de «Aún no se sabe», con su lista flotando sobre la tarjeta de la tienda.
+  {
+    id: "frescura.porque-no-se-sabe",
+    ruta: "/inventario/frescura",
+    cuentas: ["admin"],
+    abre: 'section[aria-labelledby="frescura-piso-titulo"] [aria-expanded="true"]',
+    nombre: "Frescura · el porqué de «Aún no se sabe»",
+    preparar: async (pagina) => {
+      await pagina.locator('section[aria-labelledby="frescura-piso-titulo"] button', { hasText: "¿Por qué?" }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
   { id: "regularizar.vendio", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Por regularizar · la lista «Quién vendió»", preparar: clicRol("combobox", /Quién vendió/i) },
   { id: "regularizar.todas", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, nombre: "Por regularizar · «Todas»", preparar: clicRol("button", /^Todas/i) },
   // ADR-0360: la mesa «Puente». Con una prenda y «cómo estaba» elegidos se ven el puente entero, la balanza, la guía y los hilos; en el
