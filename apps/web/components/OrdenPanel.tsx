@@ -27,6 +27,7 @@ import {
   estadoEntrega,
   etapaActual,
   etapasDe,
+  LEYENDA_SEMAFORO,
   matrizDeLineas,
   posicionEnMedidor,
   urlLlevarATiendas,
@@ -340,9 +341,9 @@ export function OrdenPanel({
                       />
                     </div>
                     <div className="mt-2 flex justify-between text-[11px] text-tinta/65">
-                      <span>pierde &lt; 40%</span>
-                      <span>al filo</span>
-                      <span>gana ≥ 60%</span>
+                      <span>{LEYENDA_SEMAFORO.pierde}</span>
+                      <span>{LEYENDA_SEMAFORO.filo}</span>
+                      <span>{LEYENDA_SEMAFORO.gana}</span>
                     </div>
                   </div>
                 )}
