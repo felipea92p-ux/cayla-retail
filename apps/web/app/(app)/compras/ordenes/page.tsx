@@ -9,6 +9,7 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonEnlace } from "@/components/ui/campos";
 
 // Órdenes de compra (ADR-0362, fase 1): lo que CAYLA le pide a cada proveedor, antes de que llegue la factura. Cada orden lleva un
 // número que no se repite ni se libera (OC-000001), su proveedor, a qué tienda llega —o «por repartir», si llega a Lima y se
@@ -36,6 +37,11 @@ export default async function OrdenesCompraPage() {
         sede={persona.ubicacionEtiqueta}
         titulo="Órdenes de compra"
         subtitulo="Lo que le pides a cada proveedor: qué, a cuánto y a qué tienda llega."
+        acciones={
+          <BotonEnlace href="/compras/ordenes/nueva" peso="primario">
+            + Nueva orden de compra
+          </BotonEnlace>
+        }
       />
 
       {falla ? (
@@ -44,8 +50,16 @@ export default async function OrdenesCompraPage() {
         </Aviso>
       ) : filas.length === 0 ? (
         <div className="card-cayla">
-          <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra">
-            Aquí vas a ver lo que le pides a cada proveedor, con su número, a qué tienda llega y cuánto suma.
+          <Vacio
+            icono={<ClipboardList />}
+            titulo="Todavía no hay órdenes de compra"
+            acciones={
+              <BotonEnlace href="/compras/ordenes/nueva" peso="primario">
+                + Nueva orden de compra
+              </BotonEnlace>
+            }
+          >
+            Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
           </Vacio>
         </div>
       ) : (

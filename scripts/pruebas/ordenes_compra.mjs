@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las órdenes de compra (ADR-0362, fase 1) — migración `20261010214500_ordenes_compra_modulo_y_tablas.sql`: el módulo
- * `ordenes_compra`, las tablas `ordenes_compra` / `orden_compra_items` y la lista `retail.fn_ordenes_compra`. CAYLA V2.
+ * Pruebas de las órdenes de compra (ADR-0362, fase 1) — migraciones `20261010214500_ordenes_compra_modulo_y_tablas.sql` (el módulo
+ * `ordenes_compra`, las tablas `ordenes_compra` / `orden_compra_items` y la lista `retail.fn_ordenes_compra`) y
+ * `20261010223500_ordenes_compra_crear.sql` (`crear_orden_compra` y `fn_ordenes_compra_siguiente`). CAYLA V2.
  *
  * LO QUE VIGILA. Que una orden no pueda quedar en un estado imposible (un descuento mayor que lo que cuesta la línea, un porcentaje
  * que no cuadra con los soles descontados, una anulación sin motivo, un número repetido); que solo quien tiene el módulo la vea, y
- * que quien lo tiene vea las de TODAS las sedes (decisiones 34 y 37); y que la lista sume bien y filtre lo que dice filtrar.
+ * que quien lo tiene vea las de TODAS las sedes (decisiones 34 y 37); que la lista sume bien y filtre lo que dice filtrar; y que
+ * crear una orden no deje dos por un doble clic, no gaste números en lo que rechaza y siempre diga quién la creó (decisión 39).
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK).
  *   M  EL MÓDULO: existe en Compras, orden 145, delegable, y nace SIN rol (ningún `rol_modulos`). La migración se vuelve a cargar
@@ -16,6 +18,10 @@
  *      tienda, por estado, por proveedor y por texto (número «OC-000012» o proveedor sin tildes); pagina; un destino raro se rechaza.
  *   C  CANDADOS DEL ESQUEMA: descuento mayor que la línea, porcentaje que no cuadra, cantidad 0, posición repetida, anulada sin
  *      motivo, generada con datos de anulación, entrega antes de la emisión, estado desconocido y número repetido.
+ *   CR CREAR: guarda cabecera y líneas (el descuento en % se convierte a soles en la base) con el número que anunciaba la vista
+ *      previa; el mismo `p_id` dos veces devuelve la misma orden; cada regla rechaza con su motivo SIN gastar número; firma una persona
+ *      sin combo con `orden_compra_crear` (también sin ser Admin y con el responsable obligatorio encendido), pero una terminal no
+ *      puede crearla sin elegir a alguien; sin el módulo, 42501; anon no la ejecuta.
  *
  * USO
  *   pnpm pruebas:ordenes-compra                         → contra la base `postgres` del stack local
@@ -36,10 +42,15 @@ const arg = (nombre, porDefecto) => {
 };
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261010214500_ordenes_compra_modulo_y_tablas.sql"), "utf8");
+// En orden: cada actividad de la fase 1 suma la suya.
+const MIGRACION = ["20261010214500_ordenes_compra_modulo_y_tablas.sql", "20261010223500_ordenes_compra_crear.sql"]
+  .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
+  .join("\n");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
+// Una terminal de prueba (se crea dentro de cada caso y se va con el ROLLBACK).
+const T_VENTAS = "33333333-3333-4333-8333-0000000000c1";
 
 function psql(sql) {
   return execFileSync(
@@ -75,15 +86,58 @@ exception when others then
 end;
 $f$;
 
+create function pg_temp.crea(p_id uuid, p_prov uuid, p_dest uuid, p_ent date, p_nota text, p_lineas jsonb) returns text language plpgsql as $f$
+declare v_estado text; v_hint text; v_msg text; v_num integer;
+begin
+  for v_num in select r.numero from retail.crear_orden_compra(p_id, p_prov, p_dest, p_ent, p_nota, p_lineas) r loop
+    return 'OK:' || v_num;
+  end loop;
+  return 'SIN_FILA';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_msg = message_text;
+  return v_estado || '|' || coalesce(v_hint, '') || '|' || v_msg;
+end;
+$f$;
+
 -- Datos propios de la prueba: dos proveedores (uno con tilde, para buscar sin ella), una marca y una categoría.
 insert into retail.proveedores (nombre) values ('Confecciones Peña OC Prueba') returning id as prov \\gset
 insert into retail.proveedores (nombre) values ('Textiles Norte OC Prueba') returning id as prov2 \\gset
 insert into retail.marcas (nombre) values ('OC Marca Prueba') returning id as marca \\gset
 insert into retail.categorias (nombre, familia) values ('OC Polos Prueba', 'indumentaria') returning id as cat \\gset
 select p.id as felipe_p from public.personas p where p.auth_user_id = '${FELIPE}' \\gset
+select p.id as micaela_p from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select id as taller from retail.ubicaciones where tipo = 'taller' order by nombre limit 1 \\gset
+-- Como en producción (20260923160000): el responsable obligatorio encendido. Sin él, una persona firmaría igual sin combo y la
+-- prueba de «orden_compra_crear» no probaría nada.
+insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
+  on conflict (id) do update set exige_responsable = true;
+create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz,
+  fecha_jornada date, anulada_at timestamptz);
+create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
 ${como(FELIPE)}
+`;
+
+// Una línea para \`p_lineas\`, con los números como TEXTO, igual que los manda la pantalla.
+const linea = (o) =>
+  JSON.stringify({ categoria_id: ":CAT", marca_id: ":MARCA", cantidad: "1", precio_unitario: "10.00", ...o })
+    .replace('":CAT"', `"' || :'cat' || '"`)
+    .replace('":MARCA"', `"' || :'marca' || '"`);
+const lineas = (...ls) => `('[' || ${ls.map((l) => `'${linea(l)}'`).join(" || ',' || ")} || ']')::jsonb`;
+// Los argumentos de crear_orden_compra con lo de siempre (proveedor activo, a Trujillo, sin entrega ni nota, una línea) y lo que
+// cambie cada caso. `crea(...)` intenta y devuelve «OK:<número>» o «<sqlstate>|<hint>|<mensaje>».
+const args = ({ id = "gen_random_uuid()", prov = ":'prov'", destino = ":'tru'", entrega = "null::date", nota = "null::text", ls = lineas({}) } = {}) =>
+  `${id}, ${prov}, ${destino}, ${entrega}, ${nota}, ${ls}`;
+const crea = (o) => `pg_temp.crea(${args(o)})`;
+const encabezados = (obj) => `select set_config('request.headers', '${JSON.stringify(obj)}', true) \\g /dev/null\n`;
+// La terminal de ventas de Trujillo, con el módulo en su rol (para llegar al candado del responsable y no al del módulo).
+const TERMINAL = `
+reset role;
+insert into auth.users (id, aud, role, email) values ('${T_VENTAS}', 'authenticated', 'authenticated', 'oc-terminal@prueba.local');
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  values (:'tru', 'Terminal OC Prueba', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS}');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_ventas'), 'ordenes_compra') on conflict do nothing;
 `;
 
 // Tres órdenes, en este orden: O1 a Trujillo (2 líneas, una con 10 % de descuento), O2 por repartir (otro proveedor) y O3 a
@@ -243,6 +297,107 @@ caso(
      split_part(pg_temp.intento(format('update retail.ordenes_compra set numero = %s where id = %L', :'n2', :'o1')), '|', 1),
      split_part(pg_temp.intento(format('update retail.ordenes_compra set fecha_entrega_estimada = fecha_emision where id = %L', :'o1')), '|', 1));`,
   "23514,23514,23514,23514,23505,SIN_ERROR"
+);
+
+// CR. CREAR ---------------------------------------------------------------------------------------------------------------
+const si = (cond, a, b) => `case when ${cond} then '${a}' else '${b}' end`;
+caso(
+  "CR1 guarda cabecera y líneas con el número que anunciaba la vista previa; el 10 % se vuelve soles en la base",
+  `select retail.fn_ordenes_compra_siguiente() as antes \\gset
+   select id as oc, numero as num from retail.crear_orden_compra(${args({
+     entrega: "retail.fn_hoy_lima() + 3",
+     nota: "'Llega en fardo'",
+     ls: lineas(
+       { descripcion: "Polo basico", cantidad: "10", precio_unitario: "25.50" },
+       { cantidad: "4", precio_unitario: "100", descuento_pct: "10", descuento: "1.00" },
+       { cantidad: "2", precio_unitario: "30", descuento: "5.50" }
+     ),
+   })}) \\gset
+   select concat_ws(' / ',
+     ${si(":'num'::int = :'antes'::int", "numero anunciado", "otro numero")},
+     (select o.estado || ':' || coalesce(u.nombre, '-') || ':' || (o.fecha_entrega_estimada - o.fecha_emision) || ':' || o.nota || ':'
+             || ${si("o.creada_por = :'felipe_p'", "felipe", "otra")}
+        from retail.ordenes_compra o left join retail.ubicaciones u on u.id = o.ubicacion_destino_id where o.id = :'oc'),
+     (select string_agg(i.posicion || ':' || i.cantidad || 'x' || i.precio_unitario || '-' || i.descuento
+                        || coalesce('(' || i.descuento_pct::numeric(7, 2) || '%)', '') || '=' || i.subtotal, ' ' order by i.posicion)
+        from retail.orden_compra_items i where i.orden_compra_id = :'oc'),
+     (select f.total from retail.fn_ordenes_compra() f where f.id = :'oc'));`,
+  "numero anunciado / generada:Tienda Trujillo:3:Llega en fardo:felipe / 1:10x25.50-0.00=255.00 2:4x100.00-40.00(10.00%)=360.00 3:2x30.00-5.50=54.50 / 669.50"
+);
+caso(
+  "CR2 el mismo p_id dos veces (doble clic, reintento) devuelve la misma orden: una sola, con una línea, y un solo número gastado",
+  `select gen_random_uuid() as pid \\gset
+   select id as a, numero as na from retail.crear_orden_compra(${args({ id: ":'pid'" })}) \\gset
+   select id as b, numero as nb from retail.crear_orden_compra(${args({ id: ":'pid'", ls: lineas({ cantidad: "99" }) })}) \\gset
+   select concat_ws(',', ${si(":'a' = :'b' and :'na' = :'nb'", "misma", "otra")},
+     (select count(*) from retail.ordenes_compra where id = :'pid'),
+     (select string_agg(cantidad::text, '+') from retail.orden_compra_items where orden_compra_id = :'pid'),
+     ${si("retail.fn_ordenes_compra_siguiente() = :'na'::int + 1", "un numero", "gasto de mas")});`,
+  "misma,1,1,un numero"
+);
+caso(
+  "CR3 cada regla rechaza con su motivo y SIN gastar número: proveedor, destino (nunca el Taller), entrega, nota, líneas y sus números",
+  `reset role;
+   insert into retail.proveedores (nombre, activo) values ('OC Proveedor Inactivo', false) returning id as prov_off \\gset
+   ${como(FELIPE)}
+   select retail.fn_ordenes_compra_siguiente() as antes \\gset
+   select concat_ws(',',
+     split_part(${crea({ prov: "null::uuid" })}, '|', 2),
+     split_part(${crea({ prov: ":'prov_off'" })}, '|', 2),
+     split_part(${crea({ destino: ":'taller'" })}, '|', 2),
+     split_part(${crea({ entrega: "retail.fn_hoy_lima() - 1" })}, '|', 2),
+     split_part(${crea({ entrega: "retail.fn_hoy_lima() + 400" })}, '|', 2),
+     split_part(${crea({ nota: "repeat('a', 501)" })}, '|', 2),
+     split_part(${crea({ ls: "'[]'::jsonb" })}, '|', 2),
+     split_part(${crea({ ls: `(select jsonb_agg(jsonb_build_object('categoria_id', :'cat', 'marca_id', :'marca', 'cantidad', '1', 'precio_unitario', '1')) from generate_series(1, 101))` })}, '|', 2),
+     split_part(${crea({ ls: lineas({ marca_id: "" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ cantidad: "1.5" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ cantidad: "0" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ precio_unitario: "10.555" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ precio_unitario: "diez" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ cantidad: "2", precio_unitario: "10", descuento: "20.01" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ descuento_pct: "101" }) })}, '|', 2),
+     ${si("retail.fn_ordenes_compra_siguiente() = :'antes'::int", "sin gastar", "gasto numeros")});`,
+  [
+    "orden_compra_proveedor", "orden_compra_proveedor", "orden_compra_destino", "orden_compra_entrega", "orden_compra_entrega",
+    "orden_compra_nota", "orden_compra_sin_lineas", "orden_compra_muchas_lineas", "orden_compra_marca", "orden_compra_cantidad",
+    "orden_compra_cantidad", "orden_compra_precio", "orden_compra_linea", "orden_compra_descuento", "orden_compra_descuento", "sin gastar",
+  ].join(",")
+);
+caso(
+  "CR4 una persona que no es Admin, con el responsable obligatorio encendido: sin la clave le pide el combo; con «orden_compra_crear» firma ella",
+  `reset role;
+   insert into retail.rol_modulos (rol_id, modulo)
+     select c.rol_id, 'ordenes_compra' from retail.colaboradores c where c.persona_id = :'micaela_p';
+   ${como(MICAELA)}
+   select ${crea()} as sin_clave \\gset
+   ${encabezados({ "x-responsable-omitido": "orden_compra_crear" })}
+   select id as oc from retail.crear_orden_compra(${args()}) \\gset
+   select split_part(:'sin_clave', '|', 2) || ',' ||
+     (select ${si("creada_por = :'micaela_p'", "micaela", "otra")} from retail.ordenes_compra where id = :'oc');`,
+  "responsable_requerido,micaela"
+);
+caso(
+  "CR5 una terminal no crea una orden sin elegir a alguien: ni mandando la clave (la base no deja una orden sin autor) ni sin nada",
+  `${TERMINAL}
+   ${como(T_VENTAS)}
+   ${encabezados({ "x-responsable-omitido": "orden_compra_crear" })}
+   select ${crea()} as con_clave \\gset
+   ${encabezados({})}
+   select ${crea()} as sin_nada \\gset
+   select split_part(:'con_clave', '|', 1) || '|' || split_part(:'con_clave', '|', 2) || ',' || split_part(:'sin_nada', '|', 2);`,
+  "42501|responsable_requerido,responsable_requerido"
+);
+caso(
+  "CR6 sin el módulo no se crea ni se mira el número que sigue (42501); anon no ejecuta ninguna de las dos",
+  `${como(MICAELA)}
+   ${encabezados({ "x-responsable-omitido": "orden_compra_crear" })}
+   select split_part(${crea()}, '|', 1) || ',' || split_part(pg_temp.intento('select retail.fn_ordenes_compra_siguiente()'), '|', 1) as micaela \\gset
+   reset role;
+   select :'micaela' || ',' ||
+     has_function_privilege('anon', 'retail.crear_orden_compra(uuid,uuid,uuid,date,text,jsonb)', 'execute') || ',' ||
+     has_function_privilege('anon', 'retail.fn_ordenes_compra_siguiente()', 'execute');`,
+  "42501,42501,false,false"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien`);

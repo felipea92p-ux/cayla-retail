@@ -1366,6 +1366,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     ve las de todas las sedes) → `lib/ordenes-compra.ts` (`fn_ordenes_compra`) + `lib/ordenes-compra-reglas.ts` (número `OC-000001`,
     destino, estados, lectura defensiva). Cabecera `EncabezadoPagina`; 7.ª entrada temporal de Compras hasta que Recibir pase a
     Inventario (ADR-0361).
+  - `/compras/ordenes/nueva` («Nueva orden de compra») → `lib/ordenes-compra.ts:getDatosNuevaOrden` (proveedores, marcas, vínculos,
+    categorías, destinos y `fn_ordenes_compra_siguiente`) + `components/ordenes-compra/NuevaOrdenCompra.tsx` →
+    `lib/ordenes-compra-acciones.ts:crearOrdenCompra` (`crear_orden_compra`, firma `orden_compra_crear`: persona sin combo, terminal
+    con combo) + `lib/orden-compra-alta.ts` (números como se tipean, cálculo de línea en céntimos, guía de foco, argumentos).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 

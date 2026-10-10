@@ -52,6 +52,7 @@
 | 36 | Cabecera | Órdenes de compra usa **`EncabezadoPagina`** (sede y fecha arriba, título de 46 px). El resto de Compras sigue sin cabecera decidida (Felipe 2026-10-10) |
 | 37 | Quién ve las órdenes | Quien tiene el módulo ve las órdenes de **todas las sedes** y las «por repartir»; la lista **arranca filtrada en la sede donde está** y puede pasar a «Todas». Es la 34 aplicada: no sigue la regla de Compras por tienda (ADR-0184) (Felipe 2026-10-10) |
 | 38 | Menú | «Órdenes de compra» entra como **7.ª entrada de Compras, temporal**, con la excepción de tope que ya prevé `menu.test.ts`; se quita cuando Recibir mercadería pase a Inventario (Felipe 2026-10-10) |
+| 39 | Responsable | Crear, editar y anular una orden: **con la cuenta de una persona, firma ella sola, sin combo ni marca de entrada** (la compradora está en Gamarra, lejos del kiosco); **desde una terminal, pide el combo «Responsable»**. Es el mismo trato que «apartar una prenda» y los avisos del club: las claves `orden_compra_*` entran a `acciones_sin_responsable` (Felipe 2026-10-10) |
 
 ## Fuente: el brief de Felipe
 
@@ -82,6 +83,12 @@ se cumple por el destino de la orden, no por quién la crea). La fecha de emisi�
 ofrece primero las de ese proveedor pero acepta cualquiera, y la orden no toca el catálogo. El número se ve bloqueado al crear; si dos
 personas guardan a la vez, la segunda toma el siguiente y se le avisa. Un doble clic en «Guardar» no crea dos órdenes. El PDF se guarda
 desde el diálogo de impresión, como la guía de traslado, y el archivo se llama como la orden (`OC-000001.pdf`).
+
+**Al construir «Nueva orden de compra» (actividad 2, 2026-10-10), por defecto:** la entrega estimada es *sugerida* (la guía la pide,
+nunca bloquea: en Gamarra muchas veces no se sabe); si el proveedor trae una sola marca, se pone sola en las líneas sin marca; los
+números se leen con la costumbre del ERP (punto decimal, coma de miles: «1,950.50»), con una sola tolerancia —«12,50» sin punto es
+doce cincuenta, porque leerlo como 1250 multiplicaría el precio por cien sin que nadie lo note—; y el descuento se escribe en % o en
+S/ con un selector y se muestra el otro valor calculado al lado.
 
 ## Para el contador (no bloquea programar, dice el brief)
 

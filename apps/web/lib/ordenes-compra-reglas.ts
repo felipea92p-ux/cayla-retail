@@ -5,8 +5,24 @@
 //   NO HACE: no habla con la base (eso es `ordenes-compra.ts`) ni decide permisos (los decide la función, con el módulo).
 
 import type { TonoChip } from "@/components/ui/Chip";
+import type { MarcaOpcion, ProveedorOpcion, Vinculo } from "./marcas";
 
 export const RPC_LISTA_ORDENES = "fn_ordenes_compra";
+/** Vista previa del número de la próxima orden (no lo gasta). Empieza con `fn_`: lectura, no abre el loader (`espera-reglas.ts`). */
+export const RPC_SIGUIENTE_ORDEN = "fn_ordenes_compra_siguiente";
+export const RPC_CREAR_ORDEN = "crear_orden_compra";
+
+/** Lo que «Nueva orden de compra» lee de la base (`getDatosNuevaOrden`). */
+export type DatosNuevaOrden = {
+  proveedores: (ProveedorOpcion & { ruc: string | null })[];
+  marcas: MarcaOpcion[];
+  vinculos: Vinculo[];
+  categorias: { id: string; nombre: string; prefijo: string | null; familia: string | null }[];
+  destinos: { id: string; nombre: string }[];
+  /** El número que le tocaría; null si la vista previa no respondió (se numera igual al guardar). */
+  siguiente: number | null;
+  falla: string | null;
+};
 
 export type EstadoOrdenCompra = "generada" | "anulada";
 

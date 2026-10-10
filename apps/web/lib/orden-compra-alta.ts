@@ -1,0 +1,313 @@
+// Nueva orden de compra (ADR-0362, fase 1 · actividad 2): la lógica pura del formulario. Sin React ni red: se importa desde el cliente y
+// se prueba sola (`orden-compra-alta.test.ts`).
+//
+//   PROMETE: leer lo que se tipea en el puesto («12,50», «12.5», « 3 »); calcular cada línea como la base (el descuento en soles desde
+//   el %, el subtotal y el total), en céntimos exactos; decir qué le falta a la orden con las MISMAS reglas que `crear_orden_compra`
+//   (de aquí sale la guía de foco: si la base rechaza algo que esto dejaba pasar, la prueba lo atrapa); y armar lo que viaja a la base.
+//   NO HACE: no habla con la base ni decide permisos (el módulo y quién firma los decide la función).
+//
+// Los montos viajan como TEXTO canónico («25.50»): un número de coma flotante convertiría 0.1 + 0.2 en 0.30000000000000004 antes de
+// llegar al `numeric` de Postgres.
+
+import type { CampoDeGuia } from "./guia-campos";
+
+/** Lo que la base acepta (mismo tope que `crear_orden_compra`). */
+export const TOPES = {
+  lineas: 100,
+  cantidad: 99_999,
+  precioCentimos: 9_999_999, // S/ 99 999.99
+  descripcion: 200,
+  nota: 500,
+  diasEntrega: 365,
+} as const;
+
+/** El valor del campo «Llega a» que dice «se reparte desde Lima» (en la base, destino NULL). */
+export const POR_REPARTIR = "por_repartir";
+
+/** Cómo se escribió el descuento de una línea: en porcentaje o en soles. El otro se calcula. */
+export type ModoDescuento = "pct" | "soles";
+
+export type LineaBorrador = {
+  /** Estable para React mientras dura el formulario; no es el id de la base. */
+  clave: string;
+  categoriaId: string;
+  marcaId: string;
+  descripcion: string;
+  cantidad: string;
+  precio: string;
+  /** Lo que se tipeó en el modo activo (`modoDescuento`). */
+  descuento: string;
+  modoDescuento: ModoDescuento;
+};
+
+export type OrdenBorrador = {
+  proveedorId: string;
+  /** «» = sin elegir; `POR_REPARTIR`; o el id de la tienda. */
+  destino: string;
+  /** `aaaa-mm-dd` o «». */
+  entrega: string;
+  nota: string;
+  lineas: LineaBorrador[];
+};
+
+export function lineaVacia(clave: string, marcaId = ""): LineaBorrador {
+  return { clave, categoriaId: "", marcaId, descripcion: "", cantidad: "", precio: "", descuento: "", modoDescuento: "pct" };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Leer números como se tipean
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+export type Lectura = { tipo: "vacio" } | { tipo: "ok"; escalado: number } | { tipo: "mal"; motivo: "no_numero" | "decimales" | "negativo" };
+
+/**
+ * Un número escrito a mano, escalado a `decimales` (2 → céntimos). La costumbre del ERP y de Perú (`parsearMonto` de Gastos,
+ * `leerMonto` de Caja): el PUNTO es el decimal y la COMA separa miles («1,950.50» es 1950.50; «1,000» es mil). Una sola tolerancia:
+ * sin punto, una coma seguida de UNA o DOS cifras al final («12,50», «12,5») es el decimal, porque leer «12,50» como 1250 multiplicaría
+ * el precio por cien sin que nadie lo note. Más decimales de los que caben no se redondean: se avisa (la base tampoco los acepta).
+ */
+export function leerNumero(texto: string, decimales: number): Lectura {
+  let t = texto.replace(/\s+/g, "").replace(/^s\//i, "");
+  if (t === "") return { tipo: "vacio" };
+  if (t.startsWith("-")) return { tipo: "mal", motivo: "negativo" };
+  if (t.includes(".")) {
+    // Con punto, las comas solo pueden separar miles.
+    t = t.replace(/,/g, "");
+  } else if (/^\d+,\d{1,2}$/.test(t)) {
+    t = t.replace(",", ".");
+  } else if (/^[1-9]\d{0,2}(,\d{3})+$/.test(t)) {
+    // «1,000» y «12,345,678»: miles. «0,500» no (unos miles no empiezan en cero) y cae como número mal escrito.
+    t = t.replace(/,/g, "");
+  }
+  const partes = t.split(".");
+  if (partes.length > 2) return { tipo: "mal", motivo: "no_numero" };
+  const entera = partes[0] ?? "";
+  let fraccion = partes[1] ?? "";
+  if (!/^\d*$/.test(entera) || !/^\d*$/.test(fraccion) || (entera === "" && fraccion === "")) return { tipo: "mal", motivo: "no_numero" };
+  if (fraccion.length > decimales) {
+    // «12.50» con 0 decimales permitidos ya es un problema; «12.500» con 2 también, salvo ceros de más.
+    if (/^0*$/.test(fraccion.slice(decimales))) fraccion = fraccion.slice(0, decimales);
+    else return { tipo: "mal", motivo: "decimales" };
+  }
+  const escalado = Number((entera || "0") + fraccion.padEnd(decimales, "0"));
+  return Number.isSafeInteger(escalado) ? { tipo: "ok", escalado } : { tipo: "mal", motivo: "no_numero" };
+}
+
+/** Un escalado con `decimales` como texto canónico: 2550 con 2 → «25.50»; 100000 con 4 → «10» (los ceros de más se quitan). */
+export function aTexto(escalado: number, decimales: number, { recortar = false } = {}): string {
+  if (decimales === 0) return String(escalado);
+  const base = 10 ** decimales;
+  const entero = Math.floor(escalado / base);
+  let fraccion = String(escalado % base).padStart(decimales, "0");
+  if (recortar) fraccion = fraccion.replace(/0+$/, "");
+  return fraccion ? `${entero}.${fraccion}` : String(entero);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Calcular una línea (céntimos exactos, igual que la base)
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+export type CalculoLinea = {
+  cantidad: number | null;
+  precioCentimos: number | null;
+  /** El bruto (cantidad × precio), o null si falta alguno de los dos. */
+  brutoCentimos: number | null;
+  descuentoCentimos: number;
+  /** El porcentaje equivalente, para mostrar en el otro campo (escalado ×10 000), o null si no hay bruto. */
+  pctEscalado: number | null;
+  subtotalCentimos: number | null;
+};
+
+/**
+ * `round(cantidad × precio × % / 100, 2)` de la base, con el mismo redondeo (mitad hacia arriba: todo es positivo). En BigInt: el
+ * producto pasa de 2^53 con cantidades y precios grandes.
+ */
+export function descuentoDesdePct(cantidad: number, precioCentimos: number, pctEscalado: number): number {
+  const n = BigInt(cantidad) * BigInt(precioCentimos) * BigInt(pctEscalado);
+  const d = BigInt(1_000_000); // ×10 000 del porcentaje y /100 del «por ciento»
+  const dos = BigInt(2);
+  return Number((dos * n + d) / (dos * d));
+}
+
+export function calcularLinea(l: LineaBorrador): CalculoLinea {
+  const cant = leerNumero(l.cantidad, 0);
+  const precio = leerNumero(l.precio, 2);
+  const cantidad = cant.tipo === "ok" ? cant.escalado : null;
+  const precioCentimos = precio.tipo === "ok" ? precio.escalado : null;
+  const brutoCentimos = cantidad != null && precioCentimos != null ? cantidad * precioCentimos : null;
+  let descuentoCentimos = 0;
+  let pctEscalado: number | null = null;
+  if (brutoCentimos != null) {
+    if (l.modoDescuento === "pct") {
+      const p = leerNumero(l.descuento, 4);
+      pctEscalado = p.tipo === "ok" ? p.escalado : 0;
+      descuentoCentimos = p.tipo === "ok" && cantidad != null && precioCentimos != null ? descuentoDesdePct(cantidad, precioCentimos, p.escalado) : 0;
+    } else {
+      const s = leerNumero(l.descuento, 2);
+      descuentoCentimos = s.tipo === "ok" ? s.escalado : 0;
+      pctEscalado = brutoCentimos > 0 ? Math.round((descuentoCentimos * 1_000_000) / brutoCentimos) : 0;
+    }
+  }
+  const subtotalCentimos = brutoCentimos != null ? Math.max(0, brutoCentimos - descuentoCentimos) : null;
+  return { cantidad, precioCentimos, brutoCentimos, descuentoCentimos, pctEscalado, subtotalCentimos };
+}
+
+export function totalCentimos(lineas: readonly LineaBorrador[]): number {
+  return lineas.reduce((acc, l) => acc + (calcularLinea(l).subtotalCentimos ?? 0), 0);
+}
+
+export function unidades(lineas: readonly LineaBorrador[]): number {
+  return lineas.reduce((acc, l) => acc + (calcularLinea(l).cantidad ?? 0), 0);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Qué le falta (las reglas de `crear_orden_compra`, dichas para quien llena)
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+/** Lo que se le pregunta a la base que la pantalla no sabe sola: qué proveedores, categorías, marcas y destinos siguen activos. */
+export type ContextoValidacion = {
+  hoy: string;
+  proveedoresActivos: ReadonlySet<string>;
+  categoriasActivas: ReadonlySet<string>;
+  marcasActivas: ReadonlySet<string>;
+  destinos: ReadonlySet<string>;
+};
+
+/** El primer problema de una línea, en una frase para quien la llena; null si la línea está lista. */
+export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): string | null {
+  if (!l.categoriaId || !ctx.categoriasActivas.has(l.categoriaId)) return "Elige la categoría.";
+  if (!l.marcaId || !ctx.marcasActivas.has(l.marcaId)) return "Elige la marca.";
+  if (l.descripcion.trim().length > TOPES.descripcion) return `La descripción va hasta ${TOPES.descripcion} letras.`;
+  const cant = leerNumero(l.cantidad, 0);
+  if (cant.tipo === "vacio") return "Escribe la cantidad.";
+  if (cant.tipo === "mal" || cant.escalado < 1 || cant.escalado > TOPES.cantidad) return "La cantidad va de 1 a 99 999 unidades, sin decimales.";
+  const precio = leerNumero(l.precio, 2);
+  if (precio.tipo === "vacio") return "Escribe el precio por unidad.";
+  if (precio.tipo === "mal" || precio.escalado > TOPES.precioCentimos) return "El precio va de S/ 0 a S/ 99 999.99, con hasta dos decimales.";
+  if (l.modoDescuento === "pct") {
+    const p = leerNumero(l.descuento, 4);
+    if (p.tipo === "mal" || (p.tipo === "ok" && p.escalado > 1_000_000)) return "El descuento va de 0 % a 100 %.";
+  } else {
+    const s = leerNumero(l.descuento, 2);
+    if (s.tipo === "mal" || (s.tipo === "ok" && s.escalado > cant.escalado * precio.escalado)) return "El descuento no puede pasar de lo que cuesta la línea.";
+  }
+  return null;
+}
+
+function sumarDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/** El último día que la base acepta como entrega estimada. */
+export const entregaMaxima = (hoy: string) => sumarDias(hoy, TOPES.diasEntrega);
+
+/** El problema de la entrega estimada, o null (vacía también vale: no es obligatoria). */
+export function problemaDeEntrega(entrega: string, hoy: string): string | null {
+  if (!entrega) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(entrega)) return "La fecha no se entiende.";
+  if (entrega < hoy) return "La entrega estimada no puede ser antes de hoy.";
+  if (entrega > entregaMaxima(hoy)) return "La entrega estimada va hasta dentro de un año.";
+  return null;
+}
+
+/**
+ * Los campos de la guía de foco, en el orden de la pantalla. `hecho` y `requerido` son las reglas de la base: la guía no inventa
+ * ninguna. La entrega estimada es «sugerida»: avisa, nunca bloquea. `responsable` solo cuenta en una terminal (decisión 39).
+ */
+export function camposDeLaOrden(
+  o: OrdenBorrador,
+  ctx: ContextoValidacion,
+  responsable: { pide: boolean; listo: boolean; motivo: string | null },
+): CampoDeGuia[] {
+  const campos: CampoDeGuia[] = [
+    { id: "proveedor", nombre: "Proveedor", requerido: true, hecho: !!o.proveedorId && ctx.proveedoresActivos.has(o.proveedorId), pendiente: "Elige el proveedor." },
+    { id: "destino", nombre: "A dónde llega", requerido: true, hecho: o.destino === POR_REPARTIR || ctx.destinos.has(o.destino), pendiente: "Elige a qué tienda llega, o «Por repartir»." },
+    {
+      id: "entrega",
+      nombre: "Entrega estimada",
+      requerido: false,
+      sugerido: true,
+      hecho: !!o.entrega && problemaDeEntrega(o.entrega, ctx.hoy) === null,
+      pendiente: problemaDeEntrega(o.entrega, ctx.hoy) ?? "¿Cuándo crees que llega? Sirve para saber si se atrasa.",
+    },
+  ];
+  if (o.lineas.length === 0) {
+    campos.push({ id: "lineas", nombre: "Prendas", requerido: true, hecho: false, pendiente: "Agrega al menos una prenda." });
+  }
+  o.lineas.forEach((l, i) => {
+    const problema = problemaDeLinea(l, ctx);
+    campos.push({ id: `linea-${l.clave}`, nombre: `Línea ${i + 1}`, requerido: true, hecho: problema === null, pendiente: problema ?? "" });
+  });
+  // La nota es opcional; solo pasa a bloquear si se pasa del tope (la base la rechazaría).
+  const notaLarga = o.nota.trim().length > TOPES.nota;
+  campos.push({
+    id: "nota",
+    nombre: "Nota",
+    requerido: notaLarga,
+    hecho: o.nota.trim().length > 0 && !notaLarga,
+    pendiente: notaLarga ? `La nota va hasta ${TOPES.nota} letras.` : "",
+  });
+  // Más líneas de las que caben: la pantalla no deja agregarlas, pero la regla es de la base y se dice igual.
+  if (o.lineas.length > TOPES.lineas) {
+    campos.push({ id: "lineas", nombre: "Prendas", requerido: true, hecho: false, pendiente: `Una orden lleva hasta ${TOPES.lineas} líneas: parte el pedido en dos órdenes.` });
+  }
+  if (responsable.pide) {
+    campos.push({ id: "responsable", nombre: "Quién la hace", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién hace la orden." });
+  }
+  return campos;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Lo que viaja a la base
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+export type LineaParaBase = {
+  categoria_id: string;
+  marca_id: string;
+  descripcion?: string;
+  cantidad: string;
+  precio_unitario: string;
+  descuento_pct?: string;
+  descuento?: string;
+};
+
+export type ArgsCrearOrden = {
+  p_id: string;
+  p_proveedor_id: string;
+  p_destino_id: string | null;
+  p_fecha_entrega_estimada: string | null;
+  p_nota: string | null;
+  p_lineas: LineaParaBase[];
+};
+
+/** Los argumentos de `crear_orden_compra`. Solo se llama con la orden lista (la guía sin nada requerido pendiente). */
+export function argsCrearOrden(id: string, o: OrdenBorrador): ArgsCrearOrden {
+  return {
+    p_id: id,
+    p_proveedor_id: o.proveedorId,
+    p_destino_id: o.destino === POR_REPARTIR ? null : o.destino,
+    p_fecha_entrega_estimada: o.entrega || null,
+    p_nota: o.nota.trim() || null,
+    p_lineas: o.lineas.map((l) => {
+      const cant = leerNumero(l.cantidad, 0);
+      const precio = leerNumero(l.precio, 2);
+      const linea: LineaParaBase = {
+        categoria_id: l.categoriaId,
+        marca_id: l.marcaId,
+        cantidad: cant.tipo === "ok" ? aTexto(cant.escalado, 0) : "",
+        precio_unitario: precio.tipo === "ok" ? aTexto(precio.escalado, 2) : "",
+      };
+      if (l.descripcion.trim()) linea.descripcion = l.descripcion.trim();
+      if (l.modoDescuento === "pct") {
+        const p = leerNumero(l.descuento, 4);
+        if (p.tipo === "ok" && p.escalado > 0) linea.descuento_pct = aTexto(p.escalado, 4, { recortar: true });
+      } else {
+        const s = leerNumero(l.descuento, 2);
+        if (s.tipo === "ok" && s.escalado > 0) linea.descuento = aTexto(s.escalado, 2);
+      }
+      return linea;
+    }),
+  };
+}
