@@ -112,6 +112,8 @@ export const AVIARIO = [
   { n: "07", pajaro: "Colibrí", modulo: "Ventas y caja",
     tablas: [
       "ventas", "venta_items", "venta_pagos", "venta_anulacion_items", "cajas", "caja_movimientos",
+      // ADR-0365: la corrección del medio de pago de una venta con la caja abierta (20261009120000). Refresco del 2026-10-09.
+      "venta_pagos_correcciones",
       // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
       "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
       // ADR-0249: qué ficha de clienta se unió a cuál (unir fichas repetidas). Refresco del 2026-09-28.
