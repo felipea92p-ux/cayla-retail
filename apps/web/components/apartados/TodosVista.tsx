@@ -32,11 +32,13 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
+// «Todos» va primero y es lo que se ve al entrar al Historial (Felipe 2026-10-10): el historial muestra todo y los
+// demás filtros lo acotan.
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
+  { id: "todos", etiqueta: "Todos" },
   { id: "hoy", etiqueta: "Necesitan algo" },
   { id: "abiertos", etiqueta: "Por recoger" },
   { id: "cerrados", etiqueta: "Cerrados" },
-  { id: "todos", etiqueta: "Todos" },
 ];
 const GRUPOS: { titulo: string; claves: ClaveEstado[] }[] = [
   { titulo: "Hoy, sin falta", claves: ["devolver", "vencida"] },
@@ -109,7 +111,7 @@ export function TodosVista({
   onApartarPedido?: (p: PedidoApartado) => void;
 }) {
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
-  const [filtro, setFiltro] = useState<Filtro>(buscarInicial ? "todos" : "hoy");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [texto, setTexto] = useState(buscarInicial);
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
