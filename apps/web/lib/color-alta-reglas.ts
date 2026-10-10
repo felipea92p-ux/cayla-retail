@@ -76,6 +76,9 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente:
       tipo: typeof c.tipo === "string" ? c.tipo : undefined,
       sinonimos: Array.isArray(c.sinonimos) ? c.sinonimos.filter((s): s is string => typeof s === "string") : [],
       pantoneTcx: typeof c.pantone_tcx === "string" ? c.pantone_tcx : null,
+      // La ficha (ADR-0316) también llega en la respuesta: un color recién creado se señala en la carta como cualquier otro.
+      descripcion: typeof c.descripcion === "string" ? c.descripcion : null,
+      combinaCon: Array.isArray(c.combina_con) ? c.combina_con.filter((s): s is string => typeof s === "string") : [],
     },
     pendiente: c.estado === "pendiente",
   };

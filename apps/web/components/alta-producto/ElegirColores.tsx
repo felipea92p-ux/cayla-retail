@@ -9,6 +9,8 @@ import { nombreDeColor } from "@/lib/color-alta-reglas";
 import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { bordeDeMuestra, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { fichaDelColor } from "@/lib/ficha-del-color";
+import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
@@ -184,7 +186,9 @@ export function ElegirColores({
         // tono más oscuro (`bordeDeMuestra`), así un blanco, un crudo o un negro tienen su filo. Si el BLOQUE es angosto
         // (`@container`, no la ventana), el nombre de la familia va arriba de sus círculos; si es muy ancho, las familias van en
         // dos columnas (spike: desde ~900 px).
-        <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-1.5">
+        // El color señalado se queda mientras el mouse siga dentro de la carta (también sobre el pie: sus círculos de «combínalo con»
+        // se señalan a su vez); al salir de la carta, el pie vuelve a su pista.
+        <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-1.5" onMouseLeave={() => setSenalado(null)}>
           <div className="grid @4xl:grid-cols-2 @4xl:gap-x-6">
             {grupos.map((g, i) => (
               <div
@@ -212,7 +216,6 @@ export function ElegirColores({
                             aria-pressed={elegido}
                             aria-label={c.nombre}
                             onMouseEnter={() => setSenalado(c)}
-                            onMouseLeave={() => setSenalado(null)}
                             onFocus={() => setSenalado(c)}
                             onBlur={() => setSenalado(null)}
                             style={{ background: fondoDeMuestra(c.hex, c.familiaColor, c.tipo) ?? "transparent", borderColor: bordeDeMuestra(c.hex) }}
@@ -233,7 +236,7 @@ export function ElegirColores({
           </div>
           {/* Alto fijo: el pie no empuja la carta al aparecer o cambiar de nombre. `aria-hidden` porque cada círculo ya
               se anuncia con su `aria-label`; leerlo dos veces sería ruido para un lector de pantalla. */}
-          <PieDeLaCarta senalado={senalado} elegido={senalado ? elegidos.includes(senalado.codigo) : false} colores={colores} />
+          <PieDeLaCarta senalado={senalado} elegido={senalado ? elegidos.includes(senalado.codigo) : false} colores={colores} porCodigo={porCodigo} />
         </div>
       )}
     </div>
@@ -241,35 +244,43 @@ export function ElegirColores({
 }
 
 /**
- * Lo que dice la carta del color señalado: su muestra grande, el nombre, la familia y el código Pantone —la referencia real de la
- * tela: el círculo es una aproximación en pantalla— y, si lo hay, con qué otro color se confunde (ΔE2000 < 8, `color-parecido.ts`),
- * para que nadie elija el «Perla» creyendo que es distinto del «Crudo». Una sola línea, de alto fijo.
+ * Lo que dice la carta del color señalado, en dos renglones de alto fijo. Arriba: su muestra grande, el nombre, la familia y el
+ * código Pantone —la referencia real de la tela: el círculo es una aproximación en pantalla— y, si lo hay, con qué otro color se
+ * confunde (ΔE2000 < 8, `color-parecido.ts`), para que nadie elija el «Perla» creyendo que es distinto del «Crudo». Abajo, su ficha
+ * (ADR-0316; Felipe 2026-10-10): con qué se combina, como círculos que dicen su nombre al pasar o tocar, y la primera frase de lo que
+ * transmite. Un color sin ficha deja el segundo renglón vacío: nunca un «sin datos».
  */
-function PieDeLaCarta({ senalado, elegido, colores }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[] }) {
+function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[]; porCodigo: ReadonlyMap<string, ColorAlta> }) {
   const parecidos = senalado ? coloresParecidos(senalado.hex, senalado.familiaColor, colores, { excluir: senalado.codigo }).slice(0, 2) : [];
+  const ficha = senalado ? fichaDelColor(senalado.codigo, porCodigo) : null;
   return (
     // En el celular y la tablet, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09): el pie
     // quedaba al final de 14 familias y el color tocado se sumaba ARRIBA, a la fila de elegidos; quien tocaba un círculo no veía ni
     // su nombre ni que quedó elegido. `--alto-barra-ficha` lo publica la barra (`FichaPrevia`): crece con la tira de parecidas.
-    <p aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 flex h-9 items-center gap-2 border-t border-sand bg-crema px-3 pt-1 text-[12px] lg:static lg:mx-0 lg:bg-transparent lg:px-0">
+    <div aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 grid h-12 grid-rows-2 content-center gap-0.5 border-t border-sand bg-crema px-3 pt-1 text-[12px] lg:static lg:mx-0 lg:bg-transparent lg:px-0">
       {senalado ? (
         <>
-          <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} grande />
-          <span className="min-w-0 truncate">
-            <span className="text-tinta">{senalado.nombre}</span>
-            <span className="text-taupe">
-              {" "}
-              · {textoDeFamilia(senalado.familiaColor)}
-              {senalado.pantoneTcx ? ` · ${senalado.pantoneTcx}` : ""}
-              {elegido ? " · elegido" : ""}
+          <p className="flex min-w-0 items-center gap-2">
+            <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} grande />
+            <span className="min-w-0 truncate">
+              <span className="text-tinta">{senalado.nombre}</span>
+              <span className="text-taupe">
+                {" "}
+                · {textoDeFamilia(senalado.familiaColor)}
+                {senalado.pantoneTcx ? ` · ${senalado.pantoneTcx}` : ""}
+                {elegido ? " · elegido" : ""}
+              </span>
+              {parecidos.length > 0 && <span className="text-ambar-profundo"> · se confunde con {parecidos.map((p) => p.color.nombre).join(" y ")}</span>}
             </span>
-            {parecidos.length > 0 && <span className="text-ambar-profundo"> · se confunde con {parecidos.map((p) => p.color.nombre).join(" y ")}</span>}
-          </span>
+          </p>
+          <p className="flex min-w-0 items-center">
+            <FichaDelColor ficha={ficha} forma="linea" />
+          </p>
         </>
       ) : (
-        <span className="text-taupe">Pasa el mouse o toca un círculo: aquí sale su nombre.</span>
+        <p className="row-span-2 self-center text-taupe">Pasa el mouse o toca un círculo: aquí sale su nombre.</p>
       )}
-    </p>
+    </div>
   );
 }
 

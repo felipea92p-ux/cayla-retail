@@ -117,6 +117,9 @@ export type ColorAlta = {
   tipo?: string | null;
   sinonimos?: readonly string[];
   pantoneTcx?: string | null;
+  /** La ficha del color (ADR-0316): qué transmite y con qué se combina (códigos). Ausentes = la pantalla no la pidió o el color no la tiene. */
+  descripcion?: string | null;
+  combinaCon?: readonly string[];
 };
 
 // El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,

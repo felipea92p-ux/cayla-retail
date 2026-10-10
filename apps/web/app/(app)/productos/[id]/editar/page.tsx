@@ -47,7 +47,8 @@ export default async function EditarProductoPage({
     ),
     // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
     exigir(
-      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos").eq("activo", true).order("orden").order("nombre"),
+      // Y con Pantone y su ficha (ADR-0316): «Agregar colores» reutiliza la carta del alta y su pie dice lo mismo que allá.
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden").order("nombre"),
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
@@ -125,7 +126,17 @@ export default async function EditarProductoPage({
 
       <ProductoForm
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
-        colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", tipo: c.tipo, sinonimos: c.sinonimos ?? [] }))}
+        colores={colores.map((c) => ({
+          codigo: c.codigo,
+          nombre: c.nombre,
+          hex: c.hex,
+          familiaColor: c.familia_color ?? "",
+          tipo: c.tipo,
+          sinonimos: c.sinonimos ?? [],
+          pantoneTcx: c.pantone_tcx ?? null,
+          descripcion: c.descripcion ?? null,
+          combinaCon: c.combina_con ?? [],
+        }))}
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
