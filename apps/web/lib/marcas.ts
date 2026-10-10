@@ -304,3 +304,17 @@ export function marcasDelFiltro<T extends Pick<MarcaFila, "activo" | "productos"
     return filtro === "activas" || e === filtro;
   });
 }
+
+/** Las letras del cuadrito de la marca: las iniciales de sus dos primeras palabras («Alma Costa» → «AC», «3.20 Store» → «3S»);
+ *  con una sola palabra, sus dos primeras letras («Amuza» → «Am»): con una letra, doce marcas serían «A». */
+export function monogramaDeMarca(nombre: string): string {
+  const palabras = nombre.trim().split(/\s+/).filter(Boolean);
+  const limpia = (t: string) => t.replace(/[^\p{L}\p{N}]/gu, "");
+  if (palabras.length === 0) return "·";
+  if (palabras.length === 1) {
+    const t = limpia(palabras[0]).slice(0, 2);
+    return t ? t[0].toUpperCase() + t.slice(1).toLowerCase() : "·";
+  }
+  const t = limpia(palabras[0]).slice(0, 1) + limpia(palabras[1]).slice(0, 1);
+  return t ? t.toUpperCase() : "·";
+}

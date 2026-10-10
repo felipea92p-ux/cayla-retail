@@ -54,8 +54,8 @@ const AYUDA_MARCAS = (
   <Ayuda titulo="Marcas">
     De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca: la base no
     deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un proveedor se quita solo si
-    ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece solo cuando ningún producto tiene la marca
-    —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos en Productos.
+    ninguno de sus productos lo usa. En «Más» desactivas la marca —no se puede si tiene productos activos— o la eliminas —solo si ningún producto la tiene,
+    tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos en Productos.
   </Ayuda>
 );
 
@@ -246,14 +246,17 @@ export function MarcasLista({
         </Vacio>
       )}
 
-      <ul className="grid gap-3 md:grid-cols-2">
-        {activasVisibles.map((m) => (
+      <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        {activasVisibles.map((m, i) => (
           <TarjetaMarca
             key={m.id}
             marca={m}
             puedeEditar={puedeEditar}
             trabajando={trabajando === m.id}
+            busqueda={busqueda}
+            indice={i}
             onEditar={() => setModo({ tipo: "editar", marca: m })}
+            onReactivar={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}
             onDesactivar={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
             onEliminar={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
           />
@@ -296,7 +299,7 @@ export function MarcasLista({
       </section>
 
       <p className="nota-cayla">
-        Una marca con productos activos no se puede desactivar. «Eliminar» aparece solo si ningún producto la tuvo, tampoco uno descontinuado: así no se pierde
+        Una marca con productos activos no se puede desactivar. «Eliminar» solo se puede si ningún producto la tuvo, tampoco uno descontinuado: así no se pierde
         historia.
       </p>
 

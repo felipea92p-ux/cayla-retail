@@ -32,3 +32,27 @@
     transition: none;
   }
 }
+
+/* La tarjeta de una marca entra con un empujón corto y escalonado (las primeras doce); la que acaba de guardarse, o a la que se
+   saltó con una letra o una predicción, destella una sola vez. */
+.marca-entra {
+  animation: cayla-sube 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+.marca-destello {
+  animation: marca-destello 1100ms var(--ease-cayla) 1;
+}
+@keyframes marca-destello {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-taupe) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marca-entra,
+  .marca-destello {
+    animation: none;
+  }
+}

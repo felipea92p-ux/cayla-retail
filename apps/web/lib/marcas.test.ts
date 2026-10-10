@@ -4,6 +4,7 @@ import {
   estadoDeMarca,
   FILTROS_MARCAS,
   marcasDelFiltro,
+  monogramaDeMarca,
   resumenDeMarcas,
   textoEstadoMarca,
   buscarMarcaProveedor,
@@ -310,5 +311,25 @@ describe("resumen y filtro de marcas", () => {
 
   it("sin marcas: todo en cero", () => {
     expect(resumenDeMarcas([])).toEqual({ activas: 0, con: 0, sin: 0, "sin-proveedor": 0 });
+  });
+});
+
+describe("monograma de una marca", () => {
+  it("dos palabras: sus iniciales en mayúscula", () => {
+    expect(monogramaDeMarca("Alma Costa")).toBe("AC");
+    expect(monogramaDeMarca("3.20 Store")).toBe("3S");
+    expect(monogramaDeMarca("Sol Andino Perú")).toBe("SA");
+  });
+
+  it("una palabra: sus dos primeras letras, para que Amat y Amuza no sean las dos «A»", () => {
+    expect(monogramaDeMarca("Amuza")).toBe("Am");
+    expect(monogramaDeMarca("ZENIT")).toBe("Ze");
+    expect(monogramaDeMarca("y.j.j")).toBe("Yj");
+  });
+
+  it("nunca queda vacío ni revienta con un nombre raro", () => {
+    expect(monogramaDeMarca("   ")).toBe("·");
+    expect(monogramaDeMarca("...")).toBe("·");
+    expect(monogramaDeMarca("Ñusta")).toBe("Ñu");
   });
 });
