@@ -1,3 +1,4 @@
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, celda, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -173,10 +174,16 @@ export function PropuestaDelMix({ propuesta: p, capacidadProvisional, categorias
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Peso de la venta" valor={`${pesoPct} %`} className="anim-sube" style={{ "--i": 3 } as React.CSSProperties}>
           {hayVentas ? "de la propuesta viene de lo que se vendió" : "todavía sin ventas confirmadas"}
-          <span aria-hidden className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-sand">
-            <span className="block bg-taupe/45" style={{ width: `${100 - pesoPct}%` }} />
-            <span className="block bg-tinta" style={{ width: `${pesoPct}%` }} />
-          </span>
+          {/* Decorativa: lo que dice (industria y venta propia, en %) está escrito justo debajo, en texto. */}
+          <BarraApilada
+            decorativa
+            alto={4}
+            className="mt-2"
+            segmentos={[
+              { clave: "industria", nombre: "Industria", valor: 100 - pesoPct, clase: "bg-taupe/45" },
+              { clave: "venta", nombre: "Venta propia", valor: pesoPct, clase: "bg-tinta" },
+            ]}
+          />
           <span className="mt-1 block text-[11px] text-taupe">industria {100 - pesoPct} % · venta propia {pesoPct} %</span>
         </TarjetaCifra>
       </div>

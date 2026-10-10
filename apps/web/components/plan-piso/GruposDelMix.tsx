@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -10,7 +11,8 @@ import { Boton, Desplegable } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { Encabezado, TABLA, celda, fila } from "@/components/ui/Tabla";
+import { Encabezado, celda, fila } from "@/components/ui/Tabla";
+import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -246,7 +248,13 @@ function SeccionDeGrupo({ s, children }: { s: Seccion; children: React.ReactNode
         </span>
         <span className="text-xs text-taupe">{s.grupo.enRiel ? "En el riel" : "Fuera del riel: se mide como % de la venta"}</span>
       </CabeceraDeSeccion>
-      {n === 0 ? <p className={`${TABLA.vacio} text-taupe`}>Ninguna categoría en este grupo todavía.</p> : <div>{children}</div>}
+      {n === 0 ? (
+        <Vacio tamano="chico" icono={<Tag />}>
+          Ninguna categoría en este grupo todavía.
+        </Vacio>
+      ) : (
+        <div>{children}</div>
+      )}
     </div>
   );
 }

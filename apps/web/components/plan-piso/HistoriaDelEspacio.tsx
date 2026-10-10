@@ -1,8 +1,11 @@
+import { Camera } from "lucide-react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
-import { BarraApilada } from "@/components/plan-piso/BarraApilada";
 import { TABLA, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { Vacio } from "@/components/ui/Vacio";
 import type { HistoriaDelEspacio as Historia } from "@/lib/espacio-piso";
+import { fondoDeGrupo } from "@/lib/mix-piso-visual";
 import type { GrupoMix } from "@/lib/plan-piso-grupos";
 
 // Plan del piso ▸ Historia (ADR-0329, actividad 12): las fotos del espacio del piso que el cron guarda cada lunes (3:00 de Lima), por
@@ -63,9 +66,9 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
           </p>
         </div>
         {h.filas.length === 0 ? (
-          <p className="p-5 text-sm text-tinta/75" role="status">
+          <Vacio tamano="chico" icono={<Camera />} className="py-6">
             Todavía no hay fotos de esta sede. La primera se toma el próximo lunes a las 3:00 de la madrugada; no hace falta hacer nada.
-          </p>
+          </Vacio>
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[71rem] divide-y divide-sand">
@@ -89,11 +92,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
                   ))}
                   <div className={celda("der", `font-medium ${f.cuadrada ? "" : "text-taupe"}`)}>{n(f.totalRiel)}</div>
                   <div className="min-w-0">
-                    <BarraApilada
-                      titulo={`Mezcla del riel el ${dia(f.fecha)}`}
-                      apagada={!f.cuadrada}
-                      partes={delRiel.map((g, i) => ({ clave: g.clave, nombre: g.nombre, valor: f.porGrupo[g.clave] ?? 0, indice: i }))}
-                    />
+                    <MezclaDelRiel fecha={f.fecha} cuadrada={f.cuadrada} grupos={delRiel} porGrupo={f.porGrupo} />
                   </div>
                   <div className={celda("der", "text-taupe")}>{n(f.fueraDelRiel)}</div>
                 </div>
@@ -109,5 +108,24 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
         Una foto «por cuadrar» se guarda igual pero sale apagada: sin saber lo que cuelga de verdad, no sirve para medir.
       </p>
     </div>
+  );
+}
+
+/**
+ * La mezcla del riel de una foto, en la barra única del ERP (`ui/BarraApilada`, ADR-0358): cada grupo ocupa lo que vale, con el color de su
+ * grupo (`lib/mix-piso-visual.ts`: solo tokens, sin rojo). Una foto sin nada que repartir dice «sin datos» y no dibuja una barra vacía que
+ * parezca un cero; una foto «por cuadrar» sale apagada (se guarda igual, pero sin saber lo que cuelga de verdad no sirve para medir).
+ */
+function MezclaDelRiel({ fecha, cuadrada, grupos, porGrupo }: { fecha: string; cuadrada: boolean; grupos: GrupoMix[]; porGrupo: Record<string, number> }) {
+  const segmentos = grupos.map((g, i) => ({ clave: g.clave, nombre: g.nombre, valor: porGrupo[g.clave] ?? 0, clase: fondoDeGrupo(i).split(" ")[0] }));
+  const visibles = segmentos.filter((s) => s.valor > 0);
+  if (visibles.length === 0) return <span className="text-xs text-taupe">sin datos</span>;
+  return (
+    <BarraApilada
+      segmentos={segmentos}
+      unidad="prendas"
+      etiqueta={`Mezcla del riel el ${dia(fecha)}: ${visibles.map((s) => `${s.nombre} ${s.valor}`).join(", ")}`}
+      className={cuadrada ? undefined : "opacity-55"}
+    />
   );
 }
