@@ -20,7 +20,7 @@ export const DIAS_EJE_PISO = 30;
 
 /** Qué dice el «?» de cada tipo. */
 export const AYUDA_TIPO_PISO =
-  "Están en tu almacén y nunca se colgaron: nadie las vio. Bájalas al piso para que se puedan vender; cuántas, lo eliges en Reponer a piso.";
+  "Ningún color ni talla de estos modelos se colgó nunca: nadie los vio. Bájalos al piso para que se puedan vender; cuántas, lo eliges en Reponer a piso.";
 
 /** Nunca salió al piso: la regla vive en `analisis-reglas.ts` (la usan también «Qué pedir»); aquí se vuelve a exportar. */
 export { nuncaSalio };
@@ -39,11 +39,6 @@ export function prendasSinSalir<T extends PrendaAnalisis>(prendas: readonly T[],
   return prendas
     .filter(nuncaSalio)
     .sort((a, b) => (diasEnAlmacen(b, hoy) ?? -1) - (diasEnAlmacen(a, hoy) ?? -1) || b.almacen - a.almacen || porNombre(a, b));
-}
-
-/** Los modelos que ya tienen algo colgado en mi tienda (otra talla u otro color). */
-export function modelosEnElPiso(prendas: readonly Pick<PrendaAnalisis, "productoId" | "piso">[]): Set<string> {
-  return new Set(prendas.filter((p) => p.piso > 0).map((p) => p.productoId));
 }
 
 /** Un tipo de prenda de la pestaña: sus prendas que nunca salieron y lo que se dice de él. */
@@ -86,32 +81,31 @@ export function tiposPiso<T extends PrendaAnalisis>(todas: readonly PrendaAnalis
 
 /** Las cifras de arriba de la pestaña, de toda la tienda (el buscador no las mueve, como en «No se vende»). */
 export type CifrasPiso = {
+  /** Las filas que nunca salieron: desde la decisión 12 de ADR-0357, MODELOS (ningún color ni talla se colgó nunca). */
   prendas: number;
   unidades: number;
-  modelos: number;
   /** Lo que costaron las unidades guardadas; null si ninguna tiene costo. */
   costo: number | null;
   /** Lo que valen a precio de venta; null si ninguna tiene precio. */
   precioVenta: number | null;
-  /** Cuántas de las que nunca salieron no tienen costo (la cifra de costo no las cuenta). */
+  /** Cuántas tallas de las que nunca salieron no tienen costo (la cifra de costo no las cuenta). */
   sinCosto: number;
-  /** Cuántas son de un modelo que ya está colgado en otra talla u otro color. */
-  conModeloEnPiso: number;
 };
 
-export function cifrasPiso(todas: readonly PrendaAnalisis[]): CifrasPiso {
+type ConDinero = Pick<PrendaAnalisis, "salioAlPiso" | "almacen" | "piso" | "costo" | "precio">;
+
+/** Las cifras de arriba. El dinero se suma talla por talla (`variantes` de cada modelo), cada una con su costo y su precio. */
+export function cifrasPiso(todas: readonly (ConDinero & { variantes?: readonly ConDinero[] })[]): CifrasPiso {
   const sin = todas.filter(nuncaSalio);
-  const colgados = modelosEnElPiso(todas);
-  const conCosto = sin.filter((p) => p.costo !== null);
-  const conPrecio = sin.filter((p) => p.precio !== null);
+  const tallas = sin.flatMap((p) => p.variantes ?? [p]);
+  const conCosto = tallas.filter((p) => p.costo !== null);
+  const conPrecio = tallas.filter((p) => p.precio !== null);
   return {
     prendas: sin.length,
     unidades: sin.reduce((s, p) => s + p.almacen, 0),
-    modelos: new Set(sin.map((p) => p.productoId)).size,
     costo: conCosto.length === 0 ? null : conCosto.reduce((s, p) => s + p.almacen * (p.costo ?? 0), 0),
     precioVenta: conPrecio.length === 0 ? null : conPrecio.reduce((s, p) => s + p.almacen * (p.precio ?? 0), 0),
-    sinCosto: sin.length - conCosto.length,
-    conModeloEnPiso: sin.filter((p) => colgados.has(p.productoId)).length,
+    sinCosto: tallas.length - conCosto.length,
   };
 }
 
@@ -142,7 +136,7 @@ export function vacioPiso(c: { sabePiso: boolean; prendas: number; sinSalir: num
 export const TEXTO_VACIO_PISO: Record<VacioPiso, { titulo: string; linea: string }> = {
   "sin-saber": { titulo: "Todavía no lo puedo saber", linea: "Falta una actualización de la base para saber qué nunca salió al piso. Avisa a Felipe." },
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
-  "todo-salio": { titulo: "Todo salió al piso", linea: "Todo lo que tienes guardado ya estuvo colgado alguna vez." },
+  "todo-salio": { titulo: "Todo salió al piso", linea: "De cada modelo que tienes guardado, algo ya estuvo colgado alguna vez." },
 };
 
 /** El fin del eje: un mes, o los meses enteros que hagan falta para que la que más espera quede adentro. */
