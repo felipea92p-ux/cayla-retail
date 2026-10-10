@@ -34,6 +34,8 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261005220
 const MIGRACION_B1 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010190000_plan_compra_lectura_ampliada.sql"), "utf8");
 // ADR-0372, entrega 2 · B2: el tope de inversión (columna + `guardar_plan_compra_tope`; vuelve a definir `fn_plan_compra` para traerlo).
 const MIGRACION_B2 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010191000_plan_compra_tope_de_inversion.sql"), "utf8");
+// ADR-0372, entrega 2 · B3: crear una campaña desde una etiqueta (`crear_plan_compra`) y la lectura del selector (`fn_planes_compra`).
+const MIGRACION_B3 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010192000_plan_compra_crear_campana.sql"), "utf8");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -63,6 +65,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B1)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B2)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_B3)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -252,9 +256,67 @@ caso(
   "T4 el esquema hace imposible un tope sin autor o no positivo (aunque alguien escriba la tabla a mano)",
   `reset role;
    select concat_ws(' / ',
-     split_part(pg_temp.intento(format('update retail.planes_compra set tope_inversion = 100 where id = %L', :'plan')), '|', 1),
+     split_part(pg_temp.intento(format('update retail.planes_compra set tope_inversion = 100, tope_actualizado_por = null, tope_actualizado_en = null where id = %L', :'plan')), '|', 1),
      split_part(pg_temp.intento(format('update retail.planes_compra set tope_inversion = 0, tope_actualizado_por = (select id from public.personas limit 1), tope_actualizado_en = now() where id = %L', :'plan')), '|', 1));`,
   "23514 / 23514"
+);
+
+// C. CREAR UNA CAMPAÑA (ADR-0372 · B3) ------------------------------------------------------------------------------------
+const ETIQUETA_CAMPANA = `insert into retail.etiquetas (nombre, estilo, estado, activo, vigente_desde, vigente_hasta)
+     values ('ZZ Campaña de prueba', 'campana', 'aprobado', true, date '2027-05-01', date '2027-05-10');
+   select id as et from retail.etiquetas where nombre = 'ZZ Campaña de prueba' \\gset`;
+caso(
+  "C1 un líder crea el plan de una etiqueta: arranca con sus fechas y su nombre, queda ligado y firmado, y el selector lo ve",
+  `${ETIQUETA_CAMPANA}
+   select retail.crear_plan_compra(:'et') ->> 'nombre' as nombre \\gset
+   select :'nombre' || ',' || (select p.desde || '/' || p.hasta || '/' || (p.etiqueta_id = :'et') || '/' || (p.creado_por is not null) from retail.planes_compra p where p.etiqueta_id = :'et') || ',' ||
+     (select (e ->> 'plan_id') is not null from jsonb_array_elements(retail.fn_planes_compra() -> 'etiquetas') e where e ->> 'id' = :'et') || ',' ||
+     (select count(*) from jsonb_array_elements(retail.fn_planes_compra() -> 'planes'));`,
+  "ZZ Campaña de prueba 2027,2027-05-01/2027-05-10/true/true,true,2"
+);
+caso(
+  "C2 las fechas del plan se pueden ajustar (una ventana de compra más ancha que la de la etiqueta) y el nombre se puede poner",
+  `${ETIQUETA_CAMPANA}
+   select retail.crear_plan_compra(:'et', '  Mamá 2027 ', date '2027-04-20', date '2027-05-12');
+   select (select p.nombre || ',' || p.desde || '/' || p.hasta from retail.planes_compra p where p.etiqueta_id = :'et');`,
+  "Mamá 2027,2027-04-20/2027-05-12"
+);
+caso(
+  "C3 rechaza una etiqueta que no es campaña aprobada con fechas, fechas al revés, el mismo plan dos veces y un nombre repetido",
+  `${ETIQUETA_CAMPANA}
+   insert into retail.etiquetas (nombre, estilo, estado, activo) values ('ZZ Positivo', 'positivo', 'aprobado', true);
+   insert into retail.etiquetas (nombre, estilo, estado, activo) values ('ZZ Sin fechas', 'campana', 'aprobado', true);
+   select concat_ws(' / ',
+     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', (select id from retail.etiquetas where nombre = 'ZZ Positivo'))), '|', 2),
+     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', (select id from retail.etiquetas where nombre = 'ZZ Sin fechas'))), '|', 2),
+     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L, null, date ''2027-06-01'', date ''2027-05-01'')', :'et')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L, ''Diciembre 2026'')', :'et')), '|', 2),
+     (select retail.crear_plan_compra(:'et') ->> 'id' is not null),
+     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', :'et')), '|', 2));`,
+  "Elige una campaña de Catálogo ▸ Etiquetas que esté aprobada y tenga sus fechas. / Elige una campaña de Catálogo ▸ Etiquetas que esté aprobada y tenga sus fechas. / La campaña no puede terminar antes de empezar. / Ya hay un plan con ese nombre: ponle otro. / t / Esa campaña ya tiene su plan: ábrelo desde el selector."
+);
+caso(
+  "C4 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie ejecuta como anon",
+  `${ETIQUETA_CAMPANA}
+   reset role;
+   select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
+   ${como(MICAELA)}
+   select split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', :'et')), '|', 1) || '/' || split_part(pg_temp.intento('select retail.fn_planes_compra()'), '|', 1) as sin_modulo \\gset
+   reset role;
+   insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'plan_compra') on conflict do nothing;
+   ${como(MICAELA)}
+   select :'sin_modulo' || ',' || split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', :'et')), '|', 2) || ',' ||
+     has_function_privilege('anon', 'retail.crear_plan_compra(uuid,text,date,date)', 'execute') || ',' ||
+     has_function_privilege('anon', 'retail.fn_planes_compra()', 'execute');`,
+  "42501/42501,Solo un líder crea una campaña del plan,false,false"
+);
+caso(
+  "C5 el esquema impide dos planes de la misma etiqueta (aunque alguien escriba la tabla a mano)",
+  `${ETIQUETA_CAMPANA}
+   reset role;
+   insert into retail.planes_compra (nombre, desde, hasta, etiqueta_id) values ('ZZ A', date '2027-01-01', date '2027-01-02', :'et');
+   select split_part(pg_temp.intento(format('insert into retail.planes_compra (nombre, desde, hasta, etiqueta_id) values (''ZZ B'', date ''2027-01-01'', date ''2027-01-02'', %L)', :'et')), '|', 1);`,
+  "23505"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien.`);
