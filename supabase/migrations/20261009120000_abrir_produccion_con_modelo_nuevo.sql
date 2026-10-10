@@ -15,7 +15,7 @@
 --
 -- LA DECISIÓN. Mismo patrón proponer/aprobar que la alta al vuelo del censo (`20260918020000_censo_alta_al_vuelo.sql`, Felipe 2026-09-18): una función
 -- `security definer` SIN el candado del líder, abierta a quien opera el Taller. El producto nace como lo decide `productos_estado_alta_biut`: `pendiente`
--- si quien lo crea no es líder (se puede usar de inmediato; un líder lo revisa) y `aprobado` si lo es. Sin tejido ni patrón (el censo tampoco los pide):
+-- si quien lo crea no es líder (se puede usar de inmediato; hoy ninguna pantalla lo revisa, ADR-0361) y `aprobado` si lo es. Sin tejido ni patrón (el censo tampoco los pide):
 -- quedan en «Para completar» de Editar producto. `trg_producto_anota_origen` anota solo que nació en el Taller.
 --
 -- UNA TRANSACCIÓN, UN TOKEN. Crear el modelo y abrir la orden es UNA llamada: o pasa todo o no queda nada (ni un modelo sin orden). El mismo `p_token` va a
