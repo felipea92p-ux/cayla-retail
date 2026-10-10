@@ -11,6 +11,7 @@ import {
   motivoDeColor,
   papelDe,
   sugerirCombina,
+  tarjetasDesdeVariantes,
   type Papel,
   type TarjetaLook,
 } from "./combinar-reglas";
@@ -212,6 +213,29 @@ describe("sugerirCombina", () => {
     const bolso = { productoId: "cartera", categoriaPrefijo: "CAR", colorCodigo: "BEI" };
     const s = sugerirCombina(bolso, [tarjeta("POL", "CHO", 1), tarjeta("VES", "NEG", 1)], INDICE);
     expect(s.map((x) => x.papel)).toEqual(["superior", "entero"]);
+  });
+});
+
+describe("tarjetasDesdeVariantes", () => {
+  it("arma una tarjeta por prenda y color con el piso de cada talla, y deja fuera las inactivas", () => {
+    const piso = new Map([
+      ["v1", 2],
+      ["v2", 0],
+      ["v3", 1],
+    ]);
+    const tarjetas = tarjetasDesdeVariantes(
+      [
+        { varianteId: "v1", productoId: "p1", referencia: "Polo Luna", talla: "S", color: "Beige", colorHex: "#d5ba98", colorCodigo: "BEI", categoriaPrefijo: "POL", fotoUrl: null },
+        { varianteId: "v2", productoId: "p1", referencia: "Polo Luna", talla: "M", color: "Beige", colorHex: "#d5ba98", colorCodigo: "BEI", categoriaPrefijo: "POL", fotoUrl: "f.jpg" },
+        { varianteId: "v3", productoId: "p1", referencia: "Polo Luna", talla: "S", color: "Negro", colorHex: "#2d2c2f", colorCodigo: "NEG", categoriaPrefijo: "POL", fotoUrl: null },
+        { varianteId: "v4", productoId: "p2", referencia: "Falda Mar", talla: null, color: null, colorHex: null, colorCodigo: null, categoriaPrefijo: "FAL", fotoUrl: null, activo: false },
+      ],
+      (id) => piso.get(id) ?? 0
+    );
+    expect(tarjetas.map((t) => [t.referencia, t.colorCodigo, t.fotoUrl, t.tallas.map((x) => [x.talla, x.stockAqui])])).toEqual([
+      ["Polo Luna", "BEI", "f.jpg", [["S", 2], ["M", 0]]],
+      ["Polo Luna", "NEG", null, [["S", 1]]],
+    ]);
   });
 });
 

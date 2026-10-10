@@ -22,8 +22,10 @@ import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
 import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { fichaDelColor, type ColorConFicha } from "@/lib/ficha-del-color";
+import { categoriasQueCombinan, fraseCombina, indiceDeColores, type TarjetaLook } from "@/lib/combinar-reglas";
 
 const SIN_COLORES: ColorConFicha[] = [];
+const SIN_TARJETAS: TarjetaLook[] = [];
 
 const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
 // El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
@@ -60,12 +62,16 @@ export function VistaRapidaProducto({
   onCambiarEstado,
   preciosAqui,
   colores = SIN_COLORES,
+  tarjetasLook = SIN_TARJETAS,
 }: {
   producto: ProductoListado;
   /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
   preciosAqui?: Record<string, number>;
   /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): bajo la foto, con qué se combina el color que está en ella. Vacío = nada. */
   colores?: ColorConFicha[];
+  /** El catálogo de la sede como tarjetas prenda×color con su piso (`tarjetasDesdeVariantes`): la frase «Combina bien con un jean o una
+   *  cartera» del color de la foto. Vacío = sin frase. */
+  tarjetasLook?: TarjetaLook[];
   stock: StockDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
@@ -114,6 +120,14 @@ export function VistaRapidaProducto({
     return { porCodigo, codigoPorNombre };
   }, [colores]);
   const fichaEnFoto = filaEnFoto ? fichaDelColor(vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre), vocabularioColores.porCodigo) : null;
+  // «Combina bien con un jean o una cartera» (Felipe 2026-10-10): qué categorías pareja tienen piso aquí en un color aprobado por la ficha
+  // del color de la foto. Una línea de alto fijo; las prendas concretas (con su talla) viven en Vender, donde se cobran.
+  const indiceColores = useMemo(() => indiceDeColores(colores), [colores]);
+  const fraseEnFoto = useMemo(() => {
+    if (!filaEnFoto || tarjetasLook.length === 0) return null;
+    const ancla = { productoId: producto.productoId, categoriaPrefijo: producto.categoriaPrefijo ?? null, colorCodigo: vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre) ?? null };
+    return fraseCombina(categoriasQueCombinan(ancla, tarjetasLook, indiceColores));
+  }, [filaEnFoto, tarjetasLook, producto.productoId, producto.categoriaPrefijo, vocabularioColores, indiceColores]);
   const etiquetas = etiquetasDeLaSeleccion(matriz, elegidas, producto.referencia);
   const idsTodos = producto.variantes.map((v) => v.varianteId);
   const elegidasIds = matriz.celdas.filter((c) => elegidas.has(c.varianteId)).map((c) => c.varianteId);
@@ -228,6 +242,7 @@ export function VistaRapidaProducto({
             {fichaEnFoto && (
               <div className="vr-color-ficha">
                 <FichaDelColor key={filaEnFoto?.clave} ficha={fichaEnFoto} forma="bloque" />
+                {fraseEnFoto && <p className="vr-combina">{fraseEnFoto}</p>}
               </div>
             )}
           </div>

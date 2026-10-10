@@ -214,6 +214,50 @@ export type OpcionesLook = {
 
 export const claveAnotada = (prefijo: string | null | undefined, color: string | null | undefined) => `${prefijo ?? ""}|${color ?? ""}`;
 
+/** Lo mínimo de una variante del catálogo para armar una tarjeta prenda×color (la forma de `VarianteCatalogo`). */
+export type VarianteParaTarjeta = {
+  varianteId: string;
+  productoId: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  colorHex: string | null;
+  colorCodigo?: string | null;
+  categoriaPrefijo?: string | null;
+  fotoUrl: string | null;
+  activo?: boolean;
+};
+
+/**
+ * Una tarjeta por prenda×color desde el catálogo entero y el piso cobrable de la sede (`pisoDe`): lo que la vista rápida de Catálogo
+ * necesita para la frase, donde no existe la grilla de Vender. Agrupa por `productoId` + código de color; una variante inactiva no
+ * cuenta. Orden estable: por referencia y color.
+ */
+export function tarjetasDesdeVariantes(variantes: readonly VarianteParaTarjeta[], pisoDe: (varianteId: string) => number): TarjetaLook[] {
+  const porClave = new Map<string, TarjetaLook & { tallas: { varianteId: string; talla: string; stockAqui: number }[] }>();
+  for (const v of variantes) {
+    if (v.activo === false) continue;
+    const clave = `${v.productoId}|${v.colorCodigo ?? ""}`;
+    let t = porClave.get(clave);
+    if (!t) {
+      t = {
+        productoId: v.productoId,
+        referencia: v.referencia,
+        categoriaPrefijo: v.categoriaPrefijo ?? null,
+        colorCodigo: v.colorCodigo ?? null,
+        colorNombre: v.color,
+        colorHex: v.colorHex,
+        fotoUrl: v.fotoUrl,
+        tallas: [],
+      };
+      porClave.set(clave, t);
+    }
+    if (!t.fotoUrl && v.fotoUrl) t.fotoUrl = v.fotoUrl;
+    t.tallas.push({ varianteId: v.varianteId, talla: v.talla ?? "Única", stockAqui: Math.max(0, pisoDe(v.varianteId)) });
+  }
+  return [...porClave.values()].sort((a, b) => comparar(a.referencia, b.referencia) || comparar(a.colorNombre ?? "", b.colorNombre ?? ""));
+}
+
 const unidadesDe = (t: TarjetaLook) => t.tallas.reduce((a, x) => a + Math.max(0, x.stockAqui), 0);
 
 /** Por qué el color pasa la puerta, o `null` si no pasa. */

@@ -15,8 +15,12 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
+  getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
+import { getDisponibleEnSede } from "@/lib/inventario-v2";
+import { cantidadCobrable } from "@/lib/vender-stock-local";
+import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
@@ -131,14 +135,19 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas] = await Promise.all([
+  const [existencias, preciosTiendas, catalogoSede, pisoSede] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
     // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
     getPreciosDeLasTiendas(),
+    // «Combina bien con un jean o una cartera» en la vista rápida (Felipe 2026-10-10): el catálogo entero (la copia guardada que ya
+    // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
+    getCatalogo().catch(() => null),
+    getDisponibleEnSede(persona.ubicacionId).catch(() => null),
   ]);
+  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
   const preciosTienda = preciosDeTiendaPorProducto(
     resultado.productos.map((p) => ({ productoId: p.productoId, varianteIds: p.variantes.map((v) => v.varianteId) })),
     preciosTiendas.porSede,
@@ -299,6 +308,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             preciosTienda={preciosTienda}
             preciosAqui={preciosTiendas.porSede[persona.ubicacionId]}
             colores={fichasDeColor}
+            tarjetasLook={tarjetasLook}
           />
         ) : (
           <ProductosTabla
