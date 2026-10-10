@@ -5,9 +5,10 @@
   - *Segunda parte* («Modelo nuevo» dentro de «Nueva orden»): migración aditiva `supabase/migrations/20261009120000_abrir_produccion_con_modelo_nuevo.sql`
     ensayada contra el Postgres local (20 casos, todos terminan en `ROLLBACK`) y web verificada (`tsc`, `eslint`, 387 archivos / 156.458 pruebas y el
     recorrido en el navegador con datos de ejemplo). **Orden obligatorio: primero la migración en producción, después se publica la web** (ver «Despliegue»).
-  - **Hecho el 2026-10-10:** recorrido con datos reales en local (como líder), `/chaos` (semilla 1010) y `/formidable` (ver «Cómo se verifica»).
-  - **Falta:** que Felipe elija qué arreglos de esas dos pasadas se aplican (8 hallazgos de `/chaos` y 3 cambios de `/formidable`; hasta entonces **no se tocó nada**
-    por ellos) y la pasada con colaboradoras reales (ver `docs/backlog/2026-10-07-vista-inicial-taller-3c5f9a.md`).
+  - **Hecho el 2026-10-10:** recorrido con datos reales en local (como líder), `/chaos` (semilla 1010) y `/formidable`; y **los arreglos que Felipe eligió** de esas dos
+    pasadas (ver «Lo que se arregló después de `/chaos` y `/formidable`» y «Cómo se verifica»). **Todavía en producción: nada**; la migración se pega primero.
+  - **Falta:** lo que es del núcleo y no se tocó (los CHECK `>= 0` de `variantes` y `producciones` admiten `NaN`; `abrir_produccion` acepta un costo `NaN` si se la
+    llama directo), la pantalla del colaborador sin permiso de catálogo en el navegador y la pasada con colaboradoras reales (ver `docs/backlog/2026-10-07-vista-inicial-taller-3c5f9a.md`).
 - **Pedido:** Felipe, 2026-10-07: «debemos rescatar la forma en que se creaban las órdenes» y «obviamente mejorarlo». De las tres formas que se le
   propusieron eligió la 1, **«alta rápida dentro de la orden»**. La primera versión de este ADR la descartó y construyó un atajo con retorno; el 2026-10-09
   Felipe la corrigió («el Taller no necesariamente crea productos ya existentes») y la segunda parte la construye como se pidió, con las salvaguardas de abajo.
@@ -65,11 +66,26 @@ modelo nuevo dependía de un líder y de salir de la orden a otra pantalla. El p
     «Modelo nuevo» además necesita a la base para repartir los códigos. Solo la alta completa en Nuevo producto puede quedar en la cola (ADR-0210); entonces el
     producto aún no tiene `id` y no hay enlace de vuelta: la pantalla de éxito lo dice y manda a abrir la orden desde Producción cuando el producto suba.
 
+## Lo que se arregló después de `/chaos` y `/formidable` (2026-10-10, a pedido de Felipe)
+
+**En la función** (dentro de la misma migración, porque aún no está en producción): nombre ≤ 80 letras y nota ≤ 200; precio redondeado a céntimos **antes** de comparar, ≥ S/ 0.01 en una
+producción (antes `0.001` pasaba y se guardaba como 0,00), ≤ S/ 99,999.99, sin `NaN` ni nulo; costos de tela, avíos y maquila sin `NaN`, sin negativos (con frase, ya no «violates check
+constraint») y ≤ S/ 999,999.99, a céntimos; una línea **sin talla** en una categoría que sí tiene tallas se rechaza (nacía la variante «…-U»); y una talla sin forma de uuid se dice con la
+frase del vocabulario. Los CHECK de las tablas **no** se tocaron: son del núcleo.
+
+**En la pantalla:** (1) los montos se leen estricto (solo dígitos y un punto): «12,50», «S/ 50» o «1e9» ya no se guardan como 0 sino que se dicen, y **la coma solo se explica con un ejemplo, no
+se acepta** (decisión de Felipe: leer dinero distinto es suyo); (2) cada «Falta» imprime a la vista qué hacer (`PieGuia conFrase`; antes solo vivía en el `title`, que no se ve con dedo ni teclado);
+(3) el orden es Nombre → Categoría → Tallas → **Precio** → Colores → Cuántas, y la carta de 89 colores arranca **cerrada** solo aquí (`ElegirColores cartaAbierta`, por defecto `true`: Nuevo producto no
+cambia, ADR-0312/0314); (4) el semáforo dice **«Margen bajo»** y no «Pierde» (un 38 % positivo se leía como pérdida), una sola vez en `lib/produccion-reglas.ts`, con los mismos umbrales; (5) el botón
+principal es «Crear y abrir orden» (a 375 px el anterior se recortaba ~21 px); (6) dos clics en el mismo instante envían **una** llamada (marca síncrona); (7) si se corta la conexión, el aviso dice
+«no podemos confirmar si llegó a guardarse» (antes «No se guardó nada», falso si la base sí guardó); (8) Escape, clic fuera y «Cancelar» con trabajo escrito preguntan «¿Salir sin guardar?» (el mismo
+hook de «Registrar gasto»; elegir solo el tipo o el modo no cuenta como trabajo).
+
 ## Qué cambió
 
 | Antes | Ahora |
 |---|---|
-| Un modelo que no existía obligaba a salir de Producción, crearlo en Productos (si la cuenta podía) y volver a abrir la orden a mano | «Nueva orden ▸ Modelo nuevo»: nombre, categoría, tallas, colores, precio y cantidades; un solo botón («Crear modelo y abrir orden») |
+| Un modelo que no existía obligaba a salir de Producción, crearlo en Productos (si la cuenta podía) y volver a abrir la orden a mano | «Nueva orden ▸ Modelo nuevo»: nombre, categoría, tallas, colores, precio y cantidades; un solo botón («Crear y abrir orden») |
 | Quien opera el Taller sin permiso de catálogo dependía de un líder para cada modelo nuevo | Puede crearlo; nace `pendiente` y se usa de inmediato |
 | Un nombre repetido solo se descubría al fallar el alta | La pantalla ofrece «Usar ese modelo» o «Es otro modelo, crearlo igual» |
 | Sin modelos: aviso y botón apagado | «+ Crear el primer modelo» abre la misma hoja |
@@ -113,11 +129,11 @@ revisión («Por revisar», ADR-0371); esta rama no la toca.
 
 ## Cómo se verifica
 
-- **Reglas puras** — `lib/modelo-nuevo-reglas.test.ts` (40 pruebas): vocabulario (solo categorías hoja, tallas activas en su orden), problemas del borrador, líneas y
+- **Reglas puras** — `lib/modelo-nuevo-reglas.test.ts` (55 pruebas): vocabulario (solo categorías hoja, tallas activas en su orden), problemas del borrador, líneas y
   parámetros del RPC, lectura de los errores de la base y de la función ausente; dos pruebas con semilla fija (2.000 borradores: «si no falta nada, lo que se manda
   cumple la regla de la base»; 3.000: la guía de foco y la validación dicen lo mismo); la paridad de nombres con la migración y con los tipos generados; y que
   **ningún `<Boton>` del formulario envíe sin querer** (todos llevan `type="button"`). Comprobado por mutación: se rompió una regla y la prueba falló en tres lugares.
-- **Base** — `pnpm pruebas:abrir-produccion-modelo-nuevo` (20 casos contra el Postgres local, todos con `ROLLBACK`): un líder crea el modelo y abre su orden en una
+- **Base** — `pnpm pruebas:abrir-produccion-modelo-nuevo` (35 casos contra el Postgres local, todos con `ROLLBACK`; los 15 de /chaos nacieron como el ataque que los encontró y 12 de ellos fallan contra la migración vieja): un líder crea el modelo y abre su orden en una
   llamada; un colaborador del Taller sin permiso de catálogo también (nace `pendiente`) y uno con Productos lo crea `aprobado`; un token; una transacción (si la orden
   falla no queda modelo); permisos (otra sede, otra ubicación, `anon`); precio; vocabulario (talla de otra categoría, color inexistente, celda repetida, cantidad en
   cero o con decimales, matriz vacía); nombre idéntico y casi igual; y que la migración se pueda volver a pegar.
@@ -127,13 +143,15 @@ revisión («Por revisar», ADR-0371); esta rama no la toca.
 - **Datos reales en local (2026-10-10, como líder, web de la rama contra el Postgres local `:54421` con la migración aplicada):** el modelo «Prueba Short Taller A» nació
   `aprobado` con código `SHO-0001`, 3 variantes a S/ 85,00 con costo 0, sin marca/proveedor/tejido/patrón, y su orden `en_proceso` con 6/4/2 y token; la comparación de
   datos mostró exactamente 9 tablas tocadas (productos, variantes, códigos, orden y líneas) y **ninguna** de `stock` ni `movimientos`.
-- **`/chaos`, semilla 1010** (informe local `docs/taller-vista-inicial/chaos-informe-produccion-ordenes-2026-10-10.md`, no versionado): 19 ataques corridos y 1 que no
-  aplica; 13 resistieron sin reparo y 6 dejaron hallazgos, agrupados en **8, todos de gravedad 2 a 4, ninguno de gravedad 1**, y los 12 detectores de la base no vieron
-  ninguna violación nueva. Abiertos: nombre sin tope de largo (g2); precio `0.001` guardado como 0,00, `1e9` y `NaN` aceptados (g2); costos con coma guardados como 0
-  (g2); talla `null` aceptada por la API en una categoría con tallas (g2); y cuatro de gravedad 4 (errores técnicos crudos, «No se guardó nada» falso tras perder la
-  respuesta, doble clic que envía dos llamadas, cerrar sin avisar). **Esperan el OK de Felipe;** los que tocan la migración o el dinero son suyos.
-- **`/formidable`** (`docs/formidable/produccion-nueva-orden.md`): leyes 4,8 (ley 1: 6 provisional; ley 5: 3), oficio 5; prueba ciega con Opus (el ciego con Sonnet cayó dos
-  veces por el filtro de seguridad) que completó la tarea a la primera en 42 acciones con 10 dudas. Cambios propuestos: lo obligatorio primero y el color cerrado; que cada
-  «Falta» diga qué hacer; y que «Pierde» (con un 38 % positivo) y el botón recortado a 375 px no engañen. **No se aplicó ninguno.**
+- **`/chaos`, semilla 1010** (informe local `docs/taller-vista-inicial/chaos-informe-produccion-ordenes-2026-10-10.md`, no versionado): 19 ataques corridos y 1 que no aplica; 13 resistieron
+  sin reparo y 6 dejaron hallazgos (8 por causa, de gravedad 2 a 4, ninguno de gravedad 1; los 12 detectores de la base sin violaciones nuevas). **Tras los arreglos se volvieron a correr
+  los mismos ataques con la misma semilla** (el 2026-10-10, web de la rama contra la base local con la migración nueva): nombre de 300 y 5.000 letras y el carácter nulo, precios `0.001`,
+  `12,50`, `1e9` y `100000`, y costos con coma, «S/», negativos y mil millones quedan **bloqueados con la frase a la vista**; el doble clic pasó de 2 llamadas a **1**; perder la respuesta dice
+  la verdad y el reintento no duplica; Escape, clic fuera y Cancelar con datos preguntan, y sin cambios cierran directo; y los 30 parámetros hostiles directos a la función pasaron de 4 hallazgos y
+  3 errores crudos a **ninguno** (queda el carácter nulo, que Postgres rechaza al leer el texto antes de entrar a la función). **Sigue abierto, y es de Felipe:** un costo `NaN` directo a `abrir_produccion`
+  y los CHECK de las tablas.
+- **`/formidable`** (`docs/formidable/produccion-nueva-orden.md`): primera corrida leyes 4,8 y oficio 5; prueba ciega con Opus (el ciego con Sonnet cayó dos veces por el filtro de seguridad) que
+  completó la tarea a la primera en 42 acciones con 10 dudas. Tras aplicar los tres cambios, remedido al mismo ancho: del nombre a «Cuántas por talla y color» hay **413 px (0,46 pantallas) y no 1.199 px
+  (1,33)**; a 375 px el botón cabe. La prueba ciega **no se repitió**: la nota de la ley 1 sigue provisional.
 - **No verificado todavía:** la pantalla de un colaborador del Taller **sin** permiso de catálogo en el navegador (solo en SQL, casos 2 y 2b; los pasos para verla están en
-  el backlog); un cierre de orden con costo `NaN` (el CHECK `>= 0` lo admite: [inferido]); y la pasada de `/formidable` con 3 a 5 colaboradoras reales.
+  el backlog); un cierre de orden con costo `NaN` (el CHECK `>= 0` lo admite: [inferido]); la prueba ciega después de los cambios; y la pasada de `/formidable` con 3 a 5 colaboradoras reales.

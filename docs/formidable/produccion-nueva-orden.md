@@ -91,3 +91,27 @@ Cosas que tocó y no hicieron lo esperado: el primer clic en «Elegir la categor
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-10 | `4f90fdb2` | 4,8 (ley 1: 6 provisional; ley 5: 3) | 5 (crudo 4) | primera revisión; ninguno aplicado: esperan el OK de Felipe |
+| 2026-10-10 | `f05df49e` + migración | **5,4** (ley 1: 6 provisional; ley 5: 4) | 5 (5 de 8 fallan; no era parte de los cambios) | **los 3 cambios aplicados** (Felipe los eligió); ciega sin repetir |
+
+## Segunda corrida (2026-10-10, tras aplicar los tres cambios que Felipe eligió)
+
+Los tres cambios y los de gravedad 4 de `/chaos` están aplicados en la rama (commits `bc1dd77e`, `de1038c6`, `62fa8b93`, `36b5cdbb`, `f05df49e`, más la migración `fcbae569`). Se **remidió al mismo ancho** (1440 × 900,
+la hoja con Modelo nuevo, Shorts, nombre, precio y cantidades llenos, contra la web de la rama y la base local):
+
+| Medida | Antes | Después | Etiqueta |
+|---|---|---|---|
+| Distancia del «Nombre del modelo» a «Cuántas por talla y color» | 1.199 px (1,33 pantallas; con la carta abierta) | **413 px (0,46 pantallas)** | [Medido] |
+| Alto del contenido de la hoja | 2.034 px | **1.248 px** | [Medido] |
+| Distancia del nombre al precio | después de la carta (≫ 157 px) | **157 px** | [Medido] |
+| Botón principal a 375 px | «Crear modelo y abrir orden»: 159 px de ancho, 180 de contenido, **recortado ~21 px** | «Crear y abrir orden»: 159 de ancho, 157 de contenido, **no se recorta** | [Medido] |
+| Chip del semáforo con 38 % de margen | «Pierde» (rojo) | «Margen bajo» | [Observado] en el código y el DOM |
+| «Falta» con «12,50» en el precio | «Falta: Precio» (sin decir por qué) | «Escribe el precio con punto, por ejemplo 12.50.» a la vista | [Observado] en el DOM |
+| Oficio visual (script) | 5 de 8 fallan | **5 de 8 fallan** (radios 6 → 5; el rojo por celda, los bordes dobles y el texto de 11 px no eran parte de los cambios) | [Medido] |
+
+**Notas (0–10), recalificadas con la evidencia de arriba; sin repetir la prueba ciega:** ley 1 **6** (provisional) · ley 2 **5** · ley 3 **6** («Pierde» ya no engaña; sigue «S/ 0.00 / prenda» sin prendas) ·
+ley 4 **6** · ley 5 **4** (la carta ya no es lo más pesado; la prenda sigue sin aparecer) · ley 6 **5** (la frase del «Falta» se ve; «Margen bajo» aún no tiene leyenda al tocar) · ley 7 **6** (ya pregunta
+«¿Salir sin guardar?»; cambiar de categoría sigue borrando las cantidades) · ley 8 **5** · ley 9 **6** (el botón cabe, el aviso de red dice la verdad; siguen los callejones sin modelos/vocabulario y «Ese modelo ya existe»
+sin botón). **Leyes: 5,4** (49 / 9). Oficio: **5**. La ley 1 no puede pasar de 8 sin colaboradora real.
+
+**Queda de la lista aparte** (no se aplicó): borrador que sobrevive a Escape (el aviso lo reemplazó en parte), callejones, rojo por celda, bordes dobles, rótulos «Modelo / Ya existe · Modelo nuevo», «ficha viva» de la prenda y el ADR
+del sistema para las etiquetas de 11 px.

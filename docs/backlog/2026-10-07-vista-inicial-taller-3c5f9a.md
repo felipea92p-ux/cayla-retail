@@ -19,28 +19,25 @@ Decisiones por defecto que Felipe aprobó con el plan: precio obligatorio en una
 - [x] ADR-0361 reescrito y ajuste del punto 5 del ADR-0051.
 - [x] Verificado en una copia de `main`: `tsc` y `eslint` en 0; 387 archivos / 156.458 pruebas del web; en el navegador con un servidor simulado: éxito, nombre repetido, casi igual, función ausente, vocabulario caído y sin modelos. Se encontró y corrigió un error real (los botones del aviso reenviaban el formulario: faltaba `type="button"`), con prueba de regresión.
 
-### Pasadas de calidad (2026-10-10) — hechas; nada de lo que encontraron se aplicó todavía
+### Pasadas de calidad (2026-10-10) — hechas, y los arreglos que Felipe eligió ya están aplicados
 
-- [x] **Recorrido con datos reales en local** (como líder, web de la rama contra el Postgres local con la migración aplicada): «Prueba Short Taller A» nació `aprobado`, `SHO-0001`, 3 variantes a S/ 85,00 con costo 0, orden `en_proceso` 6/4/2; 9 tablas tocadas, ninguna de `stock` ni `movimientos`.
-- [x] **`/chaos`** (semilla 1010; informe local `docs/taller-vista-inicial/chaos-informe-produccion-ordenes-2026-10-10.md`): 19 ataques corridos, 13 resistieron, 8 hallazgos (g2 ×4, g4 ×4), ninguno de gravedad 1; los 12 detectores sin violaciones nuevas; la base se restauró idéntica tras cada bloque. Fila en `docs/chaos/README.md`.
-- [x] **`/formidable`** (`docs/formidable/produccion-nueva-orden.md`): leyes 4,8 (ley 1: 6 provisional; ley 5: 3), oficio 5; ciega ✓ con Opus (el ciego con Sonnet cayó dos veces por el filtro de seguridad), real sin probar; veredicto del escéptico sobre cada hallazgo. Fila en `docs/formidable/README.md`.
-- [x] Medido a 375 px (Producción es de escritorio): el botón «Crear modelo y abrir orden» se recorta ~21 px y hay 12 blancos táctiles bajo 44 px (piezas del sistema).
-- [x] Corregido en los documentos: «un líder lo revisa» era falso. Felipe quitó el aviso «Pendiente de revisar» el 2026-10-02 y una pendiente se trata como cualquier otra (ADR-0361, «Lo que “pendiente” significa hoy»).
+- [x] **Recorrido con datos reales en local** (como líder): «Prueba Short Taller A» nació `aprobado`, `SHO-0001`, 3 variantes a S/ 85,00 con costo 0, orden `en_proceso` 6/4/2; 9 tablas tocadas, ninguna de `stock` ni `movimientos`.
+- [x] **`/chaos`** (semilla 1010; informe local `docs/taller-vista-inicial/chaos-informe-produccion-ordenes-2026-10-10.md`): 19 ataques corridos, 13 resistieron, 8 hallazgos (g2 ×4, g4 ×4), ninguno de gravedad 1; los 12 detectores sin violaciones nuevas. Fila en `docs/chaos/README.md`.
+- [x] **`/formidable`** (`docs/formidable/produccion-nueva-orden.md`): leyes 4,8 y oficio 5; ciega ✓ con Opus (el ciego con Sonnet cayó dos veces por el filtro de seguridad), real sin probar; veredicto del escéptico sobre cada hallazgo. Fila en `docs/formidable/README.md`.
+- [x] Corregido en los documentos: «un líder lo revisa» era falso (Felipe quitó el aviso «Pendiente de revisar» el 2026-10-02; ADR-0361, «Lo que “pendiente” significa hoy»).
+- [x] **Arreglos aplicados (Felipe: «Reglas de la función», «Precio antes de Colores y carta cerrada», «“Falta” que explica y costos con coma», «“Pierde” y botón recortado, más los de gravedad 4»; la coma solo se explica, no se acepta)**, cada grupo en su commit, con la prueba que falla primero:
+  - [x] La función valida nombre ≤ 80 y nota ≤ 200, precio a céntimos ≥ 0.01 y ≤ 99,999.99 sin `NaN`, costos sin `NaN`/negativos y ≤ 999,999.99, talla obligatoria en categorías con tallas y uuid mal escrito (migración `20261009120000`, 35 casos SQL: 12 de los nuevos fallan contra la migración vieja).
+  - [x] La pantalla lee los montos estricto y dice qué hacer a la vista (`PieGuia conFrase`); nombre con `maxLength` y sin caracteres de control; Tela, Avíos y Maquila dicen «Opcional».
+  - [x] Precio antes de Colores y la carta de 89 colores cerrada solo en «Modelo nuevo» (`ElegirColores cartaAbierta`, por defecto `true`).
+  - [x] «Pierde» → «Margen bajo» (una sola fuente en `lib/produccion-reglas.ts`) y el botón «Crear y abrir orden» cabe a 375 px.
+  - [x] Doble clic = 1 llamada; «No podemos confirmar si llegó a guardarse» tras perder la respuesta; «¿Salir sin guardar?» con trabajo escrito.
+- [x] **Mismos ataques, misma semilla, tras los arreglos:** ENT-03, ENT-07, ENT-14, DC-01, RS-03 y NAV-04 resisten; 0 violaciones nuevas; la base se restauró idéntica. Remedido a 1440 × 900: del nombre a «Cuántas por talla y color» **413 px y no 1.199**; a 375 px el botón no se recorta. La prueba ciega **no se repitió**.
 
-### Para decidir con Felipe — «¿cuáles arreglo?» (cada uno en su commit: primero la prueba que falla, después el arreglo, y se repite el mismo ataque con la misma semilla)
+### Lo que NO se aplicó (queda abierto)
 
-**De `/chaos` (gravedad 2 a 4):**
-- [ ] **#1 Nombre sin tope de largo** (g2): `maxLength` de 80 en el campo + validar el largo en la función (misma migración: aún no está en producción). El CHECK de la tabla es del núcleo: **Felipe**.
-- [ ] **#2 Precio y costos sin sentido** (g2): `0.001` pasa «precio obligatorio» y se guarda como 0,00; `1e9` y `NaN` se guardan. En la función: redondear a 2 decimales antes de comparar, `>= 0.01`, `<> 'NaN'` y un tope por prenda. Los CHECK `>= 0` de `variantes` y `producciones` admiten `NaN`: **dinero y núcleo, es de Felipe**.
-- [ ] **#3 Costo con coma, «S/» o «soles» → 0 en silencio** (g2): aceptar la coma o rechazar con ejemplo; el pie debe decir qué no entendió. **Aceptar la coma toca cómo se leen precios y costos: OK de Felipe.**
-- [ ] **#4 Talla `null` aceptada en una categoría con tallas** (g2, solo por la API): exigir talla en cada línea. Migración: **Felipe**.
-- [ ] #5 Errores técnicos crudos (uuid mal escrito, `numeric field overflow`, carácter nulo, `p_precio = null` que dice «negativo») · #6 «No se guardó nada» es falso si la base guardó (`lib/error-escritura.ts:661`, traductor compartido por todas las pantallas) · #7 doble clic envía dos llamadas (`useRef` además del estado) · #8 cerrar con Escape/Cancelar/clic fuera pierde lo escrito (g4).
-
-**De `/formidable` (los 3 de mayor impacto; presentación salvo lo marcado):**
-- [ ] **Cambio 1:** lo obligatorio primero (Precio antes de Colores) y la carta de 89 colores cerrada en esta hoja (`ElegirColores` con `cartaAbierta`, por defecto `true`). La carta abierta fue decisión de Felipe en ADR-0312/0314.
-- [ ] **Cambio 2:** que cada «Falta» diga qué hacer a la vista y que un costo mal escrito se diga. **Aceptar la coma = dinero: OK de Felipe.**
-- [ ] **Cambio 3:** «Pierde» con un 38 % positivo → una palabra que no se lea como pérdida, con leyenda (los umbrales 0,6 / 0,4 no se tocan: regla de precios de Felipe; la palabra vive también en `OrdenTarjeta` y `OrdenPanel`); y el botón más corto a 375 px.
-- [ ] Lista aparte del informe (borrador que sobrevive a Escape, callejones, rojo por celda, rótulos, ficha viva de la prenda, y el ADR del sistema para las etiquetas de 11 px).
+- [ ] **Del núcleo, es de Felipe:** los CHECK `>= 0` de `variantes` y `producciones` admiten `NaN`, y `abrir_produccion` acepta un costo `NaN` si se la llama directo (un `NaN` llegaría a `variantes.costo` al cerrar: [inferido], sin probar con `ROLLBACK`). Arreglo sugerido: `CHECK (precio >= 0 and precio <> 'NaN')` y lo mismo en los costos, y la misma validación dentro de `abrir_produccion`.
+- [ ] **Aceptar la coma decimal** («12,50» = 12.50): decidido «solo explicar»; si algún día se acepta, es leer dinero distinto y pide una regla para «1,299.50» y «1.299,50» (precedente: `recibir-produccion-reglas.ts:78`).
+- [ ] De la lista aparte de `/formidable`: borrador que sobrevive a Escape, callejones (sin modelos y sin vocabulario; «Ese modelo ya existe» sin botón), rojo por celda con cantidad, bordes dobles, rótulos «Modelo / Ya existe · Modelo nuevo», «ficha viva» de la prenda y el ADR del sistema para las etiquetas de 11 px.
 
 ### Pendiente — en este orden
 
