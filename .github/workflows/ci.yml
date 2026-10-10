@@ -719,6 +719,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-dinero-produccion
 
+      # Modelo nuevo desde la orden de producción (ADR-0361, segunda parte): `abrir_produccion_con_modelo_nuevo` crea el modelo y abre su orden en UNA
+      # transacción y con UN token; la usa quien opera el Taller sin editar el catálogo (el modelo nace pendiente) y el líder (nace aprobado); tallas y colores
+      # salen del vocabulario; una producción pide precio y una muestra no; un nombre repetido trae el id del existente. Aplica la migración dentro de cada
+      # caso y hace ROLLBACK: no deja rastro en el Postgres compartido.
+      - name: pruebas:abrir-produccion-modelo-nuevo
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:abrir-produccion-modelo-nuevo
+
       # Vista puente de la planilla de Dynamic (ADR-0133, F7; D-33): agrega la planilla YA PAGADA por sede y período (personas, pagado, provisiones, costo total),
       # solo períodos pagados y sin el grupo «prueba», oculta grupos de menos de 3 personas, no expone a nadie identificable, es security_invoker (sin permiso en
       # Dynamic sale vacía) y sin Dynamic en la base la migración no falla. Arma el stub de Dynamic dentro de cada transacción y hace ROLLBACK.
