@@ -124,3 +124,12 @@ export async function getDatosEditarOrden(id: string): Promise<{ datos: DatosNue
   // `falla` es solo la de leer la orden: la de las listas ya viaja en `datos.falla` y el formulario la muestra.
   return { datos: { ...datos, proveedores, destinos, categorias, marcas }, detalle, falla };
 }
+
+/** Quién emite la orden, para la cabecera del papel que se imprime (actividad 6). `configuracion_empresa` la lee toda cuenta; si no
+ *  responde, el papel dice solo «CAYLA» (un adorno: no impide imprimir). */
+export async function getEmpresaParaOrden(): Promise<{ razonSocial: string | null; ruc: string | null; nombreComercial: string | null } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("configuracion_empresa").select("ruc, razon_social, nombre_comercial").maybeSingle();
+  if (error || !data) return null;
+  return { razonSocial: data.razon_social ?? null, ruc: data.ruc ?? null, nombreComercial: data.nombre_comercial ?? null };
+}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban } from "lucide-react";
+import { Ban, Printer } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -11,26 +12,44 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonEditarOrden } from "@/components/ordenes-compra/BotonEditarOrden";
+import { HojaOrdenCompra, type EmpresaDeLaOrden } from "@/components/ordenes-compra/HojaOrdenCompra";
+import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import { MAX_MOTIVO_ANULACION, numeroOrdenCompra, problemaDeMotivo } from "@/lib/ordenes-compra-reglas";
+import { MAX_MOTIVO_ANULACION, numeroOrdenCompra, problemaDeMotivo, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
 
-// Lo que se hace con una orden «generada» (ADR-0362, fase 1 · actividades 4 y 5): «Editar» y «Anular orden». Una anulada no tiene
-// acciones. Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda, como «Anular comprobante» en una factura, y editar
-// a la derecha, donde la mano ya está al terminar de leer) y en la cabecera de su página (`lugar="cabecera"`).
+// Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
+// solo mientras está «generada». Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda, como «Anular comprobante» en
+// una factura; imprimir y editar a la derecha, donde la mano ya está al terminar de leer) y en la cabecera de su página
+// (`lugar="cabecera"`).
 //
 // Anular es irreversible: pide el motivo en una hoja, con su guía de foco (el motivo y, desde una terminal, quién lo hace), y dice qué
 // pasa antes de confirmar. Con la cuenta de una persona firma ella (`orden_compra_anular`, decisión 39).
+//
+// El PDF (decisión 1: se puede mandar al proveedor) sale del diálogo de impresión, como la guía de traslado: el papel
+// (`HojaOrdenCompra`, A4) queda montado pegado a <body> mientras la orden está a la vista —así Ctrl+P también imprime la orden y no la
+// pantalla— y el documento se llama como la orden, así el archivo se guarda como «OC-000129.pdf» (`useTituloDeImpresion`).
 
-export type OrdenParaAcciones = { id: string; numero: number; version: number; proveedor: string; total: number };
+const sinSuscripcion = () => () => {};
 
-export function AccionesOrden({ orden, lugar }: { orden: OrdenParaAcciones; lugar: "pie" | "cabecera" }) {
+export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; empresa: EmpresaDeLaOrden; lugar: "pie" | "cabecera" }) {
   const [anulando, setAnulando] = useState(false);
-  const anular = (
+  const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
+  useTituloDeImpresion(numeroOrdenCompra(orden.numero));
+  const generada = orden.estado === "generada";
+
+  const imprimir = (
+    <Boton onClick={() => window.print()}>
+      <span className="inline-flex items-center gap-2">
+        <Printer aria-hidden className="h-3.5 w-3.5" /> Imprimir o guardar PDF
+      </span>
+    </Boton>
+  );
+  const anular = generada && (
     <Boton peso="peligro" onClick={() => setAnulando(true)}>
       <span className="inline-flex items-center gap-2">
         <Ban aria-hidden className="h-3.5 w-3.5" /> Anular orden
@@ -42,22 +61,38 @@ export function AccionesOrden({ orden, lugar }: { orden: OrdenParaAcciones; luga
       {lugar === "pie" ? (
         <div className="flex w-full flex-wrap items-center gap-3">
           {anular}
-          <div className="ml-auto">
-            <BotonEditarOrden id={orden.id} />
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            {imprimir}
+            {generada && <BotonEditarOrden id={orden.id} />}
           </div>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           {anular}
-          <BotonEditarOrden id={orden.id} />
+          {imprimir}
+          {generada && <BotonEditarOrden id={orden.id} />}
         </div>
       )}
-      {anulando && <AnularOrdenModal orden={orden} onClose={() => setAnulando(false)} />}
+      {anulando && (
+        <AnularOrdenModal
+          orden={{ id: orden.id, numero: orden.numero, version: orden.version, proveedor: orden.proveedor.nombre, total: orden.total }}
+          onClose={() => setAnulando(false)}
+        />
+      )}
+      {montado &&
+        createPortal(
+          <div id="orden-compra-print" className="papel-fijo" aria-hidden>
+            <HojaOrdenCompra orden={orden} empresa={empresa} />
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
 
-function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAcciones; onClose: () => void }) {
+type OrdenParaAnular = { id: string; numero: number; version: number; proveedor: string; total: number };
+
+function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAnular; onClose: () => void }) {
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);

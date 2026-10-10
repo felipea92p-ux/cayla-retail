@@ -1,6 +1,6 @@
 import { FileX } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getDetalleOrden } from "@/lib/ordenes-compra";
+import { getDetalleOrden, getEmpresaParaOrden } from "@/lib/ordenes-compra";
 import { fraseDestino, numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -19,7 +19,7 @@ import { AccionesOrden } from "@/components/ordenes-compra/AccionesOrden";
 export default async function OrdenCompraPage({ params }: { params: Promise<{ id: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
   const { id } = await params;
-  const { detalle, falla } = await getDetalleOrden(id);
+  const [{ detalle, falla }, empresa] = await Promise.all([getDetalleOrden(id), getEmpresaParaOrden()]);
   const volver = <Volver href="/compras/ordenes" a="Órdenes de compra" />;
 
   if (falla || !detalle) {
@@ -56,14 +56,7 @@ export default async function OrdenCompraPage({ params }: { params: Promise<{ id
         titulo={numeroOrdenCompra(detalle.numero)}
         subtitulo={`${detalle.proveedor.nombre} · ${fraseDestino(detalle.destino?.nombre ?? null)}`}
         volver={volver}
-        acciones={
-          detalle.estado === "generada" ? (
-            <AccionesOrden
-              lugar="cabecera"
-              orden={{ id: detalle.id, numero: detalle.numero, version: detalle.version, proveedor: detalle.proveedor.nombre, total: detalle.total }}
-            />
-          ) : undefined
-        }
+        acciones={<AccionesOrden lugar="cabecera" orden={detalle} empresa={empresa} />}
       />
       <div className="card-cayla p-5">
         <DetalleOrdenCompra orden={detalle} />

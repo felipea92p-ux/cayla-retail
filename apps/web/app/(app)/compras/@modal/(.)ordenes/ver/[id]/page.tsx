@@ -1,5 +1,5 @@
 import { exigirModulo } from "@/lib/persona-actual";
-import { getDetalleOrden } from "@/lib/ordenes-compra";
+import { getDetalleOrden, getEmpresaParaOrden } from "@/lib/ordenes-compra";
 import { fraseDestino, numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 import { DetalleOrdenCompra } from "@/components/ordenes-compra/DetalleOrdenCompra";
@@ -12,7 +12,7 @@ import { AccionesOrden } from "@/components/ordenes-compra/AccionesOrden";
 export default async function OrdenCompraModal({ params }: { params: Promise<{ id: string }> }) {
   await exigirModulo("ordenes_compra");
   const { id } = await params;
-  const { detalle, falla } = await getDetalleOrden(id);
+  const [{ detalle, falla }, empresa] = await Promise.all([getDetalleOrden(id), getEmpresaParaOrden()]);
 
   if (falla || !detalle) {
     return (
@@ -26,15 +26,9 @@ export default async function OrdenCompraModal({ params }: { params: Promise<{ i
     <ModalRuta
       titulo={numeroOrdenCompra(detalle.numero)}
       subtitulo={`${detalle.proveedor.nombre} · ${fraseDestino(detalle.destino?.nombre ?? null)}`}
-      // Solo una «generada» se edita o se anula (actividades 4 y 5). El pie de la ventana es donde la mano ya está al terminar de leer.
-      acciones={
-        detalle.estado === "generada" ? (
-          <AccionesOrden
-            lugar="pie"
-            orden={{ id: detalle.id, numero: detalle.numero, version: detalle.version, proveedor: detalle.proveedor.nombre, total: detalle.total }}
-          />
-        ) : undefined
-      }
+      // Imprimir siempre; editar y anular, solo una «generada» (actividades 4 a 6). El pie de la ventana es donde la mano ya está al
+      // terminar de leer.
+      acciones={<AccionesOrden lugar="pie" orden={detalle} empresa={empresa} />}
     >
       <DetalleOrdenCompra orden={detalle} />
     </ModalRuta>

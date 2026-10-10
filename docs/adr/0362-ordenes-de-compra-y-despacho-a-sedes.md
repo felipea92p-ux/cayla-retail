@@ -126,6 +126,14 @@ pantalla chica el proveedor se quedaba en cero.
 - **Lo que falta.** Que la orden no tenga comprobante ni envío vivos todavía no se exige: esas tablas llegan en las fases 2 y 3, y el
   candado se suma con ellas.
 
+**Al construir el PDF (actividad 6, 2026-10-10), por defecto:**
+- **El botón.** «Imprimir o guardar PDF» está siempre, también en una anulada.
+- **El papel.** Es A4, en tinta sobre blanco como la guía de traslado. Lleva la marca y los datos de la empresa
+  (`configuracion_empresa`), el número, la emisión, el proveedor con su RUC, a dónde llega, la entrega, las líneas con su
+  descuento, el total, la nota y quién la generó.
+- **Una anulada** lo dice arriba, en grande y con su motivo: un papel viejo que circule no se confunde.
+- **El archivo** se llama como la orden, por ejemplo `OC-000129.pdf`.
+
 ## Para el contador (no bloquea programar, dice el brief)
 
 Gastos de llegada fuera del costo (decisión 20: la NIC 2 los pone dentro; que el contador lo confirme); el fondo como anticipo (101 o

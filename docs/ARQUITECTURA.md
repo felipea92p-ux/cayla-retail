@@ -1374,7 +1374,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
     reescritura `beforeFiles`). Con la orden «generada», `components/ordenes-compra/AccionesOrden.tsx` en el pie de la ventana y en la
     cabecera de la página: «Anular orden» (hoja con el motivo → `lib/ordenes-compra-acciones.ts:anularOrdenCompra`, `anular_orden_compra`,
-    firma `orden_compra_anular`, versión esperada) y «Editar» (`BotonEditarOrden.tsx`).
+    firma `orden_compra_anular`, versión esperada), «Imprimir o guardar PDF» y «Editar» (`BotonEditarOrden.tsx`). El papel A4
+    (`HojaOrdenCompra.tsx` + `app/estilos/orden-compra-papel.css`, `#orden-compra-print` pegado a <body>) lleva quién emite
+    (`getEmpresaParaOrden`, `configuracion_empresa`) y el documento se llama como la orden (`useTituloDeImpresion`: «OC-000129.pdf»).
   - `/compras/ordenes/editar/[id]` («Editar OC-000129», actividad 4) → `lib/ordenes-compra.ts:getDatosEditarOrden` (lo de «Nueva orden»
     más la orden, con lo inactivo que ya tenía sumado a las listas) + `NuevaOrdenCompra` con `editar` (montado con `key` = versión) →
     `lib/ordenes-compra-acciones.ts:editarOrdenCompra` (`editar_orden_compra`, firma `orden_compra_editar`, versión esperada: PT409 si otra
