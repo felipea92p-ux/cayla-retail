@@ -100,6 +100,8 @@ export function leerPrendaSede(v: unknown): PrendaSede | null {
     semanas: leerSemanas(v.semanas),
     diasSinVender: dias(v.dias_sin_vender),
     salioAlPiso: fecha(v.salio_al_piso),
+    // Sin la clave (la base sin 20261010120000) queda undefined: «no se sabe», distinto de null («nunca se vendió»).
+    ...("ultima_venta" in v ? { ultimaVenta: fecha(v.ultima_venta) } : {}),
     llego: fecha(v.llego),
     llegaron30,
     vendidasDeLasQueLlegaron30: Math.min(cantidad(v.vendidas_de_llegadas_30), llegaron30),

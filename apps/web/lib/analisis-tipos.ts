@@ -89,6 +89,9 @@ export type PrendaAnalisis = {
   /** La primera vez que estuvo en el piso de MI tienda (YYYY-MM-DD): un movimiento en el piso o su primera venta. null = nunca
    *  salió al piso (o la base todavía no lo sabe: `DatosAnalisis.sabePiso`). */
   salioAlPiso: string | null;
+  /** Su última venta en MI tienda (YYYY-MM-DD, sin tope de fechas); null si nunca se vendió aquí. undefined si la base todavía no lo
+   *  dice (sin 20261010120000): con esto se cuentan los días sin venderse del modelo entero (`analisis-modelo.ts`). */
+  ultimaVenta?: string | null;
   /** La primera vez que entró a MI tienda (YYYY-MM-DD); null si no se sabe. Con esto se cuentan los días que lleva guardada. */
   llego: string | null;
   /** Unidades que llegaron a mi tienda en los últimos 30 días, y cuántas de ellas ya se vendieron («se vende lo que llega»). */
