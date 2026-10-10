@@ -28,7 +28,15 @@ ADR-0362, fase 1 aprobada por Felipe el 2026-10-10 en 8 actividades. Diseño y d
         `pg_get_functiondef`) que el banco donde pasaron las 40 pruebas.
   - [ ] Refrescar el diccionario desde el volcado (`pnpm datos:generar:produccion`, `pnpm datos:comparar`).
   - [ ] Abrir el PR (lo fusiona Felipe), con las casillas de la plantilla (celular, `/chaos`, Formidable).
-- [ ] **`/chaos`** sobre crear, editar y anular (las tres pantallas que guardan).
+- [x] **`/chaos`** sobre crear, editar y anular (2026-10-10, semilla 20261010, 22 ataques en el banco; informe local en el banco): 18
+  resistieron (doble clic de mano, red cortada antes y después de guardar, dos pestañas, inyección, permisos sin el módulo…). Quedan 5:
+  - [ ] G2 · Editar una orden SIN entrega deja guardar una fecha fuera de rango (año 2999 o pasada): `fn_orden_compra_validar` compara con
+        `=` contra la fecha anterior NULL y el IF no se dispara (va con `is not distinct from`; **la función ya está en producción**: migración
+        nueva antes de fusionar), y la guía trata esa entrega como «sugerida» y no bloquea. La Actividad escribe la fecha sin año.
+  - [ ] G2 · «1.000» en cantidad se lee como 1 y «1.500» en precio como S/ 1.50 (`leerNumero` quita ceros después del punto).
+  - [ ] G3 · Dos clics en el mismo instante en «Guardar orden»: una sola orden, pero la pantalla queda en el formulario y se gasta un número.
+  - [ ] G4 · Al cerrar «Anular orden» el foco no vuelve al botón (falta `alCerrarEnfocar`).
+  - [ ] G4 · Un carácter nulo en un texto muestra un error técnico (pieza común: `traducirError` sin huella para 22P05).
 - [ ] **Formidable:** repetir la ciega sobre la pantalla nueva y recalificar; 3–5 colaboradoras reales (la compradora en Gamarra).
 - [ ] **Lista aparte, sin orden de Felipe** (`docs/formidable/compras-ordenes.md`): el total tachado de una anulada a 2,86:1; «Editar» último
   en el pie de la orden; «Precio u.»; «Generada» (¿«ya se le mandó»?); la ✕ de quitar una línea a 32 px en celular. Piezas del sistema:
