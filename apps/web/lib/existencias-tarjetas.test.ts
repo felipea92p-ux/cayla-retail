@@ -141,7 +141,9 @@ describe("la pantalla usa estas reglas, no unas propias", () => {
   it("Existencias arma las tarjetas y su conteo con `tarjetasDeExistencias` y `conteoDeLista`, con el «Hoy» elegido", () => {
     const panel = fuente("components/InventarioPanel.tsx");
     expect(panel).toMatch(/tarjetasDeExistencias\(prendas, elegidos\.hoy\)/);
-    expect(panel).toMatch(/conteoDeLista\(tarjetasOrdenadas\.length, filtradas, elegidos\.hoy\)/);
+    // Las tarjetas que se ven: las ordenadas o, con «Ver unidades en: Piso», las mismas sin lo que no tiene nada colgado (`tarjetasDelLugar`).
+    expect(panel).toMatch(/tarjetasDelLugar\(tarjetasOrdenadas, lugar,/);
+    expect(panel).toMatch(/conteoDeLista\(verDetalle \? tarjetasOrdenadas\.length : delLugar\.modelos\.length, filtradas, elegidos\.hoy\)/);
     expect(fuente("components/ExistenciasTarjetas.tsx")).not.toMatch(/function agruparPorModelo|new Map<string, PrendaAgrupada/);
   });
   it("la barra cuenta cada opción con la misma `claveDeTarjeta`", () => {
