@@ -6,6 +6,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
 import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
+import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { diasQueQuedan, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
@@ -50,7 +51,7 @@ import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
 const ids = (prendas: readonly Pick<PrendaAnalisis, "varianteId">[]): string => prendas.map((p) => p.varianteId).join(" ");
 
 const AYUDA_FLUJO =
-  "Lo que se acaba aparece para comprar. Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada prenda ves cuánto vende cada tienda y decides si pedirla. El número es cuántas prendas son.";
+  "Lo que se acaba aparece para comprar. Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada modelo ves cuánto vende cada tienda y decides si pedirlo. El número es cuántos modelos son.";
 
 export function PestanaHoy() {
   const { datos, prendas, q, liquidarDesde, diasDeVentas } = useAnalisis();
@@ -168,7 +169,7 @@ function FilaCinco({ prenda, children }: { prenda: PrendaAnalisis; children: Rea
 
 const VerTodas = ({ n }: { n: number }) => (
   <div className="ver5">
-    {n === 1 ? "Ver la prenda" : `Ver las ${n} prendas`} <Icono nombre="sigue" />
+    {n === 1 ? "Ver el modelo" : `Ver los ${n} modelos`} <Icono nombre="sigue" />
   </div>
 );
 
@@ -301,7 +302,7 @@ function ListaTip({ titulo, prendas }: { titulo: string; prendas: readonly Prend
   );
 }
 
-const tituloTip = (c: CaminoHoy): string => `${c.verbo} · ${c.prendas.length} ${plural(c.prendas.length, "prenda", "prendas")}`;
+const tituloTip = (c: CaminoHoy): string => `${c.verbo} · ${c.prendas.length} ${plural(c.prendas.length, "modelo", "modelos")}`;
 
 /**
  * El tooltip dentro de una pieza del dibujo (una cinta, una pastilla). En SVG un `<span>` no puede ir suelto (el navegador lo saca
@@ -349,7 +350,7 @@ function QueHacer() {
               <ChipEstado key={e} est={e} />
             ))}
             <span className="sep-v" />
-            Toca un camino para ver sus prendas
+            Toca un camino para ver sus modelos
             <Ayuda texto={AYUDA_FLUJO} />
           </span>
         ) : (
@@ -399,7 +400,7 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
   const activoDer = g.der.find((b) => b.camino.clave === encima.clave);
   return (
     <IdDegradado.Provider value={base}>
-    <svg className="fl-svg" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Qué hacer hoy: qué prendas te llegan y cuáles salen de tu tienda">
+    <svg className="fl-svg" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Qué hacer hoy: qué modelos te llegan y cuáles salen de tu tienda">
       <defs>
         {ESTADOS_DEL_FLUJO.map((est) => (
           <linearGradient key={`izq-${est}`} id={idDegradado(base, "izq", est)} x1="0" x2="1" y1="0" y2="0">
@@ -701,11 +702,12 @@ function FilaCamino({ camino: c, alIr }: { camino: CaminoHoy; alIr: AlIr }) {
  * «Repón el piso»: lo que se vende y no tiene nada colgado, pero sí en el almacén. Lleva a bajarlas (Existencias ▸ Reponer a piso)
  * si la cuenta ve Existencias; si no, solo lo dice. Sin prendas así, no se dibuja.
  */
-function ReponerPiso({ lista }: { lista: PrendaAnalisis[] }) {
+function ReponerPiso({ lista }: { lista: ModeloAnalisis[] }) {
   const { acceso } = useAnalisis();
   if (lista.length === 0) return null;
   const n = lista.length;
-  const href = hrefReponerPiso(lista.slice(0, MAX_VARIANTES_EN_URL), acceso);
+  // Cada modelo se baja con sus tallas guardadas; la URL lleva hasta MAX_VARIANTES_EN_URL de ellas (las de lo que más se vende).
+  const href = hrefReponerPiso(variantesDe(lista).filter((v) => v.almacen > 0).slice(0, MAX_VARIANTES_EN_URL), acceso);
   const contenido = (
     <>
       <span className="ic">
@@ -713,7 +715,7 @@ function ReponerPiso({ lista }: { lista: PrendaAnalisis[] }) {
       </span>
       <b>Repón el piso</b>
       <span>
-        {n} {plural(n, "prenda", "prendas")} · hay en tu almacén
+        {n} {plural(n, "modelo", "modelos")} · hay en tu almacén
       </span>
       {href && (
         <span className="ir">
@@ -721,7 +723,7 @@ function ReponerPiso({ lista }: { lista: PrendaAnalisis[] }) {
         </span>
       )}
       <TipRico>
-        <ListaTip titulo={`Repón el piso · ${n} ${plural(n, "prenda", "prendas")}`} prendas={lista} />
+        <ListaTip titulo={`Repón el piso · ${n} ${plural(n, "modelo", "modelos")}`} prendas={lista} />
       </TipRico>
     </>
   );

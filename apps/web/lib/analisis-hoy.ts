@@ -339,7 +339,8 @@ export function puntosDeCinta(grosor: number): { n: number; r: number } {
 /** El texto de la etiqueta de un camino: «5 prendas» (A1: sin «empieza aquí»; el camino por donde empezar va más marcado). */
 export function textoPastilla(c: Pick<CaminoHoy, "prendas">): string {
   const n = c.prendas.length;
-  return `${n} ${plural(n, "prenda", "prendas")}`;
+  // Cada camino lleva modelos (ADR-0357, decisión 12), no tallas sueltas.
+  return `${n} ${plural(n, "modelo", "modelos")}`;
 }
 
 /**
