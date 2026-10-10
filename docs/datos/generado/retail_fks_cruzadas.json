@@ -705,6 +705,11 @@
   "src_table": "ubicaciones"
  },
  {
+  "conname": "venta_pagos_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "venta_pagos_correcciones"
+ },
+ {
   "conname": "ventas_anulado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ventas"
