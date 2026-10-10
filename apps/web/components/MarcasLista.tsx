@@ -104,6 +104,8 @@ export function MarcasLista({
   const [pagina, setPagina] = useState(1);
   // La marca que destella una vez: la que acabas de guardar o a la que saltaste con una letra.
   const [destacada, setDestacada] = useState<string | null>(null);
+  // La que se está yendo (desactivada o eliminada): se encoge 240 ms y recién entonces sale de la lista.
+  const [saliendo, setSaliendo] = useState<string | null>(null);
   const listaRef = useRef<HTMLUListElement>(null);
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
@@ -210,12 +212,21 @@ export function MarcasLista({
     if (ir) setDestacada(id);
   }
 
+  // Deja que la tarjeta se encoja antes de sacarla de la lista. Solo tras la respuesta de la base: nunca se anima algo que falló.
+  async function irse(id: string) {
+    if (sinMovimiento()) return;
+    setSaliendo(id);
+    await new Promise((r) => window.setTimeout(r, 240));
+    setSaliendo(null);
+  }
+
   // Desactivar y reactivar una marca van sin responsable (Felipe, 2026-09-29); eliminar la conserva.
   async function cambiarEstado(m: MarcaFila) {
     setTrabajando(m.id);
     const { error } = await firmar(createClient().from("marcas").update({ activo: !m.activo }).eq("id", m.id), firmaOmitida("catalogo_confirmar_estado"));
     setTrabajando(null);
     if (error) return avisar.error(traducirError(error, m.activo ? "desactivar la marca" : "reactivar la marca"));
+    await irse(m.id);
     setMarcas((prev) => prev.map((x) => (x.id === m.id ? { ...x, activo: !x.activo } : x)));
     if (!m.activo && desactivadas.length === 1) setVerDesactivadas(false); // reactivó la última: ya no hay vista que ver
     avisar.exito(m.activo ? `${m.nombre} desactivada` : `${m.nombre} reactivada`);
@@ -228,6 +239,7 @@ export function MarcasLista({
     setTrabajando(null);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "eliminar la marca"));
+    await irse(m.id);
     setMarcas((prev) => prev.filter((x) => x.id !== m.id));
     avisar.exito(`${m.nombre} eliminada`);
   }
@@ -278,7 +290,7 @@ export function MarcasLista({
             etiqueta="Buscar marca o proveedor"
             atajo
             sombra={{ cola: prediccion?.cola ?? "", alAceptar: (ir) => prediccion && aceptarPrediccion(prediccion.marca.id, prediccion.marca.nombre, ir) }}
-            className="min-w-0 flex-1 sm:max-w-[34rem]"
+            className="min-w-0 basis-full sm:flex-1 sm:basis-0 sm:max-w-[34rem]"
           />
           <p className="text-sm text-tinta/70" aria-live="polite">
             {verDesactivadas ? `${lista.length} desactivada${lista.length === 1 ? "" : "s"}` : buscandoAlgo || filtro !== "activas" ? `${lista.length} de ${resumen.activas}` : `${resumen.activas} marcas activas`}
@@ -296,7 +308,7 @@ export function MarcasLista({
                 }}
               >
                 Desactivadas
-                <span className="ml-1 font-medium tabular-nums opacity-60 dark:opacity-85">{desactivadas.length}</span>
+                <span className="ml-1 font-medium tabular-nums">{desactivadas.length}</span>
               </button>
             )}
             <button
@@ -359,6 +371,7 @@ export function MarcasLista({
                 busqueda={busqueda}
                 indice={i}
                 destello={destacada === m.id}
+                saliendo={saliendo === m.id}
                 onEditar={() => setModo({ tipo: "editar", marca: m })}
                 onDesactivar={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
                 onReactivar={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}

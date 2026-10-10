@@ -50,9 +50,21 @@
     box-shadow: 0 0 0 14px transparent;
   }
 }
+/* La que se desactiva o se elimina se encoge y se apaga antes de salir de la lista (la base ya respondió que sí). */
+.marca-sale {
+  animation: marca-sale 240ms var(--ease-cayla) forwards;
+  pointer-events: none;
+}
+@keyframes marca-sale {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .marca-entra,
-  .marca-destello {
+  .marca-destello,
+  .marca-sale {
     animation: none;
   }
 }

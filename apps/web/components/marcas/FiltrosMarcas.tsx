@@ -24,7 +24,7 @@ export function FiltrosMarcas({ resumen, filtro, onFiltro }: { resumen: ResumenM
           <button key={f} type="button" className="pildora-cayla" aria-pressed={puesta} onClick={() => onFiltro(f)}>
             {avisa && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ambar" />}
             {texto}
-            <span className={`ml-1 font-medium tracking-normal tabular-nums ${avisa && !puesta ? "text-ambar-profundo" : "opacity-60 dark:opacity-85"}`}>{resumen[f]}</span>
+            <span className={`ml-1 font-medium tracking-normal tabular-nums ${avisa && !puesta ? "text-ambar-profundo" : ""}`}>{resumen[f]}</span>
           </button>
         );
       })}

@@ -36,6 +36,7 @@ export function TarjetaMarca({
   busqueda = "",
   indice = 0,
   destello = false,
+  saliendo = false,
   onEditar,
   onDesactivar,
   onReactivar,
@@ -51,6 +52,8 @@ export function TarjetaMarca({
   indice?: number;
   /** Acaba de guardarse o de elegirse: destella una vez. */
   destello?: boolean;
+  /** La base ya dijo que sí a desactivarla o eliminarla: se encoge antes de salir de la lista. */
+  saliendo?: boolean;
   onEditar: () => void;
   onDesactivar: () => void;
   onReactivar: () => void;
@@ -78,7 +81,7 @@ export function TarjetaMarca({
 
   return (
     <li
-      className={`marca-entra rounded-2xl border border-sand bg-crema p-3.5 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-tinta/30 hover:bg-papel motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${destello ? "marca-destello" : ""}`}
+      className={`marca-entra rounded-2xl border border-sand bg-crema p-3.5 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-tinta/30 hover:bg-papel motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${destello ? "marca-destello" : ""} ${saliendo ? "marca-sale" : ""}`}
       style={{ "--i": Math.min(indice, 11) } as CSSProperties}
       data-marca={m.id}
     >
@@ -102,7 +105,7 @@ export function TarjetaMarca({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          {m.proveedores.length > 0 && <span className="label-cayla mr-0.5 text-[10px] text-tinta/55">La trae</span>}
+          {m.proveedores.length > 0 && <span className="label-cayla mr-0.5 text-[10px] text-tinta/65">La trae</span>}
           {m.proveedores.map((p) => (
             <span key={p.id} className="rounded-full border border-tinta/25 bg-papel px-2.5 py-0.5 text-[12.5px] text-tinta/80">
               <Resaltado texto={p.nombre} busqueda={busqueda} />
