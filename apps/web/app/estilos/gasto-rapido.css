@@ -1,0 +1,314 @@
+/* =====================================================================================================================
+   Caja ▸ Registrar gasto, la versión rápida (`components/GastoRapidoModal.tsx`, maqueta A de 2026-10-09).
+   Movimiento rico POR DECISIÓN DE FELIPE («dale full animaciones para que sea sofisticado», 2026-10-09; ADR-0136 act.
+   2026-10-09): la ola del mosaico, la ★ que se dibuja, la tinta que se derrama desde el clic, el ícono que se vuelve a trazar,
+   la línea «Va a …» que sube, los montos de siempre en cascada, la cifra del botón que sube y el sello de «listo».
+   Como todo el ERP: `--ease-cayla`, sin rebote, nada en bucle, y todo se apaga con `prefers-reduced-motion`. Solo tokens.
+   ===================================================================================================================== */
+
+@layer components {
+  /* ---- El punto de la bajada: el color del efectivo, el del cajón ---- */
+  .gr-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-metodo-efectivo);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-metodo-efectivo) 22%, transparent);
+  }
+
+  /* ---- El mosaico ---- */
+  .gr-mosaico {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  @media (max-width: 420px) {
+    .gr-mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  .gr-baldosa {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 84px;
+    padding: 14px 6px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--color-sand);
+    background: var(--color-crema);
+    color: var(--color-tinta);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.15;
+    text-align: center;
+    cursor: pointer;
+    /* La ola: cada baldosa entra un poco después de la anterior, como una fila de prendas que se acomoda. */
+    animation: gr-ola 520ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 34ms + 140ms);
+    transition:
+      border-color 220ms var(--ease-cayla),
+      opacity 260ms var(--ease-cayla),
+      color 260ms var(--ease-cayla);
+  }
+  .gr-baldosa[data-otro] { border-style: dashed; }
+  .gr-baldosa:hover { border-color: var(--color-taupe); }
+  .gr-baldosa:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+  /* Con una elegida, las demás dan un paso atrás (sin desaparecer: se puede cambiar de idea). */
+  .gr-baldosa[data-atenuada] { opacity: 0.62; }
+  .gr-baldosa[data-atenuada]:hover { opacity: 1; }
+
+  .gr-icono {
+    width: 24px;
+    height: 24px;
+    transition: translate 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
+  }
+  .gr-baldosa:hover .gr-icono { translate: 0 -2px; }
+  .gr-nombre { position: relative; }
+  .gr-veces {
+    font-size: 10.5px;
+    color: var(--color-taupe);
+    letter-spacing: 0.02em;
+    transition: color 260ms var(--ease-cayla);
+  }
+
+  /* La tinta: un círculo que se derrama desde donde se tocó (`--x`, `--y`) hasta cubrir la baldosa. */
+  .gr-tinta {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-tinta);
+    clip-path: circle(0 at var(--x, 50%) var(--y, 50%));
+    transition: clip-path 420ms var(--ease-cayla);
+  }
+  .gr-baldosa[aria-checked="true"] { color: var(--color-crema); border-color: var(--color-tinta); opacity: 1; }
+  .gr-baldosa[aria-checked="true"] .gr-tinta { clip-path: circle(160% at var(--x, 50%) var(--y, 50%)); }
+  .gr-baldosa[aria-checked="true"] .gr-veces { color: color-mix(in srgb, var(--color-crema) 75%, transparent); }
+  /* El ícono de la elegida se vuelve a trazar (el `key` lo monta de nuevo). */
+  .gr-baldosa[aria-checked="true"] .gr-icono :is(path, circle, rect, line, polyline) {
+    stroke-dasharray: 80;
+    stroke-dashoffset: 80;
+    animation: gr-trazo 560ms var(--ease-cayla) 80ms forwards;
+  }
+
+  /* La ★ de lo más frecuente: llega girando un poco y se rellena, después de la ola. */
+  .gr-estrella {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 14px;
+    height: 14px;
+    color: var(--color-metodo-efectivo);
+    animation: gr-estrella 520ms var(--ease-cayla) both;
+    animation-delay: var(--retraso, 500ms);
+  }
+  .gr-estrella svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    fill-opacity: 0;
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: gr-estrella-trazo 640ms var(--ease-cayla) forwards;
+    animation-delay: inherit;
+  }
+  .gr-estrella-chica {
+    width: 12px;
+    height: 12px;
+    color: var(--color-metodo-efectivo);
+    fill: currentColor;
+  }
+
+  /* «Va a Servicios básicos»: sube cada vez que cambia lo elegido (el `key` la vuelve a montar). */
+  .gr-va-a {
+    min-height: 18px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .gr-va-a b { color: var(--color-tinta); font-weight: 600; }
+  .gr-va-a-texto { display: inline-block; animation: gr-sube 320ms var(--ease-cayla) both; }
+
+  /* ---- Lo que se abre y se cierra (Otro, la factura): el alto se anima de 0 a lo que mide ---- */
+  .gr-plegable {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 380ms var(--ease-cayla),
+      opacity 280ms var(--ease-cayla);
+  }
+  .gr-plegable[data-abierto] { grid-template-rows: 1fr; opacity: 1; }
+  .gr-plegable-dentro { min-height: 0; overflow: hidden; }
+  .gr-plegable[data-abierto] .gr-plegable-dentro { overflow: visible; animation: gr-visible 0s 380ms both; }
+  .gr-plegable:not([data-abierto]) { pointer-events: none; }
+  /* Sin esto, la cascada del modal le cambia la opacidad a algo que debe estar cerrado. */
+  .gr-plegable:not([data-abierto]) .gr-plegable-dentro { visibility: hidden; }
+
+  /* ---- El monto: la cifra se lee como la pantalla de un instrumento ---- */
+  .gr-monto {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 16px 6px;
+    border-radius: 14px;
+    cursor: text;
+  }
+  .gr-monto-moneda {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    color: var(--color-taupe);
+    transition: color 260ms var(--ease-cayla);
+  }
+  .gr-monto[data-listo] .gr-monto-moneda { color: var(--color-verde); }
+  .gr-monto-input {
+    width: 100%;
+    min-width: 0;
+    background: transparent;
+    outline: none;
+    font-family: var(--font-serif);
+    font-size: 36px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .gr-monto-input::placeholder { color: color-mix(in srgb, var(--color-tinta) 30%, transparent); }
+
+  .gr-montos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .gr-montos-titulo { color: var(--color-taupe); margin-right: 2px; animation: gr-sube 300ms var(--ease-cayla) both; }
+  .gr-monto-chip {
+    font-variant-numeric: tabular-nums;
+    animation: gr-sube 320ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 55ms + 60ms);
+  }
+
+  /* ---- ¿Te dieron factura o boleta? ---- */
+  .gr-factura { border-top: 1px solid var(--color-sand); padding-top: 12px; }
+  .gr-factura-boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--color-taupe);
+    cursor: pointer;
+    transition: color 200ms var(--ease-cayla);
+  }
+  .gr-factura-boton:hover,
+  .gr-factura[data-abierto] .gr-factura-boton { color: var(--color-tinta); }
+  .gr-factura-mas {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--color-sand);
+    transition: rotate 320ms var(--ease-cayla), background 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
+  }
+  .gr-factura-mas::before,
+  .gr-factura-mas::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 2px;
+    background: currentColor;
+    translate: -50% -50%;
+  }
+  .gr-factura-mas::after { rotate: 90deg; }
+  .gr-factura[data-abierto] .gr-factura-mas { rotate: 45deg; background: var(--color-hueso); border-color: var(--color-taupe); }
+
+  /* ---- El botón: la cifra sube cada vez que cambia ---- */
+  .gr-registrar[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+  .gr-registrar-texto { display: inline-block; animation: gr-cifra 280ms var(--ease-cayla) both; }
+
+  /* ---- Listo: el sello que se dibuja sobre la hoja ---- */
+  .gr-listo {
+    position: absolute;
+    inset: -8px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 16px;
+    background: var(--color-papel);
+    text-align: center;
+    animation: gr-velo 280ms var(--ease-cayla) both;
+  }
+  .gr-listo-sello { width: 72px; height: 72px; margin-bottom: 8px; }
+  .gr-listo-aro {
+    fill: color-mix(in srgb, var(--color-verde) 10%, transparent);
+    stroke: var(--color-verde);
+    stroke-width: 2;
+    stroke-dasharray: 150;
+    stroke-dashoffset: 150;
+    transform-origin: center;
+    animation: gr-trazo 620ms var(--ease-cayla) 60ms forwards;
+  }
+  .gr-listo-check {
+    fill: none;
+    stroke: var(--color-verde);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: gr-trazo 420ms var(--ease-cayla) 480ms forwards;
+  }
+  .gr-listo-titulo { font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; animation: gr-sube 360ms var(--ease-cayla) 560ms both; }
+  .gr-listo-que { font-weight: 600; animation: gr-sube 360ms var(--ease-cayla) 640ms both; }
+  .gr-listo-detalle { font-size: 12.5px; color: var(--color-taupe); animation: gr-sube 360ms var(--ease-cayla) 720ms both; }
+}
+
+@keyframes gr-ola {
+  from { opacity: 0; translate: 0 10px; scale: 0.94; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes gr-trazo {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes gr-estrella {
+  from { opacity: 0; scale: 0.3; rotate: -50deg; }
+  to { opacity: 1; scale: 1; rotate: 0deg; }
+}
+@keyframes gr-estrella-trazo {
+  60% { stroke-dashoffset: 0; fill-opacity: 0; }
+  to { stroke-dashoffset: 0; fill-opacity: 1; }
+}
+@keyframes gr-sube {
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes gr-cifra {
+  from { opacity: 0; translate: 0 70%; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes gr-velo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gr-visible {
+  to { overflow: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.gr-baldosa, .gr-estrella, .gr-estrella svg, .gr-va-a-texto, .gr-montos-titulo, .gr-monto-chip, .gr-registrar-texto, .gr-listo, .gr-listo-titulo, .gr-listo-que, .gr-listo-detalle) {
+    animation: none !important;
+  }
+  .gr-estrella svg { stroke-dashoffset: 0; fill-opacity: 1; }
+  .gr-baldosa[aria-checked="true"] .gr-icono :is(path, circle, rect, line, polyline) { animation: none !important; stroke-dashoffset: 0; }
+  :is(.gr-listo-aro, .gr-listo-check) { animation: none !important; stroke-dashoffset: 0; }
+  :is(.gr-tinta, .gr-plegable, .gr-factura-mas, .gr-icono, .gr-baldosa) { transition: none !important; }
+}

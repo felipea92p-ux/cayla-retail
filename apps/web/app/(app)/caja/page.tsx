@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 import { puede, requirePersonaActualV2, veModulo, type PersonaActualV2 } from "@/lib/persona-actual";
 import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getPagosDelDia, diaAnterior } from "@/lib/caja";
 import { getContextoTableroCaja } from "@/lib/caja-tablero";
-import { getCategoriasGasto, getContextoGastos, getProveedoresParaGasto } from "@/lib/gastos";
+import { getCategoriasGasto, getContextoGastos, getGastosDeUbicacion, getProveedoresParaGasto } from "@/lib/gastos";
+import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
@@ -93,9 +94,21 @@ async function CajaConDatos({
     // La meta de hoy y el fondo que rigen (ADR-0195 F1): lo normal de la tienda + las campañas. `null` si la base
     // todavía no tiene fn_parametros_caja: se usa la meta de antes y el cierre no pide fondo.
     getParametrosCaja(caja.ubicacionId, hoy),
-    // «Registrar gasto» abre desde aquí el mismo formulario de Finanzas ▸ Gastos (solo a quien ve Gastos).
+    // «Registrar gasto» abre aquí la versión rápida (mosaico ordenado por lo que más se gasta en ESTA sede, 2026-10-09) y, para un
+    // proveedor nuevo o un pago a crédito, el formulario completo de Finanzas ▸ Gastos (solo a quien ve Gastos). Si la lista de
+    // gastos no se puede leer, el mosaico sale en su orden de fábrica y sin ★: nunca deja de abrir (principio 9).
     registraGastos
-      ? Promise.all([getCategoriasGasto(), getContextoGastos(), getProveedoresParaGasto()]).then(([categorias, contexto, proveedores]) => ({ categorias, ...contexto, proveedores }))
+      ? Promise.all([
+          getCategoriasGasto(),
+          getContextoGastos(),
+          getProveedoresParaGasto(),
+          getGastosDeUbicacion(caja.ubicacionId, diasAntes(hoy, DIAS_FRECUENCIA), hoy),
+        ]).then(([categorias, contexto, proveedores, recientes]) => ({
+          categorias,
+          ...contexto,
+          proveedores,
+          frecuencia: ordenarPorFrecuencia(recientes.map((g) => ({ descripcion: g.descripcion, categoria: g.categoria, montoTotal: g.montoTotal }))),
+        }))
       : Promise.resolve(null),
     // Hoy contra ayer (ADR-0319): los pagos de los dos días. Si la base no tiene la lectura, `null` y Caja se ve como antes.
     getPagosDelDia(caja.ubicacionId, hoy),
@@ -162,4 +175,11 @@ async function CajaConDatos({
       gasto={datosGasto ? { ...datosGasto, esLider: persona.rol === "lider", hoy } : null}
     />
   );
+}
+
+/** «AAAA-MM-DD» de `dias` días antes (en fecha de calendario, sin hora: no la mueve el huso). */
+function diasAntes(fecha: string, dias: number): string {
+  const d = new Date(`${fecha}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - dias);
+  return d.toISOString().slice(0, 10);
 }
