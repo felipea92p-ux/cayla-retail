@@ -7,8 +7,9 @@
  *   · LA SIEMBRA. Los 8 grupos con su rol y de qué lado del riel están; las 42 categorías activas entran con la propuesta por
  *     prefijo, TODAS «por revisar» (ninguna confirmada: la decisión es de Felipe); una categoría nueva sale «Sin grupo» y una
  *     desactivada no sale; re-pegar la migración no pisa lo que el líder confirmó ni lo que cambió de grupo.
- *   · LA LECTURA. Líder, colaboradora y terminal leen (la puerta única de retail); una cuenta de afuera recibe 42501, no cero
- *     filas; por la vía de PostgREST funciona y las tablas directo no se leen.
+ *   · LA LECTURA. Pide el MÓDULO «Plan del piso» (20261010170000, ADR-0161): el líder lo ve siempre; una colaboradora o una terminal
+ *     leen solo si su rol lo recibe (sin él, 42501 con la pista `plan_piso_sin_modulo`, no cero filas); una cuenta de afuera recibe
+ *     42501 aunque se le diera el módulo a algún rol; por la vía de PostgREST funciona y las tablas directo no se leen.
  *   · LA ESCRITURA. Solo el líder, TODO O NADA: confirmar las 42 de una vez (una fila de historial con 42 cambios, firma de la
  *     persona, versión +1), cambiar una de grupo (antes y después en el historial), reenviar lo mismo es `sin_cambios` sin
  *     escribir, una versión vieja da PT409 y NO se guarda ninguna del lote, una categoría sin grupo se fija con versión 0.
@@ -37,6 +38,10 @@ const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261006100000_plan_del_piso_grupos_del_mix.sql"), "utf8");
+// Con --en-seco la base no trae el Plan del piso: se cargan las tres migraciones, en orden (la tercera pide las dos primeras).
+const CADENA_EN_SECO = ["20261006100000_plan_del_piso_grupos_del_mix.sql", "20261006110000_plan_del_piso_foto_del_espacio.sql", "20261010170000_plan_del_piso_quien_ve_el_modulo.sql"]
+  .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
+  .join("\n");
 
 // Seed local: Felipe (líder) y Micaela (colaboradora de Trujillo).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -66,7 +71,7 @@ function correr(sql) {
 const PREFIJOS = ["CMS", "POL", "TOP", "JEA", "PAN", "VES", "CON", "BOD", "CAS", "SUD", "CIN", "MOC", "CAR", "ZFO"];
 const PRELUDIO = `
 begin;
-${EN_SECO ? MIGRACION : ""}
+${EN_SECO ? CADENA_EN_SECO : ""}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -178,29 +183,49 @@ caso(
 // 2. LA LECTURA (la puerta única de retail)
 // ===========================================================================
 
+// Desde 20261010170000 las lecturas piden el MÓDULO (ADR-0161), no solo ser de retail. El módulo nace sin ningún rol (caso del final), así
+// que quien no es líder solo lee cuando un líder se lo da a su rol: aquí se le da DENTRO del caso (ROLLBACK), como postgres y antes de
+// cambiar de rol de base de datos.
+const DAR_EL_MODULO = (rol) => `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('${rol}'), 'plan_piso');\n`;
+/** «sqlstate|pista» de lo que pasa al llamar una lectura (vacío después de «|» si el error no trae pista). */
+const SIN_PERMISO = (lectura) => `select array_to_string((string_to_array(pg_temp.intento('select * from retail.${lectura}'), '|'))[1:2], '|');`;
+
 caso(
-  "el LÍDER y la COLABORADORA leen los grupos y las categorías (no son datos sensibles: ni dinero ni personas)",
-  como(FELIPE) + `select count(*) from retail.fn_grupos_mix();\n` + como(MICAELA) + `select count(*) from retail.fn_categorias_grupo_mix();`,
+  "el LÍDER lee los grupos y las categorías (el módulo lo ve siempre)",
+  como(FELIPE) + `select count(*) from retail.fn_grupos_mix();\nselect count(*) from retail.fn_categorias_grupo_mix();`,
   "8\n42"
 );
 caso(
-  "una TERMINAL de ventas lee las dos (ADR-0289: la puerta conoce a las terminales)",
-  como(T_VENTAS_TRU) + `select count(*) from retail.fn_grupos_mix();\nselect count(*) from retail.fn_categorias_grupo_mix();`,
+  "la COLABORADORA SIN el módulo recibe 42501 «plan_piso_sin_modulo» en las dos lecturas, no cero filas (apagarlo se apaga también en la base)",
+  como(MICAELA) + `${SIN_PERMISO("fn_grupos_mix()")}\n${SIN_PERMISO("fn_categorias_grupo_mix()")}`,
+  "42501|plan_piso_sin_modulo\n42501|plan_piso_sin_modulo"
+);
+caso(
+  "la COLABORADORA CON el módulo (su rol lo recibe de un líder) lee las dos",
+  DAR_EL_MODULO("integrante") + como(MICAELA) + `select count(*) from retail.fn_grupos_mix();\nselect count(*) from retail.fn_categorias_grupo_mix();`,
   "8\n42"
 );
 caso(
-  "una cuenta de AFUERA recibe 42501 en las dos lecturas, no cero filas (no puede parecer «no hay grupos»)",
-  como(AFUERA) +
+  "una TERMINAL de ventas sin el módulo recibe 42501; con él en su rol lee las dos (ADR-0289: la puerta conoce a las terminales)",
+  como(T_VENTAS_TRU) + `${SIN_PERMISO("fn_grupos_mix()")}\n` + DAR_EL_MODULO("terminal_ventas") +
+    `select count(*) from retail.fn_grupos_mix();\nselect count(*) from retail.fn_categorias_grupo_mix();`,
+  "42501|plan_piso_sin_modulo\n8\n42"
+);
+caso(
+  "una cuenta de AFUERA recibe 42501 en las dos lecturas, no cero filas (no puede parecer «no hay grupos»), aunque se le diera el módulo a algún rol",
+  DAR_EL_MODULO("integrante") + como(AFUERA) +
     `select split_part(pg_temp.intento('select * from retail.fn_grupos_mix()'), '|', 1);
      select split_part(pg_temp.intento('select * from retail.fn_categorias_grupo_mix()'), '|', 1);`,
   "42501\n42501"
 );
 caso(
-  "por la vía de PostgREST (rol authenticated) la colaboradora lee; las tablas directo, no (ni el líder)",
-  como(MICAELA) + `set local role authenticated;\nselect count(*) from retail.fn_categorias_grupo_mix();\n` + como(FELIPE) +
+  "por la vía de PostgREST (rol authenticated) la colaboradora con el módulo lee y sin él no; las tablas directo, no (ni el líder)",
+  DAR_EL_MODULO("integrante") + como(MICAELA) + `set local role authenticated;\nselect count(*) from retail.fn_categorias_grupo_mix();\n` +
+    `reset role;\ndelete from retail.rol_modulos where modulo = 'plan_piso';\n` + como(MICAELA) + `set local role authenticated;\n${SIN_PERMISO("fn_categorias_grupo_mix()")}\n` +
+    `reset role;\n` + como(FELIPE) + `set local role authenticated;\n` +
     `select split_part(pg_temp.intento('select count(*) from retail.categoria_grupo_mix'), '|', 1);
      select split_part(pg_temp.intento('select count(*) from retail.grupos_mix'), '|', 1);`,
-  "42\n42501\n42501"
+  "42\n42501|plan_piso_sin_modulo\n42501\n42501"
 );
 
 // ===========================================================================

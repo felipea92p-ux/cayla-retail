@@ -14,7 +14,7 @@ export type LecturaGruposMix = { ok: true; grupos: GrupoMix[]; categorias: Categ
  * PROMETE: las dos listas completas o «no se pudo leer» con su motivo; nunca una a medias ni inventada. NUNCA lanza: si la base no
  * responde, si la migración todavía no está pegada o si una lectura llega con otra forma, la pantalla dice que no pudo leer y
  * nada se pierde (la caída se anota en el log del servidor).
- * ASUME: la llama el servidor con la sesión de quien mira (las dos funciones piden la puerta de lectura de retail).
+ * ASUME: la llama el servidor con la sesión de quien mira (las dos funciones piden la puerta de retail y el módulo «Plan del piso»).
  */
 export async function getGruposDelMix(): Promise<LecturaGruposMix> {
   try {
@@ -75,7 +75,7 @@ export type LecturaFotos = { ok: true; fotos: FotoEspacio[] } | { ok: false; mot
  *
  * PROMETE: las fotos, o «no se pudo leer» con su motivo; una sede sin fotos todavía es `ok` con la lista vacía (no un error). NUNCA lanza:
  * es la pestaña «Historia» y, si falla, las demás siguen en pie.
- * ASUME: la llama el servidor con la sesión de quien mira (la función pide la puerta de retail y la de la sede).
+ * ASUME: la llama el servidor con la sesión de quien mira (la función pide la puerta de retail, el módulo «Plan del piso» y la sede).
  */
 export async function getFotosDelEspacio(ubicacionId: string): Promise<LecturaFotos> {
   try {

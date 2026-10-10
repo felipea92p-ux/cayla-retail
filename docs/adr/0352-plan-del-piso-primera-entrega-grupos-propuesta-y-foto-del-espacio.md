@@ -79,3 +79,24 @@ SE ROMPE SI: se agregan más de seis grupos en el riel (los colores se reutiliza
 - La cobertura de TRU no cuadra: con 98 prendas en 4 días son ≈ 3,5 semanas de piso y ADR-0329 dice «7 a 9». Hay que reconciliarlo antes de fijar un objetivo de cobertura.
 - Las ventas «sin registrar» (≈ 7 de cada 10 en TRU) siguen fuera de la propuesta hasta regularizarlas (PR #788, parte 2).
 - AQP sigue con 1.800 prendas provisionales: hay que contarla.
+
+## Actualización 2026-10-10 — la base también exige el módulo «Plan del piso» (Felipe)
+
+Al traer el PR #831 sobre `main`, la prueba de roles (`pnpm pruebas:roles-cobertura`) marcó lo que esta entrega había dejado abierto a propósito: el módulo `plan_piso`
+es delegable, pero las tres lecturas (`fn_grupos_mix`, `fn_categorias_grupo_mix`, `fn_espacio_piso`) pedían solo la puerta de retail y, la última, la sede. Apagarle el
+módulo a un rol le escondía la pantalla, pero por la API seguía leyendo los grupos y las fotos. La decisión original («son un catálogo de pertenencias, sin cifras»)
+era razonable para los grupos; la prueba pide además que un módulo delegable tenga un guardián en la base, y Felipe eligió cumplirla así.
+
+**Decisión (Felipe, 2026-10-10):** las tres lecturas piden `fn_ve_modulo('plan_piso')` (migración `20261010170000_plan_del_piso_quien_ve_el_modulo.sql`). Quien no es de
+retail sigue recibiendo 42501 «No tienes acceso a retail»; quien es de retail y no ve el módulo, 42501 con la pista `plan_piso_sin_modulo`. La escritura
+(`fijar_grupos_de_categorias`, solo el líder) y la foto (`fn_registrar_espacio_piso`, solo el servidor) no cambian. Hoy el módulo no tiene ningún rol, así que **no cambia
+nada para nadie**: solo el líder lo ve, en la pantalla y en la base.
+
+DECIDÍ: la base exige el módulo en las tres lecturas, con una migración nueva (`20261006100000` ya está en producción y una migración aplicada no se reescribe).
+DESCARTÉ: (a) anotar `plan_piso` en `SOLO_PANTALLA` de `roles_cobertura_modulos.mjs`: es la lista que solo puede encogerse (devoluciones salió el 2026-10-09) y apagar el
+módulo seguiría sin apagar nada en la base; (b) marcarlo «solo líder por ahora»: el líder no podría dárselo a nadie, contra lo que se decidió el 2026-10-05.
+SE ROMPE SI: otro módulo necesita leer estos grupos o fotos (la columna «ocupa · meta» de Frescura, pendiente de este PR): quien ve Frescura y no tiene «Plan del piso»
+recibiría 42501. Esa pantalla trae su propia función de lectura con su propio candado; no se relaja esta.
+
+**También en esta actualización:** al fusionar con `main`, el Plan del piso pasó a las piezas únicas de ADR-0358 (`<Pestanas>`, `<Vacio>`, `ui/BarraApilada`); la barra y las
+pestañas a mano se retiraron. No cambia qué hace nada, solo cómo se dibuja. **Para producción, en este orden:** `20261006110000` (la foto), `20261010170000` (esta), cada una sola.
