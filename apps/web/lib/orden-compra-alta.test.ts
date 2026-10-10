@@ -36,7 +36,9 @@ describe("leerNumero: lo que se tipea en el puesto", () => {
     expect(leerNumero("12.5", 2)).toEqual({ tipo: "ok", escalado: 1250 });
     expect(leerNumero(" 3 ", 0)).toEqual({ tipo: "ok", escalado: 3 });
     expect(leerNumero("0.1", 2)).toEqual({ tipo: "ok", escalado: 10 });
-    expect(leerNumero("12.500", 2)).toEqual({ tipo: "ok", escalado: 1250 });
+    // «12.500» ya no es 12.50: con tres cifras tras el punto puede ser doce mil quinientos (ver «miles con punto», abajo).
+    expect(leerNumero("0.500", 2)).toEqual({ tipo: "ok", escalado: 50 });
+    expect(leerNumero("1234.500", 2)).toEqual({ tipo: "ok", escalado: 123450 });
     expect(leerNumero("S/ 25.50", 2)).toEqual({ tipo: "ok", escalado: 2550 });
     expect(leerNumero("12.345", 4)).toEqual({ tipo: "ok", escalado: 123450 });
   });
@@ -60,6 +62,24 @@ describe("leerNumero: lo que se tipea en el puesto", () => {
     expect(leerNumero("1.234,50", 2)).toEqual({ tipo: "mal", motivo: "decimales" });
     // «0,500» no es quinientos ni se adivina.
     expect(leerNumero("0,500", 2)).toEqual({ tipo: "mal", motivo: "no_numero" });
+  });
+  it("miles con punto («1.000», «1.500», «12.500») no se adivinan: en el Perú también se escribe así mil o mil quinientos (chaos 2026-10-10: «1.000» unidades se guardaba como 1)", () => {
+    expect(leerNumero("1.000", 0)).toEqual({ tipo: "mal", motivo: "ambiguo" });
+    expect(leerNumero("1.500", 2)).toEqual({ tipo: "mal", motivo: "ambiguo" });
+    expect(leerNumero("12.500", 2)).toEqual({ tipo: "mal", motivo: "ambiguo" });
+    expect(leerNumero("S/ 1.500", 2)).toEqual({ tipo: "mal", motivo: "ambiguo" });
+    // Con cuatro decimales (el % de descuento) no hay duda: «1.000» es 1 %.
+    expect(leerNumero("1.000", 4)).toEqual({ tipo: "ok", escalado: 10000 });
+    // Con coma de miles o con espacio sí se entiende, y con dos decimales también.
+    expect(leerNumero("1,000", 0)).toEqual({ tipo: "ok", escalado: 1000 });
+    expect(leerNumero("1 000", 0)).toEqual({ tipo: "ok", escalado: 1000 });
+    expect(leerNumero("1.50", 2)).toEqual({ tipo: "ok", escalado: 150 });
+  });
+  it("una línea con miles con punto dice cómo escribirlo, con las dos lecturas", () => {
+    expect(problemaDeLinea(linea({ cantidad: "1.000" }), CTX)).toBe("¿«1.000» son 1000? Escribe la cantidad sin punto: 1000.");
+    expect(problemaDeLinea(linea({ cantidad: "2", precio: "1.500" }), CTX)).toBe(
+      "¿«1.500» es S/ 1500 o S/ 1.50? Escríbelo sin punto (1500) o con dos decimales (1.50).",
+    );
   });
   it("aTexto escribe el número canónico que viaja a la base", () => {
     expect(aTexto(2550, 2)).toBe("25.50");

@@ -59,7 +59,15 @@ export function lineaVacia(clave: string, marcaId = ""): LineaBorrador {
 // Leer números como se tipean
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-export type Lectura = { tipo: "vacio" } | { tipo: "ok"; escalado: number } | { tipo: "mal"; motivo: "no_numero" | "decimales" | "negativo" };
+export type Lectura =
+  | { tipo: "vacio" }
+  | { tipo: "ok"; escalado: number }
+  | { tipo: "mal"; motivo: "no_numero" | "decimales" | "negativo" | "ambiguo" };
+
+/** «1.000», «1.500», «12.500»: un punto seguido de tres cifras, como se escriben los miles. En el Perú así se escribe también «mil» o «mil
+ *  quinientos», no solo «uno con quinientos»: no se adivina. Con «los ceros de más se quitan», «1.000» unidades se guardaba como 1 y «1.500»
+ *  como S/ 1.50 (chaos 2026-10-10). Solo cuando caben menos de tres decimales: en el % de descuento (cuatro), «1.000» es 1 %. */
+const MILES_CON_PUNTO = /^[1-9]\d{0,2}\.\d{3}$/;
 
 /**
  * Un número escrito a mano, escalado a `decimales` (2 → céntimos). La costumbre del ERP y de Perú (`parsearMonto` de Gastos,
@@ -71,6 +79,8 @@ export function leerNumero(texto: string, decimales: number): Lectura {
   let t = texto.replace(/\s+/g, "").replace(/^s\//i, "");
   if (t === "") return { tipo: "vacio" };
   if (t.startsWith("-")) return { tipo: "mal", motivo: "negativo" };
+  // Solo lo que antes pasaba en silencio: las cifras que sobran son ceros («1.500» → 1.50). «10.555» ya se rechaza por decimales.
+  if (decimales < 3 && MILES_CON_PUNTO.test(t) && /^0+$/.test(t.slice(t.indexOf(".") + 1 + decimales))) return { tipo: "mal", motivo: "ambiguo" };
   if (t.includes(".")) {
     // Con punto, las comas solo pueden separar miles.
     t = t.replace(/,/g, "");
@@ -180,6 +190,19 @@ export type ContextoValidacion = {
   destinoElegido?: boolean;
 };
 
+/** Lo que se le dice a quien escribió miles con punto: las dos lecturas y cómo escribir la que quiso. */
+const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, "");
+function dudaDeCantidad(texto: string): string {
+  const t = limpio(texto);
+  return `¿«${t}» son ${t.replace(".", "")}? Escribe la cantidad sin punto: ${t.replace(".", "")}.`;
+}
+function dudaDeMonto(texto: string): string {
+  const t = limpio(texto);
+  const miles = t.replace(".", "");
+  const decimal = t.slice(0, -1); // «1.500» → «1.50»: el cero de más
+  return `¿«${t}» es S/ ${miles} o S/ ${decimal}? Escríbelo sin punto (${miles}) o con dos decimales (${decimal}).`;
+}
+
 /** El primer problema de una línea, en una frase para quien la llena; null si la línea está lista. */
 export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): string | null {
   if (!l.categoriaId || !ctx.categoriasActivas.has(l.categoriaId)) return "Elige la categoría.";
@@ -187,15 +210,18 @@ export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): stri
   if (l.descripcion.trim().length > TOPES.descripcion) return `La descripción va hasta ${TOPES.descripcion} letras.`;
   const cant = leerNumero(l.cantidad, 0);
   if (cant.tipo === "vacio") return "Escribe la cantidad.";
+  if (cant.tipo === "mal" && cant.motivo === "ambiguo") return dudaDeCantidad(l.cantidad);
   if (cant.tipo === "mal" || cant.escalado < 1 || cant.escalado > TOPES.cantidad) return "La cantidad va de 1 a 99 999 unidades, sin decimales.";
   const precio = leerNumero(l.precio, 2);
   if (precio.tipo === "vacio") return "Escribe el precio por unidad.";
+  if (precio.tipo === "mal" && precio.motivo === "ambiguo") return dudaDeMonto(l.precio);
   if (precio.tipo === "mal" || precio.escalado > TOPES.precioCentimos) return "El precio va de S/ 0 a S/ 99 999.99, con hasta dos decimales.";
   if (l.modoDescuento === "pct") {
     const p = leerNumero(l.descuento, 4);
     if (p.tipo === "mal" || (p.tipo === "ok" && p.escalado > 1_000_000)) return "El descuento va de 0 % a 100 %.";
   } else {
     const s = leerNumero(l.descuento, 2);
+    if (s.tipo === "mal" && s.motivo === "ambiguo") return dudaDeMonto(l.descuento);
     if (s.tipo === "mal" || (s.tipo === "ok" && s.escalado > cant.escalado * precio.escalado)) return "El descuento no puede pasar de lo que cuesta la línea.";
   }
   return null;
