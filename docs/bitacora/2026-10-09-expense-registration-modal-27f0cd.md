@@ -7,3 +7,8 @@ Felipe se lleva: probar en local con Baño S/ 0.80 (2 toques + monto). Quedaron 
 Qué hice: botón «Refrigerio» (ícono de taza) que va a la categoría nueva «Atención al personal», cuenta 62 (migración `20261009235900`, una fila en `categorias_gasto`, aplicada en local).
 Por qué así: Felipe decidió que es solo del equipo en el turno; en Suministros o Servicios básicos inflaba otra línea del estado de resultados. La 62 ya estaba en el plan y nadie la usaba.
 Felipe se lleva: la migración ya está en producción (la apliqué por el MCP a su pedido, verificada); el PR #913 se puede fusionar.
+
+## 2026-10-09 (Atención al personal: de la 62 a la 625)
+Qué hice: migración `20261010000000`, que crea la cuenta 625 · Atención al personal y le mueve la categoría; aplicada en local y en producción (OK de Felipe, verificada). La 62 que elegí antes es la planilla: el estado de resultados suma la 62 como «planilla» y el presupuesto la excluye. Lo atrapó el CI (presupuesto G8/G14); `pruebas:gastos` ahora espera 11 categorías.
+Por qué así: la 625 del PCGE es «Atención al personal», separada de las remuneraciones; sale como su propia línea y admite tope.
+Felipe se lleva: nada pendiente en producción; en producción ningún gasto ni tope había usado la 62.

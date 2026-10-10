@@ -1,6 +1,6 @@
 # ADR-0368 — El gasto rápido de Caja: un mosaico por frecuencia
 
-**Fecha:** 2026-10-09 · **Decide:** Felipe · **Estado:** aceptada (web + una migración de catálogo: `20261009235900`)
+**Fecha:** 2026-10-09 · **Decide:** Felipe · **Estado:** aceptada (web + dos migraciones de catálogo: `20261009235900` y `20261010000000`, ambas en producción)
 
 ## Problema
 
@@ -17,8 +17,12 @@ sin la fila de atajos y el mosaico ordenado por frecuencia):
    Refrigerio) y «Otro». Cada concepto ya trae su categoría contable de `categorias_gasto` (`lib/gasto-rapido-reglas.ts`, `CONCEPTOS`):
    nadie la elige. Baño va a Servicios básicos (confirmado por Felipe, 2026-10-09).
    **Refrigerio** es solo del EQUIPO en el turno (café, almuerzo, agua de mesa; Felipe 2026-10-09) y va a una categoría nueva,
-   **«Atención al personal»**, cuenta **62 · Gastos de personal** (migración `20261009235900`). Ninguna existente calzaba: en Suministros
-   se mezclaba con bolsas y lejía. No es planilla (esa se lee de Dynamic). Lo que se le invita a un cliente sería otra cuenta y queda fuera.
+   **«Atención al personal»**, cuenta **625 · Atención al personal** (migraciones `20261009235900` y `20261010000000`). Ninguna existente
+   calzaba: en Suministros se mezclaba con bolsas y lejía. Lo que se le invita a un cliente sería otra cuenta y queda fuera.
+   **Primero fue a la 62 y estuvo mal:** la 62 es la planilla (el estado de resultados suma la 62 como «planilla» y el presupuesto la deja
+   fuera porque la decide Dynamic), así que un café habría salido como sueldo. Lo atrapó «Pruebas de RPC contra Postgres» (presupuesto
+   G8 y G14) el mismo día, con la 62 ya aplicada en producción pero sin ningún gasto ni tope que la usara. La 625 del PCGE es justamente
+   «Atención al personal»: sale como su propia línea de gastos de operación y admite tope en el presupuesto.
 2. **Orden por frecuencia en ESA sede**, contando los gastos vigentes de los últimos 90 días; a igual frecuencia, el orden de fábrica.
    Los 4 primeros que se usaron al menos una vez llevan una ★ arriba a la derecha y cuántas veces se usaron. «Otro» va siempre al final.
    Una sede sin gastos ve el orden de fábrica y ninguna ★: una estrella con «0 veces» sería mentira.
