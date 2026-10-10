@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 61;
+export const PENDIENTES_HOY = 60;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -142,7 +142,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
   "/produccion/insumos": PENDIENTE,
-  "/produccion/ordenes": PENDIENTE,
+  "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/ModeloNuevoCampos.tsx"] },
   "/produccion/por-pagar": PENDIENTE,
   "/produccion/proveedores": PENDIENTE,
   "/produccion/recibir": PENDIENTE,
@@ -187,7 +187,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 57;
+export const MODALES_PENDIENTES_HOY = 56;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -249,7 +249,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
-  "components/NuevaOrdenProduccionForm.tsx": PENDIENTE, // 11 controles
+  "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
