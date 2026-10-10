@@ -50,7 +50,7 @@ import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTablero } from "./FrescuraTablero";
 import { FrescuraPiso } from "./FrescuraPiso";
 import { FrescuraAguja } from "./FrescuraAguja";
-import { loQueMueveLaAguja, loQueSeLlevan } from "@/lib/frescura-aguja";
+import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeFamilia, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
@@ -293,6 +293,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           senales={senales}
           pisoCuadrado={pisoCuadrado}
           seLlevan={seLlevan}
+          estrenar={sinEstrenar(sede.prendas)}
           puedeBajar={acceso.existencias}
           onVerCategoria={(cat) => {
             cambiar({ cat });

@@ -1,8 +1,8 @@
-import { Gauge } from "lucide-react";
+import { Gauge, Sparkles } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
-import { enlaceBajar, pct, type SenalCategoria } from "@/lib/frescura-aguja";
+import { enlaceBajar, pct, type SenalCategoria, type SinEstrenar } from "@/lib/frescura-aguja";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): hasta tres categorías —las que se quedan y la que se lleva más—, cada una con lo que
 // dice de ella y UN botón que lleva a hacerlo (completar tallas o colgar más en Bajar al piso; cambiar de lugar filtra la lista de abajo).
@@ -68,6 +68,7 @@ export function FrescuraAguja({
   senales,
   pisoCuadrado,
   seLlevan,
+  estrenar,
   puedeBajar,
   onVerCategoria,
 }: {
@@ -75,6 +76,8 @@ export function FrescuraAguja({
   pisoCuadrado: boolean;
   /** Sin el piso cuadrado: lo que más se llevan los clientes en 14 días (registrado y anotado en caja). */
   seLlevan: readonly { categoriaId: string; nombre: string; unidades: number }[];
+  /** Lo que el cliente nunca vio colgado y está en el almacén (solo con el piso cuadrado: si no, podría estar colgado sin registrar). */
+  estrenar: SinEstrenar;
   /** Quien mira puede bajar al piso (Bajar al piso es una función de Existencias, ADR-0306). */
   puedeBajar: boolean;
   onVerCategoria: (categoriaId: string) => void;
@@ -109,6 +112,20 @@ export function FrescuraAguja({
             <Tarjeta key={s.categoriaId} s={s} puedeBajar={puedeBajar} onVerCategoria={onVerCategoria} />
           ))}
         </ul>
+      )}
+      {pisoCuadrado && estrenar.prendas > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand pt-3">
+          <Sparkles aria-hidden strokeWidth={1.5} className="h-5 w-5 shrink-0 text-taupe" />
+          <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
+            <span className="font-semibold">
+              Sin estrenar: {estrenar.prendas} {estrenar.prendas === 1 ? "prenda" : "prendas"}
+            </span>{" "}
+            que tu cliente nunca vio colgadas esperan en el almacén ({unidades(estrenar.unidades)}). Colgarlas refresca el piso sin comprar nada.
+          </p>
+          {puedeBajar && estrenar.lineas.length > 0 && (
+            <BotonEnlace href={enlaceBajar(estrenar.lineas)}>Estrenar en el piso</BotonEnlace>
+          )}
+        </div>
       )}
     </section>
   );

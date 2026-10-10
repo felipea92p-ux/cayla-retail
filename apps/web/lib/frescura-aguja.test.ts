@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EstadoFrescura, FrescuraPrenda, RitmoCategoria } from "./frescura-reglas";
-import { acogidas, cuantilGamma, enlaceBajar, loQueMueveLaAguja, loQueSeLlevan } from "./frescura-aguja";
+import { acogidas, cuantilGamma, enlaceBajar, loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "./frescura-aguja";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): la edad (un hecho) y la acogida (contraída, con su cota prudente), con lo anotado en
 // caja como control y sin veredictos si el piso no está cuadrado.
@@ -114,5 +114,33 @@ describe("loQueSeLlevan (sin piso cuadrado)", () => {
 describe("enlaceBajar", () => {
   it("el formato de Bajar al piso", () => {
     expect(enlaceBajar([{ varianteId: "a", cantidad: 1 }, { varianteId: "b", cantidad: 2 }])).toBe("/inventario/bajar?lineas=a:1,b:2");
+  });
+});
+
+describe("sinEstrenar: lo que el cliente nunca vio colgado", () => {
+  const guardada = (id: string, o: { almacen?: number; llegada?: string; temporadaPasada?: boolean; colgada?: boolean } = {}): FrescuraPrenda => {
+    const p = prenda(id, "pol", "Polos", 0, 0, {});
+    return {
+      ...p,
+      pisoHoy: o.colgada ? 1 : 0,
+      almacenHoy: o.almacen ?? 2,
+      primeraExhibicion: o.colgada ? "2026-09-01T00:00:00.000Z" : null,
+      ultimaLlegada: o.llegada ?? null,
+      tallas: [
+        { varianteId: `${id}-s`, talla: "S", pisoHoy: 0, almacenHoy: 1, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [] },
+        { varianteId: `${id}-m`, talla: "M", pisoHoy: 0, almacenHoy: (o.almacen ?? 2) - 1, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [] },
+      ],
+      estado: { ...SEMAFORO, temporadaPasada: o.temporadaPasada ?? false },
+    };
+  };
+
+  it("las que nunca se colgaron y esperan en el almacén, las más recién llegadas primero, una por talla", () => {
+    const s = sinEstrenar([guardada("vieja", { llegada: "2026-08-01" }), guardada("nueva", { llegada: "2026-10-01" }), guardada("ya", { colgada: true })]);
+    expect(s).toMatchObject({ prendas: 2, unidades: 4 });
+    expect(s.lineas.map((l) => l.varianteId)).toEqual(["nueva-s", "nueva-m", "vieja-s", "vieja-m"]);
+  });
+
+  it("no se estrena lo que ya pasó de temporada", () => {
+    expect(sinEstrenar([guardada("pasada", { temporadaPasada: true })]).prendas).toBe(0);
   });
 });

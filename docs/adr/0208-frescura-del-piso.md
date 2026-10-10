@@ -3543,3 +3543,9 @@ la tarjeta puede ir y venir de una semana a otra en el borde (guardarla pide la 
 estancada entera no llega a P75 (sus propias unidades sin vender, censuradas, sostienen la curva) y nada de ella sale Envejeciendo; se
 corrige en la actividad 6 extendiendo la curva con su propio ritmo de venta pasado lo observado.
 
+**Construido (actividad 5, 2026-10-10): sin estrenar.** Al pie de «Lo que mueve la aguja»: las prendas (modelo+color) que nunca se colgaron
+en la sede y tienen algo libre en el almacén (`sinEstrenar`, la misma condición que «nunca colgada» de la lista), sin lo que ya pasó de
+temporada ni el clásico fuera de su estación, las más recién llegadas primero; «Estrenar en el piso» lleva a Bajar al piso con una unidad
+por talla (12 como mucho). Solo con el piso cuadrado: si no, lo «nunca colgado» puede estar colgado sin registrar (AQP hoy). Es la palanca
+más barata para que el cliente que vuelve vea algo nuevo, y la mitad «entra una» de «entra una, sale una» (ADR-0329).
+

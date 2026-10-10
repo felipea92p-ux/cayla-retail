@@ -232,6 +232,28 @@ export function loQueSeLlevan(
     .slice(0, cuantas);
 }
 
+// ---------------------------------------------------------------------------
+// Sin estrenar (actividad 5): la novedad que ya está en la tienda
+// ---------------------------------------------------------------------------
+
+/** Lo que el cliente nunca vio colgado en esta tienda y espera en el almacén, y la bajada sugerida para estrenarlo. */
+export type SinEstrenar = { prendas: number; unidades: number; lineas: { varianteId: string; cantidad: number }[] };
+
+/**
+ * Las prendas (modelo+color) que nunca se colgaron en esta sede y tienen algo libre en el almacén: la palanca más barata para refrescar el
+ * piso (entra una que el cliente nunca vio; ADR-0329, «entra una, sale una»). Sin lo que ya no es de su estación (temporada pasada, o un
+ * clásico fuera de la suya): no se estrena lo que hay que guardar. Las más recién llegadas primero; la bajada sugerida, una por talla.
+ */
+export function sinEstrenar(prendas: readonly FrescuraPrenda[]): SinEstrenar {
+  const lista = prendas
+    .filter((p) => p.pisoHoy <= 0 && p.primeraExhibicion === null && p.almacenHoy > 0)
+    .filter((p) => !p.estado.temporadaPasada && !(p.estado.tipo === "clasico" && p.estado.fueraDeSuEstacion))
+    .sort((a, b) => (b.ultimaLlegada ?? "").localeCompare(a.ultimaLlegada ?? "") || a.productoNombre.localeCompare(b.productoNombre, "es"));
+  const lineas: { varianteId: string; cantidad: number }[] = [];
+  for (const p of lista) for (const t of p.tallas) if (t.almacenHoy > 0 && lineas.length < MAX_LINEAS) lineas.push({ varianteId: t.varianteId, cantidad: 1 });
+  return { prendas: lista.length, unidades: lista.reduce((s, p) => s + p.almacenHoy, 0), lineas };
+}
+
 /** «Bajar al piso» con las tallas ya puestas (`?lineas=<variante>:<cantidad>,…`, ADR-0237). */
 export function enlaceBajar(lineas: readonly { varianteId: string; cantidad: number }[]): string {
   return `/inventario/bajar?lineas=${lineas.map((l) => `${l.varianteId}:${l.cantidad}`).join(",")}`;
