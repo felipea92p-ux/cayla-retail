@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261010210000_pieza_liquidacion_descripcion.sql — CAYLA V2 (ADR-0371, actualización 2026-10-10; /formidable)
+-- 20261010210000_pieza_liquidacion_descripcion.sql — CAYLA V2 (ADR-0375, actualización 2026-10-10; /formidable)
 --
 -- EL PROBLEMA. La prueba ciega de /formidable: con dos «Camisas y Blusas» a la venta, la lista solo las separa por código y precio, y
 -- quien busca «la blusa beige» no la encuentra; tampoco había dónde decir «la blusa vieja» al etiquetarla. Felipe (2026-10-10): una
@@ -9,7 +9,7 @@
 -- pasa de 4 a 5 parámetros: se quita la de 4). `fn_pieza_liquidacion_json` la devuelve. La venta no cambia: el nombre de la línea lo
 -- arma la caja con `descripcion_libre` («Liquidación · Blusa beige, manga globo»).
 --
--- PRODUCCIÓN. Una parte, idempotente; se pega DESPUÉS de 20261010200000 (token). La tabla aún no la usa ninguna pantalla publicada.
+-- PRODUCCIÓN. Una parte, idempotente; se pega DESPUÉS de 20261010205000 (token). La tabla aún no la usa ninguna pantalla publicada.
 -- Sin políticas. Se pega ANTES de publicar la web, que ya manda `p_descripcion`.
 --
 -- VERIFICACIÓN (solo lectura):

@@ -21,7 +21,7 @@ import { sugerirDescripcionLiquidacion } from "@/lib/sugerencias-liquidacion";
 export type CategoriaLiquidacion = { id: string; nombre: string; prefijo: string | null; familia: string | null };
 
 /**
- * «Etiquetar una prenda» (ADR-0371): la prenda suelta que se liquida entra con su categoría, su precio y, si se quiere, unas palabras
+ * «Etiquetar una prenda» (ADR-0375): la prenda suelta que se liquida entra con su categoría, su precio y, si se quiere, unas palabras
  * para reconocerla («blusa beige, manga globo»), sin ficha, foto, talla ni color. «Crear etiqueta» la guarda y la hoja pasa a la
  * etiqueta tal como sale, con el botón que la imprime; «Etiquetar otra» deja la categoría elegida (suelen venir varias del mismo tipo)
  * y limpia lo demás. Firma el «Responsable» (ADR-0162). En pantalla se dice «prenda», nunca «pieza» (/formidable 2026-10-10: la

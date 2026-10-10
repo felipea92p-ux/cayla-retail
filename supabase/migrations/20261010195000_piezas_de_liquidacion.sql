@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261010190000_piezas_de_liquidacion.sql — CAYLA V2 (ADR-0371, Felipe 2026-10-10)
+-- 20261010195000_piezas_de_liquidacion.sql — CAYLA V2 (ADR-0375, Felipe 2026-10-10)
 --
 -- EL PROBLEMA PRIMERO. En el almacén hay prendas de las que queda UNA sola unidad, con tiempo guardadas, que nunca entraron
 -- al sistema y que se van a liquidar. Registrarlas como productos (ficha, foto, talla, color) es trabajo perdido: no vuelven.

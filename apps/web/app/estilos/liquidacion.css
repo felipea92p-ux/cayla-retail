@@ -1,5 +1,5 @@
 /* ==================================================================
-   Liquidación (ADR-0371): la etiqueta de PAPEL de una pieza de liquidación y su pantalla.
+   Liquidación (ADR-0375): la etiqueta de PAPEL de una pieza de liquidación y su pantalla.
    La etiqueta usa la misma caja que la de precio (`.etiqueta-precio`, globals.css: 40,1 × 62 mm, Brother QL-1110NWB) y sus mismas
    piezas (cabecera, precio, pie con código y QR). Lo único suyo es la franja «LIQUIDACIÓN»: negra con letra blanca, a lo ancho,
    para que se lea desde lejos y nadie la confunda con una prenda del catálogo. Es papel térmico: negro sobre blanco, nunca un

@@ -16,7 +16,7 @@ const modoGuardado = (): "girada" | "derecha" => {
 };
 
 /**
- * Imprimir etiquetas de liquidación (ADR-0371) por el mismo camino que las de precio: la hoja `#etiquetas-precio-print` pegada a
+ * Imprimir etiquetas de liquidación (ADR-0375) por el mismo camino que las de precio: la hoja `#etiquetas-precio-print` pegada a
  * <body> (globals.css oculta todo lo demás al imprimir) y, en una Mac con el ayudante, por HTTP local (ADR-0304). Devuelve la hoja
  * para montarla en la pantalla y la acción de imprimir; la pantalla no necesita saber de la impresora.
  */

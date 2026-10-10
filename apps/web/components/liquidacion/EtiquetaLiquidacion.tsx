@@ -5,7 +5,7 @@ import { soles } from "@/lib/liquidacion-reglas";
 const LADO_QR_MM = 19;
 
 /**
- * La etiqueta de una pieza de liquidación (ADR-0371): el mismo papel de 40,1 × 62 mm que la de precio, con CAYLA arriba, la franja
+ * La etiqueta de una pieza de liquidación (ADR-0375): el mismo papel de 40,1 × 62 mm que la de precio, con CAYLA arriba, la franja
  * «LIQUIDACIÓN», la categoría, el precio y, al pie, el código escrito y el QR que lee la caja. Cada cambio de precio imprime una
  * nueva con otro código: la vieja ya no se cobra. Lo dice al pie («Venta final»): no tiene cambio ni devolución.
  */

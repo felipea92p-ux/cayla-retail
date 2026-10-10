@@ -11,7 +11,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { precioDeTexto, soles } from "@/lib/liquidacion-reglas";
 
 /**
- * El precio mínimo de la liquidación (ADR-0371, Felipe 2026-10-10: S/ 10). Bajo él solo un líder etiqueta. Todos lo leen; solo el
+ * El precio mínimo de la liquidación (ADR-0375, Felipe 2026-10-10: S/ 10). Bajo él solo un líder etiqueta. Todos lo leen; solo el
  * líder lo cambia, aquí mismo (un solo dato: no merece su propia hoja). Firma el líder que está en la cuenta.
  */
 export function PrecioMinimoLiquidacion({ minimo, esLider }: { minimo: number; esLider: boolean }) {

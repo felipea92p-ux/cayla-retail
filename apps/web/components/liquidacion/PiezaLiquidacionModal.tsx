@@ -22,7 +22,7 @@ import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, fechaLima, piezaDeJso
 type Modo = "ver" | "precio" | "retirar";
 
 /**
- * Una pieza de liquidación (ADR-0371), abierta desde la lista o escaneando su etiqueta. Muestra la etiqueta vigente tal como sale
+ * Una pieza de liquidación (ADR-0375), abierta desde la lista o escaneando su etiqueta. Muestra la etiqueta vigente tal como sale
  * y deja hacer las dos cosas que le pasan a una pieza que no se vende: **bajarle el precio** (sale una etiqueta NUEVA, con otro
  * código; la vieja deja de valer en la caja, así que hay que quitarla) y **retirarla** (se perdió, se dañó, se donó: nunca se
  * borra). Con `codigoViejo` llegó escaneando una etiqueta que ya no vale, y lo dice arriba.

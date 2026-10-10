@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
-import { marcasPorProveedor, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
+import { marcasPorProveedor, rubrosConConteo, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -112,6 +112,19 @@ export async function getProveedoresSerie(): Promise<Record<string, number[]> | 
 // pinta igual, sin marcas ni búsqueda por marca — principio 9: una lectura secundaria nunca tumba la pantalla.
 // El tope por defecto de PostgREST (`max_rows` en supabase/config.toml).
 const TOPE_FILAS = 1000;
+
+// Los rubros que ya usan los proveedores activos: los botones de «Registrar proveedor» (así «Tela», «tela» y «Telas» no
+// terminan siendo tres rubros). Para quien registra desde fuera de Proveedores (Recibir mercadería). Secundaria: si la
+// lectura falla devuelve `[]` y el formulario se abre igual, con el rubro escrito a mano.
+export async function getRubrosEnUso(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("proveedores").select("rubros").eq("activo", true);
+  if (error) {
+    console.error("[proveedores] no se pudieron leer los rubros en uso; el formulario se abre sin sugerencias:", error.message);
+    return [];
+  }
+  return rubrosConConteo(data ?? []).map((r) => r.etiqueta);
+}
 
 export async function getMarcasPorProveedor(): Promise<MarcasDeProveedor | null> {
   const supabase = await createClient();

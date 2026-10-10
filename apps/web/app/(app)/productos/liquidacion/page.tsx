@@ -6,7 +6,7 @@ import { piezaDeJson } from "@/lib/liquidacion-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { LiquidacionPantalla } from "@/components/liquidacion/LiquidacionPantalla";
 
-// Catálogo ▸ Liquidación (ADR-0371, Felipe 2026-10-10): las prendas sueltas, de una sola unidad y con tiempo en el almacén, que la
+// Catálogo ▸ Liquidación (ADR-0375, Felipe 2026-10-10): las prendas sueltas, de una sola unidad y con tiempo en el almacén, que la
 // sede liquida SIN registrarlas en el catálogo. Cada una lleva una etiqueta con su categoría, su precio y un código que la caja
 // escanea. Se mira la sede activa: cada sede liquida lo suyo (el líder cambia de sede con el selector, como en todo el ERP).
 export default async function LiquidacionPage() {

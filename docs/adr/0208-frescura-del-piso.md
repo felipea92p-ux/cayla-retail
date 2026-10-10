@@ -3391,3 +3391,30 @@ CAYLA vale para «Trasladar»:** la decisión 2 reemplaza la vara entera, su niv
 «Armar traslado» cuando CAYLA tiene 20 o más; la frase dice de dónde son esas ventas («de las demás en las tres tiendas»). Si Felipe
 prefiere que lo que mueve stock espere el Sólido de la propia tienda, se cambia en `estadoFrescura` (el `nivel` que recibe) y en esta
 nota.
+
+## Actualización 2026-10-10 — Formidable sobre la pantalla de dos niveles: la vara en el tablero solo habla en la excepción (Felipe aprobó los 3 cambios)
+
+`/formidable` corrió el 2026-10-09 sobre la pantalla de dos niveles (`docs/formidable/inventario-frescura.md`, re-análisis con 4 agentes: leyes
+6,9, oficio 7) y propuso tres cambios; Felipe: «dale a los tres, y sí calla Sólido y Aceptable». Commit `fcd9638b`. Lo que cambia de lo
+decidido el 2026-10-07:
+
+1. **Decisión 3, los nombres de la vara en el tablero.** Eran cinco chips en todas las filas (Sólido · Aceptable · Aproximado · contra CAYLA ·
+   Sin ventas). La ciega no entendió «Sólido» ni «Aproximado», y un nivel de confianza en una palabra no es un veredicto (ley 3). Desde hoy el
+   chip del tablero sale **solo en la excepción** (`varaTablero`, `lib/frescura-pantalla.ts`): «Sólido» y «Aceptable» se callan (siguen en
+   «¿Cómo se lee esto?» y en «Las N tiendas»); «Aproximado» → **«Pocas ventas: aproximado»** (ámbar); «contra CAYLA» → **«Comparada con las 3
+   tiendas»** (pizarra; el texto es fijo: si abre una cuarta tienda se toca); «Sin ventas» → **«Sin ventas aún»**, apagado y **sin tachar**
+   (`Chip` tacha el tono apagado por defecto porque lo pide «Anulado»; aquí no es una anulación). Lo que decide cada nivel (qué sugiere, qué
+   espera el Sólido para mover stock) no cambia: solo cambia lo que se VE.
+2. **El tablero tiene dos formas.** Con algo por decidir se dibuja compacto (una línea por categoría: nombre · barra · cifras · «N por decidir»
+   solo si N > 0 · el chip de la excepción), para que la primera prenda por decidir entre entera en una pantalla de 1440×900 sin bajar
+   (medido: y 758–869; antes 821–910, cortada). Sin nada por decidir vuelve a su forma completa (prendas · unidades bajo el nombre, cifras bajo
+   la barra), que ahí vale como mapa. Sigue siendo tablero arriba y lista abajo (decisión 3): solo cambia cuánto ocupa.
+3. **Cada cosa una vez y el botón dice qué pasa.** El conteo por decidir salía seis veces y queda en tres (cabecera, tablero por categoría,
+   píldora); «Decididas» se esconde hasta que haya una; el pie son dos frases con «Ver cuáles». Bajo el botón de la fila va la consecuencia
+   antes de tocarlo (`textoConsecuenciaFila`: «Cuando la hayas movido, toca el botón: la miro 7 días y te digo si sirvió»), porque la ciega no
+   se atrevió a tocar «La cambié de lugar» sin saber qué pasaba; el toque sigue siendo único, sin «¿seguro?», con Deshacer 10 s (ley 7).
+   «Ya decidí» pasa a «Anotar lo que hice» y «Ver las N tiendas» a «Comparar las N tiendas».
+
+Sin migración. Lo que queda abierto está en `docs/formidable/inventario-frescura.md` («Después de ejecutar los 3 cambios») y en
+`docs/backlog/2026-10-10-frescura-formidable-2026-10-09.md`: la ciega otra vez sobre la pantalla nueva, recalificar, `/chaos` sobre la fila
+que anota.

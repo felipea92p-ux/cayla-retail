@@ -1,4 +1,4 @@
-// El ejemplo de «Para reconocerla» al etiquetar una prenda de liquidación (ADR-0371, ADR-0290): sigue a la categoría elegida, como
+// El ejemplo de «Para reconocerla» al etiquetar una prenda de liquidación (ADR-0375, ADR-0290): sigue a la categoría elegida, como
 // Nuevo producto. Sale de la MISMA tabla curada (`FICHAS_POR_CATEGORIA`, por prefijo, nunca por el nombre visible): la prenda de la
 // categoría + un color de ejemplo + el primer detalle de su ficha («Blusa beige, manga globo»). Sin categoría, o una que aún no tiene
 // ficha, un texto que no promete nada. Lógica pura: la prueba recorre todas las categorías.

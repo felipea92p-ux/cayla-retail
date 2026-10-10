@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261010200000_crear_pieza_liquidacion_con_token.sql — CAYLA V2 (ADR-0371, actualización 2026-10-10; /chaos)
+-- 20261010205000_crear_pieza_liquidacion_con_token.sql — CAYLA V2 (ADR-0375, actualización 2026-10-10; /chaos)
 --
 -- EL PROBLEMA. `/chaos` (semilla 371, ataques DC-01 y RS-03): tres clics seguidos en «Etiquetar» crearon TRES piezas de
 -- liquidación. El botón ya se traba en la pantalla, pero eso no alcanza cuando la respuesta se pierde (la base guardó, el

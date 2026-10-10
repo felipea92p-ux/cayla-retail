@@ -1,4 +1,4 @@
-## 🏷️ Piezas de liquidación (2026-10-10, ADR-0371) — migración `20261010190000` (EN PRODUCCIÓN 2026-10-10, versión `20261010172258`); rama `claude/liquidacion-prendas-unicas-55bbee`
+## 🏷️ Piezas de liquidación (2026-10-10, ADR-0375) — migración `20261010195000` (EN PRODUCCIÓN 2026-10-10, versión `20261010172258`); rama `claude/liquidacion-prendas-unicas-55bbee`
 
 - [x] Base: `piezas_liquidacion`, `piezas_liquidacion_etiquetas`, `parametros_liquidacion` (S/ 10); RPC `crear_pieza_liquidacion`, `cambiar_precio_pieza_liquidacion`, `retirar_pieza_liquidacion`, `guardar_precio_minimo_liquidacion`; lecturas `fn_pieza_liquidacion`, `fn_piezas_liquidacion`; dos reemplazos anclados a `registrar_venta`; venta final en cambios y devoluciones; anular la devuelve. `pnpm pruebas:piezas-liquidacion` 19/19 (también en el CI).
 - [x] Web: Catálogo ▸ Liquidación (módulo `liquidacion`, nace solo del líder), etiqueta de papel, hojas con guía de foco, buscador que lee la etiqueta (también una vieja), precio mínimo del líder; Vender lee el código con pistola, cámara o tecleado (probado a 375 px).
@@ -8,6 +8,6 @@
 - [ ] **Felipe:** darle «Liquidación» a los roles de las terminales de almacén y caja (Roles y accesos).
 - [ ] **Sin probar:** imprimir una etiqueta real en la Brother y leerla con la pistola Zebra; cobrar una pieza desde el navegador (lo cubre la prueba contra Postgres, no se cobró en local para no tocar la caja compartida).
 - [x] `/chaos` (semilla 371): 2 hallazgos cerrados (doble pieza con token + candado; doble aviso con candado), precio tachado debajo; INV-13 nueva.
-- [x] **Producción (2026-10-10):** `20261010200000` (token, versión `20261010201508`) y `20261010210000` (descripción, `20261010201543`); md5 de las 13 funciones igual al local.
+- [x] **Producción (2026-10-10):** `20261010205000` (token, versión `20261010201508`) y `20261010210000` (descripción, `20261010201543`); md5 de las 13 funciones igual al local.
 - [x] `/formidable`: 6,6 → 7,7 en leyes (dos pruebas ciegas sobre capturas); los 3 cambios y la descripción opcional hechos.
 - [ ] Prueba con colaboradoras reales (ley 1 no pasa de 7 sin ella).

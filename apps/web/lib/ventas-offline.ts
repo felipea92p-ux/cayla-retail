@@ -62,7 +62,7 @@ export type ItemRegistrarVenta = {
   categoria_id?: string;
   talla_id?: string;
   color_codigo?: string;
-  /** Solo en una pieza de liquidación (ADR-0371): el código de su etiqueta vigente. */
+  /** Solo en una pieza de liquidación (ADR-0375): el código de su etiqueta vigente. */
   pieza_liquidacion_codigo?: string;
 };
 

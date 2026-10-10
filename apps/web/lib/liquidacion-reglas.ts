@@ -1,8 +1,8 @@
-// Las piezas de liquidación (ADR-0371, Felipe 2026-10-10): prendas sueltas que se liquidan sin entrar al catálogo. Cada una es
+// Las piezas de liquidación (ADR-0375, Felipe 2026-10-10): prendas sueltas que se liquidan sin entrar al catálogo. Cada una es
 // una fila con su sede, su categoría y su precio, y una etiqueta con un código corto (`LQ` + 6) que la caja escanea. Cambiar el
 // precio imprime una etiqueta NUEVA y la vieja deja de valer. Lógica pura: la usan la pantalla de Liquidación y Vender, desde el
 // servidor y desde el navegador, y se prueba en `liquidacion-reglas.test.ts`. Las reglas que cuidan el dinero viven en la base
-// (`20261010190000_piezas_de_liquidacion.sql`): aquí solo se anticipan para no mandar algo que se va a rechazar.
+// (`20261010195000_piezas_de_liquidacion.sql`): aquí solo se anticipan para no mandar algo que se va a rechazar.
 
 export type EstadoPieza = "disponible" | "vendida" | "retirada";
 

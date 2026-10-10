@@ -109,7 +109,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             </span>
           </button>
         ) : (
-          // Pieza de liquidación (ADR-0371): precio final, el importe no abre ningún descuento.
+          // Pieza de liquidación (ADR-0375): precio final, el importe no abre ningún descuento.
           <span className="min-w-[4.25rem] shrink-0 pr-1 text-right text-sm font-semibold text-tinta tabular-nums">{money(f.importe)}</span>
         )}
 

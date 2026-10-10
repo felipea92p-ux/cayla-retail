@@ -1,4 +1,4 @@
-# ADR-0371 — Las prendas sueltas que se liquidan no entran al catálogo: se etiquetan como «piezas de liquidación»
+# ADR-0375 — Las prendas sueltas que se liquidan no entran al catálogo: se etiquetan como «piezas de liquidación»
 
 **Fecha:** 2026-10-10 · **Estado:** aceptado (Felipe, 10 preguntas + «ok»), construido y verificado en local. **En producción desde el
 2026-10-10** (OK de Felipe; por el MCP, versión registrada `20261010172258`): las 13 funciones nuevas tienen el mismo md5 que en
@@ -63,7 +63,7 @@ la pantalla y en Vender, la pieza en el ticket a 375 px.
 `/chaos` (semilla 371) encontró que tres clics seguidos en «Etiquetar» creaban tres piezas, y que dos clics en «Cambiar precio»
 mostraban éxito y error a la vez. Arreglo, como en Ajustar inventario: las tres hojas que guardan se traban con un `enVuelo`
 (un `useRef`: el estado de React llega tarde dentro de un mismo clic) y `crear_pieza_liquidacion` recibe `p_token`
-(migración `20261010200000`): el mismo token devuelve la pieza ya creada, también con dos llamadas simultáneas (índice único
+(migración `20261010205000`): el mismo token devuelve la pieza ya creada, también con dos llamadas simultáneas (índice único
 parcial + `on conflict do nothing`). Así un reintento tras una respuesta perdida no deja una pieza fantasma. Prueba:
 `pnpm pruebas:piezas-liquidacion` («el mismo token dos veces…») y la carrera real con dos sesiones (una pieza, una etiqueta).
 
@@ -75,5 +75,5 @@ lista, en el buscador y en la boleta («Liquidación · Blusa beige, manga globo
 (`lib/sugerencias-liquidacion.ts`, ADR-0290). En pantalla se dice **«prenda»**, nunca «pieza» (la tabla y el código siguen con
 `piezas_liquidacion`); el estado es «Precio bajado» y filtra la lista como las otras cifras.
 
-**En producción el 2026-10-10** (OK de Felipe): `20261010200000` (token) y `20261010210000` (descripción), por el MCP, con las versiones
+**En producción el 2026-10-10** (OK de Felipe): `20261010205000` (token) y `20261010210000` (descripción), por el MCP, con las versiones
 registradas `20261010201508` y `20261010201543`. Las 13 funciones `%liquidacion%` tienen el mismo md5 en producción y en local.

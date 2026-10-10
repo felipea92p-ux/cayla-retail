@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de Liquidación (ADR-0284, ADR-0371): qué está hecho, qué sigue y qué falta. No agrega reglas: cada
+// La guía de foco de las hojas de Liquidación (ADR-0284, ADR-0375): qué está hecho, qué sigue y qué falta. No agrega reglas: cada
 // campo «falta» es exactamente lo que la base rechaza (`crear_pieza_liquidacion`, `cambiar_precio_pieza_liquidacion`,
 // `retirar_pieza_liquidacion`) y la prueba lo compara contra `problemaDePrecio`.
 

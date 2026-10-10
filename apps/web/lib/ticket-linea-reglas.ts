@@ -26,7 +26,7 @@ export type LineaParaFila = {
   razonDescuento: string;
   razonDescuentoOtro: string;
   campana?: CampanaLinea | null;
-  /** Una pieza de liquidación (ADR-0371): su etiqueta. */
+  /** Una pieza de liquidación (ADR-0375): su etiqueta. */
   liquidacion?: { codigo: string } | null;
 };
 
@@ -53,7 +53,7 @@ export type FilaDelTicket = {
   alTope: boolean;
   /** El «− 1 +». Una prenda sin registrar no lo lleva: la base exige cantidad 1 y el paso no tendría nada que hacer. */
   conPaso: boolean;
-  /** El importe abre el descuento de la prenda. Una pieza de liquidación no lo lleva: su precio es final (ADR-0371). */
+  /** El importe abre el descuento de la prenda. Una pieza de liquidación no lo lleva: su precio es final (ADR-0375). */
   conDescuento: boolean;
   /** El % de la línea: con campaña, el de SU campaña, no la cuenta monto ÷ precio. */
   pct: number;

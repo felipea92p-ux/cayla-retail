@@ -206,7 +206,7 @@ export type ItemCarrito = {
   campana?: CampanaLinea | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
-  /** Solo en una pieza de liquidación (ADR-0371): el código de su etiqueta. Precio final, sin descuentos, venta final. */
+  /** Solo en una pieza de liquidación (ADR-0375): el código de su etiqueta. Precio final, sin descuentos, venta final. */
   liquidacion?: { codigo: string };
 };
 
@@ -604,7 +604,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setActivo(0);
       const v = resolverCodigoV2(codigo, variantesVisibles);
       if (!v) {
-        // ADR-0371: una etiqueta de liquidación no es de ninguna prenda del catálogo; se busca su pieza en la base.
+        // ADR-0375: una etiqueta de liquidación no es de ninguna prenda del catálogo; se busca su pieza en la base.
         const liquidacion = codigoDeLiquidacion(codigo);
         if (liquidacion) {
           void agregarPiezaLiquidacion(liquidacion);
@@ -1026,7 +1026,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
     if (!v) {
-      // ADR-0371: la pieza de liquidación se busca en la base; el aviso de cómo fue sale aparte, al responder.
+      // ADR-0375: la pieza de liquidación se busca en la base; el aviso de cómo fue sale aparte, al responder.
       const liquidacion = codigoDeLiquidacion(codigo);
       if (liquidacion) {
         void agregarPiezaLiquidacion(liquidacion);
@@ -1062,7 +1062,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
 
   /**
-   * Una pieza de liquidación (ADR-0371): la prenda suelta que no está en el catálogo, con su etiqueta LQ. Se lee en la base (su
+   * Una pieza de liquidación (ADR-0375): la prenda suelta que no está en el catálogo, con su etiqueta LQ. Se lee en la base (su
    * precio vigente, si sigue a la venta y si es de esta tienda) y entra como una línea de la variante centinela, sin mover stock.
    * La base vuelve a comprobarlo todo al cobrar; aquí se adelanta para decirlo en el mostrador y no en el cobro.
    */
@@ -1200,7 +1200,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    // ADR-0371: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
+    // ADR-0375: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
     setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)));
     setMomento("armar");
   }
@@ -1303,7 +1303,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setQ("");
       setActivo(0);
       if (accion.tipo === "no-encontrada") {
-        // ADR-0371: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
+        // ADR-0375: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
         const liquidacion = codigoDeLiquidacion(accion.texto);
         if (liquidacion) {
           void agregarPiezaLiquidacion(liquidacion);
@@ -1393,7 +1393,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     : null;
   // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
   const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
-  // ADR-0371: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
+  // ADR-0375: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
   const liquidacionConClub =
     conVentajaDelClub && carrito.some((it) => it.liquidacion)
       ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
@@ -1579,7 +1579,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
         // «Prenda sin registrar» (ADR-0179): la base exige estos cuatro para dejarla por regularizar.
         descripcion_libre: it.prendaLibre?.descripcion ?? (it.liquidacion ? it.referencia : undefined),
-        // ADR-0371: la pieza de liquidación viaja con su código; la base la cobra al precio de su etiqueta vigente.
+        // ADR-0375: la pieza de liquidación viaja con su código; la base la cobra al precio de su etiqueta vigente.
         pieza_liquidacion_codigo: it.liquidacion?.codigo,
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
@@ -1622,7 +1622,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           avisar.error(titulo, { detalle });
           return;
         }
-        // ADR-0371: una pieza de liquidación tampoco se encola: es UNA prenda y otra caja podría venderla, o rebajarla, mientras tanto.
+        // ADR-0375: una pieza de liquidación tampoco se encola: es UNA prenda y otra caja podría venderla, o rebajarla, mientras tanto.
         if (carrito.some((it) => it.liquidacion)) {
           setLoading(false);
           avisar.error("Sin conexión no se cobra una prenda de liquidación", {
@@ -1683,7 +1683,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         responsable.despues(error);
         return;
       }
-      // ADR-0371: la pieza de liquidación se vendió, se rebajó o se retiró mientras estaba en el ticket.
+      // ADR-0375: la pieza de liquidación se vendió, se rebajó o se retiró mientras estaba en el ticket.
       const rechazoLiquidacion = carrito.some((it) => it.liquidacion) ? errorDeLiquidacion(`${error.message} ${error.hint ?? ""}`) : null;
       if (rechazoLiquidacion) {
         avisar.error(rechazoLiquidacion.titulo, rechazoLiquidacion.detalle ? { detalle: `${rechazoLiquidacion.detalle} Sácala del ticket y vuelve a escanearla.` } : undefined);

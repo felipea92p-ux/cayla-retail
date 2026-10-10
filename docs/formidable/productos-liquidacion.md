@@ -1,4 +1,4 @@
-# Formidable · Catálogo ▸ Liquidación   (`/productos/liquidacion`, ADR-0371)
+# Formidable · Catálogo ▸ Liquidación   (`/productos/liquidacion`, ADR-0375)
 
 - **Fecha / SHA:** 2026-10-10 · `ec4f1f41f` · **Dispositivo que manda:** escritorio (Mac mini o computador de almacén y caja)
 - **Pregunta que debería resolver:** «¿qué prendas sueltas estoy rematando, a cuánto, y cómo etiqueto o le bajo el precio a una?» · **Protagonista:** la prenda y su precio

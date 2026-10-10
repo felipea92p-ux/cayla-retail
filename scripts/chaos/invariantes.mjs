@@ -114,7 +114,7 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
   left join (select venta_item_id, sum(cantidad) as t from retail.movimientos
               where tipo = 'salida' and venta_item_id is not null group by 1) m on m.venta_item_id = i.id
  where coalesce(m.t, 0) <> i.cantidad
-   -- ADR-0371: una pieza de liquidación nunca estuvo en el stock, así que su línea no descuenta nada a propósito. Lo que la
+   -- ADR-0375: una pieza de liquidación nunca estuvo en el stock, así que su línea no descuenta nada a propósito. Lo que la
    -- cuida es INV-13 (la pieza vendida cuadra con su línea), no esta.
    and not exists (select 1 from retail.piezas_liquidacion pl where pl.venta_item_id = i.id)`,
     corrompe: `update retail.venta_items set cantidad = cantidad + 1 where ctid = (select ctid from retail.venta_items limit 1);`,
@@ -271,7 +271,7 @@ select a.id as movimiento_a, b.id as movimiento_b, a.tipo, a.variante_id, a.cant
     nombre: "pieza_de_liquidacion_cuadra",
     gravedad: 1,
     nivel: "cruzada",
-    dice: "Una pieza de liquidación (ADR-0371) a la venta tiene UNA etiqueta que la caja acepta, y una vendida apunta a una línea de una venta completada, de una sola unidad, cobrada al precio de su etiqueta: nunca vendida dos veces, ni vendida en una venta anulada, ni a otro precio.",
+    dice: "Una pieza de liquidación (ADR-0375) a la venta tiene UNA etiqueta que la caja acepta, y una vendida apunta a una línea de una venta completada, de una sola unidad, cobrada al precio de su etiqueta: nunca vendida dos veces, ni vendida en una venta anulada, ni a otro precio.",
     sql: `
 select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.estado as venta_estado,
        (select count(*) from retail.piezas_liquidacion_etiquetas e where e.pieza_id = p.id and e.vigente) as vigentes

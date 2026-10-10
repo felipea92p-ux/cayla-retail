@@ -24,7 +24,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
-import { getMarcasPorProveedor } from "@/lib/proveedores";
+import { getMarcasPorProveedor, getRubrosEnUso } from "@/lib/proveedores";
 import { LlegoMercaderia } from "@/components/LlegoMercaderia";
 import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
@@ -64,6 +64,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const persona = await requirePersonaActualV2();
   const esLider = persona.rol === "lider";
   const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
+  const puedeAgregarProveedor = puede(persona, "editarCuentasProveedor"); // dar de alta un proveedor: el módulo Proveedores (fn_puede_gestionar_proveedores)
   const params = await searchParams;
   // ADR-0330: las ventas sin registrar se mudaron a Existencias; el enlace viejo (avisos, marcadores) llega a su lugar nuevo.
   if (params.vista === "por-regularizar") redirect("/inventario/por-regularizar");
@@ -194,11 +195,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, trasladosDeLaSede, porRecibir, recientes, costos] = await Promise.all([
+    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
       getMarcasPorProveedor(),
+      // Los rubros que ya usan los proveedores: los botones de «Agregar proveedor». Solo si la cuenta puede agregar; secundaria.
+      puedeAgregarProveedor ? getRubrosEnUso() : Promise.resolve([] as string[]),
       getTrasladosEnCurso(persona.ubicacionId).catch((e: unknown) => {
         console.error("Aviso de traslados en Recibir mercadería:", e);
         return [] as TrasladoResumen[];
@@ -226,7 +229,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           ubicacionEtiqueta={persona.ubicacionEtiqueta}
           verMontos={verMontos}
           veExistencias={veModulo(persona, "existencias")}
-          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
+          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
+          rubrosEnUso={rubrosEnUso}
+          puedeAgregarProveedor={puedeAgregarProveedor}
           facturas={porRecibir.filas.map((c) => ({
             id: c.id,
             proveedorId: c.proveedorId,

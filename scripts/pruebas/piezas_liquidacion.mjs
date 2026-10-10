@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las piezas de liquidación (ADR-0371) contra el Postgres local — CAYLA V2.
+ * Pruebas de las piezas de liquidación (ADR-0375) contra el Postgres local — CAYLA V2.
  *
  * Una prenda suelta que se liquida no entra al catálogo: se etiqueta con categoría y precio (`crear_pieza_liquidacion`),
  * se rebaja con una etiqueta NUEVA (la vieja deja de valer) y la caja la vende escaneando el código: una línea de la

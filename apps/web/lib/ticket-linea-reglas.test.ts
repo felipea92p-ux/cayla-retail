@@ -80,7 +80,7 @@ describe("filaDelTicket — prenda sin registrar", () => {
   });
 });
 
-describe("filaDelTicket — pieza de liquidación (ADR-0371)", () => {
+describe("filaDelTicket — pieza de liquidación (ADR-0375)", () => {
   const pieza: LineaParaFila = {
     ...base, varianteId: ID_CARGO_ESPECIAL, referencia: "Liquidación · Blusas", sku: "LIQUIDACION", codigo: "LQ7K3M9P", stockAqui: 1,
     liquidacion: { codigo: "LQ7K3M9P" },

@@ -43,7 +43,7 @@ const FILTROS: { valor: Filtro; texto: string }[] = [
 type Abierta = { pieza: PiezaLiquidacion; codigoViejo: string | null };
 
 /**
- * Catálogo ▸ Liquidación (ADR-0371): las prendas sueltas que la sede liquida sin registrarlas en el catálogo. Arriba, lo que hay a
+ * Catálogo ▸ Liquidación (ADR-0375): las prendas sueltas que la sede liquida sin registrarlas en el catálogo. Arriba, lo que hay a
  * la venta y lo cobrado este mes; abajo, la lista con su buscador, que también lee una etiqueta con la pistola y abre esa pieza
  * (incluida una etiqueta vieja: dice cuál es la que vale). «Etiquetar una prenda» es la acción de la pantalla. En pantalla se dice
  * «prenda», nunca «pieza» (/formidable 2026-10-10).

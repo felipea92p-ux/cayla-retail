@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Chip } from "@/components/ui/Chip";
@@ -143,6 +144,7 @@ export function FrescuraDetalle({
   // El modo pedido vale SOLO para la última línea que se vio al pedirlo: si la lectura se refresca y esa línea cambió (otra
   // persona anotó, o se anotó aquí), se vuelve al detalle sin un efecto que lo corrija después de pintar.
   const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: modoInicial, para: decision.anteriorId });
+  const router = useRouter();
   const puedeDecidir = decision.lecturaOk && decision.prenda.pisoHoy > 0;
   // «Ya decidí» solo si se puede (la libreta leída y algo en el piso), venga de su botón o pedido por la fila al abrir.
   const modo = pedido.para !== decision.anteriorId || (pedido.modo === "decidir" && !puedeDecidir) ? "detalle" : pedido.modo;
@@ -260,9 +262,10 @@ export function FrescuraDetalle({
                     Anotar otra decisión
                   </button>
                 )}
+                {/* «Anotar lo que hice» en los dos casos (Formidable 2026-10-09: «Ya decidí» se leía como una afirmación, no como un botón). */}
                 {puedeDecidir && bloque.estado !== "vigente" && (
                   <button type="button" className={decision.prenda.porDecidir ? "btn-cayla btn-primario" : "btn-cayla btn-sutil"} onClick={() => setModo("decidir")}>
-                    {decision.prenda.porDecidir ? "Ya decidí" : "Anotar lo que hice"}
+                    Anotar lo que hice
                   </button>
                 )}
                 {bloque.estado === "vigente" && decision.vigenteId && decision.lecturaOk && (
@@ -270,7 +273,14 @@ export function FrescuraDetalle({
                     Quitar lo anotado
                   </button>
                 )}
-                {!decision.lecturaOk && <span className="text-[12.5px] text-taupe">No se pudo leer lo ya decidido: por ahora no se puede anotar. Vuelve a intentar en un momento.</span>}
+                {!decision.lecturaOk && (
+                  <span className="text-[12.5px] text-taupe">
+                    No se pudo leer lo ya decidido: por ahora no se puede anotar.{" "}
+                    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => router.refresh()}>
+                      Volver a intentar
+                    </button>
+                  </span>
+                )}
               </div>
             )}
             {bloque.historial.length > 0 && (
@@ -353,7 +363,7 @@ export function FrescuraDetalle({
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Ya decidí».</p>
+                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Anotar lo que hice».</p>
               </>
             ) : (
               <p className="text-sm">{detalle.sinAcciones}</p>
