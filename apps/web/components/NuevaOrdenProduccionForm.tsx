@@ -9,6 +9,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoSelect, CampoTexto, Desplegable, Segmentado, Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
 import type { ModeloProducible, VarianteDeModelo } from "@/lib/produccion";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
@@ -131,6 +133,9 @@ export function NuevaOrdenProduccionForm({
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Dos clics en el mismo ciclo del navegador leen el MISMO `cargando` (falso) y enviaban dos llamadas (/chaos DC-01, 2026-10-10): la base las resolvía con el
+  // token (1 modelo, 1 orden), pero la pantalla no debe depender de eso. Una marca síncrona corta la segunda.
+  const enVuelo = useRef(false);
   // Responsable (ADR-0161/0162): la orden la abre quien se elige en el combo (lista del Taller, la sede activa).
   const responsable = useResponsable();
   const [diasObjetivo, setDiasObjetivo] = useState<number>(DIAS_OBJETIVO_PRODUCCION);
@@ -230,6 +235,19 @@ export function NuevaOrdenProduccionForm({
   // La guía de foco (ADR-0284): qué está hecho, qué sigue y qué falta. Sale de la misma validación que apaga el botón.
   const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total, costos: { tela, avios, maquila } }));
 
+  // «¿Salir sin guardar?» (2026-09-28; /chaos NAV-04, 2026-10-10). Escape, el clic fuera y «Cancelar» cerraban la hoja y TODO lo escrito (nombre, tallas, colores, la matriz
+  // de cantidades) se perdía sin avisar. Mismo hook que «Registrar gasto»: la foto de apertura trae lo que llega precargado (tipo, modelo elegido); solo cuenta lo que la
+  // persona cambió. Guardar bien cierra directo.
+  const fotoActual = fotoFormulario({ tipo, modoModelo, productoId, nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, tela, avios, maquila, fechaEntrega, nota });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.");
+  /** Tras guardar: se retira la guardia ANTES de cerrar y de refrescar (juntos, Next podía volver a montar la pantalla de atrás: ver `useSalidaSinGuardar`). */
+  function cerrarTrasGuardar() {
+    const guardiaFuera = avisoSalida.retirarYa();
+    onClose();
+    void guardiaFuera.then(() => router.refresh());
+  }
+
   function usarCurva() {
     const nuevas: Record<string, string> = {};
     for (const [id, s] of curva.porVariante) if (s.sugerido > 0) nuevas[id] = String(s.sugerido);
@@ -283,23 +301,31 @@ export function NuevaOrdenProduccionForm({
       return;
     }
     setChoque(null);
+    if (enVuelo.current) return;
+    enVuelo.current = true;
     setCargando(true);
-    const { error } = await firmar(
-      createClient().rpc(
-        "abrir_produccion_con_modelo_nuevo",
-        paramsRpcModeloNuevo({
-          ubicacionId: tallerId,
-          borrador,
-          celdas: celdasNuevas,
-          costos: { tela, avios, maquila },
-          fechaEntrega,
-          nota,
-          confirmoDistinto,
-          token: token.current,
-        })
-      ),
-      responsable.firma()
-    );
+    let resultado;
+    try {
+      resultado = await firmar(
+        createClient().rpc(
+          "abrir_produccion_con_modelo_nuevo",
+          paramsRpcModeloNuevo({
+            ubicacionId: tallerId,
+            borrador,
+            celdas: celdasNuevas,
+            costos: { tela, avios, maquila },
+            fechaEntrega,
+            nota,
+            confirmoDistinto,
+            token: token.current,
+          })
+        ),
+        responsable.firma()
+      );
+    } finally {
+      enVuelo.current = false;
+    }
+    const { error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
@@ -308,12 +334,12 @@ export function NuevaOrdenProduccionForm({
         setChoque(lectura);
         return;
       }
-      avisar.error(lectura.tipo === "funcion_ausente" ? TEXTO_FUNCION_AUSENTE : traducirError(error, "abrir la orden"));
+      // La base pudo guardar y la respuesta perderse: «No se guardó nada» sería mentira (/chaos RS-03). Se dice que no se sabe y se pide revisar antes de repetir.
+      avisar.error(lectura.tipo === "funcion_ausente" ? TEXTO_FUNCION_AUSENTE : traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`Orden de ${nombreDelModelo(borrador)} abierta`, { detalle: `Modelo nuevo · ${resumenNuevo.total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
-    router.refresh();
-    onClose();
+    cerrarTrasGuardar();
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -340,32 +366,39 @@ export function NuevaOrdenProduccionForm({
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    if (enVuelo.current) return;
+    enVuelo.current = true;
     setCargando(true);
-    const { error } = await firmar(createClient().rpc("abrir_produccion", {
-      p_ubicacion_id: tallerId,
-      p_producto_id: modelo.productoId,
-      p_lineas: lineas,
-      p_costo_tela: Number(tela) || 0,
-      p_costo_avios: Number(avios) || 0,
-      p_costo_maquila: Number(maquila) || 0,
-      p_es_muestra: tipo === "muestra",
-      p_fecha_entrega: fechaEntrega || undefined,
-      p_nota: nota.trim() || undefined,
-      p_token: token.current,
-    }), responsable.firma());
+    let resultado;
+    try {
+      resultado = await firmar(createClient().rpc("abrir_produccion", {
+        p_ubicacion_id: tallerId,
+        p_producto_id: modelo.productoId,
+        p_lineas: lineas,
+        p_costo_tela: Number(tela) || 0,
+        p_costo_avios: Number(avios) || 0,
+        p_costo_maquila: Number(maquila) || 0,
+        p_es_muestra: tipo === "muestra",
+        p_fecha_entrega: fechaEntrega || undefined,
+        p_nota: nota.trim() || undefined,
+        p_token: token.current,
+      }), responsable.firma());
+    } finally {
+      enVuelo.current = false;
+    }
+    const { error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "abrir la orden"));
+      avisar.error(traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`Orden de ${modelo.referencia} abierta`, { detalle: `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
-    router.refresh();
-    onClose();
+    cerrarTrasGuardar();
   }
 
   return (
-    <Modal titulo="Nueva orden de producción" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)} ancho="max-w-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <Segmentado<Tipo>
@@ -697,7 +730,7 @@ export function NuevaOrdenProduccionForm({
         <div className="pie-hoja-fijo space-y-2">
           <PieGuia guia={guia} listo="Todo listo para abrir la orden." conFrase />
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className={botonCancelar}>
+            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
               Cancelar
             </button>
             <button
@@ -711,6 +744,7 @@ export function NuevaOrdenProduccionForm({
           </div>
         </div>
       </form>
+      {avisoSalida.aviso}
     </Modal>
   );
 }

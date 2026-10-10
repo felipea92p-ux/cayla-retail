@@ -527,6 +527,31 @@ describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado 
   });
 });
 
+describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", () => {
+  const form = () => readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
+  it("#6 si la conexión falla NO se afirma «No se guardó nada» (la base pudo guardar y la respuesta perderse): los dos avisos piden revisar antes de repetir", () => {
+    const llamadas = [...form().matchAll(/traducirError\(error, "abrir la orden"([^)]*)\)/g)];
+    expect(llamadas.length).toBe(2);
+    for (const l of llamadas) expect(l[1]).toContain("confirmarAntesDeRepetir: true");
+  });
+  it("#7 dos clics en el mismo instante no envían dos llamadas: además del estado `cargando` (que no se actualiza entre dos eventos del mismo ciclo) hay una marca síncrona", () => {
+    const f = form();
+    expect(f).toMatch(/const enVuelo = useRef\(false\)/);
+    expect([...f.matchAll(/if \(enVuelo\.current\) return;/g)].length).toBe(2);
+    expect([...f.matchAll(/enVuelo\.current = false;/g)].length).toBeGreaterThanOrEqual(2);
+  });
+  it("#8 cerrar con datos escritos (Escape, clic fuera o Cancelar) pregunta «¿Salir sin guardar?» con el mismo hook que Registrar gasto; guardar bien cierra directo", () => {
+    const f = form();
+    expect(f).toContain("useSalidaSinGuardar");
+    expect(f).toContain('<Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)}');
+    expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
+    expect(f).toContain("{avisoSalida.aviso}");
+    // Los dos caminos de guardar (modelo nuevo y modelo que ya existe) cierran por la misma función, que retira la guardia ANTES de cerrar y de refrescar.
+    expect([...f.matchAll(/avisoSalida\.retirarYa\(\)/g)].length).toBe(1);
+    expect([...f.matchAll(/cerrarTrasGuardar\(\);/g)].length).toBe(2);
+  });
+});
+
 describe("el botón principal de Nueva orden cabe a 375 px", () => {
   it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
