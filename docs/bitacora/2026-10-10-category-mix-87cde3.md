@@ -7,7 +7,7 @@ dos vacíos y dos barras apiladas, que `lib/unificar.test.ts` ya no deja (ADR-03
 Por qué así: «solo anotarlo en SOLO_PANTALLA» habría cumplido la prueba sin cumplir la regla (apagar el módulo a un rol debe apagarlo también por la API), y esa lista solo puede
 encogerse. Hoy ningún rol tiene el módulo, así que para nadie cambia nada: es dejar la base igual de cerrada que la pantalla antes de que el líder lo reparta.
 Felipe se lleva: el PR #831 queda listo para subirse con una migración más que pegar (en este orden: `20261006110000`, luego `20261010171845`; la `20261006100000` ya está en
-producción). Falta verlo en el navegador y correr las suites SQL de la migración nueva: Docker Desktop se cayó a media sesión y no está verificado todavía (ver el backlog de hoy).
+producción). Docker Desktop se cayó a media sesión; al volver se verificó todo (suites SQL 27/27, 17/17, roles-cobertura 32/32, roles 70/70 y la pantalla en el navegador; ver el backlog de hoy).
 
 ## 2026-10-10 (misma sesión: la revisión adversarial de la migración nueva, antes de pegarla en producción)
 Qué hice: tres revisores de solo lectura (permisos y seguridad; seguridad de pegarla en producción; pruebas y documentación) y un escéptico por hallazgo, 13 agentes: 10 hallazgos, 9 confirmados,
