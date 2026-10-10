@@ -54,6 +54,9 @@ import { crearOrdenCompra } from "@/lib/ordenes-compra-acciones";
 // cosa. Sale de `camposDeLaOrden`, que son las reglas de `crear_orden_compra` (la entrega estimada es sugerida: nunca bloquea).
 
 const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+// El título de un campo de la cabecera de la orden: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier
+// estado de la guía (✓, «Sigue aquí», falta, opcional).
+const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 56 rem o más). La comparten el encabezado y cada fila: marca de la guía y número ·
 // categoría · marca · descripción · cantidad · precio · descuento (caja + «% / S/») · subtotal · quitar.
 const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
@@ -219,7 +222,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
             «hay mucho espacio, se puede compactar más»). */}
         <section className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y destino">
           <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
-          <CampoGuiado id="proveedor" guia={guia} titulo="Proveedor" ayuda="uno por orden">
+          {/* Cada título va en una fila de ALTO FIJO (`TITULO_FIJO`), no en el de `CampoGuiado`: su alto cambiaba con el estado de la guía
+              (con ✓ 25 px, con «Sigue aquí» 21 px) y las cuatro cajas quedaban a distinta altura mientras se llenaba (Felipe, 2026-10-10:
+              «debería estar alineado»). El proveedor va sin ayuda al lado: con «Sigue aquí» no cabía en la columna. */}
+          <CampoGuiado id="proveedor" guia={guia}>
+            <p className={TITULO_FIJO}>{guia.etiqueta("proveedor", "Proveedor")}</p>
             <ComboBuscable
               id="oc-proveedor"
               caja
@@ -230,7 +237,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
               opciones={opcionesProveedor}
             />
           </CampoGuiado>
-          <CampoGuiado id="destino" guia={guia} titulo="Llega a">
+          <CampoGuiado id="destino" guia={guia}>
+            <p className={TITULO_FIJO}>{guia.etiqueta("destino", "Llega a")}</p>
             <CampoSelect
               id="oc-destino"
               caja
@@ -242,7 +250,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
             />
             {orden.destino === POR_REPARTIR && <p className="mt-1.5 text-xs text-taupe">Se separa en Lima y se envía a cada tienda después.</p>}
           </CampoGuiado>
-          <CampoGuiado id="entrega" guia={guia} titulo="Entrega estimada" ayuda="si la sabes">
+          <CampoGuiado id="entrega" guia={guia}>
+            <p className={TITULO_FIJO}>
+              {guia.etiqueta("entrega", "Entrega estimada")}
+              <span className="text-[12px] font-normal text-taupe">si la sabes</span>
+            </p>
             <CampoFecha
               id="oc-entrega"
               caja
@@ -253,7 +265,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
               pie={problemaEntrega ?? undefined}
             />
           </CampoGuiado>
-          <CampoGuiado id="nota" guia={guia} titulo="Nota" ayuda="opcional">
+          <CampoGuiado id="nota" guia={guia}>
+            <p className={TITULO_FIJO}>
+              {guia.etiqueta("nota", "Nota")}
+              <span className="text-[12px] font-normal text-taupe">opcional</span>
+            </p>
             <CampoTexto
               id="oc-nota"
               caja
@@ -411,15 +427,15 @@ function LineaOrden({
           <p className={`${TITULO} @min-[56rem]:hidden`}>
             Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
           </p>
-          <CampoTexto caja etiqueta={`Descripción de la línea ${numero}`} maxLength={TOPES.descripcion} placeholder={placeholderDescripcion} value={l.descripcion} onChange={(e) => onCambio({ descripcion: e.target.value })} />
+          <CampoTexto caja sinPie etiqueta={`Descripción de la línea ${numero}`} maxLength={TOPES.descripcion} placeholder={placeholderDescripcion} value={l.descripcion} onChange={(e) => onCambio({ descripcion: e.target.value })} />
         </div>
         <div>
           <p className={`${TITULO} @min-[56rem]:hidden`}>Cantidad</p>
-          <CampoTexto caja etiqueta={`Cantidad de la línea ${numero}`} inputMode="numeric" placeholder="0" value={l.cantidad} onChange={(e) => onCambio({ cantidad: e.target.value })} />
+          <CampoTexto caja sinPie etiqueta={`Cantidad de la línea ${numero}`} inputMode="numeric" placeholder="0" value={l.cantidad} onChange={(e) => onCambio({ cantidad: e.target.value })} />
         </div>
         <div>
           <p className={`${TITULO} @min-[56rem]:hidden`}>Precio por unidad</p>
-          <CampoTexto caja etiqueta={`Precio por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
+          <CampoTexto caja sinPie etiqueta={`Precio por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>
@@ -429,6 +445,7 @@ function LineaOrden({
             <div className="min-w-0 flex-1">
               <CampoTexto
                 caja
+                sinPie
                 etiqueta={`Descuento de la línea ${numero}, ${l.modoDescuento === "pct" ? "en porcentaje" : "en soles"}`}
                 inputMode="decimal"
                 placeholder={l.modoDescuento === "pct" ? "0 %" : "0.00"}

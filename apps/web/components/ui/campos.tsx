@@ -97,6 +97,10 @@ type CampoProps = {
   idEtiqueta?: string;
   /** La etiqueta existe (para lectores de pantalla) pero no se ve: la caja ya dice qué es con su marcador. */
   etiquetaOculta?: boolean;
+  /** Sin el renglón del pie reservado (cuando no hay `pie`). Para una caja que vive en una FILA de tabla junto a combos: con el
+   *  renglón vacío medía 18 px más que ellos y la fila quedaba desalineada (Nueva orden de compra, Felipe 2026-10-10). Ahí los
+   *  mensajes no van bajo cada caja: los dice la guía de la fila. */
+  sinPie?: boolean;
   children: ReactNode;
 };
 
@@ -107,7 +111,7 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
-export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, children }: CampoProps) {
+export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
     <div>
       <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "label-cayla block text-[11px] text-tinta/65"}>
@@ -115,7 +119,7 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
         {ayuda}
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
-      <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
+      {sinPie && !pie ? null : <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
         {pie ? (
           tono === "error" ? (
@@ -127,7 +131,7 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
             <span className="anim-revelar block">{pie}</span>
           )
         ) : null}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -151,6 +155,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   valido?: boolean;
   /** Guía oficial: caja hundida en hueso, sin hilo, y la etiqueta solo para lectores de pantalla (barras de filtros). */
   caja?: boolean;
+  /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
+  sinPie?: boolean;
 };
 
 /* Altura única de todo control de una línea (input, fecha, combo): 36px, que
@@ -169,13 +175,13 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
   const [enfocado, setEnfocado] = useState(false);
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja} sinPie={sinPie}>
       <div className={caja ? "caja-cayla relative px-3" : "relative"}>
         <input
           id={id}
