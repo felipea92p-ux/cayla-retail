@@ -9,7 +9,7 @@
  *     lo que muestra la pantalla (`fn_piso_plan_lectura`) y lo que cuenta `fn_existencias_base` (ADR-0270), con sus modelos distintos.
  *   · IDEMPOTENCIA. Correr la foto dos veces el mismo día no duplica ni cambia nada: queda la primera, aunque el stock se haya movido en medio.
  *   · «PISO CUADRADO». Falso sin cuadre; verdadero solo para la sede que cuadró (la otra sigue falsa).
- *   · QUIÉN. Solo el servidor toma la foto (ni `authenticated` ni `anon`); la lectura es de quien ve el módulo «Plan del piso» (20261010170000,
+ *   · QUIÉN. Solo el servidor toma la foto (ni `authenticated` ni `anon`); la lectura es de quien ve el módulo «Plan del piso» (20261010171845,
  *     ADR-0161) Y opera esa sede (el líder, todas; una colaboradora o una terminal, la suya), con 42501 —nunca cero filas— para quien no tiene el
  *     módulo (pista `plan_piso_sin_modulo`), otra sede, una cuenta de afuera o una sede nula. Las ventanas de `p_desde` y el orden.
  *   · EL ESQUEMA. Ni por fuera de la función: modelos > prendas, prendas negativas, una foto de 2025, dos fotos del mismo día, una categoría o
@@ -21,7 +21,7 @@
  * USO
  *   pnpm pruebas:plan-piso-foto                 → contra la base `postgres` del stack local (la del CI)
  *   pnpm pruebas:plan-piso-foto --base otra     → contra otra base del mismo contenedor
- *   … --en-seco                                  → carga la migración dentro de cada caso (base sin ella)
+ *   … --en-seco                                  → carga la cadena de las tres migraciones del Plan del piso dentro de cada caso (base sin ellas)
  */
 
 import { execFileSync } from "node:child_process";
@@ -36,7 +36,7 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261006110000_plan_del_piso_foto_del_espacio.sql"), "utf8");
 // Con --en-seco la base no trae el Plan del piso: se cargan las tres migraciones, en orden (la tercera pide las dos primeras).
-const CADENA_EN_SECO = ["20261006100000_plan_del_piso_grupos_del_mix.sql", "20261006110000_plan_del_piso_foto_del_espacio.sql", "20261010170000_plan_del_piso_quien_ve_el_modulo.sql"]
+const CADENA_EN_SECO = ["20261006100000_plan_del_piso_grupos_del_mix.sql", "20261006110000_plan_del_piso_foto_del_espacio.sql", "20261010171845_plan_del_piso_quien_ve_el_modulo.sql"]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
 
@@ -253,7 +253,7 @@ caso(
    select split_part(pg_temp.intento('select retail.fn_registrar_espacio_piso()'), '|', 1);`,
   "42501\n42501\n42501"
 );
-// Desde 20261010170000 la lectura pide el MÓDULO «Plan del piso» (ADR-0161), además de la sede. El módulo nace sin rol: quien no es líder lo
+// Desde 20261010171845 la lectura pide el MÓDULO «Plan del piso» (ADR-0161), además de la sede. El módulo nace sin rol: quien no es líder lo
 // recibe de un líder, aquí DENTRO del caso (ROLLBACK).
 const DAR_EL_MODULO = (rol) => `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('${rol}'), 'plan_piso');`;
 
@@ -281,13 +281,15 @@ caso(
   "una TERMINAL (con el módulo en su rol) lee la de su tienda; una cuenta de AFUERA o una sede nula reciben 42501",
   `${FOTO}
    ${DAR_EL_MODULO("terminal_ventas")}
+   ${DAR_EL_MODULO("integrante")}
    ${como(T_VENTAS_TRU)}
    select count(*) > 0 from retail.fn_espacio_piso(:'tru');
    ${como(AFUERA)}
-   select split_part(pg_temp.intento(format('select * from retail.fn_espacio_piso(%L)', :'tru')), '|', 1);
+   select array_to_string((string_to_array(pg_temp.intento(format('select * from retail.fn_espacio_piso(%L)', :'tru')), '|'))[1:2], '|');
    ${como(FELIPE)}
    select split_part(pg_temp.intento('select * from retail.fn_espacio_piso(null)'), '|', 1);`,
-  "t\n42501\n42501"
+  // La cuenta de afuera: pista VACÍA (paró en la puerta de retail, no en la del módulo) aunque algún rol tenga el módulo.
+  "t\n42501|\n42501"
 );
 caso(
   "la lectura trae por defecto las últimas 26 semanas, de la más reciente a la más antigua; `p_desde` abre la ventana",

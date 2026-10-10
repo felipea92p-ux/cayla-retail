@@ -87,8 +87,8 @@ es delegable, pero las tres lecturas (`fn_grupos_mix`, `fn_categorias_grupo_mix`
 módulo a un rol le escondía la pantalla, pero por la API seguía leyendo los grupos y las fotos. La decisión original («son un catálogo de pertenencias, sin cifras»)
 era razonable para los grupos; la prueba pide además que un módulo delegable tenga un guardián en la base, y Felipe eligió cumplirla así.
 
-**Decisión (Felipe, 2026-10-10):** las tres lecturas piden `fn_ve_modulo('plan_piso')` (migración `20261010170000_plan_del_piso_quien_ve_el_modulo.sql`). Quien no es de
-retail sigue recibiendo 42501 «No tienes acceso a retail»; quien es de retail y no ve el módulo, 42501 con la pista `plan_piso_sin_modulo`. La escritura
+**Decisión (Felipe, 2026-10-10):** las tres lecturas piden `fn_ve_modulo('plan_piso')` (migración `20261010171845_plan_del_piso_quien_ve_el_modulo.sql`). Quien no es de
+retail sigue recibiendo 42501 («No tienes acceso a retail» en los grupos; «No tienes acceso al espacio de esa sede» en las fotos, como siempre); quien es de retail y no ve el módulo, 42501 con la pista `plan_piso_sin_modulo`. La escritura
 (`fijar_grupos_de_categorias`, solo el líder) y la foto (`fn_registrar_espacio_piso`, solo el servidor) no cambian. Hoy el módulo no tiene ningún rol, así que **no cambia
 nada para nadie**: solo el líder lo ve, en la pantalla y en la base.
 
@@ -98,5 +98,7 @@ módulo seguiría sin apagar nada en la base; (b) marcarlo «solo líder por aho
 SE ROMPE SI: otro módulo necesita leer estos grupos o fotos (la columna «ocupa · meta» de Frescura, pendiente de este PR): quien ve Frescura y no tiene «Plan del piso»
 recibiría 42501. Esa pantalla trae su propia función de lectura con su propio candado; no se relaja esta.
 
+**Límites que quedan escritos (revisión adversarial del 2026-10-10):** (1) la escritura, `fijar_grupos_de_categorias`, sigue pidiendo solo al líder: si se le oculta `plan_piso` a un líder (`lider_modulos_ocultos`) pierde las lecturas, pero por la API todavía podría confirmar grupos; hoy nada se lo oculta, y pedirle también el módulo a la escritura es otra decisión de Felipe (toca una escritura). (2) `20261006100000` y `20261006110000` traen las mismas funciones sin la puerta: **no se re-pegan después de `20261010171845`**.
+
 **También en esta actualización:** al fusionar con `main`, el Plan del piso pasó a las piezas únicas de ADR-0358 (`<Pestanas>`, `<Vacio>`, `ui/BarraApilada`); la barra y las
-pestañas a mano se retiraron. No cambia qué hace nada, solo cómo se dibuja. **Para producción, en este orden:** `20261006110000` (la foto), `20261010170000` (esta), cada una sola.
+pestañas a mano se retiraron. No cambia qué hace nada, solo cómo se dibuja. **Para producción, en este orden:** `20261006110000` (la foto), `20261010171845` (esta), cada una sola.

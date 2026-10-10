@@ -512,8 +512,8 @@ jobs:
         run: pnpm pruebas:frescura-vara-cayla
 
       # Plan del piso, grupos del mix (ADR-0329, actividad 12 de ADR-0328): los 8 grupos con su rol y de qué lado del riel están; las 42
-      # categorías entran con la propuesta por prefijo, todas «por revisar»; `fn_grupos_mix` y `fn_categorias_grupo_mix` para líder,
-      # colaboradora y terminal (42501 para la cuenta de afuera); `fijar_grupos_de_categorias` solo del líder y TODO O NADA (con firma,
+      # categorías entran con la propuesta por prefijo, todas «por revisar»; `fn_grupos_mix` y `fn_categorias_grupo_mix` para quien ve el
+      # módulo «Plan del piso» (el líder siempre; una colaboradora o una terminal solo si su rol lo recibe; sin él, 42501 `plan_piso_sin_modulo`; la cuenta de afuera, 42501); `fijar_grupos_de_categorias` solo del líder y TODO O NADA (con firma,
       # historial, «sin cambios» al reintentar y PT409 si otra persona cambió una, sin guardar ninguna del lote); los candados de la tabla
       # (un vestido no va a «accesorios», un cinturón no va entre los jeans, una categoría en dos grupos, un rol inventado) y el módulo
       # sin rol. Cada caso termina en ROLLBACK.
@@ -525,7 +525,7 @@ jobs:
       # piso × categoría activa) —sin el Taller, una tienda apagada ni una sin piso—, con lo colgado EXACTAMENTE como lo muestra la pantalla
       # (`fn_piso_plan_lectura`) y lo cuenta `fn_existencias_base`; una categoría sin nada queda en 0; correrla dos veces el mismo día deja la
       # primera foto aunque el stock se mueva; «piso cuadrado» solo para la sede que cuadró; ni `authenticated` ni `anon` la ejecutan;
-      # `fn_espacio_piso` es de quien opera esa sede (42501 para otra, una cuenta de afuera o una sede nula); y los candados de la tabla. ROLLBACK.
+      # `fn_espacio_piso` es de quien ve el módulo «Plan del piso» Y opera esa sede (42501 sin el módulo, para otra sede, una cuenta de afuera o una sede nula); y los candados de la tabla. ROLLBACK.
       - name: pruebas:plan-piso-foto
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:plan-piso-foto

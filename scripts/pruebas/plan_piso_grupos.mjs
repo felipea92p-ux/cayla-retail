@@ -7,7 +7,7 @@
  *   · LA SIEMBRA. Los 8 grupos con su rol y de qué lado del riel están; las 42 categorías activas entran con la propuesta por
  *     prefijo, TODAS «por revisar» (ninguna confirmada: la decisión es de Felipe); una categoría nueva sale «Sin grupo» y una
  *     desactivada no sale; re-pegar la migración no pisa lo que el líder confirmó ni lo que cambió de grupo.
- *   · LA LECTURA. Pide el MÓDULO «Plan del piso» (20261010170000, ADR-0161): el líder lo ve siempre; una colaboradora o una terminal
+ *   · LA LECTURA. Pide el MÓDULO «Plan del piso» (20261010171845, ADR-0161): el líder lo ve siempre; una colaboradora o una terminal
  *     leen solo si su rol lo recibe (sin él, 42501 con la pista `plan_piso_sin_modulo`, no cero filas); una cuenta de afuera recibe
  *     42501 aunque se le diera el módulo a algún rol; por la vía de PostgREST funciona y las tablas directo no se leen.
  *   · LA ESCRITURA. Solo el líder, TODO O NADA: confirmar las 42 de una vez (una fila de historial con 42 cambios, firma de la
@@ -24,7 +24,7 @@
  * USO
  *   pnpm pruebas:plan-piso-grupos                 → contra la base `postgres` del stack local (la del CI)
  *   pnpm pruebas:plan-piso-grupos --base otra     → contra otra base del mismo contenedor
- *   … --en-seco                                    → carga la migración dentro de cada caso (base sin ella)
+ *   … --en-seco                                    → carga la cadena de las tres migraciones del Plan del piso dentro de cada caso (base sin ellas)
  */
 
 import { execFileSync } from "node:child_process";
@@ -39,7 +39,7 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261006100000_plan_del_piso_grupos_del_mix.sql"), "utf8");
 // Con --en-seco la base no trae el Plan del piso: se cargan las tres migraciones, en orden (la tercera pide las dos primeras).
-const CADENA_EN_SECO = ["20261006100000_plan_del_piso_grupos_del_mix.sql", "20261006110000_plan_del_piso_foto_del_espacio.sql", "20261010170000_plan_del_piso_quien_ve_el_modulo.sql"]
+const CADENA_EN_SECO = ["20261006100000_plan_del_piso_grupos_del_mix.sql", "20261006110000_plan_del_piso_foto_del_espacio.sql", "20261010171845_plan_del_piso_quien_ve_el_modulo.sql"]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
 
@@ -183,7 +183,7 @@ caso(
 // 2. LA LECTURA (la puerta única de retail)
 // ===========================================================================
 
-// Desde 20261010170000 las lecturas piden el MÓDULO (ADR-0161), no solo ser de retail. El módulo nace sin ningún rol (caso del final), así
+// Desde 20261010171845 las lecturas piden el MÓDULO (ADR-0161), no solo ser de retail. El módulo nace sin ningún rol (caso del final), así
 // que quien no es líder solo lee cuando un líder se lo da a su rol: aquí se le da DENTRO del caso (ROLLBACK), como postgres y antes de
 // cambiar de rol de base de datos.
 const DAR_EL_MODULO = (rol) => `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('${rol}'), 'plan_piso');\n`;
@@ -214,9 +214,9 @@ caso(
 caso(
   "una cuenta de AFUERA recibe 42501 en las dos lecturas, no cero filas (no puede parecer «no hay grupos»), aunque se le diera el módulo a algún rol",
   DAR_EL_MODULO("integrante") + como(AFUERA) +
-    `select split_part(pg_temp.intento('select * from retail.fn_grupos_mix()'), '|', 1);
-     select split_part(pg_temp.intento('select * from retail.fn_categorias_grupo_mix()'), '|', 1);`,
-  "42501\n42501"
+    `${SIN_PERMISO("fn_grupos_mix()")}\n${SIN_PERMISO("fn_categorias_grupo_mix()")}`,
+  // Pista VACÍA: paró en la puerta de retail, no en la del módulo (cuya pista es plan_piso_sin_modulo).
+  "42501|\n42501|"
 );
 caso(
   "por la vía de PostgREST (rol authenticated) la colaboradora con el módulo lee y sin él no; las tablas directo, no (ni el líder)",

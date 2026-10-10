@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261010170000_plan_del_piso_quien_ve_el_modulo.sql — CAYLA V2 · ADR-0352 (actualización 2026-10-10) · ADR-0161 / ADR-0306
+-- 20261010171845_plan_del_piso_quien_ve_el_modulo.sql — CAYLA V2 · ADR-0352 (actualización 2026-10-10) · ADR-0161 / ADR-0306
 -- Las tres lecturas del Plan del piso piden el módulo «Plan del piso», no solo ser de retail.
 --
 -- EL PROBLEMA PRIMERO. «Plan del piso» (`plan_piso`) se creó delegable: el líder decide a qué rol se lo da. Pero las tres lecturas de la
@@ -21,11 +21,12 @@
 --   · fn_grupos_mix / fn_categorias_grupo_mix: PROMETEN los grupos (o la categoría con su grupo), o un 42501: «No tienes acceso a retail.» si
 --     la cuenta es de afuera, o «necesitas el módulo Plan del piso» (hint `plan_piso_sin_modulo`) si es de retail y no lo ve. Nunca cero
 --     filas que parezcan «no hay grupos». ASUMEN una sesión; el líder lo ve siempre, salvo que se lo oculte (`lider_modulos_ocultos`).
---   · fn_espacio_piso: lo mismo, y además la sede: quien opera esa sede (el líder, todas). Sede nula o ajena → 42501.
+--   · fn_espacio_piso: lo mismo, y además la sede: quien opera esa sede (el líder, todas). Sede nula o ajena → 42501. A una cuenta de afuera le
+--     dice «No tienes acceso al espacio de esa sede.» (el mensaje de siempre de esta función), no «a retail»; el SQLSTATE es el mismo.
 --
 -- ESTADO QUE DEJA DE SER POSIBLE. Que una cuenta sin el módulo «Plan del piso» lea el plan por la API (PostgREST) o desde otra pantalla.
 --
--- POR QUÉ NO SE EDITÓ LA MIGRACIÓN ANTERIOR. `20261006100000` ya está en producción (pegada el 2026-10-06): una migración aplicada no se
+-- POR QUÉ NO SE EDITÓ LA MIGRACIÓN ANTERIOR. `20261006100000` ya está en producción (pegada el 2026-10-05): una migración aplicada no se
 -- reescribe. Y `20261006110000` aún no estaba pegada, pero así las tres puertas quedan en UN lugar, que es lo que se audita.
 --   DECIDÍ: una migración nueva con las tres lecturas.
 --   DESCARTÉ: (a) anotar `plan_piso` en `SOLO_PANTALLA` de `roles_cobertura_modulos.mjs`: es la lista que «solo puede encogerse»
@@ -40,6 +41,9 @@
 -- dos veces. Cómo se verifica después (la primera consulta debe dar `t` en las tres):
 --   select p.proname, pg_get_functiondef(p.oid) like '%fn_ve_modulo(''plan_piso'')%' as con_el_modulo
 --     from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_grupos_mix', 'fn_categorias_grupo_mix', 'fn_espacio_piso');
+--
+-- NO RE-PEGUES `20261006100000` NI `20261006110000` DESPUÉS DE ESTA: las dos traen las mismas funciones SIN la puerta del módulo (`create or replace`) y se la
+-- quitarían en silencio. Si por error se pegó una, vuelve a pegar esta y corre la consulta de verificación de arriba.
 --
 -- CÓMO SE DESHACE. Volver a pegar las definiciones de esas tres funciones de `20261006100000` (las dos primeras) y `20261006110000` (la
 -- tercera): son las mismas sin la puerta del módulo.
