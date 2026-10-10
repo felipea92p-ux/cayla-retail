@@ -9,5 +9,5 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
   const persona = await exigirModulo("plan_compra");
   const { plan } = await searchParams;
   const { datos, falla, familias, preparacion } = await getPlanCompra(plan);
-  return <PlanCampana datos={datos} falla={falla} familias={familias} preparacion={preparacion} puedeContar={veModulo(persona, "conteos")} />;
+  return <PlanCampana datos={datos} falla={falla} familias={familias} preparacion={preparacion} puedeContar={veModulo(persona, "conteos")} esLider={persona.rol === "lider"} />;
 }

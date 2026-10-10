@@ -21,14 +21,14 @@ import {
   calcular,
   comprarPorTalla,
   curvaSugerida,
+  efectoEnElTope,
   enteroES,
   lineaDeBorrador,
   porQue,
   propuestaDeNormal,
   solesES,
   type Borrador,
-  type CategoriaPlan,
-  type LineaPlan,
+  type FilaPlan,
 } from "@/lib/plan-compra-reglas";
 
 // El formulario de UNA categoría del plan de campaña (ADR-0349): sus tres escenarios, el precio, el costo, a cuánto se vende lo que
@@ -44,6 +44,15 @@ const soloMonto = (s: string) => s.replace(/[^\d.,]/g, "");
 
 /** Lo que el pie necesita para dibujar sus botones: el de guardar va dentro del `<form>` y se deshabilita con la guía. Un botón que
  *  guarda y sigue lleva `data-seguir="1"`: el formulario lo reconoce por él al enviarse. */
+function EfectoEnElTope({ efecto, tope }: { efecto: ReturnType<typeof efectoEnElTope>; tope: number }) {
+  return (
+    <p className="mt-3 border-t border-sand pt-3 text-sm text-tinta/80">
+      Con esto llevarías <b className="font-semibold text-tinta">{solesES(efecto.total)}</b> de {solesES(tope)} de tope ({efecto.porcentaje} %)
+      {efecto.excede > 0 && <span className="font-medium text-ambar-profundo"> · te pasas {solesES(efecto.excede)}</span>}.
+    </p>
+  );
+}
+
 export type PieDelFormulario = {
   guardando: boolean;
   /** La guía deja confirmar: lo mismo que la base aceptaría. */
@@ -56,23 +65,23 @@ export type PieDelFormulario = {
 
 export function FormularioCategoria({
   planId,
-  categoria,
-  linea,
-  stock,
-  ventas,
+  fila,
   vendidoPorTalla,
+  tope,
+  inversionDeLasDemas,
   onGuardado,
   pie,
   enPantalla = false,
   irAlMontar = false,
 }: {
   planId: string;
-  categoria: CategoriaPlan;
-  linea: LineaPlan | undefined;
-  stock: number;
-  /** Lo que se vendió de esta categoría en los últimos 90 días: la referencia para escribir los escenarios. */
-  ventas: number;
+  /** La categoría con todo lo que la lectura sabe de ella: su plan, lo que hay, lo vendido, el catálogo y dónde está el stock. */
+  fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
+  /** El tope de inversión de la campaña (null = sin tope): el resultado dice cuánto llevarías contra él. Solo avisa. */
+  tope: number | null;
+  /** Lo que cuestan las OTRAS categorías con plan: con lo de esta, el total contra el tope. */
+  inversionDeLasDemas: number;
   /** Se llama cuando la base ya guardó (después del aviso y de refrescar la lectura). `seguir`: se guardó con el botón «Guardar y seguir». */
   onGuardado: (seguir: boolean) => void;
   /** Los botones de abajo, dentro del `<form>`. */
@@ -83,10 +92,11 @@ export function FormularioCategoria({
   /** Al aparecer, lleva el cursor al primer campo: se pasó a la siguiente categoría y el botón que se tocó ya no existe. */
   irAlMontar?: boolean;
 }) {
+  const { c: categoria, linea, stock, ventas, ventas30, sedes, catalogo } = fila;
   const router = useRouter();
   const responsable = useResponsable();
   const tallas = useMemo(() => [...categoria.tallas].sort((a, b) => compararTallas(a.valor, b.valor)), [categoria]);
-  const [b, setB] = useState<Borrador>(() => borradorDe(linea, tallas, vendidoPorTalla));
+  const [b, setB] = useState<Borrador>(() => borradorDe(linea, tallas, vendidoPorTalla, catalogo));
   const [nota, setNota] = useState(linea?.nota ?? "");
   const [guardando, setGuardando] = useState(false);
 
@@ -109,6 +119,8 @@ export function FormularioCategoria({
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
 
   const propuesta = propuestaDeNormal(ventas);
+  // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
+  const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -130,9 +142,16 @@ export function FormularioCategoria({
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
         <span>
           Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en 90 días
+          {ventas30 !== null && (
+            <>
+              {" · "}
+              <b className="font-semibold text-tinta">{enteroES.format(ventas30)}</b> en los últimos 30
+            </>
+          )}
         </span>
         <span>
           Hoy hay <b className="font-semibold text-tinta">{enteroES.format(stock)}</b> en la red
+          {sedes && sedes.length > 0 && <span className="text-tinta/70"> ({sedes.map((x) => `${x.ubicacion} ${enteroES.format(x.unidades)}`).join(" · ")})</span>}
         </span>
         <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
           Proponer el normal desde lo vendido
@@ -157,10 +176,10 @@ export function FormularioCategoria({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <CampoGuiado id="precio" guia={guia} titulo="Precio" ayuda="De venta, promedio">
+        <CampoGuiado id="precio" guia={guia} titulo="Precio" ayuda={delCatalogo && b.precio === delCatalogo.precio ? "Del catálogo · revísalo" : "De venta, promedio"}>
           <CampoMonto etiqueta="" inputMode="decimal" value={b.precio} onChange={(e) => cambiar("precio")(soloMonto(e.target.value))} />
         </CampoGuiado>
-        <CampoGuiado id="costo" guia={guia} titulo="Costo" ayuda="Por prenda, promedio">
+        <CampoGuiado id="costo" guia={guia} titulo="Costo" ayuda={delCatalogo && b.costo === delCatalogo.costo ? "Del catálogo · revísalo" : "Por prenda, promedio"}>
           <CampoMonto etiqueta="" inputMode="decimal" value={b.costo} onChange={(e) => cambiar("costo")(soloMonto(e.target.value))} />
         </CampoGuiado>
         <CampoGuiado id="recupero" guia={guia} titulo="Lo que sobra" ayuda="Lo vendes al % del precio">
@@ -217,6 +236,7 @@ export function FormularioCategoria({
                 <BarraRango viva linea={lineaViva} calculo={calculo} />
               </div>
             )}
+            {tope !== null && <EfectoEnElTope efecto={efectoEnElTope(inversionDeLasDemas, calculo.inversion, tope)} tope={tope} />}
           </>
         ) : (
           <p className="text-sm text-tinta/70">Cuando completes los escenarios, el precio, el costo y lo que sobra, aquí sale cuánto comprar.</p>

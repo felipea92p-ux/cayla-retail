@@ -7,6 +7,7 @@ import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
+import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import { armarFilas, confianzaDelStock, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
@@ -22,7 +23,7 @@ import { Vacio } from "@/components/ui/Vacio";
 // verdad al lado. Toda la cuenta vive en lib/plan-compra-reglas.ts (con su prueba); aquí solo se arma la pantalla con sus piezas y se
 // guarda qué filtros están puestos (las cifras y la lista los comparten).
 
-export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }: { datos: unknown; falla: string | null; familias: FamiliaPlan[]; preparacion: LecturaMotor; puedeContar: boolean }) {
+export function PlanCampana({ datos, falla, familias, preparacion, puedeContar, esLider }: { datos: unknown; falla: string | null; familias: FamiliaPlan[]; preparacion: LecturaMotor; puedeContar: boolean; esLider: boolean }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
   // Las que se guardaron con «Guardar y seguir» en esta tanda: la lectura del servidor tarda un instante en traerlas y la hoja no debe
@@ -35,6 +36,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
   const [sinMovAbiertas, setSinMovAbiertas] = useState(false);
   const [vista, setVista] = useState<VistaPlan>("tabla");
   const [exportando, setExportando] = useState(false);
+  const [editandoTope, setEditandoTope] = useState(false);
   const filas = useMemo(() => (plan ? armarFilas(plan) : []), [plan]);
 
   if (!plan) {
@@ -57,6 +59,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
   const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
   const totales = totalesDelPlan(filas);
   const confianza = confianzaDelStock(preparacion);
+  const filaAbierta = abierta ? (filas.find((f) => f.c.id === abierta.id) ?? null) : null;
   const siguiente = abierta ? (siguienteSinPlan(filas, [...hechas, abierta.id])?.c ?? null) : null;
   const cerrarHoja = () => {
     setAbierta(null);
@@ -85,7 +88,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
 
       <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
-      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => setVista("guiado")} />
+      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => setVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
 
       <ListaCategorias
         filas={filas}
@@ -104,7 +107,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
         onAbrir={(f) => setAbierta(f.c)}
         vista={vista}
         onVista={setVista}
-        pasoAPaso={<PasoAPaso planId={plan.plan.id} filas={filas} vendidoPorTalla={plan.vendidoPorTalla} totales={totales} familias={familias} onTabla={() => setVista("tabla")} />}
+        pasoAPaso={<PasoAPaso planId={plan.plan.id} filas={filas} vendidoPorTalla={plan.vendidoPorTalla} totales={totales} tope={plan.tope.valor} familias={familias} onTabla={() => setVista("tabla")} />}
       />
 
       <p className="nota-cayla">
@@ -114,17 +117,18 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }
         números son tus supuestos, y en enero se comparan con lo que pasó.
       </p>
 
+      {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
+
       {exportando && <ExportarPlan planNombre={plan.plan.nombre} filas={filas} confianza={confianza} onClose={() => setExportando(false)} />}
 
-      {abierta && (
+      {abierta && filaAbierta && (
         <PlanCategoriaModal
           planId={plan.plan.id}
           planNombre={plan.plan.nombre}
-          categoria={abierta}
-          linea={plan.lineas.get(abierta.id)}
-          stock={plan.stock.get(abierta.id) ?? 0}
-          ventas={filas.find((f) => f.c.id === abierta.id)?.ventas ?? 0}
+          fila={filaAbierta}
           vendidoPorTalla={plan.vendidoPorTalla.get(abierta.id)}
+          tope={plan.tope.valor}
+          inversionDeLasDemas={totales.inversion - (filaAbierta.calculo?.inversion ?? 0)}
           siguiente={siguiente}
           enSerie={hechas.length > 0}
           onGuardado={(seguir) => {

@@ -21,6 +21,7 @@ export function PasoAPaso({
   filas,
   vendidoPorTalla,
   totales,
+  tope,
   familias,
   onTabla,
 }: {
@@ -29,6 +30,8 @@ export function PasoAPaso({
   /** Categoría → talla → unidades vendidas en 90 días: con eso el formulario propone la curva de tallas. */
   vendidoPorTalla: ReadonlyMap<string, ReadonlyMap<string, number>>;
   totales: TotalesPlan;
+  /** El tope de la campaña (null = sin tope). */
+  tope: number | null;
   familias: readonly FamiliaPlan[];
   /** «Ver la tabla»: de vuelta a la lista. */
   onTabla: () => void;
@@ -88,6 +91,7 @@ export function PasoAPaso({
         </p>
         <p className="text-sm text-tinta/80">
           Inversión <b className="font-semibold text-tinta">{solesES(totales.inversion)}</b>
+          {tope !== null && <span className="text-tinta/70"> · {Math.round((totales.inversion / tope) * 100)} % del tope</span>}
         </p>
       </div>
       <div className="rounded-2xl border border-sand p-4">
@@ -147,11 +151,10 @@ export function PasoAPaso({
         <div className="anim-revelar" key={actual.c.id}>
           <FormularioCategoria
             planId={planId}
-            categoria={actual.c}
-            linea={actual.linea}
-            stock={actual.stock}
-            ventas={actual.ventas}
+            fila={actual}
             vendidoPorTalla={vendidoPorTalla.get(actual.c.id)}
+            tope={tope}
+            inversionDeLasDemas={totales.inversion - (actual.calculo?.inversion ?? 0)}
             enPantalla
             irAlMontar={hechas.length > 0 || elegida !== null || saltadas.length > 0}
             onGuardado={() => {

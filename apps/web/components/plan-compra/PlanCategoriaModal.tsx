@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { FormularioCategoria } from "@/components/plan-compra/FormularioCategoria";
-import type { CategoriaPlan, LineaPlan } from "@/lib/plan-compra-reglas";
+import type { CategoriaPlan, FilaPlan } from "@/lib/plan-compra-reglas";
 
 // La ventana de una categoría en el plan de campaña (ADR-0349): el formulario de la categoría (`FormularioCategoria`, el mismo que usa
 // el paso a paso) dentro de una hoja. Aquí solo vive lo propio de la hoja: el título, el pie y qué pasa al guardar. Con «Guardar y seguir
@@ -14,11 +14,10 @@ import type { CategoriaPlan, LineaPlan } from "@/lib/plan-compra-reglas";
 export function PlanCategoriaModal({
   planId,
   planNombre,
-  categoria,
-  linea,
-  stock,
-  ventas,
+  fila,
   vendidoPorTalla,
+  tope,
+  inversionDeLasDemas,
   siguiente,
   enSerie,
   onGuardado,
@@ -26,11 +25,11 @@ export function PlanCategoriaModal({
 }: {
   planId: string;
   planNombre: string;
-  categoria: CategoriaPlan;
-  linea: LineaPlan | undefined;
-  stock: number;
-  ventas: number;
+  fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
+  /** El tope de la campaña (null = sin tope) y lo que cuestan las otras categorías con plan. */
+  tope: number | null;
+  inversionDeLasDemas: number;
   /** La que sigue si se guarda con «Guardar y seguir»; null si no queda ninguna (el botón no se dibuja). */
   siguiente: CategoriaPlan | null;
   /** Ya se guardó alguna en esta tanda: esta llegó por «Guardar y seguir» y el cursor va a su primer campo. */
@@ -40,16 +39,15 @@ export function PlanCategoriaModal({
   onClose: () => void;
 }) {
   return (
-    <Modal titulo={`Plan de ${categoria.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} variante="hoja" ancho="max-w-2xl">
+    <Modal titulo={`Plan de ${fila.c.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} variante="hoja" ancho="max-w-2xl">
       {(cerrar) => (
         <FormularioCategoria
-          key={categoria.id}
+          key={fila.c.id}
           planId={planId}
-          categoria={categoria}
-          linea={linea}
-          stock={stock}
-          ventas={ventas}
+          fila={fila}
           vendidoPorTalla={vendidoPorTalla}
+          tope={tope}
+          inversionDeLasDemas={inversionDeLasDemas}
           irAlMontar={enSerie}
           onGuardado={(seguir) => {
             onGuardado(seguir && siguiente !== null);

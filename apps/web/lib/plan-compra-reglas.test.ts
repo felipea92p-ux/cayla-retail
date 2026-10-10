@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aplicarFiltro,
   argsGuardar,
+  argsGuardarTope,
   avanceDelPaso,
   armarFilas,
   borradorDe,
@@ -15,6 +16,7 @@ import {
   cuantilTriangular,
   curvaSugerida,
   diasEntre,
+  efectoEnElTope,
   ENCABEZADOS_LISTA_COMPRA,
   escalaDeRango,
   esAgotada,
@@ -23,6 +25,7 @@ import {
   filasDelCsvDeCompra,
   filtrarFilas,
   fraseDeLoReal,
+  leerMonto,
   leerPlan,
   lineaDeBorrador,
   momentoDeLaCampana,
@@ -32,16 +35,18 @@ import {
   plegarSinMovimiento,
   porQue,
   posicionEnEscala,
+  problemaDelTope,
   problemasDelBorrador,
   propuestaDeNormal,
   repartir,
+  segmentosDelTope,
   siguienteSinPlan,
   TOP_VENTAS,
   totalesDelPlan,
   type Borrador,
   type TallaPlan,
 } from "./plan-compra-reglas";
-import { camposDelPlan } from "./plan-compra-guia";
+import { camposDelPlan, camposDelTope } from "./plan-compra-guia";
 import { sePuedeConfirmar } from "./guia-campos";
 
 const TALLAS: TallaPlan[] = [
@@ -556,5 +561,101 @@ describe("la lista de compra: lo que se exporta", () => {
   it("sin nada que comprar, la lista está vacía y el total en cero", () => {
     expect(filasDeLaListaDeCompra([])).toEqual([]);
     expect(filasDelCsvDeCompra([])).toEqual([["Total", 0, "", "0.00"]]);
+  });
+});
+
+describe("la lectura ampliada (ADR-0372, B1 y B2) y su retrocompatibilidad", () => {
+  const base = {
+    plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
+    hoy: "2026-10-05",
+    categorias: [{ id: "c", nombre: "Polos", tallas: [] }, { id: "d", nombre: "Bodys", tallas: [] }],
+  };
+  it("una respuesta VIEJA de la base (sin las claves nuevas) se lee sin caerse y lo nuevo queda en null", () => {
+    const l = leerPlan(base)!;
+    expect(l.catalogo).toBeNull();
+    expect(l.stockSedes).toBeNull();
+    expect(l.vendido30).toBeNull();
+    expect(l.tope).toEqual({ soportado: false, valor: null });
+    const f = armarFilas(l)[0];
+    expect([f.ventas30, f.sedes, f.catalogo]).toEqual([null, null, null]);
+  });
+  it("con las claves nuevas, cada una llega a su fila; lo que no trae dato queda vacío, no inventado", () => {
+    const l = leerPlan({
+      ...base,
+      plan: { ...base.plan, tope_inversion: "12000.50" },
+      catalogo: [{ categoria_id: "c", precio: "69.90", costo: "28.00" }, { categoria_id: "d", precio: "50", costo: 0 }],
+      stock_sedes: [{ categoria_id: "c", ubicacion: "Tienda Lima", unidades: 120 }, { categoria_id: "c", ubicacion: "Taller", unidades: 16 }, { categoria_id: "c", ubicacion: "Cero", unidades: 0 }],
+      vendido_30: [{ categoria_id: "c", unidades: 14 }],
+    })!;
+    expect(l.tope).toEqual({ soportado: true, valor: 12000.5 });
+    const polos = armarFilas(l).find((x) => x.c.id === "c")!;
+    const bodys = armarFilas(l).find((x) => x.c.id === "d")!;
+    expect(polos.catalogo).toEqual({ precio: 69.9, costo: 28 });
+    expect(polos.sedes).toEqual([{ ubicacion: "Tienda Lima", unidades: 120 }, { ubicacion: "Taller", unidades: 16 }]);
+    expect(polos.ventas30).toBe(14);
+    // Un costo en 0 es «sin dato», no «gratis»: no se ofrece como punto de partida.
+    expect(bodys.catalogo).toBeNull();
+    expect(bodys.sedes).toEqual([]);
+    expect(bodys.ventas30).toBe(0);
+  });
+  it("tope: la base lo conoce pero no hay tope (null o 0) es «sin tope»", () => {
+    expect(leerPlan({ ...base, plan: { ...base.plan, tope_inversion: null } })!.tope).toEqual({ soportado: true, valor: null });
+    expect(leerPlan({ ...base, plan: { ...base.plan, tope_inversion: 0 } })!.tope).toEqual({ soportado: true, valor: null });
+  });
+  it("sin plan guardado, el precio y el costo arrancan con los del catálogo; con plan, manda lo guardado; sin catálogo, en blanco", () => {
+    expect(borradorDe(undefined, TALLAS, undefined, { precio: 69.9, costo: 28 })).toMatchObject({ precio: "69.90", costo: "28.00" });
+    expect(borradorDe(undefined, TALLAS, undefined)).toMatchObject({ precio: "", costo: "" });
+    expect(borradorDe(undefined, TALLAS, undefined, null)).toMatchObject({ precio: "", costo: "" });
+    const guardado = borradorDe({ categoriaId: "c", flojo: 1, normal: 2, bueno: 3, precio: 50, costo: 20, recuperoPct: 40, curva: {}, nota: null, actualizadoPor: null, actualizadoEn: null }, TALLAS, undefined, { precio: 99, costo: 9 });
+    expect(guardado).toMatchObject({ precio: "50.00", costo: "20.00" });
+  });
+});
+
+describe("el tope de inversión: leer lo que se escribe y medirlo", () => {
+  it("lee un monto como lo escribe una persona: miles con coma o espacio, decimal con punto o coma", () => {
+    expect(leerMonto("12000")).toBe(12000);
+    expect(leerMonto("12,000")).toBe(12000);
+    expect(leerMonto("12 000")).toBe(12000);
+    expect(leerMonto("1,234,567.89")).toBe(1234567.89);
+    expect(leerMonto("12000.5")).toBe(12000.5);
+    expect(leerMonto("12000,50")).toBe(12000.5);
+    expect(leerMonto("12,5")).toBe(12.5);
+    expect(leerMonto("  8 500  ")).toBe(8500);
+  });
+  it("lo que no es un monto, o no es mayor que cero, no se lee", () => {
+    for (const t of ["", "  ", "0", "0,00", "-5", "abc", "12.3.4", "12,000.123", "1e5", "S/ 100", "99999999999"]) expect(leerMonto(t), t).toBeNull();
+  });
+  it("el problema dice qué hacer, y los argumentos van como los espera la base (null quita el tope)", () => {
+    expect(problemaDelTope("")).toMatch(/Escribe cuánto/);
+    expect(problemaDelTope("12,000")).toBeNull();
+    expect(argsGuardarTope("p", "12,000")).toEqual({ p_plan_id: "p", p_tope: 12000 });
+    expect(argsGuardarTope("p", null)).toEqual({ p_plan_id: "p", p_tope: null });
+  });
+  it("el efecto de una categoría en el tope: el total, el % y cuánto te pasas (0 si no)", () => {
+    expect(efectoEnElTope(9000, 1500.5, 12000)).toEqual({ total: 10500.5, porcentaje: 88, excede: 0 });
+    expect(efectoEnElTope(11000, 1500, 12000)).toEqual({ total: 12500, porcentaje: 104, excede: 500 });
+    expect(efectoEnElTope(0, 0, 12000)).toEqual({ total: 0, porcentaje: 0, excede: 0 });
+  });
+  it("la barra: las 5 que más cuestan y el resto junto en «Otras»; sin plan o sin costo no entran", () => {
+    const mk = (n: number, inv: number) => ({ c: { id: `c${n}`, nombre: `Cat ${n}`, prefijo: null, familia: null, tallas: [] }, linea: undefined, stock: 0, calculo: { cuantil: 1, objetivo: 1, stock: 0, comprar: 1, inversion: inv }, vendido: 0, ventas: 0, puesto: null, ventas30: null, sedes: null, catalogo: null });
+    const filas = [mk(1, 100), mk(2, 700), mk(3, 300), mk(4, 500), mk(5, 200), mk(6, 50), mk(7, 25), { ...mk(8, 0) }, { ...mk(9, 900), calculo: null }];
+    const seg = segmentosDelTope(filas);
+    expect(seg.map((x) => [x.clave, x.valor])).toEqual([["c2", 700], ["c4", 500], ["c3", 300], ["c5", 200], ["c1", 100], ["otras", 75]]);
+    expect(segmentosDelTope(filas.slice(0, 3)).some((x) => x.clave === "otras")).toBe(false);
+    expect(segmentosDelTope([])).toEqual([]);
+  });
+});
+
+describe("la guía del tope dice lo mismo que la validación", () => {
+  const listo = { listo: true, motivo: null };
+  it("deja confirmar exactamente cuando el monto se lee y hay quien firme", () => {
+    for (const t of ["12000", "12,000", "12 000", "12000.50", "8,5"]) expect(sePuedeConfirmar(camposDelTope(t, listo)), t).toBe(true);
+    for (const t of ["", "0", "abc", "-5", "S/ 100"]) expect(sePuedeConfirmar(camposDelTope(t, listo)), t).toBe(false);
+    expect(sePuedeConfirmar(camposDelTope("12000", { listo: false, motivo: "Elige quién" }))).toBe(false);
+  });
+  it("lo que falta dice qué hacer, con el mismo texto que la validación", () => {
+    const [tope, quien] = camposDelTope("", { listo: false, motivo: "Elige quién fija el tope." });
+    expect(tope.pendiente).toBe(problemaDelTope(""));
+    expect(quien.pendiente).toBe("Elige quién fija el tope.");
   });
 });

@@ -24,6 +24,7 @@ import { compararTallas } from "./tallas";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
+export const RPC_GUARDAR_TOPE = "guardar_plan_compra_tope";
 /** Cuántas unidades vendidas «valen» igual que el reparto parejo al proponer la curva. */
 export const K_CURVA = 10;
 
@@ -54,6 +55,18 @@ export type LecturaPlan = {
   vendidoPorTalla: Map<string, Map<string, number>>;
   /** categoría → unidades vendidas dentro de la campaña. */
   vendidoEnCampana: Map<string, number>;
+  /**
+   * Lo que solo trae la lectura ampliada (ADR-0372, migraciones B1 y B2). **null = la base todavía no lo manda** (la web se publicó antes
+   * que la migración): la pantalla esconde esa ayuda en vez de caerse o inventar un cero.
+   */
+  /** categoría → precio y costo promedio de lo que hay en el catálogo. */
+  catalogo: Map<string, { precio: number; costo: number }> | null;
+  /** categoría → cuánto hay en cada sede (tiendas y Taller), sin apartados ni Cuarentena. */
+  stockSedes: Map<string, { ubicacion: string; unidades: number }[]> | null;
+  /** categoría → unidades vendidas en los últimos 30 días. */
+  vendido30: Map<string, number> | null;
+  /** El tope de inversión: `soportado` = la base ya sabe de topes; `valor` null = sin tope. */
+  tope: { soportado: boolean; valor: number | null };
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -124,6 +137,8 @@ export function leerPlan(v: unknown): LecturaPlan | null {
     vendidoPorTalla.set(cid, m);
   }
 
+  const hay = (clave: string) => Array.isArray(v[clave]);
+  const topeLeido = v.plan.tope_inversion === undefined ? null : numero(v.plan.tope_inversion);
   return {
     plan: { id, nombre, desde, hasta },
     hoy,
@@ -133,6 +148,28 @@ export function leerPlan(v: unknown): LecturaPlan | null {
     stock: porCategoria(v.stock),
     vendidoPorTalla,
     vendidoEnCampana: porCategoria(v.vendido),
+    catalogo: hay("catalogo")
+      ? new Map(
+          lista(v.catalogo).flatMap((f): [string, { precio: number; costo: number }][] => {
+            const cid = texto(f.categoria_id);
+            const precio = numero(f.precio);
+            const costo = numero(f.costo);
+            // Un precio o un costo en 0 es «sin dato», no «gratis»: no se ofrece como punto de partida.
+            return cid && precio > 0 && costo > 0 ? [[cid, { precio, costo }]] : [];
+          }),
+        )
+      : null,
+    stockSedes: hay("stock_sedes")
+      ? lista(v.stock_sedes).reduce((m, f) => {
+          const cid = texto(f.categoria_id);
+          const ubicacion = texto(f.ubicacion);
+          const unidades = numero(f.unidades);
+          if (cid && ubicacion && unidades > 0) m.set(cid, [...(m.get(cid) ?? []), { ubicacion, unidades }]);
+          return m;
+        }, new Map<string, { ubicacion: string; unidades: number }[]>())
+      : null,
+    vendido30: hay("vendido_30") ? porCategoria(v.vendido_30) : null,
+    tope: { soportado: v.plan.tope_inversion !== undefined, valor: topeLeido !== null && topeLeido > 0 ? topeLeido : null },
   };
 }
 
@@ -285,14 +322,20 @@ export function argsGuardar(planId: string, categoriaId: string, b: Borrador, ta
 }
 
 /** El borrador para una categoría: lo guardado, o vacío con la curva que propone el sistema. */
-export function borradorDe(linea: LineaPlan | undefined, tallas: readonly TallaPlan[], vendido: ReadonlyMap<string, number> | undefined): Borrador {
+export function borradorDe(
+  linea: LineaPlan | undefined,
+  tallas: readonly TallaPlan[],
+  vendido: ReadonlyMap<string, number> | undefined,
+  /** Lo que hay en el catálogo (ADR-0372): sin plan guardado, el precio y el costo arrancan con eso en vez de en blanco. */
+  catalogo?: { precio: number; costo: number } | null,
+): Borrador {
   const curva = linea && Object.keys(linea.curva).length > 0 ? linea.curva : curvaSugerida(tallas, vendido);
   return {
     flojo: linea ? String(linea.flojo) : "",
     normal: linea ? String(linea.normal) : "",
     bueno: linea ? String(linea.bueno) : "",
-    precio: linea ? linea.precio.toFixed(2) : "",
-    costo: linea ? linea.costo.toFixed(2) : "",
+    precio: linea ? linea.precio.toFixed(2) : catalogo ? catalogo.precio.toFixed(2) : "",
+    costo: linea ? linea.costo.toFixed(2) : catalogo ? catalogo.costo.toFixed(2) : "",
     recupero: linea ? String(linea.recuperoPct) : "",
     curva: Object.fromEntries(Object.entries(curva).map(([k, v]) => [k, String(v)])),
   };
@@ -346,6 +389,12 @@ export type FilaPlan = {
   ventas: number;
   /** Su lugar entre las que más venden (1 a `TOP_VENTAS`), o null si no está entre ellas. Una categoría sin ventas nunca entra. */
   puesto: number | null;
+  /** Lo vendido en 30 días, o null si la base todavía no lo manda (ADR-0372 B1). */
+  ventas30: number | null;
+  /** Dónde está lo que hay (cada sede con su cantidad), o null si la base todavía no lo manda. */
+  sedes: { ubicacion: string; unidades: number }[] | null;
+  /** Precio y costo promedio del catálogo, o null si no hay o la base todavía no lo manda. */
+  catalogo: { precio: number; costo: number } | null;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -371,6 +420,9 @@ export function armarFilas(plan: LecturaPlan): FilaPlan[] {
         vendido: plan.vendidoEnCampana.get(c.id) ?? 0,
         ventas: sumaDe(plan.vendidoPorTalla.get(c.id)),
         puesto: null,
+        ventas30: plan.vendido30 ? (plan.vendido30.get(c.id) ?? 0) : null,
+        sedes: plan.stockSedes ? (plan.stockSedes.get(c.id) ?? []) : null,
+        catalogo: plan.catalogo?.get(c.id) ?? null,
       };
     })
     .sort(porVentas);
@@ -623,4 +675,47 @@ export function filasDelCsvDeCompra(lista: readonly FilaListaCompra[]): (string 
 export function nombreDelArchivoDeCompra(planNombre: string): string {
   const limpio = sinTildes(planNombre).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return `lista-de-compra-${limpio || "campana"}.csv`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 13. El tope de inversión (ADR-0372, B2)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Un monto escrito como lo escribe una persona: «12000», «12,000», «12 000», «12000.50», «12000,50», «1,234,567.89». La coma que separa
+ * grupos de tres cifras («12,000») es de miles; cualquier otra coma es el decimal. Devuelve null si no es un monto o no es mayor que cero.
+ */
+export function leerMonto(t: string): number | null {
+  const limpio = t.replace(/\s+/g, "");
+  if (!limpio) return null;
+  const sinMiles = /^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(limpio) ? limpio.replace(/,/g, "") : limpio.replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(sinMiles)) return null;
+  const n = Number(sinMiles);
+  return n > 0 && n <= 9_999_999_999 ? n : null;
+}
+
+/** Lo que impide guardar el tope (vacío = se puede). */
+export const problemaDelTope = (t: string): string | null => (leerMonto(t) === null ? "Escribe cuánto quieres invertir, en soles (un número mayor que cero)." : null);
+
+/** Los argumentos de `guardar_plan_compra_tope`. `null` quita el tope. */
+export const argsGuardarTope = (planId: string, t: string | null) => ({ p_plan_id: planId, p_tope: t === null ? null : leerMonto(t) });
+
+export type EfectoEnElTope = { total: number; porcentaje: number; excede: number };
+
+/** Lo que llevarías invertido si esta categoría quedara así, contra el tope: el total, el % del tope y cuánto te pasas (0 si no). */
+export function efectoEnElTope(inversionDeLasDemas: number, inversionDeEsta: number, tope: number): EfectoEnElTope {
+  const total = Math.round((inversionDeLasDemas + inversionDeEsta) * 100) / 100;
+  return { total, porcentaje: Math.round((total / tope) * 100), excede: Math.max(0, Math.round((total - tope) * 100) / 100) };
+}
+
+export type SegmentoTope = { clave: string; nombre: string; valor: number };
+
+/** La barra del tope: las 5 categorías que más cuestan, una por una, y el resto junto en «Otras». Solo las que tienen plan y cuestan algo. */
+export function segmentosDelTope(filas: readonly FilaPlan[]): SegmentoTope[] {
+  const caras = filas
+    .filter((f) => f.calculo && f.calculo.inversion > 0)
+    .sort((a, b) => (b.calculo?.inversion ?? 0) - (a.calculo?.inversion ?? 0) || a.c.nombre.localeCompare(b.c.nombre, "es"));
+  const cinco = caras.slice(0, 5).map((f) => ({ clave: f.c.id, nombre: f.c.nombre, valor: f.calculo!.inversion }));
+  const resto = caras.slice(5).reduce((s, f) => s + (f.calculo?.inversion ?? 0), 0);
+  return resto > 0 ? [...cinco, { clave: "otras", nombre: "Otras", valor: Math.round(resto * 100) / 100 }] : cinco;
 }

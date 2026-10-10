@@ -3,7 +3,7 @@
 // La prueba exige que la guía deje confirmar exactamente cuando la base aceptaría.
 
 import type { CampoDeGuia } from "./guia-campos";
-import { problemasDelBorrador, type Borrador, type TallaPlan } from "./plan-compra-reglas";
+import { problemaDelTope, problemasDelBorrador, type Borrador, type TallaPlan } from "./plan-compra-reglas";
 
 export function camposDelPlan(
   b: Borrador,
@@ -22,5 +22,14 @@ export function camposDelPlan(
     // La curva viene propuesta por el sistema: solo falta si alguien la cambió y ya no suma 100.
     campo("curva", "Curva de tallas", "Revisa la curva de tallas."),
     { id: "responsable", nombre: "Quién arma el plan", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién arma el plan." },
+  ];
+}
+
+/** La guía de la hoja del tope (ADR-0372): el monto y quién lo firma. «Hecho» es lo que `problemaDelTope` ya acepta: la misma regla que la base. */
+export function camposDelTope(texto: string, responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const problema = problemaDelTope(texto);
+  return [
+    { id: "tope", nombre: "Tope de inversión", requerido: true, hecho: problema === null, pendiente: problema ?? "Escribe cuánto quieres invertir." },
+    { id: "responsable", nombre: "Quién fija el tope", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién fija el tope." },
   ];
 }
