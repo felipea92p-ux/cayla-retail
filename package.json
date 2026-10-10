@@ -124,6 +124,7 @@
     "pruebas:por-pagar-produccion": "node scripts/pruebas/por_pagar_produccion.mjs",
     "pruebas:recibir-comprobante-produccion": "node scripts/pruebas/recibir_comprobante_produccion.mjs",
     "pruebas:candado-dinero-produccion": "node scripts/pruebas/candado_dinero_produccion.mjs",
+    "pruebas:abrir-produccion-modelo-nuevo": "node scripts/pruebas/abrir_produccion_con_modelo_nuevo.mjs",
     "pruebas:planilla-por-sede": "node scripts/pruebas/planilla_por_sede.mjs",
     "pruebas:produccion-punta-a-punta": "node scripts/pruebas/produccion_punta_a_punta.mjs",
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
