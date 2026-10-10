@@ -3,3 +3,4 @@
 - Apartar busca la ficha por DNI y, si no está, el nombre en SUNAT (`/api/padron`); el celular pasa a opcional (sin él, el número de Yape/Plin se pide aparte y no hay aviso por WhatsApp).
 - «Todos» se llama «Historial» y cada apartado tiene su botón para reimprimir el ticket (marcado COPIA; entregados: final o anticipo).
 - Verificado en local a 1440 px y 375 px: apartado sin celular registrado, fila sin WhatsApp, ticket reimpreso; base local restaurada a su foto. Migración `20261009231332` aplicada en producción (MCP) el mismo día, verificada.
+- Pedir a otra sede también acepta el pedido sin celular (migración `20261009232138` en producción); al llegar, «Ya le avisé» deja constancia sin WhatsApp.
