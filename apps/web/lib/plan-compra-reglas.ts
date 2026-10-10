@@ -318,3 +318,60 @@ export function fraseDeLoReal(vendido: number, l: Pick<LineaPlan, "flojo" | "nor
     : "más que el diciembre bueno";
   return `Se vendieron ${vendido}: ${donde}.`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 6. La hoja: una fila por categoría y los totales
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Cómo se escriben las cantidades, el dinero y las fechas en esta pantalla (una sola vez, no en cada componente). */
+export const enteroES = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
+export const solesES = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const fechaLargaES = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
+
+export type FilaPlan = {
+  c: CategoriaPlan;
+  linea: LineaPlan | undefined;
+  /** Lo que ya hay en la red (libre de apartados y sin Cuarentena). */
+  stock: number;
+  calculo: Calculo | null;
+  /** Lo que se vendió dentro de las fechas de la campaña. */
+  vendido: number;
+};
+
+/**
+ * Una fila por categoría activa, con su cuenta hecha. Primero lo que ya tiene plan; después, lo que más stock tiene (lo que más
+ * pesa para la campaña); a igual stock, por nombre. El orden es estable: dos lecturas iguales dan la misma tabla.
+ */
+export function armarFilas(plan: LecturaPlan): FilaPlan[] {
+  return plan.categorias
+    .map((c): FilaPlan => {
+      const linea = plan.lineas.get(c.id);
+      const stock = plan.stock.get(c.id) ?? 0;
+      return { c, linea, stock, calculo: linea ? calcular(linea, stock) : null, vendido: plan.vendidoEnCampana.get(c.id) ?? 0 };
+    })
+    .sort((a, b) => Number(!!b.linea) - Number(!!a.linea) || b.stock - a.stock || a.c.nombre.localeCompare(b.c.nombre, "es"));
+}
+
+export type TotalesPlan = {
+  /** Cuántas categorías ya tienen plan. */
+  conPlan: number;
+  /** Cuántas categorías hay en total. */
+  total: number;
+  /** Prendas a comprar, sumando solo las categorías con plan. */
+  aComprar: number;
+  /** Inversión al costo, sumando solo las categorías con plan. */
+  inversion: number;
+  /** Lo vendido en la campaña, de TODAS las categorías (con o sin plan). */
+  vendido: number;
+};
+
+export function totalesDelPlan(filas: readonly FilaPlan[]): TotalesPlan {
+  const con = filas.filter((f) => f.linea);
+  return {
+    conPlan: con.length,
+    total: filas.length,
+    aComprar: con.reduce((s, f) => s + (f.calculo?.comprar ?? 0), 0),
+    inversion: con.reduce((s, f) => s + (f.calculo?.inversion ?? 0), 0),
+    vendido: filas.reduce((s, f) => s + f.vendido, 0),
+  };
+}

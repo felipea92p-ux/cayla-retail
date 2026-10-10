@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   argsGuardar,
+  armarFilas,
   borradorDe,
   calcular,
   comprarPorTalla,
@@ -14,6 +15,7 @@ import {
   porQue,
   problemasDelBorrador,
   repartir,
+  totalesDelPlan,
   type Borrador,
   type TallaPlan,
 } from "./plan-compra-reglas";
@@ -198,5 +200,45 @@ describe("leerPlan", () => {
   it("forma rara → null", () => {
     expect(leerPlan(null)).toBeNull();
     expect(leerPlan({ plan: {} })).toBeNull();
+  });
+});
+
+describe("armarFilas y totalesDelPlan: la hoja", () => {
+  const plan = () =>
+    leerPlan({
+      plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
+      hoy: "2026-10-05",
+      categorias: [
+        { id: "a", nombre: "Polos", tallas: [] },
+        { id: "b", nombre: "Bodys", tallas: [] },
+        { id: "c", nombre: "Abrigos", tallas: [] },
+        { id: "d", nombre: "Faldas", tallas: [] },
+      ],
+      // Solo Faldas tiene plan: precio 100, costo 40, lo que sobra a la mitad → cubre todo (cuantil 1) → objetivo = bueno (180).
+      lineas: [{ categoria_id: "d", flojo: 80, normal: 120, bueno: 180, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null }],
+      stock: [{ categoria_id: "a", unidades: 30 }, { categoria_id: "b", unidades: 30 }, { categoria_id: "d", unidades: 30 }],
+      vendido: [{ categoria_id: "a", unidades: 5 }, { categoria_id: "d", unidades: 7 }],
+    })!;
+
+  it("primero lo que tiene plan; después el stock; a igual stock, por nombre", () => {
+    const f = armarFilas(plan());
+    expect(f.map((x) => x.c.nombre)).toEqual(["Faldas", "Bodys", "Polos", "Abrigos"]);
+  });
+  it("la cuenta de cada fila es la de `calcular` con el stock de la red; sin plan no hay cuenta", () => {
+    const f = armarFilas(plan());
+    expect(f[0].calculo).toEqual(calcular({ flojo: 80, normal: 120, bueno: 180, precio: 100, costo: 40, recuperoPct: 50 }, 30));
+    expect(f[0].calculo?.comprar).toBe(150);
+    expect(f[1].calculo).toBeNull();
+    expect(f[3].stock).toBe(0);
+  });
+  it("los totales suman solo lo que tiene plan, pero lo vendido es de todas", () => {
+    const t = totalesDelPlan(armarFilas(plan()));
+    expect(t).toEqual({ conPlan: 1, total: 4, aComprar: 150, inversion: 6000, vendido: 12 });
+  });
+  it("sin categorías, todo en cero", () => {
+    expect(totalesDelPlan([])).toEqual({ conPlan: 0, total: 0, aComprar: 0, inversion: 0, vendido: 0 });
+  });
+  it("el mismo plan da siempre el mismo orden", () => {
+    expect(armarFilas(plan()).map((x) => x.c.id)).toEqual(armarFilas(plan()).map((x) => x.c.id));
   });
 });
