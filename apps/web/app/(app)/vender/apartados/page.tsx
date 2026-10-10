@@ -8,6 +8,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede, nombreCortoSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
+import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -41,7 +42,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
 
   const supabase = await createClient();
   const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
-    getApartadosDeTienda(persona.ubicacionId),
+    // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
+    getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),

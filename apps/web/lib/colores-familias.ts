@@ -4,11 +4,12 @@ import { enEscala, type ColorEnEscala } from "./color-escala";
 // Atributos → Colores) y la que valida la API. Vive aparte, UNA sola vez, para que agrupen igual (ADR-0312).
 //
 // EL ORDEN DE LAS FILAS es el del espectro: los dos neutros primero (la base de casi toda prenda), luego rosado → rojo →
-// naranja → amarillo → verde → azul → morado, que es el círculo cromático, y al final lo que no es un matiz (metálico y
-// estampado). Dentro de cada fila, el orden lo da `color-escala.ts` (gama y claridad).
+// naranja → amarillo → verde → azul → morado, que es el círculo cromático, y al final lo que no es un matiz (metálico).
+// Dentro de cada fila, el orden lo da `color-escala.ts` (gama y claridad).
 //
 // QUÉ ENTRA EN CADA FAMILIA — tres criterios con una prioridad escrita, de mayor a menor:
-//   1. ACABADO: metálico (el color es el metal; da igual su matiz) y estampado (no tiene un tono).
+//   1. ACABADO: metálico (el color es el metal; da igual su matiz). «Estampado» NO es una familia (Felipe, 2026-10-10): un estampado
+//      no es un tono; es un patrón y vive en Patrones (ADR-0106).
 //   2. ROL: neutro (blancos, grises y negro, con Crudo, Perla, Nude y Gris piedra) y tierra (los beiges y marrones cálidos: de
 //      Beige, Arena y Topo hasta Chocolate). LA FAMILIA ES UN DATO (`colores.familia_color`), no un cálculo. La croma OKLab sirve
 //      de guía (neutros < 0,03; tierras ≥ 0,034, con Chocolate, 0,0347, en el borde) pero NO manda, y tiene dos excepciones que
@@ -33,7 +34,6 @@ export const FAMILIAS_COLOR = [
   { valor: "azul", texto: "Azul" },
   { valor: "morado", texto: "Morado" },
   { valor: "metalico", texto: "Metálico" },
-  { valor: "estampado", texto: "Estampado" },
 ] as const;
 
 export type FamiliaColor = (typeof FAMILIAS_COLOR)[number]["valor"];
@@ -126,7 +126,7 @@ const JASPEADO = MOTAS.map(
  * tinta), no de un color suelto.
  *
  * Lo mismo pasa con `tipo` (`colores.tipo`, ADR-0312 act. b): «Gris melange» es una textura y «Gris» es liso, y con el mismo
- * tono eran dos círculos iguales. Una `textura` lleva el jaspeado de arriba sobre su hex. `estampado` no se dibuja: un dibujo no
+ * tono eran dos círculos iguales. Una `textura` lleva el jaspeado de arriba sobre su hex. `estampado` (el tipo, no una familia) no se dibuja: un dibujo no
  * se deduce de un #hex (esa foto es `imagen_muestra_url`, aún sin leer) y se queda liso. Si el color cumple dos acabados manda el
  * metálico, la misma prioridad con que se eligió su familia: una muestra dice UNA cosa. Sin `tipo` (o 'solido') va liso.
  */

@@ -10,6 +10,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { RUTA_ORDENES, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 
 // Nuevo producto como árbol de decisión (ADR-0109) en 4 preguntas (spike v2
 // 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09): categoría → cómo es
@@ -19,7 +20,12 @@ import { BotonEnlace } from "@/components/ui/campos";
 // puede crecer a 9 tallas × 8 colores — mismo criterio que `/compras/nueva`.
 // El candado real (solo Líder) vive en la RPC; el redirect de acá es solo la
 // capa de UI.
-export default async function NuevoProductoPage() {
+//
+// `?desde=produccion` (ADR-0361): la persona está creando el modelo de una orden de producción. La flecha de vuelta la lleva a Órdenes y la
+// pantalla de éxito le ofrece seguir con esa orden (`ProductoCreado`). Nada del alta cambia: mismas reglas, mismo guardado.
+export default async function NuevoProductoPage({ searchParams }: { searchParams: Promise<{ desde?: string; tipo?: string }> }) {
+  const sp = await searchParams;
+  const desdeOrden = vieneDeProduccion(sp.desde);
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
@@ -39,8 +45,12 @@ export default async function NuevoProductoPage() {
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Nuevo producto"
-        subtitulo="Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
-        volver={<Volver href="/productos" a="Productos" />}
+        subtitulo={
+          desdeOrden
+            ? "Es el modelo de tu orden de producción. Cuando lo guardes, vuelves a la orden con el modelo ya elegido."
+            : "Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
+        }
+        volver={desdeOrden ? <Volver href={RUTA_ORDENES} a="Órdenes de producción" /> : <Volver href="/productos" a="Productos" />}
       />
 
       {contexto.categorias.length === 0 ? (

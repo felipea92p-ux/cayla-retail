@@ -396,6 +396,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-productos
 
+      # Revisar los productos pendientes (ADR-0371): la cola con quién, desde dónde, variantes, precio, stock y órdenes; aprobar y
+      # rechazar (rechazar se niega con una orden en proceso o con stock); idempotencia; permisos; y la carrera de una orden en vuelo. ROLLBACK.
+      - name: pruebas:revisar-productos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:revisar-productos
+
       # Historial de la prenda (ADR-0354): etiquetas, variantes nuevas, fotos, tejido y patrón dejan su fila con quién y dónde;
       # guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
       - name: pruebas:historial-prenda
@@ -706,6 +712,14 @@ jobs:
       - name: pruebas:candado-dinero-produccion
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-dinero-produccion
+
+      # Modelo nuevo desde la orden de producción (ADR-0361, segunda parte): `abrir_produccion_con_modelo_nuevo` crea el modelo y abre su orden en UNA
+      # transacción y con UN token; la usa quien opera el Taller sin editar el catálogo (el modelo nace pendiente) y el líder (nace aprobado); tallas y colores
+      # salen del vocabulario; una producción pide precio y una muestra no; un nombre repetido trae el id del existente. Aplica la migración dentro de cada
+      # caso y hace ROLLBACK: no deja rastro en el Postgres compartido.
+      - name: pruebas:abrir-produccion-modelo-nuevo
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:abrir-produccion-modelo-nuevo
 
       # Vista puente de la planilla de Dynamic (ADR-0133, F7; D-33): agrega la planilla YA PAGADA por sede y período (personas, pagado, provisiones, costo total),
       # solo períodos pagados y sin el grupo «prueba», oculta grupos de menos de 3 personas, no expone a nadie identificable, es security_invoker (sin permiso en

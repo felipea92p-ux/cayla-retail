@@ -659,6 +659,11 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
     },
   },
+  // ADR-0371 · «Por revisar»: las dos hojas (Aprobar, y Rechazar con y sin bloqueo). La del rechazo sin bloqueo necesita una prenda sin stock ni
+  // orden en proceso; si no hay ninguna en la base local, abre la bloqueada (también es una hoja que auditar) y `abre` sigue exigiendo la ventana.
+  { id: "por-revisar.aprobar", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · la hoja «Aprobar»", async preparar(pagina) { await pagina.getByRole("button", { name: /^Aprobar$/ }).first().click({ timeout: 8000 }); await esperar(pagina, 1300); } },
+  { id: "por-revisar.rechazar-bloqueado", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · «Rechazar» con stock o una orden en proceso (la hoja que explica qué lo frena)", async preparar(pagina) { const fila = pagina.locator("ul[data-resultados] > li").filter({ hasText: /en stock|en proceso/ }).first(); await fila.getByRole("button", { name: /^Rechazar$/ }).click({ timeout: 8000 }); await esperar(pagina, 1300); } },
+  { id: "por-revisar.rechazar", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · «Rechazar» de una prenda sin nada colgado (la advertencia de que es permanente)", async preparar(pagina) { const limpias = pagina.locator("ul[data-resultados] > li").filter({ hasNotText: /en stock|en proceso/ }); const fila = (await limpias.count()) > 0 ? limpias.first() : pagina.locator("ul[data-resultados] > li").first(); await fila.getByRole("button", { name: /^Rechazar$/ }).click({ timeout: 8000 }); await esperar(pagina, 1300); } },
   { id: "nuevo.familia", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 1: las categorías de una familia", preparar: nuevoHasta("familia") },
   { id: "nuevo.como-es", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 2: cómo es (marca, nombre, tejido, patrón)", preparar: nuevoHasta("como-es") },
   { id: "nuevo.tallas", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 3: tallas y colores", preparar: nuevoHasta("tallas") },
@@ -672,6 +677,32 @@ ESCENARIOS.push(
   { id: "atributos.campana", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Configurar campaña»", preparar: clicRol("button", /Configurar campaña/i) },
   { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
   { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },
+  // ADR-0373: los estados que no se ven al cargar. El resumen cerrado es lo de siempre; abierto trae las cuatro tarjetas de cifra.
+  { id: "marcas.resumen", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "#resumen-marcas[data-abierto]", nombre: "Marcas · «Resumen» abierto (las cuatro cifras)", preparar: clicRol("button", /^Resumen/i) },
+  { id: "marcas.menu-mas", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=menu]", nombre: "Marcas · el menú «Más» (Desactivar y Eliminar, con su motivo si no se puede)", preparar: clicRol("button", /Más acciones/i) },
+  {
+    id: "marcas.sombra",
+    ruta: "/productos/marcas",
+    cuentas: CATALOGO,
+    abre: ".buscador-sombra",
+    nombre: "Marcas · el buscador con la sombra que completa la marca",
+    async preparar(pagina) {
+      // Una marca que el seed trae (CAYLA): con «cay» la sombra completa «la». Hace falta el cursor adentro (la sombra solo se ve así).
+      await pagina.getByPlaceholder(/Busca una marca/i).first().fill("cay");
+      await esperar(pagina, 700);
+    },
+  },
+  {
+    id: "marcas.parecidas",
+    ruta: "/productos/marcas",
+    cuentas: CATALOGO,
+    abre: ".aviso-linea",
+    nombre: "Marcas · una errata de una letra muestra las parecidas con su aviso",
+    async preparar(pagina) {
+      await pagina.getByPlaceholder(/Busca una marca/i).first().fill("cayka");
+      await esperar(pagina, 800);
+    },
+  },
   { id: "familias.agregar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Agregar familia»", preparar: clicRol("button", /Agregar familia/i) },
   { id: "familias.editar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Editar» una familia", preparar: clicRol("button", /^Editar/i) },
 );

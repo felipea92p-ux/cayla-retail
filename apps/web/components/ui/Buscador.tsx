@@ -22,6 +22,11 @@ import { LoaderCircle, Search, X } from "lucide-react";
      – «Buscando…» y el hilo salen SOLO si la espera de verdad tarda (`buscando` sigue en true pasados 350 ms). Lo que se filtra en
        el navegador nunca lo muestra, y una respuesta rápida tampoco: no parpadea.
 
+   · `sombra` (opt-in, Catálogo ▸ Marcas, Felipe 2026-10-10): lo que falta de la opción más probable, en gris detrás de lo escrito. Tab
+     o → (con el cursor al final) la aceptan, y Enter la acepta y va a esa opción (`alAceptar(true)`). Es una EXCEPCIÓN a «busca mientras
+     se escribe, nunca esperando un Enter» y a «Tab sigue de largo»: solo ocurre mientras hay una sombra a la vista. Que otra pantalla
+     la use lo decide Felipe con `/unificar`.
+
    Teclado: «/» lleva el cursor aquí (si `atajo`, salvo que la persona ya esté escribiendo en otra caja o haya una hoja abierta);
    Escape borra lo escrito (y no cierra la hoja de alrededor si había algo que borrar, ADR-0136 act. 2026-09-26).
    CSS: app/estilos/vacio-aviso-buscador.css.
@@ -45,6 +50,10 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | 
   icono?: "lupa" | "barras";
   /** Mostrador: el botón de la derecha («Buscar»). */
   accion?: ReactNode;
+  /** La predicción: `cola` es lo que falta de lo escrito para completar la opción más probable (vacía = no hay sombra). Quien la usa la
+   *  pasa SIEMPRE, con `cola: ""` cuando no hay nada que completar: si apareciera y desapareciera como prop, el campo cambiaría de
+   *  estructura y React lo volvería a crear, y la persona perdería el cursor a media palabra. */
+  sombra?: { cola: string; alAceptar: (conEnter: boolean) => void };
   /** Lo que hace el «×» (y Escape). Sin él, vacía el texto con `onCambio("")`. */
   onBorrar?: () => void;
   /** Nombre para el lector de pantalla; por defecto, el placeholder. */
@@ -73,6 +82,7 @@ export function Buscador({
   accion,
   onBorrar,
   etiqueta,
+  sombra,
   ref,
   className = "",
   placeholder,
@@ -122,6 +132,44 @@ export function Buscador({
 
   const Icono = icono === "barras" ? IconoBarras : Search;
   const mostrador = tamano === "mostrador";
+  const conSombra = Boolean(sombra?.cola);
+  const entrada = (
+    <input
+      ref={asignar}
+      type="search"
+      autoComplete="off"
+      spellCheck={false}
+      value={valor}
+      placeholder={placeholder}
+      aria-label={etiqueta ?? (typeof placeholder === "string" ? placeholder : "Buscar")}
+      aria-keyshortcuts={atajo ? "/" : undefined}
+      aria-autocomplete={sombra ? "inline" : undefined}
+      onChange={(e) => onCambio(e.target.value, e)}
+      onKeyDown={(e) => {
+        if (sombra && conSombra) {
+          const alFinal = e.currentTarget.selectionStart === valor.length && e.currentTarget.selectionEnd === valor.length;
+          if ((e.key === "Tab" && !e.shiftKey) || (e.key === "ArrowRight" && alFinal)) {
+            e.preventDefault();
+            sombra.alAceptar(false);
+            return;
+          }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            sombra.alAceptar(true);
+            return;
+          }
+        }
+        if (e.key === "Escape" && valor) {
+          // Este Escape lo usó el buscador: no cierra la hoja de alrededor (useEscapeLibre).
+          e.stopPropagation();
+          e.preventDefault();
+          borrar();
+        }
+        onKeyDown?.(e);
+      }}
+      {...resto}
+    />
+  );
   const caja = (
     <div
       className={`buscador ${mostrador ? "mostrador" : ""} ${conteo === undefined ? className : ""}`}
@@ -133,27 +181,19 @@ export function Buscador({
       }}
     >
       <Icono className="buscador-icono" />
-      <input
-        ref={asignar}
-        type="search"
-        autoComplete="off"
-        spellCheck={false}
-        value={valor}
-        placeholder={placeholder}
-        aria-label={etiqueta ?? (typeof placeholder === "string" ? placeholder : "Buscar")}
-        aria-keyshortcuts={atajo ? "/" : undefined}
-        onChange={(e) => onCambio(e.target.value, e)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && valor) {
-            // Este Escape lo usó el buscador: no cierra la hoja de alrededor (useEscapeLibre).
-            e.stopPropagation();
-            e.preventDefault();
-            borrar();
-          }
-          onKeyDown?.(e);
-        }}
-        {...resto}
-      />
+      {sombra ? (
+        <span className="buscador-campo">
+          {entrada}
+          {conSombra && (
+            <span className="buscador-sombra" aria-hidden>
+              <i>{valor}</i>
+              {sombra.cola}
+            </span>
+          )}
+        </span>
+      ) : (
+        entrada
+      )}
       {!mostrador ? (
         <span className="buscador-senal" aria-hidden>
           Buscando…

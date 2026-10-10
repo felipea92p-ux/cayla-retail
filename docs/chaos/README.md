@@ -13,7 +13,10 @@ semilla anotada) · `no aplica` (solo lectura; con su motivo).
 
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|
+| Catálogo | Marcas (`/productos/marcas`) | **pausada**: otra sesión escribió en la base local a mitad de la corrida; corridos 6 de 18 (ENT-01, DC-01, ENT-03 300, TEC-01, TEC-06, TEC-03; PER-01 por diseño) | 20261010 | 0 / 1 / 0 / 1 | `.chaos/informes/marcas-2026-10-10.md` (fuera de git) | 2026-10-10 |
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | atacada; los 4 hallazgos de gravedad 4 cerrados (2026-10-07), falta el núcleo que escribe | 7 | 0 / 0 / 0 / 0 | `.chaos/informes/ventas-sin-registrar-2026-10-07.md` (local) | 2026-10-07 |
+| Compras | Plan de campaña (`/compras/plan`): la hoja de una categoría y el paso a paso guardan una línea del plan | atacada; **los 9 hallazgos arreglados en la rama y re-atacados con la misma semilla (2026-10-10)**, sin publicar (la migración B4 ya está en producción; el candado actúa cuando se publique la web) | 931 | 0 / 0 / 0 / 0 en local · en producción 0 / 1 / 1 / 7 hasta publicar | `.chaos/informes/plan-campana-2026-10-10.md` (local) | 2026-10-10 |
+| Producción | Nueva orden ▸ Modelo nuevo (`/produccion/ordenes`) | atacada y re-atacada con la misma semilla tras los arreglos (2026-10-10): los 8 hallazgos de la pantalla y la función, cerrados; queda 1 de gravedad 2 del núcleo (un costo `NaN` directo a `abrir_produccion` y los CHECK `>= 0`: es de Felipe); faltan el cierre con costo `NaN` y la vista del colaborador en el navegador | 1010 | 0 / 1 / 0 / 0 | `docs/taller-vista-inicial/chaos-informe-produccion-ordenes-2026-10-10.md` (local, no versionado) | 2026-10-10 |
 
 ## Qué pantallas deben pasar primero (decidido 2026-10-06)
 Donde un fallo es de gravedad 1: **Vender** (`/vender`, `/vender/apartados`), **Caja** (`/caja`), **Cambios** y **Devoluciones**, **Inventario**

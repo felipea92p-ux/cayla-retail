@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { costoUnitario, parsearLineasPrellenadas, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION } from "./produccion-reglas";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { costoUnitario, parsearLineasPrellenadas, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -14,6 +16,24 @@ describe("semaforoMargen", () => {
   it("sin precio o sin costo no opina", () => {
     expect(semaforoMargen(0, 40)).toBeNull();
     expect(semaforoMargen(100, 0)).toBeNull();
+  });
+});
+
+describe("las palabras del semáforo (/formidable 2026-10-10, cambio 3)", () => {
+  it("«Pierde» no se usa: con un margen de 38 % POSITIVO decía que se perdía dinero; la palabra es «Margen bajo», la misma de Nuevo producto", () => {
+    expect(semaforoMargen(85, 53)?.tono).toBe("pierde");
+    expect(TEXTO_SEMAFORO).toEqual({ gana: "Gana", filo: "Al filo", pierde: "Margen bajo" });
+    expect(LEYENDA_SEMAFORO.pierde).toBe("margen bajo < 40%");
+    expect(LEYENDA_SEMAFORO.gana).toBe("gana ≥ 60%");
+  });
+  it("la hoja de Nueva orden, la tarjeta y el panel leen la MISMA palabra (una sola fuente) y ninguno escribe «Pierde» a mano", () => {
+    const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx"]) {
+      const fuente = leer(ruta);
+      expect(fuente, ruta).not.toMatch(/"Pierde"/);
+      expect(fuente, ruta).not.toMatch(/pierde &lt; 40%/);
+      expect(fuente, ruta).toMatch(/TEXTO_SEMAFORO|LEYENDA_SEMAFORO/);
+    }
   });
 });
 

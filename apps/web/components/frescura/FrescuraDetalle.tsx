@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import type { AccionDecision, TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
@@ -100,7 +101,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
         <ul aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-taupe">
           {sinLugar.map((z, i) => (
             <li key={`${z.clave}-${i}`} className="flex items-center gap-1.5">
-              <span className={`inline-block h-2.5 w-2.5 rounded-sm shadow-[inset_0_0_0_1px_var(--color-taupe)] ${ZONA[z.clave]}`} />
+              <MuestraTramo clase={ZONA[z.clave]} />
               {z.nombre}
             </li>
           ))}

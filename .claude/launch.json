@@ -3,13 +3,10 @@
   "configurations": [
     {
       "name": "cayla-retail-dev",
-      "runtimeExecutable": "env",
+      "runtimeExecutable": "sh",
       "runtimeArgs": [
-        "PORT=3010",
-        "pnpm",
-        "--filter",
-        "web",
-        "dev"
+        "-c",
+        "PORT=${PORT:-3010} pnpm --filter web dev"
       ],
       "port": 3010,
       "autoPort": true

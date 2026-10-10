@@ -3,12 +3,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getMovimientosCaja } from "@/lib/caja";
+import { cobrosPorMedio, type CobroMedio } from "@/lib/historial-cierres-reglas";
 
 export type EventoCaja =
   | { tipo: "venta"; id: string; hora: string; total: number; unidades: number; metodos: string[]; anulada: boolean; colaboradorNombre: string | null }
   | { tipo: "movimiento"; id: string; hora: string; direccion: "ingreso" | "egreso"; monto: number; motivo: string; nota: string | null; esAjuste: boolean; colaboradorNombre: string | null }
   | { tipo: "devolucion"; id: string; hora: string; monto: number; metodo: string | null }
   | { tipo: "cambio"; id: string; hora: string; diferencia: number; metodo: string | null };
+
+/** Lo que trae el detalle de un cierre: el flujo de la caja y lo cobrado por medio de pago (sin ventas anuladas). */
+export type DetalleCierre = { eventos: EventoCaja[]; cobros: { total: number; anticipo: number; medios: CobroMedio[] } };
 
 /**
  * Todo lo que pasó por una caja ya cerrada, en orden cronológico — para el botón "ver
@@ -25,7 +29,7 @@ export type EventoCaja =
  * cuando el movimiento de plata es real (`aprobar_devolucion`/`registrar_cambio`) — un
  * `where caja_id = $1` ya excluye devoluciones pendientes/rechazadas sin un filtro aparte.
  */
-export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
+export async function getDetalleCierre(cajaId: string): Promise<DetalleCierre> {
   const supabase = await createClient();
 
   const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
@@ -113,5 +117,9 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
     });
   }
 
-  return eventos.sort((a, b) => a.hora.localeCompare(b.hora));
+  // Lo cobrado por medio: solo ventas que siguen en pie (una anulada no cobró nada) — mismo criterio que `fn_calcular_esperado_caja`.
+  const enPie = new Set(filasVentas.filter((v) => v.estado !== "anulada").map((v) => v.id));
+  const cobros = cobrosPorMedio(filasPagos.filter((p) => enPie.has(p.venta_id)).map((p) => ({ ventaId: p.venta_id, metodo: p.metodo, monto: Number(p.monto) })));
+
+  return { eventos: eventos.sort((a, b) => a.hora.localeCompare(b.hora)), cobros };
 }

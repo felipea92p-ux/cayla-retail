@@ -64,6 +64,12 @@ Verificado a 1440 y a 375 px (Vender ▸ cobro, Cambios): con el dedo la flecha 
    flecha sale siempre.
 2. **Las pantallas sin `EncabezadoPagina`** (Compras, Caja, Recibir, el resto de Catálogo): sigue abierta, es decidir la cabecera de esos módulos.
 
+## Excepción: la hoja que cambia de vista (Felipe, 2026-10-10, ADR-0374)
+
+El detalle de un cierre de caja ya no se abre encima del «Historial de cierres»: reemplaza su vista dentro de la misma hoja. Ahí la flecha lleva
+al lado el nombre de adonde vuelve («HISTORIAL DE CIERRES», también tocable), porque lo que no se entendía era justo eso. Es `<Volver onClick>`
+más ese texto, colocado con la prop `arriba` de `<Modal>`; no es otra cara de la pieza. Las demás vueltas siguen siendo la flecha sola.
+
 ## Deuda
 
 **0.** Las firmas (`apps/web/unificar/familias.mjs`) vigilan que no vuelva la línea de 11 px copiada a mano, una `forma=` en `<Volver>` ni una
