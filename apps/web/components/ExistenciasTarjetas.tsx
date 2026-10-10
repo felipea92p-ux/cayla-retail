@@ -13,6 +13,7 @@ import { mejorOrigen } from "@/lib/existencias-flujos";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import type { MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
+import { filasDelLugar, type LugarVista } from "@/lib/existencias-lugar";
 
 /* ====================================================================
    Existencias en tarjetas (maqueta `docs/maquetas/existencias-tarjetas-2026-09/`)
@@ -78,12 +79,15 @@ function claseCelda(c: CeldaTarjeta, fila: "piso" | "almacen"): string {
 function TablaTallas({
   tallas,
   separa,
+  lugar,
   marcaDe,
   marcaDelFiltro,
   onTalla,
 }: {
   tallas: readonly FilaExistencias[];
   separa: boolean;
+  /** «Piso» o «Almacén» dejan UNA fila con los números grandes; «Ambos», las dos de siempre (`lib/existencias-lugar.ts`). */
+  lugar: LugarVista;
   marcaDe: (f: FilaExistencias) => MarcaTalla;
   marcaDelFiltro: MarcaDelFiltro | null;
   onTalla: (f: FilaExistencias) => void;
@@ -96,7 +100,9 @@ function TablaTallas({
   const Simbolo: SimboloFiltro | undefined = marcaDelFiltro?.simbolo;
   const tono = marcaDelFiltro?.tono ?? "ambar";
   const atenua = (f: FilaExistencias) => (marcaDe(f) === "tenue" ? "opacity-40" : "");
-  const filas: { clave: "piso" | "almacen"; texto: string }[] = separa ? [{ clave: "piso", texto: "En el piso" }, { clave: "almacen", texto: "Almacén" }] : [{ clave: "piso", texto: "Disponibles" }];
+  const filas = filasDelLugar(lugar, separa);
+  // Una sola fila (un lugar elegido): la cifra se lee de lejos, en el piso de venta, sin acercarse a la pantalla.
+  const grande = separa && filas.length === 1;
   return (
     <table className="w-full table-fixed border-collapse text-center text-[13px] tabular-nums">
       <thead>
@@ -136,7 +142,7 @@ function TablaTallas({
       <tbody>
         {filas.map((fila, r) => (
           <tr key={fila.clave} className={r > 0 ? "border-t border-sand/60" : ""}>
-            <th scope="row" className="h-[22px] whitespace-nowrap text-left text-[10.5px] font-medium text-taupe">
+            <th scope="row" className={`whitespace-nowrap text-left text-[10.5px] font-medium text-taupe ${grande ? "h-10" : "h-[22px]"}`}>
               {fila.texto}
             </th>
             {tallas.map((f, i) => {
@@ -152,9 +158,9 @@ function TablaTallas({
                     onTalla(f);
                   }}
                   title={`Talla ${f.talla ?? "Única"}`}
-                  className={`h-[22px] cursor-pointer px-0.5 transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${claseCelda(c, fila.clave)} ${ultima ? "rounded-b-[7px]" : ""} ${luz(f, c)} ${atenua(f)}`}
+                  className={`cursor-pointer px-0.5 ${grande ? "h-10 text-[19px] leading-none" : "h-[22px]"} transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${claseCelda(c, fila.clave)} ${ultima ? "rounded-b-[7px]" : ""} ${luz(f, c)} ${atenua(f)}`}
                 >
-                  {c.estado === "agotada" && fila.clave === "piso" ? "—" : fila.clave === "piso" ? c.piso : c.almacen}
+                  {c.estado === "agotada" && (fila.clave === "piso" || grande) ? "—" : fila.clave === "piso" ? c.piso : c.almacen}
                 </td>
               );
             })}
@@ -168,6 +174,7 @@ function TablaTallas({
 export function ExistenciasTarjetas({
   modelos,
   separa,
+  lugar = "ambos",
   puedeReponer,
   mostrarMarca,
   tallasDePrenda,
@@ -188,6 +195,8 @@ export function ExistenciasTarjetas({
 }: {
   modelos: ModeloPrendas<FilaExistencias>[];
   separa: boolean;
+  /** Qué lugar muestra la tabla de cada tarjeta: el piso, el almacén o ambos (de entrada). */
+  lugar?: LugarVista;
   puedeReponer: boolean;
   mostrarMarca: boolean;
   /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
@@ -364,7 +373,7 @@ export function ExistenciasTarjetas({
             <span className="sr-only">{separa && <EstadoParaLector prenda={p} />}</span>
 
             {/* La tabla: una columna por talla, «En el piso» y «Almacén». Ámbar = falta colgar; rojo = se acabó. */}
-            <TablaTallas tallas={tallasVista} separa={separa} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
+            <TablaTallas tallas={tallasVista} separa={separa} lugar={lugar} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
 
             {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
             {recortada && (

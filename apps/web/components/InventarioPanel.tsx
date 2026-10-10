@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { guardarLugar, leerLugar, LUGARES, suscribirLugar, unidadesPorLugar, type LugarVista } from "@/lib/existencias-lugar";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { IconoPercha } from "@/components/ui/IconoPercha";
@@ -314,6 +316,9 @@ export function InventarioPanel({
   // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
   // (`abrirPorCodigo`) entra por la tabla.
   const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
+  // «Piso · Almacén · Ambos» de las tarjetas (Felipe, 2026-10-09): qué lugar se ve, con los números grandes si es uno solo. Se
+  // recuerda en el aparato; el servidor y la primera pintura dicen «ambos» para que los dos pinten lo mismo.
+  const lugar = useSyncExternalStore(suscribirLugar, leerLugar, () => "ambos" as LugarVista);
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
@@ -404,6 +409,8 @@ export function InventarioPanel({
   // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
   const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
+  // Las unidades libres de cada lugar entre lo que deja la lista: la cifra de «Piso» y «Almacén» sobre las tarjetas.
+  const unidades = useMemo(() => unidadesPorLugar(filtradas), [filtradas]);
   // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
   // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
@@ -935,9 +942,34 @@ export function InventarioPanel({
       ) : !verDetalle ? (
         // La lista de entrada: una tarjeta por prenda. Mismas páginas, mismo «Exportar CSV» y misma leyenda que la tabla.
         <div className="mt-3.5">
+          {/* Qué lugar se ve en las tarjetas: solo el piso, solo el almacén o ambos (de entrada, como el «Todas» de un desplegable).
+              Cada opción dice cuántas unidades libres hay ahí entre lo que deja la lista. No quita prendas: cambia lo que se lee. */}
+          {separa && (
+            <div className="mb-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+              <span className="text-[13px] text-taupe">Ver unidades en</span>
+              <SegmentoDeslizante
+                forma="modo"
+                etiqueta="Ver unidades en"
+                valor={lugar}
+                onCambio={(v) => guardarLugar(v as LugarVista)}
+                opciones={LUGARES.map(({ valor, texto }) => ({
+                  clave: valor,
+                  etiqueta: texto,
+                  conteo: valor === "piso" ? unidades.piso : valor === "almacen" ? unidades.almacen : undefined,
+                  ayuda:
+                    valor === "piso"
+                      ? "Solo lo colgado en el piso, listo para vender"
+                      : valor === "almacen"
+                        ? "Solo lo guardado en el almacén de la tienda"
+                        : "El piso y el almacén juntos, como siempre",
+                }))}
+              />
+            </div>
+          )}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}
+            lugar={lugar}
             mostrarMarca={mostrarMarca}
             tallasDePrenda={tallasDePrenda}
             puedeReponer={puedeReponer}
