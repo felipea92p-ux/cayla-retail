@@ -1,7 +1,9 @@
 # ADR-0362 · Órdenes de compra, comprobante y despacho a las sedes
 
 - **Fecha:** 2026-10-07 · **Estado:** ACEPTADO por fases — decisiones 1–38 (32–38 el 2026-10-10). **Fase 1 aprobada y en
-  construcción desde el 2026-10-10**; las fases 2 a 7 siguen en diseño. Nada en producción todavía.
+  construcción desde el 2026-10-10**; las fases 2 a 7 siguen en diseño. **Las 5 migraciones de la fase 1 están EN PRODUCCIÓN desde el
+  2026-10-10** (con el OK de Felipe; versiones `20261010224526`–`…224946`; las 16 funciones con la misma huella que el banco donde
+  pasaron las pruebas); la web, cuando se fusione el PR.
 - **Rama:** diseño en `claude/purchase-order-flow-6207e9` (2026-10-07 → 10); desde el 2026-10-10 sigue en
   `claude/purchase-order-redesign-9b0c82`, al día con `main`. El rango reservado (`20261008100000`–`…109999`) quedó atrás de lo que
   entró a `main` (hasta `20261010150000`): las versiones se eligen el día que se escriba cada migración.

@@ -21,8 +21,11 @@ ADR-0362, fase 1 aprobada por Felipe el 2026-10-10 en 8 actividades. Diseño y d
   - [ ] Traer `main` (68 commits atrás al 2026-10-10). La app no lo deja hasta que Felipe confirme el origen del repositorio (Help →
         Troubleshooting → Review Pinned Git Origins): `main` cambió `.claude/launch.json`, que es protegido. Después: conflictos probables en
         `guia-de-foco-pantallas.ts` y `ARQUITECTURA.md`; volver a correr las pruebas.
-  - [ ] **Pegar en producción, con el OK de Felipe**, en este orden: `20261010214500`, `…223500`, `…231500`, `…235000`, `…235500`
-        (ninguna lleva políticas; cada una va en una parte). Antes, revisar que ninguna versión choque con `main` ni con un PR abierto.
+  - [x] **Pegado en producción con el OK de Felipe (2026-10-10)**, en orden, con `apply_migration`: versiones `20261010224526`
+        (módulo y tablas), `…224636` (crear), `…224710` (ver y resumen), `…224915` (editar) y `…224946` (anular). Antes se vio que el
+        orden 145 del módulo ya lo usaba `liquidacion` y se movió al 148 (`8687a118`). Verificado después: tablas con RLS y sin
+        políticas, el módulo sin rol, las 3 claves sin combo, los 2 disparadores, y las 16 funciones con la MISMA huella (md5 de
+        `pg_get_functiondef`) que el banco donde pasaron las 40 pruebas.
   - [ ] Refrescar el diccionario desde el volcado (`pnpm datos:generar:produccion`, `pnpm datos:comparar`).
   - [ ] Abrir el PR (lo fusiona Felipe), con las casillas de la plantilla (celular, `/chaos`, Formidable).
 - [ ] **`/chaos`** sobre crear, editar y anular (las tres pantallas que guardan).
