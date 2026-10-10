@@ -58,10 +58,10 @@ describe("leerParamsLista / hrefLista", () => {
     expect(hrefLista(actual, { termino: "María José" })).toBe("/clientas?q=Mar%C3%ADa+Jos%C3%A9&filtro=socias");
   });
 
-  it("desdeDePagina: 50 por página", () => {
-    expect(POR_PAGINA).toBe(50);
+  it("desdeDePagina: 20 por página", () => {
+    expect(POR_PAGINA).toBe(20);
     expect(desdeDePagina(1)).toBe(0);
-    expect(desdeDePagina(3)).toBe(100);
+    expect(desdeDePagina(3)).toBe(40);
     expect(desdeDePagina(0)).toBe(0);
   });
 });

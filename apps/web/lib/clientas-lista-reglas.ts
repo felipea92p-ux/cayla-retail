@@ -35,7 +35,7 @@ export const FILTROS_LISTA: readonly { valor: FiltroLista; texto: string }[] = [
 ];
 
 /** Cuántas fichas trae cada página. */
-export const POR_PAGINA = 50;
+export const POR_PAGINA = 20;
 /** Lo que se busca, recortado: un nombre largo no le sirve a nadie y así la URL no crece sin fin. */
 export const MAX_TERMINO = 80;
 
