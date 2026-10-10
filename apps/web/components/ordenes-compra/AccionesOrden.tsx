@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Ban, Printer } from "lucide-react";
@@ -38,6 +38,8 @@ const sinSuscripcion = () => () => {};
 
 export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; empresa: EmpresaDeLaOrden; lugar: "pie" | "cabecera" }) {
   const [anulando, setAnulando] = useState(false);
+  // El botón que abrió la hoja: al cerrarla, el foco vuelve a él (la hoja no tiene «disparador» de Radix; chaos 2026-10-10, TEC-06).
+  const origenAnular = useRef<HTMLElement | null>(null);
   const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
   useTituloDeImpresion(numeroOrdenCompra(orden.numero));
   const generada = orden.estado === "generada";
@@ -50,7 +52,13 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
     </Boton>
   );
   const anular = generada && (
-    <Boton peso="peligro" onClick={() => setAnulando(true)}>
+    <Boton
+      peso="peligro"
+      onClick={(e) => {
+        origenAnular.current = e.currentTarget;
+        setAnulando(true);
+      }}
+    >
       <span className="inline-flex items-center gap-2">
         <Ban aria-hidden className="h-3.5 w-3.5" /> Anular orden
       </span>
@@ -77,6 +85,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
         <AnularOrdenModal
           orden={{ id: orden.id, numero: orden.numero, version: orden.version, proveedor: orden.proveedor.nombre, total: orden.total }}
           onClose={() => setAnulando(false)}
+          volverA={origenAnular}
         />
       )}
       {montado &&
@@ -92,7 +101,15 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
 
 type OrdenParaAnular = { id: string; numero: number; version: number; proveedor: string; total: number };
 
-function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAnular; onClose: () => void }) {
+function AnularOrdenModal({
+  orden,
+  onClose,
+  volverA,
+}: {
+  orden: OrdenParaAnular;
+  onClose: () => void;
+  volverA: RefObject<HTMLElement | null>;
+}) {
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -150,7 +167,13 @@ function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAnular; onClose:
   }
 
   return (
-    <Modal titulo={`Anular ${nombre}`} subtitulo={`${orden.proveedor} · ${soles(orden.total)}`} onClose={onClose} variante="hoja">
+    <Modal
+      titulo={`Anular ${nombre}`}
+      subtitulo={`${orden.proveedor} · ${soles(orden.total)}`}
+      onClose={onClose}
+      variante="hoja"
+      alCerrarEnfocar={volverA}
+    >
       {(cerrar) => (
         <form
           onSubmit={(e) => {
