@@ -13,6 +13,18 @@ export const RPC_LISTA_ORDENES = "fn_ordenes_compra";
 export const RPC_SIGUIENTE_ORDEN = "fn_ordenes_compra_siguiente";
 export const RPC_CREAR_ORDEN = "crear_orden_compra";
 export const RPC_EDITAR_ORDEN = "editar_orden_compra";
+export const RPC_ANULAR_ORDEN = "anular_orden_compra";
+
+/** Hasta cuántas letras lleva el motivo de una anulación (el mismo tope que `anular_orden_compra`). */
+export const MAX_MOTIVO_ANULACION = 300;
+
+/** Lo que le falta al motivo de una anulación, o null si está bien (las reglas de `anular_orden_compra`). */
+export function problemaDeMotivo(motivo: string): string | null {
+  const limpio = motivo.trim();
+  if (!limpio) return "Escribe por qué se anula la orden.";
+  if (limpio.length > MAX_MOTIVO_ANULACION) return `El motivo va hasta ${MAX_MOTIVO_ANULACION} letras.`;
+  return null;
+}
 export const RPC_DETALLE_ORDEN = "fn_orden_compra_detalle";
 export const RPC_RESUMEN_ORDENES = "fn_ordenes_compra_resumen";
 

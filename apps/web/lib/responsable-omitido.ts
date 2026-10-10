@@ -68,6 +68,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_compra_crear: "Crear una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Editarla, igual (actividad 4, migración 20261010235000).
   orden_compra_editar: "Editar una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Y anularla (actividad 5, migración 20261010235500).
+  orden_compra_anular: "Anular una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

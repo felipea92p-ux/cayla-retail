@@ -115,6 +115,17 @@ pantalla chica el proveedor se quedaba en cero.
   Actividad aunque no vea Órdenes de compra. Cada línea se ve en la sede donde se hizo y en la sede a la que llega la orden.
 - **Al guardar,** se vuelve a la lista con el aviso «OC-000129 actualizada».
 
+**Al construir «Anular» (actividad 5, 2026-10-10), por defecto:**
+- **El botón.** «Anular orden» va en rojo al pie de la ventana de la orden y en la cabecera de su página, como «Anular comprobante»
+  en una factura.
+- **La hoja.** Pide el motivo (obligatorio, hasta 300 letras) y dice qué pasa antes de confirmar.
+- **Lo que queda.** La orden queda a la vista como anulada, con quién, cuándo y por qué. Deja de contar en lo pedido y su número no
+  vuelve a usarse.
+- **Choques y repeticiones.** Si otra persona la cambió mientras se miraba, el aviso de choque ofrece «Recargar». Un doble clic no da
+  error.
+- **Lo que falta.** Que la orden no tenga comprobante ni envío vivos todavía no se exige: esas tablas llegan en las fases 2 y 3, y el
+  candado se suma con ellas.
+
 ## Para el contador (no bloquea programar, dice el brief)
 
 Gastos de llegada fuera del costo (decisión 20: la NIC 2 los pone dentro; que el contador lo confirme); el fondo como anticipo (101 o

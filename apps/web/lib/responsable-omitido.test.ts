@@ -29,10 +29,10 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
 
-  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar) y crear y editar una orden de compra (ADR-0362), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
+  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar) y crear, editar y anular una orden de compra (ADR-0362), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(34);
+    expect(DESCRIPCION_VIGENTE.size).toBe(35);
     expect(DESCRIPCION_VIGENTE.has("producto_confirmar_cambios")).toBe(false);
     expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });

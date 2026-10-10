@@ -31,6 +31,10 @@
  *      se vuelve a juzgar (proveedor, categoría o marca desactivados, entrega vencida) pero elegir de nuevo algo inactivo sí; las
  *      reglas son las de crear; una persona firma con «orden_compra_editar», una terminal no edita sin elegir a alguien; sin el
  *      módulo, 42501; el archivo no se lee directo, ni se edita ni se borra; crear también anota su línea en Actividad.
+ *   A  ANULAR (`20261010235500`): deja la orden anulada con quién, cuándo y el motivo, sube la versión, no libera el número y anota en
+ *      Actividad; el motivo es obligatorio y va hasta 300 letras; con la versión vieja, PT409; el mismo pedido repetido no da error,
+ *      pero anular otra vez con otro motivo sí; una persona firma con «orden_compra_anular» y una terminal no anula sin elegir a
+ *      alguien; sin el módulo, 42501.
  *
  * USO
  *   pnpm pruebas:ordenes-compra                         → contra la base `postgres` del stack local
@@ -57,6 +61,7 @@ const MIGRACION = [
   "20261010223500_ordenes_compra_crear.sql",
   "20261010231500_ordenes_compra_detalle_y_resumen.sql",
   "20261010235000_ordenes_compra_editar.sql",
+  "20261010235500_ordenes_compra_anular.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -119,6 +124,19 @@ declare v_estado text; v_hint text; v_msg text; v_fila record;
 begin
   for v_fila in select r.numero, r.version from retail.editar_orden_compra(p_id, p_version, p_prov, p_dest, p_ent, p_nota, p_lineas) r loop
     return 'OK:' || v_fila.numero || ':' || v_fila.version;
+  end loop;
+  return 'SIN_FILA';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_msg = message_text;
+  return v_estado || '|' || coalesce(v_hint, '') || '|' || v_msg;
+end;
+$f$;
+
+create function pg_temp.anula(p_id uuid, p_version integer, p_motivo text) returns text language plpgsql as $f$
+declare v_estado text; v_hint text; v_msg text; v_fila record;
+begin
+  for v_fila in select r.numero, r.version from retail.anular_orden_compra(p_id, p_version, p_motivo) r loop
+    return 'OK:' || v_fila.version;
   end loop;
   return 'SIN_FILA';
 exception when others then
@@ -640,6 +658,84 @@ caso(
      (select ${si("a.persona_id = :'felipe_p' and a.ubicacion_destino_id = :'tru' and a.modulo = 'ordenes_compra'", "firmada y con destino", "mal")}
         from retail.actividad a where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_creada'));`,
   "creó la OC-N para Confecciones Peña OC Prueba: 2 líneas, 14 unidades · llega a Tienda Trujillo / firmada y con destino"
+);
+
+// A. ANULAR -----------------------------------------------------------------------------------------------------------------
+const anula = (version = ":'v'", motivo = "'El proveedor no tenía la tela'") => `pg_temp.anula(:'oc', ${version}, ${motivo})`;
+
+caso(
+  "A1 anular deja la orden anulada con quién, cuándo y el motivo, sube la versión, no libera el número y anota en Actividad",
+  `${UNA_ORDEN}
+   select ${anula()} as r \\gset
+   select id as otra, numero as n2 from retail.crear_orden_compra(gen_random_uuid(), :'prov', :'tru', null::date, null::text, ${lineas(L1)}) \\gset
+   reset role;
+   select concat_ws(' / ', :'r',
+     (select estado || ':' || ${si("anulada_por = :'felipe_p'", "felipe", "otra")} || ':' || ${si("anulada_en is not null", "con hora", "sin hora")}
+             || ':' || motivo_anulacion from retail.ordenes_compra where id = :'oc'),
+     ${si(":'n2'::int > :'n'::int", "número nuevo", "repitió número")},
+     (select replace(descripcion, retail.fn_orden_compra_numero_texto(:'n'::int), 'OC-N') from retail.actividad a
+       where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_anulada'));`,
+  "OK:2 / anulada:felipe:con hora:El proveedor no tenía la tela / número nuevo / anuló la OC-N para Confecciones Peña OC Prueba: «El proveedor no tenía la tela»"
+);
+caso(
+  "A2 el motivo es obligatorio (vacío o solo espacios) y va hasta 300 letras; sin él la orden sigue generada",
+  `${UNA_ORDEN}
+   select concat_ws(',',
+     split_part(${anula(":'v'", "null::text")}, '|', 2),
+     split_part(${anula(":'v'", "'   '")}, '|', 2),
+     split_part(${anula(":'v'", "repeat('a', 301)")}, '|', 2),
+     (select estado from retail.ordenes_compra where id = :'oc'));`,
+  "orden_compra_motivo,orden_compra_motivo,orden_compra_motivo,generada"
+);
+caso(
+  "A3 con la versión vieja (otra persona la editó antes): PT409 / version_cambiada y no la anula",
+  `${UNA_ORDEN}
+   select ${edita({ nota: "'Otra persona'" })} \\g /dev/null
+   select concat_ws(',', split_part(${anula()}, '|', 1), split_part(${anula()}, '|', 2),
+     (select estado from retail.ordenes_compra where id = :'oc'));`,
+  "PT409,version_cambiada,generada"
+);
+caso(
+  "A4 el mismo pedido repetido (doble clic) no da error y no cambia nada; anular otra vez con otro motivo, sí",
+  `${UNA_ORDEN}
+   select ${anula()} as primera \\gset
+   select ${anula()} as repetida \\gset
+   select ${anula(":'v'::int + 1", "'Otro motivo'")} as otra \\gset
+   reset role;
+   select concat_ws(',', :'primera', :'repetida', split_part(:'otra', '|', 2),
+     (select motivo_anulacion || ':' || version from retail.ordenes_compra where id = :'oc'),
+     (select count(*) from retail.actividad a where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_anulada'));`,
+  "OK:2,OK:2,orden_compra_ya_anulada,El proveedor no tenía la tela:2,1"
+);
+caso(
+  "A5 una persona que no es Admin firma con «orden_compra_anular» (sin la clave le pide el combo); una terminal no anula sin elegir a alguien",
+  `${UNA_ORDEN}
+   reset role;
+   insert into retail.rol_modulos (rol_id, modulo)
+     select c.rol_id, 'ordenes_compra' from retail.colaboradores c where c.persona_id = :'micaela_p';
+   ${TERMINAL}
+   ${como(T_VENTAS)}
+   ${encabezados({ "x-responsable-omitido": "orden_compra_anular" })}
+   select ${anula()} as terminal \\gset
+   ${como(MICAELA)}
+   ${encabezados({})}
+   select ${anula()} as sin_clave \\gset
+   ${encabezados({ "x-responsable-omitido": "orden_compra_anular" })}
+   select ${anula()} as con_clave \\gset
+   reset role;
+   select concat_ws(',', split_part(:'terminal', '|', 2), split_part(:'sin_clave', '|', 2), :'con_clave',
+     (select ${si("anulada_por = :'micaela_p'", "micaela", "otra")} from retail.ordenes_compra where id = :'oc'));`,
+  "responsable_requerido,responsable_requerido,OK:2,micaela"
+);
+caso(
+  "A6 sin el módulo, 42501; anon no ejecuta anular",
+  `${UNA_ORDEN}
+   ${como(MICAELA)}
+   ${encabezados({ "x-responsable-omitido": "orden_compra_anular" })}
+   select split_part(${anula()}, '|', 1) as micaela \\gset
+   reset role;
+   select :'micaela' || ',' || has_function_privilege('anon', 'retail.anular_orden_compra(uuid,integer,text)', 'execute');`,
+  "42501,false"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien`);

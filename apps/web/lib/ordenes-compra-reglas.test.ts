@@ -16,6 +16,7 @@ import {
   numeroOrdenCompra,
   paginaDeOrdenes,
   paramsDeLista,
+  problemaDeMotivo,
   pildorasDeDestino,
   textoDestino,
   vacioDeLista,
@@ -258,5 +259,15 @@ describe("leerFilasOrdenes", () => {
     expect(leerFilasOrdenes([FILA, { ...FILA, id: "" }, 7])).toHaveLength(1);
     expect(leerFilasOrdenes(null)).toEqual([]);
     expect(leerFilasOrdenes({ filas: [FILA] })).toEqual([]);
+  });
+});
+
+describe("problemaDeMotivo: las reglas de anular_orden_compra", () => {
+  it("el motivo es obligatorio (vacío o solo espacios no vale) y va hasta 300 letras", () => {
+    expect(problemaDeMotivo("")).toBe("Escribe por qué se anula la orden.");
+    expect(problemaDeMotivo("   ")).toBe("Escribe por qué se anula la orden.");
+    expect(problemaDeMotivo("El proveedor no tenía la tela")).toBeNull();
+    expect(problemaDeMotivo("a".repeat(300))).toBeNull();
+    expect(problemaDeMotivo("a".repeat(301))).toBe("El motivo va hasta 300 letras.");
   });
 });

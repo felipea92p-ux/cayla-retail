@@ -3,7 +3,7 @@ import { getDetalleOrden } from "@/lib/ordenes-compra";
 import { fraseDestino, numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 import { DetalleOrdenCompra } from "@/components/ordenes-compra/DetalleOrdenCompra";
-import { BotonEditarOrden } from "@/components/ordenes-compra/BotonEditarOrden";
+import { AccionesOrden } from "@/components/ordenes-compra/AccionesOrden";
 
 // Una orden de compra como ventana, encima de la lista desde la que se abrió (ADR-0362, fase 1 · actividad 3). Ruta interceptada,
 // como el detalle de una factura: al tocar una fila de `/compras/ordenes`, Next dibuja esto en el slot `modal` del layout de Compras y la
@@ -26,8 +26,15 @@ export default async function OrdenCompraModal({ params }: { params: Promise<{ i
     <ModalRuta
       titulo={numeroOrdenCompra(detalle.numero)}
       subtitulo={`${detalle.proveedor.nombre} · ${fraseDestino(detalle.destino?.nombre ?? null)}`}
-      // Solo una «generada» se edita (actividad 4). El pie de la ventana es donde la mano ya está al terminar de leer.
-      acciones={detalle.estado === "generada" ? <BotonEditarOrden id={detalle.id} /> : undefined}
+      // Solo una «generada» se edita o se anula (actividades 4 y 5). El pie de la ventana es donde la mano ya está al terminar de leer.
+      acciones={
+        detalle.estado === "generada" ? (
+          <AccionesOrden
+            lugar="pie"
+            orden={{ id: detalle.id, numero: detalle.numero, version: detalle.version, proveedor: detalle.proveedor.nombre, total: detalle.total }}
+          />
+        ) : undefined
+      }
     >
       <DetalleOrdenCompra orden={detalle} />
     </ModalRuta>
