@@ -24,7 +24,9 @@ import {
   porQue,
   posicionEnEscala,
   problemasDelBorrador,
+  propuestaDeNormal,
   repartir,
+  siguienteSinPlan,
   TOP_VENTAS,
   totalesDelPlan,
   type Borrador,
@@ -367,5 +369,44 @@ describe("la barra de rango", () => {
     expect(posicionEnEscala(-5, 200)).toBe(0);
     expect(posicionEnEscala(999, 200)).toBe(100);
     expect(posicionEnEscala(5, 0)).toBe(0);
+  });
+});
+
+describe("propuestaDeNormal y siguienteSinPlan", () => {
+  it("un diciembre normal es el triple de un mes normal: con 90 días vendidos, lo mismo que se vendió en esos 90 días", () => {
+    expect(propuestaDeNormal(90)).toBe(90);
+    expect(propuestaDeNormal(38)).toBe(38);
+    expect(propuestaDeNormal(5)).toBe(5);
+  });
+  it("sin ventas no hay qué proponer (ni con datos raros)", () => {
+    expect(propuestaDeNormal(0)).toBeNull();
+    expect(propuestaDeNormal(-3)).toBeNull();
+    expect(propuestaDeNormal(Number.NaN)).toBeNull();
+  });
+
+  const filas = () =>
+    armarFilas(
+      leerPlan({
+        plan: { id: "p", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" },
+        hoy: "2026-10-05",
+        categorias: [
+          { id: "a", nombre: "Polos", tallas: [] },
+          { id: "b", nombre: "Bodys", tallas: [] },
+          { id: "c", nombre: "Abrigos", tallas: [] },
+          { id: "d", nombre: "Faldas", tallas: [] },
+        ],
+        lineas: [{ categoria_id: "b", flojo: 1, normal: 2, bueno: 3, precio: "100", costo: "40", recupero_pct: 50, curva: {}, nota: null }],
+        stock: [{ categoria_id: "d", unidades: 4 }],
+        curvas: [{ categoria_id: "a", talla_id: "s", unidades: 9 }, { categoria_id: "b", talla_id: "s", unidades: 20 }],
+      })!,
+    );
+  it("la siguiente es la que más vende de las que no tienen plan; una con plan nunca", () => {
+    expect(siguienteSinPlan(filas())?.c.nombre).toBe("Polos");
+  });
+  it("salta las que ya se guardaron en esta tanda y sigue con la próxima que se mueve", () => {
+    expect(siguienteSinPlan(filas(), ["a"])?.c.nombre).toBe("Faldas");
+  });
+  it("una sin ventas ni stock no se ofrece; si no queda ninguna, null", () => {
+    expect(siguienteSinPlan(filas(), ["a", "d"])).toBeNull();
   });
 });

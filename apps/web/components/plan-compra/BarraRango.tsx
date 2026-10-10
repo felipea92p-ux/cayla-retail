@@ -16,6 +16,7 @@ export function BarraRango({
   calculo,
   vendido = 0,
   retraso = 0,
+  viva = false,
 }: {
   linea: Pick<LineaPlan, "flojo" | "normal" | "bueno">;
   calculo: Calculo;
@@ -23,6 +24,8 @@ export function BarraRango({
   vendido?: number;
   /** Cuántos pasos de 38 ms espera para entrar (la fila que entra escalonada). */
   retraso?: number;
+  /** La barra cambia MIENTRAS la persona escribe (la hoja de una categoría): no entra creciendo y se reacomoda sin saltos (ADR-0136). */
+  viva?: boolean;
 }) {
   const escala = escalaDeRango(linea, calculo, vendido);
   const pos = (v: number) => posicionEnEscala(v, escala);
@@ -32,10 +35,10 @@ export function BarraRango({
     <span role="img" aria-label={dice} className="block min-w-0">
       <span aria-hidden className="relative block h-2">
         <span
-          className="anim-crece-x absolute inset-y-0.5 rounded-full bg-taupe/30"
+          className={`absolute inset-y-0.5 rounded-full bg-taupe/30 transition-[left,width] duration-500 ease-cayla motion-reduce:transition-none ${viva ? "" : "anim-crece-x"}`}
           style={{ left: `${pos(linea.flojo)}%`, width: `${pos(linea.bueno) - pos(linea.flojo)}%`, ["--i" as string]: retraso }}
         />
-        <span className="absolute -inset-y-px w-0.5 -translate-x-1/2 rounded-full bg-taupe" style={{ left: `${pos(linea.normal)}%` }} />
+        <span className="absolute -inset-y-px w-0.5 -translate-x-1/2 rounded-full bg-taupe transition-[left] duration-500 ease-cayla motion-reduce:transition-none" style={{ left: `${pos(linea.normal)}%` }} />
       </span>
       <span aria-hidden className="relative mt-1.5 block">
         <BarraApilada
@@ -43,6 +46,7 @@ export function BarraRango({
           alto={8}
           total={escala}
           retraso={retraso}
+          viva={viva}
           segmentos={[
             { clave: "hay", nombre: "Ya hay", valor: calculo.stock, clase: "bg-verde" },
             { clave: "comprar", nombre: "Comprar", valor: calculo.comprar, clase: "bg-tinta" },

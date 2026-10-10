@@ -6,7 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias } from "@/components/plan-compra/ListaCategorias";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
-import { armarFilas, fechaLargaES, leerPlan, momentoDeLaCampana, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
+import { armarFilas, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
 import { CalendarDays } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
@@ -20,6 +20,9 @@ import { Vacio } from "@/components/ui/Vacio";
 export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla: string | null; familias: FamiliaPlan[] }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
+  // Las que se guardaron con «Guardar y seguir» en esta tanda: la lectura del servidor tarda un instante en traerlas y la hoja no debe
+  // volver a ofrecerlas como «la siguiente».
+  const [hechas, setHechas] = useState<string[]>([]);
   const [filtro, setFiltro] = useState<FiltroPlan>("todas");
   const [familia, setFamilia] = useState("todas");
   const [q, setQ] = useState("");
@@ -46,6 +49,11 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
 
   const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
   const totales = totalesDelPlan(filas);
+  const siguiente = abierta ? (siguienteSinPlan(filas, [...hechas, abierta.id])?.c ?? null) : null;
+  const cerrarHoja = () => {
+    setAbierta(null);
+    setHechas([]);
+  };
 
   return (
     <div className="space-y-6">
@@ -93,8 +101,16 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
           categoria={abierta}
           linea={plan.lineas.get(abierta.id)}
           stock={plan.stock.get(abierta.id) ?? 0}
+          ventas={filas.find((f) => f.c.id === abierta.id)?.ventas ?? 0}
           vendidoPorTalla={plan.vendidoPorTalla.get(abierta.id)}
-          onClose={() => setAbierta(null)}
+          siguiente={siguiente}
+          onGuardado={(seguir) => {
+            if (seguir && siguiente) {
+              setHechas((h) => [...h, abierta.id]);
+              setAbierta(siguiente);
+            }
+          }}
+          onClose={cerrarHoja}
         />
       )}
     </div>

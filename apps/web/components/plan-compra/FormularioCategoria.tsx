@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -12,6 +12,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { compararTallas } from "@/lib/tallas";
+import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { camposDelPlan } from "@/lib/plan-compra-guia";
 import {
   RPC_GUARDAR_LINEA,
@@ -20,8 +21,10 @@ import {
   calcular,
   comprarPorTalla,
   curvaSugerida,
+  enteroES,
   lineaDeBorrador,
   porQue,
+  propuestaDeNormal,
   solesES,
   type Borrador,
   type CategoriaPlan,
@@ -39,7 +42,8 @@ import {
 const soloDigitos = (s: string) => s.replace(/[^\d]/g, "");
 const soloMonto = (s: string) => s.replace(/[^\d.,]/g, "");
 
-/** Lo que el pie necesita para dibujar sus botones: el de guardar va dentro del `<form>` y se deshabilita con la guía. */
+/** Lo que el pie necesita para dibujar sus botones: el de guardar va dentro del `<form>` y se deshabilita con la guía. Un botón que
+ *  guarda y sigue lleva `data-seguir="1"`: el formulario lo reconoce por él al enviarse. */
 export type PieDelFormulario = {
   guardando: boolean;
   /** La guía deja confirmar: lo mismo que la base aceptaría. */
@@ -55,6 +59,7 @@ export function FormularioCategoria({
   categoria,
   linea,
   stock,
+  ventas,
   vendidoPorTalla,
   onGuardado,
   pie,
@@ -63,9 +68,11 @@ export function FormularioCategoria({
   categoria: CategoriaPlan;
   linea: LineaPlan | undefined;
   stock: number;
+  /** Lo que se vendió de esta categoría en los últimos 90 días: la referencia para escribir los escenarios. */
+  ventas: number;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
-  /** Se llama cuando la base ya guardó (después del aviso y de refrescar la lectura). */
-  onGuardado: () => void;
+  /** Se llama cuando la base ya guardó (después del aviso y de refrescar la lectura). `seguir`: se guardó con el botón «Guardar y seguir». */
+  onGuardado: (seguir: boolean) => void;
   /** Los botones de abajo, dentro del `<form>`. */
   pie: (p: PieDelFormulario) => ReactNode;
 }) {
@@ -84,9 +91,13 @@ export function FormularioCategoria({
   const sumaCurva = tallas.reduce((s, t) => s + (Number(b.curva[t.id] || "0") || 0), 0);
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
 
+  const propuesta = propuestaDeNormal(ventas);
+
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (!guia.puedeConfirmar) return;
+    // Qué botón envió el formulario: «Guardar y seguir» lo dice con data-seguir="1".
+    const seguir = ((e.nativeEvent as SubmitEvent).submitter as HTMLElement | null)?.dataset.seguir === "1";
     setGuardando(true);
     const { error } = await firmar(createClient().rpc(RPC_GUARDAR_LINEA as never, argsGuardar(planId, categoria.id, b, tallas, nota) as never), responsable.firma());
     responsable.despues(error);
@@ -94,11 +105,28 @@ export function FormularioCategoria({
     if (error) return void avisar.error(traducirError(error, "guardar el plan"));
     avisar.exito(`Plan de ${categoria.nombre} guardado`, { detalle: calculo ? `Comprar ${calculo.comprar} · ${solesES(calculo.inversion)}` : undefined });
     router.refresh();
-    onGuardado();
+    onGuardado(seguir);
   }
 
   return (
     <form onSubmit={guardar} className="space-y-6">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+        <span>
+          Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en 90 días
+        </span>
+        <span>
+          Hoy hay <b className="font-semibold text-tinta">{enteroES.format(stock)}</b> en la red
+        </span>
+        <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
+          Proponer el normal desde lo vendido
+        </Boton>
+        <span className="basis-full text-xs text-tinta/65">
+          {propuesta === null
+            ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
+            : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+        </span>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <CampoGuiado id="flojo" guia={guia} titulo="Diciembre flojo" ayuda="Unidades">
           <CampoTexto etiqueta={<span className="sr-only">Venderías</span>} caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
@@ -167,6 +195,11 @@ export function FormularioCategoria({
             <p className="mt-1 text-sm text-tinta/75">
               Conviene tener {calculo.objetivo} para la campaña; ya hay {calculo.stock}. {porQue(calculo)}
             </p>
+            {lineaViva && (
+              <div className="mt-3">
+                <BarraRango viva linea={lineaViva} calculo={calculo} />
+              </div>
+            )}
           </>
         ) : (
           <p className="text-sm text-tinta/70">Cuando completes los escenarios, el precio, el costo y lo que sobra, aquí sale cuánto comprar.</p>

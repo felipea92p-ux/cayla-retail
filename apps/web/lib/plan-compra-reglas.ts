@@ -479,3 +479,32 @@ export function escalaDeRango(l: Pick<LineaPlan, "bueno">, calculo: Pick<Calculo
 
 /** Dónde cae un valor en la escala, de 0 a 100. */
 export const posicionEnEscala = (valor: number, escala: number): number => (escala > 0 ? Math.min(100, Math.max(0, (valor / escala) * 100)) : 0);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 9. Ayudas para llenar una categoría
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Cuántos días de ventas mira `fn_plan_compra` para la curva y para «lo que vendiste» (los 90 días de siempre). */
+export const DIAS_DE_VENTAS = 90;
+/** «Diciembre triplica un mes promedio» (R-19, docs/datos/15-COMO-OPERA-CAYLA.md): un diciembre normal vende tres meses normales. */
+export const MESES_DE_UN_DICIEMBRE = 3;
+
+/**
+ * Lo que sale de «un diciembre normal vende el triple de un mes normal», con lo vendido en los últimos 90 días: un mes normal es
+ * ventas ÷ 3 y diciembre, tres de esos. Es UNA sola propuesta, la del escenario normal, porque es la única que tiene un dato detrás
+ * (R-19): el flojo y el bueno los decide quien arma el plan. Sin ventas no hay qué proponer (null).
+ */
+export function propuestaDeNormal(ventas90: number): number | null {
+  if (!Number.isFinite(ventas90) || ventas90 <= 0) return null;
+  const mensual = ventas90 / (DIAS_DE_VENTAS / 30);
+  return Math.round(mensual * MESES_DE_UN_DICIEMBRE);
+}
+
+/**
+ * La siguiente categoría que conviene armar: la que más vende de las que no tienen plan y algo se mueve (stock o ventas). `excluir` son
+ * las que ya se guardaron en esta tanda: la lectura del servidor tarda un instante en traerlas y la hoja no debe volver a ofrecerlas.
+ * `filas` ya viene ordenada por lo que más vende (`armarFilas`).
+ */
+export function siguienteSinPlan(filas: readonly FilaPlan[], excluir: readonly string[] = []): FilaPlan | null {
+  return filas.find((f) => !f.linea && !excluir.includes(f.c.id) && (f.stock > 0 || f.ventas > 0)) ?? null;
+}
