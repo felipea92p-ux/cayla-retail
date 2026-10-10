@@ -16,6 +16,7 @@ import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 import { ComparativaCaja } from "@/components/CajaComparativa";
 import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
+import { GastoRapidoModal } from "@/components/GastoRapidoModal";
 import {
   AccesosCajaEscritorio,
   AccesosCajaMovil,
@@ -37,6 +38,7 @@ import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia
 import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
+import type { ConceptoOrdenado } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
@@ -132,13 +134,15 @@ export function CajaAbiertaPanel({
     proveedores: { id: string; nombre: string; ruc: string | null }[];
     esLider: boolean;
     hoy: string;
+    /** Los conceptos del gasto rápido, ordenados por lo que más se gasta en esta sede (`ordenarPorFrecuencia`). */
+    frecuencia: { conceptos: ConceptoOrdenado[]; vecesOtro: number };
   } | null;
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
+  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | "gastoCompleto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
   // El recordatorio de cierre (ADR-0305) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
   // El `?cerrar=1` se borra de la barra al llegar: recargar la página no debe volver a abrir el cierre.
   useEffect(() => {
@@ -495,6 +499,18 @@ export function CajaAbiertaPanel({
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
       {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
       {modal === "gasto" && gasto && (
+        <GastoRapidoModal
+          caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
+          ubicacionNombre={ubicacionNombre}
+          conceptos={gasto.frecuencia.conceptos}
+          categorias={gasto.categorias}
+          proveedores={gasto.proveedores}
+          hoy={gasto.hoy}
+          onCerrar={() => setModal(null)}
+          onFormularioCompleto={() => setModal("gastoCompleto")}
+        />
+      )}
+      {modal === "gastoCompleto" && gasto && (
         <RegistrarGastoModal
           categorias={gasto.categorias}
           ubicaciones={gasto.ubicaciones}

@@ -13,6 +13,13 @@ export type FilaPorRegularizar = {
   categoria: string;
   talla: string;
   color: string;
+  /** Lo anotado por caja, como ids: con esto la hoja «Corregir lo anotado» (ADR-0369) arranca con lo que hay. */
+  categoriaId: string;
+  tallaId: string;
+  colorCodigo: string;
+  /** Si lo anotado se corrigió después de la venta (ADR-0369): cuántas veces, la última (cuándo y quién) y lo que anotó caja al vender.
+   *  `null` = nunca se corrigió, o no se pudo leer (la pantalla sigue igual, sin esa línea). */
+  correccion: { veces: number; ultimaEn: string; ultimaPor: string; original: string } | null;
   /** Lo que dibuja la prenda cuando la venta aún no tiene prenda real: el ícono de su categoría sobre su color (ADR-0333). Opcional: nulo = la percha. */
   colorHex: string | null;
   categoriaPrefijo: string | null;
@@ -32,7 +39,7 @@ export type FilaPorRegularizar = {
   diferencia: number | null;
 };
 
-const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
+const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
        categoria:categorias ( nombre, prefijo, familia ), talla:tallas ( valor ), color:colores ( nombre, hex ),
        ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) ),
        cierre:cierres_cola_arranque!prendas_por_regularizar_cierre_fk ( motivo, cerrado_en )`;
@@ -77,8 +84,18 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
   const idsResueltas = new Set(yaResueltas.map((f) => f.id));
   const filas = [...exigir(pendientes, "las prendas por regularizar").filter((f) => !idsResueltas.has(f.id)), ...yaResueltas];
 
+  // Las correcciones de lo anotado (ADR-0369), solo de lo que todavía se puede corregir. Es lo accesorio: si la función no existe aún
+  // en producción o falla, la lista sale igual, sin la línea «Corregido» (principio 9).
+  const corregibles = filas.filter((f) => f.estado === "pendiente" || f.estado === "cerrada_sin_prenda").map((f) => f.id);
+  const correcciones = new Map<string, { veces: number; ultimaEn: string; ultimaPor: string | null; antes: unknown }>();
+  if (corregibles.length > 0) {
+    const { data } = await supabase.rpc("fn_correcciones_prenda_sin_registrar", { p_ids: corregibles });
+    // Vienen de la más nueva a la más vieja: la primera de cada venta es la última corrección.
+    for (const c of data ?? []) if (!correcciones.has(c.prenda_id)) correcciones.set(c.prenda_id, { veces: c.veces, ultimaEn: c.ultima_en, ultimaPor: c.ultima_por, antes: c.antes });
+  }
+
   // `personas` vive en `public` (Dynamic): PostgREST no la embebe; se nombra con la misma función que Historial.
-  const ids = [...new Set(filas.flatMap((f) => (f.vendido_por ? [f.vendido_por] : [])))];
+  const ids = [...new Set([...filas.flatMap((f) => (f.vendido_por ? [f.vendido_por] : [])), ...[...correcciones.values()].flatMap((c) => (c.ultimaPor ? [c.ultimaPor] : []))])];
   const nombres = new Map<string, string>();
   if (ids.length > 0) {
     for (const n of exigir(await supabase.rpc("fn_nombres_personas", { p_ids: ids }), "quién vendió cada prenda")) nombres.set(n.id, n.nombre);
@@ -91,6 +108,10 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     categoria: f.categoria?.nombre ?? "",
     talla: f.talla?.valor ?? "",
     color: f.color?.nombre ?? "",
+    categoriaId: f.categoria_id,
+    tallaId: f.talla_id,
+    colorCodigo: f.color_codigo,
+    correccion: aCorreccion(correcciones.get(f.id), nombres),
     colorHex: f.color?.hex ?? null,
     categoriaPrefijo: f.categoria?.prefijo ?? null,
     categoriaFamilia: f.categoria?.familia ?? null,
@@ -106,6 +127,13 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     diferencia: f.diferencia === null ? null : Number(f.diferencia),
   });
   return filas.map(aFila);
+}
+
+/** La línea «Corregido» de una venta: lo que anotó caja al vender sale de la primera foto «antes». */
+function aCorreccion(c: { veces: number; ultimaEn: string; ultimaPor: string | null; antes: unknown } | undefined, nombres: Map<string, string>): FilaPorRegularizar["correccion"] {
+  if (!c) return null;
+  const antes = (c.antes ?? {}) as { descripcion?: unknown };
+  return { veces: c.veces, ultimaEn: c.ultimaEn, ultimaPor: (c.ultimaPor && nombres.get(c.ultimaPor)) || "—", original: typeof antes.descripcion === "string" ? antes.descripcion : "" };
 }
 
 /** Para el aviso del inicio: pendientes que ya pasaron el plazo. Solo lo pide el líder. null = no se pudo leer. */

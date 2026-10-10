@@ -352,6 +352,9 @@ describe("datos del cliente", () => {
   it("faltaParaPedir: lo mismo que apaga el botón", () => {
     expect(faltaParaPedir({ varianteId: "", tiendaId: "", nombres: " ", apellidos: "", celular: "1" })).toEqual({ talla: true, tienda: true, nombres: true, apellidos: true, celular: true });
     expect(Object.values(faltaParaPedir({ varianteId: "v", tiendaId: "t", nombres: "Ana", apellidos: "Lozano", celular: "987111222" })).some(Boolean)).toBe(false);
+    // El celular es opcional (ADR-0367): vacío no falta; a medias, sí.
+    expect(faltaParaPedir({ varianteId: "v", tiendaId: "t", nombres: "Ana", apellidos: "Lozano", celular: "" }).celular).toBe(false);
+    expect(faltaParaPedir({ varianteId: "v", tiendaId: "t", nombres: "Ana", apellidos: "Lozano", celular: "98711" }).celular).toBe(true);
   });
   it("la huella del pedido: lo mismo da la misma; cambiar algo da otra (y los espacios no cuentan)", () => {
     const d = { varianteId: "v", tiendaId: "t", nombres: "Ana", apellidos: "Lozano", celular: "987111222", nota: "" };

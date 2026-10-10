@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle } from "lucide-react";
+import { Check, MessageCircle } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -104,7 +104,9 @@ export function AvisarAlClienteModal({
   const responsable = externo ?? propio;
   const [estado, setEstado] = useState<"listo" | "guardando" | "hecho">("listo");
   const { titulo, subtitulo, mensaje } = avisoParaLaVentana(aviso, pedido, sede.etiqueta);
-  const enlace = enlaceWhatsAppA(pedido.cliente.celular, mensaje);
+  // Sin celular (ADR-0367) no hay WhatsApp: se le avisa como se acordó (llamada, en persona) y aquí solo queda la constancia.
+  const conCelular = pedido.cliente.celular !== "";
+  const enlace = conCelular ? enlaceWhatsAppA(pedido.cliente.celular, mensaje) : null;
 
   async function marcar() {
     if (!responsable.listo || estado !== "listo") return;
@@ -126,12 +128,27 @@ export function AvisarAlClienteModal({
       {(cerrar) => (
         <div className="space-y-4">
           <p className="rounded-xl bg-hueso px-3.5 py-3 text-sm text-tinta/85">{mensaje}</p>
+          {!conCelular && estado !== "hecho" && (
+            <p className="text-xs text-tinta/70">No dejó celular: avísale como acordaron (llamada o en persona) y deja constancia aquí.</p>
+          )}
           {estado !== "hecho" && !responsable.listo && <ComboResponsable control={responsable} />}
           <div className="flex gap-2">
             <button type="button" onClick={cerrar} className={botonCancelar}>
               {estado === "hecho" ? "Listo" : "Ahora no"}
             </button>
-            {estado !== "hecho" && (
+            {estado !== "hecho" && !enlace && (
+              <button
+                type="button"
+                disabled={!responsable.listo || estado !== "listo"}
+                title={responsable.motivo ?? undefined}
+                onClick={() => void marcar()}
+                className={`${botonPrimario} inline-flex items-center justify-center gap-2`}
+              >
+                <Check aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+                {estado === "guardando" ? "Guardando…" : "Ya le avisé"}
+              </button>
+            )}
+            {estado !== "hecho" && enlace && (
               <a
                 href={enlace}
                 target="_blank"

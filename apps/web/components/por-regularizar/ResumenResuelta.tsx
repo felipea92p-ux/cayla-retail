@@ -5,10 +5,22 @@ import { motivoLegible } from "@/lib/cola-arranque-reglas";
 import { textoDeDiferencia } from "@/lib/por-regularizar-mesa";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { MosaicoDeVenta, IconoVisto } from "./piezas";
+import { LineaCorregida } from "./LineaCorregida";
 
 /** Lo que se dice de una venta que ya no está pendiente (regularizada, cerrada sin prenda, anulada): sin prendas que elegir. Un líder
  *  puede reabrir una cerrada (la base lo exige, `reabrir_prenda_cerrada`). */
-export function ResumenResuelta({ fila, esLider, onReabrir }: { fila: FilaPorRegularizar; esLider: boolean; onReabrir: (f: FilaPorRegularizar) => void }) {
+export function ResumenResuelta({
+  fila,
+  esLider,
+  onReabrir,
+  onCorregir,
+}: {
+  fila: FilaPorRegularizar;
+  esLider: boolean;
+  onReabrir: (f: FilaPorRegularizar) => void;
+  /** Una cerrada sin prenda sigue contando en la demanda con lo anotado: también se corrige (ADR-0369). */
+  onCorregir: (f: FilaPorRegularizar) => void;
+}) {
   const titulo = fila.estado === "regularizada" ? "Se identificó como" : fila.estado === "cerrada_sin_prenda" ? "Cerrada sin identificar" : "La venta se anuló";
   return (
     <div className="vsr-resumen">
@@ -29,11 +41,23 @@ export function ResumenResuelta({ fila, esLider, onReabrir }: { fila: FilaPorReg
             {motivoLegible(fila.cierre.motivo)}. Cerrada el {diaYHoraLima(fila.cierre.cerradoEn).dia}: el stock no cambió.
           </p>
         )}
+        {fila.estado === "cerrada_sin_prenda" && (
+          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+            <LineaCorregida fila={fila} />
+          </p>
+        )}
       </div>
-      {fila.estado === "cerrada_sin_prenda" && esLider && (
-        <button type="button" onClick={() => onReabrir(fila)} className="btn-cayla btn-secundario self-start">
-          Reabrir
-        </button>
+      {fila.estado === "cerrada_sin_prenda" && (
+        <div className="flex flex-wrap gap-2 self-start">
+          <button type="button" onClick={() => onCorregir(fila)} className="btn-cayla btn-secundario">
+            Corregir lo anotado
+          </button>
+          {esLider && (
+            <button type="button" onClick={() => onReabrir(fila)} className="btn-cayla btn-secundario">
+              Reabrir
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

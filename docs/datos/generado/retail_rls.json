@@ -844,6 +844,11 @@
   "relkind": "r",
   "rls": true
  },
+ "venta_pagos_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ventas": {
   "forzado": false,
   "relkind": "r",
