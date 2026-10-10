@@ -2,3 +2,8 @@
 Qué hice: leí todo Frescura (ADR, SQL, reglas, pantalla, módulos vecinos, producción y la industria) y lo verifiqué con simulaciones; Felipe decidió en 7 preguntas que la regla sigue relativa a su categoría, con la vara congelada por mes, el % por familia, la meta contra el mes anterior, CAYLA en la vista CAYLA Global y las palabras Fresca · Vigente · Envejeciendo.
 Por qué así: recalculada a diario, la vara se ajusta sola y el % de la tienda sale casi igual (≈50/25/15/10) se haga bien o mal; y el reloj del modelo castigaba lo que se repone (97 % «Hay que moverla» con 6 unidades).
 Felipe se lleva: la lista de 9 actividades aprobada (ADR-0208, act. 2026-10-10 (b)), y el dato de que hoy nada puede salir «envejeciendo» todavía: el sistema tiene 10 días de historia y AQP registra 5 de cada 325 ventas.
+
+## 2026-10-10 (Frescura del piso: la tienda de un vistazo — construido)
+Qué hice: las actividades 1 a 7, una por commit y sin migración: la regla con la vara del mes y dos relojes, la barra por familia arriba, la comparación con hace 4 semanas, «Lo que mueve la aguja» con su acción, «Sin estrenar», las mismas palabras en toda la pantalla (con la cola de la curva y «lenta» con evidencia) y CAYLA Global con una barra por tienda y la cuadrícula categoría × tienda.
+Por qué así: cada cifra sale del mismo libro de movimientos que ya existía (sin fotos ni tablas nuevas), y la frase de arriba solo afirma cuando la tienda registra lo que vende; si no, lo dice.
+Felipe se lleva: la pantalla mirada en el navegador (1440 claro y oscuro, 375, auditoría de tema con 0 hallazgos en las dos vistas) y un pendiente suyo: abrir CAYLA Global ▸ Frescura a un gerente que no es líder pide una migración de permisos de `fn_frescura_sede`.

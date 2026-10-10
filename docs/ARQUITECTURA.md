@@ -506,6 +506,21 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   completo si no hay nada por decidir; la vara solo habla en la excepción (`varaTablero` devuelve `null` para sólido y aceptable); el pie
   son dos frases plegadas (`resumenPie`); bajo el botón de la fila va `textoConsecuenciaFila` (qué pasa al tocarlo); la hoja dice «Anotar
   lo que hice» y la silueta de `loading.tsx` dibuja el tablero.
+  **Desde el 2026-10-10 (b) (ADR-0208, «la tienda de un vistazo», 7 decisiones de Felipe; sin SQL nuevo):** la cabecera responde
+  «¿Tu piso está fresco?» (`respuestaDelPiso`) y arriba va la barra por familia de categorías (`FrescuraPiso.tsx`; puro en
+  `lib/frescura-piso.ts`: `pisoPorFamilia`, Fresca · Vigente · Envejeciendo · Aún no se sabe, en unidades y soles a precio de venta de la sede
+  —`preciosDelPiso`, RPC `fn_precios_en_sede`—; «hace 4 semanas» con `pisoAnterior`, que reconstruye la sede del mismo libro con `lecturaAl`). La frase solo
+  afirma si la tienda pasa la puerta de Análisis (`puertaDelPiso` = RPC `fn_motor_demanda_preparacion` + `preparacionDeSede`).
+  Debajo, «Lo que mueve la aguja» (`FrescuraAguja.tsx`; puro en `lib/frescura-aguja.ts`: `loQueMueveLaAguja` con la acogida
+  Gamma-Poisson por categoría, `ritmoPorCategoria` de `analizarSede`, la acción completa tallas → cambia de lugar → cuelga más; sin
+  piso cuadrado, `loQueSeLlevan` con lo anotado en caja de `prendas_por_regularizar` —`anotadasDeLaSede`— y `sinEstrenar` con su enlace
+  a Bajar al piso). En `analizarSede`: la vara del mes (`inicioDelMesLima`, 90 días congelados al día 1), dos relojes
+  (`tramoDosRelojes`: Fresca por el modelo, Vigente y Envejeciendo por la unidad más vieja colgada) y la cola de la curva
+  (`cortesConCola`). **En CAYLA Global** (`frescura` está en `MODULOS_DE_LA_VISTA_GLOBAL` y la ruta en `RUTAS_DE_LA_VISTA_GLOBAL`)
+  `page.tsx` dibuja `FrescuraRed.tsx` con `lib/frescura.ts:getFrescuraRed` (`armarFrescuraLider` + las puertas de todas las tiendas +
+  `familiasDeCategorias`) → `lib/frescura-red.ts` (puro: `resumenDeTienda`, `resumenCayla`, `cuadricula`); hoy solo para el líder
+  (`fn_frescura_sede` exige operar la sede). El selector (`UbicacionSwitcher`) deja en su pantalla a quien elige CAYLA Global parado
+  en una ruta de esa vista.
 - `/inventario/resumen` (**Análisis**, ADR-0357, 2026-10-06: cinco pestañas —Hoy · Se está acabando · No se vende · Nunca salió al piso
   (2026-10-07, decisión 11) · Qué pedir—;
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
