@@ -40,7 +40,8 @@ export function FrescuraComoSeLee({
       <p>
         <b>Fresca</b>: su modelo todavía no llega a lo que tarda en venderse la mitad de su categoría. <b>Vigente</b>: ya pasó la mitad, pero no lo que
         tardan 3 de cada 4. <b>Envejeciendo</b>: ya pasó lo que tardan 3 de cada 4. <b>Aún no se sabe</b>: llegó sin fecha, su categoría todavía no tiene
-        ritmo aquí, su stock no cuadra (cuéntala) o puede ser una que se vendió sin registrar. La vara de cada categoría queda fija el día 1 de cada mes.
+        ritmo aquí, su stock no cuadra (cuéntala) o puede ser una que se vendió sin registrar. Cuando una categoría ya tiene sus ventas, su vara
+        queda fija el día 1 de cada mes; la línea de cada una dice con qué se juzga.
       </p>
       <p>
         <b>Cómo se lee.</b> {FRASE_SIN_ELLA} Los días cuentan solo el tiempo con alguna talla libre colgada. La comparación es con lo vendido en esta tienda; cuando una

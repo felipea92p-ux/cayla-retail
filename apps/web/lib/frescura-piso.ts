@@ -97,6 +97,9 @@ function tramoYCausa(p: FrescuraPrenda, u: UnidadColgada): { tramo: TramoPiso; c
 export function tramosDeLaPrenda(
   p: FrescuraPrenda,
   precioDe?: (varianteId: string) => number | null,
+  /** `sinApartar`: cuenta lo apartado por lo vendido sin registrar como si no se dudara (para comparar con hace 4 semanas, que no
+   *  tiene dudas: revisión adversaria, si no cada venta pendiente daba un falso «más fresco»). */
+  opciones: { sinApartar?: boolean } = {},
 ): { unidades: ConteoPiso; soles: ConteoPiso; sinPrecio: number; sinSaberPor: ConteoSinSaber } {
   const unidades = conteoVacio();
   const soles = conteoVacio();
@@ -110,7 +113,8 @@ export function tramosDeLaPrenda(
     if (precio === null) sinPrecio += n;
     else soles[tramo] += n * precio;
   };
-  const juzgable = p.estado.tipo === "semaforo" || p.estado.tipo === "sin_edad_conocida";
+  const sinApartar = opciones.sinApartar === true;
+  const juzgable = p.estado.tipo === "semaforo" || p.estado.tipo === "sin_edad_conocida" || (sinApartar && p.estado.tipo === "vendida_sin_registrar");
   for (const t of p.tallas) {
     if (t.pisoHoy <= 0) continue;
     if (p.estado.tipo === "clasico") {
@@ -119,11 +123,12 @@ export function tramosDeLaPrenda(
     }
     if (!juzgable) {
       // Sin juicio: o su libro no cuadra (hay que contarla) o su categoría todavía no tiene ritmo aquí.
-      sumar("sin_saber", t.pisoHoy, t.varianteId, p.estado.tipo === "dudosa" ? "dudosa" : "ritmo");
+      sumar("sin_saber", t.pisoHoy, t.varianteId, p.estado.tipo === "dudosa" ? "dudosa" : p.estado.tipo === "vendida_sin_registrar" ? "venta" : "ritmo");
       continue;
     }
     let restante = t.pisoHoy;
-    for (const u of [...t.colgadas].sort((a, b) => b.segundos - a.segundos)) {
+    const colgadas = sinApartar ? [...t.colgadas, ...(t.apartadas ?? [])] : t.colgadas;
+    for (const u of [...colgadas].sort((a, b) => b.segundos - a.segundos)) {
       const n = Math.min(u.unidades, restante);
       const { tramo, causa } = tramoYCausa(p, u);
       sumar(tramo, n, t.varianteId, causa);
@@ -132,7 +137,7 @@ export function tramosDeLaPrenda(
     }
     // Lo que el stock dice colgado sin una tanda: primero lo que apartó una venta sin registrar (puede ser la vendida); lo demás,
     // que el libro no trae, no se sabe desde cuándo cuelga.
-    const vendidas = Math.min(restante, t.dudadas ?? 0);
+    const vendidas = sinApartar ? 0 : Math.min(restante, t.dudadas ?? 0);
     sumar("sin_saber", vendidas, t.varianteId, "venta");
     sumar("sin_saber", restante - vendidas, t.varianteId, "fecha");
   }
@@ -170,7 +175,7 @@ function familiaResuelta(categoriaId: string, familiaDe: (categoriaId: string) =
 
 export function pisoPorFamilia(
   prendas: readonly FrescuraPrenda[],
-  o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[]; precioDe?: (varianteId: string) => number | null },
+  o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[]; precioDe?: (varianteId: string) => number | null; sinApartar?: boolean },
 ): FamiliaPiso[] {
   const porCodigo = new Map(o.familias.map((f) => [f.codigo, f]));
   const grupos = new Map<string | null, FamiliaPiso & { sinPrecio: number }>();
@@ -181,7 +186,7 @@ export function pisoPorFamilia(
       grupos.get(codigo) ??
       ({ codigo, nombre: codigo === null ? SIN_FAMILIA : porCodigo.get(codigo)!.nombre, unidades: conteoVacio(), total: 0, prendas: 0, soles: conteoVacio(), sinPrecio: 0, sinSaberPor: sinSaberVacio() } as FamiliaPiso & { sinPrecio: number });
     grupos.set(codigo, g);
-    const t = tramosDeLaPrenda(p, o.precioDe);
+    const t = tramosDeLaPrenda(p, o.precioDe, { sinApartar: o.sinApartar });
     for (const k of TRAMOS_PISO) {
       g.unidades[k] += t.unidades[k];
       g.soles![k] += t.soles[k];
@@ -304,10 +309,15 @@ export type PuertaPiso = {
   aviso: string;
   /** El piso ya se cuadró (el sistema sabe qué cuelga): sin esto, las categorías no reciben veredicto (`loQueMueveLaAguja`). */
   pisoCuadrado?: boolean;
+  /** Desde cuándo está cuadrado (lo vendido sin registrar antes de eso no entra a la rapidez: no había con qué medir lo colgado). */
+  cuadradoEn?: string | null;
   /** Lo PRIMERO que falta (null si pasa o si no se pudo saber). Decide la razón de la frase y el botón del aviso. */
   falta?: FaltaPuerta | null;
   /** Ventas de los últimos 30 días sin su prenda (lo que «Registrar N sin prenda» lleva a regularizar). */
   sinPrenda?: number;
+  /** Si falta «ventas con su prenda», cuál de sus tres casos (los mismos de `avisoDatosDeHoy`): sin ventas en el ERP todavía, menos de 9 de
+   *  cada 10 con su prenda, o ya las lleva pero faltan días seguidos (revisión adversaria: decía «no todas llevan su prenda» aunque todas). */
+  venta?: "sin_ventas" | "sin_prenda" | "racha";
 } | null;
 
 /** La razón corta, para la frase de arriba: «Todavía no se puede saber: falta cuadrar el piso.» */
@@ -316,6 +326,18 @@ export const RAZON_PUERTA: Record<FaltaPuerta, string> = {
   almacen_contado: "falta contar el almacén",
   venta_identificada: "todavía no todas las ventas llevan su prenda",
 };
+const RAZON_VENTA: Record<NonNullable<NonNullable<PuertaPiso>["venta"]>, string> = {
+  sin_ventas: "todavía no hay ventas en el ERP",
+  sin_prenda: "todavía no todas las ventas llevan su prenda",
+  racha: "faltan días seguidos cobrando con la prenda",
+};
+
+/** La razón de la puerta, con el caso de «ventas con su prenda» cuando se sabe. Null si no se sabe qué falta. */
+export function razonDeLaPuerta(puerta: PuertaPiso): string | null {
+  if (!puerta?.falta) return null;
+  if (puerta.falta === "venta_identificada" && puerta.venta) return RAZON_VENTA[puerta.venta];
+  return RAZON_PUERTA[puerta.falta];
+}
 
 /**
  * El aviso de la tarjeta mientras la tienda no pasa la puerta (decisión de Felipe, Formidable 2026-10-10 (c): «% con aviso + el paso»): en una
@@ -328,7 +350,10 @@ export function avisoDeLaPuerta(puerta: PuertaPiso): string {
     case "almacen_contado":
       return "Mientras el almacén no esté contado, algo guardado puede contarse como colgado: estos porcentajes son aproximados.";
     case "venta_identificada":
-      return "Mientras haya ventas sin su prenda, lo vendido sigue contando como colgado: estos porcentajes son aproximados.";
+      // Con ventas sin su prenda, eso; si no (faltan días seguidos, o no hay ventas todavía), el aviso compartido con Análisis.
+      return puerta.venta === "sin_prenda" || (puerta.venta === undefined && (puerta.sinPrenda ?? 0) > 0)
+        ? "Mientras haya ventas sin su prenda, lo vendido sigue contando como colgado: estos porcentajes son aproximados."
+        : puerta.aviso || "Todavía no se sabe si esta tienda registra lo que vende: estos porcentajes son aproximados.";
     default:
       return puerta?.aviso || "No se pudo saber si esta tienda ya registra lo que vende: estos porcentajes pueden fallar.";
   }
@@ -402,11 +427,18 @@ const COLA_TENDENCIA: Record<Tendencia, string> = {
  * que vende: si no, lo vendido sigue «colgado» y envejece en falso) y si lo que no se sabe es poco; si no, dice por qué todavía no. Si el
  * piso de hace 4 semanas también se podía afirmar, dice si está más fresco, más viejo o igual (la meta de Felipe: contra el mes anterior).
  */
-export function respuestaDelPiso(principal: FamiliaPiso | null, puerta: PuertaPiso, antes: ConteoPiso | null = null): RespuestaPiso {
+export function respuestaDelPiso(
+  principal: FamiliaPiso | null,
+  puerta: PuertaPiso,
+  antes: ConteoPiso | null = null,
+  /** Hoy contado con la MISMA regla que hace 4 semanas (sin apartar lo vendido sin registrar: `tramosDeLaPrenda(…, { sinApartar })`).
+   *  Sin él, se compara la barra de hoy tal cual. */
+  hoyParaComparar: ConteoPiso | null = null,
+): RespuestaPiso {
   const base = { pregunta: PREGUNTA_PISO, tendencia: null, antes: null };
   if (principal === null || principal.total <= 0) return { ...base, respuesta: "Todavía no hay nada colgado.", afirma: false };
   if (puerta === null || !puerta.puedeHablar) {
-    const razon = puerta?.falta ? RAZON_PUERTA[puerta.falta] : null;
+    const razon = razonDeLaPuerta(puerta);
     return { ...base, respuesta: razon ? `Todavía no se puede saber: ${razon}.` : "Todavía no se puede saber.", afirma: false };
   }
   if (!sePuedeDecir(principal.unidades)) {
@@ -417,7 +449,9 @@ export function respuestaDelPiso(principal: FamiliaPiso | null, puerta: PuertaPi
   // «unidades», no «prendas»: en esta pantalla una prenda es un modelo y color, y la barra cuenta piezas (Formidable 2026-10-10 (c)).
   const dato = `${f} de cada 100 unidades colgadas están frescas`;
   if (antes === null || !sePuedeDecir(antes)) return { ...base, respuesta: `${dato}.`, afirma: true };
-  const tendencia = tendenciaDe(principal.unidades, antes);
+  const hoy = hoyParaComparar ?? principal.unidades;
+  if (!sePuedeDecir(hoy)) return { ...base, respuesta: `${dato}.`, afirma: true };
+  const tendencia = tendenciaDe(hoy, antes);
   return { pregunta: PREGUNTA_PISO, respuesta: `${dato}${COLA_TENDENCIA[tendencia]}`, afirma: true, tendencia, antes: porcentajes(antes) };
 }
 

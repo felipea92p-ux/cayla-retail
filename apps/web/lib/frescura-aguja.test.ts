@@ -123,12 +123,24 @@ describe("la edad contra lo que espera su vara (Formidable 2026-10-10 (c): sin e
   it("una categoría que vende casi todo junto (P50 9, P75 11, P90 13 días) espera poca vieja; sin P75, no se sabe", () => {
     const q = parteViejaEsperada(POLOS.cortes)!;
     expect(q).toBeGreaterThan(0.05);
-    expect(q).toBeLessThan(0.1);
+    expect(q).toBeLessThan(0.15);
     expect(parteViejaEsperada({ p50: 9 * D, p75: null, p90: null })).toBeNull();
     // Sin P90, la cola sale del ritmo de P50 a P75 y sigue siendo una parte (entre 0 y 1).
     const sinP90 = parteViejaEsperada({ p50: 9 * D, p75: 11 * D, p90: null })!;
     expect(sinP90).toBeGreaterThan(0);
     expect(sinP90).toBeLessThan(1);
+  });
+
+  it("con cortes pegados (escalones de Kaplan-Meier) no se desploma ni se anula: P90 = P75, P90 un segundo después y P75 = P50 dan cifras vecinas", () => {
+    const base = { p50: 10 * D, p75: 20 * D, p90: 30 * D };
+    const pegado = parteViejaEsperada({ ...base, p90: 20 * D })!;
+    const unSegundo = parteViejaEsperada({ ...base, p90: 20 * D + 1 })!;
+    // Antes: 0,24 con P90 = P75 y 0,0000003 con un segundo más. Ahora las dos cerca de 0,07 (el 15 % que se vendió justo a los 20 días).
+    expect(pegado).toBeGreaterThan(0.05);
+    expect(Math.abs(unSegundo - pegado)).toBeLessThan(0.01);
+    const p75IgualP50 = parteViejaEsperada({ p50: 10 * D, p75: 10 * D, p90: 20 * D });
+    expect(p75IgualP50).not.toBeNull();
+    expect(p75IgualP50!).toBeGreaterThan(0.1);
   });
 
   it("6 viejas de 10 donde se esperan 1 de cada 4 envejecen de más; 4 de 10 todavía no; con menos de 3, nunca", () => {

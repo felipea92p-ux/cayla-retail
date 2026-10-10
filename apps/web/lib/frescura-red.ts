@@ -4,7 +4,7 @@ import {
   conteoVacio,
   pisoDeLaTienda,
   pisoPorFamilia,
-  RAZON_PUERTA,
+  razonDeLaPuerta,
   respuestaDelPiso,
   sinSaberVacio,
   TRAMOS_PISO,
@@ -12,7 +12,6 @@ import {
   type ConteoPiso,
   type ConteoSinSaber,
   type Familia,
-  type FaltaPuerta,
   type FamiliaPiso,
   type PuertaPiso,
   type RespuestaPiso,
@@ -33,8 +32,12 @@ export type ResumenTienda = {
   nombre: string;
   /** Toda la tienda (`pisoDeLaTienda`, Felipe 2026-10-10 (c): «toda la tienda arriba»), o null si no tiene nada colgado. */
   principal: FamiliaPiso | null;
+  /** Cada familia de la tienda (para las líneas por familia de CAYLA Global: «lo mismo en CAYLA Global», decisión 9). */
+  familias?: FamiliaPiso[];
   /** Las unidades de toda la tienda hace 4 semanas, si se pudo reconstruir. */
   antes: ConteoPiso | null;
+  /** Hoy contado con la misma regla que hace 4 semanas (sin apartar lo vendido sin registrar), para la tendencia. */
+  hoyComparable?: ConteoPiso | null;
   puerta: PuertaPiso;
   /** Por categoría (de cualquier familia): las unidades colgadas por tramo y la parte vieja que su vara espera, para la cuadrícula. */
   porCategoria: { categoriaId: string; nombre: string; unidades: ConteoPiso; esperada?: number | null }[];
@@ -52,8 +55,10 @@ export function resumenDeTienda(
 ): ResumenTienda {
   const registro = o.registro ? registroCorto(o.registro, t.id) : [];
   if (t.sede === null) return { id: t.id, nombre: t.nombre, principal: null, antes: null, puerta: o.puerta, porCategoria: [], fallo: t.fallo, registro, decidido: null };
-  const principal = pisoDeLaTienda(pisoPorFamilia(t.sede.prendas, { familiaDe: o.familiaDe, familias: o.familias }));
+  const familias = pisoPorFamilia(t.sede.prendas, { familiaDe: o.familiaDe, familias: o.familias });
+  const principal = pisoDeLaTienda(familias);
   const antes = principal && t.sede.haceUnMes ? conteoDeTodo(t.sede.haceUnMes) : null;
+  const hoyComparable = antes ? (pisoDeLaTienda(pisoPorFamilia(t.sede.prendas, { familiaDe: o.familiaDe, familias: o.familias, sinApartar: true }))?.unidades ?? null) : null;
   const varas = new Map(t.sede.categorias.map((v) => [v.categoriaId, parteViejaEsperada(varaQueJuzgo(v).cortes)]));
   const porCategoria = new Map<string, { categoriaId: string; nombre: string; unidades: ConteoPiso; esperada: number | null }>();
   for (const p of t.sede.prendas) {
@@ -64,7 +69,7 @@ export function resumenDeTienda(
     porCategoria.set(p.categoriaId, fila);
   }
   const decidido = t.sede.decisiones.estado === "ok" ? resumenCorto(t.sede.decisiones.resumen) : null;
-  return { id: t.id, nombre: t.nombre, principal, antes, puerta: o.puerta, porCategoria: [...porCategoria.values()], fallo: null, registro, decidido };
+  return { id: t.id, nombre: t.nombre, principal, familias, antes, hoyComparable, puerta: o.puerta, porCategoria: [...porCategoria.values()], fallo: null, registro, decidido };
 }
 
 /** La suma de unas cuentas por tramo. */
@@ -96,33 +101,37 @@ export function resumenCayla(tiendas: readonly ResumenTienda[]): { principal: Fa
   const puerta: PuertaPiso = { puedeHablar: faltan.length === 0, aviso: "" };
   // Hace 4 semanas, solo si todas las tiendas con piso lo tienen: una comparación con una tienda menos no compara lo mismo.
   const antes = conPiso.every((t) => t.antes !== null) ? sumar(conPiso.map((t) => t.antes)) : null;
-  const respuesta = respuestaDelPiso(principal, puerta, antes);
+  const hoyComparable = antes ? sumar(conPiso.map((t) => t.hoyComparable ?? t.principal!.unidades)) : null;
+  const respuesta = respuestaDelPiso(principal, puerta, antes, hoyComparable);
   // La pregunta de CAYLA es de CAYLA; si no afirma porque falta una tienda, dice cuál y por qué.
   const pregunta = "¿Está fresco el piso de CAYLA?";
   if (!respuesta.afirma && principal !== null && caidas.length > 0)
     return { principal, faltan, respuesta: { ...respuesta, pregunta, respuesta: `Todavía no se puede saber: no se pudo leer ${listar(caidas)}.` } };
   if (!respuesta.afirma && principal !== null && sinRegistro.length > 0) {
     // Cada tienda con SU razón (Formidable 2026-10-10 (c): a Lima le faltaba cuadrar el piso y la frase decía que no registraba lo que vende).
-    const porRazon = new Map<FaltaPuerta | null, string[]>();
-    for (const t of conPiso.filter((x) => !x.puerta?.puedeHablar)) porRazon.set(t.puerta?.falta ?? null, [...(porRazon.get(t.puerta?.falta ?? null) ?? []), t.nombre]);
-    const partes = [...porRazon].map(([falta, nombres]) => `a ${listar(nombres)} ${falta ? RAZON_FALTA_TIENDA[falta] : "no se sabe qué le falta"}`);
+    const porRazon = new Map<string, string[]>();
+    for (const t of conPiso.filter((x) => !x.puerta?.puedeHablar)) {
+      const r = razonDeLaPuerta(t.puerta) ?? "";
+      porRazon.set(r, [...(porRazon.get(r) ?? []), t.nombre]);
+    }
+    // «en LIM falta cuadrar el piso», «en TRU y AQP faltan días seguidos…»: sin pronombre que concordar (revisión adversaria: «a TRU y AQP le
+    // faltan»), y con la razón de cada caso de la puerta (`razonDeLaPuerta`).
+    const partes = [...porRazon].map(([r, nombres]) => (r ? `${conPronombre(nombres)} ${r}` : `de ${listar(nombres)} no se sabe qué falta`));
     return { principal, faltan, respuesta: { ...respuesta, pregunta, respuesta: `Todavía no se puede saber: ${partes.join("; ")}.` } };
   }
   return { principal, faltan, respuesta: { ...respuesta, pregunta } };
 }
 
-/** Lo que le falta a una tienda, dicho después de su nombre: «a Tienda Lima le falta cuadrar el piso». */
-const RAZON_FALTA_TIENDA: Record<FaltaPuerta, string> = {
-  piso_cuadrado: "le falta cuadrar el piso",
-  almacen_contado: "le falta contar el almacén",
-  venta_identificada: "le faltan ventas con su prenda",
-};
+/** «en LIM:» o «en TRU y AQP:»: a quién le pasa, antes de la razón de la puerta (que ya trae su verbo: «falta cuadrar el piso»). */
+function conPronombre(nombres: readonly string[]): string {
+  return `en ${listar(nombres)}`;
+}
 
 /** La razón de UNA tienda, para su fila: «Falta cuadrar el piso: sus cifras son aproximadas.» */
 export function razonDeLaTienda(puerta: PuertaPiso): string | null {
   if (puerta === null) return "No se pudo saber si registra lo que vende: sus cifras pueden fallar.";
   if (puerta.puedeHablar) return null;
-  const razon = puerta.falta ? RAZON_PUERTA[puerta.falta] : "no se sabe qué le falta";
+  const razon = razonDeLaPuerta(puerta) ?? "no se sabe qué le falta";
   return `${razon[0].toUpperCase()}${razon.slice(1)}: sus cifras son aproximadas.`;
 }
 
@@ -158,7 +167,8 @@ export function cuadricula(tiendas: readonly ResumenTienda[]): FilaCuadricula[] 
         unidades,
         envejeciendo: Math.round((c.unidades.envejeciendo * 100) / unidades),
         sinSaber: c.unidades.sin_saber,
-        deMas: envejeceDeMas(c.unidades.envejeciendo, sabidas, c.esperada ?? null),
+        // Solo con el piso cuadrado, como la aguja de la tienda: sin él, el sistema no sabe qué cuelga (revisión adversaria).
+        deMas: t.puerta?.pisoCuadrado === true && envejeceDeMas(c.unidades.envejeciendo, sabidas, c.esperada ?? null),
       };
     });
     return { categoriaId, nombre, celdas, viejas };
@@ -175,4 +185,24 @@ export function enlaceATienda(ubicacionId: string, categoriaId?: string): string
   const q = new URLSearchParams({ tienda: ubicacionId });
   if (categoriaId) q.set("cat", categoriaId);
   return `/inventario/frescura/tienda?${q.toString()}`;
+}
+
+/**
+ * Las familias de CAYLA: la suma, por familia, de las de cada tienda con piso (Felipe, decisión 9: «cada familia en su línea; lo mismo en
+ * CAYLA Global»). En el orden en que aparecen (el de `familias.orden` en cada tienda). Soles no se suman (CAYLA no los dice).
+ */
+export function familiasDeCayla(tiendas: readonly ResumenTienda[]): FamiliaPiso[] {
+  const porCodigo = new Map<string | null, FamiliaPiso>();
+  for (const t of tiendas) {
+    if (t.fallo !== null) continue;
+    for (const f of t.familias ?? []) {
+      const g = porCodigo.get(f.codigo) ?? { codigo: f.codigo, nombre: f.nombre, unidades: conteoVacio(), total: 0, prendas: 0, soles: null, sinSaberPor: sinSaberVacio() };
+      for (const k of TRAMOS_PISO) g.unidades[k] += f.unidades[k];
+      for (const c of CAUSAS_SIN_SABER) g.sinSaberPor[c] += f.sinSaberPor[c];
+      g.total += f.total;
+      g.prendas += f.prendas;
+      porCodigo.set(f.codigo, g);
+    }
+  }
+  return [...porCodigo.values()].filter((f) => f.total > 0);
 }

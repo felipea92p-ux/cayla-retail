@@ -5,7 +5,8 @@ import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, porcentajes, type FamiliaPiso } from "@/lib/frescura-piso";
 import { trozosRicos } from "@/lib/frescura-pantalla";
-import { cuadricula, enlaceATienda, razonDeLaTienda, resumenCayla } from "@/lib/frescura-red";
+import { cuadricula, enlaceATienda, familiasDeCayla, razonDeLaTienda, resumenCayla } from "@/lib/frescura-red";
+import { Chip } from "@/components/ui/Chip";
 import type { DatosRed } from "@/lib/frescura";
 import { NivelChip } from "./piezas";
 
@@ -58,7 +59,8 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         </section>
       </div>
     );
-  const { principal, respuesta } = resumenCayla(red.tiendas);
+  const { principal, respuesta, faltan } = resumenCayla(red.tiendas);
+  const familias = familiasDeCayla(red.tiendas);
   const filas = cuadricula(red.tiendas);
   const plantilla = PLANTILLAS[Math.min(4, Math.max(1, red.tiendas.length))];
   return (
@@ -69,6 +71,13 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 id="red-titulo" className="font-display text-[22px] leading-tight">
             {principal ? "CAYLA, las tiendas juntas" : "Las tiendas"}
+            {/* Si una tienda no pasa su puerta o no se pudo leer, la suma también es aproximada (revisión adversaria). */}
+            {principal && faltan.length > 0 && (
+              <>
+                {" "}
+                <Chip tono="pizarra">Aproximado</Chip>
+              </>
+            )}
           </h2>
           {principal && <span className="text-[13px] tabular-nums text-taupe">{colgadas(principal.total)}</span>}
         </div>
@@ -85,6 +94,19 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
               )}
             </p>
           </>
+        )}
+        {familias.length > 1 && (
+          <ul aria-label="Cada familia" className="mt-3 divide-y divide-sand">
+            {familias.map((f) => (
+              <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2 sm:grid-cols-[minmax(140px,1fr)_minmax(200px,2fr)_minmax(0,2fr)]">
+                <span className="text-[13.5px] font-semibold leading-tight">
+                  {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
+                </span>
+                <BarraApilada segmentos={segmentos(f)} alto={8} unidad="unidades colgadas" />
+                <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{linea(f)}</span>
+              </li>
+            ))}
+          </ul>
         )}
         <ul aria-label="Cada tienda" className="mt-4 divide-y divide-sand border-t border-sand">
           {red.tiendas.map((t) => (
@@ -143,7 +165,11 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                       <span className="text-taupe">—</span>
                     ) : (
                       // La celda lleva a esa tienda con la categoría elegida.
-                      <a href={enlaceATienda(tienda.id, f.categoriaId)} aria-label={`Ver ${f.nombre} en ${tienda.nombre}`} className="fila-cayla -m-1 inline-block rounded-md p-1 text-right">
+                      // El contexto va como texto solo para el lector, ANTES de la cifra: un aria-label le escondía las cifras (revisión adversaria).
+                      <a href={enlaceATienda(tienda.id, f.categoriaId)} className="fila-cayla -m-1 inline-block rounded-md p-1 text-right">
+                        <span className="sr-only">
+                          Ver {f.nombre} en {tienda.nombre}:{" "}
+                        </span>
                         {c.sinSaber === c.unidades ? (
                           // Nada que se sepa: «0 %» se leía como buena noticia (Formidable 2026-10-10 (c)).
                           <span className="text-taupe">Aún no se sabe · {c.unidades}</span>

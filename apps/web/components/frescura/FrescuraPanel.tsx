@@ -122,7 +122,17 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const tienda = useMemo(() => pisoDeLaTienda(piso), [piso]);
   // Contra hace 4 semanas (la meta de Felipe): toda la tienda, reconstruida del mismo libro en el servidor.
   const antes = sede?.haceUnMes && tienda ? conteoDeTodo(sede.haceUnMes) : null;
-  const respuesta = sede ? respuestaDelPiso(tienda, datos.puerta, antes) : null;
+  // Hoy, contado con la misma regla que hace 4 semanas (sin apartar lo vendido sin registrar): la tendencia compara lo mismo con lo mismo.
+  const hoyComparable = useMemo(
+    () =>
+      sede && antes
+        ? (pisoDeLaTienda(
+            pisoPorFamilia(sede.prendas, { familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null, familias: datos.familias, sinApartar: true }),
+          )?.unidades ?? null)
+        : null,
+    [sede, antes, datos.categoriasVisuales, datos.familias],
+  );
+  const respuesta = sede ? respuestaDelPiso(tienda, datos.puerta, antes, hoyComparable) : null;
   // Lo que mueve la aguja: las categorías que se quedan y la que se lleva más (con lo anotado en caja como control).
   const pisoCuadrado = datos.puerta?.pisoCuadrado === true;
   const anotadasDe = useMemo(() => {
@@ -132,6 +142,15 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       return a ? (dias <= 14 ? a.d14 : a.d28) : 0;
     };
   }, [datos.anotadas]);
+  // Para la rapidez de la aguja: solo lo anotado con el piso ya cuadrado (antes, lo colgado no se medía y las ventas de la cola de
+  // arranque inflaban a su categoría; revisión adversaria). «Lo que más se llevan» sí cuenta todo: es lo que se lleva el cliente.
+  const anotadasMedidas = useMemo(() => {
+    const m = new Map(datos.anotadas.map((a) => [a.categoriaId, a]));
+    const desde = datos.puerta?.cuadradoEn ? Date.parse(datos.puerta.cuadradoEn) : Infinity;
+    // «Ahora» es el de la lectura (puro: nada de la hora del navegador al dibujar).
+    const ahora = sede ? Date.parse(sede.ahora) : 0;
+    return (cat: string, dias: number) => (m.get(cat)?.fechas ?? []).filter((f) => Date.parse(f) >= Math.max(desde, ahora - dias * 86_400_000)).length;
+  }, [datos.anotadas, datos.puerta, sede]);
   const senales = useMemo(
     () => {
       if (!sede) return [];
@@ -139,11 +158,11 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       const varas = new Map(sede.categorias.map((v) => [v.categoriaId, varaQueJuzgo(v).cortes]));
       return loQueMueveLaAguja(sede.prendas, sede.ritmoPorCategoria, {
         pisoCuadrado,
-        anotadas: datos.anotadas.length > 0 ? anotadasDe : undefined,
+        anotadas: datos.anotadas.length > 0 ? anotadasMedidas : undefined,
         varaDe: (cat) => varas.get(cat) ?? null,
       });
     },
-    [sede, pisoCuadrado, datos.anotadas, anotadasDe],
+    [sede, pisoCuadrado, datos.anotadas, anotadasMedidas],
   );
   const seLlevan = useMemo(() => {
     if (!sede || pisoCuadrado) return [];
@@ -285,7 +304,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
       <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} />
 
-      {sede && <FrescuraPiso tienda={tienda} familias={piso} puerta={datos.puerta} acceso={acceso} antes={respuesta?.antes ?? null} pocasVentas={aproximadoEsLaRegla} />}
+      {sede && <FrescuraPiso tienda={tienda} familias={piso} puerta={datos.puerta} acceso={acceso} antes={respuesta?.antes ?? null} pocasVentas={aproximadoEsLaRegla} dudasFallo={sede.dudasFallo === true} />}
 
       {sede && datos.sede.tienda && (
         <FrescuraAguja

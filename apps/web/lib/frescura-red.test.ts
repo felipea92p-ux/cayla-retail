@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { conteoVacio, type ConteoPiso, type FamiliaPiso } from "./frescura-piso";
-import { cuadricula, razonDeLaTienda, resumenCayla, type ResumenTienda } from "./frescura-red";
+import { cuadricula, familiasDeCayla, razonDeLaTienda, resumenCayla, type ResumenTienda } from "./frescura-red";
 
 // CAYLA Global ▸ Frescura del piso (ADR-0208, act. 2026-10-10 (b)): la suma de las tiendas, la frase de CAYLA y la cuadrícula categoría × tienda.
 
@@ -23,17 +23,17 @@ describe("resumenCayla", () => {
       tienda("TRU", { principal: familia({ fresca: 30 }) }),
       tienda("AQP", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada" } }),
     ]);
-    expect(r.respuesta).toMatchObject({ afirma: false, respuesta: "Todavía no se puede saber: a AQP le faltan ventas con su prenda." });
+    expect(r.respuesta).toMatchObject({ afirma: false, respuesta: "Todavía no se puede saber: en AQP todavía no todas las ventas llevan su prenda." });
     expect(r.faltan).toEqual(["AQP"]);
   });
 
-  it("cada tienda con SU razón: a Lima le falta cuadrar el piso, no registrar lo que vende (lo vio la ciega, Formidable 2026-10-10 (c))", () => {
+  it("cada tienda con SU razón y su caso: a Lima le falta cuadrar el piso; a dos tiendas, días seguidos (lo vio la ciega y la revisión adversaria)", () => {
     const r = resumenCayla([
       tienda("LIM", { principal: familia({ fresca: 30 }), puerta: { puedeHablar: false, aviso: "", falta: "piso_cuadrado" } }),
-      tienda("TRU", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada" } }),
-      tienda("AQP", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada" } }),
+      tienda("TRU", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada", venta: "racha" } }),
+      tienda("AQP", { principal: familia({ fresca: 10 }), puerta: { puedeHablar: false, aviso: "", falta: "venta_identificada", venta: "racha" } }),
     ]);
-    expect(r.respuesta.respuesta).toBe("Todavía no se puede saber: a LIM le falta cuadrar el piso; a TRU y AQP le faltan ventas con su prenda.");
+    expect(r.respuesta.respuesta).toBe("Todavía no se puede saber: en LIM falta cuadrar el piso; en TRU y AQP faltan días seguidos cobrando con la prenda.");
   });
 
   it("la fila de cada tienda dice su razón, o nada si pasa", () => {
@@ -81,9 +81,28 @@ describe("cuadricula", () => {
 
   it("se resalta lo que envejece de más para SU vara, no un 30 % fijo", () => {
     const jeans = (env: number, esperada: number | null) => ({ categoriaId: "jea", nombre: "Jeans", unidades: { ...conteoVacio(), fresca: 10 - env, envejeciendo: env }, esperada });
-    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(6, 0.25)] })])[0].celdas[0]?.deMas).toBe(true);
+    const cuadrada = { puedeHablar: true, aviso: "", pisoCuadrado: true };
+    expect(cuadricula([tienda("TRU", { puerta: cuadrada, porCategoria: [jeans(6, 0.25)] })])[0].celdas[0]?.deMas).toBe(true);
     // 4 de 10 (40 %) ya habría pasado el 30 % fijo; contra su vara (1 de cada 4), todavía no es de más.
-    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(4, 0.25)] })])[0].celdas[0]?.deMas).toBe(false);
-    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(6, null)] })])[0].celdas[0]?.deMas).toBe(false);
+    expect(cuadricula([tienda("TRU", { puerta: cuadrada, porCategoria: [jeans(4, 0.25)] })])[0].celdas[0]?.deMas).toBe(false);
+    expect(cuadricula([tienda("TRU", { puerta: cuadrada, porCategoria: [jeans(6, null)] })])[0].celdas[0]?.deMas).toBe(false);
+    // Sin el piso cuadrado, como la aguja de la tienda, no hay veredicto (revisión adversaria).
+    expect(cuadricula([tienda("TRU", { porCategoria: [jeans(6, 0.25)] })])[0].celdas[0]?.deMas).toBe(false);
+  });
+});
+
+describe("familiasDeCayla: cada familia en su línea, también en CAYLA Global (decisión 9)", () => {
+  it("suma por familia las de cada tienda, sin las tiendas caídas", () => {
+    const ropa = (n: number) => ({ ...familia({ fresca: n }), codigo: "indumentaria", nombre: "Indumentaria" });
+    const anillos = (n: number) => ({ ...familia({ envejeciendo: n }), codigo: "bisuteria", nombre: "Bisutería" });
+    const f = familiasDeCayla([
+      tienda("TRU", { familias: [ropa(10), anillos(5)] }),
+      tienda("AQP", { familias: [ropa(4)] }),
+      tienda("LIM", { familias: [ropa(99)], fallo: "No se pudo leer." }),
+    ]);
+    expect(f.map((x) => [x.nombre, x.total])).toEqual([
+      ["Indumentaria", 14],
+      ["Bisutería", 5],
+    ]);
   });
 });

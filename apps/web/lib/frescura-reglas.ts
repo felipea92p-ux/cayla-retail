@@ -135,7 +135,14 @@ export type Recientes = "vendio" | "dejo_de_vender" | "no_se_sabe";
 
 /** Una talla de la lectura de la sede (una fila de `prendas` de `fn_frescura_sede`). */
 /** Una venta anotada en caja sin su prenda que sigue pendiente: lo que se sabe de ella (ADR-0208, act. 2026-10-10 (c)). */
-export type DudaVendida = { categoriaId: string; talla: string | null; colorCodigo: string | null };
+export type DudaVendida = {
+  categoriaId: string;
+  talla: string | null;
+  colorCodigo: string | null;
+  /** Cuándo se vendió: solo deja una unidad fantasma si el sistema tenía en el piso algo de su categoría, talla y color en ese momento
+   *  (revisión adversaria: la cola de arranque se vendió ANTES de la carga inicial, que contó lo que había sin la vendida). Null: se duda. */
+  vendidoEn?: string | null;
+};
 
 export type TallaFrescuraCruda = {
   varianteId: string;
@@ -282,6 +289,10 @@ export type EstadoFrescura = ComunEstado &
     | { tipo: "clasico"; fueraDeSuEstacion: boolean }
     /** El libro de alguna de sus tallas no cuadra (piso negativo): no se juzga. */
     | { tipo: "dudosa" }
+    /** Todo lo que cuelga puede ser lo vendido sin registrar (una venta anotada en caja de su categoría, talla y color por cada
+     *  unidad): no se juzga hasta regularizar esas ventas (act. 2026-10-10 (c); revisión adversaria: con un reloj de 0 salía
+     *  «Vigente · lleva 0 días»). */
+    | { tipo: "vendida_sin_registrar" }
   );
 
 // ---------------------------------------------------------------------------
@@ -1384,8 +1395,11 @@ export type EntradaEstado = {
    *  unidad más vieja lleva lo mismo que su modelo (una sola tanda colgada desde el principio, sin reponer). */
   relojUnidad?: RelojNovedad;
   rapidez: Rapidez | null;
+  /** Lo libre en el piso que se juzga: sin las unidades que apartó lo vendido sin registrar (act. 2026-10-10 (c)). */
   pisoHoy: number;
   almacenHoy: number;
+  /** Todo lo que cuelga está en duda (cada unidad puede ser una venta sin registrar): no se juzga. */
+  todaEnDuda?: boolean;
   /** Unidades de su modelo+color vendidas (o apartadas para una clienta: revisión 8) en la sede en sus últimos
    *  `DIAS_CALLADA` días en el piso (con menos días colgada en la lectura, en todos los que tiene); null si quien llama
    *  no lo sabe. Dicen si se sigue vendiendo
@@ -1412,9 +1426,11 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
     | { tipo: "sin_vara" }
     | { tipo: "sin_edad_conocida" }
     | { tipo: "clasico"; fueraDeSuEstacion: boolean }
-    | { tipo: "dudosa" };
+    | { tipo: "dudosa" }
+    | { tipo: "vendida_sin_registrar" };
   if (e.dudosa) base = { tipo: "dudosa" };
   else if (e.esClasico) base = { tipo: "clasico", fueraDeSuEstacion: e.enEstacionAhora === false };
+  else if (e.todaEnDuda) base = { tipo: "vendida_sin_registrar" };
   else if (e.vara.nivel === null) base = { tipo: "sin_ventas_sede" };
   else {
     const unidad = e.relojUnidad ?? e.reloj;
@@ -1560,6 +1576,9 @@ export type FrescuraPrenda = {
     /** Unidades colgadas que puede ser que ya se vendieron sin registrar (una venta anotada en caja de su categoría, talla y color):
      *  no se juzgan y van a «Aún no se sabe» (ADR-0208, act. 2026-10-10 (c)). */
     dudadas?: number;
+    /** Esas mismas unidades, con sus segundos colgadas: para contar el piso «como si no se dudara» al compararlo con hace 4 semanas,
+     *  que se arma sin dudas (revisión adversaria: si no, cada venta pendiente daba un falso «más fresco»). */
+    apartadas?: UnidadColgada[];
   }[];
   /** Lo libre en el piso y en el almacén (sin lo apartado: R7-1). */
   pisoHoy: number;
@@ -1641,6 +1660,8 @@ export type FrescuraSede = {
   /** El piso de hace 4 semanas, por categoría (ADR-0208, act. 2026-10-10 (b): la meta es contra el mes anterior). Lo pone quien lee la
    *  sede si se lo piden (`pisoAnterior`, `frescura-piso.ts`); null si no se pudo reconstruir o la lectura no llega tan atrás. */
   haceUnMes?: PisoAnterior | null;
+  /** No se pudo leer lo vendido sin registrar: se juzgó sin dudar de nada, y la pantalla lo dice una vez (act. 2026-10-10 (c)). */
+  dudasFallo?: boolean;
   /** Cuánto estuvo colgada y cuánto vendió cada categoría en los últimos 14 y 28 días (ADR-0208, act. 2026-10-10 (b): lo que mueve la
    *  aguja). Unidad·días LIBRES en el piso y ventas registradas (lo apartado cuenta como venta), sin mirar la edad: funciona aunque casi todo
    *  sea carga inicial. Sin clásicos ni lo que no cuadra, como la barra. */
@@ -1813,10 +1834,26 @@ export function analizarSede(
   // no se sabe desde cuándo colgaba). Es un puente: lo colgado sin etiqueta se va vendiendo o etiquetando, y con eso se acaba.
   const colgadasConDudas = new Map<string, UnidadColgada[]>();
   const dudadasDeTalla = new Map<string, number>();
-  for (const d of opciones.dudas ?? []) {
+  const apartadasDeTalla = new Map<string, UnidadColgada[]>();
+  // Las ventas más viejas primero (el orden no depende de cómo llegaron). Solo deja una unidad fantasma la venta hecha cuando el sistema TENÍA
+  // en el piso algo de esa categoría, talla y color: si no tenía (la cola de arranque, vendida antes de la carga inicial, que contó lo que
+  // había sin la vendida), no hay nada que dudar (revisión adversaria). La unidad que se duda es la más vieja que cuelga: las tandas son
+  // FIFO del libro, así que no se filtra por cuándo colgó cada una.
+  const dudas = [...(opciones.dudas ?? [])].sort((a, b) => (a.vendidoEn ?? "").localeCompare(b.vendidoEn ?? ""));
+  const coincide = (t: TallaFrescuraCruda, d: DudaVendida) => (t.categoriaId ?? SIN_CATEGORIA) === d.categoriaId && t.talla === d.talla && t.colorCodigo === d.colorCodigo;
+  const habiaEnElPiso = (d: DudaVendida): boolean => {
+    if (!d.vendidoEn) return true;
+    const vendidaMs = ms(d.vendidoEn);
+    if (vendidaMs <= desdeMs) return true; // antes de la lectura no se sabe: se duda, como antes
+    let nivel = 0;
+    for (const t of l.tallas) if (coincide(t, d)) for (const e of l.eventos[t.varianteId] ?? []) if (ms(e.ts) <= vendidaMs) nivel += e.delta;
+    return nivel > 0;
+  };
+  for (const d of dudas) {
+    if (!habiaEnElPiso(d)) continue;
     let mejor: { varianteId: string; i: number; segundos: number } | null = null;
     for (const t of l.tallas) {
-      if (t.pisoHoy <= 0 || (t.categoriaId ?? SIN_CATEGORIA) !== d.categoriaId || t.talla !== d.talla || t.colorCodigo !== d.colorCodigo) continue;
+      if (t.pisoHoy <= 0 || !coincide(t, d)) continue;
       const eventos = limpiosPorVariante.get(t.varianteId);
       if (!eventos) continue; // clásica o que no cuadra: no se juzga, no hay qué apartar
       if (!colgadasConDudas.has(t.varianteId)) colgadasConDudas.set(t.varianteId, colgadasDe(eventos, l.ahora).map((u) => ({ ...u })));
@@ -1826,8 +1863,10 @@ export function analizarSede(
       }
     }
     if (mejor === null) continue;
-    colgadasConDudas.get(mejor.varianteId)![mejor.i].unidades -= 1;
+    const tanda = colgadasConDudas.get(mejor.varianteId)![mejor.i];
+    tanda.unidades -= 1;
     dudadasDeTalla.set(mejor.varianteId, (dudadasDeTalla.get(mejor.varianteId) ?? 0) + 1);
+    apartadasDeTalla.set(mejor.varianteId, [...(apartadasDeTalla.get(mejor.varianteId) ?? []), { ...tanda, unidades: 1 }]);
   }
 
   const prendas: FrescuraPrenda[] = [];
@@ -1894,6 +1933,9 @@ export function analizarSede(
       return eventos ? colgadasDe(eventos, l.ahora) : [];
     });
     const relojUnidad = relojDeLaUnidad(colgadasPorTalla.flat());
+    // Lo que apartó lo vendido sin registrar no se juzga: ni empuja a «Por decidir» por temporada pasada ni la deja con un reloj de 0.
+    const enDuda = tallas.reduce((s, t) => s + (dudadasDeTalla.get(t.varianteId) ?? 0), 0);
+    const pisoJuzgable = Math.max(0, pisoHoy - enDuda);
     let resto: MedidaContraElResto | null = null;
     if (varaDelMes) {
       // Contra la vara del mes, sus propias unidades se restan como estaban EN EL CORTE (las mismas con que entran a esa curva);
@@ -1949,7 +1991,8 @@ export function analizarSede(
       reloj,
       relojUnidad,
       rapidez: r,
-      pisoHoy,
+      pisoHoy: pisoJuzgable,
+      todaEnDuda: enDuda > 0 && pisoJuzgable === 0,
       almacenHoy,
       ventasRecientes,
     });
@@ -1971,7 +2014,7 @@ export function analizarSede(
         apartadasPisoHoy: t.apartadasPisoHoy,
         colgadas: colgadasPorTalla[k],
         // Solo cuando hay: la forma de la talla no cambia para la inmensa mayoría.
-        ...(dudadasDeTalla.has(t.varianteId) ? { dudadas: dudadasDeTalla.get(t.varianteId)! } : {}),
+        ...(dudadasDeTalla.has(t.varianteId) ? { dudadas: dudadasDeTalla.get(t.varianteId)!, apartadas: apartadasDeTalla.get(t.varianteId)! } : {}),
       })),
       pisoHoy,
       almacenHoy,
@@ -2200,7 +2243,16 @@ async function leerSedeFrescura(
   const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null, medicion: null });
   // Las dos lecturas salen a la vez: la de decisiones no espera a la del piso.
   const enCurso = leerDecisionesDeSede(rpc, u, dias);
-  const dudasEnCurso: Promise<readonly DudaVendida[]> = cargarDudas ? cargarDudas(u.id).catch(() => []) : Promise.resolve([]);
+  // Lo vendido sin registrar: si no se pudo leer, se juzga sin dudas y la pantalla lo dice (`dudasFallo`), nunca en silencio.
+  const dudasEnCurso: Promise<{ dudas: readonly DudaVendida[]; fallo: boolean }> = cargarDudas
+    ? cargarDudas(u.id).then(
+        (dudas) => ({ dudas, fallo: false }),
+        (e) => {
+          console.error(`No se pudo leer lo vendido sin registrar de ${u.nombre}:`, e);
+          return { dudas: [], fallo: true };
+        },
+      )
+    : Promise.resolve({ dudas: [], fallo: false });
   try {
     const { data, error } = await rpc("fn_frescura_sede", { p_ubicacion_id: u.id, p_dias: dias });
     if (error) {
@@ -2214,7 +2266,9 @@ async function leerSedeFrescura(
     }
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
     // La pantalla juzga contra la vara del mes (act. 2026-10-10 (b)); el cron de CAYLA, que guarda las unidades de hoy, no.
-    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora), dudas: await dudasEnCurso });
+    const lectoDudas = await dudasEnCurso;
+    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora), dudas: lectoDudas.dudas });
+    if (lectoDudas.fallo) sede.dudasFallo = true;
     // El piso de hace 4 semanas (la meta es contra el mes anterior): si no se puede reconstruir, la pantalla no compara y sigue entera.
     if (anterior) {
       try {

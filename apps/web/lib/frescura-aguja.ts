@@ -107,14 +107,16 @@ export function acogidas(ritmo: readonly RitmoCategoria[], extra?: (categoriaId:
  */
 export function parteViejaEsperada(c: Cortes): number | null {
   const { p50, p75 } = c;
-  if (p50 === null || p75 === null || p75 <= p50) return null;
-  const p90 = c.p90 !== null && c.p90 > p75 ? c.p90 : null;
+  if (p50 === null || p75 === null || p75 < p50) return null;
+  // P90 se acepta igual a P75 (dos ventas el mismo día): el tercer tramo vale 0 y la cola parte de 1/10.
+  const p90 = c.p90 !== null && c.p90 >= p75 ? c.p90 : null;
   const a1 = 0.75 * p50;
   const a2 = 0.375 * (p75 - p50);
-  // Sin P90, la cola sale del ritmo de P50 a P75 (de ½ a ¼).
-  const lambda = p90 !== null ? Math.log(0.25 / 0.1) / (p90 - p75) : Math.log(2) / (p75 - p50);
-  const vieja = p90 !== null ? 0.175 * (p90 - p75) + 0.1 / lambda : 0.25 / lambda;
-  return vieja / (a1 + a2 + vieja);
+  // La cola con el riesgo PROMEDIO desde 0 (λ = H(t)/t, el supuesto de `cortesConCola`), no con el de un tramo: P75 y P90 son escalones de
+  // Kaplan-Meier y pueden quedar pegados; con el tramo, un segundo de diferencia llevaba la parte vieja a casi 0 (revisión adversaria).
+  const vieja = p90 !== null ? 0.175 * (p90 - p75) + (0.1 * p90) / Math.log(10) : (0.25 * p75) / Math.log(4);
+  const total = a1 + a2 + vieja;
+  return total > 0 ? vieja / total : null;
 }
 
 /**

@@ -845,10 +845,10 @@ ESCENARIOS.push(
     id: "frescura.porque-no-se-sabe",
     ruta: "/inventario/frescura",
     cuentas: ["admin"],
-    abre: "details[open] ul",
+    abre: 'section[aria-labelledby="frescura-piso-titulo"] [aria-expanded="true"]',
     nombre: "Frescura · el porqué de «Aún no se sabe»",
     preparar: async (pagina) => {
-      await pagina.locator("details summary", { hasText: "¿Por qué?" }).first().click({ timeout: 8000 });
+      await pagina.locator('section[aria-labelledby="frescura-piso-titulo"] button', { hasText: "¿Por qué?" }).first().click({ timeout: 8000 });
       await esperar(pagina, 600);
     },
   },

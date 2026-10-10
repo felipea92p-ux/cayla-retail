@@ -13,7 +13,7 @@ import {
   type VaraCategoria,
 } from "@/lib/frescura-reglas";
 import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
-import { avisoDatosDeHoy, ventas30 } from "@/lib/analisis-aviso";
+import { avisoDatosDeHoy, META_CON_PRENDA, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
@@ -100,7 +100,15 @@ export type DatosFrescura = {
   anotadas: AnotadasCategoria[];
 };
 
-export type AnotadasCategoria = { categoriaId: string; nombre: string; d14: number; d28: number };
+export type AnotadasCategoria = {
+  categoriaId: string;
+  nombre: string;
+  d14: number;
+  d28: number;
+  /** Cuándo se vendió cada una (para contar en la rapidez solo las vendidas con el piso ya cuadrado: antes no hay con qué medir lo
+   *  colgado, revisión adversaria). */
+  fechas: string[];
+};
 
 /**
  * La miniatura de cada prenda de la tabla (ADR-0333: sin foto, el ícono de su categoría sobre su color; nunca el isotipo). La
@@ -181,6 +189,14 @@ async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: Datos
  * el almacén contado. Sin ella, lo vendido sin registrar sigue «colgado» y envejece en falso, así que la frase de Frescura no afirma nada.
  * Null si no se pudo leer. Nunca lanza.
  */
+/** Cuál de los tres casos de «ventas con su prenda» le falta (los mismos de `avisoDatosDeHoy`, para que Frescura y Análisis digan lo mismo). */
+function casoDeVenta(p: Parameters<typeof ventasConPrendaDe100>[0] & { dias: unknown[] }): "sin_ventas" | "sin_prenda" | "racha" {
+  const de100 = ventasConPrendaDe100(p);
+  if (de100 === null && p.dias.length === 0) return "sin_ventas";
+  if (de100 !== null && de100 < META_CON_PRENDA) return "sin_prenda";
+  return "racha";
+}
+
 /** La puerta de una tienda desde su fila de preparación: si habla, el aviso compartido con Análisis, si el piso está cuadrado y lo primero que falta. */
 function puertaDeFila(fila: ReturnType<typeof leerPreparacion>[number]): NonNullable<PuertaPiso> {
   const p = { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy, primeraVenta: fila.primeraVenta };
@@ -188,8 +204,10 @@ function puertaDeFila(fila: ReturnType<typeof leerPreparacion>[number]): NonNull
     puedeHablar: p.puedeHablar,
     aviso: avisoDatosDeHoy(p),
     pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple),
+    cuadradoEn: fila.cuadradoEn,
     falta: p.condiciones.find((c) => !c.cumple)?.clave ?? null,
     sinPrenda: ventas30(p).sinPrenda,
+    venta: casoDeVenta(p),
   };
 }
 
@@ -211,23 +229,26 @@ async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<Puerta
  * Nunca lanza: si falla, ninguna, y la pantalla juzga como antes.
  */
 function cargarDudasCon(supabase: Supabase): CargarDudas {
+  // Paginado y ordenado: PostgREST corta en 1.000 filas sin avisar (lo documenta `lib/por-regularizar.ts`), y un corte al azar cambiaría
+  // qué unidades se dudan. Si falla, LANZA: quien lo llama lo dice en la pantalla en vez de juzgar en silencio como si no hubiera dudas.
+  const PAGINA = 1000;
+  const TOPE = 5000;
   return async (sedeId) => {
-    try {
+    const filas: { categoria_id: string; color_codigo: string; vendido_en: string; tallas: { valor: string } | null }[] = [];
+    for (let desde = 0; desde < TOPE; desde += PAGINA) {
       const { data, error } = await supabase
         .from("prendas_por_regularizar")
-        .select("categoria_id, color_codigo, tallas ( valor )")
+        .select("categoria_id, color_codigo, vendido_en, tallas ( valor )")
         .eq("ubicacion_id", sedeId)
         .eq("estado", "pendiente")
-        .limit(1000);
-      if (error || !data) return [];
-      return (data as unknown as { categoria_id: string; color_codigo: string; tallas: { valor: string } | null }[]).map((r) => ({
-        categoriaId: r.categoria_id,
-        colorCodigo: r.color_codigo,
-        talla: r.tallas?.valor ?? null,
-      }));
-    } catch {
-      return [];
+        .order("vendido_en", { ascending: true })
+        .order("id", { ascending: true })
+        .range(desde, desde + PAGINA - 1);
+      if (error || !data) throw new Error(error?.message ?? "sin respuesta");
+      filas.push(...(data as unknown as typeof filas));
+      if (data.length < PAGINA) break;
     }
+    return filas.map((r) => ({ categoriaId: r.categoria_id, colorCodigo: r.color_codigo, talla: r.tallas?.valor ?? null, vendidoEn: r.vendido_en }));
   };
 }
 
@@ -249,8 +270,9 @@ async function anotadasDeLaSede(supabase: Supabase, sedeId: string): Promise<Ano
     if (error || !data) return [];
     const porCategoria = new Map<string, AnotadasCategoria>();
     for (const f of data as { categoria_id: string; vendido_en: string; categoria: { nombre: string } | null }[]) {
-      const c = porCategoria.get(f.categoria_id) ?? { categoriaId: f.categoria_id, nombre: f.categoria?.nombre ?? "Sin categoría", d14: 0, d28: 0 };
+      const c = porCategoria.get(f.categoria_id) ?? { categoriaId: f.categoria_id, nombre: f.categoria?.nombre ?? "Sin categoría", d14: 0, d28: 0, fechas: [] };
       c.d28 += 1;
+      c.fechas.push(f.vendido_en);
       if (Date.parse(f.vendido_en) >= corte14) c.d14 += 1;
       porCategoria.set(f.categoria_id, c);
     }

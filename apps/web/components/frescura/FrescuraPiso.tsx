@@ -2,13 +2,12 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { BotonEnlace } from "@/components/ui/campos";
+import { CifraSinSaber } from "./CifraSinSaber";
 import {
   avisoDeLaPuerta,
-  CAUSAS_SIN_SABER,
   CLASE_TRAMO_PISO,
   NOMBRE_TRAMO_PISO,
   pasoDeLaPuerta,
-  TEXTO_CAUSA_SIN_SABER,
   TRAMOS_DEL_100,
   porcentajes,
   solesEnteros,
@@ -50,6 +49,7 @@ export function FrescuraPiso({
   acceso,
   antes = null,
   pocasVentas = false,
+  dudasFallo = false,
 }: {
   /** Toda la tienda (`pisoDeLaTienda`): la barra grande. */
   tienda: FamiliaPiso | null;
@@ -60,8 +60,11 @@ export function FrescuraPiso({
   acceso: AccesoPuerta;
   /** Los porcentajes de toda la tienda hace 4 semanas, si se pudo comparar (la frase de la cabecera dice si mejoró). */
   antes?: Record<TramoPiso, number> | null;
-  /** La mayoría de lo colgado se compara con menos de 10 ventas de su categoría (`mayoriaAproximada`): se dice aquí, una vez. */
+  /** La mayoría de lo colgado se compara con menos de 10 ventas de su categoría (`mayoriaAproximada`): el chip «Aproximado» lo dice
+   *  una vez (qué quiere decir, en «¿Cómo se lee esto?»); sin un aviso aparte que lo repita (revisión adversaria). */
   pocasVentas?: boolean;
+  /** No se pudo leer lo vendido sin registrar (`FrescuraSede.dudasFallo`). */
+  dudasFallo?: boolean;
 }) {
   const principal = tienda;
   if (!principal) return null;
@@ -87,12 +90,14 @@ export function FrescuraPiso({
       <BarraApilada segmentos={segmentos(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-        {tramosConNumero(principal).map((t) => (
+        {tramosConNumero(principal).map((t) =>
+          t === "sin_saber" ? (
+            <CifraSinSaber key={t} pct={pct[t]} cuantas={principal.unidades.sin_saber} causas={principal.sinSaberPor} />
+          ) : (
           <div key={t} className="min-w-0">
             <dt className="flex items-center gap-1.5 text-[13px] text-taupe">
               <MuestraTramo clase={CLASE_TRAMO_PISO[t]} />
               {NOMBRE_TRAMO_PISO[t]}
-              {t === "sin_saber" && <PorQueNoSeSabe familia={principal} />}
             </dt>
             <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               {/* La cifra nunca se parte («25» arriba y «%» abajo a 375 px): lo que va al lado baja de línea. */}
@@ -103,7 +108,8 @@ export function FrescuraPiso({
               </span>
             </dd>
           </div>
-        ))}
+          ),
+        )}
       </dl>
 
       {antes && (
@@ -128,9 +134,13 @@ export function FrescuraPiso({
       )}
 
       {clasicos > 0 && (
-        <p className="mt-3 text-[12.5px] text-taupe">
-          Y {unidades(clasicos)} de clásicos aparte: no se miden por novedad.
+        // Con su muestra: el tablero pinta los clásicos con este color y la tarjeta es su leyenda (revisión adversaria).
+        <p className="mt-3 flex items-center gap-1.5 text-[12.5px] text-taupe">
+          <MuestraTramo clase={CLASE_TRAMO_PISO.clasico} />Y {unidades(clasicos)} de clásicos aparte: no se miden por novedad.
         </p>
+      )}
+      {dudasFallo && (
+        <p className="mt-2 text-[12.5px] text-taupe">No se pudo leer lo vendido sin registrar: alguna unidad ya vendida puede contarse como colgada.</p>
       )}
 
       {cerrada && (
@@ -149,32 +159,7 @@ export function FrescuraPiso({
           {avisoDeLaPuerta(puerta)}
         </Aviso>
       )}
-      {!cerrada && pocasVentas && (
-        <Aviso tono="info" chico className="mt-3">
-          Casi todo se compara con menos de 10 ventas de su categoría: tómalo como aproximado. Cada venta registrada lo afina.
-        </Aviso>
-      )}
-    </section>
-  );
-}
 
-/**
- * El porqué de «Aún no se sabe», a un toque (ley 6; la ciega no supo qué lo causa): cuántas unidades por cada causa, en palabras de tienda.
- * Un `<details>` del navegador: se abre con un toque o con Enter, sin estado ni JavaScript.
- */
-function PorQueNoSeSabe({ familia }: { familia: FamiliaPiso }) {
-  const causas = CAUSAS_SIN_SABER.filter((c) => familia.sinSaberPor[c] > 0);
-  if (causas.length === 0) return null;
-  return (
-    <details className="group relative text-[12.5px] leading-snug">
-      <summary className="btn-cayla btn-enlace -my-[3px] inline-flex min-h-6 cursor-pointer list-none items-center text-[12.5px] [&::-webkit-details-marker]:hidden">¿Por qué?</summary>
-      <ul className="absolute right-0 top-full z-10 mt-1 w-64 space-y-0.5 rounded-xl border border-sand bg-papel px-3 py-2 text-taupe shadow-[0_8px_24px_color-mix(in_srgb,var(--color-sombra)_18%,transparent)]">
-        {causas.map((c) => (
-          <li key={c}>
-            <span className="tabular-nums text-tinta">{unidades(familia.sinSaberPor[c])}</span>: {TEXTO_CAUSA_SIN_SABER[c]}.
-          </li>
-        ))}
-      </ul>
-    </details>
+    </section>
   );
 }

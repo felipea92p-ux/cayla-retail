@@ -592,6 +592,12 @@ describe("la hoja de detalle", () => {
     expect(d.sinContarla).toBe("Sin contarla, las demás: la mitad se vende antes de 18 días, 3 de cada 4 antes de 33, 9 de cada 10 antes de 51 (contándola a ella: 18, 34, 52).");
   });
 
+  it("«contándola a ella» sale de la MISMA vara que «sin contarla»: con la vara del mes en uso, sus números y no los de hoy (revisión adversaria)", () => {
+    const delMes = { ...vara("blu", { cortes: { p50: 9 * DIA, p75: 12 * DIA, p90: 20 * DIA } }), corte: "2026-10-01T05:00:00Z", enUso: true };
+    const d = detalleVista(prenda({ primeraExhibicion: "2026-07-01T15:00:00.000Z" }), ctx({ categorias: new Map([["blu", vara("blu", { delMes })]]) }));
+    expect(d.sinContarla).toMatch(/\(contándola a ella: 9, 12, 20\)\.$/);
+  });
+
   it("«al menos»: la causa que la pantalla puede saber (llegó sin fecha, o se colgó antes de lo que mira)", () => {
     const sinFecha = detalleVista(prenda({ reloj: { segundos: 56 * DIA, alMenos: true }, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: true } }), ctx());
     expect(sinFecha.porque).toContain("Lo primero que se colgó llegó sin fecha");
@@ -702,6 +708,21 @@ describe("corrección del paso 4 · el redondeo de los días no choca en la mism
     // La misma escala de las prendas (9 / 12 / 20), no la de hoy (15 / 24 / 40): la encargada vio dos y no supo cuál era (Formidable 2026-10-10 (c)).
     expect(g.comparacion).toBe("A los 9 días ya se vendió la mitad de las prendas de Blusas en Tienda Trujillo; a los 12, 3 de cada 4; a los 20, casi todas.");
     expect(g.mes).toBe("Su vara de este mes quedó fija el día 1: la mitad se vendía antes de 9 días; con lo de hoy, antes de 15 (se puso más lenta).");
+  });
+
+  it("si la juzga CAYLA, la línea del mes calla: la de CAYLA ya dice contra qué se juzga (no se contradicen; revisión adversaria)", () => {
+    const delMes = { ...vara("blu", { vendidas: 3 }), corte: "2026-10-01T05:00:00Z", enUso: false };
+    const respaldo = { ...vara("blu", { vendidas: 30 }), calculadaEn: "2026-10-09T08:20:00Z", enUso: true };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { vendidas: 3, delMes, respaldo })]]) }));
+    expect(g.mes).toBeNull();
+    expect(g.respaldo).toMatch(/^Se juzga contra lo que vende CAYLA/);
+    expect(g.comparacion).toMatch(/en las tres tiendas juntas/);
+  });
+
+  it("con la vara del mes, sus ventas son «de los 90 días antes del día 1», no «de los últimos»", () => {
+    const delMes = { ...vara("blu", { ventanaDias: 90, vendidas: 24 }), corte: "2026-10-01T05:00:00Z", enUso: true };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { delMes })]]) }));
+    expect(g.base).toBe("con 24 ventas de los 90 días antes del día 1");
   });
 
   it("si la vara del mes todavía no llega a sus ventas, lo dice una vez: aprende su ritmo", () => {

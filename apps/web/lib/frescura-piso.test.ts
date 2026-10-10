@@ -244,8 +244,14 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
     const u = familia({ fresca: 58, vigente: 22, envejeciendo: 20 });
     expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "piso_cuadrado" }).respuesta).toBe("Todavía no se puede saber: falta cuadrar el piso.");
     expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "almacen_contado" }).respuesta).toBe("Todavía no se puede saber: falta contar el almacén.");
-    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "venta_identificada" }).respuesta).toBe(
+    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "venta_identificada", venta: "sin_prenda" }).respuesta).toBe(
       "Todavía no se puede saber: todavía no todas las ventas llevan su prenda.",
+    );
+    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "venta_identificada", venta: "racha" }).respuesta).toBe(
+      "Todavía no se puede saber: faltan días seguidos cobrando con la prenda.",
+    );
+    expect(respuestaDelPiso(u, { puedeHablar: false, aviso: "", falta: "venta_identificada", venta: "sin_ventas" }).respuesta).toBe(
+      "Todavía no se puede saber: todavía no hay ventas en el ERP.",
     );
   });
 
@@ -340,6 +346,38 @@ describe("lo vendido sin registrar aparta su gemela (Felipe, Formidable 2026-10-
     expect(tres.prendas.reduce((s, p) => s + (p.tallas[0].dudadas ?? 0), 0)).toBe(2);
     const otro = analizarSede(lecturaDosMeses(), undefined, { dudas: [{ ...POLO_M_NEGRO, colorCodigo: "AZU" }] }).sede;
     expect(de(otro, "A").tallas[0].dudadas).toBeUndefined();
+  });
+
+  it("si TODO lo que cuelga de una prenda está en duda, no se juzga: ni «Vigente · 0 días» ni «Por decidir» (revisión adversaria)", () => {
+    const { sede } = analizarSede(lecturaDosMeses(), undefined, { dudas: [POLO_M_NEGRO] });
+    const a = de(sede, "A");
+    expect(a.estado.tipo).toBe("vendida_sin_registrar");
+    expect(a.porDecidir).toBe(false);
+    expect(a.estado.sugerencias).toEqual([]);
+    // Aunque haya pasado su temporada: lo que cuelga puede ya haberse vendido.
+    const l = lecturaDosMeses();
+    l.tallas = l.tallas.map((t) => (t.varianteId === "A" ? { ...t, finEstacion: ts(100), enEstacionAhora: false } : t));
+    const pasada = de(analizarSede(l, undefined, { dudas: [POLO_M_NEGRO] }).sede, "A");
+    expect(pasada.porDecidir).toBe(false);
+  });
+
+  it("si el sistema no tenía nada de esa talla y color en el piso cuando se vendió (la cola de arranque), no hay gemela", () => {
+    // A se colgó el día 85: una venta anotada del día 50 no puede haber dejado una unidad fantasma de A ni de B.
+    const { sede } = analizarSede(lecturaDosMeses(), undefined, { dudas: [{ ...POLO_M_NEGRO, vendidoEn: ts(50) }] });
+    expect(de(sede, "A").tallas[0].dudadas).toBeUndefined();
+    // Del día 100 (A ya colgaba): sí.
+    const despues = analizarSede(lecturaDosMeses(), undefined, { dudas: [{ ...POLO_M_NEGRO, vendidoEn: ts(100) }] }).sede;
+    expect(de(despues, "A").tallas[0].dudadas).toBe(1);
+  });
+
+  it("la tendencia contra hace 4 semanas compara lo mismo con lo mismo: con o sin dudas, la misma (revisión adversaria)", () => {
+    const sin = analizarSede(lecturaDosMeses()).sede;
+    const con = analizarSede(lecturaDosMeses(), undefined, { dudas: [POLO_M_NEGRO] }).sede;
+    const contar = (sede: typeof sin, sinApartar: boolean) => pisoDeLaTienda(pisoPorFamilia(sede.prendas, { familiaDe: () => null, familias: [], sinApartar }))!.unidades;
+    // La barra de hoy cambia (A pasa a «Aún no se sabe»)…
+    expect(contar(con, false).sin_saber).toBe(contar(sin, false).sin_saber + 1);
+    // …pero la cifra que se compara con hace 4 semanas es la misma que sin dudas.
+    expect(contar(con, true)).toEqual(contar(sin, true));
   });
 
   it("no toca la vara de días: las observaciones de la categoría son las mismas", () => {
@@ -446,7 +484,11 @@ describe("la puerta cerrada: por qué son aproximados y el botón que lo arregla
 
   it("el aviso dice por qué los porcentajes son aproximados; sin saber qué falta, el aviso compartido con Análisis", () => {
     expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "x", falta: "piso_cuadrado" })).toMatch(/^Mientras el piso no esté cuadrado.*aproximados\.$/);
-    expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "x", falta: "venta_identificada" })).toMatch(/lo vendido sigue contando como colgado/);
+    expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "x", falta: "venta_identificada", venta: "sin_prenda" })).toMatch(/lo vendido sigue contando como colgado/);
+    // Si todo lleva su prenda y faltan días seguidos, no hay «ventas sin su prenda»: el aviso compartido con Análisis (revisión adversaria).
+    expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "Llevas 9 de 14 días cobrando con la prenda: estas cifras pueden fallar.", falta: "venta_identificada", venta: "racha", sinPrenda: 0 })).toBe(
+      "Llevas 9 de 14 días cobrando con la prenda: estas cifras pueden fallar.",
+    );
     expect(avisoDeLaPuerta({ puedeHablar: false, aviso: "Falta algo: estas cifras pueden fallar.", falta: null })).toBe("Falta algo: estas cifras pueden fallar.");
     expect(avisoDeLaPuerta(null)).toMatch(/No se pudo saber/);
   });

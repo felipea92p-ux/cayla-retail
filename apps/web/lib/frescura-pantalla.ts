@@ -246,6 +246,7 @@ const TEXTO_ESPECIAL = {
   clasico_fuera: "Clásico, espera su estación",
   dudosa: "Su stock no cuadra",
   apartada: "Apartada para clientes",
+  vendida_sin_registrar: "Aún no se sabe",
 } as const;
 
 export function estadoVista(p: FrescuraPrenda): EstadoVista {
@@ -303,7 +304,7 @@ export function rapidezQueDecide(p: FrescuraPrenda): Rapidez | null {
 
 export function claveRapidez(p: FrescuraPrenda): ClaveRapidez {
   const r = p.rapidez;
-  if (p.estado.tipo === "clasico" || p.estado.tipo === "dudosa") return "sin_dato";
+  if (p.estado.tipo === "clasico" || p.estado.tipo === "dudosa" || p.estado.tipo === "vendida_sin_registrar") return "sin_dato";
   if (!r) return "sin_dato";
   if (p.estado.tipo === "sin_vara") return "sin_medida";
   if (rapidezQueDecide(p) === null) return "poca_evidencia";
@@ -356,7 +357,7 @@ export function rapidezVista(p: FrescuraPrenda): RapidezVista {
 /** Sin un estado firme (sin comparación, sin referencia, edad desconocida o un estado que es solo un piso). */
 function sinTramoFirme(p: FrescuraPrenda): boolean {
   const e = p.estado;
-  return e.tipo === "sin_ventas_sede" || e.tipo === "sin_vara" || e.tipo === "sin_edad_conocida" || (e.tipo === "semaforo" && e.alMenos);
+  return e.tipo === "sin_ventas_sede" || e.tipo === "sin_vara" || e.tipo === "sin_edad_conocida" || e.tipo === "vendida_sin_registrar" || (e.tipo === "semaforo" && e.alMenos);
 }
 
 /** «Callada»: sin estado firme y sus últimos 30 días en el piso sin vender (D4+D6). Es lo que pide «revisa sus ventas». */
@@ -577,7 +578,7 @@ export function pasaEstado(p: FrescuraPrenda, estado: FiltroEstado): boolean {
     case "dudosa":
       return e.tipo === "dudosa";
     case "sin_comparar":
-      return e.tipo === "sin_ventas_sede" || e.tipo === "sin_vara" || e.tipo === "sin_edad_conocida";
+      return e.tipo === "sin_ventas_sede" || e.tipo === "sin_vara" || e.tipo === "sin_edad_conocida" || e.tipo === "vendida_sin_registrar";
     case "envejeciendo":
       return e.tipo === "semaforo" && !apartada && (e.tramo === "envejecida" || e.tramo === "critica");
     default:
@@ -639,6 +640,14 @@ export function textoCayla(v: VaraCategoria | undefined): string {
   return `todas las tiendas juntas, la mitad se vende antes de ${diasDeCorte(v.cortes.p50)} días${d75}`;
 }
 
+/** La vara que JUZGÓ a la categoría, con la forma de una vara (la del mes, la de CAYLA o la de hoy; la regla de `varaQueJuzgo`). */
+export function juzgadoraDe(v: VaraCategoria | undefined): (Omit<VaraCategoria, "respaldo" | "delMes"> & { cual: "mes" | "cayla" | "hoy" }) | undefined {
+  if (!v) return undefined;
+  if (v.delMes?.enUso) return { ...v.delMes, cual: "mes" };
+  if (v.respaldo?.enUso) return { ...v.respaldo, cual: "cayla" };
+  return { ...v, cual: "hoy" };
+}
+
 /**
  * La vara del mes dicha una vez por categoría: si juzgó, cuánto tardaba la mitad el día 1 y cuánto con lo de hoy (si cambió en 2 días o más:
  * «se puso más lenta» o «más rápida»); si todavía no llega a sus ventas, que aprende su ritmo y este mes se juzga con lo de hoy.
@@ -646,6 +655,8 @@ export function textoCayla(v: VaraCategoria | undefined): string {
 function textoMes(v: VaraCategoria | undefined): string | null {
   const m = v?.delMes;
   if (!v || !m) return null;
+  // Contra CAYLA lo dice su línea (`textoRespaldo`); decirlo dos veces se contradecía (revisión adversaria).
+  if (juzgadoraDe(v)?.cual === "cayla") return null;
   if (!m.enUso) return m.vendidas > 0 || v.vendidas > 0 ? "Todavía aprende su ritmo: este mes se juzga con lo vendido hasta hoy." : null;
   const antes = m.cortes.p50 === null ? null : diasDeCorte(m.cortes.p50);
   const ahora = v.cortes.p50 === null ? null : diasDeCorte(v.cortes.p50);
@@ -657,14 +668,16 @@ function textoMes(v: VaraCategoria | undefined): string | null {
 export function grupoVista(categoriaId: string, nombre: string, ctx: ContextoFrescura): GrupoVista {
   const v = ctx.categorias.get(categoriaId);
   // La comparación se dice con la vara que JUZGÓ (la del mes, la de CAYLA o la de hoy): la misma de las prendas.
-  const juzgo = v?.delMes?.enUso ? v.delMes : v?.respaldo?.enUso ? v.respaldo : v;
-  const deCayla = juzgo !== undefined && juzgo === v?.respaldo;
+  const juzgo = juzgadoraDe(v);
+  const deCayla = juzgo?.cual === "cayla";
+  // La vara del mes cuenta los días ANTES del día 1, no «los últimos» (revisión adversaria: el 25 del mes era falso por 24 días).
+  const cuando = juzgo?.cual === "mes" ? `de los ${juzgo.ventanaDias} días antes del día 1` : `de los últimos ${juzgo?.ventanaDias ?? 0} días`;
   return {
     categoriaId,
     nombre,
     comparacion: textoComparacion(juzgo, nombre, deCayla ? "las tres tiendas juntas" : ctx.sede),
     nivel: juzgo?.nivel ?? null,
-    base: juzgo && juzgo.vendidas > 0 ? `con ${textoVentas(juzgo.vendidas)} de los últimos ${juzgo.ventanaDias} días` : null,
+    base: juzgo && juzgo.vendidas > 0 ? `con ${textoVentas(juzgo.vendidas)} ${cuando}` : null,
     mes: textoMes(v),
     cayla: ctx.cayla === null ? null : (ctx.caylaFallo ?? `${textoCayla(ctx.cayla.get(categoriaId))}.`),
     respaldo: textoRespaldo(v),
@@ -938,7 +951,7 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   const s = p.categoriaSinElla;
   const d = diasDe(p.reloj.segundos);
   const dTxt = p.reloj.alMenos ? `${textoDias(d)} ${QUIZA_MAS}` : textoDias(d);
-  const cat = ctx.categorias.get(p.categoriaId);
+  const catDeHoy = ctx.categorias.get(p.categoriaId);
   const deCategoria = `las prendas de ${p.categoriaNombre}`;
   if (presenciaDe(p) === "apartada") {
     const iba = e.tipo === "semaforo" ? `, cuando iba como «${NOMBRE_TRAMO[e.tramo]}»` : "";
@@ -946,6 +959,8 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   }
   if (e.tipo === "dudosa")
     return "El historial de movimientos del piso de alguna de sus tallas no cuadra con lo que hay. Con los números así, cualquier juicio sería inventado: no se mide mientras no cuadre.";
+  if (e.tipo === "vendida_sin_registrar")
+    return `En caja se anotó una venta de ${p.categoriaNombre} de su talla y color sin decir qué prenda era: puede ser esta. Mientras esa venta no se regularice no se juzga, para no pedirte que muevas una prenda que quizá ya se fue. Lleva **${dTxt}** en el piso.`;
   if (e.tipo === "clasico") {
     const estacion = estacionDelClasico(ctx, p.temporada);
     return `Es un clásico${deClasico(estacion)}: no pasa de moda, así que no entra al semáforo ni se compara con las demás. Lleva ${textoDias(d)} en el piso. ${e.fueraDeSuEstacion ? "Hoy no es su estación." : "Hoy es su estación: no hay nada que decidir."}`;
@@ -956,6 +971,8 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
     return `En ${ctx.sede} todavía no se vendió ninguna prenda de ${p.categoriaNombre} con fecha de llegada conocida: no hay con qué compararla. Lleva **${dTxt}** en el piso.${suyas}${apoyo}`;
   }
   if (e.tipo === "sin_vara") {
+    // La misma vara que la juzgó sin ella (la del mes, la de CAYLA o la de hoy): «contándola» y «sin ella» de dos varas eran dos escalas.
+    const cat = juzgadoraDe(catDeHoy);
     if (cat && cat.cortes.p50 !== null && s) {
       const suyas = Math.max(0, cat.vendidas - s.vendidas);
       const deEllas =
@@ -1183,8 +1200,11 @@ export function detalleVista(p: FrescuraPrenda, ctx: ContextoFrescura): DetalleV
       const partes = [`la mitad se vende antes de ${textoDias(diasDeCorte(s.cortes.p50))}`];
       if (s.cortes.p75 !== null) partes.push(`3 de cada 4 antes de ${diasDeCorte(s.cortes.p75)}`);
       if (s.cortes.p90 !== null) partes.push(`9 de cada 10 antes de ${diasDeCorte(s.cortes.p90)}`);
-      const conTodas = [cat.cortes.p50, cat.cortes.p75, cat.cortes.p90].filter((x): x is number => x !== null).map(diasDeCorte);
-      sinContarla = `Sin contarla, las demás: ${partes.join(", ")}${conTodas.length ? ` (contándola a ella: ${conTodas.join(", ")})` : ""}.`;
+      // «Contándola» con la MISMA vara que «sin contarla» (la del mes, la de CAYLA o la de hoy; revisión adversaria: eran dos escalas).
+      const juzgo = juzgadoraDe(cat)!;
+      const conTodas = [juzgo.cortes.p50, juzgo.cortes.p75, juzgo.cortes.p90].filter((x): x is number => x !== null).map(diasDeCorte);
+      const contandola = juzgo.cual === "cayla" ? "en las tres tiendas juntas, contándola" : "contándola a ella";
+      sinContarla = `Sin contarla, las demás: ${partes.join(", ")}${conTodas.length ? ` (${contandola}: ${conTodas.join(", ")})` : ""}.`;
     } else sinContarla = sinVentasDeLasDemas(s) ? "Sin contarla, ninguna de las demás se vendió todavía." : `Sin contarla, las demás vendieron solo ${decimal(s.vendidas)}.`;
   }
   const nivel = sinContarla !== null ? nivelSinElla(p) : null;
