@@ -104,17 +104,21 @@ export function TarjetaMarca({
       </div>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-1.5">
           {m.proveedores.length > 0 && <span className="label-cayla mr-0.5 text-[10px] text-tinta/65">La trae</span>}
           {m.proveedores.map((p) => (
-            <span key={p.id} className="rounded-full border border-tinta/25 bg-papel px-2.5 py-0.5 text-[12.5px] text-tinta/80">
-              <Resaltado texto={p.nombre} busqueda={busqueda} />
-              <span className="ml-1.5 text-taupe">· {p.productos} prod.</span>
+            // Una línea siempre: un nombre largo se corta con «…» (el nombre entero va en el título) en vez de doblarse dentro de la
+            // píldora y volverla un óvalo de cinco renglones en una tarjeta angosta.
+            <span key={p.id} title={`${p.nombre} · ${p.productos} productos`} className="inline-flex min-w-0 max-w-full items-baseline rounded-full border border-tinta/25 bg-papel px-2.5 py-0.5 text-[12.5px] text-tinta/80">
+              <span className="min-w-0 truncate">
+                <Resaltado texto={p.nombre} busqueda={busqueda} />
+              </span>
+              <span className="ml-1.5 shrink-0 text-taupe">· {p.productos} prod.</span>
             </span>
           ))}
         </div>
         {puedeEditar && (
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {estado === "desactivada" ? (
               <button type="button" onClick={onReactivar} disabled={trabajando} className="btn-cayla btn-secundario">
                 Reactivar
