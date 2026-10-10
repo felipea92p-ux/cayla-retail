@@ -136,14 +136,6 @@ export function ModeloNuevoCampos({
         </CampoGuiado>
       )}
 
-      <div className="space-y-1.5">
-        <p className="flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta">
-          Colores
-          <span className="text-[12px] font-normal text-taupe">{colorCodigos.length > 0 ? `${colorCodigos.length} elegido${colorCodigos.length === 1 ? "" : "s"}` : "opcional: si no tiene color, déjalo vacío"}</span>
-        </p>
-        <ElegirColores colores={colores} grupos={grupos} elegidos={colorCodigos} onAlternar={onAlternarColor} onCreado={onColorCreado} />
-      </div>
-
       <CampoGuiado id="precio" guia={guia}>
         <CampoMonto
           etiqueta={guia.etiqueta("precio", "Precio a tienda (c/u)")}
@@ -154,6 +146,14 @@ export function ModeloNuevoCampos({
           onChange={(e) => onPrecio(e.target.value)}
         />
       </CampoGuiado>
+
+      <div className="space-y-1.5">
+        <p className="flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta">
+          Colores
+          <span className="text-[12px] font-normal text-taupe">{colorCodigos.length > 0 ? `${colorCodigos.length} elegido${colorCodigos.length === 1 ? "" : "s"}` : "opcional: si no tiene color, déjalo vacío"}</span>
+        </p>
+        <ElegirColores colores={colores} grupos={grupos} elegidos={colorCodigos} onAlternar={onAlternarColor} onCreado={onColorCreado} cartaAbierta={false} />
+      </div>
     </section>
   );
 }

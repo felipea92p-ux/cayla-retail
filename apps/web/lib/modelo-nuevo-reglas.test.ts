@@ -507,6 +507,26 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
   });
 });
 
+describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado (/formidable 2026-10-10, cambio 1)", () => {
+  const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+  it("el precio va ANTES de los colores (la guía ya lo pide antes: nombre, categoría, tallas, precio, cantidades) y la carta de 89 círculos arranca cerrada", () => {
+    const campos = leer("components/ModeloNuevoCampos.tsx");
+    expect(campos.indexOf('<CampoGuiado id="precio"')).toBeGreaterThan(-1);
+    expect(campos.indexOf('<CampoGuiado id="precio"')).toBeLessThan(campos.indexOf("<ElegirColores"));
+    expect(campos).toMatch(/<ElegirColores[^>]*cartaAbierta=\{false\}/);
+  });
+  it("Nuevo producto y los demás siguen con la carta abierta de entrada (ADR-0312/0314): el valor por defecto de `cartaAbierta` es true", () => {
+    const elegir = leer("components/alta-producto/ElegirColores.tsx");
+    expect(elegir).toMatch(/cartaAbierta = true/);
+    expect(elegir).toMatch(/useState\(cartaAbierta\)/);
+  });
+  it("el orden de la guía de foco es el de la pantalla (los colores no son un paso: son opcionales)", () => {
+    const b = conCantidades(borrador({ nombre: "", precio: "" }), "");
+    const ids = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: celdas(b), totalExistente: 0 }).map((c) => c.id);
+    expect(ids).toEqual(["nombre", "categoria", "tallas", "precio", "cantidades", "costos"]);
+  });
+});
+
 describe("el formulario de Nueva orden", () => {
   it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden)", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
