@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { DIAS_VIGILAR, GRUPOS_QUIETAS, LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, prendasDe } from "./analisis-reglas";
 import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, marcasEje, notaSinCosto, pistaQuieta, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
+import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba: ni nombres del catálogo ni cifras de producción.
 function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
@@ -236,5 +237,32 @@ describe("cuando no hay carril", () => {
   it("cada vacío dice algo corto, con su título y una línea", () => {
     expect(TEXTO_VACIO_QUIETAS["todo-se-mueve"].titulo).toBe("Todo se mueve");
     for (const t of Object.values(TEXTO_VACIO_QUIETAS)) expect(t.linea.length).toBeLessThanOrEqual(60);
+  });
+});
+
+describe("lo quieto por modelo (ADR-0357, decisión 12)", () => {
+  const HOY = "2026-10-10";
+  it("el dinero se suma talla por talla, con el costo y el precio de cada una; se cuenta un modelo", () => {
+    const m = modeloDe(
+      [
+        prenda({ varianteId: "a", piso: 2, salioAlPiso: "2026-08-01", diasSinVender: 70, costo: 20, precio: 50 }),
+        prenda({ varianteId: "b", talla: "L", almacen: 1, salioAlPiso: "2026-08-01", diasSinVender: 70, costo: 30, precio: null }),
+      ],
+      HOY,
+    );
+    expect(cifrasQuietas([m])).toEqual({ prendas: 1, unidades: 3, costo: 70, precioVenta: 100, sinCosto: 0, sinPrecio: 1 });
+  });
+
+  it("un modelo con una talla que se vende no está quieto, aunque otra lleve 70 días colgada", () => {
+    const m = modeloDe(
+      [
+        prenda({ varianteId: "a", piso: 1, salioAlPiso: "2026-08-01", diasSinVender: 70 }),
+        prenda({ varianteId: "b", talla: "S", piso: 1, vendidas30: 1, salioAlPiso: "2026-08-01", ultimaVenta: "2026-10-05", diasSinVender: 5 }),
+      ],
+      HOY,
+    );
+    const g = gruposQuietas([m], 15);
+    expect(g.liquidar).toHaveLength(0);
+    expect(g.enviar).toHaveLength(0);
   });
 });

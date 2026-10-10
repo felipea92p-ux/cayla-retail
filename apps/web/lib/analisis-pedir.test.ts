@@ -27,6 +27,7 @@ import {
   ventaMaxima,
   type FilaRinde,
 } from "./analisis-pedir";
+import { armarModelos } from "./analisis-modelo";
 
 // Datos inventados (el repo es público): modelos, colores y cifras de mentira.
 let n = 0;
@@ -403,5 +404,31 @@ describe("lo que más rinde", () => {
   it("sin nada que mostrar: si la base no respondió, eso; si no, que todavía no alcanza", () => {
     expect(notaRindeVacio([FALLA_RINDE])).toBe("No se pudo leer ahora.");
     expect(notaRindeVacio(["No se pudo leer el último conteo"])).toBe("Todavía no hay 90 días de ventas con su costo para medirlo.");
+  });
+});
+
+describe("Qué pedir por modelo (ADR-0357, decisión 12)", () => {
+  const HOY_PEDIR = "2026-10-10";
+  // Un modelo colgado en M con su L guardada, y otro modelo que nadie colgó.
+  const colgado = [
+    prenda({ productoId: "mA", nombre: "Polo Ensayo", piso: 2, vendidas30: 4, salioAlPiso: "2026-10-01" }),
+    prenda({ productoId: "mA", nombre: "Polo Ensayo", talla: "L", almacen: 3 }),
+  ];
+  const guardado = [prenda({ productoId: "mB", nombre: "Polo Guardado", almacen: 5 })];
+  const modelos = armarModelos([...colgado, ...guardado], HOY_PEDIR);
+
+  it("«nunca salió al piso» solo cuenta lo del modelo que nadie colgó, no la talla guardada de uno colgado", () => {
+    const [polos] = alcancePorTipo(modelos, 10, 76, true);
+    expect(polos).toMatchObject({ vendidas: 4, tiene: 10, nunca: 5 });
+  });
+
+  it("las tallas se siguen comparando talla por talla (con las filas de la base, no con los modelos)", () => {
+    // La L guardada del modelo colgado es una columna con lo que tiene: con los modelos (talla "" si tienen varias) se perdería.
+    const curva = curvaDeTallas([...colgado, ...guardado], null);
+    expect(curva.tipo === "tallas" ? curva.columnas.map((c) => c.talla) : []).toEqual(["M", "L"]);
+  });
+
+  it("«Lo que más se vende» es un ranking de modelos", () => {
+    expect(masVendidas(modelos, null).map((m) => m.nombre)).toEqual(["Polo Ensayo"]);
   });
 });

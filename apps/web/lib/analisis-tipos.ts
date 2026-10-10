@@ -7,6 +7,7 @@
 // que se queda quieta y que se pide. El modelo entero (todas sus tallas y colores) se arma en la ficha con `productoId`.
 
 import type { DiaVenta, PreparacionSede } from "./motor-demanda-reglas";
+import type { ModeloAnalisis } from "./analisis-modelo";
 
 /** Las pestañas, en el orden de la pantalla. «Nunca salió al piso» (`piso`) va entre «No se vende» y «Qué pedir» (Felipe, 2026-10-07). */
 export const VISTAS_ANALISIS = ["hoy", "acaba", "nose", "piso", "pedir"] as const;
@@ -89,6 +90,9 @@ export type PrendaAnalisis = {
   /** La primera vez que estuvo en el piso de MI tienda (YYYY-MM-DD): un movimiento en el piso o su primera venta. null = nunca
    *  salió al piso (o la base todavía no lo sabe: `DatosAnalisis.sabePiso`). */
   salioAlPiso: string | null;
+  /** Su última venta en MI tienda (YYYY-MM-DD, sin tope de fechas); null si nunca se vendió aquí. undefined si la base todavía no lo
+   *  dice (sin 20261010120000): con esto se cuentan los días sin venderse del modelo entero (`analisis-modelo.ts`). */
+  ultimaVenta?: string | null;
   /** La primera vez que entró a MI tienda (YYYY-MM-DD); null si no se sabe. Con esto se cuentan los días que lleva guardada. */
   llego: string | null;
   /** Unidades que llegaron a mi tienda en los últimos 30 días, y cuántas de ellas ya se vendieron («se vende lo que llega»). */
@@ -150,13 +154,21 @@ export type DatosAnalisis = {
   preparacion: PreparacionAnalisis[];
   /** Si mi tienda puede recibir recomendaciones (las tres condiciones de ADR-0346). */
   puedeHablar: boolean;
-  /** Mis prendas con algo que decir: libres, vendidas en 30 días o en camino. */
-  prendas: PrendaAnalisis[];
+  /** Mis MODELOS con algo que decir (libres, vendidos en 30 días o en camino), cada uno con todas sus tallas y colores adentro: lo
+   *  que miden y listan todas las pestañas (ADR-0357, decisión 12, Felipe 2026-10-10: «si dice Chaleco Cecia, incluye todas las
+   *  tallas y todos los colores»). */
+  prendas: ModeloAnalisis[];
+  /** Las mismas, talla por talla de cada color (las filas de la base): para lo que de verdad compara tallas («Qué pedir») y para el
+   *  detalle del modelo. */
+  tallas: PrendaAnalisis[];
   /** Cuántos días de ventas tiene mi tienda en el ERP, hasta 30 (`diasDeVentas`): el ritmo de todo Análisis y «en 8 días». */
   diasDeVentas: number;
   /** Si la base ya dice cuándo salió al piso cada prenda de mi tienda (20261007120000). Sin eso, «Nunca salió al piso» no inventa
    *  una lista: dice que todavía no lo puede saber. */
   sabePiso: boolean;
+  /** Si la base dice la última venta de cada prenda (20261010120000). Sin eso, los días sin venderse de un modelo se cuentan con lo
+   *  más reciente de sus tallas, y se dice una vez arriba. */
+  sabeUltimaVenta: boolean;
   /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */

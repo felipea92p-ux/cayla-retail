@@ -25,6 +25,11 @@ type Props = {
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   /** Escape, el velo y la ✕ no cierran mientras guarda algo sin token: cerrar y reabrir dejaría enviarlo dos veces. */
   bloqueado?: boolean;
+  /** Antes de que Escape, el velo o la ✕ cierren la hoja: recibe el cierre animado y decide si llamarlo. Para preguntar «¿Salir sin
+      guardar?» con la hoja TODAVÍA a la vista (`useSalidaSinGuardar().pedirAccion`): pasado por `onClose`, la pregunta llegaba
+      después de animar la salida y, con «Seguir editando», la hoja quedaba invisible (2026-10-10, Plan de campaña). El `cerrar`
+      que reciben los hijos no pasa por aquí: un botón propio decide por su cuenta. */
+  antesDeCerrar?: (cerrar: () => void) => void;
   /** Al abrir, el foco va a la hoja y no a su primer campo. Para una hoja cuya primera línea hay que LEER antes de elegir:
       un combo (`ComboBuscable`) abre su lista al recibir el foco y, en el celular, la abre hacia arriba tapando esa línea
       («Corregir color», ADR-0263). El foco sigue atrapado en la hoja y Tab entra al primer campo. */
@@ -69,7 +74,7 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, arriba, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, arriba, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
   // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
@@ -102,15 +107,26 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
     return () => clearTimeout(temporizador);
   }, [cerrando]);
 
+  // Escape, el velo y la ✕ pasan por `antesDeCerrar` si lo hay (de una ref, como `onClose`: suele llegar como flecha nueva).
+  const antesDeCerrarActual = useRef(antesDeCerrar);
+  useEffect(() => {
+    antesDeCerrarActual.current = antesDeCerrar;
+  }, [antesDeCerrar]);
+  const pedirCierreDesdeFuera = useCallback(() => {
+    const decidir = antesDeCerrarActual.current;
+    if (decidir) decidir(pedirCierre);
+    else pedirCierre();
+  }, [pedirCierre]);
+
   // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
   // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no
   // alcanza). El clic en el velo sigue por `onOpenChange`.
   const alEscape = useEscapeLibre(() => {
-    if (!bloqueado) pedirCierre();
+    if (!bloqueado) pedirCierreDesdeFuera();
   });
 
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
+    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierreDesdeFuera()}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
@@ -170,7 +186,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
           {(variante === "papel" || conCerrar) && (
             <button
               type="button"
-              onClick={pedirCierre}
+              onClick={pedirCierreDesdeFuera}
               disabled={bloqueado}
               aria-label="Cerrar"
               {...(variante === "papel" ? {} : { "data-sin-cascada": true })}

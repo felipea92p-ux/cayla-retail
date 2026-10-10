@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/analisis-tipos";
 import { armarPrendas } from "@/lib/analisis-armado";
+import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
 import { diasDeVentas, liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
@@ -72,7 +73,11 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
   const hoy = motor.filas[0]?.hoy ?? hoyEnLima();
   // El ritmo de todo Análisis: lo vendido entre los días de ventas que mi tienda tiene en el ERP, hasta 30 (cada prenda lo lleva).
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
-  const prendas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante).map((p) => ({ ...p, diasDeVentas: ventana }));
+  const tallas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante).map((p) => ({ ...p, diasDeVentas: ventana }));
+  // Lo que miden y listan las pestañas: el MODELO entero, con todas sus tallas y colores (ADR-0357, decisión 12).
+  const prendas = armarModelos(tallas, hoy);
+  const sabeUltimaVenta = lectura.sabeUltimaVenta[activa.id] === true;
+  const fallaUltima = lectura.sabeUltimaVenta[activa.id] === false ? FALLA_ULTIMA_VENTA : null;
 
   // Si mi tienda respondió pero sin decir cuándo salió al piso cada prenda (la base todavía no tiene 20261007120000), se dice una
   // vez; si no respondió, ya lo dice la falla de la lectura.
@@ -89,8 +94,10 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
     preparacion: motor.filas,
     puedeHablar: hablaSede(activa.id),
     prendas,
+    tallas,
     diasDeVentas: ventana,
     sabePiso,
+    sabeUltimaVenta,
     liquidarDesde,
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
     rinde: rinde.rinde,
@@ -101,7 +108,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
         que: [p.productoReferencia ?? p.descripcionLibre ?? "Prenda sin nombre", p.talla].filter(Boolean).join(" · "),
         dia: p.creadoEn.slice(0, 10),
       })),
-    fallas: [motor.falla, lectura.falla, fallaPiso, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
       (f): f is string => f !== null,
     ),
   };

@@ -5,7 +5,9 @@
 // 2026-10-06).
 
 import type { LlegadaPrenda, OrigenLlegada, OrigenPrenda, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
-import { DIAS_SE_ACABA, GRUPOS_ACABA, ordenSeAcaba, plural, porLlegar, prendasDe } from "./analisis-reglas";
+import type { ModeloAnalisis } from "./analisis-modelo";
+import { DIAS_SE_ACABA, esTallaUnica, GRUPOS_ACABA, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
+import { compararTallas } from "./tallas";
 import { fechaCorta } from "./motor-demanda-reglas";
 
 /** Una semana: hasta aquí los días van en rojo, y es la línea punteada del carril. */
@@ -132,3 +134,23 @@ export const TEXTO_VACIO_ACABA: Record<VacioAcaba, { titulo: string; linea: stri
   nada: { titulo: "Nada se está acabando", linea: `Todo lo que se vende te dura más de ${semanas(DIAS_SE_ACABA)}.` },
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
 };
+
+/** Hasta cuántas tallas se nombran en la píldora «Falta …»; con más, se cuentan («Faltan 3») y se nombran en su tooltip. */
+const FALTAN_NOMBRADAS = 2;
+
+/**
+ * Lo que ya no hay de un modelo que se acaba (ADR-0357, decisión 12): la talla y el color que se agotaron en mi tienda, de lo que más
+ * se vendía a lo que menos. Se nombra la talla (no la única) y el color solo si el modelo tiene varios: «Falta S Arena», «Faltan S y
+ * M», «Faltan 3» (con las tres en `todas`). null si no falta ninguna, o si se agotó el modelo entero (eso ya lo dice su pista).
+ */
+export function faltanDelModelo(m: Pick<ModeloAnalisis, "variantes" | "colores">): { texto: string; todas: string[] } | null {
+  const agotadas = m.variantes.filter((v) => totalEnTienda(v) === 0);
+  if (agotadas.length === 0 || agotadas.length === m.variantes.length) return null;
+  const variosColores = m.colores.filter((c) => c.trim() !== "").length > 1;
+  const todas = [...agotadas]
+    .sort((a, b) => b.vendidas30 - a.vendidas30 || compararTallas(a.talla, b.talla))
+    .map((v) => [esTallaUnica(v.talla) ? null : v.talla, variosColores ? v.color : null].filter(Boolean).join(" ") || v.color || v.talla);
+  const verbo = todas.length === 1 ? "Falta" : "Faltan";
+  const texto = todas.length <= FALTAN_NOMBRADAS ? `${verbo} ${todas.join(" y ")}` : `${verbo} ${todas.length}`;
+  return { texto, todas };
+}
