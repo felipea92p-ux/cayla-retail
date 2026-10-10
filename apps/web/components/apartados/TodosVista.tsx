@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
   EXTENSIONES_MAX,
   ORDEN_ESTADO,
+  apartadoDeFila,
   avisadaHoy,
   coincide,
   colaPorAvisar,
@@ -30,6 +31,17 @@ import { envioConCliente, type PedidoParaSubir } from "@/lib/pedidos-con-cliente
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
+import { CampoFecha } from "@/components/ui/CampoFecha";
+import { Aviso } from "@/components/ui/Aviso";
+import { createClient } from "@/lib/supabase/client";
+import {
+  PERIODOS_APARTADOS,
+  PERIODO_DE_FABRICA,
+  esDeFabrica,
+  rangoDelPeriodo,
+  textoDelPeriodo,
+  type PeriodoApartados,
+} from "@/lib/historial-apartados-reglas";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 // «Todos» va primero y es lo que se ve al entrar al Historial (Felipe 2026-10-10): el historial muestra todo y los
@@ -113,6 +125,42 @@ export function TodosVista({
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [texto, setTexto] = useState(buscarInicial);
+  // Período (Felipe 2026-10-10): acota SOLO lo cerrado, por el día en que se hizo el apartado; lo que espera algo sale
+  // siempre (`buscar_separaciones`, 20261010180000). La página ya trajo los últimos 30 días: otro período se lee aquí,
+  // sin recargar la pantalla entera (`buscar_` es lectura: no abre el loader, ADR-0149).
+  const [periodo, setPeriodo] = useState<PeriodoApartados>(PERIODO_DE_FABRICA);
+  const [fechas, setFechas] = useState<{ desde?: string; hasta?: string }>({});
+  const rango = rangoDelPeriodo(periodo, hoy, fechas);
+  const deFabrica = esDeFabrica(periodo, rango, hoy);
+  const claveRango = `${rango.desde ?? ""}|${rango.hasta ?? ""}`;
+  const [intento, setIntento] = useState(0);
+  const [leido, setLeido] = useState<{ clave: string; apartados: Apartado[] | null } | null>(null);
+  useEffect(() => {
+    if (deFabrica) return;
+    let vigente = true;
+    void createClient()
+      .rpc("buscar_separaciones", { p_ubicacion_id: ubicacionId, p_desde: rango.desde ?? undefined, p_hasta: rango.hasta ?? undefined })
+      .then(({ data, error }) => {
+        if (!vigente) return;
+        setLeido({ clave: claveRango, apartados: error ? null : (data ?? []).map((f) => apartadoDeFila(f as unknown as Record<string, unknown>)) });
+      });
+    return () => {
+      vigente = false;
+    };
+    // `apartados` en la lista: al guardar algo la página se refresca y el período elegido se vuelve a leer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claveRango, deFabrica, ubicacionId, apartados, intento]);
+  const leidoAhora = !deFabrica && leido?.clave === claveRango ? leido : null;
+  const cargandoRango = !deFabrica && !leidoAhora;
+  const errorRango = leidoAhora !== null && leidoAhora.apartados === null;
+  // Mientras llega el período nuevo (o si falló) se ve lo que ya había, atenuado: nunca una lista vacía de golpe.
+  const fuente = deFabrica ? apartados : (leidoAhora?.apartados ?? leido?.apartados ?? apartados);
+  const conPeriodo = filtro === "todos" || filtro === "cerrados";
+  const elegirPeriodo = (p: PeriodoApartados) => {
+    // «Personalizado» arranca con las fechas que rigen: el control dice la verdad (como el Historial de ventas).
+    if (p === "personalizado" && periodo !== "personalizado") setFechas({ desde: rango.desde ?? "", hasta: rango.hasta ?? "" });
+    setPeriodo(p);
+  };
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   const [extender, setExtender] = useState<Apartado | null>(null);
@@ -157,7 +205,7 @@ export function TodosVista({
   // Extender, liberar y devolver firman con el combo «Responsable» (ADR-0161) dentro de su modal, de esta tienda.
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
 
-  const conEstado = apartados.map((a) => ({ a, e: estadoVisible(a, hoy) }));
+  const conEstado = fuente.map((a) => ({ a, e: estadoVisible(a, hoy) }));
   const lista = conEstado
     .filter(({ a }) => coincide(a, texto))
     .filter(({ a, e }) =>
@@ -298,6 +346,64 @@ export function TodosVista({
         </div>
       </div>
 
+      {conPeriodo && (
+        <div className="-mt-2 space-y-2.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {/* Las mismas píldoras de período que el Historial de ventas (ADR-0358): Hoy, 7, 30, 90 días y Personalizado. En el
+                celular corren de lado en vez de partirse en dos líneas. */}
+            <div role="group" aria-label="Período de los cerrados" className="-mx-5 flex min-w-0 items-center gap-1.5 overflow-x-auto px-5 py-0.5 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+              {PERIODOS_APARTADOS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={p.id === "personalizado" ? periodo === "personalizado" || periodo === "todo" : periodo === p.id}
+                  onClick={() => elegirPeriodo(p.id)}
+                  className="pildora-cayla shrink-0"
+                >
+                  {p.etiqueta}
+                </button>
+              ))}
+            </div>
+            <p className="text-[12px] text-tinta/60" aria-live="polite">
+              Cerrados {textoDelPeriodo(periodo, rango)} · los que siguen abiertos se ven siempre{cargandoRango ? " · Buscando…" : ""}
+            </p>
+          </div>
+          {(periodo === "personalizado" || periodo === "todo") && (
+            // `relative z-20`: el calendario se abre hacia abajo y no debe quedar bajo la lista (como en el Historial de ventas).
+            <div className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
+              <div className="w-44">
+                <CampoFecha etiqueta="Desde" valor={periodo === "todo" ? "" : (fechas.desde ?? "")} onValor={(v) => { setFechas((f) => ({ ...f, desde: v })); setPeriodo("personalizado"); }} />
+              </div>
+              <div className="w-44">
+                <CampoFecha etiqueta="Hasta" valor={periodo === "todo" ? "" : (fechas.hasta ?? "")} onValor={(v) => { setFechas((f) => ({ ...f, hasta: v })); setPeriodo("personalizado"); }} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setPeriodo("todo")}
+                aria-pressed={periodo === "todo"}
+                className={`label-cayla pb-2 text-[11px] underline-offset-2 hover:text-rojo hover:underline ${periodo === "todo" ? "text-tinta" : "text-tinta/65"}`}
+              >
+                Todo el historial
+              </button>
+            </div>
+          )}
+          {errorRango && (
+            <Aviso
+              tono="error"
+              titulo="No se pudo leer ese período"
+              accion={
+                <Boton peso="fantasma" onClick={() => setIntento((n) => n + 1)}>
+                  Intentar de nuevo
+                </Boton>
+              }
+            >
+              Mientras tanto se ven los cerrados de los últimos 30 días.
+            </Aviso>
+          )}
+        </div>
+      )}
+
+      <div aria-busy={cargandoRango} data-resultados className={`space-y-5 transition-opacity duration-200 ${cargandoRango ? "opacity-55" : ""}`}>
       {lista.length === 0 ? (
         <div className="card-cayla">
           {texto.trim() ? (
@@ -305,16 +411,36 @@ export function TodosVista({
               icono={<SearchX />}
               titulo={`Ningún apartado con «${texto.trim()}»`}
               acciones={
-                <Boton peso="fantasma" onClick={() => setTexto("")}>
-                  Borrar la búsqueda
-                </Boton>
+                <>
+                  {/* Lo cerrado de antes del período no se leyó: un toque lo busca en todo el historial. */}
+                  {conPeriodo && periodo !== "todo" && (
+                    <Boton peso="primario" onClick={() => setPeriodo("todo")}>
+                      Buscar en todo el historial
+                    </Boton>
+                  )}
+                  <Boton peso="fantasma" onClick={() => setTexto("")}>
+                    Borrar la búsqueda
+                  </Boton>
+                </>
               }
             >
-              Se busca por nombre, DNI, celular, código (APT-) o boleta.
+              Se busca por nombre, DNI, celular, código (APT-) o boleta{conPeriodo && periodo !== "todo" ? `, entre los cerrados ${textoDelPeriodo(periodo, rango)} y todos los abiertos` : ""}.
             </Vacio>
           ) : filtro === "hoy" ? (
             <Vacio icono={<Check />} titulo="Todo al día">
               Ningún apartado vence ni espera devolución hoy.
+            </Vacio>
+          ) : conPeriodo && periodo !== "todo" ? (
+            <Vacio
+              icono={<Archive />}
+              titulo={filtro === "cerrados" ? `Ningún apartado cerrado ${textoDelPeriodo(periodo, rango)}` : `Ningún apartado ${textoDelPeriodo(periodo, rango)}`}
+              acciones={
+                <Boton peso="fantasma" onClick={() => setPeriodo("todo")}>
+                  Ver todo el historial
+                </Boton>
+              }
+            >
+              Elige otro período arriba, o mira todo el historial.
             </Vacio>
           ) : (
             <Vacio icono={<Archive />} titulo="Nada por aquí">
@@ -426,6 +552,7 @@ export function TodosVista({
           );
         })
       )}
+      </div>
 
       {enviarPedido && <EnviarPedidoModal pedido={enviarPedido} prenda={prendaDe(enviarPedido.varianteId)} ubicacion={ubicacion} onClose={() => setEnviarPedido(null)} />}
       {cancelarPedido && <CancelarPedidoModal pedido={cancelarPedido} ubicacion={ubicacion} onClose={() => setCancelarPedido(null)} />}
