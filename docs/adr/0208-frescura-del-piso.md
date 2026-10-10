@@ -3473,20 +3473,25 @@ como se vería un lunes») ya era casi lo que Felipe pide.
 7. Aprobó la lista de 9 actividades de `/construir` (en `docs/backlog/2026-10-10-frescura-de-piso-analysis-2e01a2.md`).
 
 **Decisiones técnicas (Claude):**
-- **DECIDÍ:** cada unidad se juzga por **sus propios días colgada** (el FIFO de `historiaDeCohortes`, `inventario-exposicion.ts`, que se
-  pausa en el almacén), contra la curva de su categoría, que es de unidades: lo mismo contra lo mismo. La prenda (modelo+color) toma el
-  estado de su unidad más vieja colgada; la barra cuenta cada unidad con el suyo. El reloj de novedad del modelo se queda para lo que es
-  novedad (estrenos, «Sin estrenar», la edad en la cadena). **DESCARTÉ:** seguir comparando el reloj del modelo contra la curva de
-  unidades (el 97 % de arriba). **SE ROMPE SI:** se retira y vuelve a colgar la misma prenda: el FIFO reanuda la cohorte pausada más
-  vieja, así que trae su edad de antes (es una convención, no una cota; se acepta porque el reloj de la unidad nunca se reinicia por
-  esconderla).
-- **DECIDÍ:** la vara del mes **no se guarda: se calcula igual cada vez**, con lo ocurrido hasta las 00:00 (Lima) del día 1, en la
-  ventana de 89 días anterior (cabe en los 120 días que lee `fn_frescura_sede` hasta el día 31). Así, un cron que falla no la cambia, y
-  no hace falta migración. Mientras la vara del mes de una categoría no llegue a 10 ventas con edad conocida (octubre entero y,
-  probablemente, parte de noviembre), se juzga con la curva viva de hoy y la fila lo dice («aún aprendiendo su ritmo»); la vara CAYLA de
-  respaldo se congela con la misma regla, en el cron. **DESCARTÉ:** una tabla con la vara de cada mes (una migración más para algo que
-  sale del libro) y congelar desde ya con 10 días de historia (todo diría «Aún no se sabe» hasta noviembre). **SE ROMPE SI:** la
-  ventana de 120 días se acorta, o un mes necesita ventas de más de 89 días atrás: entonces se guarda la foto del día 1.
+- **DECIDÍ: dos relojes** (`tramoDosRelojes`, `lib/frescura-reglas.ts`). **Fresca** la dice el reloj del MODELO+COLOR (todavía no
+  llega a P50): es novedad para el cliente, y reponer no la hace fresca otra vez (decisión 9 del 2026-09-24). Pasada la mitad, **Vigente
+  y Envejeciendo** las dice el reloj de su **unidad más vieja colgada** (`colgadasDe` + `relojDeLaUnidad`: el FIFO de
+  `historiaDeCohortes`, que se pausa en el almacén), contra la curva de su categoría, que es de unidades: lo mismo contra lo mismo. Como
+  una unidad nunca lleva colgada más que su modelo, los tramos no se pisan, y con una sola tanda sin reponer es la regla de antes. El
+  polo de 8 días contra 9 es Fresco; el éxito que se repone (modelo de 40 días, lo colgado de 2) es Vigente, no Crítico. **DESCARTÉ:**
+  el reloj del modelo para todo (el 97 % de arriba) y el de la unidad para todo (lo repuesto volvería a ser Fresco: contra la decisión 9).
+  **SE ROMPE SI:** se retira y vuelve a colgar la misma prenda: el FIFO reanuda la cohorte pausada más vieja y lo que baja trae la edad
+  de lo que se guardó (una convención, no una cota; esconder una prenda en el almacén no la rejuvenece).
+- **DECIDÍ:** la vara del mes **no se guarda: se calcula igual cada vez**, con lo ocurrido hasta las 00:00 (Lima) del día 1 (`inicioDelMesLima`),
+  desde los mismos 120 días que ya lee `fn_frescura_sede`. Así no depende de ningún cron y no hace falta migración. Mientras la vara del mes de una categoría no llegue a 10 ventas con edad conocida (octubre entero y,
+  probablemente, parte de noviembre), se juzga con la curva viva de hoy y la fila lo dice («aún aprendiendo su ritmo»). La vara del mes
+  usa las ventas de los 90 días anteriores al corte (`DIAS_VARA_DEL_MES`; el día 31 empieza en `desde`, un día más tarde) y se arma
+  como la foto de CAYLA (`limpiosEnLaFoto`: lo apartado se lee con lo que se sabía en el corte). La **vara de CAYLA de respaldo sigue
+  diaria**: su tabla solo acepta ventanas de 30/60/90/120 días y no distingue «del mes» de «de hoy» (congelarla pedía migración), y ya
+  junta tres tiendas, así que el deterioro de UNA tienda se ve contra ella; solo un deterioro de las tres a la vez se esconde, en las
+  categorías de pocas ventas. **DESCARTÉ:** una tabla con la vara de cada mes (una migración más para algo que sale del libro) y
+  congelar desde ya con 10 días de historia (todo diría «Aún no se sabe» hasta noviembre). **SE ROMPE SI:** la ventana de 120 días se
+  acorta: entonces se guarda la foto del día 1.
 - **DECIDÍ:** el % de la tienda tiene **dos puertas**, las mismas del motor de demanda y Análisis (`preparacionDeSede`), para que el ERP
   diga lo mismo en todas partes: la barra se dibuja siempre que haya piso, con «Sin fecha» a la vista y fuera de ningún denominador
   escondido (se retira `pctNuevas`, que dividía solo por lo que tenía estado y podía decir «100 %» con 3 de 67 unidades); la frase

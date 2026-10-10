@@ -73,8 +73,23 @@ export const MARCA_EDAD_DESCONOCIDA = 4;
  *  distinto (antes estaba subcontado), así que la medida de «Ya decidí» se corta ahí (`frescura-decisiones-reglas.ts`). */
 export const MARCA_CUADRE = 8;
 
+/**
+ * Los días de ventas con que se arma la vara del mes (ADR-0208, act. 2026-10-10 (b), decisión 2 de Felipe: «el día 1 se
+ * recalcula con las ventas de los últimos 3 meses y queda fija todo el mes»). Cabe en la lectura de 120 días hasta el día 30
+ * del mes; el 31 empieza un día más tarde (en `desde`), sin otra consecuencia.
+ */
+export const DIAS_VARA_DEL_MES = 90;
+
 const MS_POR_DIA = 86_400_000;
 const EPS = 1e-9;
+// Lima no cambia de hora en el año: UTC−5 fijo (el mismo supuesto de `actividad-reglas.ts`).
+const LIMA_MS = 5 * 60 * 60 * 1000;
+
+/** Las 00:00 de Lima del día 1 del mes de `ahora`, en UTC: el corte de la vara del mes. */
+export function inicioDelMesLima(ahora: string): string {
+  const lima = new Date(Date.parse(ahora) - LIMA_MS);
+  return new Date(Date.UTC(lima.getUTCFullYear(), lima.getUTCMonth(), 1) + LIMA_MS).toISOString();
+}
 /**
  * Tolerancia (en segundos) al comparar el reloj de una prenda con un corte o con `tMax`. Los dos lados salen de sumas
  * distintas de las mismas horas (el reloj por tramos, la exposición de una unidad de una sola resta, o por tramos si
@@ -932,6 +947,74 @@ export function relojNovedad(p: EntradaReloj, linea: LineaDelPiso = tramosColgad
   return { segundos, alMenos: desconocida };
 }
 
+/** Una tanda de unidades colgadas HOY de una talla, con los segundos que lleva colgada cada una. */
+export type UnidadColgada = { segundos: number; unidades: number; edadDesconocida: boolean };
+
+/**
+ * Las unidades de una talla que están colgadas AHORA, cada tanda con los segundos que lleva en el piso: el FIFO de
+ * `historiaDeCohortes` (ADR-0248), que no corre mientras la unidad está en el almacén o apartada y nunca se reinicia. Es
+ * el reloj de la UNIDAD (ADR-0208, act. 2026-10-10 (b)): «un polo que lleva 8 días colgado». Lo que se guardó en el almacén
+ * no está colgado y no sale; lo que entró sin fecha (carga inicial, ajuste, saldo de la ventana) sale con
+ * `edadDesconocida`: su reloj es un piso, «al menos».
+ * Límite de la convención del FIFO: retirar una prenda y volver a colgarla reanuda la cohorte pausada MÁS VIEJA, así que
+ * lo que baja trae la edad de lo que se guardó antes. Esconder una prenda en el almacén no la rejuvenece.
+ */
+export function colgadasDe(eventos: readonly EventoPiso[], ahora: string): UnidadColgada[] {
+  const ahoraMs = ms(ahora);
+  const colgadas: UnidadColgada[] = [];
+  for (const c of historiaDeCohortes(eventos).cohortes) {
+    if (c.cantidadRestante <= 0 || c.abiertaDesde === null) continue;
+    colgadas.push({
+      segundos: c.segundosAcumulados + Math.max(0, ahoraMs - ms(c.abiertaDesde)) / 1000,
+      unidades: c.cantidadRestante,
+      edadDesconocida: c.edadDesconocida,
+    });
+  }
+  return colgadas;
+}
+
+/**
+ * El reloj de la unidad más vieja colgada de una prenda (todas sus tallas): lo que dice si «se está quedando». `alMenos`
+ * si alguna unidad colgada entró sin fecha: la más vieja podría ser ella, y llevar más de lo que se ve. Sin nada colgado,
+ * 0 segundos.
+ */
+export function relojDeLaUnidad(colgadas: readonly UnidadColgada[]): RelojNovedad {
+  let segundos = 0;
+  let alMenos = false;
+  for (const u of colgadas) {
+    if (u.unidades <= 0) continue;
+    if (u.segundos > segundos) segundos = u.segundos;
+    if (u.edadDesconocida) alMenos = true;
+  }
+  return { segundos, alMenos };
+}
+
+/**
+ * El tramo con los DOS relojes (ADR-0208, act. 2026-10-10 (b)), contra los cortes de su categoría:
+ *   · Fresca («nueva») lo dice el reloj del MODELO+COLOR: todavía no llegó a P50, el día en que su categoría vendió la mitad.
+ *     Es novedad para el cliente que vuelve: reponer o volver de agotada no la hace fresca otra vez (ADR-0208, decisión 9).
+ *   · Pasado P50, lo dice la unidad más vieja colgada: Vigente antes de P75, «envejecida» antes de P90, «crítica» después.
+ *     La curva de la categoría es de UNIDADES (cuánto tarda cada una en venderse), así que se compara con una unidad: con el
+ *     reloj del modelo, que nunca se reinicia, un modelo de 6 unidades que se repone de a una llegaba a «Hay que moverla»
+ *     el 97 % de las veces vendiéndose al ritmo de su categoría (simulado, 2026-10-10).
+ * Siempre `unidad ≤ modelo` (una unidad no puede llevar colgada más que su modelo), así que los tramos no se pisan. Lo que
+ * falta de la curva se trata como en `tramoDe`: un corte que no alcanza queda después de `tMax`, y pasado eso el tramo es un
+ * piso («al menos»). Con `unidad === modelo` es exactamente `tramoDe`.
+ */
+export function tramoDosRelojes(modelo: number, unidad: number, c: Cortes, tMax: number): TramoUbicado | null {
+  if (c.p50 === null) return null;
+  if (modelo < c.p50 - TOL_SEGUNDOS) return { tramo: "nueva", alMenos: false };
+  const pasos: [Tramo, number | null][] = [
+    ["vigente", c.p75],
+    ["envejecida", c.p90],
+  ];
+  for (const [tramo, corte] of pasos) {
+    if (corte === null) return { tramo, alMenos: unidad > tMax + TOL_SEGUNDOS };
+    if (unidad < corte - TOL_SEGUNDOS) return { tramo, alMenos: false };
+  }
+  return { tramo: "critica", alMenos: false };
+}
+
 /** Su categoría SIN una prenda: contra qué se ubica su tramo y se mide su rapidez (revisión 3; D5, 2026-09-27). */
 export type MedidaContraElResto = {
   cortes: Cortes;
@@ -1228,7 +1311,11 @@ export type EntradaEstado = {
   /** Contra qué se ubica: el nivel de la vara de su categoría (cuántas ventas la forman) y los cortes y la observación
    *  más larga de su categoría SIN ella (`contraElResto`, D5). */
   vara: Pick<Vara, "cortes" | "nivel"> & { curva: Pick<Curva, "tMax"> };
+  /** El reloj del modelo+color: dice si todavía es Fresca (`tramoDosRelojes`). */
   reloj: RelojNovedad;
+  /** El reloj de su unidad más vieja colgada (`relojDeLaUnidad`): dice, pasada la mitad, si se está quedando. Sin él, la
+   *  unidad más vieja lleva lo mismo que su modelo (una sola tanda colgada desde el principio, sin reponer). */
+  relojUnidad?: RelojNovedad;
   rapidez: Rapidez | null;
   pisoHoy: number;
   almacenHoy: number;
@@ -1263,12 +1350,14 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
   else if (e.esClasico) base = { tipo: "clasico", fueraDeSuEstacion: e.enEstacionAhora === false };
   else if (e.vara.nivel === null) base = { tipo: "sin_ventas_sede" };
   else {
-    const t = tramoDe(e.reloj.segundos, e.vara.cortes, e.vara.curva.tMax);
+    const unidad = e.relojUnidad ?? e.reloj;
+    const t = tramoDosRelojes(e.reloj.segundos, unidad.segundos, e.vara.cortes, e.vara.curva.tMax);
     if (t === null) base = { tipo: "sin_vara" };
     else if (t.tramo === "nueva" && e.reloj.alMenos) base = { tipo: "sin_edad_conocida" };
     else {
-      // El tramo es un piso si el reloj lo es, o si la curva no llega hasta su reloj.
-      base = { tipo: "semaforo", tramo: t.tramo, alMenos: e.reloj.alMenos || t.alMenos };
+      // Fresca es exacta (su modelo no llega a P50). Pasada la mitad, el tramo es un piso si el reloj que lo decide —el de la
+      // unidad— lo es, o si la curva no llega hasta él.
+      base = { tipo: "semaforo", tramo: t.tramo, alMenos: t.tramo !== "nueva" && (unidad.alMenos || t.alMenos) };
       tramo = t.tramo;
     }
   }
@@ -1313,10 +1402,18 @@ export type VaraCategoria = {
   /** La vara de CAYLA de esta categoría (ADR-0208, act. 2026-10-07), si el cron la calculó y sigue vigente; `enUso` cuando
    *  las prendas de la categoría se juzgaron contra ella (la tienda no llega a `VENTAS_PARA_JUZGAR_SOLA`). */
   respaldo: RespaldoCategoria | null;
+  /** La vara del mes (ADR-0208, act. 2026-10-10 (b)): la curva de la categoría en la tienda con lo ocurrido hasta el día 1,
+   *  congelada todo el mes; `enUso` cuando llega a `VENTAS_PARA_JUZGAR_SOLA` ventas y sus prendas se juzgaron contra ella. La
+   *  vara de arriba (`cortes`, `ventanaDias`…) sigue siendo la de HOY: las dos juntas dicen si la categoría se puso más lenta.
+   *  Null cuando quien analizó no pidió la vara del mes (el cron de CAYLA). */
+  delMes: VaraDelMesCategoria | null;
 };
 
 /** La vara de CAYLA de una categoría, para la pantalla: la misma forma que la de la tienda, más cuándo se calculó y si decidió. */
-export type RespaldoCategoria = Omit<VaraCategoria, "respaldo"> & { calculadaEn: string; enUso: boolean };
+export type RespaldoCategoria = Omit<VaraCategoria, "respaldo" | "delMes"> & { calculadaEn: string; enUso: boolean };
+
+/** La vara del mes de una categoría, para la pantalla: la misma forma que la de hoy, más su corte y si decidió. */
+export type VaraDelMesCategoria = Omit<VaraCategoria, "respaldo" | "delMes"> & { corte: string; enUso: boolean };
 
 /**
  * Ventas con edad conocida que necesita una categoría EN LA TIENDA para juzgar sus prendas sola (ADR-0208, actualización
@@ -1351,7 +1448,10 @@ export type FrescuraPrenda = {
   /** De lo apartado, lo del PISO (paso 4): «apartada» solo si hay algo aquí; si todo lo apartado está en el almacén, la
    *  prenda está guardada. */
   apartadasPisoHoy: number;
+  /** El reloj del modelo+color en la sede: la novedad (si todavía es Fresca). */
   reloj: RelojNovedad;
+  /** El reloj de su unidad más vieja colgada hoy: si se está quedando (ADR-0208, act. 2026-10-10 (b)). Sin nada colgado, 0. */
+  relojUnidad: RelojNovedad;
   primeraExhibicion: string | null;
   /** La última llegada de cualquiera de sus tallas a ESTA sede (incluye la recepción de un traslado). */
   ultimaLlegada: string | null;
@@ -1378,6 +1478,9 @@ export type FrescuraPrenda = {
   /** Contra qué se juzgó (ADR-0208, act. 2026-10-07): su categoría en la tienda, o la de CAYLA cuando la tienda no llega a
    *  `VENTAS_PARA_JUZGAR_SOLA` ventas y CAYLA sí. `categoriaSinElla` es la curva que de verdad la juzgó. */
   juzgadaContra: "sede" | "cayla";
+  /** Se juzgó contra la vara del mes de su categoría (congelada el día 1). Falso: la del mes todavía no llega a
+   *  `VENTAS_PARA_JUZGAR_SOLA` ventas y se juzgó con la de hoy («aún aprendiendo su ritmo»), o es clásica o no cuadra. */
+  varaDelMes: boolean;
   estado: EstadoFrescura;
   /**
    * «Por decidir» (paso 4b): quieta Y sin decisión vigente. ES EL ÚNICO LUGAR que lo dice: la cifra, el filete, el filtro y
@@ -1423,7 +1526,7 @@ const SIN_CATEGORIA = "";
 const NOMBRE_SIN_CATEGORIA = "Sin categoría";
 
 /** La vara, lista para la pantalla, SIN su respaldo: quien llama lo pone (la sede lo sabe; la referencia de CAYLA no tiene). */
-function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): Omit<VaraCategoria, "respaldo"> {
+function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): Omit<VaraCategoria, "respaldo" | "delMes"> {
   return {
     categoriaId,
     categoriaNombre,
@@ -1459,8 +1562,16 @@ type UnidadesDeTalla = { enVentana: (dias: number) => UnidadesTalla; todas: () =
  * La sede entera: eventos sin tardías → unidades por ventana → vara de cada categoría (sin clásicos ni dudosas) → reloj,
  * tramo y rapidez de cada prenda contra su categoría SIN ella → estado. `observaciones` sirve para la referencia de
  * CAYLA (`referenciaCayla`).
+ * `opciones.corteDelMes` (ADR-0208, act. 2026-10-10 (b)): el instante de la vara del mes (`inicioDelMesLima`). Con él, cada
+ * categoría se juzga contra su curva con lo ocurrido hasta ese instante (los `DIAS_VARA_DEL_MES` anteriores), congelada todo
+ * el mes, cuando esa curva llega a `VENTAS_PARA_JUZGAR_SOLA` ventas; si no, como sin él. Sin él, la vara es la de hoy: así lo
+ * pide el cron de CAYLA, que guarda las unidades de hoy.
  */
-export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
+export function analizarSede(
+  l: LecturaFrescuraConPiso,
+  respaldo?: RespaldoCayla,
+  opciones: { corteDelMes?: string } = {},
+): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
   const tardiasPorOid = new Map<string, number>();
   for (const t of l.tardias) tardiasPorOid.set(t.oid, (tardiasPorOid.get(t.oid) ?? 0) + t.unidadesTardias);
   const dudosas = new Set(l.dudosas);
@@ -1510,6 +1621,25 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       ),
       tardiasPorOid,
     );
+  // Las unidades de cada talla en la vara del mes: los eventos COMO ESTABAN en el corte (`limpiosEnLaFoto`, el mismo cuidado
+  // que la foto de CAYLA: lo apartado de entonces se lee con lo que se sabía entonces), en los `DIAS_VARA_DEL_MES` anteriores.
+  // Un corte que no cae dentro de la lectura no arma vara del mes.
+  const corteDelMes = opciones.corteDelMes ?? null;
+  const corteMs = corteDelMes !== null ? ms(corteDelMes) : NaN;
+  const unidadesDelMes = new Map<string, () => readonly Observacion[]>();
+  if (corteDelMes !== null && corteMs > desdeMs && corteMs <= ahoraMs) {
+    const inicioMs = corteMs - DIAS_VARA_DEL_MES * MS_POR_DIA;
+    for (const id of limpiosPorVariante.keys()) {
+      unidadesDelMes.set(
+        id,
+        unaVez(() => {
+          const hastaElCorte = limpiosEnLaFoto(id, corteMs);
+          const eventos = inicioMs <= desdeMs ? hastaElCorte : recortarEventos(hastaElCorte, new Date(inicioMs).toISOString());
+          return unidadesParaVara(eventos, corteDelMes).observaciones;
+        }),
+      );
+    }
+  }
   const observaciones: ObservacionesSede = {};
   for (const [cat, { nombre, ids }] of tallasDeCategoria) {
     if (ids.length === 0) continue;
@@ -1519,12 +1649,17 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
   // La vara de cada categoría que tiene prendas en la sede (aunque no tenga unidades con edad conocida), y si sus prendas se
   // juzgan contra ella o contra la de CAYLA (ADR-0208, act. 2026-10-07): con menos de `VENTAS_PARA_JUZGAR_SOLA` ventas aquí y
   // esa cifra o más en CAYLA, CAYLA. Lo sin categoría no tiene respaldo: no se sabe contra qué.
-  const varas = new Map<string, { nombre: string; vara: Vara; respaldo: VaraRespaldo | null; usaRespaldo: boolean }>();
-  for (const [cat, { nombre }] of tallasDeCategoria) {
+  // Y antes que las dos, la vara del mes (act. 2026-10-10 (b)): si llega a `VENTAS_PARA_JUZGAR_SOLA` ventas, juzga ella. Una
+  // vara que se recalcula con lo mismo que mide se ajusta sola —con venta exponencial, el piso de una tienda en equilibrio sale
+  // siempre 50/25/15/10 se haga bien o mal—; congelada, la tienda que se pone lenta se ve más vieja.
+  const varas = new Map<string, { nombre: string; vara: Vara; respaldo: VaraRespaldo | null; usaRespaldo: boolean; mes: Vara | null; usaMes: boolean }>();
+  for (const [cat, { nombre, ids }] of tallasDeCategoria) {
     const vara = varaPorVentanas(observaciones[cat]?.unidadesEn ?? (() => []));
+    const mes = unidadesDelMes.size > 0 ? construirVara(ids.flatMap((id) => unidadesDelMes.get(id)?.() ?? []), DIAS_VARA_DEL_MES) : null;
+    const usaMes = mes !== null && mes.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
     const r = cat === SIN_CATEGORIA ? null : (respaldo?.get(cat) ?? null);
-    const usaRespaldo = r !== null && vara.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS && r.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
-    varas.set(cat, { nombre, vara, respaldo: r, usaRespaldo });
+    const usaRespaldo = !usaMes && r !== null && vara.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS && r.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
+    varas.set(cat, { nombre, vara, respaldo: r, usaRespaldo, mes, usaMes });
   }
 
   // Las tallas, juntas por prenda (modelo+color).
@@ -1540,7 +1675,7 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
   for (const [clave, tallas] of porPrenda) {
     const f = tallas[0];
     const cat = f.categoriaId ?? SIN_CATEGORIA;
-    const { nombre: categoriaNombre, vara, respaldo: varaCayla, usaRespaldo } = varas.get(cat)!;
+    const { nombre: categoriaNombre, vara, respaldo: varaCayla, usaRespaldo, mes: varaMes, usaMes } = varas.get(cat)!;
     const esClasico = tallas.some((t) => t.esClasico);
     const dudosa = tallas.some((t) => dudosas.has(t.varianteId));
     const temporada = tallas.find((t) => t.temporada !== null)?.temporada ?? null;
@@ -1590,8 +1725,22 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
     // Con la vara de toda la lectura, lo que se resta y lo que se mide es lo mismo (y se ordena una vez).
     const propiasObs = enLaVara.every((u, k) => u === suyas[k]) ? suyasObs : enLaVara.flatMap((u) => u.observaciones);
     const juzgadaContra: FrescuraPrenda["juzgadaContra"] = usaRespaldo && medibles.length > 0 ? "cayla" : "sede";
+    const varaDelMes = usaMes && varaMes !== null && medibles.length > 0;
+    // El reloj de su unidad más vieja colgada: el FIFO de los eventos ya limpios (los mismos de la vara). La clásica y la que no
+    // cuadra no tienen eventos limpios: no se juzgan, su reloj de unidad queda en 0.
+    const relojUnidad = relojDeLaUnidad(
+      tallas.flatMap((t) => {
+        const eventos = limpiosPorVariante.get(t.varianteId);
+        return eventos ? colgadasDe(eventos, l.ahora) : [];
+      }),
+    );
     let resto: MedidaContraElResto | null = null;
-    if (medibles.length > 0 && juzgadaContra === "cayla" && varaCayla !== null) {
+    if (varaDelMes) {
+      // Contra la vara del mes, sus propias unidades se restan como estaban EN EL CORTE (las mismas con que entran a esa curva);
+      // lo que se MIDE (`suyasObs`) es lo de hoy, como contra CAYLA.
+      const propiasDelMes = tallas.flatMap((t) => unidadesDelMes.get(t.varianteId)?.() ?? []);
+      resto = contraElResto(varaMes.curva, propiasDelMes, suyasObs);
+    } else if (medibles.length > 0 && juzgadaContra === "cayla" && varaCayla !== null) {
       // Contra CAYLA, sus propias unidades se restan COMO LAS VIO EL CRON (D5, «sin ella»): los mismos eventos hasta
       // `calculadaEn` —el libro y los apartados de entonces, `limpiosEnLaFoto`—, la misma ventana y el mismo FIFO. La curva de
       // CAYLA es una foto de la madrugada; restarle lo que la prenda tiene HOY le quitaría unidades con una edad que la foto no
@@ -1629,8 +1778,16 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       enEstacionAhora,
       ahora: l.ahora,
       // El nivel es el de la vara que juzga: el de CAYLA cuando es CAYLA (de ahí sale si «Trasladar» puede sugerirse).
-      vara: resto === null ? vara : { nivel: juzgadaContra === "cayla" && varaCayla ? varaCayla.nivel : vara.nivel, cortes: resto.cortes, curva: { tMax: resto.tMax } },
+      vara:
+        resto === null
+          ? vara
+          : {
+              nivel: varaDelMes ? varaMes.nivel : juzgadaContra === "cayla" && varaCayla ? varaCayla.nivel : vara.nivel,
+              cortes: resto.cortes,
+              curva: { tMax: resto.tMax },
+            },
       reloj,
+      relojUnidad,
       rapidez: r,
       pisoHoy,
       almacenHoy,
@@ -1658,6 +1815,7 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       apartadasHoy,
       apartadasPisoHoy,
       reloj,
+      relojUnidad,
       primeraExhibicion: primeras[0] ?? null,
       ultimaLlegada: llegadas[llegadas.length - 1] ?? null,
       ultimaLlegadaCayla: llegadasCayla[llegadasCayla.length - 1] ?? null,
@@ -1669,6 +1827,7 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       ventasRecientes,
       categoriaSinElla: resto === null ? null : { cortes: resto.cortes, tMax: resto.tMax, vendidas: resto.vendidas },
       juzgadaContra,
+      varaDelMes,
       estado,
       porDecidir: estado.quieta,
       decision: null,
@@ -1679,9 +1838,11 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
   // El respaldo está EN USO solo si alguna prenda de la categoría se juzgó contra CAYLA: una categoría de puros clásicos (o de
   // prendas que no cuadran) no se juzga contra nada, y el tablero no debe decir «Contra CAYLA» (revisión adversaria, 2026-10-08).
   const juzgadasContraCayla = new Set(prendas.filter((p) => p.juzgadaContra === "cayla").map((p) => p.categoriaId));
+  const juzgadasContraElMes = new Set(prendas.filter((p) => p.varaDelMes).map((p) => p.categoriaId));
   const categorias = [...varas.entries()]
-    .map(([id, { nombre, vara, respaldo: r }]) => ({
+    .map(([id, { nombre, vara, respaldo: r, mes }]) => ({
       ...aVaraCategoria(id, nombre, vara),
+      delMes: mes === null || corteDelMes === null ? null : { ...aVaraCategoria(id, nombre, mes), corte: corteDelMes, enUso: juzgadasContraElMes.has(id) },
       respaldo:
         r === null
           ? null
@@ -1765,7 +1926,7 @@ export function referenciaCayla(sedes: readonly ObservacionesSede[]): VaraCatego
   const nombres = new Map<string, string>();
   for (const sede of sedes) for (const [cat, grupo] of Object.entries(sede)) if (!nombres.has(cat)) nombres.set(cat, grupo.nombre);
   return [...nombres]
-    .map(([cat, nombre]) => ({ ...aVaraCategoria(cat, nombre, varaPorVentanas((d) => sedes.flatMap((sede) => sede[cat]?.unidadesEn(d) ?? []))), respaldo: null }))
+    .map(([cat, nombre]) => ({ ...aVaraCategoria(cat, nombre, varaPorVentanas((d) => sedes.flatMap((sede) => sede[cat]?.unidadesEn(d) ?? []))), respaldo: null, delMes: null }))
     .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es"));
 }
 
@@ -1856,7 +2017,8 @@ async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre:
       return fallo(avisoFrescura(que, null));
     }
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
-    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo);
+    // La pantalla juzga contra la vara del mes (act. 2026-10-10 (b)); el cron de CAYLA, que guarda las unidades de hoy, no.
+    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora) });
     const decisiones = await enCurso;
     const cuadres = lectura.cuadres ?? [];
     sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora, cuadres);

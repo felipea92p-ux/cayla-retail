@@ -1100,9 +1100,13 @@ describe("analizarSede: casos de la revisión 4 (con las historias que el reviso
     expect(sede.categorias[0]).toMatchObject({ nivel: "solido", cortes: { p50: 30 * D, p75: 50 * D, p90: 50 * D } });
     const k = sede.prendas.find((p) => p.productoId === "K")!;
     const u = sede.prendas.find((p) => p.productoId === "U")!;
-    expect(k.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: false, quieta: false, sugerencias: [] });
+    // Sus modelos llevan 60 días (pasaron P50: ya no son Frescos), pero lo colgado hoy son las 4 de la reposición del día 95: 25
+    // días, antes de P75 (50). Con los dos relojes (ADR-0208, act. 2026-10-10 (b)) son Vigentes; con el del modelo salían Críticos.
+    // U ya no pide «revisa sus ventas»: lo que cuelga tiene fecha y no lleva ni la mitad de lo que tarda su categoría.
+    expect(k.relojUnidad).toEqual({ segundos: 25 * D, alMenos: false });
+    expect(k.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: false, quieta: false, sugerencias: [] });
     expect(k.rapidez?.indice).toBeGreaterThanOrEqual(100); // un pilar
-    expect(u.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
+    expect(u.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: false, quieta: false, sugerencias: [] });
     expect(u.rapidez).toBeNull();
   });
 
@@ -1491,7 +1495,10 @@ describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas c
     // Sus últimos 30 días en el piso: el de ayer y los días 56 a 85 (30 ventas).
     expect(p.ventasRecientes).toBe(30);
     expect(p.rapidez?.indice).toBeGreaterThanOrEqual(100);
-    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: [] });
+    // Lo colgado es lo de ayer: Vigente, no Crítica (los dos relojes, ADR-0208, act. 2026-10-10 (b)). Su modelo, con 61 días, ya
+    // no es Fresco.
+    expect(p.relojUnidad).toEqual({ segundos: 1 * D, alMenos: false });
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", quieta: false, sugerencias: [] });
     expect(agotado(ts(100)).estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["sigue_vendiendo"] });
   });
 

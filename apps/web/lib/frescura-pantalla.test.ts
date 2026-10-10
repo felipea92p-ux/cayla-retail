@@ -77,6 +77,7 @@ function vara(categoriaId: string, p: Partial<VaraCategoria> = {}): VaraCategori
   return {
     categoriaId,
     respaldo: null,
+    delMes: null,
     categoriaNombre: "Blusas",
     ventanaDias: 60,
     cortes: { p50: 18 * DIA, p75: 34 * DIA, p90: 52 * DIA },
@@ -143,6 +144,7 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     apartadasHoy: 0,
     apartadasPisoHoy: 0,
     reloj: { segundos: 61 * DIA, alMenos: false },
+    relojUnidad: { segundos: 61 * DIA, alMenos: false },
     primeraExhibicion: "2026-07-29T15:00:00.000Z",
     ultimaLlegada: "2026-07-24T15:00:00.000Z",
     ultimaLlegadaCayla: "2026-07-24T15:00:00.000Z",
@@ -154,6 +156,7 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     ventasRecientes: 0,
     categoriaSinElla: { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 36 },
     juzgadaContra: "sede",
+    varaDelMes: false,
     estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias: ["cambiar_lugar", "trasladar"] },
     // Quieta y sin nada anotado: «Por decidir» (paso 4b: el campo lo decide `aplicarDecisiones`).
     porDecidir: true,
