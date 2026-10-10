@@ -21,7 +21,7 @@ import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion"
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
-import { costoUnitario, semaforoMargen, type Semaforo } from "@/lib/produccion-reglas";
+import { costoUnitario, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
@@ -77,9 +77,9 @@ const MODOS = [
 ] as const;
 
 const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"; texto: string }> = {
-  gana: { tono: "verde", texto: "Gana" },
-  filo: { tono: "ambar", texto: "Al filo" },
-  pierde: { tono: "rojo", texto: "Pierde" },
+  gana: { tono: "verde", texto: TEXTO_SEMAFORO.gana },
+  filo: { tono: "ambar", texto: TEXTO_SEMAFORO.filo },
+  pierde: { tono: "rojo", texto: TEXTO_SEMAFORO.pierde },
 };
 
 function soles(n: number) {
@@ -706,7 +706,7 @@ export function NuevaOrdenProduccionForm({
               title={guia.frase ?? responsable.motivo ?? undefined}
               className={`${botonPrimario} ${guia.claseConfirmar}`}
             >
-              {cargando ? "Abriendo…" : esNuevo ? "Crear modelo y abrir orden" : "Abrir orden"}
+              {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
             </button>
           </div>
         </div>

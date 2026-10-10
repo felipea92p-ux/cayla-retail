@@ -527,6 +527,15 @@ describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado 
   });
 });
 
+describe("el botón principal de Nueva orden cabe a 375 px", () => {
+  it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
+    const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
+    const etiquetas = [...fuente.matchAll(/cargando \? "Abriendo…" : esNuevo \? "([^"]+)" : "([^"]+)"/g)];
+    expect(etiquetas.length).toBe(1);
+    for (const e of [etiquetas[0][1], etiquetas[0][2]]) expect(e.length, e).toBeLessThanOrEqual(20);
+  });
+});
+
 describe("el formulario de Nueva orden", () => {
   it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden)", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
