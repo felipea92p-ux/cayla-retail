@@ -375,7 +375,7 @@ ESCENARIOS.push(
     },
   },
   {
-    // La ficha del color que se mira, abierta (ADR-0316; Felipe 2026-10-10): «Combínalo con» y la frase tras «¿Por qué?».
+    // La ficha del color que se mira, abierta (ADR-0316; Felipe 2026-10-10): «Combina bien con» y la frase tras «¿Por qué?».
     id: "vender.ver-opciones-porque",
     ruta: "/vender",
     cuentas: VENDEDORAS,
@@ -624,7 +624,7 @@ const nuevoHasta = (paso) => async (pagina) => {
 ESCENARIOS.push(
   { id: "productos.vista-rapida", ruta: "/productos", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Productos · la vista rápida de una prenda", async preparar(pagina) { await pagina.locator(".card-cayla button").first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
   {
-    // La ficha del color de la foto, abierta (ADR-0316; Felipe 2026-10-10): «Combínalo con» bajo la foto y la frase tras «¿Por qué?».
+    // La ficha del color de la foto, abierta (ADR-0316; Felipe 2026-10-10): «Combina bien con» bajo la foto y la frase tras «¿Por qué?».
     id: "productos.vista-rapida-porque",
     ruta: "/productos",
     cuentas: CATALOGO,
@@ -691,7 +691,7 @@ ESCENARIOS.push(
   { id: "nuevo.como-es", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 2: cómo es (marca, nombre, tejido, patrón)", preparar: nuevoHasta("como-es") },
   { id: "nuevo.tallas", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 3: tallas y colores", preparar: nuevoHasta("tallas") },
   {
-    // El pie de la carta con un color señalado (ADR-0316; Felipe 2026-10-10): su nombre, Pantone y, debajo, «Combínalo con» con los
+    // El pie de la carta con un color señalado (ADR-0316; Felipe 2026-10-10): su nombre, Pantone y, debajo, «Combina bien con» con los
     // círculos de sus compañeros y la primera frase de la ficha. Un escenario sin color señalado auditaría el pie vacío.
     id: "nuevo.tallas-color",
     ruta: "/productos/nuevo",

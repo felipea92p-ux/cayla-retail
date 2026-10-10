@@ -223,7 +223,7 @@ section > .wrap > h2 { font-size: 2.1rem; line-height: 1.1; }
 <section id="alta"><div class="wrap">
   <p class="label">1 · Nuevo producto ▸ Tallas y colores · y, gratis, «Agregar colores» de Editar producto</p>
   <h2>El pie de la carta gana un renglón</h2>
-  <p class="sub">Hoy, al pasar por un círculo, el pie dice «Beige · Tierra · 14-1118 TCX · se confunde con…». La propuesta le suma un segundo renglón, de alto fijo para que la carta no salte: <b>Combínalo con</b> y los compañeros como círculos (pasa el mouse por uno: dice su nombre), más la primera frase de la descripción. En la tablet y el celular no hay mouse: sale al tocar, y el pie se queda pegado abajo mientras se recorre la carta (como ya hace hoy).</p>
+  <p class="sub">Hoy, al pasar por un círculo, el pie dice «Beige · Tierra · 14-1118 TCX · se confunde con…». La propuesta le suma un segundo renglón, de alto fijo para que la carta no salte: <b>Combina bien con</b> y los compañeros como círculos (pasa el mouse por uno: dice su nombre), más la primera frase de la descripción. En la tablet y el celular no hay mouse: sale al tocar, y el pie se queda pegado abajo mientras se recorre la carta (como ya hace hoy).</p>
   <div class="regla">
     <div><b>Cuándo</b>Al pasar el mouse, al tocar o al llegar con el teclado. Al soltar, vuelve a «Pasa el mouse o toca un círculo».</div>
     <div><b>Dónde</b><span class="mono">ElegirColores.tsx</span> › <span class="mono">PieDeLaCarta</span>: de 1 renglón (h-9) a 2 de alto fijo.</div>
@@ -249,7 +249,7 @@ section > .wrap > h2 { font-size: 2.1rem; line-height: 1.1; }
 <!-- ============================ 2 · VENDER ============================ -->
 <section id="vender"><div class="wrap">
   <p class="label">2 · Vender ▸ «Todo de la prenda» (la hoja que se abre al tocar una tarjeta de la grilla)</p>
-  <h2>Bajo el color que se mira: «Combínalo con» y un «¿Por qué?»</h2>
+  <h2>Bajo el color que se mira: «Combina bien con» y un «¿Por qué?»</h2>
   <p class="sub">La hoja ya tiene un bloque con el color, el precio y el stock del color que se está mirando (pasar por una fila lo anticipa, tocarla lo fija). Debajo entra una línea con los compañeros como círculos: <b>primero los que cuelgan en esta sede</b> (con stock real de TRU, leído de producción); uno que no hay aquí se ve apagado y, al pasar, dice «no hay aquí». La frase del color va detrás de <b>¿Por qué?</b>: a un toque, nunca a la vista por defecto. El ticket, la grilla y el botón Cobrar no cambian. La terminal de ventas no ve Productos, así que este es el único lugar del mostrador donde se mira un color.</p>
   <div class="regla">
     <div><b>Cuándo</b>Con el color que se mira: al pasar por una fila de la lista o al fijarla. Sin ficha (un color creado a mano), no se dibuja nada.</div>
@@ -273,7 +273,7 @@ section > .wrap > h2 { font-size: 2.1rem; line-height: 1.1; }
 <section id="catalogo"><div class="wrap">
   <p class="label">3 · Catálogo ▸ Productos ▸ vista rápida</p>
   <h2>Bajo la foto, una línea del color que está en la foto</h2>
-  <p class="sub">La foto ya sigue al color por el que se pasa en la matriz, y un clic lo deja fijo. La línea «Combínalo con» sigue a la foto, con alto fijo para que la hoja no cambie de tamaño bajo el mouse; los círculos marcan qué cuelga en la sede. «Sobre este color» abre la frase. Es del color; la descripción de la prenda, más abajo, sigue siendo de la prenda.</p>
+  <p class="sub">La foto ya sigue al color por el que se pasa en la matriz, y un clic lo deja fijo. La línea «Combina bien con» sigue a la foto, con alto fijo para que la hoja no cambie de tamaño bajo el mouse; los círculos marcan qué cuelga en la sede. «Sobre este color» abre la frase. Es del color; la descripción de la prenda, más abajo, sigue siendo de la prenda.</p>
   <div class="regla">
     <div><b>Cuándo</b>Sigue al color que está en la foto (vista previa al pasar, fijado al hacer clic). Una línea; la frase, a un toque.</div>
     <div><b>Dónde</b><span class="mono">VistaRapidaProducto.tsx</span>, bajo <span class="mono">vr-pie-foto</span>. La página de Productos ya lee el vocabulario de colores.</div>
@@ -422,7 +422,7 @@ function primeraFrase(t) { if (!t) return ""; const i = t.indexOf(". "); return 
 function nombres(lista, sep) { return lista.map(x => x.n).join(sep); }
 /* Unidades en el piso de Tienda TRU por color (select de solo lectura, 2026-10-10): lo que de verdad cuelga. Fuera de la lista = no hay. */
 const STOCK_TRU = {BLA:130,BEI:123,NEG:116,CEL:96,CHO:80,VIN:72,CRU:66,MAR:57,MOK:56,AZC:46,GRA:29,AZD:28,AME:25,NUD:24,AZM:23,CAM:22,TOP:18,ROJ:15,ARN:13,ROS:13,GRI:12,FFF:11,MAC:11,RPA:10,AZI:10,GRP:9,VAI:9,PER:9,GPI:8,PAL:8,PIS:7,AZE:7,HIB:7,VOL:6,AMM:6,CER:6,MOS:6,TUR:6,RTO:5,AZN:5,GRM:4,FRA:3,LAV:3,AZA:3,RCH:3,TER:3,MSA:2,MOA:2,BER:2,MAN:2,AZF:2,TOS:2,VEA:2,VEM:2,IND:2,COB:2,CAQ:1,MOR:1,VJA:1,NAR:1,GLI:1,NQU:1,COR:1,CIR:1,MAL:1,RSA:1,SAV:1,AMB:1,AML:1,LIL:1};
-const ETIQUETA = "Combínalo con";
+const ETIQUETA = "Combina bien con";
 /* La pieza: etiqueta + círculos + el nombre del señalado en un hueco fijo. Con `sede`, los que cuelgan van primero y el nombre dice cuántas. */
 function piezaCombina(vaCon, sede) {
   let lista = vaCon.map(c => ({ c, aqui: sede ? (STOCK_TRU[c.c] ?? 0) : null }));

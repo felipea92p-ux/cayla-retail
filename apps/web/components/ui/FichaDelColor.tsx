@@ -4,7 +4,7 @@ import { useState, type KeyboardEvent } from "react";
 import { bordeDeMuestra, fondoDeMuestra } from "@/lib/colores-familias";
 import type { Companero, FichaDelColor as Ficha } from "@/lib/ficha-del-color";
 
-// La ficha de un color a la vista (ADR-0316; Felipe 2026-10-10): «Combínalo con» y los compañeros como círculos; el nombre del
+// La ficha de un color a la vista (ADR-0316; Felipe 2026-10-10): «Combina bien con» y los compañeros como círculos; el nombre del
 // compañero sale al pasar el mouse o al tocarlo (en la tablet no hay hover), siempre en el mismo lugar y con alto fijo, para
 // que nada salte bajo el mouse (ADR-0185). Es UNA pieza para tres lugares: el pie de la carta de Nuevo producto (`forma="linea"`:
 // un renglón con la primera frase al lado), «Todo de la prenda» de Vender y la vista rápida de Catálogo (`forma="bloque"`: los
@@ -15,7 +15,7 @@ import type { Companero, FichaDelColor as Ficha } from "@/lib/ficha-del-color";
 // mostrador solo sirve sugerir un color que de verdad se puede ofrecer.
 
 /** Cómo se presenta la lista de compañeros. Un solo lugar para cambiarla (Felipe, 2026-10-10: «si hay mejor expresión, búscala»). */
-export const ETIQUETA_COMBINA = "Combínalo con";
+export const ETIQUETA_COMBINA = "Combina bien con";
 
 type Props = {
   ficha: Ficha | null;
