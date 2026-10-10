@@ -15,6 +15,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { MarcaCampo } from "@/components/alta-producto/guia";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
@@ -52,7 +53,10 @@ import { crearOrdenCompra } from "@/lib/ordenes-compra-acciones";
 // La guía de foco (CLAUDE.md «Guía de foco»): cada bloque se enciende cuando es lo que sigue, y «Falta: …» sobre el botón lleva a cada
 // cosa. Sale de `camposDeLaOrden`, que son las reglas de `crear_orden_compra` (la entrega estimada es sugerida: nunca bloquea).
 
-const TITULO = "mb-1.5 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+// La fila de una línea cuando hay lugar (sección de 56 rem o más). La comparten el encabezado y cada fila: marca de la guía y número ·
+// categoría · marca · descripción · cantidad · precio · descuento (caja + «% / S/») · subtotal · quitar.
+const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
 
 type Props = {
   datos: DatosNuevaOrden;
@@ -211,7 +215,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
       )}
 
       <form onSubmit={guardar} noValidate className="space-y-6">
-        <section className="card-cayla grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2" aria-label="Proveedor y destino">
+        {/* Proveedor, destino, entrega y nota: dos por fila y, con lugar (tarjeta de 52 rem o más), los cuatro en una (Felipe, 2026-10-10:
+            «hay mucho espacio, se puede compactar más»). */}
+        <section className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y destino">
+          <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
           <CampoGuiado id="proveedor" guia={guia} titulo="Proveedor" ayuda="uno por orden">
             <ComboBuscable
               id="oc-proveedor"
@@ -256,9 +263,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
               onChange={(e) => setOrden((o) => ({ ...o, nota: e.target.value }))}
             />
           </CampoGuiado>
+          </div>
         </section>
 
-        <section className="card-cayla space-y-4 p-5" aria-label="Lo que pides">
+        <section className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-display text-xl text-tinta">Lo que pides</h2>
             <p className="text-sm tabular-nums text-taupe">
@@ -270,6 +278,24 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
             <CampoGuiado id="lineas" guia={guia}>
               <p className="rounded-xl border border-dashed border-sand p-4 text-sm text-taupe">Agrega al menos una prenda para poder guardar la orden.</p>
             </CampoGuiado>
+          )}
+
+          {/* Con lugar, una FILA por línea (Felipe, 2026-10-10): los títulos van una sola vez, aquí arriba, y no sobre cada caja. Los
+              lectores de pantalla tienen la etiqueta de cada caja, por eso este encabezado se les oculta. */}
+          {orden.lineas.length > 0 && (
+            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-xs text-taupe @min-[56rem]:grid ${FILA_ANCHA}`}>
+              <span />
+              <span>Categoría</span>
+              <span>Marca</span>
+              <span>
+                Descripción <span className="opacity-80">· opcional</span>
+              </span>
+              <span>Cantidad</span>
+              <span>Precio u.</span>
+              <span>Descuento</span>
+              <span className="text-right">Subtotal</span>
+              <span />
+            </div>
           )}
 
           {orden.lineas.map((l, i) => (
@@ -352,48 +378,54 @@ function LineaOrden({
       : l.modoDescuento === "pct"
         ? `= ${soles(c.descuentoCentimos / 100)}`
         : `= ${aTexto(Math.round((c.pctEscalado ?? 0) / 100), 2)} %`;
+  const quitar = (clase: string) => (
+    <button type="button" onClick={onQuitar} className={`btn-cayla btn-sutil h-8 w-8 shrink-0 p-0 ${clase}`} aria-label={`Quitar la línea ${numero}`} title="Quitar esta línea">
+      <X aria-hidden className="h-4 w-4" />
+    </button>
+  );
 
-  // Las columnas siguen el ancho de la TARJETA (`@container`), no el de la ventana: con el menú abierto, una laptop deja la tarjeta en
-  // ~460 px y la fila de cuatro cifras se montaba (el subtotal sobre el descuento). Angosta: cantidad y precio juntos, el descuento y
-  // el subtotal debajo; desde 36 rem de tarjeta, las cuatro en una fila.
+  // Dos caras, según el ancho de la SECCIÓN (`@container` de «Lo que pides»), no de la ventana: con el menú abierto una laptop deja la
+  // sección en ~700 px. Con 56 rem o más, la línea es UNA FILA (Felipe, 2026-10-10: «hay mucho espacio… quizás por fila»): los títulos
+  // van en el encabezado de arriba, la marca de la guía y el número abren la fila, y la ✕ la cierra. Más angosta (y en el celular), una
+  // tarjeta apretada: «Línea N» con su ✕ arriba, categoría y marca, descripción, cantidad y precio, descuento y el subtotal.
   return (
-    <CampoGuiado id={id} guia={guia} retiene="fila" className="@container rounded-xl border border-sand bg-papel p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-[13px] font-semibold text-tinta">{guia.etiqueta(id, `Línea ${numero}`)}</p>
-        <button type="button" onClick={onQuitar} className="btn-cayla btn-sutil h-8 w-8 p-0" aria-label={`Quitar la línea ${numero}`} title="Quitar esta línea">
-          <X aria-hidden className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="grid gap-x-4 gap-y-3 @md:grid-cols-2">
-        <div>
-          <p className={TITULO}>Categoría</p>
-          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Elige la categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} />
+    <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
+      <div className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
+        <div className="col-span-2 flex items-center justify-between gap-2 @min-[56rem]:col-span-1 @min-[56rem]:justify-start">
+          <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{guia.etiqueta(id, `Línea ${numero}`)}</p>
+          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Línea ${numero}`}>
+            <MarcaCampo estado={guia.estado(id)} />
+            {numero}
+          </span>
+          {quitar("@min-[56rem]:hidden")}
         </div>
-        <div>
-          <p className={TITULO}>Marca</p>
-          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Elige la marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} />
+        <div className="col-span-2 @min-[28rem]:col-span-1">
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Categoría</p>
+          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} />
         </div>
-        <div className="@md:col-span-2">
-          <p className={TITULO}>
+        <div className="col-span-2 @min-[28rem]:col-span-1">
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Marca</p>
+          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} />
+        </div>
+        <div className="col-span-2 @min-[56rem]:col-span-1">
+          <p className={`${TITULO} @min-[56rem]:hidden`}>
             Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
           </p>
           <CampoTexto caja etiqueta={`Descripción de la línea ${numero}`} maxLength={TOPES.descripcion} placeholder={placeholderDescripcion} value={l.descripcion} onChange={(e) => onCambio({ descripcion: e.target.value })} />
         </div>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 @xl:grid-cols-[minmax(0,7rem)_minmax(0,9rem)_minmax(0,1fr)_auto]">
         <div>
-          <p className={TITULO}>Cantidad</p>
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Cantidad</p>
           <CampoTexto caja etiqueta={`Cantidad de la línea ${numero}`} inputMode="numeric" placeholder="0" value={l.cantidad} onChange={(e) => onCambio({ cantidad: e.target.value })} />
         </div>
         <div>
-          <p className={TITULO}>Precio por unidad</p>
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Precio por unidad</p>
           <CampoTexto caja etiqueta={`Precio por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
         </div>
-        <div className="col-span-2 @xl:col-span-1">
-          <p className={TITULO}>
+        <div className="col-span-2 @min-[56rem]:col-span-1">
+          <p className={`${TITULO} @min-[56rem]:hidden`}>
             Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
           </p>
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <CampoTexto
                 caja
@@ -412,12 +444,13 @@ function LineaOrden({
               onCambio={(clave) => onCambio({ modoDescuento: clave as ModoDescuento, descuento: "" })}
             />
           </div>
-          {equivalente && <p className="mt-1 text-xs tabular-nums text-taupe">{equivalente}</p>}
+          {equivalente && <p className="mt-0.5 text-xs tabular-nums text-taupe">{equivalente}</p>}
         </div>
-        <div className="col-span-2 flex items-baseline justify-between gap-3 border-t border-sand pt-2 @xl:col-span-1 @xl:block @xl:border-0 @xl:pt-0 @xl:text-right">
-          <p className={TITULO}>Subtotal</p>
-          <p className="font-display pt-1 text-xl tabular-nums text-tinta">{c.subtotalCentimos == null ? "—" : soles(c.subtotalCentimos / 100)}</p>
+        <div className="col-span-2 flex items-baseline justify-between gap-3 border-t border-sand pt-2 @min-[56rem]:col-span-1 @min-[56rem]:block @min-[56rem]:border-0 @min-[56rem]:pt-0 @min-[56rem]:text-right">
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Subtotal</p>
+          <p className="font-display text-lg tabular-nums text-tinta">{c.subtotalCentimos == null ? "—" : soles(c.subtotalCentimos / 100)}</p>
         </div>
+        <div className="hidden justify-end @min-[56rem]:flex">{quitar("")}</div>
       </div>
     </CampoGuiado>
   );
