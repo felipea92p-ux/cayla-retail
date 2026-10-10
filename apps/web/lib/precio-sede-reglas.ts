@@ -168,6 +168,32 @@ export function insigniaPrecios(lista: readonly PrecioDeTienda[]): { texto: stri
   };
 }
 
+/** Las prendas de un traslado que se venden a OTRO precio en la tienda que recibe que en la que envía: su etiqueta colgada dice el
+ *  precio de origen y hay que cambiarla. `generales` = `variantes.precio`; `origen`/`destino` = los propios de cada tienda. */
+export function prendasConOtroPrecio(
+  varianteIds: readonly string[],
+  generales: ReadonlyMap<string, number>,
+  origen: Readonly<Record<string, number>> | undefined,
+  destino: Readonly<Record<string, number>> | undefined,
+): string[] {
+  return [...new Set(varianteIds)].filter((id) => {
+    const general = generales.get(id);
+    if (general === undefined) return false;
+    return (origen?.[id] ?? general) !== (destino?.[id] ?? general);
+  });
+}
+
+/** El aviso del pase de un traslado con prendas a otro precio en destino. Quien recibe: cambiar la etiqueta; quien envía: que allá la
+ *  cambiarán. `null` sin prendas o para quien no es ninguna de las dos tiendas. */
+export function avisoEtiquetasDeTraslado(n: number, origen: string, destino: string, quien: "origen" | "destino" | "otro"): string | null {
+  if (n <= 0 || quien === "otro") return null;
+  const uno = n === 1;
+  const prendas = uno ? "1 prenda se vende" : `${n} prendas se venden`;
+  return quien === "destino"
+    ? `${prendas} aquí a otro precio que en ${nombreCorto(origen)}: al recibir${uno ? "la" : "las"}, cámbia${uno ? "le" : "les"} la etiqueta.`
+    : `${prendas} a otro precio en ${nombreCorto(destino)}: allá le${uno ? "" : "s"} cambiarán la etiqueta.`;
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;

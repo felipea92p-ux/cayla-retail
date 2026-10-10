@@ -4,6 +4,8 @@ import {
   camposPonerPrecio,
   conPreciosDeSede,
   conPrecioDeLaSede,
+  avisoEtiquetasDeTraslado,
+  prendasConOtroPrecio,
   insigniaPrecios,
   preciosDeTiendaPorProducto,
   etiquetaPrecioDeSede,
@@ -122,5 +124,21 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   });
   it("la insignia cuenta el general más los de tienda y dice cuáles", () => {
     expect(insigniaPrecios([{ sede: "Arequipa", precio: 129.9 }])).toEqual({ texto: "2 precios", detalle: "Otro precio en Arequipa S/ 129.90" });
+  });
+});
+
+describe("traslados: la etiqueta que hay que cambiar", () => {
+  const generales = new Map([["a", 79.9], ["b", 59.9], ["c", 49.9]]);
+  it("cambia la que vale distinto en destino que en origen, en cualquiera de los dos sentidos", () => {
+    expect(prendasConOtroPrecio(["a", "b", "c"], generales, { b: 69.9 }, { a: 89.9, b: 69.9 })).toEqual(["a"]);
+    expect(prendasConOtroPrecio(["a", "b"], generales, { a: 89.9 }, undefined)).toEqual(["a"]);
+    expect(prendasConOtroPrecio(["a"], generales, undefined, undefined)).toEqual([]);
+  });
+  it("le habla a quien recibe y a quien envía; a nadie más", () => {
+    expect(avisoEtiquetasDeTraslado(3, "Tienda Trujillo", "Tienda Arequipa", "origen")).toBe("3 prendas se venden a otro precio en Arequipa: allá les cambiarán la etiqueta.");
+    expect(avisoEtiquetasDeTraslado(1, "Tienda Trujillo", "Tienda Arequipa", "destino")).toBe("1 prenda se vende aquí a otro precio que en Trujillo: al recibirla, cámbiale la etiqueta.");
+    expect(avisoEtiquetasDeTraslado(2, "Tienda Trujillo", "Tienda Arequipa", "destino")).toBe("2 prendas se venden aquí a otro precio que en Trujillo: al recibirlas, cámbiales la etiqueta.");
+    expect(avisoEtiquetasDeTraslado(2, "Tienda Trujillo", "Tienda Arequipa", "otro")).toBeNull();
+    expect(avisoEtiquetasDeTraslado(0, "Tienda Trujillo", "Tienda Arequipa", "destino")).toBeNull();
   });
 });
