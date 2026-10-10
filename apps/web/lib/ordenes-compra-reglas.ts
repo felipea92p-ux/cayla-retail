@@ -6,7 +6,6 @@
 
 import type { TonoChip } from "@/components/ui/Chip";
 import type { MarcaOpcion, ProveedorOpcion, Vinculo } from "./marcas";
-import { nombreCortoSede } from "./stock-por-sede";
 
 export const RPC_LISTA_ORDENES = "fn_ordenes_compra";
 /** Vista previa del número de la próxima orden (no lo gasta). Empieza con `fn_`: lectura, no abre el loader (`espera-reglas.ts`). */
@@ -24,6 +23,24 @@ export function problemaDeMotivo(motivo: string): string | null {
   if (!limpio) return "Escribe por qué se anula la orden.";
   if (limpio.length > MAX_MOTIVO_ANULACION) return `El motivo va hasta ${MAX_MOTIVO_ANULACION} letras.`;
   return null;
+}
+
+/** La base reconoció el mismo id con OTRO pedido: la orden ya se había guardado con lo de antes (`crear_orden_compra`, Formidable
+ *  2026-10-10). La pantalla ofrece ir a corregirla. */
+export const HINT_YA_GUARDADA = "orden_compra_ya_guardada";
+
+/** Qué decir cuando se corta la señal al guardar (Formidable, 2026-10-10). El pedido pudo llegar a la base y perderse solo la
+ *  respuesta: decir «no se guardó nada» invitaba a corregir algo y reintentar creyendo que no existía. El reintento es seguro —la base
+ *  reconoce el mismo pedido y no repite nada—, así que se dice eso, y que se reintente SIN cambiar nada. */
+export function avisoDeCorte(accion: "crear" | "editar" | "anular"): string {
+  switch (accion) {
+    case "crear":
+      return "Se cortó la conexión y no sabemos si la orden llegó a guardarse. Vuelve a pulsar «Guardar orden» sin cambiar nada: si ya se guardó, no se crea otra.";
+    case "editar":
+      return "Se cortó la conexión y no sabemos si tu cambio llegó a guardarse. Vuelve a pulsar «Guardar cambios» sin cambiar nada: si ya se guardó, no se repite.";
+    case "anular":
+      return "Se cortó la conexión y no sabemos si la orden llegó a anularse. Vuelve a pulsar «Anular orden» con el mismo motivo: si ya se anuló, no se repite.";
+  }
 }
 export const RPC_DETALLE_ORDEN = "fn_orden_compra_detalle";
 export const RPC_RESUMEN_ORDENES = "fn_ordenes_compra_resumen";
@@ -76,6 +93,12 @@ export function textoDestino(destinoNombre: string | null): string {
 /** Lo mismo dicho como frase, para cuando no hay columna que lo rotule: «Llega a Tienda Trujillo» o «Por repartir desde Lima». */
 export function fraseDestino(destinoNombre: string | null): string {
   return destinoNombre ? `Llega a ${destinoNombre}` : "Por repartir desde Lima";
+}
+
+/** El valor de un rótulo «Llega a» en la orden abierta y en el papel: «Tienda Trujillo» o «Lima, para repartir» (el lugar, no la
+ *  frase: «Destino: Llega a Tienda Trujillo» lo decía dos veces, Formidable 2026-10-10). */
+export function lugarDeLlegada(destinoNombre: string | null): string {
+  return destinoNombre ?? "Lima, para repartir";
 }
 
 export const ESTADO_ORDEN: Record<EstadoOrdenCompra, { texto: string; tono: TonoChip }> = {
@@ -135,7 +158,7 @@ export const POR_REPARTIR_LISTA = "por_repartir";
 
 /** Lo que dice la URL de la lista. Sin `destino`, la sede donde se trabaja (si es una tienda o un almacén). `cursor` es la página: el
  *  número de la última orden de la página anterior (la paginación del sistema, `PaginacionCursor`, lo pone con ese nombre). */
-export type ParamsLista = { destino?: string; estado?: string; q?: string; cursor?: string };
+export type ParamsLista = { destino?: string; estado?: string; q?: string; cursor?: string; recien?: string };
 
 export type FiltrosLista = {
   /** Lo elegido: `TODAS`, `POR_REPARTIR_LISTA` o el id de una tienda. */
@@ -194,6 +217,23 @@ export function hrefLista(f: FiltrosLista, cambios: Partial<Pick<FiltrosLista, "
   return `/compras/ordenes?${q.toString()}`;
 }
 
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A dónde vuelve la pantalla después de guardar una orden (Formidable, 2026-10-10): a la lista filtrada en el destino de ESA orden
+ *  (`null` = por repartir), con ella marcada. Antes volvía a la sede de quien trabaja, y una orden para otra tienda no se veía: las dos
+ *  pruebas ciegas dudaron si se había guardado. */
+export function hrefOrdenGuardada(destinoId: string | null, id: string): string {
+  const q = new URLSearchParams();
+  q.set("destino", destinoId ?? POR_REPARTIR_LISTA);
+  if (ES_UUID.test(id)) q.set("recien", id);
+  return `/compras/ordenes?${q.toString()}`;
+}
+
+/** La orden recién guardada que la lista marca, si la URL trae una válida. */
+export function recienDe(p: ParamsLista): string | null {
+  return p.recien && ES_UUID.test(p.recien) ? p.recien.toLowerCase() : null;
+}
+
 /** Por destino, lo que resume `fn_ordenes_compra_resumen`. `destinoId` null = por repartir. */
 export type ResumenDestino = { destinoId: string | null; destinoNombre: string | null; generadas: number; montoGeneradas: number; anuladas: number };
 
@@ -228,8 +268,9 @@ export function generadasDe(resumen: readonly ResumenDestino[], destino: string)
 export type PildoraDestino = { valor: string; texto: string; conteo: number | null };
 
 /** Las píldoras de «Llega a», siempre en el mismo orden para todos (así una encargada le puede decir a otra «toca Arequipa»): «Todas las sedes»,
- *  cada tienda o almacén por su nombre corto, y «Por repartir». Una sede que ya no está activa pero tiene órdenes también sale: sin
- *  ella, esas órdenes solo se encontrarían en «Todas». */
+ *  cada tienda o almacén por su nombre COMPLETO, y «Por repartir». «Tienda Lima» y no «Lima»: «Lima» a secas se confundía con lo que
+ *  llega a Lima para repartir (Formidable, 2026-10-10). Una sede que ya no está activa pero tiene órdenes también sale: sin ella, esas
+ *  órdenes solo se encontrarían en «Todas». */
 export function pildorasDeDestino(
   destinos: readonly { id: string; nombre: string }[],
   resumen: readonly ResumenDestino[] | null,
@@ -242,7 +283,7 @@ export function pildorasDeDestino(
     .map((r) => ({ id: r.destinoId, nombre: r.destinoNombre ?? "Sede sin nombre" }));
   return [
     { valor: TODAS, texto: "Todas las sedes", conteo: conteo(TODAS) },
-    ...[...destinos, ...extra].map((d) => ({ valor: d.id, texto: nombreCortoSede(d.nombre), conteo: conteo(d.id) })),
+    ...[...destinos, ...extra].map((d) => ({ valor: d.id, texto: d.nombre, conteo: conteo(d.id) })),
     { valor: POR_REPARTIR_LISTA, texto: "Por repartir", conteo: conteo(POR_REPARTIR_LISTA) },
   ];
 }
@@ -253,9 +294,9 @@ export function vacioDeLista(
   f: FiltrosLista,
   nombreDestino: string | null,
 ): { titulo: string; frase: string; filtros: { texto: string; href: string }[] } {
-  const donde = f.destino === TODAS ? null : f.destino === POR_REPARTIR_LISTA ? "por repartir" : `que llegue a ${nombreCortoSede(nombreDestino ?? "esa sede")}`;
+  const donde = f.destino === TODAS ? null : f.destino === POR_REPARTIR_LISTA ? "por repartir" : `que llegue a ${nombreDestino ?? "esa sede"}`;
   const filtros = [
-    ...(f.destino !== TODAS ? [{ texto: f.destino === POR_REPARTIR_LISTA ? "Por repartir" : nombreCortoSede(nombreDestino ?? "Esa sede"), href: hrefLista(f, { destino: TODAS }) }] : []),
+    ...(f.destino !== TODAS ? [{ texto: f.destino === POR_REPARTIR_LISTA ? "Por repartir" : (nombreDestino ?? "Esa sede"), href: hrefLista(f, { destino: TODAS }) }] : []),
     ...(f.estado ? [{ texto: f.estado === "generada" ? "Generadas" : "Anuladas", href: hrefLista(f, { estado: null }) }] : []),
   ];
   if (f.q) {

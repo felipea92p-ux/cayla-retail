@@ -1,6 +1,6 @@
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { fraseDestino, numeroOrdenCompra, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import { lugarDeLlegada, numeroOrdenCompra, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 
 /** Quién emite la orden, para la cabecera del papel (`configuracion_empresa`). Sin datos, el papel dice solo «CAYLA». */
 export type EmpresaDeLaOrden = { razonSocial: string | null; ruc: string | null; nombreComercial: string | null } | null;
@@ -46,8 +46,9 @@ export function HojaOrdenCompra({ orden: d, empresa }: { orden: DetalleOrden; em
           </dd>
         </div>
         <div>
-          <dt>Destino</dt>
-          <dd>{fraseDestino(d.destino?.nombre ?? null)}</dd>
+          {/* El lugar bajo su rótulo, como en la pantalla: «Destino: Llega a…» lo decía dos veces. */}
+          <dt>Llega a</dt>
+          <dd>{lugarDeLlegada(d.destino?.nombre ?? null)}</dd>
         </div>
         <div>
           <dt>Entrega estimada</dt>

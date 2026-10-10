@@ -19,14 +19,16 @@
  *   C  CANDADOS DEL ESQUEMA: descuento mayor que la línea, porcentaje que no cuadra, cantidad 0, posición repetida, anulada sin
  *      motivo, generada con datos de anulación, entrega antes de la emisión, estado desconocido y número repetido.
  *   CR CREAR: guarda cabecera y líneas (el descuento en % se convierte a soles en la base) con el número que anunciaba la vista
- *      previa; el mismo `p_id` dos veces devuelve la misma orden; cada regla rechaza con su motivo SIN gastar número; firma una persona
+ *      previa; el mismo `p_id` dos veces con el mismo pedido devuelve la misma orden, y con OTRO pedido (la señal se cortó después de
+ *      guardar y se corrigió algo) avisa `orden_compra_ya_guardada` sin cambiar nada; cada regla rechaza con su motivo SIN gastar número; firma una persona
  *      sin combo con `orden_compra_crear` (también sin ser Admin y con el responsable obligatorio encendido), pero una terminal no
  *      puede crearla sin elegir a alguien; sin el módulo, 42501; anon no la ejecuta.
  *   D  VER Y CONTAR (`20261010231500`): el detalle trae cabecera, quién la creó, las líneas con el nombre de categoría y marca, las
  *      unidades y el total; NULL si no existe; el resumen cuenta por destino (cada tienda y «por repartir») las generadas, su monto y
  *      las anuladas; las dos exigen el módulo y anon no las ejecuta.
  *   E  EDITAR (`20261010235000`): cambia cabecera y líneas, sube la versión, archiva lo de antes (con precios) y anota en Actividad
- *      SIN montos; con la versión vieja responde PT409 / version_cambiada sin escribir nada; el mismo pedido repetido (doble clic) no
+ *      SIN montos; con la versión vieja responde PT409 / version_cambiada sin escribir nada, con la frase que dice qué pasó (fue la
+ *      misma persona, otra o se anuló); el mismo pedido repetido (doble clic) no
  *      choca ni sube la versión; sin cambios no escribe; una anulada no se edita; la versión no se fija a mano; lo que no se tocó no
  *      se vuelve a juzgar (proveedor, categoría o marca desactivados, entrega vencida) pero elegir de nuevo algo inactivo sí; las
  *      reglas son las de crear; una persona firma con «orden_compra_editar», una terminal no edita sin elegir a alguien; sin el
@@ -371,15 +373,29 @@ caso(
   "numero anunciado / generada:Tienda Trujillo:3:Llega en fardo:felipe / 1:10x25.50-0.00=255.00 2:4x100.00-40.00(10.00%)=360.00 3:2x30.00-5.50=54.50 / 669.50"
 );
 caso(
-  "CR2 el mismo p_id dos veces (doble clic, reintento) devuelve la misma orden: una sola, con una línea, y un solo número gastado",
+  "CR2 el mismo p_id dos veces con el MISMO pedido (doble clic, reintento) devuelve la misma orden: una sola, con una línea, y un solo número gastado",
   `select gen_random_uuid() as pid \\gset
    select id as a, numero as na from retail.crear_orden_compra(${args({ id: ":'pid'" })}) \\gset
-   select id as b, numero as nb from retail.crear_orden_compra(${args({ id: ":'pid'", ls: lineas({ cantidad: "99" }) })}) \\gset
+   select id as b, numero as nb from retail.crear_orden_compra(${args({ id: ":'pid'", nota: "'  '" })}) \\gset
    select concat_ws(',', ${si(":'a' = :'b' and :'na' = :'nb'", "misma", "otra")},
      (select count(*) from retail.ordenes_compra where id = :'pid'),
      (select string_agg(cantidad::text, '+') from retail.orden_compra_items where orden_compra_id = :'pid'),
      ${si("retail.fn_ordenes_compra_siguiente() = :'na'::int + 1", "un numero", "gasto de mas")});`,
   "misma,1,1,un numero"
+);
+caso(
+  "CR2b el mismo p_id con OTRO pedido (la señal se cortó después de guardar y se corrigió algo): avisa que ya se guardó como OC-… con lo de antes y no cambia nada",
+  `select gen_random_uuid() as pid \\gset
+   select numero as na from retail.crear_orden_compra(${args({ id: ":'pid'" })}) \\gset
+   select ${crea({ id: ":'pid'", ls: lineas({ cantidad: "99" }) })} as cantidad \\gset
+   select ${crea({ id: ":'pid'", destino: "null::uuid" })} as destino \\gset
+   select concat_ws(',', split_part(:'cantidad', '|', 2), split_part(:'destino', '|', 2),
+     ${si(`split_part(:'cantidad', '|', 3) = 'Esta orden ya se guardó como ' || retail.fn_orden_compra_numero_texto(:'na'::int) || ' con lo que tenía antes de tu cambio. Ábrela y corrígela ahí.'`, "dice el numero", "mensaje raro")},
+     (select count(*) from retail.ordenes_compra where id = :'pid'),
+     (select string_agg(cantidad::text, '+') from retail.orden_compra_items where orden_compra_id = :'pid'),
+     (select ${si("ubicacion_destino_id = :'tru'", "trujillo", "cambio")} from retail.ordenes_compra where id = :'pid'),
+     ${si("retail.fn_ordenes_compra_siguiente() = :'na'::int + 1", "un numero", "gasto de mas")});`,
+  "orden_compra_ya_guardada,orden_compra_ya_guardada,dice el numero,1,1,trujillo,un numero"
 );
 caso(
   "CR3 cada regla rechaza con su motivo y SIN gastar número: proveedor, destino (nunca el Taller), entrega, nota, líneas y sus números",
@@ -546,6 +562,27 @@ caso(
      (select nota || ':' || version from retail.ordenes_compra where id = :'oc'),
      (select count(*) from retail.orden_compra_versiones where orden_compra_id = :'oc'));`,
   "2,PT409,version_cambiada,Primera:2,1"
+);
+caso(
+  "E2b el aviso del choque dice la verdad: si el último cambio fue de la misma persona, «tu cambio anterior sí se guardó»; si fue de otra, «otra persona cambió»; si se anuló, «se anuló mientras la editabas»",
+  `${UNA_ORDEN}
+   select ${edita({ nota: "'Primera'" })} as primera \\gset
+   select ${edita({ nota: "'Segunda'" })} as misma \\gset
+   reset role;
+   update retail.ordenes_compra set nota = 'De Micaela', actualizada_por = :'micaela_p' where id = :'oc';
+   ${como(FELIPE)}
+   select ${edita({ version: "2", nota: "'Tercera'" })} as otra \\gset
+   reset role;
+   update retail.ordenes_compra set estado = 'anulada', anulada_por = :'felipe_p', anulada_en = now(), motivo_anulacion = 'Prueba'
+    where id = :'oc';
+   ${como(FELIPE)}
+   select ${edita({ version: "3", nota: "'Cuarta'" })} as anulada \\gset
+   select concat_ws(' / ', split_part(:'misma', '|', 1) || ':' || split_part(:'misma', '|', 3),
+     split_part(:'otra', '|', 1) || ':' || split_part(:'otra', '|', 3),
+     split_part(:'anulada', '|', 1) || ':' || split_part(:'anulada', '|', 3));`,
+  "PT409:Tu cambio anterior sí se guardó, pero esta pantalla todavía no lo muestra. Recarga para ver cómo quedó. / " +
+    "PT409:Otra persona cambió esta orden mientras la editabas. Recarga para ver sus cambios. / " +
+    "PT409:Esta orden se anuló mientras la editabas. Recarga para verla."
 );
 caso(
   "E3 un doble clic (el mismo pedido otra vez, con la versión que ya no es) no choca: devuelve la orden sin subir la versión",

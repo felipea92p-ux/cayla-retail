@@ -16,10 +16,10 @@ import { HojaOrdenCompra, type EmpresaDeLaOrden } from "@/components/ordenes-com
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
-import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import { MAX_MOTIVO_ANULACION, numeroOrdenCompra, problemaDeMotivo, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import { MAX_MOTIVO_ANULACION, avisoDeCorte, numeroOrdenCompra, problemaDeMotivo, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
@@ -123,6 +123,11 @@ function AnularOrdenModal({ orden, onClose }: { orden: OrdenParaAnular; onClose:
     setGuardando(false);
     if (!esPersona) responsable.despues(error);
     if (error || version == null) {
+      // Se cortó la señal: pudo anularse. Con el mismo motivo, reintentar no repite nada (Formidable, 2026-10-10).
+      if (error && esFalloDeRed(error)) {
+        avisar.error(avisoDeCorte("anular"));
+        return;
+      }
       if (esVersionCambiada(error)) {
         // Otra persona la editó (o la anuló) mientras se miraba: se recarga para ver qué dice ahora, antes de decidir.
         avisar.error(traducirError(error, "anular la orden"), { accion: { texto: "Recargar", onClick: () => router.refresh() } });

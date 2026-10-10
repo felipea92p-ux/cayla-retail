@@ -16,6 +16,7 @@ import {
   paginaDeOrdenes,
   paramsDeLista,
   pildorasDeDestino,
+  recienDe,
   textoDestino,
   vacioDeLista,
   type FiltrosLista,
@@ -23,7 +24,6 @@ import {
 } from "@/lib/ordenes-compra-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -90,6 +90,8 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
   const nombreDe = (id: string) => destinos.find((d) => d.id === id)?.nombre ?? resumen?.find((r) => r.destinoId === id)?.destinoNombre ?? null;
   const miSede = destinos.find((d) => d.id === persona.ubicacionId) ?? null;
   const pildoras = pildorasDeDestino(destinos, resumen, filtros.estado);
+  // La orden que se acaba de guardar (Nueva o Editar vuelven aquí con `?recien=`): se marca para que se vea que quedó.
+  const recien = recienDe(params);
 
   return (
     <div className="space-y-6">
@@ -124,7 +126,8 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                   donde={["en todas las sedes", "en todas las sedes"]}
                   className={miSede ? "col-span-2 @min-[40rem]:col-span-1" : ""}
                 />
-                {miSede && <CifraGeneradas etiqueta={`Llega a ${nombreCortoSede(miSede.nombre)}`} {...generadasDe(resumen, miSede.id)} />}
+                {/* El nombre completo («Tienda Lima»): «Llega a Lima» a secas se confundía con lo que llega a Lima para repartir. */}
+                {miSede && <CifraGeneradas etiqueta={`Llega a ${miSede.nombre}`} {...generadasDe(resumen, miSede.id)} />}
                 <CifraGeneradas
                   etiqueta="Por repartir"
                   {...generadasDe(resumen, POR_REPARTIR_LISTA)}
@@ -197,11 +200,13 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                   {filas.map((f, i) => {
                     const estado = ESTADO_ORDEN[f.estado];
                     const anulada = f.estado === "anulada";
+                    const esRecien = f.id === recien;
                     return (
                       <Link
                         key={f.id}
                         href={`/compras/ordenes/ver/${f.id}`}
                         style={{ ["--k" as string]: Math.min(i, 8) }}
+                        data-recien={esRecien ? "" : undefined}
                         className={fila(PLANTILLA, "cmp-fila")}
                       >
                         <span className={celda()}>
@@ -213,7 +218,11 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                               <Chip tono={estado.tono}>{estado.texto}</Chip>
                             </span>
                           </span>
-                          <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
+                          {esRecien ? (
+                            <span className="block text-xs font-medium text-verde">Recién guardada</span>
+                          ) : (
+                            <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
+                          )}
                         </span>
                         <span className={celda("izq", "text-tinta")}>
                           <Resaltado texto={f.proveedorNombre} busqueda={filtros.q} />

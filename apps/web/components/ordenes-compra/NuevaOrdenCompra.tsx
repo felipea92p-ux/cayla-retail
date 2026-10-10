@@ -20,7 +20,7 @@ import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
-import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
@@ -42,7 +42,14 @@ import {
   type ModoDescuento,
   type OrdenBorrador,
 } from "@/lib/orden-compra-alta";
-import { numeroOrdenCompra, type DatosNuevaOrden } from "@/lib/ordenes-compra-reglas";
+import {
+  HINT_YA_GUARDADA,
+  avisoDeCorte,
+  fraseDestino,
+  hrefOrdenGuardada,
+  numeroOrdenCompra,
+  type DatosNuevaOrden,
+} from "@/lib/ordenes-compra-reglas";
 import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-acciones";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
@@ -95,6 +102,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
   );
   const [guardando, setGuardando] = useState(false);
+  // «Llega a» viene puesto con la sede donde se trabaja: hasta que la persona lo elige (aunque elija la misma), la guía lo trata como
+  // sugerido y no lo marca con ✓ (ADR-0284 act. h). Al editar, el destino es el que la orden ya tenía: cuenta como elegido.
+  const [destinoElegido, setDestinoElegido] = useState(Boolean(editar));
   // Las claves de línea siguen desde las que ya tiene la orden (l1…lN).
   const contador = useRef(editar ? editar.inicial.lineas.length : 1);
   // El id de la orden se genera al primer «Guardar» y se reusa en cada reintento: la base devuelve la misma orden si llega dos veces.
@@ -111,8 +121,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       marcasActivas: new Set(datos.marcas.map((m) => m.id)),
       destinos: new Set(datos.destinos.map((d) => d.id)),
       entregaOriginal: editar?.entregaOriginal,
+      destinoElegido,
     }),
-    [datos, hoy, editar?.entregaOriginal],
+    [datos, hoy, editar?.entregaOriginal, destinoElegido],
   );
   const campos = camposDeLaOrden(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
@@ -158,9 +169,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
   const opcionesDestino = useMemo(
-    // «Por repartir», corto como en las píldoras de la lista: «(llega a Lima)» partía la caja en dos renglones en una pantalla angosta, y
-    // la frase de abajo ya lo explica.
-    () => [...datos.destinos.map((d) => ({ valor: d.id, texto: d.nombre })), { valor: POR_REPARTIR, texto: "Por repartir" }],
+    // «Por repartir», corto en la caja: «(llega a Lima)» la partía en dos renglones en una pantalla angosta. Lo explica el título de su
+    // grupo en la lista abierta, ANTES de elegirlo (Formidable, 2026-10-10: dos de dos pruebas ciegas no sabían qué era).
+    () => [
+      ...datos.destinos.map((d) => ({ valor: d.id, texto: d.nombre, grupo: "Directo a la tienda" })),
+      { valor: POR_REPARTIR, texto: "Por repartir", grupo: "Llega a Lima para repartir" },
+    ],
     [datos.destinos],
   );
   const categoriaPor = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
@@ -202,27 +216,52 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       return;
     }
     if (editar) return guardarCambios(editar);
-    idOrden.current ??= crypto.randomUUID();
+    const id = (idOrden.current ??= crypto.randomUUID());
     setGuardando(true);
     const firma = esPersona ? firmaOmitida("orden_compra_crear") : responsable.firma();
-    const { numero, error } = await crearOrdenCompra(argsCrearOrden(idOrden.current, orden), firma);
+    const { numero, error } = await crearOrdenCompra(argsCrearOrden(id, orden), firma);
     setGuardando(false);
     if (!esPersona) responsable.despues(error);
     if (error || numero == null) {
+      // Se cortó la señal: el pedido pudo llegar a la base y perderse solo la respuesta. Reintentar sin cambiar nada es seguro (el mismo
+      // id no crea otra orden); decir «no se guardó nada» invitaba a corregir algo creyendo que no existía (Formidable, 2026-10-10).
+      if (error && esFalloDeRed(error)) {
+        avisar.error(avisoDeCorte("crear"));
+        return;
+      }
+      // Sí se había guardado, con lo de antes, y la persona corrigió algo entre un intento y otro: se corrige en la orden misma.
+      if (error?.hint === HINT_YA_GUARDADA) {
+        avisar.error(traducirError(error, "guardar la orden de compra"), {
+          accion: { texto: "Corregirla", onClick: () => void irA(`/compras/ordenes/editar/${id}`) },
+        });
+        return;
+      }
       avisar.error(traducirError(error, "guardar la orden de compra"));
       return;
     }
-    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
     avisar.exito(`${numeroOrdenCompra(numero)} guardada`, {
       detalle:
         datos.siguiente != null && numero !== datos.siguiente
           ? `Otra orden tomó la ${numeroOrdenCompra(datos.siguiente)} un momento antes: esta quedó como ${numeroOrdenCompra(numero)}.`
-          : `${proveedor} · ${soles(total)}`,
+          : detalleGuardada(),
     });
-    // La guardia de «¿Salir sin guardar?» se retira ANTES de navegar (ver useSalidaSinGuardar: juntos, Next podía recargar todo).
-    await avisoSalida.retirarYa();
-    router.push("/compras/ordenes");
+    // De vuelta a la lista en el destino de ESTA orden, con ella marcada: volver a la sede de quien trabaja escondía una orden para otra
+    // tienda, y las dos pruebas ciegas dudaron si se había guardado (Formidable, 2026-10-10).
+    await irA(hrefOrdenGuardada(orden.destino === POR_REPARTIR ? null : orden.destino, id));
     router.refresh();
+  }
+
+  // «Textiles Andina SAC · S/ 1,260.00 · llega a Tienda TRU»: lo guardado, dicho como se ve en la lista.
+  function detalleGuardada(): string {
+    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
+    const destino = fraseDestino(orden.destino === POR_REPARTIR ? null : (datos.destinos.find((d) => d.id === orden.destino)?.nombre ?? null));
+    return [proveedor, soles(total), destino.charAt(0).toLowerCase() + destino.slice(1)].filter(Boolean).join(" · ");
+  }
+
+  // La guardia de «¿Salir sin guardar?» se retira ANTES de navegar (ver useSalidaSinGuardar: juntos, Next podía recargar todo).
+  async function irA(href: string) {
+    await avisoSalida.retirarYa();
+    router.push(href);
   }
 
   async function guardarCambios(e: EdicionOrden) {
@@ -232,7 +271,13 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     setGuardando(false);
     if (!esPersona) responsable.despues(error);
     if (error || version == null) {
-      // Otra persona guardó esta orden (o la anuló) mientras se editaba: lo escrito sigue a la vista y se ofrece traer lo nuevo.
+      // Se cortó la señal: el cambio pudo llegar. Reintentar sin cambiar nada es seguro (la base reconoce el mismo pedido).
+      if (error && esFalloDeRed(error)) {
+        avisar.error(avisoDeCorte("editar"));
+        return;
+      }
+      // La orden cambió desde que se abrió (otra persona, la misma en otro intento, o se anuló: la base dice cuál): lo escrito sigue a
+      // la vista y se ofrece traer lo nuevo.
       if (esVersionCambiada(error)) {
         avisar.error(traducirError(error, "guardar los cambios"), { accion: { texto: "Recargar", onClick: () => void recargar() } });
         return;
@@ -241,13 +286,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       return;
     }
     const nombre = numeroOrdenCompra(e.numero);
-    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
     // La misma versión: no había nada que cambiar (o era el mismo guardado repetido).
     avisar.exito(version === e.version ? `${nombre} ya decía eso: no había nada que cambiar` : `${nombre} actualizada`, {
-      detalle: `${proveedor} · ${soles(total)}`,
+      detalle: detalleGuardada(),
     });
-    await avisoSalida.retirarYa();
-    router.push("/compras/ordenes");
+    await irA(hrefOrdenGuardada(orden.destino === POR_REPARTIR ? null : orden.destino, e.id));
     router.refresh();
   }
 
@@ -322,7 +365,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               etiqueta="Llega a"
               marcador="Elige a dónde llega"
               valor={orden.destino}
-              onValor={(destino) => setOrden((o) => ({ ...o, destino }))}
+              onValor={(destino) => {
+                setDestinoElegido(true);
+                setOrden((o) => ({ ...o, destino }));
+              }}
               opciones={opcionesDestino}
             />
             {orden.destino === POR_REPARTIR && <p className="mt-1.5 text-xs text-taupe">Se separa en Lima y se envía a cada tienda después.</p>}

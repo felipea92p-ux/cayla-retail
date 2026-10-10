@@ -4,20 +4,24 @@ import {
   POR_REPARTIR_LISTA,
   TODAS,
   argsLista,
+  avisoDeCorte,
   conteoDeDestino,
   filtrosDeLista,
   fraseDestino,
   generadasDe,
   hrefLista,
+  hrefOrdenGuardada,
   leerDetalleOrden,
   leerFilaOrden,
   leerFilasOrdenes,
   leerResumen,
+  lugarDeLlegada,
   numeroOrdenCompra,
   paginaDeOrdenes,
   paramsDeLista,
   problemaDeMotivo,
   pildorasDeDestino,
+  recienDe,
   textoDestino,
   vacioDeLista,
 } from "./ordenes-compra-reglas";
@@ -101,12 +105,12 @@ describe("las píldoras de «Llega a» y lo que dice la lista vacía", () => {
     { id: LIMA, nombre: "Tienda Lima" },
     { id: TRU, nombre: "Tienda Trujillo" },
   ];
-  it("siempre en el mismo orden: Todas las sedes, cada sede por su nombre corto, una sede inactiva con órdenes, Por repartir", () => {
+  it("siempre en el mismo orden: Todas las sedes, cada sede por su nombre COMPLETO («Tienda Lima», no «Lima»), una sede inactiva con órdenes, Por repartir", () => {
     expect(pildorasDeDestino(destinos, resumen, null)).toEqual([
       { valor: TODAS, texto: "Todas las sedes", conteo: 5 },
-      { valor: LIMA, texto: "Lima", conteo: 0 },
-      { valor: TRU, texto: "Trujillo", conteo: 3 },
-      { valor: "vieja", texto: "Cusco", conteo: 1 },
+      { valor: LIMA, texto: "Tienda Lima", conteo: 0 },
+      { valor: TRU, texto: "Tienda Trujillo", conteo: 3 },
+      { valor: "vieja", texto: "Tienda Cusco", conteo: 1 },
       { valor: POR_REPARTIR_LISTA, texto: "Por repartir", conteo: 1 },
     ]);
   });
@@ -117,10 +121,10 @@ describe("las píldoras de «Llega a» y lo que dice la lista vacía", () => {
   it("sin resultados por los filtros: dice qué se está mirando y deja quitar cada filtro", () => {
     const f = filtrosDeLista({ destino: TRU, estado: "anulada" }, CTX_LISTA);
     expect(vacioDeLista(f, "Tienda Trujillo")).toEqual({
-      titulo: "No hay ninguna orden anulada que llegue a Trujillo",
+      titulo: "No hay ninguna orden anulada que llegue a Tienda Trujillo",
       frase: "Mira las de todas las sedes, o crea una nueva.",
       filtros: [
-        { texto: "Trujillo", href: "/compras/ordenes?destino=todas&estado=anulada" },
+        { texto: "Tienda Trujillo", href: "/compras/ordenes?destino=todas&estado=anulada" },
         { texto: "Anuladas", href: `/compras/ordenes?destino=${TRU}` },
       ],
     });
@@ -210,6 +214,47 @@ describe("textoDestino y fraseDestino", () => {
   it("como frase suelta nunca dice «Llega a Por repartir»", () => {
     expect(fraseDestino("Tienda Trujillo")).toBe("Llega a Tienda Trujillo");
     expect(fraseDestino(null)).toBe("Por repartir desde Lima");
+  });
+  it("bajo un rótulo «Llega a» dice el lugar, nunca «Llega a» otra vez: la tienda, o Lima para repartir", () => {
+    expect(lugarDeLlegada("Tienda Trujillo")).toBe("Tienda Trujillo");
+    expect(lugarDeLlegada(null)).toBe("Lima, para repartir");
+    expect(lugarDeLlegada("Tienda Trujillo")).not.toMatch(/llega a/i);
+  });
+});
+
+describe("después de guardar, la lista muestra la orden (Formidable, 2026-10-10)", () => {
+  const ID = "6f1c2e0b-1111-4222-8333-444455556666";
+  it("vuelve a la lista filtrada en el destino de ESA orden, con ella marcada", () => {
+    expect(hrefOrdenGuardada(TRU, ID)).toBe(`/compras/ordenes?destino=${TRU}&recien=${ID}`);
+    expect(hrefOrdenGuardada(null, ID)).toBe(`/compras/ordenes?destino=${POR_REPARTIR_LISTA}&recien=${ID}`);
+  });
+  it("un id raro no viaja en la URL y la lista no marca nada", () => {
+    expect(hrefOrdenGuardada(TRU, "<script>")).toBe(`/compras/ordenes?destino=${TRU}`);
+    expect(recienDe({ recien: ID })).toBe(ID);
+    expect(recienDe({ recien: ID.toUpperCase() })).toBe(ID);
+    expect(recienDe({ recien: "x" })).toBeNull();
+    expect(recienDe({})).toBeNull();
+  });
+  it("la marca no es un filtro: cambiar un filtro la quita", () => {
+    const f = filtrosDeLista({ destino: TRU, recien: ID }, CTX_LISTA);
+    expect(hrefLista(f, { estado: "generada" })).not.toContain("recien");
+    expect(paramsDeLista(f)).not.toHaveProperty("recien");
+  });
+});
+
+describe("avisoDeCorte: la señal se cortó al guardar (Formidable, 2026-10-10)", () => {
+  it("nunca dice que no se guardó nada: dice que no se sabe, qué botón pulsar y que se reintente sin cambiar nada", () => {
+    for (const [accion, boton] of [
+      ["crear", "«Guardar orden»"],
+      ["editar", "«Guardar cambios»"],
+      ["anular", "«Anular orden»"],
+    ] as const) {
+      const aviso = avisoDeCorte(accion);
+      expect(aviso).toContain("no sabemos si");
+      expect(aviso).toContain(boton);
+      expect(aviso).not.toMatch(/no se guardó nada/i);
+      expect(aviso).toMatch(/sin cambiar nada|con el mismo motivo/);
+    }
   });
 });
 

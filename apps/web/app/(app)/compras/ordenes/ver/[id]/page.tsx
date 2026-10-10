@@ -1,7 +1,7 @@
 import { FileX } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDetalleOrden, getEmpresaParaOrden } from "@/lib/ordenes-compra";
-import { fraseDestino, numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
+import { numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
@@ -54,7 +54,8 @@ export default async function OrdenCompraPage({ params }: { params: Promise<{ id
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo={numeroOrdenCompra(detalle.numero)}
-        subtitulo={`${detalle.proveedor.nombre} · ${fraseDestino(detalle.destino?.nombre ?? null)}`}
+        // Qué es, no lo que dice debajo: el proveedor y a dónde llega están en la orden misma (Formidable, 2026-10-10, ley 8).
+        subtitulo="Lo que se le pidió a un proveedor."
         volver={volver}
         acciones={<AccionesOrden lugar="cabecera" orden={detalle} empresa={empresa} />}
       />

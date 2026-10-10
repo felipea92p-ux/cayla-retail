@@ -23,12 +23,20 @@
 --   5. `editar_orden_compra(...)`: con la versión que la pantalla vio (`p_version_esperada`). Si otra persona guardó antes, responde
 --      `PT409` / `version_cambiada` (el navegador recibe un 409, ADR-0193) y no escribe nada. Si lo que llega es IGUAL a lo que la orden
 --      ya dice (un doble clic, un reintento sin red), devuelve la orden tal cual, sin choque y sin subir la versión. Sin cambios, tampoco
---      la sube. Con cambios: guarda la foto de antes, reemplaza cabecera y líneas y devuelve la versión nueva.
+--      la sube. Con cambios: guarda la foto de antes, reemplaza cabecera y líneas y devuelve la versión nueva. El aviso del choque dice
+--      la verdad (Formidable, 2026-10-10): si la orden se anuló, «se anuló mientras la editabas»; si el último cambio fue de la misma
+--      persona (su guardado anterior SÍ llegó, pero la respuesta se perdió con la señal), «tu cambio anterior sí se guardó»; si no,
+--      «otra persona cambió esta orden».
 --   6. «Actividad» (ADR-0207): crear y editar anotan su línea en el módulo `ordenes_compra` («creó la OC-000129 para…», «editó la
 --      OC-000129: entrega 15/10 → 18/10 · 1 línea cambiada»). SIN montos, como el costo en Productos: la línea la lee quien tiene el
 --      módulo Actividad aunque no vea Órdenes de compra; los montos de antes quedan en el archivo. Se ve en la sede donde se hizo y en
 --      la sede a la que llega. Un error al anotar nunca detiene el guardado (deja un WARNING).
---   7. `crear_orden_compra` se vuelve a escribir con las reglas compartidas y su línea de Actividad; por fuera hace lo mismo que antes.
+--   7. `crear_orden_compra` se vuelve a escribir con las reglas compartidas y su línea de Actividad. Y el reintento deja de mentir
+--      (Formidable, 2026-10-10): la pantalla reusa el mismo id en cada intento para que un doble clic no cree dos órdenes, pero si la
+--      señal se cortó DESPUÉS de guardar y la persona corrigió algo antes de reintentar, devolver la orden «tal cual» hacía que la
+--      pantalla dijera «guardada» con el total nuevo mientras la base seguía con lo de antes. Ahora compara lo pedido con lo guardado
+--      (las mismas huellas que editar): igual, devuelve la orden; distinto, avisa «ya se guardó como OC-… con lo de antes»
+--      (`orden_compra_ya_guardada`) y no cambia nada.
 --
 -- REGLAS (las de crear, en palabras de la pantalla, hint `orden_compra_*`); además: solo se edita una orden «generada»
 -- (`orden_compra_anulada`), y hay que decir qué versión se editaba (`orden_compra_sin_version`). El número y la fecha de emisión no se
@@ -317,6 +325,39 @@ exception when others then
 end;
 $$;
 
+-- ¿Lo que llega con un `p_id` que ya existe es el MISMO pedido? (un doble clic, o un reintento después de perder la respuesta con la
+-- señal). Si lo es, no pasa nada. Si cambió algo, avisa que la orden ya se guardó con lo de antes: devolverla «tal cual» haría que la
+-- pantalla dijera «guardada» con datos que la base no tiene (lo vio el escéptico de Formidable, 2026-10-10).
+create or replace function retail.fn_orden_compra_exigir_mismo_pedido(
+  p_id uuid,
+  p_numero integer,
+  p_proveedor_id uuid,
+  p_destino_id uuid,
+  p_fecha_entrega_estimada date,
+  p_nota text,
+  p_lineas jsonb
+) returns void
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_pedida jsonb;
+begin
+  begin
+    v_pedida := retail.fn_orden_compra_huella(p_proveedor_id, p_destino_id, p_fecha_entrega_estimada, p_nota, p_lineas);
+  exception when others then
+    v_pedida := null; -- lo pedido ni siquiera se puede leer: no es el mismo pedido
+  end;
+  if v_pedida is null or v_pedida is distinct from retail.fn_orden_compra_huella_guardada(p_id) then
+    raise exception 'Esta orden ya se guardó como % con lo que tenía antes de tu cambio. Ábrela y corrígela ahí.',
+      retail.fn_orden_compra_numero_texto(p_numero)
+      using hint = 'orden_compra_ya_guardada';
+  end if;
+end;
+$$;
+
 -- ---------- 5. Crear (las mismas reglas, ahora compartidas, y su línea de Actividad) ----------
 create or replace function retail.crear_orden_compra(
   p_id uuid,
@@ -355,11 +396,14 @@ begin
     raise exception 'Falta el identificador de la orden: vuelve a abrir el formulario' using hint = 'orden_compra_sin_id';
   end if;
 
-  -- Doble clic o reintento: la misma orden ya se guardó. Se devuelve tal cual (no se crea otra ni se cambia nada).
+  -- Doble clic o reintento: la orden ya se guardó. Si es el mismo pedido se devuelve tal cual; si la persona cambió algo entre un
+  -- intento y otro, se le avisa que quedó con lo de antes. Nunca se crea otra ni se cambia nada.
   for v_existente in select o.id, o.numero, o.creada_por from retail.ordenes_compra o where o.id = p_id loop
     if v_existente.creada_por is distinct from v_actor then
       raise exception 'Esa orden ya existe' using hint = 'orden_compra_ya_existe';
     end if;
+    perform retail.fn_orden_compra_exigir_mismo_pedido(
+      v_existente.id, v_existente.numero, p_proveedor_id, p_destino_id, p_fecha_entrega_estimada, v_nota, p_lineas);
     return query select v_existente.id, v_existente.numero;
     return;
   end loop;
@@ -371,12 +415,14 @@ begin
   values (p_id, p_proveedor_id, p_destino_id, p_fecha_entrega_estimada, v_nota, v_actor)
   on conflict on constraint ordenes_compra_pkey do nothing
   returning ordenes_compra.id, ordenes_compra.numero into v_id, v_numero;
-  -- Dos pedidos con el mismo `p_id` al mismo tiempo: el segundo no inserta y devuelve el del primero.
+  -- Dos pedidos con el mismo `p_id` al mismo tiempo: el segundo no inserta y devuelve el del primero (si pedía lo mismo).
   if v_id is null then
     for v_existente in select o.id, o.numero, o.creada_por from retail.ordenes_compra o where o.id = p_id loop
       if v_existente.creada_por is distinct from v_actor then
         raise exception 'Esa orden ya existe' using hint = 'orden_compra_ya_existe';
       end if;
+      perform retail.fn_orden_compra_exigir_mismo_pedido(
+        v_existente.id, v_existente.numero, p_proveedor_id, p_destino_id, p_fecha_entrega_estimada, v_nota, p_lineas);
       return query select v_existente.id, v_existente.numero;
       return;
     end loop;
@@ -477,6 +523,16 @@ begin
     if v_pedida is not null and v_pedida = retail.fn_orden_compra_huella_guardada(p_id) and v_orden.estado = 'generada' then
       return query select v_orden.id, v_orden.numero, v_orden.version;
       return;
+    end if;
+    -- El choque dice la verdad sobre QUÉ pasó: siempre PT409 (la pantalla ofrece «Recargar»), con la frase que corresponde.
+    if v_orden.estado = 'anulada' then
+      raise exception 'Esta orden se anuló mientras la editabas. Recarga para verla.'
+        using errcode = 'PT409', hint = 'version_cambiada';
+    end if;
+    if v_orden.actualizada_por = v_actor then
+      -- Su guardado anterior SÍ llegó (la respuesta se perdió con la señal, u otra pestaña suya): no fue «otra persona».
+      raise exception 'Tu cambio anterior sí se guardó, pero esta pantalla todavía no lo muestra. Recarga para ver cómo quedó.'
+        using errcode = 'PT409', hint = 'version_cambiada';
     end if;
     raise exception 'Otra persona cambió esta orden mientras la editabas. Recarga para ver sus cambios.'
       using errcode = 'PT409', hint = 'version_cambiada';
@@ -594,5 +650,6 @@ revoke all on function retail.fn_orden_compra_huella(uuid, uuid, date, text, jso
 revoke all on function retail.fn_orden_compra_huella_guardada(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_orden_compra_escribir_lineas(uuid, jsonb) from public, anon, authenticated;
 revoke all on function retail.fn_orden_compra_sede_actividad(uuid) from public, anon, authenticated;
+revoke all on function retail.fn_orden_compra_exigir_mismo_pedido(uuid, integer, uuid, uuid, date, text, jsonb) from public, anon, authenticated;
 
 reset lock_timeout;

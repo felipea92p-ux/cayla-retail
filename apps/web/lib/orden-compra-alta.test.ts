@@ -154,6 +154,22 @@ describe("camposDeLaOrden: la guía de foco", () => {
     expect(sePuedeConfirmar(camposDeLaOrden(orden({ destino: POR_REPARTIR }), CTX, SIN_COMBO))).toBe(true);
     expect(sePuedeConfirmar(camposDeLaOrden(orden({ destino: "taller" }), CTX, SIN_COMBO))).toBe(false);
   });
+  it("«Llega a» de fábrica (la sede donde se trabaja) no lleva ✓ hasta que la persona lo elige: es sugerido, la luz pasa por él y nunca bloquea (ADR-0284 act. h)", () => {
+    const deFabrica = camposDeLaOrden(orden(), { ...CTX, destinoElegido: false }, SIN_COMBO);
+    expect(deFabrica.find((c) => c.id === "destino")).toMatchObject({ nombre: "Llega a", requerido: false, sugerido: true, hecho: false });
+    expect(siguienteDe(deFabrica)?.id).toBe("destino");
+    expect(sePuedeConfirmar(deFabrica)).toBe(true);
+    // Elegido (aunque sea la misma tienda), o al editar (sin dato): hecho, y la luz sigue a la entrega.
+    const elegido = camposDeLaOrden(orden(), { ...CTX, destinoElegido: true }, SIN_COMBO);
+    expect(elegido.find((c) => c.id === "destino")).toMatchObject({ hecho: true });
+    expect(siguienteDe(elegido)?.id).toBe("entrega");
+    expect(camposDeLaOrden(orden(), CTX, SIN_COMBO).find((c) => c.id === "destino")?.hecho).toBe(true);
+  });
+  it("un destino que no es de la lista bloquea aunque nadie lo haya elegido", () => {
+    const campos = camposDeLaOrden(orden({ destino: "" }), { ...CTX, destinoElegido: false }, SIN_COMBO);
+    expect(campos.find((c) => c.id === "destino")).toMatchObject({ requerido: true, hecho: false });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+  });
   it("una línea con problema dice cuál es, y bloquea", () => {
     const campos = camposDeLaOrden(orden({ lineas: [linea(), linea({ clave: "l2", marcaId: "" })] }), CTX, SIN_COMBO);
     const l2 = campos.find((c) => c.id === "linea-l2");

@@ -134,6 +134,23 @@ pantalla chica el proveedor se quedaba en cero.
 - **Una anulada** lo dice arriba, en grande y con su motivo: un papel viejo que circule no se confunde.
 - **El archivo** se llama como la orden, por ejemplo `OC-000129.pdf`.
 
+**La revisión Formidable (actividad 7, 2026-10-10; informe `docs/formidable/compras-ordenes.md`).** Dos pruebas ciegas y un escéptico.
+Felipe aprobó arreglar primero un error y después los 3 cambios de pantalla, con la lista que muestra la orden marcada:
+- **El reintento ya no miente (error, no presentación).** Si la señal se cortaba DESPUÉS de guardar, la pantalla decía «No se guardó
+  nada»; y si la persona corregía algo y reintentaba, `crear_orden_compra` devolvía la orden guardada «tal cual» y el aviso decía
+  «guardada» con el total nuevo, que la base no tenía. Ahora la base compara lo pedido con lo guardado (las huellas de editar): si es
+  lo mismo, devuelve la orden; si cambió, avisa «ya se guardó como OC-… con lo de antes» (`orden_compra_ya_guardada`) y la pantalla
+  ofrece «Corregirla». El corte de señal dice «no sabemos si llegó: vuelve a pulsar sin cambiar nada». Y el choque al editar dice qué
+  pasó: «se anuló mientras la editabas», «tu cambio anterior sí se guardó» (fue la misma persona) u «otra persona cambió esta orden».
+  Va dentro de `20261010235000` (todavía no estaba en producción), con su prueba (CR2b, E2b).
+- **«Llega a» se revisa y se entiende.** Viene puesto con la sede donde se trabaja, pero ya no lleva ✓ hasta que la persona lo elige
+  (ADR-0284 act. h): la luz de la guía pasa por él. La lista abierta separa «Directo a la tienda» de «Llega a Lima para repartir». La
+  tarjeta y las píldoras dicen el nombre completo («Tienda LIM»), que no choca con lo que se reparte desde Lima.
+- **Al guardar, la orden se ve.** Crear y editar vuelven a la lista en el destino de ESA orden, con la fila marcada «Recién guardada»
+  (barrita y tinte verdes), y el aviso dice a dónde llega.
+- **La orden abierta se lee sola.** Sin el subtítulo que repetía proveedor y destino; «Llega a: Tienda TRU» en vez de «Destino: Llega
+  a…» (también en el papel); y la nota con su rótulo «Nota:».
+
 ## Para el contador (no bloquea programar, dice el brief)
 
 Gastos de llegada fuera del costo (decisión 20: la NIC 2 los pone dentro; que el contador lo confirme); el fondo como anticipo (101 o

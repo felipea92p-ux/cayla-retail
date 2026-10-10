@@ -3,7 +3,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { ESTADO_ORDEN, fraseDestino, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import { ESTADO_ORDEN, lugarDeLlegada, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 
 // Una orden de compra por dentro (ADR-0362, fase 1 · actividad 3): lo mismo en la ventana que se abre sobre la lista y en la página
 // completa que se ve al recargar o compartir el enlace. Sin estado: lo dibuja el servidor.
@@ -46,8 +46,9 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
           {d.proveedor.ruc && <dd className="text-xs tabular-nums text-taupe">RUC {d.proveedor.ruc}</dd>}
         </div>
         <div>
-          <dt className="text-xs text-taupe">Destino</dt>
-          <dd className="text-tinta">{fraseDestino(d.destino?.nombre ?? null)}</dd>
+          {/* El lugar, no la frase: «Destino: Llega a Tienda TRU» lo decía dos veces (Formidable, 2026-10-10). */}
+          <dt className="text-xs text-taupe">Llega a</dt>
+          <dd className="text-tinta">{lugarDeLlegada(d.destino?.nombre ?? null)}</dd>
         </div>
         <div>
           <dt className="text-xs text-taupe">Emitida</dt>
@@ -114,7 +115,12 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
         </div>
       </Tabla>
 
-      {d.nota && <p className="nota-cayla sin-i whitespace-pre-line">{d.nota}</p>}
+      {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado (Formidable, 2026-10-10). */}
+      {d.nota && (
+        <p className="nota-cayla sin-i whitespace-pre-line">
+          <b className="font-medium text-tinta">Nota:</b> {d.nota}
+        </p>
+      )}
 
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>

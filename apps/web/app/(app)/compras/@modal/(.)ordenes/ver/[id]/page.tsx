@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDetalleOrden, getEmpresaParaOrden } from "@/lib/ordenes-compra";
-import { fraseDestino, numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
+import { numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 import { DetalleOrdenCompra } from "@/components/ordenes-compra/DetalleOrdenCompra";
 import { AccionesOrden } from "@/components/ordenes-compra/AccionesOrden";
@@ -24,8 +24,8 @@ export default async function OrdenCompraModal({ params }: { params: Promise<{ i
 
   return (
     <ModalRuta
+      // Sin subtítulo: repetía el proveedor y a dónde llega, que la orden dice justo debajo (Formidable, 2026-10-10, ley 8).
       titulo={numeroOrdenCompra(detalle.numero)}
-      subtitulo={`${detalle.proveedor.nombre} · ${fraseDestino(detalle.destino?.nombre ?? null)}`}
       // Imprimir siempre; editar y anular, solo una «generada» (actividades 4 a 6). El pie de la ventana es donde la mano ya está al
       // terminar de leer.
       acciones={<AccionesOrden lugar="pie" orden={detalle} empresa={empresa} />}

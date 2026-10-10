@@ -175,6 +175,9 @@ export type ContextoValidacion = {
   marcasActivas: ReadonlySet<string>;
   destinos: ReadonlySet<string>;
   entregaOriginal?: string;
+  /** `false` = «Llega a» todavía tiene el valor de fábrica (la sede donde se trabaja) y la persona no lo eligió. Sin dato, cuenta como
+   *  elegido (al editar, el destino es el que la orden ya tenía). */
+  destinoElegido?: boolean;
 };
 
 /** El primer problema de una línea, en una frase para quien la llena; null si la línea está lista. */
@@ -219,6 +222,26 @@ export function problemaDeEntrega(entrega: string, hoy: string, original?: strin
 }
 
 /**
+ * «Llega a» en la guía. Viene puesto con la sede donde se trabaja: es un valor de fábrica que IMPORTA (manda la mercadería a esa tienda).
+ * Hasta que la persona lo elige —aunque elija el mismo— es «sugerido»: la luz pasa por él y no lleva ✓, pero nunca bloquea si es válido
+ * (ADR-0284 act. h). Con ✓ de entrada, una prueba ciega dudó si ya estaba «hecho» cuando tenía que cambiarlo (Formidable, 2026-10-10).
+ * Un destino que no es de la lista sí bloquea: la base lo rechazaría.
+ */
+function campoDestino(o: OrdenBorrador, ctx: ContextoValidacion): CampoDeGuia {
+  const valido = o.destino === POR_REPARTIR || ctx.destinos.has(o.destino);
+  if (!valido) return { id: "destino", nombre: "Llega a", requerido: true, hecho: false, pendiente: "Elige a qué tienda llega, o «Por repartir»." };
+  const porRevisar = ctx.destinoElegido === false;
+  return {
+    id: "destino",
+    nombre: "Llega a",
+    requerido: false,
+    sugerido: porRevisar,
+    hecho: !porRevisar,
+    pendiente: porRevisar ? "Revisa a dónde llega: viene puesta la tienda donde trabajas." : "",
+  };
+}
+
+/**
  * Los campos de la guía de foco, en el orden de la pantalla. `hecho` y `requerido` son las reglas de la base: la guía no inventa
  * ninguna. La entrega estimada es «sugerida»: avisa, nunca bloquea. `responsable` solo cuenta en una terminal (decisión 39).
  */
@@ -229,7 +252,7 @@ export function camposDeLaOrden(
 ): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [
     { id: "proveedor", nombre: "Proveedor", requerido: true, hecho: !!o.proveedorId && ctx.proveedoresActivos.has(o.proveedorId), pendiente: "Elige el proveedor." },
-    { id: "destino", nombre: "A dónde llega", requerido: true, hecho: o.destino === POR_REPARTIR || ctx.destinos.has(o.destino), pendiente: "Elige a qué tienda llega, o «Por repartir»." },
+    campoDestino(o, ctx),
     {
       id: "entrega",
       nombre: "Entrega estimada",
