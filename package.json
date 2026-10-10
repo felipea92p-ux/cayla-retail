@@ -28,6 +28,7 @@
     "pruebas:rendimiento-detalle": "node scripts/pruebas/rendimiento_detalle.mjs",
     "pruebas:actividad-inventario": "node scripts/pruebas/actividad_inventario.mjs",
     "pruebas:actividad-productos": "node scripts/pruebas/actividad_productos.mjs",
+    "pruebas:revisar-productos": "node scripts/pruebas/revisar_productos_pendientes.mjs",
     "pruebas:historial-prenda": "node scripts/pruebas/historial_prenda.mjs",
     "pruebas:precio-sede": "node scripts/pruebas/precio_sede.mjs",
     "pruebas:actividad-gestion": "node scripts/pruebas/actividad_gestion.mjs",

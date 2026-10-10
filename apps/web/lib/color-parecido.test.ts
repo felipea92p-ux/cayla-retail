@@ -52,7 +52,7 @@ describe("coloresParecidos", () => {
     { codigo: "PLV", nombre: "Plata vieja", hex: "#8C8D88", familiaColor: "metalico" },
     { codigo: "PLA", nombre: "Plateado", hex: "#B8BCC0", familiaColor: "metalico" },
     { codigo: "TER", nombre: "Terracota", hex: "#A9563A", familiaColor: "tierra" },
-    { codigo: "EST", nombre: "Estampado", hex: null, familiaColor: "estampado" },
+    { codigo: "EST", nombre: "Estampado", hex: null, familiaColor: null },
   ];
 
   it("encuentra los casi iguales de producción: Beige y Arena", () => {
