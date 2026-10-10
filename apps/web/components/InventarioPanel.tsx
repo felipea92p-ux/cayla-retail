@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { guardarLugar, leerLugar, LUGARES, suscribirLugar, tarjetasDelLugar, textosDelLugar, unidadesPorLugar, type LugarVista } from "@/lib/existencias-lugar";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, Shirt, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -27,6 +29,8 @@ import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
@@ -314,6 +318,9 @@ export function InventarioPanel({
   // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
   // (`abrirPorCodigo`) entra por la tabla.
   const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
+  // «Piso · Almacén · Ambos» de las tarjetas (Felipe, 2026-10-09): qué lugar se ve, con los números grandes si es uno solo. Se
+  // recuerda en el aparato; el servidor y la primera pintura dicen «ambos» para que los dos pinten lo mismo.
+  const lugar = useSyncExternalStore(suscribirLugar, leerLugar, () => "ambos" as LugarVista);
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
@@ -404,11 +411,13 @@ export function InventarioPanel({
   // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
   const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
+  // Las unidades libres de cada lugar entre lo que deja la lista: la cifra de «Piso» y «Almacén» sobre las tarjetas.
+  const unidades = useMemo(() => unidadesPorLugar(filtradas), [filtradas]);
   // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
   // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
   const [pagina, setPagina] = useState(1);
-  const firmaFiltros = [busqueda, categoria, marcaEfectiva, tallasElegidas.join(","), coloresElegidos.join(","), familiasElegidas.join(","), filtros.hoy ?? "", filtros.condicion ?? "", orden].join("\u0000");
+  const firmaFiltros = [busqueda, categoria, marcaEfectiva, tallasElegidas.join(","), coloresElegidos.join(","), familiasElegidas.join(","), filtros.hoy ?? "", filtros.condicion ?? "", orden, lugar].join("\u0000");
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
   if (firmaFiltros !== firmaPrevia) {
     setFirmaPrevia(firmaFiltros);
@@ -433,9 +442,14 @@ export function InventarioPanel({
   const opcionesDeOrden = opcionesOrden(resumen.separaPisoAlmacen);
   const ordenEfectivo = opcionesDeOrden.some((o) => o.valor === orden) ? orden : "relevancia";
   const tarjetasOrdenadas = useMemo(() => ordenarModelos(tarjetasDeExistencias(prendas, elegidos.hoy), ordenEfectivo), [prendas, elegidos.hoy, ordenEfectivo]);
-  const paginaTarjetas = paginar(tarjetasOrdenadas, pagina, FILAS_POR_PAGINA);
-  // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar».
-  const conteo = conteoDeLista(tarjetasOrdenadas.length, filtradas, elegidos.hoy);
+  // «Ver unidades en: Piso / Almacén» esconde lo que no está en ese lugar (Felipe, 2026-10-09); lo escondido se cuenta bajo el selector.
+  const delLugar = useMemo(() => tarjetasDelLugar(tarjetasOrdenadas, lugar, resumen.separaPisoAlmacen), [tarjetasOrdenadas, lugar, resumen.separaPisoAlmacen]);
+  const paginaTarjetas = paginar(delLugar.modelos, pagina, FILAS_POR_PAGINA);
+  // Las tallas del pie: con «Piso» o «Almacén», solo las de las tarjetas que quedan.
+  const tallasEnTarjetas = delLugar.escondidas > 0 ? delLugar.modelos.reduce((n, m) => n + m.colores.reduce((k, c) => k + c.tallas.length, 0), 0) : filtradas.length;
+  // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar». En las tarjetas,
+  // cuenta las que se ven (con «Piso», sin las escondidas); la tabla no sigue el selector.
+  const conteo = conteoDeLista(verDetalle ? tarjetasOrdenadas.length : delLugar.modelos.length, filtradas, elegidos.hoy);
   // «Colgar primero», las tres prendas que más convenía colgar sobre las tarjetas, se quitó el 2026-10-06 (Felipe: «quita esto»): la
   // lista ya va en el orden de la lista del día y el atajo «Por colgar» dice cuáles faltan (ADR-0344, «Quinta vuelta»).
   const filtrosPuestos = contarFiltrosActivos(elegidos);
@@ -935,9 +949,58 @@ export function InventarioPanel({
       ) : !verDetalle ? (
         // La lista de entrada: una tarjeta por prenda. Mismas páginas, mismo «Exportar CSV» y misma leyenda que la tabla.
         <div className="mt-3.5">
+          {/* Qué lugar se ve en las tarjetas: solo el piso, solo el almacén o ambos (de entrada, como el «Todas» de un desplegable).
+              Cada opción dice cuántas unidades libres hay ahí entre lo que deja la lista. No quita prendas: cambia lo que se lee. */}
+          {separa && (
+            <div className="mb-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+              <span className="text-[13px] text-taupe">Ver unidades en</span>
+              <SegmentoDeslizante
+                forma="modo"
+                etiqueta="Ver unidades en"
+                valor={lugar}
+                onCambio={(v) => guardarLugar(v as LugarVista)}
+                opciones={LUGARES.map(({ valor, texto }) => ({
+                  clave: valor,
+                  etiqueta: texto,
+                  conteo: valor === "piso" ? unidades.piso : valor === "almacen" ? unidades.almacen : undefined,
+                  ayuda:
+                    valor === "piso"
+                      ? "Solo lo colgado en el piso, listo para vender"
+                      : valor === "almacen"
+                        ? "Solo lo guardado en el almacén de la tienda"
+                        : "El piso y el almacén juntos, como siempre",
+                }))}
+              />
+            </div>
+          )}
+          {/* «Piso» o «Almacén» escondió tarjetas sin nada ahí: se dice cuántas y se traen de vuelta de un toque. Si no queda ninguna, el vacío. */}
+          {delLugar.escondidas > 0 &&
+            lugar !== "ambos" &&
+            (delLugar.modelos.length === 0 ? (
+              <Vacio
+                icono={<Shirt />}
+                titulo={textosDelLugar(lugar, delLugar.escondidas).vacioTitulo}
+                className="card-cayla mb-3"
+                acciones={
+                  <Boton peso="fantasma" onClick={() => guardarLugar("ambos")}>
+                    Ver ambos
+                  </Boton>
+                }
+              >
+                {textosDelLugar(lugar, delLugar.escondidas).vacioFrase}
+              </Vacio>
+            ) : (
+              <p className="mb-3 text-right text-xs text-taupe">
+                {textosDelLugar(lugar, delLugar.escondidas).aviso}.{" "}
+                <button type="button" onClick={() => guardarLugar("ambos")} className="btn-enlace text-xs">
+                  Ver ambos
+                </button>
+              </p>
+            ))}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}
+            lugar={lugar}
             mostrarMarca={mostrarMarca}
             tallasDePrenda={tallasDePrenda}
             puedeReponer={puedeReponer}
@@ -963,11 +1026,13 @@ export function InventarioPanel({
             // Tocar una talla con algo en almacén: el panel de esa talla, ya en «Colgar en el piso» (Felipe, 2026-10-07).
             onColgarTalla={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" } })}
           />
+          {/* Sin tarjetas a la vista («Piso» o «Almacén» escondió todas) el pie no tiene qué contar: lo dice el vacío de arriba. */}
+          {delLugar.modelos.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
-                {conteo.total} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
+                {conteo.total} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios} · {tallasEnTarjetas} {tallasEnTarjetas === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaTarjetas.pagina} totalPaginas={paginaTarjetas.totalPaginas} onPagina={irAPagina} />
               <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
@@ -989,6 +1054,7 @@ export function InventarioPanel({
               </span>
             )}
           </div>
+          )}
         </div>
       ) : vista === "prenda" ? (
         <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
