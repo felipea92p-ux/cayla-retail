@@ -10,6 +10,7 @@ import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
+import { Chip } from "@/components/ui/Chip";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 
 /** El precio que más se repite (59.9 y 59.90 son el mismo); sin precios, null. */
@@ -120,6 +121,15 @@ export default async function EditarProductoPage({
         <h1 className="font-display mt-1 text-2xl text-tinta">
           {producto.referencia}
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
+          {/* ADR-0371: una insignia, no un aviso con botones (Felipe quitó el aviso el 2026-10-02: «no me sirve»). Se aprueba o se rechaza
+              desde Productos ▸ Por revisar; aquí solo se dice qué es. */}
+          {producto.estadoAlta === "pendiente" && (
+            <span className="ml-3 inline-block align-middle font-sans text-base" title="Alguien la propuso sin editar el catálogo. Quien edita el catálogo la aprueba o la rechaza en Productos ▸ Por revisar.">
+              <Chip tono="ambar" versalitas={false}>
+                Pendiente de revisión
+              </Chip>
+            </span>
+          )}
         </h1>
       </div>
 

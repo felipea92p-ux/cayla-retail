@@ -42,13 +42,12 @@ export function BarraFija({
     <div
       aria-hidden={animada && !visible ? true : undefined}
       inert={animada && !visible ? true : undefined}
-      // `left` también se anima (menú lateral plegable, ADR-0130): sin `sm:transition-[left]` la barra
-      // saltaría al plegar mientras el contenido se desliza. Con `animada` comparte la transición del
-      // `transform` (`sm:transition-[left,transform]`): dos utilidades `transition-*` no se suman solas.
+      // `left` NO se anima al plegar el menú (ADR-0130, 2026-10-10): salta a su lugar junto con el contenido, que
+      // tampoco se anima — ver la nota v3.6 de `AppShell`. Animarlo recalculaba la pantalla en cada cuadro.
       className={`fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:left-lateral ${
         animada
-          ? `sm:transition-[left,transform] ${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida"}`
-          : "sm:transition-[left] sm:duration-300 sm:ease-cayla"
+          ? `${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida"}`
+          : ""
       } ${className}`}
     >
       {medidor}

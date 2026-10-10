@@ -5341,7 +5341,13 @@ export type Database = {
       // Apartados con adelanto (ADR-0166, 20260923090000_separaciones.sql). Escritos a mano con la forma que da
       // `supabase gen types` (esta sesión no pudo levantar el stack): regenerar al pegar la migración en producción.
       buscar_separaciones: {
-        Args: { p_estados?: string[]; p_texto?: string; p_ubicacion_id: string }
+        Args: {
+          p_desde?: string
+          p_estados?: string[]
+          p_hasta?: string
+          p_texto?: string
+          p_ubicacion_id: string
+        }
         Returns: {
           adelanto: number
           asesora: string | null
@@ -7286,6 +7292,32 @@ export type Database = {
           total_productos: number
           variante_codigo: string
           variante_id: string
+        }[]
+      }
+      fn_productos_por_revisar: {
+        Args: { p_desde?: number; p_limite?: number }
+        Returns: {
+          categoria: string | null
+          categoria_familia: string | null
+          categoria_prefijo: string | null
+          codigo: string | null
+          color_hex: string | null
+          colores: string[]
+          creado_en: string
+          marca: string | null
+          ordenes_abiertas: number
+          precio_max: number | null
+          precio_min: number | null
+          producto_id: string
+          propuesto_por_nombre: string | null
+          referencia: string
+          sede: string | null
+          sede_tipo: string | null
+          stock: number
+          tallas: string[]
+          terminal: string | null
+          total: number
+          variantes: number
         }[]
       }
       fn_productos_resumen: {
