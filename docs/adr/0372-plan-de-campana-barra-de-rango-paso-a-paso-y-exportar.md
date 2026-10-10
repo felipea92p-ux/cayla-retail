@@ -75,7 +75,7 @@ Migraciones `20261010190000` (B1), `20261010191000` (B2) y `20261010192000` (B3)
   líder; firma con el responsable; NULL lo quita) y `plan.tope_inversion` en la lectura. El tope **avisa, no bloquea**. La cifra de Inversión lleva su
   barra (`BarraApilada total=`, top 5 + «Otras») y «Poner / Editar el tope» (solo líder). **En producción** (`20261010175004`, huellas `73df8d9b…` de
   `fn_plan_compra` y `e16562ef…` de `guardar_plan_compra_tope`, iguales a local). Antes se ensayó en transacción con rollback.
-- **B3, varias campañas.** Felipe eligió que la campaña NAZCA de una etiqueta (Catálogo ▸ Etiquetas) y que el selector pase entre las existentes.
+- **B3, varias campañas.** Felipe eligió que la campaña nazca de una etiqueta (Catálogo ▸ Etiquetas) y que el selector pase entre las existentes.
   **DECIDÍ** `planes_compra.etiqueta_id` (única por etiqueta) + `crear_plan_compra(etiqueta, nombre, desde, hasta)` (módulo y líder) + `fn_planes_compra()` para el selector.
   **DESCARTÉ** la fecha única literal: «Navidad» en Etiquetas es del 11 al 25 de diciembre (campaña de venta con descuento) y «Diciembre 2026» es del 1 al 31
   (ventana de compra, a propósito: diciembre triplica un mes entero); atarla a la etiqueta movería el plan ya sembrado. El plan arranca con las fechas de la
