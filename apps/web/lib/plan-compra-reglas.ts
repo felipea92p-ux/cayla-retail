@@ -19,6 +19,8 @@
 //            de foco y el botón digan lo mismo que la base); cantidades enteras que suman exacto (resto mayor).
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
+import type { PreparacionSede } from "./motor-demanda-reglas";
+
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
 /** Cuántas unidades vendidas «valen» igual que el reparto parejo al proponer la curva. */
@@ -534,4 +536,38 @@ export function pendientesDelPaso(cola: readonly FilaPlan[], hechas: readonly st
 /** Cuántas de la tanda ya tienen plan (las que ya venían con plan y las guardadas ahora). */
 export function avanceDelPaso(cola: readonly FilaPlan[], hechas: readonly string[] = []): { hechas: number; total: number } {
   return { hechas: cola.filter((f) => !!f.linea || hechas.includes(f.c.id)).length, total: cola.length };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 11. ¿Se le puede creer al «Hay hoy»?
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type SedeStock = {
+  nombre: string;
+  /** El piso se cuadró y el almacén se contó: el stock de esta tienda se puede creer. */
+  alDia: boolean;
+  /** Lo que falta, dicho corto («piso sin cuadrar»), o null si está al día. */
+  falta: string | null;
+};
+
+export type ConfianzaDelStock = {
+  /** `sin-dato`: no se pudo comprobar (la lectura falló o la cuenta no opera ninguna tienda). Nunca se dice «confiable» por omisión. */
+  estado: "confiable" | "incompleto" | "sin-dato";
+  sedes: SedeStock[];
+};
+
+/**
+ * «Comprar = lo que conviene tener − lo que hay hoy»: si el «hay hoy» está incompleto, la compra sale inflada y nadie lo ve. El motor de
+ * demanda (ADR-0346) ya sabe, tienda por tienda, si su piso se cuadró y su almacén se contó; aquí solo se lee esa respuesta. Una
+ * condición que no aparece cuenta como «no se cumple» (nunca se inventa una tienda al día). Solo mira las tiendas: el stock del Taller
+ * no lo verifica el motor.
+ */
+export function confianzaDelStock(lectura: { sedes: readonly Pick<PreparacionSede, "nombre" | "condiciones">[]; falla: string | null }): ConfianzaDelStock {
+  if (lectura.falla !== null || lectura.sedes.length === 0) return { estado: "sin-dato", sedes: [] };
+  const sedes = lectura.sedes.map((s): SedeStock => {
+    const cumple = (clave: "piso_cuadrado" | "almacen_contado") => s.condiciones.find((c) => c.clave === clave)?.cumple === true;
+    const faltan = [cumple("piso_cuadrado") ? null : "piso sin cuadrar", cumple("almacen_contado") ? null : "almacén sin contar"].filter((f): f is string => f !== null);
+    return { nombre: s.nombre, alDia: faltan.length === 0, falta: faltan.length === 0 ? null : faltan.join(" y ") };
+  });
+  return { estado: sedes.every((x) => x.alDia) ? "confiable" : "incompleto", sedes };
 }

@@ -5,10 +5,12 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
+import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
-import { armarFilas, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
+import { armarFilas, confianzaDelStock, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
+import type { LecturaMotor } from "@/lib/motor-demanda";
 import { CalendarDays } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
@@ -18,7 +20,7 @@ import { Vacio } from "@/components/ui/Vacio";
 // verdad al lado. Toda la cuenta vive en lib/plan-compra-reglas.ts (con su prueba); aquí solo se arma la pantalla con sus piezas y se
 // guarda qué filtros están puestos (las cifras y la lista los comparten).
 
-export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla: string | null; familias: FamiliaPlan[] }) {
+export function PlanCampana({ datos, falla, familias, preparacion, puedeContar }: { datos: unknown; falla: string | null; familias: FamiliaPlan[]; preparacion: LecturaMotor; puedeContar: boolean }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
   // Las que se guardaron con «Guardar y seguir» en esta tanda: la lectura del servidor tarda un instante en traerlas y la hoja no debe
@@ -69,6 +71,8 @@ export function PlanCampana({ datos, falla, familias }: { datos: unknown; falla:
           </Chip>
         }
       />
+
+      <AvisoStock confianza={confianzaDelStock(preparacion)} puedeContar={puedeContar} />
 
       <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => setVista("guiado")} />
 

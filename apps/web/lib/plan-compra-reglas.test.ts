@@ -9,6 +9,7 @@ import {
   colaDelPaso,
   comprarPorTalla,
   cuantilCritico,
+  confianzaDelStock,
   conteosDeFiltros,
   cuantilTriangular,
   curvaSugerida,
@@ -459,5 +460,33 @@ describe("el paso a paso: cola, pendientes y avance", () => {
     const sinVentas = armarFilas(leerPlan({ plan: { id: "p", nombre: "x", desde: "2026-12-01", hasta: "2026-12-31" }, hoy: "2026-10-05", categorias: [{ id: "a", nombre: "A", tallas: [] }] })!);
     expect(colaDelPaso(sinVentas, "top")).toEqual([]);
     expect(avanceDelPaso([])).toEqual({ hechas: 0, total: 0 });
+  });
+});
+
+describe("confianzaDelStock: ¿se le puede creer al «Hay hoy»?", () => {
+  const sede = (nombre: string, piso: boolean, almacen: boolean) => ({
+    nombre,
+    condiciones: [
+      { clave: "venta_identificada" as const, titulo: "x", cumple: false, detalle: "", falta: null },
+      { clave: "piso_cuadrado" as const, titulo: "x", cumple: piso, detalle: "", falta: null },
+      { clave: "almacen_contado" as const, titulo: "x", cumple: almacen, detalle: "", falta: null },
+    ],
+  });
+  it("confiable solo si TODAS las tiendas tienen el piso cuadrado y el almacén contado (la venta identificada no cuenta: no es stock)", () => {
+    expect(confianzaDelStock({ sedes: [sede("TRU", true, true), sede("AQP", true, true)], falla: null }).estado).toBe("confiable");
+  });
+  it("incompleto si a una le falta algo, y dice qué en palabras de tienda", () => {
+    const c = confianzaDelStock({ sedes: [sede("TRU", true, true), sede("AQP", false, true), sede("LIM", false, false)], falla: null });
+    expect(c.estado).toBe("incompleto");
+    expect(c.sedes.map((x) => [x.nombre, x.alDia, x.falta])).toEqual([["TRU", true, null], ["AQP", false, "piso sin cuadrar"], ["LIM", false, "piso sin cuadrar y almacén sin contar"]]);
+  });
+  it("si la lectura falló o no hay ninguna tienda, no hay dato: nunca «confiable» por omisión", () => {
+    expect(confianzaDelStock({ sedes: [sede("TRU", true, true)], falla: "No se pudo leer" })).toEqual({ estado: "sin-dato", sedes: [] });
+    expect(confianzaDelStock({ sedes: [], falla: null })).toEqual({ estado: "sin-dato", sedes: [] });
+  });
+  it("una condición que falta en la respuesta cuenta como no cumplida", () => {
+    const c = confianzaDelStock({ sedes: [{ nombre: "TRU", condiciones: [] }], falla: null });
+    expect(c.estado).toBe("incompleto");
+    expect(c.sedes[0].falta).toBe("piso sin cuadrar y almacén sin contar");
   });
 });
