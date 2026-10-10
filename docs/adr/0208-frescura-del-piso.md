@@ -3465,7 +3465,8 @@ como se vería un lunes») ya era casi lo que Felipe pide.
    Tienda/CAYLA.
 5. **La meta es contra su mes anterior:** la frase dice si el piso está más fresco o más viejo que hace 4 semanas. Descartó por ahora los
    estrenos por semana y un % fijo.
-6. **Tres palabras: Fresca · Vigente · Envejeciendo**, en la barra y en la fila (más «Sin fecha», siempre a la vista). Fresca: todavía no
+6. **Tres palabras: Fresca · Vigente · Envejeciendo**, en la barra y en la fila (más «Aún no se sabe» —sin fecha o sin ritmo
+   todavía—, siempre a la vista; es el gris que la pantalla ya usaba). Fresca: todavía no
    llega a P50 de su categoría; Vigente: entre P50 y P75; Envejeciendo: pasó P75 (más allá de P90 es la parte más oscura de la misma
    barra). «Hay que moverla» deja de ser un estado y pasa a ser la acción de la fila («Cámbiala de lugar»). Reemplaza los nombres del
    2026-10-05 («Recién llegada · En su tiempo · Se está quedando · Hay que moverla»). Si en `/formidable` «Vigente» no se entiende, se
@@ -3508,3 +3509,14 @@ del mes) · 2 la barra por familia y sus puertas · 3 contra el mes anterior · 
 con el mismo idioma y «Por decidir» con evidencia · 7 CAYLA Global ▸ Frescura · 8 cierre. Fuera de esta ronda (con migración y OK de
 Felipe): la foto diaria (tendencia larga y un gerente que no es líder en CAYLA Global), el aviso al Taller y el ciclo de visita medido con
 el club.
+
+**Construido (actividad 2, 2026-10-10): la barra de la tienda.** `lib/frescura-piso.ts` (puro, `frescura-piso.test.ts`) reparte cada
+unidad colgada con la regla de los dos relojes (`tramosDeLaPrenda`: una tanda con 20 días y dos repuestas ayer pintan 1 Envejeciendo y 2
+Vigentes), por familia (`pisoPorFamilia`, en el orden de `familias.orden`: Indumentaria arriba), con los soles a precio de venta en la
+sede (`variantes.precio` con el propio de `fn_precios_en_sede` encima; si a una unidad le falta el precio, la familia no dice soles). El
+tablero por categoría cuenta igual y suma exactamente la barra (lo prueba con la salida real de la base); pasa a llamarse «Por categoría».
+La frase de la cabecera es «¿Tu piso está fresco?» con su respuesta (`respuestaDelPiso`): afirma solo si la tienda pasa la puerta del
+motor (`fn_motor_demanda_preparacion` + `avisoDatosDeHoy`, la misma de Análisis) y lo que no se sabe es menos de 1 de cada 5. Sale la
+cabecera de dos cifras («prendas colgadas», «unidades en el piso»): lo dice la tarjeta. **Pasó a la actividad 4:** «lo que se lleva la
+gente» desde lo anotado en caja (es una señal por categoría, como la acogida).
+

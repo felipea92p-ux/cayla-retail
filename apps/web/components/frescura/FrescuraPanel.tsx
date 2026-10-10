@@ -1,11 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Info, Layers, Search, Shirt, X } from "lucide-react";
+import { ChevronDown, Info, Search, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { ResumenSede } from "@/components/ui/ResumenSede";
 import {
   FILTROS_ESTADO,
   SIN_FILTROS,
@@ -49,6 +48,8 @@ import { FrescuraComoSeLee } from "./FrescuraComoSeLee";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTablero } from "./FrescuraTablero";
+import { FrescuraPiso } from "./FrescuraPiso";
+import { pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
@@ -106,6 +107,19 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
   // El tablero por categoría (nivel 1): se arma con TODAS las prendas de la tabla, no con las filtradas, para que no cambie al tocarlo.
   const tablero = useMemo(() => (ctx ? tableroVista(enTabla, ctx) : []), [enTabla, ctx]);
+  // La tienda de un vistazo (ADR-0208, act. 2026-10-10 (b)): una barra por familia, con todo lo colgado (no solo lo de la tabla filtrada).
+  const piso = useMemo(
+    () =>
+      sede
+        ? pisoPorFamilia(sede.prendas, {
+            familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null,
+            familias: datos.familias,
+            precioDe: (v) => datos.precios[v] ?? null,
+          })
+        : [],
+    [sede, datos.categoriasVisuales, datos.familias, datos.precios],
+  );
+  const respuesta = sede ? respuestaDelPiso(piso[0] ?? null, datos.puerta) : null;
   // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
   const sinTemporada = textoSinTemporada(enTabla);
   // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
@@ -226,16 +240,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       </p>
     ) : undefined;
 
-  // Dos datos neutros. «Por decidir» NO es una cifra aparte: lo dice la frase de arriba y lo filtra la píldora de abajo (una sola vez).
-  const resumen = cifras && (
-    <ResumenSede
-      sede={datos.sede.nombre}
-      cifras={[
-        { valor: enTabla.length, etiqueta: enTabla.length === 1 ? "prenda colgada" : "prendas colgadas", icono: Shirt },
-        { valor: cifras.unidades, etiqueta: `${cifras.unidades === 1 ? "unidad" : "unidades"} en el piso`, icono: Layers },
-      ]}
-    />
-  );
 
   // «¿Cómo se lee esto?» va junto al título del tablero (cabía de milagro en la fila de filtros: a 1440 caía solo a una segunda
   // línea y costaba 38 px de pantalla); sin tablero (nada colgado), vuelve a la fila de filtros.
@@ -254,9 +258,10 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(cifras ? cifras.porDecidir : null, avisoPocas !== null)} />} pie={pieCabecera}>
-        {resumen}
-      </EncabezadoPagina>
+      {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
+      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} pie={pieCabecera} />
+
+      {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} />}
 
       <section aria-label="Prendas por categoría" className="card-cayla overflow-hidden" data-resultados>
         {!sede ? (

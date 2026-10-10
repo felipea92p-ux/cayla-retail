@@ -1410,7 +1410,7 @@ describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas c
     const ap = prendaDe(sede, "apartada");
     const libre = prendaDe(sede, "libre");
     expect(ap).toMatchObject({ pisoHoy: 0, apartadasHoy: 3, reloj: { segundos: 10 * D, alMenos: false } });
-    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3 }]);
+    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3, colgadas: [] }]);
     expect(ap.estado).toMatchObject({ quieta: false, sugerencias: [] });
     expect(libre.reloj.segundos).toBe(60 * D);
     expect(libre.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });

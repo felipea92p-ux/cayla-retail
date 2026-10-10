@@ -14,6 +14,7 @@ import {
   detalleVista,
   diasDe,
   enLaTabla,
+  TRAMOS_BARRA,
   estadoVista,
   fechaCorta,
   filaVista,
@@ -62,6 +63,7 @@ import {
   type FrescuraSede,
   type VaraCategoria,
 } from "./frescura-reglas";
+import { pisoPorFamilia, respuestaDelPiso } from "./frescura-piso";
 
 // Frescura del piso, paso 4 (ADR-0208): lo que DICE la pantalla. Las reglas (qué estado tiene cada prenda) las prueban
 // `frescura-reglas.test.ts` y `frescura-contrato.test.ts`; aquí se prueba que la pantalla diga lo que Felipe eligió en la
@@ -136,8 +138,8 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     categoriaId: "blu",
     categoriaNombre: "Blusas",
     tallas: [
-      { varianteId: "v-s", talla: "S", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0 },
-      { varianteId: "v-m", talla: "M", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0 },
+      { varianteId: "v-s", talla: "S", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [{ segundos: 61 * DIA, unidades: 1, edadDesconocida: false }] },
+      { varianteId: "v-m", talla: "M", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [{ segundos: 61 * DIA, unidades: 1, edadDesconocida: false }] },
     ],
     pisoHoy: 2,
     almacenHoy: 4,
@@ -175,7 +177,13 @@ const CTX_LIDER = { ...CTX_REAL, cayla: new Map(SEDE.categorias.map((c) => [c.ca
 
 /** Todo lo que la pantalla puede escribir de la sede real: filas, cabeceras y hojas de detalle. */
 function todoElTexto(c: ContextoFrescura): string {
-  const partes: string[] = [fraseEncabezado(null), fraseEncabezado(0), fraseEncabezado(1), fraseEncabezado(5), FRASE_SIN_ELLA];
+  const piso = pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0] ?? null;
+  const partes: string[] = [
+    fraseEncabezado(null),
+    fraseEncabezado(respuestaDelPiso(piso, { puedeHablar: true, aviso: "" })),
+    fraseEncabezado(respuestaDelPiso(piso, { puedeHablar: false, aviso: "" })),
+    FRASE_SIN_ELLA,
+  ];
   for (const p of SEDE.prendas) {
     partes.push(JSON.stringify(filaVista(p, c)), JSON.stringify(detalleVista(p, c)));
   }
@@ -854,14 +862,15 @@ describe("Formidable (ADR-0350) · una fila, una prenda, una frase", () => {
 });
 
 describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", () => {
-  it("la frase bajo el título es la PREGUNTA y su respuesta de hoy, con el número una sola vez", () => {
-    expect(fraseEncabezado(null)).toBe("¿Qué lleva mucho tiempo colgado?");
-    expect(fraseEncabezado(0)).toBe("¿Qué lleva mucho tiempo colgado? **Nada por decidir: todo en orden.**");
-    // Con pocas ventas no se promete «todo en orden»: nada puede salir por decidir todavía (no hay con qué juzgar).
-    expect(fraseEncabezado(0, true)).toBe("¿Qué lleva mucho tiempo colgado? **Nada por decidir por ahora.**");
-    expect(fraseEncabezado(3, true)).toBe(fraseEncabezado(3));
-    expect(fraseEncabezado(1)).toBe("¿Qué lleva mucho tiempo colgado? **1 prenda espera tu decisión.**");
-    expect(fraseEncabezado(5)).toBe("¿Qué lleva mucho tiempo colgado? **5 prendas esperan tu decisión.**");
+  it("la frase bajo el título es la PREGUNTA de Felipe y su respuesta de hoy (ADR-0208, act. 2026-10-10 (b))", () => {
+    expect(fraseEncabezado(null)).toBe("¿Tu piso está fresco?");
+    expect(fraseEncabezado({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true })).toBe(
+      "¿Tu piso está fresco? **58 de cada 100 prendas colgadas están frescas.**",
+    );
+    // Sin la puerta (la tienda no registra lo que vende), la respuesta es un «todavía no», nunca un porcentaje.
+    expect(fraseEncabezado(respuestaDelPiso(pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0] ?? null, null))).toBe(
+      "¿Tu piso está fresco? **Todavía no se puede saber.**",
+    );
   });
 
   it("de entrada, lo por decidir va PRIMERO; cualquier filtro o «Ver todas» suelta el resto", () => {
@@ -912,23 +921,34 @@ describe("Formidable (ADR-0350) · lo aproximado se dice UNA vez cuando es la re
 describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () => {
   const sem = (tramo: "nueva" | "vigente" | "envejecida" | "critica", quieta = false) => ({ ...ESTADO_BASE, tipo: "semaforo" as const, tramo, alMenos: false, quieta, sugerencias: [] });
 
-  it("una fila por categoría: unidades colgadas por tramo, prendas, por decidir y la vara; primero lo que más se queda o hay que mover", () => {
+  /** Una prenda con `n` unidades colgadas hace `dias` días (una talla, una tanda), coherente con lo que cuenta la barra. */
+  const colgada = (n: number, dias: number, o: Partial<FrescuraPrenda>) =>
+    prenda({
+      ...o,
+      pisoHoy: n,
+      reloj: { segundos: dias * DIA, alMenos: false },
+      relojUnidad: { segundos: dias * DIA, alMenos: false },
+      tallas: [{ varianteId: `${o.clave ?? "prod-1"}-m`, talla: "M", pisoHoy: n, almacenHoy: 0, apartadasHoy: o.apartadasHoy ?? 0, apartadasPisoHoy: o.apartadasPisoHoy ?? 0, colgadas: n > 0 ? [{ segundos: dias * DIA, unidades: n, edadDesconocida: false }] : [] }],
+    });
+
+  it("una fila por categoría: unidades colgadas por tramo, prendas, por decidir y la vara; primero lo que más se queda", () => {
     const c = ctx({ categorias: new Map([["blu", vara("blu")], ["cap", vara("cap", { categoriaNombre: "Capas", nivel: "pocos_datos", vendidas: 3 })]]) });
+    // Sus cortes sin ella: P50 18 días, P75 33, P90 51.
     const filas = tableroVista(
       [
-        prenda({ categoriaId: "blu", categoriaNombre: "Blusas", pisoHoy: 4, estado: sem("nueva"), porDecidir: false }),
-        prenda({ clave: "b2", categoriaId: "blu", categoriaNombre: "Blusas", pisoHoy: 2, estado: sem("critica", true), porDecidir: true }),
+        colgada(4, 10, { categoriaId: "blu", categoriaNombre: "Blusas", estado: sem("nueva"), porDecidir: false }),
+        colgada(2, 60, { clave: "b2", categoriaId: "blu", categoriaNombre: "Blusas", estado: sem("critica", true), porDecidir: true }),
         // Sin nada colgado: no suma unidades ni prendas (una apartada entera sigue en la tabla, pero no en la barra).
-        prenda({ clave: "b3", categoriaId: "blu", categoriaNombre: "Blusas", pisoHoy: 0, estado: sem("vigente"), porDecidir: false }),
+        colgada(0, 20, { clave: "b3", categoriaId: "blu", categoriaNombre: "Blusas", estado: sem("vigente"), porDecidir: false }),
         // Una categoría con todo apartado (nada colgado) no tiene fila: el tablero cuenta lo que cuelga.
-        prenda({ clave: "a1", categoriaId: "apa", categoriaNombre: "Apartadas", pisoHoy: 0, apartadasHoy: 1, apartadasPisoHoy: 1, estado: sem("vigente"), porDecidir: false }),
-        prenda({ clave: "c1", categoriaId: "cap", categoriaNombre: "Capas", pisoHoy: 3, estado: sem("envejecida", true), porDecidir: true }),
-        prenda({ clave: "c2", categoriaId: "cap", categoriaNombre: "Capas", pisoHoy: 1, estado: { ...ESTADO_BASE, tipo: "sin_vara" }, porDecidir: false }),
-        prenda({ clave: "c3", categoriaId: "cap", categoriaNombre: "Capas", pisoHoy: 2, estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false }, porDecidir: false }),
+        colgada(0, 20, { clave: "a1", categoriaId: "apa", categoriaNombre: "Apartadas", apartadasHoy: 1, apartadasPisoHoy: 1, estado: sem("vigente"), porDecidir: false }),
+        colgada(3, 40, { clave: "c1", categoriaId: "cap", categoriaNombre: "Capas", estado: sem("envejecida", true), porDecidir: true }),
+        colgada(1, 40, { clave: "c2", categoriaId: "cap", categoriaNombre: "Capas", estado: { ...ESTADO_BASE, tipo: "sin_vara" }, categoriaSinElla: null, porDecidir: false }),
+        colgada(2, 40, { clave: "c3", categoriaId: "cap", categoriaNombre: "Capas", estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false }, categoriaSinElla: null, porDecidir: false }),
       ],
       c,
     );
-    // Capas: 3 unidades viejas; Blusas: 2.
+    // Capas: 3 unidades que se quedan; Blusas: 2.
     expect(filas.map((f) => f.nombre)).toEqual(["Capas", "Blusas"]);
     expect(filas[1]).toMatchObject({
       categoriaId: "blu",
@@ -936,18 +956,37 @@ describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () =>
       prendas: 2,
       porDecidir: 1,
       viejas: 2,
-      unidades: { nueva: 4, vigente: 0, envejecida: 0, critica: 2, sin_saber: 0, clasico: 0 },
+      unidades: { fresca: 4, vigente: 0, envejeciendo: 2, sin_saber: 0, clasico: 0 },
       // Vara sólida: no se dice (la regla se calla, la excepción se marca; Felipe 2026-10-09).
       vara: null,
     });
-    expect(filas[0]).toMatchObject({ total: 6, prendas: 3, porDecidir: 1, viejas: 3, unidades: { envejecida: 3, sin_saber: 1, clasico: 2 }, vara: { texto: "Pocas ventas: aproximado", tono: "ambar" } });
-    // Los segmentos de la barra: solo los tramos con unidades, en el orden de la barra.
+    expect(filas[0]).toMatchObject({ total: 6, prendas: 3, porDecidir: 1, viejas: 3, unidades: { envejeciendo: 3, sin_saber: 1, clasico: 2 }, vara: { texto: "Pocas ventas: aproximado", tono: "ambar" } });
+    // Los segmentos de la barra: solo los tramos con unidades, en el orden de la barra y con las palabras de la tienda.
     expect(segmentosDe(filas[1]).map((s) => [s.clave, s.valor])).toEqual([
-      ["nueva", 4],
-      ["critica", 2],
+      ["fresca", 4],
+      ["envejeciendo", 2],
     ]);
-    expect(segmentosDe(filas[0]).map((s) => s.nombre)).toEqual(["Se está quedando", "Aún no se sabe", "Clásico"]);
+    expect(segmentosDe(filas[0]).map((s) => s.nombre)).toEqual(["Envejeciendo", "Aún no se sabe", "Clásico"]);
     expect(tableroVista([], c)).toEqual([]);
+  });
+
+  it("cuenta unidad por unidad: un modelo con una unidad vieja y dos repuestas ayer pinta 1 Envejeciendo y 2 Vigentes", () => {
+    const c = ctx();
+    const repuesto = prenda({
+      pisoHoy: 3,
+      reloj: { segundos: 70 * DIA, alMenos: false },
+      relojUnidad: { segundos: 40 * DIA, alMenos: false },
+      tallas: [{ varianteId: "v-m", talla: "M", pisoHoy: 3, almacenHoy: 0, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [{ segundos: 40 * DIA, unidades: 1, edadDesconocida: false }, { segundos: 1 * DIA, unidades: 2, edadDesconocida: false }] }],
+      estado: sem("envejecida"),
+    });
+    expect(tableroVista([repuesto], c)[0].unidades).toMatchObject({ envejeciendo: 1, vigente: 2 });
+  });
+
+  it("con la salida real de la base, las categorías suman exactamente la barra de la tienda", () => {
+    const filas = tableroVista(SEDE.prendas.filter(enLaTabla), CTX_REAL);
+    const tienda = pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0];
+    for (const t of TRAMOS_BARRA) expect(filas.reduce((s, f) => s + f.unidades[t], 0)).toBe(tienda.unidades[t]);
+    expect(filas.reduce((s, f) => s + f.total, 0)).toBe(SEDE.cifras.unidadesEnPiso);
   });
 
   it("la vara, solo cuando es la excepción (Felipe 2026-10-09): contra CAYLA, pocas ventas o ninguna; sólida o aceptable, nada", () => {
@@ -1012,8 +1051,11 @@ describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () =>
     expect(accionDeFila(con(["cambiar_lugar"]), c, true)).toBeNull();
   });
 
-  it("tramoBarraDe: el semáforo manda; el clásico va aparte; lo demás, «aún no se sabe»", () => {
+  it("tramoBarraDe: el semáforo manda, en las palabras de la tienda; el clásico va aparte; lo demás, «aún no se sabe»", () => {
+    expect(tramoBarraDe(prenda({ estado: sem("nueva") }))).toBe("fresca");
     expect(tramoBarraDe(prenda({ estado: sem("vigente") }))).toBe("vigente");
+    expect(tramoBarraDe(prenda({ estado: sem("envejecida") }))).toBe("envejeciendo");
+    expect(tramoBarraDe(prenda({ estado: sem("critica") }))).toBe("envejeciendo");
     expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: true } }))).toBe("clasico");
     for (const tipo of ["sin_vara", "sin_ventas_sede", "sin_edad_conocida", "dudosa"] as const) {
       expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo } }))).toBe("sin_saber");

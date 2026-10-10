@@ -1438,7 +1438,17 @@ export type FrescuraPrenda = {
   colorNombre: string | null;
   categoriaId: string;
   categoriaNombre: string;
-  tallas: { varianteId: string; talla: string | null; pisoHoy: number; almacenHoy: number; apartadasHoy: number; apartadasPisoHoy: number }[];
+  tallas: {
+    varianteId: string;
+    talla: string | null;
+    pisoHoy: number;
+    almacenHoy: number;
+    apartadasHoy: number;
+    apartadasPisoHoy: number;
+    /** Lo colgado hoy de esta talla, cada tanda con sus segundos (`colgadasDe`): lo que cuenta la barra del piso, unidad por
+     *  unidad (ADR-0208, act. 2026-10-10 (b)). Vacío para la clásica y la que no cuadra, que no se juzgan. */
+    colgadas: UnidadColgada[];
+  }[];
   /** Lo libre en el piso y en el almacén (sin lo apartado: R7-1). */
   pisoHoy: number;
   almacenHoy: number;
@@ -1728,12 +1738,11 @@ export function analizarSede(
     const varaDelMes = usaMes && varaMes !== null && medibles.length > 0;
     // El reloj de su unidad más vieja colgada: el FIFO de los eventos ya limpios (los mismos de la vara). La clásica y la que no
     // cuadra no tienen eventos limpios: no se juzgan, su reloj de unidad queda en 0.
-    const relojUnidad = relojDeLaUnidad(
-      tallas.flatMap((t) => {
-        const eventos = limpiosPorVariante.get(t.varianteId);
-        return eventos ? colgadasDe(eventos, l.ahora) : [];
-      }),
-    );
+    const colgadasPorTalla = tallas.map((t) => {
+      const eventos = limpiosPorVariante.get(t.varianteId);
+      return eventos ? colgadasDe(eventos, l.ahora) : [];
+    });
+    const relojUnidad = relojDeLaUnidad(colgadasPorTalla.flat());
     let resto: MedidaContraElResto | null = null;
     if (varaDelMes) {
       // Contra la vara del mes, sus propias unidades se restan como estaban EN EL CORTE (las mismas con que entran a esa curva);
@@ -1802,13 +1811,14 @@ export function analizarSede(
       colorNombre: f.colorNombre,
       categoriaId: cat,
       categoriaNombre,
-      tallas: tallas.map((t) => ({
+      tallas: tallas.map((t, k) => ({
         varianteId: t.varianteId,
         talla: t.talla,
         pisoHoy: t.pisoHoy,
         almacenHoy: t.almacenHoy,
         apartadasHoy: t.apartadasHoy,
         apartadasPisoHoy: t.apartadasPisoHoy,
+        colgadas: colgadasPorTalla[k],
       })),
       pisoHoy,
       almacenHoy,

@@ -1,6 +1,7 @@
 import type { TonoChip } from "@/components/ui/Chip";
 import { clave as claveBusqueda } from "./buscar-prenda-v2";
 import type { AccionDecision } from "./frescura-decisiones-reglas";
+import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, PREGUNTA_PISO, TRAMOS_PISO, tramosDeLaPrenda, type RespuestaPiso, type TramoPiso } from "./frescura-piso";
 import {
   DIAS_CALLADA,
   ESPERADAS_PARA_DECIDIR,
@@ -66,16 +67,13 @@ export const FRASE_SIN_ELLA =
 
 /**
  * La frase bajo el título (Formidable, ADR-0350, leyes 1 y 2): la PREGUNTA que resuelve la pantalla y, enseguida, su respuesta de
- * hoy. El título sigue siendo el nombre del menú (ADR-0220); la pregunta va en la frase. Una sola vez: «N prendas esperan tu
- * decisión» no se repite en una cifra aparte. Con negritas (`TextoRico`).
+ * hoy. Desde ADR-0208, act. 2026-10-10 (b), la pregunta es la de Felipe —«¿tu piso está fresco?»— y la responde la barra de la tienda
+ * (`respuestaDelPiso`); lo que espera decisión lo dicen la franja y la píldora de la lista, una sola vez. El título sigue siendo el
+ * nombre del menú (ADR-0220). Con negritas (`TextoRico`).
  */
-export function fraseEncabezado(porDecidir: number | null, conPocasVentas = false): TextoRico {
-  const pregunta = "¿Qué lleva mucho tiempo colgado?";
-  if (porDecidir === null) return pregunta;
-  // «Todo en orden» es una afirmación: con pocas ventas nada puede salir «por decidir» todavía (no hay con qué juzgar), así que
-  // solo se dice «por ahora». Lo vio la pantalla real de Tienda Lima, que decía «todo en orden» junto a «hay pocas ventas».
-  if (porDecidir === 0) return `${pregunta} **${conPocasVentas ? "Nada por decidir por ahora." : "Nada por decidir: todo en orden."}**`;
-  return `${pregunta} **${porDecidir} ${porDecidir === 1 ? "prenda espera" : "prendas esperan"} tu decisión.**`;
+export function fraseEncabezado(r: RespuestaPiso | null): TextoRico {
+  if (r === null) return PREGUNTA_PISO;
+  return `${r.pregunta} **${r.respuesta}**`;
 }
 
 /** Qué pueden abrir los botones del detalle: cada uno solo si el rol ve esa pantalla (ADR-0161; ningún botón termina en «Sin acceso»). */
@@ -1222,19 +1220,16 @@ export function trozosRicos(t: TextoRico): { texto: string; negrita: boolean }[]
 // esperan decisión y con qué vara se juzgó. Es el tablero del líder (semanal) y el mapa de la encargada: tocar una fila deja en la
 // lista de abajo solo esa categoría. Lo primero es lo que más pide decidir: se ordena por unidades que se quedan o hay que mover.
 
-/** Los tramos de la barra, en el orden en que se dibujan; al final, lo que el semáforo no juzga. */
-export type TramoBarra = Tramo | "sin_saber" | "clasico";
-export const TRAMOS_BARRA: readonly TramoBarra[] = ["nueva", "vigente", "envejecida", "critica", "sin_saber", "clasico"];
-export const NOMBRE_TRAMO_BARRA: Record<TramoBarra, string> = { ...NOMBRE_TRAMO, sin_saber: "Aún no se sabe", clasico: "Clásico" };
-/** El color de cada tramo en la barra: los colores A de los chips (verde · neutro · ámbar · tinta), nunca rojo. */
-export const CLASE_TRAMO_BARRA: Record<TramoBarra, string> = {
-  nueva: "bg-verde",
-  vigente: "bg-tinta/25",
-  envejecida: "bg-ambar",
-  critica: "bg-tinta",
-  sin_saber: "bg-taupe/35",
-  clasico: "bg-pizarra/60",
-};
+/**
+ * Los tramos de la barra: los MISMOS de la barra de la tienda (`frescura-piso.ts`, ADR-0208, act. 2026-10-10 (b)): Fresca · Vigente ·
+ * Envejeciendo, lo que aún no se sabe y los clásicos aparte. Cada categoría cuenta sus unidades una por una con la misma regla, así
+ * que las filas del tablero suman exactamente la barra de la tienda.
+ */
+export type TramoBarra = TramoPiso;
+export const TRAMOS_BARRA: readonly TramoBarra[] = TRAMOS_PISO;
+export const NOMBRE_TRAMO_BARRA: Record<TramoBarra, string> = NOMBRE_TRAMO_PISO;
+/** El color de cada tramo en la barra: verde · neutro · ámbar, nunca rojo (los colores A); lo que no se sabe, apagado. */
+export const CLASE_TRAMO_BARRA: Record<TramoBarra, string> = CLASE_TRAMO_PISO;
 
 /**
  * Con qué vara se juzgó la categoría, dicho SOLO cuando es la excepción (Felipe, Formidable 2026-10-09: la regla se calla y la
@@ -1266,9 +1261,10 @@ export type FilaTablero = {
   vara: VaraTablero | null;
 };
 
-/** El tramo de una prenda en la barra: el del semáforo; el clásico aparte; lo demás (sin referencia, sin edad, dudosa) «aún no se sabe». */
+/** El tramo de la PRENDA (por su unidad más vieja) en las palabras de la barra: Envejecida y Crítica son Envejeciendo; el clásico aparte;
+ *  lo demás (sin referencia, sin edad, dudosa) «aún no se sabe». La barra cuenta unidad por unidad (`tramosDeLaPrenda`). */
 export function tramoBarraDe(p: FrescuraPrenda): TramoBarra {
-  if (p.estado.tipo === "semaforo") return p.estado.tramo;
+  if (p.estado.tipo === "semaforo") return p.estado.tramo === "nueva" ? "fresca" : p.estado.tramo === "vigente" ? "vigente" : "envejeciendo";
   if (p.estado.tipo === "clasico") return "clasico";
   return "sin_saber";
 }
@@ -1284,7 +1280,7 @@ export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFr
       ({
         categoriaId: p.categoriaId,
         nombre: p.categoriaNombre,
-        unidades: { nueva: 0, vigente: 0, envejecida: 0, critica: 0, sin_saber: 0, clasico: 0 },
+        unidades: { fresca: 0, vigente: 0, envejeciendo: 0, sin_saber: 0, clasico: 0 },
         total: 0,
         prendas: 0,
         porDecidir: 0,
@@ -1293,11 +1289,14 @@ export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFr
       } satisfies FilaTablero);
     filas.set(p.categoriaId, fila);
     if (p.porDecidir) fila.porDecidir++;
-    const tramo = tramoBarraDe(p);
-    fila.unidades[tramo] += p.pisoHoy;
-    fila.total += p.pisoHoy;
+    // Unidad por unidad, con la regla de la barra de la tienda: el modelo con una unidad vieja y dos repuestas pinta 1 y 2.
+    const { unidades } = tramosDeLaPrenda(p);
+    for (const t of TRAMOS_BARRA) {
+      fila.unidades[t] += unidades[t];
+      fila.total += unidades[t];
+    }
     fila.prendas++;
-    if (tramo === "envejecida" || tramo === "critica") fila.viejas += p.pisoHoy;
+    fila.viejas += unidades.envejeciendo;
   }
   return [...filas.values()].sort((a, b) => b.viejas - a.viejas || b.porDecidir - a.porDecidir || a.nombre.localeCompare(b.nombre, "es"));
 }
