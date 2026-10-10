@@ -545,6 +545,10 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
     expect(f).toContain("useSalidaSinGuardar");
     expect(f).toContain('<Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)}');
     expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
+    // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».
+    const foto = /fotoFormulario\(\{([^}]*)\}\)/.exec(f)?.[1] ?? "";
+    for (const ligero of ["tipo", "modoModelo", "productoId"]) expect(foto, ligero).not.toContain(ligero);
+    for (const trabajo of ["nombreNuevo", "precioNuevo", "cantidades", "tela", "avios", "maquila", "tallasNuevas", "coloresNuevos"]) expect(foto, trabajo).toContain(trabajo);
     expect(f).toContain("{avisoSalida.aviso}");
     // Los dos caminos de guardar (modelo nuevo y modelo que ya existe) cierran por la misma función, que retira la guardia ANTES de cerrar y de refrescar.
     expect([...f.matchAll(/avisoSalida\.retirarYa\(\)/g)].length).toBe(1);
