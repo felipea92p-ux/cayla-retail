@@ -21,6 +21,7 @@ import {
   cifrasDe,
   codigoDeLiquidacion,
   diasALaVenta,
+  tiempoALaVenta,
   fechaLima,
   filtrar,
   piezaLeidaDeJson,
@@ -29,7 +30,8 @@ import {
   type PiezaLiquidacion,
 } from "@/lib/liquidacion-reglas";
 
-const PLANTILLA = "sm:grid-cols-[minmax(0,1.6fr)_7rem_7rem_8rem_7rem]";
+// El código se esconde bajo 1024 px: angosto, la pieza (su categoría) es lo que tiene que leerse entero.
+const PLANTILLA = "sm:grid-cols-[minmax(0,1fr)_6.5rem_5.5rem_7rem] lg:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_5.5rem_7rem]";
 const FILTROS: { valor: Filtro; texto: string }[] = [
   { valor: "disponibles", texto: "A la venta" },
   { valor: "vendidas", texto: "Vendidas" },
@@ -208,7 +210,7 @@ export function LiquidacionPantalla({
               plantilla={PLANTILLA}
               columnas={[
                 { titulo: "Pieza" },
-                { titulo: "Código" },
+                { titulo: "Código", desdeLg: true },
                 { titulo: "Precio", alinear: "der" },
                 { titulo: filtro === "disponibles" ? "A la venta" : filtro === "vendidas" ? "Vendida" : "Retirada" },
                 { titulo: "Estado", alinear: "der" },
@@ -227,14 +229,14 @@ export function LiquidacionPantalla({
                   </span>
                   <span className="truncate font-medium text-tinta">{p.categoria}</span>
                 </span>
-                <span className="font-mono text-[13px] text-taupe">{p.codigo ?? "—"}</span>
+                <span className="hidden font-mono text-[13px] text-taupe lg:block">{p.codigo ?? "—"}</span>
                 <span className="text-right tabular-nums text-tinta">
                   {p.precioInicial > p.precio && <span className="liq-tachado mr-2 text-[12px]">{soles(p.precioInicial)}</span>}
                   S/ {soles(p.precio)}
                 </span>
                 <span className="text-[13px] text-taupe">
                   {p.estado === "disponible"
-                    ? `${diasALaVenta(p, hoy)} días`
+                    ? tiempoALaVenta(diasALaVenta(p, hoy))
                     : (fechaLima(p.estado === "vendida" ? p.vendidaEn : p.retiradaEn) ?? "—")}
                 </span>
                 <span className="text-right">

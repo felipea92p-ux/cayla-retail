@@ -3,6 +3,7 @@ import {
   cifrasDe,
   codigoDeLiquidacion,
   diasALaVenta,
+  tiempoALaVenta,
   errorDeLiquidacion,
   fechaLima,
   filtrar,
@@ -107,6 +108,7 @@ describe("las cifras", () => {
   it("las fechas son de Lima", () => {
     expect(fechaLima("2026-10-01T03:00:00Z")).toBe("2026-09-30");
     expect(diasALaVenta(pieza({ creadoEn: "2026-10-01T15:00:00Z" }), "2026-10-10")).toBe(9);
+    expect([0, 1, 9].map(tiempoALaVenta)).toEqual(["desde hoy", "1 día", "9 días"]);
   });
 });
 

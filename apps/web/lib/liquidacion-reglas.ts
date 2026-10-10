@@ -150,6 +150,11 @@ export function fechaLima(iso: string | null): string | null {
   return new Date(t - 5 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
+/** «hoy», «1 día», «12 días»: cuánto lleva a la venta, dicho como en la tienda. */
+export function tiempoALaVenta(dias: number): string {
+  return dias <= 0 ? "desde hoy" : dias === 1 ? "1 día" : `${dias} días`;
+}
+
 /** Cuántos días lleva a la venta una pieza disponible (desde su primera etiqueta). */
 export function diasALaVenta(p: PiezaLiquidacion, hoy: string): number {
   const desde = fechaLima(p.creadoEn);

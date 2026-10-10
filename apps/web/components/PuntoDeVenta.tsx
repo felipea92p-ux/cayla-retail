@@ -1303,6 +1303,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setQ("");
       setActivo(0);
       if (accion.tipo === "no-encontrada") {
+        // ADR-0371: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
+        const liquidacion = codigoDeLiquidacion(accion.texto);
+        if (liquidacion) {
+          void agregarPiezaLiquidacion(liquidacion);
+          return;
+        }
         setAviso(`No encontramos «${accion.texto}» en ${ubicacionEtiqueta}.`);
         return;
       }

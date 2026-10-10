@@ -17,7 +17,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeCambiarPrecio, camposDeRetirar } from "@/lib/liquidacion-guia";
-import { diasALaVenta, errorDeLiquidacion, fechaLima, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
+import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, fechaLima, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
 
 type Modo = "ver" | "precio" | "retirar";
 
@@ -100,7 +100,7 @@ export function PiezaLiquidacionModal({
     setRebajadaDe(antes);
     setPrecio("");
     setModo("ver");
-    avisar.exito("Precio cambiado", { detalle: `Ahora cuesta S/ ${soles(nueva.precio)}. Imprime la etiqueta nueva y quita la vieja: ya no se cobra.` });
+    avisar.exito("Precio cambiado", { detalle: `Ahora cuesta S/ ${soles(nueva.precio)}.` });
   }
 
   async function retirar(e: React.FormEvent) {
@@ -118,7 +118,7 @@ export function PiezaLiquidacionModal({
       ? `Se vendió el ${fechaLima(pieza.vendidaEn) ?? "—"} a S/ ${soles(pieza.precio)}.`
       : pieza.estado === "retirada"
         ? `Se retiró el ${fechaLima(pieza.retiradaEn) ?? "—"}: ${pieza.motivoRetiro ?? "sin motivo"}.`
-        : `A la venta hace ${dias === 1 ? "1 día" : `${dias} días`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
+        : `A la venta ${dias <= 0 ? "desde hoy" : `hace ${tiempoALaVenta(dias)}`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
 
   return (
     <Modal titulo={pieza.categoria || "Pieza de liquidación"} subtitulo={subtitulo} onClose={onClose} variante="hoja" ancho="max-w-md" conCerrar>

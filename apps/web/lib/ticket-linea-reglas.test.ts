@@ -71,11 +71,26 @@ describe("filaDelTicket — prenda sin registrar", () => {
     expect(f.stock).toBeNull();
     expect(f.conPaso).toBe(false);
     expect(f.detalle).toBe("Prenda sin registrar · almacén la regulariza después");
+    expect(f.conDescuento).toBe(true);
     expect(f.titulo).toBe("Vestido lino");
   });
 
   it("aunque el catálogo trajera un detalle, manda que es sin registrar", () => {
     expect(filaDelTicket(libre, { color: "Negro", talla: "M" }).detalle).toMatch(/^Prenda sin registrar/);
+  });
+});
+
+describe("filaDelTicket — pieza de liquidación (ADR-0371)", () => {
+  const pieza: LineaParaFila = {
+    ...base, varianteId: ID_CARGO_ESPECIAL, referencia: "Liquidación · Blusas", sku: "LIQUIDACION", codigo: "LQ7K3M9P", stockAqui: 1,
+    liquidacion: { codigo: "LQ7K3M9P" },
+  };
+  it("va de a una, sin descuento, y dice que es venta final con su etiqueta", () => {
+    const f = filaDelTicket(pieza);
+    expect(f.conPaso).toBe(false);
+    expect(f.conDescuento).toBe(false);
+    expect(f.stock).toBeNull();
+    expect(f.detalle).toBe("Venta final · etiqueta LQ7K3M9P");
   });
 });
 
