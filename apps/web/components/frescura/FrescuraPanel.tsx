@@ -49,7 +49,7 @@ import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./Frescura
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTablero } from "./FrescuraTablero";
 import { FrescuraPiso } from "./FrescuraPiso";
-import { pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
+import { conteoDeFamilia, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
@@ -119,7 +119,12 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
         : [],
     [sede, datos.categoriasVisuales, datos.familias, datos.precios],
   );
-  const respuesta = sede ? respuestaDelPiso(piso[0] ?? null, datos.puerta) : null;
+  // Contra hace 4 semanas (la meta de Felipe): la misma familia, reconstruida del mismo libro en el servidor.
+  const antes =
+    sede?.haceUnMes && piso[0]
+      ? conteoDeFamilia(sede.haceUnMes, piso[0].codigo, { familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null, familias: datos.familias })
+      : null;
+  const respuesta = sede ? respuestaDelPiso(piso[0] ?? null, datos.puerta, antes) : null;
   // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
   const sinTemporada = textoSinTemporada(enTabla);
   // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
@@ -261,7 +266,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
       <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} pie={pieCabecera} />
 
-      {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} />}
+      {sede && <FrescuraPiso familias={piso} puerta={datos.puerta} antes={respuesta?.antes ?? null} />}
 
       <section aria-label="Prendas por categoría" className="card-cayla overflow-hidden" data-resultados>
         {!sede ? (

@@ -15,7 +15,7 @@ import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
 import { avisoDatosDeHoy } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
-import type { Familia, PuertaPiso } from "@/lib/frescura-piso";
+import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import type { ResumenDecisiones } from "@/lib/frescura-decisiones-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
@@ -116,7 +116,10 @@ async function miniaturasDeLaTabla(supabase: Supabase, lectura: DatosFrescura["l
   try {
     const prendas = sede.prendas.filter(enLaTabla);
     const idsPorClave = new Map(prendas.map((p) => [p.clave, p.tallas[0]?.varianteId ?? null] as const));
-    const categoriaIds = [...new Set(prendas.map((p) => p.categoriaId).filter((id) => id !== ""))];
+    // Las categorías de TODO el piso, el de hoy y el de hace 4 semanas: de aquí sale también la familia de cada una para la barra.
+    const categoriaIds = [
+      ...new Set([...sede.prendas.map((p) => p.categoriaId), ...(sede.haceUnMes?.porCategoria ?? []).map((c) => c.categoriaId)].filter((id) => id !== "")),
+    ];
     const [apariencia, categorias] = await Promise.all([
       getAparienciaVariantes(supabase, [...idsPorClave.values()].filter((id): id is string => id !== null)),
       categoriaIds.length > 0 ? supabase.from("categorias").select("id, prefijo, familia").in("id", categoriaIds) : Promise.resolve({ data: [], error: null }),
@@ -237,12 +240,12 @@ export async function getFrescuraPantalla(
   };
 
   if (persona.rol !== "lider") {
-    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo)).lectura : sinPiso;
+    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo, pisoAnterior)).lectura : sinPiso;
     return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, tiendas: null, temporadas, ...(await deLaSede(lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
-  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior);
   const propia = lider.sedes.find((s) => s.ubicacionId === sede.id);
   const lecturaDeSede = propia ? propia.lectura : sinPiso;
   return {

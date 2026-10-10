@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { EstadoFrescura, FrescuraPrenda, UnidadColgada } from "./frescura-reglas";
-import { pisoPorFamilia, porcentajes, respuestaDelPiso, solesEnteros, tramosDeLaPrenda, conteoVacio, type Familia } from "./frescura-piso";
+import type { EventoPiso } from "./inventario-exposicion";
+import { analizarSede, inicioDelMesLima, lecturaAl, type EstadoFrescura, type FrescuraPrenda, type LecturaFrescuraConPiso, type TallaFrescuraCruda, type UnidadColgada } from "./frescura-reglas";
+import {
+  conteoDeFamilia,
+  conteoVacio,
+  pisoAnterior,
+  pisoPorFamilia,
+  porcentajes,
+  respuestaDelPiso,
+  solesEnteros,
+  tendenciaDe,
+  tramosDeLaPrenda,
+  type Familia,
+} from "./frescura-piso";
 
 // La barra de la tienda (ADR-0208, act. 2026-10-10 (b)): cada unidad colgada cae en Fresca, Vigente, Envejeciendo o «Aún no se sabe»
 // con los dos relojes, la barra va por familia y nada sale del denominador.
@@ -142,7 +154,7 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
   const LISTA = { puedeHablar: true, aviso: "" };
 
   it("afirma solo si la tienda registra lo que vende y casi todo se sabe", () => {
-    expect(respuestaDelPiso(familia({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA)).toEqual({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true });
+    expect(respuestaDelPiso(familia({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA)).toEqual({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true, tendencia: null, antes: null });
   });
 
   it("si la tienda no registra lo que vende, todavía no se puede saber (lo vendido sigue «colgado» y envejece en falso)", () => {
@@ -162,5 +174,125 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
 describe("solesEnteros", () => {
   it("como el resto del ERP", () => {
     expect(solesEnteros(20222.4)).toBe("S/ 20,222");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Contra el mes anterior (actividad 3): el piso de hace 4 semanas, del mismo libro
+// ---------------------------------------------------------------------------
+
+const BASE = Date.UTC(2026, 5, 1); // 1 de junio de 2026: hoy es el día 120 (29 de septiembre)
+const ts = (dia: number) => new Date(BASE + dia * D * 1000).toISOString();
+const bajada = (dia: number, n: number): EventoPiso => ({ ts: ts(dia), delta: n, esVenta: false, esMovimientoInterno: true });
+const venta = (dia: number, n: number): EventoPiso => ({ ts: ts(dia), delta: -n, esVenta: true, esMovimientoInterno: false });
+const tallaCruda = (varianteId: string, primeraExhibicion: string | null, pisoHoy: number): TallaFrescuraCruda => ({
+  varianteId,
+  productoId: varianteId,
+  productoNombre: varianteId,
+  codigo: null,
+  colorCodigo: "NEG",
+  colorNombre: "Negro",
+  talla: "M",
+  categoriaId: "polos",
+  categoriaNombre: "Polos",
+  temporada: "primavera_verano",
+  temporadaOrigen: "producto",
+  esClasico: false,
+  finEstacion: null,
+  enEstacionAhora: true,
+  primeraExhibicion,
+  ultimaLlegada: null,
+  ultimaLlegadaCayla: null,
+  pisoHoy,
+  almacenHoy: 0,
+  apartadasHoy: 0,
+  apartadasPisoHoy: 0,
+});
+
+/** 24 polos vendidos a los 5, 7, 9, 9, 11 y 13 días (P50 9, P75 11, P90 13), todos antes del día 40; A colgado el día 85; B, el 110. */
+function lecturaDosMeses(): LecturaFrescuraConPiso {
+  const tallas: TallaFrescuraCruda[] = [];
+  const eventos: Record<string, EventoPiso[]> = {};
+  const dias = [5, 7, 9, 9, 11, 13];
+  for (let i = 0; i < 24; i++) {
+    const id = `fondo-${i}`;
+    tallas.push(tallaCruda(id, ts(3 + i), 0));
+    eventos[id] = [bajada(3 + i, 1), venta(3 + i + dias[i % 6], 1)];
+  }
+  tallas.push(tallaCruda("A", ts(85), 1), tallaCruda("B", ts(110), 1));
+  eventos.A = [bajada(85, 1)];
+  eventos.B = [bajada(110, 1)];
+  return { separaPiso: true, desde: ts(0), ahora: ts(120), tallas, eventos, tardias: [], dudosas: [] };
+}
+
+describe("lecturaAl: la sede como era", () => {
+  it("el libro hasta ese instante, lo libre en el piso que salía de él y la primera exhibición solo si ya había pasado", () => {
+    const l = lecturaDosMeses();
+    l.apartados = { A: [{ ts: ts(90), delta: -1 }] };
+    const antes = lecturaAl(l, ts(80));
+    expect(antes.ahora).toBe(ts(80));
+    expect(antes.eventos.A).toEqual([]);
+    expect(antes.tallas.find((t) => t.varianteId === "A")).toMatchObject({ pisoHoy: 0, primeraExhibicion: null });
+    // El día 95, A estaba colgada pero apartada para un cliente: no está libre.
+    expect(lecturaAl(l, ts(95)).tallas.find((t) => t.varianteId === "A")).toMatchObject({ pisoHoy: 0, apartadasPisoHoy: 1, primeraExhibicion: ts(85) });
+  });
+});
+
+describe("pisoAnterior: el piso de hace 4 semanas", () => {
+  it("se reconstruye del mismo libro: hace 4 semanas A era Fresca (7 días) y B no estaba", () => {
+    const anterior = pisoAnterior(lecturaDosMeses());
+    expect(anterior?.fecha).toBe(ts(92));
+    expect(anterior?.porCategoria).toEqual([{ categoriaId: "polos", unidades: { ...conteoVacio(), fresca: 1 } }]);
+  });
+
+  it("hoy A lleva 35 días (Envejeciendo) y B 10 (Vigente): el mismo cálculo que la barra", () => {
+    const l = lecturaDosMeses();
+    const { sede } = analizarSede(l, undefined, { corteDelMes: inicioDelMesLima(l.ahora) });
+    const hoy = pisoPorFamilia(sede.prendas, { familiaDe: () => null, familias: [] })[0];
+    expect(hoy.unidades).toMatchObject({ envejeciendo: 1, vigente: 1, fresca: 0 });
+  });
+
+  it("si la lectura no llega tan atrás, no hay con qué comparar", () => {
+    expect(pisoAnterior({ ...lecturaDosMeses(), desde: ts(100) })).toBeNull();
+  });
+
+  it("conteoDeFamilia junta las categorías de la misma familia, con la misma regla que la barra", () => {
+    const anterior = { fecha: ts(92), porCategoria: [
+      { categoriaId: "polos", unidades: { ...conteoVacio(), fresca: 3 } },
+      { categoriaId: "anillos", unidades: { ...conteoVacio(), sin_saber: 5 } },
+    ] };
+    const o = { familiaDe: (c: string) => (c === "polos" ? "indumentaria" : "bisuteria"), familias: [{ codigo: "indumentaria", nombre: "Indumentaria", orden: 10 }] };
+    expect(conteoDeFamilia(anterior, "indumentaria", o).fresca).toBe(3);
+    // Bisutería no está en el catálogo leído: va en «Otras» (null), como en la barra de hoy.
+    expect(conteoDeFamilia(anterior, null, o).sin_saber).toBe(5);
+  });
+});
+
+describe("la frase contra hace 4 semanas", () => {
+  const LISTA = { puedeHablar: true, aviso: "" };
+  const fam = (u: Partial<ReturnType<typeof conteoVacio>>) => {
+    const unidades = { ...conteoVacio(), ...u };
+    return { codigo: "indumentaria", nombre: "Indumentaria", unidades, total: unidades.fresca + unidades.vigente + unidades.envejeciendo + unidades.sin_saber, prendas: 1, soles: null };
+  };
+
+  it("envejeciendo sube 7 puntos o más: ojo, más viejo", () => {
+    const r = respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 60, vigente: 28, envejeciendo: 12 });
+    expect(r).toMatchObject({ tendencia: "mas_viejo", respuesta: "58 de cada 100 prendas colgadas están frescas: ojo, tu piso está más viejo que hace 4 semanas.", antes: { envejeciendo: 12 } });
+  });
+
+  it("baja lo que envejece o sube lo fresco: más fresco; poco cambio: igual", () => {
+    expect(respuestaDelPiso(fam({ fresca: 70, vigente: 20, envejeciendo: 10 }), LISTA, { ...conteoVacio(), fresca: 55, vigente: 25, envejeciendo: 20 }).tendencia).toBe("mas_fresco");
+    expect(respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 55, vigente: 27, envejeciendo: 18 })).toMatchObject({
+      tendencia: "igual",
+      respuesta: "58 de cada 100 prendas colgadas están frescas, igual que hace 4 semanas.",
+    });
+  });
+
+  it("si hace 4 semanas casi nada se sabía (la carga inicial), no compara", () => {
+    expect(respuestaDelPiso(fam({ fresca: 58, vigente: 22, envejeciendo: 20 }), LISTA, { ...conteoVacio(), fresca: 5, sin_saber: 95 })).toMatchObject({ tendencia: null, antes: null, respuesta: "58 de cada 100 prendas colgadas están frescas." });
+  });
+
+  it("tendenciaDe: envejeciendo manda aunque lo fresco también suba", () => {
+    expect(tendenciaDe({ ...conteoVacio(), fresca: 60, envejeciendo: 40 }, { ...conteoVacio(), fresca: 50, vigente: 30, envejeciendo: 20 })).toBe("mas_viejo");
   });
 });

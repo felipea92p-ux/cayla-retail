@@ -1,4 +1,13 @@
-import { tramoDosRelojes, type FrescuraPrenda, type UnidadColgada } from "./frescura-reglas";
+import {
+  analizarSede,
+  inicioDelMesLima,
+  lecturaAl,
+  tramoDosRelojes,
+  type FrescuraPrenda,
+  type LecturaFrescuraConPiso,
+  type RespaldoCayla,
+  type UnidadColgada,
+} from "./frescura-reglas";
 
 // Frescura del piso, la tienda de un vistazo (ADR-0208, act. 2026-10-10 (b)): «¿tu piso está fresco?» con una barra por familia
 // (Indumentaria arriba; Bisutería y Accesorios, cada una en su línea) que reparte TODAS las unidades colgadas en tres estados —las
@@ -119,6 +128,12 @@ const SIN_FAMILIA = "Otras";
  * El piso de la tienda por familia, en el orden de `familias.orden` (Indumentaria primero) y lo que no tiene familia al final. Solo las
  * familias con algo colgado. `familiaDe` dice la familia de cada categoría; sin ella (la lectura falló), todo va en una sola barra.
  */
+/** La familia de una categoría, como la cuenta la barra: una familia que no está en el catálogo, o lo sin categoría, es «Otras» (null). */
+function familiaResuelta(categoriaId: string, familiaDe: (categoriaId: string) => string | null, porCodigo: ReadonlyMap<string, Familia>): string | null {
+  const codigo = categoriaId === "" ? null : familiaDe(categoriaId);
+  return codigo !== null && porCodigo.has(codigo) ? codigo : null;
+}
+
 export function pisoPorFamilia(
   prendas: readonly FrescuraPrenda[],
   o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[]; precioDe?: (varianteId: string) => number | null },
@@ -127,8 +142,7 @@ export function pisoPorFamilia(
   const grupos = new Map<string | null, FamiliaPiso & { sinPrecio: number }>();
   for (const p of prendas) {
     if (p.pisoHoy <= 0) continue;
-    const codigoCrudo = p.categoriaId === "" ? null : o.familiaDe(p.categoriaId);
-    const codigo = codigoCrudo !== null && porCodigo.has(codigoCrudo) ? codigoCrudo : null;
+    const codigo = familiaResuelta(p.categoriaId, o.familiaDe, porCodigo);
     const g =
       grupos.get(codigo) ??
       ({ codigo, nombre: codigo === null ? SIN_FAMILIA : porCodigo.get(codigo)!.nombre, unidades: conteoVacio(), total: 0, prendas: 0, soles: conteoVacio(), sinPrecio: 0 } as FamiliaPiso & { sinPrecio: number });
@@ -171,11 +185,65 @@ export function porcentajes(c: ConteoPiso): Record<TramoPiso, number> {
   return r;
 }
 
+// ---------------------------------------------------------------------------
+// Contra el mes anterior (decisión 5 de Felipe, 2026-10-10: «la frase dice si el piso está más fresco o más viejo que hace 4 semanas»)
+// ---------------------------------------------------------------------------
+
+/** Cuánto atrás se mira. Son 4 semanas: el cliente que vuelve cada 1 o 2 semanas ya vio dos o tres veces el piso de entonces. */
+export const DIAS_ANTES = 28;
+
+/** El piso de hace `DIAS_ANTES` días, por categoría: lo que hace falta para comparar, sin las prendas (viaja liviano a la pantalla). */
+export type PisoAnterior = { fecha: string; porCategoria: { categoriaId: string; unidades: ConteoPiso }[] };
+
+/**
+ * El piso de hace 4 semanas, reconstruido del MISMO libro de hoy (`lecturaAl`), juzgado como se juzgaba entonces: con la vara del mes de
+ * ese día y la misma regla de cada unidad. Sin guardar fotos: la lectura trae 120 días. Null si la lectura no llega tan atrás.
+ */
+export function pisoAnterior(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla): PisoAnterior | null {
+  const fecha = new Date(Date.parse(l.ahora) - DIAS_ANTES * 86_400_000).toISOString();
+  if (Date.parse(fecha) <= Date.parse(l.desde)) return null;
+  const { sede } = analizarSede(lecturaAl(l, fecha), respaldo, { corteDelMes: inicioDelMesLima(fecha) });
+  const porCategoria = new Map<string, ConteoPiso>();
+  for (const p of sede.prendas) {
+    if (p.pisoHoy <= 0) continue;
+    const c = porCategoria.get(p.categoriaId) ?? conteoVacio();
+    const { unidades } = tramosDeLaPrenda(p);
+    for (const k of TRAMOS_PISO) c[k] += unidades[k];
+    porCategoria.set(p.categoriaId, c);
+  }
+  return { fecha, porCategoria: [...porCategoria].map(([categoriaId, unidades]) => ({ categoriaId, unidades })) };
+}
+
+/** Las unidades de hace 4 semanas de UNA familia (la misma regla de familia que la barra de hoy). */
+export function conteoDeFamilia(
+  anterior: PisoAnterior,
+  codigo: string | null,
+  o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[] },
+): ConteoPiso {
+  const porCodigo = new Map(o.familias.map((f) => [f.codigo, f]));
+  const c = conteoVacio();
+  for (const fila of anterior.porCategoria) {
+    if (familiaResuelta(fila.categoriaId, o.familiaDe, porCodigo) !== codigo) continue;
+    for (const k of TRAMOS_PISO) c[k] += fila.unidades[k];
+  }
+  return c;
+}
+
 /** Lo que dice la puerta compartida (`preparacionDeSede` del motor de demanda, la misma de Análisis): si la tienda ya registra lo que vende. */
 export type PuertaPiso = { puedeHablar: boolean; aviso: string } | null;
 
 /** «Aún no se sabe» desde esta parte del piso, la frase no afirma nada: con tanto gris, el porcentaje de frescas podría ser otro. */
 export const PARTE_SIN_SABER_QUE_CALLA = 0.2;
+
+/**
+ * Cuántos puntos tiene que moverse una cifra para decir que el piso cambió y no que es ruido. Simulado con una tienda del tamaño de TRU (308
+ * unidades): de una semana a otra «envejeciendo» se mueve unos 2,2 puntos y «fresca» unos 3,1; 7 y 9 puntos son tres veces eso: una falsa
+ * alarma cada varios años. Cuando haya 8 semanas de historia guardada se puede medir el ruido de cada tienda (la foto diaria, fuera de esta ronda).
+ */
+export const PUNTOS_ENVEJECIENDO = 7;
+export const PUNTOS_FRESCA = 9;
+
+export type Tendencia = "mas_fresco" | "mas_viejo" | "igual";
 
 export type RespuestaPiso = {
   /** La pregunta de la pantalla: siempre la misma. */
@@ -184,25 +252,55 @@ export type RespuestaPiso = {
   respuesta: string;
   /** Si la respuesta es un dato (se puede afirmar) o un «todavía no». */
   afirma: boolean;
+  /** Contra hace 4 semanas, si se puede comparar (las dos lecturas afirman); null si no. */
+  tendencia: Tendencia | null;
+  /** Los porcentajes de hace 4 semanas, si se comparó. */
+  antes: Record<TramoPiso, number> | null;
 };
 
 export const PREGUNTA_PISO = "¿Tu piso está fresco?";
 
+/** Se puede afirmar algo de este piso: tiene unidades y casi todo se sabe. */
+const sePuedeDecir = (c: ConteoPiso): boolean => {
+  const total = TRAMOS_DEL_100.reduce((s, k) => s + c[k], 0);
+  return total > 0 && c.sin_saber / total < PARTE_SIN_SABER_QUE_CALLA;
+};
+
+/** Más fresco, más viejo o igual que hace 4 semanas. Envejeciendo manda: si sube, es lo que hay que ver aunque «fresca» también suba. */
+export function tendenciaDe(hoy: ConteoPiso, antes: ConteoPiso): Tendencia {
+  const a = porcentajes(antes);
+  const h = porcentajes(hoy);
+  const dEnvejece = h.envejeciendo - a.envejeciendo;
+  const dFresca = h.fresca - a.fresca;
+  if (dEnvejece >= PUNTOS_ENVEJECIENDO || (dFresca <= -PUNTOS_FRESCA && dEnvejece > -PUNTOS_ENVEJECIENDO)) return "mas_viejo";
+  if (dEnvejece <= -PUNTOS_ENVEJECIENDO || dFresca >= PUNTOS_FRESCA) return "mas_fresco";
+  return "igual";
+}
+
+const COLA_TENDENCIA: Record<Tendencia, string> = {
+  mas_fresco: ": tu piso está más fresco que hace 4 semanas.",
+  mas_viejo: ": ojo, tu piso está más viejo que hace 4 semanas.",
+  igual: ", igual que hace 4 semanas.",
+};
+
 /**
  * La respuesta de la cabecera, mirando la familia principal (la primera: Indumentaria). Habla solo si la tienda pasa la puerta (registra lo
- * que vende: si no, lo vendido sigue «colgado» y envejece en falso) y si lo que no se sabe es poco; si no, dice por qué todavía no.
+ * que vende: si no, lo vendido sigue «colgado» y envejece en falso) y si lo que no se sabe es poco; si no, dice por qué todavía no. Si el
+ * piso de hace 4 semanas también se podía afirmar, dice si está más fresco, más viejo o igual (la meta de Felipe: contra el mes anterior).
  */
-export function respuestaDelPiso(principal: FamiliaPiso | null, puerta: PuertaPiso): RespuestaPiso {
-  const base = { pregunta: PREGUNTA_PISO };
+export function respuestaDelPiso(principal: FamiliaPiso | null, puerta: PuertaPiso, antes: ConteoPiso | null = null): RespuestaPiso {
+  const base = { pregunta: PREGUNTA_PISO, tendencia: null, antes: null };
   if (principal === null || principal.total <= 0) return { ...base, respuesta: "Todavía no hay nada colgado.", afirma: false };
   if (puerta === null || !puerta.puedeHablar) return { ...base, respuesta: "Todavía no se puede saber.", afirma: false };
-  const parteSinSaber = principal.unidades.sin_saber / principal.total;
-  if (parteSinSaber >= PARTE_SIN_SABER_QUE_CALLA) {
+  if (!sePuedeDecir(principal.unidades)) {
     const n = porcentajes(principal.unidades).sin_saber;
     return { ...base, respuesta: `Todavía no se puede decir: aún no se sabe de ${n} de cada 100 prendas colgadas.`, afirma: false };
   }
   const f = porcentajes(principal.unidades).fresca;
-  return { ...base, respuesta: `${f} de cada 100 prendas colgadas están frescas.`, afirma: true };
+  const dato = `${f} de cada 100 prendas colgadas están frescas`;
+  if (antes === null || !sePuedeDecir(antes)) return { ...base, respuesta: `${dato}.`, afirma: true };
+  const tendencia = tendenciaDe(principal.unidades, antes);
+  return { pregunta: PREGUNTA_PISO, respuesta: `${dato}${COLA_TENDENCIA[tendencia]}`, afirma: true, tendencia, antes: porcentajes(antes) };
 }
 
 /** «S/ 20,222»: soles enteros, con el formato del resto del ERP (`es-PE`, como Inicio y Finanzas). */

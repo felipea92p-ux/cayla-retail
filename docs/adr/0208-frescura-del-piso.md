@@ -3520,3 +3520,12 @@ motor (`fn_motor_demanda_preparacion` + `avisoDatosDeHoy`, la misma de Análisis
 cabecera de dos cifras («prendas colgadas», «unidades en el piso»): lo dice la tarjeta. **Pasó a la actividad 4:** «lo que se lleva la
 gente» desde lo anotado en caja (es una señal por categoría, como la acogida).
 
+**Construido (actividad 3, 2026-10-10): contra el mes anterior.** Sin guardar fotos: `lecturaAl` arma la sede COMO ERA hace 28 días con el
+mismo libro (eventos y apartados hasta ese instante, lo libre en el piso que salía de él) y `pisoAnterior` la juzga como se juzgaba
+entonces (la vara del mes de ese día, la misma regla por unidad); a la pantalla viaja solo el conteo por categoría. La frase compara la
+familia principal: «ojo, más viejo» si envejeciendo sube 7 puntos o más (o lo fresco baja 9), «más fresco» al revés, «igual» en medio; los
+umbrales son tres veces el ruido semanal simulado con una tienda del tamaño de TRU (2,2 y 3,1 puntos), hasta tener 8 semanas guardadas para
+medir el de cada tienda. No compara si hace 4 semanas no se podía afirmar (la carga inicial: casi todo «aún no se sabe»). **Límite que
+mostró el ensayo:** mientras una categoría aún aprende su ritmo (su vara del mes no llega a 10 ventas), si se estanca entera la curva de hoy
+no llega a P75 y sus prendas viejas salen Vigentes: es el efecto de la vara viva que la del mes corrige apenas junta 10 ventas.
+

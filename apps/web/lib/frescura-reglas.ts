@@ -1,5 +1,6 @@
 import { compararInstantes, historiaDeCohortes, type EventoPiso } from "./inventario-exposicion";
 import { clavePrendaDe } from "./prenda-clave";
+import type { PisoAnterior } from "./frescura-piso";
 import type { Tolerado } from "./resultado";
 import {
   aplicarDecisiones,
@@ -1382,6 +1383,36 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
   return { ...base, temporadaPasada, sinTemporada, quieta, sugerencias };
 }
 
+/**
+ * La lectura de una sede COMO ERA en `cuando` (ADR-0208, act. 2026-10-10 (b): comparar el piso con el de hace 4 semanas sin guardar fotos):
+ * el libro y lo apartado hasta ese instante, `ahora` en ese instante y, de cada talla, lo libre en el piso que salía del libro entonces
+ * (el nivel menos lo apartado en el piso). Lo que no se puede saber de entonces queda neutro: el almacén en 0 (solo lo usa «Trasladar») y
+ * la primera exhibición borrada si fue después. Límite: la temporada y las llegadas son las de hoy (no cambian lo que pinta la barra).
+ */
+export function lecturaAl(l: LecturaFrescuraConPiso, cuando: string): LecturaFrescuraConPiso {
+  const t = ms(cuando);
+  const hasta = <T extends { ts: string }>(lista: readonly T[] | undefined): T[] => (lista ?? []).filter((x) => ms(x.ts) <= t);
+  const eventos: Record<string, EventoPiso[]> = {};
+  for (const [id, lista] of Object.entries(l.eventos)) eventos[id] = hasta(lista);
+  const apartados: Record<string, PuntoApartado[]> = {};
+  for (const [id, lista] of Object.entries(l.apartados ?? {})) apartados[id] = hasta(lista);
+  const tallas = l.tallas.map((talla): TallaFrescuraCruda => {
+    const nivel = Math.max(0, (eventos[talla.varianteId] ?? []).reduce((s, e) => s + e.delta, 0));
+    const apartadoPiso = Math.min(nivel, Math.max(0, -(apartados[talla.varianteId] ?? []).reduce((s, a) => s + a.delta, 0)));
+    const primera = talla.primeraExhibicion !== null && ms(talla.primeraExhibicion) <= t ? talla.primeraExhibicion : null;
+    return { ...talla, pisoHoy: nivel - apartadoPiso, almacenHoy: 0, apartadasHoy: apartadoPiso, apartadasPisoHoy: apartadoPiso, primeraExhibicion: primera };
+  });
+  return {
+    ...l,
+    ahora: cuando,
+    tallas,
+    eventos,
+    apartados,
+    tardias: l.tardias.filter((x) => x.bajadaEn !== "" && ms(x.bajadaEn) <= t),
+    cuadres: (l.cuadres ?? []).filter((c) => ms(c) <= t),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Una sede entera
 // ---------------------------------------------------------------------------
@@ -1526,6 +1557,9 @@ export type FrescuraSede = {
   cifras: CifrasSede;
   /** Lo decidido en la sede (paso 4b) o el aviso de que no se pudo leer. `analizarSede` la deja «sin lectura»; la llena `aplicarDecisiones`. */
   decisiones: DecisionesDeSede;
+  /** El piso de hace 4 semanas, por categoría (ADR-0208, act. 2026-10-10 (b): la meta es contra el mes anterior). Lo pone quien lee la
+   *  sede si se lo piden (`pisoAnterior`, `frescura-piso.ts`); null si no se pudo reconstruir o la lectura no llega tan atrás. */
+  haceUnMes?: PisoAnterior | null;
 };
 
 /** Lo que una sede aporta a la referencia de CAYLA: por categoría, sus unidades con edad conocida en cada ventana (se
@@ -2009,7 +2043,17 @@ type SedeLeida = {
   medicion: { sede: FrescuraSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe; cuadres: readonly string[] } | null;
 };
 
-async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number, respaldo?: RespaldoCayla): Promise<SedeLeida> {
+/** Cómo se reconstruye el piso de hace 4 semanas (`pisoAnterior` de `frescura-piso.ts`): lo pasa quien lee, para que este archivo no
+ *  dependa de la barra. */
+export type CalcularAnterior = (lectura: LecturaFrescuraConPiso, respaldo?: RespaldoCayla) => PisoAnterior | null;
+
+async function leerSedeFrescura(
+  rpc: LlamarRpcFrescura,
+  u: { id: string; nombre: string },
+  dias: number,
+  respaldo?: RespaldoCayla,
+  anterior?: CalcularAnterior,
+): Promise<SedeLeida> {
   const que = `la frescura de ${u.nombre}`;
   const fila = (lectura: FrescuraDeSede["lectura"]): FrescuraDeSede => ({ ubicacionId: u.id, nombre: u.nombre, lectura });
   const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null, medicion: null });
@@ -2029,6 +2073,15 @@ async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre:
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
     // La pantalla juzga contra la vara del mes (act. 2026-10-10 (b)); el cron de CAYLA, que guarda las unidades de hoy, no.
     const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora) });
+    // El piso de hace 4 semanas (la meta es contra el mes anterior): si no se puede reconstruir, la pantalla no compara y sigue entera.
+    if (anterior) {
+      try {
+        sede.haceUnMes = anterior(lectura, respaldo);
+      } catch (e) {
+        console.error(`No se pudo reconstruir el piso de hace 4 semanas de ${u.nombre}:`, e);
+        sede.haceUnMes = null;
+      }
+    }
     const decisiones = await enCurso;
     const cuadres = lectura.cuadres ?? [];
     sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora, cuadres);
@@ -2059,8 +2112,14 @@ async function leerConfianzaFrescura(rpc: LlamarRpcFrescura): Promise<Tolerado<F
  * registro al colgar ni la referencia de CAYLA (las dos necesitan leer las otras tiendas, y quien no es líder no las
  * opera). Mismo camino y mismos avisos que cada tienda de la vuelta del líder.
  */
-export async function armarFrescuraSede(tienda: { id: string; nombre: string }, rpc: LlamarRpcFrescura, dias: number, respaldo?: RespaldoCayla): Promise<FrescuraDeSede> {
-  return (await leerSedeFrescura(rpc, tienda, dias, respaldo)).fila;
+export async function armarFrescuraSede(
+  tienda: { id: string; nombre: string },
+  rpc: LlamarRpcFrescura,
+  dias: number,
+  respaldo?: RespaldoCayla,
+  anterior?: CalcularAnterior,
+): Promise<FrescuraDeSede> {
+  return (await leerSedeFrescura(rpc, tienda, dias, respaldo, anterior)).fila;
 }
 
 /**
@@ -2073,8 +2132,9 @@ export async function armarFrescuraLider(
   rpc: LlamarRpcFrescura,
   dias: number,
   respaldo?: RespaldoCayla,
+  anterior?: CalcularAnterior,
 ): Promise<FrescuraLider> {
-  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo))), leerConfianzaFrescura(rpc)]);
+  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo, anterior))), leerConfianzaFrescura(rpc)]);
 
   // «La trasladé» se mide en la tienda destino con SU lectura: solo el líder, que las lee todas, puede.
   completarTraslados(

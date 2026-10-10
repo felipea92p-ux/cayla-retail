@@ -24,7 +24,16 @@ function lineaDeFamilia(f: FamiliaPiso): string {
     .join(" · ");
 }
 
-export function FrescuraPiso({ familias, puerta }: { familias: readonly FamiliaPiso[]; puerta: PuertaPiso }) {
+export function FrescuraPiso({
+  familias,
+  puerta,
+  antes = null,
+}: {
+  familias: readonly FamiliaPiso[];
+  puerta: PuertaPiso;
+  /** Los porcentajes de la familia principal hace 4 semanas, si se pudo comparar (la frase de la cabecera dice si mejoró). */
+  antes?: Record<TramoPiso, number> | null;
+}) {
   const [principal, ...otras] = familias;
   if (!principal) return null;
   const pct = porcentajes(principal.unidades);
@@ -56,6 +65,12 @@ export function FrescuraPiso({ familias, puerta }: { familias: readonly FamiliaP
           </div>
         ))}
       </dl>
+
+      {antes && (
+        <p className="mt-3 text-[13px] tabular-nums text-taupe">
+          Hace 4 semanas: {antes.fresca} % fresca · {antes.vigente} % vigente · {antes.envejeciendo} % envejeciendo
+        </p>
+      )}
 
       {principal.soles && (
         <p className="mt-3 border-t border-sand pt-3 text-[13px] tabular-nums text-taupe">

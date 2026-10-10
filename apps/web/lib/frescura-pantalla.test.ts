@@ -864,7 +864,7 @@ describe("Formidable (ADR-0350) · una fila, una prenda, una frase", () => {
 describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", () => {
   it("la frase bajo el título es la PREGUNTA de Felipe y su respuesta de hoy (ADR-0208, act. 2026-10-10 (b))", () => {
     expect(fraseEncabezado(null)).toBe("¿Tu piso está fresco?");
-    expect(fraseEncabezado({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true })).toBe(
+    expect(fraseEncabezado({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 prendas colgadas están frescas.", afirma: true, tendencia: null, antes: null })).toBe(
       "¿Tu piso está fresco? **58 de cada 100 prendas colgadas están frescas.**",
     );
     // Sin la puerta (la tienda no registra lo que vende), la respuesta es un «todavía no», nunca un porcentaje.
