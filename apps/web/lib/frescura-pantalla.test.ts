@@ -45,6 +45,8 @@ import {
   varaTablero,
   avisoPocasVentas,
   esAproximada,
+  resumenPie,
+  textoConsecuenciaFila,
   type AccesoFrescura,
   type ContextoFrescura,
   type NombresDeTemporadas,
@@ -932,9 +934,10 @@ describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () =>
       porDecidir: 1,
       viejas: 2,
       unidades: { nueva: 4, vigente: 0, envejecida: 0, critica: 2, sin_saber: 0, clasico: 0 },
-      vara: { texto: "Sólido", tono: "neutro" },
+      // Vara sólida: no se dice (la regla se calla, la excepción se marca; Felipe 2026-10-09).
+      vara: null,
     });
-    expect(filas[0]).toMatchObject({ total: 6, prendas: 3, porDecidir: 1, viejas: 3, unidades: { envejecida: 3, sin_saber: 1, clasico: 2 }, vara: { texto: "Aproximado", tono: "ambar" } });
+    expect(filas[0]).toMatchObject({ total: 6, prendas: 3, porDecidir: 1, viejas: 3, unidades: { envejecida: 3, sin_saber: 1, clasico: 2 }, vara: { texto: "Pocas ventas: aproximado", tono: "ambar" } });
     // Los segmentos de la barra: solo los tramos con unidades, en el orden de la barra.
     expect(segmentosDe(filas[1]).map((s) => [s.clave, s.valor])).toEqual([
       ["nueva", 4],
@@ -944,15 +947,37 @@ describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () =>
     expect(tableroVista([], c)).toEqual([]);
   });
 
-  it("la vara: «Contra CAYLA» cuando el respaldo decidió; si no, el nivel de la tienda; sin ventas, «Sin ventas»", () => {
+  it("la vara, solo cuando es la excepción (Felipe 2026-10-09): contra CAYLA, pocas ventas o ninguna; sólida o aceptable, nada", () => {
     const base = vara("x");
     const respaldo = { ...base, respaldo: undefined, vendidas: 30, unidades: 40, nivel: "solido" as const, calculadaEn: AHORA, enUso: true };
-    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo })).texto).toBe("Contra CAYLA");
-    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo: { ...respaldo, enUso: false } }))).toEqual({ texto: "Aproximado", tono: "ambar" });
-    expect(varaTablero(vara("x", { nivel: "solido" })).texto).toBe("Sólido");
-    expect(varaTablero(vara("x", { nivel: "aceptable" })).texto).toBe("Aceptable");
-    expect(varaTablero(vara("x", { nivel: null }))).toEqual({ texto: "Sin ventas", tono: "apagado" });
-    expect(varaTablero(undefined).texto).toBe("Sin ventas");
+    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo }))).toEqual({ texto: "Comparada con las 3 tiendas", tono: "pizarra" });
+    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo: { ...respaldo, enUso: false } }))).toEqual({ texto: "Pocas ventas: aproximado", tono: "ambar" });
+    expect(varaTablero(vara("x", { nivel: "solido" }))).toBeNull();
+    expect(varaTablero(vara("x", { nivel: "aceptable" }))).toBeNull();
+    // «Sin ventas aún», nunca tachado: el tablero pasa `tachado={false}` (el tono apagado tacha por defecto, y eso se lee como negación).
+    expect(varaTablero(vara("x", { nivel: null }))).toEqual({ texto: "Sin ventas aún", tono: "apagado" });
+    expect(varaTablero(undefined)).toEqual({ texto: "Sin ventas aún", tono: "apagado" });
+  });
+
+  it("la consecuencia del botón de la fila se dice antes de tocarlo, con el plazo que se va a anotar", () => {
+    expect(textoConsecuenciaFila("cambie_lugar", 7)).toBe("Cuando la hayas movido, toca el botón: la miro 7 días y te digo si sirvió.");
+    expect(textoConsecuenciaFila("hasta_agotar", 9)).toBe("Si la dejas colgada, toca el botón: no te la vuelvo a preguntar en 9 días.");
+    expect(textoConsecuenciaFila("hasta_agotar", 1)).toBe("Si la dejas colgada, toca el botón: no te la vuelvo a preguntar en 1 día.");
+    expect(textoConsecuenciaFila("rebaje", 9)).toBe("Toca el botón cuando lo hayas hecho: queda anotado a tu nombre.");
+  });
+
+  it("el pie en cifras: cuántas guardadas, cuántas nunca colgadas y cuántas agotadas, con la concordancia; sin nada, null", () => {
+    expect(resumenPie({ guardadas: ["a (1)", "b (2)"], nuncaColgadas: ["c (18)"], agotadas: 1 })).toEqual({
+      guardadas: "2 prendas guardadas en el almacén después de colgarse: no cuentan días mientras estén guardadas.",
+      nuncaColgadas: "1 prenda solo en el almacén, nunca colgada: no se mide hasta que se cuelgue.",
+      agotadas: "1 prenda se agotó en lo que mira esta pantalla: ya no está en la tienda.",
+    });
+    expect(resumenPie({ guardadas: ["a (1)"], nuncaColgadas: ["c", "d"], agotadas: 2 })).toEqual({
+      guardadas: "1 prenda guardada en el almacén después de colgarse: no cuenta días mientras esté guardada.",
+      nuncaColgadas: "2 prendas solo en el almacén, nunca colgadas: no se miden hasta que se cuelguen.",
+      agotadas: "2 prendas se agotaron en lo que mira esta pantalla: ya no están en la tienda.",
+    });
+    expect(resumenPie({ guardadas: [], nuncaColgadas: [], agotadas: 0 })).toEqual({ guardadas: null, nuncaColgadas: null, agotadas: null });
   });
 
   it("accionDeFila: la primera sugerencia es un botón con su verbo; anota, enlaza o abre la hoja; sin piso o con decisión vigente, nada", () => {

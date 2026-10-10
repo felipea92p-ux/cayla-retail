@@ -43,9 +43,10 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
+import { BORRADOR_VACIO, ProveedorModal } from "@/components/ProveedorModal";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 
-export type ProveedorLlegada = { id: string; nombre: string; marcas: string[] };
+export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
 type Lectura = { bueno: boolean; texto: string; varianteId?: string; crear?: boolean };
 type Recibido = { lineas: LineaLlegada[]; unidades: number; loteId: string | null; sinConexion?: boolean };
@@ -57,11 +58,20 @@ const ID_BUSCADOR = "llegada-buscador";
 // con `recibir_lote` sin cambios: una transacción, token contra el doble clic (ADR-0190) y cola sin conexión (ADR-0210). La
 // factura no se pide aquí: si existe, se recibe contra ella en `RecepcionEnvio`; si no, se une después (fase 2 del ADR).
 // Toda la regla vive en `lib/llegada-reglas.ts` (con su prueba); este archivo solo la dibuja.
+//
+// «¿No está? + Agregar proveedor» (2026-10-10): un proveedor que llega por primera vez no estaba en el directorio y quien
+// recibía no tenía salida —tenía que irse a Compras ▸ Proveedores, perder lo escaneado y volver—. Abre el MISMO formulario de
+// Proveedores (`ProveedorModal`: RUC con consulta a SUNAT, aviso de parecidos, la RPC `registrar_proveedor`) y el proveedor
+// recién guardado queda elegido. Solo a quien tiene el módulo Proveedores (`puedeAgregarProveedor`, lo que la base exige en
+// `fn_puede_gestionar_proveedores`); quien no, ve a quién pedírselo. El formulario va FUERA del <form> de la llegada: un
+// `submit` que sube desde un modal llegaría a su `onSubmit` y recibiría la mercadería (CLAUDE.md, ADR-0128).
 export function LlegoMercaderia({
   ubicacionId,
   ubicacionEtiqueta,
   prendas,
   proveedores,
+  rubrosEnUso,
+  puedeAgregarProveedor,
   facturas,
   recientes,
   verMontos,
@@ -71,6 +81,10 @@ export function LlegoMercaderia({
   ubicacionEtiqueta: string;
   prendas: PrendaLlegada[];
   proveedores: ProveedorLlegada[];
+  /** Los rubros que ya usan los proveedores: los botones del formulario de «Agregar proveedor». */
+  rubrosEnUso: string[];
+  /** La cuenta tiene el módulo Proveedores: puede dar de alta uno desde aquí. */
+  puedeAgregarProveedor: boolean;
   /** Las facturas ya registradas a las que les falta mercadería en esta sede: si el proveedor elegido tiene, se pregunta. */
   facturas: FacturaPendiente[];
   /** Lo que ya entró en esta sede estos días: si el proveedor elegido ya entró hoy, se avisa antes de recibir. */
@@ -92,6 +106,9 @@ export function LlegoMercaderia({
   const [ok, setOk] = useState<Recibido | null>(null);
   // Los proveedores para los que ya se contestó «No, sin factura» (la pregunta no vuelve a insistir con ese proveedor).
   const [sinFactura, setSinFactura] = useState<string[]>([]);
+  // Los proveedores que se agregaron aquí mismo: salen en el combo y quedan elegidos sin esperar a que la página relea el directorio.
+  const [agregados, setAgregados] = useState<ProveedorLlegada[]>([]);
+  const [agregando, setAgregando] = useState(false);
   const buscador = useRef<HTMLInputElement>(null);
   const formulario = useRef<HTMLFormElement>(null);
   // Doble clic (ADR-0190): un token por intento; se renueva solo al guardar bien.
@@ -102,7 +119,12 @@ export function LlegoMercaderia({
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
 
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
-  const proveedor = proveedores.find((p) => p.id === proveedorId) ?? null;
+  // Cuando la página relee el directorio, el recién agregado ya viene en `proveedores`: no se repite.
+  const directorio = useMemo(() => {
+    const nuevos = agregados.filter((a) => !proveedores.some((p) => p.id === a.id));
+    return nuevos.length === 0 ? proveedores : [...proveedores, ...nuevos].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [proveedores, agregados]);
+  const proveedor = directorio.find((p) => p.id === proveedorId) ?? null;
   const marcas = proveedor?.marcas ?? [];
   const sugerencias = sugerirPrendas(busqueda, prendas, marcas);
   // La lista flota en `fixed` sobre todo (ADR-0185, como los combos): dentro de la tarjeta, el bloque de abajo la tapaba.
@@ -144,6 +166,14 @@ export function LlegoMercaderia({
     // Con la pistola en la mano, lo que sigue es leer: el cursor va al buscador. Si ese proveedor tiene facturas pendientes,
     // primero va la pregunta (la luz de la guía la marca) y el cursor espera.
     if (primeraVez && facturasDelProveedor(facturas, id).length === 0) setTimeout(() => buscador.current?.focus(), 0);
+  }
+
+  function alAgregarProveedor(id: string | null, datos?: { nombre: string; ruc: string | null }) {
+    setAgregando(false);
+    router.refresh();
+    if (!id || !datos) return;
+    setAgregados((a) => [...a, { id, nombre: datos.nombre, ruc: datos.ruc, marcas: [] }]);
+    elegirProveedor(id);
   }
 
   function recibirSinFactura() {
@@ -289,8 +319,18 @@ export function LlegoMercaderia({
                 marcador="Elige el proveedor"
                 valor={proveedorId}
                 onValor={elegirProveedor}
-                opciones={proveedores.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
+                opciones={directorio.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
               />
+              {puedeAgregarProveedor ? (
+                <p className="mt-1.5 text-xs text-taupe">
+                  ¿No está?{" "}
+                  <button type="button" onClick={() => setAgregando(true)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                    + Agregar proveedor
+                  </button>
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
+              )}
             </CampoGuiado>
             <label className="block">
               <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
@@ -511,6 +551,16 @@ export function LlegoMercaderia({
             )}
           </div>
         </form>
+      )}
+
+      {agregando && (
+        <ProveedorModal
+          inicial={BORRADOR_VACIO}
+          rubros={rubrosEnUso}
+          existentes={directorio.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, activo: true }))}
+          onClose={() => setAgregando(false)}
+          onGuardado={alAgregarProveedor}
+        />
       )}
     </div>
   );

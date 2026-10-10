@@ -772,6 +772,31 @@ export function pieVista(prendas: readonly FrescuraPrenda[]): PieVista {
 /** «1 unidad», «45 unidades». */
 export const textoUnidades = (n: number): string => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 
+/**
+ * El pie en cifras, no en nombres (Formidable 2026-10-09, ley 8: 12 prendas del almacén en 6 renglones eran contabilidad dentro de
+ * la pantalla de decidir). La lista con cada nombre sigue existiendo, plegada a un toque («Ver cuáles»): el dato no se pierde.
+ */
+export function resumenPie(pie: PieVista): { guardadas: string | null; nuncaColgadas: string | null; agotadas: string | null } {
+  const g = pie.guardadas.length;
+  const n = pie.nuncaColgadas.length;
+  const a = pie.agotadas;
+  return {
+    guardadas:
+      g === 0
+        ? null
+        : g === 1
+          ? "1 prenda guardada en el almacén después de colgarse: no cuenta días mientras esté guardada."
+          : `${g} prendas guardadas en el almacén después de colgarse: no cuentan días mientras estén guardadas.`,
+    nuncaColgadas:
+      n === 0
+        ? null
+        : n === 1
+          ? "1 prenda solo en el almacén, nunca colgada: no se mide hasta que se cuelgue."
+          : `${n} prendas solo en el almacén, nunca colgadas: no se miden hasta que se cuelguen.`,
+    agotadas: a === 0 ? null : `${a} ${a === 1 ? "prenda se agotó" : "prendas se agotaron"} en lo que mira esta pantalla: ya no ${a === 1 ? "está" : "están"} en la tienda.`,
+  };
+}
+
 /** Con «Por decidir» filtrado: cuántas otras tienen una pregunta más chica en «Qué hacer», en singular o plural. */
 export function textoOtrasConPregunta(n: number): TextoRico {
   return n === 1
@@ -1087,7 +1112,7 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: `Su temporada pasó (${suEstacion} terminó el ${fechaCorta(p.finEstacion)}), pero sigue vendiendo: ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}. Tú decides si la dejas hasta que se agote o la retiras. Cuando decidas, anótalo con «Ya decidí»: sale de «Por decidir» hasta que toque volver a mirarla.`,
+          texto: `Su temporada pasó (${suEstacion} terminó el ${fechaCorta(p.finEstacion)}), pero sigue vendiendo: ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}. Tú decides si la dejas hasta que se agote o la retiras. Cuando decidas, anótalo con «Anotar lo que hice»: sale de «Por decidir» hasta que toque volver a mirarla.`,
           botones: retirar,
         };
       case "guardar_hasta_su_estacion":
@@ -1101,14 +1126,14 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: "Cambiarla de lugar funcionó: esa semana vendió mejor que las demás de su categoría. Déjala donde está hasta que se agote; si dejara de venderse, vuelve a esta lista. Anótalo con «Ya decidí».",
+          texto: "Cambiarla de lugar funcionó: esa semana vendió mejor que las demás de su categoría. Déjala donde está hasta que se agote; si dejara de venderse, vuelve a esta lista. Anótalo con «Anotar lo que hice».",
           botones: [],
         };
       case "rebaja_chica":
         return {
           clave: s,
           titulo,
-          texto: "Moverla no bastó. El escalón que sigue es una rebaja chica, solo en esta tienda y por tramos. La decide el líder: aquí no se rebaja nada. Cuando el líder la rebaje, se anota con «Ya decidí» → «La rebajé».",
+          texto: "Moverla no bastó. El escalón que sigue es una rebaja chica, solo en esta tienda y por tramos. La decide el líder: aquí no se rebaja nada. Cuando el líder la rebaje, se anota con «Anotar lo que hice» → «La rebajé».",
           botones: [],
         };
     }
@@ -1211,15 +1236,19 @@ export const CLASE_TRAMO_BARRA: Record<TramoBarra, string> = {
   clasico: "bg-pizarra/60",
 };
 
-/** Con qué vara se juzgó la categoría, en una palabra: contra CAYLA (su respaldo decidió), o el nivel de la propia tienda. */
-export type VaraTablero = { texto: "Sólido" | "Aceptable" | "Aproximado" | "Contra CAYLA" | "Sin ventas"; tono: TonoChip };
+/**
+ * Con qué vara se juzgó la categoría, dicho SOLO cuando es la excepción (Felipe, Formidable 2026-10-09: la regla se calla y la
+ * excepción se marca, como ya hace la fila con «aproximado»): contra CAYLA (su respaldo decidió), pocas ventas, o ninguna. Con una
+ * vara sólida o aceptable no se dice nada (`null`). Antes el chip decía «Sólido / Aceptable / Aproximado / Contra CAYLA / Sin
+ * ventas» en todas las filas: un nivel de confianza en una palabra, que la ciega no entendió. «3 tiendas» es lo que CAYLA tiene hoy.
+ */
+export type VaraTablero = { texto: "Comparada con las 3 tiendas" | "Pocas ventas: aproximado" | "Sin ventas aún"; tono: TonoChip };
 
-export function varaTablero(v: VaraCategoria | undefined): VaraTablero {
-  if (v?.respaldo?.enUso) return { texto: "Contra CAYLA", tono: "pizarra" };
-  if (v?.nivel === "solido") return { texto: "Sólido", tono: "neutro" };
-  if (v?.nivel === "aceptable") return { texto: "Aceptable", tono: "neutro" };
-  if (v?.nivel === "pocos_datos") return { texto: "Aproximado", tono: "ambar" };
-  return { texto: "Sin ventas", tono: "apagado" };
+export function varaTablero(v: VaraCategoria | undefined): VaraTablero | null {
+  if (v?.respaldo?.enUso) return { texto: "Comparada con las 3 tiendas", tono: "pizarra" };
+  if (v?.nivel === "solido" || v?.nivel === "aceptable") return null;
+  if (v?.nivel === "pocos_datos") return { texto: "Pocas ventas: aproximado", tono: "ambar" };
+  return { texto: "Sin ventas aún", tono: "apagado" };
 }
 
 export type FilaTablero = {
@@ -1234,7 +1263,7 @@ export type FilaTablero = {
   porDecidir: number;
   /** Unidades que se quedan o hay que mover: lo que ordena el tablero. */
   viejas: number;
-  vara: VaraTablero;
+  vara: VaraTablero | null;
 };
 
 /** El tramo de una prenda en la barra: el del semáforo; el clásico aparte; lo demás (sin referencia, sin edad, dudosa) «aún no se sabe». */
@@ -1286,6 +1315,17 @@ export function segmentosDe(fila: FilaTablero): { clave: TramoBarra; nombre: str
 // anotada, con «Deshacer»: lo que ya hacía la hoja en cuatro toques), `enlace` (abre la pantalla que hace la cosa, con la
 // prenda cargada) y `hoja` (hay que elegir entre varias opciones, o ver el porqué: la hoja). Sin sugerencia, o con una decisión
 // vigente, no hay botón: la fila ya dice qué se decidió.
+
+/**
+ * Lo que pasa al tocar el botón de la fila, dicho ANTES de tocarlo (Formidable 2026-10-09: la ciega no se atrevió a tocar «La cambié
+ * de lugar» «por si anotaba de golpe sin preguntar» y dio la vuelta larga: 13 toques donde bastaba 1). El botón afirma un hecho; esta
+ * línea dice cuándo tocarlo y qué hace el sistema después. Nunca un «¿seguro?» (ley 7): sigue siendo un toque, con Deshacer.
+ */
+export function textoConsecuenciaFila(accion: AccionDecision, plazoDias: number): string {
+  if (accion === "cambie_lugar") return `Cuando la hayas movido, toca el botón: la miro ${textoDias(plazoDias)} y te digo si sirvió.`;
+  if (accion === "hasta_agotar") return `Si la dejas colgada, toca el botón: no te la vuelvo a preguntar en ${textoDias(plazoDias)}.`;
+  return "Toca el botón cuando lo hayas hecho: queda anotado a tu nombre.";
+}
 
 export type AccionFila =
   | { tipo: "anotar"; verbo: string; accion: AccionDecision }

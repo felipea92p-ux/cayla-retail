@@ -209,7 +209,7 @@ describe("la revisión adversaria del 2026-10-08: la foto se rearma con los apar
     expect(prendaDe(sede, "capa-clasica").juzgadaContra).toBe("sede");
     const cat = sede.categorias.find((c) => c.categoriaId === "capas")!;
     expect(cat.respaldo).toMatchObject({ vendidas: 30, enUso: false });
-    expect(varaTablero(cat)).toEqual({ texto: "Sin ventas", tono: "apagado" });
+    expect(varaTablero(cat)).toEqual({ texto: "Sin ventas aún", tono: "apagado" });
     expect(textoRespaldo(cat)).toBe("Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (30 ventas) queda de apoyo.");
   });
 });

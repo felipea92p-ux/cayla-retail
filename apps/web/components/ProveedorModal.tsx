@@ -163,8 +163,9 @@ export function ProveedorModal({
   /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
   existentes?: { id: string; nombre: string; ruc: string | null; activo?: boolean }[];
   onClose: () => void;
-  /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. */
-  onGuardado: (id: string | null) => void;
+  /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. `datos` trae lo
+   *  que se guardó, para quien lo necesita en pantalla sin esperar a que la página vuelva a leer el directorio (Recibir). */
+  onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null }) => void;
   /** Solo al editar: desactivar vive acá y no en la fila (ver ProveedoresPanel). */
   onDesactivar?: () => Promise<void>;
 }) {
@@ -315,7 +316,7 @@ export function ProveedorModal({
       return;
     }
     const id = editando ? idActual : ((idNuevo as string | null) ?? null);
-    alCerrar.current = () => onGuardado(id);
+    alCerrar.current = () => onGuardado(id, { nombre: nombre.trim(), ruc: ruc || null });
 
     // Paso 2: las cuentas, solo si algo de ellas cambió (o es un alta con algo escrito).
     if (id && hayQueGuardarCuentas(cuentasIniciales, cuentas, inicial.id === null)) {
