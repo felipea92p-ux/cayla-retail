@@ -82,6 +82,11 @@ declare
   v_par_id uuid;
   v_par_ref text;
   v_par_nivel text;
+  v_precio numeric;
+  v_costo numeric;
+  v_i integer;
+  v_costos numeric[] := array[0, 0, 0];
+  v_cual text;
 begin
   -- 1. Quién y dónde: la misma puerta que abrir_produccion, antes de tocar el catálogo.
   if not fn_puede_operar_ubicacion(p_ubicacion_id) then
@@ -107,19 +112,50 @@ begin
   if fn_clave_referencia(v_ref) is null then
     raise exception 'El nombre del modelo necesita al menos una letra o un número.';
   end if;
+  -- Tope de largo (/chaos 2026-10-10, hallazgo #1): `referencia` es `text` sin límite y un nombre de 5.000 letras dejaba la tarjeta de la orden en 9.383 px. Los reales miden ≤ 31.
+  if char_length(v_ref) > 80 then
+    raise exception 'El nombre del modelo es demasiado largo: máximo 80 letras.' using hint = 'nombre_largo';
+  end if;
+  if char_length(btrim(coalesce(p_nota, ''))) > 200 then
+    raise exception 'La nota es demasiado larga: máximo 200 caracteres.' using hint = 'nota_larga';
+  end if;
   if not exists (select 1 from categorias where id = p_categoria_id and activo) then
     raise exception 'Elige una categoría activa del catálogo';
   end if;
   if p_variantes is null or jsonb_typeof(p_variantes) <> 'array' or jsonb_array_length(p_variantes) = 0 then
     raise exception 'La orden necesita al menos una talla o color con su cantidad';
   end if;
-  if p_precio is null or p_precio < 0 then
+  -- Dinero (/chaos 2026-10-10, hallazgos #2 y #3). Los CHECK `>= 0` de `variantes` y `producciones` DEJAN PASAR `NaN` (`NaN >= 0` es verdadero en Postgres), y `0.001`
+  -- pasaba «precio > 0» para guardarse como 0,00. Se valida AQUÍ, en la puerta nueva; los CHECK de las tablas son del núcleo y no se tocan en esta migración.
+  if p_precio is null or p_precio = 'NaN'::numeric then
+    raise exception 'El precio a tienda no es un número válido' using hint = 'precio_invalido';
+  end if;
+  v_precio := round(p_precio, 2);
+  if v_precio < 0 then
     raise exception 'El precio a tienda no puede ser negativo' using hint = 'precio_invalido';
   end if;
-  if not coalesce(p_es_muestra, false) and p_precio <= 0 then
+  if v_precio > 99999.99 then
+    raise exception 'El precio a tienda no puede pasar de S/ 99,999.99' using hint = 'precio_invalido';
+  end if;
+  if not coalesce(p_es_muestra, false) and v_precio < 0.01 then
     raise exception 'Una producción necesita el precio a tienda: sin precio no hay margen que calcular ni se puede vender. Una muestra sí puede ir sin precio.'
       using hint = 'precio_obligatorio';
   end if;
+  for v_i in 1..3 loop
+    v_costo := coalesce(case v_i when 1 then p_costo_tela when 2 then p_costo_avios else p_costo_maquila end, 0);
+    v_cual := case v_i when 1 then 'la tela' when 2 then 'los avíos' else 'la maquila' end;
+    if v_costo = 'NaN'::numeric then
+      raise exception 'El costo de % no es un número válido', v_cual using hint = 'costo_invalido';
+    end if;
+    v_costo := round(v_costo, 2);
+    if v_costo < 0 then
+      raise exception 'El costo de % no puede ser negativo', v_cual using hint = 'costo_invalido';
+    end if;
+    if v_costo > 999999.99 then
+      raise exception 'El costo de % no puede pasar de S/ 999,999.99', v_cual using hint = 'costo_invalido';
+    end if;
+    v_costos[v_i] := v_costo;
+  end loop;
 
   -- 4. Las celdas de la matriz, validadas como conjuntos.
   if exists (
@@ -135,12 +171,25 @@ begin
   ) then
     raise exception 'Repetiste la misma combinación de talla y color — cada celda de la matriz va una sola vez' using hint = 'celda_repetida';
   end if;
+  -- Una talla que no tiene forma de uuid se dice con la frase del vocabulario, no con «invalid input syntax for type uuid» (/chaos #5).
+  if exists (
+    select 1 from jsonb_array_elements(p_variantes) e
+    where nullif(e ->> 'talla_id', '') is not null
+      and (e ->> 'talla_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  ) then
+    raise exception 'Una de las tallas elegidas no está habilitada para esta categoría, o ya no está activa en el vocabulario' using hint = 'talla_no_habilitada';
+  end if;
   if exists (
     select nullif(e ->> 'talla_id', '')::uuid from jsonb_array_elements(p_variantes) e where nullif(e ->> 'talla_id', '') is not null
     except
     select t.id from tallas t join categoria_tallas ct on ct.talla_id = t.id and ct.categoria_id = p_categoria_id where t.activo
   ) then
     raise exception 'Una de las tallas elegidas no está habilitada para esta categoría, o ya no está activa en el vocabulario' using hint = 'talla_no_habilitada';
+  end if;
+  -- /chaos #4: la comparación por conjuntos ignora los `null`, y una línea sin talla en una categoría que SÍ tiene tallas creaba una variante «…-U» sin talla.
+  if exists (select 1 from categoria_tallas ct join tallas t on t.id = ct.talla_id and t.activo where ct.categoria_id = p_categoria_id)
+     and exists (select 1 from jsonb_array_elements(p_variantes) e where nullif(e ->> 'talla_id', '') is null) then
+    raise exception 'Esta categoría tiene tallas: cada línea necesita su talla' using hint = 'talla_obligatoria';
   end if;
   if exists (
     select nullif(trim(e ->> 'color_codigo'), '') from jsonb_array_elements(p_variantes) e where nullif(trim(e ->> 'color_codigo'), '') is not null
@@ -188,7 +237,7 @@ begin
   end;
 
   insert into variantes (producto_id, talla_id, color_codigo, precio, costo)
-  select v_producto_id, nullif(e ->> 'talla_id', '')::uuid, nullif(trim(e ->> 'color_codigo'), ''), p_precio, 0
+  select v_producto_id, nullif(e ->> 'talla_id', '')::uuid, nullif(trim(e ->> 'color_codigo'), ''), v_precio, 0
   from jsonb_array_elements(p_variantes) e;
 
   -- 7. Las líneas de la orden: cada celda pedida con el id de la variante recién creada.
@@ -200,7 +249,7 @@ begin
      and v.color_codigo is not distinct from nullif(trim(q.e ->> 'color_codigo'), '');
 
   -- 8. La orden: abrir_produccion vuelve a validar permiso, Taller, líneas y token. Si algo falla aquí, el modelo tampoco queda.
-  return retail.abrir_produccion(p_ubicacion_id, v_producto_id, v_lineas, p_costo_tela, p_costo_avios, p_costo_maquila,
+  return retail.abrir_produccion(p_ubicacion_id, v_producto_id, v_lineas, v_costos[1], v_costos[2], v_costos[3],
                                  coalesce(p_es_muestra, false), p_fecha_entrega, p_nota, p_token);
 end;
 $$;
@@ -209,4 +258,4 @@ revoke execute on function retail.abrir_produccion_con_modelo_nuevo(uuid, text, 
 grant execute on function retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid) to authenticated;
 
 comment on function retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid) is
-  'Crea un modelo nuevo (con tallas y colores del vocabulario) y abre su orden de producción en UNA transacción y con UN token (ADR-0361). Abierta a quien opera el Taller; el modelo nace pendiente de revisión si quien lo crea no es líder. Envuelve abrir_produccion sin reescribirla.';
+  'Crea un modelo nuevo (con tallas y colores del vocabulario) y abre su orden de producción en UNA transacción y con UN token (ADR-0361). Abierta a quien opera el Taller; el modelo nace marcado pendiente si quien lo crea no es líder (hoy ninguna pantalla lo revisa). Valida nombre (≤ 80), nota (≤ 200), precio y costos (sin NaN ni valores absurdos, a céntimos) y talla. Envuelve abrir_produccion sin reescribirla.';

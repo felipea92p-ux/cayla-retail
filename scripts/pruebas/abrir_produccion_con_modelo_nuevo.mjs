@@ -164,20 +164,25 @@ rollback;`,
     verificar: (c) => c[0] === "t" && Number(c[1]) === 1 && Number(c[2]) === 1 && Number(c[3]) === 4,
   },
   {
-    nombre: "4. UNA TRANSACCIÓN: si abrir la orden falla (costo de tela negativo), no queda el modelo ni sus variantes",
+    nombre: "4. UNA TRANSACCIÓN: si la orden falla DESPUÉS de crear el modelo (un disparador de prueba que rechaza el insert), no queda el modelo ni sus variantes",
     tipo: "exito",
-    sql: `${PREPARAR}${COMO_COLABORADOR}
+    // Antes el fallo tardío se provocaba con un costo de tela negativo (el CHECK de `producciones`); desde /chaos 2026-10-10 la función lo rechaza ANTES de crear nada,
+    // así que el fallo se fabrica con un disparador (creado y revertido dentro de la transacción): el modelo ya se insertó cuando la orden revienta.
+    sql: `${PREPARAR}
+create function public.zz_falla_tardia() returns trigger language plpgsql as $f$ begin raise exception 'falla tardía de prueba'; end $f$;
+create trigger zz_falla_tardia before insert on retail.producciones for each row execute function public.zz_falla_tardia();
+${COMO_COLABORADOR}
 ${PUENTE}
 do $$ begin
   begin
-    perform ${EN_DO(LLAMAR({ tela: "-1" }))};
+    perform ${EN_DO(LLAMAR())};
   exception when others then
     perform set_config('prueba.fallo', sqlerrm, true);
   end;
 end $$;
 reset role;
 select ${CUENTA_DEL_MODELO()}, (select count(*) from retail.producciones where token_cliente = '${TOKEN}'),
-       current_setting('prueba.fallo', true) ilike '%producciones_costo_tela_check%';
+       current_setting('prueba.fallo', true) ilike '%falla tardía de prueba%';
 rollback;`,
     verificar: (c) => Number(c[0]) === 0 && Number(c[1]) === 0 && c[2] === "t",
   },
@@ -278,6 +283,110 @@ select ${LLAMAR({ nombre: "'Modelo Prueba Tallar'", token: `'${TOKEN_2}'`, confi
 select :'ord' <> :'ord2', ${CUENTA_DEL_MODELO(NOMBRE)}, ${CUENTA_DEL_MODELO("Modelo Prueba Tallar")};
 rollback;`,
     verificar: (c) => c[0] === "t" && Number(c[1]) === 1 && Number(c[2]) === 1,
+  },
+  // ── /chaos 2026-10-10 (semilla 1010), hallazgos #1, #2, #4 y #5: lo que antes entraba sin que nadie lo dijera. Cada caso nació como el ataque que lo encontró.
+  {
+    nombre: "10a. un nombre de 81 letras se rechaza (el tablero no aguanta una tarjeta de 9.000 px)",
+    tipo: "error",
+    contiene: "El nombre del modelo es demasiado largo",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ nombre: `'${"Modelo ".repeat(12).slice(0, 81)}'` })};\nrollback;`,
+  },
+  {
+    nombre: "10b. un nombre de exactamente 80 letras entra",
+    tipo: "exito",
+    sql: `${PREPARAR}${COMO_COLABORADOR}
+select ${LLAMAR({ nombre: `'${"Modelo ".repeat(12).slice(0, 80).trim()}'` })} as ord \\gset
+select (select length(p.referencia) from retail.productos p join retail.producciones pr on pr.producto_id = p.id where pr.id = :'ord') = 80, (select estado from retail.producciones where id = :'ord');
+rollback;`,
+    verificar: (c) => c[0] === "t" && c[1] === "en_proceso",
+  },
+  {
+    nombre: "10c. una nota de 201 caracteres se rechaza",
+    tipo: "error",
+    contiene: "La nota es demasiado larga",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ nota: "repeat('n', 201)" })};\nrollback;`,
+  },
+  {
+    nombre: "11a. un precio de 0.001 NO cuenta como precio en una producción (se guardaba como 0,00: la prenda sin precio que la regla quería impedir)",
+    tipo: "error",
+    contiene: "Una producción necesita el precio a tienda",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ precio: "0.001" })};\nrollback;`,
+  },
+  {
+    nombre: "11b. una MUESTRA con precio de 0.001 entra con precio 0 (se completa al aprobarla)",
+    tipo: "exito",
+    sql: `${PREPARAR}${COMO_COLABORADOR}
+select ${LLAMAR({ precio: "0.001", muestra: "true" })} as ord \\gset
+select (select string_agg(distinct v.precio::text, ',') from retail.variantes v join retail.productos p on p.id = v.producto_id where p.referencia = '${NOMBRE}');
+rollback;`,
+    verificar: (c) => c[0] === "0.00",
+  },
+  {
+    nombre: "11c. un precio NaN se rechaza (NaN > 0 es verdadero y el CHECK precio >= 0 lo deja pasar)",
+    tipo: "error",
+    contiene: "El precio a tienda no es un número válido",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ precio: "'NaN'::numeric" })};\nrollback;`,
+  },
+  {
+    nombre: "11d. un precio de 100.000 soles por prenda se rechaza",
+    tipo: "error",
+    contiene: "El precio a tienda no puede pasar de",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ precio: "100000" })};\nrollback;`,
+  },
+  {
+    nombre: "11e. un precio con tres decimales se guarda redondeado a céntimos (12.345 → 12.35)",
+    tipo: "exito",
+    sql: `${PREPARAR}${COMO_COLABORADOR}
+select ${LLAMAR({ precio: "12.345" })} as ord \\gset
+select (select string_agg(distinct v.precio::text, ',') from retail.variantes v join retail.productos p on p.id = v.producto_id where p.referencia = '${NOMBRE}');
+rollback;`,
+    verificar: (c) => c[0] === "12.35",
+  },
+  {
+    nombre: "11f. un precio nulo dice que no es un número válido (no «negativo»)",
+    tipo: "error",
+    contiene: "El precio a tienda no es un número válido",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ precio: "null::numeric" })};\nrollback;`,
+  },
+  {
+    nombre: "12a. un costo de tela NaN se rechaza",
+    tipo: "error",
+    contiene: "El costo de la tela no es un número válido",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ tela: "'NaN'::numeric" })};\nrollback;`,
+  },
+  {
+    nombre: "12b. un costo negativo se rechaza con una frase, no con «violates check constraint»",
+    tipo: "error",
+    contiene: "El costo de los avíos no puede ser negativo",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ avios: "-0.01" })};\nrollback;`,
+  },
+  {
+    nombre: "12c. un costo de mil millones se rechaza (con 1e9 el costo unitario salía 333 millones)",
+    tipo: "error",
+    contiene: "El costo de la maquila no puede pasar de",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ maquila: "1000000000" })};\nrollback;`,
+  },
+  {
+    nombre: "12d. un costo nulo vale 0 y uno con tres decimales se redondea a céntimos",
+    tipo: "exito",
+    sql: `${PREPARAR}${COMO_COLABORADOR}
+select ${LLAMAR({ tela: "null::numeric", avios: "0.126", maquila: "0.001" })} as ord \\gset
+reset role;
+select (select costo_tela from retail.producciones where id = :'ord'), (select costo_avios from retail.producciones where id = :'ord'), (select costo_maquila from retail.producciones where id = :'ord');
+rollback;`,
+    verificar: (c) => c[0] === "0.00" && c[1] === "0.13" && c[2] === "0.00",
+  },
+  {
+    nombre: "13a. una línea SIN talla en una categoría que sí tiene tallas se rechaza (nacía la variante «…-U» sin talla)",
+    tipo: "error",
+    contiene: "necesita su talla",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ matriz: "jsonb_build_array(jsonb_build_object('talla_id', null, 'color_codigo', :'c1', 'cantidad', 3))" })};\nrollback;`,
+  },
+  {
+    nombre: "13b. una talla que no es un uuid se rechaza con la frase del vocabulario (no con «invalid input syntax for type uuid»)",
+    tipo: "error",
+    contiene: "no está habilitada para esta categoría",
+    sql: `${PREPARAR}${COMO_COLABORADOR}select ${LLAMAR({ matriz: "jsonb_build_array(jsonb_build_object('talla_id', 'no-es-uuid', 'color_codigo', :'c1', 'cantidad', 3))" })};\nrollback;`,
   },
   {
     nombre: "9. la migración se puede volver a pegar: la función sigue existiendo y funcionando",
