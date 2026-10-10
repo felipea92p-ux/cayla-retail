@@ -3586,3 +3586,85 @@ servidor reusa `armarFrescuraLider` (las tres lecturas en paralelo, la misma var
   mismo 100 de las barras; elegir CAYLA Global parado en Frescura mandaba al tablero: el selector deja en su pantalla a quien está en
   una que también funciona en esa vista (`rutaDeLaVistaGlobal`; Finanzas, Clientes y Configuración ganan lo mismo); y en esa vista
   la fila del menú dice «Frescura del piso», no «Inventario» (`conservaNombre`, el mismo caso que «Recibir mercadería»).
+
+## Actualización 2026-10-10 (c) — Formidable sobre «la tienda de un vistazo»: diez decisiones de Felipe y lo que se construyó
+
+**El problema.** La revisión Formidable de la pantalla nueva (dos agentes ciegos —una encargada en Tienda Lima y una gerente en CAYLA
+Global—, un crítico que contrastó lo construido con el análisis de la mañana, un revisor de las 9 leyes y tres escépticos; informe en
+`docs/formidable/inventario-frescura.md`, «Re-análisis 2026-10-10 (c)») encontró 26 hallazgos y ninguno cayó entero. Los de más
+consecuencia: lo por decidir había vuelto a quedar bajo el pliegue (y = 1083 a 1440×900; el 10-10 estaba a la vista), la puerta cerrada
+—lo que hoy ven AQP y Trujillo— no decía por qué ni llevaba a ningún lado («no supe si creerle a los números»), la encargada vio tres
+escalas para la misma categoría (8/12/20 en la hoja, 9/16/24 en la ayuda, un porqué que citaba los 20), «Aún no se sabe» se entendía a
+medias y su gris se confundía con Vigente, la gerente no podía llegar desde CAYLA Global a las prendas de una tienda, y lo vendido sin
+registrar seguía «colgado» y podía pedir decisiones por prendas que ya no existen.
+
+**Decisiones de Felipe (AskUserQuestion, en dos rondas):**
+1. **Arriba lo % y abajo cerca.** La tienda arriba, más compacta; «Lo que más se llevan» no se dibuja cuando no tiene nada que decir.
+2. **% con aviso + el paso.** Mientras la tienda no pasa la puerta, los % se ven marcados «Aproximado», la frase dice la razón y el aviso
+   trae el botón de lo que falta.
+3. **«Aún no se sabe» se queda con su nombre, pero se distingue:** rayado, y su porqué a un toque.
+4. **Quitar y conectar.** Sale «Comparar las N tiendas»; en CAYLA Global cada tienda y cada celda llevan a esa tienda. *Esto reabre la
+   decisión 4 de la act. (b) («para decidir, no para operar»): la gerente decide mirando, y si quiere ver qué le pasa a una tienda, entra.*
+5. **Una sola escala** en toda la pantalla.
+6. **Lo vendido sin registrar: «rapidez sí, días no».** La venta anotada en caja trae categoría, talla y color, no el modelo ni desde
+   cuándo colgaba: cuenta para la rapidez de su categoría, no para la vara de días, y la unidad que puede ser la vendida deja de juzgarse.
+   Felipe: «las prendas que no están etiquetadas y que están en piso pronto van a desaparecer por venta o por etiqueta; sí podemos saber el
+   tiempo y los días una vez que bajó a piso hasta que se vendió». Es un puente, no una regla para siempre.
+7. **La aguja contra su vara:** las dos reglas ajustadas (se queda por edad contra lo que su vara espera; completa tallas solo si la talla
+   rota es de la categoría).
+8. **Extras:** botones de la aguja en segundo plano, el chip partido en «Envejeciendo» / «Le sobra piso», la vara del mes a la vista y
+   fuera el aviso «pocas ventas».
+9. **Toda la tienda arriba** (todas las familias juntas) y cada familia en su línea; lo mismo en CAYLA Global. Felipe, al pedirlo: «también
+   debería ver qué porcentaje global de productos de esa sede está fresco, envejeciendo y vigente».
+10. **«Vigente» se queda:** la prueba de palabras la entendió en 2 de 2 (no hace falta «En su tiempo»).
+
+**Construido (commits `96fa4dd6`, `401753fa`, `7dcd61e3`):**
+- **La puerta.** `PuertaPiso` trae `falta` (lo primero que falta) y `sinPrenda`. La frase: «Todavía no se puede saber: falta cuadrar el
+  piso.» (`RAZON_PUERTA`). El aviso dice por qué los % son aproximados (`avisoDeLaPuerta`) y su botón sale de **la misma regla que
+  «Todavía no» de Análisis**, ahora pura y compartida (`pasoParaHablar` en `lib/analisis-aviso.ts`: «Registrar N sin prenda» → Por
+  regularizar, «Cuadrar el piso», «Contar el almacén»; nunca un botón a «Sin acceso»). En CAYLA Global cada tienda dice SU razón.
+- **El pliegue.** Medido: el botón de la prenda por decidir pasa de y = 1172 a 849–893 a 1440×900. Lo que se quitó: la aguja vacía, «Comparar
+  las N tiendas» y su hoja (`FrescuraTiendas`, que mostraba el % Nueva y la edad promedio ya retirados; su registro al colgar y lo decidido
+  este mes pasan a la fila de cada tienda en CAYLA Global), la leyenda del tablero (la tarjeta, justo arriba, ya la dice), la instrucción
+  «Toca una categoría…», la franja del grupo cuando hay uno solo por decidir, y los soles a la línea de arriba.
+- **«Aún no se sabe»** rayado con taupe (`CLASE_TRAMO_PISO`, el mismo patrón de la zona «no se sabe» de la regla; con `sand` desaparecía
+  sobre la pista), en la barra, el tablero y las muestras (`MuestraTramo` en todas). Su «¿Por qué?» (un `<details>`, sin estado) dice
+  cuántas unidades por causa: sin ritmo de su categoría, sin fecha, stock que no cuadra, o una venta sin registrar (`sinSaberPor`, que
+  suma exactamente `sin_saber`).
+- **CAYLA Global conectado:** `/inventario/frescura/tienda?tienda=&cat=` (`route.ts`) cambia la tienda con la misma acción del selector y
+  vuelve a Frescura con la categoría elegida; se enlaza con un `<a>` simple, nunca con un `<Link>` que la pida por adelantado.
+- **Toda la tienda** (`pisoDeLaTienda`, `conteoDeTodo`): la barra grande y la frase son de todas las familias; las familias van debajo
+  solo si hay más de una. La cuadrícula y las frases dicen «unidades».
+- **La gemela de lo vendido sin registrar** (`analizarSede`, opción `dudas`; `cargarDudasCon` lee `prendas_por_regularizar` pendientes con
+  su talla): cada venta pendiente aparta la unidad colgada más vieja de su categoría, talla y color. Esa unidad sale de `colgadas` (no
+  empuja el reloj de la unidad ni «Por decidir») y cuenta en «Aún no se sabe» con la causa «puede ser una que se vendió sin registrar». Las
+  observaciones de la vara de días no cambian (una prueba lo exige). En la acogida, lo anotado en caja suma como venta de su categoría (antes
+  era solo un control que vetaba).
+- **La aguja:** «se queda por edad» si las viejas son más de las que su vara espera (`parteViejaEsperada`: con entradas parejas, la edad de lo
+  colgado se reparte como su curva S(t), y la parte vieja es el área de S más allá de P75 sobre el área total; con S por tramos rectos entre
+  los cortes y cola exponencial desde P90; con una curva exponencial da 1/4), con la cota de Wilson al 97,5 y φ = 1,5 (`envejeceDeMas`;
+  una categoría sana de 12 unidades salta menos de 4 de cada 100 veces). La cuadrícula de CAYLA resalta con la misma regla (`deMas`).
+  «Completa tallas» exige que 3 de cada 10 modelos colgados tengan talla guardada (`PARTE_TALLAS_ROTAS`). El chip dice «Envejeciendo»
+  (edad) o «Le sobra piso» (acogida); sus botones, en segundo plano.
+- **Una sola escala:** `varaQueJuzgo` (la del mes si juzgó, si no la de CAYLA, si no la de hoy) decide la comparación de la ayuda; la ayuda
+  ya no dibuja su escala (vive en la hoja de cada prenda), define las cuatro palabras, dice la vara del mes («quedó fija el día 1: la
+  mitad antes de 9 días; con lo de hoy, antes de 15 (se puso más lenta)», o «todavía aprende su ritmo») y dice «Anotar lo que hice». El
+  porqué de lo que pasó P90 cita la marca de 3 de cada 4, que es donde empieza Envejeciendo. En la regla de la hoja, un nombre que no cabe
+  en su zona va debajo, nunca cortado («Vige…»).
+- **Sale `avisoPocasVentas`** (prometía «en unas semanas se afina» aunque la causa fuera no registrar): lo aproximado se dice una vez en la
+  tarjeta (`mayoriaAproximada`), y la puerta tiene su propio aviso.
+
+**DECIDÍ / DESCARTÉ (técnico):**
+- La parte vieja esperada sale de la curva y no de un número: un 30 % fijo caía dentro de lo normal de una categoría sana (≈ 25 % por
+  construcción) y con 12 unidades saltaba por azar 1 de cada 3 veces. DESCARTÉ comparar contra el mes anterior de la categoría: la vara del
+  mes ya es esa comparación y la foto por categoría no existe todavía.
+- La gemela se elige por la unidad más vieja que coincide: es la que más probablemente se vendió (FIFO de la góndola) y la que más pesa en
+  «Por decidir». DESCARTÉ descontarla como vendida (Felipe eligió dudar, no descontar: si se elige mal, se escondería una prenda colgada).
+- `pasoParaHablar` se movió a `lib/` y Análisis lo usa igual (sin cambio de comportamiento): una función, una pieza.
+
+**SE ROMPE SI:** una pantalla vuelve a comparar contra la vara de hoy cuando juzgó la del mes (dos escalas otra vez); alguien vuelve a poner
+un umbral fijo de «parte vieja»; la gemela entra a las observaciones de la vara (los días de una unidad que quizá no se vendió torcerían a
+toda su categoría); o el enlace de CAYLA Global se vuelve un `<Link>` con prefetch (cambiaría la tienda al pasar el mouse).
+
+**Pendiente:** abrir CAYLA Global ▸ Frescura a un gerente que no es líder (migración de permisos de `fn_frescura_sede`), la foto diaria, y
+medir el pliegue con el piso cuadrado y 3 tarjetas de la aguja (con datos que lo permitan).

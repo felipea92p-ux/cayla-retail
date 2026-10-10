@@ -470,7 +470,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   decidir primero (`vistaDeEntrada`), `getFrescuraPantalla` suma la miniatura de cada prenda con `getAparienciaVariantes` y la
   tabla `categorias` (tolerante, sin SQL nuevo) y la metodología vive en `FrescuraComoSeLee`. Piezas:
   `FrescuraFila` (fila en la computadora, tarjeta en el celular), `FrescuraDetalle` (`<Modal variante="hoja">` con la
-  regla de la categoría), `FrescuraTiendas` («Las N tiendas», solo líder), `piezas.tsx`. Desde el paso 4b (2026-09-29,
+  regla de la categoría), `piezas.tsx` (`FrescuraTiendas`, «Las N tiendas», se retiró el 2026-10-10 (c): comparar tiendas es CAYLA Global). Desde el paso 4b (2026-09-29,
   ADR-0208, migraciones `20261001100000`–`…200`, **sin pegar**) sí escribe, y solo una cosa: «Ya decidí» →
   `FrescuraDecidir.tsx` (hoja con guía de foco; `ComboResponsable`) → RPC `anotar_decision_frescura` /
   `anular_decision_frescura` sobre `retail.frescura_decisiones` (de solo agregar); `getFrescuraPantalla` suma en paralelo
@@ -521,6 +521,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `familiasDeCategorias`) → `lib/frescura-red.ts` (puro: `resumenDeTienda`, `resumenCayla`, `cuadricula`); hoy solo para el líder
   (`fn_frescura_sede` exige operar la sede). El selector (`UbicacionSwitcher`) deja en su pantalla a quien elige CAYLA Global parado
   en una ruta de esa vista.
+  **Desde el 2026-10-10 (c) (Formidable, ADR-0208):** toda la tienda arriba (`pisoDeLaTienda`, `conteoDeTodo`) y cada familia debajo; la
+  puerta trae `falta` y `sinPrenda`, y su botón sale de `pasoParaHablar` (`lib/analisis-aviso.ts`, compartido con «Todavía no» de Análisis,
+  `components/analisis/TodaviaNo.tsx`); «Aún no se sabe» con sus causas (`sinSaberPor`); `analizarSede(…, { dudas })` aparta la unidad que
+  puede ser la vendida sin registrar (`cargarDudasCon` lee `prendas_por_regularizar` pendientes con `tallas ( valor )`); la aguja mide la
+  edad contra su vara (`varaQueJuzgo`, `parteViejaEsperada`, `envejeceDeMas`) y suma lo anotado como venta. En CAYLA Global, cada tienda y
+  cada celda llevan a `/inventario/frescura/tienda?tienda=&cat=` (`route.ts`: cambia la tienda con `cambiarUbicacionActiva` y vuelve a
+  Frescura con la categoría elegida; enlazada con `<a>`, sin prefetch).
 - `/inventario/resumen` (**Análisis**, ADR-0357, 2026-10-06: cinco pestañas —Hoy · Se está acabando · No se vende · Nunca salió al piso
   (2026-10-07, decisión 11) · Qué pedir—;
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
