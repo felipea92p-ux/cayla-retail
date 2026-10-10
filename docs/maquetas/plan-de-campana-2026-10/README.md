@@ -1,6 +1,8 @@
 # Spike visual · Compras ▸ Plan de campaña (2026-10-10)
 
-> **Estado: propuesta, sin decidir.** Nada de esto está en la app. Rediseña la pantalla de
+> **Estado: la entrega 1 está construida (2026-10-10, [ADR-0372](../../adr/0372-plan-de-campana-barra-de-rango-paso-a-paso-y-exportar.md)):** barra de rango, cifras que filtran, filtros, hoja con referencia y «Guardar y seguir», paso a paso, aviso de stock y exportar. **Faltan, con migración y el OK de Felipe:** precio y costo del catálogo, stock por sede, ventas a 30 días (B1), el tope de inversión (B2) y las campañas con su selector (B3, bloqueada hasta decidir de dónde salen las fechas). «Finanzas dice…» sigue sin construirse. Lo que sigue abajo es la propuesta original.
+>
+> Nada de lo que no está en esa lista está en la app. Rediseña la pantalla de
 > [ADR-0349](../../adr/0349-plan-de-campana.md) y le suma lo que Felipe pidió el 2026-10-10: exportar, tope de inversión,
 > varias campañas y dos formas de llenar el plan para compararlas. El prompt para construirla está en [`PROMPT.md`](PROMPT.md).
 

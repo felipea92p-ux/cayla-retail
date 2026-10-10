@@ -61,7 +61,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/nueva": PENDIENTE,
   "/compras/parte/[compraId]": PENDIENTE,
   "/compras/por-pagar": PENDIENTE,
-  "/compras/plan": { estado: "no-aplica", motivo: "Tabla del plan de campaña, una fila por categoría: no hay campos en la pantalla. Lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria` (components/plan-compra/), el mismo formulario de la ventana de cada categoría y del paso a paso, con su guía de foco hecha (CampoGuiado + PieGuia + useGuiaCampos; ADR-0349). La ventana (`PlanCategoriaModal`) ya no tiene campos propios: por eso no figura entre los modales." },
+  // Plan de campaña (ADR-0349): lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria`, el mismo formulario de la hoja de cada categoría y del paso a paso, con su guía de foco hecha. `PlanCategoriaModal` ya no tiene campos propios: por eso no figura entre los modales.
+  "/compras/plan": { estado: "aplicada", evidencia: ["components/plan-compra/FormularioCategoria.tsx"] },
   "/compras/proveedores": PENDIENTE,
   "/compras/proveedores/[id]": PENDIENTE,
   // ---- configuracion ----
