@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { usePorPagar, type Agrupar } from "@/components/PorPagarContexto";
 import { soles } from "@/lib/compras-reglas";
@@ -19,34 +19,31 @@ export type SegmentoConEnlace = SegmentoConcentracion & { /** Filtro por este pr
 
 export function BarraConcentracion({ segmentos, proveedorActivo }: { segmentos: SegmentoConEnlace[]; /** El proveedor por el que ya está filtrada la lista (`?prov=`), si lo hay. */ proveedorActivo: string | null }) {
   const { apuntar } = usePorPagar();
+  // La barra es `<BarraApilada>` (ADR-0358, 2026-10-09). Cada proveedor con enlace es un tramo que apunta (enciende sus filas) y filtra la
+  // lista al navegar; «Otros» se dibuja pero no responde. Apuntar no es un filtro: el activo se RESALTA, no queda «presionado».
   return (
-    <div className="mt-3 flex h-2 gap-[3px]" role="group" aria-label="Deuda por proveedor">
-      {segmentos.map((s, i) => {
-        const clase = `anim-crece-x block h-full min-w-1 basis-0 rounded-[3px] ${TONOS[Math.min(i, TONOS.length - 1)]} transition-[flex-grow,opacity,transform] duration-700 ease-cayla ${
-          proveedorActivo && s.id !== proveedorActivo ? "opacity-35" : ""
-        }`;
-        const estilo = { flexGrow: s.monto, ["--i" as string]: i + 6 };
+    <BarraApilada
+      className="mt-3"
+      alto={8}
+      retraso={6}
+      segmentos={segmentos.map((s, i) => {
         const texto = `${s.nombre} · ${soles(s.monto)} · ${Math.round(s.pct)} %`;
-        if (!s.href || !s.id) {
-          return <span key="otros" className={clase} style={estilo} title={texto} aria-label={texto} />;
-        }
-        const id = s.id;
-        return (
-          <Link
-            key={id}
-            href={s.href}
-            title={texto}
-            aria-label={`${texto}. Filtrar la lista por este proveedor`}
-            onMouseEnter={() => apuntar({ tipo: "proveedor", id })}
-            onMouseLeave={() => apuntar(null)}
-            onFocus={() => apuntar({ tipo: "proveedor", id })}
-            onBlur={() => apuntar(null)}
-            className={`${clase} hover:scale-y-[1.7] focus-visible:scale-y-[1.7]`}
-            style={estilo}
-          />
-        );
+        const conEnlace = !!s.href && !!s.id;
+        return {
+          clave: conEnlace ? (s.id as string) : "otros",
+          nombre: s.nombre,
+          valor: s.monto,
+          clase: TONOS[Math.min(i, TONOS.length - 1)],
+          titulo: texto,
+          etiqueta: conEnlace ? `${texto}. Filtrar la lista por este proveedor` : texto,
+          href: conEnlace ? (s.href as string) : undefined,
+          inerte: !conEnlace,
+        };
       })}
-    </div>
+      etiqueta="Deuda por proveedor"
+      formato={soles}
+      respuesta={{ onApuntar: (clave) => apuntar(clave === null ? null : { tipo: "proveedor", id: clave }), resaltada: proveedorActivo }}
+    />
   );
 }
 

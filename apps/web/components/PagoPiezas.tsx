@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Copy, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -479,12 +480,14 @@ export function MediosDePago({
               </div>
             ))}
           </div>
-          {/* Cómo se reparte el pago: un tramo por medio; crece y se reacomoda al escribir. */}
-          <div aria-hidden className="flex h-[5px] gap-0.5">
-            {lineas.map((l, i) => (
-              <i key={i} className={`block h-full min-w-0 basis-0 rounded-sm transition-[flex-grow] duration-500 ease-cayla ${COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)]}`} style={{ flexGrow: Math.max(0, Number(l.monto) || 0) }} />
-            ))}
-          </div>
+          {/* Cómo se reparte el pago: un tramo por medio; crece y se reacomoda al escribir. Es `<BarraApilada>` (ADR-0358), decorativa:
+              los montos ya están escritos en los campos de arriba. */}
+          <BarraApilada
+            decorativa
+            viva
+            alto={4}
+            segmentos={lineas.map((l, i) => ({ clave: String(i), nombre: `Medio ${i + 1}`, valor: Math.max(0, Number(l.monto) || 0), clase: COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)] }))}
+          />
           <div className="w-full sm:w-44">{fechaCampo}</div>
         </>
       )}

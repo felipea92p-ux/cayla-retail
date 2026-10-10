@@ -44,6 +44,7 @@ import {
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import { Vacio } from "@/components/ui/Vacio";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const soles0 = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
@@ -106,11 +107,14 @@ export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo:
         <p className="mt-4 text-xs text-tinta/50">Sin ventas todavía.</p>
       ) : (
         <>
-          <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-hueso" aria-hidden>
-            {c.metodos.map((m) => (
-              <span key={m.clave} className="h-full transition-[width] duration-500 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${(m.monto / c.total) * 100}%`, background: COLOR_METODO[m.clave] }} />
-            ))}
-          </div>
+          {/* La barra es `<BarraApilada>` (ADR-0358): un tramo por método, con su token de color; decorativa, la leyenda de abajo ya dice los montos. */}
+          <BarraApilada
+            decorativa
+            className="mt-4"
+            alto={8}
+            total={c.total}
+            segmentos={c.metodos.map((m) => ({ clave: m.clave, nombre: m.texto, valor: m.monto, color: COLOR_METODO[m.clave] }))}
+          />
           <p className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-tinta/65 tabular-nums">
             {c.metodos.map((m) => (
               <span key={m.clave} className="inline-flex items-center gap-1.5">

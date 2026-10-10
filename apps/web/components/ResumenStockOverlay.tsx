@@ -62,7 +62,7 @@ function YMas({ restantes, detalle }: { restantes: number; detalle?: string }) {
 function BarraDeStock({ piso, almacen, escala }: { piso: number; almacen: number; escala: number }) {
   if (escala <= 0) return null;
   return (
-    <span aria-hidden className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-tinta/5" style={{ width: `${Math.max(((piso + almacen) / escala) * 100, 4)}%` }}>
+    <span aria-hidden /* unificar-fijo: barra de largo a escala (compara con la categoría que más tiene), no reparte un total; docs/unificar/grafico.barra.md */ className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-tinta/5" style={{ width: `${Math.max(((piso + almacen) / escala) * 100, 4)}%` }}>
       <span className="bg-tinta" style={{ width: `${(piso / Math.max(piso + almacen, 1)) * 100}%` }} />
       <span className="flex-1 bg-taupe/50" />
     </span>
