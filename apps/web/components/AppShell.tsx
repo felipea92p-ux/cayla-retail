@@ -62,6 +62,10 @@ import { useConsultaMedia } from "@/lib/useConsultaMedia";
 // de un grupo expandido se despliegan por `grid-template-rows` (`.lateral-hijos`, globals.css)
 // en vez de montarse con `anim-revelar`. El ancho lo comparten aside, cabecera, <main> y las
 // barras fijas por UN token: plegar solo cambia `--spacing-lateral` en `[data-lateral]`.
+// Solo el lateral se anima (su ancho, 300 ms); la cabecera, el <main> y las barras fijas saltan a su lugar en el
+// primer cuadro (2026-10-10). Animar el margen del <main> obligaba al navegador a recalcular la pantalla entera
+// ~19 veces: en el Punto de venta (todo el ancho, grilla por `@container`) eran ~70 ms con 64 prendas contra ~21 ms
+// sin animarlo, y la grilla cambiaba de 3 a 4 columnas a mitad del movimiento. Ese era el tirón al plegar.
 //
 // v3.7 (2026-09-25, pedido de Felipe): se retira el "+ Nuevo" global —el botón del lateral de
 // escritorio y el "+" central del celular— entero: el menú (`MenuNuevo`), el botón y las 6 acciones
@@ -1098,7 +1102,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
           No es decoración, es la única forma de que se note que hay más página
           arriba en vez de que el texto se corte contra una banda opaca. */}
-      <header data-cabecera-app className="ease-cayla fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral sm:transition-[left] sm:duration-300">
+      <header data-cabecera-app className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
         <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
           {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
           <button
@@ -1187,7 +1191,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           cifras— se apretaban en la columna de lectura (pedido de Felipe,
           2026-09-14). El resto de la app sigue centrado en la columna
           angosta de siempre. */}
-      <main className="ease-cayla px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24 sm:transition-[margin-left] sm:duration-300">
+      <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
         {/* `has-[[data-ancho-completo]]`: una pantalla que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>

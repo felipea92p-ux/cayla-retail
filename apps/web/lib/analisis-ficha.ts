@@ -9,6 +9,7 @@ import type { AccesoAnalisis, LlegadaPrenda, OrigenLlegada, PrendaAnalisis, Sede
 import {
   DIAS_TRES_MESES,
   diasQueQuedan,
+  esTallaUnica,
   type GrupoAnalisis,
   otraSedeQueLaTiene,
   plural,
@@ -18,6 +19,7 @@ import {
 } from "./analisis-reglas";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefReponerPiso } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
+import { queTiene } from "./analisis-modelo";
 import { diaAntes, fechaCorta } from "./motor-demanda-reglas";
 import { compararTallas } from "./tallas";
 
@@ -59,7 +61,14 @@ export function solesFicha(n: number | null): string {
 }
 
 /** La línea bajo el nombre: «Celeste · talla S · S/ 60» (sin precio, sin esa parte). */
-export function subtituloFicha(p: Pick<PrendaAnalisis, "color" | "talla" | "precio">): string {
+export function subtituloFicha(p: Pick<PrendaAnalisis, "color" | "talla" | "precio"> & { variantes?: readonly Pick<PrendaAnalisis, "precio">[]; colores?: string[]; tallas?: string[] }): string {
+  // De un modelo (ADR-0357, decisión 12): sus colores y tallas, y su precio; si sus tallas tienen precios distintos, «desde» el menor.
+  if (p.variantes && p.colores && p.tallas) {
+    const precios = p.variantes.map((v) => v.precio).filter((x): x is number => x !== null);
+    const menor = precios.length > 0 ? Math.min(...precios) : null;
+    const precio = menor === null ? null : precios.every((x) => x === menor) ? solesFicha(menor) : `desde ${solesFicha(menor)}`;
+    return [queTiene({ colores: p.colores, tallas: p.tallas }), precio].filter(Boolean).join(" · ");
+  }
   return [p.color, p.talla ? `talla ${p.talla}` : null, p.precio === null ? null : solesFicha(p.precio)].filter(Boolean).join(" · ");
 }
 
@@ -216,6 +225,57 @@ export function dondeHay(p: PrendaAnalisis, sedes: readonly SedeAnalisis[], miSe
   return filas.map((f) => ({ ...f, ancho: (f.tiene / max) * 0.8, puntos: Math.min(f.vendio, PUNTOS_MAX) }));
 }
 
+// ───────── Lo que más sale del modelo ─────────
+
+/** Una talla o un color del modelo en «Lo que más sale»: cuánto se vendió en mi tienda y cuánto tengo. */
+export type FilaQueSale = {
+  nombre: string;
+  /** El color para su punto (solo en los colores; null si no tiene uno). */
+  punto: string | null;
+  vendio: number;
+  tiene: number;
+  /** El largo de su barra (lo vendido contra lo que más se vendió), de 0 a 0.8 (deja lugar a la cifra). */
+  ancho: number;
+  tip: string;
+};
+
+/**
+ * «Lo que más sale» del modelo (ADR-0357, decisión 12, Felipe 2026-10-10: «al presionar en ese producto se podría ver qué tallas
+ * más salen y qué colores»): sus tallas y sus colores, de lo más vendido en mis días de ventas a lo menos; a igual venta, lo que
+ * más hay, y después en el orden de tienda. Una lista con una sola talla (o solo talla única) o un solo color no dice nada: vacía.
+ */
+export function queSaleMas(
+  m: { variantes: readonly PrendaAnalisis[] },
+  diasDeVentas: number,
+): { tallas: FilaQueSale[]; colores: FilaQueSale[] } {
+  const enDias = `${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
+  const filas = (clave: (v: PrendaAnalisis) => string, orden: (a: string, b: string) => number, conPunto: boolean): FilaQueSale[] => {
+    const acc = new Map<string, { vendio: number; tiene: number; punto: string | null }>();
+    for (const v of m.variantes) {
+      const k = clave(v);
+      const a = acc.get(k) ?? { vendio: 0, tiene: 0, punto: null };
+      acc.set(k, { vendio: a.vendio + v.vendidas30, tiene: a.tiene + totalEnTienda(v), punto: a.punto ?? (conPunto ? (estiloMosaicoColor(v.colorHex)?.fondo ?? null) : null) });
+    }
+    if (acc.size < 2) return [];
+    const max = Math.max(...[...acc.values()].map((x) => x.vendio));
+    return [...acc.entries()]
+      .sort(([ka, a], [kb, b]) => b.vendio - a.vendio || b.tiene - a.tiene || orden(ka, kb))
+      .map(([nombre, x]) => ({
+        nombre,
+        punto: x.punto,
+        vendio: x.vendio,
+        tiene: x.tiene,
+        ancho: max > 0 ? (x.vendio / max) * 0.8 : 0,
+        tip: `${nombre}: vendiste ${x.vendio} en ${enDias} · tienes ${x.tiene}`,
+      }));
+  };
+  const conTalla = m.variantes.some((v) => v.talla.trim() !== "" && !esTallaUnica(v.talla));
+  return {
+    tallas: conTalla ? filas((v) => v.talla, compararTallas, false) : [],
+    colores: filas((v) => v.color || "Sin color", (a, b) => a.localeCompare(b, "es"), true),
+  };
+}
+
 // ───────── Todo el modelo en tu tienda ─────────
 
 /** Cómo se pinta una celda (las clases de la maqueta): `falta` no queda y se vendía; `poco` queda 1 y se vende rápido; `cero` no hay ni se vendía. */
@@ -242,9 +302,10 @@ function tipCelda(color: string, talla: string, tiene: number, vendio: number): 
  * tiene una sola talla y un solo color (no hay nada más que ver). El color de la prenda va primero; las tallas, en el orden de
  * tienda (`compararTallas`). Una combinación que no está en los datos no tiene nada ni se vendió: «no hay».
  */
-export function grillaDelModelo(p: PrendaAnalisis, prendas: readonly PrendaAnalisis[]): GrillaModelo | null {
-  const delModelo = prendas.filter((x) => x.productoId === p.productoId);
-  if (!delModelo.some((x) => x.varianteId === p.varianteId)) delModelo.push(p);
+export function grillaDelModelo(p: PrendaAnalisis & { variantes?: readonly PrendaAnalisis[] }, prendas: readonly PrendaAnalisis[]): GrillaModelo | null {
+  // De un modelo (ADR-0357, decisión 12), sus propias tallas y colores; de una talla suelta, las de su modelo más ella.
+  const delModelo = p.variantes ? [...p.variantes] : prendas.filter((x) => x.productoId === p.productoId);
+  if (!p.variantes && !delModelo.some((x) => x.varianteId === p.varianteId)) delModelo.push(p);
   const tallas = [...new Set(delModelo.map((x) => x.talla))].sort(compararTallas);
   const colores = [...new Set(delModelo.map((x) => x.color))].sort((a, b) => (a === p.color ? -1 : b === p.color ? 1 : a.localeCompare(b, "es")));
   if (tallas.length < 2 && colores.length < 2) return null;

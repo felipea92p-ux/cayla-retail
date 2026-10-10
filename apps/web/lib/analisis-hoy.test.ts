@@ -337,8 +337,8 @@ describe("Qué hacer hoy: las piezas del dibujo", () => {
   });
 
   it("la etiqueta dice cuántas son, sin «empieza aquí» (A1)", () => {
-    expect(textoPastilla({ prendas: [prenda()] })).toBe("1 prenda");
-    expect(textoPastilla({ prendas: [prenda(), prenda()] })).toBe("2 prendas");
+    expect(textoPastilla({ prendas: [prenda()] })).toBe("1 modelo");
+    expect(textoPastilla({ prendas: [prenda(), prenda()] })).toBe("2 modelos");
   });
 
   it("la etiqueta «N prendas» va en el medio de su cinta (a la izquierda) o junto a su final (a la derecha); el verbo, por fuera", () => {

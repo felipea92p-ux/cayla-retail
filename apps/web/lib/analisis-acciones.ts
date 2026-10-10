@@ -11,6 +11,15 @@ import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
+/**
+ * Lo que se hace prenda por prenda (bajar, mandar, liquidar, pedir) con lo que muestra Análisis: desde la decisión 12 de ADR-0357,
+ * cada fila es un MODELO con sus tallas y colores adentro (`variantes`), y la acción va con todas ellas. Una fila sin `variantes`
+ * (una talla suelta) va tal cual.
+ */
+function tallasDe<T extends object>(filas: readonly T[]): T[] {
+  return filas.flatMap((f) => ("variantes" in f && Array.isArray(f.variantes) ? (f.variantes as T[]) : [f]));
+}
+
 /** Dónde vuelve «Volver» desde las pantallas que lo aceptan. */
 export const RUTA_ANALISIS = "/inventario/resumen";
 
@@ -49,36 +58,39 @@ export function hrefComprarTodas(prendas: readonly Pick<PrendaAnalisis, "origen"
 export function hrefEnviar(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "piso" | "almacen">[], destino: Pick<SedeAnalisis, "id">, a: Pick<AccesoAnalisis, "traslados">): string | null {
   if (!a.traslados) return null;
   // Una de cada una, como «Pedir» y «Reponer»: Análisis no sugiere cantidades (ADR-0231); cuántas, se elige en el traslado.
-  const lineas = prendas.filter((p) => totalEnTienda(p) > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
+  const lineas = tallasDe(prendas).filter((p) => totalEnTienda(p) > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
   if (lineas.length === 0 || lineas.length > MAX_VARIANTES_EN_URL) return null;
   return `${RUTA_NUEVO_TRASLADO}?lineas=${lineasEnUrl(lineas)}&destino=${encodeURIComponent(destino.id)}&desde=analisis`;
 }
 
 /** «Liquidar»: las etiquetas de esas prendas (la rebaja se elige allí). null si son más de las que caben o la cuenta no ve Etiquetas. */
 export function hrefLiquidar(prendas: readonly Pick<PrendaAnalisis, "varianteId">[], a: Pick<AccesoAnalisis, "etiquetas">): string | null {
-  if (!a.etiquetas || prendas.length === 0 || prendas.length > MAX_VARIANTES_EN_URL) return null;
-  return urlEtiquetasDePrecio({ variantes: prendas.map((p) => p.varianteId) }, RUTA_ANALISIS);
+  const tallas = tallasDe(prendas);
+  if (!a.etiquetas || tallas.length === 0 || tallas.length > MAX_VARIANTES_EN_URL) return null;
+  return urlEtiquetasDePrecio({ variantes: tallas.map((p) => p.varianteId) }, RUTA_ANALISIS);
 }
 
 /** «Reponer»: bajar al piso lo que está guardado (una de cada una). null si nada tiene almacén o la cuenta no ve Existencias. */
 export function hrefReponerPiso(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "almacen">[], a: Pick<AccesoAnalisis, "existencias">): string | null {
   if (!a.existencias) return null;
-  const lineas = prendas.filter((p) => p.almacen > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
+  const lineas = tallasDe(prendas).filter((p) => p.almacen > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
   if (lineas.length === 0 || lineas.length > MAX_VARIANTES_EN_URL) return null;
   return `/inventario/bajar?lineas=${lineasEnUrl(lineas)}`;
 }
 
-/** «Ver en Existencias»: la prenda en el stock de hoy. */
-export const hrefExistencias = (p: Pick<PrendaAnalisis, "varianteId">, a: Pick<AccesoAnalisis, "existencias">): string | null =>
-  a.existencias ? `/inventario?variante=${encodeURIComponent(p.varianteId)}` : null;
+/** «Ver en Existencias»: la prenda en el stock de hoy; de un modelo, su primera talla (Existencias abre el detalle del modelo desde ella). */
+export function hrefExistencias(p: Pick<PrendaAnalisis, "varianteId"> & { variantes?: readonly Pick<PrendaAnalisis, "varianteId">[] }, a: Pick<AccesoAnalisis, "existencias">): string | null {
+  const talla = p.variantes?.[0] ?? p;
+  return a.existencias ? `/inventario?variante=${encodeURIComponent(talla.varianteId)}` : null;
+}
 
 /** «Movimientos»: el libro de la prenda, buscado por su nombre. */
 export const hrefMovimientos = (p: Pick<PrendaAnalisis, "nombre" | "color">, a: Pick<AccesoAnalisis, "movimientos">): string | null =>
-  a.movimientos ? `/inventario/movimientos?q=${encodeURIComponent(`${p.nombre} ${p.color}`)}` : null;
+  a.movimientos ? `/inventario/movimientos?q=${encodeURIComponent([p.nombre, p.color].filter(Boolean).join(" "))}` : null;
 
 /** Lo que propone «Pedir a otra tienda» (el modal `PedirAOtraSedeModal`): una de cada una, de lo que esa tienda tiene. */
 export function lineasParaPedir(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "nombre" | "color" | "talla" | "otras">[], origenId: string) {
-  return prendas.flatMap((p) => {
+  return tallasDe(prendas).flatMap((p) => {
     const alla = p.otras.find((o) => o.sedeId === origenId);
     if (!alla || alla.stock < 1) return [];
     return [{ varianteId: p.varianteId, etiqueta: [p.nombre, p.color, p.talla].filter(Boolean).join(" · "), disponibleEnOrigen: alla.stock, cantidad: 1 }];

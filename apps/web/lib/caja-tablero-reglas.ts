@@ -28,6 +28,11 @@ const TEXTO_METODO: Record<MetodoCobrado["clave"], string> = {
 };
 const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
 
+/** A qué forma de pago de «Cobrado» pertenece un método de `venta_pagos`: Yape y Plin juntos, lo desconocido en «Otro». */
+export function claveDeMetodo(metodo: string): MetodoCobrado["clave"] {
+  return metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" ? metodo : "otro";
+}
+
 /**
  * Lo cobrado HOY por forma de pago, sin el adelanto de separaciones (`anticipo`), que va aparte. Yape y Plin se juntan
  * (en la tienda son lo mismo: una billetera). Los métodos en cero no salen.
@@ -45,8 +50,7 @@ export function cobradoDelTurno(porMetodo: Partial<Record<string, number>>): { t
     // El redondeo del efectivo no es una forma de pago ni dinero que entró (ADR-0311): la base ya no lo manda en `por_metodo`,
     // pero si llegara, no suma a lo cobrado ni cae en «Otro».
     if (metodo === "redondeo") continue;
-    const clave: MetodoCobrado["clave"] =
-      metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" ? metodo : "otro";
+    const clave = claveDeMetodo(metodo);
     suma.set(clave, (suma.get(clave) ?? 0) + monto);
   }
   const metodos = ORDEN_METODO.filter((c) => (suma.get(c) ?? 0) > 0).map((c) => ({ clave: c, texto: TEXTO_METODO[c], monto: redondear(suma.get(c)!) }));
