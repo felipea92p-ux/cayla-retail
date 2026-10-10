@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261009120000_abrir_produccion_con_modelo_nuevo.sql — ADR-0361 (segunda parte)
+-- 20261010180000_abrir_produccion_con_modelo_nuevo.sql — ADR-0361 (segunda parte)
 --
 -- EL PROBLEMA PRIMERO. `abrir_produccion` solo acepta variantes que YA existen (ADR-0051, punto 5: las variantes nacen en Productos, nunca desde
 -- una orden). Pero el Taller crea modelos nuevos como parte normal de su trabajo: una Muestra (patronaje → muestra → escalado) es el desarrollo de un
@@ -15,7 +15,7 @@
 --
 -- LA DECISIÓN. Mismo patrón proponer/aprobar que la alta al vuelo del censo (`20260918020000_censo_alta_al_vuelo.sql`, Felipe 2026-09-18): una función
 -- `security definer` SIN el candado del líder, abierta a quien opera el Taller. El producto nace como lo decide `productos_estado_alta_biut`: `pendiente`
--- si quien lo crea no es líder (se puede usar de inmediato; hoy ninguna pantalla lo revisa, ADR-0361) y `aprobado` si lo es. Sin tejido ni patrón (el censo tampoco los pide):
+-- si quien lo crea no es líder (se puede usar de inmediato; un líder lo revisa en Catálogo ▸ Productos ▸ «Por revisar», ADR-0371) y `aprobado` si lo es. Sin tejido ni patrón (el censo tampoco los pide):
 -- quedan en «Para completar» de Editar producto. `trg_producto_anota_origen` anota solo que nació en el Taller.
 --
 -- UNA TRANSACCIÓN, UN TOKEN. Crear el modelo y abrir la orden es UNA llamada: o pasa todo o no queda nada (ni un modelo sin orden). El mismo `p_token` va a
@@ -258,4 +258,4 @@ revoke execute on function retail.abrir_produccion_con_modelo_nuevo(uuid, text, 
 grant execute on function retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid) to authenticated;
 
 comment on function retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid) is
-  'Crea un modelo nuevo (con tallas y colores del vocabulario) y abre su orden de producción en UNA transacción y con UN token (ADR-0361). Abierta a quien opera el Taller; el modelo nace marcado pendiente si quien lo crea no es líder (hoy ninguna pantalla lo revisa). Valida nombre (≤ 80), nota (≤ 200), precio y costos (sin NaN ni valores absurdos, a céntimos) y talla. Envuelve abrir_produccion sin reescribirla.';
+  'Crea un modelo nuevo (con tallas y colores del vocabulario) y abre su orden de producción en UNA transacción y con UN token (ADR-0361). Abierta a quien opera el Taller; el modelo nace marcado pendiente si quien lo crea no es líder (se revisa en «Por revisar», ADR-0371). Valida nombre (≤ 80), nota (≤ 200), precio y costos (sin NaN ni valores absurdos, a céntimos) y talla. Envuelve abrir_produccion sin reescribirla.';

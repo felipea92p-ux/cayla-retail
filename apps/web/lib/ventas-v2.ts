@@ -4,6 +4,7 @@ import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { documentoLegibleComprobante, esTipoDocComprobante } from "@/lib/documento-comprobante-reglas";
 import { clasificarBusqueda, DIAS_PLAZO_CAMBIO, type Busqueda } from "@/lib/cambios-reglas";
 import { diaLima, inicioDeDiaLima } from "@/lib/panel-serie";
+import { fotoDeVariante } from "@/lib/producto-fotos-reglas";
 
 // Prioridad 1 (2026-09-12) — historial mínimo de ventas, necesario para que
 // la pantalla de Cambios pueda encontrar QUÉ línea de QUÉ venta se está
@@ -298,7 +299,7 @@ export async function getVentasRecientes(
         `id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario,
          venta:ventas!inner ( ubicacion_id, created_at, usuario_id, asesora_id, estado, ubicacion:ubicaciones ( nombre ) ),
          variante:variantes ( sku, codigo, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, producto_fotos ( url, color_codigo ) ) )`
+           producto:productos ( id, referencia, producto_fotos ( url, color_codigo, orden, es_principal ) ) )`
       )
       .in("venta_id", ventaIds),
     "las prendas de esas ventas"
@@ -402,7 +403,7 @@ export async function getVentasRecientes(
       talla: f.variante?.talla?.valor ?? null,
       color: f.variante?.color?.nombre ?? null,
       colorHex: f.variante?.color?.hex ?? null,
-      fotoUrl: f.variante?.producto?.producto_fotos.find((p) => p.color_codigo === f.variante?.color_codigo)?.url ?? null,
+      fotoUrl: fotoDeVariante(f.variante?.producto?.producto_fotos ?? [], f.variante?.color_codigo ?? null),
       cantidad: f.cantidad,
       precioUnitario: Number(f.precio_unitario),
       descuentoUnitario: Number(f.descuento_unitario ?? 0),

@@ -3095,6 +3095,41 @@
   "tabla": "retail.frescura_decisiones"
  },
  {
+  "conname": "frescura_vara_cayla_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
+  "conname": "frescura_vara_cayla_cifras",
+  "definicion": "CHECK (((vendidas >= (0)::numeric) AND (unidades >= vendidas)))",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
+  "conname": "frescura_vara_cayla_nivel",
+  "definicion": "CHECK (((nivel IS NULL) OR (nivel = ANY (ARRAY['pocos_datos'::text, 'aceptable'::text, 'solido'::text]))))",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
+  "conname": "frescura_vara_cayla_observaciones_lista",
+  "definicion": "CHECK ((jsonb_typeof(observaciones) = 'array'::text))",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
+  "conname": "frescura_vara_cayla_pkey",
+  "definicion": "PRIMARY KEY (categoria_id)",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
+  "conname": "frescura_vara_cayla_tiendas",
+  "definicion": "CHECK ((tiendas >= 1))",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
+  "conname": "frescura_vara_cayla_ventana",
+  "definicion": "CHECK ((ventana_dias = ANY (ARRAY[30, 60, 90, 120])))",
+  "tabla": "retail.frescura_vara_cayla"
+ },
+ {
   "conname": "gastos_anulacion_coherente",
   "definicion": "CHECK ((((estado = 'vigente'::text) AND (motivo_anulacion IS NULL) AND (anulado_por IS NULL) AND (anulado_en IS NULL)) OR ((estado = 'anulado'::text) AND (motivo_anulacion IS NOT NULL) AND (TRIM(BOTH FROM motivo_anulacion) <> ''::text) AND (anulado_en IS NOT NULL))))",
   "tabla": "retail.gastos"
@@ -3343,6 +3378,16 @@
   "conname": "grupos_mix_rol_valido",
   "definicion": "CHECK ((rol = ANY (ARRAY['destino'::text, 'rutina'::text, 'ocasional'::text, 'estacional'::text, 'conveniencia'::text])))",
   "tabla": "retail.grupos_mix"
+ },
+ {
+  "conname": "guias_vistas_guia_check",
+  "definicion": "CHECK ((guia ~ '^[a-z0-9][a-z0-9._-]{0,79}$'::text))",
+  "tabla": "retail.guias_vistas"
+ },
+ {
+  "conname": "guias_vistas_pkey",
+  "definicion": "PRIMARY KEY (quien, guia)",
+  "tabla": "retail.guias_vistas"
  },
  {
   "conname": "historial_producto_cambios_entidad_check",
@@ -3900,6 +3945,21 @@
   "tabla": "retail.movimientos_internos_intentos"
  },
  {
+  "conname": "parametros_analisis_liquidar_desde_rango",
+  "definicion": "CHECK (((liquidar_desde >= 1) AND (liquidar_desde <= 999)))",
+  "tabla": "retail.parametros_analisis"
+ },
+ {
+  "conname": "parametros_analisis_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.parametros_analisis"
+ },
+ {
+  "conname": "parametros_analisis_una_fila",
+  "definicion": "CHECK (id)",
+  "tabla": "retail.parametros_analisis"
+ },
+ {
   "conname": "parametros_finanzas_aviso_gasto_pct_check",
   "definicion": "CHECK (((aviso_gasto_pct > (0)::numeric) AND (aviso_gasto_pct <= (500)::numeric)))",
   "tabla": "retail.parametros_finanzas"
@@ -4210,6 +4270,41 @@
   "tabla": "retail.planes_compra_lineas"
  },
  {
+  "conname": "precios_sede_archivado_por_fkey",
+  "definicion": "FOREIGN KEY (archivado_por) REFERENCES personas(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_creado_por_fkey",
+  "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_motivo_no_vacio",
+  "definicion": "CHECK ((length(btrim(motivo)) >= 3))",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_precio_positivo",
+  "definicion": "CHECK ((precio > (0)::numeric))",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
+  "conname": "precios_sede_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.precios_sede"
+ },
+ {
   "conname": "prendas_danadas_arreglo_con_nota",
   "definicion": "CHECK (((estado <> 'se_arreglo'::text) OR (char_length(btrim(COALESCE(nota, ''::text))) >= 3)))",
   "tabla": "retail.prendas_danadas"
@@ -4468,6 +4563,26 @@
   "conname": "prendas_por_regularizar_venta_item_id_key",
   "definicion": "UNIQUE (venta_item_id)",
   "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_prenda_id_fkey",
+  "definicion": "FOREIGN KEY (prenda_id) REFERENCES retail.prendas_por_regularizar(id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_terminal_id_fkey",
+  "definicion": "FOREIGN KEY (terminal_id) REFERENCES retail.terminales(id)",
+  "tabla": "retail.prendas_por_regularizar_correcciones"
  },
  {
   "conname": "presupuestos_cuenta_fkey",
@@ -4965,6 +5080,11 @@
   "tabla": "retail.proveedores_produccion"
  },
  {
+  "conname": "respaldo_b001_f001_renumeradas_20261007_pkey",
+  "definicion": "PRIMARY KEY (comprobante_id)",
+  "tabla": "retail.respaldo_b001_f001_renumeradas_20261007"
+ },
+ {
   "conname": "respaldo_b002_renumeradas_20261002_pkey",
   "definicion": "PRIMARY KEY (comprobante_id)",
   "tabla": "retail.respaldo_b002_renumeradas_20261002"
@@ -5371,7 +5491,7 @@
  },
  {
   "conname": "separacion_pedidos_clienta_completa",
-  "definicion": "CHECK ((((clienta_nombres IS NULL) = (clienta_apellidos IS NULL)) AND ((clienta_nombres IS NULL) = (clienta_celular IS NULL))))",
+  "definicion": "CHECK ((((clienta_nombres IS NULL) = (clienta_apellidos IS NULL)) AND ((clienta_celular IS NULL) OR (clienta_nombres IS NOT NULL))))",
   "tabla": "retail.separacion_pedidos"
  },
  {
@@ -6373,6 +6493,36 @@
   "conname": "venta_pagos_venta_id_fkey",
   "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
   "tabla": "retail.venta_pagos"
+ },
+ {
+  "conname": "venta_pagos_correcciones_caja_id_fkey",
+  "definicion": "FOREIGN KEY (caja_id) REFERENCES retail.cajas(id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_motivo_check",
+  "definicion": "CHECK (((motivo IS NULL) OR ((length(btrim(motivo)) >= 1) AND (length(btrim(motivo)) <= 200))))",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_terminal_id_fkey",
+  "definicion": "FOREIGN KEY (terminal_id) REFERENCES retail.terminales(id)",
+  "tabla": "retail.venta_pagos_correcciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.venta_pagos_correcciones"
  },
  {
   "conname": "trg_actividad_venta_nueva",

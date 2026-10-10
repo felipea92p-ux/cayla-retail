@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
+import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalogo-v2";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
+import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -29,6 +30,11 @@ import { limitesRedondeados } from "@/lib/productos-filtro-precio";
 import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
+import { urlRotulos } from "@/lib/rotulos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
+import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
+import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -94,7 +100,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -108,6 +114,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("tallas").select("id, valor").eq("activo", true),
     // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
+    // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
+    // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
+    editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -125,9 +134,18 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const existencias = await getExistenciasProductos(
-    resultado.productos.map((p) => p.productoId),
-    persona.ubicacionId
+  const [existencias, preciosTiendas] = await Promise.all([
+    getExistenciasProductos(
+      resultado.productos.map((p) => p.productoId),
+      persona.ubicacionId
+    ),
+    // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
+    getPreciosDeLasTiendas(),
+  ]);
+  const preciosTienda = preciosDeTiendaPorProducto(
+    resultado.productos.map((p) => ({ productoId: p.productoId, varianteIds: p.variantes.map((v) => v.varianteId) })),
+    preciosTiendas.porSede,
+    preciosTiendas.nombres,
   );
 
   const categoriasLeidas = exigir(categorias, "las categorías");
@@ -145,30 +163,42 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     .map((t) => ({ id: t.id, nombre: t.valor }))
     .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
+  // El «!» con lo que la frase no alcanza a decir. En el celular va junto al título, porque ahí la frase se esconde (Felipe, 2026-10-09).
+  const ayudaProductos = (
+    <Ayuda titulo="Productos">
+      <span className="block">
+        Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
+      </span>
+      <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
+      <span className="mt-2 block">
+        El detalle por talla y sede está en{" "}
+        <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
+          Existencias
+        </Link>
+        .
+      </span>
+    </Ayuda>
+  );
+
   return (
     <div className="space-y-6">
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Productos"
+        titulo={
+          <>
+            Productos
+            {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 36 px. */}
+            <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayudaProductos}</span>
+          </>
+        }
         subtitulo={
           // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
           // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
           <>
-            Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.
-            <Ayuda titulo="Productos">
-              <span className="block">
-                Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
-              </span>
-              <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
-              <span className="mt-2 block">
-                El detalle por talla y sede está en{" "}
-                <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
-                  Existencias
-                </Link>
-                .
-              </span>
-            </Ayuda>
+            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero) y el «!» sube junto al título. */}
+            <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
+            <span className="max-sm:hidden">{ayudaProductos}</span>
           </>
         }
         acciones={
@@ -183,7 +213,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                 { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} /> },
                 { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} /> },
               ]}
+              soloIconoEnCelular
             />
+            {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
+                y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
+            {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
+                palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3">
+              <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+              <span className="max-sm:sr-only">Rótulos</span>
+            </BotonEnlace>
             {editaCatalogo && (
               <BotonEnlace href="/productos/nuevo" peso="primario">
                 + Nuevo producto
@@ -193,6 +232,23 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         }
       />
 
+
+      {porRevisar !== null && porRevisar > 0 && (
+        // ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la rechace. Vive
+        // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
+        // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
+        <Aviso
+          tono="atencion"
+          titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
+          accion={
+            <Link href="/productos/por-revisar" className="btn-cayla btn-enlace text-[13px]">
+              Revisar
+            </Link>
+          }
+        >
+          La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
+        </Aviso>
+      )}
 
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
@@ -230,6 +286,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
+        // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
+        // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
+        junto={vista === "grilla" && resultado.totalProductos > 0 ? <SelectorTamanoGrilla key="tamano-grilla" inicial={tamanoGrilla} /> : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
@@ -247,6 +307,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
+            preciosTienda={preciosTienda}
+            preciosAqui={preciosTiendas.porSede[persona.ubicacionId]}
           />
         ) : (
           <ProductosTabla
@@ -260,6 +322,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             veDinero={puede(persona, "verDineroCompras")}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             hrefLimpiar="/productos?vista=tabla"
+            preciosTienda={preciosTienda}
           />
         )}
 

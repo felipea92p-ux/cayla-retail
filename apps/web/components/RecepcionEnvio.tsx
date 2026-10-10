@@ -16,7 +16,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { usePistola } from "@/components/ui/usePistola";
 import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
@@ -344,15 +344,17 @@ export function RecepcionEnvio({
   }, [menuAgregar]);
   const tieneCantidades = (compraId: string) => lineas.some((l) => l.compraId === compraId && (reparto[l.id] || decisiones[l.id]));
 
-  // El escáner es un teclado: si el foco quedó en un botón, lo escaneado se perdería (y el Enter activaría el botón).
-  useEffect(() => {
-    if (!hayEnvio || ok || quitarPendiente) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (teclaSueltaVaAlEscaner(e, document.activeElement)) escaneoRef.current?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [hayEnvio, ok, quitarPendiente]);
+  // La pistola, la misma pieza de Vender (`usePistola`): si el foco quedó en un botón, la primera tecla vuelve al escáner (lo
+  // escaneado no se pierde ni el Enter activa el botón); lo leído es un código exacto —nunca la primera sugerencia—, no se
+  // pega a lo que había escrito y se lee aunque la pistola no mande Enter.
+  usePistola(escaneoRef, {
+    activa: hayEnvio && !ok && !quitarPendiente,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      setEscaneo("");
+      escanear(codigo);
+    },
+  });
 
   function irAlPanel() {
     // En celular la lista y el panel se apilan: al marcar, bajar al panel para que se vea que pasó algo.
@@ -1537,7 +1539,7 @@ export function RecepcionEnvio({
             className="anim-barra"
             medidor={
               // contado (verde) · faltante (ámbar) · lo que falta contar (arena): cuánto falta, de un vistazo
-              <div aria-hidden className="flex h-[3px] bg-sand">
+              <div aria-hidden /* unificar-fijo: franja de 3 px pegada al borde de la barra fija, un medidor sin extremos; otro diseño a propósito (docs/unificar/grafico.barra.md) */ className="flex h-[3px] bg-sand">
                 <span className="bg-verde transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100)}%` }} />
                 <span className="bg-ambar transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100 - Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100), (totales.faltantes / Math.max(1, totales.esperadas)) * 100)}%` }} />
               </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, ChevronRight, CircleCheck, FileMinus, FunnelX, SearchX, ShieldCheck, Wallet, X } from "lucide-react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -215,23 +216,29 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             >
               {cifras.porReclamar.cantidad > 0 ? `${cifras.porReclamar.cantidad === 1 ? "1 nota" : `${cifras.porReclamar.cantidad} notas`} · la más antigua ${hace(cifras.porReclamar.masVieja).toLowerCase()}` : "Nada por reclamar"}
               {cifras.porReclamar.cantidad > 0 && (
-                <span className="nc-conc" data-elegido={banda && banda !== "emitidas" && banda !== "aplicadas" ? "" : undefined} role="group" aria-label="Notas por reclamar según su antigüedad">
-                  {(["urgente", "medio", "reciente"] as TramoUrgencia[]).map((t, i) =>
-                    cifras.porReclamar.tramos[t] > 0 ? (
-                      <button
-                        key={t}
-                        type="button"
-                        data-on={banda === t ? "" : undefined}
-                        aria-label={`${ETIQUETA_BANDA[t]}: ${cifras.porReclamar.tramos[t]}`}
-                        aria-pressed={banda === t}
-                        title={ETIQUETA_BANDA[t]}
-                        onClick={() => { setPestana("por_reclamar"); setBanda((b) => (b === t ? null : t)); }}
-                        className={`anim-crece-x ${COLOR_TRAMO[t]}`}
-                        style={{ flexGrow: cifras.porReclamar.tramos[t], ["--i" as string]: i + 2 } as CSSProperties}
-                      />
-                    ) : null,
-                  )}
-                </span>
+                // La barra es `<BarraApilada>` (ADR-0358): cada tramo es una antigüedad; tocarlo lleva a «Por reclamar» y filtra por ella (el
+                // segundo toque la suelta). Con una puesta, las demás bajan.
+                <BarraApilada
+                  className="mt-[11px]"
+                  alto={8}
+                  retraso={2}
+                  segmentos={(["urgente", "medio", "reciente"] as TramoUrgencia[]).map((t) => ({
+                    clave: t,
+                    nombre: ETIQUETA_BANDA[t],
+                    valor: cifras.porReclamar.tramos[t],
+                    clase: COLOR_TRAMO[t],
+                    etiqueta: `${ETIQUETA_BANDA[t]}: ${cifras.porReclamar.tramos[t]}`,
+                    titulo: ETIQUETA_BANDA[t],
+                  }))}
+                  etiqueta="Notas por reclamar según su antigüedad"
+                  respuesta={{
+                    onElegir: (t) => {
+                      setPestana("por_reclamar");
+                      setBanda((b) => (b === t ? null : (t as TramoUrgencia)));
+                    },
+                    elegida: banda && banda !== "emitidas" && banda !== "aplicadas" ? banda : null,
+                  }}
+                />
               )}
             </TarjetaCifra>
 
@@ -257,11 +264,13 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
                 <>
                   {conSaldo.length === 1 ? "1 proveedor te debe saldo" : `${conSaldo.length} proveedores te deben saldo`}
                   {/* Un tramo por proveedor: se ve de un vistazo si el saldo está repartido o concentrado. */}
-                  <span aria-hidden className="nc-conc">
-                    {conSaldo.map((p, i) => (
-                      <span key={p.id} className={`anim-crece-x rounded-sm ${i % 2 ? "bg-verde-profundo" : "bg-verde"}`} style={{ flexGrow: p.saldoFavor, ["--i" as string]: i + 2 } as CSSProperties} />
-                    ))}
-                  </span>
+                  <BarraApilada
+                    decorativa
+                    className="mt-[11px]"
+                    alto={8}
+                    retraso={2}
+                    segmentos={conSaldo.map((p, i) => ({ clave: p.id, nombre: p.nombre, valor: p.saldoFavor, clase: i % 2 ? "bg-verde-profundo" : "bg-verde" }))}
+                  />
                 </>
               ) : (
                 "Ningún proveedor te debe saldo"

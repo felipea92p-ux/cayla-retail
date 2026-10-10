@@ -79,6 +79,9 @@ export function ResolverDanadosModal({
   sede?: string;
   onClose: () => void;
 }) {
+  // «Se arregló» lo hace quien ve Existencias, donde vive este panel (`arreglar_prenda_danada`, Felipe 2026-10-09);
+  // liquidar, botar, donar o devolver al proveedor sacan stock sin venta y siguen siendo del líder.
+  const puedeArreglar = !otraSede;
   const puedeResolver = esLider && !otraSede;
   const router = useRouter();
   const [notas, setNotas] = useState<Record<string, string>>({});
@@ -109,7 +112,7 @@ export function ResolverDanadosModal({
           { id: "metodo", nombre: "Forma de pago", requerido: false, sugerido: true, hecho: Boolean(metodos[liquidando]), pendiente: "Confirma la forma de pago." },
           { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién decide." },
         ]
-      : puedeResolver && pendientes.length > 0
+      : puedeArreglar && pendientes.length > 0
         ? [{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién decide." }]
         : [];
   const guia = useGuiaCampos(camposAbiertos);
@@ -221,18 +224,18 @@ export function ResolverDanadosModal({
     >
       {(cerrar) => (
         <div className="space-y-4">
-          {!esLider && pendientes.length > 0 && (
-            <p className="rounded-md bg-sand/40 p-3 text-xs text-tinta/65">
-              Solo un líder de sede puede resolver una prenda dañada — se ven acá, pero no se pueden marcar.
+          {!esLider && puedeArreglar && pendientes.length > 0 && (
+            <p className="nota-cayla">
+              Si una prenda ya se compuso, márcala «Se arregló» y vuelve al almacén. Liquidarla, botarla o donarla lo decide un líder.
             </p>
           )}
           {/* Los botones van por prenda: el combo queda arriba de la lista, antes de cualquiera de ellos. */}
-          {puedeResolver && pendientes.length > 0 && (
+          {puedeArreglar && pendientes.length > 0 && (
             <CampoGuiado id="responsable" guia={guia}>
               <ComboResponsable control={responsable} deshabilitado={resolviendo !== null} />
             </CampoGuiado>
           )}
-          {esLider && otraSede && pendientes.length > 0 && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
+          {otraSede && pendientes.length > 0 && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
           {pendientes.length === 0 ? (
             <p className="text-sm text-tinta/65">No hay prendas dañadas pendientes en esta ubicación.</p>
           ) : (
@@ -249,15 +252,17 @@ export function ResolverDanadosModal({
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que el líder necesita para decidir. */}
                     <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte)}</p>
                   </div>
-                  {puedeResolver && liquidando !== p.id && arreglando !== p.id && (
+                  {puedeArreglar && liquidando !== p.id && arreglando !== p.id && (
                     <>
-                      <CampoTexto
-                        etiqueta="Nota (opcional)"
-                        value={notas[p.id] ?? ""}
-                        onChange={(e) => setNotas((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                        maxLength={200}
-                        placeholder="Detalle de la resolución"
-                      />
+                      {puedeResolver && (
+                        <CampoTexto
+                          etiqueta="Nota (opcional)"
+                          value={notas[p.id] ?? ""}
+                          onChange={(e) => setNotas((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                          maxLength={200}
+                          placeholder="Detalle de la resolución"
+                        />
+                      )}
                       <div className="flex flex-wrap gap-2">
                         {/* Un arreglo menor vuelve a la venta (ADR-0328): primero, porque es lo que no pierde la prenda. */}
                         <Boton
@@ -269,36 +274,40 @@ export function ResolverDanadosModal({
                         >
                           Se arregló
                         </Boton>
-                        <Boton
-                          type="button"
-                          onClick={() => {
-                            setArreglando(null);
-                            setLiquidando(p.id);
-                            setPrecios((prev) => ({ ...prev, [p.id]: prev[p.id] ?? (p.precioReferencia || "").toString() }));
-                          }}
-                          disabled={resolviendo !== null || !responsable.listo}
-                          title={responsable.motivo ?? undefined}
-                          className="flex-1"
-                        >
-                          Liquidada
-                        </Boton>
-                        {ESTADOS_SIMPLES.map((e) => (
-                          <Boton
-                            key={e.valor}
-                            type="button"
-                            onClick={() => resolver(p.id, e.valor)}
-                            cargando={resolviendo === p.id}
-                            disabled={resolviendo !== null || !responsable.listo}
-                            title={responsable.motivo ?? undefined}
-                            className="flex-1"
-                          >
-                            {e.texto}
-                          </Boton>
-                        ))}
+                        {puedeResolver && (
+                          <>
+                            <Boton
+                              type="button"
+                              onClick={() => {
+                                setArreglando(null);
+                                setLiquidando(p.id);
+                                setPrecios((prev) => ({ ...prev, [p.id]: prev[p.id] ?? (p.precioReferencia || "").toString() }));
+                              }}
+                              disabled={resolviendo !== null || !responsable.listo}
+                              title={responsable.motivo ?? undefined}
+                              className="flex-1"
+                            >
+                              Liquidada
+                            </Boton>
+                            {ESTADOS_SIMPLES.map((e) => (
+                              <Boton
+                                key={e.valor}
+                                type="button"
+                                onClick={() => resolver(p.id, e.valor)}
+                                cargando={resolviendo === p.id}
+                                disabled={resolviendo !== null || !responsable.listo}
+                                title={responsable.motivo ?? undefined}
+                                className="flex-1"
+                              >
+                                {e.texto}
+                              </Boton>
+                            ))}
+                          </>
+                        )}
                       </div>
                     </>
                   )}
-                  {puedeResolver && arreglando === p.id && (
+                  {puedeArreglar && arreglando === p.id && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
                       <p className="text-xs text-tinta/65">{quePasaAlArreglar(sede)}</p>
                       <CampoGuiado id="arreglo" guia={guia}>

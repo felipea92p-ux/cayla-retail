@@ -402,12 +402,18 @@ export type LineaParaImprimir = {
 /** Lo que entró en el guardado (las `Subida`s del stock), con lo que la ficha sabe de cada variante: su color, su talla, su precio
  *  y sus etiquetas. En el orden de la tabla: por color como aparecen, y por talla en curva. Una variante que la ficha no conoce
  *  (no debería pasar) sale con lo que trae la subida. */
-export function lineasParaImprimir(subidas: readonly Subida[], filas: readonly FilaFicha[], n: NombresFicha): LineaParaImprimir[] {
+export function lineasParaImprimir(
+  subidas: readonly Subida[],
+  filas: readonly FilaFicha[],
+  n: NombresFicha,
+  /** Precio propio de ESTA tienda por variante (ADR-0370): la etiqueta que se imprime aquí sale con él, y la vista previa también. */
+  preciosAqui: Readonly<Record<string, number>> = {},
+): LineaParaImprimir[] {
   const lineas = subidas
     .filter((s) => s.unidades > 0)
     .map((s) => {
       const f = filas.find((x) => x.id === s.varianteId);
-      const precio = f ? Number(f.precio) : NaN;
+      const precio = preciosAqui[s.varianteId] ?? (f ? Number(f.precio) : NaN);
       return {
         varianteId: s.varianteId,
         colorCodigo: f ? f.colorCodigo : null,

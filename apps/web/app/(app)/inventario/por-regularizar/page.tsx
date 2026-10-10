@@ -4,9 +4,11 @@ import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar"
 import { getDisponiblePorSede } from "@/lib/por-regularizar-stock";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { PorRegularizarLista } from "@/components/PorRegularizarLista";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 
 // Ventas sin registrar (ADR-0179), en Existencias desde el 2026-10-04 (ADR-0330): prendas que caja vendió antes de estar en el
 // sistema. Hasta hoy eran la tercera pestaña de Recibir mercadería, que es de lo que LLEGA; esto es una diferencia de stock que deja
@@ -24,14 +26,18 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
   // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
-  const [filas, catalogo, plazos] = await Promise.all([
+  // Las listas de la hoja con que caja anota la prenda: «Corregir lo anotado» (ADR-0369) usa la misma.
+  const [filas, catalogo, plazos, listasLeidas] = await Promise.all([
     getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId),
     getCatalogo(),
     esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
+    leerListasPrendaLibre(),
   ]);
   // Cuántas unidades libres hay de cada prenda en la tienda de cada venta pendiente (para «3 en TRU» y la sugerida). Es lo accesorio:
   // si no se puede leer, la pantalla sigue y se regulariza igual (`getDisponiblePorSede` nunca lanza).
-  const disponibles = await getDisponiblePorSede(filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId));
+  const sedesPendientes = filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId);
+  // El precio OFICIAL de cada venta es el de su tienda (precio propio, Felipe 2026-10-09): así lo guarda `regularizar_prenda`.
+  const [disponibles, preciosPorSede] = await Promise.all([getDisponiblePorSede(sedesPendientes), getPreciosPorSede(sedesPendientes)]);
   const etiqueta = esLider ? (unaSede?.nombre ?? "tus tiendas") : persona.ubicacionEtiqueta;
   // De vuelta a Existencias en la misma sede que se miraba (la de la cabecera no necesita el parámetro).
   const volverA = unaSede && unaSede.id !== persona.ubicacionId ? `/inventario?ubicacion=${unaSede.id}` : "/inventario";
@@ -64,12 +70,14 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         filas={filas}
         prendas={prendas}
         disponibles={disponibles}
+        preciosPorSede={preciosPorSede}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
         esLider={esLider}
         plazos={plazos}
         sedeInicial={unaSede?.id ?? null}
         abrirItemId={item ?? null}
+        listas={armarListasPrendaLibre(listasLeidas, catalogo)}
       />
     </div>
   );

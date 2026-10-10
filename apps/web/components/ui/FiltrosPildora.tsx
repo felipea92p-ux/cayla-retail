@@ -160,6 +160,7 @@ export function DesplegablePildora({
   opciones,
   valorPorDefecto = TODOS,
   encoger = false,
+  soloIconoEnCelular = false,
   rotuloCantidad,
 }: (UnaOpcion | VariasOpciones) & {
   icono: LucideIcon;
@@ -175,6 +176,9 @@ export function DesplegablePildora({
   /** Que la píldora pueda achicarse y cortar su valor con «…» (fuera de un panel, en una fila angosta: «Ordenar por» a
    *  375 px). En el riel del panel no: ahí cada píldora conserva su ancho y el riel se desliza. */
   encoger?: boolean;
+  /** Bajo `sm`, solo el ícono en un cuadrado de 38 px (con su caja, del alto de «Filtros» en `soloIcono`), con un punto si está puesta: «Ordenar» de
+   *  Productos junto al buscador del celular (2026-10-09). El nombre y el valor siguen en su `aria-label` y vuelven desde `sm`. */
+  soloIconoEnCelular?: boolean;
 }) {
   const id = useId();
   const [abierto, setAbierto] = useState(false);
@@ -300,22 +304,28 @@ export function DesplegablePildora({
         onKeyDown={alTeclado}
         className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] transition-colors ${
           puedeQuitar ? "pl-3 pr-1" : "px-3"
-        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
+        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"} ${soloIconoEnCelular ? "max-sm:h-[38px] max-sm:w-[38px] max-sm:justify-center max-sm:px-0" : ""}`}
       >
-        <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
+        <Icono
+          aria-hidden
+          className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"} ${
+            soloIconoEnCelular ? "max-sm:h-4 max-sm:w-4 max-sm:text-tinta/65" : ""
+          }`}
+        />
+        {soloIconoEnCelular && activa && <span aria-hidden className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-tinta sm:hidden" />}
         {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02): antes decía solo «Todas» y la píldora
             se distinguía únicamente por el ícono. El valor no se recorta a ciegas: hasta 16rem y con «…». */}
-        <span className={activa ? "text-tinta/55" : undefined}>
+        <span className={`${activa ? "text-tinta/55" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
           {etiqueta}
           {texto.valor && ":"}
         </span>
         {texto.valor && (
-          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""}`}>
+          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
             {elegida?.icono && <span className="shrink-0">{elegida.icono}</span>}
             <span className="truncate">{texto.valor}</span>
           </span>
         )}
-        {!puedeQuitar && <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />}
+        {!puedeQuitar && <ChevronDown aria-hidden className={`h-3 w-3 shrink-0 text-tinta/35 ${soloIconoEnCelular ? "max-sm:hidden" : ""}`} />}
         <Hilo activo={abierto} reposo={false} />
       </button>
       {puedeQuitar && (
@@ -328,7 +338,7 @@ export function DesplegablePildora({
             else onValor(valorPorDefecto);
           }}
           aria-label={`Quitar filtro ${etiqueta}`}
-          className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-rojo"
+          className={`${soloIconoEnCelular ? "max-sm:hidden" : ""} mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-rojo`}
         >
           <X aria-hidden className="h-3 w-3" />
         </button>

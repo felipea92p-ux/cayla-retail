@@ -59,12 +59,25 @@ describe("estadoDelAyudante", () => {
     expect(avisoDelAyudante("comprobando")).toBeNull();
     for (const e of ["sin-ayudante", "sin-impresora", "sin-chrome"] as const) expect(avisoDelAyudante(e)?.titulo).toBeTruthy();
   });
+  it("lo que se ve es una línea que dice que SÍ se puede imprimir, sin jerga (Formidable 2026-10-09)", () => {
+    for (const e of ["sin-ayudante", "sin-impresora", "sin-chrome"] as const) {
+      const r = avisoDelAyudante(e)!.resumen;
+      expect(r).toMatch(/^Puedes imprimir igual\./);
+      expect(r).not.toMatch(/Terminal|curl|instalar\.sh|red local/);
+      expect(r.length).toBeLessThanOrEqual(110);
+    }
+  });
 });
 
 describe("resultadoDeImpresion", () => {
   it("éxito con la cantidad", () => {
     expect(resultadoDeImpresion(200, { ok: true, trabajo: "Brother_QL-13" }, 1)).toEqual({ ok: true, texto: "Etiqueta enviada a la Brother" });
     expect(resultadoDeImpresion(200, { ok: true }, 5)).toEqual({ ok: true, texto: "5 etiquetas enviadas a la Brother" });
+  });
+  it("los rótulos hablan de rótulos", () => {
+    expect(resultadoDeImpresion(200, { ok: true }, 1, "rotulo")).toEqual({ ok: true, texto: "Rótulo enviado a la Brother" });
+    expect(resultadoDeImpresion(200, { ok: true }, 3, "rotulo")).toEqual({ ok: true, texto: "3 rótulos enviados a la Brother" });
+    expect(resultadoDeImpresion(500, { ok: false, error: "x" }, 3, "rotulo")).toMatchObject({ texto: "Los rótulos no se imprimieron" });
   });
   it("sin conexión con el ayudante", () => {
     expect(resultadoDeImpresion(null, null, 3).ok).toBe(false);

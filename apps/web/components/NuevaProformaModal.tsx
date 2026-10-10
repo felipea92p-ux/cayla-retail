@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Shirt, X } from "lucide-react";
@@ -19,8 +19,10 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
 export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; precio: number; fotoUrl: string | null; colorHex: string | null };
@@ -37,9 +39,10 @@ const CONTROL = "rounded-md border border-tinta/15 bg-vidrio/60 px-1.5 py-1 text
 // arranca como copia de otra: «Duplicar» o, si venció, «Renovar» (precios de hoy, sin los descuentos de antes).
 export function NuevaProformaModal({
   onCerrar,
-  prendas,
+  prendas: prendasCatalogo,
   ubicaciones,
   ubicacionActualId,
+  preciosPorSede = {},
   esLider,
   inicial = null,
 }: {
@@ -47,6 +50,8 @@ export function NuevaProformaModal({
   prendas: PrendaParaProforma[];
   ubicaciones: { id: string; nombre: string }[];
   ubicacionActualId: string;
+  /** Precio propio de cada tienda (Felipe 2026-10-09): se cotiza al de la tienda elegida, como lo guarda `crear_proforma`. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   esLider: boolean;
   inicial?: Proforma | null;
 }) {
@@ -55,6 +60,8 @@ export function NuevaProformaModal({
   // Crear una proforma guarda en Facturación: pide Responsable (ADR-0161, A7).
   const responsable = useResponsable();
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
+  // Las prendas al precio de la tienda elegida: cambiar la tienda cambia el precio de las filas (cada fila toma la prenda de AHORA).
+  const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.varianteId), [prendasCatalogo, preciosPorSede, ubicacionId]);
   const lineasIniciales = lineasDeLaProforma(inicial?.items) ?? [];
   const [filasGuardadas, setFilas] = useState<Fila[]>(() =>
     lineasIniciales.flatMap((l) => {
@@ -89,6 +96,18 @@ export function NuevaProformaModal({
   const totales = totalesDeLineas(filas.map((f) => ({ cantidad: f.cantidad, precio_unitario: f.prenda.precio, descuento_unitario: descuentoDe(f) })));
   const faltaMotivo = filas.some((f) => f.pct > 0 && (!f.motivo || (f.motivo === "otro" && !f.detalle.trim())));
   const diasValidos = Math.max(1, Math.min(60, Math.round(Number(dias)) || 7));
+
+  // La pistola, la misma pieza de Vender (`usePistola`): lo leído es un código exacto (nunca la primera sugerencia), no se pega
+  // a lo que había escrito y se lee aunque la pistola no mande Enter. El campo queda vacío para la siguiente lectura.
+  const buscador = useRef<HTMLInputElement>(null);
+  usePistola(buscador, {
+    alLeer: ({ codigo }) => {
+      setQ("");
+      const v = resolverCodigoV2(codigo, prendas);
+      if (v) agregar(v);
+      else avisar.error(`No encontramos «${codigo}». Revisa el código de la etiqueta.`);
+    },
+  });
 
   function agregar(p: PrendaParaProforma) {
     setFilas((actual) =>
@@ -157,6 +176,7 @@ export function NuevaProformaModal({
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}
           <div className="relative">
             <Buscador
+              ref={buscador}
               valor={q}
               onCambio={setQ}
               onKeyDown={(e) => {

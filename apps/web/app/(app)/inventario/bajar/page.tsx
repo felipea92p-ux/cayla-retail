@@ -14,7 +14,8 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 // `?lineas=<variante>:<cantidad>,…` (ADR-0237): lo marcado en Existencias llega ya en la lista, con el mismo formato que
 // «Mover mercadería». Solo entra lo que esta tienda puede bajar, y llega «por escanear» (en 0): se baja lo que se lea al
 // colgarlo, no lo que se marcó (ADR-0237, actualización 2026-09-26).
-export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string }> }) {
+// `?camara=1` («Colgar en tandas» del Inicio de Almacén, 2026-10-09): en un celular la cámara se abre al llegar.
+export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string; camara?: string }> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("existencias");
   const sede = persona.ubicacionEtiqueta;
@@ -42,6 +43,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
           sede={sede}
           prendas={prendas}
           iniciales={lineasIniciales(parsearLineasPrellenadas(params.lineas), prendas)}
+          abrirCamara={params.camara === "1"}
         />
       ) : (
         <p className="nota-cayla">{sede} todavía no separa piso y almacén, así que aquí no hay nada que bajar.</p>

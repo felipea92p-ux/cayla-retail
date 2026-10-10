@@ -695,6 +695,11 @@
   "tablename": "frescura_decisiones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX frescura_vara_cayla_pkey ON retail.frescura_vara_cayla USING btree (categoria_id)",
+  "indexname": "frescura_vara_cayla_pkey",
+  "tablename": "frescura_vara_cayla"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX gastos_compra_vigente_uq ON retail.gastos USING btree (compra_id) WHERE ((estado = 'vigente'::text) AND (compra_id IS NOT NULL))",
   "indexname": "gastos_compra_vigente_uq",
   "tablename": "gastos"
@@ -753,6 +758,11 @@
   "indexdef": "CREATE UNIQUE INDEX grupos_mix_pkey ON retail.grupos_mix USING btree (clave)",
   "indexname": "grupos_mix_pkey",
   "tablename": "grupos_mix"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX guias_vistas_pkey ON retail.guias_vistas USING btree (quien, guia)",
+  "indexname": "guias_vistas_pkey",
+  "tablename": "guias_vistas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX historial_producto_cambios_pkey ON retail.historial_producto_cambios USING btree (id)",
@@ -870,6 +880,11 @@
   "tablename": "movimientos_internos_intentos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX parametros_analisis_pkey ON retail.parametros_analisis USING btree (id)",
+  "indexname": "parametros_analisis_pkey",
+  "tablename": "parametros_analisis"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX parametros_finanzas_pkey ON retail.parametros_finanzas USING btree (id)",
   "indexname": "parametros_finanzas_pkey",
   "tablename": "parametros_finanzas"
@@ -935,6 +950,16 @@
   "tablename": "planes_compra_lineas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX precios_sede_pkey ON retail.precios_sede USING btree (id)",
+  "indexname": "precios_sede_pkey",
+  "tablename": "precios_sede"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX precios_sede_vigente_unico ON retail.precios_sede USING btree (variante_id, ubicacion_id) WHERE (archivado_en IS NULL)",
+  "indexname": "precios_sede_vigente_unico",
+  "tablename": "precios_sede"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)",
   "indexname": "prendas_danadas_cambio_id_key",
   "tablename": "prendas_danadas"
@@ -983,6 +1008,11 @@
   "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_venta_item_id_key ON retail.prendas_por_regularizar USING btree (venta_item_id)",
   "indexname": "prendas_por_regularizar_venta_item_id_key",
   "tablename": "prendas_por_regularizar"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_correcciones_pkey ON retail.prendas_por_regularizar_correcciones USING btree (id)",
+  "indexname": "prendas_por_regularizar_correcciones_pkey",
+  "tablename": "prendas_por_regularizar_correcciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX presupuestos_pkey ON retail.presupuestos USING btree (id)",
@@ -1103,6 +1133,11 @@
   "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_ruc_unico ON retail.proveedores_produccion USING btree (ruc) WHERE (ruc IS NOT NULL)",
   "indexname": "proveedores_produccion_ruc_unico",
   "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX respaldo_b001_f001_renumeradas_20261007_pkey ON retail.respaldo_b001_f001_renumeradas_20261007 USING btree (comprobante_id)",
+  "indexname": "respaldo_b001_f001_renumeradas_20261007_pkey",
+  "tablename": "respaldo_b001_f001_renumeradas_20261007"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX respaldo_b002_renumeradas_20261002_pkey ON retail.respaldo_b002_renumeradas_20261002 USING btree (comprobante_id)",
@@ -1423,6 +1458,11 @@
   "indexdef": "CREATE UNIQUE INDEX venta_pagos_un_redondeo_por_venta ON retail.venta_pagos USING btree (venta_id) WHERE (metodo = 'redondeo'::text)",
   "indexname": "venta_pagos_un_redondeo_por_venta",
   "tablename": "venta_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX venta_pagos_correcciones_pkey ON retail.venta_pagos_correcciones USING btree (id)",
+  "indexname": "venta_pagos_correcciones_pkey",
+  "tablename": "venta_pagos_correcciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX ventas_pkey ON retail.ventas USING btree (id)",

@@ -13,6 +13,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
+import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -39,9 +40,9 @@ type Props = {
   resultados: VarianteBusqueda[];
   activo: number;
   aviso: string | null;
-  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. `cuando` es la hora de la
-   *  tecla (`timeStamp` del evento): con ella el padre distingue a la pistola de una persona (`lib/lectura-pistola.ts`). */
-  onEscribir: (valor: string, cuando: number) => void;
+  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. La pistola la distingue
+   *  `usePistola` escuchando el campo, no esta prop. */
+  onEscribir: (valor: string) => void;
   /** El botón ×: solo borra el texto (no toca activo ni aviso — así era). */
   onLimpiarBusqueda: () => void;
   onTeclado: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -227,7 +228,7 @@ export function PuntoDeVentaCatalogo({
               autoFocus
               disabled={bloqueado}
               valor={q}
-              onCambio={(v, e) => onEscribir(v, e?.timeStamp ?? performance.now())}
+              onCambio={(v) => onEscribir(v)}
               onBorrar={() => onLimpiarBusqueda()}
               onKeyDown={onTeclado}
               placeholder="Escanea la etiqueta o busca la prenda"
@@ -290,10 +291,16 @@ export function PuntoDeVentaCatalogo({
                             {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                             {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
                             {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
-                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">{money(v.precio)}</span>
+                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">
+                              {money(v.precio)}
+                              {v.precioDeSede && <span className="ml-1 text-[10.5px] text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                            </span>
                           </span>
                         </span>
-                        <span className="hidden shrink-0 text-right text-sm font-semibold tabular-nums text-tinta @[26rem]:block">{money(v.precio)}</span>
+                        <span className="hidden shrink-0 text-right @[26rem]:block">
+                          <span className="block text-sm font-semibold tabular-nums text-tinta">{money(v.precio)}</span>
+                          {v.precioDeSede && <span className="block whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                        </span>
                       </button>
                     </li>
                     );
@@ -451,6 +458,7 @@ export function PuntoDeVentaCatalogo({
                 pulsoTope={topeTarjeta?.clave === p.clave ? topeTarjeta.pulso : null}
                 onAgregar={onAgregar}
                 onAbrir={onAbrirPrenda}
+                etiquetaPrecioSede={etiquetaPrecioDeSede(ubicacionEtiqueta)}
               />
             ))}
           </div>

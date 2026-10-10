@@ -23,6 +23,7 @@ export function CabinaAlmacen({
   alDia,
   avance,
   hayColaSinLeer,
+  hrefColgar,
 }: {
   nuevos: NuevoProducto[] | null;
   tituloLista: string;
@@ -35,6 +36,8 @@ export function CabinaAlmacen({
   avance: { alDia: number; total: number; pct: number };
   /** Alguna cola no se pudo leer: sin tareas, eso NO es «todo al día». */
   hayColaSinLeer: boolean;
+  /** «Colgar en tandas»: `null` si no se ofrece (`hrefColgarEnTandas`). */
+  hrefColgar: string | null;
 }) {
   const lista = nuevos ? nuevos.slice(0, 3) : null;
   return (
@@ -51,6 +54,16 @@ export function CabinaAlmacen({
               <Ico clave="plus" />
             </span>
           </Link>
+          {/* «Colgar en tandas» arriba de todo, sin scroll (Felipe, 2026-10-09: «es lo que más se hace»): el lote que llega en la
+              mano se escanea con la cámara del celular y se cuelga de una vez (`bajar_al_piso`, todo o nada). */}
+          {hrefColgar && (
+            <Link href={hrefColgar} className="ia-cta ia-cta2">
+              <span>Colgar en tandas</span>
+              <span className="ia-plus">
+                <Ico clave="camera" />
+              </span>
+            </Link>
+          )}
           <span className="ia-tecla">
             o presiona <kbd>N</kbd>
           </span>

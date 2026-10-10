@@ -159,7 +159,7 @@ async function visitar(ctx, cuenta, visita, tema) {
   return res;
 }
 
-const navegador = await chromium.launch({ headless: true });
+const navegador = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
 const visitas = [];
 try {
   for (const cuenta of cuentas) {

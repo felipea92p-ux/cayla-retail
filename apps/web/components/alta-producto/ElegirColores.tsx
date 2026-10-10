@@ -207,7 +207,11 @@ export function ElegirColores({
                           <button
                             key={c.codigo}
                             type="button"
-                            onClick={() => onAlternar(c.codigo)}
+                            onClick={() => {
+                              onAlternar(c.codigo);
+                              // Con el dedo no hay mouse encima ni foco (Safari no enfoca un botón al tocarlo): el toque también lo nombra.
+                              setSenalado(c);
+                            }}
                             aria-pressed={elegido}
                             aria-label={c.nombre}
                             onMouseEnter={() => setSenalado(c)}
@@ -247,7 +251,10 @@ export function ElegirColores({
 function PieDeLaCarta({ senalado, elegido, colores }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[] }) {
   const parecidos = senalado ? coloresParecidos(senalado.hex, senalado.familiaColor, colores, { excluir: senalado.codigo }).slice(0, 2) : [];
   return (
-    <p aria-hidden className="mt-1 flex h-9 items-center gap-2 border-t border-sand pt-1 text-[12px]">
+    // En el celular y la tablet, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09): el pie
+    // quedaba al final de 14 familias y el color tocado se sumaba ARRIBA, a la fila de elegidos; quien tocaba un círculo no veía ni
+    // su nombre ni que quedó elegido. `--alto-barra-ficha` lo publica la barra (`FichaPrevia`): crece con la tira de parecidas.
+    <p aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 flex h-9 items-center gap-2 border-t border-sand bg-crema px-3 pt-1 text-[12px] lg:static lg:mx-0 lg:bg-transparent lg:px-0">
       {senalado ? (
         <>
           <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} grande />

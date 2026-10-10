@@ -56,7 +56,7 @@ El recuadro azul («Se crea en el catálogo… Marca, proveedor, tejido, patrón
 
 ## Lo que no pediste y importa más
 **La función acepta un precio de 0,001 (lo guarda como 0,00) y `NaN`.** La regla «una producción necesita precio» existe justo para que no haya prendas sin precio, y esta puerta nueva la deja pasar; además un `NaN` en `variantes.precio` contamina toda suma (`NaN × 3 = NaN`) porque los CHECK `>= 0` lo admiten. Es dinero y es una migración: **es de Felipe** (detalle y evidencia en el informe de `/chaos`, hallazgos #2 y #3).
-*(El revisor propuso otro candidato —«el modelo nace pendiente sin pantalla que lo apruebe»—; el escéptico lo matizó: Felipe quitó esa revisión el 2026-10-02, «no me sirve», y una pendiente hoy se trata como cualquier otra. Ver ADR-0361, «Hueco conocido». Lo único realmente abierto es si el Taller debe fijar el precio de venta; fue una decisión del plan que Felipe aprobó.)*
+*(El revisor propuso otro candidato —«el modelo nace pendiente sin pantalla que lo apruebe»—; el escéptico lo matizó: Felipe quitó esa revisión el 2026-10-02, «no me sirve», y una pendiente se trataba como cualquier otra; después Felipe la reabrió con la cola «Por revisar» (ADR-0371, ya en `main`). Ver ADR-0361, «Lo que «pendiente» significa». Lo único realmente abierto es si el Taller debe fijar el precio de venta; fue una decisión del plan que Felipe aprobó.)*
 
 ## Lista aparte (no se ejecuta)
 1. Borrador que sobrevive a Escape / clic fuera / Cancelar, con «Empezar de cero»; conservar cantidades al cambiar de categoría (tallas compatibles). Esfuerzo M; el token debe borrarse tras un éxito.

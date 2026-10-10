@@ -82,7 +82,9 @@ export function MatrizCantidades({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
-        {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
+        {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho; en el
+            celular cada opción parte su texto en dos líneas (2026-10-09: «¿Alguna cuesta distinto?» de una línea ensanchaba la
+            página 23 px a 375 px y la pantalla entera se corría de lado). */}
         <SegmentoDeslizante
           forma="modo"
           etiqueta="Qué escribes en la tabla"
@@ -92,7 +94,7 @@ export function MatrizCantidades({
             { clave: "cantidades", etiqueta: "Cuántas tienes hoy", deshabilitada: !!cantidadesCerradas, ayuda: cantidadesCerradas || undefined },
             { clave: "precios", etiqueta: "¿Alguna cuesta distinto?" },
           ]}
-          className="w-full sm:w-auto [&>button]:flex-1 [&>button]:justify-center sm:[&>button]:flex-none"
+          className="w-full sm:w-auto [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center max-sm:[&>button]:px-2 max-sm:[&>button]:text-center max-sm:[&>button]:leading-tight max-sm:[&>button]:whitespace-normal sm:[&>button]:flex-none"
         />
         {/* «Llenar todas» ocupa su lugar también en «precios» (invisible): cambiar de segmento no mueve la tabla (ADR-0185). */}
         <div className={`flex items-center gap-1.5 text-[12.5px] text-taupe ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>

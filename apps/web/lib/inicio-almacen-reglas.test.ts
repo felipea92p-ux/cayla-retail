@@ -15,6 +15,8 @@ import {
   etiquetaSedeDeOrigen,
   existenciasDeAlmacen,
   filasDelPiso,
+  HREF_COLGAR_EN_TANDAS,
+  hrefColgarEnTandas,
   filtrarNuevos,
   fuentesDeAlmacen,
   inicioDeAyerLima,
@@ -385,13 +387,13 @@ describe("siglaSede", () => {
 
 describe("accesosAlmacen", () => {
   it("solo los módulos que la cuenta ve, y Escanear siempre", () => {
-    expect(accesosAlmacen(["existencias", "traslados", "recibir", "productos"]).map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Escanear"]);
+    expect(accesosAlmacen(["existencias", "traslados", "recibir", "productos"]).map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Rótulos", "Escanear"]);
     expect(accesosAlmacen(["recibir"]).map((a) => a.etiqueta)).toEqual(["Recibir", "Escanear"]);
     expect(accesosAlmacen([]).map((a) => a.etiqueta)).toEqual(["Escanear"]);
   });
   it("con Conteos suma Conteo, y Escanear es el destacado", () => {
     const l = accesosAlmacen(["existencias", "traslados", "recibir", "conteos"]);
-    expect(l.map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Conteo", "Escanear"]);
+    expect(l.map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Rótulos", "Conteo", "Escanear"]);
     expect(l.filter((a) => a.destacado).map((a) => a.etiqueta)).toEqual(["Escanear"]);
   });
 });
@@ -607,5 +609,34 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     const taller = existenciasDeAlmacen([talla("Blusa Emma", "Azul", "M", null, null)], []);
     expect(taller.enAlmacen).toBeNull();
     expect(fuentesDeAlmacen({ existencias: taller, fotos: null, porCompletar: null }).porColgar).toBeUndefined();
+  });
+});
+
+describe("hrefColgarEnTandas: «Colgar en tandas» del Inicio de Almacén", () => {
+  const conPiso = { enAlmacen: 12, porColgar: { tallas: 0, unidades: 0, prendas: 0, enPausa: 0 }, primeras: [], hrefBajar: "/inventario/bajar" };
+
+  it("sin Existencias no se ofrece: Bajar al piso vive en ese módulo y llevaría a «Sin acceso»", () => {
+    expect(hrefColgarEnTandas(undefined)).toBeNull();
+  });
+
+  it("donde la sede no separa piso y almacén no se ofrece: no hay nada que bajar", () => {
+    expect(hrefColgarEnTandas({ ...conPiso, enAlmacen: null })).toBeNull();
+  });
+
+  it("se ofrece aunque el piso esté al día: el lote que llega en la mano no está en la lista del día", () => {
+    expect(hrefColgarEnTandas(conPiso)).toBe(HREF_COLGAR_EN_TANDAS);
+    expect(hrefColgarEnTandas({ ...conPiso, enAlmacen: 0 })).toBe(HREF_COLGAR_EN_TANDAS);
+  });
+
+  it("si la lectura del piso falló se ofrece igual: la pantalla de Bajar lee lo suyo", () => {
+    expect(hrefColgarEnTandas(null)).toBe(HREF_COLGAR_EN_TANDAS);
+  });
+
+  it("lleva a Bajar al piso con la cámara pedida y la lista vacía", () => {
+    const [ruta, query] = HREF_COLGAR_EN_TANDAS.split("?");
+    expect(ruta).toBe("/inventario/bajar");
+    const params = new URLSearchParams(query);
+    expect(params.get("camara")).toBe("1");
+    expect(params.get("lineas")).toBeNull();
   });
 });

@@ -309,7 +309,7 @@ export function siglaSede(nombre: string): string {
 export type AccesoDeAlmacen = {
   href: string;
   etiqueta: string;
-  icono: "stock" | "traslados" | "truck" | "tag" | "conteo" | "scan";
+  icono: "stock" | "traslados" | "truck" | "tag" | "rotulo" | "conteo" | "scan";
   /** El botón oscuro de la fila (Escanear). */
   destacado?: boolean;
 };
@@ -320,12 +320,14 @@ const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/recibir", etiqueta: "Recibir", icono: "truck", modulo: "recibir" },
   // Etiquetas de precio no es de un módulo propio: se llega desde Existencias, así que la ve quien ve Existencias.
   { href: "/etiquetas-de-precio", etiqueta: "Etiquetas", icono: "tag", modulo: "existencias" },
+  // Rótulos de anaquel (ADR-0366): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.
+  { href: "/rotulos?origen=almacen", etiqueta: "Rótulos", icono: "rotulo", modulo: "existencias" },
   { href: "/inventario/conteo", etiqueta: "Conteo", icono: "conteo", modulo: "conteos" },
   // «Buscar» no pide módulo: es la puerta a escanear una prenda.
   { href: "/buscar", etiqueta: "Escanear", icono: "scan", modulo: null, destacado: true },
 ];
 
-/** Los accesos de la cuenta de almacén: hasta seis, SOLO de módulos que ve (ADR-0161), así que ninguno lleva a «Sin acceso». */
+/** Los accesos de la cuenta de almacén: hasta siete, SOLO de módulos que ve (ADR-0161), así que ninguno lleva a «Sin acceso». */
 export function accesosAlmacen(modulos: readonly ClaveModulo[]): AccesoDeAlmacen[] {
   return ACCESOS_ALMACEN.filter((a) => a.modulo === null || modulos.includes(a.modulo)).map((a) => ({ href: a.href, etiqueta: a.etiqueta, icono: a.icono, ...(a.destacado ? { destacado: true } : {}) }));
 }
@@ -432,6 +434,23 @@ export function existenciasDeAlmacen<F extends FilaPrenda>(stock: readonly F[], 
     })),
     hrefBajar: urlBajarAlPiso(p.filas) ?? "/inventario/bajar",
   };
+}
+
+// ── «Colgar en tandas»: escanear un lote con el celular y bajarlo de una vez ─────────────────────────
+
+/** Bajar al piso con la cámara abierta al llegar (solo en un aparato táctil: en el computador manda la pistola). La lista llega
+ *  vacía a propósito: es para el lote que se tiene en la mano (un fardo, una caja), no para la lista del día de «Por colgar». */
+export const HREF_COLGAR_EN_TANDAS = "/inventario/bajar?camara=1";
+
+/**
+ * Adónde lleva «Colgar en tandas» del Inicio de Almacén; `null` si no se ofrece. No se ofrece a quien no ve Existencias
+ * (`undefined`: Bajar al piso vive en ese módulo, ADR-0306, y llevaría a «Sin acceso») ni donde la sede no separa piso y almacén
+ * (no hay nada que bajar). Si la lectura del piso falló (`null`) se ofrece igual: la pantalla de Bajar lee lo suyo y dice la verdad.
+ */
+export function hrefColgarEnTandas(existencias: Existencias | null | undefined): string | null {
+  if (existencias === undefined) return null;
+  if (existencias !== null && existencias.enAlmacen === null) return null;
+  return HREF_COLGAR_EN_TANDAS;
 }
 
 // ── De lo leído a las fuentes de «Te toca» ───────────────────────────────────────────────────────

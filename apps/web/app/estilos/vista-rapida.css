@@ -47,6 +47,12 @@
     animation: vr-dato-entra 420ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--vr-j, 0) * 70ms + 260ms);
   }
+  /* El chip de estado y el botón que lo cambia, en una misma pieza (Felipe 2026-10-09). */
+  .vr-meta .vr-estado-prenda {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
   .vr-meta .vr-cod {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 12.5px;
@@ -155,6 +161,32 @@
   }
   /* La descripción de la prenda, bajo la foto (Felipe, 2026-10-06: no se veía en ninguna parte). Es de la prenda y no del color: una línea
      la separa del pie de la foto. */
+  /* La ficha corta, bajo la matriz: cuatro datos en fila, rótulo arriba y dato abajo (como las cifras de la cabecera de la matriz). */
+  .vr-ficha {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--color-sand);
+    border-radius: 12px;
+  }
+  .vr-ficha .vr-rotulo {
+    display: block;
+    font-size: 10.5px;
+    color: var(--vr-t60, var(--color-tinta));
+  }
+  .vr-ficha dd {
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--color-tinta);
+    overflow-wrap: anywhere;
+  }
+  .vr-ficha dd.vr-ficha-falta {
+    color: var(--color-taupe);
+    font-style: italic;
+  }
   .vr-desc {
     margin-top: 16px;
     padding-top: 12px;
@@ -552,8 +584,9 @@
     align-items: center;
     gap: 8px;
   }
-  .vr-botones .vr-espacio {
-    flex: 1;
+  /* «Eliminar» va solo, a la derecha de la fila: si la fila no cabe y baja, sigue a la derecha. */
+  .vr-botones .vr-eliminar {
+    margin-left: auto;
   }
   .vr-botones [data-sin-unidades="true"] {
     opacity: 0.6;
@@ -608,6 +641,9 @@
       display: none;
     }
     /* Bajo la cinta de foto + color, a todo el ancho (en la columna de 96 px se partía palabra por palabra). */
+    .vr-ficha {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .vr-desc {
       grid-column: 1 / -1;
       margin-top: 0;
@@ -654,8 +690,9 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
     }
-    .vr-botones .vr-espacio {
-      display: none;
+    /* En celular los botones son celdas de la grilla de dos columnas: «Eliminar» entra como una celda más, sin empujarse a la derecha. */
+    .vr-botones .vr-eliminar {
+      margin-left: 0;
     }
   }
 }

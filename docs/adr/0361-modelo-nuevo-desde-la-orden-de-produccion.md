@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-07 (primera parte) y 2026-10-09 (segunda parte) · **Estado:** **construido en dos partes; falta pegar la migración en producción.**
   - *Primera parte* (ida y vuelta a Nuevo producto): solo web, sin migración; verificada.
-  - *Segunda parte* («Modelo nuevo» dentro de «Nueva orden»): migración aditiva `supabase/migrations/20261009120000_abrir_produccion_con_modelo_nuevo.sql`
+  - *Segunda parte* («Modelo nuevo» dentro de «Nueva orden»): migración aditiva `supabase/migrations/20261010180000_abrir_produccion_con_modelo_nuevo.sql`
     ensayada contra el Postgres local (20 casos, todos terminan en `ROLLBACK`) y web verificada (`tsc`, `eslint`, 387 archivos / 156.458 pruebas y el
     recorrido en el navegador con datos de ejemplo). **Orden obligatorio: primero la migración en producción, después se publica la web** (ver «Despliegue»).
   - **Hecho el 2026-10-10:** recorrido con datos reales en local (como líder), `/chaos` (semilla 1010) y `/formidable`; y **los arreglos que Felipe eligió** de esas dos
@@ -38,8 +38,7 @@ modelo nuevo dependía de un líder y de salir de la orden a otra pantalla. El p
    se abrió, sin duplicar el modelo. Sustituye a la «RPC atómica» que la primera versión dejó como alternativa descartada.
 3. **Quién:** quien opera el Taller (`fn_puede_operar_ubicacion` + `ubicaciones.tipo = 'taller'`, comprobado **antes** de tocar el catálogo para que nadie
    averigüe nombres ni vocabulario sin permiso), **sin** el candado del líder. El estado del modelo lo decide `productos_estado_alta_biut`, no la función:
-   **`pendiente`** si quien lo crea no edita el catálogo (se puede usar de inmediato; **hoy ninguna pantalla lo revisa**: Felipe quitó el aviso «Pendiente de
-   revisar» el 2026-10-02, «no me sirve», y una pendiente se trata como cualquier otra) y **`aprobado`** si lo edita. Es la misma marca del alta al vuelo del censo.
+   **`pendiente`** si quien lo crea no edita el catálogo (se puede usar de inmediato; un líder lo aprueba o lo rechaza en Catálogo ▸ Productos ▸ «Por revisar», ADR-0371) y **`aprobado`** si lo edita. Es la misma marca del alta al vuelo del censo.
 4. **Qué se pide y qué no.** Se piden nombre, categoría, tallas, colores (opcionales: una prenda puede no tener color), precio y cantidades. **No** se piden
    marca, proveedor, tejido, patrón ni fotos: el modelo nace sin ellos y quedan en «Para completar» de Editar producto. La base exige tejido y patrón en
    Indumentaria dentro de `crear_producto_con_variantes`, no en una restricción de la tabla; el modelo que nace de una orden queda **incompleto en esos campos**
@@ -117,15 +116,15 @@ pantalla no se cae y lo escrito se conserva), pero nadie puede usarlo. Antes de 
 - **Material (tela) en texto libre, como en julio:** devuelve el problema de V1. El tejido es vocabulario y lo completa quien edita el catálogo.
 - **Ampliar el margen a todo el Taller:** es un permiso sobre dinero y precios; es de Felipe.
 
-## Lo que «pendiente» significa hoy (corregido el 2026-10-10)
+## Lo que «pendiente» significa (corregido el 2026-10-10)
 
-La primera versión de este ADR llamó «hueco» a que la web no tenga pantalla para aprobar o rechazar los productos `pendiente`. **Es una decisión anterior de Felipe, no
-un olvido:** el 2026-10-02 quitó el aviso «Pendiente de revisar» de Editar producto («no me sirve»; `docs/bitacora/2026-10-02-product-edit-local-ad1952.md`). La base
-sigue marcando `estado_alta = 'pendiente'` y `revisar_producto_censo` sigue existiendo, pero ninguna pantalla la llama y Existencias trata una pendiente «como cualquier
-otra» (`lib/existencias-catalogo-reglas.ts:25-27`). Un modelo creado desde la orden por quien no edita el catálogo **se usa y se vende sin que nadie lo apruebe**; si se
-creó por error, se descontinúa en su ficha. Por eso la pantalla de éxito **no** dice «queda pendiente de un líder» (sería falso). Lo que sí sigue abierto, y es de
-Felipe (dinero): si quien opera el Taller debe fijar el precio de venta de un modelo del catálogo (decisiones 3, 4 y 9). Otra sesión trabaja en una pantalla de
-revisión («Por revisar», ADR-0371); esta rama no la toca.
+La primera versión de este ADR llamó «hueco» a que la web no tuviera pantalla para aprobar o rechazar los productos `pendiente`. **No era un olvido:** el 2026-10-02 Felipe quitó el
+aviso «Pendiente de revisar» de Editar producto («no me sirve»; `docs/bitacora/2026-10-02-product-edit-local-ad1952.md`) y desde entonces una pendiente se trataba «como cualquier otra»
+(`lib/existencias-catalogo-reglas.ts`). **El 2026-10-10 Felipe lo reabrió** con la cola «Por revisar» de Catálogo ▸ Productos (ADR-0371, ya en `main`, con su migración `20261010170000` en
+producción): quién propuso la prenda, desde qué sede nació, sus variantes y su precio, y dos acciones, aprobar o rechazar; **rechazar se niega con una orden de producción en proceso o con stock**.
+Así que un modelo creado desde esta orden por quien no edita el catálogo **se usa de inmediato y un líder lo revisa en esa cola**; como la orden ya está abierta, lo que le queda es aprobarlo.
+La pantalla de éxito no dice «queda pendiente» (no frena nada). Lo único abierto, y es de Felipe (dinero): si quien opera el Taller debe fijar el precio de venta de un modelo del catálogo
+(decisiones 3, 4 y 9).
 
 ## Cómo se verifica
 

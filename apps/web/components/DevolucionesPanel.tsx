@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Banknote, FunnelX, PackageSearch, ScanLine, Search } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
+import { abrirDesdeLectura } from "@/lib/cambios-atajos-reglas";
 import { DevolucionesVentas } from "@/components/DevolucionesVentas";
 import { DevolucionesFlujo } from "@/components/DevolucionesFlujo";
 import { DevolucionesPendientes } from "@/components/DevolucionesPendientes";
@@ -144,11 +145,31 @@ export function DevolucionesPanel({
 
   useAtajoBusqueda(campoBusqueda, !flujo && !anulando);
 
+  // Una lectura (pistola o cámara) que trae UNA sola compra la abre directo (`abrirDesdeLectura`, Felipe 2026-10-09). La
+  // búsqueda va por la URL: se recuerda qué se leyó y, cuando llegan sus resultados, se decide.
+  const lecturaPendiente = useRef<string | null>(null);
+  useEffect(() => {
+    if (lecturaPendiente.current === null || lecturaPendiente.current !== busqueda) return;
+    lecturaPendiente.current = null;
+    const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaDevolucion(l, ahora).devolvible);
+    if (!abrir) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
+    setFlujo(abrir);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [lineas, busqueda, ahora]);
+
   function navegar(parametros: URLSearchParams | null) {
     startTransition(() => router.push(parametros ? `${pathname}?${parametros}` : pathname));
   }
 
-  function buscar(texto: string, todas: boolean) {
+  function buscar(texto: string, todas: boolean, leida = false) {
+    if (leida) lecturaPendiente.current = texto;
+    // La misma búsqueda que ya está en pantalla no vuelve a navegar: se decide con lo que ya hay.
+    if (leida && texto === busqueda) {
+      lecturaPendiente.current = null;
+      const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaDevolucion(l, ahora).devolvible);
+      if (abrir) return setFlujo(abrir);
+    }
     const parametros = new URLSearchParams({ q: texto });
     if (todas) parametros.set("todas", "1");
     navegar(parametros);
@@ -212,7 +233,6 @@ export function DevolucionesPanel({
     <DevolucionesVentas
       lineas={ls}
       ahora={ahora}
-      esLider={esLider}
       resumen={resumen}
       onIniciar={iniciar}
       onAnular={setAnulando}
@@ -262,6 +282,7 @@ export function DevolucionesPanel({
           onBuscar={buscar}
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
+          pistola={!anulando}
         />
 
         {busqueda &&

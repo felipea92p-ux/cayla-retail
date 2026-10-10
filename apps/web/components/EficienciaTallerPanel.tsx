@@ -9,6 +9,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { repartoDelGasto, variacion, type EficienciaPeriodo, type PartePlata } from "@/lib/eficiencia-reglas";
 import type { EstadoPlanilla } from "@/lib/eficiencia";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 // Eficiencia del Taller (ADR-0133, F7; D-31 y D-33). «Cuánto cuesta de verdad cada prenda que sale del Taller»: materiales de lo que cerró + conversión (la
 // planilla de Dynamic y los gastos generales, repartidos entre las prendas buenas). El período es el de la planilla (29 al 28). Sin planilla visible NO se
@@ -126,16 +127,13 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
               <p className="text-sm text-tinta/70">No hay gasto del Taller registrado en este período.</p>
             ) : (
               <>
-                <div className="flex h-3 overflow-hidden rounded-full bg-sand" role="img" aria-label="Reparto del gasto del Taller">
-                  {reparto.map((p) => (
-                    <span key={p.clave} className={COLOR_PARTE[p.clave]} style={{ width: `${p.parte * 100}%` }} />
-                  ))}
-                </div>
+                {/* La barra es `<BarraApilada>` (ADR-0358): cada parte del gasto, con el mismo color que su fila de abajo. */}
+                <BarraApilada alto={12} etiqueta="Reparto del gasto del Taller" formato={soles} segmentos={reparto.map((p) => ({ clave: p.clave, nombre: p.etiqueta, valor: p.monto, clase: COLOR_PARTE[p.clave] }))} />
                 <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
                   {reparto.map((p) => (
                     <li key={p.clave} className="flex items-baseline justify-between gap-3 text-[13px]">
                       <span className="flex items-center gap-2 text-tinta/80">
-                        <i aria-hidden className={`inline-block h-2 w-2 rounded-full ${COLOR_PARTE[p.clave]}`} />
+                        <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2 w-2 rounded-full" />
                         {p.etiqueta}
                       </span>
                       <span className="tabular-nums text-tinta">
