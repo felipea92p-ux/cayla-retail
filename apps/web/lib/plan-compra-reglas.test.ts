@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   aplicarFiltro,
+  argsCrearCampana,
   argsGuardar,
   argsGuardarTope,
   avanceDelPaso,
   armarFilas,
   borradorDe,
+  borradorDeCampana,
   calcular,
   colaDelPaso,
   comoTextoDeExcel,
@@ -16,6 +18,7 @@ import {
   cuantilTriangular,
   curvaSugerida,
   diasEntre,
+  diferenciaConLaEtiqueta,
   efectoEnElTope,
   ENCABEZADOS_LISTA_COMPRA,
   escalaDeRango,
@@ -24,11 +27,14 @@ import {
   filasDeLaListaDeCompra,
   filasDelCsvDeCompra,
   filtrarFilas,
+  fechaCortaES,
   fraseDeLoReal,
+  leerCampanas,
   leerMonto,
   leerPlan,
   lineaDeBorrador,
   momentoDeLaCampana,
+  nombreDeLaCampana,
   nombreDelArchivoDeCompra,
   ordenarFilas,
   pendientesDelPaso,
@@ -36,9 +42,11 @@ import {
   porQue,
   posicionEnEscala,
   problemaDelTope,
+  problemasDeLaCampana,
   problemasDelBorrador,
   propuestaDeNormal,
   repartir,
+  rotuloDeCampana,
   segmentosDelTope,
   siguienteSinPlan,
   TOP_VENTAS,
@@ -46,7 +54,7 @@ import {
   type Borrador,
   type TallaPlan,
 } from "./plan-compra-reglas";
-import { camposDelPlan, camposDelTope } from "./plan-compra-guia";
+import { camposDeLaCampana, camposDelPlan, camposDelTope } from "./plan-compra-guia";
 import { sePuedeConfirmar } from "./guia-campos";
 
 const TALLAS: TallaPlan[] = [
@@ -657,5 +665,70 @@ describe("la guía del tope dice lo mismo que la validación", () => {
     const [tope, quien] = camposDelTope("", { listo: false, motivo: "Elige quién fija el tope." });
     expect(tope.pendiente).toBe(problemaDelTope(""));
     expect(quien.pendiente).toBe("Elige quién fija el tope.");
+  });
+});
+
+describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR-0372, B3)", () => {
+  const leida = () =>
+    leerCampanas({
+      planes: [
+        { id: "p2", nombre: "Día de la Madre 2027", desde: "2027-04-20", hasta: "2027-05-12", etiqueta_id: "e1", con_plan: 3 },
+        { id: "p1", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31", etiqueta_id: null, con_plan: 0 },
+        { id: "malo", nombre: "Sin fechas", desde: "ayer", hasta: "2026-12-31" },
+      ],
+      etiquetas: [
+        { id: "e1", nombre: "Día de la Madre", desde: "2027-05-01", hasta: "2027-05-10", plan_id: "p2" },
+        { id: "e2", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", plan_id: null },
+        { id: "e3", nombre: "Sin fechas", desde: null, hasta: null, plan_id: null },
+      ],
+    })!;
+  it("lee los planes y las etiquetas; una fila que no calza se descarta, una forma rara es null", () => {
+    const l = leida();
+    expect(l.planes.map((p) => [p.nombre, p.etiquetaId, p.conPlan])).toEqual([["Día de la Madre 2027", "e1", 3], ["Diciembre 2026", null, 0]]);
+    expect(l.etiquetas.map((e) => [e.nombre, e.planId])).toEqual([["Día de la Madre", "p2"], ["Navidad", null]]);
+    expect(leerCampanas(null)).toBeNull();
+    expect(leerCampanas([])).toBeNull();
+    expect(leerCampanas({})).toEqual({ planes: [], etiquetas: [] });
+  });
+  it("el rótulo y el nombre con que nace el plan, como los pone la base", () => {
+    expect(rotuloDeCampana({ nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" })).toBe("Diciembre 2026 · 1 dic – 31 dic");
+    expect(nombreDeLaCampana({ nombre: "Día de la Madre", desde: "2027-05-01" })).toBe("Día de la Madre 2027");
+    expect(fechaCortaES("2026-09-07")).toBe("7 set");
+  });
+  it("elegir una etiqueta arranca el borrador con su nombre y sus fechas; sin etiqueta, vacío", () => {
+    const e = leida().etiquetas[1];
+    expect(borradorDeCampana(e)).toEqual({ etiquetaId: "e2", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25" });
+    expect(borradorDeCampana(null).etiquetaId).toBe("");
+  });
+  it("lo que impide crear: sin etiqueta, etiqueta que ya tiene plan, nombre vacío o repetido, fechas que faltan o al revés", () => {
+    const { etiquetas } = leida();
+    const ok = borradorDeCampana(etiquetas[1]);
+    expect(problemasDeLaCampana(ok, etiquetas, ["Diciembre 2026"])).toEqual({});
+    expect(problemasDeLaCampana({ ...ok, etiquetaId: "" }, etiquetas).etiqueta).toMatch(/Elige la campaña/);
+    expect(problemasDeLaCampana({ ...ok, etiquetaId: "e1" }, etiquetas).etiqueta).toMatch(/ya tiene su plan/);
+    expect(problemasDeLaCampana({ ...ok, nombre: "  " }, etiquetas).nombre).toMatch(/Ponle un nombre/);
+    expect(problemasDeLaCampana({ ...ok, nombre: " diciembre 2026 " }, etiquetas, ["Diciembre 2026"]).nombre).toMatch(/Ya hay un plan/);
+    expect(problemasDeLaCampana({ ...ok, desde: "" }, etiquetas).desde).toMatch(/desde cuándo/);
+    expect(problemasDeLaCampana({ ...ok, hasta: "2026-12-01" }, etiquetas).hasta).toMatch(/antes de empezar/);
+  });
+  it("los argumentos van como los espera la base (el nombre vacío va como null: la base pone el suyo)", () => {
+    expect(argsCrearCampana({ etiquetaId: "e2", nombre: " Navidad 2026 ", desde: "2026-12-11", hasta: "2026-12-25" })).toEqual({ p_etiqueta_id: "e2", p_nombre: "Navidad 2026", p_desde: "2026-12-11", p_hasta: "2026-12-25" });
+    expect(argsCrearCampana({ etiquetaId: "e2", nombre: "  ", desde: "a", hasta: "b" }).p_nombre).toBeNull();
+  });
+  it("si las fechas del plan no son las de su etiqueta, lo dice (nunca en silencio); si coinciden, nada", () => {
+    const e = leida().etiquetas[1];
+    expect(diferenciaConLaEtiqueta({ desde: "2026-12-11", hasta: "2026-12-25" }, e)).toBeNull();
+    expect(diferenciaConLaEtiqueta({ desde: "2026-12-01", hasta: "2026-12-31" }, e)).toMatch(/del 11 dic al 25 dic/);
+    expect(diferenciaConLaEtiqueta({ desde: "x", hasta: "y" }, undefined)).toBeNull();
+  });
+  it("la guía de «Nueva campaña» dice lo mismo que la validación", () => {
+    const { etiquetas } = leida();
+    const ok = borradorDeCampana(etiquetas[1]);
+    const listo = { listo: true, motivo: null };
+    expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, [], listo))).toBe(true);
+    expect(sePuedeConfirmar(camposDeLaCampana({ ...ok, hasta: "2026-12-01" }, etiquetas, [], listo))).toBe(false);
+    expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, ["navidad 2026"], listo))).toBe(false);
+    expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, [], { listo: false, motivo: "Elige quién" }))).toBe(false);
+    expect(camposDeLaCampana(borradorDeCampana(null), etiquetas, [], listo)[0].pendiente).toMatch(/Elige la campaña/);
   });
 });

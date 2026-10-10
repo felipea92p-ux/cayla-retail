@@ -25,6 +25,8 @@ import { compararTallas } from "./tallas";
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
 export const RPC_GUARDAR_TOPE = "guardar_plan_compra_tope";
+export const RPC_PLANES = "fn_planes_compra";
+export const RPC_CREAR_CAMPANA = "crear_plan_compra";
 /** Cuántas unidades vendidas «valen» igual que el reparto parejo al proponer la curva. */
 export const K_CURVA = 10;
 
@@ -718,4 +720,78 @@ export function segmentosDelTope(filas: readonly FilaPlan[]): SegmentoTope[] {
   const cinco = caras.slice(0, 5).map((f) => ({ clave: f.c.id, nombre: f.c.nombre, valor: f.calculo!.inversion }));
   const resto = caras.slice(5).reduce((s, f) => s + (f.calculo?.inversion ?? 0), 0);
   return resto > 0 ? [...cinco, { clave: "otras", nombre: "Otras", valor: Math.round(resto * 100) / 100 }] : cinco;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 14. Varias campañas (ADR-0372, B3): el selector y «Nueva campaña»
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Una campaña con plan, para el selector. `conPlan`: cuántas categorías ya tienen su plan. */
+export type CampanaPlan = { id: string; nombre: string; desde: string; hasta: string; etiquetaId: string | null; conPlan: number };
+/** Una campaña de Catálogo ▸ Etiquetas (aprobada y con fechas). `planId`: el plan que ya tiene, o null si todavía no. */
+export type EtiquetaCampana = { id: string; nombre: string; desde: string; hasta: string; planId: string | null };
+export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[] };
+
+const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+
+/** Lo que devuelve `fn_planes_compra`. Una fila que no calza se descarta; una forma rara entera, null (la pantalla se queda sin selector). */
+export function leerCampanas(v: unknown): CampanasLeidas | null {
+  if (!esObjeto(v)) return null;
+  const planes = lista(v.planes).flatMap((p): CampanaPlan[] => {
+    const id = texto(p.id);
+    const nombre = texto(p.nombre);
+    const desde = fechaIso(p.desde);
+    const hasta = fechaIso(p.hasta);
+    return id && nombre && desde && hasta ? [{ id, nombre, desde, hasta, etiquetaId: texto(p.etiqueta_id), conPlan: numero(p.con_plan) }] : [];
+  });
+  const etiquetas = lista(v.etiquetas).flatMap((e): EtiquetaCampana[] => {
+    const id = texto(e.id);
+    const nombre = texto(e.nombre);
+    const desde = fechaIso(e.desde);
+    const hasta = fechaIso(e.hasta);
+    return id && nombre && desde && hasta ? [{ id, nombre, desde, hasta, planId: texto(e.plan_id) }] : [];
+  });
+  return { planes, etiquetas };
+}
+
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+/** «11 dic»: la fecha corta que se lee en tienda (sin el año). */
+export const fechaCortaES = (iso: string): string => {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} ${MESES_CORTOS[m - 1]}`;
+};
+/** «Diciembre 2026 · 1 dic – 31 dic». */
+export const rotuloDeCampana = (c: Pick<CampanaPlan, "nombre" | "desde" | "hasta">): string => `${c.nombre} · ${fechaCortaES(c.desde)} – ${fechaCortaES(c.hasta)}`;
+
+/** El nombre con que nace el plan de una etiqueta: «Día de la Madre 2027». Lo mismo que pone la base si no se le da uno. */
+export const nombreDeLaCampana = (e: Pick<EtiquetaCampana, "nombre" | "desde">): string => `${e.nombre} ${e.desde.slice(0, 4)}`;
+
+export type BorradorCampana = { etiquetaId: string; nombre: string; desde: string; hasta: string };
+export type CampoCampana = "etiqueta" | "nombre" | "desde" | "hasta";
+
+/** El borrador que arranca al elegir una etiqueta: su nombre y sus fechas. */
+export const borradorDeCampana = (e: EtiquetaCampana | null): BorradorCampana => (e ? { etiquetaId: e.id, nombre: nombreDeLaCampana(e), desde: e.desde, hasta: e.hasta } : { etiquetaId: "", nombre: "", desde: "", hasta: "" });
+
+/** Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechaza `crear_plan_compra`. */
+export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[] = []): Partial<Record<CampoCampana, string>> {
+  const p: Partial<Record<CampoCampana, string>> = {};
+  const e = etiquetas.find((x) => x.id === b.etiquetaId);
+  if (!e) p.etiqueta = "Elige la campaña de Etiquetas que vas a planificar.";
+  else if (e.planId) p.etiqueta = "Esa campaña ya tiene su plan: ábrelo desde el selector.";
+  const nombre = b.nombre.trim();
+  if (!nombre) p.nombre = "Ponle un nombre al plan.";
+  else if (nombresEnUso.some((n) => n.trim().toLowerCase() === nombre.toLowerCase())) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  if (!fechaIso(b.desde)) p.desde = "Escribe desde cuándo empieza.";
+  if (!fechaIso(b.hasta)) p.hasta = "Escribe hasta cuándo dura.";
+  else if (fechaIso(b.desde) && b.hasta < b.desde) p.hasta = "La campaña no puede terminar antes de empezar.";
+  return p;
+}
+
+/** Los argumentos de `crear_plan_compra`. */
+export const argsCrearCampana = (b: BorradorCampana) => ({ p_etiqueta_id: b.etiquetaId, p_nombre: b.nombre.trim() || null, p_desde: b.desde, p_hasta: b.hasta });
+
+/** Si las fechas del plan no son las de su etiqueta, lo dice (la diferencia nunca es silenciosa); si coinciden, null. */
+export function diferenciaConLaEtiqueta(b: Pick<BorradorCampana, "desde" | "hasta">, e: Pick<EtiquetaCampana, "nombre" | "desde" | "hasta"> | undefined): string | null {
+  if (!e || (b.desde === e.desde && b.hasta === e.hasta)) return null;
+  return `«${e.nombre}» en Etiquetas va del ${fechaCortaES(e.desde)} al ${fechaCortaES(e.hasta)}. Un plan de compra puede ser más ancho que la campaña de venta: ajusta las fechas solo si lo quieres así.`;
 }

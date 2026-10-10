@@ -7,12 +7,15 @@ import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
+import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
+import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import { armarFilas, confianzaDelStock, fechaLargaES, leerPlan, momentoDeLaCampana, siguienteSinPlan, totalesDelPlan, type CategoriaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
 import type { LecturaMotor } from "@/lib/motor-demanda";
+import type { CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { CalendarDays } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -23,7 +26,7 @@ import { Vacio } from "@/components/ui/Vacio";
 // verdad al lado. Toda la cuenta vive en lib/plan-compra-reglas.ts (con su prueba); aquí solo se arma la pantalla con sus piezas y se
 // guarda qué filtros están puestos (las cifras y la lista los comparten).
 
-export function PlanCampana({ datos, falla, familias, preparacion, puedeContar, esLider }: { datos: unknown; falla: string | null; familias: FamiliaPlan[]; preparacion: LecturaMotor; puedeContar: boolean; esLider: boolean }) {
+export function PlanCampana({ datos, falla, familias, preparacion, campanas, puedeContar, esLider }: { datos: unknown; falla: string | null; familias: FamiliaPlan[]; preparacion: LecturaMotor; campanas: CampanasLeidas | null; puedeContar: boolean; esLider: boolean }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
   // Las que se guardaron con «Guardar y seguir» en esta tanda: la lectura del servidor tarda un instante en traerlas y la hoja no debe
@@ -37,6 +40,7 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar, 
   const [vista, setVista] = useState<VistaPlan>("tabla");
   const [exportando, setExportando] = useState(false);
   const [editandoTope, setEditandoTope] = useState(false);
+  const [nuevaCampana, setNuevaCampana] = useState(false);
   const filas = useMemo(() => (plan ? armarFilas(plan) : []), [plan]);
 
   if (!plan) {
@@ -73,11 +77,14 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar, 
         titulo="Plan de campaña"
         subtitulo={`${plan.plan.nombre}, del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}: cuánto comprar por categoría, con tres escenarios. En enero, al lado, lo que se vendió de verdad.`}
         acciones={
-          totales.conPlan > 0 ? (
-            <Boton peso="fantasma" onClick={() => setExportando(true)}>
-              Exportar
-            </Boton>
-          ) : undefined
+          <>
+            {campanas && <SelectorCampana campanas={campanas} actualId={plan.plan.id} puedeCrear={esLider} onNueva={() => setNuevaCampana(true)} />}
+            {totales.conPlan > 0 && (
+              <Boton peso="fantasma" onClick={() => setExportando(true)}>
+                Exportar
+              </Boton>
+            )}
+          </>
         }
         pie={
           <Chip tono={momento.estado === "durante" ? "verde" : "pizarra"}>
@@ -116,6 +123,8 @@ export function PlanCampana({ datos, falla, familias, preparacion, puedeContar, 
         diciembre bueno; si se pierde, conviene quedarse más cerca del flojo. No hay historia de ventas de diciembre en el ERP: estos
         números son tus supuestos, y en enero se comparan con lo que pasó.
       </p>
+
+      {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
 
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
 

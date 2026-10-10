@@ -1,7 +1,7 @@
 # ADR-0372 — Plan de campaña: barra de rango, paso a paso, aviso de stock y exportar (entrega 1, solo web)
 
 - Fecha: 2026-10-10
-- Estado: aceptado y construido (entrega 1). La entrega 2 (migraciones) espera el OK de Felipe, pieza por pieza.
+- Estado: aceptado y construido. Entrega 1 (solo web) y entrega 2: B1 y B2 **en producción desde el 2026-10-10** (OK de Felipe); B3 construida y probada en local, **sin pegar en producción** (espera su OK).
 - Continúa a [ADR-0349](0349-plan-de-campana.md). Maqueta aprobada: `docs/maquetas/plan-de-campana-2026-10/` (con su `PROMPT.md`).
 - Sin migración: todo sale de lo que `fn_plan_compra` y `fn_motor_demanda_preparacion` ya devuelven, más la tabla `familias`.
 
@@ -63,3 +63,27 @@ apagado sin motivo a la vista.
   impresa (simulando `@media print`). Modo oscuro con contraste medido (5,2:1 a 15:1).
 - **No se hizo**: `tema:auditar` (a Playwright le falta descargar su navegador), abrir el CSV en Excel, `/formidable` ni `/chaos`.
 - Aprendido: Turbopack no recogió un `@import` nuevo en `globals.css` hasta borrar `apps/web/.next`.
+
+## Actualización 2026-10-10 — entrega 2 (migraciones B1, B2 y B3)
+
+Migraciones `20261010190000` (B1), `20261010191000` (B2) y `20261010192000` (B3); `pnpm pruebas:plan-compra`: 16 casos (de 6).
+
+- **B1, lectura ampliada.** `fn_plan_compra` SUMA `catalogo` (precio y costo promedio, solo activos y sin pruebas; un 0 es «sin dato»), `stock_sedes` y
+  `vendido_30`. No cambia ninguna clave de antes. La hoja precarga el precio y el costo («Del catálogo · revísalo»), dice dónde está el stock y cuánto se
+  vendió en 30 días. **En producción** (versión registrada `20261010174829`, huella de la función `9315c4b2…`, igual a local).
+- **B2, tope de inversión.** `planes_compra.tope_inversion` con autor y hora (CHECK: positivo, y nunca sin autor), `guardar_plan_compra_tope` (módulo **y**
+  líder; firma con el responsable; NULL lo quita) y `plan.tope_inversion` en la lectura. El tope **avisa, no bloquea**. La cifra de Inversión lleva su
+  barra (`BarraApilada total=`, top 5 + «Otras») y «Poner / Editar el tope» (solo líder). **En producción** (`20261010175004`, huellas `73df8d9b…` de
+  `fn_plan_compra` y `e16562ef…` de `guardar_plan_compra_tope`, iguales a local). Antes se ensayó en transacción con rollback.
+- **B3, varias campañas.** Felipe eligió que la campaña NAZCA de una etiqueta (Catálogo ▸ Etiquetas) y que el selector pase entre las existentes.
+  **DECIDÍ** `planes_compra.etiqueta_id` (única por etiqueta) + `crear_plan_compra(etiqueta, nombre, desde, hasta)` (módulo y líder) + `fn_planes_compra()` para el selector.
+  **DESCARTÉ** la fecha única literal: «Navidad» en Etiquetas es del 11 al 25 de diciembre (campaña de venta con descuento) y «Diciembre 2026» es del 1 al 31
+  (ventana de compra, a propósito: diciembre triplica un mes entero); atarla a la etiqueta movería el plan ya sembrado. El plan arranca con las fechas de la
+  etiqueta y se pueden ajustar; si difieren, la hoja lo dice. «Diciembre 2026» queda sin etiqueta.
+  **DESCARTÉ** copiar precios y costos de otra campaña (lo que traía la maqueta): una línea exige sus tres escenarios (CHECK), no se guarda a medias; el
+  catálogo (B1) ya lo resuelve.
+  **SE ROMPE SI** alguien crea en Etiquetas una campaña con las mismas fechas de otra y espera dos planes: el índice único es por etiqueta, no por fechas.
+- **Fuera:** «Finanzas dice…» (toca dos módulos).
+- **Verificado:** SQL 16/16; 102 pruebas de reglas y suite completa; navegador local: tope (poner, quitar, firma en la base), hoja con stock por sede y
+  ventas de 30 días, crear «Navidad 2026» desde su etiqueta y volver con el selector. La precarga del catálogo se probó con pruebas unitarias y SQL (en la base
+  local las únicas categorías con catálogo ya tenían plan de otra persona).
