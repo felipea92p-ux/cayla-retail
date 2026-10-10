@@ -35,6 +35,18 @@ export const UMBRAL_FILO = 0.4;
 
 export type Semaforo = { tono: "gana" | "filo" | "pierde"; margen: number };
 
+/** Las palabras del semáforo, UNA sola vez (la hoja de Nueva orden, la tarjeta y el panel). El tono `pierde` se mostraba como «Pierde» junto a un margen de 38 %
+ *  POSITIVO y se leía como pérdida de dinero (/formidable 2026-10-10, el ciego no lo entendió hasta abrir el panel): significa «el margen no alcanza para costura,
+ *  taller y utilidad». Se llama «Margen bajo», como en Nuevo producto. El nombre del tono y los umbrales NO cambian: son una regla de precios. */
+export const TEXTO_SEMAFORO: Record<Semaforo["tono"], string> = { gana: "Gana", filo: "Al filo", pierde: "Margen bajo" };
+
+/** La leyenda del medidor del panel, con los mismos umbrales que `semaforoMargen`. */
+export const LEYENDA_SEMAFORO = {
+  pierde: `margen bajo < ${Math.round(UMBRAL_FILO * 100)}%`,
+  filo: "al filo",
+  gana: `gana ≥ ${Math.round(UMBRAL_GANA * 100)}%`,
+} as const;
+
 /** null cuando no hay con qué comparar (modelo sin precio o costo en cero). */
 export function semaforoMargen(precioVenta: number, costoUnitario: number): Semaforo | null {
   if (precioVenta <= 0 || costoUnitario <= 0) return null;

@@ -60,6 +60,10 @@ se perdió. La única copia era la base.
    visible: matriz color × talla al estilo Shopify donde **solo hay celda si el catálogo
    tiene esa variante**; una combinación que falta se ve como «—» y un enlace manda a
    Productos. Se descartó la alternativa B (crear al vuelo) por el principio 2.
+   **Ajuste 2026-10-09 (ADR-0361, segunda parte):** lo que se prohibió fueron los tres problemas del **texto libre**, no el momento de crear el modelo. Desde
+   `20261010210000` una orden puede crear su modelo con `abrir_produccion_con_modelo_nuevo` (tallas y colores del vocabulario y habilitados para la categoría,
+   precio obligatorio en una producción, código asignado por la base, todo en una transacción). `abrir_produccion` no cambia: sigue sin crear variantes y con su
+   misma firma; la función nueva la llama al final.
 
 ## Lo que la base vuelve imposible
 

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerTodas, opcional, type Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
+import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
 // escritura pasa por las RPC de `20260915130000_produccion_del_taller.sql`
@@ -188,4 +189,28 @@ function compararLineas(a: { color: string | null; talla: string | null }, b: { 
   const porColor = (a.color ?? "").localeCompare(b.color ?? "", "es");
   if (porColor !== 0) return porColor;
   return compararTallas(a.talla ?? "", b.talla ?? "");
+}
+
+/** Categorías (con sus tallas habilitadas), colores y familias que el formulario de «Modelo nuevo» ofrece (ADR-0361). Es un dato SECUNDARIO: si no se lee, la orden
+ *  de siempre sigue abriéndose y solo «Modelo nuevo» avisa que no tiene con qué armarse (principio 9). Son tablas de vocabulario, de lectura abierta a toda sesión. */
+export async function getVocabularioModeloNuevo(): Promise<Tolerado<VocabularioModeloNuevo>> {
+  const fallo = "No se pudieron cargar las tallas y los colores. Lo demás de esta pantalla sí está al día.";
+  const leido = await opcional(
+    (async () => {
+      const supabase = await createClient();
+      const [categorias, colores, familias] = await Promise.all([
+        supabase
+          .from("categorias")
+          .select("id, nombre, prefijo, familia, categoria_padre_id, categoria_tallas ( habitual, talla:tallas ( id, valor, activo ) )")
+          .eq("activo", true)
+          .order("nombre"),
+        supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx").eq("activo", true).order("orden").order("nombre"),
+        supabase.from("familias").select("codigo, nombre").order("nombre"),
+      ]);
+      if (categorias.error || colores.error || familias.error) return null;
+      return armarVocabulario(categorias.data as unknown as FilaCategoria[], colores.data, familias.data);
+    })(),
+    "las tallas y los colores del modelo nuevo",
+  );
+  return leido ? { datos: leido, fallo: null } : { datos: null, fallo };
 }

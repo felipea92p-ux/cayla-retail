@@ -37,6 +37,7 @@ export function ElegirColores({
   elegidos,
   onAlternar,
   onCreado,
+  cartaAbierta = true,
 }: {
   colores: ColorAlta[];
   grupos: { familia: string; texto: string; colores: ColorAlta[] }[];
@@ -45,8 +46,10 @@ export function ElegirColores({
   onAlternar: (codigo: string) => void;
   /** Un color recién creado: quien lo recibe lo suma a su lista y lo elige. */
   onCreado: (color: ColorAlta) => void;
+  /** La carta arranca abierta (ADR-0312/0314, así sigue Nuevo producto). «Modelo nuevo» de la orden la abre cerrada: ahí el color es opcional y 89 círculos tapaban lo obligatorio. */
+  cartaAbierta?: boolean;
 }) {
-  const [carta, setCarta] = useState(true);
+  const [carta, setCarta] = useState(cartaAbierta);
   // El buscador vuelve a vacío después de cada elección: se remonta con otra `key`.
   const [vuelta, setVuelta] = useState(0);
   // El color bajo el mouse o con el foco: su nombre se lee al pie de la carta.

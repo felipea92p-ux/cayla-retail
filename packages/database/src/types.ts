@@ -5181,6 +5181,24 @@ export type Database = {
         }
         Returns: string
       }
+      abrir_produccion_con_modelo_nuevo: {
+        Args: {
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_costo_avios?: number
+          p_costo_maquila?: number
+          p_costo_tela?: number
+          p_es_muestra?: boolean
+          p_fecha_entrega?: string
+          p_nota?: string
+          p_precio?: number
+          p_referencia: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       actualizar_campana_etiqueta: {
         Args: {
           p_categoria_ids: string[]
