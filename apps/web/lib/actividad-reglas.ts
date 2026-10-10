@@ -17,6 +17,8 @@ import { MODULOS, type ClaveModulo } from "./modulos";
 const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "vender", "historial", "apartados", "caja", "cambios", "clientas", "avisos_club",
   "existencias", "conteos", "traslados", "productos", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
+  // Órdenes de compra (ADR-0362, 20261010235000): crear y editar anotan su línea, sin montos.
+  "ordenes_compra",
 ]);
 export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = MODULOS.map((m) => m.clave).filter((c) => ANOTAN.has(c));
 

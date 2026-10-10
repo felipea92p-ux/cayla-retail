@@ -8,6 +8,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { DetalleOrdenCompra } from "@/components/ordenes-compra/DetalleOrdenCompra";
+import { BotonEditarOrden } from "@/components/ordenes-compra/BotonEditarOrden";
 
 // Una orden de compra en página completa (ADR-0362, fase 1 · actividad 3): lo que se ve al recargar o compartir el enlace de la ventana
 // que se abre desde la lista (`@modal/(.)ordenes/ver/[id]`). Vive en `/compras/ordenes/ver/<id>` y no en `/compras/ordenes/<id>` a
@@ -55,6 +56,7 @@ export default async function OrdenCompraPage({ params }: { params: Promise<{ id
         titulo={numeroOrdenCompra(detalle.numero)}
         subtitulo={`${detalle.proveedor.nombre} · ${fraseDestino(detalle.destino?.nombre ?? null)}`}
         volver={volver}
+        acciones={detalle.estado === "generada" ? <BotonEditarOrden id={detalle.id} /> : undefined}
       />
       <div className="card-cayla p-5">
         <DetalleOrdenCompra orden={detalle} />

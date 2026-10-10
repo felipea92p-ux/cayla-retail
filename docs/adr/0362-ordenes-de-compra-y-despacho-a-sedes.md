@@ -102,6 +102,19 @@ no cambian con los filtros, una por cada quien mira: lo pedido en total (generad
 se trabaja y lo que está por repartir. Las columnas las decide el ancho de la tabla y no el de la ventana: con el menú abierto en una
 pantalla chica el proveedor se quedaba en cero.
 
+**Al construir «Editar» (actividad 4, 2026-10-10), por defecto:**
+- **Qué se edita.** Mientras la orden está «generada» se edita todo: proveedor, a dónde llega, entrega, nota y líneas. El número
+  y la fecha de emisión no se editan.
+- **Lo que no se tocó no se vuelve a juzgar.** Un proveedor, una sede, una categoría o una marca que se desactivaron después no
+  impiden corregir la nota, y tampoco una entrega estimada que ya pasó. Elegir de nuevo algo inactivo sí se rechaza.
+- **Si otra persona guardó antes,** el aviso «Otra persona cambió esta orden mientras la editabas» ofrece «Recargar» (ADR-0193).
+  Un doble clic no choca consigo mismo, y guardar sin cambios no escribe nada.
+- **Lo de antes no se pierde.** Lo que la orden decía antes de cada edición queda archivado, con precios
+  (`orden_compra_versiones`, solo se agrega).
+- **Actividad.** La Actividad del módulo anota crear y editar sin montos, como el costo en Productos: la lee quien tiene
+  Actividad aunque no vea Órdenes de compra. Cada línea se ve en la sede donde se hizo y en la sede a la que llega la orden.
+- **Al guardar,** se vuelve a la lista con el aviso «OC-000129 actualizada».
+
 ## Para el contador (no bloquea programar, dice el brief)
 
 Gastos de llegada fuera del costo (decisión 20: la NIC 2 los pone dentro; que el contador lo confirme); el fondo como anticipo (101 o

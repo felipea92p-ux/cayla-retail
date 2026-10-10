@@ -10,6 +10,7 @@
 // llegar al `numeric` de Postgres.
 
 import type { CampoDeGuia } from "./guia-campos";
+import type { DetalleOrden } from "./ordenes-compra-reglas";
 
 /** Lo que la base acepta (mismo tope que `crear_orden_compra`). */
 export const TOPES = {
@@ -164,13 +165,16 @@ export function unidades(lineas: readonly LineaBorrador[]): number {
 // Qué le falta (las reglas de `crear_orden_compra`, dichas para quien llena)
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-/** Lo que se le pregunta a la base que la pantalla no sabe sola: qué proveedores, categorías, marcas y destinos siguen activos. */
+/** Lo que se le pregunta a la base que la pantalla no sabe sola: qué proveedores, categorías, marcas y destinos siguen activos. Al
+ *  EDITAR, el cargador suma a esos conjuntos lo que la orden ya tenía aunque hoy esté inactivo (la base no vuelve a juzgar lo que no
+ *  se tocó), y `entregaOriginal` es la fecha guardada: dejarla como estaba vale aunque ya haya pasado. */
 export type ContextoValidacion = {
   hoy: string;
   proveedoresActivos: ReadonlySet<string>;
   categoriasActivas: ReadonlySet<string>;
   marcasActivas: ReadonlySet<string>;
   destinos: ReadonlySet<string>;
+  entregaOriginal?: string;
 };
 
 /** El primer problema de una línea, en una frase para quien la llena; null si la línea está lista. */
@@ -203,9 +207,11 @@ function sumarDias(iso: string, dias: number): string {
 /** El último día que la base acepta como entrega estimada. */
 export const entregaMaxima = (hoy: string) => sumarDias(hoy, TOPES.diasEntrega);
 
-/** El problema de la entrega estimada, o null (vacía también vale: no es obligatoria). */
-export function problemaDeEntrega(entrega: string, hoy: string): string | null {
+/** El problema de la entrega estimada, o null (vacía también vale: no es obligatoria). Al editar, la fecha que ya tenía la orden
+ *  (`original`) vale tal cual, aunque haya pasado: no se obliga a moverla para corregir otra cosa (igual que la base). */
+export function problemaDeEntrega(entrega: string, hoy: string, original?: string): string | null {
   if (!entrega) return null;
+  if (original && entrega === original) return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(entrega)) return "La fecha no se entiende.";
   if (entrega < hoy) return "La entrega estimada no puede ser antes de hoy.";
   if (entrega > entregaMaxima(hoy)) return "La entrega estimada va hasta dentro de un año.";
@@ -229,8 +235,8 @@ export function camposDeLaOrden(
       nombre: "Entrega estimada",
       requerido: false,
       sugerido: true,
-      hecho: !!o.entrega && problemaDeEntrega(o.entrega, ctx.hoy) === null,
-      pendiente: problemaDeEntrega(o.entrega, ctx.hoy) ?? "¿Cuándo crees que llega? Sirve para saber si se atrasa.",
+      hecho: !!o.entrega && problemaDeEntrega(o.entrega, ctx.hoy, ctx.entregaOriginal) === null,
+      pendiente: problemaDeEntrega(o.entrega, ctx.hoy, ctx.entregaOriginal) ?? "¿Cuándo crees que llega? Sirve para saber si se atrasa.",
     },
   ];
   if (o.lineas.length === 0) {
@@ -290,24 +296,61 @@ export function argsCrearOrden(id: string, o: OrdenBorrador): ArgsCrearOrden {
     p_destino_id: o.destino === POR_REPARTIR ? null : o.destino,
     p_fecha_entrega_estimada: o.entrega || null,
     p_nota: o.nota.trim() || null,
-    p_lineas: o.lineas.map((l) => {
-      const cant = leerNumero(l.cantidad, 0);
-      const precio = leerNumero(l.precio, 2);
-      const linea: LineaParaBase = {
-        categoria_id: l.categoriaId,
-        marca_id: l.marcaId,
-        cantidad: cant.tipo === "ok" ? aTexto(cant.escalado, 0) : "",
-        precio_unitario: precio.tipo === "ok" ? aTexto(precio.escalado, 2) : "",
-      };
-      if (l.descripcion.trim()) linea.descripcion = l.descripcion.trim();
-      if (l.modoDescuento === "pct") {
-        const p = leerNumero(l.descuento, 4);
-        if (p.tipo === "ok" && p.escalado > 0) linea.descuento_pct = aTexto(p.escalado, 4, { recortar: true });
-      } else {
-        const s = leerNumero(l.descuento, 2);
-        if (s.tipo === "ok" && s.escalado > 0) linea.descuento = aTexto(s.escalado, 2);
-      }
-      return linea;
-    }),
+    p_lineas: lineasParaBase(o.lineas),
   };
+}
+
+export type ArgsEditarOrden = Omit<ArgsCrearOrden, "p_id"> & { p_id: string; p_version_esperada: number };
+
+/** Los argumentos de `editar_orden_compra`: lo mismo que crear y la versión que la pantalla vio al abrir (si otra persona guardó
+ *  antes, la base responde «otra persona cambió esta orden»). */
+export function argsEditarOrden(id: string, version: number, o: OrdenBorrador): ArgsEditarOrden {
+  return { ...argsCrearOrden(id, o), p_version_esperada: version };
+}
+
+/** Una orden guardada, como el formulario la edita. El descuento vuelve como se escribió: en % si la línea lo recuerda
+ *  (`descuento_pct`), si no en soles; sin descuento, la línea queda en % y vacía, como una nueva. */
+export function borradorDeDetalle(d: DetalleOrden): OrdenBorrador {
+  const conDecimales = (n: number, decimales: number) => aTexto(Math.round(n * 10 ** decimales), decimales, { recortar: decimales > 2 });
+  return {
+    proveedorId: d.proveedor.id,
+    destino: d.destino?.id ?? POR_REPARTIR,
+    entrega: d.fechaEntregaEstimada ?? "",
+    nota: d.nota ?? "",
+    lineas: d.lineas.map((l, i) => ({
+      clave: `l${i + 1}`,
+      categoriaId: l.categoriaId,
+      marcaId: l.marcaId,
+      descripcion: l.descripcion ?? "",
+      cantidad: String(l.cantidad),
+      precio: conDecimales(l.precioUnitario, 2),
+      ...(l.descuentoPct != null
+        ? { modoDescuento: "pct" as const, descuento: conDecimales(l.descuentoPct, 4) }
+        : l.descuento > 0
+          ? { modoDescuento: "soles" as const, descuento: conDecimales(l.descuento, 2) }
+          : { modoDescuento: "pct" as const, descuento: "" }),
+    })),
+  };
+}
+
+function lineasParaBase(lineas: readonly LineaBorrador[]): LineaParaBase[] {
+  return lineas.map((l) => {
+    const cant = leerNumero(l.cantidad, 0);
+    const precio = leerNumero(l.precio, 2);
+    const linea: LineaParaBase = {
+      categoria_id: l.categoriaId,
+      marca_id: l.marcaId,
+      cantidad: cant.tipo === "ok" ? aTexto(cant.escalado, 0) : "",
+      precio_unitario: precio.tipo === "ok" ? aTexto(precio.escalado, 2) : "",
+    };
+    if (l.descripcion.trim()) linea.descripcion = l.descripcion.trim();
+    if (l.modoDescuento === "pct") {
+      const p = leerNumero(l.descuento, 4);
+      if (p.tipo === "ok" && p.escalado > 0) linea.descuento_pct = aTexto(p.escalado, 4, { recortar: true });
+    } else {
+      const s = leerNumero(l.descuento, 2);
+      if (s.tipo === "ok" && s.escalado > 0) linea.descuento = aTexto(s.escalado, 2);
+    }
+    return linea;
+  });
 }

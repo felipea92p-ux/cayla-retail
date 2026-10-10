@@ -25,6 +25,12 @@
  *   D  VER Y CONTAR (`20261010231500`): el detalle trae cabecera, quién la creó, las líneas con el nombre de categoría y marca, las
  *      unidades y el total; NULL si no existe; el resumen cuenta por destino (cada tienda y «por repartir») las generadas, su monto y
  *      las anuladas; las dos exigen el módulo y anon no las ejecuta.
+ *   E  EDITAR (`20261010235000`): cambia cabecera y líneas, sube la versión, archiva lo de antes (con precios) y anota en Actividad
+ *      SIN montos; con la versión vieja responde PT409 / version_cambiada sin escribir nada; el mismo pedido repetido (doble clic) no
+ *      choca ni sube la versión; sin cambios no escribe; una anulada no se edita; la versión no se fija a mano; lo que no se tocó no
+ *      se vuelve a juzgar (proveedor, categoría o marca desactivados, entrega vencida) pero elegir de nuevo algo inactivo sí; las
+ *      reglas son las de crear; una persona firma con «orden_compra_editar», una terminal no edita sin elegir a alguien; sin el
+ *      módulo, 42501; el archivo no se lee directo, ni se edita ni se borra; crear también anota su línea en Actividad.
  *
  * USO
  *   pnpm pruebas:ordenes-compra                         → contra la base `postgres` del stack local
@@ -50,6 +56,7 @@ const MIGRACION = [
   "20261010214500_ordenes_compra_modulo_y_tablas.sql",
   "20261010223500_ordenes_compra_crear.sql",
   "20261010231500_ordenes_compra_detalle_y_resumen.sql",
+  "20261010235000_ordenes_compra_editar.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -98,6 +105,20 @@ declare v_estado text; v_hint text; v_msg text; v_num integer;
 begin
   for v_num in select r.numero from retail.crear_orden_compra(p_id, p_prov, p_dest, p_ent, p_nota, p_lineas) r loop
     return 'OK:' || v_num;
+  end loop;
+  return 'SIN_FILA';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_msg = message_text;
+  return v_estado || '|' || coalesce(v_hint, '') || '|' || v_msg;
+end;
+$f$;
+
+create function pg_temp.edita(p_id uuid, p_version integer, p_prov uuid, p_dest uuid, p_ent date, p_nota text, p_lineas jsonb) returns text
+language plpgsql as $f$
+declare v_estado text; v_hint text; v_msg text; v_fila record;
+begin
+  for v_fila in select r.numero, r.version from retail.editar_orden_compra(p_id, p_version, p_prov, p_dest, p_ent, p_nota, p_lineas) r loop
+    return 'OK:' || v_fila.numero || ':' || v_fila.version;
   end loop;
   return 'SIN_FILA';
 exception when others then
@@ -446,6 +467,179 @@ caso(
      has_function_privilege('anon', 'retail.fn_orden_compra_detalle(uuid)', 'execute') || ',' ||
      has_function_privilege('anon', 'retail.fn_ordenes_compra_resumen()', 'execute');`,
   "42501,42501,false,false"
+);
+
+// E. EDITAR ------------------------------------------------------------------------------------------------------------------
+// Una orden recién creada por Felipe para editar: a Trujillo, con nota, dos líneas (10 × 25.50 y 4 × 100 con 10 %): 14 unidades,
+// S/ 615.00. `v` es su versión (1).
+const L1 = { cantidad: "10", precio_unitario: "25.50" };
+const L2 = { cantidad: "4", precio_unitario: "100", descuento_pct: "10" };
+const UNA_ORDEN = `
+select id as oc, numero as n from retail.crear_orden_compra(gen_random_uuid(), :'prov', :'tru', null::date, 'Nota inicial', ${lineas(L1, L2)}) \\gset
+select version as v from retail.ordenes_compra where id = :'oc' \\gset
+`;
+const argsE = ({ version = ":'v'", prov = ":'prov'", destino = ":'tru'", entrega = "null::date", nota = "'Nota inicial'", ls = lineas(L1, L2) } = {}) =>
+  `:'oc', ${version}, ${prov}, ${destino}, ${entrega}, ${nota}, ${ls}`;
+const edita = (o) => `pg_temp.edita(${argsE(o)})`;
+const enActividad = (accion) => `(select count(*) from retail.actividad a where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = '${accion}')`;
+
+caso(
+  "E1 editar cambia cabecera y líneas, sube la versión, archiva lo de antes (con precios) y anota en Actividad sin montos",
+  `${UNA_ORDEN}
+   select ${edita({ destino: "null::uuid", entrega: "retail.fn_hoy_lima() + 5", nota: "'Nota nueva'", ls: lineas({ ...L1, cantidad: "12" }, L2, { cantidad: "2", precio_unitario: "30" }) })} as r \\gset
+   reset role;
+   select concat_ws(' / ',
+     split_part(:'r', ':', 1) || ':' || split_part(:'r', ':', 3),
+     (select version || ':' || coalesce(ubicacion_destino_id::text, 'por repartir') || ':' || (fecha_entrega_estimada - retail.fn_hoy_lima()) || ':' || nota
+             || ':' || ${si("actualizada_por = :'felipe_p'", "felipe", "otra")} from retail.ordenes_compra where id = :'oc'),
+     (select string_agg(cantidad::text || 'x' || precio_unitario, ' ' order by posicion) from retail.orden_compra_items where orden_compra_id = :'oc'),
+     (select version || ':' || jsonb_array_length(datos -> 'lineas') || ':' || (datos ->> 'total') || ':' || (datos ->> 'nota')
+        from retail.orden_compra_versiones where orden_compra_id = :'oc'),
+     ${enActividad("orden_compra_creada")} || '+' || ${enActividad("orden_compra_editada")},
+     (select replace(descripcion, retail.fn_orden_compra_numero_texto(:'n'::int), 'OC-N') from retail.actividad a
+       where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_editada'),
+     (select ${si("descripcion like '%S/%' or detalle::text like '%25.5%'", "con montos", "sin montos")} from retail.actividad a
+       where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_editada'));`,
+  (obtenido) => {
+    const partes = obtenido.split(" / ");
+    return (
+      partes[0] === "OK:2" &&
+      partes[1] === "2:por repartir:5:Nota nueva:felipe" &&
+      partes[2] === "12x25.50 4x100.00 2x30.00" &&
+      partes[3] === "1:2:615.00:Nota inicial" &&
+      partes[4] === "1+1" &&
+      partes[5]?.startsWith("editó la OC-N: ") &&
+      partes[5]?.includes("llega a Tienda Trujillo → por repartir") &&
+      partes[5]?.includes("la nota") &&
+      partes[5]?.includes("1 línea agregada") &&
+      partes[5]?.includes("1 línea cambiada") &&
+      partes[5]?.includes("14 → 18 unidades") &&
+      partes[6] === "sin montos"
+    );
+  }
+);
+caso(
+  "E2 con la versión vieja (otra persona guardó antes): PT409 / version_cambiada y no escribe nada",
+  `${UNA_ORDEN}
+   select ${edita({ nota: "'Primera'" })} as primera \\gset
+   select ${edita({ nota: "'Segunda'" })} as segunda \\gset
+   reset role;
+   select concat_ws(',', split_part(:'primera', ':', 3), split_part(:'segunda', '|', 1), split_part(:'segunda', '|', 2),
+     (select nota || ':' || version from retail.ordenes_compra where id = :'oc'),
+     (select count(*) from retail.orden_compra_versiones where orden_compra_id = :'oc'));`,
+  "2,PT409,version_cambiada,Primera:2,1"
+);
+caso(
+  "E3 un doble clic (el mismo pedido otra vez, con la versión que ya no es) no choca: devuelve la orden sin subir la versión",
+  `${UNA_ORDEN}
+   select ${edita({ nota: "'Una sola vez'" })} as primera \\gset
+   select ${edita({ nota: "'Una sola vez'" })} as repetida \\gset
+   reset role;
+   select concat_ws(',', split_part(:'primera', ':', 3), split_part(:'repetida', ':', 1), split_part(:'repetida', ':', 3),
+     (select count(*) from retail.orden_compra_versiones where orden_compra_id = :'oc'), ${enActividad("orden_compra_editada")});`,
+  "2,OK,2,1,1"
+);
+caso(
+  "E4 sin cambios no escribe: ni versión nueva, ni archivo, ni línea de Actividad (el % de antes y el de ahora calzan)",
+  `${UNA_ORDEN}
+   select ${edita({ nota: "'  Nota inicial  '", ls: lineas({ ...L1, precio_unitario: "25.5" }, { ...L2, descuento_pct: "10.0" }) })} as r \\gset
+   reset role;
+   select concat_ws(',', split_part(:'r', ':', 3),
+     (select count(*) from retail.orden_compra_versiones where orden_compra_id = :'oc'), ${enActividad("orden_compra_editada")});`,
+  "1,0,0"
+);
+caso(
+  "E5 una anulada no se edita (y anularla subió la versión: la pantalla que la tenía abierta recibe el aviso de choque)",
+  `${UNA_ORDEN}
+   reset role;
+   update retail.ordenes_compra set estado = 'anulada', anulada_por = :'felipe_p', anulada_en = now(), motivo_anulacion = 'Prueba'
+    where id = :'oc';
+   ${como(FELIPE)}
+   select concat_ws(',', split_part(${edita({ version: "2", nota: "'x'" })}, '|', 2), split_part(${edita({ nota: "'x'" })}, '|', 2));`,
+  "orden_compra_anulada,version_cambiada"
+);
+caso(
+  "E6 la versión sube sola en cada escritura y no se fija a mano",
+  `${UNA_ORDEN}
+   reset role;
+   update retail.ordenes_compra set version = 999, nota = 'directo' where id = :'oc';
+   update retail.ordenes_compra set nota = 'otra vez' where id = :'oc';
+   select version from retail.ordenes_compra where id = :'oc';`,
+  "3"
+);
+caso(
+  "E7 lo que no se tocó no se vuelve a juzgar (proveedor, categoría y marca desactivados, entrega vencida); elegir algo inactivo de nuevo, sí",
+  `${UNA_ORDEN}
+   reset role;
+   insert into retail.proveedores (nombre, activo) values ('OC Otro Inactivo', false) returning id as prov_off \\gset
+   update retail.ordenes_compra set fecha_emision = retail.fn_hoy_lima() - 10, fecha_entrega_estimada = retail.fn_hoy_lima() - 3 where id = :'oc';
+   update retail.proveedores set activo = false where id = :'prov';
+   update retail.categorias set activo = false where id = :'cat';
+   update retail.marcas set activo = false where id = :'marca';
+   select version as v from retail.ordenes_compra where id = :'oc' \\gset
+   ${como(FELIPE)}
+   select concat_ws(',',
+     split_part(${edita({ entrega: "retail.fn_hoy_lima() - 3", nota: "'Solo la nota'" })}, ':', 1),
+     split_part(${edita({ version: ":'v'::int + 1", prov: ":'prov_off'", entrega: "retail.fn_hoy_lima() - 3" })}, '|', 2),
+     split_part(${edita({ version: ":'v'::int + 1", entrega: "retail.fn_hoy_lima() - 2" })}, '|', 2));`,
+  "OK,orden_compra_proveedor,orden_compra_entrega"
+);
+caso(
+  "E8 las reglas son las de crear: una línea mal escrita se rechaza con su motivo y la orden queda como estaba",
+  `${UNA_ORDEN}
+   select concat_ws(',',
+     split_part(${edita({ ls: lineas({ ...L1, cantidad: "0" }) })}, '|', 2),
+     split_part(${edita({ ls: "'[]'::jsonb" })}, '|', 2),
+     split_part(${edita({ destino: ":'taller'" })}, '|', 2),
+     split_part(${edita({ version: "null::int" })}, '|', 2),
+     (select version || ':' || (select count(*) from retail.orden_compra_items i where i.orden_compra_id = :'oc') from retail.ordenes_compra where id = :'oc'));`,
+  "orden_compra_cantidad,orden_compra_sin_lineas,orden_compra_destino,orden_compra_sin_version,1:2"
+);
+caso(
+  "E9 una persona que no es Admin firma con «orden_compra_editar» (sin la clave le pide el combo); una terminal no edita sin elegir a alguien",
+  `${UNA_ORDEN}
+   reset role;
+   insert into retail.rol_modulos (rol_id, modulo)
+     select c.rol_id, 'ordenes_compra' from retail.colaboradores c where c.persona_id = :'micaela_p';
+   ${como(MICAELA)}
+   select ${edita({ nota: "'Micaela'" })} as sin_clave \\gset
+   ${encabezados({ "x-responsable-omitido": "orden_compra_editar" })}
+   select ${edita({ nota: "'Micaela'" })} as con_clave \\gset
+   ${TERMINAL}
+   ${como(T_VENTAS)}
+   ${encabezados({ "x-responsable-omitido": "orden_compra_editar" })}
+   select ${edita({ version: "2", nota: "'Terminal'" })} as terminal \\gset
+   reset role;
+   select concat_ws(',', split_part(:'sin_clave', '|', 2), split_part(:'con_clave', ':', 1),
+     (select ${si("actualizada_por = :'micaela_p'", "micaela", "otra")} || ':' || nota from retail.ordenes_compra where id = :'oc'),
+     split_part(:'terminal', '|', 2));`,
+  "responsable_requerido,OK,micaela:Micaela,responsable_requerido"
+);
+caso(
+  "E10 sin el módulo, 42501; anon no ejecuta editar; nadie lee el archivo directo, ni lo edita ni lo borra",
+  `${UNA_ORDEN}
+   select ${edita({ nota: "'Archivo'" })} \\g /dev/null
+   ${como(MICAELA)}
+   ${encabezados({ "x-responsable-omitido": "orden_compra_editar" })}
+   select split_part(${edita({ version: "2", nota: "'x'" })}, '|', 1) as micaela \\gset
+   reset role;
+   select concat_ws(',', :'micaela',
+     has_function_privilege('anon', 'retail.editar_orden_compra(uuid,integer,uuid,uuid,date,text,jsonb)', 'execute'),
+     has_table_privilege('authenticated', 'retail.orden_compra_versiones', 'select'),
+     split_part(pg_temp.intento(format('update retail.orden_compra_versiones set datos = %L where orden_compra_id = %L', '{}', :'oc')), '|', 1),
+     split_part(pg_temp.intento(format('delete from retail.orden_compra_versiones where orden_compra_id = %L', :'oc')), '|', 1));`,
+  "42501,f,f,42501,42501"
+);
+caso(
+  "E11 crear anota su línea en Actividad: quién, cuántas líneas y unidades y a dónde llega, sin montos",
+  `${UNA_ORDEN}
+   reset role;
+   select concat_ws(' / ',
+     (select replace(descripcion, retail.fn_orden_compra_numero_texto(:'n'::int), 'OC-N') from retail.actividad a
+       where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_creada'),
+     (select ${si("a.persona_id = :'felipe_p' and a.ubicacion_destino_id = :'tru' and a.modulo = 'ordenes_compra'", "firmada y con destino", "mal")}
+        from retail.actividad a where a.tabla = 'ordenes_compra' and a.registro_id = :'oc' and a.accion = 'orden_compra_creada'));`,
+  "creó la OC-N para Confecciones Peña OC Prueba: 2 líneas, 14 unidades · llega a Tienda Trujillo / firmada y con destino"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien`);

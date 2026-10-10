@@ -61,6 +61,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/notas-credito": PENDIENTE,
   "/compras/nueva": PENDIENTE,
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
+  "/compras/ordenes/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
   "/compras/ordenes/nueva": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
   "/compras/ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra en página completa (ADR-0362), lo que se ve al recargar la ventana: se lee, no se llena." },
   "/compras/parte/[compraId]": PENDIENTE,

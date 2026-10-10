@@ -4,6 +4,8 @@ import {
   POR_REPARTIR,
   aTexto,
   argsCrearOrden,
+  argsEditarOrden,
+  borradorDeDetalle,
   calcularLinea,
   camposDeLaOrden,
   descuentoDesdePct,
@@ -127,6 +129,12 @@ describe("problemaDeEntrega", () => {
     expect(problemaDeEntrega("2027-10-10", CTX.hoy)).toBeNull();
     expect(problemaDeEntrega("2027-10-11", CTX.hoy)).toBe("La entrega estimada va hasta dentro de un año.");
   });
+  it("al editar, la fecha que ya tenía la orden vale aunque haya pasado; moverla a otro día pasado, no (como la base, caso E7)", () => {
+    expect(problemaDeEntrega("2026-10-07", CTX.hoy, "2026-10-07")).toBeNull();
+    expect(problemaDeEntrega("2026-10-08", CTX.hoy, "2026-10-07")).toBe("La entrega estimada no puede ser antes de hoy.");
+    const campos = camposDeLaOrden(orden({ entrega: "2026-10-07" }), { ...CTX, entregaOriginal: "2026-10-07" }, SIN_COMBO);
+    expect(campos.find((c) => c.id === "entrega")?.hecho).toBe(true);
+  });
 });
 
 describe("camposDeLaOrden: la guía de foco", () => {
@@ -191,5 +199,56 @@ describe("argsCrearOrden: lo que viaja a la base", () => {
   });
   it("«Por repartir» viaja como destino nulo; sin entrega ni nota, nulos", () => {
     expect(argsCrearOrden("id-2", orden({ destino: POR_REPARTIR }))).toMatchObject({ p_destino_id: null, p_fecha_entrega_estimada: null, p_nota: null });
+  });
+});
+
+describe("editar: la orden guardada vuelve al formulario y viaja con su versión", () => {
+  const DETALLE = {
+    id: "oc-1",
+    numero: 129,
+    estado: "generada" as const,
+    proveedor: { id: "prov", nombre: "Textiles Andina SAC", ruc: null },
+    destino: null,
+    fechaEmision: "2026-10-10",
+    fechaEntregaEstimada: "2026-10-15",
+    nota: "Llega en dos fardos",
+    creadaPor: "Felipe",
+    creadaEn: "2026-10-10T12:00:00Z",
+    actualizadaPor: null,
+    actualizadaEn: null,
+    version: 3,
+    anuladaPor: null,
+    anuladaEn: null,
+    motivoAnulacion: null,
+    lineas: [
+      { posicion: 1, categoriaId: "cat", categoria: "Chompas", marcaId: "marca", marca: "CAYLA", descripcion: "Cuello alto", cantidad: 30, precioUnitario: 42, descuento: 0, descuentoPct: null, subtotal: 1260 },
+      { posicion: 2, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 12, precioUnitario: 25.5, descuento: 15.3, descuentoPct: 5, subtotal: 290.7 },
+      { posicion: 3, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 2, precioUnitario: 10, descuento: 2.5, descuentoPct: null, subtotal: 17.5 },
+    ],
+    unidades: 44,
+    total: 1568.2,
+  };
+
+  it("el descuento vuelve como se escribió: en % si la línea lo recuerda, si no en soles; sin descuento, en % y vacío", () => {
+    const b = borradorDeDetalle(DETALLE);
+    expect(b).toMatchObject({ proveedorId: "prov", destino: POR_REPARTIR, entrega: "2026-10-15", nota: "Llega en dos fardos" });
+    expect(b.lineas.map((l) => [l.clave, l.cantidad, l.precio, l.modoDescuento, l.descuento, l.descripcion])).toEqual([
+      ["l1", "30", "42.00", "pct", "", "Cuello alto"],
+      ["l2", "12", "25.50", "pct", "5", ""],
+      ["l3", "2", "10.00", "soles", "2.50", ""],
+    ]);
+  });
+
+  it("vuelta completa: lo que se lee y se vuelve a mandar suma lo mismo que la base (sin tocar nada, nada cambia)", () => {
+    const b = borradorDeDetalle(DETALLE);
+    expect(b.lineas.map((l) => calcularLinea(l).subtotalCentimos)).toEqual([126000, 29070, 1750]);
+    expect(totalCentimos(b.lineas)).toBe(156820);
+    const args = argsEditarOrden("oc-1", 3, b);
+    expect(args).toMatchObject({ p_id: "oc-1", p_version_esperada: 3, p_destino_id: null, p_fecha_entrega_estimada: "2026-10-15" });
+    expect(args.p_lineas).toEqual([
+      { categoria_id: "cat", marca_id: "marca", descripcion: "Cuello alto", cantidad: "30", precio_unitario: "42.00" },
+      { categoria_id: "cat", marca_id: "marca", cantidad: "12", precio_unitario: "25.50", descuento_pct: "5" },
+      { categoria_id: "cat", marca_id: "marca", cantidad: "2", precio_unitario: "10.00", descuento: "2.50" },
+    ]);
   });
 });

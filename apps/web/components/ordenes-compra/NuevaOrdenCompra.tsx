@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -16,10 +16,12 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
+import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
-import { traducirError } from "@/lib/error-escritura";
+import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
+import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
@@ -28,6 +30,7 @@ import {
   TOPES,
   aTexto,
   argsCrearOrden,
+  argsEditarOrden,
   calcularLinea,
   camposDeLaOrden,
   lineaVacia,
@@ -40,7 +43,7 @@ import {
   type OrdenBorrador,
 } from "@/lib/orden-compra-alta";
 import { numeroOrdenCompra, type DatosNuevaOrden } from "@/lib/ordenes-compra-reglas";
-import { crearOrdenCompra } from "@/lib/ordenes-compra-acciones";
+import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-acciones";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
 // tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, precio y descuento), con el total al pie. Se usa
@@ -52,6 +55,11 @@ import { crearOrdenCompra } from "@/lib/ordenes-compra-acciones";
 //
 // La guía de foco (CLAUDE.md «Guía de foco»): cada bloque se enciende cuando es lo que sigue, y «Falta: …» sobre el botón lleva a cada
 // cosa. Sale de `camposDeLaOrden`, que son las reglas de `crear_orden_compra` (la entrega estimada es sugerida: nunca bloquea).
+//
+// EDITAR (actividad 4): la misma pantalla, con la orden como está (`editar`). Cambia el título («Editar OC-000129»), el botón («Guardar
+// cambios») y lo que se guarda (`editar_orden_compra`, con la versión que se vio al abrir). Lo que ya venía completo no se llena de ✓
+// (regla 4 de la guía): solo lleva marca lo que llegó pendiente o lo que se deja pendiente al editar. Si otra persona guardó la orden
+// mientras tanto, el aviso lo dice y ofrece «Recargar»: la página trae la orden nueva y el formulario vuelve a empezar con ella.
 
 const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // El título de un campo de la cabecera de la orden: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier
@@ -61,19 +69,34 @@ const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whites
 // categoría · marca · descripción · cantidad · precio · descuento (caja + «% / S/») · subtotal · quitar.
 const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
 
+/** Editar una orden «generada» en vez de crear una (actividad 4). */
+export type EdicionOrden = {
+  id: string;
+  numero: number;
+  /** La versión que se vio al abrir: la base rechaza el guardado si otra persona guardó después. */
+  version: number;
+  inicial: OrdenBorrador;
+  /** La entrega estimada guardada: dejarla como está vale aunque ya haya pasado. */
+  entregaOriginal: string;
+};
+
 type Props = {
   datos: DatosNuevaOrden;
   sede: string;
   hoy: string;
   /** La sede donde se trabaja, si es una tienda o un almacén: «Llega a» arranca ahí (decisión por defecto de la fase 1). */
   destinoInicial: string;
+  editar?: EdicionOrden;
 };
 
-export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
+export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: Props) {
   const router = useRouter();
-  const [orden, setOrden] = useState<OrdenBorrador>(() => ({ proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] }));
+  const [orden, setOrden] = useState<OrdenBorrador>(
+    () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
+  );
   const [guardando, setGuardando] = useState(false);
-  const contador = useRef(1);
+  // Las claves de línea siguen desde las que ya tiene la orden (l1…lN).
+  const contador = useRef(editar ? editar.inicial.lineas.length : 1);
   // El id de la orden se genera al primer «Guardar» y se reusa en cada reintento: la base devuelve la misma orden si llega dos veces.
   const idOrden = useRef<string | null>(null);
 
@@ -87,17 +110,29 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
       categoriasActivas: new Set(datos.categorias.map((c) => c.id)),
       marcasActivas: new Set(datos.marcas.map((m) => m.id)),
       destinos: new Set(datos.destinos.map((d) => d.id)),
+      entregaOriginal: editar?.entregaOriginal,
     }),
-    [datos, hoy],
+    [datos, hoy, editar?.entregaOriginal],
   );
   const campos = camposDeLaOrden(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
 
-  // «¿Salir sin guardar?»: solo cuenta lo que la persona llenó (la sede de «Llega a» viene puesta).
+  // Al editar, lo que llegó completo no se marca con ✓ (regla 4 de la guía): quien entra a corregir un precio no necesita leer diez
+  // tildes. Si se deja pendiente al editar (se borra, se agrega una línea), vuelve a llevar su marca.
+  const [completosAlAbrir] = useState(() => new Set(editar ? campos.filter((c) => c.hecho).map((c) => c.id) : []));
+  const estadoVisible = (id: string): EstadoCampo | null => {
+    const estado = guia.estado(id);
+    return estado === "hecho" && completosAlAbrir.has(id) ? null : estado;
+  };
+  const etiqueta = (id: string, texto: ReactNode) => <ConMarca estado={estadoVisible(id)}>{texto}</ConMarca>;
+
+  // «¿Salir sin guardar?»: solo cuenta lo que la persona llenó o cambió (la sede de «Llega a» viene puesta).
   const [fotoAlAbrir] = useState(() => JSON.stringify(orden));
   const avisoSalida = useSalidaSinGuardar(
     JSON.stringify(orden) !== fotoAlAbrir,
-    "Llenaste parte de esta orden y todavía no se guardó. Si sales ahora, se pierde lo que llenaste.",
+    editar
+      ? "Cambiaste esta orden y todavía no se guardó. Si sales ahora, se pierden los cambios."
+      : "Llenaste parte de esta orden y todavía no se guardó. Si sales ahora, se pierde lo que llenaste.",
   );
 
   // ---- opciones de los combos ----
@@ -154,7 +189,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
 
   const total = totalCentimos(orden.lineas) / 100;
   const cuantas = unidades(orden.lineas);
-  const problemaEntrega = problemaDeEntrega(orden.entrega, hoy);
+  const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -164,6 +199,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
       if (ahora) guia.ir(ahora);
       return;
     }
+    if (editar) return guardarCambios(editar);
     idOrden.current ??= crypto.randomUUID();
     setGuardando(true);
     const firma = esPersona ? firmaOmitida("orden_compra_crear") : responsable.firma();
@@ -187,21 +223,60 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
     router.refresh();
   }
 
+  async function guardarCambios(e: EdicionOrden) {
+    setGuardando(true);
+    const firma = esPersona ? firmaOmitida("orden_compra_editar") : responsable.firma();
+    const { version, error } = await editarOrdenCompra(argsEditarOrden(e.id, e.version, orden), firma);
+    setGuardando(false);
+    if (!esPersona) responsable.despues(error);
+    if (error || version == null) {
+      // Otra persona guardó esta orden (o la anuló) mientras se editaba: lo escrito sigue a la vista y se ofrece traer lo nuevo.
+      if (esVersionCambiada(error)) {
+        avisar.error(traducirError(error, "guardar los cambios"), { accion: { texto: "Recargar", onClick: () => void recargar() } });
+        return;
+      }
+      avisar.error(traducirError(error, "guardar los cambios"));
+      return;
+    }
+    const nombre = numeroOrdenCompra(e.numero);
+    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
+    // La misma versión: no había nada que cambiar (o era el mismo guardado repetido).
+    avisar.exito(version === e.version ? `${nombre} ya decía eso: no había nada que cambiar` : `${nombre} actualizada`, {
+      detalle: `${proveedor} · ${soles(total)}`,
+    });
+    await avisoSalida.retirarYa();
+    router.push("/compras/ordenes");
+    router.refresh();
+  }
+
+  // «Recargar»: la página vuelve a leer la orden y el formulario empieza de nuevo con ella (la página lo monta con `key` = versión).
+  async function recargar() {
+    await avisoSalida.retirarYa();
+    router.refresh();
+  }
+
   return (
     <div className="space-y-6">
       <EncabezadoPagina
         sede={sede}
-        titulo="Nueva orden de compra"
-        subtitulo="Lo que le pides al proveedor. La factura y el envío vienen después."
+        titulo={editar ? `Editar ${numeroOrdenCompra(editar.numero)}` : "Nueva orden de compra"}
+        subtitulo={
+          editar
+            ? "Corrige lo que haga falta y guarda. El número y la fecha de emisión no cambian."
+            : "Lo que le pides al proveedor. La factura y el envío vienen después."
+        }
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
         <div className="anim-sube flex items-end gap-6 text-right" style={{ ["--i" as string]: 1 }}>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">N.º</p>
-            <p className="font-display mt-1 text-2xl tabular-nums text-tinta" title="Se confirma al guardar">
-              {datos.siguiente != null ? numeroOrdenCompra(datos.siguiente) : "Al guardar"}
-            </p>
-          </div>
+          {/* Al editar, el número ya está en el título. */}
+          {!editar && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">N.º</p>
+              <p className="font-display mt-1 text-2xl tabular-nums text-tinta" title="Se confirma al guardar">
+                {datos.siguiente != null ? numeroOrdenCompra(datos.siguiente) : "Al guardar"}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Total</p>
             <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
@@ -226,7 +301,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
               (con ✓ 25 px, con «Sigue aquí» 21 px) y las cuatro cajas quedaban a distinta altura mientras se llenaba (Felipe, 2026-10-10:
               «debería estar alineado»). El proveedor va sin ayuda al lado: con «Sigue aquí» no cabía en la columna. */}
           <CampoGuiado id="proveedor" guia={guia}>
-            <p className={TITULO_FIJO}>{guia.etiqueta("proveedor", "Proveedor")}</p>
+            <p className={TITULO_FIJO}>{etiqueta("proveedor", "Proveedor")}</p>
             <ComboBuscable
               id="oc-proveedor"
               caja
@@ -238,7 +313,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
             />
           </CampoGuiado>
           <CampoGuiado id="destino" guia={guia}>
-            <p className={TITULO_FIJO}>{guia.etiqueta("destino", "Llega a")}</p>
+            <p className={TITULO_FIJO}>{etiqueta("destino", "Llega a")}</p>
             <CampoSelect
               id="oc-destino"
               caja
@@ -252,7 +327,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
           </CampoGuiado>
           <CampoGuiado id="entrega" guia={guia}>
             <p className={TITULO_FIJO}>
-              {guia.etiqueta("entrega", "Entrega estimada")}
+              {etiqueta("entrega", "Entrega estimada")}
               <span className="text-[12px] font-normal text-taupe">si la sabes</span>
             </p>
             <CampoFecha
@@ -267,7 +342,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
           </CampoGuiado>
           <CampoGuiado id="nota" guia={guia}>
             <p className={TITULO_FIJO}>
-              {guia.etiqueta("nota", "Nota")}
+              {etiqueta("nota", "Nota")}
               <span className="text-[12px] font-normal text-taupe">opcional</span>
             </p>
             <CampoTexto
@@ -323,6 +398,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
               linea={l}
               numero={i + 1}
               guia={guia}
+              etiqueta={etiqueta}
+              estado={estadoVisible}
               opcionesCategoria={opcionesCategoria}
               opcionesMarca={opcionesMarca}
               placeholderDescripcion={sugerirDescripcion(categoriaPor.get(l.categoriaId) ?? null).texto}
@@ -343,7 +420,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
 
         <section className="space-y-3" aria-label="Guardar">
           {!esPersona && (
-            <CampoGuiado id="responsable" guia={guia} titulo="Quién hace la orden" className="max-w-sm">
+            <CampoGuiado id="responsable" guia={guia} titulo={editar ? "Quién hace el cambio" : "Quién hace la orden"} className="max-w-sm">
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
@@ -351,7 +428,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial }: Props) {
           <div className="flex flex-wrap justify-end gap-2.5">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : "Guardar orden"}
+              {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Guardar orden"}
             </Boton>
           </div>
         </section>
@@ -373,6 +450,8 @@ function LineaOrden({
   linea: l,
   numero,
   guia,
+  etiqueta,
+  estado,
   opcionesCategoria,
   opcionesMarca,
   placeholderDescripcion,
@@ -382,6 +461,9 @@ function LineaOrden({
   linea: LineaBorrador;
   numero: number;
   guia: ReturnType<typeof useGuiaCampos>;
+  /** El título con su marca, y la marca sola: null = llegó completa al editar (sin ✓). */
+  etiqueta: (id: string, texto: ReactNode) => ReactNode;
+  estado: (id: string) => EstadoCampo | null;
   opcionesCategoria: OpcionCombo<string>[];
   opcionesMarca: OpcionCombo<string>[];
   placeholderDescripcion: string;
@@ -410,9 +492,10 @@ function LineaOrden({
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
       <div className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[56rem]:col-span-1 @min-[56rem]:justify-start">
-          <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{guia.etiqueta(id, `Línea ${numero}`)}</p>
+          <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
           <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Línea ${numero}`}>
-            <MarcaCampo estado={guia.estado(id)} />
+            {/* Sin marca (llegó completa al editar), un hueco del mismo ancho: el número no se corre. */}
+            {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
             {numero}
           </span>
           {quitar("@min-[56rem]:hidden")}

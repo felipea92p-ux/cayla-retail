@@ -66,6 +66,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // Órdenes de compra (ADR-0362, decisión 39; migración 20261010223500): quien compra suele estar en Gamarra, lejos del kiosco. Con su
   // cuenta firma ella; una terminal sigue eligiendo quién (la base no deja una orden sin autor: quien la crea no la recibe, decisión 17).
   orden_compra_crear: "Crear una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Editarla, igual (actividad 4, migración 20261010235000).
+  orden_compra_editar: "Editar una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

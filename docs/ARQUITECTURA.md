@@ -1372,7 +1372,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
     sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
-    reescritura `beforeFiles`).
+    reescritura `beforeFiles`). Con la orden «generada», «Editar» (`components/ordenes-compra/BotonEditarOrden.tsx`) en el pie de la
+    ventana y en la cabecera de la página.
+  - `/compras/ordenes/editar/[id]` («Editar OC-000129», actividad 4) → `lib/ordenes-compra.ts:getDatosEditarOrden` (lo de «Nueva orden»
+    más la orden, con lo inactivo que ya tenía sumado a las listas) + `NuevaOrdenCompra` con `editar` (montado con `key` = versión) →
+    `lib/ordenes-compra-acciones.ts:editarOrdenCompra` (`editar_orden_compra`, firma `orden_compra_editar`, versión esperada: PT409 si otra
+    persona guardó antes) + `lib/orden-compra-alta.ts` (`borradorDeDetalle`, `argsEditarOrden`). Lo de antes queda en
+    `orden_compra_versiones`; crear y editar anotan en Actividad (módulo `ordenes_compra`, sin montos).
   - `/compras/ordenes/nueva` («Nueva orden de compra») → `lib/ordenes-compra.ts:getDatosNuevaOrden` (proveedores, marcas, vínculos,
     categorías, destinos y `fn_ordenes_compra_siguiente`) + `components/ordenes-compra/NuevaOrdenCompra.tsx` →
     `lib/ordenes-compra-acciones.ts:crearOrdenCompra` (`crear_orden_compra`, firma `orden_compra_crear`: persona sin combo, terminal

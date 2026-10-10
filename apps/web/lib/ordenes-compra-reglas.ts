@@ -12,6 +12,7 @@ export const RPC_LISTA_ORDENES = "fn_ordenes_compra";
 /** Vista previa del número de la próxima orden (no lo gasta). Empieza con `fn_`: lectura, no abre el loader (`espera-reglas.ts`). */
 export const RPC_SIGUIENTE_ORDEN = "fn_ordenes_compra_siguiente";
 export const RPC_CREAR_ORDEN = "crear_orden_compra";
+export const RPC_EDITAR_ORDEN = "editar_orden_compra";
 export const RPC_DETALLE_ORDEN = "fn_orden_compra_detalle";
 export const RPC_RESUMEN_ORDENES = "fn_ordenes_compra_resumen";
 

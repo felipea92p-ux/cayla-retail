@@ -101,3 +101,26 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     falla,
   };
 }
+
+/** Lo que necesita «Editar orden de compra» (actividad 4): lo de «Nueva orden» y la orden como está. A las listas se suma lo que la orden
+ *  ya tiene aunque hoy esté inactivo (proveedor, sede, categorías, marcas), marcado «(inactivo)»: sin eso el combo se vería vacío, y la
+ *  base acepta dejarlo como estaba (`fn_orden_compra_validar`). Cambiarlo por otro inactivo, no: no se ofrece. */
+export async function getDatosEditarOrden(id: string): Promise<{ datos: DatosNuevaOrden; detalle: DetalleOrden | null; falla: string | null }> {
+  const [datos, { detalle, falla }] = await Promise.all([getDatosNuevaOrden(), getDetalleOrden(id)]);
+  if (!detalle) return { datos, detalle: null, falla };
+  const proveedores = datos.proveedores.some((p) => p.id === detalle.proveedor.id)
+    ? datos.proveedores
+    : [...datos.proveedores, { id: detalle.proveedor.id, nombre: `${detalle.proveedor.nombre} (inactivo)`, ruc: detalle.proveedor.ruc }];
+  const destinos =
+    !detalle.destino || datos.destinos.some((d) => d.id === detalle.destino!.id)
+      ? datos.destinos
+      : [...datos.destinos, { id: detalle.destino.id, nombre: `${detalle.destino.nombre} (inactiva)` }];
+  const categorias = [...datos.categorias];
+  const marcas = [...datos.marcas];
+  for (const l of detalle.lineas) {
+    if (!categorias.some((c) => c.id === l.categoriaId)) categorias.push({ id: l.categoriaId, nombre: `${l.categoria} (inactiva)`, prefijo: null, familia: null });
+    if (!marcas.some((m) => m.id === l.marcaId)) marcas.push({ id: l.marcaId, nombre: `${l.marca} (inactiva)` });
+  }
+  // `falla` es solo la de leer la orden: la de las listas ya viaja en `datos.falla` y el formulario la muestra.
+  return { datos: { ...datos, proveedores, destinos, categorias, marcas }, detalle, falla };
+}
