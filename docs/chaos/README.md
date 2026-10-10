@@ -13,6 +13,7 @@ semilla anotada) · `no aplica` (solo lectura; con su motivo).
 
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|
+| Catálogo | Liquidación (`/productos/liquidacion`) y la pieza en Vender (ADR-0375) | atacada; los 2 hallazgos (g2 doble pieza, g4 doble aviso) cerrados el mismo día con token + candado y repetidos con la misma semilla | 371 | 0 / 0 / 0 / 0 | `.chaos/informes/liquidacion-2026-10-10.md` (local) | 2026-10-10 |
 | Catálogo | Marcas (`/productos/marcas`) | **pausada**: otra sesión escribió en la base local a mitad de la corrida; corridos 6 de 18 (ENT-01, DC-01, ENT-03 300, TEC-01, TEC-06, TEC-03; PER-01 por diseño) | 20261010 | 0 / 1 / 0 / 1 | `.chaos/informes/marcas-2026-10-10.md` (fuera de git) | 2026-10-10 |
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | atacada; los 4 hallazgos de gravedad 4 cerrados (2026-10-07), falta el núcleo que escribe | 7 | 0 / 0 / 0 / 0 | `.chaos/informes/ventas-sin-registrar-2026-10-07.md` (local) | 2026-10-07 |
 | Compras | Plan de campaña (`/compras/plan`): la hoja de una categoría y el paso a paso guardan una línea del plan | atacada; **los 9 hallazgos arreglados en la rama y re-atacados con la misma semilla (2026-10-10)**, sin publicar (la migración B4 ya está en producción; el candado actúa cuando se publique la web) | 931 | 0 / 0 / 0 / 0 en local · en producción 0 / 1 / 1 / 7 hasta publicar | `.chaos/informes/plan-campana-2026-10-10.md` (local) | 2026-10-10 |

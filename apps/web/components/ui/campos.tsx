@@ -214,13 +214,15 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   pie?: ReactNode;
   tono?: CampoProps["tono"];
   moneda?: string;
+  /** La etiqueta solo para el lector de pantalla: el bloque de arriba ya la dice a la vista (un `CampoGuiado` con su título). */
+  etiquetaOculta?: boolean;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, className = "", ...props }: CampoMontoProps) {
   const id = useId();
   const [enfocado, setEnfocado] = useState(false);
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta}>
       <div className="relative flex items-baseline gap-2">
         <span aria-hidden className="font-display select-none pb-1 text-lg leading-none text-tinta/65">
           {moneda}

@@ -130,6 +130,7 @@ import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
+import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -205,6 +206,8 @@ export type ItemCarrito = {
   campana?: CampanaLinea | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
+  /** Solo en una pieza de liquidación (ADR-0375): el código de su etiqueta. Precio final, sin descuentos, venta final. */
+  liquidacion?: { codigo: string };
 };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
@@ -601,6 +604,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setActivo(0);
       const v = resolverCodigoV2(codigo, variantesVisibles);
       if (!v) {
+        // ADR-0375: una etiqueta de liquidación no es de ninguna prenda del catálogo; se busca su pieza en la base.
+        const liquidacion = codigoDeLiquidacion(codigo);
+        if (liquidacion) {
+          void agregarPiezaLiquidacion(liquidacion);
+          return;
+        }
         setAviso(`No encontramos «${codigo}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1016,7 +1025,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  un QR es un código exacto o no es nada. */
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
-    if (!v) return { estado: "no-encontrada", codigo };
+    if (!v) {
+      // ADR-0375: la pieza de liquidación se busca en la base; el aviso de cómo fue sale aparte, al responder.
+      const liquidacion = codigoDeLiquidacion(codigo);
+      if (liquidacion) {
+        void agregarPiezaLiquidacion(liquidacion);
+        return { estado: "agregada", codigo, nombre: "Pieza de liquidación" };
+      }
+      return { estado: "no-encontrada", codigo };
+    }
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
@@ -1042,6 +1059,70 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         duracion: 15_000,
       });
     }
+  }
+
+  /**
+   * Una pieza de liquidación (ADR-0375): la prenda suelta que no está en el catálogo, con su etiqueta LQ. Se lee en la base (su
+   * precio vigente, si sigue a la venta y si es de esta tienda) y entra como una línea de la variante centinela, sin mover stock.
+   * La base vuelve a comprobarlo todo al cobrar; aquí se adelanta para decirlo en el mostrador y no en el cobro.
+   */
+  async function agregarPiezaLiquidacion(codigo: string) {
+    if (bloqueado) return;
+    if (carrito.some((it) => it.liquidacion?.codigo === codigo)) {
+      avisar.aviso("Esa prenda ya está en el ticket", { detalle: "Cada prenda de liquidación es una sola unidad." });
+      return;
+    }
+    const { data, error } = await createClient().rpc("fn_pieza_liquidacion", { p_codigo: codigo });
+    const leida = error ? null : piezaLeidaDeJson(data);
+    if (error) {
+      avisar.error("No se pudo leer la etiqueta", { detalle: "Revisa la conexión y vuelve a escanearla." });
+      return;
+    }
+    if (!leida) {
+      setAviso(`No encontramos la etiqueta «${codigo}».`);
+      return;
+    }
+    if (leida.tipo === "otra_sede" || leida.pieza.ubicacionId !== ubicacionId) {
+      avisar.error("Esa prenda es de otra tienda", { detalle: "Las prendas de liquidación se venden en la tienda que las etiquetó." });
+      return;
+    }
+    const pieza = leida.pieza;
+    if (pieza.estado !== "disponible") {
+      avisar.error(pieza.estado === "vendida" ? "Esa prenda ya se vendió" : "Esa prenda ya no está a la venta");
+      return;
+    }
+    if (!leida.vigente) {
+      avisar.error("Esa etiqueta ya no vale", {
+        detalle: `La prenda cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
+      });
+      return;
+    }
+    capturarFlip();
+    setCarrito((actual) =>
+      actual.some((it) => it.liquidacion?.codigo === codigo)
+        ? actual
+        : [
+            ...actual,
+            {
+              claveLinea: `liq-${codigo}`,
+              varianteId: ID_CARGO_ESPECIAL,
+              // «Liquidación · Blusas»: el nombre de la línea en el ticket y en la boleta.
+              referencia: nombreEnVenta(pieza.categoria, pieza.descripcion),
+              sku: "LIQUIDACION",
+              codigo,
+              cantidad: 1,
+              precioUnitario: pieza.precio,
+              descuentoUnitario: 0,
+              stockAqui: 1,
+              razonDescuento: "",
+              razonDescuentoOtro: "",
+              argumentoDescuento: "",
+              campana: null,
+              liquidacion: { codigo },
+            },
+          ],
+    );
+    setAviso(null);
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1119,7 +1200,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle));
+    // ADR-0375: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
+    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)));
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
@@ -1221,6 +1303,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setQ("");
       setActivo(0);
       if (accion.tipo === "no-encontrada") {
+        // ADR-0375: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
+        const liquidacion = codigoDeLiquidacion(accion.texto);
+        if (liquidacion) {
+          void agregarPiezaLiquidacion(liquidacion);
+          return;
+        }
         setAviso(`No encontramos «${accion.texto}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1305,7 +1393,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     : null;
   // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
   const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
-  const motivoBloqueo = motivoBloqueoCobro({
+  // ADR-0375: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
+  const liquidacionConClub =
+    conVentajaDelClub && carrito.some((it) => it.liquidacion)
+      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
+      : null;
+  const motivoBloqueo = liquidacionConClub ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1446,7 +1539,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // propia): se dice, en vez de perderla en silencio.
   function lineasParaLlevar(accion: string) {
     const sinRegistrar = carrito.filter((it) => it.varianteId === ID_CARGO_ESPECIAL).length;
-    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar no se puede ${accion}: sigue en el ticket.`);
+    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar o de liquidación no se puede ${accion}: sigue en el ticket.`);
     return carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL).map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
   }
   function apartarDesdeTicket() {
@@ -1485,7 +1578,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
         // «Prenda sin registrar» (ADR-0179): la base exige estos cuatro para dejarla por regularizar.
-        descripcion_libre: it.prendaLibre?.descripcion,
+        descripcion_libre: it.prendaLibre?.descripcion ?? (it.liquidacion ? it.referencia : undefined),
+        // ADR-0375: la pieza de liquidación viaja con su código; la base la cobra al precio de su etiqueta vigente.
+        pieza_liquidacion_codigo: it.liquidacion?.codigo,
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
@@ -1525,6 +1620,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           setLoading(false);
           const { titulo, detalle } = cumpleDelTicket ? canjeSinConexion(cumpleDelTicket.pct) : valeSinConexion();
           avisar.error(titulo, { detalle });
+          return;
+        }
+        // ADR-0375: una pieza de liquidación tampoco se encola: es UNA prenda y otra caja podría venderla, o rebajarla, mientras tanto.
+        if (carrito.some((it) => it.liquidacion)) {
+          setLoading(false);
+          avisar.error("Sin conexión no se cobra una prenda de liquidación", {
+            detalle: "Es una sola prenda y la base tiene que confirmar que sigue a la venta. Espera a que vuelva el internet, o sácala del ticket y cobra lo demás.",
+          });
           return;
         }
         const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
@@ -1577,6 +1680,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       if (rechazoVale) {
         clubDeLaClienta.apagarValeTrasRechazo(rechazoVale.releer);
         avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoVale.detalle });
+        responsable.despues(error);
+        return;
+      }
+      // ADR-0375: la pieza de liquidación se vendió, se rebajó o se retiró mientras estaba en el ticket.
+      const rechazoLiquidacion = carrito.some((it) => it.liquidacion) ? errorDeLiquidacion(`${error.message} ${error.hint ?? ""}`) : null;
+      if (rechazoLiquidacion) {
+        avisar.error(rechazoLiquidacion.titulo, rechazoLiquidacion.detalle ? { detalle: `${rechazoLiquidacion.detalle} Sácala del ticket y vuelve a escanearla.` } : undefined);
         responsable.despues(error);
         return;
       }

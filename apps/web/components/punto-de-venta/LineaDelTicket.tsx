@@ -93,20 +93,25 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
 
         {/* El importe abre el descuento de esta prenda (el ex «Desc.»): el «%» chico lo anuncia y, con descuento, se
             tiñe como la nota de abajo. Es el blanco más grande de la fila y queda lejos del basurero. */}
-        <button
-          type="button"
-          onClick={() => onDescuento(linea.claveLinea)}
-          disabled={bloqueado}
-          aria-label={`Descuento para ${nombre} (importe ${money(f.importe)})`}
-          title="Descuento de esta prenda"
-          className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent"
-        >
-          <Percent aria-hidden className={`h-3 w-3 shrink-0 ${f.pct > 0 ? "text-rojo-profundo" : "text-tinta/35"}`} />
-          <span className="min-w-[4.25rem]">
-            <span className="block text-sm font-semibold text-tinta tabular-nums">{money(f.importe)}</span>
-            {f.importeLista !== null && <s className="block text-[11px] text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
-          </span>
-        </button>
+{f.conDescuento ? (
+                  <button
+            type="button"
+            onClick={() => onDescuento(linea.claveLinea)}
+            disabled={bloqueado}
+            aria-label={`Descuento para ${nombre} (importe ${money(f.importe)})`}
+            title="Descuento de esta prenda"
+            className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent"
+          >
+            <Percent aria-hidden className={`h-3 w-3 shrink-0 ${f.pct > 0 ? "text-rojo-profundo" : "text-tinta/35"}`} />
+            <span className="min-w-[4.25rem]">
+              <span className="block text-sm font-semibold text-tinta tabular-nums">{money(f.importe)}</span>
+              {f.importeLista !== null && <s className="block text-[11px] text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
+            </span>
+          </button>
+        ) : (
+          // Pieza de liquidación (ADR-0375): precio final, el importe no abre ningún descuento.
+          <span className="min-w-[4.25rem] shrink-0 pr-1 text-right text-sm font-semibold text-tinta tabular-nums">{money(f.importe)}</span>
+        )}
 
         <button
           type="button"

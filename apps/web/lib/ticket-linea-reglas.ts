@@ -26,6 +26,8 @@ export type LineaParaFila = {
   razonDescuento: string;
   razonDescuentoOtro: string;
   campana?: CampanaLinea | null;
+  /** Una pieza de liquidación (ADR-0375): su etiqueta. */
+  liquidacion?: { codigo: string } | null;
 };
 
 /** Color y talla de la variante, tal como los trae el catálogo de la caja. La línea del carrito no los guarda:
@@ -51,6 +53,8 @@ export type FilaDelTicket = {
   alTope: boolean;
   /** El «− 1 +». Una prenda sin registrar no lo lleva: la base exige cantidad 1 y el paso no tendría nada que hacer. */
   conPaso: boolean;
+  /** El importe abre el descuento de la prenda. Una pieza de liquidación no lo lleva: su precio es final (ADR-0375). */
+  conDescuento: boolean;
   /** El % de la línea: con campaña, el de SU campaña, no la cuenta monto ÷ precio. */
   pct: number;
   /** «−25 % · Black Friday» o «−20 % · Prenda con desperfecto»; null sin descuento. */
@@ -86,11 +90,16 @@ export function filaDelTicket(l: LineaParaFila, detalle?: DetalleVariante | null
   const colorYTalla = [detalle?.color?.trim(), detalle?.talla?.trim() ? `Talla ${detalle.talla.trim()}` : null].filter(Boolean).join(" · ");
   return {
     sinRegistrar,
-    detalle: sinRegistrar ? "Prenda sin registrar · almacén la regulariza después" : colorYTalla || codigoPrenda(l),
+    detalle: l.liquidacion
+      ? `Venta final · etiqueta ${l.liquidacion.codigo}`
+      : sinRegistrar
+        ? "Prenda sin registrar · almacén la regulariza después"
+        : colorYTalla || codigoPrenda(l),
     titulo: sinRegistrar ? l.referencia : `${l.referencia} · ${codigoPrenda(l)}`,
     stock: sinRegistrar ? null : { cantidad: l.stockAqui, tono: tonoDelStock(l.cantidad, l.stockAqui) },
     alTope: l.cantidad >= l.stockAqui,
     conPaso: !sinRegistrar,
+    conDescuento: !l.liquidacion,
     pct,
     nota: pct > 0 ? `−${pct} % · ${motivoDeLaLinea(l)}` : null,
     importe: l.cantidad * neto,

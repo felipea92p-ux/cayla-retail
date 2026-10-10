@@ -1,0 +1,107 @@
+/* ==================================================================
+   Liquidación (ADR-0375): la etiqueta de PAPEL de una pieza de liquidación y su pantalla.
+   La etiqueta usa la misma caja que la de precio (`.etiqueta-precio`, globals.css: 40,1 × 62 mm, Brother QL-1110NWB) y sus mismas
+   piezas (cabecera, precio, pie con código y QR). Lo único suyo es la franja «LIQUIDACIÓN»: negra con letra blanca, a lo ancho,
+   para que se lea desde lejos y nadie la confunda con una prenda del catálogo. Es papel térmico: negro sobre blanco, nunca un
+   token (la misma excepción que la etiqueta de precio y el comprobante de 80 mm).
+   ================================================================== */
+@layer components {
+  .etq-liq-banda {
+    margin-top: 2.2mm;
+    padding: 1.3mm 0;
+    background: #000; /* tema-fijo: papel térmico, solo imprime negro */
+    color: #fff; /* tema-fijo: papel térmico, letra calada en la franja */
+    text-align: center;
+    font-size: 3.6mm;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+  .etq-liq-categoria {
+    margin-top: 2mm;
+    font-size: 2.6mm;
+    font-weight: 700;
+    line-height: 1.15;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  /* Lo que la reconoce: dos líneas como máximo, en 700 para que la térmica no la corte (trazo mínimo, ver globals.css). */
+  .etq-liq-descripcion {
+    margin-top: 0.6mm;
+    font-size: 2.2mm;
+    font-weight: 700;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .etq-liq-final {
+    margin-top: 0.6mm;
+    font-size: 1.9mm;
+    font-weight: 700;
+  }
+  /* El pie se va al fondo: la etiqueta tiene poco texto y el QR queda siempre en el mismo lugar que el de precio. */
+  .etiqueta-precio .etq-liq-empuje {
+    flex: 1 1 auto;
+    flex-shrink: 1;
+  }
+
+  /* --- La pantalla: la vista previa de la etiqueta en la hoja, a escala de pantalla, con su sombra de papel. --- */
+  .liq-previa {
+    display: flex;
+    justify-content: center;
+    padding: 12px;
+  }
+  .liq-previa .etiqueta-precio {
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-sombra) 22%, transparent);
+    animation: liq-entra 360ms var(--ease-cayla) both;
+  }
+  @keyframes liq-entra {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+  /* La cifra chica del celular (/formidable, H8): las tres en una fila, cada una filtra. La elegida se rellena de arena, como
+     `TarjetaCifra activa`. */
+  .liq-cifra-chica {
+    display: block;
+    min-height: 64px;
+    padding: 10px 10px 9px;
+    border-radius: 14px;
+    border: 1px solid var(--color-sand);
+    background: var(--color-papel);
+    text-align: left;
+  }
+  .liq-cifra-chica[aria-pressed="true"] {
+    background: var(--color-sand);
+  }
+  /* El precio viejo tachado, cuando una pieza se rebajó: la cifra cuenta y la línea se dibuja una vez. */
+  .liq-tachado {
+    position: relative;
+    color: var(--color-taupe);
+  }
+  .liq-tachado::after {
+    content: "";
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 52%;
+    height: 1px;
+    background: currentColor;
+    transform-origin: left;
+    animation: liq-tacha 320ms var(--ease-cayla) both;
+  }
+  @keyframes liq-tacha {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .liq-previa .etiqueta-precio,
+    .liq-tachado::after {
+      animation: none;
+    }
+  }
+}

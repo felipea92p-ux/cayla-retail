@@ -1210,6 +1210,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
 
+      # Piezas de liquidación (ADR-0375): una prenda suelta se etiqueta con categoría y precio, se rebaja con una etiqueta nueva (la
+      # vieja deja de valer) y la caja la vende escaneando el código, sin mover stock ni dejar tarea a almacén. Cubre el mínimo de
+      # precio, la etiqueta vieja, la otra sede, la misma pieza dos veces, la venta final y que anular la devuelva. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:piezas-liquidacion
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:piezas-liquidacion
+
       # Cierre de la cola de arranque (ADR-0334): un líder da por hechas, en bloque y dentro de su plazo, las ventas sin registrar que
       # ya no se pueden identificar. Cubre que sea todo-o-nada y solo del líder, que cerrar no mueva stock, que una prenda cerrada no
       # pueda cambiarse ni regularizarse por el camino de siempre, y los estados imposibles del esquema. Cada caso termina en ROLLBACK;

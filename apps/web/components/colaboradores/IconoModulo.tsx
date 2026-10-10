@@ -1,4 +1,5 @@
 import {
+  TicketPercent,
   Activity, BarChart3, Banknote, Bookmark, CalendarCheck, CalendarRange, ClipboardCheck, Coins, FileMinus, FileText, Gauge, Globe, History, House,
   KeyRound, Landmark, Leaf, LineChart, ListOrdered, MessageCircle, Package, PackageOpen, Percent, Receipt, Repeat, Scissors, Settings,
   Shirt, ShoppingCart, Store, Tag, Tags, Truck, Undo2, UserRound, Users, Wallet, type LucideIcon,
@@ -27,6 +28,7 @@ const ICONOS: Record<ClaveModulo, LucideIcon> = {
   productos: Shirt,
   atributos: Tags,
   etiquetas: Tag,
+  liquidacion: TicketPercent,
   facturas_compra: FileText,
   recibir: PackageOpen,
   por_pagar: Wallet,

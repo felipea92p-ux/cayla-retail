@@ -113,7 +113,10 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
   join retail.ventas v on v.id = i.venta_id and v.estado = 'completada'
   left join (select venta_item_id, sum(cantidad) as t from retail.movimientos
               where tipo = 'salida' and venta_item_id is not null group by 1) m on m.venta_item_id = i.id
- where coalesce(m.t, 0) <> i.cantidad`,
+ where coalesce(m.t, 0) <> i.cantidad
+   -- ADR-0375: una pieza de liquidación nunca estuvo en el stock, así que su línea no descuenta nada a propósito. Lo que la
+   -- cuida es INV-13 (la pieza vendida cuadra con su línea), no esta.
+   and not exists (select 1 from retail.piezas_liquidacion pl where pl.venta_item_id = i.id)`,
     corrompe: `update retail.venta_items set cantidad = cantidad + 1 where ctid = (select ctid from retail.venta_items limit 1);`,
   },
   {
@@ -262,6 +265,24 @@ select a.id as movimiento_a, b.id as movimiento_b, a.tipo, a.variante_id, a.cant
  where a.venta_item_id is null and b.venta_item_id is null
    and a.transferencia_item_id is null and a.compra_item_id is null and a.produccion_id is null`,
     sinAutoprueba: "`movimientos` es un libro inmutable a propósito (dos disparadores ENABLE ALWAYS): no se inserta ni siquiera una copia sin apagarlos, y eso es justo lo que no se hace aquí; se cubre con el ataque DC-03 en el navegador",
+  },
+  {
+    id: "INV-13",
+    nombre: "pieza_de_liquidacion_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una pieza de liquidación (ADR-0375) a la venta tiene UNA etiqueta que la caja acepta, y una vendida apunta a una línea de una venta completada, de una sola unidad, cobrada al precio de su etiqueta: nunca vendida dos veces, ni vendida en una venta anulada, ni a otro precio.",
+    sql: `
+select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.estado as venta_estado,
+       (select count(*) from retail.piezas_liquidacion_etiquetas e where e.pieza_id = p.id and e.vigente) as vigentes
+  from retail.piezas_liquidacion p
+  left join retail.venta_items vi on vi.id = p.venta_item_id
+  left join retail.ventas v on v.id = vi.venta_id
+ where (p.estado = 'disponible' and (select count(*) from retail.piezas_liquidacion_etiquetas e where e.pieza_id = p.id and e.vigente) <> 1)
+    or (p.estado = 'vendida' and (v.estado is distinct from 'completada' or vi.cantidad <> 1 or vi.precio_unitario <> p.precio
+                                  or vi.descuento_unitario <> 0))
+    or (p.estado <> 'disponible' and exists (select 1 from retail.piezas_liquidacion_etiquetas e where e.pieza_id = p.id and e.vigente and p.estado = 'retirada'))`,
+    corrompe: `update retail.piezas_liquidacion_etiquetas set vigente = false where ctid = (select e.ctid from retail.piezas_liquidacion_etiquetas e join retail.piezas_liquidacion p on p.id = e.pieza_id where e.vigente and p.estado = 'disponible' limit 1);`,
   },
 ];
 
