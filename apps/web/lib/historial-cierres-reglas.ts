@@ -2,6 +2,7 @@
 // Supabase: el resumen, el agrupado por mes y las cifras del cuadre se calculan aquí y se prueban aparte.
 
 import type { CierreCaja } from "@/lib/caja";
+import { claveDeMetodo, cobradoDelTurno, type MetodoCobrado } from "./caja-tablero-reglas";
 
 const ZONA = "America/Lima";
 
@@ -203,4 +204,34 @@ export function rachaDeCierres(cierres: Pick<CierreCaja, "diferencia">[]): { tot
   if (n.sobro) partes.push(`${n.sobro} ${n.sobro === 1 ? "sobró" : "sobraron"}`);
   const lista = partes.length > 1 ? `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}` : (partes[0] ?? "");
   return { total: cierres.length, texto: `Últimos ${cierres.length} cierres de esta tienda: ${lista}.` };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Detalle de un cierre (2026-10-10): lo cobrado en el turno, por medio de pago.
+
+export type CobroMedio = { clave: MetodoCobrado["clave"]; texto: string; monto: number; ventas: number; pct: number };
+
+/**
+ * Lo cobrado en una caja por medio de pago, para «Qué se cobró» del detalle de un cierre. Recibe un renglón por cada pago de una venta NO
+ * anulada y reusa `cobradoDelTurno` (Yape y Plin juntos; el anticipo de una separación y el redondeo no son una forma de pago), así que
+ * suma igual que el tablero de Caja. `ventas` cuenta ventas distintas que usaron ese medio (una venta con pago mixto cuenta en cada uno).
+ * `pct` es la parte del total (0–100, redondeada: la suma de los porcentajes puede dar 99 o 101).
+ */
+export function cobrosPorMedio(pagos: readonly { ventaId: string; metodo: string; monto: number }[]): { total: number; anticipo: number; medios: CobroMedio[] } {
+  const porMetodo: Record<string, number> = {};
+  const ventasDe = new Map<MetodoCobrado["clave"], Set<string>>();
+  for (const p of pagos) {
+    porMetodo[p.metodo] = (porMetodo[p.metodo] ?? 0) + p.monto;
+    if (p.metodo === "anticipo" || p.metodo === "redondeo" || !(p.monto > 0)) continue;
+    const clave = claveDeMetodo(p.metodo);
+    const set = ventasDe.get(clave) ?? new Set<string>();
+    set.add(p.ventaId);
+    ventasDe.set(clave, set);
+  }
+  const { total, anticipo, metodos } = cobradoDelTurno(porMetodo);
+  return {
+    total,
+    anticipo,
+    medios: metodos.map((m) => ({ clave: m.clave, texto: m.texto, monto: m.monto, ventas: ventasDe.get(m.clave)?.size ?? 0, pct: total > 0 ? Math.round((m.monto / total) * 100) : 0 })),
+  };
 }
