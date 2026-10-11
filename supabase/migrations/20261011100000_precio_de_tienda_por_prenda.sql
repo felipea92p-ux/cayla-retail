@@ -148,9 +148,13 @@ begin
   perform retail.fn_precio_sede_exigir(p_producto_id, p_ubicacion_id);
   v_actor := retail.fn_actor_persona_id(true);
 
-  select count(*), coalesce(bool_and(v.precio = v_precio), false)
-    into v_activas, v_igual_grilla
-    from retail.variantes v where v.producto_id = p_producto_id and v.activo;
+  -- `for … loop exit` y no la forma corta: el SQL Editor no se confunde (CLAUDE.md, «El SQL Editor agrega líneas por su cuenta»).
+  for v_activas, v_igual_grilla in
+    select count(*)::integer, coalesce(bool_and(v.precio = v_precio), false)
+      from retail.variantes v where v.producto_id = p_producto_id and v.activo
+  loop
+    exit;
+  end loop;
   if v_activas = 0 then
     raise exception 'Esta prenda no tiene tallas activas: actívala antes de ponerle precio.';
   end if;
@@ -170,7 +174,7 @@ begin
     return retail.quitar_precio_sede(p_producto_id, p_ubicacion_id, v_motivo);
   end if;
 
-  -- Mismo precio y mismo motivo: nada que hacer. Un motivo distinto SÍ es un cambio (20261010100600): nace otra fila, con la misma
+  -- Mismo precio y mismo motivo: nada que hacer. Un motivo diferente SÍ es un cambio (20261010100600): nace otra fila, con la misma
   -- fecha de inicio.
   if v_vig.id is not null and v_vig.precio = v_precio and v_vig.motivo = v_motivo then
     return 0;

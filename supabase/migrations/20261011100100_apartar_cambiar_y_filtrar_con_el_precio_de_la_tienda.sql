@@ -20,8 +20,8 @@
 --    tienda, la grilla). El listado ordena y las facetas cuentan sobre ese mismo número, porque los dos leen este filtro.
 --
 -- PRODUCCIÓN. Una sola parte, re-ejecutable, sin tablas ni políticas. Reemplazos ANCLADOS: fallan sin tocar nada si la función viva
--- no es la revisada. Las anclas no llevan la palabra que abre una consulta junto a la que la cierra (CLAUDE.md, «El SQL Editor
--- agrega líneas por su cuenta»). Pruebas: `pnpm pruebas:precio-sede`, `pnpm pruebas:separaciones`, `pnpm pruebas:registrar-cambio`,
+-- no es la revisada. Ningún texto de ancla lleva la palabra con que se guarda una consulta en una variable (CLAUDE.md, «El SQL
+-- Editor agrega líneas por su cuenta»: la toma por una tabla nueva y el pegado falla). Pruebas: `pnpm pruebas:precio-sede`, `pnpm pruebas:separaciones`, `pnpm pruebas:registrar-cambio`,
 -- `node scripts/pruebas/productos_listado_por_variante.mjs`.
 -- ============================================================================
 
@@ -57,9 +57,11 @@ $f$;
 
 -- ---------- 1. Apartar guarda la línea al precio de la tienda ----------
 
+-- La segunda lectura es la única «select v.precio » de la función (comprobado en producción el 2026-10-10); la marca del comentario
+-- hace el reemplazo re-ejecutable (la primera lectura ya dice «fn_precio_en_sede(v.id, p_ubicacion_id)»).
 select pg_temp.reemplazar(pg_temp.firma('separar_prendas'),
-  $v$v.precio into v_precio from variantes v where v.id = v_item.variante_id$v$,
-  $v$retail.fn_precio_en_sede(v.id, p_ubicacion_id) into v_precio from variantes v where v.id = v_item.variante_id$v$,
+  $v$select v.precio $v$,
+  $v$select /* precio de la tienda en la línea (20261011100100) */ retail.fn_precio_en_sede(v.id, p_ubicacion_id) $v$,
   1);
 
 -- ---------- 2. Cambiar la misma prenda vale lo que pagó ----------
@@ -80,8 +82,8 @@ revoke all on function retail.fn_precio_para_cambio(uuid, uuid, uuid) from publi
 grant execute on function retail.fn_precio_para_cambio(uuid, uuid, uuid) to authenticated;
 
 select pg_temp.reemplazar(pg_temp.firma('registrar_cambio'),
-  $v$retail.fn_precio_en_sede(p_variante_nueva_id, p_ubicacion_id) into v_precio_nuevo from variantes where id = p_variante_nueva_id$v$,
-  $v$retail.fn_precio_para_cambio(p_venta_item_id, p_variante_nueva_id, p_ubicacion_id) into v_precio_nuevo from variantes where id = p_variante_nueva_id$v$,
+  $v$retail.fn_precio_en_sede(p_variante_nueva_id, p_ubicacion_id)$v$,
+  $v$retail.fn_precio_para_cambio(p_venta_item_id, p_variante_nueva_id, p_ubicacion_id)$v$,
   1);
 
 -- ---------- 3. El filtro del catálogo usa el precio de la tienda ----------
