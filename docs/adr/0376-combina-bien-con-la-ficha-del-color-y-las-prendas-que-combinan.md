@@ -1,4 +1,4 @@
-# ADR-0371 — «Combina bien con»: la ficha del color donde se mira un color, y qué prenda va con cuál
+# ADR-0376 — «Combina bien con»: la ficha del color donde se mira un color, y qué prenda va con cuál
 
 - **Fecha:** 2026-10-10
 - **Estado:** aceptado; web en la rama `claude/product-recommendations-visibility-80ef1c`; las dos migraciones de la marca en la venta

@@ -1,7 +1,7 @@
 # Formidable · Vender ▸ «Todo de la prenda» con «Combina bien con»   (`/vender`, la hoja que se abre al tocar una tarjeta)
 
 - **Fecha / SHA:** 2026-10-10 · `0a1b1c04`   · **Dispositivo que manda:** escritorio (Mac mini); **375 px obligatorio** (PL-105)
-- **Pregunta que debería resolver (1 frase):** «¿Lo tienes en otro color o talla?» (ADR-0323) y, desde hoy, «¿con qué lo combino y lo tienes aquí?» (ADR-0371)   · **Protagonista:** la prenda
+- **Pregunta que debería resolver (1 frase):** «¿Lo tienes en otro color o talla?» (ADR-0323) y, desde hoy, «¿con qué lo combino y lo tienes aquí?» (ADR-0376)   · **Protagonista:** la prenda
 - **Veredicto en una línea:** «Se entiende en 5 s y la tarea sale en 4 toques, pero sumar desde la sugerencia no se ve, el porqué habla en código y los controles nuevos miden 20 px en una hoja de celular.»
 
 Alcance: solo lo construido hoy en la hoja (la ficha del color, la frase y las tarjetas de prendas). Lo preexistente de la hoja se reporta aparte y no baja la nota. Costo: 4 agentes (medición a 3 anchos hecha por la sesión; ciego con Opus; revisor de leyes; escéptico), más `pnpm focus`, `pnpm sugerir` y `scripts/rendimiento/ui.mjs`.
@@ -10,7 +10,7 @@ Alcance: solo lo construido hoy en la hoja (la ficha del color, la frase y las t
 | Eje | Nota | Evidencia |
 |---|---|---|
 | 1 Sin manual | 7 | [Observado] ciego: lectura de 5 s correcta («la caja para vender… tocar una prenda y cobrar»); tarea en 4 toques (el mínimo); dudó en «dos Combina bien con» y en «Negro · 5 aquí: ¿5 qué?»; el nombre de la tarjeta «pareció no hacer nada» (sin señal de que se toca). · real: sin probar |
-| 2 Una pregunta, una respuesta | 6 | [Medido] la hoja hace dos preguntas (color/talla y «¿qué más?»); las casillas de la prenda sugerida son idénticas a las de la prenda (`OpcionesDePrendaModal.tsx:166` y `:280`); la frase sigue al color mirado y las tarjetas al fijado (`:76-78`, decidido en ADR-0371 §D, pero nada lo dice) |
+| 2 Una pregunta, una respuesta | 6 | [Medido] la hoja hace dos preguntas (color/talla y «¿qué más?»); las casillas de la prenda sugerida son idénticas a las de la prenda (`OpcionesDePrendaModal.tsx:166` y `:280`); la frase sigue al color mirado y las tarjetas al fijado (`:76-78`, decidido en ADR-0376 §D, pero nada lo dice) |
 | 3 Simplicidad profunda | 6 | [Medido] la tarjeta (miniatura · nombre · color · «2 aquí») y la frase SON veredicto; el «¿Por qué?» expone la dirección de la ficha («Beige lista Negro», `combinar-reglas.ts:322-327`) y el de la ficha abre la descripción del color, que no explica los círculos |
 | 4 Lenguaje de tienda | 4 | [Medido] `QUE_HACE[papel] + " a " + dicho` produce oraciones rotas en 4 de 5 casos del ancla más común («lo acompaña a una blusa», «lo calza a una blusa», `combinar-reglas.ts:333`); «lista»/«lleva» como verbos; «tono sobre tono». [Observado] «lista suena a adjetivo». Ninguna prueba recorre papel × motivo (ADR-0290) |
 | 5 Contenido primero | 8 | [Medido] foto 240/96 px > miniatura 44 > círculos 20; sin foto, el ícono de la categoría sobre su color (ADR-0333). Resta: chip + «¿Por qué?» comprimen el nombre a ~113 px a 375 px |
@@ -36,7 +36,7 @@ Alcance: solo lo construido hoy en la hoja (la ficha del color, la frase y las t
 La única confirmación de haber sumado una prenda sugerida es que desaparezca de la vista: una colaboradora con prisa toca dos veces (lo que `/chaos` ataca) o cree que no entró. Es el único lugar donde la pieza mueve el ticket sin señal.
 
 ## Lista aparte (no se ejecuta)
-- La frase sigue al color MIRADO y las tarjetas al FIJADO (decidido en ADR-0371 §D): nada en pantalla lo dice; si molesta, que las dos sigan al fijado.
+- La frase sigue al color MIRADO y las tarjetas al FIJADO (decidido en ADR-0376 §D): nada en pantalla lo dice; si molesta, que las dos sigan al fijado.
 - `accesorio` nunca es pareja en `PAREJAS`: un cinturón o unos lentes no se sugieren con nada (consecuencia de la fila que decidió Felipe; confirmar).
 - La frase más larga posible («Combina bien con una riñonera o unas bailarinas», 47 caracteres) está al borde de los 327 px útiles de 375 px: medir ese texto exacto.
 - Preexistentes de la hoja, fuera de la pieza: la fila de color mide 20 px de alto; `label-cayla` de 9,5 y 10,5 px; «Listo» al pie de una hoja que no guarda (vs la × de `accion.cerrar`, ADR-0358); «¿Qué talla pidió? S L» (AnotarNoHabia) confunde al ciego; «Apartar 1» en el botón de Apartados tras agregar; `text-tinta/60` da 4,45:1 en todo el ERP (sistémico, no de esta pieza).
