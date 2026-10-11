@@ -12,6 +12,7 @@ import {
   NACEN_EN_CERO_CARGABLES,
   NACEN_SIN_UNIDADES,
   nombreVariante,
+  precioValido,
   precioYCostoPorDefecto,
   type FilaFicha,
   type Identidad,
@@ -33,6 +34,7 @@ export function AgregarTallasModal({
   etiquetasTexto,
   onConfirmar,
   onClose,
+  admitePrecioCero = false,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
@@ -42,6 +44,8 @@ export function AgregarTallasModal({
   etiquetasTexto: string | null;
   onConfirmar: (r: { combos: Identidad[]; precio: string; costo: string }) => void;
   onClose: () => void;
+  /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): las nuevas pueden nacer a S/ 0.00 (la bolsa de obsequio). */
+  admitePrecioCero?: boolean;
 }) {
   const n = ctx.nombres;
   const ejes = ejesDeLaPrenda(filas, n);
@@ -66,7 +70,7 @@ export function AgregarTallasModal({
   const clasificadas = clasificarCombinaciones(filas, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = Number(precio) > 0;
+  const precioOk = precio.trim() !== "" && precioValido(Number(precio), admitePrecioCero);
   const colores = coloresDeLaPrenda.map((c) => ctx.colores.find((x) => x.codigo === c) ?? { codigo: c, nombre: n.color(c), hex: null, familiaColor: null });
 
   return (

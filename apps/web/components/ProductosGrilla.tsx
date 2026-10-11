@@ -239,7 +239,8 @@ function TarjetaProducto({
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">
-            {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => v.precio)) ?? "—"}
+            {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
+            {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => preciosAqui?.[v.varianteId] ?? v.precio)) ?? "—"}
             <InsigniaPrecios lista={otrosPrecios} className="ml-1.5 align-middle" />
           </span>
           <span

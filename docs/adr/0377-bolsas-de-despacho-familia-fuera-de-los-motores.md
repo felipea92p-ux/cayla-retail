@@ -55,6 +55,21 @@ confiable de esa tela, así que su dibujo es neutro (como «Tela») y su ficha d
 que no se reconozca sigue saliendo «Sin muestra» (la foto real se sube con «Subir foto»). La cuenta de colores de `MuestraTejido.tsx` en
 `lib/tema-colores-archivos.ts` pasó de 98 a 138: el color de cada hilo es dato.
 
+## Precio S/ 0.00 solo en Empaque (2026-10-11)
+
+La bolsa de obsequio no se podía dejar en S/ 0.00: la ficha exigía «un precio mayor que 0» a toda variante activa, y se dio de alta a S/ 0.01 (un céntimo
+cobrado al cliente, «S/ 0.01» en el ticket en vez de «Obsequio», y declarado a SUNAT como venta). La base nunca lo impidió (`variantes_precio_check` es
+`>= 0` y `catalogo_actualizar_producto` no frena el 0): el candado era solo de la pantalla.
+
+**Decisión (Felipe, 2026-10-11): el 0 vale solo en una categoría cuya familia está fuera de los motores.** `precioValido` (`lib/variantes-ficha-reglas.ts`)
+es la única regla: la usan `problemasVariantes`, «Cambiar en bloque» y los modales «Agregar talla» y «Agregar colores». La ficha lee la familia de la categoría
+ELEGIDA (`productos/[id]/editar/page.tsx`): si la bolsa se pasa a una categoría de mercadería, el 0 vuelve a bloquear. Negativo y vacío bloquean siempre.
+
+- **Descarté** el 0 en cualquier producto: una prenda con el precio olvidado se vendería gratis sin que nadie lo note, y el precio por tienda tampoco lo
+  aceptaría (`precios_sede_precio_positivo`). Para regalar una prenda sigue el descuento.
+- **Queda igual, a propósito:** Nuevo producto sigue pidiendo un precio mayor que 0 (y `crear_producto_con_variantes` también lo exige en la base). Una bolsa
+  de obsequio nueva se da de alta con un precio y se deja en 0 desde su ficha.
+
 ## Se rompe si…
 
 - Un motor NUEVO cuenta ventas o stock por categoría sin preguntar `fn_categoria_entra_a_motores`: la bolsa vuelve a contar. Cada motor ya tiene su caso
@@ -75,7 +90,10 @@ que no se reconozca sigue saliendo «Sin muestra» (la foto real se sube con «S
 - Vender en el navegador a 1280 y a 375 px; una venta real (2 pequeñas + 1 obsequio) dentro de una transacción que se deshace: la base acepta la línea de S/ 0.00 y
   baja el stock de cada una.
 
-## Orden para producción (todo con tu OK; nada está aplicado)
+## Orden para producción
+
+**Hecho el 2026-10-11** (verificado en producción con consultas de solo lectura): las tres migraciones (filtros 2, 3, 1, 5 y 10), la web (#943), «Empaque»
+apagada y el script (62 movidas, 62 con rastro, 0 mal anotadas después). Falta el paso 3 en parte: hoy solo Tienda TRU tiene stock de bolsas.
 
 1. Pegar `20261010231000`, `20261010232000` y `20261010233000` (una parte cada una, tal cual). Verificar con la consulta de solo lectura del PR (2, 3, 1, 5 y 10).
 2. Merge de la web.

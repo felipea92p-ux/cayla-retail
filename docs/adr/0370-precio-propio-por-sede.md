@@ -84,3 +84,77 @@ precio_sede_cambiar_solo_el_motivo` (archivo `20261010100600`): corregir solo el
 `pnpm pruebas:registrar-venta`, `pruebas:separaciones`, `pruebas:registrar-cambio`, `pruebas:prendas-por-regularizar`. En el
 navegador: Editar producto (poner, avisar, quitar), Vender a escritorio y a 375 px, Apartados a 375 px, Productos, Existencias,
 Etiquetas y un traslado en camino.
+
+## Actualización 2026-10-10 — el precio es de la PRENDA, no de cada variante (FAL-0008)
+
+**Qué pasó.** En producción, con FAL-0008 «Falda Short Lois Rayas»: 22:35 Felipe puso AQP a S/ 79.90 (la prenda estaba a 69.90);
+22:36 la tabla de precios pasó a 79.90 en sus 9 variantes; 22:37 puso TRU a S/ 69.90. Felipe quería «AQP 79.90 y TRU 69.90» y vio
+«3 precios» y 79.90 en todas partes. La caja cobraba bien (AQP 79.90, TRU 69.90); lo que fallaba era el diseño y la pantalla:
+
+- El precio de una tienda se guardaba **una fila por variante** y nada lo mantenía al día: cambiar la tabla dejaba un «precio propio»
+  igual al de la prenda (AQP), y una talla o un color nuevo, una talla reactivada o un alta al vuelo del Conteo nacían sin fila y se
+  vendían en esa tienda al precio de la prenda (dos precios de la misma prenda en la misma caja, lo que este ADR quería impedir).
+- Toda pantalla mostraba el precio de la prenda, no el de la tienda elegida: en TRU la tarjeta decía 79.90 y la caja cobraba 69.90.
+- «3 precios» contaba tiendas más uno, no precios distintos; «Las demás tiendas: S/ 79.90» bajo AQP era falso (TRU estaba a 69.90).
+- Además, la auditoría de ese día encontró que **Apartar** guardaba la línea al precio de la prenda aunque cobraba el de la tienda (la
+  venta del apartado nacía descuadrada al entregarse; 0 casos en producción) y que un **cambio de talla** de la misma prenda cobraba o
+  devolvía la diferencia entre tiendas.
+
+**Decisiones de Felipe (2026-10-10).** Al cambiar el precio de la prenda, **preguntar al guardar** qué pasa en cada tienda con precio
+propio. Mostrar grande **el precio de la tienda elegida arriba** (catálogo, vista rápida, cabecera de la ficha, orden y filtro). Un
+**cambio de la misma prenda vale lo que se pagó**: otra talla o color se cobra al precio de la tienda donde se compró; otra prenda, al
+de la tienda donde se cambia. En pantalla no se dice «general» ni «sugerido»: «precio de la prenda» (el de la tabla) y «precio propio»
+(el de una tienda).
+
+**Cómo se arregló.**
+- `20261011100000_precio_de_tienda_por_prenda.sql`: tabla `precios_sede_prenda` (una por prenda y tienda; se archiva, nunca se borra
+  ni se edita; `vigente_desde` no se reinicia al corregir solo el motivo). `fn_precio_en_sede` (misma firma) busca por la prenda: toda
+  variante, también la que nazca mañana, vale ese precio. Un disparador **diferido** en `variantes` (`fn_precio_sede_depurar`) quita al
+  final de la transacción el precio de tienda que quedó igual al de la prenda en todas sus tallas activas («Quedó igual al precio de la
+  prenda»); diferido para no quitarlo en un estado intermedio de un guardado talla por talla. `precios_sede` queda como historia (sus
+  vigentes pasan a la tabla nueva y se archivan; un disparador impide escribirle). Actividad: «puso precio propio en TRU: S/ 69.90 (antes
+  S/ 79.90, el de la prenda)».
+- `20261011100100_apartar_con_el_precio_de_la_tienda.sql`: la segunda lectura de `separar_prendas` (se puede pegar antes de la
+  web). `20261011100200_cambiar_y_filtrar_con_el_precio_de_la_tienda.sql`: `fn_precio_para_cambio` en `registrar_cambio` y
+  `fn_productos_filtro` con el precio de la tienda (el listado ordena y las facetas cuentan sobre él); va JUNTO con la web nueva.
+- Web: la ficha muestra **cada tienda con su precio** (`preciosEnCadaTienda`); la hoja «Revisa y guarda» dice qué pasa en cada tienda y
+  deja **igualar** las que tienen precio propio (`tiendasAlCambiarPrecio`, `quitar_precio_sede` después del guardado); la insignia cuenta
+  precios distintos y dice «AQP y LIM S/ 79.90 · TRU S/ 69.90»; la tarjeta, la tabla, `/buscar` y la cabecera de la ficha muestran el
+  precio de la tienda elegida; poner o quitar un precio dice cuántas prendas de esa tienda llevan la etiqueta vieja y ofrece imprimirlas.
+
+**Revisión adversaria (2026-10-10, antes de pegar en producción).** Se corrigió: la migración anota en el historial las tallas cuyo
+precio de tienda cambia al pasar a la tabla nueva (POL-0023: Blanco y Tostado, de 45.90 a 39.90 en AQP); «Eliminar producto» nombra la
+tabla vieja y la nueva en una sola fila; `fn_precios_en_sede` sigue devolviendo solo las variantes que cambian de precio (para que
+Vender y Existencias no marquen «Precio de AQP» donde no cambia nada); las anclas de los reemplazos no llevan la palabra que el SQL
+Editor confunde con una tabla nueva; y las migraciones van en tres partes: `100000` y `100100` (Apartar) antes de la web, `100200`
+(Cambios y filtro) junto con ella. En la web: el paso «¿Qué se lleva?» de Cambios muestra el mismo precio que la diferencia;
+«Igualar» corre justo después del guardado principal (si después falla el stock, no se pierde); agregar o desactivar una talla al
+mismo precio no se toma por un cambio de precio; la vista previa de etiquetas usa el precio de la tienda que queda; la insignia cuenta
+el rango de una prenda con precio por talla como un precio aparte; Cambios lee también el precio de una tienda cerrada.
+
+**Descartado.** Mantener la fila por variante y reconciliarla desde cada función que escribe `variantes` (catalogo_actualizar_producto,
+censo_crear_variante, crear_producto_con_variantes, abrir_produccion_con_modelo_nuevo…): son ocho puertas y la siguiente que se abra
+lo vuelve a romper; con la fila por prenda el estado imposible deja de existir.
+
+**Datos en producción.** Las vigentes de FAL-0008 (AQP 79.90, TRU 69.90) y POL-0023 (AQP 39.90) pasan una a una; la de AQP en FAL-0008
+es igual al precio de la prenda y se archiva sola. En la caja no cambia ningún cobro.
+
+**En producción (2026-10-11):** Felipe pegó `20261011100000` y `20261011100100`; verificado con lecturas: FAL-0008 TRU 69.90 y AQP 79.90
+(sin precio propio), POL-0023 AQP 39.90 en sus 9 colores (Blanco y Tostado anotados), disparador activo, `precios_sede` sin vigentes.
+`20261011100200` (Cambios y filtro) también se pegó el 2026-10-11 y se verificó (`registrar_cambio` usa `fn_precio_para_cambio`).
+
+**Parte 4 (2026-10-11, del CI del PR #948):** el disparador diferido se encolaba en cualquier cambio de `variantes` y dejaba eventos
+pendientes: un `alter table variantes` en la misma transacción fallaba («pending trigger events»; dos suites de pruebas, y lo haría una
+migración que toque `variantes` y después la altere). `20261011100300_depurar_precio_de_tienda_solo_si_la_prenda_tiene.sql` lo cambia
+por uno con `when (fn_producto_tiene_precio_de_tienda(new.producto_id))`: en un disparador de restricción el WHEN se evalúa al momento,
+así que solo las prendas con precio de tienda dejan algo pendiente. El viejo queda apagado, no borrado (`drop trigger` está vedado en
+producción y Postgres no reemplaza un disparador de restricción). Pegada en producción el 2026-10-11 y verificada.
+
+**Pendiente (decisión de Felipe, no se tocó):** un precio de tienda no tiene piso de costo ni el tope de descuento que sí tiene un
+descuento en la caja (la auditoría lo marcó como el riesgo de dinero más alto que queda).
+
+**Cómo se verifica.** `pnpm pruebas:precio-sede` (32 escenarios; nuevos: talla nueva y reactivada, igual a la prenda se quita solo y no
+a medio guardado, Apartar, cambio de la misma prenda, filtro), `pruebas:separaciones` (80), `pruebas:registrar-cambio` (21),
+`pruebas:registrar-venta` (28), `eliminar_producto.mjs` (40). En el navegador (local): Lima 89.90 y TRU 69.90 en Blusa Emma, subir la
+tabla a 89.90 → la hoja dijo «Lima ya estaba a S/ 89.90: queda igual…» y «Trujillo se queda en S/ 69.90» con su casilla; en TRU la
+tarjeta dijo «S/ 69.90 · 2 precios».

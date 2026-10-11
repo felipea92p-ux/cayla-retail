@@ -17,6 +17,11 @@ import {
   leerPreciosDeSede,
   muyLejos,
   tiendasLibres,
+  preciosEnCadaTienda,
+  precioUnico,
+  tiendasAlCambiarPrecio,
+  avisoEtiquetasAlCambiar,
+  unirConY,
 } from "./precio-sede-reglas";
 
 describe("leerMonto", () => {
@@ -31,11 +36,11 @@ describe("leerMonto", () => {
   });
 });
 
-describe("diferencia con el general", () => {
-  it("dice cuánto más o menos", () => {
-    expect(fraseDiferencia(129.9, 119.9)).toBe("S/ 10.00 más que el general (+8 %)");
-    expect(fraseDiferencia(109.9, 119.9)).toBe("S/ 10.00 menos que el general (−8 %)");
-    expect(fraseDiferencia(119.9, 119.9)).toBe("igual que el general");
+describe("diferencia con el precio de la prenda", () => {
+  it("dice cuánto más o menos, en palabras de tienda (nunca «general»)", () => {
+    expect(fraseDiferencia(129.9, 119.9)).toBe("S/ 10.00 más que el precio de la prenda (+8 %)");
+    expect(fraseDiferencia(109.9, 119.9)).toBe("S/ 10.00 menos que el precio de la prenda (−8 %)");
+    expect(fraseDiferencia(119.9, 119.9)).toBe("igual que el precio de la prenda");
     expect(fraseDiferencia(100, null)).toBeNull();
   });
   it("avisa pasado el 30 %, en los dos sentidos", () => {
@@ -78,7 +83,10 @@ describe("la guía de «Precio distinto en una sede»", () => {
     expect(falta({ tiendaId: null })).toEqual(["tienda"]);
     expect(falta({ monto: "" })).toEqual(["precio"]);
     expect(falta({ monto: "0" })).toEqual(["precio"]);
-    expect(falta({ monto: "119.90" })).toEqual(["precio"]); // igual al general: la base dice «ya es el precio general»
+    expect(falta({ monto: "119.90" })).toEqual(["precio"]); // igual al de la prenda: la base dice «ya es el precio de la prenda»
+    expect(camposPonerPrecio({ ...base, monto: "119.90" }).find((c) => c.id === "precio")?.pendiente).toBe("Ese ya es el precio de la prenda: escribe otro.");
+    // Con tallas a distinto precio (`general` null) ningún monto es «igual»: la base solo rechaza si TODAS valen eso.
+    expect(falta({ monto: "119.90", general: null })).toEqual([]);
     expect(falta({ motivo: "  " })).toEqual(["motivo"]);
     expect(falta({ responsableListo: false })).toEqual(["responsable"]);
   });
@@ -114,17 +122,114 @@ describe("prendas con el precio de una tienda", () => {
 });
 
 describe("«2 precios» en Catálogo ▸ Productos", () => {
-  const nombres = new Map([["aqp", "Tienda Arequipa"], ["lim", "Tienda Lima"]]);
-  it("junta por prenda las tiendas con otro precio, una vez por tienda y precio", () => {
+  const nombres = new Map([["aqp", "Tienda AQP"], ["lim", "Tienda LIM"], ["tru", "Tienda TRU"]]);
+  it("da el precio en CADA tienda abierta: el propio o el de la prenda", () => {
     const r = preciosDeTiendaPorProducto(
-      [{ productoId: "blusa", varianteIds: ["b1", "b2"] }, { productoId: "falda", varianteIds: ["f1"] }],
-      { aqp: { b1: 129.9, b2: 129.9 }, lim: { b1: 109.9 } },
+      [
+        { productoId: "blusa", varianteIds: ["b1", "b2"], preciosPrenda: { desde: 119.9, hasta: 119.9 } },
+        { productoId: "falda", varianteIds: ["f1"], preciosPrenda: { desde: 59.9, hasta: 59.9 } },
+      ],
+      { aqp: { b1: 129.9, b2: 129.9 }, tru: {} },
       nombres,
     );
-    expect(r).toEqual({ blusa: [{ sede: "Arequipa", precio: 129.9 }, { sede: "Lima", precio: 109.9 }] });
+    expect(r).toEqual({
+      blusa: [{ sede: "AQP", precio: 129.9 }, { sede: "LIM", precio: 119.9 }, { sede: "TRU", precio: 119.9 }],
+    });
   });
-  it("la insignia cuenta el general más los de tienda y dice cuáles", () => {
-    expect(insigniaPrecios([{ sede: "Arequipa", precio: 129.9 }])).toEqual({ texto: "2 precios", detalle: "Otro precio en Arequipa S/ 129.90" });
+  it("FAL-0008: AQP 79.90 (igual a la prenda) y TRU 69.90 son DOS precios, no tres", () => {
+    const lista = [{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }, { sede: "TRU", precio: 69.9 }];
+    expect(insigniaPrecios(lista)).toEqual({ texto: "2 precios", detalle: "AQP y LIM S/ 79.90 · TRU S/ 69.90" });
+  });
+  it("con precio por talla, la tienda sin precio propio es un rango y cuenta aparte (no se esconde detrás del más barato)", () => {
+    const r = preciosDeTiendaPorProducto(
+      [{ productoId: "falda", varianteIds: ["s", "xl"], preciosPrenda: { desde: 79.9, hasta: 89.9 } }],
+      { aqp: { xl: 79.9 } },
+      nombres,
+    );
+    expect(r.falda).toEqual([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9, hasta: 89.9 }, { sede: "TRU", precio: 79.9, hasta: 89.9 }]);
+    expect(insigniaPrecios(r.falda)).toEqual({ texto: "2 precios", detalle: "AQP S/ 79.90 · LIM y TRU S/ 79.90–89.90" });
+  });
+  it("si todas las tiendas venden igual, no hay insignia", () => {
+    expect(insigniaPrecios([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }])).toBeNull();
+    expect(insigniaPrecios([])).toBeNull();
+    expect(insigniaPrecios(undefined)).toBeNull();
+  });
+  it("tres precios distintos se cuentan tres", () => {
+    expect(insigniaPrecios([{ sede: "AQP", precio: 89.9 }, { sede: "LIM", precio: 79.9 }, { sede: "TRU", precio: 69.9 }])?.texto).toBe("3 precios");
+  });
+  it("junta nombres como se dicen", () => {
+    expect(unirConY(["AQP"])).toBe("AQP");
+    expect(unirConY(["AQP", "LIM"])).toBe("AQP y LIM");
+    expect(unirConY(["AQP", "LIM", "TRU"])).toBe("AQP, LIM y TRU");
+  });
+});
+
+describe("la ficha: cada tienda con su precio", () => {
+  const tiendas = [{ id: "tru", nombre: "Tienda TRU" }, { id: "aqp", nombre: "Tienda AQP" }, { id: "lim", nombre: "Tienda LIM" }];
+  const propio = (ubicacionId: string, sede: string, precio: number) => ({ ubicacionId, sede, precio, variantes: 9, desde: "2026-10-10", motivo: "Mercado", creadoPor: null });
+  it("las que tienen precio propio lo muestran; las otras, el de la prenda (nunca «las demás tiendas»)", () => {
+    expect(preciosEnCadaTienda(tiendas, [propio("tru", "Tienda TRU", 69.9)], 79.9).map((f) => [f.sede, f.precio, f.propio !== null])).toEqual([
+      ["Tienda AQP", 79.9, false],
+      ["Tienda LIM", 79.9, false],
+      ["Tienda TRU", 69.9, true],
+    ]);
+  });
+  it("una tienda cerrada con precio propio igual aparece", () => {
+    expect(preciosEnCadaTienda([], [propio("x", "Tienda Vieja", 50)], 79.9).map((f) => f.sede)).toEqual(["Tienda Vieja"]);
+  });
+  it("el precio de la prenda es uno solo si todas las tallas valen igual", () => {
+    expect(precioUnico([79.9, 79.9])).toBe(79.9);
+    expect(precioUnico([79.9, 89.9])).toBeNull();
+    expect(precioUnico([])).toBeNull();
+  });
+});
+
+describe("al cambiar el precio de la prenda, la hoja pregunta por las tiendas", () => {
+  const tiendas = [{ id: "tru", nombre: "Tienda TRU" }, { id: "aqp", nombre: "Tienda AQP" }, { id: "lim", nombre: "Tienda LIM" }];
+  const propio = (ubicacionId: string, sede: string, precio: number) => ({ ubicacionId, sede, precio, variantes: 2, desde: "2026-10-10", motivo: "Mercado", creadoPor: null });
+  const todo = () => true;
+  it("agregar o desactivar una talla al mismo precio no es cambiar el precio", () => {
+    expect(tiendasAlCambiarPrecio({ propios: [propio("tru", "Tienda TRU", 69.9)], tiendas, antes: [79.9, 79.9], despues: [79.9, 79.9, 79.9], puedeTocar: todo })).toBeNull();
+    expect(tiendasAlCambiarPrecio({ propios: [propio("tru", "Tienda TRU", 69.9)], tiendas, antes: [79.9, 79.9, 79.9], despues: [79.9], puedeTocar: todo })).toBeNull();
+  });
+  it("sin cambio de precio o sin precios propios no pregunta nada", () => {
+    expect(tiendasAlCambiarPrecio({ propios: [propio("tru", "Tienda TRU", 69.9)], tiendas, antes: [79.9, 79.9], despues: [79.9, 79.9], puedeTocar: todo })).toBeNull();
+    expect(tiendasAlCambiarPrecio({ propios: [], tiendas, antes: [69.9], despues: [79.9], puedeTocar: todo })).toBeNull();
+  });
+  it("FAL-0008: subir 69.90 → 79.90 con AQP 79.90 y TRU 69.90: AQP se iguala sola, TRU se queda (y se puede igualar), Lima sigue", () => {
+    const r = tiendasAlCambiarPrecio({
+      propios: [propio("tru", "Tienda TRU", 69.9), propio("aqp", "Tienda AQP", 79.9)],
+      tiendas,
+      antes: [69.9, 69.9],
+      despues: [79.9, 79.9],
+      puedeTocar: todo,
+    });
+    expect(r).toEqual({
+      conPropio: [
+        { ubicacionId: "aqp", sede: "Tienda AQP", propio: 79.9, que: "se-iguala", puedeIgualar: false },
+        { ubicacionId: "tru", sede: "Tienda TRU", propio: 69.9, que: "se-queda", puedeIgualar: true },
+      ],
+      siguen: ["Tienda LIM"],
+      antes: 69.9,
+      despues: 79.9,
+    });
+  });
+  it("quien no puede tocar esa tienda la ve, pero no la iguala", () => {
+    const r = tiendasAlCambiarPrecio({ propios: [propio("aqp", "Tienda AQP", 89.9)], tiendas, antes: [79.9], despues: [69.9], puedeTocar: (id) => id === "tru" });
+    expect(r?.conPropio[0]?.puedeIgualar).toBe(false);
+  });
+  it("con tallas a distinto precio después, nada «se iguala» solo", () => {
+    const r = tiendasAlCambiarPrecio({ propios: [propio("aqp", "Tienda AQP", 79.9)], tiendas, antes: [69.9, 69.9], despues: [79.9, 89.9], puedeTocar: todo });
+    expect(r?.conPropio[0]?.que).toBe("se-queda");
+    expect(r?.despues).toBeNull();
+  });
+});
+
+describe("las etiquetas colgadas al cambiar el precio de una tienda", () => {
+  it("dice cuántas y con qué precio, en singular y plural", () => {
+    expect(avisoEtiquetasAlCambiar(3, "Tienda AQP", 69.9)).toBe("En Tienda AQP hay 3 prendas con la etiqueta de S/ 69.90: cámbiales la etiqueta.");
+    expect(avisoEtiquetasAlCambiar(1, "Tienda AQP", null)).toBe("En Tienda AQP hay 1 prenda con la etiqueta de antes: cámbiale la etiqueta.");
+    expect(avisoEtiquetasAlCambiar(0, "Tienda AQP", 69.9)).toBeNull();
   });
 });
 

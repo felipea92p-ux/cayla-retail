@@ -40,6 +40,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
+import { variantesQueSeVenden } from "@/lib/productos-vista";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -153,11 +154,22 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     getDisponibleEnSede(persona.ubicacionId).catch(() => null),
   ]);
   const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
+  // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
+  // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
+  // CAYLA Global no hay tienda: el de la prenda.
   const preciosTienda = preciosDeTiendaPorProducto(
-    resultado.productos.map((p) => ({ productoId: p.productoId, varianteIds: p.variantes.map((v) => v.varianteId) })),
+    resultado.productos.map((p) => {
+      const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
+      return {
+        productoId: p.productoId,
+        varianteIds: p.variantes.map((v) => v.varianteId),
+        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
+      };
+    }),
     preciosTiendas.porSede,
     preciosTiendas.nombres,
   );
+  const preciosAqui = enSede ? preciosTiendas.porSede[persona.ubicacionId] : undefined;
 
   const categoriasLeidas = exigir(categorias, "las categorías");
   const categoriasOpciones = categoriasLeidas.map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -328,7 +340,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
-            preciosAqui={preciosTiendas.porSede[persona.ubicacionId]}
+            preciosAqui={preciosAqui}
             colores={fichasDeColor}
             tarjetasLook={tarjetasLook}
           />
@@ -345,6 +357,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             hrefLimpiar="/productos?vista=tabla"
             preciosTienda={preciosTienda}
+            preciosAqui={preciosAqui}
           />
         )}
 
