@@ -2,7 +2,7 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { bordeDeMuestra, fondoDeMuestra } from "@/lib/colores-familias";
-import { ETIQUETA_COMBINA, type Companero, type FichaDelColor as Ficha } from "@/lib/ficha-del-color";
+import { ETIQUETA_COMBINA, textoDelSenalado, type Companero, type FichaDelColor as Ficha } from "@/lib/ficha-del-color";
 
 export { ETIQUETA_COMBINA };
 
@@ -57,9 +57,11 @@ export function FichaDelColor({ ficha, forma = "bloque", etiqueta = ETIQUETA_COM
           <Circulo key={c.codigo} companero={c} nombre={nombreDe(c)} activo={senalado?.codigo === c.codigo} tabIndex={enfocable && i === 0 ? 0 : -1} onSenalar={setSenalado} />
         ))}
       </span>
-      {/* El nombre del compañero señalado, siempre en el mismo sitio; vacío ocupa lo mismo (alto fijo). */}
+      {/* El nombre del compañero señalado, siempre en el mismo sitio y SIEMPRE con un nodo de texto (un espacio duro si no hay
+          ninguno): vaciarlo al perder el foco hacía que la trampa de foco del diálogo devolviera el Tab a la hoja (caos
+          2026-10-10, TEC-01; `textoDelSenalado`). Vacío ocupa lo mismo (alto fijo, ADR-0185). */}
       <span aria-live="polite" className="min-w-0 truncate text-tinta/70 dark:text-tinta/75">
-        {senalado ? nombreDe(senalado) : null}
+        {textoDelSenalado(senalado ? nombreDe(senalado) : null)}
       </span>
     </span>
   );

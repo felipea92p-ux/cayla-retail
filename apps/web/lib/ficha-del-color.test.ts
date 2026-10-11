@@ -104,3 +104,25 @@ describe("primeraFrase", () => {
     expect(primeraFrase(null)).toBeNull();
   });
 });
+
+// Caos 2026-10-10 (TEC-01): el Tab no pasaba del primer círculo porque, al perder el foco, el renglón del nombre del compañero se
+// vaciaba y React quitaba su nodo de texto justo con el foco en tránsito; la trampa de foco del diálogo (Radix) devuelve el foco al
+// contenedor al ver esa mutación y Chrome cancela el salto al siguiente control. El renglón SIEMPRE tiene texto.
+describe("el renglón del compañero señalado nunca se vacía", () => {
+  it("sin señalado deja un espacio duro, nunca una cadena vacía ni null", async () => {
+    const { textoDelSenalado, SIN_SENALADO } = await import("./ficha-del-color");
+    expect(textoDelSenalado(null)).toBe(SIN_SENALADO);
+    expect(SIN_SENALADO.length).toBeGreaterThan(0);
+    expect(SIN_SENALADO.trim()).toBe(""); // no se lee: es un hueco, no un texto
+    expect(textoDelSenalado("Negro · hay en el piso")).toBe("Negro · hay en el piso");
+  });
+  it("el componente pinta ese texto en el renglón, sin un `: null` que quite el nodo", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const fuente = readFileSync(join(__dirname, "..", "components", "ui", "FichaDelColor.tsx"), "utf8");
+    expect(fuente).toContain("textoDelSenalado(");
+    const renglon = fuente.slice(fuente.indexOf('aria-live="polite"'), fuente.indexOf("</span>", fuente.indexOf('aria-live="polite"')));
+    // El hijo del renglón es SIEMPRE `textoDelSenalado(…)` (una cadena), nunca una expresión que pueda dar null.
+    expect(renglon).toMatch(/>\s*\{textoDelSenalado\(/);
+  });
+});

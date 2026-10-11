@@ -91,3 +91,16 @@ export function fichaDelColor(
   if (!descripcion && companeros.length === 0) return null;
   return { descripcion, primeraFrase: primeraFrase(descripcion), companeros };
 }
+
+/** Lo que pinta el renglón del compañero señalado cuando no hay ninguno: un espacio duro, no una cadena vacía. */
+export const SIN_SENALADO = " ";
+
+/**
+ * El renglón del nombre del compañero señalado SIEMPRE tiene texto. Si se vaciara (null o ""), React quitaría su nodo de texto
+ * justo cuando el foco sale del círculo (`onBlur` → sin señalado); la trampa de foco del diálogo (Radix `FocusScope`) ve esa
+ * mutación con el foco en tránsito, devuelve el foco a la hoja y Chrome cancela el salto al siguiente control: el Tab nunca
+ * llegaba a «Ver tallas» (caos 2026-10-10, TEC-01). Un espacio duro mantiene el nodo y el alto fijo (ADR-0185) y no se lee.
+ */
+export function textoDelSenalado(nombre: string | null): string {
+  return nombre ?? SIN_SENALADO;
+}
