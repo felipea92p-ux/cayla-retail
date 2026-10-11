@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
+import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
+import { claveDelPuntoDeVenta } from "@/lib/vender-cambio-de-sede";
 import { almacenDeLaSede, apartadoEnPiso, cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
@@ -227,41 +229,46 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const puedeProforma = puede(persona, "facturar");
 
   return (
-    <PuntoDeVenta
-      // Otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
-      key={proformaEnCobro?.id ?? (repeticion ? `repetir-${repetirVentaId}` : "caja")}
-      proforma={proformaEnCobro}
-      avisoProforma={avisoProforma ?? avisoRepeticion}
-      repeticion={repeticion}
-      ubicacionId={persona.ubicacionId}
-      // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
-      // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
-      puedeCerrarCaja={puede(persona, "gestionarCaja")}
-      ubicacionEtiqueta={persona.ubicacionEtiqueta}
-      cajaId={caja?.id ?? null}
-      fondoUltimoCierre={fondoUltimoCierre}
-      cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
-      variantes={variantesParaVenta}
-      colores={coloresConFicha}
-      listasPrendaLibre={listasPrendaLibre}
-      campanasNoCargaron={campanasNoCargaron}
-      ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
-      metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
-      // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
-      accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
-      puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
-      // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
-      puedeBuscarClienta={modulos.includes("clientas")}
-      club={club}
-      qrDisponible={resQr.data === true}
-      redondeoEfectivoDisponible={resRedondeo.data === true}
-      pedirAOtraSede={
-        (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
-          ? null
-          : { tiendas: sedesParaPedir(ubicaciones, persona.ubicacionId) }
-      }
-      pedidosConCliente={pedidosConCliente}
-      ahoraIso={new Date().toISOString()}
-    />
+    // El ticket es de su sede (Felipe, 2026-10-11): cambiar de sede con el selector no cambia la ruta, y con la misma key
+    // React conservaba el ticket armado en una tienda dentro de la caja de otra. La sede va en la key y `TicketPorSede`
+    // (sin key, sobrevive al cambio) deja lo que estaba armado en la espera de la sede que se deja.
+    <TicketPorSede ubicacionId={persona.ubicacionId}>
+      <PuntoDeVenta
+        // Otra sede, otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
+        key={claveDelPuntoDeVenta({ ubicacionId: persona.ubicacionId, proformaId: proformaEnCobro?.id, repetirVentaId: repeticion ? repetirVentaId : null })}
+        proforma={proformaEnCobro}
+        avisoProforma={avisoProforma ?? avisoRepeticion}
+        repeticion={repeticion}
+        ubicacionId={persona.ubicacionId}
+        // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
+        // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
+        puedeCerrarCaja={puede(persona, "gestionarCaja")}
+        ubicacionEtiqueta={persona.ubicacionEtiqueta}
+        cajaId={caja?.id ?? null}
+        fondoUltimoCierre={fondoUltimoCierre}
+        cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
+        variantes={variantesParaVenta}
+        colores={coloresConFicha}
+        listasPrendaLibre={listasPrendaLibre}
+        campanasNoCargaron={campanasNoCargaron}
+        ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
+        metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
+        // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
+        accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
+        puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
+        // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
+        puedeBuscarClienta={modulos.includes("clientas")}
+        club={club}
+        qrDisponible={resQr.data === true}
+        redondeoEfectivoDisponible={resRedondeo.data === true}
+        pedirAOtraSede={
+          (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
+            ? null
+            : { tiendas: sedesParaPedir(ubicaciones, persona.ubicacionId) }
+        }
+        pedidosConCliente={pedidosConCliente}
+        ahoraIso={new Date().toISOString()}
+      />
+    </TicketPorSede>
   );
 }
