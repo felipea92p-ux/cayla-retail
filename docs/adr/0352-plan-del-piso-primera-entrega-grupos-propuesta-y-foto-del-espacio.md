@@ -105,6 +105,8 @@ pestañas a mano se retiraron. No cambia qué hace nada, solo cómo se dibuja. *
 
 ## Actualización 2026-10-10 (b) — `/formidable`: el riel en barras, tres tarjetas y un aviso que lleva a Grupos (Felipe)
 
+> **Lo visual de esta actualización (barras, tres tarjetas, canvas de ganchos, `claseDeTramo`, «Cómo se calcula») fue reemplazado el 2026-10-11 por el riel de perchas: ver la actualización de abajo.** Quedan en pie el aviso que lleva a Grupos, la coma de miles, la tabla que se desplaza (c) y todo lo que no es dibujo.
+
 **Pedido:** Felipe, 2026-10-10: «¿podemos mejorar su estética aún más?» y, tras ver la propuesta de tres cambios, «aplicamos». Se corrió `/formidable` sobre la Propuesta
 (informe: `docs/formidable/plan-del-piso.md`). **Solo presentación: `lib/mix-piso.ts` y todo lo que calcula o guarda quedan intactos.** No hay SQL.
 
@@ -170,3 +172,95 @@ SE ROMPE SI: se agrega una columna fija (hay que sumarla al mínimo), y a 1024 p
 **Lo que quedó fuera a propósito** (lista aparte del informe, sin hacer): un camino desde «Por cuadrar» a `/inventario/cuadrar`, los roles («Destino», «Rutina»…) solo por `title`, la jerga de «Cómo se calcula», y las tres piezas compartidas
 (`TarjetaCifra` con `acento`, `Aviso` a 375 px, las paradas de teclado de `BarraApilada`).
 **Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-11 — el riel de perchas, maqueta A «La percha» (Felipe eligió mirando)
+
+**Pedido:** Felipe, 2026-10-10: «no me convenció lo tuyo» (el riel en barras de la actualización (b)). Se le mostraron tres direcciones de estilo más la actual, lado a lado y con datos reales
+(`docs/maquetas/plan-del-piso-2026-10/`), y eligió **A «La percha»**: «si se ve mejor, dúbalo». Sobre la tabla y la mancuerna dijo «dejarla pero alinearla con un mejor diseño uniforme a A».
+**Solo presentación: `lib/mix-piso.ts`, las lecturas y todo lo que se guarda quedan intactos.** No hay SQL.
+
+**Qué cambió**
+1. **Un pictograma, no barras.** «Hoy» y «Cómo quedaría» son dos rieles de perchas: cada percha dibujada vale N prendas y las de un grupo van juntas en un tramo con la silueta de su categoría sobre el color de su grupo.
+   `unidadDePercha(capacidad)` (`lib/plan-piso-percha.ts`) elige la MENOR de 5, 10, 20, 25, 50 o 100 con la que el riel entero cabe en 40 perchas: AQP 1,800 → 50 (36 perchas), TRU 600 → 20, LIM 180 → 5. Pasar el
+   cursor, enfocar con Tab o tocar un grupo lo resalta en los dos rieles y en las leyendas; tocarlo lo deja fijo (con filo propio).
+2. **Una tarjeta con la respuesta.** «78 de 1,800 prendas», una frase («Tu riel estaría casi vacío (4 % ocupado). Falta contar tu piso…»), «1,722 lugares libres» como riel vacío y rayado, y el botón
+   «¿Por qué?» con el panel de «cómo se calcula». Las tres tarjetas de cifra y la nota «Cómo se calcula» de (b) se retiraron.
+3. **«Fuera del riel» son dos fichas**, no una tabla; la **mancuerna** y la **tabla** de detalle se quedan, con el ícono y el color del grupo, bajo «El detalle, grupo por grupo».
+4. **Se retiraron** `RielAEscala.tsx` (barras y canvas de ganchos), `claseDeTramo`/`fondoDeGrupo`, `lineaDeVentas` y `escalaDelRiel`. **Se agregaron** `plan-piso-percha.ts`, `plan-piso-siluetas.ts`, `app/estilos/plan-piso.css` y
+   `components/plan-piso/{TarjetaDelRiel,PorQue,IconoDeGrupo,SiluetasDelPlan}.tsx`.
+
+**Decisiones**
+
+**1. Un color por grupo, en UN solo lugar: `--grupo-0` … `--grupo-5` de `plan-piso.css`.**
+DECIDÍ: el color sale de la posición del grupo en la lista del riel (`colorDeGrupo(i)` devuelve `var(--grupo-N)`), solo tokens, con su versión oscura (el 4 al 66 %: a 58 la silueta medía menos de 3:1).
+Reemplaza a `claseDeTramo` (decisión 3 de (b)). El rojo no pinta ningún grupo (máx. 2 por pantalla).
+SE ROMPE SI: se agrega un séptimo grupo EN EL RIEL (comparte color con el primero y cae a la silueta genérica). La base siembra 6 y no hay pantalla ni RPC que cree grupos; `lib/plan-piso-siluetas.test.ts` falla si la
+migración siembra más de 6 en el riel, y quien agregue uno suma su silueta, su color y su prueba en el mismo cambio.
+
+**2. Honestidad primero: mientras la sede no cuadró su piso, «hoy» es lo que el sistema CREE.**
+DECIDÍ: la frase va en condicional («estaría»), el riel libre lleva «según el sistema · falta contar tu piso» con borde rayado, y la línea del pie, la leyenda y los nombres para lector de pantalla dicen «según el
+sistema hoy 30, quedaría 788» **sin flecha** (la flecha insinuaría «faltan 166», que la tabla de abajo se niega a dar). La revisión halló que esas tres líneas sueltas lo afirmaban como un hecho: corregido (`leyendaDeGrupo(g, cuadrado)`).
+DESCARTÉ: atenuar el riel «Hoy» (lo hacía el de (b)): la maqueta A tampoco lo hace y el riel rayado ya lo dice.
+
+**3. El panel «¿Por qué?» abre pegado a su botón** (se aparta de la maqueta, donde iba tras la leyenda).
+DECIDÍ: `PorQue.tsx` (cliente) entrega botón + panel como fragmento dentro de la cabecera de «Cómo quedaría»; el panel ocupa su propia línea justo debajo. Medido en la maqueta: abría a 274–298 px del botón en escritorio y a 581 px a
+375, siempre fuera de la vista, y el toque parecía no hacer nada. También existe sin capacidad medida (antes desaparecía con el riel).
+DESCARTÉ: `scrollIntoView` (a 375 px el panel mide ~660 px y el botón quedaba fuera de la pantalla, sin poder cerrarlo).
+
+**4. Una palabra para cada cosa.** «Punto de partida» (el surtido de Topitop, Estilos y Oechsle, ajustado al clima de la sede: se nombra la fuente a la vista, y ya no «lo que suele funcionar en tiendas de ropa», que afirmaba un
+rendimiento que no existe) y «tus ventas», en la tarjeta, el panel, la mancuerna y la tabla. «Industria» y «venta propia» ya no aparecen (`lib/plan-piso-pantalla.test.ts` lo vigila). «% del riel» ya no significa dos cosas: la columna
+«Hoy» dice «% colgado». El número de «(23 % ocupado)» es siempre lo ocupado.
+
+**5. Un cero necesita su muestra** (ADR-0214): las fichas de «Fuera del riel» dicen «vende 0 % (0 ventas)», el botón dice «Casi no usa tus 5 ventas confirmadas (6 %): faltan registrar 210», y la cola «casi no sabemos» del panel solo
+sale si el rango es ancho (≥ 40 puntos).
+
+**6. Una pieza propia, anotada como excepción de ADR-0358.** El riel de perchas no es `BarraApilada` (`grafico.barra` es «una fila baja de tramos sin texto»; esto es un pictograma donde cada figura vale N prendas) y «78 de 1,800» es el
+titular de la tarjeta, no una `TarjetaCifra`. Queda anotado en `docs/unificar/grafico.barra.md` y `cifra.md` para la próxima ronda de `/unificar`. **Pregunta abierta para Felipe:** la pestaña **Historia** sigue dibujando la mezcla de los
+mismos grupos con `BarraApilada`; hoy el mismo grupo tiene dos caras en dos pestañas de la misma pantalla. También a propósito: `.pp-chip`/`.pp-lg` son una leyenda que resalta el riel (responden con opacidad, sin `mov-boton`);
+`.pp-porque` es la píldora de la maqueta; `.pp-etq` pesa 700 como la maqueta y no 600 como `label-cayla`; el `Aviso` de las categorías por revisar apila su botón bajo el texto con una regla local a 560 px (`plan-piso.css`), sin tocar la pieza.
+
+**Revisión de 7 lentes (2026-10-11), 53 agentes de solo lectura:** React/servidor-cliente, accesibilidad, fidelidad a la maqueta, datos y bordes, reglas del sistema, información perdida o ganada y un escéptico general; un escéptico
+reprodujo o refutó cada hallazgo. **Se aplicó lo confirmado o matizado:** el grupo sin perchas que apagaba todo el riel, el segundo toque táctil que no soltaba, las siluetas montadas dos veces (ids duplicados), los títulos que dejaron de ser
+encabezados, la línea viva que se anunciaba dos veces, «hoy» como hecho, el panel lejos de su botón, «Fuera del riel» que desaparecía en una sede sin propuesta, el desborde horizontal a 375 px con un grupo de más de ~19 perchas (`--mayor`),
+rótulos cortados a media letra, tramos más anchos con menos prendas, la mancuerna a 375 px, las cifras de la tabla a la izquierda de sus títulos y la animación de entrada de 840 ms (ahora < 500). **Se refutó:** la afirmación de que el riel
+«Hoy» casi vacío se leía como un hecho: la tarjeta lo dice cinco veces.
+
+**Lo que NO se aplicó (queda para decidir mirando, con Felipe):** (a) la clave «Cada percha = 50 prendas» queda al pie de la tarjeta, como en la maqueta; el escéptico propone ponerla pegada al riel y decir «prendas»/«lugares» con un solo
+sentido; (b) la tabla de detalle a 1024 px con el menú abierto se desplaza dentro de su tarjeta sin pista visible de que hay más a la derecha (decisión (c)); (c) un chip ámbar «45 categorías por revisar» en la cabecera, como trae la
+maqueta; (d) tocar un tramo del riel para fijarlo (la maqueta lo hacía; aquí se fija con los chips y las tarjetas); (e) los grupos 7 en adelante (decisión 1).
+
+**Cómo se verificó y qué NO:** `tsc`, `eslint` y `vitest` (414 archivos, 157,162 pruebas) en verde; la pantalla real con los componentes reales y datos inventados de AQP, TRU, LIM, con 7 grupos, con más colgadas que capacidad, sin capacidad, sin
+sede y con un grupo que ocupa el 83 % del riel, a 1440, 1024 y 375 px, en claro y oscuro, y las interacciones (señalar, fijar, Tab, toque) en Chrome. **No se vio la ruta real contra su base** (la base local no tiene las tablas del Plan del
+piso, y el día de la revisión Docker no estaba disponible), **no se corrió `tema:auditar`** ni `/chaos` sobre Grupos (es lo único que guarda y no se tocó), y **no lo probó una colaboradora real**.
+**Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-11 (b) — «Dónde está cada grupo» se lee con el cursor y «Fuera del riel» dice cuánto llevar (Felipe)
+
+Felipe, tras ver la pantalla en producción: «se ve bien, buena labor»; y pidió dos cosas: que «Dónde está cada grupo» se vea mejor al pasar el mouse, y «cuánto deberíamos incluir» de las categorías que van cerca de caja, «investigando y asignando un estimado para empezar».
+Solo presentación y una referencia nueva: no se guarda nada, no hay SQL. Detalle de la investigación: `docs/investigacion/2026-10-11-cuanto-llevar-fuera-del-riel.md`.
+
+**1. La mancuerna se lee con el cursor, con una tarjeta que FLOTA.**
+DECIDÍ: al pasar el cursor por una fila (o enfocarla con Tab, o tocarla) la fila se enciende y las demás bajan; cada marca lleva su cifra en una etiqueta arriba o abajo de la pista (las que caen a menos de 9 puntos comparten una, como Hoy 47.6 y
+punto de partida 48 de Polos) y junto a la fila flota una tarjeta con las cuatro cifras en palabras y la frase que ya decía la tabla. Tocar una fila la deja fija; tocar una marca de la leyenda la resalta en todas las filas. Cada fila es un
+botón con un nombre que dice las cuatro cifras. La lógica (etiquetas sin encimarse, cifras, frases) es pura: `lib/mancuerna-lectura.ts`, con una prueba de propiedades sobre 14,641 combinaciones.
+DESCARTÉ: un panel de lectura fijo arriba de las filas. Reservar su alto dejaba un hueco (108 px en reposo) o, sin reservarlo, bajaba las filas bajo el cursor al aparecer: el cursor quedaba sobre otra fila, la lectura cambiaba y volvía a
+mover (se midió: un parpadeo en bucle; Playwright no logró ni apuntar a la segunda fila). La tarjeta es `position: absolute` y `pointer-events: none`: el alto de la mancuerna no cambia (550 px antes, durante y después de barrer las seis filas) y el cursor
+sigue llegando a las filas que tapa. Las dos últimas filas abren hacia arriba.
+SE ROMPE SI: se agrega una séptima fila y la tarjeta de la última no cabe (hoy abre hacia arriba desde la antepenúltima), o la tarjeta pasa de unos 160 px (taparía más de tres filas).
+
+**2. «Para empezar»: cuántas prendas sostiene lo que la sede vende (fichas de «Fuera del riel»).**
+DECIDÍ: cada ficha trae una línea «Para empezar: unas 115 a 190 prendas, entre mostrador y trastienda», calculada al abrir la pantalla con `referenciaFueraDelRiel` (`lib/mix-piso.ts`, pura): ritmo = peso × lo vendido + (1 − peso) × la meta, con el mismo
+`pesoDeLaVenta` del riel (techo 0.75), por semana; rango = ritmo × 3 a 5 semanas (accesorios) o 3 a 4 (bolsos y calzado), redondeado de a 5 desde 30. Las semanas son criterio con su fuente en `lib/mix-piso-partida.ts`
+(`SEMANAS_DE_VENTA_FUERA_DEL_RIEL`). Con las cifras del 2026-10-11 (12 días con venta): TRU accesorios 115–190 y bolsos 35–50; AQP accesorios 90–150 y bolsos 35–45; LIM sin ventas, y bolsos «no lo lleva».
+**Dos desvíos del riel, escritos aquí a propósito** (la regla 2 de `mix-piso.ts` dice que solo cuentan las confirmadas): (a) para estos dos grupos SÍ cuentan las ventas sin registrar, porque un accesorio casi nunca está en el catálogo (TRU: 1 modelo con
+stock contra 73 prendas vendidas) y sin ellas el grupo parecería no venderse; (b) la meta se lee en PRENDAS, no en soles (viene de % de ingresos de empresas de EE. UU.; en soles TRU accesorios es 6.3 % y AQP 9.5 %, por debajo de la meta, y quien lea
+esa brecha no debe comprar piezas para «llegar a la meta»). La ficha ahora dice de dónde sale el %: «vende 12.9 % (73 ventas: 6 confirmadas y 67 sin registrar)». El panel «¿Por qué?» explica el cálculo y que no es una compra.
+DESCARTÉ: (i) restar «Para empezar» de lo que cuelga («faltan 160»): el stock del sistema no descuenta lo vendido sin registrar (8 contra 73), y ADR-0352 decisión 2 ya evitó afirmar una diferencia que la tabla se niega a dar; (ii) un 0.75 fijo y «tomo 50
+como centro»: la pantalla tiene que poder reproducirse con una prueba, y el peso sale de la muestra (0.49 en TRU accesorios, 0.13 en bolsos); (iii) un número para LIM sin ventas ni mostrador confirmado: dice «todavía sin ventas aquí»; (iv) las reglas de reposición por
+modelo, el reparto por tipo, el calzado de prueba y el capital en la ficha: son decisiones de compra de Felipe y viven en la investigación.
+SE ROMPE SI: se agrega un grupo fuera del riel sin su entrada en `SEMANAS_DE_VENTA_FUERA_DEL_RIEL` (no tendrá línea, no se rompe); la lectura deja de traer las ventas sin registrar por categoría; o alguien lee «Para empezar» como la compra que hay que hacer (de ahí «no una compra»,
+«primero cuenta lo que hay» y el aviso en el encabezado). La ventana de la lectura es fija de 14 días: hasta el 13-oct (la primera venta fue el 30-sep) el ritmo sale ~14 % bajo (TRU accesorios ~95 a 160): se corrige solo.
+
+**Lo que se le dice a Felipe que confirme:** si los S/ 65 del bolso llevan IGV (si sí, margen ~15 % y 3 semanas, no 4); si el stand de LIM tiene mostrador; el costo real de aretes, pulseras, relojes y lentes (el dinero de la investigación sale de solo 3 modelos con costo cargado); y qué hacer con las
+categorías «Accesorios de moda» y «Bufanda», que no están en ningún grupo.
+

@@ -62,7 +62,7 @@ import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
-import { useVentasDeHoy, type VentaDeHoy } from "@/components/VentasDeHoy";
+import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
 import {
   ACCION_BAJAR_Y_AGREGAR,
   accionBajarYAgregar,

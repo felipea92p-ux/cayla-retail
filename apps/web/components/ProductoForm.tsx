@@ -184,7 +184,7 @@ import type { AjusteStockFicha, ContextoFicha, LecturaStockFicha } from "@/compo
    talla que ADR-0258 ponía en las filas «sin historia» se retiraron.
    ==================================================================== */
 
-type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
+type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean; admitePrecioCero: boolean };
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
@@ -583,6 +583,7 @@ export function ProductoForm({
     tallasHabilitadas: tallasCategoria.map((t) => t.id),
     nombre: categoriaActual?.nombre,
     cambio: categoriaId !== enLaBase.datos.categoriaId,
+    admitePrecioCero: !!categoriaActual?.admitePrecioCero,
   });
   const avisoBloque = avisoBloqueSinAplicar(bloquePendiente);
   const avisosSinBloquear = problemas.filter((p) => !p.bloquea).map((p) => p.texto);
@@ -1603,6 +1604,7 @@ export function ProductoForm({
                       veCosto={veCosto}
                       deshabilitado={loading}
                       campoFijo={vista === "costo" ? "costo" : "precio"}
+                      admitePrecioCero={!!categoriaActual?.admitePrecioCero}
                     />
                   </div>
                 ) : undefined
@@ -1769,6 +1771,7 @@ export function ProductoForm({
           onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
           onConfirmar={agregarColores}
           onClose={() => setAgregandoColor(false)}
+          admitePrecioCero={!!categoriaActual?.admitePrecioCero}
         />
       )}
       {agregandoTalla && (
@@ -1780,6 +1783,7 @@ export function ProductoForm({
           etiquetasTexto={etiquetasTexto}
           onConfirmar={(r) => setFilas(agregarCombinaciones(filas, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }))}
           onClose={() => setAgregandoTalla(false)}
+          admitePrecioCero={!!categoriaActual?.admitePrecioCero}
         />
       )}
       {imprimir && (

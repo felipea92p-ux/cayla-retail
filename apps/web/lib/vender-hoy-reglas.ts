@@ -12,6 +12,42 @@ export function resumenDeHoy(ventas: readonly { total: number | string }[], meta
   return { ventas: ventas.length, total, pctMeta };
 }
 
+/**
+ * De qué lectura salen las ventas que la píldora «Hoy» suma, y de QUÉ sede son (hallazgo 2026-10-10: con la cabecera en
+ * «Tienda AQP», «Hoy» decía S/ 5830.08, el total de TRU). El selector de sede solo hace `router.refresh()`: `PuntoDeVenta` no se
+ * monta de nuevo y las ventas de la sede nueva le llegan como props nuevas a un componente que ya tenía las de la otra. La regla:
+ * manda la lectura más nueva de la sede que se mira. Una del servidor reemplaza todo lo anterior apenas llega (otra sede, o la
+ * misma releída al abrir o cerrar caja); una del navegador (tras vender, `useVentasDeHoy`) solo cuenta si es de esa misma sede.
+ */
+export type LecturaDeHoy<V> = {
+  ubicacionId: string;
+  /** La lista que mandó el servidor: su identidad dice si llegó otra lectura (cada `router.refresh()` trae una nueva). */
+  delServidor: readonly V[];
+  ventas: readonly V[];
+  fallo: string | null;
+};
+
+export function lecturaDelServidor<V>(ubicacionId: string, ventas: readonly V[], fallo: string | null): LecturaDeHoy<V> {
+  return { ubicacionId, delServidor: ventas, ventas, fallo };
+}
+
+/** La lectura vigente ante lo que manda el servidor ahora: la MISMA (por identidad) si no llegó nada nuevo; si llegó, la del servidor. */
+export function alDiaConElServidor<V>(actual: LecturaDeHoy<V>, ubicacionId: string, delServidor: readonly V[], fallo: string | null): LecturaDeHoy<V> {
+  if (actual.ubicacionId === ubicacionId && actual.delServidor === delServidor) return actual;
+  return lecturaDelServidor(ubicacionId, delServidor, fallo);
+}
+
+/** Lo que respondió una relectura del navegador para `ubicacionId`. De otra sede (se cambió mientras volaba) no toca nada; si
+ *  falló, se conserva la lista con el aviso: la venta ya quedó bien en la base. */
+export function conRelectura<V>(
+  actual: LecturaDeHoy<V>,
+  ubicacionId: string,
+  respuesta: { ventas: readonly V[] } | { fallo: string },
+): LecturaDeHoy<V> {
+  if (ubicacionId !== actual.ubicacionId) return actual;
+  return "fallo" in respuesta ? { ...actual, fallo: respuesta.fallo } : { ...actual, ventas: respuesta.ventas, fallo: null };
+}
+
 /** El ancho de la barrita, de 0 a 100: pasada la meta se queda llena. */
 export function anchoBarraMeta(pct: number | null): number {
   if (pct === null) return 0;

@@ -36,6 +36,26 @@ export const META_DE_VENTA_FUERA_DEL_RIEL: Readonly<Record<CodigoSede, Readonly<
   lim: { accesorios_de_impulso: { desde: 4, hasta: 6 }, bolsos_y_calzado: null },
 };
 
+/**
+ * Cuántas SEMANAS de lo que la sede vende de un grupo de fuera del riel conviene tener entre el mostrador (o la repisa) y la trastienda para empezar
+ * («Para empezar», Plan del piso ▸ Propuesta; investigación `docs/investigacion/2026-10-11-cuanto-llevar-fuera-del-riel.md`). Es CRITERIO, no dato: no existe una
+ * cifra peruana ni de tienda chica para esto. Lo que acota la cifra:
+ *  · lo verificado en 10-K: las boutiques de mujer que reponen cada semana trabajan con 5 a 6 semanas de costo CON alquiler (Francesca's 5,0–6,3, Body Central
+ *    5,2–5,5), unas 8 a 9 de producto; pero esas son cifras de la cadena entera (centro de distribución y tránsito), no de lo que hay en la tienda;
+ *  · Lovisa (bisutería pura) rota a 26 semanas y paga 10–14 % del costo en rebajas por obsoleto: más de ~15 semanas de moda termina en liquidación;
+ *  · accesorios 3 a 5 (margen alto: quedarse sin pieza cuesta más que tener de sobra) y bolsos y calzado 3 a 4 (un bolso inmoviliza ~S/ 47, cinco veces
+ *    un accesorio, con margen de 15–28 %). Debajo de 3 se queda sin variedad; por encima, se arriesga la rebaja.
+ * Se afina cuando se conozca cuánto tarda el proveedor en reponer (cobertura = plazo de reposición + 2 semanas).
+ */
+export const SEMANAS_DE_VENTA_FUERA_DEL_RIEL: Readonly<Record<string, { desde: number; hasta: number }>> = {
+  accesorios_de_impulso: { desde: 3, hasta: 5 },
+  bolsos_y_calzado: { desde: 3, hasta: 4 },
+};
+
+/** Las sedes de las que NO se ha confirmado que tengan el mostrador junto a la caja donde van los accesorios (LIM: un stand de 6 m²). Solo cambia lo que dice la
+ *  referencia cuando la sede todavía no tiene ventas; no inventa un número. */
+export const SEDES_CON_MOSTRADOR_POR_CONFIRMAR: readonly CodigoSede[] = ["lim"];
+
 const CODIGOS: readonly string[] = ["tru", "aqp", "lim"];
 
 /** El código de una sede si es una de las tres con punto de partida; `null` si no (una tienda nueva no recibe una propuesta inventada). */
