@@ -422,6 +422,30 @@ update retail.variantes set costo = :costo_t where producto_id = :'p1';
 update retail.variantes set costo = round(:general * 0.9, 2) where id = :'v1';
 select retail.poner_precio_sede(:'p1', :'tru', round(:general * 0.8, 2), 'Una talla cuesta más');`);
   esperar("manda la talla que más cuesta: bajo ese costo se rechaza", fallaCon(talla, "por debajo de lo que cuesta"), talla);
+  // NaN: numeric lo acepta y Postgres lo ordena por ENCIMA de todo número; no puede esquivar el piso ni la validación de > 0.
+  const nan = correr(FELIPE, COSTO + `select retail.poner_precio_sede(:'p1', :'tru', 'NaN'::numeric, 'Por tanteo');`);
+  esperar("un precio NaN se rechaza (no esquiva el piso)", fallaCon(nan, "mayor que cero"), nan);
+  // Re-guardar un precio que YA quedó bajo el costo (el costo subió después) también se rechaza: es volver a poner un precio bajo el
+  // costo; se sale subiéndolo o quitándolo.
+  const mismo = correr(FELIPE, COSTO + `
+select retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'Primero');
+update retail.variantes set costo = :general where producto_id = :'p1';
+select retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'Otro motivo');`);
+  esperar("cambiar solo el motivo de un precio que quedó bajo el costo también se rechaza", fallaCon(mismo, "por debajo de lo que cuesta"), mismo);
+  // Una talla DESACTIVADA con costo alto no frena (la base mira solo las activas).
+  const dormida = correr(FELIPE, COSTO + `
+select t.id as talla_dormida from retail.tallas t
+ where not exists (select 1 from retail.variantes v where v.producto_id = :'p1' and v.talla_id = t.id) limit 1 \\gset
+insert into retail.variantes (producto_id, precio, costo, color_codigo, talla_id, activo)
+  select :'p1', :general, :general * 2, color_codigo, :'talla_dormida', false from retail.variantes where id = :'v1';
+select (retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'La cara está apagada') = :nvar)::text;`);
+  esperar("una talla desactivada con costo alto no frena el precio de la tienda", ultima(dormida) === "true", dormida);
+  // Igualar al precio de la prenda ES quitar: tampoco lo frena el costo, aunque ya lo supere (el piso va DESPUÉS de esa rama).
+  const iguala = correr(FELIPE, COSTO + `
+select retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'Primero');
+update retail.variantes set costo = :general + 1 where producto_id = :'p1';
+select (retail.poner_precio_sede(:'p1', :'tru', :general, 'Igual a la prenda') = :nvar)::text;`);
+  esperar("igualar al precio de la prenda quita el de la tienda aunque el costo ya lo supere", ultima(iguala) === "true", iguala);
   // Quitar y igualar al precio de la prenda no se frenan por el costo (no ponen un precio más bajo).
   const quita = correr(FELIPE, COSTO + `
 select retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'Primero');

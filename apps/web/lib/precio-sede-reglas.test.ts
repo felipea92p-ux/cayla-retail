@@ -20,6 +20,7 @@ import {
   preciosEnCadaTienda,
   precioUnico,
   quedaBajoElCosto,
+  bajoElCostoSinIgual,
   FRASE_BAJO_COSTO,
   tiendasAlCambiarPrecio,
   avisoEtiquetasAlCambiar,
@@ -99,6 +100,14 @@ describe("la guía de «Precio distinto en una sede»", () => {
     expect(falta({ monto: "47.94", costoMaximo: 47.94 })).toEqual([]); // justo en el costo se puede
     expect(falta({ monto: "47.93", costoMaximo: null })).toEqual([]); // quien no ve costos: lo dice la base al guardar
     expect(falta({ monto: "47.93" })).toEqual([]); // sin el dato, igual que antes
+  });
+  it("igual al precio de la prenda manda sobre el piso: dice «ya es el precio de la prenda», no «bajo el costo»", () => {
+    // La prenda (119.90) está bajo un costo de 130 que subió: igualar es quitar, y la base lo permite.
+    const pendiente = camposPonerPrecio({ ...base, monto: "119.90", costoMaximo: 130 }).find((c) => c.id === "precio")?.pendiente;
+    expect(pendiente).toBe("Ese ya es el precio de la prenda: escribe otro.");
+    expect(bajoElCostoSinIgual(119.9, 119.9, 130)).toBe(false);
+    expect(bajoElCostoSinIgual(100, 119.9, 130)).toBe(true);
+    expect(bajoElCostoSinIgual(100, null, 130)).toBe(true); // con precio por talla no hay «igual»
   });
   it("un precio muy lejos NO bloquea: solo pregunta", () => {
     expect(sePuedeConfirmar(camposPonerPrecio({ ...base, monto: "1299" }))).toBe(true);

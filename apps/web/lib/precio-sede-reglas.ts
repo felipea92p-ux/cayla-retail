@@ -324,6 +324,13 @@ export function quedaBajoElCosto(precio: number | null, costoMaximo: number | nu
   return Math.round(precio * 100) < Math.round(costoMaximo * 100);
 }
 
+/** El piso, con su excepción: un precio IGUAL al de la prenda no se rechaza por el costo (es quitar el de la tienda, y la base lo permite
+ *  aunque el costo ya lo supere); para eso la hoja dice «Ese ya es el precio de la prenda». `general` null (precio por talla): sin excepción. */
+export function bajoElCostoSinIgual(precio: number | null, general: number | null, costoMaximo: number | null): boolean {
+  const igual = precio !== null && general !== null && Math.abs(precio - general) < 0.005;
+  return !igual && quedaBajoElCosto(precio, costoMaximo);
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;
@@ -338,7 +345,7 @@ export function camposPonerPrecio(h: {
   const precio = leerMonto(h.monto);
   // «Igual» solo si TODAS las tallas valen eso (`general` es null cuando cambia según la talla): es lo que rechaza la base.
   const igual = precio !== null && h.general !== null && Math.abs(precio - h.general) < 0.005;
-  const bajoCosto = !igual && quedaBajoElCosto(precio, h.costoMaximo ?? null);
+  const bajoCosto = bajoElCostoSinIgual(precio, h.general, h.costoMaximo ?? null);
   return [
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: h.tiendaId !== null, pendiente: "Elige la tienda." },
     {

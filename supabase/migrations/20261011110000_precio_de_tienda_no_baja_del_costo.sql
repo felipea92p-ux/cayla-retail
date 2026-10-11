@@ -38,7 +38,8 @@ declare
   v_costo_max numeric;
   v_var record;
 begin
-  if p_precio is null or v_precio <= 0 then
+  -- NaN (que numeric acepta y que Postgres ordena por ENCIMA de todo número) no pasa por «<= 0» ni por el piso: se rechaza aquí.
+  if p_precio is null or p_precio = 'NaN'::numeric or v_precio <= 0 then
     raise exception 'Escribe un precio mayor que cero.';
   end if;
   if length(v_motivo) < 3 then

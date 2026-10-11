@@ -52,7 +52,7 @@ export function PreciosPorSede({
   /** La tienda de quien mira: ahí puede imprimir las etiquetas nuevas al terminar. */
   ubicacionActual: string | null;
   /** Lo que cuesta la talla activa que MÁS cuesta (lo guardado), si esta cuenta ve costos; null si no. Con él, un precio de tienda que
-   *  quedó por debajo del costo —porque el costo subió con una compra— se marca. La base solo frena al ponerlo (Felipe 2026-10-11). */
+   *  hoy queda por debajo del costo se marca. La base solo frena al ponerlo (Felipe 2026-10-11): después el costo puede cambiar. */
   costoMaximo?: number | null;
   deshabilitado?: boolean;
 }) {
@@ -132,6 +132,7 @@ export function PreciosPorSede({
               ) : (
                 <span className="text-[12.5px] text-tinta/60">El de la prenda</span>
               )}
+              {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && <Chip tono="rojo">Bajo el costo</Chip>}
               {f.propio && puedeTocar(f.ubicacionId) && (
                 <span className="ml-auto flex gap-2">
                   <Boton
@@ -167,7 +168,6 @@ export function PreciosPorSede({
                   Precio propio
                 </Boton>
               )}
-              {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && <Chip tono="rojo">Bajo el costo</Chip>}
               {f.propio && (
                 <span className="basis-full text-[12.5px] text-tinta/70">
                   {desdeHace(f.propio.desde)} · «{f.propio.motivo}»{f.propio.creadoPor ? ` · ${f.propio.creadoPor}` : ""}
@@ -175,7 +175,7 @@ export function PreciosPorSede({
               )}
               {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && (
                 <span className="basis-full text-[12.5px] text-rojo-profundo">
-                  Hoy queda por debajo de lo que cuesta la prenda (el costo cambió con una compra): súbelo o quítalo.
+                  Hoy queda por debajo de lo que cuesta la prenda.{puedeTocar(f.ubicacionId) ? " Súbelo o quítalo." : ""}
                 </span>
               )}
             </li>

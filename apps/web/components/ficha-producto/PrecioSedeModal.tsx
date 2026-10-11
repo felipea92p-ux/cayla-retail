@@ -23,7 +23,7 @@ import {
   fraseDiferencia,
   leerMonto,
   muyLejos,
-  quedaBajoElCosto,
+  bajoElCostoSinIgual,
   soles,
   type PrecioDeSede,
 } from "@/lib/precio-sede-reglas";
@@ -121,7 +121,7 @@ export function PonerPrecioSedeModal({
   const guia = useGuiaCampos(campos);
   const lejos = muyLejos(precio, general);
   // El piso de la base (Felipe 2026-10-11): no se puede bajar del costo. Solo se sabe aquí si esta cuenta ve costos; si no, la base lo dice al guardar.
-  const bajoCosto = quedaBajoElCosto(precio, costoMaximo) && !(general !== null && precio !== null && Math.abs(precio - general) < 0.005);
+  const bajoCosto = bajoElCostoSinIgual(precio, general, costoMaximo);
   const diferencia = precio !== null ? fraseDiferencia(precio, general) : null;
   const unidades = usePrendasEnTienda(productoId, tienda?.id ?? null);
   const antes = tienda ? precioAntesEn(tienda.id) : null;
@@ -198,15 +198,11 @@ export function PonerPrecioSedeModal({
               placeholder={general !== null ? general.toFixed(2) : "0.00"}
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              pie={diferencia && diferencia !== IGUAL_AL_DE_LA_PRENDA ? diferencia : undefined}
+              // El piso va en el pie del campo (la pieza decidida para el error de UN dato), no en un aviso aparte: no desplaza nada.
+              tono={bajoCosto ? "error" : undefined}
+              pie={bajoCosto ? FRASE_BAJO_COSTO : diferencia && diferencia !== IGUAL_AL_DE_LA_PRENDA ? diferencia : undefined}
             />
           </CampoGuiado>
-
-          {bajoCosto && (
-            <Aviso tono="error" titulo="Bajo el costo" chico>
-              {FRASE_BAJO_COSTO}
-            </Aviso>
-          )}
 
           {lejos && !bajoCosto && precio !== null && general !== null && (
             <Aviso tono="atencion" titulo="Revisa el precio" chico>

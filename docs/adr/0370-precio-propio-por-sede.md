@@ -163,12 +163,18 @@ como «falta» en la guía) y «Precio por tienda» marca «Bajo el costo» un p
   líderes en cualquiera). Razones: la caja ya prohíbe vender bajo el costo a todos (la excepción haría del precio de tienda una puerta más
   abierta que la caja); el precio de tienda no vence («vale hasta que alguien lo quite») y liquidar es temporal, para eso está la campaña
   (con fechas y, si se quiere, de una sola tienda: `etiquetas.sedes_permitidas`); y la regla no estorba a nadie hoy.
+- **Dos consecuencias que se aceptaron (revisión del 2026-10-11).** (1) **Cambiar solo el motivo, o volver a guardar, un precio que ya quedó
+  bajo el costo también se rechaza:** es volver a poner un precio bajo el costo; se sale subiéndolo o quitándolo (igualar al precio de la
+  prenda es quitar y siempre se puede). (2) **El piso es un oráculo del costo para quien no lo ve:** el mensaje no dice cuánto cuesta, pero
+  aceptar o rechazar sí; una integrante sin permiso de dinero que prueba precios llega al costo por tanteo (unos 8 intentos). La caja tiene
+  el mismo oráculo con `venta_descuento_bajo_costo`. No hay arreglo barato que no abra otra puerta (un piso que depende de quién pregunta
+  es peor); la salida, si no se acepta, es limitar el precio de tienda a quien ve el dinero, y es decisión de permisos de Felipe.
 - **Sin tope extra para una integrante, a propósito.** La caja limita su descuento a 10 % (los integrantes tienen `tope_descuento_pct =
   10`) y un precio de tienda no tiene tope, pero con el piso lo peor que puede pasar es margen 0 % (hoy el típico es 47 % y el 10 % más
   bajo, 37 %); todo queda firmado y en Actividad; las dos bajadas reales fueron de 12 y 13 %. Agregarlo después es una migración chica que
   no toca datos; se revisa si las integrantes empiezan a usarlo seguido.
 
-**Cómo se verifica.** `pnpm pruebas:precio-sede` (32 escenarios; nuevos: talla nueva y reactivada, igual a la prenda se quita solo y no
+**Cómo se verifica.** `pnpm pruebas:precio-sede` (44 escenarios; nuevos: el piso de costo —líder, integrante, justo en el costo, talla que más cuesta, NaN, igualar y quitar—, talla nueva y reactivada, igual a la prenda se quita solo y no
 a medio guardado, Apartar, cambio de la misma prenda, filtro), `pruebas:separaciones` (80), `pruebas:registrar-cambio` (21),
 `pruebas:registrar-venta` (28), `eliminar_producto.mjs` (40). En el navegador (local): Lima 89.90 y TRU 69.90 en Blusa Emma, subir la
 tabla a 89.90 → la hoja dijo «Lima ya estaba a S/ 89.90: queda igual…» y «Trujillo se queda en S/ 69.90» con su casilla; en TRU la
