@@ -4,6 +4,7 @@ import { useState, type CSSProperties, type MouseEvent } from "react";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { PorQue } from "@/components/plan-piso/PorQue";
 import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
+import type { ColorDePercha } from "@/lib/plan-piso-colores";
 import { ariaDeLasFichasDeHoy, etiquetaDeChipHoy, leyendaDeGrupo, rotuloCabe, type BloqueDelRiel, type Libre, type PanelDelPorQue } from "@/lib/plan-piso-percha";
 import { siluetaDe } from "@/lib/plan-piso-siluetas";
 
@@ -11,10 +12,24 @@ import { siluetaDe } from "@/lib/plan-piso-siluetas";
 // de sus grupos colgadas en tramos, y lo que hay para tocar: pasar por un grupo (o enfocarlo con el teclado) lo resalta en los dos rieles y en las leyendas, y
 // tocarlo lo deja fijo. Es la parte INTERACTIVA de la tarjeta; el encabezado «78 de 1,800» y el aviso son del servidor y van alrededor.
 //
+// Cada percha lleva el color de una variante que de verdad cuelga (ADR-0352 act. 2026-10-11 (c), `lib/plan-piso-colores.ts`); el color del grupo queda en el poste del
+// tramo, en la ficha y en la tarjeta, que es donde se necesita saber DE QUÉ GRUPO es.
+//
 // Aquí no se calcula nada: el servidor (`PropuestaDelMix`) trae todo armado de `lib/plan-piso-percha.ts` —los tramos, las frases, el panel— y este archivo solo lo
 // dibuja y guarda qué grupo está resaltado. Las siluetas las dibuja `<SiluetasDelPlan />` una sola vez en la pantalla.
 
-export type GrupoDelRiel = { clave: string; nombre: string; corto: string; indice: number; hoy: number; propuesta: number; propuestaPct: number | null };
+export type GrupoDelRiel = {
+  clave: string;
+  nombre: string;
+  /** Solo para rotular el tramo, que es angosto; la ficha y la tarjeta llevan el nombre completo. */
+  corto: string;
+  indice: number;
+  hoy: number;
+  propuesta: number;
+  propuestaPct: number | null;
+  /** Los colores principales de lo que cuelga del grupo (`#rrggbb`, hasta tres): su ícono los muestra. Vacío = el ícono del color del grupo. */
+  coloresDelIcono: string[];
+};
 
 type Props = {
   grupos: GrupoDelRiel[];
@@ -34,13 +49,18 @@ type Props = {
   textoPorQue: string;
   panel: PanelDelPorQue;
   nota: { antes: string; unidad: string; despues: string };
+  /** Lo que dice el pie sobre el color de las perchas; `null` si ningún grupo trae colores y todo se dibuja del color del grupo. */
+  notaDeColores: string | null;
 };
 
 const vars = (v: Record<string, string | number>) => v as unknown as CSSProperties;
 
-function Percha({ clave, fraccion, i }: { clave: string; fraccion: number; i: number }) {
+/** El color de una percha es el de la variante que representa (dato de la prenda); «Otros colores» es un gris neutro de la interfaz; sin color, el del grupo (lo pone el tramo). */
+const colorDePercha = (c: ColorDePercha | null): Record<string, string> => (c === null ? {} : { "--pp-c": c.hex ?? "var(--pp-otros)" });
+
+function Percha({ clave, fraccion, i, color }: { clave: string; fraccion: number; i: number; color: ColorDePercha | null }) {
   return (
-    <span className="pp-p" style={vars({ "--f": fraccion.toFixed(3), "--i": i })}>
+    <span className="pp-p" style={vars({ "--f": fraccion.toFixed(3), "--i": i, ...colorDePercha(color) })} data-color-dato={color?.hex ? "" : undefined}>
       <svg viewBox="0 0 40 60" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <use href="#pp-h" />
         <use href={`#pp-s-${siluetaDe(clave)}`} className="pp-sil" />
@@ -49,7 +69,7 @@ function Percha({ clave, fraccion, i }: { clave: string; fraccion: number; i: nu
   );
 }
 
-export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota }: Props) {
+export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota, notaDeColores }: Props) {
   const [sobre, setSobre] = useState<string | null>(null);
   const [fijo, setFijo] = useState<string | null>(null);
   const sel = fijo ?? sobre;
@@ -76,11 +96,19 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
         {bloques.map((b) => {
           const g = grupos.find((x) => x.clave === b.clave);
           const perchas = [];
-          for (let k = 0; k < b.llenas; k++) perchas.push(<Percha key={k} clave={b.clave} fraccion={1} i={i++} />);
-          if (b.resto > 0) perchas.push(<Percha key="resto" clave={b.clave} fraccion={b.resto} i={i++} />);
+          for (let k = 0; k < b.llenas; k++) perchas.push(<Percha key={k} clave={b.clave} fraccion={1} i={i++} color={b.colores[k] ?? null} />);
+          if (b.resto > 0) perchas.push(<Percha key="resto" clave={b.clave} fraccion={b.resto} i={i++} color={b.colores[b.llenas] ?? null} />);
           return (
-            <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} title={g?.nombre} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
-              {rotulos && g && rotuloCabe(b.perchas) && <span className="pp-et">{g.corto}</span>}
+            <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} title={[g?.nombre, b.detalleDeColores].filter(Boolean).join(" · ")} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
+              {rotulos && g && rotuloCabe(b.perchas) && (
+                // El nombre completo si el tramo es ancho, el corto si no cabe (lo decide el CSS por el ancho de esta caja, que mide lo que el tramo): igual que la ficha de «Hoy».
+                <span className="pp-et-caja">
+                  <span className="pp-et">
+                    <span className="pp-et-c">{g.corto}</span>
+                    <span className="pp-et-l">{g.nombre}</span>
+                  </span>
+                </span>
+              )}
               {perchas}
             </div>
           );
@@ -115,8 +143,8 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
           {grupos.map((g) => (
             <li key={g.clave}>
               <button type="button" className={`pp-chip${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} aria-label={etiquetaDeChipHoy(g, cuadrado)} onClick={(e) => alternar(g.clave, e)} {...señas(g.clave)}>
-                <IconoDeGrupo clave={g.clave} />
-                {g.corto} <b>{cifraEs(g.hoy)}</b>
+                <IconoDeGrupo clave={g.clave} colores={g.coloresDelIcono} />
+                {g.nombre} <b>{cifraEs(g.hoy)}</b>
               </button>
             </li>
           ))}
@@ -140,7 +168,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
           {grupos.map((g) => (
             <li key={g.clave}>
               <button type="button" className={`pp-lg${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} onClick={(e) => alternar(g.clave, e)} {...señas(g.clave)}>
-                <IconoDeGrupo clave={g.clave} />
+                <IconoDeGrupo clave={g.clave} colores={g.coloresDelIcono} />
                 <span className="pp-lg-t">
                   <b>{g.nombre}</b>
                   <small>
@@ -178,6 +206,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
             "Pasa el cursor, usa Tab o toca un grupo para ver dónde cuelga."
           )}
         </span>
+        {notaDeColores && <span className="pp-colores">{notaDeColores}</span>}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { CategoriaMix, GrupoMix } from "./plan-piso-grupos";
 import type { LecturaDelPiso } from "./piso-plan";
 import { codigoDeSede, META_DE_VENTA_FUERA_DEL_RIEL, PARTIDA_DEL_RIEL, SEDES_CON_MOSTRADOR_POR_CONFIRMAR, SEMANAS_DE_VENTA_FUERA_DEL_RIEL, type CodigoSede, type MetaDeVenta } from "./mix-piso-partida";
+import { ordenarColores, sumarColor, type ColorDelGrupo } from "./plan-piso-colores";
 
 /**
  * La propuesta del mix del piso frente a lo que hay hoy (ADR-0329, «Actualización 2026-10-04»; investigación del 2026-10-05).
@@ -48,6 +49,8 @@ export type FilaDelRiel = {
   grupo: GrupoMix;
   /** Prendas libres colgadas en el piso hoy, de las categorías de este grupo. */
   colgadas: number;
+  /** De qué colores es eso que cuelga, del que más al que menos (suman `colgadas`); vacío si no cuelga nada. Solo se dibuja: no entra en ninguna cuenta (`lib/plan-piso-colores.ts`). */
+  colores: ColorDelGrupo[];
   /** % del riel que ocupa hoy; `null` si no hay nada colgado en ningún grupo. */
   hoyPct: number | null;
   /** Ventas confirmadas (escaneadas) del grupo en la ventana y las «sin registrar» pendientes (no cuentan para la propuesta). */
@@ -217,12 +220,17 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
 
   // Lo colgado por grupo (el mismo número que el motor del piso: lo libre en el piso) y lo que no tiene grupo.
   const colgadas = new Map<string, number>();
+  const coloresDe = new Map<string, Map<string, ColorDelGrupo>>();
   let colgadasSinGrupo = 0;
   for (const t of e.lectura.tallas) {
     const n = Math.max(0, t.pisoLibre);
     const g = grupoDe(t.categoriaId);
     if (g === null) colgadasSinGrupo += n;
-    else colgadas.set(g, (colgadas.get(g) ?? 0) + n);
+    else {
+      colgadas.set(g, (colgadas.get(g) ?? 0) + n);
+      if (!coloresDe.has(g)) coloresDe.set(g, new Map());
+      sumarColor(coloresDe.get(g)!, t);
+    }
   }
   // Las ventas de la ventana por grupo: confirmadas (escaneadas) y «sin registrar» (anotadas, pendientes).
   const confirmadas = new Map<string, number>();
@@ -277,6 +285,7 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
     return {
       grupo,
       colgadas: col,
+      colores: ordenarColores(coloresDe.get(grupo.clave)),
       hoyPct: colgadasEnElRiel > 0 ? redondear((col / colgadasEnElRiel) * 100) : null,
       ventasConfirmadas: conf,
       ventasAnotadas: anotadas.get(grupo.clave) ?? 0,
