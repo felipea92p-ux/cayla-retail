@@ -47,7 +47,7 @@ export default async function EditarProductoPage({
     getEjesPorCategoria(),
     supabase.from("etiquetas").select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
-    supabase.from("familias").select("codigo, exige_tejido_patron"),
+    supabase.from("familias").select("codigo, exige_tejido_patron, entra_a_motores"),
     getImagenesMuestra(),
     // ADR-0263: unidades y ventas por variante. Tolerante: si falla, la ficha sigue sin la columna de stock y la base
     // decide sola quién corrige una variante vendida. Si la función NO EXISTE, la base tampoco sabe corregir (es el mismo
@@ -57,7 +57,10 @@ export default async function EditarProductoPage({
     supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
-  const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
+  const filasFamilias = exigir(familias, "las familias del catálogo");
+  const exigen = new Set(filasFamilias.filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
+  // Las familias fuera de los motores (Empaque, ADR-0377) admiten precio 0: la bolsa de obsequio (Felipe 2026-10-10).
+  const admitenPrecioCero = new Set(filasFamilias.filter((f) => f.entra_a_motores === false).map((f) => f.codigo));
   // Vigencia se filtra acá, no en la consulta: la etiqueta de campaña
   // (Halloween, CyberWow...) deja de OFRECERSE fuera de su ventana, pero
   // nunca se retira sola de una variante que ya la tenía — eso sería
@@ -126,7 +129,13 @@ export default async function EditarProductoPage({
       </div>
 
       <ProductoForm
-        categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
+        categorias={categorias.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          prefijo: c.prefijo,
+          exigeTejidoPatron: c.familia !== null && exigen.has(c.familia),
+          admitePrecioCero: c.familia !== null && admitenPrecioCero.has(c.familia),
+        }))}
         colores={colores.map((c) => ({
           codigo: c.codigo,
           nombre: c.nombre,
