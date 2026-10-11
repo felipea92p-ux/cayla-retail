@@ -57,6 +57,8 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { AgregarBolsaModal, FilaDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
+import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
@@ -158,6 +160,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   /** Prefijo y familia de la categoría: dibujan su ícono en la tarjeta sin foto. Ausentes = el ícono de reserva. */
   categoriaPrefijo?: string | null;
   categoriaFamilia?: string | null;
+  /** Su familia está apagada para los motores (`familias.entra_a_motores = false`): bolsas, cajas, empaque. Es lo que ofrece «Agregar bolsa»
+   *  en el ticket (`lib/bolsas-reglas.ts`). Ausente = una prenda normal. */
+  fueraDeMotores?: boolean;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
@@ -477,6 +482,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
+  // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
+  const [bolsasAbiertas, setBolsasAbiertas] = useState(false);
   // Teléfono (2026-09-25): no hay lector, así que el campo de escaneo se vuelve un botón que abre la cámara
   // (`EscanerCamara`). La lupa de al lado cambia a buscar por nombre, y la cámara vuelve a estar a un toque.
   const esTelefono = useConsultaMedia(MQ_TELEFONO);
@@ -531,6 +538,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
+  // Las bolsas de esta tienda (una familia fuera de los motores), de la más barata a la más cara. Sin ninguna, la fila no se dibuja.
+  const bolsas = useMemo(() => bolsasDeLaCaja(variantesVisibles), [variantesVisibles]);
   // La ficha del color que se mira en «Todo de la prenda» (ADR-0316; Felipe 2026-10-10): sus compañeros, con lo que cuelga AQUÍ primero.
   // Sobre `variantesVisibles` (con el stock en vivo), nunca sobre el catálogo crudo: un color que se acabó hace un minuto ya no se sugiere.
   const fichaDelColorDe = useMemo(() => {
@@ -629,7 +638,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1904,6 +1913,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 onHojaAbierta={setHojaClientaAbierta}
                 clubDeLaClienta={clubDeLaClienta}
               />
+              <FilaDeBolsas bolsas={bolsas} carrito={carrito} bloqueado={bloqueado} onAbrir={() => setBolsasAbiertas(true)} />
             </>
           }
         />
@@ -2221,6 +2231,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           responsable={responsable}
           onConfirmar={() => void registrarBajadas(bajadaPorConfirmar)}
           onClose={() => setBajadaPorConfirmar(null)}
+        />
+      )}
+
+      {bolsasAbiertas && (
+        <AgregarBolsaModal
+          bolsas={bolsas}
+          carrito={carrito}
+          ubicacionEtiqueta={ubicacionEtiqueta}
+          onAgregar={(v) => void agregar(v)}
+          onClose={() => setBolsasAbiertas(false)}
+          alCerrarEnfocar={buscador}
         />
       )}
 
