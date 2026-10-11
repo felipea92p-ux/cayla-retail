@@ -114,6 +114,7 @@
     "pruebas:cola-arranque": "node scripts/pruebas/cola_arranque.mjs",
     "pruebas:corregir-prenda-sin-registrar": "node scripts/pruebas/corregir_prenda_sin_registrar.mjs",
     "pruebas:familias-motores": "node scripts/pruebas/familias_motores.mjs",
+    "pruebas:motores-familias-apagadas": "node scripts/pruebas/motores_familias_apagadas.mjs",
     "pruebas:cola-arranque-concurrencia": "node scripts/pruebas/cola_arranque_concurrencia.mjs",
     "pruebas:vendedora-en-venta": "node scripts/pruebas/vendedora_en_venta.mjs",
     "pruebas:ventas-del-dia": "node scripts/pruebas/ventas_del_dia.mjs",

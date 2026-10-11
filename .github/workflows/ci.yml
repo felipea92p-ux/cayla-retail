@@ -1259,6 +1259,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:familias-motores
 
+      # Los motores ignoran una familia apagada (bolsas de despacho): la misma venta, el mismo stock y la misma anotada en una categoría
+      # de una familia apagada y en una normal; el motor del piso, la demanda y el plan de campaña traen la normal y NO la apagada, y el
+      # interruptor es en vivo. La venta de la bolsa sigue entera en `ventas`. Cada caso termina en ROLLBACK.
+      - name: pruebas:motores-familias-apagadas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:motores-familias-apagadas
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un
