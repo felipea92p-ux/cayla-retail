@@ -230,6 +230,8 @@ describe("textos", () => {
     expect(rangoDePrecios([69, 89, 79])).toBe("S/ 69–89");
     expect(rangoDePrecios([69.9, 69.9])).toBe("S/ 69.90");
     expect(resumenVariantes([fila("CRU", "s"), fila("NEG", "s", { precio: "89" }), fila("NEG", "m", { activo: false })])).toBe("2 variantes activas · S/ 69–89");
+    // La tienda de quien edita con precio propio: se dice junto al de la prenda.
+    expect(resumenVariantes([fila("CRU", "s", { precio: "79.90" })], { sede: "TRU", precio: 69.9 })).toBe("1 variante activa · S/ 79.90 · S/ 69.90 en TRU");
   });
 });
 
