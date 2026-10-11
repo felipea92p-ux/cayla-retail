@@ -233,3 +233,34 @@ maqueta; (d) tocar un tramo del riel para fijarlo (la maqueta lo hacía; aquí s
 sede y con un grupo que ocupa el 83 % del riel, a 1440, 1024 y 375 px, en claro y oscuro, y las interacciones (señalar, fijar, Tab, toque) en Chrome. **No se vio la ruta real contra su base** (la base local no tiene las tablas del Plan del
 piso, y el día de la revisión Docker no estaba disponible), **no se corrió `tema:auditar`** ni `/chaos` sobre Grupos (es lo único que guarda y no se tocó), y **no lo probó una colaboradora real**.
 **Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-11 (b) — «Dónde está cada grupo» se lee con el cursor y «Fuera del riel» dice cuánto llevar (Felipe)
+
+Felipe, tras ver la pantalla en producción: «se ve bien, buena labor»; y pidió dos cosas: que «Dónde está cada grupo» se vea mejor al pasar el mouse, y «cuánto deberíamos incluir» de las categorías que van cerca de caja, «investigando y asignando un estimado para empezar».
+Solo presentación y una referencia nueva: no se guarda nada, no hay SQL. Detalle de la investigación: `docs/investigacion/2026-10-11-cuanto-llevar-fuera-del-riel.md`.
+
+**1. La mancuerna se lee con el cursor, con una tarjeta que FLOTA.**
+DECIDÍ: al pasar el cursor por una fila (o enfocarla con Tab, o tocarla) la fila se enciende y las demás bajan; cada marca lleva su cifra en una etiqueta arriba o abajo de la pista (las que caen a menos de 9 puntos comparten una, como Hoy 47.6 y
+punto de partida 48 de Polos) y junto a la fila flota una tarjeta con las cuatro cifras en palabras y la frase que ya decía la tabla. Tocar una fila la deja fija; tocar una marca de la leyenda la resalta en todas las filas. Cada fila es un
+botón con un nombre que dice las cuatro cifras. La lógica (etiquetas sin encimarse, cifras, frases) es pura: `lib/mancuerna-lectura.ts`, con una prueba de propiedades sobre 14,641 combinaciones.
+DESCARTÉ: un panel de lectura fijo arriba de las filas. Reservar su alto dejaba un hueco (108 px en reposo) o, sin reservarlo, bajaba las filas bajo el cursor al aparecer: el cursor quedaba sobre otra fila, la lectura cambiaba y volvía a
+mover (se midió: un parpadeo en bucle; Playwright no logró ni apuntar a la segunda fila). La tarjeta es `position: absolute` y `pointer-events: none`: el alto de la mancuerna no cambia (550 px antes, durante y después de barrer las seis filas) y el cursor
+sigue llegando a las filas que tapa. Las dos últimas filas abren hacia arriba.
+SE ROMPE SI: se agrega una séptima fila y la tarjeta de la última no cabe (hoy abre hacia arriba desde la antepenúltima), o la tarjeta pasa de unos 160 px (taparía más de tres filas).
+
+**2. «Para empezar»: cuántas prendas sostiene lo que la sede vende (fichas de «Fuera del riel»).**
+DECIDÍ: cada ficha trae una línea «Para empezar: unas 115 a 190 prendas, entre mostrador y trastienda», calculada al abrir la pantalla con `referenciaFueraDelRiel` (`lib/mix-piso.ts`, pura): ritmo = peso × lo vendido + (1 − peso) × la meta, con el mismo
+`pesoDeLaVenta` del riel (techo 0.75), por semana; rango = ritmo × 3 a 5 semanas (accesorios) o 3 a 4 (bolsos y calzado), redondeado de a 5 desde 30. Las semanas son criterio con su fuente en `lib/mix-piso-partida.ts`
+(`SEMANAS_DE_VENTA_FUERA_DEL_RIEL`). Con las cifras del 2026-10-11 (12 días con venta): TRU accesorios 115–190 y bolsos 35–50; AQP accesorios 90–150 y bolsos 35–45; LIM sin ventas, y bolsos «no lo lleva».
+**Dos desvíos del riel, escritos aquí a propósito** (la regla 2 de `mix-piso.ts` dice que solo cuentan las confirmadas): (a) para estos dos grupos SÍ cuentan las ventas sin registrar, porque un accesorio casi nunca está en el catálogo (TRU: 1 modelo con
+stock contra 73 prendas vendidas) y sin ellas el grupo parecería no venderse; (b) la meta se lee en PRENDAS, no en soles (viene de % de ingresos de empresas de EE. UU.; en soles TRU accesorios es 6.3 % y AQP 9.5 %, por debajo de la meta, y quien lea
+esa brecha no debe comprar piezas para «llegar a la meta»). La ficha ahora dice de dónde sale el %: «vende 12.9 % (73 ventas: 6 confirmadas y 67 sin registrar)». El panel «¿Por qué?» explica el cálculo y que no es una compra.
+DESCARTÉ: (i) restar «Para empezar» de lo que cuelga («faltan 160»): el stock del sistema no descuenta lo vendido sin registrar (8 contra 73), y ADR-0352 decisión 2 ya evitó afirmar una diferencia que la tabla se niega a dar; (ii) un 0.75 fijo y «tomo 50
+como centro»: la pantalla tiene que poder reproducirse con una prueba, y el peso sale de la muestra (0.49 en TRU accesorios, 0.13 en bolsos); (iii) un número para LIM sin ventas ni mostrador confirmado: dice «todavía sin ventas aquí»; (iv) las reglas de reposición por
+modelo, el reparto por tipo, el calzado de prueba y el capital en la ficha: son decisiones de compra de Felipe y viven en la investigación.
+SE ROMPE SI: se agrega un grupo fuera del riel sin su entrada en `SEMANAS_DE_VENTA_FUERA_DEL_RIEL` (no tendrá línea, no se rompe); la lectura deja de traer las ventas sin registrar por categoría; o alguien lee «Para empezar» como la compra que hay que hacer (de ahí «no una compra»,
+«primero cuenta lo que hay» y el aviso en el encabezado). La ventana de la lectura es fija de 14 días: hasta el 13-oct (la primera venta fue el 30-sep) el ritmo sale ~14 % bajo (TRU accesorios ~95 a 160): se corrige solo.
+
+**Lo que se le dice a Felipe que confirme:** si los S/ 65 del bolso llevan IGV (si sí, margen ~15 % y 3 semanas, no 4); si el stand de LIM tiene mostrador; el costo real de aretes, pulseras, relojes y lentes (el dinero de la investigación sale de solo 3 modelos con costo cargado); y qué hacer con las
+categorías «Accesorios de moda» y «Bufanda», que no están en ningún grupo.
+
