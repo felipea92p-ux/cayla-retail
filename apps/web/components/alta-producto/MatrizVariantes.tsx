@@ -20,7 +20,7 @@ import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 //     fila «Sin color» ES esa foto;
 //   * encabezado de tallas fijo arriba y columna del color fija a la izquierda: con 9 tallas × 8 colores (el peor caso
 //     real) la tabla se desplaza dentro de su caja y la página nunca se desborda a lo ancho (375 px incluidos).
-// El precio distinto por celda ya no vive aquí: pasó al segmento «¿Alguna cuesta distinto?» de `MatrizCantidades`.
+// El precio distinto por celda ya no vive aquí: pasó al segmento «Precios» de `MatrizCantidades` (y el costo, a «Costos»).
 
 type Color = { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null };
 

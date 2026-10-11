@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { enLaTabla } from "@/lib/frescura-pantalla";
+import { categoriasFueraDeMotores, sinCategoriasApagadas } from "@/lib/familias-motores";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
@@ -248,7 +249,15 @@ function cargarDudasCon(supabase: Supabase): CargarDudas {
       filas.push(...(data as unknown as typeof filas));
       if (data.length < PAGINA) break;
     }
-    return filas.map((r) => ({ categoriaId: r.categoria_id, colorCodigo: r.color_codigo, talla: r.tallas?.valor ?? null, vendidoEn: r.vendido_en }));
+    // Una venta anotada de una familia apagada (la bolsa de despacho) no aparta ninguna prenda colgada: no es mercadería de piso. La base ya
+    // hace lo mismo en sus lecturas (`fn_categoria_entra_a_motores`); aquí se lee directo de la cola y se quita igual.
+    const fuera = await categoriasFueraDeMotores(supabase);
+    return sinCategoriasApagadas(filas, fuera, (r) => r.categoria_id).map((r) => ({
+      categoriaId: r.categoria_id,
+      colorCodigo: r.color_codigo,
+      talla: r.tallas?.valor ?? null,
+      vendidoEn: r.vendido_en,
+    }));
   };
 }
 
@@ -268,8 +277,10 @@ async function anotadasDeLaSede(supabase: Supabase, sedeId: string): Promise<Ano
       .in("estado", ["pendiente", "cerrada_sin_prenda"])
       .gte("vendido_en", desde);
     if (error || !data) return [];
+    // Sin lo de una familia apagada (la bolsa de despacho): sus ventas anotadas no cuentan en la rapidez de una categoría de prendas.
+    const fuera = await categoriasFueraDeMotores(supabase);
     const porCategoria = new Map<string, AnotadasCategoria>();
-    for (const f of data as { categoria_id: string; vendido_en: string; categoria: { nombre: string } | null }[]) {
+    for (const f of sinCategoriasApagadas(data as { categoria_id: string; vendido_en: string; categoria: { nombre: string } | null }[], fuera, (r) => r.categoria_id)) {
       const c = porCategoria.get(f.categoria_id) ?? { categoriaId: f.categoria_id, nombre: f.categoria?.nombre ?? "Sin categoría", d14: 0, d28: 0, fechas: [] };
       c.d28 += 1;
       c.fechas.push(f.vendido_en);
