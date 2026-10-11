@@ -98,8 +98,29 @@ Felipe dijo «sí, hazlo». **Qué se hizo:** las dos tablas de la Propuesta («
 **Límite que queda:** al desplazar a la derecha para ver «Diferencia», el nombre del grupo sale de la vista (la primera columna no se queda fija). Las filas van en el mismo orden y es solo a 1024; si molesta, la columna fija es el siguiente paso.
 **Nota:** la nota de la ley 9 (5) se puso con la tabla rota y no se recalificó: el informe no inventa una nota sin medirla de nuevo.
 
+## Actualización 2026-10-11 — el riel de perchas (maqueta A), elegido por Felipe mirando (ADR-0352)
+
+Felipe vio tres direcciones de estilo más la actual lado a lado (`docs/maquetas/plan-del-piso-2026-10/`) y eligió **A «La percha»**; la tabla y la mancuerna se quedan, con el mismo lenguaje. **Los tres cambios de arriba que eran visuales (el riel en dos barras, las tres tarjetas de cifra y
+la nota «Cómo se calcula») quedaron reemplazados:** hoy es una tarjeta con «78 de 1,800 prendas», dos rieles de perchas (cada percha vale N prendas), «¿Por qué?» a un toque y «Fuera del riel» como fichas. Siguen en pie el aviso que lleva a Grupos, la coma de miles y la tabla que se desplaza.
+**No se recalificó:** el informe no inventa una nota sin medirla; faltan la prueba ciega y la de una colaboradora real sobre el diseño nuevo.
+
+**Revisión de 7 lentes (53 agentes de solo lectura, 2026-10-11)** y qué se hizo con cada cosa que tocaba las leyes de este informe:
+| Ley | Hallazgo | Estado |
+|---|---|---|
+| 3 · 4 | «hoy» se afirmaba como un hecho en la línea del pie, la leyenda y el lector de pantalla; «industria»/«venta propia»/«lo habitual» para lo mismo | Hecho: «según el sistema», sin flecha; «punto de partida» y «tus ventas» en toda la pantalla |
+| 6 | el panel «¿Por qué?» abría 274–581 px más abajo, fuera de la vista | Hecho: abre pegado a su botón; también existe sin capacidad medida |
+| 5 · 9 | un grupo con más de ~19 perchas daba scroll horizontal a 375 px; el rótulo se cortaba a media letra; la mancuerna se pisaba | Hecho |
+| 2 | «(23 %)» junto a «lugar libre» se leía al revés | Hecho: «(23 % ocupado)» |
+| 3 | «vende 0 %» sin su muestra; «tus 5 ventas» cuando había 215 | Hecho: «(0 ventas)» y «faltan registrar 210» |
+| 9 | grupo sin perchas apagaba todo el riel; el segundo toque táctil no soltaba | Hecho |
+| Oficio | ids duplicados, títulos sin encabezado, aria-live doble, `--grupo-4` bajo 3:1 en oscuro, blancos de 30 px | Hecho |
+
+**Queda abierto (Felipe decide mirando):** la clave «Cada percha = 50 prendas» al pie de la tarjeta (la maqueta; un escéptico la quiere pegada al riel); la tabla a 1024 px sin pista de que hay más a la derecha; el chip «45 categorías por revisar» en la cabecera; los grupos 7 en adelante (repiten color); y la pestaña **Historia**, que sigue con `BarraApilada` para los mismos grupos.
+**Límites de esta corrida:** la base local no tiene las tablas del Plan del piso y Docker no estaba disponible, así que se probó con los componentes reales y datos inventados (AQP, TRU, LIM y siete casos borde), a 1440, 1024 y 375 px, en claro y oscuro; **la ruta real contra su base no se vio**, `tema:auditar` y `/chaos` sobre Grupos no se corrieron y no lo probó una colaboradora real.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-10 | `bd5b3c6f` | 6,0 · ley 1: 6 | 7 (provisional) | los 3 (riel en barras, tres tarjetas, aviso a Grupos) + 7 arreglos del escéptico |
 | 2026-10-10 (c) | — | sin recalificar | — | la tabla a 1024 px (Bloquea) |
+| 2026-10-11 | — | sin recalificar | — | el riel de perchas (maqueta A) reemplaza barras, tarjetas y nota; 7 lentes + escépticos; tabla y mancuerna con el mismo lenguaje |

@@ -31,7 +31,7 @@ filtrando se rellena de arena; si no hay dato, borde punteado, «—» y su moti
 El vidrio de Facturación (ADR-0124), las cifras de la cabecera (`ResumenSede`, ADR-0123/0220/0331), los grupos de «Qué hacer» de Análisis
 (ADR-0245), el efectivo y «Ventas hechas» de Caja (ADR-0226/0319), las de Finanzas (ADR-0195), los tipos de Movimientos (ADR-0353), el
 Observatorio (ADR-0322), Inicio de almacén (ADR-0292), la vista rápida (ADR-0136), el panel de la talla (ADR-0344), «Hoy» de Vender
-(ADR-0221) y Rendimiento por tienda (ADR-0325). **El mostrador no cambió.**
+(ADR-0221), Rendimiento por tienda (ADR-0325) y el titular «78 de 1,800 prendas» de Plan del piso ▸ Propuesta (ADR-0352, act. 2026-10-11: es el encabezado de su tarjeta, no una tarjeta de cifra). **El mostrador no cambió.**
 
 ## Preguntas resueltas (Felipe, 2026-10-07)
 

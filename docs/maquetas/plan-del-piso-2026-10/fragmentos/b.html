@@ -1,0 +1,254 @@
+<style>
+/* B · La frase primero — editorial, silencioso. Prefijo pb-. Solo tokens --color-*; sin tarjetas con borde: filetes sand, tipografía y aire. */
+.pb{container-type:inline-size;container-name:pb}
+/* un contenedor no puede darle estilo a sí mismo con @container: las medidas viven en .pb-in */
+.pb-in{font-family:var(--sans);color:var(--color-tinta);padding:20px 0 8px;
+  --pb-cols:244px minmax(0,1fr) 132px;--pb-gap:32px;--pb-num:58px}
+.pb *{box-sizing:border-box}
+:where(.pb) :where(h2,h3,p,ol){margin:0}
+
+/* ---------- 1 · el veredicto ---------- */
+.pb-frase{font-family:var(--serif);font-weight:400;font-size:36px;line-height:1.2;letter-spacing:-.012em;max-width:25em;font-variant-numeric:lining-nums tabular-nums}
+.pb-frase span{display:block;text-wrap:balance}
+.pb-frase span:first-child{max-width:21em}
+.pb-frase span+span{margin-top:6px;color:var(--color-tinta-60)}
+.pb-cifra{font-weight:500;color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 17%,transparent);border-radius:8px;padding:0 .14em;margin:0 -.02em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.pb-estado{display:flex;flex-wrap:wrap;align-items:center;gap:8px 8px;margin-top:28px}
+.pb-enlace{margin-left:-8px;font-size:13.5px;color:var(--color-tinta);text-decoration:underline;text-decoration-color:var(--color-taupe);text-decoration-thickness:1px;text-underline-offset:4px;min-height:32px;padding:0 8px;border-radius:8px}
+.pb-enlace:hover,.pb-enlace[aria-expanded="true"]{text-decoration-color:var(--color-tinta);text-decoration-thickness:2px}
+/* «¿Por qué?» abre su explicación aquí mismo, bajo los chips (.pb-porque-c, más abajo): nunca manda a la persona al fondo de la página */
+
+/* ---------- 2 · la acción (LA acción de la pantalla) ---------- */
+.pb-accion{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 32px;margin-top:48px;padding:28px 0;border-top:1px solid var(--color-sand);border-bottom:1px solid var(--color-sand)}
+.pb-acc-t{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.2;letter-spacing:-.005em;font-variant-numeric:lining-nums tabular-nums}
+.pb-acc-t b{font-weight:500}
+.pb-acc-s{margin-top:6px;font-size:14px;color:var(--color-tinta-60);max-width:46ch}
+/* movimiento de botón del sistema, solo transform y opacity: el rojo profundo y la sombra de elevación son dos capas que aparecen (opacity), no un cambio de color */
+.pb-btn{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:40px;padding:0 20px;border-radius:var(--radius-md);background:var(--color-tinta);color:var(--color-crema);font-size:13.5px;font-weight:500;white-space:nowrap;
+  transition:transform 200ms var(--ease-cayla)}
+.pb-btn::before,.pb-btn::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;pointer-events:none;transition:opacity 200ms var(--ease-cayla)}
+.pb-btn::before{z-index:-1;background:var(--color-rojo-profundo)}
+.pb-btn::after{z-index:-2;box-shadow:0 6px 14px color-mix(in srgb,var(--color-sombra) 22%,transparent)}
+.pb-btn svg{transition:transform 200ms var(--ease-cayla)}
+.pb-btn:hover{transform:translateY(-2px)}
+.pb-btn:hover::before,.pb-btn:hover::after{opacity:1}
+.pb-btn:hover svg{transform:translateX(4px)}
+.pb-btn:active{transform:translateY(0) scale(.98)}
+.pb-btn:active::after{opacity:0}
+
+/* ---------- 3 · el único gráfico ---------- */
+.pb-graf{margin-top:64px}
+.pb-graf h3{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.15;letter-spacing:-.005em}
+.pb-sub{margin-top:6px;font-size:14.5px;color:var(--color-tinta-60)}
+.pb-cond{display:flex;gap:12px;align-items:flex-start;max-width:760px;margin-top:24px;padding:14px 18px;background:var(--color-hueso);border-radius:var(--radius-lg);font-size:14px;line-height:1.5;color:var(--color-tinta)}
+.pb-cond svg{flex:none;margin-top:2px;color:var(--color-taupe-profundo)}
+.pb-cond b{font-weight:600}
+.pb-cond p+p{margin-top:8px}
+
+.pb-eje{display:grid;grid-template-columns:var(--pb-cols);column-gap:var(--pb-gap);align-items:end;margin-top:32px}
+.pb-leyenda{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12.5px;color:var(--color-tinta-60);padding-bottom:2px}
+.pb-leyenda span{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.pb-muestra{width:22px;height:8px;border-radius:4px;flex:none}
+.pb-muestra.hoy{border:1.5px solid var(--color-taupe);background:color-mix(in srgb,var(--color-taupe) 18%,var(--color-papel))}
+.pb-muestra.prop{background:var(--color-tinta)}
+.pb-escala{position:relative;height:18px;margin-right:var(--pb-num)}
+.pb-escala span{position:absolute;bottom:0;transform:translateX(-50%);font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--color-taupe-profundo);font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.pb-escala span:first-child{transform:none}
+
+.pb-filas{list-style:none;padding:0;margin-top:10px;border-bottom:1px solid var(--color-sand)}
+.pb-fila{display:grid;grid-template-columns:var(--pb-cols);grid-template-areas:"nom pista ver";column-gap:var(--pb-gap);align-items:stretch;border-top:1px solid var(--color-sand)}
+.pb-nom{grid-area:nom;align-self:center;padding:20px 0}
+.pb-gnom{display:block;font-family:var(--serif);font-size:21px;line-height:1.2;letter-spacing:-.003em}
+.pb-gsub{display:block;margin-top:4px;font-size:12.5px;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.pb-pista{grid-area:pista;position:relative;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:20px var(--pb-num) 20px 0}
+.pb-reja{position:absolute;top:0;bottom:0;left:0;right:var(--pb-num);pointer-events:none}
+.pb-reja i{position:absolute;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--color-sand) 60%,transparent)}
+.pb-reja i:first-child{background:color-mix(in srgb,var(--color-taupe) 42%,var(--color-sand))}
+.pb-b{position:relative;height:8px}
+.pb-fill{position:absolute;top:0;bottom:0;left:0;width:calc(var(--v) / 50 * 100%);border-radius:4px;transform-origin:left center;animation:pb-crece 480ms var(--ease-cayla) both;animation-delay:calc(var(--i) * 55ms)}
+.pb-b.hoy .pb-fill{border:1.5px solid var(--color-taupe);background:color-mix(in srgb,var(--color-taupe) 18%,var(--color-papel))}
+.pb-b.prop .pb-fill{background:var(--color-tinta)}
+.pb-val{position:absolute;left:calc(var(--v) / 50 * 100%);top:50%;margin-left:6px;padding:3px 4px;border-radius:4px;background:var(--color-crema);transform:translateY(-50%);font-size:12.5px;line-height:1;white-space:nowrap;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums;animation:pb-aparece 360ms var(--ease-cayla) both;animation-delay:calc(var(--i) * 55ms + 160ms)}
+.pb-b.prop .pb-val{color:var(--color-tinta);font-weight:600}
+.pb-ver{grid-area:ver;align-self:center;display:flex;align-items:center;gap:8px;padding:20px 0;font-size:14px;font-weight:600;color:var(--color-tinta)}
+.pb-ver svg{flex:none}
+.pb-ver.ok{font-weight:400;color:var(--color-tinta-60)}
+
+@keyframes pb-crece{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes pb-aparece{from{opacity:0}to{opacity:1}}
+@keyframes pb-sube{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- 4 · cómo se calcula (plegado) y lo que queda fuera ---------- */
+.pb-det{margin-top:32px}
+.pb-det summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 4px;border-radius:8px;font-size:14px;font-weight:500}
+.pb-det summary::-webkit-details-marker{display:none}
+.pb-det summary svg{transition:transform 240ms var(--ease-cayla)}
+.pb-det[open] summary svg{transform:rotate(180deg)}
+.pb-det-c,.pb-porque-c{margin-top:8px;padding:18px 22px;background:var(--color-hueso);border-radius:var(--radius-lg);font-size:14.5px;line-height:1.6;max-width:72ch;color:var(--color-tinta);animation:pb-sube 240ms var(--ease-cayla) both}
+.pb-det-c p+p,.pb-porque-c p+p{margin-top:10px}
+.pb-det-c b,.pb-porque-c b{font-weight:600}
+.pb-porque-c{margin-top:16px}
+.pb-porque-c[hidden]{display:none}
+.pb-pie{margin-top:32px;padding-top:20px;border-top:1px solid var(--color-sand);font-size:13px;line-height:1.6;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.pb-pie-t{display:block;margin-bottom:4px}
+.pb-pie-n{max-width:80ch}
+.pb-pie-l{list-style:none;padding:0;margin-top:8px}
+.pb-pie-l li{display:flex;flex-wrap:wrap;gap:0 12px;padding:2px 0}
+.pb-pie-nom{color:var(--color-tinta);font-weight:500}
+
+/* ---------- responsive: el contenido mide 1024 / 657 / 341 ---------- */
+@container pb (max-width:879px){
+  .pb-in{--pb-cols:176px minmax(0,1fr) 108px;--pb-gap:20px}
+  .pb-frase{font-size:30px}
+  .pb-acc-t{font-size:24px}
+  .pb-gnom{font-size:19px}
+  .pb-graf{margin-top:56px}
+}
+@container pb (max-width:519px){
+  .pb-in{--pb-gap:12px}
+  .pb-frase{font-size:25px;line-height:1.22}
+  .pb-estado{margin-top:20px}
+  .pb-accion{margin-top:36px;padding:24px 0}
+  .pb-acc-t{font-size:22px}
+  .pb-btn{width:100%;min-height:44px}
+  .pb-graf{margin-top:48px}
+  .pb-graf h3{font-size:26px}
+  .pb-eje{grid-template-columns:minmax(0,1fr);row-gap:14px;margin-top:24px}
+  .pb-fila{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nom ver" "pista pista"}
+  .pb-nom{padding:18px 0 2px}
+  .pb-ver{align-self:start;padding:20px 0 2px}
+  .pb-pista{padding:10px var(--pb-num) 18px 0}
+  .pb-gnom{font-size:19px}
+  .pb-det-c,.pb-porque-c{padding:16px 18px}
+  .pb-pie-l li{flex-direction:column;padding:4px 0}
+}
+@media (prefers-reduced-motion:reduce){.pb *,.pb *::before,.pb *::after{animation:none!important;transition:none!important}}
+</style>
+
+<div class="pb" id="pb-raiz">
+<div class="pb-in">
+  <header>
+    <h2 class="pb-frase" id="pb-frase"></h2>
+    <div class="pb-estado">
+      <span class="cy-chip ambar">Por cuadrar</span>
+      <span class="cy-chip ambar">Capacidad provisional</span>
+      <button type="button" class="pb-enlace" id="pb-porque" aria-expanded="false" aria-controls="pb-porque-c">¿Por qué?</button>
+    </div>
+    <div class="pb-porque-c" id="pb-porque-c" hidden></div>
+  </header>
+
+  <section class="pb-accion" id="pb-accion" aria-labelledby="pb-acc-t"></section>
+
+  <section class="pb-graf" aria-labelledby="pb-graf-t">
+    <h3 id="pb-graf-t">Cómo se repartiría</h3>
+    <p class="pb-sub">De cada 100 prendas del riel, cuántas serían de cada grupo. «Le falta» y «Le sobra» comparan ese reparto, no cuántas prendas hay.</p>
+    <div class="pb-cond" id="pb-cond"></div>
+    <div class="pb-eje" aria-hidden="true">
+      <div class="pb-leyenda">
+        <span><i class="pb-muestra hoy"></i>Hoy, según el sistema</span>
+        <span><i class="pb-muestra prop"></i>Propuesta</span>
+      </div>
+      <div class="pb-escala" id="pb-escala"></div>
+    </div>
+    <ol class="pb-filas" id="pb-filas" role="list" aria-label="Cómo se repartiría el riel entre los grupos"></ol>
+  </section>
+
+  <details class="pb-det" id="pb-det">
+    <summary>Ver cómo se calcula
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+    </summary>
+    <div class="pb-det-c" id="pb-det-c"></div>
+  </details>
+
+  <div class="pb-pie" id="pb-pie"></div>
+</div>
+</div>
+
+<script>
+(function(){
+  var D = window.DATOS, raiz = document.getElementById('pb-raiz');
+  if (!D || !raiz) return;
+  var NB = ' ';
+  function q(id){ return document.getElementById(id); }
+  function miles(n){ return n.toLocaleString('en-US'); }
+  function pct(n){ return n.toFixed(1) + NB + '%'; }
+  var ICO = {
+    falta: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11.5v-9M3 6.5l4-4 4 4"/></svg>',
+    sobra: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2.5v9M3 7.5l4 4 4-4"/></svg>',
+    ok: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h8M3 9h8"/></svg>',
+    info: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4M8 4.9v.01"/></svg>',
+    flecha: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7h9M8 3.5 11.5 7 8 10.5"/></svg>'
+  };
+  var TXT = { ok: 'En su lugar', falta: 'Le falta', sobra: 'Le sobra' };
+  var UMBRAL = 1.5; // dentro de ±1.5 de cada 100 prendas, «en su lugar»
+
+  /* 1 · la frase */
+  var sede = D.sede.replace(/^Tienda\s+/, '');
+  var casiLibre = (D.capacidad - D.colgadasEnElRiel) / D.capacidad > .85;
+  /* «Según el sistema» y «parece»: las 78 no están cuadradas, así que la frase no afirma lo que nadie ha contado */
+  q('pb-frase').innerHTML =
+    '<span>Según el sistema, en ' + sede + ' cuelgan <b class="pb-cifra">' + D.colgadasEnElRiel + '</b>' + NB + 'prendas de' + NB + 'las' + NB + '<b class="pb-cifra">' + miles(D.capacidad) + '</b> que caben' + (casiLibre ? ': casi todo el riel parece libre.' : '.') + '</span>' +
+    '<span>Antes de repartirlo, falta contar lo que hay de verdad.</span>';
+
+  /* «¿Por qué?» de los dos chips: se abre aquí mismo */
+  q('pb-porque-c').innerHTML =
+    '<p><b>Por cuadrar.</b> Nadie ha contado el piso de ' + sede + ': las ' + D.colgadasEnElRiel + ' prendas son las que el sistema cree que cuelgan, y en el riel de verdad puede haber muchas más.</p>' +
+    '<p><b>Capacidad provisional.</b> Los ' + miles(D.capacidad) + ' ganchos todavía no se han contado en el riel, así que esa cifra también puede cambiar.</p>';
+
+  /* 2 · la acción */
+  q('pb-accion').innerHTML =
+    '<div><p class="pb-acc-t" id="pb-acc-t"><b>' + D.categoriasPorRevisar + '</b> categorías esperan que las revises</p>' +
+    '<p class="pb-acc-s">La propuesta usa el grupo que puso el sistema. Confirmarlas se hace en la pestaña «Grupos».</p></div>' +
+    '<button type="button" class="pb-btn">Revisar en Grupos' + ICO.flecha + '</button>';
+
+  /* 3 · el gráfico */
+  q('pb-cond').innerHTML = ICO.info +
+    '<div><p><b>Esto vale si las ' + D.colgadasEnElRiel + ' son reales.</b> «Hoy» es lo que el sistema cree que cuelga, no lo que hay de verdad: hasta que cuentes el piso, «le falta» y «le sobra» son una pista, no un hecho.</p>' +
+    '<p>Y casi todo el reparto sigue a las tiendas de ropa en general: ' + sede + ' solo tiene ' + D.ventasConfirmadas + ' ventas confirmadas en ' + D.dias + ' días (otras ' + D.ventasSinRegistrar + ' sin registrar todavía no cuentan).</p></div>';
+
+  var esc = '';
+  for (var t = 0; t <= 50; t += 10) {
+    esc += '<span style="left:' + (t * 2) + '%">' + t + (t === 50 ? NB + '%' : '') + '</span>';
+  }
+  q('pb-escala').innerHTML = esc;
+
+  var reja = '<span class="pb-reja" aria-hidden="true">';
+  for (var r = 0; r <= 5; r++) reja += '<i style="left:' + (r * 20) + '%' + (r === 5 ? ';margin-left:-1px' : '') + '"></i>';
+  reja += '</span>';
+
+  var grupos = D.grupos.slice().sort(function(a, b){ return b.propuestaPct - a.propuestaPct; });
+  q('pb-filas').innerHTML = grupos.map(function(g, i){
+    var dif = g.propuestaPct - g.hoyPct;
+    var v = Math.abs(dif) < UMBRAL ? 'ok' : (dif > 0 ? 'falta' : 'sobra');
+    var aria = g.nombre + '. Hoy, según el sistema: ' + pct(g.hoyPct) + ', ' + g.hoy + ' prendas. Propuesta: ' + pct(g.propuestaPct) + ', ' + miles(g.propuesta) + ' ganchos.';
+    return '<li class="pb-fila" style="--i:' + i + '">' +
+      '<div class="pb-nom"><span class="pb-gnom">' + g.nombre + '</span><span class="pb-gsub">' + miles(g.propuesta) + ' ganchos en la propuesta</span></div>' +
+      '<div class="pb-pista" role="img" aria-label="' + aria + '">' + reja +
+        '<div class="pb-b hoy" style="--v:' + g.hoyPct + '" aria-hidden="true"><i class="pb-fill"></i><span class="pb-val">' + pct(g.hoyPct) + '</span></div>' +
+        '<div class="pb-b prop" style="--v:' + g.propuestaPct + '" aria-hidden="true"><i class="pb-fill"></i><span class="pb-val">' + pct(g.propuestaPct) + '</span></div>' +
+      '</div>' +
+      '<div class="pb-ver ' + v + '">' + ICO[v] + TXT[v] + '</div></li>';
+  }).join('');
+
+  /* 4 · cómo se calcula */
+  var rubro = 100 - D.pesoVentaPct;
+  q('pb-det-c').innerHTML =
+    '<p>La propuesta reparte los ' + miles(D.capacidad) + ' ganchos casi igual que lo hacen las tiendas de ropa: de cada 100 ganchos, ' + rubro + ' siguen a esas tiendas y solo ' + D.pesoVentaPct + ' siguen lo que vendió tu sede, porque con ' + D.ventasConfirmadas + ' ventas confirmadas en ' + D.dias + ' días casi no hay ventas que mirar.</p>' +
+    '<p>Cada categoría entra con el grupo que le puso el sistema; las ' + D.categoriasPorRevisar + ' por revisar se confirman en Grupos.</p>';
+
+  /* lo que queda fuera del riel: una línea por grupo */
+  q('pb-pie').innerHTML = '<span class="cy-label pb-pie-t">Fuera del riel</span>' +
+    '<p class="pb-pie-n">No entran en el reparto de arriba. Los conteos son los que ve el sistema.</p>' +
+    '<ul class="pb-pie-l">' + D.fuera.map(function(f){
+      return '<li><span class="pb-pie-nom">' + f.nombre + '</span><span>' + f.colgadas + ' prendas · meta ' + f.meta.replace(/\s%/g, NB + '%') + NB + 'de la venta</span></li>';
+    }).join('') + '</ul>';
+
+  /* «¿Por qué?» abre y cierra su explicación aquí mismo, sin mover la página */
+  var por = q('pb-porque'), pan = q('pb-porque-c');
+  por.addEventListener('click', function(){
+    var abre = pan.hidden;
+    pan.hidden = !abre;
+    por.setAttribute('aria-expanded', abre ? 'true' : 'false');
+  });
+})();
+</script>
