@@ -375,6 +375,36 @@ ESCENARIOS.push(
     },
   },
   {
+    // La ficha del color que se mira, abierta (ADR-0316; Felipe 2026-10-10): «Combina bien con» y la frase tras «¿Por qué?».
+    id: "vender.ver-opciones-porque",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    abre: "[role=dialog]",
+    nombre: "Vender · «Todo de la prenda» con el «¿Por qué?» del color abierto",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver todos los colores y ta/ }).first().click();
+      await esperar(pagina, 1100);
+      await pagina.getByRole("button", { name: /^¿Por qué\?$/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
+  {
+    // La tarjeta sugerida que SE QUEDA al entrar al ticket (Formidable 2026-10-10, cambio 1): chip «1 en el ticket · 1 aquí», visto y «Quitar».
+    id: "vender.ver-opciones-en-ticket",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    abre: "[role=dialog]",
+    nombre: "Vender · «Todo de la prenda» con la prenda sugerida ya en el ticket",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver todos los colores y ta/ }).first().click();
+      await esperar(pagina, 1100);
+      await pagina.getByRole("button", { name: /Ver tallas/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 500);
+      await pagina.locator('[role=dialog] [aria-label^="Prendas que combinan"] button[aria-label*=" aquí"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+  {
     id: "vender.sin-registrar",
     ruta: "/vender",
     cuentas: VENDEDORAS,
@@ -609,6 +639,20 @@ const nuevoHasta = (paso) => async (pagina) => {
 };
 ESCENARIOS.push(
   { id: "productos.vista-rapida", ruta: "/productos", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Productos · la vista rápida de una prenda", async preparar(pagina) { await pagina.locator(".card-cayla button").first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
+  {
+    // La ficha del color de la foto, abierta (ADR-0316; Felipe 2026-10-10): «Combina bien con» bajo la foto y la frase tras «¿Por qué?».
+    id: "productos.vista-rapida-porque",
+    ruta: "/productos",
+    cuentas: CATALOGO,
+    abre: "[role=dialog]",
+    nombre: "Productos · la vista rápida con el «¿Por qué?» del color abierto",
+    async preparar(pagina) {
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+      await pagina.getByRole("button", { name: /^¿Por qué\?$/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
   // ADR-0354: «Historial» da vuelta la página dentro de la misma hoja; `abre` exige el hilo, no solo la ventana.
   {
     id: "productos.vista-rapida-historial",
@@ -667,6 +711,19 @@ ESCENARIOS.push(
   { id: "nuevo.familia", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 1: las categorías de una familia", preparar: nuevoHasta("familia") },
   { id: "nuevo.como-es", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 2: cómo es (marca, nombre, tejido, patrón)", preparar: nuevoHasta("como-es") },
   { id: "nuevo.tallas", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 3: tallas y colores", preparar: nuevoHasta("tallas") },
+  {
+    // El pie de la carta con un color señalado (ADR-0316; Felipe 2026-10-10): su nombre, Pantone y, debajo, «Combina bien con» con los
+    // círculos de sus compañeros y la primera frase de la ficha. Un escenario sin color señalado auditaría el pie vacío.
+    id: "nuevo.tallas-color",
+    ruta: "/productos/nuevo",
+    cuentas: CATALOGO,
+    nombre: "Nuevo producto · paso 3 con un color señalado en la carta (su ficha al pie)",
+    async preparar(pagina) {
+      await nuevoHasta("tallas")(pagina);
+      await pagina.getByRole("button", { name: /^Beige$/ }).first().hover({ timeout: 8000 });
+      await esperar(pagina, 700);
+    },
+  },
   { id: "nuevo.precio", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 4: precio y unidades", preparar: nuevoHasta("precio") },
   { id: "producto.editar", ruta: "/productos/[id]/editar", cuentas: ["admin", "terminal-administrativa"], abre: "text=VES-0001", nombre: "Editar producto · la ficha de una prenda", preparar: productoPorCodigo("VES-0001", "editar") },
   { id: "producto.historial", ruta: "/productos/[id]/historial", cuentas: ["admin"], abre: "h1", nombre: "Historial de una prenda", preparar: productoPorCodigo("VES-0001", "historial") },

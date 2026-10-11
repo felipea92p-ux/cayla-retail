@@ -65,7 +65,8 @@ describe("faltaParaCrear", () => {
 describe("colorDeRespuesta", () => {
   it("lee el color y si nació pendiente", () => {
     const r = colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "pendiente", sinonimos: ["rosa viejo"] } });
-    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null }, pendiente: true });
+    // Sin ficha todavía (ADR-0316): descripción vacía y sin compañeros, nunca `undefined`.
+    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, combinaCon: [] }, pendiente: true });
     expect(colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "aprobado" } })?.pendiente).toBe(false);
   });
   it("trae el Pantone cuando la API lo devuelve (la referencia real de la tela)", () => {

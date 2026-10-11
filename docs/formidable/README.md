@@ -20,6 +20,7 @@ Formidable porque sus modales lo sean, ni al revés.
 | Inventario | Análisis (`/inventario/resumen`), por modelo (ADR-0357 decisión 12) | sin probar: solo medido (`rapido`); sin desbordes a 1440, 1024 ni 375 | — | — | [inventario-resumen](inventario-resumen.md) | 2026-10-10 |
 | Compras | Plan de campaña (`/compras/plan`): la pantalla, su hoja de categoría, el paso a paso, «Poner el tope» y «Nueva campaña» | ciega ✓ · real sin probar; **los 3 cambios hechos y medidos (2026-10-10)**, sin publicar; falta la ciega sobre la pantalla nueva | 6,8 (provisional; antes 5,1) · ley 1: 6 | 9 (antes 7) | [compras-plan](compras-plan.md) | 2026-10-10 |
 | Producción | Nueva orden ▸ Modelo nuevo, hoja de `/produccion/ordenes` | ciega ✓ (Opus; entró como líder; sin repetir tras los cambios) · real sin probar; los 3 cambios aplicados (2026-10-10) | 5,4 (provisional) · ley 1: 6 · ley 5: 4 | 5 (crudo 4) | [produccion-nueva-orden](produccion-nueva-orden.md) | 2026-10-10 |
+| Ventas | Vender ▸ «Todo de la prenda» con «Combina bien con» (`/vender`, la hoja) | **en deuda** (ley 4: 4 en la medición anterior); ciega ✓ (4 toques) · real sin probar; los 3 cambios hechos (1 con investigación del sector); falta volver a calificar | 6,0 · ley 4: 4 (antes) | 6 (antes) | [vender-todo-de-la-prenda](vender-todo-de-la-prenda.md) | 2026-10-10 |
 
 ## Orden de despliegue (módulo por módulo, decidido 2026-10-05)
 Inventario (piloto: Frescura del piso) → el resto del módulo → siguiente módulo que Felipe indique. El orden dentro de un módulo sale de
