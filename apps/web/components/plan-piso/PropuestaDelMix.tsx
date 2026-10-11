@@ -270,37 +270,42 @@ export function PropuestaDelMix({
             La propuesta mezcla el punto de partida de la industria con lo que vendió la sede. Aquí no se guarda nada: es para mirarla y compararla con lo que cuelga.
           </p>
         </div>
-        <div className="divide-y divide-sand">
-          <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
-          {p.enRiel.map((f) => (
-            <FilaGrupo key={f.grupo.clave} f={f} cuadrado={p.cuadrado} capacidad={p.capacidad} />
-          ))}
-          {sinGrupo && (
-            <div className={fila(PLANTILLA, "sm:items-center bg-hueso/60")}>
-              <div className={celda("izq", "text-sm text-tinta")}>
-                Sin grupo
-                <span className="ml-2 text-xs text-taupe">
-                  {p.sinGrupo.categorias} {p.sinGrupo.categorias === 1 ? "categoría" : "categorías"}: no entra al reparto
-                </span>
+        {/* La tabla se desplaza dentro de su tarjeta (como `Tabla`, ADR-0169) y tiene un ancho mínimo: las columnas fijas suman 38 rem y con las separaciones (5 × 1 rem) y el
+            relleno de la fila (2 × 1.25 rem) son 45.5 rem; el mínimo de 56 rem le deja 10.5 rem a «Grupo». Sin él, una tarjeta angosta (1024 px con el menú abierto: 657 px) dejaba
+            a «Grupo» en 0 px y a «Diferencia» fuera de la tarjeta. Desde 1280 px cabe sin desplazarse. Bajo `sm` las filas se apilan y no hay mínimo. */}
+        <div className="scroll-cayla overflow-x-auto">
+          <div className="divide-y divide-sand sm:min-w-[56rem]">
+            <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
+            {p.enRiel.map((f) => (
+              <FilaGrupo key={f.grupo.clave} f={f} cuadrado={p.cuadrado} capacidad={p.capacidad} />
+            ))}
+            {sinGrupo && (
+              <div className={fila(PLANTILLA, "sm:items-center bg-hueso/60")}>
+                <div className={celda("izq", "text-sm text-tinta")}>
+                  Sin grupo
+                  <span className="ml-2 text-xs text-taupe">
+                    {p.sinGrupo.categorias} {p.sinGrupo.categorias === 1 ? "categoría" : "categorías"}: no entra al reparto
+                  </span>
+                </div>
+                <Dato etiqueta="Hoy" apagado>
+                  {n(p.sinGrupo.colgadas)}
+                </Dato>
+                <Dato etiqueta="Industria">—</Dato>
+                <Dato etiqueta="Venta propia">{p.sinGrupo.ventasConfirmadas > 0 ? `(${p.sinGrupo.ventasConfirmadas})` : "—"}</Dato>
+                <Dato etiqueta="Propuesta">—</Dato>
+                <Dato etiqueta="Diferencia">—</Dato>
               </div>
-              <Dato etiqueta="Hoy" apagado>
-                {n(p.sinGrupo.colgadas)}
+            )}
+            <div className={fila(PLANTILLA, "sm:items-center font-medium")}>
+              <div className={celda("izq", "text-sm text-tinta")}>Total del riel</div>
+              <Dato etiqueta="Hoy" apagado={!p.cuadrado}>
+                {n(p.colgadasEnElRiel)}
               </Dato>
-              <Dato etiqueta="Industria">—</Dato>
-              <Dato etiqueta="Venta propia">{p.sinGrupo.ventasConfirmadas > 0 ? `(${p.sinGrupo.ventasConfirmadas})` : "—"}</Dato>
-              <Dato etiqueta="Propuesta">—</Dato>
+              <Dato etiqueta="Industria">{p.motivoSinPropuesta ? "—" : "100 %"}</Dato>
+              <Dato etiqueta="Venta propia">{hayVentas ? `(${n(p.ventasConfirmadasDelRiel)})` : "—"}</Dato>
+              <Dato etiqueta="Propuesta">{p.motivoSinPropuesta ? "—" : `${p.capacidad === null ? "" : `${n(p.capacidad)} · `}100 %`}</Dato>
               <Dato etiqueta="Diferencia">—</Dato>
             </div>
-          )}
-          <div className={fila(PLANTILLA, "sm:items-center font-medium")}>
-            <div className={celda("izq", "text-sm text-tinta")}>Total del riel</div>
-            <Dato etiqueta="Hoy" apagado={!p.cuadrado}>
-              {n(p.colgadasEnElRiel)}
-            </Dato>
-            <Dato etiqueta="Industria">{p.motivoSinPropuesta ? "—" : "100 %"}</Dato>
-            <Dato etiqueta="Venta propia">{hayVentas ? `(${n(p.ventasConfirmadasDelRiel)})` : "—"}</Dato>
-            <Dato etiqueta="Propuesta">{p.motivoSinPropuesta ? "—" : `${p.capacidad === null ? "" : `${n(p.capacidad)} · `}100 %`}</Dato>
-            <Dato etiqueta="Diferencia">—</Dato>
           </div>
         </div>
         {!p.cuadrado && (
@@ -318,11 +323,13 @@ export function PropuestaDelMix({
               Bisutería, cinturones, bolsos y calzado van junto a la caja, en repisa o en ganchos aparte: no ocupan percha del riel. Se miden como porcentaje de la venta, no del piso.
             </p>
           </div>
-          <div className="divide-y divide-sand">
-            <Encabezado columnas={COLUMNAS_FUERA} plantilla={PLANTILLA_FUERA} />
-            {p.fueraDelRiel.map((f) => (
-              <FilaFuera key={f.grupo.clave} f={f} />
-            ))}
+          <div className="scroll-cayla overflow-x-auto">
+            <div className="divide-y divide-sand sm:min-w-[40rem]">
+              <Encabezado columnas={COLUMNAS_FUERA} plantilla={PLANTILLA_FUERA} />
+              {p.fueraDelRiel.map((f) => (
+                <FilaFuera key={f.grupo.clave} f={f} />
+              ))}
+            </div>
           </div>
         </section>
       )}

@@ -41,12 +41,12 @@ Felipe dio el OK el 2026-10-10 («aplicamos»). Ninguno toca el cálculo ni una 
 - La **Mancuerna** repite los mismos porcentajes de la tabla de abajo, con una leyenda de cuatro símbolos que la ciega no supo distinguir: se propone esconderla tras un toque o unirla con la tabla.
 - **«Diferencia: —» en todas las filas** mientras la sede está «por cuadrar»: decirlo una vez, no en cada fila.
 
-## Lo que no pediste y importa más
+## Lo que no pediste y importa más  *(corregido el mismo día, ver «Actualización» al final)*
 **La tabla «Lugar de cada grupo en el riel» no se puede leer a 1024 px con el menú abierto** (la celda «Grupo» mide 0 px, el nombre del grupo queda en 45 px y «Diferencia» se sale 52 px de su tarjeta). Desde 1280 px está bien. Es de antes de este cambio: `PLANTILLA` de `PropuestaDelMix.tsx:18` suma 38 rem fijos
 y deja el resto a la columna del nombre. Según `/multi-view-responsive` es **Bloquea** (una columna clave con 0 px). Arreglo sugerido: un ancho mínimo de la tabla con su propio scroll horizontal, o dejar de fijar 38 rem bajo ~1280 px.
 
 ## Lista aparte (no se ejecuta)
-1. **[Bloquea]** La tabla a 1024 px (arriba).
+1. ~~**[Bloquea]** La tabla a 1024 px (arriba).~~ **Hecho** (ver «Actualización»).
 2. **«Por cuadrar» sin camino** (ley 2 y 9): el chip y la nota «Esta sede todavía no cuadró su piso» no llevan a nada; la ciega tocó el chip esperando cuadrar. Un enlace a `/inventario/cuadrar` (solo navegación; depende del módulo de quien mira).
 3. **Los roles («Destino», «Rutina»…) solo por `title`** (ley 6): pasarlos a un toque con `<Ayuda>`, como hace `TarjetaCifra`.
 4. **«Cómo se calcula» en jerga** (ley 3, 4, 6): «3.3 ventas independientes», «tope 75 %», «la industria pesa como 50». Una frase de veredicto y el detalle en un «¿Por qué?».
@@ -85,7 +85,21 @@ El resto que marcó el script es del marco (lateral con texto cortado y «solape
 - **Caída externa:** `page.tsx` degrada en tres niveles (grupos, propuesta, historia: «No se pudo… No se perdió nada» con «Reintentar»). Leído en el código; **no ejercitado en el navegador** (la página de ensayo no pasa por esas lecturas).
 - **Persona sin contexto:** la prueba ciega lo respondió (con el límite de los 5 s de arriba); colaboradora real: **sin probar**. `/chaos` **no se corrió**: la parte nueva no guarda, la que guarda (Grupos) no se tocó, y su esquema no existe en la base local.
 
+## Actualización 2026-10-10 (c) — la tabla a 1024 px, arreglada
+Felipe dijo «sí, hazlo». **Qué se hizo:** las dos tablas de la Propuesta («Lugar de cada grupo en el riel» y «Fuera del riel») se desplazan dentro de su tarjeta (`scroll-cayla overflow-x-auto`, la convención de `Tabla`, ADR-0169) y tienen un ancho mínimo desde `sm`
+(56 rem y 40 rem: las columnas fijas, las separaciones y el relleno de la fila suman 45.5 rem y el resto es para «Grupo»). **Medido** con la misma página de ensayo:
+| Ancho (menú abierto) | «Grupo» antes | «Grupo» después | Desplazamiento | Desborde de página |
+|---|---|---|---|---|
+| 1024 | **0 px** (y «Diferencia» 52 px fuera de la tarjeta) | **168 px**, nombre sin recortar, encabezado sin encimarse | sí: 241 px dentro de la tarjeta | 0 |
+| 1280 | 183 px | 183 px | no | 0 |
+| 1440 | 294 px | 294 px | no | 0 |
+| 375 (filas apiladas) | — | 301 px | no | 0 |
+
+**Límite que queda:** al desplazar a la derecha para ver «Diferencia», el nombre del grupo sale de la vista (la primera columna no se queda fija). Las filas van en el mismo orden y es solo a 1024; si molesta, la columna fija es el siguiente paso.
+**Nota:** la nota de la ley 9 (5) se puso con la tabla rota y no se recalificó: el informe no inventa una nota sin medirla de nuevo.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-10 | `bd5b3c6f` | 6,0 · ley 1: 6 | 7 (provisional) | los 3 (riel en barras, tres tarjetas, aviso a Grupos) + 7 arreglos del escéptico |
+| 2026-10-10 (c) | — | sin recalificar | — | la tabla a 1024 px (Bloquea) |

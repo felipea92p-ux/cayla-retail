@@ -160,6 +160,13 @@ DESCARTÉ: dar el foco al panel (`tabIndex={-1}` + `outline-none`): su contorno 
 **Movimiento:** nada propio. Lo que se mueve es de las piezas del sistema (el aviso entra y dibuja su ícono; las barras entran creciendo y se reacomodan; el botón sube 2 px), todas de ADR-0136/0358 y apagadas con
 `prefers-reduced-motion`; lo único que escribe este cambio es el giro de 200 ms del chevron de «Ver cada gancho».
 
-**Lo que quedó fuera a propósito** (lista aparte del informe, sin hacer): la tabla «Lugar de cada grupo en el riel» **se rompe a 1024 px con el menú abierto** (la celda «Grupo» mide 0 px y «Diferencia» se sale 52 px; desde 1280 está bien;
-es de antes de este cambio), un camino desde «Por cuadrar» a `/inventario/cuadrar`, los roles («Destino», «Rutina»…) solo por `title`, y la jerga de «Cómo se calcula».
+**7. La tabla se desplaza dentro de su tarjeta (corregido el mismo día, 2026-10-10 (c)).**
+`PLANTILLA` suma 38 rem de columnas fijas más una `minmax(0, 1.5fr)`; con las separaciones y el relleno son 45.5 rem, así que una tarjeta de 657 px (1024 px con el menú abierto) dejaba a «Grupo» en 0 px y a «Diferencia» 52 px
+fuera de ella: el mismo error que ya documenta `Tabla` (2026-09-15). DECIDÍ: la convención de `Tabla` (la fila se desplaza dentro de su tarjeta, `overflow-x-auto`) más un ancho mínimo desde `sm` (56 rem y, en «Fuera del riel», 40 rem).
+Medido: «Grupo» pasa de 0 a 168 px a 1024 y no cambia a 1280 (183) ni a 1440 (294); a 375 px las filas siguen apiladas.
+DESCARTÉ: esconder columnas bajo un ancho (`desdeLg`/`desdeXl` miden el navegador, no la tarjeta, y el menú abierto le quita 270 px): perdería información sin aviso.
+SE ROMPE SI: se agrega una columna fija (hay que sumarla al mínimo), y a 1024 px el nombre del grupo sale de la vista al ver «Diferencia» (primera columna no fija).
+
+**Lo que quedó fuera a propósito** (lista aparte del informe, sin hacer): un camino desde «Por cuadrar» a `/inventario/cuadrar`, los roles («Destino», «Rutina»…) solo por `title`, la jerga de «Cómo se calcula», y las tres piezas compartidas
+(`TarjetaCifra` con `acento`, `Aviso` a 375 px, las paradas de teclado de `BarraApilada`).
 **Para producción:** nada que pegar; solo publicar la web.
