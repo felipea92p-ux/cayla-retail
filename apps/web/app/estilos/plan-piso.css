@@ -194,6 +194,8 @@
   .pp-ficha .pp-ic { width: 28px; height: 36px; }
   .pp-ficha b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.25; }
   .pp-ficha span { display: block; font-size: 12.5px; color: var(--color-tinta-60); line-height: 1.35; font-variant-numeric: lining-nums tabular-nums; }
+  /* «Para empezar»: la línea que responde a lo que se pidió, un peso por encima del resto de la ficha */
+  .pp-ficha .pp-ficha-ref { margin-top: 3px; color: var(--color-tinta); font-weight: 500; }
 
   /* el icono de un grupo suelto (en la tabla y la mancuerna) */
   .pp-ic-fila { width: 20px; height: 26px; }

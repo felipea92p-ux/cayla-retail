@@ -8,7 +8,8 @@
  *
  * LÓGICA PURA: sin red ni React.
  */
-import type { FilaDelRiel, PropuestaMix } from "./mix-piso";
+import type { FilaDelRiel, PropuestaMix, ReferenciaFueraDelRiel } from "./mix-piso";
+import { SEMANAS_DE_VENTA_FUERA_DEL_RIEL } from "./mix-piso-partida";
 import { cifraEs, prendasEs } from "./mix-piso-visual";
 
 const n = cifraEs;
@@ -247,19 +248,50 @@ export function ariaDeLaPropuesta(grupos: readonly { nombre: string; propuesta: 
   return `Cómo quedaría: ${conPrendas.map((g) => `${g.nombre} ${n(g.propuesta)}`).join(", ")}. En total ${n(repartidas)} de ${n(capacidad)} lugares repartidos.`;
 }
 
+/** «1 venta», «73 ventas»: la palabra concuerda con la cifra. */
+const ventasEs = (x: number) => `${n(x)} ${x === 1 ? "venta" : "ventas"}`;
+
 /**
  * La línea de una ficha de «Fuera del riel»: cuánto cuelga, cuánto se vende y la meta de la sede (o que no lo lleva). El porcentaje de venta va con las
- * ventas en que se apoya, como en la tabla («0 % (3 ventas)»): un 0 sin su muestra diría «no se vende» sin saberlo (ADR-0214, revisión 2026-10-11).
+ * ventas en que se apoya, como en la tabla («0 % (3 ventas)»): un 0 sin su muestra diría «no se vende» sin saberlo (ADR-0214).
+ *
+ * Con `ventaPctTotal` (confirmadas y sin registrar, sobre todo lo que vendió la sede) el porcentaje dice de dónde sale: «73 ventas: 6 confirmadas y 67 sin registrar».
+ * Un accesorio casi nunca está en el catálogo, así que contar solo las confirmadas hacía decir «vende 2.5 %» a un grupo que es el 13 % de lo vendido.
  */
-export function lineaDeFicha(f: { colgadas: number; ventaPct: number | null; ventasConfirmadas?: number; meta: { desde: number; hasta: number } | null; noLoLleva: boolean }): string {
+export function lineaDeFicha(f: {
+  colgadas: number;
+  ventaPct: number | null;
+  ventaPctTotal?: number | null;
+  ventasConfirmadas?: number;
+  ventasAnotadas?: number;
+  meta: { desde: number; hasta: number } | null;
+  noLoLleva: boolean;
+}): string {
   const partes = [prendasEs(f.colgadas)];
   if (f.noLoLleva) return [...partes, "esta sede no lo lleva"].join(" · ");
-  if (f.ventaPct !== null) {
-    const v = f.ventasConfirmadas;
-    partes.push(`vende ${PCT(f.ventaPct)}${v === undefined ? "" : ` (${n(v)} ${v === 1 ? "venta" : "ventas"})`}`);
+  const conf = f.ventasConfirmadas;
+  const anot = f.ventasAnotadas ?? 0;
+  if (f.ventaPctTotal !== undefined && f.ventaPctTotal !== null && conf !== undefined) {
+    const detalle = anot > 0 ? `${ventasEs(conf + anot)}: ${n(conf)} ${conf === 1 ? "confirmada" : "confirmadas"} y ${n(anot)} sin registrar` : ventasEs(conf);
+    partes.push(`vende ${PCT(f.ventaPctTotal)} (${detalle})`);
+  } else if (f.ventaPct !== null) {
+    partes.push(`vende ${PCT(f.ventaPct)}${conf === undefined ? "" : ` (${ventasEs(conf)})`}`);
   }
-  if (f.meta) partes.push(`meta ${f.meta.desde}–${f.meta.hasta}\u00a0% de la venta`);
+  if (f.meta) partes.push(`meta ${f.meta.desde}–${f.meta.hasta}\u00a0% de lo vendido`);
   return partes.join(" · ");
+}
+
+/**
+ * La línea «Para empezar» de una ficha de «Fuera del riel»: lo que la venta de la sede sostiene, entre mostrador y trastienda. NO se compara con lo que cuelga
+ * (el stock del sistema no descuenta lo vendido sin registrar: «faltan 160» sería una orden de compra que nadie calculó). `null` si la sede no lleva el grupo.
+ */
+export function textoDeReferencia(r: ReferenciaFueraDelRiel | null): string | null {
+  if (r === null) return null;
+  if (r.tipo === "sin") return `Para empezar: ${r.motivo}.`;
+  const cuanto = r.desde === r.hasta ? `unas ${n(r.desde)}` : `unas ${n(r.desde)} a ${n(r.hasta)}`;
+  // Con tan pocas prendas manda el surtido, no la venta: se dice, para que nadie ponga 3 aretes en un mostrador.
+  if (r.pocas) return `Para empezar: ${cuanto} prendas según la venta; con tan pocas, manda que el mostrador se vea surtido.`;
+  return `Para empezar: ${cuanto} prendas, entre mostrador y trastienda.`;
 }
 
 // ── «Cómo se calcula», en palabras ────────────────────────────────────────────────────────────────────────────────────────
@@ -310,6 +342,17 @@ export function panelDelPorQue(p: PropuestaMix, provisional: boolean): PanelDelP
   if (provisional && capacidad !== null) p3.push(`Los ${n(capacidad)} lugares son provisionales (falta contar el riel).`);
   if (!p.cuadrado) p3.push(`Las ${n(p.colgadasEnElRiel)} prendas de «Hoy» son lo que el sistema cree que cuelga, no lo que hay de verdad. Por eso, saber qué grupo tiene de más o de menos depende de contar tu piso.`);
   if (p3.length > 0) parrafos.push(p3.join(" "));
+
+  // «Para empezar» de lo que va fuera del riel: de dónde sale y por qué NO es una compra.
+  if (p.fueraDelRiel.some((f) => f.referencia?.tipo === "rango")) {
+    const acc = SEMANAS_DE_VENTA_FUERA_DEL_RIEL.accesorios_de_impulso!;
+    const bol = SEMANAS_DE_VENTA_FUERA_DEL_RIEL.bolsos_y_calzado!;
+    parrafos.push(
+      `En «Fuera del riel», «Para empezar» es lo que la venta de la sede sostiene: de ${acc.desde} a ${acc.hasta} semanas de venta en accesorios y de ${bol.desde} a ${bol.hasta} en bolsos y calzado (un bolso cuesta mucho más y deja menos margen). ` +
+        `Mezcla lo vendido —también lo que está sin registrar, porque un accesorio casi nunca está en el catálogo— con la meta, que aquí se lee en prendas y no en soles (en soles los accesorios pesan menos). ` +
+        `Es un punto de partida, no una compra: primero cuenta lo que hay entre el mostrador y la trastienda, porque el sistema no descuenta lo vendido sin registrar.`,
+    );
+  }
 
   const filas = p.enRiel.map((f: FilaDelRiel) => ({
     clave: f.grupo.clave,
