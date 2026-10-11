@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "./etiqueta-campana";
+import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "./etiqueta-campana";
+import { descuentoDeCampana } from "./vender-reglas";
 
 describe("parsearDescuento", () => {
   it.each([
@@ -71,5 +72,43 @@ describe("prendasBajoCosto — el aviso al configurar una campaña", () => {
   });
   it("sin categorías ni prendas a mano, el alcance es vacío", () => {
     expect(prendasBajoCosto(99, prendas, new Set(), new Set())).toEqual([]);
+  });
+});
+
+describe("el aviso mide el peor caso entre las tiendas (precio propio, Felipe 2026-10-10)", () => {
+  // Prenda a 79.90 con costo 60 y TRU con precio propio 69.90, campaña de 20 %: la caja de TRU cobra 69.90 − 13.98 = 55.92 (bajo el costo)
+  // y la de las demás 79.90 − 15.98 = 63.92 (no). El aviso con el precio de la prenda no lo veía.
+  const base = { id: "falda", categoriaId: "c-faldas", costo: 60, nombre: "Falda Emma (FAL-0008)" };
+  it("con el precio de la prenda (79.90) no avisa; con el peor caso (TRU 69.90) sí", () => {
+    expect(prendasBajoCosto(20, [{ ...base, precio: 79.9 }], new Set(["c-faldas"]), new Set())).toEqual([]);
+    const r = prendasBajoCosto(20, [{ ...base, precio: 69.9, enSede: "Trujillo" }], new Set(["c-faldas"]), new Set());
+    expect(r.map((p) => p.id)).toEqual(["falda"]);
+  });
+  it("quedar justo en el costo no avisa", () => {
+    // 75 − 15 = 60: igual al costo, no por debajo.
+    expect(prendasBajoCosto(20, [{ ...base, precio: 75, enSede: "Trujillo" }], new Set(["c-faldas"]), new Set())).toEqual([]);
+  });
+  it("dice el precio más bajo y dónde cuando es el propio de una tienda; si es el de la prenda, solo el nombre", () => {
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 69.9, enSede: "Trujillo" })).toBe("Falda Emma (FAL-0008) · precio más bajo: S/ 69.90 en Trujillo");
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 79.9, enSede: null })).toBe("Falda Emma (FAL-0008)");
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 79.9 })).toBe("Falda Emma (FAL-0008)");
+  });
+  it("no culpa a una tienda: dice un hecho aunque la prenda a su precio ya quede bajo el costo (79.90, costo 65, 25 %)", () => {
+    // Con la prenda sola ya se cobra 59.92 < 65: el texto no dice «el problema es Trujillo», dice cuál es el precio más bajo.
+    const texto = nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 69.9, enSede: "Trujillo" });
+    expect(texto).not.toMatch(/propio de/);
+    expect(texto).toContain("precio más bajo");
+  });
+  it("el precio más bajo da el cobrado más bajo: P − descuento no decrece con P (en céntimos, todos los % usuales)", () => {
+    // Es el único supuesto de «peor caso»: si el más bajo no queda bajo el costo, ninguno otro lo hace.
+    for (const pct of [5, 10, 12.5, 15, 20, 25, 33.33, 50, 99, 100]) {
+      let anterior = -Infinity;
+      for (let c = 1; c <= 30000; c++) {
+        const precio = c / 100;
+        const cobrado = Math.round((precio - descuentoDeCampana(precio, pct)) * 100);
+        if (cobrado < anterior) throw new Error(`pct ${pct}: ${precio} cobra menos que el precio anterior`);
+        anterior = cobrado;
+      }
+    }
   });
 });

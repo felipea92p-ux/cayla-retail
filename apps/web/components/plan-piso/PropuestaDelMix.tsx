@@ -20,6 +20,7 @@ import {
   textoDelPorQue,
 } from "@/lib/plan-piso-percha";
 import { ROL_AYUDA, ROL_ETIQUETA } from "@/lib/plan-piso-grupos";
+import { coloresDelIcono, NOTA_DE_COLORES } from "@/lib/plan-piso-colores";
 import { AvisoPorRevisar } from "@/components/plan-piso/AvisoPorRevisar";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { Mancuerna } from "@/components/plan-piso/Mancuerna";
@@ -166,9 +167,11 @@ export function PropuestaDelMix({
   const dibujaFuera = hayFuera && (dibujaTarjeta || p.fueraDelRiel.some((f) => f.colgadas > 0 || f.ventasConfirmadas > 0));
   const notaSinGrupo = notaDeSinGrupo(p.sinGrupo.colgadas);
 
+  const hayColores = p.enRiel.some((f) => f.colores.some((c) => c.hex !== null));
+
   let riel: React.ReactNode = null;
   if (capacidad !== null && dibujaTarjeta) {
-    const base = p.enRiel.map((f) => ({ clave: f.grupo.clave, nombre: f.grupo.nombre, hoy: f.colgadas, propuesta: f.propuestaPrendas ?? 0 }));
+    const base = p.enRiel.map((f) => ({ clave: f.grupo.clave, nombre: f.grupo.nombre, hoy: f.colgadas, propuesta: f.propuestaPrendas ?? 0, colores: f.colores }));
     const rieles = armarRieles(base, capacidad);
     const grupos: GrupoDelRiel[] = p.enRiel.map((f, indice) => ({
       clave: f.grupo.clave,
@@ -178,6 +181,7 @@ export function PropuestaDelMix({
       hoy: f.colgadas,
       propuesta: f.propuestaPrendas ?? 0,
       propuestaPct: f.propuestaPct,
+      coloresDelIcono: coloresDelIcono(f.colores),
     }));
     const repartidas = grupos.reduce((s, g) => s + g.propuesta, 0);
     const nota = notaDeEscala(rieles.unidad);
@@ -197,6 +201,7 @@ export function PropuestaDelMix({
         textoPorQue={textoPorQue}
         panel={panelPorQue}
         nota={nota}
+        notaDeColores={hayColores ? NOTA_DE_COLORES : null}
       />
     );
   } else if (dibujaTarjeta) {

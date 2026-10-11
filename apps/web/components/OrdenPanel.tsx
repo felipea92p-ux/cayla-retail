@@ -307,6 +307,11 @@ export function OrdenPanel({
                       </Chip>
                     )}
                     {orden.precioVenta > 0 && <p className="mt-1.5 text-xs text-tinta/65">precio de venta {soles(orden.precioVenta)}</p>}
+                    {sem?.sede && orden.precioMasBajo && (
+                      <p className="mt-0.5 text-xs text-tinta/65">
+                        el margen usa {soles(orden.precioMasBajo.precio)}, el precio propio de {sem.sede}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {costo.total > 0 && (

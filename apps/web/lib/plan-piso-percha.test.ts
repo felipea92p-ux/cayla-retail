@@ -243,10 +243,10 @@ describe("la frase del estado, en palabras de tienda y sin afirmar lo que nadie 
   });
 
   it("lo que oye quien usa lector en cada ficha de «Hoy»: empieza por lo que se ve y lleva la propuesta (la línea viva ya no se anuncia sola)", () => {
-    const polos = { nombre: "Polos, tops y blusas", corto: "Polos", hoy: 30, propuesta: 788, propuestaPct: 43.8 };
-    expect(etiquetaDeChipHoy(polos, true)).toBe("Polos 30: Polos, tops y blusas, 30 prendas hoy; propuesta 788");
-    expect(etiquetaDeChipHoy(polos, false)).toBe("Polos 30: Polos, tops y blusas, 30 prendas hoy según el sistema; propuesta 788");
-    expect(etiquetaDeChipHoy({ ...polos, hoy: 1, propuesta: 0, propuestaPct: null }, true)).toBe("Polos 1: Polos, tops y blusas, 1 prenda hoy; sin propuesta");
+    const polos = { nombre: "Polos, tops y blusas", hoy: 30, propuesta: 788, propuestaPct: 43.8 };
+    expect(etiquetaDeChipHoy(polos, true)).toBe("Polos, tops y blusas 30: 30 prendas hoy; propuesta 788");
+    expect(etiquetaDeChipHoy(polos, false)).toBe("Polos, tops y blusas 30: 30 prendas hoy según el sistema; propuesta 788");
+    expect(etiquetaDeChipHoy({ ...polos, hoy: 1, propuesta: 0, propuestaPct: null }, true)).toBe("Polos, tops y blusas 1: 1 prenda hoy; sin propuesta");
     expect(ariaDeLasFichasDeHoy(true)).toBe("Prendas de hoy por grupo");
     expect(ariaDeLasFichasDeHoy(false)).toContain("según el sistema");
   });
@@ -401,6 +401,50 @@ describe("los dos rieles de una sede, listos para dibujar", () => {
     expect(r.hoy).toEqual([]);
     expect(r.propuesta).toEqual([]);
     expect(r.unidad).toBe(20);
+  });
+});
+
+describe("los rieles pintan cada percha con el color de una variante que de verdad cuelga", () => {
+  const negro = { clave: "NEG", nombre: "Negro", hex: "#1a1a1a", prendas: 60 };
+  const blanco = { clave: "BLA", nombre: "Blanco", hex: "#ffffff", prendas: 48 };
+  const beige = { clave: "BEI", nombre: "Beige", hex: "#d9c7a5", prendas: 42 };
+  const polos = { clave: "polos_tops_blusas", nombre: "Polos, tops y blusas", hoy: 150, propuesta: 365, colores: [negro, blanco, beige] };
+
+  it("«Hoy»: una percha por lugar y 3 negras, 3 blancas y 2 beige (150 prendas = 7,5 perchas de 20: 7 enteras y una angosta)", () => {
+    const r = armarRieles([polos], 600);
+    expect(r.unidad).toBe(20);
+    expect(r.hoy[0]!.colores.map((c) => c?.nombre)).toEqual(["Negro", "Negro", "Negro", "Blanco", "Blanco", "Blanco", "Beige", "Beige"]);
+    expect(r.hoy[0]!.colores).toHaveLength(r.hoy[0]!.llenas + (r.hoy[0]!.resto > 0 ? 1 : 0));
+  });
+
+  it("«Cómo quedaría» repite la mezcla de hoy sobre SUS perchas (365 prendas = 18,25) y no dice colores por escrito", () => {
+    const r = armarRieles([polos], 600);
+    const b = r.propuesta[0]!;
+    expect(b.colores).toHaveLength(b.llenas + (b.resto > 0 ? 1 : 0));
+    expect(b.colores.filter((c) => c?.nombre === "Negro").length).toBeGreaterThan(b.colores.filter((c) => c?.nombre === "Beige").length);
+    expect(b.detalleDeColores).toBe("");
+    expect(r.hoy[0]!.detalleDeColores).toBe("Negro 60 · Blanco 48 · Beige 42");
+  });
+
+  it("un grupo que hoy no cuelga nada no tiene colores que repetir: su propuesta se dibuja del color del grupo (null)", () => {
+    const r = armarRieles([{ clave: "jeans", nombre: "Jeans", hoy: 0, propuesta: 27, colores: [] }], 600);
+    expect(r.hoy).toEqual([]);
+    expect(r.propuesta[0]!.colores.every((c) => c === null)).toBe(true);
+  });
+
+  it("sin pasar colores (como antes) todo se dibuja del color del grupo", () => {
+    const r = armarRieles([{ clave: "a", nombre: "A", hoy: 40, propuesta: 60 }], 600);
+    expect(r.hoy[0]!.colores.every((c) => c === null)).toBe(true);
+    expect(r.hoy[0]!.detalleDeColores).toBe("");
+  });
+
+  it("los colores no cambian cuántas perchas ni qué tan anchas son: solo con qué se pintan", () => {
+    const con = armarRieles([polos], 600);
+    const sin = armarRieles([{ ...polos, colores: [] }], 600);
+    const forma = (r: typeof con) => [...r.hoy, ...r.propuesta].map(({ clave, indice, prendas, perchas, llenas, resto }) => ({ clave, indice, prendas, perchas, llenas, resto }));
+    expect(forma(con)).toEqual(forma(sin));
+    expect(con.escala).toBe(sin.escala);
+    expect(con.mayor).toBe(sin.mayor);
   });
 });
 
