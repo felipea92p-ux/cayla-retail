@@ -11,7 +11,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 // se muestra es stock que nadie sabe que existe.
 
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
-import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden } from "@/lib/produccion-reglas";
+import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -40,9 +40,13 @@ export type OrdenProduccion = {
   cantidadBuenas: number | null;
   /** Generado por la base: costos ÷ buenas (o ÷ plan mientras no cierre). */
   costoUnitario: number;
-  /** Precio de venta del modelo (el mayor entre sus variantes), para el
-   *  semáforo de margen. 0 si el modelo aún no tiene precio. */
+  /** Precio de venta del modelo (el mayor entre sus variantes), el de la grilla. 0 si el modelo aún no tiene precio. */
   precioVenta: number;
+  /** Las tallas del modelo: con ellas se busca el precio propio más bajo de una tienda (ADR-0370). */
+  varianteIdsDelModelo: string[];
+  /** Solo el líder lo recibe (`conPreciosMasBajos` en la página): el precio propio más bajo que alguna tienda le pone al modelo, si queda bajo la grilla.
+   *  Con él se mide el margen (`precioParaMargen`); `precioVenta` no cambia. */
+  precioMasBajo?: PrecioMasBajo;
   fechaEntrega: string | null;
   nota: string | null;
   inventariadoEn: string | null;
@@ -82,7 +86,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
       .select(
         `id, producto_id, estado, es_muestra, etapas,
          cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
-         producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( precio ) ),
+         producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( id, precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
            variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ) )
@@ -109,6 +113,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     cantidadBuenas: p.cantidad_buenas,
     costoUnitario: Number(costos.get(p.id)?.costo_unitario ?? 0),
     precioVenta: Math.max(0, ...(p.producto?.variantes ?? []).map((v) => Number(v.precio))),
+    varianteIdsDelModelo: (p.producto?.variantes ?? []).map((v) => v.id),
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,
     inventariadoEn: p.inventariado_at,
@@ -141,6 +146,8 @@ export type ModeloProducible = {
   /** Para leer lo que el motor de demanda dice de su categoría (ADR-0347). */
   categoriaId: string | null;
   variantes: VarianteDeModelo[];
+  /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
+  precioMasBajo?: PrecioMasBajo;
 };
 
 /** Modelos con sus variantes activas, para el formulario de nueva orden. Un

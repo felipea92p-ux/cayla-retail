@@ -126,7 +126,7 @@ export function conPreciosDeSede(generales: ReadonlyMap<string, number>, propios
 
 /** Prendas con el precio de UNA tienda (el de `getPreciosPorSede` para esa sede): la que tiene precio propio lo toma; las demás
  *  quedan igual. Devuelve el mismo arreglo si la tienda no tiene ninguno. */
-export function conPrecioDeLaSede<P extends { precio: number }>(
+export function conPrecioDeLaSede<P extends { precio: number | null }>(
   prendas: P[],
   propios: Readonly<Record<string, number>> | undefined,
   idDe: (p: P) => string,
@@ -136,6 +136,18 @@ export function conPrecioDeLaSede<P extends { precio: number }>(
     const propio = propios[idDe(p)];
     return propio !== undefined ? { ...p, precio: propio } : p;
   });
+}
+
+/** El precio de UNA variante en UNA tienda, sobre lo ya leído: el propio de la tienda si lo tiene (`getPreciosPorSede` → solo las
+ *  excepciones), si no el de la prenda. La misma regla que `fn_precio_en_sede`. Sin variante o sin precio en ninguno de los dos, `null`. */
+export function precioEnLaSede(
+  propios: Readonly<Record<string, number>> | undefined,
+  varianteId: string | null | undefined,
+  precioDeLaPrenda: number | null | undefined,
+): number | null {
+  const propio = varianteId ? propios?.[varianteId] : undefined;
+  if (propio !== undefined) return propio;
+  return precioDeLaPrenda === null || precioDeLaPrenda === undefined ? null : precioDeLaPrenda;
 }
 
 /** Una tienda y el precio al que vende una prenda (el suyo o el de la prenda), como se ve en Catálogo ▸ Productos. `hasta`: la tienda
@@ -174,6 +186,57 @@ export function preciosDeTiendaPorProducto(
     out[p.productoId] = lista.sort((a, b) => a.sede.localeCompare(b.sede, "es") || a.precio - b.precio);
   }
   return out;
+}
+
+/** El precio MÁS BAJO al que una variante se cobra en cualquier tienda: el de la prenda o el propio de alguna tienda (Felipe
+ *  2026-10-10, para el aviso «Por debajo del costo» de una campaña, que vale en todas las tiendas: el peor caso es el que importa).
+ *  `sede` = la tienda cuyo precio propio es ese mínimo, en corto («Trujillo»); `null` si el más bajo es el de la prenda (en un empate
+ *  gana la prenda: no hay una tienda que nombrar). Una tienda que no está en `porSede` (su lectura falló) se ignora. `porSede` y
+ *  `nombres` tienen la forma de `getPreciosDeLasTiendas()`.
+ *  Por qué el peor precio base da el peor precio cobrado: `precio − descuentoDeCampana(precio, pct)` no decrece con el precio
+ *  (lo prueba una propiedad exhaustiva en céntimos en `etiqueta-campana.test.ts`), así que si el más bajo no queda bajo el costo,
+ *  ninguno otro lo hace. */
+export function precioMasBajoEnTiendas(
+  precioPrenda: number,
+  varianteId: string,
+  porSede: Readonly<Record<string, Readonly<Record<string, number>>>>,
+  nombres: ReadonlyMap<string, string>,
+): { precio: number; sede: string | null } {
+  let minimo = { precio: precioPrenda, sede: null as string | null };
+  for (const [sedeId, precios] of Object.entries(porSede)) {
+    const propio = precios[varianteId];
+    if (propio !== undefined && propio < minimo.precio) minimo = { precio: propio, sede: nombreCorto(nombres.get(sedeId) ?? "otra tienda") };
+  }
+  return minimo;
+}
+
+/** El precio propio MÁS BAJO que tiene una prenda en cualquier tienda, si queda por debajo de `precioPrenda` (el de la grilla); si no,
+ *  `null`. Lo usa Producción para medir el margen de una orden (Felipe 2026-10-11: «el más bajo de cualquier tienda», la vara más
+ *  prudente: si ahí todavía gana, gana en todas). Mira todas las tallas (`varianteIds`) y todas las tiendas de `porSede`
+ *  (`getPreciosDeLasTiendas()`); un empate entre tiendas las nombra juntas («AQP y TRU»). Sin tienda con precio más bajo: `null` y
+ *  el margen se mide con el precio de la prenda, como siempre. */
+export function precioPropioMasBajo(
+  precioPrenda: number,
+  varianteIds: readonly string[],
+  porSede: Readonly<Record<string, Readonly<Record<string, number>>>>,
+  nombres: ReadonlyMap<string, string>,
+): { precio: number; sede: string } | null {
+  let minimo: number | null = null;
+  let sedes: string[] = [];
+  for (const [sedeId, precios] of Object.entries(porSede)) {
+    for (const id of varianteIds) {
+      const propio = precios[id];
+      if (propio === undefined || !(propio > 0) || propio >= precioPrenda - 0.005) continue;
+      const nombre = nombreCorto(nombres.get(sedeId) ?? "otra tienda");
+      if (minimo === null || propio < minimo - 0.005) {
+        minimo = propio;
+        sedes = [nombre];
+      } else if (Math.abs(propio - minimo) <= 0.005 && !sedes.includes(nombre)) {
+        sedes.push(nombre);
+      }
+    }
+  }
+  return minimo === null ? null : { precio: minimo, sede: unirConY(sedes) };
 }
 
 /** «AQP», «AQP y Lima», «AQP, Lima y TRU». */
@@ -313,6 +376,24 @@ export function textoPonerPrecio(libres: readonly { nombre: string }[], hayPreci
   return hayPrecios ? "Precio distinto en otra tienda" : "Precio distinto en una tienda";
 }
 
+/** Lo que dice la hoja (y la base: «Ese precio queda por debajo de lo que cuesta la prenda») cuando el precio no llega al costo. */
+export const FRASE_BAJO_COSTO = "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña (Catálogo ▸ Atributos ▸ Etiquetas).";
+
+/** ¿El precio queda por debajo de lo que cuesta la talla que MÁS cuesta? Es el piso de la base (Felipe 2026-10-11, como la caja): justo
+ *  en el costo se puede. `costoMaximo` null = no se sabe (quien no ve costos): no se avisa aquí y la base igual lo rechaza. Se compara en
+ *  céntimos, como la base (numeric), no en coma flotante. */
+export function quedaBajoElCosto(precio: number | null, costoMaximo: number | null): boolean {
+  if (precio === null || costoMaximo === null || !(costoMaximo > 0)) return false;
+  return Math.round(precio * 100) < Math.round(costoMaximo * 100);
+}
+
+/** El piso, con su excepción: un precio IGUAL al de la prenda no se rechaza por el costo (es quitar el de la tienda, y la base lo permite
+ *  aunque el costo ya lo supere); para eso la hoja dice «Ese ya es el precio de la prenda». `general` null (precio por talla): sin excepción. */
+export function bajoElCostoSinIgual(precio: number | null, general: number | null, costoMaximo: number | null): boolean {
+  const igual = precio !== null && general !== null && Math.abs(precio - general) < 0.005;
+  return !igual && quedaBajoElCosto(precio, costoMaximo);
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;
@@ -321,18 +402,21 @@ export function camposPonerPrecio(h: {
   motivo: string;
   responsableListo: boolean;
   responsableMotivo: string | null;
+  /** Lo que cuesta la talla activa que MÁS cuesta, si esta cuenta ve costos; null si no (la base lo rechaza igual). */
+  costoMaximo?: number | null;
 }): CampoDeGuia[] {
   const precio = leerMonto(h.monto);
   // «Igual» solo si TODAS las tallas valen eso (`general` es null cuando cambia según la talla): es lo que rechaza la base.
   const igual = precio !== null && h.general !== null && Math.abs(precio - h.general) < 0.005;
+  const bajoCosto = bajoElCostoSinIgual(precio, h.general, h.costoMaximo ?? null);
   return [
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: h.tiendaId !== null, pendiente: "Elige la tienda." },
     {
       id: "precio",
       nombre: "Precio en esta tienda",
       requerido: true,
-      hecho: precio !== null && !igual,
-      pendiente: igual ? "Ese ya es el precio de la prenda: escribe otro." : "Escribe el precio de esta tienda.",
+      hecho: precio !== null && !igual && !bajoCosto,
+      pendiente: igual ? "Ese ya es el precio de la prenda: escribe otro." : bajoCosto ? FRASE_BAJO_COSTO : "Escribe el precio de esta tienda.",
     },
     { id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo.trim().length >= 3, pendiente: "Escribe por qué esta tienda tiene otro precio." },
     { id: "responsable", nombre: "Quién lo cambia", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo cambia." },

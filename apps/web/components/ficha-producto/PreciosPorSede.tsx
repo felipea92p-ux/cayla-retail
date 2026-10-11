@@ -8,6 +8,7 @@ import { Boton } from "@/components/ui/campos";
 import {
   desdeHace,
   preciosEnCadaTienda,
+  quedaBajoElCosto,
   soles,
   tiendasLibres,
   textoPonerPrecio,
@@ -34,6 +35,7 @@ export function PreciosPorSede({
   todas,
   tiendas,
   ubicacionActual,
+  costoMaximo = null,
   deshabilitado,
 }: {
   productoId: string;
@@ -49,6 +51,9 @@ export function PreciosPorSede({
   tiendas: readonly Tienda[];
   /** La tienda de quien mira: ahí puede imprimir las etiquetas nuevas al terminar. */
   ubicacionActual: string | null;
+  /** Lo que cuesta la talla activa que MÁS cuesta (lo guardado), si esta cuenta ve costos; null si no. Con él, un precio de tienda que
+   *  hoy queda por debajo del costo se marca. La base solo frena al ponerlo (Felipe 2026-10-11): después el costo puede cambiar. */
+  costoMaximo?: number | null;
   deshabilitado?: boolean;
 }) {
   const router = useRouter();
@@ -127,6 +132,7 @@ export function PreciosPorSede({
               ) : (
                 <span className="text-[12.5px] text-tinta/60">El de la prenda</span>
               )}
+              {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && <Chip tono="rojo">Bajo el costo</Chip>}
               {f.propio && puedeTocar(f.ubicacionId) && (
                 <span className="ml-auto flex gap-2">
                   <Boton
@@ -167,6 +173,11 @@ export function PreciosPorSede({
                   {desdeHace(f.propio.desde)} · «{f.propio.motivo}»{f.propio.creadoPor ? ` · ${f.propio.creadoPor}` : ""}
                 </span>
               )}
+              {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && (
+                <span className="basis-full text-[12.5px] text-rojo-profundo">
+                  Hoy queda por debajo de lo que cuesta la prenda.{puedeTocar(f.ubicacionId) ? " Súbelo o quítalo." : ""}
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -185,6 +196,7 @@ export function PreciosPorSede({
             tiendas={hoja.actual ? tiendas : libres}
             tiendaInicial={hoja.tiendaId}
             general={precioPrenda}
+            costoMaximo={costoMaximo}
             precioAntesEn={precioEn}
             ubicacionActual={ubicacionActual}
             actual={hoja.actual}

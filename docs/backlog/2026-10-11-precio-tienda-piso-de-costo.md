@@ -1,0 +1,6 @@
+## Piso de costo del precio de tienda (2026-10-11, rama `claude/precio-tienda-piso-de-costo`)
+
+- [ ] **POR PEGAR en producción:** `20261011110000_precio_de_tienda_no_baja_del_costo.sql` (una sola parte, re-ejecutable, solo reemplaza `poner_precio_sede`). Se puede pegar antes o después de fusionar: con la web vieja la base rechaza igual y la hoja muestra el mensaje de la base. Verificación: `select pg_get_functiondef(p.oid) like '%precio_sede_bajo_costo%' from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'poner_precio_sede';` → `true`.
+- [ ] El piso solo se mira al PONER el precio. Si el costo sube con una compra y un precio de tienda queda bajo el costo, hoy solo lo marca «Precio por tienda» a quien ve costos; la caja no lo frena (cobra el precio de la tienda). Si se quisiera frenar en la caja habría que tocar `registrar_venta`: es de Felipe.
+- [ ] Un precio bajo el costo sigue siendo posible por campaña (aviso, no bloqueo: decisión del 2026-09-18) y por «Liquidada» en Dañadas (ADR-0071): a propósito.
+- [ ] **No se corrió la suite de SQL en esta Mac** (Docker apagado): los escenarios nuevos de `scripts/pruebas/precio_sede.mjs` los corre el CI («Pruebas de RPC contra Postgres»). Vigilar ese check.
