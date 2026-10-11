@@ -20,6 +20,7 @@ import {
   preciosEnCadaTienda,
   precioEnLaSede,
   precioMasBajoEnTiendas,
+  precioPropioMasBajo,
   precioUnico,
   tiendasAlCambiarPrecio,
   avisoEtiquetasAlCambiar,
@@ -203,6 +204,34 @@ describe("el precio más bajo de una prenda entre las tiendas (aviso de costo de
   });
   it("una tienda sin nombre en el mapa dice «otra tienda»", () => {
     expect(precioMasBajoEnTiendas(79.9, "v1", { xx: { v1: 50 } }, nombres)).toEqual({ precio: 50, sede: "otra tienda" });
+  });
+});
+
+describe("el precio propio más bajo de un modelo (margen de Producción, Felipe 2026-10-11)", () => {
+  const nombres = new Map([["tru", "Tienda Trujillo"], ["aqp", "Tienda Arequipa"], ["lim", "Tienda Lima"]]);
+  it("sin ninguna tienda con precio más bajo: null (el margen sigue con el precio de la prenda)", () => {
+    expect(precioPropioMasBajo(79.9, ["v1", "v2"], {}, nombres)).toBeNull();
+    expect(precioPropioMasBajo(79.9, ["v1"], { tru: { otra: 50 } }, nombres)).toBeNull();
+    expect(precioPropioMasBajo(79.9, ["v1"], { tru: { v1: 89.9 } }, nombres)).toBeNull();
+  });
+  it("un propio igual al de la prenda no cuenta (no hay nada que nombrar)", () => {
+    expect(precioPropioMasBajo(69.9, ["v1"], { tru: { v1: 69.9 } }, nombres)).toBeNull();
+  });
+  it("la tienda más barata gana y se nombra en corto", () => {
+    expect(precioPropioMasBajo(79.9, ["v1"], { tru: { v1: 69.9 } }, nombres)).toEqual({ precio: 69.9, sede: "Trujillo" });
+    expect(precioPropioMasBajo(79.9, ["v1"], { tru: { v1: 69.9 }, aqp: { v1: 64.9 } }, nombres)).toEqual({ precio: 64.9, sede: "Arequipa" });
+  });
+  it("mira todas las tallas: basta que una lo tenga", () => {
+    expect(precioPropioMasBajo(79.9, ["v1", "v2", "v3"], { tru: { v3: 59.9 } }, nombres)).toEqual({ precio: 59.9, sede: "Trujillo" });
+  });
+  it("un empate entre tiendas las nombra juntas, sin repetir una tienda por cada talla", () => {
+    expect(precioPropioMasBajo(79.9, ["v1", "v2"], { tru: { v1: 69.9, v2: 69.9 }, aqp: { v1: 69.9 } }, nombres)).toEqual({ precio: 69.9, sede: "Trujillo y Arequipa" });
+  });
+  it("un precio que no es un monto (0, negativo, NaN) no baja el margen", () => {
+    expect(precioPropioMasBajo(79.9, ["v1"], { tru: { v1: 0 }, aqp: { v1: Number.NaN }, lim: { v1: -5 } }, nombres)).toBeNull();
+  });
+  it("una tienda sin nombre en el mapa dice «otra tienda»", () => {
+    expect(precioPropioMasBajo(79.9, ["v1"], { xx: { v1: 50 } }, nombres)).toEqual({ precio: 50, sede: "otra tienda" });
   });
 });
 

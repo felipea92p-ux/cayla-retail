@@ -11,6 +11,8 @@ import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { Factory } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { tipoDeParametro } from "@/lib/modelo-nuevo-orden-reglas";
+import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
+import { conPreciosMasBajos, conPreciosMasBajosDeModelos } from "@/lib/produccion-reglas";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -54,13 +56,18 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   // es `fn_puede_editar_catalogo()` en la base. Los demás ven a quién pedírselo.
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos, vocabulario] = await Promise.all([
+  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
     // Dato secundario (tallas y colores de «Modelo nuevo»): si falla, la orden de siempre se abre igual.
     getVocabularioModeloNuevo(),
+    // Solo el líder ve el margen, y el margen se mide con el precio MÁS BAJO de cualquier tienda (ADR-0370, Felipe 2026-10-11). Dato secundario: si no se lee
+    // (nunca lanza), el margen se mide con el precio de la grilla, como antes.
+    esLider ? getPreciosDeLasTiendas() : Promise.resolve(null),
   ]);
+  const ordenes = preciosTiendas ? conPreciosMasBajos(ordenesBase, preciosTiendas) : ordenesBase;
+  const modelos = preciosTiendas ? conPreciosMasBajosDeModelos(modelosBase, preciosTiendas) : modelosBase;
 
   // F5: solo el líder recibe el consejo de la red (ventas y stock de todas las tiendas, costos de insumos). Es secundario: si falla, la orden se abre igual.
   const decision = esLider

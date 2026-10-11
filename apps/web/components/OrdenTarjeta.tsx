@@ -8,6 +8,7 @@ import {
   estadoEntrega,
   etapaActual,
   etapasDe,
+  precioParaMargen,
   semaforoMargen,
   TEXTO_SEMAFORO,
   type EstadoEntrega,
@@ -21,9 +22,11 @@ import { BarraApilada } from "@/components/ui/BarraApilada";
 
 const TONO_SEMAFORO = { gana: "bg-verde", filo: "bg-ambar", pierde: "bg-rojo" } as const;
 
-export function semaforoDeOrden(o: Pick<OrdenProduccion, "precioVenta" | "costoUnitario">) {
-  const s = semaforoMargen(o.precioVenta, o.costoUnitario);
-  return s ? { ...s, clase: TONO_SEMAFORO[s.tono], texto: TEXTO_SEMAFORO[s.tono] } : null;
+/** El semáforo de margen de una orden. El precio con que se mide es el MÁS BAJO de cualquier tienda si alguna vende el modelo más barato que la grilla (`precioParaMargen`,
+ *  ADR-0370): `sede` dice cuál, para que el color no parezca contradecir el «precio de venta». */
+export function semaforoDeOrden(o: Pick<OrdenProduccion, "precioVenta" | "costoUnitario" | "precioMasBajo">) {
+  const s = semaforoMargen(precioParaMargen(o), o.costoUnitario);
+  return s ? { ...s, clase: TONO_SEMAFORO[s.tono], texto: TEXTO_SEMAFORO[s.tono], sede: o.precioMasBajo?.sede ?? null } : null;
 }
 
 /** «Entrega pasada · 3 d», «Entrega hoy», «Entrega en 2 d» o la fecha sin alarma. */
@@ -101,7 +104,7 @@ export function OrdenTarjeta({
           ) : esLider && sem ? (
             <span className="inline-flex items-center gap-1.5 text-tinta/75">
               <span aria-hidden className={`h-2 w-2 rounded-full ${sem.clase}`} />
-              {sem.texto} {Math.round(sem.margen * 100)}%
+              {sem.texto} {Math.round(sem.margen * 100)}%{sem.sede && ` · en ${sem.sede}`}
             </span>
           ) : null}
         </span>
