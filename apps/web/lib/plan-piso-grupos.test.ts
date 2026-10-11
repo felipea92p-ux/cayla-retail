@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FAMILIAS_FUERA_DEL_RIEL } from "./capacidad-piso";
 import {
   armarVista,
+  avisoDeGruposPorRevisar,
   cambiosPreparados,
   conCambio,
   confirmarPropuestas,
@@ -256,5 +257,61 @@ describe("lo que responde el guardado", () => {
     expect(textoGuardado({ cambiadas: 2, confirmadas: 40, sinCambios: 0 })).toBe("2 categorías cambiaron de grupo y 40 quedaron confirmadas");
     expect(textoGuardado({ cambiadas: 0, confirmadas: 1, sinCambios: 0 })).toBe("1 quedó confirmada");
     expect(textoGuardado({ cambiadas: 0, confirmadas: 0, sinCambios: 3 })).toBe("Ya estaba todo guardado así.");
+  });
+});
+
+describe("el aviso de la propuesta sobre las categorías que esperan al líder", () => {
+  it("sin categorías por revisar ni sin grupo no hay aviso (ni con cero, ni con un número que no es cuenta)", () => {
+    expect(avisoDeGruposPorRevisar(0, 0, true)).toBeNull();
+    expect(avisoDeGruposPorRevisar(-2, 0, true)).toBeNull();
+    expect(avisoDeGruposPorRevisar(Number.NaN, Number.NaN, false)).toBeNull();
+  });
+
+  it("solo «por revisar»: dice que la propuesta usa el grupo del sistema mientras nadie lo confirme, y manda a revisar", () => {
+    expect(avisoDeGruposPorRevisar(45, 0, true)).toEqual({
+      titulo: "45 categorías siguen por revisar",
+      detalle: "Mientras no las confirmes, la propuesta usa el grupo que el sistema les puso.",
+      accion: "Revisar las 45 categorías",
+    });
+  });
+
+  it("a quien no es líder le dice que las confirma el líder y solo lo deja verlas", () => {
+    const a = avisoDeGruposPorRevisar(45, 0, false)!;
+    expect(a.detalle).toBe("Mientras el líder no las confirme, la propuesta usa el grupo que el sistema les puso.");
+    expect(a.accion).toBe("Ver las 45 categorías");
+  });
+
+  it("solo «sin grupo»: NO dice que la propuesta usa un grupo (no tienen ninguno): dice que no entran al reparto", () => {
+    const a = avisoDeGruposPorRevisar(0, 2, true)!;
+    expect(a.titulo).toBe("2 categorías no tienen grupo");
+    expect(a.detalle).toBe("Mientras no les elijas uno, no entran al reparto de la propuesta.");
+    expect(a.detalle).not.toMatch(/el sistema/);
+    expect(avisoDeGruposPorRevisar(0, 2, false)!.detalle).toBe("Mientras el líder no les elija uno, no entran al reparto de la propuesta.");
+  });
+
+  it("las dos cosas a la vez: el botón cuenta todas (es lo que la pestaña Grupos muestra) y el detalle separa lo que SÍ y lo que NO entra", () => {
+    const a = avisoDeGruposPorRevisar(45, 2, true)!;
+    expect(a.titulo).toBe("47 categorías esperan revisión");
+    expect(a.detalle).toBe("45 siguen con el grupo que les puso el sistema; 2 no tienen grupo y no entran al reparto de la propuesta.");
+    expect(a.accion).toBe("Revisar las 47 categorías");
+  });
+
+  it("con una sola categoría todo va en singular, en cada caso", () => {
+    expect(avisoDeGruposPorRevisar(1, 0, true)).toEqual({
+      titulo: "1 categoría sigue por revisar",
+      detalle: "Mientras no la confirmes, la propuesta usa el grupo que el sistema le puso.",
+      accion: "Revisar la categoría",
+    });
+    expect(avisoDeGruposPorRevisar(0, 1, true)).toEqual({
+      titulo: "1 categoría no tiene grupo",
+      detalle: "Mientras no le elijas uno, no entra al reparto de la propuesta.",
+      accion: "Revisar la categoría",
+    });
+    expect(avisoDeGruposPorRevisar(1, 1, false)!.detalle).toBe("1 sigue con el grupo que le puso el sistema; 1 no tiene grupo y no entra al reparto de la propuesta.");
+    expect(avisoDeGruposPorRevisar(1, 0, false)!.accion).toBe("Ver la categoría");
+  });
+
+  it("los miles llevan coma, como en el resto del ERP", () => {
+    expect(avisoDeGruposPorRevisar(1200, 0, true)!.titulo).toBe("1,200 categorías siguen por revisar");
   });
 });
