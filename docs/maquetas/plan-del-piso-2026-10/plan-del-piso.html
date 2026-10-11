@@ -1,0 +1,1751 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan del piso — maquetas de estilo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* MAQUETA · Plan del piso ▸ Propuesta (2026-10-10). Solo diseño, sin decidir. Datos INVENTADOS (Tienda AQP).
+   Tokens = los de apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro). Nada de hex fuera de este bloque. */
+:root{
+  --color-rojo:#b8412d;--color-rojo-profundo:#8b2a1f;--color-crema:#f5f0e8;--color-tinta:#1a1a18;--color-sand:#e8e0d0;--color-taupe:#805c4c;--color-taupe-profundo:#805c4c;
+  --color-papel:#fbf8f2;--color-hueso:#eae1d2;--color-sombra:#1a1a18;--color-vidrio:#ffffff;--color-pizarra:#4c5d6e;--color-tinta-60:#5b544c;
+  --color-verde:#48603f;--color-verde-profundo:#44583a;--color-ambar:#74501a;--color-ambar-profundo:#734f15;
+  --color-tinta-fija:#1a1a18;--color-crema-fija:#f5f0e8;
+  --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;--radius-2xl:20px;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);
+  --serif:'EB Garamond',ui-serif,Georgia,serif;--sans:'DM Sans',ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+html[data-tema="oscuro"]{
+  --color-crema:#1a1a18;--color-papel:#242422;--color-hueso:#31302d;--color-sand:#3d3c38;--color-sombra:#000000;--color-vidrio:#31302d;
+  --color-tinta:#f5f0e8;--color-tinta-60:#b9b2a7;--color-taupe:#c4a898;--color-taupe-profundo:#c4a898;
+  --color-rojo:#e8806a;--color-rojo-profundo:#f29a86;--color-verde:#9ccb8d;--color-verde-profundo:#a8d49a;--color-ambar:#e4b968;--color-ambar-profundo:#ecc676;--color-pizarra:#a2b8cd;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--color-tinta);background:var(--color-crema);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--color-rojo);outline-offset:2px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no es parte del diseño) ---------- */
+.ctl{position:sticky;top:0;z-index:50;background:#1a1a18;color:#f5f0e8;padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;font-size:12.5px}
+.ctl b{font-weight:600;margin-right:6px;opacity:.7}
+.seg{display:inline-flex;background:rgba(255,255,255,.1);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{padding:5px 11px;border-radius:6px;color:rgba(245,240,232,.75)}
+.seg button[aria-pressed=true]{background:#f5f0e8;color:#1a1a18}
+.fuera{background:#d8d2c6;min-height:100vh;padding:0 0 60px}
+html[data-tema="oscuro"] .fuera{background:#0d0d0c}
+.hoja{display:flex;justify-content:center;padding:18px 12px 0}
+
+/* ---------- marco de la app ---------- */
+.marco{display:grid;grid-template-columns:var(--ancho-lateral) minmax(0,1fr);background:var(--color-crema);border:1px solid color-mix(in srgb,var(--color-tinta) 14%,transparent);border-radius:10px;overflow:hidden;width:var(--ancho-marco);min-height:760px}
+body[data-vista="1440"]{--ancho-marco:1440px;--ancho-lateral:240px;--ancho-contenido:1024px;--pad-pagina:88px}
+body[data-vista="1024"]{--ancho-marco:1024px;--ancho-lateral:271px;--ancho-contenido:657px;--pad-pagina:48px}
+body[data-vista="375"]{--ancho-marco:375px;--ancho-lateral:0px;--ancho-contenido:341px;--pad-pagina:17px}
+body[data-vista="375"] .lat{display:none}
+body[data-vista="375"] .marco{grid-template-columns:minmax(0,1fr)}
+.lat{background:color-mix(in srgb,var(--color-hueso) 55%,var(--color-crema));border-right:1px solid var(--color-sand);padding:20px 12px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.lat .logo{font-family:var(--serif);letter-spacing:.34em;font-size:15px;padding:4px 14px 22px;font-weight:500}
+.lat .logo small{display:block;font-family:var(--sans);font-size:9px;letter-spacing:.3em;color:var(--color-taupe-profundo);margin-top:2px}
+.lat a{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-radius:10px;color:var(--color-tinta);text-decoration:none}
+.lat a.on{background:var(--color-sand)}
+.lat a i{font-style:normal;color:var(--color-taupe-profundo);font-size:11px}
+.lat .pie{margin-top:auto;padding:14px;font-size:12px;color:var(--color-taupe-profundo);border-top:1px solid var(--color-sand)}
+.lat .pie b{display:block;color:var(--color-tinta);font-weight:500;font-size:13px}
+.cuerpo{min-width:0}
+.top{height:58px;border-bottom:1px solid var(--color-sand);display:flex;align-items:center;gap:12px;padding:0 22px}
+.top .busca{background:color-mix(in srgb,var(--color-hueso) 70%,transparent);border-radius:999px;padding:7px 16px;color:var(--color-taupe-profundo);font-size:13px;min-width:190px}
+.top .der{margin-left:auto;display:flex;gap:18px;align-items:center;font-size:11px;letter-spacing:.12em;font-weight:600;text-transform:uppercase}
+.top .sede{border:1px solid var(--color-sand);border-radius:8px;padding:7px 12px}
+body[data-vista="375"] .top .busca,body[data-vista="375"] .top .der span:not(.sede){display:none}
+.pagina{max-width:var(--ancho-contenido);margin:0 auto;padding:28px 0 56px;width:calc(100% - 2*var(--pad-pagina))}
+body[data-vista="375"] .pagina{width:calc(100% - 34px)}
+.enc .linea{display:flex;align-items:center;gap:14px;font-size:11px;letter-spacing:.13em;font-weight:600;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.enc .linea::before{content:"";width:36px;height:1px;background:var(--color-taupe)}
+.enc h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.1;margin:10px 0 8px;letter-spacing:-.01em}
+.enc p{font-size:15.5px;color:var(--color-tinta-60);max-width:560px}
+body[data-vista="375"] .enc h1{font-size:36px}
+.tabs{max-width:100%;overflow-x:auto;display:inline-flex;margin:22px 0 24px;padding:5px;gap:2px;background:var(--color-vidrio);border:1px solid var(--color-sand);border-radius:16px}
+.tabs span{padding:9px 19px;border-radius:11px;font-size:11.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;display:inline-flex;gap:8px;align-items:center}
+.tabs span.on{background:var(--color-tinta);color:var(--color-crema)}
+.tabs em{font-style:normal;font-size:10.5px;letter-spacing:0;background:var(--color-sand);color:var(--color-ambar-profundo);border-radius:999px;padding:2px 8px}
+.diseno{min-width:0}
+
+/* ---------- kit mínimo de piezas del sistema (las maquetas pueden usarlo o dibujar lo suyo con su prefijo) ---------- */
+.cy-card{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl)}
+.cy-label{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.cy-serif{font-family:var(--serif);font-weight:400}
+.cy-num{font-variant-numeric:lining-nums tabular-nums}
+.cy-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:600;background:color-mix(in srgb,var(--color-pizarra) 14%,var(--color-papel));color:var(--color-pizarra)}
+.cy-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.cy-chip.ambar{background:color-mix(in srgb,var(--color-ambar) 16%,var(--color-papel));color:var(--color-ambar-profundo)}
+.cy-chip.verde{background:color-mix(in srgb,var(--color-verde) 16%,var(--color-papel));color:var(--color-verde-profundo)}
+.cy-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;border:1px solid var(--color-taupe);color:var(--color-tinta);transition:background-color 200ms var(--ease-cayla),transform 200ms var(--ease-cayla)}
+.cy-btn:hover{background:var(--color-sand);transform:translateY(-1px)}
+.cy-aviso{display:flex;align-items:center;gap:14px;padding:12px 14px 12px 16px;border-radius:4px 12px 12px 4px;border:1px solid color-mix(in srgb,var(--color-ambar) 40%,var(--color-sand));border-left:3px solid var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 8%,var(--color-papel))}
+.cy-aviso b{display:block;font-weight:600;color:var(--color-ambar-profundo);font-size:14px}
+.cy-aviso span{font-size:13.5px;color:var(--color-tinta-60)}
+.cy-aviso .cy-btn{margin-left:auto;white-space:nowrap}
+.cy-nota{background:var(--color-hueso);border-radius:var(--radius-lg);padding:12px 16px;font-size:13px;color:var(--color-tinta-60)}
+</style>
+<script>window.DATOS={
+  sede:"Tienda AQP",fecha:"sábado, 10 de octubre",hora:"21:14",
+  capacidad:1800,capacidadProvisional:true,cuadrado:false,
+  colgadasEnElRiel:78,ventasConfirmadas:5,ventasSinRegistrar:210,dias:14,pesoVentaPct:6,categoriasPorRevisar:45,
+  grupos:[
+    {clave:"polos_tops_blusas",nombre:"Polos, tops y blusas",rol:"Destino",hoy:30,hoyPct:38.5,industriaPct:44,ventaPct:40,ventas:2,ventaRango:[9.1,81.6],propuesta:788,propuestaPct:43.8},
+    {clave:"jeans",nombre:"Jeans",rol:"Destino",hoy:3,hoyPct:3.8,industriaPct:10,ventaPct:0,ventas:0,ventaRango:[0,53.5],propuesta:169,propuestaPct:9.4},
+    {clave:"pantalones_faldas_shorts",nombre:"Pantalones, faldas y shorts",rol:"Rutina",hoy:14,hoyPct:17.9,industriaPct:18,ventaPct:20,ventas:1,ventaRango:[2.7,69.4],propuesta:326,propuestaPct:18.1},
+    {clave:"vestidos_conjuntos",nombre:"Vestidos, conjuntos y enterizos",rol:"Ocasional",hoy:9,hoyPct:11.5,industriaPct:10,ventaPct:20,ventas:1,ventaRango:[2.7,69.4],propuesta:191,propuestaPct:10.6},
+    {clave:"bodys_corsets_lenceria",nombre:"Bodys, corsets y lencería",rol:"Ocasional",hoy:6,hoyPct:7.7,industriaPct:6,ventaPct:0,ventas:0,ventaRango:[0,53.5],propuesta:101,propuestaPct:5.6},
+    {clave:"abrigo_y_capas",nombre:"Abrigo y capas",rol:"De temporada",hoy:16,hoyPct:20.5,industriaPct:12,ventaPct:20,ventas:1,ventaRango:[2.7,69.4],propuesta:225,propuestaPct:12.5}
+  ],
+  fuera:[
+    {clave:"accesorios_de_impulso",nombre:"Accesorios de impulso y caja",rol:"Conveniencia",colgadas:11,ventaPct:0,meta:"16–18 %"},
+    {clave:"bolsos_y_calzado",nombre:"Bolsos y calzado",rol:"Ocasional",colgadas:4,ventaPct:0,meta:"6–8 %"}
+  ]
+};</script>
+</head>
+<body data-diseno="actual" data-vista="1440">
+<div class="ctl">
+  <span><b>Diseño</b><span class="seg" id="seg-diseno">
+    <button data-v="actual" aria-pressed="true">Actual (PR #944)</button>
+    <button data-v="a" aria-pressed="false">A</button>
+    <button data-v="b" aria-pressed="false">B</button>
+    <button data-v="c" aria-pressed="false">C</button>
+  </span></span>
+  <span><b>Tema</b><span class="seg" id="seg-tema">
+    <button data-v="claro" aria-pressed="true">Claro</button>
+    <button data-v="oscuro" aria-pressed="false">Oscuro</button>
+  </span></span>
+  <span><b>Vista</b><span class="seg" id="seg-vista">
+    <button data-v="1440" aria-pressed="true">Escritorio</button>
+    <button data-v="1024" aria-pressed="false">Laptop con menú</button>
+    <button data-v="375" aria-pressed="false">Celular</button>
+  </span></span>
+  <span style="opacity:.6">Datos inventados · solo diseño, sin decidir</span>
+</div>
+<div class="fuera"><div class="hoja">
+<div class="marco">
+  <aside class="lat">
+    <div class="logo">CAYLA<small>RETAIL</small></div>
+    <a>Inicio</a><a>Ventas <i>›</i></a><a class="on">Inventario <i>⌄</i></a><a>Catálogo <i>›</i></a><a>Compras <i>›</i></a><a>Finanzas <i>›</i></a><a>Clientes <i>›</i></a><a>Rendimiento</a>
+    <div class="pie"><b>Felipe Alvarez</b>LÍDER · TIENDA AQP</div>
+  </aside>
+  <div class="cuerpo">
+    <header class="top"><span class="busca">Buscar…  Ctrl K</span><span class="der"><span>Actividad</span><span class="sede">Tienda AQP ⌄</span></span></header>
+    <main class="pagina">
+      <div class="enc">
+        <div class="linea">Tienda AQP · sábado, 10 de octubre · 21:14</div>
+        <h1>Plan del piso</h1>
+        <p>Cuánto lugar tiene cada grupo de prendas en el riel, y a qué grupo pertenece cada categoría.</p>
+      </div>
+      <div class="tabs"><span class="on">Propuesta</span><span>Grupos <em>45</em></span><span>Historia</span></div>
+      <section class="diseno" data-diseno="actual"><!-- ACTUAL (PR 944) · Plan del piso ▸ Propuesta, tal como quedó en main. Punto de comparación: NO se mejora ni se reinterpreta.
+     Fuentes: PropuestaDelMix.tsx, RielAEscala.tsx, Mancuerna.tsx, AvisoPorRevisar.tsx, lib/mix-piso.ts (lecturaDeGrupo), lib/mix-piso-visual.ts.
+     Prefijo p0-. Cifras desde window.DATOS. Responsive por @container (la raíz es el contenedor): 341 / 657 / 1024 px. -->
+<style>
+.p0-raiz{container-type:inline-size;container-name:p0-c;display:flex;flex-direction:column;gap:24px;font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--color-tinta)}
+.p0-raiz :focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
+.p0-raiz svg{display:block}
+
+/* ---------- entrada única (anim-sube / anim-crece-x del sistema), sin bucle ---------- */
+@keyframes p0-sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes p0-crece{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes p0-aviso-entra{from{opacity:0;transform:translate3d(0,-4px,0)}}
+@keyframes p0-aviso-ic{from{opacity:0}}
+.p0-sube{animation:p0-sube 850ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+
+/* ---------- superficies ---------- */
+.p0-card{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl)}
+.p0-card.p0-pad{padding:20px}
+.p0-h2{font-family:var(--serif);font-weight:600;font-size:20px;line-height:28px;letter-spacing:-.005em;color:var(--color-tinta)}
+.p0-sub{margin-top:2px;max-width:42rem;font-size:13px;color:color-mix(in srgb,var(--color-tinta) 70%,transparent)}
+.p0-num{font-variant-numeric:lining-nums tabular-nums}
+
+/* ---------- 1 · tres tarjetas de cifra ---------- */
+.p0-cifras{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.p0-cifra{display:flex;flex-direction:column;padding:16px;text-align:left}
+.p0-cifra.p0-acento{border-left:2px solid var(--color-rojo)}
+.p0-lbl{display:block;min-height:20px;font-size:11px;font-weight:700;line-height:20px;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe)}
+.p0-val{margin-top:4px;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}
+.p0-val b{font-family:var(--serif);font-weight:600;font-size:28px;line-height:1.25;letter-spacing:-.005em;white-space:nowrap;font-variant-numeric:lining-nums tabular-nums}
+.p0-val span{font-size:14px;white-space:nowrap;color:var(--color-taupe)}
+.p0-ctx{margin-top:4px;font-size:12px;color:var(--color-taupe)}
+.p0-pie{margin-top:auto;padding-top:8px;font-size:12px;color:var(--color-taupe)}
+.p0-pie>span:not(.p0-barra){display:block;font-size:11px}
+.p0-pie .p0-barra{margin-top:6px}
+
+/* ---------- barra apilada (la pieza del sistema) ---------- */
+.p0-barra{position:relative;display:flex;gap:2px;width:100%;height:12px;border-radius:999px;background:var(--color-sand)}
+.p0-barra[data-alto="4"]{height:4px;gap:1px}
+.p0-tr{position:relative;display:block;height:100%;min-width:3px;flex:0 1 0%;margin:0;padding:0;border:0;border-radius:0;background:var(--color-sand);transform-origin:left center;
+  transition:opacity 200ms var(--ease-cayla),scale 200ms var(--ease-cayla);animation:p0-crece 620ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*38ms + 220ms)}
+.p0-tr:first-child{border-radius:999px 0 0 999px}
+.p0-tr:last-child{border-radius:0 999px 999px 0}
+.p0-tr:only-child{border-radius:999px}
+.p0-tr:has(+ .p0-resto){border-top-right-radius:999px;border-bottom-right-radius:999px}
+.p0-tr i{display:block;width:100%;height:100%;border-radius:inherit}
+.p0-resto{display:block;height:100%;flex:0 1 0%;min-width:0}
+button.p0-tr{cursor:pointer}
+button.p0-tr::before{content:"";position:absolute;inset:-6px 0}
+button.p0-tr.p0-on{scale:1 1.35}
+.p0-tr.p0-ap{opacity:.35}
+.p0-c0{background:var(--color-tinta)}
+.p0-c1{background:var(--color-pizarra)}
+.p0-c2{background:var(--color-verde)}
+.p0-c3{background:var(--color-ambar)}
+.p0-c4{background:var(--color-taupe)}
+.p0-c5{background:color-mix(in srgb,var(--color-taupe) 45%,transparent)}
+.p0-c-conf{background:var(--color-tinta)}
+.p0-c-sin{background:color-mix(in srgb,var(--color-taupe) 45%,transparent)}
+.p0-mu{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;background:var(--color-sand)}
+.p0-mu i{display:block;width:100%;height:100%;border-radius:inherit}
+
+/* ---------- 2 · aviso ámbar ---------- */
+.p0-aviso{--c:var(--color-ambar);--cp:var(--color-ambar-profundo);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:start;padding:12px 14px 12px 12px;
+  border-radius:6px 14px 14px 6px;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 6%,var(--color-papel));
+  animation:p0-aviso-entra 280ms var(--ease-cayla) both}
+.p0-aviso-ic{grid-column:1;grid-row:1/span 2;display:grid;place-items:center;width:18px;height:22px;color:var(--cp)}
+.p0-aviso-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+/* En main la franja se tiñe y el trazo del ícono se dibuja; el brief de la maqueta pide solo transform y opacity: aquí el ícono aparece con opacidad. */
+.p0-aviso-ic{animation:p0-aviso-ic 520ms var(--ease-cayla) 220ms backwards}
+.p0-aviso-tit{grid-column:2;grid-row:1;margin:1px 0 0;font-size:14px;font-weight:600;line-height:1.4;color:var(--cp)}
+.p0-aviso-det{grid-column:2;margin:0;font-size:13.5px;line-height:1.5;color:color-mix(in srgb,var(--color-tinta) 78%,transparent)}
+.p0-aviso-acc{grid-column:3;grid-row:1/span 2;align-self:center}
+
+/* ---------- botones (btn-cayla: secundario y sutil) ---------- */
+.p0-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-md);border:1px solid var(--color-sand);padding:8px 16px;font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;
+  background:transparent;color:var(--color-tinta);transition:background-color 200ms var(--ease-cayla),border-color 200ms var(--ease-cayla),color 200ms var(--ease-cayla),translate 200ms var(--ease-cayla),scale 200ms var(--ease-cayla),box-shadow 200ms var(--ease-cayla)}
+.p0-btn:hover{translate:0 -2px;box-shadow:0 6px 14px -8px color-mix(in srgb,var(--color-sombra) 35%,transparent)}
+.p0-btn:active{translate:0 0;scale:.97;box-shadow:none}
+.p0-btn.p0-sec:hover{border-color:color-mix(in oklab,var(--color-taupe) 40%,transparent);background:color-mix(in oklab,var(--color-sand) 50%,transparent)}
+.p0-btn.p0-sutil{color:var(--color-taupe)}
+.p0-btn.p0-sutil:hover{color:var(--color-tinta);background:color-mix(in oklab,var(--color-sand) 30%,transparent)}
+.p0-aviso-acc .p0-btn{font-size:13px;line-height:1;padding:7px 10px;color:var(--cp);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--cp) 35%,transparent);text-underline-offset:3px}
+.p0-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform 200ms var(--ease-cayla)}
+.p0-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* ---------- 3 · el riel ---------- */
+.p0-riel>.p0-sub{margin-bottom:16px}
+.p0-bandas{display:flex;flex-direction:column;gap:16px}
+.p0-bl{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px}
+.p0-bl b{font-weight:500;color:var(--color-tinta)}
+.p0-bl span{text-align:right;color:var(--color-taupe)}
+.p0-atenuada{opacity:.6}
+.p0-leyenda{display:flex;flex-wrap:wrap;gap:8px;list-style:none}
+.p0-chipg{display:flex;align-items:center;gap:8px;border:1px solid var(--color-sand);background:var(--color-papel);border-radius:10px;padding:6px 10px;text-align:left;font-size:12px;transition:border-color 200ms var(--ease-cayla),background-color 200ms var(--ease-cayla)}
+.p0-chipg:hover{border-color:color-mix(in srgb,var(--color-taupe) 50%,transparent)}
+.p0-chipg[aria-pressed="true"]{border-color:var(--color-tinta);background:var(--color-sand)}
+.p0-chipg span:nth-child(2){color:var(--color-tinta)}
+.p0-chipg span:last-child{color:var(--color-taupe);font-variant-numeric:tabular-nums}
+.p0-ganchos-caja{border-top:1px solid var(--color-sand);padding-top:12px}
+.p0-ganchos{margin-top:12px;display:flex;flex-direction:column;gap:16px}
+.p0-ganchos[hidden]{display:none}
+.p0-t12{font-size:12px;color:var(--color-taupe)}
+.p0-cv{position:relative}
+.p0-cv canvas{display:block;width:100%;cursor:crosshair}
+.p0-tip{position:absolute;z-index:10;max-width:190px;pointer-events:none;border-radius:10px;background:var(--color-tinta);color:var(--color-crema);padding:6px 10px;font-size:12px;line-height:1.35}
+
+/* ---------- 4 · la mancuerna ---------- */
+.p0-mleyenda{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 20px;list-style:none;font-size:12px;color:color-mix(in srgb,var(--color-tinta) 80%,transparent)}
+.p0-mleyenda li{display:flex;align-items:center;gap:6px}
+.p0-mfilas{margin-top:16px;display:flex;flex-direction:column;gap:4px}
+.p0-mrow{display:grid;grid-template-columns:minmax(0,9.5rem) minmax(0,1fr);align-items:center;column-gap:12px}
+.p0-mnom{display:flex;min-width:0;align-items:center;gap:8px;font-size:13px;color:var(--color-tinta)}
+.p0-mnom span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p0-mtrack{position:relative;height:36px}
+.p0-mtrack>*{position:absolute}
+.p0-mg{top:0;bottom:0;width:1px;background:var(--color-sand)}
+.p0-mc{left:0;right:0;top:50%;height:1px;background:color-mix(in srgb,var(--color-taupe) 25%,transparent)}
+.p0-mrango{top:50%;height:2px;transform:translateY(-50%);border-radius:999px;background:color-mix(in srgb,var(--color-pizarra) 70%,transparent)}
+.p0-mind{top:50%;width:2px;height:16px;transform:translate(-50%,-50%);background:var(--color-taupe)}
+.p0-mven{top:50%;width:10px;height:10px;transform:translate(-50%,-50%);border-radius:50%;background:var(--color-pizarra)}
+.p0-mhoy{top:50%;width:14px;height:14px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid var(--color-tinta);background:var(--color-papel)}
+.p0-mhoy.p0-tenue{opacity:.5}
+.p0-mpro{top:50%;width:12px;height:12px;transform:translate(-50%,-50%) rotate(45deg);background:var(--color-tinta)}
+.p0-mval{grid-column:span 2;text-align:right;font-size:13px;font-weight:500;color:var(--color-tinta);font-variant-numeric:tabular-nums}
+.p0-eje{position:relative;height:16px;font-size:11px;color:var(--color-taupe);font-variant-numeric:tabular-nums}
+.p0-eje span{position:absolute;transform:translateX(-50%)}
+.p0-eje span:first-child{transform:none}
+.p0-mnota{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-taupe)}
+
+/* ---------- chips ---------- */
+.p0-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;font-size:12px;line-height:20px;white-space:nowrap;border-radius:999px;background:color-mix(in srgb,var(--color-pizarra) 15%,transparent);color:var(--color-pizarra)}
+.p0-chip::before{content:"";flex-shrink:0;width:6px;height:6px;border-radius:50%;background:currentColor}
+.p0-chip.p0-ambar{background:color-mix(in srgb,var(--color-ambar) 15%,transparent);color:var(--color-ambar)}
+
+/* ---------- 5 y 6 · tablas ---------- */
+.p0-tcard{overflow:hidden}
+.p0-thead{padding:16px 20px;border-bottom:1px solid var(--color-sand)}
+.p0-tscroll{overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--color-sand) transparent}
+.p0-tscroll::-webkit-scrollbar{width:6px;height:6px}
+.p0-tscroll::-webkit-scrollbar-track{background:transparent}
+.p0-tscroll::-webkit-scrollbar-thumb{background:var(--color-sand)}
+.p0-tabla>*+*{border-top:1px solid var(--color-sand)}
+.p0-enc{display:none;padding:8px 20px;column-gap:16px;background:color-mix(in oklab,var(--color-sand) 70%,transparent)}
+.p0-enc>span{min-width:0;text-align:left;font-size:12px;font-weight:400;color:var(--color-taupe)}
+.p0-enc>span small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--color-taupe)}
+.p0-fila{display:grid;gap:4px 16px;padding:12px 20px;transition:background-color 200ms var(--ease-cayla)}
+.p0-fila:nth-child(even of .p0-fila){background:color-mix(in oklab,var(--color-hueso) 50%,transparent)}
+.p0-fila:hover{background:color-mix(in oklab,var(--color-crema) 60%,transparent)}
+.p0-fila>div{min-width:0}
+.p0-fila.p0-total{font-weight:500}
+.p0-g{white-space:normal}
+.p0-g .p0-gn{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.p0-g .p0-gn>span:first-child{font-size:14px;font-weight:inherit;color:var(--color-tinta)}
+.p0-lect{margin-top:4px;display:flex;align-items:flex-start;gap:6px;font-size:12px;color:color-mix(in srgb,var(--color-tinta) 75%,transparent)}
+.p0-lect i{flex-shrink:0;margin-top:5px;width:6px;height:6px;border-radius:50%}
+.p0-lect i.p0-t-pizarra{background:var(--color-pizarra)}
+.p0-lect i.p0-t-verde{background:var(--color-verde)}
+.p0-lect i.p0-t-ambar{background:var(--color-ambar)}
+.p0-d{white-space:nowrap;font-variant-numeric:tabular-nums}
+.p0-d.p0-ap2{color:var(--color-taupe)}
+.p0-et{margin-right:8px;font-size:12px;color:var(--color-taupe)}
+.p0-d .p0-sub2{display:block;font-size:12px;font-weight:400;color:var(--color-taupe)}
+.p0-d .p0-par{margin-left:6px;font-size:12px;color:var(--color-taupe)}
+.p0-fuerte{font-weight:500;color:var(--color-tinta)}
+.p0-sin{color:var(--color-taupe)}
+.p0-fgrupo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:14px;color:var(--color-tinta);overflow:hidden;white-space:nowrap} /* como el original: la celda es `truncate` y el nombre no parte renglón */
+.p0-tpie{padding:10px 20px;border-top:1px solid var(--color-sand);font-size:12px;color:var(--color-taupe)}
+.p0-tpie .p0-chip{margin-right:8px}
+
+/* ---------- 7 · cómo se calcula ---------- */
+.p0-nota{position:relative;border-radius:var(--radius-xl);padding:14px 18px 14px 42px;font-size:13px;line-height:1.6;color:var(--color-taupe);background:color-mix(in oklab,var(--color-hueso) 85%,transparent)}
+.p0-nota strong{color:var(--color-tinta);font-weight:600}
+.p0-nota svg{position:absolute;left:18px;top:16px;width:16px;height:16px;opacity:.85;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- ancho del contenedor (1024 / 657 / 341) ---------- */
+@container p0-c (min-width:560px){
+  .p0-cifras{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .p0-cifra{padding:16px 20px}
+  .p0-mrow{grid-template-columns:minmax(0,12rem) minmax(0,1fr) 4.5rem}
+  .p0-mval{grid-column:auto}
+  .p0-enc{display:grid;align-items:stretch}
+  .p0-fila{align-items:center}
+  .p0-tabla.p0-t6{min-width:56rem}
+  .p0-tabla.p0-t4{min-width:40rem}
+  .p0-t6 .p0-enc,.p0-t6 .p0-fila{grid-template-columns:minmax(0,1.5fr) 7.5rem 6rem 9.5rem 8.5rem 6.5rem}
+  .p0-t4 .p0-enc,.p0-t4 .p0-fila{grid-template-columns:minmax(0,1.5fr) 7.5rem 9.5rem 9.5rem}
+  .p0-d{text-align:right}
+  .p0-et{display:none}
+}
+@media (prefers-reduced-motion:reduce){.p0-raiz *{animation:none!important;transition:none!important}}
+</style>
+
+<div class="p0-raiz" data-p0></div>
+
+<script>
+(function(){
+  var D=window.DATOS,root=document.querySelector('.p0-raiz[data-p0]');
+  if(!D||!root)return;
+
+  /* ---------- utilidades (la misma convención de Perú: coma de miles, punto decimal) ---------- */
+  function n(x){return x.toLocaleString('en-US',{maximumFractionDigits:1})}
+  function pct(x){return n(x)+' %'}
+  function prendas(x){return n(x)+(x===1?' prenda':' prendas')}
+  var cap=D.capacidad,hoyTotal=D.colgadasEnElRiel,cuadrado=D.cuadrado;
+  var pesoPct=D.pesoVentaPct,muestra=Math.round(D.ventasConfirmadas/1.5*10)/10;
+  var G=D.grupos,F=D.fuera;
+  var ROL_AYUDA={'Destino':'Lo que el cliente viene a buscar: trae gente a la tienda y la hace volver.','Rutina':'Lo que se compra seguido y completa el look de lo que trae gente.','Ocasional':'Un look completo en una sola compra, o un complemento de compra más alta.','De temporada':'Depende del clima y de la época del año.','Conveniencia':'Se suma al paso, junto a la caja.'};
+
+  function chip(rol,extra){return '<span class="p0-chip'+(extra||'')+'" title="'+(ROL_AYUDA[rol]||'')+'">'+rol+'</span>'}
+
+  /* ---------- barra apilada: cada tramo crece por su parte de la pista; lo que sobra es «resto» ---------- */
+  function barra(segs,o){
+    o=o||{};var suma=segs.reduce(function(a,s){return a+(s.valor>0?s.valor:0)},0);
+    var pista=Math.max(o.total||suma,suma),resto=pista>suma&&suma>0?(pista-suma)/pista*100:0;
+    var vivos=segs.filter(function(s){return s.valor>0});
+    var h='<span class="p0-barra" data-alto="'+(o.alto||12)+'" '+(o.deco?'aria-hidden="true"':'role="group" aria-label="'+(o.etiqueta||'')+'"')+'>';
+    vivos.forEach(function(s,i){
+      var estilo='flex-grow:'+(s.valor/pista*100)+';--i:'+((o.retraso||0)+i);
+      var capa='<i class="'+s.clase+'"></i>';
+      if(o.responde){
+        h+='<button type="button" class="p0-tr" data-g="'+s.clave+'" aria-pressed="false" title="'+s.titulo+'" aria-label="'+s.etiqueta+'" style="'+estilo+'">'+capa+'</button>';
+      }else{
+        h+='<span class="p0-tr" style="'+estilo+'">'+capa+'</span>';
+      }
+    });
+    if(resto>0.01)h+='<span class="p0-resto" aria-hidden="true" style="flex-grow:'+resto+'"></span>';
+    return h+'</span>';
+  }
+
+  /* ---------- 1 · tres tarjetas ---------- */
+  var cifras=
+    '<div class="p0-cifras">'+
+      '<div class="p0-card p0-cifra p0-acento p0-sube" style="--i:0">'+
+        '<p class="p0-lbl">Cuelga hoy</p>'+
+        '<p class="p0-val"><b>'+n(hoyTotal)+'</b><span>de '+n(cap)+'</span></p>'+
+        '<div class="p0-ctx">'+(cuadrado?'prendas en el riel, según el sistema':'por cuadrar: lo real puede ser mucho más')+'</div>'+
+        '<div class="p0-pie"><span>caben '+n(cap)+(D.capacidadProvisional?' · provisional: falta contarlas':' · m² × prendas por m²')+'</span>'+
+          barra([{clave:'colgadas',valor:hoyTotal,clase:'p0-c-conf'}],{alto:4,deco:true,total:cap})+'</div>'+
+      '</div>'+
+      '<div class="p0-card p0-cifra p0-sube" style="--i:1">'+
+        '<p class="p0-lbl">Ventas confirmadas</p>'+
+        '<p class="p0-val"><b>'+n(D.ventasConfirmadas)+'</b></p>'+
+        '<div class="p0-ctx">en '+D.dias+' días</div>'+
+        '<div class="p0-pie"><span>'+n(D.ventasConfirmadas)+(D.ventasConfirmadas===1?' confirmada':' confirmadas')+(D.ventasSinRegistrar>0?' · '+n(D.ventasSinRegistrar)+' sin registrar, que aún '+(D.ventasSinRegistrar===1?'no cuenta':'no cuentan'):'')+'</span>'+
+          barra([{clave:'conf',valor:D.ventasConfirmadas,clase:'p0-c-conf'},{clave:'sin',valor:D.ventasSinRegistrar,clase:'p0-c-sin'}],{alto:4,deco:true})+'</div>'+
+      '</div>'+
+      '<div class="p0-card p0-cifra p0-sube" style="--i:2">'+
+        '<p class="p0-lbl">Peso de la venta</p>'+
+        '<p class="p0-val"><b>'+pesoPct+' %</b></p>'+
+        '<div class="p0-ctx">'+(D.ventasConfirmadas>0?'de la propuesta viene de lo que se vendió':'todavía sin ventas confirmadas')+'</div>'+
+        '<div class="p0-pie"><span>industria '+(100-pesoPct)+' % · venta propia '+pesoPct+' %</span>'+
+          barra([{clave:'ind',valor:100-pesoPct,clase:'p0-c-sin'},{clave:'ven',valor:pesoPct,clase:'p0-c-conf'}],{alto:4,deco:true})+'</div>'+
+      '</div>'+
+    '</div>';
+
+  /* ---------- 2 · aviso ---------- */
+  var nRev=D.categoriasPorRevisar;
+  var aviso=
+    '<div class="p0-aviso" role="status">'+
+      '<span class="p0-aviso-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>'+
+      '<p class="p0-aviso-tit">'+n(nRev)+' categorías siguen por revisar</p>'+
+      '<div class="p0-aviso-det">Mientras no las confirmes, la propuesta usa el grupo que el sistema les puso.</div>'+
+      '<span class="p0-aviso-acc"><button type="button" class="p0-btn p0-sec">Revisar las '+n(nRev)+' categorías</button></span>'+
+    '</div>';
+
+  /* ---------- 3 · el riel, hoy y como quedaría ---------- */
+  var sumaHoy=G.reduce(function(a,g){return a+Math.max(0,g.hoy)},0);
+  var sumaPro=G.reduce(function(a,g){return a+Math.max(0,g.propuesta)},0);
+  var escala=Math.max(cap,sumaHoy,sumaPro);
+  var ocupHoy=Math.min(cap,sumaHoy),ocupPro=Math.min(cap,sumaPro);
+  function segs(campo,cuando){
+    return G.map(function(g,i){return{clave:g.clave,valor:g[campo],clase:'p0-c'+i,titulo:g.nombre+' · '+prendas(g[campo]),etiqueta:g.nombre+': '+prendas(g[campo])+' '+cuando+'. Resaltar este grupo en las dos barras'}});
+  }
+  function lista(campo){return G.filter(function(g){return g[campo]>0}).map(function(g){return g.nombre+' '+n(g[campo])}).join(', ')}
+  var notaHoy=cuadrado?n(ocupHoy)+' de '+n(cap)+' ganchos ocupados · '+Math.round(ocupHoy/cap*100)+' %':'por cuadrar · '+n(ocupHoy)+' de '+n(cap)+' según el sistema';
+  var notaPro=n(ocupPro)+' de '+n(cap)+' ganchos';
+  var resumenHoy='Riel de hoy: '+n(ocupHoy)+' de '+n(cap)+' ganchos ocupados. '+lista('hoy')+'.';
+  var resumenPro='Riel de la propuesta: '+n(ocupPro)+' de '+n(cap)+' ganchos. '+lista('propuesta')+'.';
+  var CHEV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  var riel=
+    '<section class="p0-card p0-pad p0-riel p0-sube" style="--i:2" aria-label="El riel, hoy y como quedaría">'+
+      '<h2 class="p0-h2">El riel, hoy y como quedaría</h2>'+
+      '<p class="p0-sub">Las dos barras miden lo mismo: lo que cabe en el riel. Cada color es un grupo; pasa el cursor por uno para verlo en las dos.</p>'+
+      '<div class="p0-bandas">'+
+        '<div><div class="p0-bl"><b>Hoy</b><span>'+notaHoy+'</span></div><div class="p0-bhoy'+(cuadrado?'':' p0-atenuada')+'">'+barra(segs('hoy','hoy'),{responde:true,etiqueta:resumenHoy,total:escala,retraso:0})+'</div></div>'+
+        '<div><div class="p0-bl"><b>Propuesta</b><span>'+notaPro+'</span></div><div>'+barra(segs('propuesta','en la propuesta'),{responde:true,etiqueta:resumenPro,total:escala,retraso:2})+'</div></div>'+
+        (sumaHoy>cap?'<p class="p0-t12">Cuelgan '+n(sumaHoy-cap)+' prendas más de las que caben en el riel (no hay más ganchos).</p>':'')+
+        '<ul class="p0-leyenda" aria-label="Grupos del riel: toca uno para resaltarlo">'+
+          G.map(function(g,i){return '<li><button type="button" class="p0-chipg" data-g="'+g.clave+'" aria-pressed="false"><span class="p0-mu" aria-hidden="true"><i class="p0-c'+i+'"></i></span><span>'+g.nombre+'</span><span>'+n(g.hoy)+' → '+n(g.propuesta)+'</span></button></li>'}).join('')+
+        '</ul>'+
+        '<div class="p0-ganchos-caja">'+
+          '<button type="button" class="p0-btn p0-sutil p0-ver" aria-expanded="false" aria-controls="p0-ganchos">'+CHEV+'<span class="p0-ver-t">Ver cada gancho ('+n(cap)+')</span></button>'+
+          '<div id="p0-ganchos" class="p0-ganchos" hidden></div>'+
+        '</div>'+
+      '</div>'+
+    '</section>';
+
+  /* ---------- 4 · dónde está cada grupo (la mancuerna) ---------- */
+  var valores=[];G.forEach(function(g){valores.push(g.hoyPct,g.industriaPct,g.ventaPct,g.ventaRango?g.ventaRango[1]:null,g.propuestaPct)});
+  var mayor=valores.reduce(function(m,v){return typeof v==='number'&&isFinite(v)&&v>m?v:m},0);
+  var maximo=Math.min(100,Math.max(20,Math.ceil(mayor/10)*10));
+  function pos(v){return Math.min(100,Math.max(0,v/maximo*100))}
+  var marcas=[];for(var m=0;m<=maximo;m+=10)marcas.push(m);
+  var mfilas=G.map(function(g,i){
+    var rango=g.ventaRango;
+    var resumen=['hoy '+pct(g.hoyPct),'industria '+pct(g.industriaPct),'venta propia '+pct(g.ventaPct)+(rango?', entre '+n(rango[0])+' y '+n(rango[1]):''),'propuesta '+pct(g.propuestaPct)].join('; ');
+    return '<div class="p0-mrow">'+
+      '<div class="p0-mnom"><span class="p0-mu" aria-hidden="true"><i class="p0-c'+i+'"></i></span><span>'+g.nombre+'</span></div>'+
+      '<div role="img" aria-label="'+g.nombre+': '+resumen+'" class="p0-mtrack">'+
+        marcas.map(function(x){return '<span aria-hidden="true" class="p0-mg" style="left:'+pos(x)+'%"></span>'}).join('')+
+        '<span aria-hidden="true" class="p0-mc"></span>'+
+        (rango?'<span aria-hidden="true" class="p0-mrango" title="Venta propia: entre '+n(rango[0])+' y '+n(rango[1])+' %" style="left:'+pos(rango[0])+'%;width:'+Math.max(0.5,pos(rango[1])-pos(rango[0]))+'%"></span>':'')+
+        '<span aria-hidden="true" class="p0-mind" title="Industria: '+pct(g.industriaPct)+'" style="left:'+pos(g.industriaPct)+'%"></span>'+
+        '<span aria-hidden="true" class="p0-mven" title="Venta propia: '+pct(g.ventaPct)+'" style="left:'+pos(g.ventaPct)+'%"></span>'+
+        '<span aria-hidden="true" class="p0-mhoy'+(cuadrado?'':' p0-tenue')+'" title="'+(cuadrado?'Hoy: ':'Hoy (por cuadrar): ')+pct(g.hoyPct)+'" style="left:'+pos(g.hoyPct)+'%"></span>'+
+        '<span aria-hidden="true" class="p0-mpro" title="Propuesta: '+pct(g.propuestaPct)+'" style="left:'+pos(g.propuestaPct)+'%"></span>'+
+      '</div>'+
+      '<div class="p0-mval">'+pct(g.propuestaPct)+'</div>'+
+    '</div>';
+  }).join('');
+  var mancuerna=
+    '<section class="p0-card p0-pad p0-sube" style="--i:3" aria-label="Hoy, industria, venta y propuesta de cada grupo">'+
+      '<h2 class="p0-h2">Dónde está cada grupo</h2>'+
+      '<p class="p0-sub">En % del riel. Cuando los puntos caen juntos, el grupo está en su lugar; cuando se separan, se ve quién empuja hacia dónde.</p>'+
+      '<ul class="p0-mleyenda" aria-label="Qué es cada marca">'+
+        '<li><span aria-hidden="true" style="width:12px;height:12px;border-radius:50%;border:2px solid var(--color-tinta);background:var(--color-papel)"></span>Hoy</li>'+
+        '<li><span aria-hidden="true" style="width:2px;height:14px;background:var(--color-taupe)"></span>Industria</li>'+
+        '<li><span aria-hidden="true" style="display:flex;align-items:center"><span style="width:8px;height:2px;background:var(--color-pizarra)"></span><span style="width:10px;height:10px;border-radius:50%;background:var(--color-pizarra)"></span><span style="width:8px;height:2px;background:var(--color-pizarra)"></span></span>Venta propia y su rango</li>'+
+        '<li><span aria-hidden="true" style="width:10px;height:10px;transform:rotate(45deg);background:var(--color-tinta)"></span>Propuesta</li>'+
+      '</ul>'+
+      '<div class="p0-mfilas">'+mfilas+
+        '<div class="p0-mrow" aria-hidden="true"><span></span><div class="p0-eje">'+marcas.map(function(x){return '<span style="left:'+pos(x)+'%">'+x+'</span>'}).join('')+'</div></div>'+
+      '</div>'+
+      (cuadrado?'':'<p class="p0-mnota"><span class="p0-chip p0-ambar">Por cuadrar</span>El círculo de «Hoy» sale apagado: sin cuadrar el piso, lo que el sistema dice que cuelga no es lo que hay.</p>')+
+    '</section>';
+
+  /* ---------- 5 · lugar de cada grupo en el riel (tabla) ---------- */
+  var TOL=3;
+  function lectura(g){
+    if(!cuadrado)return{tono:'pizarra',texto:'Por cuadrar: sin saber lo que cuelga de verdad no se dice qué falta.'};
+    var dif=g.propuesta-g.hoy;
+    if(Math.abs(dif)<=cap*TOL/100)return{tono:'verde',texto:'Dentro de lo esperado.'};
+    if(dif>0)return{tono:'ambar',texto:'Faltan '+n(dif)+': cuelga más de este grupo.'};
+    var sob='Sobran '+n(-dif);
+    return{tono:'ambar',texto:g.rol==='Destino'?sob+': es destino, no baja sin el OK del líder.':sob+': no cuelgues más hasta llegar a su parte; no se retira nada.'};
+  }
+  function dato(et,html,cls){return '<div class="p0-d'+(cls?' '+cls:'')+'" role="cell"><span class="p0-et">'+et+'</span>'+html+'</div>'}
+  var COLS=[
+    ['Grupo',''],
+    ['Hoy','prendas · % del riel','Lo que el sistema dice que cuelga en el piso hoy. Mientras la sede no cuadre su piso, no es confiable.'],
+    ['Industria','% del riel','El punto de partida: el surtido de mujer de Topitop, Estilos y Oechsle puesto según el rol de cada grupo y el clima de la sede.'],
+    ['Venta propia','% y rango','Lo que vendió la sede en los últimos días, solo con prenda confirmada. El rango dice entre cuánto y cuánto estaría la venta real el 95 % de las veces.'],
+    ['Propuesta','prendas · %','La industria y la venta propia mezcladas según cuánto pesa cada una, repartidas en las prendas que caben en el riel.'],
+    ['Diferencia','prendas','Propuesta menos lo que cuelga hoy: con signo más, faltan; con signo menos, sobran.']
+  ];
+  function encabezado(cols){return '<div class="p0-enc" role="row">'+cols.map(function(c){return '<span role="columnheader"'+(c[2]?' title="'+c[2]+'"':'')+'>'+c[0]+(c[1]?'<small>'+c[1]+'</small>':'')+'</span>'}).join('')+'</div>'}
+  var filas=G.map(function(g){
+    var l=lectura(g);
+    return '<div class="p0-fila" role="row">'+
+      '<div class="p0-g" role="rowheader"><div class="p0-gn"><span>'+g.nombre+'</span>'+chip(g.rol)+'</div>'+
+        '<p class="p0-lect"><i class="p0-t-'+l.tono+'" aria-hidden="true"></i><span>'+l.texto+'</span></p></div>'+
+      dato('Hoy','<span title="'+(cuadrado?'':'Por cuadrar: lo que cuelga de verdad puede ser muy distinto de lo que dice el sistema.')+'">'+n(g.hoy)+' · '+pct(g.hoyPct)+'</span>',cuadrado?'':'p0-ap2')+
+      dato('Industria',pct(g.industriaPct))+
+      dato('Venta propia','<span>'+pct(g.ventaPct)+'<span class="p0-sub2">'+(g.ventaRango?'entre '+n(g.ventaRango[0])+' y '+n(g.ventaRango[1])+' · ':'')+g.ventas+(g.ventas===1?' venta':' ventas')+'</span></span>')+
+      dato('Propuesta','<span class="p0-fuerte">'+n(g.propuesta)+' · '+pct(g.propuestaPct)+'</span>')+
+      dato('Diferencia',cuadrado?(g.propuesta-g.hoy===0?'0':'<span title="'+(g.propuesta-g.hoy>0?'Faltan':'Sobran')+'">'+(g.propuesta-g.hoy>0?'+':'−')+n(Math.abs(g.propuesta-g.hoy))+'</span>'):'<span title="Por cuadrar: sin saber lo que cuelga de verdad, la diferencia no dice nada.">—</span>',cuadrado?'':'p0-ap2')+
+    '</div>';
+  }).join('');
+  var total=
+    '<div class="p0-fila p0-total" role="row">'+
+      '<div class="p0-g" role="rowheader">Total del riel</div>'+
+      dato('Hoy',n(hoyTotal),cuadrado?'':'p0-ap2')+
+      dato('Industria','100 %')+
+      dato('Venta propia','('+n(D.ventasConfirmadas)+')')+
+      dato('Propuesta',n(cap)+' · 100 %')+
+      dato('Diferencia','—')+
+    '</div>';
+  var tabla=
+    '<section class="p0-card p0-tcard p0-sube" style="--i:2" aria-label="Propuesta del mix en el riel">'+
+      '<div class="p0-thead"><h2 class="p0-h2">Lugar de cada grupo en el riel</h2>'+
+        '<p class="p0-sub">La propuesta mezcla el punto de partida de la industria con lo que vendió la sede. Aquí no se guarda nada: es para mirarla y compararla con lo que cuelga.</p></div>'+
+      '<div class="p0-tscroll"><div class="p0-tabla p0-t6" role="table">'+encabezado(COLS)+filas+total+'</div></div>'+
+      (cuadrado?'':'<p class="p0-tpie" role="note"><span class="p0-chip p0-ambar">Por cuadrar</span><span>Esta sede todavía no cuadró su piso: «Hoy» y la diferencia salen apagados porque el sistema puede tener como guardadas prendas que ya cuelgan.</span></p>')+
+    '</section>';
+
+  /* ---------- 6 · fuera del riel ---------- */
+  var COLS_F=[['Grupo',''],['Cuelga hoy','prendas'],['Venta propia','% de la venta'],['Meta','% de la venta']];
+  var filasF=F.map(function(f){
+    var conf=f.ventaPct===0?0:Math.round(f.ventaPct/100*D.ventasConfirmadas);
+    return '<div class="p0-fila" role="row">'+
+      '<div role="rowheader" class="p0-fgrupo"><span>'+f.nombre+'</span>'+chip(f.rol)+'</div>'+
+      dato('Cuelga hoy',n(f.colgadas))+
+      dato('Venta propia','<span>'+pct(f.ventaPct)+'<span class="p0-par">('+conf+')</span></span>')+
+      dato('Meta',f.meta)+
+    '</div>';
+  }).join('');
+  var fuera=
+    '<section class="p0-card p0-tcard p0-sube" style="--i:3" aria-label="Grupos fuera del riel">'+
+      '<div class="p0-thead"><h2 class="p0-h2">Fuera del riel</h2>'+
+        '<p class="p0-sub">Bisutería, cinturones, bolsos y calzado van junto a la caja, en repisa o en ganchos aparte: no ocupan percha del riel. Se miden como porcentaje de la venta, no del piso.</p></div>'+
+      '<div class="p0-tscroll"><div class="p0-tabla p0-t4" role="table">'+encabezado(COLS_F)+filasF+'</div></div>'+
+    '</section>';
+
+  /* ---------- 7 · cómo se calcula ---------- */
+  var nota=
+    '<p class="p0-nota"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'+
+      '<strong>Cómo se calcula.</strong> La propuesta es la industria y la venta propia mezcladas: la venta pesa '+pesoPct+' % (tope 75 %). '+
+      'Ese peso crece con las ventas confirmadas —'+n(D.ventasConfirmadas)+' en '+D.dias+' días, que cuentan como '+n(muestra)+' ventas independientes porque un cliente '+
+      'suele llevarse varias prendas— y la industria pesa como 50. Las ventas «sin registrar» llevan la categoría puesta a mano y no cuentan hasta '+
+      'regularizarlas. La venta nunca gobierna sola: un grupo vende más porque cuelga más, así que repetir lo que ya hay no es una razón para dejarlo igual. '+
+      'El rango de «Venta propia» dice cuánto puede moverse esa cifra solo por azar con tan pocas ventas: un grupo que no vendió nada puede estar en realidad en varios puntos más de lo que dice el cero.'+
+    '</p>';
+
+  root.innerHTML=cifras+aviso+riel+mancuerna+tabla+fuera+nota;
+
+  /* ---------- interacción del riel: apuntar o tocar un grupo lo resalta en las dos barras y en la leyenda ---------- */
+  var hover=null,fijo=null,abierto=false,dib=null;
+  function foco(){return fijo||hover}
+  function pintar(){
+    var f=foco();
+    root.querySelectorAll('.p0-riel [data-g]').forEach(function(el){
+      var es=el.dataset.g;
+      if(el.classList.contains('p0-tr')){el.classList.toggle('p0-ap',!!f&&es!==f);el.classList.toggle('p0-on',es===f)}
+      el.setAttribute('aria-pressed',String(fijo===es));
+    });
+    if(abierto&&dib)dib();
+  }
+  var riEl=root.querySelector('.p0-riel');
+  riEl.addEventListener('mouseover',function(e){var t=e.target.closest('[data-g]');if(t){hover=t.dataset.g;pintar()}});
+  riEl.addEventListener('mouseout',function(e){var t=e.target.closest('[data-g]');if(!t)return;var r=e.relatedTarget&&e.relatedTarget.closest?e.relatedTarget.closest('[data-g]'):null;if(!r){hover=null;pintar()}});
+  riEl.addEventListener('focusin',function(e){var t=e.target.closest('[data-g]');if(t){hover=t.dataset.g;pintar()}});
+  riEl.addEventListener('focusout',function(e){var t=e.target.closest('[data-g]');if(t){hover=null;pintar()}});
+  riEl.addEventListener('click',function(e){
+    var t=e.target.closest('[data-g]');
+    if(t){fijo=fijo===t.dataset.g?null:t.dataset.g;pintar();return}
+    if(e.target.closest('.p0-barra')){fijo=null;pintar()} /* tocar lo libre de la barra suelta el grupo fijo */
+  });
+
+  /* ---------- «Ver cada gancho»: el riel con una prenda por gancho (cerrado de entrada) ---------- */
+  var TOKENS=['tinta','pizarra','verde','ambar','taupe','sand'];
+  function asignar(porGrupo){
+    var total=Math.max(0,Math.floor(cap)),g=new Array(total).fill(-1),sig=0;
+    porGrupo.forEach(function(v,i){var p=Math.max(0,Math.floor(v)),caben=Math.min(p,total-sig);for(var k=0;k<caben;k++)g[sig+k]=i;sig+=caben});
+    return g;
+  }
+  function cuadricula(cuantos,ancho){
+    var a=Math.max(100,Math.floor(ancho)),t=Math.max(1,Math.floor(cuantos)),cols=Math.max(12,Math.floor(a/14));
+    if(Math.ceil(t/cols)>24)cols=Math.ceil(t/24);
+    var filas=Math.ceil(t/cols);return{columnas:cols,filas:filas,ancho:a,alto:Math.ceil(filas*(a/cols)*1.5)+6};
+  }
+  function color(tok){return getComputedStyle(document.documentElement).getPropertyValue('--color-'+tok).trim()||'currentColor'}
+  function dibujarRiel(cv,ganchos,ancho,f,atenuado){
+    var g=cuadricula(ganchos.length,ancho),dpr=window.devicePixelRatio||1;
+    cv.width=Math.floor(g.ancho*dpr);cv.height=Math.floor(g.alto*dpr);cv.style.width=g.ancho+'px';cv.style.height=g.alto+'px';
+    var ctx=cv.getContext('2d');if(!ctx)return;
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,g.ancho,g.alto);
+    var cw=g.ancho/g.columnas,rh=cw*1.5,linea=color('sand'),libre=color('taupe'),cols=TOKENS.map(color);
+    for(var r=0;r<g.filas;r++){
+      var y=3+r*rh;ctx.strokeStyle=linea;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(g.ancho,y);ctx.stroke();
+      for(var c=0;c<g.columnas;c++){
+        var i=r*g.columnas+c;if(i>=ganchos.length)break;
+        var gr=ganchos[i],x=c*cw+cw/2,w=cw*0.74,h=Math.min(rh*0.74,w*1.25),y0=y+3;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y0);ctx.strokeStyle=linea;ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-0.2*w,y0);ctx.lineTo(x+0.2*w,y0);ctx.lineTo(x+0.5*w,y0+0.22*h);ctx.lineTo(x+0.5*w,y0+h);ctx.lineTo(x-0.5*w,y0+h);ctx.lineTo(x-0.5*w,y0+0.22*h);ctx.closePath();
+        var apagado=f>=0&&gr!==f,base=atenuado?0.55:1;
+        if(gr<0){ctx.globalAlpha=f>=0?0.15:0.45;ctx.strokeStyle=libre;ctx.lineWidth=1;ctx.stroke()}
+        else{
+          ctx.globalAlpha=(apagado?0.14:1)*base;ctx.fillStyle=cols[((gr%6)+6)%6];ctx.fill();
+          if(TOKENS[((gr%6)+6)%6]==='sand'){ctx.globalAlpha*=0.45;ctx.fillStyle=libre;ctx.fill()}
+        }
+        ctx.globalAlpha=1;
+      }
+    }
+  }
+  var panel=root.querySelector('#p0-ganchos'),boton=root.querySelector('.p0-ver'),botonT=root.querySelector('.p0-ver-t');
+  function indiceDe(clave){return clave===null?-1:G.findIndex(function(g){return g.clave===clave})}
+  function montarGanchos(){
+    var hoyG=asignar(G.map(function(g){return g.hoy})),proG=asignar(G.map(function(g){return g.propuesta}));
+    function bloque(titulo,nota,ganchos,campo,atenuado){
+      return {titulo:titulo,nota:nota,ganchos:ganchos,campo:campo,atenuado:atenuado};
+    }
+    var defs=[bloque('Hoy',notaHoy,hoyG,'hoy',!cuadrado),bloque('Propuesta',notaPro,proG,'propuesta',false)];
+    panel.innerHTML='<p class="p0-t12">Cada gancho es una prenda y los dos rieles tienen la misma capacidad.</p>'+
+      defs.map(function(d,k){return '<div><div class="p0-bl"><b>'+d.titulo+'</b><span>'+d.nota+'</span></div><div class="p0-cv"><canvas role="img" aria-label="'+(k?resumenPro:resumenHoy)+'"></canvas></div></div>'}).join('');
+    var cvs=panel.querySelectorAll('canvas');
+    dib=function(){
+      var f=indiceDe(foco());var ancho=panel.clientWidth;if(!ancho)return;
+      cvs.forEach(function(cv,k){dibujarRiel(cv,k?proG:hoyG,ancho,f,defs[k].atenuado)});
+    };
+    cvs.forEach(function(cv,k){
+      var ganchos=k?proG:hoyG,campo=defs[k].campo;
+      function grupoEn(e){
+        var r=cv.getBoundingClientRect(),g=cuadricula(ganchos.length,r.width);
+        var col=Math.floor((e.clientX-r.left)/r.width*g.columnas),fila=Math.floor((e.clientY-r.top-3)/(g.ancho/g.columnas*1.5));
+        if(col<0||col>=g.columnas||fila<0||fila>=g.filas)return null;
+        var i=fila*g.columnas+col;return i<ganchos.length?ganchos[i]:null;
+      }
+      var tip=null;
+      cv.addEventListener('mousemove',function(e){
+        var gi=grupoEn(e),r=cv.getBoundingClientRect();
+        if(gi===null||gi<0){hover=null;if(tip){tip.remove();tip=null}pintar();return}
+        hover=G[gi].clave;pintar();
+        if(!tip){tip=document.createElement('div');tip.className='p0-tip';tip.setAttribute('role','status');cv.parentNode.appendChild(tip)}
+        tip.textContent=G[gi].nombre+' · '+G[gi][campo]+' prendas';
+        tip.style.left=Math.max(4,Math.min(e.clientX-r.left+12,r.width-190))+'px';tip.style.top=(e.clientY-r.top+12)+'px';
+      });
+      cv.addEventListener('mouseleave',function(){hover=null;if(tip){tip.remove();tip=null}pintar()});
+      cv.addEventListener('click',function(e){var gi=grupoEn(e);fijo=gi===null||gi<0?null:(fijo===G[gi].clave?null:G[gi].clave);pintar()});
+    });
+  }
+  var ro=null,mo=null;
+  boton.addEventListener('click',function(){
+    abierto=!abierto;boton.setAttribute('aria-expanded',String(abierto));panel.hidden=!abierto;
+    botonT.textContent=abierto?'Ocultar los ganchos':'Ver cada gancho ('+n(cap)+')';
+    if(abierto){
+      montarGanchos();dib();
+      if(window.ResizeObserver){ro=new ResizeObserver(function(){if(abierto&&dib)dib()});ro.observe(panel)}
+      mo=new MutationObserver(function(){if(abierto&&dib)dib()});mo.observe(document.documentElement,{attributes:true,attributeFilter:['data-tema']});
+    }else{
+      if(ro){ro.disconnect();ro=null}if(mo){mo.disconnect();mo=null}panel.innerHTML='';dib=null;
+    }
+  });
+})();
+</script>
+</section>
+      <section class="diseno" data-diseno="a" hidden><!-- DIRECCIÓN A · «LA PERCHA» — la pantalla se parece al riel de la tienda.
+     Un pictograma de perchas: cada percha dibujada = 50 prendas (1,800 lugares = 36 perchas), agrupadas en tramos por grupo.
+     Todo sale de window.DATOS. Colores: solo tokens var(--color-*). Selectores con prefijo pa-. -->
+<style>
+.pa-raiz{container-type:inline-size;container-name:pa;display:grid;gap:18px;color:var(--color-tinta);font-family:var(--sans);min-width:0}
+.pa-raiz *,.pa-raiz *::before,.pa-raiz *::after{box-sizing:border-box}
+.pa-raiz button{text-align:left;color:inherit}
+.pa-defs{position:absolute;width:0;height:0;overflow:hidden}
+
+/* ---------- la tarjeta del riel ---------- */
+.pa-card{--pa-pad:24px;--pa-banda:14px;--pa-gap:9px;--pa-solape:.4;
+  --pa-poste:color-mix(in srgb,var(--color-tinta) 58%,transparent);
+  background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl);padding:var(--pa-pad);display:grid;gap:26px}
+@container pa (max-width:760px){.pa-card{--pa-pad:20px;--pa-banda:12px}}
+@container pa (max-width:560px){.pa-card{--pa-pad:16px;--pa-banda:10px;gap:22px}}
+
+/* color de cada grupo: solo tokens (el rojo no se usa para pintar un grupo) */
+.pa-card [data-g="polos_tops_blusas"]{--pa-c:var(--color-taupe)}
+.pa-card [data-g="jeans"]{--pa-c:var(--color-pizarra)}
+.pa-card [data-g="pantalones_faldas_shorts"]{--pa-c:var(--color-verde)}
+.pa-card [data-g="vestidos_conjuntos"]{--pa-c:color-mix(in srgb,var(--color-ambar) 72%,var(--color-sand))}
+.pa-card [data-g="bodys_corsets_lenceria"]{--pa-c:color-mix(in srgb,var(--color-taupe) 80%,var(--color-papel))}
+.pa-card [data-g="abrigo_y_capas"]{--pa-c:color-mix(in srgb,var(--color-tinta) 82%,var(--color-papel))}
+html[data-tema="oscuro"] .pa-card [data-g="bodys_corsets_lenceria"]{--pa-c:color-mix(in srgb,var(--color-taupe) 58%,var(--color-papel))}
+
+/* ---------- estado: 78 de 1,800 ---------- */
+.pa-estado{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px 32px}
+.pa-est-cifra{display:grid;gap:6px}
+.pa-est-n{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pa-est-n b{font-family:var(--serif);font-weight:400;font-size:68px;line-height:.9;letter-spacing:-.02em;font-variant-numeric:lining-nums tabular-nums}
+.pa-est-n span{font-family:var(--serif);font-size:28px;line-height:1;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.pa-est-texto{flex:1 1 300px;display:grid;gap:10px;padding-top:2px}
+.pa-est-chips{display:flex;flex-wrap:wrap;gap:6px 8px}
+.pa-est-texto p{font-size:15px;line-height:1.45;color:var(--color-tinta);max-width:520px}
+.pa-est-texto p em{font-style:normal;color:var(--color-tinta-60)}
+@container pa (max-width:560px){.pa-est-n b{font-size:54px}.pa-est-n span{font-size:24px}.pa-estado{gap:12px}}
+
+/* ---------- un riel (Hoy / Cómo quedaría) ---------- */
+.pa-riel{display:grid;gap:10px;min-width:0}
+.pa-rcab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px}
+.pa-rtit{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+.pa-rsub{font-size:13px;color:var(--color-tinta-60)}
+.pa-banda{background:color-mix(in srgb,var(--color-hueso) 52%,var(--color-papel));border-radius:var(--radius-lg);padding:14px var(--pa-banda) 16px;min-width:0}
+
+.pa-rail{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px var(--pa-gap);
+  --paso:clamp(15px,calc((100cqi - 2*var(--pa-pad) - 2*var(--pa-banda) - 5*var(--pa-gap) - 8px)/36),34px);
+  --gw:calc(var(--paso)*(1 + var(--pa-solape)));--gh:calc(var(--gw)*1.5)}
+.pa-blq{position:relative;flex:none;width:max(3px,calc(var(--paso)*var(--n)));padding-top:2px;display:flex;align-items:flex-start}
+.pa-blq::before{content:"";position:absolute;left:0;top:0;width:100%;height:3px;border-radius:2px;background:var(--pa-poste);transition:opacity 220ms var(--ease-cayla)}
+.pa-p{flex:none;display:block;width:calc(var(--gw)*var(--f,1));height:var(--gh);margin-right:calc(var(--gw)*var(--f,1)*var(--pa-solape)/(1 + var(--pa-solape))*-1);
+  transform-origin:50% 0;animation:pa-cuelga 420ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*14ms)}
+.pa-p{transition:opacity 220ms var(--ease-cayla)}
+.pa-p svg{display:block;width:100%;height:100%;overflow:visible}
+@keyframes pa-cuelga{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+
+/* el espacio libre: riel vacío y tranquilo (rayado = «según el sistema, sin contar») */
+.pa-libre{flex:1 1 170px;position:relative;min-height:var(--gh);padding-top:2px;display:grid;place-content:center;justify-items:center;text-align:center;gap:1px;min-width:0}
+.pa-libre::before{content:"";position:absolute;left:0;right:0;top:0;border-top:3px dashed color-mix(in srgb,var(--color-tinta) 30%,transparent)}
+.pa-libre b{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.01em}
+.pa-libre span{font-size:14px;font-weight:500}
+.pa-libre small{font-size:12.5px;color:var(--color-tinta-60);max-width:260px;line-height:1.35;margin-top:3px}
+.pa-libre{padding-top:10px}
+
+/* etiquetas sobre cada tramo (solo cuando el riel es ancho) */
+.pa-et{display:none;position:absolute;left:0;bottom:calc(100% + 7px);font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip}
+@container pa (min-width:900px){.pa-riel[data-riel="prop"] .pa-blq{margin-top:22px}.pa-riel[data-riel="prop"] .pa-et{display:block}}
+
+/* resaltado al pasar por un grupo */
+.pa-card[data-sel] .pa-blq:not(.pa-on)::before,.pa-card[data-sel] .pa-blq:not(.pa-on) .pa-p{opacity:.22}
+
+/* silueta */
+.pa-sil{fill:var(--pa-c);stroke:color-mix(in srgb,var(--color-tinta) 32%,transparent);stroke-width:.7;stroke-linejoin:round}
+.pa-d{fill:none;stroke:var(--color-papel);stroke-width:1;opacity:.6;stroke-linecap:round;stroke-linejoin:round}
+.pa-hg{fill:none;stroke:var(--color-tinta-60);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.pa-ic{display:block;flex:none;overflow:visible}
+.pa-hd{fill:none;stroke:var(--pa-c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* leyenda de «Hoy»: una línea de fichas pequeñas */
+.pa-chips{display:flex;flex-wrap:wrap;gap:6px 8px;list-style:none}
+.pa-chip{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:3px 12px 3px 8px;border-radius:999px;border:1px solid var(--color-sand);background:var(--color-papel);font-size:12.5px;line-height:1.2;
+}
+.pa-chip .pa-ic{width:15px;height:19px}
+.pa-chip b{font-weight:700;font-variant-numeric:lining-nums tabular-nums}
+.pa-chip:hover,.pa-chip.pa-on{background:color-mix(in srgb,var(--pa-c) 12%,var(--color-papel));border-color:var(--pa-c)}
+
+/* leyenda de «Cómo quedaría» */
+.pa-leyenda{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;list-style:none}
+@container pa (max-width:820px){.pa-leyenda{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container pa (max-width:480px){.pa-leyenda{grid-template-columns:minmax(0,1fr);gap:6px}.pa-lg{min-height:52px;padding:7px 14px 7px 12px}.pa-lg .pa-ic{width:26px;height:33px}.pa-lg-n{font-size:23px}}
+.pa-leyenda li{display:flex}
+.pa-lg{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:9px 14px 9px 12px;border-radius:var(--radius-lg);border:1px solid var(--color-sand);background:var(--color-papel);
+}
+.pa-lg .pa-ic{width:30px;height:38px}
+.pa-lg-t{display:grid;gap:2px;min-width:0;flex:1}
+.pa-lg-t b{font-size:13.5px;font-weight:600;line-height:1.25}
+.pa-lg-t small{font-size:12.5px;color:var(--color-tinta-60);line-height:1.3;font-variant-numeric:lining-nums tabular-nums}
+.pa-lg-n{font-family:var(--serif);font-size:26px;line-height:1;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.01em}
+.pa-lg:hover,.pa-lg.pa-on{background:color-mix(in srgb,var(--pa-c) 10%,var(--color-papel));border-color:var(--pa-c)}
+.pa-ic{transition:opacity 220ms var(--ease-cayla)}
+.pa-card[data-sel] .pa-lg:not(.pa-on) .pa-ic,.pa-card[data-sel] .pa-chip:not(.pa-on) .pa-ic{opacity:.35}
+
+/* pie del riel: escala + frase que cambia al pasar por un grupo */
+.pa-pie{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;font-size:12.5px;line-height:1.4;color:var(--color-tinta-60)}
+.pa-escala{display:inline-flex;align-items:center;gap:8px}
+.pa-escala .pa-ic{width:16px;height:24px}
+.pa-escala .pa-hg{stroke-width:1.5}
+.pa-cap{min-height:18px}
+.pa-cap b{color:var(--color-tinta);font-weight:600}
+
+/* botón «¿Por qué?» */
+.pa-porque-btn{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px 4px 6px;border-radius:999px;border:1px solid var(--color-sand);background:var(--color-papel);font-size:12.5px;font-weight:500;line-height:1.2;
+}
+.pa-porque-btn:hover{background:var(--color-sand)}
+.pa-porque-btn[aria-expanded="true"]{background:var(--color-hueso);border-color:var(--color-taupe)}
+.pa-q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--color-sand);font-family:var(--serif);font-size:14px;font-weight:600;line-height:1}
+
+/* panel «cómo se calcula» */
+.pa-panel{background:var(--color-hueso);border-radius:var(--radius-lg);padding:16px 18px;display:grid;gap:10px;font-size:13.5px;line-height:1.5;color:var(--color-tinta-60);animation:pa-entra 260ms var(--ease-cayla) both}
+.pa-panel p{max-width:620px}
+.pa-panel b{color:var(--color-tinta);font-weight:600}
+.pa-panel .pa-pt{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo);margin-top:4px}
+.pa-panel ul{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px}
+@container pa (max-width:700px){.pa-panel ul{grid-template-columns:minmax(0,1fr)}}
+.pa-panel li{font-size:13px;line-height:1.4}
+.pa-panel li b{display:block}
+@keyframes pa-entra{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* aviso de las 45 categorías */
+.pa-aviso{flex-wrap:wrap}
+.pa-aviso>div{flex:1 1 260px;min-width:0}
+.pa-aviso b{font-size:14.5px}
+.pa-aviso span{line-height:1.4;display:block;margin-top:2px}
+
+/* fuera del riel */
+.pa-fuera{display:grid;gap:10px}
+.pa-fuera-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px}
+.pa-fuera-cab span:last-child{font-size:13px;color:var(--color-tinta-60)}
+.pa-fichas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none}
+@container pa (max-width:640px){.pa-fichas{grid-template-columns:minmax(0,1fr)}}
+.pa-ficha{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:1px solid var(--color-sand);border-radius:var(--radius-lg);background:color-mix(in srgb,var(--color-hueso) 40%,var(--color-papel))}
+.pa-ficha .pa-ic{width:28px;height:36px}
+.pa-ficha{--pa-c:color-mix(in srgb,var(--color-tinta) 52%,var(--color-papel))}
+.pa-ficha b{display:block;font-size:13.5px;font-weight:600;line-height:1.25}
+.pa-ficha span{display:block;font-size:12.5px;color:var(--color-tinta-60);line-height:1.35;font-variant-numeric:lining-nums tabular-nums}
+
+@media (prefers-reduced-motion:reduce){.pa-p,.pa-panel{animation:none!important}.pa-p,.pa-blq::before,.pa-ic{transition:none!important}}
+</style>
+
+<div class="pa-raiz" id="pa-raiz">
+
+<!-- siluetas: la prenda sin foto se dibuja como el ícono de su categoría (nunca el logo) -->
+<svg class="pa-defs" aria-hidden="true" focusable="false"><defs>
+  <symbol id="pa-h" viewBox="0 0 40 60"><g class="pa-hg"><path d="M20 12 V8 C20 5 21.6 3.2 23.7 3.2 C25.7 3.2 27.2 4.6 27.2 6.4"/><path d="M20 12 L4.5 24.5 H35.5 Z"/></g></symbol>
+  <symbol id="pa-s-polos_tops_blusas" viewBox="0 0 40 60"><path d="M14.5 17.5 L4.5 22.5 L8 30 L13 27.5 L13 53.5 Q20 55.5 27 53.5 L27 27.5 L32 30 L35.5 22.5 L25.5 17.5 C24 21.2 16 21.2 14.5 17.5 Z"/></symbol>
+  <symbol id="pa-s-jeans" viewBox="0 0 40 60"><path d="M12 17.5 H28 L30.8 55.5 H21.3 L20 31 L18.7 55.5 H9.2 Z"/><path class="pa-d" d="M12.2 22 H27.8 M20 22 V31"/></symbol>
+  <symbol id="pa-s-pantalones_faldas_shorts" viewBox="0 0 40 60"><path d="M13 17.5 H27 L27.8 23 L36 53 Q20 57.5 4 53 L12.2 23 Z"/><path class="pa-d" d="M12.4 23 H27.6"/></symbol>
+  <symbol id="pa-s-vestidos_conjuntos" viewBox="0 0 40 60"><path d="M14.5 16.5 L17 16.5 L18.2 22.5 C19.2 24.3 20.8 24.3 21.8 22.5 L23 16.5 L25.5 16.5 L26.8 27 L24.4 32 L36 55 Q20 59 4 55 L15.6 32 L13.2 27 Z"/><path class="pa-d" d="M15.8 32 H24.2"/></symbol>
+  <symbol id="pa-s-bodys_corsets_lenceria" viewBox="0 0 40 60"><path d="M13.5 16.5 L16.8 16.5 L18 22 C19 24.2 21 24.2 22 22 L23.2 16.5 L26.5 16.5 L27.8 27 C27.8 31.5 25.6 33.5 25.6 37.5 C29 39.5 31 43.5 31 47.5 C27.8 46.8 24.6 47.8 23.2 52 H16.8 C15.4 47.8 12.2 46.8 9 47.5 C9 43.5 11 39.5 14.4 37.5 C14.4 33.5 12.2 31.5 12.2 27 Z"/><path class="pa-d" d="M13.8 28 H26.2"/></symbol>
+  <symbol id="pa-s-abrigo_y_capas" viewBox="0 0 40 60"><path d="M14 17 L7.2 20.4 L4 49 H10 L11.4 31.5 V56 H28.6 V31.5 L30 49 H36 L32.8 20.4 L26 17 L20 26.5 Z"/><path class="pa-d" d="M20 26.5 V56 M14.6 18.5 L17.8 32 M25.4 18.5 L22.2 32"/></symbol>
+  <symbol id="pa-s-accesorios_de_impulso" viewBox="0 0 40 60"><path d="M5 27 H17.5 V34.5 C17.5 39 14.5 41.5 11.2 41.5 C7.8 41.5 5 39 5 34.5 Z"/><path d="M22.5 27 H35 V34.5 C35 39 32.2 41.5 28.8 41.5 C25.5 41.5 22.5 39 22.5 34.5 Z"/><path class="pa-hd" d="M17.5 29.5 Q20 27.4 22.5 29.5 M5 28 L2.5 25.5 M35 28 L37.5 25.5"/></symbol>
+  <symbol id="pa-s-bolsos_y_calzado" viewBox="0 0 40 60"><path d="M7 30 H33 L35.5 52 Q35.5 54.5 33 54.5 H7 Q4.5 54.5 4.5 52 Z"/><path class="pa-hd" d="M13.5 30 V25 C13.5 19.5 26.5 19.5 26.5 25 V30"/><path class="pa-d" d="M5.5 38 H34.5"/></symbol>
+</defs></svg>
+
+<section class="pa-card" id="pa-card" aria-label="El riel de la tienda">
+
+  <!-- 1 · el estado, en una línea -->
+  <header class="pa-estado">
+    <div class="pa-est-cifra">
+      <span class="cy-label">Según el sistema, hoy cuelgan</span>
+      <div class="pa-est-n"><b id="pa-n-hoy">78</b><span>de <span id="pa-n-cap" style="font-size:inherit;color:inherit">1,800</span> prendas</span></div>
+    </div>
+    <div class="pa-est-texto">
+      <div class="pa-est-chips">
+        <span class="cy-chip ambar">Por cuadrar</span>
+        <span class="cy-chip" id="pa-chip-prov">Capacidad provisional</span>
+        <span class="cy-chip ambar" id="pa-chip-cat"></span>
+      </div>
+      <p id="pa-frase"></p>
+    </div>
+  </header>
+
+  <!-- 2 · los dos rieles -->
+  <div class="pa-riel" data-riel="hoy">
+    <div class="pa-rcab">
+      <div class="pa-rtit"><span class="cy-label">Hoy</span><span class="pa-rsub" id="pa-sub-hoy"></span></div>
+    </div>
+    <div class="pa-banda"><div class="pa-rail" id="pa-rail-hoy" role="img"></div></div>
+    <ul class="pa-chips" id="pa-chips-hoy" aria-label="Prendas de hoy por grupo"></ul>
+  </div>
+
+  <div class="pa-riel" data-riel="prop">
+    <div class="pa-rcab">
+      <div class="pa-rtit"><span class="cy-label">Cómo quedaría</span><span class="pa-rsub" id="pa-sub-prop"></span></div>
+      <button type="button" class="pa-porque-btn" id="pa-btn-porque" aria-expanded="false" aria-controls="pa-panel"><span class="pa-q" aria-hidden="true">?</span><span id="pa-txt-porque"></span></button>
+    </div>
+    <div class="pa-banda"><div class="pa-rail" id="pa-rail-prop" role="img"></div></div>
+    <ul class="pa-leyenda" id="pa-leyenda" aria-label="Reparto propuesto por grupo"></ul>
+    <div class="pa-panel" id="pa-panel" hidden></div>
+  </div>
+
+  <div class="pa-pie">
+    <span class="pa-escala"><svg class="pa-ic" viewBox="0 0 40 60" aria-hidden="true"><use href="#pa-h"/></svg><span>Cada percha = <b id="pa-unidad" style="color:var(--color-tinta);font-weight:600">50</b> prendas. Una percha angosta es menos de 50.</span></span>
+    <span class="pa-cap" id="pa-cap" aria-live="polite">Pasa el cursor o toca un grupo para ver dónde cuelga.</span>
+  </div>
+
+  <!-- 3 · lo que toca hacer -->
+  <div class="cy-aviso pa-aviso" role="note">
+    <div><b id="pa-av-t"></b><span id="pa-av-d"></span></div>
+    <button type="button" class="cy-btn" id="pa-av-b">Revisar las 45 categorías</button>
+  </div>
+</section>
+
+<!-- 4 · lo que no cuelga del riel -->
+<section class="pa-fuera" aria-label="Fuera del riel">
+  <div class="pa-fuera-cab"><span class="cy-label">Fuera del riel</span><span>No entran en el reparto. Cifras según el sistema.</span></div>
+  <ul class="pa-fichas" id="pa-fichas"></ul>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var D=window.DATOS,R=document.getElementById('pa-raiz');
+  if(!D||!R)return;
+  var UNIDAD=50;
+  var CORTO={polos_tops_blusas:'Polos',jeans:'Jeans',pantalones_faldas_shorts:'Pantalones',vestidos_conjuntos:'Vestidos',bodys_corsets_lenceria:'Bodys',abrigo_y_capas:'Abrigo'};
+  var $=function(id){return document.getElementById(id)};
+  var fmt=function(n){return Number(n).toLocaleString('en-US')};
+  var pl=function(n,a,b){return n===1?a:b};
+  var libres=D.capacidad-D.colgadasEnElRiel;
+  var pctHoy=Math.round(D.colgadasEnElRiel/D.capacidad*100);
+  var pctInd=100-D.pesoVentaPct;
+  var card=$('pa-card');
+
+  function icono(clave){return '<svg class="pa-ic" viewBox="2 15 36 43" aria-hidden="true" focusable="false"><use href="#pa-s-'+clave+'" class="pa-sil"/></svg>'}
+  function glifo(clave,f,i){
+    return '<span class="pa-p" style="--f:'+f.toFixed(3)+';--i:'+i+'"><svg viewBox="0 0 40 60" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="#pa-h"/><use href="#pa-s-'+clave+'" class="pa-sil"/></svg></span>';
+  }
+  function bloque(g,prendas,etiqueta,idx){
+    var n=prendas/UNIDAD,llenas=Math.floor(n+1e-9),resto=n-llenas,h='',i=idx.v;
+    for(var k=0;k<llenas;k++)h+=glifo(g.clave,1,i++);
+    if(resto>=0.05)h+=glifo(g.clave,resto,i++);
+    idx.v=i;
+    return '<div class="pa-blq" data-g="'+g.clave+'" style="--n:'+n.toFixed(4)+'">'+(etiqueta?'<span class="pa-et">'+CORTO[g.clave]+'</span>':'')+h+'</div>';
+  }
+
+  /* ---- estado ---- */
+  $('pa-n-hoy').textContent=fmt(D.colgadasEnElRiel);
+  $('pa-n-cap').textContent=fmt(D.capacidad);
+  $('pa-unidad').textContent=UNIDAD;
+  if(!D.capacidadProvisional)$('pa-chip-prov').hidden=true;
+  $('pa-frase').innerHTML='Tu riel estaría casi vacío (<b>'+pctHoy+'\u00a0%</b>). <em>Falta contar tu piso: lo que cuelga de verdad puede ser mucho más.</em>';
+
+  /* ---- riel de hoy ---- */
+  var idx={v:0},h='';
+  D.grupos.forEach(function(g){h+=bloque(g,g.hoy,false,idx)});
+  h+='<div class="pa-libre"><b>'+fmt(libres)+'</b><span>lugares libres</span><small>según el sistema · falta contar tu piso</small></div>';
+  var rh=$('pa-rail-hoy');rh.innerHTML=h;
+  rh.setAttribute('aria-label','Hoy, según el sistema: '+fmt(D.colgadasEnElRiel)+' de '+fmt(D.capacidad)+' lugares ocupados y '+fmt(libres)+' libres. Falta contar el piso.');
+  $('pa-sub-hoy').textContent='según el sistema · '+pctHoy+'\u00a0% del riel';
+  $('pa-chips-hoy').innerHTML=D.grupos.map(function(g){
+    return '<li><button type="button" class="pa-chip" data-g="'+g.clave+'" aria-pressed="false" aria-label="'+g.nombre+': '+g.hoy+' prendas hoy">'+icono(g.clave)+CORTO[g.clave]+' <b>'+g.hoy+'</b></button></li>';
+  }).join('');
+
+  /* ---- riel de la propuesta ---- */
+  idx={v:0};h='';
+  D.grupos.forEach(function(g){h+=bloque(g,g.propuesta,true,idx)});
+  var rp=$('pa-rail-prop');rp.innerHTML=h;
+  var repartidas=D.grupos.reduce(function(s,g){return s+g.propuesta},0);
+  rp.setAttribute('aria-label','Cómo quedaría: '+D.grupos.map(function(g){return g.nombre+' '+fmt(g.propuesta)}).join(', ')+'. En total '+fmt(repartidas)+' de '+fmt(D.capacidad)+' lugares repartidos.');
+  $('pa-sub-prop').textContent='así se repartirían tus '+fmt(repartidas)+' lugares'+(D.capacidadProvisional?' (provisional)':'');
+  $('pa-txt-porque').textContent='Casi no usa tus '+D.ventasConfirmadas+' ventas ('+D.pesoVentaPct+'\u00a0%) · ¿Por qué?';
+  $('pa-leyenda').innerHTML=D.grupos.map(function(g){
+    return '<li><button type="button" class="pa-lg" data-g="'+g.clave+'" aria-pressed="false">'+icono(g.clave)+
+      '<span class="pa-lg-t"><b>'+g.nombre+'</b><small>'+g.propuestaPct+'\u00a0% del riel · hoy '+g.hoy+'</small></span>'+
+      '<span class="pa-lg-n">'+fmt(g.propuesta)+'</span></button></li>';
+  }).join('');
+
+  /* ---- aviso ---- */
+  $('pa-chip-cat').textContent=D.categoriasPorRevisar+' categorías por revisar';
+  $('pa-av-t').textContent=D.categoriasPorRevisar+' categorías esperan revisión';
+  $('pa-av-d').textContent='Esta propuesta usa el grupo que les puso el sistema. Confírmalas en «Grupos» para afinarla.';
+  $('pa-av-b').textContent='Revisar las '+D.categoriasPorRevisar+' categorías';
+
+  /* ---- fuera del riel ---- */
+  $('pa-fichas').innerHTML=D.fuera.map(function(f){
+    return '<li class="pa-ficha">'+icono(f.clave)+'<div><b>'+f.nombre+'</b><span>'+f.colgadas+' prendas · meta '+f.meta+' de la venta</span></div></li>';
+  }).join('');
+
+  /* ---- cómo se calcula (en palabras, tras un toque) ---- */
+  var ej=D.grupos.filter(function(g){return g.ventas>=2})[0];
+  var pn='<p><b>Cada grupo se lleva una parte de los '+fmt(D.capacidad)+' lugares del riel.</b> Esa parte mezcla dos cosas: lo que suele funcionar en tiendas de ropa ('+pctInd+'\u00a0%) y lo que vendiste tú ('+D.pesoVentaPct+'\u00a0%).</p>'+
+    '<p>Tus ventas pesan poco porque solo hay <b>'+D.ventasConfirmadas+' ventas confirmadas</b> en '+D.dias+' días. Las '+D.ventasSinRegistrar+' ventas sin registrar todavía no cuentan.'+
+    (ej?' Con '+ej.ventas+' ventas, «'+ej.nombre+'» saldría '+ej.ventaPct+'\u00a0%, pero podría ser desde '+ej.ventaRango[0]+' hasta '+ej.ventaRango[1]+'\u00a0%: casi no sabemos.':'')+'</p>'+
+    '<p>Los '+fmt(D.capacidad)+' lugares son provisionales (falta contar el riel) y las '+fmt(D.colgadasEnElRiel)+' prendas de «Hoy» son lo que el sistema cree que cuelga, no lo que hay de verdad. Por eso, saber qué grupo tiene de más o de menos depende de contar tu piso.</p>'+
+    '<div class="pa-pt">Cómo salió cada grupo</div><ul>'+D.grupos.map(function(g){
+      return '<li><b>'+g.nombre+' → '+g.propuestaPct+'\u00a0%</b>lo habitual '+g.industriaPct+'\u00a0% · tus ventas '+g.ventaPct+'\u00a0% ('+g.ventas+' '+pl(g.ventas,'venta','ventas')+')</li>';
+    }).join('')+'</ul>';
+  $('pa-panel').innerHTML=pn;
+
+  /* ---- interacción ---- */
+  var panel=$('pa-panel'),b1=$('pa-btn-porque');
+  function alternar(){
+    var abrir=panel.hidden;panel.hidden=!abrir;
+    b1.setAttribute('aria-expanded',abrir);
+  }
+  b1.addEventListener('click',alternar);
+
+  var lock=null,cap=$('pa-cap'),capBase=cap.textContent;
+  var porClave={};D.grupos.forEach(function(g){porClave[g.clave]=g});
+  function mostrar(k){
+    card.setAttribute('data-sel',k);
+    [].forEach.call(card.querySelectorAll('[data-g]'),function(e){e.classList.toggle('pa-on',e.getAttribute('data-g')===k)});
+    var g=porClave[k];
+    cap.innerHTML=g?'<b>'+g.nombre+'</b> · hoy '+g.hoy+' → quedaría '+fmt(g.propuesta)+' ('+g.propuestaPct+'\u00a0%)':capBase;
+  }
+  function limpiar(){
+    card.removeAttribute('data-sel');
+    [].forEach.call(card.querySelectorAll('.pa-on'),function(e){e.classList.remove('pa-on')});
+    cap.textContent=capBase;
+  }
+  function marcarPresion(){[].forEach.call(card.querySelectorAll('button[data-g]'),function(e){e.setAttribute('aria-pressed',String(e.getAttribute('data-g')===lock))})}
+  function grupoDe(e){var t=e.target&&e.target.closest?e.target.closest('[data-g]'):null;return t&&card.contains(t)?t:null}
+  card.addEventListener('mouseover',function(e){if(lock)return;var t=grupoDe(e);if(t)mostrar(t.getAttribute('data-g'));else limpiar()});
+  card.addEventListener('mouseleave',function(){if(!lock)limpiar()});
+  card.addEventListener('focusin',function(e){if(lock)return;var t=grupoDe(e);if(t)mostrar(t.getAttribute('data-g'))});
+  card.addEventListener('focusout',function(e){if(lock)return;var t=grupoDe(e);if(t&&!(e.relatedTarget&&card.contains(e.relatedTarget)&&e.relatedTarget.closest('[data-g]')))limpiar()});
+  card.addEventListener('click',function(e){
+    var t=grupoDe(e);if(!t)return;
+    var k=t.getAttribute('data-g');
+    if(lock===k){lock=null;limpiar()}else{lock=k;mostrar(k)}
+    marcarPresion();
+  });
+})();
+</script>
+</section>
+      <section class="diseno" data-diseno="b" hidden><style>
+/* B · La frase primero — editorial, silencioso. Prefijo pb-. Solo tokens --color-*; sin tarjetas con borde: filetes sand, tipografía y aire. */
+.pb{container-type:inline-size;container-name:pb}
+/* un contenedor no puede darle estilo a sí mismo con @container: las medidas viven en .pb-in */
+.pb-in{font-family:var(--sans);color:var(--color-tinta);padding:20px 0 8px;
+  --pb-cols:244px minmax(0,1fr) 132px;--pb-gap:32px;--pb-num:58px}
+.pb *{box-sizing:border-box}
+:where(.pb) :where(h2,h3,p,ol){margin:0}
+
+/* ---------- 1 · el veredicto ---------- */
+.pb-frase{font-family:var(--serif);font-weight:400;font-size:36px;line-height:1.2;letter-spacing:-.012em;max-width:25em;font-variant-numeric:lining-nums tabular-nums}
+.pb-frase span{display:block;text-wrap:balance}
+.pb-frase span:first-child{max-width:21em}
+.pb-frase span+span{margin-top:6px;color:var(--color-tinta-60)}
+.pb-cifra{font-weight:500;color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 17%,transparent);border-radius:8px;padding:0 .14em;margin:0 -.02em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.pb-estado{display:flex;flex-wrap:wrap;align-items:center;gap:8px 8px;margin-top:28px}
+.pb-enlace{margin-left:-8px;font-size:13.5px;color:var(--color-tinta);text-decoration:underline;text-decoration-color:var(--color-taupe);text-decoration-thickness:1px;text-underline-offset:4px;min-height:32px;padding:0 8px;border-radius:8px}
+.pb-enlace:hover,.pb-enlace[aria-expanded="true"]{text-decoration-color:var(--color-tinta);text-decoration-thickness:2px}
+/* «¿Por qué?» abre su explicación aquí mismo, bajo los chips (.pb-porque-c, más abajo): nunca manda a la persona al fondo de la página */
+
+/* ---------- 2 · la acción (LA acción de la pantalla) ---------- */
+.pb-accion{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 32px;margin-top:48px;padding:28px 0;border-top:1px solid var(--color-sand);border-bottom:1px solid var(--color-sand)}
+.pb-acc-t{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.2;letter-spacing:-.005em;font-variant-numeric:lining-nums tabular-nums}
+.pb-acc-t b{font-weight:500}
+.pb-acc-s{margin-top:6px;font-size:14px;color:var(--color-tinta-60);max-width:46ch}
+/* movimiento de botón del sistema, solo transform y opacity: el rojo profundo y la sombra de elevación son dos capas que aparecen (opacity), no un cambio de color */
+.pb-btn{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:40px;padding:0 20px;border-radius:var(--radius-md);background:var(--color-tinta);color:var(--color-crema);font-size:13.5px;font-weight:500;white-space:nowrap;
+  transition:transform 200ms var(--ease-cayla)}
+.pb-btn::before,.pb-btn::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;pointer-events:none;transition:opacity 200ms var(--ease-cayla)}
+.pb-btn::before{z-index:-1;background:var(--color-rojo-profundo)}
+.pb-btn::after{z-index:-2;box-shadow:0 6px 14px color-mix(in srgb,var(--color-sombra) 22%,transparent)}
+.pb-btn svg{transition:transform 200ms var(--ease-cayla)}
+.pb-btn:hover{transform:translateY(-2px)}
+.pb-btn:hover::before,.pb-btn:hover::after{opacity:1}
+.pb-btn:hover svg{transform:translateX(4px)}
+.pb-btn:active{transform:translateY(0) scale(.98)}
+.pb-btn:active::after{opacity:0}
+
+/* ---------- 3 · el único gráfico ---------- */
+.pb-graf{margin-top:64px}
+.pb-graf h3{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.15;letter-spacing:-.005em}
+.pb-sub{margin-top:6px;font-size:14.5px;color:var(--color-tinta-60)}
+.pb-cond{display:flex;gap:12px;align-items:flex-start;max-width:760px;margin-top:24px;padding:14px 18px;background:var(--color-hueso);border-radius:var(--radius-lg);font-size:14px;line-height:1.5;color:var(--color-tinta)}
+.pb-cond svg{flex:none;margin-top:2px;color:var(--color-taupe-profundo)}
+.pb-cond b{font-weight:600}
+.pb-cond p+p{margin-top:8px}
+
+.pb-eje{display:grid;grid-template-columns:var(--pb-cols);column-gap:var(--pb-gap);align-items:end;margin-top:32px}
+.pb-leyenda{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12.5px;color:var(--color-tinta-60);padding-bottom:2px}
+.pb-leyenda span{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.pb-muestra{width:22px;height:8px;border-radius:4px;flex:none}
+.pb-muestra.hoy{border:1.5px solid var(--color-taupe);background:color-mix(in srgb,var(--color-taupe) 18%,var(--color-papel))}
+.pb-muestra.prop{background:var(--color-tinta)}
+.pb-escala{position:relative;height:18px;margin-right:var(--pb-num)}
+.pb-escala span{position:absolute;bottom:0;transform:translateX(-50%);font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--color-taupe-profundo);font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.pb-escala span:first-child{transform:none}
+
+.pb-filas{list-style:none;padding:0;margin-top:10px;border-bottom:1px solid var(--color-sand)}
+.pb-fila{display:grid;grid-template-columns:var(--pb-cols);grid-template-areas:"nom pista ver";column-gap:var(--pb-gap);align-items:stretch;border-top:1px solid var(--color-sand)}
+.pb-nom{grid-area:nom;align-self:center;padding:20px 0}
+.pb-gnom{display:block;font-family:var(--serif);font-size:21px;line-height:1.2;letter-spacing:-.003em}
+.pb-gsub{display:block;margin-top:4px;font-size:12.5px;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.pb-pista{grid-area:pista;position:relative;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:20px var(--pb-num) 20px 0}
+.pb-reja{position:absolute;top:0;bottom:0;left:0;right:var(--pb-num);pointer-events:none}
+.pb-reja i{position:absolute;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--color-sand) 60%,transparent)}
+.pb-reja i:first-child{background:color-mix(in srgb,var(--color-taupe) 42%,var(--color-sand))}
+.pb-b{position:relative;height:8px}
+.pb-fill{position:absolute;top:0;bottom:0;left:0;width:calc(var(--v) / 50 * 100%);border-radius:4px;transform-origin:left center;animation:pb-crece 480ms var(--ease-cayla) both;animation-delay:calc(var(--i) * 55ms)}
+.pb-b.hoy .pb-fill{border:1.5px solid var(--color-taupe);background:color-mix(in srgb,var(--color-taupe) 18%,var(--color-papel))}
+.pb-b.prop .pb-fill{background:var(--color-tinta)}
+.pb-val{position:absolute;left:calc(var(--v) / 50 * 100%);top:50%;margin-left:6px;padding:3px 4px;border-radius:4px;background:var(--color-crema);transform:translateY(-50%);font-size:12.5px;line-height:1;white-space:nowrap;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums;animation:pb-aparece 360ms var(--ease-cayla) both;animation-delay:calc(var(--i) * 55ms + 160ms)}
+.pb-b.prop .pb-val{color:var(--color-tinta);font-weight:600}
+.pb-ver{grid-area:ver;align-self:center;display:flex;align-items:center;gap:8px;padding:20px 0;font-size:14px;font-weight:600;color:var(--color-tinta)}
+.pb-ver svg{flex:none}
+.pb-ver.ok{font-weight:400;color:var(--color-tinta-60)}
+
+@keyframes pb-crece{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes pb-aparece{from{opacity:0}to{opacity:1}}
+@keyframes pb-sube{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- 4 · cómo se calcula (plegado) y lo que queda fuera ---------- */
+.pb-det{margin-top:32px}
+.pb-det summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 4px;border-radius:8px;font-size:14px;font-weight:500}
+.pb-det summary::-webkit-details-marker{display:none}
+.pb-det summary svg{transition:transform 240ms var(--ease-cayla)}
+.pb-det[open] summary svg{transform:rotate(180deg)}
+.pb-det-c,.pb-porque-c{margin-top:8px;padding:18px 22px;background:var(--color-hueso);border-radius:var(--radius-lg);font-size:14.5px;line-height:1.6;max-width:72ch;color:var(--color-tinta);animation:pb-sube 240ms var(--ease-cayla) both}
+.pb-det-c p+p,.pb-porque-c p+p{margin-top:10px}
+.pb-det-c b,.pb-porque-c b{font-weight:600}
+.pb-porque-c{margin-top:16px}
+.pb-porque-c[hidden]{display:none}
+.pb-pie{margin-top:32px;padding-top:20px;border-top:1px solid var(--color-sand);font-size:13px;line-height:1.6;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.pb-pie-t{display:block;margin-bottom:4px}
+.pb-pie-n{max-width:80ch}
+.pb-pie-l{list-style:none;padding:0;margin-top:8px}
+.pb-pie-l li{display:flex;flex-wrap:wrap;gap:0 12px;padding:2px 0}
+.pb-pie-nom{color:var(--color-tinta);font-weight:500}
+
+/* ---------- responsive: el contenido mide 1024 / 657 / 341 ---------- */
+@container pb (max-width:879px){
+  .pb-in{--pb-cols:176px minmax(0,1fr) 108px;--pb-gap:20px}
+  .pb-frase{font-size:30px}
+  .pb-acc-t{font-size:24px}
+  .pb-gnom{font-size:19px}
+  .pb-graf{margin-top:56px}
+}
+@container pb (max-width:519px){
+  .pb-in{--pb-gap:12px}
+  .pb-frase{font-size:25px;line-height:1.22}
+  .pb-estado{margin-top:20px}
+  .pb-accion{margin-top:36px;padding:24px 0}
+  .pb-acc-t{font-size:22px}
+  .pb-btn{width:100%;min-height:44px}
+  .pb-graf{margin-top:48px}
+  .pb-graf h3{font-size:26px}
+  .pb-eje{grid-template-columns:minmax(0,1fr);row-gap:14px;margin-top:24px}
+  .pb-fila{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nom ver" "pista pista"}
+  .pb-nom{padding:18px 0 2px}
+  .pb-ver{align-self:start;padding:20px 0 2px}
+  .pb-pista{padding:10px var(--pb-num) 18px 0}
+  .pb-gnom{font-size:19px}
+  .pb-det-c,.pb-porque-c{padding:16px 18px}
+  .pb-pie-l li{flex-direction:column;padding:4px 0}
+}
+@media (prefers-reduced-motion:reduce){.pb *,.pb *::before,.pb *::after{animation:none!important;transition:none!important}}
+</style>
+
+<div class="pb" id="pb-raiz">
+<div class="pb-in">
+  <header>
+    <h2 class="pb-frase" id="pb-frase"></h2>
+    <div class="pb-estado">
+      <span class="cy-chip ambar">Por cuadrar</span>
+      <span class="cy-chip ambar">Capacidad provisional</span>
+      <button type="button" class="pb-enlace" id="pb-porque" aria-expanded="false" aria-controls="pb-porque-c">¿Por qué?</button>
+    </div>
+    <div class="pb-porque-c" id="pb-porque-c" hidden></div>
+  </header>
+
+  <section class="pb-accion" id="pb-accion" aria-labelledby="pb-acc-t"></section>
+
+  <section class="pb-graf" aria-labelledby="pb-graf-t">
+    <h3 id="pb-graf-t">Cómo se repartiría</h3>
+    <p class="pb-sub">De cada 100 prendas del riel, cuántas serían de cada grupo. «Le falta» y «Le sobra» comparan ese reparto, no cuántas prendas hay.</p>
+    <div class="pb-cond" id="pb-cond"></div>
+    <div class="pb-eje" aria-hidden="true">
+      <div class="pb-leyenda">
+        <span><i class="pb-muestra hoy"></i>Hoy, según el sistema</span>
+        <span><i class="pb-muestra prop"></i>Propuesta</span>
+      </div>
+      <div class="pb-escala" id="pb-escala"></div>
+    </div>
+    <ol class="pb-filas" id="pb-filas" role="list" aria-label="Cómo se repartiría el riel entre los grupos"></ol>
+  </section>
+
+  <details class="pb-det" id="pb-det">
+    <summary>Ver cómo se calcula
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+    </summary>
+    <div class="pb-det-c" id="pb-det-c"></div>
+  </details>
+
+  <div class="pb-pie" id="pb-pie"></div>
+</div>
+</div>
+
+<script>
+(function(){
+  var D = window.DATOS, raiz = document.getElementById('pb-raiz');
+  if (!D || !raiz) return;
+  var NB = ' ';
+  function q(id){ return document.getElementById(id); }
+  function miles(n){ return n.toLocaleString('en-US'); }
+  function pct(n){ return n.toFixed(1) + NB + '%'; }
+  var ICO = {
+    falta: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11.5v-9M3 6.5l4-4 4 4"/></svg>',
+    sobra: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2.5v9M3 7.5l4 4 4-4"/></svg>',
+    ok: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h8M3 9h8"/></svg>',
+    info: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4M8 4.9v.01"/></svg>',
+    flecha: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7h9M8 3.5 11.5 7 8 10.5"/></svg>'
+  };
+  var TXT = { ok: 'En su lugar', falta: 'Le falta', sobra: 'Le sobra' };
+  var UMBRAL = 1.5; // dentro de ±1.5 de cada 100 prendas, «en su lugar»
+
+  /* 1 · la frase */
+  var sede = D.sede.replace(/^Tienda\s+/, '');
+  var casiLibre = (D.capacidad - D.colgadasEnElRiel) / D.capacidad > .85;
+  /* «Según el sistema» y «parece»: las 78 no están cuadradas, así que la frase no afirma lo que nadie ha contado */
+  q('pb-frase').innerHTML =
+    '<span>Según el sistema, en ' + sede + ' cuelgan <b class="pb-cifra">' + D.colgadasEnElRiel + '</b>' + NB + 'prendas de' + NB + 'las' + NB + '<b class="pb-cifra">' + miles(D.capacidad) + '</b> que caben' + (casiLibre ? ': casi todo el riel parece libre.' : '.') + '</span>' +
+    '<span>Antes de repartirlo, falta contar lo que hay de verdad.</span>';
+
+  /* «¿Por qué?» de los dos chips: se abre aquí mismo */
+  q('pb-porque-c').innerHTML =
+    '<p><b>Por cuadrar.</b> Nadie ha contado el piso de ' + sede + ': las ' + D.colgadasEnElRiel + ' prendas son las que el sistema cree que cuelgan, y en el riel de verdad puede haber muchas más.</p>' +
+    '<p><b>Capacidad provisional.</b> Los ' + miles(D.capacidad) + ' ganchos todavía no se han contado en el riel, así que esa cifra también puede cambiar.</p>';
+
+  /* 2 · la acción */
+  q('pb-accion').innerHTML =
+    '<div><p class="pb-acc-t" id="pb-acc-t"><b>' + D.categoriasPorRevisar + '</b> categorías esperan que las revises</p>' +
+    '<p class="pb-acc-s">La propuesta usa el grupo que puso el sistema. Confirmarlas se hace en la pestaña «Grupos».</p></div>' +
+    '<button type="button" class="pb-btn">Revisar en Grupos' + ICO.flecha + '</button>';
+
+  /* 3 · el gráfico */
+  q('pb-cond').innerHTML = ICO.info +
+    '<div><p><b>Esto vale si las ' + D.colgadasEnElRiel + ' son reales.</b> «Hoy» es lo que el sistema cree que cuelga, no lo que hay de verdad: hasta que cuentes el piso, «le falta» y «le sobra» son una pista, no un hecho.</p>' +
+    '<p>Y casi todo el reparto sigue a las tiendas de ropa en general: ' + sede + ' solo tiene ' + D.ventasConfirmadas + ' ventas confirmadas en ' + D.dias + ' días (otras ' + D.ventasSinRegistrar + ' sin registrar todavía no cuentan).</p></div>';
+
+  var esc = '';
+  for (var t = 0; t <= 50; t += 10) {
+    esc += '<span style="left:' + (t * 2) + '%">' + t + (t === 50 ? NB + '%' : '') + '</span>';
+  }
+  q('pb-escala').innerHTML = esc;
+
+  var reja = '<span class="pb-reja" aria-hidden="true">';
+  for (var r = 0; r <= 5; r++) reja += '<i style="left:' + (r * 20) + '%' + (r === 5 ? ';margin-left:-1px' : '') + '"></i>';
+  reja += '</span>';
+
+  var grupos = D.grupos.slice().sort(function(a, b){ return b.propuestaPct - a.propuestaPct; });
+  q('pb-filas').innerHTML = grupos.map(function(g, i){
+    var dif = g.propuestaPct - g.hoyPct;
+    var v = Math.abs(dif) < UMBRAL ? 'ok' : (dif > 0 ? 'falta' : 'sobra');
+    var aria = g.nombre + '. Hoy, según el sistema: ' + pct(g.hoyPct) + ', ' + g.hoy + ' prendas. Propuesta: ' + pct(g.propuestaPct) + ', ' + miles(g.propuesta) + ' ganchos.';
+    return '<li class="pb-fila" style="--i:' + i + '">' +
+      '<div class="pb-nom"><span class="pb-gnom">' + g.nombre + '</span><span class="pb-gsub">' + miles(g.propuesta) + ' ganchos en la propuesta</span></div>' +
+      '<div class="pb-pista" role="img" aria-label="' + aria + '">' + reja +
+        '<div class="pb-b hoy" style="--v:' + g.hoyPct + '" aria-hidden="true"><i class="pb-fill"></i><span class="pb-val">' + pct(g.hoyPct) + '</span></div>' +
+        '<div class="pb-b prop" style="--v:' + g.propuestaPct + '" aria-hidden="true"><i class="pb-fill"></i><span class="pb-val">' + pct(g.propuestaPct) + '</span></div>' +
+      '</div>' +
+      '<div class="pb-ver ' + v + '">' + ICO[v] + TXT[v] + '</div></li>';
+  }).join('');
+
+  /* 4 · cómo se calcula */
+  var rubro = 100 - D.pesoVentaPct;
+  q('pb-det-c').innerHTML =
+    '<p>La propuesta reparte los ' + miles(D.capacidad) + ' ganchos casi igual que lo hacen las tiendas de ropa: de cada 100 ganchos, ' + rubro + ' siguen a esas tiendas y solo ' + D.pesoVentaPct + ' siguen lo que vendió tu sede, porque con ' + D.ventasConfirmadas + ' ventas confirmadas en ' + D.dias + ' días casi no hay ventas que mirar.</p>' +
+    '<p>Cada categoría entra con el grupo que le puso el sistema; las ' + D.categoriasPorRevisar + ' por revisar se confirman en Grupos.</p>';
+
+  /* lo que queda fuera del riel: una línea por grupo */
+  q('pb-pie').innerHTML = '<span class="cy-label pb-pie-t">Fuera del riel</span>' +
+    '<p class="pb-pie-n">No entran en el reparto de arriba. Los conteos son los que ve el sistema.</p>' +
+    '<ul class="pb-pie-l">' + D.fuera.map(function(f){
+      return '<li><span class="pb-pie-nom">' + f.nombre + '</span><span>' + f.colgadas + ' prendas · meta ' + f.meta.replace(/\s%/g, NB + '%') + NB + 'de la venta</span></li>';
+    }).join('') + '</ul>';
+
+  /* «¿Por qué?» abre y cierra su explicación aquí mismo, sin mover la página */
+  var por = q('pb-porque'), pan = q('pb-porque-c');
+  por.addEventListener('click', function(){
+    var abre = pan.hidden;
+    pan.hidden = !abre;
+    por.setAttribute('aria-expanded', abre ? 'true' : 'false');
+  });
+})();
+</script>
+</section>
+      <section class="diseno" data-diseno="c" hidden><!-- C · Un grupo, una tarjeta — la unidad es el grupo: todo lo de un grupo vive en SU tarjeta (silueta, rol, cifra, comparación, veredicto y «¿Por qué?»). -->
+<style>
+/* ============ raíz y contenedor (todo responsive va por @container pc, no por la ventana) ============ */
+.pc-raiz{container:pc/inline-size;display:flex;flex-direction:column;gap:16px;color:var(--color-tinta);font-family:var(--sans)}
+.pc-raiz button{cursor:pointer}
+.pc-raiz :is(h2,h3){font-family:var(--serif);font-weight:400;letter-spacing:-.005em}
+.pc-raiz .pc-num{font-variant-numeric:lining-nums tabular-nums}
+
+@keyframes pc-entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pc-llena{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes pc-sube{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ============ franja resumen: UNA fila, tres datos ============ */
+.pc-resumen{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1fr);background:var(--color-papel);border:1px solid var(--color-sand);border-radius:16px;animation:pc-entra 380ms var(--ease-cayla) both}
+.pc-dato{display:flex;flex-direction:column;gap:9px;padding:18px 20px}
+.pc-dato+.pc-dato{border-left:1px solid var(--color-sand)}
+.pc-dato-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 8px;min-height:22px}
+.pc-grande{font-family:var(--serif);font-size:38px;line-height:1;letter-spacing:-.01em;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.pc-grande small{font-size:20px;color:var(--color-tinta-60);letter-spacing:0;margin-left:5px}
+/* el protagonista de la pantalla es «78 de 1,800»: la cifra más grande de todas, por encima de las de cada tarjeta */
+.pc-dato:first-child .pc-grande{font-size:48px}
+.pc-dato:first-child .pc-grande small{font-size:22px}
+.pc-fino{height:6px;border-radius:3px;background:var(--color-hueso);overflow:hidden}
+.pc-fino i{display:block;height:100%;background:var(--color-tinta);border-radius:3px;transform-origin:left;animation:pc-llena 500ms var(--ease-cayla) 200ms both}
+.pc-sub{font-size:13px;line-height:1.4;color:var(--color-tinta-60)}
+
+@container pc (min-width:560px){
+  .pc-resumen{grid-template-rows:repeat(4,auto)}
+  .pc-dato{display:grid;grid-template-rows:subgrid;grid-row:span 4;row-gap:9px;align-content:start}
+  .pc-dato:not(:first-child) .pc-sub{grid-row:3/5}
+}
+
+/* ============ aviso de las categorías por revisar ============ */
+.pc-aviso{flex-wrap:wrap;animation:pc-entra 380ms var(--ease-cayla) 60ms both}
+.pc-aviso>div{flex:1 1 260px;min-width:0}
+
+/* ============ cabecera de la cuadrícula ============ */
+.pc-titulo{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 24px;margin-top:6px}
+.pc-titulo h2{font-size:26px;line-height:1.15}
+.pc-titulo p{font-size:13px;color:var(--color-tinta-60)}
+
+/* ============ cuadrícula de tarjetas de grupo (3 · 2 · 1 columnas) ============ */
+.pc-rejilla{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:stretch}
+@container pc (min-width:560px){.pc-rejilla{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container pc (min-width:900px){.pc-rejilla{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.pc-card{position:relative;display:flex;flex-direction:column;gap:16px;padding:18px;background:var(--color-papel);border:1px solid var(--color-sand);border-radius:16px;animation:pc-entra 420ms var(--ease-cayla) calc(120ms + var(--i)*55ms) both}
+/* la tarjeta abierta se marca con un filo de tinta que aparece (solo opacidad) */
+.pc-card::after{content:"";position:absolute;inset:-1px;border:1px solid var(--color-tinta);border-radius:16px;opacity:0;pointer-events:none;transition:opacity 200ms var(--ease-cayla)}
+.pc-card[data-abierta]::after{opacity:1}
+/* las secciones de las tarjetas de una misma fila quedan alineadas entre sí (subgrid) */
+@supports (grid-template-rows:subgrid){
+  .pc-card{display:grid;grid-template-rows:subgrid;grid-row:span 5;row-gap:16px;align-content:start}
+  .pc-card .pc-pq{align-self:end;justify-self:start}
+}
+
+/* cabecera de la tarjeta: silueta + nombre + rol */
+.pc-cab{position:relative;display:flex;align-items:center;gap:13px;min-height:56px}
+.pc-tile{flex:none;width:52px;height:52px;border-radius:15px;display:grid;place-items:center;background:color-mix(in srgb,var(--g) 17%,var(--color-papel));color:color-mix(in srgb,var(--g) 82%,var(--color-tinta))}
+.pc-tile svg{width:34px;height:34px}
+.pc-quien{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.pc-nombre{font-size:20px;line-height:1.14;font-weight:500}
+.pc-rol{display:inline-flex;align-items:center;gap:7px;min-height:32px;margin-left:-2px;padding:0 6px 0 2px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.pc-rol:hover,.pc-rol[aria-expanded=true]{background:var(--color-hueso)}
+.pc-q{display:inline-grid;place-items:center;width:17px;height:17px;border:1.5px solid currentColor;border-radius:50%;font-size:11px;font-weight:700;letter-spacing:0;line-height:1}
+.pc-ayuda{position:absolute;z-index:6;left:-8px;right:-8px;top:calc(100% + 4px);padding:12px 14px;border-radius:12px;background:var(--color-papel);border:1px solid var(--color-taupe);font-size:13px;line-height:1.45;color:var(--color-tinta);box-shadow:0 14px 30px -12px color-mix(in srgb,var(--color-sombra) 38%,transparent);animation:pc-sube 220ms var(--ease-cayla) both}
+.pc-ayuda b{display:block;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo);margin-bottom:3px}
+
+/* la cifra: hoy → propuesta. Las dos etiquetas van en la misma línea; las cifras comparten línea de base.
+   «Hoy» son PRENDAS según el sistema; «Propuesta» son GANCHOS del riel: la unidad se dice en cada pie. */
+.pc-cifras{--pc-g:46px;--pc-h:32px;display:flex;align-items:flex-start;gap:10px}
+.pc-cifra{display:flex;flex-direction:column;gap:4px;min-width:0}
+.pc-cifra strong{font-family:var(--serif);font-weight:400;font-variant-numeric:lining-nums tabular-nums;line-height:1;letter-spacing:-.01em}
+.pc-cifra .pc-pie{font-size:12.5px;line-height:1.3;color:var(--color-tinta-60)}
+.pc-cifra.pc-hoy strong{font-size:var(--pc-h);color:var(--color-tinta-60);margin-top:calc(var(--pc-g) - var(--pc-h) - 2px)}
+.pc-cifra.pc-hoy .pc-pie{max-width:14ch;text-wrap:balance}
+.pc-cifra.pc-prop strong{font-size:var(--pc-g)}
+.pc-flecha{flex:none;align-self:flex-start;width:26px;height:26px;color:var(--color-taupe);margin-top:31px}
+
+/* las dos barras, misma escala en todas las tarjetas (la barra llena es el tope que dice el rótulo) */
+.pc-barras{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px 10px}
+.pc-barras .pc-cap{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 12px;margin-bottom:-1px}
+.pc-esc{font-size:12.5px;color:var(--color-tinta-60)}
+.pc-et{font-size:12.5px;color:var(--color-tinta-60)}
+.pc-val{font-size:13px;font-weight:600;text-align:right;font-variant-numeric:lining-nums tabular-nums;min-width:48px}
+.pc-pista{position:relative;height:9px;border-radius:5px;background:var(--color-hueso);overflow:hidden}
+.pc-pista i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transform-origin:left;animation:pc-llena 500ms var(--ease-cayla) calc(260ms + var(--i)*55ms) both}
+.pc-pista.pc-hoy i{background:color-mix(in srgb,var(--color-taupe) 74%,var(--color-papel))}
+.pc-pista.pc-prop i{background:var(--color-tinta)}
+
+/* el veredicto de tienda */
+.pc-veredicto{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:12px;background:color-mix(in srgb,var(--punto) 13%,var(--color-papel));font-size:13.5px;line-height:1.4;min-height:62px}
+.pc-veredicto::before{content:"";flex:none;width:10px;height:10px;margin-top:.38em;border-radius:50%;background:var(--punto)}
+.pc-v-verde{--punto:var(--color-verde)}
+.pc-v-ambar{--punto:var(--color-ambar)}
+.pc-v-pizarra{--punto:var(--color-pizarra)}
+
+.pc-pq{margin-top:auto;align-self:flex-start;min-height:36px;gap:9px}
+.pc-pq svg{width:14px;height:14px;transition:transform 240ms var(--ease-cayla)}
+.pc-pq[aria-expanded=true]{background:var(--color-sand)}
+.pc-pq[aria-expanded=true] svg{transform:rotate(180deg)}
+
+/* ============ el despliegue «¿Por qué?»: baja bajo SU fila, la tarjeta no se mueve ============ */
+.pc-detalle{grid-column:1/-1;position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:16px 28px;padding:22px 24px 22px;background:var(--color-papel);border:1px solid var(--color-tinta);border-radius:16px;animation:pc-entra 340ms var(--ease-cayla) both}
+.pc-detalle::before{content:"";position:absolute;top:-8px;left:var(--pc-x,40px);width:14px;height:14px;background:var(--color-papel);border-left:1px solid var(--color-tinta);border-top:1px solid var(--color-tinta);transform:translateX(-50%) rotate(45deg)}
+.pc-d-cab{grid-column:1/-1;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.pc-d-cab h3{font-size:24px;line-height:1.15;margin-top:3px}
+.pc-x{flex:none;width:36px;height:36px;margin:-6px -8px 0 0;border-radius:8px;display:grid;place-items:center;font-size:22px;line-height:1;color:var(--color-tinta-60)}
+.pc-x:hover{background:var(--color-hueso);color:var(--color-tinta)}
+.pc-fuentes{list-style:none;display:flex;flex-direction:column}
+.pc-fila{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--color-sand)}
+.pc-fila:first-child{border-top:0;padding-top:0}
+.pc-f-txt{grid-column:1/-1}
+.pc-f-txt b{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:14.5px;font-weight:600}
+.pc-f-txt>span{display:block;font-size:12.5px;line-height:1.4;color:var(--color-tinta-60);margin-top:1px}
+.pc-f-pista{position:relative;height:12px;border-radius:6px;background:var(--color-hueso)}
+.pc-f-pista i.pc-rel{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:color-mix(in srgb,var(--color-taupe) 74%,var(--color-papel));transform-origin:left;animation:pc-llena 500ms var(--ease-cayla) 120ms both}
+.pc-f-pista i.pc-rel.pc-fuerte{background:var(--color-tinta);animation-delay:320ms}
+.pc-f-pista i.pc-banda{position:absolute;top:0;bottom:0;border-radius:6px;background:color-mix(in srgb,var(--color-pizarra) 26%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-pizarra) 55%,var(--color-papel));transform-origin:left;animation:pc-llena 500ms var(--ease-cayla) 220ms both}
+.pc-f-pista i.pc-punto{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--color-pizarra);border:3px solid var(--color-papel);animation:pc-sube 300ms var(--ease-cayla) 520ms both}
+.pc-f-val{font-family:var(--serif);font-size:28px;line-height:1;text-align:right;min-width:78px;font-variant-numeric:lining-nums tabular-nums}
+.pc-f-val.pc-fuerte{font-weight:600}
+.pc-f-val.pc-dudoso{color:var(--color-tinta-60)}
+.pc-cierre{font-size:13.5px;line-height:1.5}
+.pc-cierre b{color:var(--color-tinta);font-weight:600}
+
+@container pc (min-width:560px){
+  .pc-fila{grid-template-columns:minmax(210px,1fr) minmax(0,1.1fr) auto}
+  .pc-f-txt{grid-column:auto}
+}
+@container pc (min-width:900px){
+  .pc-fila{grid-template-columns:minmax(280px,.8fr) minmax(0,1.6fr) 96px}
+}
+
+/* ============ fuera del riel: dos fichas bajas ============ */
+.pc-fuera{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.pc-fuera-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px}
+.pc-fuera-cab .pc-t{font-size:13px;color:var(--color-tinta-60)}
+.pc-fichas{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@container pc (min-width:560px){.pc-fichas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pc-ficha{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 16px 12px 12px;background:var(--color-hueso);border-radius:14px;animation:pc-entra 380ms var(--ease-cayla) 420ms both}
+.pc-ficha .pc-tile{width:42px;height:42px;border-radius:12px;background:var(--color-papel)}
+.pc-ficha .pc-tile svg{width:25px;height:25px}
+.pc-ficha .pc-nombre{font-family:var(--sans);font-size:14.5px;font-weight:600;letter-spacing:0}
+.pc-ficha .pc-quien{gap:0}
+.pc-ficha .pc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;font-size:12.5px;color:var(--color-tinta-60)}
+.pc-ficha .pc-rol:hover,.pc-ficha .pc-rol[aria-expanded=true]{background:var(--color-sand)}
+.pc-ficha .pc-ayuda{left:0;right:0}
+.pc-ficha .pc-cuantas{font-family:var(--serif);font-size:30px;line-height:1;text-align:right;font-variant-numeric:lining-nums tabular-nums}
+.pc-ficha .pc-cuantas small{display:block;font-family:var(--sans);font-size:12.5px;color:var(--color-tinta-60);margin-top:2px}
+
+/* ============ cómo se calcula: una línea y un toque ============ */
+.pc-como{display:flex;flex-direction:column;gap:10px;margin-top:2px;font-size:13px;color:var(--color-tinta-60)}
+.pc-enlace{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 4px;margin-left:2px;font-size:13px;font-weight:600;color:var(--color-tinta);text-decoration:underline;text-decoration-color:var(--color-taupe);text-underline-offset:4px;border-radius:6px}
+.pc-enlace svg{width:13px;height:13px;transition:transform 240ms var(--ease-cayla)}
+.pc-enlace[aria-expanded=true] svg{transform:rotate(180deg)}
+.pc-pasos{list-style:none;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;animation:pc-entra 320ms var(--ease-cayla) both}
+@container pc (min-width:900px){.pc-pasos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pc-pasos li{display:flex;gap:12px;align-items:flex-start;line-height:1.45;color:var(--color-tinta)}
+.pc-pasos em{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--color-papel);font-style:normal;font-size:12.5px;font-weight:700;color:var(--color-taupe-profundo)}
+.pc-como-nota{display:flex;flex-direction:column;gap:12px;animation:pc-entra 320ms var(--ease-cayla) both}
+.pc-como-nota>p{font-size:13px;color:var(--color-tinta-60)}
+
+/* ============ celular / contenedor angosto ============ */
+@container pc (max-width:559px){
+  .pc-resumen{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .pc-dato:first-child{grid-column:1/-1;border-bottom:1px solid var(--color-sand)}
+  .pc-dato+.pc-dato{border-left:0}
+  .pc-dato:nth-child(3){border-left:1px solid var(--color-sand)}
+  .pc-dato{padding:16px}
+  .pc-dato:nth-child(n+2) .pc-dato-cab{align-items:flex-start;min-height:52px}
+  .pc-grande{font-size:34px}
+  .pc-dato:first-child .pc-grande{font-size:44px}
+  .pc-dato:first-child .pc-grande small{font-size:20px}
+  .pc-cifras{--pc-g:42px;--pc-h:30px}
+  .pc-flecha{margin-top:28px}
+  .pc-card{padding:16px;gap:15px}
+  .pc-rol{min-height:36px}
+  .pc-pq{min-height:44px}
+  .pc-x{width:40px;height:40px}
+  .pc-enlace{display:flex;width:fit-content;min-height:40px;margin:2px 0 0;padding-left:0}
+  .pc-detalle{padding:20px 16px}
+  .pc-d-cab h3{font-size:21px}
+  .pc-ficha{grid-template-columns:auto minmax(0,1fr)}
+  .pc-ficha .pc-cuantas{grid-column:2;text-align:left;display:flex;align-items:baseline;gap:7px}
+  .pc-ficha .pc-cuantas small{display:inline;margin:0}
+  .pc-titulo h2{font-size:23px}
+}
+@container pc (min-width:560px) and (max-width:899px){
+  .pc-dato{padding:16px 16px}
+  .pc-grande{font-size:32px}
+  .pc-grande small{font-size:17px}
+  .pc-dato:first-child .pc-grande{font-size:48px}
+  .pc-dato:first-child .pc-grande small{font-size:22px}
+  .pc-card{padding:16px}
+  .pc-nombre{font-size:19px}
+}
+@media (prefers-reduced-motion:reduce){.pc-raiz *{animation:none!important;transition:none!important}}
+</style>
+
+<div class="pc-raiz" id="pc-raiz" data-pc="c"></div>
+
+<script>
+(function(){
+  var D = window.DATOS, raiz = document.getElementById('pc-raiz');
+  if (!D || !raiz) return;
+
+  /* ---------- formato Perú: miles con coma, decimales con punto ---------- */
+  function n(x){ return Number(x).toLocaleString('en-US'); }
+  function p(x){ return String(+Number(x).toFixed(1)) + ' %'; }
+  function pl(c, uno, varios){ return c === 1 ? uno : varios; }
+
+  /* ---------- textos de ayuda del rol: los de ROL_AYUDA (apps/web/lib/plan-piso-grupos.ts) ---------- */
+  var ROL_AYUDA = {
+    'Destino': 'Lo que el cliente viene a buscar: trae gente a la tienda y la hace volver.',
+    'Rutina': 'Lo que se compra seguido y completa el look de lo que trae gente.',
+    'Ocasional': 'Un look completo en una sola compra, o un complemento de compra más alta.',
+    'De temporada': 'Depende del clima y de la época del año.',
+    'Conveniencia': 'Se suma al paso, junto a la caja.'
+  };
+
+  /* ---------- siluetas sencillas: la prenda sin foto es el ícono de su grupo sobre su color ---------- */
+  var F = 'fill="currentColor" fill-opacity=".16"';
+  var ICO = {
+    polos_tops_blusas: '<path ' + F + ' d="M11.2 5.2 4.8 8.4l2.4 5 3.4-1.5v14.7h10.8V11.9l3.4 1.5 2.4-5-6.4-3.2C19.9 7.1 18.2 8.2 16 8.2s-3.9-1.1-4.8-3Z"/>',
+    jeans: '<path ' + F + ' d="M9.5 4.5h13l1.7 23h-6.6L16 12.8l-1.6 14.7H7.8l1.7-23Z"/><path d="M9.7 8.2h12.6M16 8.2v4.6"/>',
+    pantalones_faldas_shorts: '<path ' + F + ' d="M11 5h10l5.5 21.5h-21L11 5Z"/><path d="M11.6 9h8.8M14 9l-1.6 17.5M18 9l1.6 17.5"/>',
+    vestidos_conjuntos: '<path ' + F + ' d="M12.9 9.2 10.6 14.2 5.6 27.4h20.8l-5-13.2-2.3-5c-1.1 2.2-5.1 2.2-6.2 0Z"/><path d="M12.4 3.8l.5 5.4M19.6 3.8l-.5 5.4M10.6 14.2h10.8"/>',
+    bodys_corsets_lenceria: '<path ' + F + ' d="M11.9 9.6 9.4 15.6c1.5 2 2.8 4 3 6.8l.4 4.6h6.4l.4-4.6c.2-2.800 1.500-4.800 3-6.800l-2.500-6c-.7 2.400-2.100 3.600-4.100 3.600s-3.400-1.200-4.100-3.600Z"/><path d="M11.4 4.2l.5 5.4M20.6 4.2l-.5 5.400M13.600 27h4.800"/>',
+    abrigo_y_capas: '<path ' + F + ' d="M12.2 4.4 16 11l3.800-6.600 6.600 3.200-1 17h-3.800V28H10.400v-3.400H6.600l-1-17 6.600-3.200Z"/><path d="M16 11v17"/><circle cx="18.600" cy="16.500" r=".9" fill="currentColor"/><circle cx="18.600" cy="21.500" r=".9" fill="currentColor"/>',
+    accesorios_de_impulso: '<rect ' + F + ' x="3.500" y="12" width="25" height="8" rx="2.500"/><rect x="12" y="10.200" width="8" height="11.600" rx="2.200" fill="none"/><path d="M15 16h2"/>',
+    bolsos_y_calzado: '<path ' + F + ' d="M7 12h18l1.500 15h-21L7 12Z"/><path d="M11.500 12V9.500C11.500 6.500 13.500 5 16 5s4.500 1.500 4.500 4.500V12"/>'
+  };
+  function svg(k){ return '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + (ICO[k] || '') + '</svg>'; }
+
+  /* ---------- cada grupo, su color (solo tokens; el rojo no pinta grupos) ---------- */
+  var COLOR = {
+    polos_tops_blusas: 'var(--color-taupe)',
+    jeans: 'var(--color-pizarra)',
+    pantalones_faldas_shorts: 'var(--color-verde)',
+    vestidos_conjuntos: 'var(--color-ambar)',
+    bodys_corsets_lenceria: 'color-mix(in srgb,var(--color-taupe) 50%,var(--color-pizarra))',
+    abrigo_y_capas: 'color-mix(in srgb,var(--color-verde) 50%,var(--color-ambar))',
+    accesorios_de_impulso: 'var(--color-taupe)',
+    bolsos_y_calzado: 'var(--color-taupe)'
+  };
+
+  var CHEV = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.500 6 4.500 4.500L12.500 6"/></svg>';
+  var FLECHA = '<svg class="pc-flecha" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13h17M15 7l6 6-6 6"/></svg>';
+
+  /* ---------- derivados exactos ---------- */
+  var libres = D.capacidad - D.colgadasEnElRiel;
+  var llenadoPct = D.colgadasEnElRiel / D.capacidad * 100;      // 4.33 %
+  var pesoI = 100 - D.pesoVentaPct;                              // 94 %
+  var ESC = Math.ceil(Math.max.apply(null, D.grupos.map(function (g) { return Math.max(g.hoyPct, g.propuestaPct); })) / 10) * 10; // misma escala para todas: 50 %
+
+  /* el veredicto sale de comparar su parte de hoy con su parte propuesta; siempre condicionado a que el piso no cuadró */
+  function veredicto(g) {
+    var d = g.hoyPct - g.propuestaPct;
+    if (!D.cuadrado) {
+      if (Math.abs(d) < 2) return { t: 'verde', txt: 'Parece parejo: lleva la parte que le toca.' };
+      if (d < 0) return { t: 'ambar', txt: 'Parece que le falta lugar: le tocaría una parte mayor.' };
+      return { t: 'pizarra', txt: 'Parece que ocupa de más: le tocaría una parte menor.' };
+    }
+    if (Math.abs(d) < 2) return { t: 'verde', txt: 'Está parejo: lleva la parte que le toca.' };
+    if (d < 0) return { t: 'ambar', txt: 'Le falta lugar: le toca una parte mayor.' };
+    return { t: 'pizarra', txt: 'Ocupa de más: le toca una parte menor.' };
+  }
+
+  /* ---------- piezas ---------- */
+  function rolBtn(rol, id) {
+    return '<button type="button" class="pc-rol" aria-expanded="false" aria-controls="' + id + '" aria-label="' + rol + ': qué significa">' + rol + '<span class="pc-q" aria-hidden="true">?</span></button>';
+  }
+  function rolAyuda(rol, id) {
+    return '<div class="pc-ayuda" id="' + id + '" role="note" hidden><b>' + rol + '</b>' + (ROL_AYUDA[rol] || '') + '</div>';
+  }
+
+  function resumen() {
+    return '<section class="pc-resumen" aria-label="Estado general del riel">' +
+      '<div class="pc-dato">' +
+        '<div class="pc-dato-cab"><span class="cy-label">Cuelga hoy</span><span class="cy-chip ambar">Por cuadrar</span></div>' +
+        '<div class="pc-grande">' + n(D.colgadasEnElRiel) + '<small>de ' + n(D.capacidad) + '</small></div>' +
+        '<div class="pc-fino" role="img" aria-label="' + n(D.colgadasEnElRiel) + ' de ' + n(D.capacidad) + ' ganchos, según el sistema"><i style="width:' + llenadoPct.toFixed(2) + '%"></i></div>' +
+        '<p class="pc-sub">Es lo que el sistema cree que cuelga. Lo real puede ser mucho más.</p>' +
+      '</div>' +
+      '<div class="pc-dato">' +
+        '<div class="pc-dato-cab"><span class="cy-label">Ventas confirmadas</span></div>' +
+        '<div class="pc-grande">' + D.ventasConfirmadas + '<small>en ' + D.dias + ' días</small></div>' +
+        '<p class="pc-sub">Otras ' + n(D.ventasSinRegistrar) + ' sin registrar aún no cuentan. Con tan pocas, tus ventas cuentan solo ' + D.pesoVentaPct + ' % en la propuesta.</p>' +
+      '</div>' +
+      '<div class="pc-dato">' +
+        '<div class="pc-dato-cab"><span class="cy-label">Capacidad</span>' + (D.capacidadProvisional ? '<span class="cy-chip ambar">Provisional</span>' : '<span class="cy-chip verde">Contada</span>') + '</div>' +
+        '<div class="pc-grande">' + n(D.capacidad) + '<small>ganchos</small></div>' +
+        '<p class="pc-sub">' + (D.capacidadProvisional ? 'Falta contar los ganchos del riel de verdad.' : 'Contada en el riel.') + '</p>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function aviso() {
+    return '<div class="cy-aviso pc-aviso" role="status"><div><b>' + D.categoriasPorRevisar + ' categorías esperan revisión</b>' +
+      '<span>La propuesta usa el grupo que puso el sistema. Confírmalas en la pestaña Grupos.</span></div>' +
+      '<button type="button" class="cy-btn">Revisar las ' + D.categoriasPorRevisar + ' categorías <span aria-hidden="true">→</span></button></div>';
+  }
+
+  function tarjeta(g, i) {
+    var v = veredicto(g), id = 'pc-r-' + i;
+    return '<article class="pc-card" data-i="' + i + '" style="--i:' + i + ';--g:' + COLOR[g.clave] + '" aria-labelledby="pc-n-' + i + '">' +
+      '<div class="pc-cab">' +
+        '<span class="pc-tile" aria-hidden="true">' + svg(g.clave) + '</span>' +
+        '<div class="pc-quien"><h3 class="pc-nombre" id="pc-n-' + i + '">' + g.nombre + '</h3>' + rolBtn(g.rol, id) + '</div>' +
+        rolAyuda(g.rol, id) +
+      '</div>' +
+      '<div class="pc-cifras">' +
+        '<div class="pc-cifra pc-hoy"><span class="cy-label">Hoy</span><strong>' + n(g.hoy) + '</strong><span class="pc-pie">prendas, según el sistema</span></div>' +
+        FLECHA +
+        '<div class="pc-cifra pc-prop"><span class="cy-label">Propuesta</span><strong>' + n(g.propuesta) + '</strong><span class="pc-pie">ganchos en el riel</span></div>' +
+      '</div>' +
+      '<div class="pc-barras" role="group" aria-label="Su parte del riel">' +
+        '<div class="pc-cap"><span class="cy-label">Su parte del total</span><span class="pc-esc">barra llena = ' + ESC + ' %</span></div>' +
+        '<span class="pc-et">Hoy</span><div class="pc-pista pc-hoy"><i style="width:' + (g.hoyPct / ESC * 100).toFixed(2) + '%"></i></div><span class="pc-val">' + p(g.hoyPct) + '</span>' +
+        '<span class="pc-et">Propuesta</span><div class="pc-pista pc-prop"><i style="width:' + (g.propuestaPct / ESC * 100).toFixed(2) + '%"></i></div><span class="pc-val">' + p(g.propuestaPct) + '</span>' +
+      '</div>' +
+      '<p class="pc-veredicto pc-v-' + v.t + '">' + v.txt + '</p>' +
+      '<button type="button" class="cy-btn pc-pq" aria-expanded="false" aria-controls="pc-d-' + i + '" aria-label="¿Por qué? ' + g.nombre + ' queda en ' + p(g.propuestaPct) + '">¿Por qué? ' + CHEV + '</button>' +
+    '</article>';
+  }
+
+  function detalle(g, i) {
+    var lo = g.ventaRango[0], hi = g.ventaRango[1];
+    var quien = g.ventas === 0
+      ? 'Ninguna de las ' + D.ventasConfirmadas + ' ventas confirmadas fue de este grupo.'
+      : g.ventas + pl(g.ventas, ' venta', ' ventas') + ' de las ' + D.ventasConfirmadas + ' confirmadas.';
+    var cerca = Math.abs(g.propuestaPct - g.industriaPct) < 1.5;
+    var ancho = hi - lo;                                              // cuánto se mueve lo vendido por puro azar
+    var duda = ancho > 40;
+    var seguro = duda ? 'Casi no sabemos' : (ancho > 20 ? 'Poco seguro' : 'Bastante seguro');
+    var pocas = D.pesoVentaPct < 30;
+    return '<div class="pc-detalle" id="pc-d-' + i + '" data-i="' + i + '" role="region" aria-label="Por qué ' + g.nombre + ' queda en ' + p(g.propuestaPct) + '" hidden>' +
+      '<div class="pc-d-cab"><div><span class="cy-label">¿Por qué?</span><h3>' + g.nombre + ' queda en ' + p(g.propuestaPct) + ' del riel</h3></div>' +
+        '<button type="button" class="pc-x" aria-label="Cerrar la explicación">×</button></div>' +
+      '<div>' +
+        '<ol class="pc-fuentes">' +
+          '<li class="pc-fila"><div class="pc-f-txt"><b>Lo habitual en tiendas de ropa</b><span>Lo que suele llevar una tienda como la tuya.</span></div>' +
+            '<div class="pc-f-pista" aria-hidden="true"><i class="pc-rel" style="width:' + g.industriaPct + '%"></i></div><div class="pc-f-val">' + p(g.industriaPct) + '</div></li>' +
+          '<li class="pc-fila"><div class="pc-f-txt"><b>Lo que vendiste <span class="cy-chip">' + seguro + '</span></b><span>' + quien + ' Podría estar entre ' + p(lo) + ' y ' + p(hi) + '.</span></div>' +
+            '<div class="pc-f-pista" aria-hidden="true"><i class="pc-banda" style="left:' + lo + '%;width:' + (hi - lo) + '%"></i><i class="pc-punto" style="left:' + g.ventaPct + '%"></i></div><div class="pc-f-val' + (duda ? ' pc-dudoso' : '') + '">' + p(g.ventaPct) + '</div></li>' +
+          '<li class="pc-fila"><div class="pc-f-txt"><b>La propuesta</b><span>La mezcla de las dos.</span></div>' +
+            '<div class="pc-f-pista" aria-hidden="true"><i class="pc-rel pc-fuerte" style="width:' + g.propuestaPct + '%"></i></div><div class="pc-f-val pc-fuerte">' + p(g.propuestaPct) + '</div></li>' +
+        '</ol>' +
+      '</div>' +
+      '<p class="cy-nota pc-cierre">' + (pocas ? 'Como hay pocas ventas, tus ventas cuentan solo <b>' : 'Tus ventas cuentan <b>') + D.pesoVentaPct + ' %</b> y lo habitual en tiendas de ropa, <b>' + pesoI + ' %</b>. Por eso la propuesta queda en <b>' + p(g.propuestaPct) + '</b>, ' +
+        (cerca ? 'casi igual a lo habitual (' + p(g.industriaPct) + ').' : 'entre lo habitual y lo que vendiste.') + '</p>' +
+    '</div>';
+  }
+
+  function ficha(f, i) {
+    var id = 'pc-rf-' + i;
+    return '<article class="pc-ficha" style="--g:' + COLOR[f.clave] + '">' +
+      '<span class="pc-tile" aria-hidden="true">' + svg(f.clave) + '</span>' +
+      '<div class="pc-quien"><h3 class="pc-nombre">' + f.nombre + '</h3>' +
+        '<div class="pc-meta">' + rolBtn(f.rol, id) + '<span>Meta: ' + f.meta + ' de la venta</span></div></div>' +
+      '<div class="pc-cuantas">' + n(f.colgadas) + '<small>' + pl(f.colgadas, 'prenda', 'prendas') + '</small></div>' +
+      rolAyuda(f.rol, id) +
+    '</article>';
+  }
+
+  function fuera() {
+    return '<section class="pc-fuera" aria-labelledby="pc-fuera-t">' +
+      '<div class="pc-fuera-cab"><span class="cy-label" id="pc-fuera-t">Fuera del riel</span><span class="pc-t">No cuelgan del riel: se miden contra lo que venden. Cifras según el sistema.</span></div>' +
+      '<div class="pc-fichas">' + D.fuera.map(ficha).join('') + '</div></section>';
+  }
+
+  function como() {
+    return '<section class="pc-como" aria-label="Cómo se calcula">' +
+      '<p>La propuesta reparte los ' + n(D.capacidad) + ' ganchos mezclando lo que suelen llevar las tiendas de ropa (' + pesoI + ' %) con lo que vende tu sede (' + D.pesoVentaPct + ' %). ' +
+      '<button type="button" class="pc-enlace" id="pc-como-b" aria-expanded="false" aria-controls="pc-como-d">¿Cómo se calcula? ' + CHEV + '</button></p>' +
+      '<div id="pc-como-d" class="pc-como-nota" hidden>' +
+        '<ol class="pc-pasos cy-nota">' +
+          '<li><em>1</em><span>Tomamos lo que suelen llevar las tiendas de ropa en cada grupo.</span></li>' +
+          '<li><em>2</em><span>Miramos lo que tu sede vendió en ' + D.dias + ' días: ' + D.ventasConfirmadas + ' ventas confirmadas. Las ' + n(D.ventasSinRegistrar) + ' sin registrar aún no cuentan.</span></li>' +
+          '<li><em>3</em><span>Mezclamos las dos. Con tan pocas ventas, casi manda lo habitual.</span></li>' +
+        '</ol>' +
+        '<p>El «hoy» es lo que el sistema cree que cuelga. Mientras no cuadres el piso, puede estar lejos de lo real.</p>' +
+      '</div>' +
+    '</section>';
+  }
+
+  raiz.innerHTML =
+    resumen() + aviso() +
+    '<div class="pc-titulo"><h2>Cómo se reparte el riel</h2><p>Cada tarjeta es un grupo. Las barras usan la misma escala en todas.</p></div>' +
+    '<div class="pc-rejilla" id="pc-rejilla">' + D.grupos.map(tarjeta).join('') + D.grupos.map(detalle).join('') + '</div>' +
+    fuera() + como();
+
+  /* ---------- comportamiento ---------- */
+  var rejilla = raiz.querySelector('#pc-rejilla');
+  var cards = [].slice.call(rejilla.querySelectorAll('.pc-card'));
+  var dets = [].slice.call(rejilla.querySelectorAll('.pc-detalle'));
+
+  // El despliegue baja bajo SU fila (no mueve la tarjeta que tocaste): se ordena tras la última tarjeta de esa fila.
+  function columnas() {
+    var c = getComputedStyle(rejilla).gridTemplateColumns.split(' ').filter(Boolean).length;
+    return c > 0 && c < 5 ? c : 1;
+  }
+  function acomoda() {
+    if (!raiz.offsetWidth) return;
+    var N = columnas();
+    cards.forEach(function (c, i) { c.style.order = i * 10; });
+    dets.forEach(function (d, i) {
+      var ultima = Math.min((Math.floor(i / N) + 1) * N - 1, cards.length - 1);
+      d.style.order = ultima * 10 + 1 + (i % N);
+      if (!d.hidden) caret(i);
+    });
+  }
+  function caret(i) {
+    var rc = cards[i].getBoundingClientRect(), rd = dets[i].getBoundingClientRect();
+    if (!rd.width) return;
+    dets[i].style.setProperty('--pc-x', Math.round(rc.left + rc.width / 2 - rd.left) + 'px');
+  }
+  function abre(i, si) {
+    dets[i].hidden = !si;
+    if (si) { cards[i].setAttribute('data-abierta', ''); } else { cards[i].removeAttribute('data-abierta'); }
+    cards[i].querySelector('.pc-pq').setAttribute('aria-expanded', String(si));
+    acomoda();
+    if (si) caret(i);
+  }
+
+  function cierraAyudas(salvo) {
+    raiz.querySelectorAll('.pc-rol[aria-expanded=true]').forEach(function (b) {
+      if (b === salvo) return;
+      b.setAttribute('aria-expanded', 'false');
+      var a = document.getElementById(b.getAttribute('aria-controls')); if (a) a.hidden = true;
+    });
+  }
+
+  raiz.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t.closest) return;
+    var rol = t.closest('.pc-rol');
+    if (rol) {
+      var a = document.getElementById(rol.getAttribute('aria-controls')), ab = rol.getAttribute('aria-expanded') !== 'true';
+      cierraAyudas(rol);
+      rol.setAttribute('aria-expanded', String(ab)); a.hidden = !ab;
+      return;
+    }
+    cierraAyudas(null);
+    var pq = t.closest('.pc-pq');
+    if (pq) { var c = pq.closest('.pc-card'); abre(+c.dataset.i, pq.getAttribute('aria-expanded') !== 'true'); return; }
+    var x = t.closest('.pc-x');
+    if (x) { abre(+x.closest('.pc-detalle').dataset.i, false); var b = cards[+x.closest('.pc-detalle').dataset.i].querySelector('.pc-pq'); if (b) b.focus(); return; }
+    var cb = t.closest('#pc-como-b');
+    if (cb) { var ab2 = cb.getAttribute('aria-expanded') !== 'true'; cb.setAttribute('aria-expanded', String(ab2)); document.getElementById('pc-como-d').hidden = !ab2; }
+  });
+  document.addEventListener('click', function (e) { if (!raiz.contains(e.target)) cierraAyudas(null); });
+  raiz.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var abiertas = raiz.querySelectorAll('.pc-rol[aria-expanded=true]');
+    if (abiertas.length) { var b = abiertas[0]; cierraAyudas(null); b.focus(); e.stopPropagation(); }
+  });
+
+  // Polos, tops y blusas queda ABIERTA de entrada: así se ve el patrón de «¿Por qué?».
+  abre(0, true);
+
+  if (window.ResizeObserver) new ResizeObserver(acomoda).observe(raiz);
+  window.addEventListener('plan:diseno', function () { requestAnimationFrame(acomoda); });
+  acomoda();
+})();
+</script>
+</section>
+    </main>
+  </div>
+</div></div></div>
+<script>
+
+(function(){
+  var q=new URLSearchParams(location.search),b=document.body,h=document.documentElement;
+  function marca(id,v){document.querySelectorAll('#'+id+' button').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.v===v)})}
+  function diseno(v){b.dataset.diseno=v;marca('seg-diseno',v);document.querySelectorAll('.diseno').forEach(function(s){s.hidden=s.dataset.diseno!==v});window.dispatchEvent(new CustomEvent('plan:diseno',{detail:v}))}
+  function tema(v){h.dataset.tema=v;marca('seg-tema',v)}
+  function vista(v){b.dataset.vista=v;marca('seg-vista',v)}
+  document.getElementById('seg-diseno').onclick=function(e){if(e.target.dataset.v)diseno(e.target.dataset.v)};
+  document.getElementById('seg-tema').onclick=function(e){if(e.target.dataset.v)tema(e.target.dataset.v)};
+  document.getElementById('seg-vista').onclick=function(e){if(e.target.dataset.v)vista(e.target.dataset.v)};
+  diseno(q.get('diseno')||'actual');tema(q.get('tema')||'claro');vista(q.get('vista')||'1440');
+})();
+</script>
+</body>
+</html>

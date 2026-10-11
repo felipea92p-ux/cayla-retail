@@ -105,6 +105,8 @@ pestañas a mano se retiraron. No cambia qué hace nada, solo cómo se dibuja. *
 
 ## Actualización 2026-10-10 (b) — `/formidable`: el riel en barras, tres tarjetas y un aviso que lleva a Grupos (Felipe)
 
+> **Lo visual de esta actualización (barras, tres tarjetas, canvas de ganchos, `claseDeTramo`, «Cómo se calcula») fue reemplazado el 2026-10-11 por el riel de perchas: ver la actualización de abajo.** Quedan en pie el aviso que lleva a Grupos, la coma de miles, la tabla que se desplaza (c) y todo lo que no es dibujo.
+
 **Pedido:** Felipe, 2026-10-10: «¿podemos mejorar su estética aún más?» y, tras ver la propuesta de tres cambios, «aplicamos». Se corrió `/formidable` sobre la Propuesta
 (informe: `docs/formidable/plan-del-piso.md`). **Solo presentación: `lib/mix-piso.ts` y todo lo que calcula o guarda quedan intactos.** No hay SQL.
 
@@ -169,4 +171,65 @@ SE ROMPE SI: se agrega una columna fija (hay que sumarla al mínimo), y a 1024 p
 
 **Lo que quedó fuera a propósito** (lista aparte del informe, sin hacer): un camino desde «Por cuadrar» a `/inventario/cuadrar`, los roles («Destino», «Rutina»…) solo por `title`, la jerga de «Cómo se calcula», y las tres piezas compartidas
 (`TarjetaCifra` con `acento`, `Aviso` a 375 px, las paradas de teclado de `BarraApilada`).
+**Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-11 — el riel de perchas, maqueta A «La percha» (Felipe eligió mirando)
+
+**Pedido:** Felipe, 2026-10-10: «no me convenció lo tuyo» (el riel en barras de la actualización (b)). Se le mostraron tres direcciones de estilo más la actual, lado a lado y con datos reales
+(`docs/maquetas/plan-del-piso-2026-10/`), y eligió **A «La percha»**: «si se ve mejor, dúbalo». Sobre la tabla y la mancuerna dijo «dejarla pero alinearla con un mejor diseño uniforme a A».
+**Solo presentación: `lib/mix-piso.ts`, las lecturas y todo lo que se guarda quedan intactos.** No hay SQL.
+
+**Qué cambió**
+1. **Un pictograma, no barras.** «Hoy» y «Cómo quedaría» son dos rieles de perchas: cada percha dibujada vale N prendas y las de un grupo van juntas en un tramo con la silueta de su categoría sobre el color de su grupo.
+   `unidadDePercha(capacidad)` (`lib/plan-piso-percha.ts`) elige la MENOR de 5, 10, 20, 25, 50 o 100 con la que el riel entero cabe en 40 perchas: AQP 1,800 → 50 (36 perchas), TRU 600 → 20, LIM 180 → 5. Pasar el
+   cursor, enfocar con Tab o tocar un grupo lo resalta en los dos rieles y en las leyendas; tocarlo lo deja fijo (con filo propio).
+2. **Una tarjeta con la respuesta.** «78 de 1,800 prendas», una frase («Tu riel estaría casi vacío (4 % ocupado). Falta contar tu piso…»), «1,722 lugares libres» como riel vacío y rayado, y el botón
+   «¿Por qué?» con el panel de «cómo se calcula». Las tres tarjetas de cifra y la nota «Cómo se calcula» de (b) se retiraron.
+3. **«Fuera del riel» son dos fichas**, no una tabla; la **mancuerna** y la **tabla** de detalle se quedan, con el ícono y el color del grupo, bajo «El detalle, grupo por grupo».
+4. **Se retiraron** `RielAEscala.tsx` (barras y canvas de ganchos), `claseDeTramo`/`fondoDeGrupo`, `lineaDeVentas` y `escalaDelRiel`. **Se agregaron** `plan-piso-percha.ts`, `plan-piso-siluetas.ts`, `app/estilos/plan-piso.css` y
+   `components/plan-piso/{TarjetaDelRiel,PorQue,IconoDeGrupo,SiluetasDelPlan}.tsx`.
+
+**Decisiones**
+
+**1. Un color por grupo, en UN solo lugar: `--grupo-0` … `--grupo-5` de `plan-piso.css`.**
+DECIDÍ: el color sale de la posición del grupo en la lista del riel (`colorDeGrupo(i)` devuelve `var(--grupo-N)`), solo tokens, con su versión oscura (el 4 al 66 %: a 58 la silueta medía menos de 3:1).
+Reemplaza a `claseDeTramo` (decisión 3 de (b)). El rojo no pinta ningún grupo (máx. 2 por pantalla).
+SE ROMPE SI: se agrega un séptimo grupo EN EL RIEL (comparte color con el primero y cae a la silueta genérica). La base siembra 6 y no hay pantalla ni RPC que cree grupos; `lib/plan-piso-siluetas.test.ts` falla si la
+migración siembra más de 6 en el riel, y quien agregue uno suma su silueta, su color y su prueba en el mismo cambio.
+
+**2. Honestidad primero: mientras la sede no cuadró su piso, «hoy» es lo que el sistema CREE.**
+DECIDÍ: la frase va en condicional («estaría»), el riel libre lleva «según el sistema · falta contar tu piso» con borde rayado, y la línea del pie, la leyenda y los nombres para lector de pantalla dicen «según el
+sistema hoy 30, quedaría 788» **sin flecha** (la flecha insinuaría «faltan 166», que la tabla de abajo se niega a dar). La revisión halló que esas tres líneas sueltas lo afirmaban como un hecho: corregido (`leyendaDeGrupo(g, cuadrado)`).
+DESCARTÉ: atenuar el riel «Hoy» (lo hacía el de (b)): la maqueta A tampoco lo hace y el riel rayado ya lo dice.
+
+**3. El panel «¿Por qué?» abre pegado a su botón** (se aparta de la maqueta, donde iba tras la leyenda).
+DECIDÍ: `PorQue.tsx` (cliente) entrega botón + panel como fragmento dentro de la cabecera de «Cómo quedaría»; el panel ocupa su propia línea justo debajo. Medido en la maqueta: abría a 274–298 px del botón en escritorio y a 581 px a
+375, siempre fuera de la vista, y el toque parecía no hacer nada. También existe sin capacidad medida (antes desaparecía con el riel).
+DESCARTÉ: `scrollIntoView` (a 375 px el panel mide ~660 px y el botón quedaba fuera de la pantalla, sin poder cerrarlo).
+
+**4. Una palabra para cada cosa.** «Punto de partida» (el surtido de Topitop, Estilos y Oechsle, ajustado al clima de la sede: se nombra la fuente a la vista, y ya no «lo que suele funcionar en tiendas de ropa», que afirmaba un
+rendimiento que no existe) y «tus ventas», en la tarjeta, el panel, la mancuerna y la tabla. «Industria» y «venta propia» ya no aparecen (`lib/plan-piso-pantalla.test.ts` lo vigila). «% del riel» ya no significa dos cosas: la columna
+«Hoy» dice «% colgado». El número de «(23 % ocupado)» es siempre lo ocupado.
+
+**5. Un cero necesita su muestra** (ADR-0214): las fichas de «Fuera del riel» dicen «vende 0 % (0 ventas)», el botón dice «Casi no usa tus 5 ventas confirmadas (6 %): faltan registrar 210», y la cola «casi no sabemos» del panel solo
+sale si el rango es ancho (≥ 40 puntos).
+
+**6. Una pieza propia, anotada como excepción de ADR-0358.** El riel de perchas no es `BarraApilada` (`grafico.barra` es «una fila baja de tramos sin texto»; esto es un pictograma donde cada figura vale N prendas) y «78 de 1,800» es el
+titular de la tarjeta, no una `TarjetaCifra`. Queda anotado en `docs/unificar/grafico.barra.md` y `cifra.md` para la próxima ronda de `/unificar`. **Pregunta abierta para Felipe:** la pestaña **Historia** sigue dibujando la mezcla de los
+mismos grupos con `BarraApilada`; hoy el mismo grupo tiene dos caras en dos pestañas de la misma pantalla. También a propósito: `.pp-chip`/`.pp-lg` son una leyenda que resalta el riel (responden con opacidad, sin `mov-boton`);
+`.pp-porque` es la píldora de la maqueta; `.pp-etq` pesa 700 como la maqueta y no 600 como `label-cayla`; el `Aviso` de las categorías por revisar apila su botón bajo el texto con una regla local a 560 px (`plan-piso.css`), sin tocar la pieza.
+
+**Revisión de 7 lentes (2026-10-11), 53 agentes de solo lectura:** React/servidor-cliente, accesibilidad, fidelidad a la maqueta, datos y bordes, reglas del sistema, información perdida o ganada y un escéptico general; un escéptico
+reprodujo o refutó cada hallazgo. **Se aplicó lo confirmado o matizado:** el grupo sin perchas que apagaba todo el riel, el segundo toque táctil que no soltaba, las siluetas montadas dos veces (ids duplicados), los títulos que dejaron de ser
+encabezados, la línea viva que se anunciaba dos veces, «hoy» como hecho, el panel lejos de su botón, «Fuera del riel» que desaparecía en una sede sin propuesta, el desborde horizontal a 375 px con un grupo de más de ~19 perchas (`--mayor`),
+rótulos cortados a media letra, tramos más anchos con menos prendas, la mancuerna a 375 px, las cifras de la tabla a la izquierda de sus títulos y la animación de entrada de 840 ms (ahora < 500). **Se refutó:** la afirmación de que el riel
+«Hoy» casi vacío se leía como un hecho: la tarjeta lo dice cinco veces.
+
+**Lo que NO se aplicó (queda para decidir mirando, con Felipe):** (a) la clave «Cada percha = 50 prendas» queda al pie de la tarjeta, como en la maqueta; el escéptico propone ponerla pegada al riel y decir «prendas»/«lugares» con un solo
+sentido; (b) la tabla de detalle a 1024 px con el menú abierto se desplaza dentro de su tarjeta sin pista visible de que hay más a la derecha (decisión (c)); (c) un chip ámbar «45 categorías por revisar» en la cabecera, como trae la
+maqueta; (d) tocar un tramo del riel para fijarlo (la maqueta lo hacía; aquí se fija con los chips y las tarjetas); (e) los grupos 7 en adelante (decisión 1).
+
+**Cómo se verificó y qué NO:** `tsc`, `eslint` y `vitest` (414 archivos, 157,162 pruebas) en verde; la pantalla real con los componentes reales y datos inventados de AQP, TRU, LIM, con 7 grupos, con más colgadas que capacidad, sin capacidad, sin
+sede y con un grupo que ocupa el 83 % del riel, a 1440, 1024 y 375 px, en claro y oscuro, y las interacciones (señalar, fijar, Tab, toque) en Chrome. **No se vio la ruta real contra su base** (la base local no tiene las tablas del Plan del
+piso, y el día de la revisión Docker no estaba disponible), **no se corrió `tema:auditar`** ni `/chaos` sobre Grupos (es lo único que guarda y no se tocó), y **no lo probó una colaboradora real**.
 **Para producción:** nada que pegar; solo publicar la web.
