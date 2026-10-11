@@ -88,10 +88,16 @@ describe("el aviso mide el peor caso entre las tiendas (precio propio, Felipe 20
     // 75 − 15 = 60: igual al costo, no por debajo.
     expect(prendasBajoCosto(20, [{ ...base, precio: 75, enSede: "Trujillo" }], new Set(["c-faldas"]), new Set())).toEqual([]);
   });
-  it("nombra la tienda cuando el precio propio es el que baja del costo; si es el de la prenda, solo el nombre", () => {
-    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", enSede: "Trujillo" })).toBe("Falda Emma (FAL-0008) · precio propio de Trujillo");
-    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", enSede: null })).toBe("Falda Emma (FAL-0008)");
-    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)" })).toBe("Falda Emma (FAL-0008)");
+  it("dice el precio más bajo y dónde cuando es el propio de una tienda; si es el de la prenda, solo el nombre", () => {
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 69.9, enSede: "Trujillo" })).toBe("Falda Emma (FAL-0008) · precio más bajo: S/ 69.90 en Trujillo");
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 79.9, enSede: null })).toBe("Falda Emma (FAL-0008)");
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 79.9 })).toBe("Falda Emma (FAL-0008)");
+  });
+  it("no culpa a una tienda: dice un hecho aunque la prenda a su precio ya quede bajo el costo (79.90, costo 65, 25 %)", () => {
+    // Con la prenda sola ya se cobra 59.92 < 65: el texto no dice «el problema es Trujillo», dice cuál es el precio más bajo.
+    const texto = nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 69.9, enSede: "Trujillo" });
+    expect(texto).not.toMatch(/propio de/);
+    expect(texto).toContain("precio más bajo");
   });
   it("el precio más bajo da el cobrado más bajo: P − descuento no decrece con P (en céntimos, todos los % usuales)", () => {
     // Es el único supuesto de «peor caso»: si el más bajo no queda bajo el costo, ninguno otro lo hace.

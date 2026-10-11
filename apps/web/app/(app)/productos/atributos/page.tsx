@@ -4,6 +4,9 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
+
+/** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
+const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -126,6 +129,17 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const puedeDarDescuento = puedeEditarEtiquetas;
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
+  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre; quien no, configura la campaña sin el
+  // aviso de costo (`costo` 0 nunca queda «por debajo»). Se lanza ya, en paralelo con el resto.
+  const cargaCostos = puedeDarDescuento ? getCostosVariantes() : Promise.resolve(null);
+  // Los precios propios de cada tienda (ADR-0370), para el aviso de costo: una campaña vale en TODAS las tiendas y la caja de cada una
+  // cobra su precio, así que el peor caso es el más bajo entre la prenda y las tiendas. Solo si el aviso puede salir: sin costos (la
+  // cuenta no ve el dinero) no hay aviso y no se piden. Nunca lanza: si una lectura falla, esa tienda no entra y el aviso queda como
+  // antes (con el precio de la prenda).
+  const cargaPreciosTiendas =
+    tipo === "etiquetas" && puedeDarDescuento
+      ? cargaCostos.then((c) => (c === null ? sinPreciosDeTiendas() : getPreciosDeLasTiendas()))
+      : Promise.resolve(sinPreciosDeTiendas());
 
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, resUsos, preciosTiendas] = await Promise.all([
     supabase
@@ -170,12 +184,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     tipo === "tejidos" || tipo === "patrones"
       ? leerTodas((desde, hasta) => supabase.from("productos").select("id, tejido_id, patron_id").order("id").range(desde, hasta))
       : Promise.resolve({ data: [], error: null }),
-    // Los precios propios de cada tienda (ADR-0370), para el aviso de costo: una campaña vale en TODAS las tiendas y la caja de cada
-    // una cobra su precio, así que el peor caso es el más bajo entre la prenda y las tiendas. Solo donde el aviso se muestra. Nunca
-    // lanza: si una lectura falla, esa tienda no entra y el aviso queda como antes (con el precio de la prenda).
-    tipo === "etiquetas" && puedeDarDescuento
-      ? getPreciosDeLasTiendas()
-      : Promise.resolve({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> }),
+    cargaPreciosTiendas,
   ]);
 
   const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
@@ -240,9 +249,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     descuentoPct: e.descuento_pct,
     categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
   }));
-  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre; quien no, configura la campaña
-  // sin el aviso de costo (`costo` 0 nunca queda «por debajo»).
-  const costos = puedeDarDescuento ? await getCostosVariantes() : null;
+  const costos = await cargaCostos;
   const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => {
     // El precio más bajo al que se cobra en cualquier tienda (el de la prenda o el propio de una), y cuál tienda lo fija.
     const bajo = precioMasBajoEnTiendas(Number(v.precio), v.id, preciosTiendas.porSede, preciosTiendas.nombres);
