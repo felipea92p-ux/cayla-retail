@@ -14,7 +14,7 @@ semilla anotada) · `no aplica` (solo lectura; con su motivo).
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | atacada; los 4 hallazgos de gravedad 4 cerrados (2026-10-07), falta el núcleo que escribe | 7 | 0 / 0 / 0 / 0 | `.chaos/informes/ventas-sin-registrar-2026-10-07.md` (local) | 2026-10-07 |
-| Ventas | Vender ▸ hoja «Todo de la prenda» con «Combina bien con» (`/vender`; el cobro con la línea sugerida) | atacada, con hallazgos abiertos (1 de pantalla; 2 de RPC y 1 de Vender de antes, de paso) | 1010 | 0 / 0 / 1 / 3 | `.chaos/informes/vender-todo-de-la-prenda-2026-10-10.md` (local) | 2026-10-10 |
+| Ventas | Vender ▸ hoja «Todo de la prenda» con «Combina bien con» (`/vender`; el cobro con la línea sugerida) | atacada; el de pantalla (gravedad 3, el Tab) cerrado con prueba (`lib/ficha-del-color.test.ts`); quedan 1 de RPC y 2 de paso | 1010 | 0 / 0 / 0 / 3 | `.chaos/informes/vender-todo-de-la-prenda-2026-10-10.md` (local) | 2026-10-10 |
 
 ## Qué pantallas deben pasar primero (decidido 2026-10-06)
 Donde un fallo es de gravedad 1: **Vender** (`/vender`, `/vender/apartados`), **Caja** (`/caja`), **Cambios** y **Devoluciones**, **Inventario**
