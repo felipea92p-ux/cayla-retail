@@ -536,6 +536,16 @@ y todavía sin prueba en el CI: el avance vive en `docs/chaos/README.md`, y la c
 **La parte pura sí corre en el CI** (`scripts/chaos/*.test.mjs`: la forma del catálogo, la reproducibilidad por semilla y la lógica del
 detector). Detalle y decisiones: `docs/adr/0356-chaos-usar-mal-el-sistema-a-proposito.md` y `.claude/skills/chaos/SKILL.md`.
 
+## Familias fuera de los motores (regla — ADR-0377, Felipe 2026-10-10)
+
+**Lo que se vende pero no es mercadería de piso (bolsas, cajas, empaque) vive en una familia con el interruptor «Cuenta en Análisis, Frescura y el plan del
+piso» APAGADO** (`familias.entra_a_motores`, Catálogo ▸ Familias). **Todo motor de decisión que cuente ventas, stock o anotadas por categoría tiene que preguntar
+`retail.fn_categoria_entra_a_motores(categoria_id)`** (sin dato responde sí): hoy lo hacen el motor del piso, la demanda, el plan de campaña, Análisis y Frescura
+(`pnpm pruebas:motores-familias-apagadas` es su caso por motor; uno nuevo suma el suyo). **Dinero, comprobante, Ventas, Finanzas y Resumen NO preguntan: la bolsa es una
+venta real.** Las bolsas se venden desde el ticket con «+ Agregar bolsa» (`punto-de-venta/BolsaDelTicket.tsx`) y llevan stock como cualquier producto: la base no deja
+vender en cero. Una línea de precio de etiqueta 0 (la bolsa de obsequio) no se declara a SUNAT (`itemsParaLucode`). Un parche a una de esas cinco funciones es un
+reemplazo anclado (`reemplazar_anclado`, formato que las suites de Frescura leen para deshacerlo) y se suma a sus listas `DESHACER_*`.
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/

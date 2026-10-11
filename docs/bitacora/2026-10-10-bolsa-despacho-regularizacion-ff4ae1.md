@@ -1,0 +1,5 @@
+# 2026-10-10 — Bolsas de despacho: fuera de los motores, «Agregar bolsa» en Vender y las 62 ventas de AQP (ADR-0377)
+
+- **Qué:** una familia puede quedar FUERA de los motores (`familias.entra_a_motores`): el piso, la demanda, el plan de campaña, Análisis y Frescura ignoran la bolsa; Vender trae «+ Agregar bolsa» (papel pequeña, grande, TNT y obsequio a S/ 0.00); y un script de una sola vez pasa a «Bolsas» las 62 ventas de AQP anotadas como Bolsos, Anillos o Aretes.
+- **Por qué:** no había dónde registrar la bolsa: caja la vendía como «prenda sin registrar» con la categoría que se le ocurría, y los motores la contaban como demanda de Bolsos (una bolsa a S/ 0.50 en casi cada venta también diluía la cifra de «rebaja»). Dinero y comprobante siguen contándola: es una venta real.
+- **Cómo verificas:** pega en producción `20261010231000`, `…232000` y `…233000` (en ese orden) y corre la consulta de solo lectura del ADR-0377 (2, 3, 1, 5, 10). En Catálogo ▸ Familias crea «Empaque» con el interruptor apagado; en Vender, con bolsas cargadas, el ticket muestra «Bolsas · + Agregar bolsa» y la hoja lista cada bolsa con su precio y stock.
