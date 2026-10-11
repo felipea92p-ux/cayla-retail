@@ -141,7 +141,7 @@ es igual al precio de la prenda y se archiva sola. En la caja no cambia ningún 
 
 **En producción (2026-10-11):** Felipe pegó `20261011100000` y `20261011100100`; verificado con lecturas: FAL-0008 TRU 69.90 y AQP 79.90
 (sin precio propio), POL-0023 AQP 39.90 en sus 9 colores (Blanco y Tostado anotados), disparador activo, `precios_sede` sin vigentes.
-`20261011100200` (Cambios y filtro) espera la publicación de la web.
+`20261011100200` (Cambios y filtro) también se pegó el 2026-10-11 y se verificó (`registrar_cambio` usa `fn_precio_para_cambio`).
 
 **Pendiente (decisión de Felipe, no se tocó):** un precio de tienda no tiene piso de costo ni el tope de descuento que sí tiene un
 descuento en la caja (la auditoría lo marcó como el riesgo de dinero más alto que queda).
