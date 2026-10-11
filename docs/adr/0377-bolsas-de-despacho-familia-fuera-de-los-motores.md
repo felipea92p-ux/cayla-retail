@@ -80,7 +80,7 @@ de lista en casi cada venta diluía además la cifra de «rebaja» de Análisis.
 - **Captura a 375 px:** el panel del navegador estaba oculto y no se pudo sacar; se midió el DOM (fila 333 px, hoja 375×347, filas de 56 px, sin recortes ni
   desborde). Falta mirarla con el panel a la vista (regla de celular de Vender).
 - **No corridas:** `/formidable` y `/chaos` (obligatorias) y `tema:auditar` (modo oscuro; solo se usaron tokens). Piden Felipe: lanzan agentes.
-- **Tres suites con fallo anterior a este trabajo** (misma cifra sin mis cambios): `frescura_lectura` 256/257, `frescura_decisiones` 155/156 y
+- **Tres suites dan un caso en rojo en la base LOCAL compartida** (`frescura_lectura` 256/257, `frescura_decisiones` 155/156 y `frescura_vara_cayla` 11/12), por filas sucias que dejan otras sesiones: dan la misma cifra sin estos cambios y en el CI, con base limpia, pasan. **Corrección (2026-10-11):** en un primer momento dije que `frescura_vara_cayla` también estaba así de antes; no: con mi parche daba 10/12 y el CI lo atrapó (su guarda por md5 de `fn_frescura_sede` no conocía el parche de `20261010233000`). Ya deshace esa migración al empezar cada caso, como `cuadrar_piso`, `frescura_bajadas` y `frescura_lectura`.
   `frescura_vara_cayla` 11/12 (datos sucios de la base local compartida).
 - **El volcado del diccionario** (`docs/datos/generado/`) entra con `familias.entra_a_motores` al refrescarlo después de pegar.
 - Una venta anotada de «Anillos · Blanco · Talla 6» a S/ 1.00 quedó fuera del script a propósito.
