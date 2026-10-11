@@ -600,6 +600,185 @@ const DIBUJOS: Record<FamiliaTejido, () => Dibujo> = {
       ),
     };
   },
+
+  // ---- Los materiales de las bolsas y los tejidos que faltaba dibujar (2026-10-11, ADR-0377) ----
+
+  // Papel kraft: papel café de fibra larga. Hebras cortas, claras y oscuras, en todas direcciones, y motas de fibra.
+  papel_kraft: () => {
+    const azar = semillaAzar(61);
+    return {
+      fondo: "#C9A36B",
+      formas: (
+        <>
+          {rango(170).map((i) => {
+            const x = azar() * ANCHO;
+            const y = azar() * ALTO;
+            return <line key={`h${i}`} x1={f(x)} y1={f(y)} x2={f(x + 3 + azar() * 8)} y2={f(y + (azar() - 0.5) * 3)} stroke={i % 3 === 0 ? "#E5CC9E" : "#9B7646"} strokeWidth={0.5} strokeLinecap="round" opacity={0.5} />;
+          })}
+          {rango(24).map((i) => (
+            <circle key={`m${i}`} cx={f(azar() * ANCHO)} cy={f(azar() * ALTO)} r={0.5 + azar() * 0.4} fill="#6E4F27" opacity={0.45} />
+          ))}
+        </>
+      ),
+    };
+  },
+
+  // Papel couché: papel blanco estucado, liso y brillante: dos bandas de brillo planas y una franja de tinta a todo color.
+  papel_couche: () => ({
+    fondo: "#F4F1EA",
+    formas: (
+      <>
+        <rect x={0} y={27} width={ANCHO} height={7} fill="#8FA3B8" opacity={0.5} />
+        <rect x={0} y={34} width={ANCHO} height={3} fill="#B8A27E" opacity={0.5} />
+        <polygon points="30,0 52,0 34,40 12,40" fill="#FFFFFF" opacity={0.75} />
+        <polygon points="64,0 74,0 56,40 46,40" fill="#FFFFFF" opacity={0.5} />
+      </>
+    ),
+  }),
+
+  // Papel opalina: marfil grueso y opaco, con un granito finísimo y un doblez rígido; sin brillo.
+  papel_opalina: () => {
+    const azar = semillaAzar(67);
+    return {
+      fondo: "#EEE8DA",
+      formas: (
+        <>
+          {rango(20).map((i) => (
+            <rect key={`l${i}`} x={0} y={i * 2 + 0.6} width={ANCHO} height={0.4} fill="#8F8570" opacity={0.08} />
+          ))}
+          {rango(120).map((i) => (
+            <circle key={`p${i}`} cx={f(azar() * ANCHO)} cy={f(azar() * ALTO)} r={0.35} fill="#9C927B" opacity={0.3} />
+          ))}
+          <rect x={59} y={0} width={0.8} height={ALTO} fill="#8F8570" opacity={0.18} />
+          <rect x={59.8} y={0} width={4} height={ALTO} fill="#FFFFFF" opacity={0.28} />
+        </>
+      ),
+    };
+  },
+
+  // TNT (tela no tejida): fibras largas enmarañadas, sin trama, y los puntitos de termosellado en rombo que la delatan.
+  tnt: () => {
+    const azar = semillaAzar(71);
+    return {
+      fondo: "#E9E5DA",
+      formas: (
+        <>
+          {rango(90).map((i) => {
+            const x = azar() * ANCHO;
+            const y = azar() * ALTO;
+            return <line key={`h${i}`} x1={f(x)} y1={f(y)} x2={f(x + (azar() - 0.5) * 26)} y2={f(y + (azar() - 0.5) * 10)} stroke="#B9B3A2" strokeWidth={0.5} opacity={0.4} />;
+          })}
+          {rango(7).flatMap((fila) =>
+            rango(21).map((col) => <circle key={`d${fila}-${col}`} cx={col * 6 + (fila % 2) * 3} cy={fila * 6 + 3} r={0.8} fill="#8F897A" opacity={0.4} />),
+          )}
+        </>
+      ),
+    };
+  },
+
+  // Organza: trama muy fina y abierta, champán, con bandas de brillo claras y planas (translúcida, rígida).
+  organza: () => ({
+    fondo: "#F1E8DA",
+    formas: (
+      <>
+        {rango(38).map((i) => (
+          <rect key={`v${i}`} x={i * 3.2} y={0} width={0.35} height={ALTO} fill="#A8946F" opacity={0.2} />
+        ))}
+        {rango(13).map((i) => (
+          <rect key={`h${i}`} x={0} y={i * 3.2} width={ANCHO} height={0.35} fill="#A8946F" opacity={0.2} />
+        ))}
+        <polygon points="26,0 46,0 28,40 8,40" fill="#FFFFFF" opacity={0.6} />
+        <polygon points="70,0 80,0 62,40 52,40" fill="#FFFFFF" opacity={0.4} />
+        <path d="M-5 28 C30 14, 60 40, 100 22 S125 30, 130 22 L130 40 L-5 40 Z" fill="#D9C8A8" opacity={0.3} />
+      </>
+    ),
+  }),
+
+  // Plástico (polietileno): película clara con arrugas de luz, blancas y azuladas, y una banda de brillo plana.
+  plastico: () => {
+    const azar = semillaAzar(73);
+    return {
+      fondo: "#DCE8EB",
+      formas: (
+        <>
+          {rango(16).map((i) => {
+            const x = azar() * ANCHO;
+            const y = azar() * ALTO;
+            const d = `M${f(x)} ${f(y)} l${f(4 + azar() * 8)} ${f((azar() - 0.5) * 8)} l${f(3 + azar() * 7)} ${f((azar() - 0.5) * 8)} l${f(3 + azar() * 6)} ${f((azar() - 0.5) * 8)}`;
+            return <path key={`a${i}`} d={d} fill="none" stroke={i % 2 === 0 ? "#FFFFFF" : "#8FA7AE"} strokeWidth={i % 2 === 0 ? 1 : 0.6} strokeLinecap="round" strokeLinejoin="round" opacity={i % 2 === 0 ? 0.7 : 0.4} />;
+          })}
+          <polygon points="48,0 70,0 52,40 30,40" fill="#FFFFFF" opacity={0.3} />
+        </>
+      ),
+    };
+  },
+
+  // Encaje: motivos de flor (aro y centro) en filas alternadas, unidos por un zarcillo, sobre una red clara.
+  encaje: () => ({
+    fondo: "#F3EBDD",
+    formas: (
+      <>
+        {rango(7).flatMap((fila) =>
+          rango(11).map((col) => {
+            const cx = col * 11 + (fila % 2) * 5.5;
+            const cy = fila * 6.5 + 2;
+            return (
+              <g key={`f${fila}-${col}`}>
+                <circle cx={f(cx)} cy={f(cy)} r={2.4} fill="none" stroke="#8C7A5C" strokeWidth={0.6} opacity={0.65} />
+                <circle cx={f(cx)} cy={f(cy)} r={0.8} fill="#8C7A5C" opacity={0.7} />
+                <path d={`M${f(cx + 2.4)} ${f(cy)} q2.7 -3 5.5 0`} fill="none" stroke="#8C7A5C" strokeWidth={0.45} opacity={0.5} />
+              </g>
+            );
+          }),
+        )}
+      </>
+    ),
+  }),
+
+  // Gamuza: pelo cortísimo y mate, todo caído en la misma dirección (por eso el tono cambia), camel de cuero ante. Sin brillo.
+  gamuza: () => {
+    const azar = semillaAzar(79);
+    return {
+      fondo: "#B98F63",
+      formas: (
+        <>
+          {rango(320).map((i) => {
+            const x = azar() * ANCHO;
+            const y = azar() * ALTO;
+            return <line key={i} x1={f(x)} y1={f(y)} x2={f(x + 1.6)} y2={f(y - 0.8)} stroke={i % 2 === 0 ? "#D3AE86" : "#8E6A42"} strokeWidth={0.8} strokeLinecap="round" opacity={0.45} />;
+          })}
+        </>
+      ),
+    };
+  },
+
+  // Mesh: malla en rombos, hilo oscuro sobre un fondo claro que se ve a través, con una banda de brillo plana.
+  mesh: () => ({
+    fondo: "#D9D7D0",
+    formas: (
+      <>
+        {rango(36).map((i) => (
+          <line key={`a${i}`} x1={i * 6 - 40} y1={0} x2={i * 6} y2={ALTO} stroke="#55534C" strokeWidth={0.9} opacity={0.6} />
+        ))}
+        {rango(36).map((i) => (
+          <line key={`b${i}`} x1={i * 6} y1={0} x2={i * 6 - 40} y2={ALTO} stroke="#55534C" strokeWidth={0.9} opacity={0.6} />
+        ))}
+        <polygon points="40,0 62,0 44,40 22,40" fill="#FFFFFF" opacity={0.25} />
+      </>
+    ),
+  }),
+
+  // Catania: dibujo NEUTRO (no afirma ningún tejido, igual que «Tela»): su fibra no está confirmada. Gris cálido con una diagonal finísima.
+  catania: () => ({
+    fondo: "#D9D6CE",
+    formas: (
+      <>
+        {rango(60).map((i) => (
+          <line key={i} x1={i * 3 - 40} y1={0} x2={i * 3} y2={ALTO} stroke="#7C786E" strokeWidth={0.6} opacity={0.2} />
+        ))}
+      </>
+    ),
+  }),
 };
 
 export function MuestraTejido({

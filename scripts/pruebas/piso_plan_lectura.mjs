@@ -764,7 +764,9 @@ caso(
   const md5Cabecera = MIGRACION.match(/→ `([0-9a-f]{32})` \(el cuerpo de este archivo/)?.[1] ?? "(sin md5 en la cabecera)";
   caso(
     "M3 la huella que la cabecera manda verificar en producción es la del cuerpo de la función (si cambia el cuerpo, cambia la cabecera)",
-    `select md5(prosrc) from pg_proc where oid = ${OID};`,
+    // Se carga ANTES la migración: la huella es la del cuerpo de ESTE archivo, no la de lo que cualquier migración posterior le haya parchado
+    // (20261010232000 le suma el filtro de familias apagadas y, sin esto, este caso se ponía en rojo con cada parche nuevo).
+    `${MIGRACION}\nselect md5(prosrc) from pg_proc where oid = ${OID};`,
     md5Cabecera
   );
 }

@@ -24,6 +24,8 @@ export async function POST(request: Request) {
 
   const cuerpo = await request.json().catch(() => null);
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
+  // «¿Cuenta en Análisis, Frescura y el plan del piso?» Sin decirlo, sí (lo de siempre): solo un `false` explícito la saca.
+  const entraAMotores = typeof cuerpo?.entraAMotores === "boolean" ? cuerpo.entraAMotores : true;
 
   if (!nombre) {
     return Response.json({ error: "Falta el nombre de la familia." }, { status: 400 });
@@ -36,8 +38,8 @@ export async function POST(request: Request) {
   // triggers. Sin esto el PR no compilaba (y Vercel no podía desplegar).
   const { data, error } = await supabase
     .from("familias")
-    .insert({ nombre, codigo: "" })
-    .select("codigo, nombre, activo, orden")
+    .insert({ nombre, codigo: "", entra_a_motores: entraAMotores })
+    .select("codigo, nombre, activo, orden, entra_a_motores")
     .single();
 
   if (error) {
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
   return Response.json({ familia: data });
 }
 
-// PUT /api/productos/familias → edita el nombre visible (el código nunca cambia).
+// PUT /api/productos/familias → edita el nombre visible y si cuenta en los motores (el código nunca cambia).
 export async function PUT(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
@@ -57,6 +59,8 @@ export async function PUT(request: Request) {
   const cuerpo = await request.json().catch(() => null);
   const codigo = typeof cuerpo?.codigo === "string" ? cuerpo.codigo : "";
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
+  // Si no viene, no se toca (quien edita solo el nombre no cambia si la familia cuenta en los motores).
+  const entraAMotores = typeof cuerpo?.entraAMotores === "boolean" ? cuerpo.entraAMotores : null;
 
   if (!codigo) {
     return Response.json({ error: "Falta la familia a editar." }, { status: 400 });
@@ -68,9 +72,9 @@ export async function PUT(request: Request) {
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { data, error } = await supabase
     .from("familias")
-    .update({ nombre })
+    .update(entraAMotores === null ? { nombre } : { nombre, entra_a_motores: entraAMotores })
     .eq("codigo", codigo)
-    .select("codigo, nombre, activo, orden")
+    .select("codigo, nombre, activo, orden, entra_a_motores")
     .single();
 
   if (error) {

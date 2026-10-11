@@ -192,6 +192,10 @@ const DESHACER_CUADRE = deshacer(MIGRACION_CUADRE);
  *  ninguna guarda anterior reconoce. Cada parche posterior se suma aquí, el más nuevo primero. */
 const MIGRACION_VARA = leerMigracion("20261008120000_frescura_vara_cayla.sql");
 const DESHACER_VARA = deshacer(MIGRACION_VARA);
+/** Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera las familias apagadas. Es el parche más nuevo: se deshace
+ *  ANTES que la vara, y antes de medir «la base de hoy» de la cadena (T12, T12b), que es la de la vara. */
+const MIGRACION_FAMILIAS_APAGADAS = leerMigracion("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
+const DESHACER_FAMILIAS_APAGADAS = deshacer(MIGRACION_FAMILIAS_APAGADAS);
 /** La migración cuya guarda nombra el cuerpo vivo de cada función. */
 const GUARDA_DE = (f) => (f === "fn_frescura_sede" ? MIGRACION_VARA : f === "fn_confianza_registro" ? MIGRACION_P4 : MIGRACION);
 /** El cuerpo de fn_temporada_efectiva de 20260928100000 (el que tiene producción antes de pegar 20260928120310). */
@@ -486,6 +490,8 @@ ${k("LIBRO_CON_LISTA", `(select d ~ 'fn_ledger_puntos\\(p_ubicacion_id, v_desde,
     and d !~ 'v_ids\\s*:='
   from (select pg_get_functiondef('${FIRMA_SEDE}'::regprocedure) as d) x)`)}
 ${k("COLUMNAS_CONF", `(select array_to_string(p.proargnames, ',') from pg_proc p where p.oid = '${FIRMA_CONF}'::regprocedure)`)}
+-- La guarda nombra el cuerpo de la migración que MANDA cada función: se mide sin los parches posteriores (las familias apagadas, 20261010233000).
+${DESHACER_FAMILIAS_APAGADAS}
 ${k("MD5", `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc where pronamespace = 'retail'::regnamespace and proname in (${EN_FUNCIONES}))`)}`,
   (o) => {
     afirmar(
@@ -2429,6 +2435,7 @@ const VIGILA_P4 = new Set(["fn_frescura_sede", "fn_confianza_registro"]);
 correr(
   "T12 · la guarda de la que manda fn_frescura_sede y fn_confianza_registro (20260929100000, paso 4): pegada otra vez deja lo mismo; con una de las dos parchada en vivo aborta y no la pisa; las que no toca siguen con su parche; la de revisión 9 después aborta",
   `-- Como quedó el paso 4, antes del cuadre del piso (el cuadre se prueba en cuadrar_piso.mjs, C12).
+${DESHACER_FAMILIAS_APAGADAS}
 ${DESHACER_VARA}
 ${DESHACER_CUADRE}
 select ${MD5S} as antes \\gset
@@ -2481,6 +2488,7 @@ correr(
   "T12b · desde producción antes del paso 3: 120300 → 120310 (dos veces) → 120320 (dos veces) → 120330 (dos veces) → paso 4 (dos veces), cada una con sus md5; una fuera de orden o una anterior otra vez aborta sin deshacer nada; sin la de antes, cada una la pide",
   `-- La base de hoy (con el cuadre del piso y la vara de CAYLA encima), la del cuadre (sin la vara) y la del paso 4 (sin él):
 -- la cadena llega a la tercera; el cuadre, a la segunda; la vara, a la primera.
+${DESHACER_FAMILIAS_APAGADAS}
 select ${MD5S} as hoy \\gset
 ${DESHACER_VARA}
 select ${MD5S} as tras_cuadre \\gset
