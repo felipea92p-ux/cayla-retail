@@ -1,0 +1,3 @@
+## Devoluciones: la devolución a medio armar es de su sede (2026-10-11, ADR-0122 act. 2026-10-11)
+- [x] **Devoluciones con la sede en la key y la devolución guardada en su sede** (punto 6 de `docs/backlog/2026-10-11-distracted-knuth-8feca0.md`). Sigue la última grave: Nuevo traslado. Después, los medios y leves de esa lista.
+- [ ] **Correr `/chaos` en Devoluciones** cuando vuelva a haber base local (Docker se desinstaló el 2026-10-11). Ataque que importa: doble clic en «Registrar devolución» con una devolución recuperada (`crear_devolucion` no lleva token: lo frena el `enviandoAhora` de la pantalla), y la misma venta devuelta desde dos sedes a la vez.

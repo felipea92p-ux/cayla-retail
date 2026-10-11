@@ -28,12 +28,19 @@ export type CambioArmado = {
   token: string;
 };
 
+/** De quién es la venta, para nombrarla en un aviso: el cliente sin su documento («Ana Prueba · DNI …» → «Ana Prueba»), si no su
+ *  comprobante («la Boleta B001-000010»); `null` si no tiene ninguno. Lo comparten Cambios y Devoluciones. */
+export function deQuienEsLaVenta(clienta: string | null, comprobante: string | null): string | null {
+  const cliente = (clienta ?? "").split(" · ")[0].trim();
+  if (cliente) return cliente;
+  if (comprobante) return `la ${comprobante}`;
+  return null;
+}
+
 /** Cómo se nombra el cambio: por el cliente (sin su documento), si no por su comprobante. */
 function nombreDelCambio(clienta: string | null, comprobante: string | null): string {
-  const cliente = (clienta ?? "").split(" · ")[0].trim();
-  if (cliente) return `El cambio de ${cliente}`;
-  if (comprobante) return `El cambio de la ${comprobante}`;
-  return "El cambio a medio armar";
+  const quien = deQuienEsLaVenta(clienta, comprobante);
+  return quien ? `El cambio de ${quien}` : "El cambio a medio armar";
 }
 
 /** Los avisos del guardián: al irse de la sede con el cambio armado y al volver a encontrarlo. */
