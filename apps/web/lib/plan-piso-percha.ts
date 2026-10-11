@@ -9,7 +9,7 @@
  * LÓGICA PURA: sin red ni React.
  */
 import type { FilaDelRiel, PropuestaMix } from "./mix-piso";
-import { cifraEs } from "./mix-piso-visual";
+import { cifraEs, prendasEs } from "./mix-piso-visual";
 
 const n = cifraEs;
 /** Espacio duro: «4 %» no se parte en dos renglones. */
@@ -63,6 +63,37 @@ export function perchasDe(prendas: number, unidad: number): Perchas {
 export function escalaEnPerchas(capacidad: number, sumas: readonly number[], unidad: number): number {
   const mayor = Math.max(capacidad > 0 ? capacidad : 0, ...sumas.map((s) => (Number.isFinite(s) && s > 0 ? s : 0)));
   return mayor / unidad;
+}
+
+export type GrupoParaElRiel = { clave: string; nombre: string; hoy: number; propuesta: number };
+/** Un tramo del riel: las perchas de UN grupo, una junto a otra. */
+export type BloqueDelRiel = Perchas & { clave: string; /** La posición del grupo en la lista del riel: de ahí sale su color. */ indice: number; prendas: number };
+export type Rieles = { unidad: number; /** Cuántas perchas mide el riel entero (la escala de los dos). */ escala: number; hoy: BloqueDelRiel[]; propuesta: BloqueDelRiel[] };
+
+/**
+ * Los dos rieles de una sede, listos para dibujar. Cada tramo conserva la posición de su grupo (su color) aunque otros no tengan prendas: un
+ * grupo con cero en un riel no dibuja un poste solo (queda en la leyenda). Los dos rieles se miden contra la misma escala.
+ */
+export function armarRieles(grupos: readonly GrupoParaElRiel[], capacidad: number): Rieles {
+  const unidad = unidadDePercha(capacidad);
+  const suma = (valor: (g: GrupoParaElRiel) => number) => grupos.reduce((s, g) => s + (Number.isFinite(valor(g)) && valor(g) > 0 ? valor(g) : 0), 0);
+  const bloques = (valor: (g: GrupoParaElRiel) => number): BloqueDelRiel[] =>
+    grupos.flatMap((g, indice) => {
+      const prendas = Number.isFinite(valor(g)) && valor(g) > 0 ? valor(g) : 0;
+      return prendas > 0 ? [{ clave: g.clave, indice, prendas, ...perchasDe(prendas, unidad) }] : [];
+    });
+  return {
+    unidad,
+    escala: escalaEnPerchas(capacidad, [suma((g) => g.hoy), suma((g) => g.propuesta)], unidad),
+    hoy: bloques((g) => g.hoy),
+    propuesta: bloques((g) => g.propuesta),
+  };
+}
+
+/** El nombre corto de un grupo, para rotular su tramo: lo que va antes de la primera coma o de «y» («Polos, tops y blusas» → «Polos»). */
+export function nombreCorto(nombre: string): string {
+  const corto = nombre.split(/,| y /)[0]!.trim();
+  return corto === "" ? nombre.trim() : corto;
 }
 
 export type Libres = { libres: number; deMas: number };
@@ -147,6 +178,29 @@ export function textoDelPorQue(e: { ventasConfirmadas: number; pesoPct: number }
   if (e.ventasConfirmadas <= 0) return "Todavía sin ventas confirmadas · ¿Por qué?";
   const ventas = e.ventasConfirmadas === 1 ? "tu venta" : `tus ${n(e.ventasConfirmadas)} ventas`;
   return `${e.pesoPct < 15 ? "Casi no usa" : "Usa"} ${ventas} (${PCT(e.pesoPct)}) · ¿Por qué?`;
+}
+
+/** Lo que oye quien usa lector de pantalla del riel de hoy (el dibujo es una imagen: aquí van las mismas cifras en texto). */
+export function ariaDeHoy(e: { colgadas: number; capacidad: number; cuadrado: boolean }): string {
+  const { libres, deMas } = libresDelRiel(e.capacidad, e.colgadas);
+  const cuanto = deMas > 0 ? `${n(deMas)} de más` : `${n(libres)} libres`;
+  return `Hoy${e.cuadrado ? "" : ", según el sistema"}: ${n(e.colgadas)} de ${n(e.capacidad)} lugares ocupados${deMas > 0 ? ", " : " y "}${cuanto}.${e.cuadrado ? "" : " Falta contar el piso."}`;
+}
+
+/** Lo mismo para el riel de la propuesta: cuántas prendas se llevaría cada grupo. */
+export function ariaDeLaPropuesta(grupos: readonly { nombre: string; propuesta: number }[], capacidad: number): string {
+  const conPrendas = grupos.filter((g) => g.propuesta > 0);
+  const repartidas = conPrendas.reduce((s, g) => s + g.propuesta, 0);
+  return `Cómo quedaría: ${conPrendas.map((g) => `${g.nombre} ${n(g.propuesta)}`).join(", ")}. En total ${n(repartidas)} de ${n(capacidad)} lugares repartidos.`;
+}
+
+/** La línea de una ficha de «Fuera del riel»: cuánto cuelga, cuánto se vende y la meta de la sede (o que no lo lleva). */
+export function lineaDeFicha(f: { colgadas: number; ventaPct: number | null; meta: { desde: number; hasta: number } | null; noLoLleva: boolean }): string {
+  const partes = [prendasEs(f.colgadas)];
+  if (f.ventaPct !== null) partes.push(`vende ${PCT(f.ventaPct)}`);
+  if (f.noLoLleva) partes.push("esta sede no lo lleva");
+  else if (f.meta) partes.push(`meta ${f.meta.desde}–${f.meta.hasta}\u00a0% de la venta`);
+  return partes.join(" · ");
 }
 
 // ── «Cómo se calcula», en palabras ────────────────────────────────────────────────────────────────────────────────────────

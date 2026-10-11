@@ -3,6 +3,9 @@ import { armarPropuesta, type PropuestaMix } from "./mix-piso";
 import type { LecturaDelPiso } from "./piso-plan";
 import type { CategoriaMix, GrupoMix } from "./plan-piso-grupos";
 import {
+  ariaDeHoy,
+  ariaDeLaPropuesta,
+  armarRieles,
   bloqueLibre,
   descripcionDelLlenado,
   detalleDeFila,
@@ -10,9 +13,11 @@ import {
   etiquetaDeCifra,
   fraseDeEstado,
   leyendaDeGrupo,
+  lineaDeFicha,
   libresDelRiel,
   MAX_PERCHAS,
   MINIMO_VISIBLE,
+  nombreCorto,
   notaDeEscala,
   panelDelPorQue,
   perchasDe,
@@ -274,5 +279,86 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
     expect(parrafos.join(" ")).not.toContain("undefined");
     expect(parrafos.join(" ")).not.toContain("null");
     expect(parrafos[0]).toContain("Cada grupo se lleva una parte del riel.");
+  });
+});
+
+describe("los dos rieles de una sede, listos para dibujar", () => {
+  const grupos = [
+    { clave: "polos_tops_blusas", nombre: "Polos, tops y blusas", hoy: 30, propuesta: 788 },
+    { clave: "jeans", nombre: "Jeans", hoy: 3, propuesta: 169 },
+    { clave: "pantalones_faldas_shorts", nombre: "Pantalones, faldas y shorts", hoy: 0, propuesta: 326 },
+  ];
+
+  it("AQP: unidad 50, escala de 36 perchas, y cada tramo con su grupo y su posición", () => {
+    const r = armarRieles(grupos, 1800);
+    expect(r.unidad).toBe(50);
+    expect(r.escala).toBe(36);
+    expect(r.propuesta.map((b) => [b.clave, b.indice])).toEqual([["polos_tops_blusas", 0], ["jeans", 1], ["pantalones_faldas_shorts", 2]]);
+    expect(r.propuesta[0]!.llenas).toBe(15);
+    expect(r.hoy[0]!.perchas).toBeCloseTo(0.6, 9);
+  });
+
+  it("un grupo sin prendas en un riel no dibuja un poste solo, pero los demás conservan su posición (su color)", () => {
+    const r = armarRieles(grupos, 1800);
+    expect(r.hoy.map((b) => b.clave)).toEqual(["polos_tops_blusas", "jeans"]);
+    expect(r.hoy[1]!.indice).toBe(1);
+    expect(r.propuesta).toHaveLength(3);
+  });
+
+  it("los dos rieles comparten escala aunque cuelgue más de lo que cabe", () => {
+    const r = armarRieles([{ clave: "a", nombre: "A", hoy: 2340, propuesta: 1800 }], 1800);
+    expect(r.escala).toBeCloseTo(46.8, 9);
+  });
+
+  it("sin grupos o sin nada que dibujar devuelve rieles vacíos y no se rompe", () => {
+    expect(armarRieles([], 1800)).toMatchObject({ unidad: 50, escala: 36, hoy: [], propuesta: [] });
+    const r = armarRieles([{ clave: "a", nombre: "A", hoy: Number.NaN, propuesta: -3 }], 600);
+    expect(r.hoy).toEqual([]);
+    expect(r.propuesta).toEqual([]);
+    expect(r.unidad).toBe(20);
+  });
+});
+
+describe("el nombre corto con el que se rotula cada tramo", () => {
+  it("lo que va antes de la primera coma o de «y»", () => {
+    expect(nombreCorto("Polos, tops y blusas")).toBe("Polos");
+    expect(nombreCorto("Pantalones, faldas y shorts")).toBe("Pantalones");
+    expect(nombreCorto("Vestidos, conjuntos y enterizos")).toBe("Vestidos");
+    expect(nombreCorto("Bodys, corsets y lencería")).toBe("Bodys");
+    expect(nombreCorto("Abrigo y capas")).toBe("Abrigo");
+    expect(nombreCorto("Jeans")).toBe("Jeans");
+  });
+  it("un nombre raro no queda vacío", () => {
+    expect(nombreCorto(", algo")).toBe(", algo");
+    expect(nombreCorto("  Jeans  ")).toBe("Jeans");
+    expect(nombreCorto("")).toBe("");
+  });
+});
+
+describe("lo que lee un lector de pantalla de cada riel (el dibujo es una imagen)", () => {
+  it("«Hoy» dice las cifras y que son del sistema mientras la sede no cuadre", () => {
+    expect(ariaDeHoy({ colgadas: 78, capacidad: 1800, cuadrado: false })).toBe("Hoy, según el sistema: 78 de 1,800 lugares ocupados y 1,722 libres. Falta contar el piso.");
+    expect(ariaDeHoy({ colgadas: 78, capacidad: 1800, cuadrado: true })).toBe("Hoy: 78 de 1,800 lugares ocupados y 1,722 libres.");
+  });
+  it("si cuelga más de lo que cabe lo dice, sin «libres»", () => {
+    expect(ariaDeHoy({ colgadas: 2340, capacidad: 1800, cuadrado: true })).toBe("Hoy: 2,340 de 1,800 lugares ocupados, 540 de más.");
+  });
+  it("«Cómo quedaría» lista los grupos con prendas y el total repartido", () => {
+    expect(ariaDeLaPropuesta([{ nombre: "Polos", propuesta: 788 }, { nombre: "Jeans", propuesta: 0 }, { nombre: "Abrigo", propuesta: 1012 }], 1800)).toBe("Cómo quedaría: Polos 788, Abrigo 1,012. En total 1,800 de 1,800 lugares repartidos.");
+  });
+});
+
+describe("la línea de cada ficha de «Fuera del riel»", () => {
+  it("cuánto cuelga, cuánto se vende y la meta", () => {
+    expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% · meta 16–18\u00a0% de la venta");
+  });
+  it("sin ventas confirmadas no inventa un porcentaje, y una sola prenda va en singular", () => {
+    expect(lineaDeFicha({ colgadas: 1, ventaPct: null, meta: { desde: 6, hasta: 8 }, noLoLleva: false })).toBe("1 prenda · meta 6–8\u00a0% de la venta");
+  });
+  it("una sede que no lo lleva lo dice (LIM no tiene bolsos ni calzado)", () => {
+    expect(lineaDeFicha({ colgadas: 0, ventaPct: null, meta: null, noLoLleva: true })).toBe("0 prendas · esta sede no lo lleva");
+  });
+  it("sin meta ni «no lo lleva» solo dice lo que hay", () => {
+    expect(lineaDeFicha({ colgadas: 4, ventaPct: 12.5, meta: null, noLoLleva: false })).toBe("4 prendas · vende 12.5\u00a0%");
   });
 });

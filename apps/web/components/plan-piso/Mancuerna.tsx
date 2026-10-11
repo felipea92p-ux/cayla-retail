@@ -1,7 +1,7 @@
-import { MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
+import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import type { PropuestaMix } from "@/lib/mix-piso";
-import { claseDeTramo, escalaDeMancuerna, posicionEnEscala } from "@/lib/mix-piso-visual";
+import { escalaDeMancuerna, posicionEnEscala } from "@/lib/mix-piso-visual";
 
 // Plan del piso ▸ Propuesta: DÓNDE está cada cifra de cada grupo, en una sola línea. La tabla da los números; esto muestra su distancia: lo que
 // cuelga hoy, lo que dice la industria, lo que vendió la sede (con el rango entre el que estaría la venta real) y lo que se propone. Cuando
@@ -54,7 +54,9 @@ export function Mancuerna({ propuesta: p }: { propuesta: PropuestaMix }) {
           return (
             <div key={f.grupo.clave} className="grid grid-cols-[minmax(0,9.5rem)_1fr] items-center gap-x-3 sm:grid-cols-[minmax(0,12rem)_1fr_4.5rem]">
               <div className="flex min-w-0 items-center gap-2 text-[13px] text-tinta">
-                <MuestraTramo clase={claseDeTramo(i)} />
+                <span className="shrink-0" style={estiloDeGrupo(i)}>
+                  <IconoDeGrupo clave={f.grupo.clave} className="pp-ic-fila" />
+                </span>
                 <span className="truncate">{f.grupo.nombre}</span>
               </div>
               <div role="img" aria-label={`${f.grupo.nombre}: ${resumen}`} className="relative h-9">

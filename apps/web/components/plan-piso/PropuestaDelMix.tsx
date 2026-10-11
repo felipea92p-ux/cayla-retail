@@ -1,24 +1,41 @@
-import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, celda, fila } from "@/components/ui/Tabla";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { lecturaDeGrupo, PESO_DE_LA_INDUSTRIA, PESO_MAXIMO_DE_LA_VENTA, type FilaDelRiel, type FilaFueraDelRiel, type PropuestaMix } from "@/lib/mix-piso";
-import { cifraEs, lineaDeVentas } from "@/lib/mix-piso-visual";
+import { lecturaDeGrupo, type FilaDelRiel, type PropuestaMix } from "@/lib/mix-piso";
+import { cifraEs } from "@/lib/mix-piso-visual";
+import {
+  ariaDeHoy,
+  ariaDeLaPropuesta,
+  armarRieles,
+  bloqueLibre,
+  etiquetaDeCifra,
+  fraseDeEstado,
+  lineaDeFicha,
+  nombreCorto,
+  notaDeEscala,
+  panelDelPorQue,
+  subtituloDeHoy,
+  subtituloDeLaPropuesta,
+  textoDelPorQue,
+} from "@/lib/plan-piso-percha";
 import { ROL_AYUDA, ROL_ETIQUETA } from "@/lib/plan-piso-grupos";
 import { AvisoPorRevisar } from "@/components/plan-piso/AvisoPorRevisar";
+import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { Mancuerna } from "@/components/plan-piso/Mancuerna";
-import { RielAEscala } from "@/components/plan-piso/RielAEscala";
+import { SiluetasDelPlan } from "@/components/plan-piso/SiluetasDelPlan";
+import { TarjetaDelRiel, type GrupoDelRiel } from "@/components/plan-piso/TarjetaDelRiel";
 
-// Plan del piso ▸ Propuesta (ADR-0329 + ADR-0328, actividad 12, primera entrega: solo lectura). Cuánto lugar le toca a cada grupo de
-// prendas en el riel de la sede, frente a lo que cuelga hoy y a lo que dice la venta propia. Es una PROPUESTA: nada se guarda aquí
-// (aprobarla y guardarla es la entrega siguiente), y el cálculo —el punto de partida de la industria, el peso de la venta propia, el
-// reparto en prendas— vive en `lib/mix-piso.ts`, con su prueba.
+// Plan del piso ▸ Propuesta (ADR-0329 + ADR-0328, actividad 12; solo lectura). Cuánto lugar le toca a cada grupo de prendas en el riel de la sede, frente a lo que cuelga hoy
+// y a lo que dice la venta propia. Es una PROPUESTA: nada se guarda aquí, y el cálculo —el punto de partida de la industria, el peso de la venta propia, el reparto en
+// prendas— vive en `lib/mix-piso.ts`, con su prueba.
 //
-// Una cifra que no se puede calcular se dice («sin ventas», «por cuadrar», «—»), nunca un 0: un 0 diría «no se vende» o «no cuelga nada»
-// sin saberlo (ADR-0214: una cifra con poca muestra no es una cifra).
+// El diseño es el de la maqueta A «La percha» (Felipe, 2026-10-11; docs/maquetas/plan-del-piso-2026-10/): una tarjeta con el estado («78 de 1,800 prendas»), el riel de
+// perchas de hoy y el de cómo quedaría, el aviso de las categorías por revisar, y debajo lo que no cuelga del riel y el detalle grupo por grupo (la mancuerna y la
+// tabla, con los mismos íconos y colores). Las frases y los tramos salen de `lib/plan-piso-percha.ts` (con su prueba): aquí solo se arman y se dibujan.
+//
+// Una cifra que no se puede calcular se dice («sin ventas», «por cuadrar», «—»), nunca un 0: un 0 diría «no se vende» o «no cuelga nada» sin saberlo (ADR-0214).
+// Y mientras la sede no cuadró su piso, lo que cuelga es lo que el sistema CREE: se dice en condicional, nunca como un hecho (Formidable 2026-10-10).
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.5fr)_7.5rem_6rem_9.5rem_8.5rem_6.5rem]";
-const PLANTILLA_FUERA = "sm:grid-cols-[minmax(0,1.5fr)_7.5rem_9.5rem_9.5rem]";
 const COLUMNAS = [
   { titulo: "Grupo" },
   { titulo: "Hoy", subtitulo: "prendas · % del riel", ayuda: "Lo que el sistema dice que cuelga en el piso hoy. Mientras la sede no cuadre su piso, no es confiable." },
@@ -27,7 +44,6 @@ const COLUMNAS = [
   { titulo: "Propuesta", subtitulo: "prendas · %", ayuda: "La industria y la venta propia mezcladas según cuánto pesa cada una, repartidas en las prendas que caben en el riel." },
   { titulo: "Diferencia", subtitulo: "prendas", ayuda: "Propuesta menos lo que cuelga hoy: con signo más, faltan; con signo menos, sobran." },
 ];
-const COLUMNAS_FUERA = [{ titulo: "Grupo" }, { titulo: "Cuelga hoy", subtitulo: "prendas" }, { titulo: "Venta propia", subtitulo: "% de la venta" }, { titulo: "Meta", subtitulo: "% de la venta" }];
 
 const n = cifraEs;
 const pct = (x: number) => `${n(x)} %`;
@@ -45,24 +61,33 @@ function Dato({ etiqueta, children, apagado = false }: { etiqueta: string; child
 /** El punto de color de la lectura: los mismos estados que `Chip` (verde = al día, ámbar = hay algo por hacer, pizarra = informativo), sin rojo. */
 const PUNTO_LECTURA = { verde: "bg-verde", ambar: "bg-ambar", pizarra: "bg-pizarra" } as const;
 
-function FilaGrupo({ f, cuadrado, capacidad }: { f: FilaDelRiel; cuadrado: boolean; capacidad: number | null }) {
+function FilaGrupo({ f, indice, cuadrado, capacidad }: { f: FilaDelRiel; indice: number; cuadrado: boolean; capacidad: number | null }) {
   const sinPropuesta = f.propuestaPct === null;
   const lectura = lecturaDeGrupo(f, { cuadrado, capacidad });
   return (
     <div className={fila(PLANTILLA, "sm:items-center")}>
       <div className={celda("izq", "!whitespace-normal")}>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-sm text-tinta">{f.grupo.nombre}</span>
-          <span title={ROL_AYUDA[f.grupo.rol]}>
-            <Chip tono="pizarra">{ROL_ETIQUETA[f.grupo.rol]}</Chip>
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 shrink-0" style={estiloDeGrupo(indice)}>
+            <IconoDeGrupo clave={f.grupo.clave} className="pp-ic-fila" />
           </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-sm text-tinta">{f.grupo.nombre}</span>
+              <span title={ROL_AYUDA[f.grupo.rol]}>
+                <Chip tono="pizarra">{ROL_ETIQUETA[f.grupo.rol]}</Chip>
+              </span>
+            </div>
+            {/* Sin cuadrar, la lectura es la MISMA frase en las seis filas («Por cuadrar: sin saber lo que cuelga…») y la nota al pie de la tabla ya la dice una vez: solo se repite
+                por fila cuando dice algo distinto en cada una (la sede cuadrada: «Faltan 12», «Dentro de lo esperado»). */}
+            {lectura && cuadrado && (
+              <p className="mt-1 flex items-start gap-1.5 text-xs text-tinta/75">
+                <span aria-hidden className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO_LECTURA[lectura.tono]}`} />
+                <span>{lectura.texto}</span>
+              </p>
+            )}
+          </div>
         </div>
-        {lectura && (
-          <p className="mt-1 flex items-start gap-1.5 text-xs text-tinta/75">
-            <span aria-hidden className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO_LECTURA[lectura.tono]}`} />
-            <span>{lectura.texto}</span>
-          </p>
-        )}
       </div>
       <Dato etiqueta="Hoy" apagado={!cuadrado}>
         <span title={cuadrado ? undefined : "Por cuadrar: lo que cuelga de verdad puede ser muy distinto de lo que dice el sistema."}>
@@ -87,7 +112,7 @@ function FilaGrupo({ f, cuadrado, capacidad }: { f: FilaDelRiel; cuadrado: boole
         {sinPropuesta ? (
           "—"
         ) : (
-          <span className="font-medium text-tinta">
+          <span className="font-display text-[17px] leading-tight text-tinta">
             {f.propuestaPrendas === null ? "" : `${n(f.propuestaPrendas)} · `}
             {pct(f.propuestaPct as number)}
           </span>
@@ -109,46 +134,6 @@ function FilaGrupo({ f, cuadrado, capacidad }: { f: FilaDelRiel; cuadrado: boole
   );
 }
 
-function FilaFuera({ f }: { f: FilaFueraDelRiel }) {
-  return (
-    <div className={fila(PLANTILLA_FUERA, "sm:items-center")}>
-      <div className={celda("izq", "flex flex-wrap items-center gap-x-2 gap-y-1")}>
-        <span className="text-sm text-tinta">{f.grupo.nombre}</span>
-        <span title={ROL_AYUDA[f.grupo.rol]}>
-          <Chip tono="pizarra">{ROL_ETIQUETA[f.grupo.rol]}</Chip>
-        </span>
-      </div>
-      <Dato etiqueta="Cuelga hoy">{n(f.colgadas)}</Dato>
-      <Dato etiqueta="Venta propia">
-        {f.ventaPct === null ? (
-          <span className="text-taupe">sin ventas</span>
-        ) : (
-          <span>
-            {pct(f.ventaPct)}
-            <span className="ml-1.5 text-xs text-taupe">({f.ventasConfirmadas})</span>
-          </span>
-        )}
-      </Dato>
-      <Dato etiqueta="Meta">
-        {f.noLoLleva ? <span className="text-taupe">no lo lleva</span> : f.meta ? `${f.meta.desde}–${f.meta.hasta} %` : "—"}
-      </Dato>
-    </div>
-  );
-}
-
-/** El riel a escala de la propuesta: dos rieles con la misma capacidad (hoy y propuesta). Es una ayuda visual; las mismas cifras están en la tabla. */
-function RielDeLaPropuesta({ p }: { p: PropuestaMix }) {
-  if (p.motivoSinPropuesta || p.capacidad === null) return null;
-  const grupos = p.enRiel.map((f) => ({ clave: f.grupo.clave, nombre: f.grupo.nombre, hoy: f.colgadas, propuesta: f.propuestaPrendas ?? 0 }));
-  return (
-    <section className="card-cayla anim-sube p-5" style={{ "--i": 2 } as React.CSSProperties} aria-label="El riel, hoy y como quedaría">
-      <h2 className="font-display text-xl text-tinta">El riel, hoy y como quedaría</h2>
-      <p className="mt-0.5 mb-4 max-w-2xl text-[13px] text-tinta/70">Las dos barras miden lo mismo: lo que cabe en el riel. Cada color es un grupo; pasa el cursor por uno para verlo en las dos.</p>
-      <RielAEscala grupos={grupos} capacidad={p.capacidad} cuadrado={p.cuadrado} />
-    </section>
-  );
-}
-
 export function PropuestaDelMix({
   propuesta: p,
   capacidadProvisional,
@@ -163,10 +148,46 @@ export function PropuestaDelMix({
   categoriasSinGrupo?: number;
   esLider?: boolean;
 }) {
-  const hayVentas = p.ventasConfirmadasDelRiel > 0;
-  const pesoPct = Math.round(p.pesoDeLaVenta * 100);
-  const hayFuera = p.fueraDelRiel.length > 0;
   const sinGrupo = p.sinGrupo.colgadas > 0 || p.sinGrupo.ventasConfirmadas > 0;
+  const hayFuera = p.fueraDelRiel.length > 0;
+  // Sin propuesta para la sede (no es una de las tres tiendas, no tiene piso de venta) no hay riel que dibujar: la nota de arriba dice por qué.
+  const dibujaTarjeta = !p.motivoSinPropuesta;
+  const capacidad = p.capacidad;
+  const frase = capacidad === null ? null : fraseDeEstado({ colgadas: p.colgadasEnElRiel, capacidad, cuadrado: p.cuadrado });
+
+  let riel: React.ReactNode = null;
+  if (capacidad !== null && dibujaTarjeta) {
+    const base = p.enRiel.map((f) => ({ clave: f.grupo.clave, nombre: f.grupo.nombre, hoy: f.colgadas, propuesta: f.propuestaPrendas ?? 0 }));
+    const rieles = armarRieles(base, capacidad);
+    const grupos: GrupoDelRiel[] = p.enRiel.map((f, indice) => ({
+      clave: f.grupo.clave,
+      nombre: f.grupo.nombre,
+      corto: nombreCorto(f.grupo.nombre),
+      indice,
+      hoy: f.colgadas,
+      propuesta: f.propuestaPrendas ?? 0,
+      propuestaPct: f.propuestaPct,
+    }));
+    const repartidas = grupos.reduce((s, g) => s + g.propuesta, 0);
+    const pesoPct = Math.round(p.pesoDeLaVenta * 100);
+    const nota = notaDeEscala(rieles.unidad);
+    riel = (
+      <TarjetaDelRiel
+        grupos={grupos}
+        hoy={rieles.hoy}
+        propuesta={rieles.propuesta}
+        escala={rieles.escala}
+        libre={bloqueLibre({ capacidad, colgadas: p.colgadasEnElRiel, cuadrado: p.cuadrado })}
+        subHoy={subtituloDeHoy({ colgadas: p.colgadasEnElRiel, capacidad, cuadrado: p.cuadrado })}
+        subPropuesta={subtituloDeLaPropuesta(repartidas, capacidadProvisional)}
+        ariaHoy={ariaDeHoy({ colgadas: p.colgadasEnElRiel, capacidad, cuadrado: p.cuadrado })}
+        ariaPropuesta={ariaDeLaPropuesta(grupos, capacidad)}
+        textoPorQue={textoDelPorQue({ ventasConfirmadas: p.ventasConfirmadasDelRiel, pesoPct })}
+        panel={panelDelPorQue(p, capacidadProvisional)}
+        nota={nota}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -177,90 +198,76 @@ export function PropuestaDelMix({
         </div>
       )}
 
-      {/* Tres tarjetas, las tres con la misma forma (cifra, contexto, barra fina, una línea): qué tanto cuelga, qué tan firme es la venta y cuánto pesa en la
-          propuesta. «Caben en el riel» ya no es una tarjeta: es el «de 1,800» de la primera, que es como se lee («78 de 1,800» dice lo que dos cifras sueltas no). */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {/* La línea y la barra van en `pie`: la pieza los pega al fondo, y como la barra es lo último, en las tres tarjetas queda a la misma altura aunque
-            el texto de arriba (o la propia línea) ocupe uno o dos renglones. Las barras son decorativas: lo que dicen está escrito en la línea de arriba. */}
-        <TarjetaCifra
-          etiqueta="Cuelga hoy"
-          valor={n(p.colgadasEnElRiel)}
-          unidad={p.capacidad === null ? undefined : `de ${n(p.capacidad)}`}
-          acento={!p.cuadrado}
-          className="anim-sube"
-          pie={
-            <>
-              <span className="block text-[11px]">
-                {p.capacidad === null
-                  ? "esta sede no tiene capacidad medida"
-                  : capacidadProvisional
-                    ? `caben ${n(p.capacidad)} · provisional: falta contarlas`
-                    : `caben ${n(p.capacidad)} · m² × prendas por m²`}
-              </span>
-              {p.capacidad !== null && (
-                <BarraApilada
-                  decorativa
-                  alto={4}
-                  className="mt-1.5"
-                  total={p.capacidad}
-                  segmentos={[{ clave: "colgadas", nombre: "Cuelgan hoy", valor: p.colgadasEnElRiel, clase: "bg-tinta" }]}
-                />
-              )}
-            </>
-          }
-        >
-          {p.cuadrado ? "prendas en el riel, según el sistema" : "por cuadrar: lo real puede ser mucho más"}
-        </TarjetaCifra>
-        <TarjetaCifra
-          etiqueta="Ventas confirmadas"
-          valor={n(p.ventasConfirmadasDelRiel)}
-          className="anim-sube"
-          style={{ "--i": 1 } as React.CSSProperties}
-          pie={
-            <>
-              <span className="block text-[11px]">{lineaDeVentas(p.ventasConfirmadasDelRiel, p.ventasAnotadasDelRiel)}</span>
-              <BarraApilada
-                decorativa
-                alto={4}
-                className="mt-1.5"
-                segmentos={[
-                  { clave: "confirmadas", nombre: "Confirmadas", valor: p.ventasConfirmadasDelRiel, clase: "bg-tinta" },
-                  { clave: "sin-registrar", nombre: "Sin registrar", valor: p.ventasAnotadasDelRiel, clase: "bg-taupe/45" },
-                ]}
-              />
-            </>
-          }
-        >
-          en {p.dias} días
-        </TarjetaCifra>
-        <TarjetaCifra
-          etiqueta="Peso de la venta"
-          valor={`${pesoPct} %`}
-          className="anim-sube"
-          style={{ "--i": 2 } as React.CSSProperties}
-          pie={
-            <>
-              <span className="block text-[11px]">industria {100 - pesoPct} % · venta propia {pesoPct} %</span>
-              <BarraApilada
-                decorativa
-                alto={4}
-                className="mt-1.5"
-                segmentos={[
-                  { clave: "industria", nombre: "Industria", valor: 100 - pesoPct, clase: "bg-taupe/45" },
-                  { clave: "venta", nombre: "Venta propia", valor: pesoPct, clase: "bg-tinta" },
-                ]}
-              />
-            </>
-          }
-        >
-          {hayVentas ? "de la propuesta viene de lo que se vendió" : "todavía sin ventas confirmadas"}
-        </TarjetaCifra>
+      {dibujaTarjeta && (
+        <div className="pp-raiz">
+          <SiluetasDelPlan />
+          <section className="pp-card" aria-label="El riel de la tienda">
+            <header className="pp-estado">
+              <div className="pp-est-cifra">
+                <span className="pp-etq">{etiquetaDeCifra(p.cuadrado)}</span>
+                <div className="pp-est-n">
+                  <b>{n(p.colgadasEnElRiel)}</b>
+                  <span>{capacidad === null ? "prendas" : `de ${n(capacidad)} prendas`}</span>
+                </div>
+              </div>
+              <div className="pp-est-texto">
+                <div className="pp-est-chips">
+                  {!p.cuadrado && <Chip tono="ambar">Por cuadrar</Chip>}
+                  {capacidad !== null && capacidadProvisional && <Chip tono="pizarra">Capacidad provisional</Chip>}
+                </div>
+                {frase ? (
+                  <p>
+                    {frase.antes}
+                    <b>{frase.destacado}</b>
+                    {frase.despues}
+                    {frase.aclaracion && (
+                      <>
+                        {" "}
+                        <em>{frase.aclaracion}</em>
+                      </>
+                    )}
+                  </p>
+                ) : (
+                  <p>
+                    Esta sede todavía no tiene medida la capacidad de su riel. <em>Sin ella no se puede dibujar cómo se repartiría.</em>
+                  </p>
+                )}
+              </div>
+            </header>
+            {riel}
+            <AvisoPorRevisar porRevisar={categoriasPorRevisar} sinGrupo={categoriasSinGrupo} esLider={esLider} />
+          </section>
+
+          {hayFuera && (
+            <section className="pp-fuera" aria-label="Fuera del riel">
+              <div className="pp-fuera-cab">
+                <span className="pp-etq">Fuera del riel</span>
+                <span>No entran en el reparto.{p.cuadrado ? "" : " Cifras según el sistema."}</span>
+              </div>
+              <ul className="pp-fichas">
+                {p.fueraDelRiel.map((f) => (
+                  <li key={f.grupo.clave} className="pp-ficha">
+                    <IconoDeGrupo clave={f.grupo.clave} />
+                    <div>
+                      <b>{f.grupo.nombre}</b>
+                      <span>{lineaDeFicha(f)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
+
+      <div className="pp-raiz">
+        <SiluetasDelPlan />
+        <div className="pp-fuera-cab">
+          <span className="pp-etq">El detalle, grupo por grupo</span>
+          <span>{dibujaTarjeta ? "De dónde sale cada cifra de arriba." : "Lo que cuelga hoy en cada grupo."}</span>
+        </div>
       </div>
 
-      {/* Las categorías cuyo grupo nadie confirmó: la propuesta usa el que el sistema les puso. El aviso lleva a la pestaña donde se confirman. */}
-      <AvisoPorRevisar porRevisar={categoriasPorRevisar} sinGrupo={categoriasSinGrupo} esLider={esLider} />
-
-      <RielDeLaPropuesta p={p} />
       <Mancuerna propuesta={p} />
 
       <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Propuesta del mix en el riel">
@@ -276,8 +283,8 @@ export function PropuestaDelMix({
         <div className="scroll-cayla overflow-x-auto">
           <div className="divide-y divide-sand sm:min-w-[56rem]">
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
-            {p.enRiel.map((f) => (
-              <FilaGrupo key={f.grupo.clave} f={f} cuadrado={p.cuadrado} capacidad={p.capacidad} />
+            {p.enRiel.map((f, indice) => (
+              <FilaGrupo key={f.grupo.clave} f={f} indice={indice} cuadrado={p.cuadrado} capacidad={p.capacidad} />
             ))}
             {sinGrupo && (
               <div className={fila(PLANTILLA, "sm:items-center bg-hueso/60")}>
@@ -302,7 +309,7 @@ export function PropuestaDelMix({
                 {n(p.colgadasEnElRiel)}
               </Dato>
               <Dato etiqueta="Industria">{p.motivoSinPropuesta ? "—" : "100 %"}</Dato>
-              <Dato etiqueta="Venta propia">{hayVentas ? `(${n(p.ventasConfirmadasDelRiel)})` : "—"}</Dato>
+              <Dato etiqueta="Venta propia">{p.ventasConfirmadasDelRiel > 0 ? `(${n(p.ventasConfirmadasDelRiel)})` : "—"}</Dato>
               <Dato etiqueta="Propuesta">{p.motivoSinPropuesta ? "—" : `${p.capacidad === null ? "" : `${n(p.capacidad)} · `}100 %`}</Dato>
               <Dato etiqueta="Diferencia">—</Dato>
             </div>
@@ -314,33 +321,6 @@ export function PropuestaDelMix({
           </p>
         )}
       </section>
-
-      {hayFuera && (
-        <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 3 } as React.CSSProperties} aria-label="Grupos fuera del riel">
-          <div className="border-b border-sand px-5 py-4">
-            <h2 className="font-display text-xl text-tinta">Fuera del riel</h2>
-            <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">
-              Bisutería, cinturones, bolsos y calzado van junto a la caja, en repisa o en ganchos aparte: no ocupan percha del riel. Se miden como porcentaje de la venta, no del piso.
-            </p>
-          </div>
-          <div className="scroll-cayla overflow-x-auto">
-            <div className="divide-y divide-sand sm:min-w-[40rem]">
-              <Encabezado columnas={COLUMNAS_FUERA} plantilla={PLANTILLA_FUERA} />
-              {p.fueraDelRiel.map((f) => (
-                <FilaFuera key={f.grupo.clave} f={f} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <p className="nota-cayla">
-        <strong>Cómo se calcula.</strong> La propuesta es la industria y la venta propia mezcladas: la venta pesa {pesoPct} % (tope {Math.round(PESO_MAXIMO_DE_LA_VENTA * 100)} %).
-        Ese peso crece con las ventas confirmadas —{n(p.ventasConfirmadasDelRiel)} en {p.dias} días, que cuentan como {n(p.muestraEfectiva)} ventas independientes porque un cliente
-        suele llevarse varias prendas— y la industria pesa como {PESO_DE_LA_INDUSTRIA}. Las ventas «sin registrar» llevan la categoría puesta a mano y no cuentan hasta
-        regularizarlas. La venta nunca gobierna sola: un grupo vende más porque cuelga más, así que repetir lo que ya hay no es una razón para dejarlo igual.
-        El rango de «Venta propia» dice cuánto puede moverse esa cifra solo por azar con tan pocas ventas: un grupo que no vendió nada puede estar en realidad en varios puntos más de lo que dice el cero.
-      </p>
     </div>
   );
 }

@@ -1,0 +1,198 @@
+/* =====================================================================
+   PLAN DEL PISO ▸ PROPUESTA — el riel de perchas (maqueta A «La percha», elegida por Felipe el 2026-10-11; ADR-0352, actualización 2026-10-11).
+   docs/maquetas/plan-del-piso-2026-10/ es la referencia visual. Solo tokens (ADR-0169, ADR-0336); el rojo no pinta ningún grupo.
+
+   Un pictograma: cada percha dibujada vale una cantidad fija de prendas (lib/plan-piso-percha.ts decide cuántas), agrupadas en tramos por grupo.
+   El ancho de una percha sale del ancho de la tarjeta (`cqi`) y de cuántas perchas tiene el riel entero (`--total`), así un riel de 12 perchas y uno
+   de 36 llenan lo mismo. Movimiento (ADR-0136): las perchas cuelgan UNA vez al aparecer (opacidad y 7 px), sin bucle ni rebote; el resto es la
+   respuesta a pasar por un grupo (opacidad). Todo se apaga con `prefers-reduced-motion`.
+   ===================================================================== */
+
+/* ---- el color de cada grupo, en UN solo lugar (siluetas, barras de Historia, Mancuerna): se asigna por la posición del grupo en el riel ---- */
+:root {
+  --grupo-0: var(--color-taupe);
+  --grupo-1: var(--color-pizarra);
+  --grupo-2: var(--color-verde);
+  --grupo-3: color-mix(in srgb, var(--color-ambar) 72%, var(--color-sand));
+  --grupo-4: color-mix(in srgb, var(--color-taupe) 80%, var(--color-papel));
+  --grupo-5: color-mix(in srgb, var(--color-tinta) 82%, var(--color-papel));
+  --grupo-fuera: color-mix(in srgb, var(--color-tinta) 52%, var(--color-papel));
+}
+:root[data-tema="oscuro"] {
+  --grupo-4: color-mix(in srgb, var(--color-taupe) 58%, var(--color-papel));
+}
+
+@layer components {
+  .pp-raiz { container-type: inline-size; container-name: pp; display: grid; gap: 18px; min-width: 0; }
+  .pp-raiz *, .pp-raiz *::before, .pp-raiz *::after { box-sizing: border-box; }
+  .pp-raiz button { text-align: left; color: inherit; cursor: pointer; }
+  .pp-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* ---------- la tarjeta del riel ---------- */
+  .pp-card {
+    --pp-pad: 24px; --pp-banda: 14px; --pp-gap: 9px; --pp-solape: 0.4;
+    --pp-poste: color-mix(in srgb, var(--color-tinta) 58%, transparent);
+    background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl);
+    padding: var(--pp-pad); display: grid; gap: 26px; min-width: 0;
+  }
+  @container pp (max-width: 760px) { .pp-card { --pp-pad: 20px; --pp-banda: 12px; } }
+  @container pp (max-width: 560px) { .pp-card { --pp-pad: 16px; --pp-banda: 10px; gap: 22px; } }
+
+  .pp-etq { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); }
+
+  /* ---------- el estado: «78 de 1,800 prendas» ---------- */
+  .pp-estado { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 32px; }
+  .pp-est-cifra { display: grid; gap: 6px; }
+  .pp-est-n { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .pp-est-n b { font-family: var(--font-serif); font-weight: 400; font-size: 68px; line-height: 0.9; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+  .pp-est-n span { font-family: var(--font-serif); font-size: 28px; line-height: 1; color: var(--color-tinta-60); font-variant-numeric: lining-nums tabular-nums; }
+  .pp-est-texto { flex: 1 1 300px; display: grid; gap: 10px; padding-top: 2px; }
+  .pp-est-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+  .pp-est-texto p { font-size: 15px; line-height: 1.45; color: var(--color-tinta); max-width: 520px; }
+  .pp-est-texto p b { font-weight: 600; }
+  .pp-est-texto p em { font-style: normal; color: var(--color-tinta-60); }
+  @container pp (max-width: 560px) {
+    .pp-est-n b { font-size: 54px; }
+    .pp-est-n span { font-size: 24px; }
+    .pp-estado { gap: 12px; }
+  }
+
+  /* ---------- un riel («Hoy» o «Cómo quedaría») ---------- */
+  .pp-riel { display: grid; gap: 10px; min-width: 0; }
+  .pp-rcab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+  .pp-rtit { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+  .pp-rsub { font-size: 13px; color: var(--color-tinta-60); }
+  .pp-banda { background: color-mix(in srgb, var(--color-hueso) 52%, var(--color-papel)); border-radius: var(--radius-lg); padding: 14px var(--pp-banda) 16px; min-width: 0; }
+
+  .pp-rail {
+    display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px var(--pp-gap);
+    --paso: clamp(15px, calc((100cqi - 2 * var(--pp-pad) - 2 * var(--pp-banda) - (var(--ng) - 1) * var(--pp-gap) - 8px) / var(--total)), 34px);
+    --gw: calc(var(--paso) * (1 + var(--pp-solape))); --gh: calc(var(--gw) * 1.5);
+  }
+  .pp-blq { position: relative; flex: none; width: max(3px, calc(var(--paso) * var(--n))); padding-top: 2px; display: flex; align-items: flex-start; }
+  .pp-blq::before { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 3px; border-radius: 2px; background: var(--pp-poste); transition: opacity 220ms var(--ease-cayla); }
+  .pp-p {
+    flex: none; display: block; width: calc(var(--gw) * var(--f, 1)); height: var(--gh);
+    margin-right: calc(var(--gw) * var(--f, 1) * var(--pp-solape) / (1 + var(--pp-solape)) * -1);
+    transform-origin: 50% 0; animation: pp-cuelga 420ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--i, 0), 30) * 14ms);
+    transition: opacity 220ms var(--ease-cayla);
+  }
+  .pp-p svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  @keyframes pp-cuelga { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: none; } }
+
+  /* el espacio libre: riel vacío y tranquilo (rayado = «según el sistema, sin contar») */
+  .pp-libre { flex: 1 1 170px; position: relative; min-height: var(--gh); padding-top: 10px; display: grid; place-content: center; justify-items: center; text-align: center; gap: 1px; min-width: 0; }
+  .pp-libre::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: 3px dashed color-mix(in srgb, var(--color-tinta) 30%, transparent); }
+  .pp-libre b { font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
+  .pp-libre span { font-size: 14px; font-weight: 500; }
+  .pp-libre small { font-size: 12.5px; color: var(--color-tinta-60); max-width: 260px; line-height: 1.35; margin-top: 3px; }
+
+  /* el rótulo sobre cada tramo (solo cuando el riel es ancho) */
+  .pp-et { display: none; position: absolute; left: 0; bottom: calc(100% + 7px); font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: clip; }
+  @container pp (min-width: 900px) {
+    .pp-riel[data-riel="prop"] .pp-blq { margin-top: 22px; }
+    .pp-riel[data-riel="prop"] .pp-et { display: block; }
+  }
+
+  /* el resaltado al pasar por un grupo: los demás bajan (solo opacidad) */
+  .pp-zona[data-sel] .pp-blq:not(.pp-on)::before, .pp-zona[data-sel] .pp-blq:not(.pp-on) .pp-p { opacity: 0.22; }
+  .pp-zona { display: grid; gap: 26px; min-width: 0; }
+  @container pp (max-width: 560px) { .pp-zona { gap: 22px; } }
+
+  /* la silueta: la prenda sin foto es el ícono de su categoría sobre el color de su grupo (nunca el logo) */
+  .pp-sil { fill: var(--pp-c); stroke: color-mix(in srgb, var(--color-tinta) 32%, transparent); stroke-width: 0.7; stroke-linejoin: round; }
+  .pp-d { fill: none; stroke: var(--color-papel); stroke-width: 1; opacity: 0.6; stroke-linecap: round; stroke-linejoin: round; }
+  .pp-hg { fill: none; stroke: var(--color-tinta-60); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+  .pp-hd { fill: none; stroke: var(--pp-c); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .pp-ic { display: block; flex: none; overflow: visible; transition: opacity 220ms var(--ease-cayla); }
+
+  /* la leyenda de «Hoy»: una línea de fichas pequeñas */
+  .pp-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; list-style: none; }
+  .pp-chip {
+    display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 3px 12px 3px 8px; border-radius: 999px;
+    border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 12.5px; line-height: 1.2;
+  }
+  .pp-chip .pp-ic { width: 15px; height: 19px; }
+  .pp-chip b { font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
+  .pp-chip:hover, .pp-chip.pp-on { background: color-mix(in srgb, var(--pp-c) 12%, var(--color-papel)); border-color: var(--pp-c); }
+
+  /* la leyenda de «Cómo quedaría» */
+  .pp-leyenda { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; }
+  @container pp (max-width: 820px) { .pp-leyenda { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @container pp (max-width: 480px) {
+    .pp-leyenda { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .pp-lg { min-height: 52px; padding: 7px 14px 7px 12px; }
+    .pp-lg .pp-ic { width: 26px; height: 33px; }
+    .pp-lg-n { font-size: 23px; }
+  }
+  .pp-leyenda li { display: flex; }
+  .pp-lg {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 9px 14px 9px 12px; border-radius: var(--radius-lg);
+    border: 1px solid var(--color-sand); background: var(--color-papel);
+  }
+  .pp-lg .pp-ic { width: 30px; height: 38px; }
+  .pp-lg-t { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .pp-lg-t b { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+  .pp-lg-t small { font-size: 12.5px; color: var(--color-tinta-60); line-height: 1.3; font-variant-numeric: lining-nums tabular-nums; }
+  .pp-lg-n { font-family: var(--font-serif); font-size: 26px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
+  .pp-lg:hover, .pp-lg.pp-on { background: color-mix(in srgb, var(--pp-c) 10%, var(--color-papel)); border-color: var(--pp-c); }
+  .pp-zona[data-sel] .pp-lg:not(.pp-on) .pp-ic, .pp-zona[data-sel] .pp-chip:not(.pp-on) .pp-ic { opacity: 0.35; }
+
+  /* el pie del riel: la escala y la frase que cambia al pasar por un grupo */
+  .pp-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; font-size: 12.5px; line-height: 1.4; color: var(--color-tinta-60); }
+  .pp-escala { display: inline-flex; align-items: center; gap: 8px; }
+  .pp-escala .pp-ic { width: 16px; height: 24px; }
+  .pp-escala .pp-hg { stroke-width: 1.5; }
+  .pp-escala b { color: var(--color-tinta); font-weight: 600; }
+  .pp-cap { min-height: 18px; }
+  .pp-cap b { color: var(--color-tinta); font-weight: 600; }
+
+  /* el botón «¿Por qué?» y su panel «cómo se calcula» */
+  .pp-porque {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 12px 4px 6px; border-radius: 999px;
+    border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 12.5px; font-weight: 500; line-height: 1.2;
+    transition: background-color 200ms var(--ease-cayla);
+  }
+  .pp-porque:hover { background: var(--color-sand); }
+  .pp-porque[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
+  .pp-q { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--color-sand); font-family: var(--font-serif); font-size: 14px; font-weight: 600; line-height: 1; }
+  .pp-panel { background: var(--color-hueso); border-radius: var(--radius-lg); padding: 16px 18px; display: grid; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--color-tinta-60); animation: pp-entra 260ms var(--ease-cayla) both; }
+  .pp-panel[hidden] { display: none; }
+  .pp-panel p { max-width: 620px; }
+  .pp-panel b { color: var(--color-tinta); font-weight: 600; }
+  .pp-pt { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); margin-top: 4px; }
+  .pp-panel ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; }
+  @container pp (max-width: 700px) { .pp-panel ul { grid-template-columns: minmax(0, 1fr); } }
+  .pp-panel li { font-size: 13px; line-height: 1.4; }
+  .pp-panel li b { display: block; }
+  @keyframes pp-entra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  /* El aviso de las categorías por revisar, dentro de la tarjeta: cuando la tarjeta es angosta (celular, o el menú abierto en una laptop chica) el botón le quitaba el
+     ancho al texto (el título en 5 renglones, el detalle en 12). Baja debajo del texto, alineado con él. Solo aquí: la pieza `Aviso` no cambia. */
+  @container pp (max-width: 560px) {
+    .pp-card .aviso-linea { grid-template-columns: auto minmax(0, 1fr); }
+    .pp-card .aviso-linea-acc { grid-column: 2; grid-row: auto; justify-self: start; align-self: start; margin: 6px 0 0 -10px; }
+  }
+
+  /* lo que no cuelga del riel */
+  .pp-fuera { display: grid; gap: 10px; }
+  .pp-fuera-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+  .pp-fuera-cab span:last-child { font-size: 13px; color: var(--color-tinta-60); }
+  .pp-fichas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; list-style: none; }
+  @container pp (max-width: 640px) { .pp-fichas { grid-template-columns: minmax(0, 1fr); } }
+  .pp-ficha {
+    display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border: 1px solid var(--color-sand); border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--color-hueso) 40%, var(--color-papel)); --pp-c: var(--grupo-fuera);
+  }
+  .pp-ficha .pp-ic { width: 28px; height: 36px; }
+  .pp-ficha b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+  .pp-ficha span { display: block; font-size: 12.5px; color: var(--color-tinta-60); line-height: 1.35; font-variant-numeric: lining-nums tabular-nums; }
+
+  /* el icono de un grupo suelto (en la tabla y la mancuerna) */
+  .pp-ic-fila { width: 20px; height: 26px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pp-p, .pp-panel { animation: none !important; }
+    .pp-p, .pp-blq::before, .pp-ic, .pp-porque { transition: none !important; }
+  }
+}
