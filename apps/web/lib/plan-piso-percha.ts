@@ -11,6 +11,7 @@
 import type { FilaDelRiel, PropuestaMix, ReferenciaFueraDelRiel } from "./mix-piso";
 import { SEMANAS_DE_VENTA_FUERA_DEL_RIEL } from "./mix-piso-partida";
 import { cifraEs, prendasEs } from "./mix-piso-visual";
+import { coloresDeLasPerchas, textoDeColores, type ColorDelGrupo, type ColorDePercha } from "./plan-piso-colores";
 
 const n = cifraEs;
 /** Espacio duro: «4 %» no se parte en dos renglones. */
@@ -67,9 +68,25 @@ export function escalaEnPerchas(capacidad: number, sumas: readonly number[], uni
   return mayor / unidad;
 }
 
-export type GrupoParaElRiel = { clave: string; nombre: string; hoy: number; propuesta: number };
+export type GrupoParaElRiel = {
+  clave: string;
+  nombre: string;
+  hoy: number;
+  propuesta: number;
+  /** De qué colores es lo que cuelga hoy (`FilaDelRiel.colores`): con ellos cada percha toma su color (ADR-0352, act. 2026-10-11 (c)). Sin ellos, el color del grupo. */
+  colores?: readonly ColorDelGrupo[];
+};
 /** Un tramo del riel: las perchas de UN grupo, una junto a otra. */
-export type BloqueDelRiel = Perchas & { clave: string; /** La posición del grupo en la lista del riel: de ahí sale su color. */ indice: number; prendas: number };
+export type BloqueDelRiel = Perchas & {
+  clave: string;
+  /** La posición del grupo en la lista del riel: de ahí sale su color. */
+  indice: number;
+  prendas: number;
+  /** El color de cada percha, de izquierda a derecha (las enteras y, al final, la angosta). `null` = se dibuja del color del grupo. */
+  colores: (ColorDePercha | null)[];
+  /** Lo que dice el tramo al pasar por él: «Negro 60 · Blanco 48 …». Vacío en la propuesta, que no sabe de colores (`NOTA_DE_COLORES`). */
+  detalleDeColores: string;
+};
 export type Rieles = {
   unidad: number;
   /** Cuántas perchas mide el riel entero (la escala de los dos). */
@@ -87,13 +104,16 @@ export type Rieles = {
 export function armarRieles(grupos: readonly GrupoParaElRiel[], capacidad: number): Rieles {
   const unidad = unidadDePercha(capacidad);
   const suma = (valor: (g: GrupoParaElRiel) => number) => grupos.reduce((s, g) => s + (Number.isFinite(valor(g)) && valor(g) > 0 ? valor(g) : 0), 0);
-  const bloques = (valor: (g: GrupoParaElRiel) => number): BloqueDelRiel[] =>
+  const bloques = (valor: (g: GrupoParaElRiel) => number, conDetalle: boolean): BloqueDelRiel[] =>
     grupos.flatMap((g, indice) => {
       const prendas = Number.isFinite(valor(g)) && valor(g) > 0 ? valor(g) : 0;
-      return prendas > 0 ? [{ clave: g.clave, indice, prendas, ...perchasDe(prendas, unidad) }] : [];
+      if (prendas === 0) return [];
+      const perchas = perchasDe(prendas, unidad);
+      // Los dos rieles pintan cada grupo con la mezcla de colores de HOY: la propuesta reparte lugares, no elige colores.
+      return [{ clave: g.clave, indice, prendas, ...perchas, colores: coloresDeLasPerchas(g.colores ?? [], perchas.llenas, perchas.resto), detalleDeColores: conDetalle ? textoDeColores(g.colores ?? []) : "" }];
     });
-  const hoy = bloques((g) => g.hoy);
-  const propuesta = bloques((g) => g.propuesta);
+  const hoy = bloques((g) => g.hoy, true);
+  const propuesta = bloques((g) => g.propuesta, false);
   return {
     unidad,
     escala: escalaEnPerchas(capacidad, [suma((g) => g.hoy), suma((g) => g.propuesta)], unidad),
@@ -212,10 +232,13 @@ export function leyendaDeGrupo(g: { nombre: string; hoy: number; propuesta: numb
   return { nombre: g.nombre, resto: cuadrado ? ` · hoy ${n(g.hoy)} → ${queda}` : ` · según el sistema hoy ${n(g.hoy)}, ${queda}` };
 }
 
-/** El nombre que oye quien usa lector de pantalla en cada ficha de «Hoy»: empieza por lo que se lee en el botón («Polos 30») y trae lo que la ficha de abajo dice. */
-export function etiquetaDeChipHoy(g: { nombre: string; corto: string; hoy: number; propuesta: number; propuestaPct: number | null }, cuadrado: boolean): string {
+/**
+ * El nombre que oye quien usa lector de pantalla en cada ficha de «Hoy»: empieza por lo que se lee en el botón («Polos, tops y blusas 30», el nombre completo del
+ * grupo, no el corto: Felipe 2026-10-11) y trae lo que la ficha de abajo dice.
+ */
+export function etiquetaDeChipHoy(g: { nombre: string; hoy: number; propuesta: number; propuestaPct: number | null }, cuadrado: boolean): string {
   const propuesta = g.propuestaPct === null ? "sin propuesta" : `propuesta ${n(g.propuesta)}`;
-  return `${g.corto} ${n(g.hoy)}: ${g.nombre}, ${prendasEs(g.hoy)} hoy${cuadrado ? "" : " según el sistema"}; ${propuesta}`;
+  return `${g.nombre} ${n(g.hoy)}: ${prendasEs(g.hoy)} hoy${cuadrado ? "" : " según el sistema"}; ${propuesta}`;
 }
 
 /** El nombre de la lista de fichas de «Hoy». */
