@@ -16,6 +16,7 @@ import {
   panelDelPorQue,
   subtituloDeHoy,
   subtituloDeLaPropuesta,
+  textoDeReferencia,
   textoDelPorQue,
 } from "@/lib/plan-piso-percha";
 import { ROL_AYUDA, ROL_ETIQUETA } from "@/lib/plan-piso-grupos";
@@ -279,7 +280,10 @@ export function PropuestaDelMix({
           <section className="pp-fuera" aria-label="Fuera del riel">
             <div className="pp-fuera-cab">
               <h2 className="pp-etq">Fuera del riel</h2>
-              <span>{dibujaTarjeta ? "No entran en el reparto." : "Lo que cuelga hoy fuera del riel."}{p.cuadrado ? "" : " Cifras según el sistema."}</span>
+              <span>
+                {dibujaTarjeta ? "No entran en el reparto." : "Lo que cuelga hoy fuera del riel."}
+                {p.cuadrado ? "" : " Lo que cuelga, según el sistema."} «Para empezar» es lo que tu venta sostiene, no una compra: primero cuenta lo que hay.
+              </span>
             </div>
             <ul className="pp-fichas">
               {p.fueraDelRiel.map((f) => (
@@ -288,6 +292,7 @@ export function PropuestaDelMix({
                   <div>
                     <b>{f.grupo.nombre}</b>
                     <span>{lineaDeFicha(f)}</span>
+                    {textoDeReferencia(f.referencia) && <span className="pp-ficha-ref">{textoDeReferencia(f.referencia)}</span>}
                   </div>
                 </li>
               ))}

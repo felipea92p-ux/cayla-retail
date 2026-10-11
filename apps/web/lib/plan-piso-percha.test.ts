@@ -29,6 +29,7 @@ import {
   rotuloCabe,
   subtituloDeHoy,
   subtituloDeLaPropuesta,
+  textoDeReferencia,
   textoDelPorQue,
   unidadDePercha,
   UNIDADES_DE_PERCHA,
@@ -284,9 +285,12 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
     expect(p.enRiel.reduce((s, f) => s + (f.propuestaPrendas ?? 0), 0)).toBe(1800);
   });
 
-  it("tres párrafos: de qué se mezcla, por qué las ventas pesan poco y qué todavía no se sabe", () => {
+  it("cuatro párrafos: de qué se mezcla, por qué las ventas pesan poco, qué todavía no se sabe y de dónde sale «Para empezar» de fuera del riel", () => {
     const { parrafos } = panelDelPorQue(p, true);
-    expect(parrafos).toHaveLength(3);
+    expect(parrafos).toHaveLength(4);
+    expect(parrafos[3]).toContain("«Para empezar» es lo que la venta de la sede sostiene: de 3 a 5 semanas de venta en accesorios y de 3 a 4 en bolsos y calzado");
+    expect(parrafos[3]).toContain("Es un punto de partida, no una compra");
+    expect(parrafos[3]).toContain("en soles los accesorios pesan menos");
     expect(parrafos[0]).toBe("Cada grupo se lleva una parte de los 1,800 lugares del riel. Esa parte mezcla dos cosas: el punto de partida —lo que ofrecen Topitop, Estilos y Oechsle en ropa de mujer, ajustado al clima de tu sede— (94\u00a0%) y lo que vendiste tú (6\u00a0%).");
     expect(parrafos[1]).toContain("Tus ventas pesan poco porque solo hay 5 ventas confirmadas en 14 días.");
     expect(parrafos[1]).toContain("Las 210 ventas sin registrar todavía no cuentan.");
@@ -297,7 +301,7 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
 
   it("no usa la jerga de antes: ni «industria», ni «peso de la venta», ni «muestra», ni «independientes»", () => {
     const todo = panelDelPorQue(p, true).parrafos.join(" ").toLowerCase();
-    for (const jerga of ["industria", "peso de la venta", "muestra", "independientes", "wilson", "tope"]) expect(todo).not.toContain(jerga);
+    for (const jerga of ["industria", "peso de lo vendido", "muestra", "independientes", "wilson", "tope"]) expect(todo).not.toContain(jerga);
   });
 
   it("una fila por grupo del riel, con su detalle en palabras", () => {
@@ -313,7 +317,7 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
   it("una sede cuadrada y con capacidad contada no dice que las cifras son provisionales ni «por cuadrar»", () => {
     const cuadrada = aqp({ cuadradoEn: "2026-10-01T15:00:00+00:00" });
     const { parrafos } = panelDelPorQue(cuadrada, false);
-    expect(parrafos).toHaveLength(2);
+    expect(parrafos).toHaveLength(3); // mezcla, ventas y «Para empezar»: sin el de «provisional» ni «por cuadrar»
     expect(parrafos.join(" ")).not.toContain("provisional");
     expect(parrafos.join(" ")).not.toContain("lo que el sistema cree");
   });
@@ -491,14 +495,39 @@ describe("lo que lee un lector de pantalla de cada riel (el dibujo es una imagen
 
 describe("la línea de cada ficha de «Fuera del riel»", () => {
   it("cuánto cuelga, cuánto se vende y la meta", () => {
-    expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% · meta 16–18\u00a0% de la venta");
+    expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% · meta 16–18\u00a0% de lo vendido");
   });
   it("el porcentaje de venta lleva las ventas en que se apoya, como la tabla: un 0 sin su muestra diría «no se vende» sin saberlo", () => {
-    expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, ventasConfirmadas: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% (0 ventas) · meta 16–18\u00a0% de la venta");
+    expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, ventasConfirmadas: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% (0 ventas) · meta 16–18\u00a0% de lo vendido");
     expect(lineaDeFicha({ colgadas: 4, ventaPct: 16.7, ventasConfirmadas: 1, meta: null, noLoLleva: false })).toBe("4 prendas · vende 16.7\u00a0% (1 venta)");
   });
+  it("con las ventas sin registrar el porcentaje dice de dónde sale: «73 ventas: 6 confirmadas y 67 sin registrar» (un accesorio casi nunca está en el catálogo)", () => {
+    expect(lineaDeFicha({ colgadas: 8, ventaPct: 1.1, ventaPctTotal: 12.9, ventasConfirmadas: 6, ventasAnotadas: 67, meta: { desde: 9, hasta: 11 }, noLoLleva: false })).toBe(
+      "8 prendas · vende 12.9\u00a0% (73 ventas: 6 confirmadas y 67 sin registrar) · meta 9–11\u00a0% de lo vendido",
+    );
+    expect(lineaDeFicha({ colgadas: 4, ventaPct: 0.5, ventaPctTotal: 2.1, ventasConfirmadas: 1, ventasAnotadas: 7, meta: { desde: 3, hasta: 5 }, noLoLleva: false })).toContain("(8 ventas: 1 confirmada y 7 sin registrar)");
+    // sin ventas sin registrar no dice «0 sin registrar»
+    expect(lineaDeFicha({ colgadas: 24, ventaPct: 1.7, ventaPctTotal: 1.7, ventasConfirmadas: 4, ventasAnotadas: 0, meta: null, noLoLleva: false })).toBe("24 prendas · vende 1.7\u00a0% (4 ventas)");
+    // si la sede todavía no vendió nada no inventa un porcentaje
+    expect(lineaDeFicha({ colgadas: 3, ventaPct: null, ventaPctTotal: null, ventasConfirmadas: 0, ventasAnotadas: 0, meta: { desde: 4, hasta: 6 }, noLoLleva: false })).toBe("3 prendas · meta 4–6\u00a0% de lo vendido");
+  });
+  it("«Para empezar»: lo que la venta de la sede sostiene, entre mostrador y trastienda; sin ventas lo dice; si la sede no lo lleva, no hay línea", () => {
+    expect(textoDeReferencia({ tipo: "rango", desde: 115, hasta: 190, porSemana: 37.7, peso: 0.49, semanas: { desde: 3, hasta: 5 }, pocas: false })).toBe("Para empezar: unas 115 a 190 prendas, entre mostrador y trastienda.");
+    expect(textoDeReferencia({ tipo: "rango", desde: 20, hasta: 20, porSemana: 5, peso: 0.2, semanas: { desde: 3, hasta: 5 }, pocas: false })).toBe("Para empezar: unas 20 prendas, entre mostrador y trastienda.");
+    expect(textoDeReferencia({ tipo: "sin", motivo: "todavía sin ventas en esta sede" })).toBe("Para empezar: todavía sin ventas en esta sede.");
+    expect(textoDeReferencia(null)).toBeNull();
+  });
+  it("con tan pocas prendas que un mostrador se vería vacío dice que manda el surtido, no la venta", () => {
+    expect(textoDeReferencia({ tipo: "rango", desde: 2, hasta: 3, porSemana: 0.8, peso: 0.1, semanas: { desde: 3, hasta: 5 }, pocas: true })).toBe(
+      "Para empezar: unas 2 a 3 prendas según la venta; con tan pocas, manda que el mostrador se vea surtido.",
+    );
+  });
+  it("no compara con lo que cuelga: ni «faltan» ni una flecha (el stock del sistema no descuenta lo vendido sin registrar)", () => {
+    const t = textoDeReferencia({ tipo: "rango", desde: 115, hasta: 190, porSemana: 37.7, peso: 0.49, semanas: { desde: 3, hasta: 5 }, pocas: false })!;
+    expect(t).not.toMatch(/falta|→|compra de|sobra/i);
+  });
   it("sin ventas confirmadas no inventa un porcentaje, y una sola prenda va en singular", () => {
-    expect(lineaDeFicha({ colgadas: 1, ventaPct: null, meta: { desde: 6, hasta: 8 }, noLoLleva: false })).toBe("1 prenda · meta 6–8\u00a0% de la venta");
+    expect(lineaDeFicha({ colgadas: 1, ventaPct: null, meta: { desde: 6, hasta: 8 }, noLoLleva: false })).toBe("1 prenda · meta 6–8\u00a0% de lo vendido");
   });
   it("una sede que no lo lleva lo dice (LIM no tiene bolsos ni calzado)", () => {
     expect(lineaDeFicha({ colgadas: 0, ventaPct: null, meta: null, noLoLleva: true })).toBe("0 prendas · esta sede no lo lleva");
