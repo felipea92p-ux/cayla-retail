@@ -233,3 +233,65 @@ maqueta; (d) tocar un tramo del riel para fijarlo (la maqueta lo hacía; aquí s
 sede y con un grupo que ocupa el 83 % del riel, a 1440, 1024 y 375 px, en claro y oscuro, y las interacciones (señalar, fijar, Tab, toque) en Chrome. **No se vio la ruta real contra su base** (la base local no tiene las tablas del Plan del
 piso, y el día de la revisión Docker no estaba disponible), **no se corrió `tema:auditar`** ni `/chaos` sobre Grupos (es lo único que guarda y no se tocó), y **no lo probó una colaboradora real**.
 **Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-11 (b) — «Dónde está cada grupo» se lee con el cursor y «Fuera del riel» dice cuánto llevar (Felipe)
+
+Felipe, tras ver la pantalla en producción: «se ve bien, buena labor»; y pidió dos cosas: que «Dónde está cada grupo» se vea mejor al pasar el mouse, y «cuánto deberíamos incluir» de las categorías que van cerca de caja, «investigando y asignando un estimado para empezar».
+Solo presentación y una referencia nueva: no se guarda nada, no hay SQL. Detalle de la investigación: `docs/investigacion/2026-10-11-cuanto-llevar-fuera-del-riel.md`.
+
+**1. La mancuerna se lee con el cursor, con una tarjeta que FLOTA.**
+DECIDÍ: al pasar el cursor por una fila (o enfocarla con Tab, o tocarla) la fila se enciende y las demás bajan; cada marca lleva su cifra en una etiqueta arriba o abajo de la pista (las que caen a menos de 9 puntos comparten una, como Hoy 47.6 y
+punto de partida 48 de Polos) y junto a la fila flota una tarjeta con las cuatro cifras en palabras y la frase que ya decía la tabla. Tocar una fila la deja fija; tocar una marca de la leyenda la resalta en todas las filas. Cada fila es un
+botón con un nombre que dice las cuatro cifras. La lógica (etiquetas sin encimarse, cifras, frases) es pura: `lib/mancuerna-lectura.ts`, con una prueba de propiedades sobre 14,641 combinaciones.
+DESCARTÉ: un panel de lectura fijo arriba de las filas. Reservar su alto dejaba un hueco (108 px en reposo) o, sin reservarlo, bajaba las filas bajo el cursor al aparecer: el cursor quedaba sobre otra fila, la lectura cambiaba y volvía a
+mover (se midió: un parpadeo en bucle; Playwright no logró ni apuntar a la segunda fila). La tarjeta es `position: absolute` y `pointer-events: none`: el alto de la mancuerna no cambia (550 px antes, durante y después de barrer las seis filas) y el cursor
+sigue llegando a las filas que tapa. Las dos últimas filas abren hacia arriba.
+SE ROMPE SI: se agrega una séptima fila y la tarjeta de la última no cabe (hoy abre hacia arriba desde la antepenúltima), o la tarjeta pasa de unos 160 px (taparía más de tres filas).
+
+**2. «Para empezar»: cuántas prendas sostiene lo que la sede vende (fichas de «Fuera del riel»).**
+DECIDÍ: cada ficha trae una línea «Para empezar: unas 115 a 190 prendas, entre mostrador y trastienda», calculada al abrir la pantalla con `referenciaFueraDelRiel` (`lib/mix-piso.ts`, pura): ritmo = peso × lo vendido + (1 − peso) × la meta, con el mismo
+`pesoDeLaVenta` del riel (techo 0.75), por semana; rango = ritmo × 3 a 5 semanas (accesorios) o 3 a 4 (bolsos y calzado), redondeado de a 5 desde 30. Las semanas son criterio con su fuente en `lib/mix-piso-partida.ts`
+(`SEMANAS_DE_VENTA_FUERA_DEL_RIEL`). Con las cifras del 2026-10-11 (12 días con venta): TRU accesorios 115–190 y bolsos 35–50; AQP accesorios 90–150 y bolsos 35–45; LIM sin ventas, y bolsos «no lo lleva».
+**Dos desvíos del riel, escritos aquí a propósito** (la regla 2 de `mix-piso.ts` dice que solo cuentan las confirmadas): (a) para estos dos grupos SÍ cuentan las ventas sin registrar, porque un accesorio casi nunca está en el catálogo (TRU: 1 modelo con
+stock contra 73 prendas vendidas) y sin ellas el grupo parecería no venderse; (b) la meta se lee en PRENDAS, no en soles (viene de % de ingresos de empresas de EE. UU.; en soles TRU accesorios es 6.3 % y AQP 9.5 %, por debajo de la meta, y quien lea
+esa brecha no debe comprar piezas para «llegar a la meta»). La ficha ahora dice de dónde sale el %: «vende 12.9 % (73 ventas: 6 confirmadas y 67 sin registrar)». El panel «¿Por qué?» explica el cálculo y que no es una compra.
+DESCARTÉ: (i) restar «Para empezar» de lo que cuelga («faltan 160»): el stock del sistema no descuenta lo vendido sin registrar (8 contra 73), y ADR-0352 decisión 2 ya evitó afirmar una diferencia que la tabla se niega a dar; (ii) un 0.75 fijo y «tomo 50
+como centro»: la pantalla tiene que poder reproducirse con una prueba, y el peso sale de la muestra (0.49 en TRU accesorios, 0.13 en bolsos); (iii) un número para LIM sin ventas ni mostrador confirmado: dice «todavía sin ventas aquí»; (iv) las reglas de reposición por
+modelo, el reparto por tipo, el calzado de prueba y el capital en la ficha: son decisiones de compra de Felipe y viven en la investigación.
+SE ROMPE SI: se agrega un grupo fuera del riel sin su entrada en `SEMANAS_DE_VENTA_FUERA_DEL_RIEL` (no tendrá línea, no se rompe); la lectura deja de traer las ventas sin registrar por categoría; o alguien lee «Para empezar» como la compra que hay que hacer (de ahí «no una compra»,
+«primero cuenta lo que hay» y el aviso en el encabezado). La ventana de la lectura es fija de 14 días: hasta el 13-oct (la primera venta fue el 30-sep) el ritmo sale ~14 % bajo (TRU accesorios ~95 a 160): se corrige solo.
+
+**Lo que se le dice a Felipe que confirme:** si los S/ 65 del bolso llevan IGV (si sí, margen ~15 % y 3 semanas, no 4); si el stand de LIM tiene mostrador; el costo real de aretes, pulseras, relojes y lentes (el dinero de la investigación sale de solo 3 modelos con costo cargado); y qué hacer con las
+categorías «Accesorios de moda» y «Bufanda», que no están en ningún grupo.
+
+## Actualización 2026-10-11 (c) — las variantes: cada percha lleva el color de lo que de verdad cuelga (Felipe)
+
+**Qué pidió Felipe, mirando la pantalla:** «en los íconos de Polos, tops y blusas un solo color está genial, pero ¿mostrar las variantes?», y que la ficha diga «Polos, tops y blusas 150» y no «Polos 150». Contestó tres preguntas:
+las variantes son **los colores reales** (no los tipos de prenda), se ven en **«Hoy», en «Cómo quedaría» y en los íconos de las fichas y las tarjetas**, y cada percha lleva **un solo color** (no franjas).
+
+**Decisiones.**
+1. **Una percha, un color, en proporción a lo que cuelga** (`lib/plan-piso-colores.ts`, con su prueba). Es un reparto de resto mayor —el mismo de `repartirEnPrendas`—: la suma da exactamente las perchas del tramo y ningún color se aparta de
+   su parte en más de una percha. Los colores van en bloques seguidos, del más abundante al menos, y «Otros colores» al final. Un color con al menos media percha (`MINIMO_DE_COLOR`) tiene **siempre** una percha propia aunque el redondeo
+   se la quitara; lo que no llega, y lo que no es un color (Estampado, Multicolor: sin `colores.hex`), se junta en «Otros colores» (`--pp-otros`, un gris neutro de la interfaz). Un primer intento —cada percha toma el color que cubre su
+   centro— dejaba sin lugar a un color con 0,6 de percha mientras sí mostraba el gris; por eso se cambió.
+2. **El dato ya existía:** `LecturaDelPiso.tallas` trae `colorHex`, `color` y lo libre en el piso. `armarPropuesta` suma los colores de cada grupo con la MISMA cuenta que `colgadas` (los colores de un grupo siempre suman lo que el grupo
+   cuelga; una prueba lo exige) y los deja en `FilaDelRiel.colores`. Solo se dibujan: ninguna cuenta de la propuesta cambia (otra prueba lo exige). **Sin migración, sin RPC nuevo.**
+3. **«Cómo quedaría» no elige colores.** La propuesta reparte lugares, no colores; su riel repite la mezcla de HOY de cada grupo para que se parezca a lo que ya se conoce, y la pantalla lo dice al pie
+   («Los colores son los de lo que cuelga hoy: “Cómo quedaría” repite esa mezcla, no elige colores»). Un grupo que hoy no cuelga nada no tiene qué repetir: su propuesta se dibuja del color del grupo.
+4. **El color del grupo no desaparece:** queda en el **poste** de cada tramo, en el filo y el fondo de la ficha o la tarjeta al señalarla, en la tabla y en la mancuerna (donde hace falta saber DE QUÉ GRUPO es). El color de una prenda es
+   dato, no tema: lleva `data-color-dato` y no cambia en oscuro; el contorno es un poco más firme que el de la silueta del grupo, porque una prenda blanca o beige se funde con el papel.
+5. **El ícono de la ficha y la tarjeta son hasta tres prendas pequeñas superpuestas**, una por color principal, la del color que más cuelga al frente (`coloresDelIcono`, `IconoDeGrupo colores`). Se descartó el relleno por franjas
+   verticales: sobre una camisa las franjas caen en las mangas y el cuerpo, y «Polos» se leía como «cuerpo blanco con una manga negra». El ícono con colores mide siempre el ancho de tres prendas, centrado, para que los títulos de las
+   tarjetas no se desalineen de un grupo a otro. Las filas de la tabla, la mancuerna y «Fuera del riel» **no** cambian (siguen del color del grupo).
+6. **El nombre completo.** La ficha de «Hoy» dice «Polos, tops y blusas 150» (antes `nombreCorto`: «Polos 150»), y su nombre para el lector de pantalla empieza por lo que se lee en el botón (`etiquetaDeChipHoy`). El rótulo sobre el
+   riel de «Cómo quedaría» dice el nombre completo cuando el tramo tiene al menos 230 px y el corto («Polos») cuando no cabe. Lo decide una caja propia (`.pp-et-caja`, contenedor de consulta) y **no** el tramo: las medidas de una percha usan
+   `cqi`, y un tramo que fuera contenedor las haría medir contra sí mismo (se vio: las perchas quedaron diminutas).
+7. **Al pasar por un tramo de «Hoy»,** el `title` dice la mezcla («Polos, tops y blusas · Negro 42 · Blanco 30 · Beige 24 · Rojo 18 · otros colores 36»): el dato exacto está a un gesto, sin cargar el dibujo.
+
+**Qué se descartó.** Colores y tipos de prenda a la vez (silueta por categoría): más rico y más cargado a 15 px; Felipe no lo pidió. Franjas dentro de cada percha: a 15–34 px se leen como ruido. Pintar «Cómo quedaría» con colores nuevos
+elegidos por la propuesta: sería inventar una compra.
+
+**Cómo se verificó y qué NO.** `tsc` y `vitest` (415 archivos, 157,218 pruebas) en verde; 27 pruebas nuevas de colores y las de `armarRieles`/`armarPropuesta`. En el navegador, con los componentes reales y datos inventados que imitan la
+captura de TRU: sin cuadrar y cuadrado, sin datos de color (cae al color del grupo), en claro y oscuro, a 375 px (sin desborde horizontal) y a escritorio, y el resaltado al pasar por una ficha. **No se vio la ruta real contra su base** (sigue
+sin tener las tablas del Plan del piso en local), **no se corrió `tema:auditar`** (necesita sesión) y **no lo probó una colaboradora**. Un color real con muchas variantes de un mismo tono (negro y gris oscuro) se ven casi iguales a 19 px:
+es el límite del tamaño, no un error. **Para producción:** nada que pegar; solo publicar la web.
