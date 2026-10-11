@@ -114,9 +114,9 @@ de la tienda donde se cambia. En pantalla no se dice «general» ni «sugerido»
   prenda»); diferido para no quitarlo en un estado intermedio de un guardado talla por talla. `precios_sede` queda como historia (sus
   vigentes pasan a la tabla nueva y se archivan; un disparador impide escribirle). Actividad: «puso precio propio en TRU: S/ 69.90 (antes
   S/ 79.90, el de la prenda)».
-- `20261011100100_apartar_cambiar_y_filtrar_con_el_precio_de_la_tienda.sql`: la segunda lectura de `separar_prendas`;
-  `fn_precio_para_cambio` en `registrar_cambio`; `fn_productos_filtro` con el precio de la tienda (el listado ordena y las facetas
-  cuentan sobre él).
+- `20261011100100_apartar_con_el_precio_de_la_tienda.sql`: la segunda lectura de `separar_prendas` (se puede pegar antes de la
+  web). `20261011100200_cambiar_y_filtrar_con_el_precio_de_la_tienda.sql`: `fn_precio_para_cambio` en `registrar_cambio` y
+  `fn_productos_filtro` con el precio de la tienda (el listado ordena y las facetas cuentan sobre él); va JUNTO con la web nueva.
 - Web: la ficha muestra **cada tienda con su precio** (`preciosEnCadaTienda`); la hoja «Revisa y guarda» dice qué pasa en cada tienda y
   deja **igualar** las que tienen precio propio (`tiendasAlCambiarPrecio`, `quitar_precio_sede` después del guardado); la insignia cuenta
   precios distintos y dice «AQP y LIM S/ 79.90 · TRU S/ 69.90»; la tarjeta, la tabla, `/buscar` y la cabecera de la ficha muestran el

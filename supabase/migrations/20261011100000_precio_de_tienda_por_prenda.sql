@@ -322,14 +322,15 @@ $$;
 revoke all on function retail.fn_precios_sede_producto(uuid) from public, anon;
 grant execute on function retail.fn_precios_sede_producto(uuid) to authenticated;
 
--- Las pantallas de una tienda: qué variantes tienen otro precio ahí (todas las de cada prenda con precio de tienda, también las
--- inactivas: la pantalla decide qué muestra).
+-- Las pantallas de una tienda: qué variantes se venden ahí a OTRO precio que el suyo de la prenda (también las inactivas: la pantalla
+-- decide qué muestra). Solo las excepciones, como antes: una talla cuyo precio de la prenda ya es el de la tienda no aparece, y la
+-- pantalla cae a `variantes.precio`, que es el mismo número (así Vender y Existencias no marcan «Precio de AQP» donde no cambia nada).
 create or replace function retail.fn_precios_en_sede(p_ubicacion_id uuid)
 returns table (variante_id uuid, precio numeric)
 language sql stable security definer set search_path = retail, public, extensions as $$
   select v.id, ps.precio
     from retail.precios_sede_prenda ps
-    join retail.variantes v on v.producto_id = ps.producto_id
+    join retail.variantes v on v.producto_id = ps.producto_id and v.precio <> ps.precio
    where ps.ubicacion_id = p_ubicacion_id and ps.archivado_en is null and auth.uid() is not null;
 $$;
 revoke all on function retail.fn_precios_en_sede(uuid) from public, anon;
