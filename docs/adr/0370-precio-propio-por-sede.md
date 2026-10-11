@@ -150,11 +150,62 @@ por uno con `when (fn_producto_tiene_precio_de_tienda(new.producto_id))`: en un 
 así que solo las prendas con precio de tienda dejan algo pendiente. El viejo queda apagado, no borrado (`drop trigger` está vedado en
 producción y Postgres no reemplaza un disparador de restricción). Pegada en producción el 2026-10-11 y verificada.
 
-**Pendiente (decisión de Felipe, no se tocó):** un precio de tienda no tiene piso de costo ni el tope de descuento que sí tiene un
-descuento en la caja (la auditoría lo marcó como el riesgo de dinero más alto que queda).
+**Piso de costo (decidido por Felipe el 2026-10-11): un precio de tienda no puede quedar por debajo del costo, para nadie.**
+`20261011110000_precio_de_tienda_no_baja_del_costo.sql` reemplaza `poner_precio_sede`: si el precio es MENOR que el costo de cualquiera de las
+tallas activas de la prenda (el precio vale para todas, manda la que más cuesta), se rechaza con «Ese precio queda por debajo de lo que
+cuesta la prenda. Para liquidar usa una campaña», sin decir cuánto cuesta (el costo es dato con permiso). Justo en el costo sí se puede, y
+quitar el precio de una tienda nunca se frena. La hoja «Precio distinto en una sede» lo dice antes de guardar a quien ve costos (cuenta
+como «falta» en la guía) y «Precio por tienda» marca «Bajo el costo» un precio que quedó bajo el costo porque el costo subió con una compra
+(la base solo frena al ponerlo; el de la caja se mide en cada venta).
+- **Se eligió bloquear a TODOS, líder incluido, y no «bloquear salvo un líder con motivo».** Datos de producción del 2026-10-11: las 1.212
+  prendas activas tienen costo; en 90 días hubo 261 líneas vendidas y 0 bajo el costo (ni por campaña, club o descuento); las 4 campañas
+  vigentes no dejan nada bajo el costo; pueden poner precio de tienda 26 de las 27 personas activas (12 integrantes en su tienda y 14
+  líderes en cualquiera). Razones: la caja ya prohíbe vender bajo el costo a todos (la excepción haría del precio de tienda una puerta más
+  abierta que la caja); el precio de tienda no vence («vale hasta que alguien lo quite») y liquidar es temporal, para eso está la campaña
+  (con fechas y, si se quiere, de una sola tienda: `etiquetas.sedes_permitidas`); y la regla no estorba a nadie hoy.
+- **Dos consecuencias que se aceptaron (revisión del 2026-10-11).** (1) **Cambiar solo el motivo, o volver a guardar, un precio que ya quedó
+  bajo el costo también se rechaza:** es volver a poner un precio bajo el costo; se sale subiéndolo o quitándolo (igualar al precio de la
+  prenda es quitar y siempre se puede). (2) **El piso es un oráculo del costo para quien no lo ve:** el mensaje no dice cuánto cuesta, pero
+  aceptar o rechazar sí; una integrante sin permiso de dinero que prueba precios llega al costo por tanteo (unos 8 intentos). La caja tiene
+  el mismo oráculo con `venta_descuento_bajo_costo`. No hay arreglo barato que no abra otra puerta (un piso que depende de quién pregunta
+  es peor); la salida, si no se acepta, es limitar el precio de tienda a quien ve el dinero, y es decisión de permisos de Felipe.
+- **Sin tope extra para una integrante, a propósito.** La caja limita su descuento a 10 % (los integrantes tienen `tope_descuento_pct =
+  10`) y un precio de tienda no tiene tope, pero con el piso lo peor que puede pasar es margen 0 % (hoy el típico es 47 % y el 10 % más
+  bajo, 37 %); todo queda firmado y en Actividad; las dos bajadas reales fueron de 12 y 13 %. Agregarlo después es una migración chica que
+  no toca datos; se revisa si las integrantes empiezan a usarlo seguido.
 
-**Cómo se verifica.** `pnpm pruebas:precio-sede` (32 escenarios; nuevos: talla nueva y reactivada, igual a la prenda se quita solo y no
+**Cómo se verifica.** `pnpm pruebas:precio-sede` (44 escenarios; nuevos: el piso de costo —líder, integrante, justo en el costo, talla que más cuesta, NaN, igualar y quitar—, talla nueva y reactivada, igual a la prenda se quita solo y no
 a medio guardado, Apartar, cambio de la misma prenda, filtro), `pruebas:separaciones` (80), `pruebas:registrar-cambio` (21),
 `pruebas:registrar-venta` (28), `eliminar_producto.mjs` (40). En el navegador (local): Lima 89.90 y TRU 69.90 en Blusa Emma, subir la
 tabla a 89.90 → la hoja dijo «Lima ya estaba a S/ 89.90: queda igual…» y «Trujillo se queda en S/ 69.90» con su casilla; en TRU la
 tarjeta dijo «S/ 69.90 · 2 precios».
+
+## Actualización 2026-10-11 — las pantallas de UNA tienda usan el precio de ESA tienda
+
+La auditoría del 2026-10-10 dejó cinco pantallas que mostraban o calculaban con el precio de la prenda donde debía ir el de la tienda.
+Cuatro se corrigieron, **solo en la web, sin migración**, con las piezas que ya existen (`getPreciosPorSede`, `fn_precios_en_sede`):
+
+| Pantalla | Qué cambia |
+|---|---|
+| Inicio de Almacén ▸ «Nuevo en el catálogo» | El precio de la tarjeta es el de la sede de la cuenta, con céntimos (S/ 69.90, no «S/ 70»), y dice «Precio de esta tienda» cuando es el propio, como Existencias. `armarNuevos` recibe el mapa entero y elige la sede aquí: ninguna pantalla puede pasar el de otra tienda por error. |
+| Análisis de la sede | «a precio de venta» (Piso y Quieta), «Ganas por cada una» y el precio del subtítulo usan el precio de MI tienda (`conPreciosDeMiTienda`); de las otras tiendas no se lee precio. Si no se puede leer el precio propio, la pantalla lo dice en sus «fallas» y usa el de la prenda. `fn_analisis_sede` no cambia (una función viva con tres parches y suites que los deshacen). |
+| Dañadas (Liquidada) | El «precio de liquidación» que se precarga es el de la caja de esa tienda, que es donde se cobra (`precioEnLaSede`). Sigue sin piso de costo, a propósito (ADR-0071). |
+| Campañas ▸ aviso «Por debajo del costo» | Mide el precio MÁS BAJO entre la prenda y las tiendas con precio propio (la campaña vale en todas) y dice cuál es ese precio y dónde: «Falda Emma (FAL-0008) · precio más bajo: S/ 69.90 en Trujillo» (un hecho, no una causa: si la prenda sola también queda bajo el costo, el texto no insinúa que arreglar esa tienda basta). Sigue sin bloquear (decisión del 2026-09-18). El supuesto del «peor caso» —que `precio − descuento` no decrece con el precio— lo prueba una propiedad exhaustiva en céntimos. |
+
+### Producción: el margen se mide con el precio MÁS BAJO de cualquier tienda (Felipe, 2026-10-11)
+
+Producción medía el margen con el precio MÁS ALTO de la prenda (`OrdenProduccion.precioVenta`): con una tienda que vende más barato decía «Gana» donde esa
+caja deja «Al filo». **Decidido por Felipe entre tres:** dejarlo, **el precio más bajo de cualquier tienda** (el elegido: la vara prudente, si ahí todavía gana,
+gana en todas) o un promedio (descartado: un promedio escondería justo la tienda donde se pierde).
+
+- **Qué cambia (solo web, sin SQL):** `precioPropioMasBajo` (`lib/precio-sede-reglas.ts`) busca, entre todas las tallas del modelo y todas las tiendas, el precio propio
+  más bajo si queda bajo el de la grilla; `precioParaMargen` (`lib/produccion-reglas.ts`) lo usa para el semáforo, el «margen promedio» y la hoja de Nueva orden.
+  `precioVenta` no cambia (sigue siendo el de la grilla, el que dice «precio de venta» y «se vende a»).
+- **Solo el líder:** el margen es del líder, así que `produccion/ordenes/page.tsx` lee los precios de las tiendas (`getPreciosDeLasTiendas`) solo para él. Si no se
+  pueden leer, el margen sigue con el precio de la grilla (principio 9).
+- **Cómo se ve:** la tarjeta dice «Al filo 57% · en Trujillo», las terminadas «en Trujillo» junto al color, el panel «el margen usa S/ 69.90, el precio propio de
+  Trujillo» y la hoja «se vende a S/ 79.90 (S/ 69.90 en Trujillo)». Nunca solo con el mouse encima: el color cambia y el motivo está escrito.
+- **Lo vigila** `lib/produccion-reglas.test.ts`: la regla, el reparto a cada orden, el promedio y una prueba de código que exige que todo `semaforoMargen(` de una
+  pantalla pase por `precioParaMargen` (si no, una pantalla nueva volvería a medir con la grilla a secas).
+- **Precio por talla:** se compara el precio propio más bajo de cualquier talla con el precio MÁS ALTO de las tallas. Hoy cada tienda vende todas las tallas a un
+  mismo precio, así que es lo mismo; si algún día cambia, es la lectura prudente.

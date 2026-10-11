@@ -113,6 +113,7 @@ import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/Acces
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import {
   avisoCumpleApagado,
@@ -466,6 +467,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // que subiera (ADR-0036, addendum "por sede").
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
+  // El ticket de esta sede, al día, para `TicketPorSede`: si la sede cambia con Vender abierta, este componente se monta de
+  // nuevo (su key lleva la sede) y lo que estaba armado queda en la espera de ESTA sede (Felipe, 2026-10-11).
+  const reportarTicket = useReportarTicket();
+  useEffect(() => {
+    reportarTicket?.(ubicacionId, {
+      etiqueta: ubicacionEtiqueta,
+      ticket: { carrito, nota, clienta, conProforma: proformaActiva !== null },
+    });
+  }, [reportarTicket, ubicacionId, ubicacionEtiqueta, carrito, nota, clienta, proformaActiva]);
   // Una proforma a nombre de una empresa (RUC) se cobra con factura; lo demás, boleta.
   // Ningún comprobante marcado al empezar (hoja de cobro, Felipe 2026-10-02): se elige siempre, y sin elegir no se cobra
   // (`motivoBloqueoCobro`). Una proforma con RUC ya trae la respuesta: la factura de esa empresa.

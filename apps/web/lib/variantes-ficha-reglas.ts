@@ -661,6 +661,17 @@ export function costoEfectivo(f: FilaFicha): string {
   return f.costo;
 }
 
+/** Lo que cuesta la talla activa que MÁS cuesta, según la base (lo guardado, no lo que se está escribiendo): el piso del precio de una
+ *  tienda (`poner_precio_sede`, Felipe 2026-10-11). `null` si no hay ninguna activa guardada o no se ve el costo (quien no ve el dinero
+ *  recibe el costo vacío, 20260923193700). Las variantes nuevas todavía no existen para la base: no cuentan. */
+export function costoMaximoGuardado(filas: readonly FilaFicha[]): number | null {
+  const costos = filas
+    .filter((f) => f.guardada?.activo)
+    .map((f) => (f.guardada!.costo.trim() === "" ? NaN : Number(f.guardada!.costo)))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return costos.length > 0 ? Math.max(...costos) : null;
+}
+
 /**
  * ¿Se pudo saber qué costos vienen de compras? `costoOficial` llega `null` cuando `fn_variantes_con_costo_oficial` falló
  * (red, permiso) o no está en la base: todas quedan fijas (`filasDeProducto`) y la ficha tiene que decir POR QUÉ, no que
