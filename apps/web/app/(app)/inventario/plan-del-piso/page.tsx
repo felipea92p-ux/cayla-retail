@@ -43,7 +43,7 @@ export default async function PlanDelPisoPage() {
           porRevisar={porRevisar}
           propuesta={
             propuesta.ok ? (
-              <PropuestaDelMix propuesta={propuesta.propuesta} capacidadProvisional={propuesta.capacidadProvisional} categoriasPorRevisar={porRevisar} />
+              <PropuestaDelMix propuesta={propuesta.propuesta} capacidadProvisional={propuesta.capacidadProvisional} categoriasPorRevisar={resumen?.porRevisar ?? 0} categoriasSinGrupo={resumen?.sinGrupo ?? 0} esLider={persona.rol === "lider"} />
             ) : (
               // Se degrada así: la pestaña dice que no pudo leer y no se muestra una propuesta sobre un piso que no se leyó.
               <div className="card-cayla p-5" role="alert">

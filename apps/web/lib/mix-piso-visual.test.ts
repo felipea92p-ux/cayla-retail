@@ -1,23 +1,80 @@
 import { describe, expect, it } from "vitest";
-import { asignarGanchos, cuadriculaDelRiel, escalaDeMancuerna, fondoDeGrupo, posicionEnEscala, TOKENS_DE_GRUPO, tokenDeGrupo, FONDOS_DE_GRUPO } from "./mix-piso-visual";
+import { asignarGanchos, cifraEs, claseDeTramo, CLASES_DE_TRAMO, cuadriculaDelRiel, escalaDeMancuerna, escalaDelRiel, lineaDeVentas, posicionEnEscala, prendasEs, TOKENS_DE_GRUPO, tokenDeGrupo } from "./mix-piso-visual";
 
 describe("los colores de los grupos salen solo de la guía", () => {
   it("seis tokens distintos, ninguno es el rojo (acento sagrado, máx. 2 por pantalla)", () => {
     expect(new Set(TOKENS_DE_GRUPO).size).toBe(6);
     expect((TOKENS_DE_GRUPO as readonly string[]).includes("rojo")).toBe(false);
-    expect(FONDOS_DE_GRUPO.some((c) => c.includes("rojo"))).toBe(false);
-  });
-
-  it("cada token tiene su fondo, y el texto de encima contrasta (crema sobre oscuro, tinta sobre el color claro)", () => {
-    TOKENS_DE_GRUPO.forEach((t, i) => expect(fondoDeGrupo(i)).toContain(`bg-${t}`));
-    expect(fondoDeGrupo(5)).toContain("text-tinta");
-    expect(fondoDeGrupo(0)).toContain("text-crema");
+    expect(CLASES_DE_TRAMO.some((c) => c.includes("rojo"))).toBe(false);
   });
 
   it("con más de seis grupos los colores se reutilizan, y un índice negativo no se rompe", () => {
     expect(tokenDeGrupo(6)).toBe(tokenDeGrupo(0));
     expect(tokenDeGrupo(13)).toBe(tokenDeGrupo(1));
     expect(tokenDeGrupo(-1)).toBe(tokenDeGrupo(5));
+  });
+});
+
+describe("el color de cada grupo en las barras, la leyenda y la Mancuerna (una sola fuente)", () => {
+  it("seis clases distintas, una por grupo", () => {
+    expect(new Set(CLASES_DE_TRAMO).size).toBe(6);
+  });
+
+  it("los cinco primeros son su token liso", () => {
+    TOKENS_DE_GRUPO.slice(0, 5).forEach((t, i) => expect(claseDeTramo(i)).toBe(`bg-${t}`));
+  });
+
+  it("el sexto (sand) sale como taupe a 45 %: sand liso es el color de la pista de la barra y se vería como un hueco", () => {
+    expect(tokenDeGrupo(5)).toBe("sand");
+    expect(claseDeTramo(5)).toBe("bg-taupe/45");
+    CLASES_DE_TRAMO.forEach((c) => expect(c).not.toBe("bg-sand"));
+  });
+
+  it("con más de seis grupos los colores se reutilizan, y un índice negativo no se rompe", () => {
+    expect(claseDeTramo(6)).toBe(claseDeTramo(0));
+    expect(claseDeTramo(-1)).toBe(claseDeTramo(5));
+  });
+});
+
+describe("cómo se escribe una cifra del plan del piso", () => {
+  it("coma de miles y punto decimal, como en el resto del ERP (nunca «1800» pegado)", () => {
+    expect(cifraEs(1800)).toBe("1,800");
+    expect(cifraEs(78)).toBe("78");
+    expect(cifraEs(1722)).toBe("1,722");
+    expect(cifraEs(4.55)).toBe("4.6");
+    expect(cifraEs(0)).toBe("0");
+  });
+
+  it("la palabra concuerda con la cifra: una prenda, dos prendas, cero prendas", () => {
+    expect(prendasEs(1)).toBe("1 prenda");
+    expect(prendasEs(30)).toBe("30 prendas");
+    expect(prendasEs(0)).toBe("0 prendas");
+    expect(prendasEs(1800)).toBe("1,800 prendas");
+  });
+
+  it("la línea de ventas dice solo lo que existe y concuerda en singular", () => {
+    expect(lineaDeVentas(5, 210)).toBe("5 confirmadas · 210 sin registrar, que aún no cuentan");
+    expect(lineaDeVentas(1, 1)).toBe("1 confirmada · 1 sin registrar, que aún no cuenta");
+    expect(lineaDeVentas(0, 7)).toBe("0 confirmadas · 7 sin registrar, que aún no cuentan");
+    expect(lineaDeVentas(4, 0)).toBe("4 confirmadas");
+    expect(lineaDeVentas(1, 0)).toBe("1 confirmada");
+    expect(lineaDeVentas(0, 0)).toBe("todavía sin ventas");
+  });
+});
+
+describe("contra qué se miden las dos barras del riel", () => {
+  it("la capacidad, si ninguna suma más que ella", () => {
+    expect(escalaDelRiel(600, 450, 600)).toBe(600);
+    expect(escalaDelRiel(1800, 78, 1800)).toBe(1800);
+  });
+
+  it("si hoy cuelga más de lo que cabe, las DOS barras se miden contra eso (no cada una contra lo suyo)", () => {
+    // Capacidad 600, hoy 900 y propuesta 600: «Hoy» llena la pista y «Propuesta» ocupa los 2/3, en lugar de verse las dos llenas.
+    expect(escalaDelRiel(600, 900, 600)).toBe(900);
+  });
+
+  it("un valor que no es cuenta (NaN, negativo) no cambia la escala", () => {
+    expect(escalaDelRiel(600, Number.NaN, -5, 100)).toBe(600);
   });
 });
 

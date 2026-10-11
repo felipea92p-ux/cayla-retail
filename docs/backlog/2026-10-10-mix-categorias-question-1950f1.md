@@ -1,0 +1,12 @@
+## Plan del piso ▸ Propuesta: `/formidable` (2026-10-10) — rama `claude/mix-categorias-question-1950f1`
+
+- [x] 1 · Riel en dos `<BarraApilada>` con una escala común (`escalaDelRiel`); ganchos a un toque («Ver cada gancho»); tocar lo libre suelta el grupo fijo. Medido a 1440: «Propuesta» de y = 1,236 a 774; sección de 1,241 a 377 px.
+- [x] 2 · Tres tarjetas con la misma forma («Cuelga hoy» = «78 de 1,800»; «Ventas confirmadas» con su barra); miles con coma en tarjetas, barras, leyenda y TODA la tabla (`cifraEs`); concordancia en singular (`prendasEs`, `lineaDeVentas`).
+- [x] 3 · `<Aviso>` con botón que abre Grupos y pasa el foco a su pestaña (`useIrALaVista`); su texto separa «por revisar» (la propuesta usa su grupo) de «sin grupo» (no entran al reparto): `avisoDeGruposPorRevisar`, con pruebas.
+- [x] 4 · Un grupo, un color: `claseDeTramo` es la única fuente (barras, leyenda, Mancuerna, Historia, canvas); se quitaron `fondoDeGrupo`/`FONDOS_DE_GRUPO`. Arregla de paso el hueco `bg-sand` de la barra de Historia.
+- [x] 5 · Verificado: `tsc`, `eslint`, `vitest` 407 archivos / 157,043 pruebas; navegador a 1440, 1024 y 375 px, en claro y oscuro, y a los siete tamaños de `/multi-view-responsive`; un ciego (Opus) y un escéptico (Opus). Informe: `docs/formidable/plan-del-piso.md`; ADR-0352, actualización 2026-10-10 (b).
+- [ ] 6 · **[Bloquea]** La tabla «Lugar de cada grupo en el riel» a 1024 px con el menú abierto (`PLANTILLA`, `PropuestaDelMix.tsx:18`, 38 rem fijos: la celda «Grupo» mide 0 px y «Diferencia» se sale 52 px). Es de antes de este cambio. Espera el OK de Felipe.
+- [ ] 7 · «Por cuadrar» sin camino: un enlace a `/inventario/cuadrar` desde el chip y la nota de la tabla.
+- [ ] 8 · Roles («Destino», «Rutina»…) a un toque en vez de `title`; «Cómo se calcula» sin jerga y con un «¿Por qué?»; esconder o unir la Mancuerna; «Diferencia: —» una vez, no en cada fila. (Leyes 3, 4, 6 y 8 del informe.)
+- [ ] 9 · Piezas compartidas, con OK de Felipe: `TarjetaCifra` con `acento` corre 1 px el contenido; `Aviso` con acción a 375 px (apilar bajo ~480 px); `BarraApilada` suma paradas de Tab cuando responde (18 aquí).
+- [ ] 10 · **Ver la ruta real con su base:** cuando la base local tenga las migraciones del Plan del piso (o contra una copia, receta en la memoria del entorno), abrir `/inventario/plan-del-piso` y mirar la Propuesta con una sede real; y correr `/chaos` sobre la pestaña Grupos (guarda). Probar con una colaboradora real (la ley 1 no pasa de 8 sin ella).
