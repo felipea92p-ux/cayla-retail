@@ -171,6 +171,20 @@ Cuatro se corrigieron, **solo en la web, sin migración**, con las piezas que ya
 | Dañadas (Liquidada) | El «precio de liquidación» que se precarga es el de la caja de esa tienda, que es donde se cobra (`precioEnLaSede`). Sigue sin piso de costo, a propósito (ADR-0071). |
 | Campañas ▸ aviso «Por debajo del costo» | Mide el precio MÁS BAJO entre la prenda y las tiendas con precio propio (la campaña vale en todas) y dice cuál es ese precio y dónde: «Falda Emma (FAL-0008) · precio más bajo: S/ 69.90 en Trujillo» (un hecho, no una causa: si la prenda sola también queda bajo el costo, el texto no insinúa que arreglar esa tienda basta). Sigue sin bloquear (decisión del 2026-09-18). El supuesto del «peor caso» —que `precio − descuento` no decrece con el precio— lo prueba una propiedad exhaustiva en céntimos. |
 
-**Pendiente de decisión de Felipe:** Producción mide el margen con el precio MÁS ALTO de la prenda. El Taller fabrica y varias tiendas venden:
-las opciones son dejarlo (la regla de Felipe para pantallas de red ya se cumple), medir con el precio más bajo de cualquier tienda, o un
-promedio. No se tocó.
+### Producción: el margen se mide con el precio MÁS BAJO de cualquier tienda (Felipe, 2026-10-11)
+
+Producción medía el margen con el precio MÁS ALTO de la prenda (`OrdenProduccion.precioVenta`): con una tienda que vende más barato decía «Gana» donde esa
+caja deja «Al filo». **Decidido por Felipe entre tres:** dejarlo, **el precio más bajo de cualquier tienda** (el elegido: la vara prudente, si ahí todavía gana,
+gana en todas) o un promedio (descartado: un promedio escondería justo la tienda donde se pierde).
+
+- **Qué cambia (solo web, sin SQL):** `precioPropioMasBajo` (`lib/precio-sede-reglas.ts`) busca, entre todas las tallas del modelo y todas las tiendas, el precio propio
+  más bajo si queda bajo el de la grilla; `precioParaMargen` (`lib/produccion-reglas.ts`) lo usa para el semáforo, el «margen promedio» y la hoja de Nueva orden.
+  `precioVenta` no cambia (sigue siendo el de la grilla, el que dice «precio de venta» y «se vende a»).
+- **Solo el líder:** el margen es del líder, así que `produccion/ordenes/page.tsx` lee los precios de las tiendas (`getPreciosDeLasTiendas`) solo para él. Si no se
+  pueden leer, el margen sigue con el precio de la grilla (principio 9).
+- **Cómo se ve:** la tarjeta dice «Al filo 57% · en Trujillo», las terminadas «en Trujillo» junto al color, el panel «el margen usa S/ 69.90, el precio propio de
+  Trujillo» y la hoja «se vende a S/ 79.90 (S/ 69.90 en Trujillo)». Nunca solo con el mouse encima: el color cambia y el motivo está escrito.
+- **Lo vigila** `lib/produccion-reglas.test.ts`: la regla, el reparto a cada orden, el promedio y una prueba de código que exige que todo `semaforoMargen(` de una
+  pantalla pase por `precioParaMargen` (si no, una pantalla nueva volvería a medir con la grilla a secas).
+- **Precio por talla:** se compara el precio propio más bajo de cualquier talla con el precio MÁS ALTO de las tallas. Hoy cada tienda vende todas las tallas a un
+  mismo precio, así que es lo mismo; si algún día cambia, es la lectura prudente.

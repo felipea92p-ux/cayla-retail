@@ -210,6 +210,35 @@ export function precioMasBajoEnTiendas(
   return minimo;
 }
 
+/** El precio propio MÁS BAJO que tiene una prenda en cualquier tienda, si queda por debajo de `precioPrenda` (el de la grilla); si no,
+ *  `null`. Lo usa Producción para medir el margen de una orden (Felipe 2026-10-11: «el más bajo de cualquier tienda», la vara más
+ *  prudente: si ahí todavía gana, gana en todas). Mira todas las tallas (`varianteIds`) y todas las tiendas de `porSede`
+ *  (`getPreciosDeLasTiendas()`); un empate entre tiendas las nombra juntas («AQP y TRU»). Sin tienda con precio más bajo: `null` y
+ *  el margen se mide con el precio de la prenda, como siempre. */
+export function precioPropioMasBajo(
+  precioPrenda: number,
+  varianteIds: readonly string[],
+  porSede: Readonly<Record<string, Readonly<Record<string, number>>>>,
+  nombres: ReadonlyMap<string, string>,
+): { precio: number; sede: string } | null {
+  let minimo: number | null = null;
+  let sedes: string[] = [];
+  for (const [sedeId, precios] of Object.entries(porSede)) {
+    for (const id of varianteIds) {
+      const propio = precios[id];
+      if (propio === undefined || !(propio > 0) || propio >= precioPrenda - 0.005) continue;
+      const nombre = nombreCorto(nombres.get(sedeId) ?? "otra tienda");
+      if (minimo === null || propio < minimo - 0.005) {
+        minimo = propio;
+        sedes = [nombre];
+      } else if (Math.abs(propio - minimo) <= 0.005 && !sedes.includes(nombre)) {
+        sedes.push(nombre);
+      }
+    }
+  }
+  return minimo === null ? null : { precio: minimo, sede: unirConY(sedes) };
+}
+
 /** «AQP», «AQP y Lima», «AQP, Lima y TRU». */
 export function unirConY(partes: readonly string[]): string {
   if (partes.length <= 1) return partes.join("");
