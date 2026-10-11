@@ -1,0 +1,4 @@
+## Apartados: el apartado a medio armar es de su sede (2026-10-11, ADR-0166 act. 2026-10-11)
+- [x] **Apartar con la sede en la key y lo armado guardado en su sede** (punto 4 de `docs/backlog/2026-10-11-distracted-knuth-8feca0.md`). Siguen, una por una y con su pregunta a Felipe: Cambios, Devoluciones y Nuevo traslado.
+- [ ] **Correr `/chaos` en Apartar** cuando vuelva a haber base local (Docker se desinstaló el 2026-10-11). Ataque que importa: doble clic en «Confirmar apartado» con un apartado recuperado (el token viaja con lo guardado), y la misma prenda apartada desde dos sedes.
+- [ ] **A 375 px el aviso de «quedó guardado» (7 s) tapa la parte de arriba** mientras dura; en el ensayo cubría el selector. Es el lugar de todos los avisos (ADR-0149); si molesta en el celular, que el de «volvió» lo cierre.
