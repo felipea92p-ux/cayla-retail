@@ -235,6 +235,9 @@ export type LineaVentaReciente = {
   /** Nombre de la sede donde se vendió, solo si NO es la sede desde la que se mira
    *  (resultado de buscar en todas las tiendas). */
   sedeVenta: string | null;
+  /** La tienda donde se vendió (siempre): un cambio de talla o color de la misma prenda se cobra al precio de ESA tienda
+   *  (`fn_precio_para_cambio`, Felipe 2026-10-10: «vale lo que pagó»). Opcional para quien arma una línea a mano. */
+  ubicacionVentaId?: string | null;
   /** Una venta anulada ya devolvió sus prendas al stock: se muestra si se la busca,
    *  pero no se puede cambiar (`registrar_cambio` también lo rechaza). */
   anulada: boolean;
@@ -416,6 +419,7 @@ export async function getVentasRecientes(
       comprobanteAceptado: ventasConComprobanteAceptado.has(f.venta_id),
       clienta: comprobante?.clienta ?? null,
       sedeVenta: f.venta && f.venta.ubicacion_id !== ubicacionId ? (f.venta.ubicacion?.nombre ?? null) : null,
+      ubicacionVentaId: f.venta?.ubicacion_id ?? null,
       anulada: f.venta?.estado === "anulada",
       coincideConBusqueda: variantesQueCalzan.has(f.variante_id),
     };
