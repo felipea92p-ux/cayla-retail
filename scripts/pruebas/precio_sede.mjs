@@ -10,6 +10,7 @@
  *   · cambiar el precio archiva el anterior (la tabla guarda los dos) y quitarlo vuelve al general;
  *   · quien ve «Productos» solo toca SU tienda; sin el módulo, nada; el Taller no tiene precio propio;
  *   · la tabla no se borra, no se edita y no se lee directo con una sesión;
+ *   · (2026-10-11) el precio de una tienda no baja del costo de ninguna de sus tallas activas, para nadie (como la caja);
  *   · (2026-10-10) una talla nueva o reactivada vale el precio de la tienda sin escribir nada; un precio de tienda que queda igual a
  *     la grilla se quita solo al final de la transacción (no a medio guardado); Apartar guarda la línea al precio de la tienda; el
  *     cambio de la misma prenda vale lo que se pagó en la tienda de la compra; el filtro del catálogo usa el precio de la tienda.
@@ -394,6 +395,39 @@ select concat_ws('|',
   (select bool_or(f_precio) from retail.fn_productos_filtro(p_precio_max => :general - 1, p_ubicacion_id => :'lima') where producto_id = :'p1')::text,
   (select bool_and(precio = :general - 5) from retail.fn_productos_filtro(p_ubicacion_id => :'tru') where producto_id = :'p1')::text);`);
   esperar("en Trujillo el filtro de precio ve el de Trujillo; en Lima, el de la grilla", ultima(r) === "true|false|true", r);
+}
+
+// 20. (2026-10-11) El precio de una tienda NO baja del costo, para NADIE (Felipe: igual que la caja, que no deja vender bajo el
+//     costo ni a un líder). El costo de la prenda se fija dentro de la transacción (todo vuelve con el ROLLBACK).
+{
+  const COSTO = `
+select round(:general * 0.6, 2) as costo_t \\gset
+update retail.variantes set costo = :costo_t where producto_id = :'p1';
+`;
+  const bajo = correr(FELIPE, COSTO + `select retail.poner_precio_sede(:'p1', :'tru', :costo_t - 0.01, 'Liquidación');`);
+  esperar("un líder no pone un precio de tienda por debajo del costo", fallaCon(bajo, "por debajo de lo que cuesta"), bajo);
+  const integrante = correr(MICAELA, COSTO + `select retail.poner_precio_sede(:'p1', :'tru', :costo_t - 0.01, 'Liquidación');`);
+  esperar("una integrante tampoco, en su propia tienda", fallaCon(integrante, "por debajo de lo que cuesta"), integrante);
+  esperar(
+    "el mensaje no dice cuánto cuesta (el costo es dato con permiso)",
+    !bajo.ok && !/\d+[.,]\d{2}/.test(bajo.mensaje.split("\n").filter((l) => l.includes("ERROR:")).join("\n")),
+    bajo,
+  );
+  const justo = correr(FELIPE, COSTO + `select (retail.poner_precio_sede(:'p1', :'tru', :costo_t, 'Al costo') = :nvar)::text;`);
+  esperar("quedar justo en el costo sí se puede", ultima(justo) === "true", justo);
+  const sobre = correr(FELIPE, COSTO + `select (retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'Sobre el costo') = :nvar)::text;`);
+  esperar("un precio de tienda sobre el costo pasa", ultima(sobre) === "true", sobre);
+  // El precio vale para TODAS las tallas: manda la que más cuesta.
+  const talla = correr(FELIPE, COSTO + `
+update retail.variantes set costo = round(:general * 0.9, 2) where id = :'v1';
+select retail.poner_precio_sede(:'p1', :'tru', round(:general * 0.8, 2), 'Una talla cuesta más');`);
+  esperar("manda la talla que más cuesta: bajo ese costo se rechaza", fallaCon(talla, "por debajo de lo que cuesta"), talla);
+  // Quitar y igualar al precio de la prenda no se frenan por el costo (no ponen un precio más bajo).
+  const quita = correr(FELIPE, COSTO + `
+select retail.poner_precio_sede(:'p1', :'tru', :general - 5, 'Primero');
+update retail.variantes set costo = :general + 1 where producto_id = :'p1';
+select retail.quitar_precio_sede(:'p1', :'tru', null) = :nvar;`);
+  esperar("quitar el precio de una tienda siempre se puede, aunque el costo haya subido", ultima(quita) === "t", quita);
 }
 
 // 13. Guardián: toda función que cobra, aparta, cotiza, cambia o regulariza toma el precio de `fn_precio_en_sede` — y en TODAS

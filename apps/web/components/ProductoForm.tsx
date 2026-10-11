@@ -58,6 +58,7 @@ import {
   esChoqueDeCandados,
   bloqueoPorVenta,
   choqueDeCorreccion,
+  costoMaximoGuardado,
   etiquetasComunes,
   filasDelEje,
   filasDeProducto,
@@ -1635,6 +1636,7 @@ export function ProductoForm({
                 todas={preciosSede.todas}
                 tiendas={preciosSede.tiendas}
                 ubicacionActual={preciosSede.ubicacionId}
+                costoMaximo={veCosto ? costoMaximoGuardado(filas) : null}
                 deshabilitado={loading}
               />
             )}

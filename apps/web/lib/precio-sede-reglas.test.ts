@@ -19,6 +19,8 @@ import {
   tiendasLibres,
   preciosEnCadaTienda,
   precioUnico,
+  quedaBajoElCosto,
+  FRASE_BAJO_COSTO,
   tiendasAlCambiarPrecio,
   avisoEtiquetasAlCambiar,
   unirConY,
@@ -89,6 +91,14 @@ describe("la guía de «Precio distinto en una sede»", () => {
     expect(falta({ monto: "119.90", general: null })).toEqual([]);
     expect(falta({ motivo: "  " })).toEqual(["motivo"]);
     expect(falta({ responsableListo: false })).toEqual(["responsable"]);
+  });
+  it("bajo el costo SÍ bloquea (Felipe 2026-10-11): la hoja dice lo mismo que la base y deja de bloquear justo en el costo", () => {
+    const falta = (h: Partial<typeof base>) => camposPonerPrecio({ ...base, ...h }).filter((c) => !c.hecho).map((c) => c.id);
+    expect(falta({ monto: "47.93", costoMaximo: 47.94 })).toEqual(["precio"]);
+    expect(camposPonerPrecio({ ...base, monto: "47.93", costoMaximo: 47.94 }).find((c) => c.id === "precio")?.pendiente).toBe(FRASE_BAJO_COSTO);
+    expect(falta({ monto: "47.94", costoMaximo: 47.94 })).toEqual([]); // justo en el costo se puede
+    expect(falta({ monto: "47.93", costoMaximo: null })).toEqual([]); // quien no ve costos: lo dice la base al guardar
+    expect(falta({ monto: "47.93" })).toEqual([]); // sin el dato, igual que antes
   });
   it("un precio muy lejos NO bloquea: solo pregunta", () => {
     expect(sePuedeConfirmar(camposPonerPrecio({ ...base, monto: "1299" }))).toBe(true);
@@ -161,6 +171,25 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
     expect(unirConY(["AQP"])).toBe("AQP");
     expect(unirConY(["AQP", "LIM"])).toBe("AQP y LIM");
     expect(unirConY(["AQP", "LIM", "TRU"])).toBe("AQP, LIM y TRU");
+  });
+});
+
+describe("el piso de costo del precio de una tienda", () => {
+  it("por debajo del costo de la talla que más cuesta: sí; justo en el costo: no; sin costo conocido: no", () => {
+    expect(quedaBajoElCosto(39.9, 40)).toBe(true);
+    expect(quedaBajoElCosto(40, 40)).toBe(false);
+    expect(quedaBajoElCosto(40.01, 40)).toBe(false);
+    expect(quedaBajoElCosto(30, null)).toBe(false);
+    expect(quedaBajoElCosto(null, 40)).toBe(false);
+    expect(quedaBajoElCosto(30, 0)).toBe(false);
+  });
+  it("compara en céntimos, no en coma flotante (47.94 es 47.94)", () => {
+    expect(quedaBajoElCosto(79.9 * 0.6, 47.94)).toBe(false); // 47.940000000000005 en flotante
+    expect(quedaBajoElCosto(47.93, 47.94)).toBe(true);
+  });
+  it("la frase no dice cuánto cuesta y manda a la campaña", () => {
+    expect(FRASE_BAJO_COSTO).not.toMatch(/\d/);
+    expect(FRASE_BAJO_COSTO).toContain("campaña");
   });
 });
 

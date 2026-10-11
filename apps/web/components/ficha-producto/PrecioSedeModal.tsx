@@ -15,6 +15,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
 import {
+  FRASE_BAJO_COSTO,
   IGUAL_AL_DE_LA_PRENDA,
   avisoEtiquetasAlCambiar,
   camposPonerPrecio,
@@ -22,6 +23,7 @@ import {
   fraseDiferencia,
   leerMonto,
   muyLejos,
+  quedaBajoElCosto,
   soles,
   type PrecioDeSede,
 } from "@/lib/precio-sede-reglas";
@@ -71,6 +73,7 @@ export function PonerPrecioSedeModal({
   tiendas,
   tiendaInicial,
   general,
+  costoMaximo,
   precioAntesEn,
   ubicacionActual,
   actual,
@@ -84,6 +87,8 @@ export function PonerPrecioSedeModal({
   tiendaInicial?: string;
   /** El precio de la prenda, si todas sus tallas valen igual; si cambia según la talla, null. */
   general: number | null;
+  /** Lo que cuesta la talla activa que MÁS cuesta, si esta cuenta ve costos; null si no (la base rechaza igual un precio bajo el costo). */
+  costoMaximo: number | null;
   /** A cuánto vende HOY la prenda cada tienda (lo que dice la etiqueta colgada). */
   precioAntesEn: (ubicacionId: string) => number | null;
   /** La tienda de quien guarda: ahí se ofrece imprimir las etiquetas nuevas. */
@@ -111,9 +116,12 @@ export function PonerPrecioSedeModal({
     motivo,
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
+    costoMaximo,
   });
   const guia = useGuiaCampos(campos);
   const lejos = muyLejos(precio, general);
+  // El piso de la base (Felipe 2026-10-11): no se puede bajar del costo. Solo se sabe aquí si esta cuenta ve costos; si no, la base lo dice al guardar.
+  const bajoCosto = quedaBajoElCosto(precio, costoMaximo) && !(general !== null && precio !== null && Math.abs(precio - general) < 0.005);
   const diferencia = precio !== null ? fraseDiferencia(precio, general) : null;
   const unidades = usePrendasEnTienda(productoId, tienda?.id ?? null);
   const antes = tienda ? precioAntesEn(tienda.id) : null;
@@ -194,7 +202,13 @@ export function PonerPrecioSedeModal({
             />
           </CampoGuiado>
 
-          {lejos && precio !== null && general !== null && (
+          {bajoCosto && (
+            <Aviso tono="error" titulo="Bajo el costo" chico>
+              {FRASE_BAJO_COSTO}
+            </Aviso>
+          )}
+
+          {lejos && !bajoCosto && precio !== null && general !== null && (
             <Aviso tono="atencion" titulo="Revisa el precio" chico>
               {soles(precio)} está muy lejos del precio de la prenda ({soles(general)}). Revisa que no sobre o falte un número; si es correcto, guárdalo igual.
             </Aviso>
