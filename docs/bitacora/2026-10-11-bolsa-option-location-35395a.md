@@ -1,0 +1,5 @@
+# 2026-10-11 — Bolsas en producción y precio S/ 0.00 solo en Empaque (ADR-0377)
+
+- **Qué:** #943 fusionado y publicado; «Empaque» apagada en producción (solo esa familia queda fuera de los motores); el script pasó las 62 ventas de AQP a «Bolsas» (62 con rastro, 0 mal anotadas después). Y la ficha de producto deja poner S/ 0.00 cuando la categoría elegida es de una familia fuera de los motores (`precioValido` en `lib/variantes-ficha-reglas.ts`: la matriz, «Cambiar en bloque», «Agregar talla» y «Agregar colores»); en una prenda sigue exigiendo más de 0.
+- **Por qué:** la bolsa de obsequio no se podía dejar en 0 y se dio de alta a S/ 0.01: le cobraba un céntimo al cliente, salía «S/ 0.01» y no «Obsequio», y se declaraba a SUNAT. La base ya aceptaba 0; el candado era solo de la pantalla. Felipe eligió el 0 solo para Empaque, para que una prenda con el precio olvidado no se venda gratis.
+- **Cómo verificas:** Catálogo ▸ Productos ▸ la bolsa de obsequio ▸ Variantes y precios ▸ Precios: pon 0 (en la celda o con «Cambiar el precio… a 0 · Aplicar») y guarda. En una prenda, el mismo 0 dice «Escribe un precio mayor que 0». En Vender, la bolsa sale como «Obsequio».
