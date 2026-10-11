@@ -1,7 +1,8 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/analisis-tipos";
-import { armarPrendas } from "@/lib/analisis-armado";
+import { armarPrendas, conPreciosDeMiTienda } from "@/lib/analisis-armado";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
 import { diasDeVentas, liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
@@ -39,6 +40,9 @@ async function leerPreparacionDeLaRed(): Promise<{ filas: PreparacionAnalisis[];
   return { filas: leerPreparacion(data).map((f) => ({ ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy, primeraVenta: f.primeraVenta })), falla: null };
 }
 
+/** Si no se pudo leer el precio propio de mi tienda, las cifras en soles quedan con el precio de la prenda y la pantalla lo dice. */
+const FALLA_PRECIOS_DE_MI_TIENDA = "No se pudo leer el precio propio de tu tienda: las cifras en soles usan el precio de la prenda";
+
 /** Hoy en Lima, si la base no lo dijo (YYYY-MM-DD). */
 const hoyEnLima = (): string => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
 
@@ -48,7 +52,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
   const sedes: SedeAnalisis[] = ordenadas.map(sedeDeAnalisis);
   const ids = sedes.map((s) => s.id);
 
-  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos] = await Promise.all([
+  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
@@ -62,7 +66,11 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
       console.error(`pedidos no atendidos de Análisis: ${e instanceof Error ? e.message : String(e)}`);
       return null;
     }),
+    // El precio de MI tienda (su precio propio, si lo tiene): solo la mía, de las otras no se lee precio. No lanza; si falla, mi
+    // tienda no aparece en el mapa y se dice (más abajo) en vez de mostrar el precio de la prenda como si fuera el de la caja.
+    getPreciosPorSede([activa.id]),
   ]);
+  const preciosDeMiTienda = preciosPropios[activa.id];
 
   const liquidarDesde = liquidarDesdeValido(liquidar.dias);
   const prepDe = (id: string) => motor.filas.find((f) => f.ubicacionId === id) ?? null;
@@ -73,7 +81,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
   const hoy = motor.filas[0]?.hoy ?? hoyEnLima();
   // El ritmo de todo Análisis: lo vendido entre los días de ventas que mi tienda tiene en el ERP, hasta 30 (cada prenda lo lleva).
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
-  const tallas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante).map((p) => ({ ...p, diasDeVentas: ventana }));
+  const tallas = armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante).map((p) => ({ ...p, diasDeVentas: ventana }));
   // Lo que miden y listan las pestañas: el MODELO entero, con todas sus tallas y colores (ADR-0357, decisión 12).
   const prendas = armarModelos(tallas, hoy);
   const sabeUltimaVenta = lectura.sabeUltimaVenta[activa.id] === true;
@@ -108,7 +116,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
         que: [p.productoReferencia ?? p.descripcionLibre ?? "Prenda sin nombre", p.talla].filter(Boolean).join(" · "),
         dia: p.creadoEn.slice(0, 10),
       })),
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
       (f): f is string => f !== null,
     ),
   };
