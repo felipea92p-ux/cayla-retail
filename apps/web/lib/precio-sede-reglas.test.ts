@@ -18,6 +18,8 @@ import {
   muyLejos,
   tiendasLibres,
   preciosEnCadaTienda,
+  precioEnLaSede,
+  precioMasBajoEnTiendas,
   precioUnico,
   tiendasAlCambiarPrecio,
   avisoEtiquetasAlCambiar,
@@ -161,6 +163,46 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
     expect(unirConY(["AQP"])).toBe("AQP");
     expect(unirConY(["AQP", "LIM"])).toBe("AQP y LIM");
     expect(unirConY(["AQP", "LIM", "TRU"])).toBe("AQP, LIM y TRU");
+  });
+});
+
+describe("el precio de una variante en UNA tienda (Dañadas, y las pantallas de una sede)", () => {
+  const propios = { s: 69.9 };
+  it("el propio si lo tiene; si no, el de la prenda", () => {
+    expect(precioEnLaSede(propios, "s", 79.9)).toBe(69.9);
+    expect(precioEnLaSede(propios, "m", 79.9)).toBe(79.9);
+  });
+  it("un precio propio MÁS ALTO que el de la prenda también gana", () => {
+    expect(precioEnLaSede({ s: 89.9 }, "s", 79.9)).toBe(89.9);
+  });
+  it("sin lectura (la RPC falló) o sin variante, el de la prenda; sin ninguno, null", () => {
+    expect(precioEnLaSede(undefined, "s", 79.9)).toBe(79.9);
+    expect(precioEnLaSede({}, undefined, 79.9)).toBe(79.9);
+    expect(precioEnLaSede(propios, "x", null)).toBeNull();
+    expect(precioEnLaSede(propios, "x", undefined)).toBeNull();
+  });
+});
+
+describe("el precio más bajo de una prenda entre las tiendas (aviso de costo de una campaña)", () => {
+  const nombres = new Map([["tru", "Tienda Trujillo"], ["aqp", "Tienda Arequipa"]]);
+  it("sin precios propios: el de la prenda y ninguna tienda", () => {
+    expect(precioMasBajoEnTiendas(79.9, "v1", {}, nombres)).toEqual({ precio: 79.9, sede: null });
+    expect(precioMasBajoEnTiendas(79.9, "v1", { tru: { otra: 50 } }, nombres)).toEqual({ precio: 79.9, sede: null });
+  });
+  it("un propio más bajo gana y dice la tienda en corto", () => {
+    expect(precioMasBajoEnTiendas(79.9, "v1", { tru: { v1: 69.9 } }, nombres)).toEqual({ precio: 69.9, sede: "Trujillo" });
+  });
+  it("un propio más alto no: el peor caso sigue siendo el de la prenda", () => {
+    expect(precioMasBajoEnTiendas(79.9, "v1", { tru: { v1: 89.9 } }, nombres)).toEqual({ precio: 79.9, sede: null });
+  });
+  it("con varias tiendas, la menor", () => {
+    expect(precioMasBajoEnTiendas(79.9, "v1", { tru: { v1: 69.9 }, aqp: { v1: 64.9 } }, nombres)).toEqual({ precio: 64.9, sede: "Arequipa" });
+  });
+  it("un empate con la prenda no nombra tienda", () => {
+    expect(precioMasBajoEnTiendas(69.9, "v1", { tru: { v1: 69.9 } }, nombres)).toEqual({ precio: 69.9, sede: null });
+  });
+  it("una tienda sin nombre en el mapa dice «otra tienda»", () => {
+    expect(precioMasBajoEnTiendas(79.9, "v1", { xx: { v1: 50 } }, nombres)).toEqual({ precio: 50, sede: "otra tienda" });
   });
 });
 

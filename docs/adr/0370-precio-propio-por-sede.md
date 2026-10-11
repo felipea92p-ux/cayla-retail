@@ -158,3 +158,19 @@ a medio guardado, Apartar, cambio de la misma prenda, filtro), `pruebas:separaci
 `pruebas:registrar-venta` (28), `eliminar_producto.mjs` (40). En el navegador (local): Lima 89.90 y TRU 69.90 en Blusa Emma, subir la
 tabla a 89.90 → la hoja dijo «Lima ya estaba a S/ 89.90: queda igual…» y «Trujillo se queda en S/ 69.90» con su casilla; en TRU la
 tarjeta dijo «S/ 69.90 · 2 precios».
+
+## Actualización 2026-10-11 — las pantallas de UNA tienda usan el precio de ESA tienda
+
+La auditoría del 2026-10-10 dejó cinco pantallas que mostraban o calculaban con el precio de la prenda donde debía ir el de la tienda.
+Cuatro se corrigieron, **solo en la web, sin migración**, con las piezas que ya existen (`getPreciosPorSede`, `fn_precios_en_sede`):
+
+| Pantalla | Qué cambia |
+|---|---|
+| Inicio de Almacén ▸ «Nuevo en el catálogo» | El precio de la tarjeta es el de la sede de la cuenta, con céntimos (S/ 69.90, no «S/ 70»), y dice «Precio de esta tienda» cuando es el propio, como Existencias. `armarNuevos` recibe el mapa entero y elige la sede aquí: ninguna pantalla puede pasar el de otra tienda por error. |
+| Análisis de la sede | «a precio de venta» (Piso y Quieta), «Ganas por cada una» y el precio del subtítulo usan el precio de MI tienda (`conPreciosDeMiTienda`); de las otras tiendas no se lee precio. Si no se puede leer el precio propio, la pantalla lo dice en sus «fallas» y usa el de la prenda. `fn_analisis_sede` no cambia (una función viva con tres parches y suites que los deshacen). |
+| Dañadas (Liquidada) | El «precio de liquidación» que se precarga es el de la caja de esa tienda, que es donde se cobra (`precioEnLaSede`). Sigue sin piso de costo, a propósito (ADR-0071). |
+| Campañas ▸ aviso «Por debajo del costo» | Mide el precio MÁS BAJO entre la prenda y las tiendas con precio propio (la campaña vale en todas) y nombra la tienda: «Falda Emma (FAL-0008) · precio propio de Trujillo». Sigue sin bloquear (decisión del 2026-09-18). El supuesto del «peor caso» —que `precio − descuento` no decrece con el precio— lo prueba una propiedad exhaustiva en céntimos. |
+
+**Pendiente de decisión de Felipe:** Producción mide el margen con el precio MÁS ALTO de la prenda. El Taller fabrica y varias tiendas venden:
+las opciones son dejarlo (la regla de Felipe para pantallas de red ya se cumple), medir con el precio más bajo de cualquier tienda, o un
+promedio. No se tocó.

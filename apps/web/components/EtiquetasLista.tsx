@@ -30,7 +30,7 @@ import {
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
-import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import { hoyLima, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { normalizarNombre } from "@/lib/patron-visual";
@@ -693,7 +693,7 @@ function CampanaModal({
                 : bajoCosto.length > 0
                   ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
                       .slice(0, 2)
-                      .map((p) => p.nombre)
+                      .map(nombreBajoCosto)
                       .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
                   : "Vacío = solo informativa, sin descuento."
             }

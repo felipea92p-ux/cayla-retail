@@ -13,7 +13,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmar } from "@/lib/responsable-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
-import { prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import {
   alternarProducto,
   alternarVariante,
@@ -208,7 +208,7 @@ export function PrendasDeEtiquetaModal({
               {bajoCosto.length > 0 && (
                 <p className="mt-2 text-sm text-ambar">
                   Por debajo del costo: {bajoCosto.length} {bajoCosto.length === 1 ? "prenda" : "prendas"}
-                  {bajoCosto.length <= 3 ? ` (${bajoCosto.map((b) => b.nombre).join(", ")})` : ""}.
+                  {bajoCosto.length <= 3 ? ` (${bajoCosto.map(nombreBajoCosto).join(", ")})` : ""}.
                 </p>
               )}
               {cambio.quitar.length > 0 && <p className="mt-2 text-xs text-tinta/65">Además liberarás {cambio.quitar.length} {cambio.quitar.length === 1 ? "prenda" : "prendas"}.</p>}

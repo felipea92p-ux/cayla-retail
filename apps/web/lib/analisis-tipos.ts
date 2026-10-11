@@ -64,7 +64,9 @@ export type PrendaAnalisis = {
   categoriaPrefijo: string | null;
   categoriaFamilia: string | null;
   fotoUrl: string | null;
-  /** Precio de venta vigente y costo de cada una (null si no se sabe). La encargada y el líder ven lo mismo (ADR-0328 enmendado). */
+  /** Precio de venta vigente y costo de cada una (null si no se sabe). La encargada y el líder ven lo mismo (ADR-0328 enmendado).
+   *  El precio es el de MI tienda (su precio propio, si lo tiene; si no, el de la prenda): lo pone `conPreciosDeMiTienda` sobre lo
+   *  que entrega la base, que es el precio de la prenda. Una fila de otra tienda trae el de la prenda y nunca se muestra. */
   precio: number | null;
   costo: number | null;
   /** De dónde se repone: el Taller o un proveedor; null si no se sabe. */

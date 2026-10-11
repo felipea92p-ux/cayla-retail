@@ -5,7 +5,7 @@ import { categoriaDe } from "@/components/ui/PrendaCelda";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
-import { formatoSoles } from "@/lib/resumen-formato";
+import { soles } from "@/lib/precio-sede-reglas";
 import { ayudaNuevos, chipsNuevos, filtrarNuevos, hrefFichaProducto, hrefFotosProducto, notaEnMiSede, type FiltroNuevos, type NuevoProducto, colorUnico } from "@/lib/inicio-almacen-reglas";
 import { ChipSede } from "./ChipSede";
 import { Ico } from "./iconos";
@@ -184,7 +184,12 @@ function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number;
           </div>
         )}
         <div className="ia-pie-pc">
-          <span className="ia-pr">{p.precio === null ? "Sin precio" : formatoSoles(p.precio)}</span>
+          {/* Con céntimos (S/ 69.90, no «S/ 70»): el número de la caja y de la etiqueta. «Precio de esta tienda» solo si es el propio
+              de la sede (Felipe 2026-10-10), igual que en Existencias. */}
+          <span className="flex flex-col items-start">
+            <span className="ia-pr">{p.precio === null ? "Sin precio" : soles(p.precio)}</span>
+            {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+          </span>
           {notaEnMiSede(p.enMiSede) && <span className={`ia-tr ${(p.enMiSede ?? 0) > 0 ? "ia-ok" : ""}`}>{notaEnMiSede(p.enMiSede)}</span>}
         </div>
       </div>
