@@ -1,7 +1,7 @@
 // Reglas puras de la «tabla de la prenda» de Nuevo producto (spike v2, 2026-09-28): la misma tabla color × talla se
-// dibuja en el paso 3 (qué variantes se crean y sus fotos) y en el paso 4 (cuántas hay hoy y qué precio lleva cada una).
-// Aquí vive lo que se puede equivocar sin que se note en pantalla —los totales, «Llenar todas», el ejemplo de la
-// leyenda, cuándo un precio cuenta como distinto— para probarlo sin montar React.
+// dibuja en el paso 3 (qué variantes se crean y sus fotos) y en el paso 4 (cuántas hay hoy y qué precio y costo lleva cada
+// una). Aquí vive lo que se puede equivocar sin que se note en pantalla —los totales, «Llenar todas», el ejemplo de la
+// leyenda, cuándo un precio o un costo cuenta como distinto— para probarlo sin montar React.
 //
 // CONTRATO
 //   PROMETE: sumar SOLO las celdas que siguen en la tabla (una celda quitada no se crea: su número no cuenta), y dar
@@ -89,6 +89,33 @@ export function precioDistinto(valor: string | undefined, precioBase: string): b
 export function textoPrecioBase(precioBase: string): string {
   const n = Number(precioBase);
   return Number.isFinite(n) && n > 0 ? `S/ ${n.toFixed(2)}` : "el precio de venta";
+}
+
+/** El costo de arriba leído como número: es opcional, así que vacío (o algo que no es un número) es 0, como lo guarda el alta. */
+function costoDeArriba(costoBase: string): number {
+  const n = Number(costoBase);
+  return costoBase.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+/** Un costo escrito en una celda cuenta como «distinto» (se pinta en ámbar) si no es el costo de arriba. Sin costo arriba, el
+ *  de todas es 0: un 0 escrito no es distinto. Vacío = el de todas, nunca distinto. */
+export function costoDistinto(valor: string | undefined, costoBase: string): boolean {
+  if (valor === undefined || valor.trim() === "") return false;
+  const v = Number(valor);
+  if (!Number.isFinite(v)) return false;
+  return Math.abs(v - costoDeArriba(costoBase)) >= 0.005;
+}
+
+/** El costo de arriba como se lee en la tabla: «S/ 12.50». Sin costo (es opcional), las vacías quedan «sin costo». */
+export function textoCostoBase(costoBase: string): string {
+  const n = costoDeArriba(costoBase);
+  return n > 0 ? `S/ ${n.toFixed(2)}` : "sin costo";
+}
+
+/** Lo que vale una celda de «Precios» o «Costos» al crear: lo escrito en ella o, vacía, el monto de todas. Un texto que no es
+ *  número da NaN a propósito: el formulario lo frena antes de llamar a la base. */
+export function montoDeCelda(propio: string | undefined, base: number): number {
+  return propio !== undefined && propio.trim() !== "" ? Number(propio) : base;
 }
 
 export type Leyenda = {
