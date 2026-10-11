@@ -1266,6 +1266,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:motores-familias-apagadas
 
+      # El script de una sola vez que pasa a «Bolsas» las ventas de bolsa anotadas como otra cosa (Bolsas de despacho): usa la función de
+      # «Corregir lo anotado», cambia solo categoría, talla y la descripción automática, deja su foto y su línea en Actividad, es todo o nada
+      # ante una lista mala o un destino que aún cuenta en los motores, volver a pegarlo no hace nada, y después el motor ya no las cuenta.
+      - name: pruebas:reclasificar-bolsas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:reclasificar-bolsas
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un
