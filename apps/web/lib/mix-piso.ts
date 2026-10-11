@@ -1,6 +1,6 @@
 import type { CategoriaMix, GrupoMix } from "./plan-piso-grupos";
 import type { LecturaDelPiso } from "./piso-plan";
-import { codigoDeSede, META_DE_VENTA_FUERA_DEL_RIEL, PARTIDA_DEL_RIEL, type CodigoSede, type MetaDeVenta } from "./mix-piso-partida";
+import { codigoDeSede, META_DE_VENTA_FUERA_DEL_RIEL, PARTIDA_DEL_RIEL, SEDES_CON_MOSTRADOR_POR_CONFIRMAR, SEMANAS_DE_VENTA_FUERA_DEL_RIEL, type CodigoSede, type MetaDeVenta } from "./mix-piso-partida";
 
 /**
  * La propuesta del mix del piso frente a lo que hay hoy (ADR-0329, «Actualización 2026-10-04»; investigación del 2026-10-05).
@@ -16,6 +16,8 @@ import { codigoDeSede, META_DE_VENTA_FUERA_DEL_RIEL, PARTIDA_DEL_RIEL, type Codi
  *     (Brown 2008, ec. 4.4): peso = n / (n + n₀), con n₀ = lo que vale la industria, expresado en ventas.
  *  2. Solo cuentan las ventas CONFIRMADAS (escaneadas, con su prenda real): las «sin registrar» llevan una categoría puesta a mano y,
  *     hoy, son ≈ 7 de cada 10 en TRU. Se muestran aparte; no mueven la propuesta hasta que se regularicen.
+ *     (Salvedad: «Para empezar» de los grupos de FUERA del riel, `referenciaFueraDelRiel`, SÍ cuenta las «sin registrar»: un accesorio casi nunca
+ *     está en el catálogo. Es un desvío deliberado y escrito: ADR-0352, actualización 2026-10-11 (b). No mueve el reparto del riel.)
  *  3. El peso tiene TECHO: la venta de un grupo repite el espacio que ya tenía (lo que más cuelga, más vende), así que nunca
  *     gobierna sola (ADR-0329, decisión 4: el mix no se deriva de las ventas).
  *
@@ -66,10 +68,32 @@ export type FilaDelRiel = {
   diferencia: number | null;
 };
 
+/** «Para empezar» de un grupo de fuera del riel: cuántas prendas sostiene lo que la sede vende (ver `referenciaFueraDelRiel`). */
+export type ReferenciaFueraDelRiel =
+  | {
+      tipo: "rango";
+      /** Prendas, redondeadas a algo que se cuenta de cabeza (de a 5 desde 30). */
+      desde: number;
+      hasta: number;
+      /** El ritmo con el que se dimensionó, en prendas por semana, y cuánto pesó lo vendido (el resto es la meta). */
+      porSemana: number;
+      peso: number;
+      semanas: { desde: number; hasta: number };
+      /** Salen tan pocas prendas (menos de `POCAS_PRENDAS`) que ya no manda el ritmo de venta sino que el mostrador se vea surtido: un stand de 6 m² que vende 1 accesorio por semana no pone 3. */
+      pocas: boolean;
+    }
+  | { tipo: "sin"; motivo: string };
+
 export type FilaFueraDelRiel = {
   grupo: GrupoMix;
   colgadas: number;
   ventasConfirmadas: number;
+  /** Las «sin registrar» del grupo: un accesorio casi nunca está en el catálogo, así que casi todo lo que se vende de este grupo se anota a mano. */
+  ventasAnotadas: number;
+  /** % de TODAS las prendas vendidas de la sede (confirmadas y sin registrar) que son de este grupo; `null` sin ventas. Es lo que se compara con la meta. */
+  ventaPctTotal: number | null;
+  /** «Para empezar»; `null` si la sede no lleva el grupo o no tiene meta para él. */
+  referencia: ReferenciaFueraDelRiel | null;
   /** % de TODAS las ventas confirmadas (riel y fuera del riel); `null` si no hay ventas confirmadas. */
   ventaPct: number | null;
   /** La meta de la sede como % de la venta; `null` si la sede no lo lleva o no tiene punto de partida. */
@@ -94,6 +118,8 @@ export type PropuestaMix = {
   pesoDeLaVenta: number;
   /** Días de la ventana de ventas. */
   dias: number;
+  /** Todas las prendas vendidas de la sede en la ventana (confirmadas y sin registrar, de todos los grupos): con ellas se pasa la meta de un grupo de fuera del riel a prendas por semana. */
+  ventasDeLaSede: number;
   /** El piso de la sede ya se cuadró: sin cuadre, «lo que cuelga hoy» no es confiable (TRU: 138 en el sistema contra 600–750 reales). */
   cuadrado: boolean;
   /** Lo que cuelga o se vendió de categorías que no pertenecen a ningún grupo («Sin grupo»): no entra al reparto, pero se dice. */
@@ -133,6 +159,52 @@ export function pesoDeLaVenta(ventasConfirmadas: number): { muestraEfectiva: num
   return { muestraEfectiva, peso };
 }
 
+/** Por debajo de esto, «para empezar» ya no lo decide la venta: con menos de unas 15 prendas un mostrador se ve vacío (criterio de surtido: ~5 modelos de 3 piezas). */
+export const POCAS_PRENDAS = 15;
+
+/** Redondea una cantidad de prendas a algo que se cuenta de cabeza: de a 5 desde 30, y de a 1 por debajo. */
+function aproximar(x: number): number {
+  return x >= 30 ? Math.round(x / 5) * 5 : Math.max(0, Math.round(x));
+}
+
+/**
+ * «Para empezar» de un grupo de fuera del riel (accesorios de impulso, bolsos y calzado): cuántas prendas sostiene lo que la sede vende, entre mostrador y
+ * trastienda. Felipe, 2026-10-11: «cuánto deberíamos incluir; ayúdame investigando y asignando un estimado para empezar».
+ *
+ *   ritmo (prendas por semana) = peso × lo vendido + (1 − peso) × la meta, con el MISMO `pesoDeLaVenta` del riel (n_ef ÷ (n_ef + n₀), techo 0,75);
+ *   «para empezar» = ritmo × (semanas de cobertura de `SEMANAS_DE_VENTA_FUERA_DEL_RIEL`).
+ *
+ * DOS DESVÍOS DELIBERADOS del riel, escritos en ADR-0352 (act. 2026-10-11 (b)): (1) aquí SÍ cuentan las ventas «sin registrar» (`ventas` = confirmadas + sin registrar):
+ * un accesorio casi nunca está en el catálogo (TRU: 1 modelo con stock contra 73 vendidos), así que sin ellas el grupo parecería no venderse; el peso baja solo
+ * porque se pondera por la muestra. (2) La meta se lee en PRENDAS (la convención de la pantalla), no en soles: los accesorios valen la mitad del ticket, y en soles pesan
+ * menos (TRU ≈ 6 %), así que quien lea la brecha no debe comprar más para «llegar a la meta».
+ *
+ * Es un punto de partida, NO una compra: no se resta de lo que cuelga (el stock del sistema no descuenta lo vendido sin registrar) y se recalcula solo cada vez
+ * que se abre la pantalla. Sin ventas en la sede no hay ritmo: se dice, nunca un número inventado.
+ */
+export function referenciaFueraDelRiel(e: {
+  /** Prendas vendidas del grupo en la ventana (confirmadas y sin registrar). */
+  ventas: number;
+  /** Prendas vendidas de toda la sede en la ventana. */
+  ventasDeLaSede: number;
+  dias: number;
+  meta: { desde: number; hasta: number };
+  semanas: { desde: number; hasta: number };
+  mostradorPorConfirmar?: boolean;
+}): ReferenciaFueraDelRiel {
+  if (!(e.dias > 0) || !(e.ventasDeLaSede > 0)) {
+    return { tipo: "sin", motivo: e.mostradorPorConfirmar ? "todavía sin ventas aquí (y falta confirmar que el stand tenga mostrador junto a la caja)" : "todavía sin ventas en esta sede" };
+  }
+  const porSemanaDeLaSede = (e.ventasDeLaSede / e.dias) * 7;
+  const observado = (Math.max(0, e.ventas) / e.dias) * 7;
+  const deLaMeta = (((e.meta.desde + e.meta.hasta) / 2) / 100) * porSemanaDeLaSede;
+  const { peso } = pesoDeLaVenta(e.ventas);
+  const ritmo = peso * observado + (1 - peso) * deLaMeta;
+  const desde = aproximar(ritmo * e.semanas.desde);
+  const hasta = aproximar(ritmo * e.semanas.hasta);
+  return { tipo: "rango", desde, hasta, porSemana: redondear(ritmo), peso: redondear(peso, 2), semanas: e.semanas, pocas: hasta < POCAS_PRENDAS };
+}
+
 export function armarPropuesta(e: EntradaMix): PropuestaMix {
   const codigo = codigoDeSede(e.codigoSede);
   const grupoDeCategoria = new Map<string, string>();
@@ -156,10 +228,12 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
   const confirmadas = new Map<string, number>();
   const anotadas = new Map<string, number>();
   let confirmadasSinGrupo = 0;
+  let anotadasSinGrupo = 0;
   for (const v of e.lectura.ventas) {
     const g = grupoDe(v.categoriaId);
     if (g === null) {
       confirmadasSinGrupo += Math.max(0, v.escaneadas);
+      anotadasSinGrupo += Math.max(0, v.anotadas);
       continue;
     }
     confirmadas.set(g, (confirmadas.get(g) ?? 0) + Math.max(0, v.escaneadas));
@@ -174,6 +248,8 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
   const anotadasDelRiel = delRiel.reduce((s, g) => s + (anotadas.get(g.clave) ?? 0), 0);
   const ventasFuera = fuera.reduce((s, g) => s + (confirmadas.get(g.clave) ?? 0), 0);
   const ventasTotales = ventasDelRiel + ventasFuera;
+  const suma = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
+  const ventasDeLaSede = suma(confirmadas) + suma(anotadas) + confirmadasSinGrupo + anotadasSinGrupo;
 
   let motivoSinPropuesta: string | null = null;
   if (!e.lectura.separaPiso) motivoSinPropuesta = "Esta sede no tiene piso de venta: el plan del piso es de las tiendas.";
@@ -216,14 +292,23 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
   const metas = codigo ? META_DE_VENTA_FUERA_DEL_RIEL[codigo] : null;
   const fueraDelRiel: FilaFueraDelRiel[] = fuera.map((grupo) => {
     const conf = confirmadas.get(grupo.clave) ?? 0;
+    const anot = anotadas.get(grupo.clave) ?? 0;
     const tieneClave = metas !== null && grupo.clave in metas;
+    const meta = tieneClave ? (metas as Record<string, MetaDeVenta>)[grupo.clave]! : null;
+    const semanas = SEMANAS_DE_VENTA_FUERA_DEL_RIEL[grupo.clave];
     return {
       grupo,
       colgadas: colgadas.get(grupo.clave) ?? 0,
       ventasConfirmadas: conf,
+      ventasAnotadas: anot,
+      ventaPctTotal: ventasDeLaSede > 0 ? redondear(((conf + anot) / ventasDeLaSede) * 100) : null,
+      referencia:
+        meta !== null && semanas !== undefined && codigo !== null
+          ? referenciaFueraDelRiel({ ventas: conf + anot, ventasDeLaSede, dias: e.lectura.dias, meta, semanas, mostradorPorConfirmar: grupo.clave === "accesorios_de_impulso" && SEDES_CON_MOSTRADOR_POR_CONFIRMAR.includes(codigo) })
+          : null,
       ventaPct: ventasTotales > 0 ? redondear((conf / ventasTotales) * 100) : null,
-      meta: tieneClave ? (metas as Record<string, MetaDeVenta>)[grupo.clave]! : null,
-      noLoLleva: tieneClave && (metas as Record<string, MetaDeVenta>)[grupo.clave] === null,
+      meta,
+      noLoLleva: tieneClave && meta === null,
     };
   });
 
@@ -239,6 +324,7 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
     muestraEfectiva: redondear(muestraEfectiva),
     pesoDeLaVenta: peso,
     dias: e.lectura.dias,
+    ventasDeLaSede,
     cuadrado: e.lectura.cuadradoEn !== null,
     sinGrupo: { colgadas: colgadasSinGrupo, ventasConfirmadas: confirmadasSinGrupo, categorias: categoriasSinGrupo },
   };
