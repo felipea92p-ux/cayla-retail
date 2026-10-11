@@ -1,0 +1,524 @@
+<!-- ACTUAL (PR 944) · Plan del piso ▸ Propuesta, tal como quedó en main. Punto de comparación: NO se mejora ni se reinterpreta.
+     Fuentes: PropuestaDelMix.tsx, RielAEscala.tsx, Mancuerna.tsx, AvisoPorRevisar.tsx, lib/mix-piso.ts (lecturaDeGrupo), lib/mix-piso-visual.ts.
+     Prefijo p0-. Cifras desde window.DATOS. Responsive por @container (la raíz es el contenedor): 341 / 657 / 1024 px. -->
+<style>
+.p0-raiz{container-type:inline-size;container-name:p0-c;display:flex;flex-direction:column;gap:24px;font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--color-tinta)}
+.p0-raiz :focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
+.p0-raiz svg{display:block}
+
+/* ---------- entrada única (anim-sube / anim-crece-x del sistema), sin bucle ---------- */
+@keyframes p0-sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes p0-crece{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes p0-aviso-entra{from{opacity:0;transform:translate3d(0,-4px,0)}}
+@keyframes p0-aviso-ic{from{opacity:0}}
+.p0-sube{animation:p0-sube 850ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+
+/* ---------- superficies ---------- */
+.p0-card{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl)}
+.p0-card.p0-pad{padding:20px}
+.p0-h2{font-family:var(--serif);font-weight:600;font-size:20px;line-height:28px;letter-spacing:-.005em;color:var(--color-tinta)}
+.p0-sub{margin-top:2px;max-width:42rem;font-size:13px;color:color-mix(in srgb,var(--color-tinta) 70%,transparent)}
+.p0-num{font-variant-numeric:lining-nums tabular-nums}
+
+/* ---------- 1 · tres tarjetas de cifra ---------- */
+.p0-cifras{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.p0-cifra{display:flex;flex-direction:column;padding:16px;text-align:left}
+.p0-cifra.p0-acento{border-left:2px solid var(--color-rojo)}
+.p0-lbl{display:block;min-height:20px;font-size:11px;font-weight:700;line-height:20px;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe)}
+.p0-val{margin-top:4px;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}
+.p0-val b{font-family:var(--serif);font-weight:600;font-size:28px;line-height:1.25;letter-spacing:-.005em;white-space:nowrap;font-variant-numeric:lining-nums tabular-nums}
+.p0-val span{font-size:14px;white-space:nowrap;color:var(--color-taupe)}
+.p0-ctx{margin-top:4px;font-size:12px;color:var(--color-taupe)}
+.p0-pie{margin-top:auto;padding-top:8px;font-size:12px;color:var(--color-taupe)}
+.p0-pie>span:not(.p0-barra){display:block;font-size:11px}
+.p0-pie .p0-barra{margin-top:6px}
+
+/* ---------- barra apilada (la pieza del sistema) ---------- */
+.p0-barra{position:relative;display:flex;gap:2px;width:100%;height:12px;border-radius:999px;background:var(--color-sand)}
+.p0-barra[data-alto="4"]{height:4px;gap:1px}
+.p0-tr{position:relative;display:block;height:100%;min-width:3px;flex:0 1 0%;margin:0;padding:0;border:0;border-radius:0;background:var(--color-sand);transform-origin:left center;
+  transition:opacity 200ms var(--ease-cayla),scale 200ms var(--ease-cayla);animation:p0-crece 620ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*38ms + 220ms)}
+.p0-tr:first-child{border-radius:999px 0 0 999px}
+.p0-tr:last-child{border-radius:0 999px 999px 0}
+.p0-tr:only-child{border-radius:999px}
+.p0-tr:has(+ .p0-resto){border-top-right-radius:999px;border-bottom-right-radius:999px}
+.p0-tr i{display:block;width:100%;height:100%;border-radius:inherit}
+.p0-resto{display:block;height:100%;flex:0 1 0%;min-width:0}
+button.p0-tr{cursor:pointer}
+button.p0-tr::before{content:"";position:absolute;inset:-6px 0}
+button.p0-tr.p0-on{scale:1 1.35}
+.p0-tr.p0-ap{opacity:.35}
+.p0-c0{background:var(--color-tinta)}
+.p0-c1{background:var(--color-pizarra)}
+.p0-c2{background:var(--color-verde)}
+.p0-c3{background:var(--color-ambar)}
+.p0-c4{background:var(--color-taupe)}
+.p0-c5{background:color-mix(in srgb,var(--color-taupe) 45%,transparent)}
+.p0-c-conf{background:var(--color-tinta)}
+.p0-c-sin{background:color-mix(in srgb,var(--color-taupe) 45%,transparent)}
+.p0-mu{display:inline-block;flex-shrink:0;width:9px;height:9px;border-radius:3px;background:var(--color-sand)}
+.p0-mu i{display:block;width:100%;height:100%;border-radius:inherit}
+
+/* ---------- 2 · aviso ámbar ---------- */
+.p0-aviso{--c:var(--color-ambar);--cp:var(--color-ambar-profundo);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:start;padding:12px 14px 12px 12px;
+  border-radius:6px 14px 14px 6px;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 6%,var(--color-papel));
+  animation:p0-aviso-entra 280ms var(--ease-cayla) both}
+.p0-aviso-ic{grid-column:1;grid-row:1/span 2;display:grid;place-items:center;width:18px;height:22px;color:var(--cp)}
+.p0-aviso-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+/* En main la franja se tiñe y el trazo del ícono se dibuja; el brief de la maqueta pide solo transform y opacity: aquí el ícono aparece con opacidad. */
+.p0-aviso-ic{animation:p0-aviso-ic 520ms var(--ease-cayla) 220ms backwards}
+.p0-aviso-tit{grid-column:2;grid-row:1;margin:1px 0 0;font-size:14px;font-weight:600;line-height:1.4;color:var(--cp)}
+.p0-aviso-det{grid-column:2;margin:0;font-size:13.5px;line-height:1.5;color:color-mix(in srgb,var(--color-tinta) 78%,transparent)}
+.p0-aviso-acc{grid-column:3;grid-row:1/span 2;align-self:center}
+
+/* ---------- botones (btn-cayla: secundario y sutil) ---------- */
+.p0-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-md);border:1px solid var(--color-sand);padding:8px 16px;font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;
+  background:transparent;color:var(--color-tinta);transition:background-color 200ms var(--ease-cayla),border-color 200ms var(--ease-cayla),color 200ms var(--ease-cayla),translate 200ms var(--ease-cayla),scale 200ms var(--ease-cayla),box-shadow 200ms var(--ease-cayla)}
+.p0-btn:hover{translate:0 -2px;box-shadow:0 6px 14px -8px color-mix(in srgb,var(--color-sombra) 35%,transparent)}
+.p0-btn:active{translate:0 0;scale:.97;box-shadow:none}
+.p0-btn.p0-sec:hover{border-color:color-mix(in oklab,var(--color-taupe) 40%,transparent);background:color-mix(in oklab,var(--color-sand) 50%,transparent)}
+.p0-btn.p0-sutil{color:var(--color-taupe)}
+.p0-btn.p0-sutil:hover{color:var(--color-tinta);background:color-mix(in oklab,var(--color-sand) 30%,transparent)}
+.p0-aviso-acc .p0-btn{font-size:13px;line-height:1;padding:7px 10px;color:var(--cp);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--cp) 35%,transparent);text-underline-offset:3px}
+.p0-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform 200ms var(--ease-cayla)}
+.p0-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* ---------- 3 · el riel ---------- */
+.p0-riel>.p0-sub{margin-bottom:16px}
+.p0-bandas{display:flex;flex-direction:column;gap:16px}
+.p0-bl{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px}
+.p0-bl b{font-weight:500;color:var(--color-tinta)}
+.p0-bl span{text-align:right;color:var(--color-taupe)}
+.p0-atenuada{opacity:.6}
+.p0-leyenda{display:flex;flex-wrap:wrap;gap:8px;list-style:none}
+.p0-chipg{display:flex;align-items:center;gap:8px;border:1px solid var(--color-sand);background:var(--color-papel);border-radius:10px;padding:6px 10px;text-align:left;font-size:12px;transition:border-color 200ms var(--ease-cayla),background-color 200ms var(--ease-cayla)}
+.p0-chipg:hover{border-color:color-mix(in srgb,var(--color-taupe) 50%,transparent)}
+.p0-chipg[aria-pressed="true"]{border-color:var(--color-tinta);background:var(--color-sand)}
+.p0-chipg span:nth-child(2){color:var(--color-tinta)}
+.p0-chipg span:last-child{color:var(--color-taupe);font-variant-numeric:tabular-nums}
+.p0-ganchos-caja{border-top:1px solid var(--color-sand);padding-top:12px}
+.p0-ganchos{margin-top:12px;display:flex;flex-direction:column;gap:16px}
+.p0-ganchos[hidden]{display:none}
+.p0-t12{font-size:12px;color:var(--color-taupe)}
+.p0-cv{position:relative}
+.p0-cv canvas{display:block;width:100%;cursor:crosshair}
+.p0-tip{position:absolute;z-index:10;max-width:190px;pointer-events:none;border-radius:10px;background:var(--color-tinta);color:var(--color-crema);padding:6px 10px;font-size:12px;line-height:1.35}
+
+/* ---------- 4 · la mancuerna ---------- */
+.p0-mleyenda{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 20px;list-style:none;font-size:12px;color:color-mix(in srgb,var(--color-tinta) 80%,transparent)}
+.p0-mleyenda li{display:flex;align-items:center;gap:6px}
+.p0-mfilas{margin-top:16px;display:flex;flex-direction:column;gap:4px}
+.p0-mrow{display:grid;grid-template-columns:minmax(0,9.5rem) minmax(0,1fr);align-items:center;column-gap:12px}
+.p0-mnom{display:flex;min-width:0;align-items:center;gap:8px;font-size:13px;color:var(--color-tinta)}
+.p0-mnom span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p0-mtrack{position:relative;height:36px}
+.p0-mtrack>*{position:absolute}
+.p0-mg{top:0;bottom:0;width:1px;background:var(--color-sand)}
+.p0-mc{left:0;right:0;top:50%;height:1px;background:color-mix(in srgb,var(--color-taupe) 25%,transparent)}
+.p0-mrango{top:50%;height:2px;transform:translateY(-50%);border-radius:999px;background:color-mix(in srgb,var(--color-pizarra) 70%,transparent)}
+.p0-mind{top:50%;width:2px;height:16px;transform:translate(-50%,-50%);background:var(--color-taupe)}
+.p0-mven{top:50%;width:10px;height:10px;transform:translate(-50%,-50%);border-radius:50%;background:var(--color-pizarra)}
+.p0-mhoy{top:50%;width:14px;height:14px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid var(--color-tinta);background:var(--color-papel)}
+.p0-mhoy.p0-tenue{opacity:.5}
+.p0-mpro{top:50%;width:12px;height:12px;transform:translate(-50%,-50%) rotate(45deg);background:var(--color-tinta)}
+.p0-mval{grid-column:span 2;text-align:right;font-size:13px;font-weight:500;color:var(--color-tinta);font-variant-numeric:tabular-nums}
+.p0-eje{position:relative;height:16px;font-size:11px;color:var(--color-taupe);font-variant-numeric:tabular-nums}
+.p0-eje span{position:absolute;transform:translateX(-50%)}
+.p0-eje span:first-child{transform:none}
+.p0-mnota{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-taupe)}
+
+/* ---------- chips ---------- */
+.p0-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;font-size:12px;line-height:20px;white-space:nowrap;border-radius:999px;background:color-mix(in srgb,var(--color-pizarra) 15%,transparent);color:var(--color-pizarra)}
+.p0-chip::before{content:"";flex-shrink:0;width:6px;height:6px;border-radius:50%;background:currentColor}
+.p0-chip.p0-ambar{background:color-mix(in srgb,var(--color-ambar) 15%,transparent);color:var(--color-ambar)}
+
+/* ---------- 5 y 6 · tablas ---------- */
+.p0-tcard{overflow:hidden}
+.p0-thead{padding:16px 20px;border-bottom:1px solid var(--color-sand)}
+.p0-tscroll{overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--color-sand) transparent}
+.p0-tscroll::-webkit-scrollbar{width:6px;height:6px}
+.p0-tscroll::-webkit-scrollbar-track{background:transparent}
+.p0-tscroll::-webkit-scrollbar-thumb{background:var(--color-sand)}
+.p0-tabla>*+*{border-top:1px solid var(--color-sand)}
+.p0-enc{display:none;padding:8px 20px;column-gap:16px;background:color-mix(in oklab,var(--color-sand) 70%,transparent)}
+.p0-enc>span{min-width:0;text-align:left;font-size:12px;font-weight:400;color:var(--color-taupe)}
+.p0-enc>span small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--color-taupe)}
+.p0-fila{display:grid;gap:4px 16px;padding:12px 20px;transition:background-color 200ms var(--ease-cayla)}
+.p0-fila:nth-child(even of .p0-fila){background:color-mix(in oklab,var(--color-hueso) 50%,transparent)}
+.p0-fila:hover{background:color-mix(in oklab,var(--color-crema) 60%,transparent)}
+.p0-fila>div{min-width:0}
+.p0-fila.p0-total{font-weight:500}
+.p0-g{white-space:normal}
+.p0-g .p0-gn{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.p0-g .p0-gn>span:first-child{font-size:14px;font-weight:inherit;color:var(--color-tinta)}
+.p0-lect{margin-top:4px;display:flex;align-items:flex-start;gap:6px;font-size:12px;color:color-mix(in srgb,var(--color-tinta) 75%,transparent)}
+.p0-lect i{flex-shrink:0;margin-top:5px;width:6px;height:6px;border-radius:50%}
+.p0-lect i.p0-t-pizarra{background:var(--color-pizarra)}
+.p0-lect i.p0-t-verde{background:var(--color-verde)}
+.p0-lect i.p0-t-ambar{background:var(--color-ambar)}
+.p0-d{white-space:nowrap;font-variant-numeric:tabular-nums}
+.p0-d.p0-ap2{color:var(--color-taupe)}
+.p0-et{margin-right:8px;font-size:12px;color:var(--color-taupe)}
+.p0-d .p0-sub2{display:block;font-size:12px;font-weight:400;color:var(--color-taupe)}
+.p0-d .p0-par{margin-left:6px;font-size:12px;color:var(--color-taupe)}
+.p0-fuerte{font-weight:500;color:var(--color-tinta)}
+.p0-sin{color:var(--color-taupe)}
+.p0-fgrupo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:14px;color:var(--color-tinta);overflow:hidden;white-space:nowrap} /* como el original: la celda es `truncate` y el nombre no parte renglón */
+.p0-tpie{padding:10px 20px;border-top:1px solid var(--color-sand);font-size:12px;color:var(--color-taupe)}
+.p0-tpie .p0-chip{margin-right:8px}
+
+/* ---------- 7 · cómo se calcula ---------- */
+.p0-nota{position:relative;border-radius:var(--radius-xl);padding:14px 18px 14px 42px;font-size:13px;line-height:1.6;color:var(--color-taupe);background:color-mix(in oklab,var(--color-hueso) 85%,transparent)}
+.p0-nota strong{color:var(--color-tinta);font-weight:600}
+.p0-nota svg{position:absolute;left:18px;top:16px;width:16px;height:16px;opacity:.85;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- ancho del contenedor (1024 / 657 / 341) ---------- */
+@container p0-c (min-width:560px){
+  .p0-cifras{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .p0-cifra{padding:16px 20px}
+  .p0-mrow{grid-template-columns:minmax(0,12rem) minmax(0,1fr) 4.5rem}
+  .p0-mval{grid-column:auto}
+  .p0-enc{display:grid;align-items:stretch}
+  .p0-fila{align-items:center}
+  .p0-tabla.p0-t6{min-width:56rem}
+  .p0-tabla.p0-t4{min-width:40rem}
+  .p0-t6 .p0-enc,.p0-t6 .p0-fila{grid-template-columns:minmax(0,1.5fr) 7.5rem 6rem 9.5rem 8.5rem 6.5rem}
+  .p0-t4 .p0-enc,.p0-t4 .p0-fila{grid-template-columns:minmax(0,1.5fr) 7.5rem 9.5rem 9.5rem}
+  .p0-d{text-align:right}
+  .p0-et{display:none}
+}
+@media (prefers-reduced-motion:reduce){.p0-raiz *{animation:none!important;transition:none!important}}
+</style>
+
+<div class="p0-raiz" data-p0></div>
+
+<script>
+(function(){
+  var D=window.DATOS,root=document.querySelector('.p0-raiz[data-p0]');
+  if(!D||!root)return;
+
+  /* ---------- utilidades (la misma convención de Perú: coma de miles, punto decimal) ---------- */
+  function n(x){return x.toLocaleString('en-US',{maximumFractionDigits:1})}
+  function pct(x){return n(x)+' %'}
+  function prendas(x){return n(x)+(x===1?' prenda':' prendas')}
+  var cap=D.capacidad,hoyTotal=D.colgadasEnElRiel,cuadrado=D.cuadrado;
+  var pesoPct=D.pesoVentaPct,muestra=Math.round(D.ventasConfirmadas/1.5*10)/10;
+  var G=D.grupos,F=D.fuera;
+  var ROL_AYUDA={'Destino':'Lo que el cliente viene a buscar: trae gente a la tienda y la hace volver.','Rutina':'Lo que se compra seguido y completa el look de lo que trae gente.','Ocasional':'Un look completo en una sola compra, o un complemento de compra más alta.','De temporada':'Depende del clima y de la época del año.','Conveniencia':'Se suma al paso, junto a la caja.'};
+
+  function chip(rol,extra){return '<span class="p0-chip'+(extra||'')+'" title="'+(ROL_AYUDA[rol]||'')+'">'+rol+'</span>'}
+
+  /* ---------- barra apilada: cada tramo crece por su parte de la pista; lo que sobra es «resto» ---------- */
+  function barra(segs,o){
+    o=o||{};var suma=segs.reduce(function(a,s){return a+(s.valor>0?s.valor:0)},0);
+    var pista=Math.max(o.total||suma,suma),resto=pista>suma&&suma>0?(pista-suma)/pista*100:0;
+    var vivos=segs.filter(function(s){return s.valor>0});
+    var h='<span class="p0-barra" data-alto="'+(o.alto||12)+'" '+(o.deco?'aria-hidden="true"':'role="group" aria-label="'+(o.etiqueta||'')+'"')+'>';
+    vivos.forEach(function(s,i){
+      var estilo='flex-grow:'+(s.valor/pista*100)+';--i:'+((o.retraso||0)+i);
+      var capa='<i class="'+s.clase+'"></i>';
+      if(o.responde){
+        h+='<button type="button" class="p0-tr" data-g="'+s.clave+'" aria-pressed="false" title="'+s.titulo+'" aria-label="'+s.etiqueta+'" style="'+estilo+'">'+capa+'</button>';
+      }else{
+        h+='<span class="p0-tr" style="'+estilo+'">'+capa+'</span>';
+      }
+    });
+    if(resto>0.01)h+='<span class="p0-resto" aria-hidden="true" style="flex-grow:'+resto+'"></span>';
+    return h+'</span>';
+  }
+
+  /* ---------- 1 · tres tarjetas ---------- */
+  var cifras=
+    '<div class="p0-cifras">'+
+      '<div class="p0-card p0-cifra p0-acento p0-sube" style="--i:0">'+
+        '<p class="p0-lbl">Cuelga hoy</p>'+
+        '<p class="p0-val"><b>'+n(hoyTotal)+'</b><span>de '+n(cap)+'</span></p>'+
+        '<div class="p0-ctx">'+(cuadrado?'prendas en el riel, según el sistema':'por cuadrar: lo real puede ser mucho más')+'</div>'+
+        '<div class="p0-pie"><span>caben '+n(cap)+(D.capacidadProvisional?' · provisional: falta contarlas':' · m² × prendas por m²')+'</span>'+
+          barra([{clave:'colgadas',valor:hoyTotal,clase:'p0-c-conf'}],{alto:4,deco:true,total:cap})+'</div>'+
+      '</div>'+
+      '<div class="p0-card p0-cifra p0-sube" style="--i:1">'+
+        '<p class="p0-lbl">Ventas confirmadas</p>'+
+        '<p class="p0-val"><b>'+n(D.ventasConfirmadas)+'</b></p>'+
+        '<div class="p0-ctx">en '+D.dias+' días</div>'+
+        '<div class="p0-pie"><span>'+n(D.ventasConfirmadas)+(D.ventasConfirmadas===1?' confirmada':' confirmadas')+(D.ventasSinRegistrar>0?' · '+n(D.ventasSinRegistrar)+' sin registrar, que aún '+(D.ventasSinRegistrar===1?'no cuenta':'no cuentan'):'')+'</span>'+
+          barra([{clave:'conf',valor:D.ventasConfirmadas,clase:'p0-c-conf'},{clave:'sin',valor:D.ventasSinRegistrar,clase:'p0-c-sin'}],{alto:4,deco:true})+'</div>'+
+      '</div>'+
+      '<div class="p0-card p0-cifra p0-sube" style="--i:2">'+
+        '<p class="p0-lbl">Peso de la venta</p>'+
+        '<p class="p0-val"><b>'+pesoPct+' %</b></p>'+
+        '<div class="p0-ctx">'+(D.ventasConfirmadas>0?'de la propuesta viene de lo que se vendió':'todavía sin ventas confirmadas')+'</div>'+
+        '<div class="p0-pie"><span>industria '+(100-pesoPct)+' % · venta propia '+pesoPct+' %</span>'+
+          barra([{clave:'ind',valor:100-pesoPct,clase:'p0-c-sin'},{clave:'ven',valor:pesoPct,clase:'p0-c-conf'}],{alto:4,deco:true})+'</div>'+
+      '</div>'+
+    '</div>';
+
+  /* ---------- 2 · aviso ---------- */
+  var nRev=D.categoriasPorRevisar;
+  var aviso=
+    '<div class="p0-aviso" role="status">'+
+      '<span class="p0-aviso-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>'+
+      '<p class="p0-aviso-tit">'+n(nRev)+' categorías siguen por revisar</p>'+
+      '<div class="p0-aviso-det">Mientras no las confirmes, la propuesta usa el grupo que el sistema les puso.</div>'+
+      '<span class="p0-aviso-acc"><button type="button" class="p0-btn p0-sec">Revisar las '+n(nRev)+' categorías</button></span>'+
+    '</div>';
+
+  /* ---------- 3 · el riel, hoy y como quedaría ---------- */
+  var sumaHoy=G.reduce(function(a,g){return a+Math.max(0,g.hoy)},0);
+  var sumaPro=G.reduce(function(a,g){return a+Math.max(0,g.propuesta)},0);
+  var escala=Math.max(cap,sumaHoy,sumaPro);
+  var ocupHoy=Math.min(cap,sumaHoy),ocupPro=Math.min(cap,sumaPro);
+  function segs(campo,cuando){
+    return G.map(function(g,i){return{clave:g.clave,valor:g[campo],clase:'p0-c'+i,titulo:g.nombre+' · '+prendas(g[campo]),etiqueta:g.nombre+': '+prendas(g[campo])+' '+cuando+'. Resaltar este grupo en las dos barras'}});
+  }
+  function lista(campo){return G.filter(function(g){return g[campo]>0}).map(function(g){return g.nombre+' '+n(g[campo])}).join(', ')}
+  var notaHoy=cuadrado?n(ocupHoy)+' de '+n(cap)+' ganchos ocupados · '+Math.round(ocupHoy/cap*100)+' %':'por cuadrar · '+n(ocupHoy)+' de '+n(cap)+' según el sistema';
+  var notaPro=n(ocupPro)+' de '+n(cap)+' ganchos';
+  var resumenHoy='Riel de hoy: '+n(ocupHoy)+' de '+n(cap)+' ganchos ocupados. '+lista('hoy')+'.';
+  var resumenPro='Riel de la propuesta: '+n(ocupPro)+' de '+n(cap)+' ganchos. '+lista('propuesta')+'.';
+  var CHEV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  var riel=
+    '<section class="p0-card p0-pad p0-riel p0-sube" style="--i:2" aria-label="El riel, hoy y como quedaría">'+
+      '<h2 class="p0-h2">El riel, hoy y como quedaría</h2>'+
+      '<p class="p0-sub">Las dos barras miden lo mismo: lo que cabe en el riel. Cada color es un grupo; pasa el cursor por uno para verlo en las dos.</p>'+
+      '<div class="p0-bandas">'+
+        '<div><div class="p0-bl"><b>Hoy</b><span>'+notaHoy+'</span></div><div class="p0-bhoy'+(cuadrado?'':' p0-atenuada')+'">'+barra(segs('hoy','hoy'),{responde:true,etiqueta:resumenHoy,total:escala,retraso:0})+'</div></div>'+
+        '<div><div class="p0-bl"><b>Propuesta</b><span>'+notaPro+'</span></div><div>'+barra(segs('propuesta','en la propuesta'),{responde:true,etiqueta:resumenPro,total:escala,retraso:2})+'</div></div>'+
+        (sumaHoy>cap?'<p class="p0-t12">Cuelgan '+n(sumaHoy-cap)+' prendas más de las que caben en el riel (no hay más ganchos).</p>':'')+
+        '<ul class="p0-leyenda" aria-label="Grupos del riel: toca uno para resaltarlo">'+
+          G.map(function(g,i){return '<li><button type="button" class="p0-chipg" data-g="'+g.clave+'" aria-pressed="false"><span class="p0-mu" aria-hidden="true"><i class="p0-c'+i+'"></i></span><span>'+g.nombre+'</span><span>'+n(g.hoy)+' → '+n(g.propuesta)+'</span></button></li>'}).join('')+
+        '</ul>'+
+        '<div class="p0-ganchos-caja">'+
+          '<button type="button" class="p0-btn p0-sutil p0-ver" aria-expanded="false" aria-controls="p0-ganchos">'+CHEV+'<span class="p0-ver-t">Ver cada gancho ('+n(cap)+')</span></button>'+
+          '<div id="p0-ganchos" class="p0-ganchos" hidden></div>'+
+        '</div>'+
+      '</div>'+
+    '</section>';
+
+  /* ---------- 4 · dónde está cada grupo (la mancuerna) ---------- */
+  var valores=[];G.forEach(function(g){valores.push(g.hoyPct,g.industriaPct,g.ventaPct,g.ventaRango?g.ventaRango[1]:null,g.propuestaPct)});
+  var mayor=valores.reduce(function(m,v){return typeof v==='number'&&isFinite(v)&&v>m?v:m},0);
+  var maximo=Math.min(100,Math.max(20,Math.ceil(mayor/10)*10));
+  function pos(v){return Math.min(100,Math.max(0,v/maximo*100))}
+  var marcas=[];for(var m=0;m<=maximo;m+=10)marcas.push(m);
+  var mfilas=G.map(function(g,i){
+    var rango=g.ventaRango;
+    var resumen=['hoy '+pct(g.hoyPct),'industria '+pct(g.industriaPct),'venta propia '+pct(g.ventaPct)+(rango?', entre '+n(rango[0])+' y '+n(rango[1]):''),'propuesta '+pct(g.propuestaPct)].join('; ');
+    return '<div class="p0-mrow">'+
+      '<div class="p0-mnom"><span class="p0-mu" aria-hidden="true"><i class="p0-c'+i+'"></i></span><span>'+g.nombre+'</span></div>'+
+      '<div role="img" aria-label="'+g.nombre+': '+resumen+'" class="p0-mtrack">'+
+        marcas.map(function(x){return '<span aria-hidden="true" class="p0-mg" style="left:'+pos(x)+'%"></span>'}).join('')+
+        '<span aria-hidden="true" class="p0-mc"></span>'+
+        (rango?'<span aria-hidden="true" class="p0-mrango" title="Venta propia: entre '+n(rango[0])+' y '+n(rango[1])+' %" style="left:'+pos(rango[0])+'%;width:'+Math.max(0.5,pos(rango[1])-pos(rango[0]))+'%"></span>':'')+
+        '<span aria-hidden="true" class="p0-mind" title="Industria: '+pct(g.industriaPct)+'" style="left:'+pos(g.industriaPct)+'%"></span>'+
+        '<span aria-hidden="true" class="p0-mven" title="Venta propia: '+pct(g.ventaPct)+'" style="left:'+pos(g.ventaPct)+'%"></span>'+
+        '<span aria-hidden="true" class="p0-mhoy'+(cuadrado?'':' p0-tenue')+'" title="'+(cuadrado?'Hoy: ':'Hoy (por cuadrar): ')+pct(g.hoyPct)+'" style="left:'+pos(g.hoyPct)+'%"></span>'+
+        '<span aria-hidden="true" class="p0-mpro" title="Propuesta: '+pct(g.propuestaPct)+'" style="left:'+pos(g.propuestaPct)+'%"></span>'+
+      '</div>'+
+      '<div class="p0-mval">'+pct(g.propuestaPct)+'</div>'+
+    '</div>';
+  }).join('');
+  var mancuerna=
+    '<section class="p0-card p0-pad p0-sube" style="--i:3" aria-label="Hoy, industria, venta y propuesta de cada grupo">'+
+      '<h2 class="p0-h2">Dónde está cada grupo</h2>'+
+      '<p class="p0-sub">En % del riel. Cuando los puntos caen juntos, el grupo está en su lugar; cuando se separan, se ve quién empuja hacia dónde.</p>'+
+      '<ul class="p0-mleyenda" aria-label="Qué es cada marca">'+
+        '<li><span aria-hidden="true" style="width:12px;height:12px;border-radius:50%;border:2px solid var(--color-tinta);background:var(--color-papel)"></span>Hoy</li>'+
+        '<li><span aria-hidden="true" style="width:2px;height:14px;background:var(--color-taupe)"></span>Industria</li>'+
+        '<li><span aria-hidden="true" style="display:flex;align-items:center"><span style="width:8px;height:2px;background:var(--color-pizarra)"></span><span style="width:10px;height:10px;border-radius:50%;background:var(--color-pizarra)"></span><span style="width:8px;height:2px;background:var(--color-pizarra)"></span></span>Venta propia y su rango</li>'+
+        '<li><span aria-hidden="true" style="width:10px;height:10px;transform:rotate(45deg);background:var(--color-tinta)"></span>Propuesta</li>'+
+      '</ul>'+
+      '<div class="p0-mfilas">'+mfilas+
+        '<div class="p0-mrow" aria-hidden="true"><span></span><div class="p0-eje">'+marcas.map(function(x){return '<span style="left:'+pos(x)+'%">'+x+'</span>'}).join('')+'</div></div>'+
+      '</div>'+
+      (cuadrado?'':'<p class="p0-mnota"><span class="p0-chip p0-ambar">Por cuadrar</span>El círculo de «Hoy» sale apagado: sin cuadrar el piso, lo que el sistema dice que cuelga no es lo que hay.</p>')+
+    '</section>';
+
+  /* ---------- 5 · lugar de cada grupo en el riel (tabla) ---------- */
+  var TOL=3;
+  function lectura(g){
+    if(!cuadrado)return{tono:'pizarra',texto:'Por cuadrar: sin saber lo que cuelga de verdad no se dice qué falta.'};
+    var dif=g.propuesta-g.hoy;
+    if(Math.abs(dif)<=cap*TOL/100)return{tono:'verde',texto:'Dentro de lo esperado.'};
+    if(dif>0)return{tono:'ambar',texto:'Faltan '+n(dif)+': cuelga más de este grupo.'};
+    var sob='Sobran '+n(-dif);
+    return{tono:'ambar',texto:g.rol==='Destino'?sob+': es destino, no baja sin el OK del líder.':sob+': no cuelgues más hasta llegar a su parte; no se retira nada.'};
+  }
+  function dato(et,html,cls){return '<div class="p0-d'+(cls?' '+cls:'')+'" role="cell"><span class="p0-et">'+et+'</span>'+html+'</div>'}
+  var COLS=[
+    ['Grupo',''],
+    ['Hoy','prendas · % del riel','Lo que el sistema dice que cuelga en el piso hoy. Mientras la sede no cuadre su piso, no es confiable.'],
+    ['Industria','% del riel','El punto de partida: el surtido de mujer de Topitop, Estilos y Oechsle puesto según el rol de cada grupo y el clima de la sede.'],
+    ['Venta propia','% y rango','Lo que vendió la sede en los últimos días, solo con prenda confirmada. El rango dice entre cuánto y cuánto estaría la venta real el 95 % de las veces.'],
+    ['Propuesta','prendas · %','La industria y la venta propia mezcladas según cuánto pesa cada una, repartidas en las prendas que caben en el riel.'],
+    ['Diferencia','prendas','Propuesta menos lo que cuelga hoy: con signo más, faltan; con signo menos, sobran.']
+  ];
+  function encabezado(cols){return '<div class="p0-enc" role="row">'+cols.map(function(c){return '<span role="columnheader"'+(c[2]?' title="'+c[2]+'"':'')+'>'+c[0]+(c[1]?'<small>'+c[1]+'</small>':'')+'</span>'}).join('')+'</div>'}
+  var filas=G.map(function(g){
+    var l=lectura(g);
+    return '<div class="p0-fila" role="row">'+
+      '<div class="p0-g" role="rowheader"><div class="p0-gn"><span>'+g.nombre+'</span>'+chip(g.rol)+'</div>'+
+        '<p class="p0-lect"><i class="p0-t-'+l.tono+'" aria-hidden="true"></i><span>'+l.texto+'</span></p></div>'+
+      dato('Hoy','<span title="'+(cuadrado?'':'Por cuadrar: lo que cuelga de verdad puede ser muy distinto de lo que dice el sistema.')+'">'+n(g.hoy)+' · '+pct(g.hoyPct)+'</span>',cuadrado?'':'p0-ap2')+
+      dato('Industria',pct(g.industriaPct))+
+      dato('Venta propia','<span>'+pct(g.ventaPct)+'<span class="p0-sub2">'+(g.ventaRango?'entre '+n(g.ventaRango[0])+' y '+n(g.ventaRango[1])+' · ':'')+g.ventas+(g.ventas===1?' venta':' ventas')+'</span></span>')+
+      dato('Propuesta','<span class="p0-fuerte">'+n(g.propuesta)+' · '+pct(g.propuestaPct)+'</span>')+
+      dato('Diferencia',cuadrado?(g.propuesta-g.hoy===0?'0':'<span title="'+(g.propuesta-g.hoy>0?'Faltan':'Sobran')+'">'+(g.propuesta-g.hoy>0?'+':'−')+n(Math.abs(g.propuesta-g.hoy))+'</span>'):'<span title="Por cuadrar: sin saber lo que cuelga de verdad, la diferencia no dice nada.">—</span>',cuadrado?'':'p0-ap2')+
+    '</div>';
+  }).join('');
+  var total=
+    '<div class="p0-fila p0-total" role="row">'+
+      '<div class="p0-g" role="rowheader">Total del riel</div>'+
+      dato('Hoy',n(hoyTotal),cuadrado?'':'p0-ap2')+
+      dato('Industria','100 %')+
+      dato('Venta propia','('+n(D.ventasConfirmadas)+')')+
+      dato('Propuesta',n(cap)+' · 100 %')+
+      dato('Diferencia','—')+
+    '</div>';
+  var tabla=
+    '<section class="p0-card p0-tcard p0-sube" style="--i:2" aria-label="Propuesta del mix en el riel">'+
+      '<div class="p0-thead"><h2 class="p0-h2">Lugar de cada grupo en el riel</h2>'+
+        '<p class="p0-sub">La propuesta mezcla el punto de partida de la industria con lo que vendió la sede. Aquí no se guarda nada: es para mirarla y compararla con lo que cuelga.</p></div>'+
+      '<div class="p0-tscroll"><div class="p0-tabla p0-t6" role="table">'+encabezado(COLS)+filas+total+'</div></div>'+
+      (cuadrado?'':'<p class="p0-tpie" role="note"><span class="p0-chip p0-ambar">Por cuadrar</span><span>Esta sede todavía no cuadró su piso: «Hoy» y la diferencia salen apagados porque el sistema puede tener como guardadas prendas que ya cuelgan.</span></p>')+
+    '</section>';
+
+  /* ---------- 6 · fuera del riel ---------- */
+  var COLS_F=[['Grupo',''],['Cuelga hoy','prendas'],['Venta propia','% de la venta'],['Meta','% de la venta']];
+  var filasF=F.map(function(f){
+    var conf=f.ventaPct===0?0:Math.round(f.ventaPct/100*D.ventasConfirmadas);
+    return '<div class="p0-fila" role="row">'+
+      '<div role="rowheader" class="p0-fgrupo"><span>'+f.nombre+'</span>'+chip(f.rol)+'</div>'+
+      dato('Cuelga hoy',n(f.colgadas))+
+      dato('Venta propia','<span>'+pct(f.ventaPct)+'<span class="p0-par">('+conf+')</span></span>')+
+      dato('Meta',f.meta)+
+    '</div>';
+  }).join('');
+  var fuera=
+    '<section class="p0-card p0-tcard p0-sube" style="--i:3" aria-label="Grupos fuera del riel">'+
+      '<div class="p0-thead"><h2 class="p0-h2">Fuera del riel</h2>'+
+        '<p class="p0-sub">Bisutería, cinturones, bolsos y calzado van junto a la caja, en repisa o en ganchos aparte: no ocupan percha del riel. Se miden como porcentaje de la venta, no del piso.</p></div>'+
+      '<div class="p0-tscroll"><div class="p0-tabla p0-t4" role="table">'+encabezado(COLS_F)+filasF+'</div></div>'+
+    '</section>';
+
+  /* ---------- 7 · cómo se calcula ---------- */
+  var nota=
+    '<p class="p0-nota"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'+
+      '<strong>Cómo se calcula.</strong> La propuesta es la industria y la venta propia mezcladas: la venta pesa '+pesoPct+' % (tope 75 %). '+
+      'Ese peso crece con las ventas confirmadas —'+n(D.ventasConfirmadas)+' en '+D.dias+' días, que cuentan como '+n(muestra)+' ventas independientes porque un cliente '+
+      'suele llevarse varias prendas— y la industria pesa como 50. Las ventas «sin registrar» llevan la categoría puesta a mano y no cuentan hasta '+
+      'regularizarlas. La venta nunca gobierna sola: un grupo vende más porque cuelga más, así que repetir lo que ya hay no es una razón para dejarlo igual. '+
+      'El rango de «Venta propia» dice cuánto puede moverse esa cifra solo por azar con tan pocas ventas: un grupo que no vendió nada puede estar en realidad en varios puntos más de lo que dice el cero.'+
+    '</p>';
+
+  root.innerHTML=cifras+aviso+riel+mancuerna+tabla+fuera+nota;
+
+  /* ---------- interacción del riel: apuntar o tocar un grupo lo resalta en las dos barras y en la leyenda ---------- */
+  var hover=null,fijo=null,abierto=false,dib=null;
+  function foco(){return fijo||hover}
+  function pintar(){
+    var f=foco();
+    root.querySelectorAll('.p0-riel [data-g]').forEach(function(el){
+      var es=el.dataset.g;
+      if(el.classList.contains('p0-tr')){el.classList.toggle('p0-ap',!!f&&es!==f);el.classList.toggle('p0-on',es===f)}
+      el.setAttribute('aria-pressed',String(fijo===es));
+    });
+    if(abierto&&dib)dib();
+  }
+  var riEl=root.querySelector('.p0-riel');
+  riEl.addEventListener('mouseover',function(e){var t=e.target.closest('[data-g]');if(t){hover=t.dataset.g;pintar()}});
+  riEl.addEventListener('mouseout',function(e){var t=e.target.closest('[data-g]');if(!t)return;var r=e.relatedTarget&&e.relatedTarget.closest?e.relatedTarget.closest('[data-g]'):null;if(!r){hover=null;pintar()}});
+  riEl.addEventListener('focusin',function(e){var t=e.target.closest('[data-g]');if(t){hover=t.dataset.g;pintar()}});
+  riEl.addEventListener('focusout',function(e){var t=e.target.closest('[data-g]');if(t){hover=null;pintar()}});
+  riEl.addEventListener('click',function(e){
+    var t=e.target.closest('[data-g]');
+    if(t){fijo=fijo===t.dataset.g?null:t.dataset.g;pintar();return}
+    if(e.target.closest('.p0-barra')){fijo=null;pintar()} /* tocar lo libre de la barra suelta el grupo fijo */
+  });
+
+  /* ---------- «Ver cada gancho»: el riel con una prenda por gancho (cerrado de entrada) ---------- */
+  var TOKENS=['tinta','pizarra','verde','ambar','taupe','sand'];
+  function asignar(porGrupo){
+    var total=Math.max(0,Math.floor(cap)),g=new Array(total).fill(-1),sig=0;
+    porGrupo.forEach(function(v,i){var p=Math.max(0,Math.floor(v)),caben=Math.min(p,total-sig);for(var k=0;k<caben;k++)g[sig+k]=i;sig+=caben});
+    return g;
+  }
+  function cuadricula(cuantos,ancho){
+    var a=Math.max(100,Math.floor(ancho)),t=Math.max(1,Math.floor(cuantos)),cols=Math.max(12,Math.floor(a/14));
+    if(Math.ceil(t/cols)>24)cols=Math.ceil(t/24);
+    var filas=Math.ceil(t/cols);return{columnas:cols,filas:filas,ancho:a,alto:Math.ceil(filas*(a/cols)*1.5)+6};
+  }
+  function color(tok){return getComputedStyle(document.documentElement).getPropertyValue('--color-'+tok).trim()||'currentColor'}
+  function dibujarRiel(cv,ganchos,ancho,f,atenuado){
+    var g=cuadricula(ganchos.length,ancho),dpr=window.devicePixelRatio||1;
+    cv.width=Math.floor(g.ancho*dpr);cv.height=Math.floor(g.alto*dpr);cv.style.width=g.ancho+'px';cv.style.height=g.alto+'px';
+    var ctx=cv.getContext('2d');if(!ctx)return;
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,g.ancho,g.alto);
+    var cw=g.ancho/g.columnas,rh=cw*1.5,linea=color('sand'),libre=color('taupe'),cols=TOKENS.map(color);
+    for(var r=0;r<g.filas;r++){
+      var y=3+r*rh;ctx.strokeStyle=linea;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(g.ancho,y);ctx.stroke();
+      for(var c=0;c<g.columnas;c++){
+        var i=r*g.columnas+c;if(i>=ganchos.length)break;
+        var gr=ganchos[i],x=c*cw+cw/2,w=cw*0.74,h=Math.min(rh*0.74,w*1.25),y0=y+3;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y0);ctx.strokeStyle=linea;ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-0.2*w,y0);ctx.lineTo(x+0.2*w,y0);ctx.lineTo(x+0.5*w,y0+0.22*h);ctx.lineTo(x+0.5*w,y0+h);ctx.lineTo(x-0.5*w,y0+h);ctx.lineTo(x-0.5*w,y0+0.22*h);ctx.closePath();
+        var apagado=f>=0&&gr!==f,base=atenuado?0.55:1;
+        if(gr<0){ctx.globalAlpha=f>=0?0.15:0.45;ctx.strokeStyle=libre;ctx.lineWidth=1;ctx.stroke()}
+        else{
+          ctx.globalAlpha=(apagado?0.14:1)*base;ctx.fillStyle=cols[((gr%6)+6)%6];ctx.fill();
+          if(TOKENS[((gr%6)+6)%6]==='sand'){ctx.globalAlpha*=0.45;ctx.fillStyle=libre;ctx.fill()}
+        }
+        ctx.globalAlpha=1;
+      }
+    }
+  }
+  var panel=root.querySelector('#p0-ganchos'),boton=root.querySelector('.p0-ver'),botonT=root.querySelector('.p0-ver-t');
+  function indiceDe(clave){return clave===null?-1:G.findIndex(function(g){return g.clave===clave})}
+  function montarGanchos(){
+    var hoyG=asignar(G.map(function(g){return g.hoy})),proG=asignar(G.map(function(g){return g.propuesta}));
+    function bloque(titulo,nota,ganchos,campo,atenuado){
+      return {titulo:titulo,nota:nota,ganchos:ganchos,campo:campo,atenuado:atenuado};
+    }
+    var defs=[bloque('Hoy',notaHoy,hoyG,'hoy',!cuadrado),bloque('Propuesta',notaPro,proG,'propuesta',false)];
+    panel.innerHTML='<p class="p0-t12">Cada gancho es una prenda y los dos rieles tienen la misma capacidad.</p>'+
+      defs.map(function(d,k){return '<div><div class="p0-bl"><b>'+d.titulo+'</b><span>'+d.nota+'</span></div><div class="p0-cv"><canvas role="img" aria-label="'+(k?resumenPro:resumenHoy)+'"></canvas></div></div>'}).join('');
+    var cvs=panel.querySelectorAll('canvas');
+    dib=function(){
+      var f=indiceDe(foco());var ancho=panel.clientWidth;if(!ancho)return;
+      cvs.forEach(function(cv,k){dibujarRiel(cv,k?proG:hoyG,ancho,f,defs[k].atenuado)});
+    };
+    cvs.forEach(function(cv,k){
+      var ganchos=k?proG:hoyG,campo=defs[k].campo;
+      function grupoEn(e){
+        var r=cv.getBoundingClientRect(),g=cuadricula(ganchos.length,r.width);
+        var col=Math.floor((e.clientX-r.left)/r.width*g.columnas),fila=Math.floor((e.clientY-r.top-3)/(g.ancho/g.columnas*1.5));
+        if(col<0||col>=g.columnas||fila<0||fila>=g.filas)return null;
+        var i=fila*g.columnas+col;return i<ganchos.length?ganchos[i]:null;
+      }
+      var tip=null;
+      cv.addEventListener('mousemove',function(e){
+        var gi=grupoEn(e),r=cv.getBoundingClientRect();
+        if(gi===null||gi<0){hover=null;if(tip){tip.remove();tip=null}pintar();return}
+        hover=G[gi].clave;pintar();
+        if(!tip){tip=document.createElement('div');tip.className='p0-tip';tip.setAttribute('role','status');cv.parentNode.appendChild(tip)}
+        tip.textContent=G[gi].nombre+' · '+G[gi][campo]+' prendas';
+        tip.style.left=Math.max(4,Math.min(e.clientX-r.left+12,r.width-190))+'px';tip.style.top=(e.clientY-r.top+12)+'px';
+      });
+      cv.addEventListener('mouseleave',function(){hover=null;if(tip){tip.remove();tip=null}pintar()});
+      cv.addEventListener('click',function(e){var gi=grupoEn(e);fijo=gi===null||gi<0?null:(fijo===G[gi].clave?null:G[gi].clave);pintar()});
+    });
+  }
+  var ro=null,mo=null;
+  boton.addEventListener('click',function(){
+    abierto=!abierto;boton.setAttribute('aria-expanded',String(abierto));panel.hidden=!abierto;
+    botonT.textContent=abierto?'Ocultar los ganchos':'Ver cada gancho ('+n(cap)+')';
+    if(abierto){
+      montarGanchos();dib();
+      if(window.ResizeObserver){ro=new ResizeObserver(function(){if(abierto&&dib)dib()});ro.observe(panel)}
+      mo=new MutationObserver(function(){if(abierto&&dib)dib()});mo.observe(document.documentElement,{attributes:true,attributeFilter:['data-tema']});
+    }else{
+      if(ro){ro.disconnect();ro=null}if(mo){mo.disconnect();mo=null}panel.innerHTML='';dib=null;
+    }
+  });
+})();
+</script>
