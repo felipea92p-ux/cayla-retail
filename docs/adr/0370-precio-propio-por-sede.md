@@ -139,6 +139,10 @@ lo vuelve a romper; con la fila por prenda el estado imposible deja de existir.
 **Datos en producción.** Las vigentes de FAL-0008 (AQP 79.90, TRU 69.90) y POL-0023 (AQP 39.90) pasan una a una; la de AQP en FAL-0008
 es igual al precio de la prenda y se archiva sola. En la caja no cambia ningún cobro.
 
+**En producción (2026-10-11):** Felipe pegó `20261011100000` y `20261011100100`; verificado con lecturas: FAL-0008 TRU 69.90 y AQP 79.90
+(sin precio propio), POL-0023 AQP 39.90 en sus 9 colores (Blanco y Tostado anotados), disparador activo, `precios_sede` sin vigentes.
+`20261011100200` (Cambios y filtro) espera la publicación de la web.
+
 **Pendiente (decisión de Felipe, no se tocó):** un precio de tienda no tiene piso de costo ni el tope de descuento que sí tiene un
 descuento en la caja (la auditoría lo marcó como el riesgo de dinero más alto que queda).
 
