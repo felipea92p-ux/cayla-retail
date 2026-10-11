@@ -404,6 +404,11 @@
   "relkind": "r",
   "rls": true
  },
+ "espacio_piso": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "etiqueta_categorias": {
   "forzado": false,
   "relkind": "r",
@@ -534,12 +539,32 @@
   "relkind": "r",
   "rls": true
  },
+ "orden_compra_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_compra_versiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ordenes_compra": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "parametros_analisis": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "parametros_finanzas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "parametros_liquidacion": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -569,6 +594,16 @@
   "relkind": "r",
   "rls": true
  },
+ "piezas_liquidacion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "piezas_liquidacion_etiquetas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planes_compra": {
   "forzado": false,
   "relkind": "r",
@@ -585,6 +620,11 @@
   "rls": false
  },
  "precios_sede": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "precios_sede_prenda": {
   "forzado": false,
   "relkind": "r",
   "rls": true
