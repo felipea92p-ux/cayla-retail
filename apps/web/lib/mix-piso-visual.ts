@@ -4,18 +4,43 @@
  *
  * Los colores salen SOLO de los tokens de la guía «CAYLA Dynamic» (`app/globals.css`, nunca un hex suelto) y sin el rojo: es «acento sagrado,
  * máximo 2 por pantalla» y aquí pintaría un grupo como si fuera una alerta. Un grupo ocupa el mismo color en TODA la pantalla (se asigna por su
- * posición en la lista de grupos del riel).
+ * posición en la lista de grupos del riel): `claseDeTramo` es su única fuente para barras, leyendas y cuadritos.
  */
 
-/** Los tokens de color de los grupos del riel, en orden. Con más de seis grupos se vuelven a usar. */
+/** Los tokens de color de los grupos del riel, en orden. Con más de seis grupos se vuelven a usar. El sexto es `sand`, que se dibuja distinto según dónde
+ *  esté (ver `CLASES_DE_TRAMO`): es el único que no puede ir liso, porque es el color de la pista y del papel. */
 export const TOKENS_DE_GRUPO = ["tinta", "pizarra", "verde", "ambar", "taupe", "sand"] as const;
 export type TokenDeGrupo = (typeof TOKENS_DE_GRUPO)[number];
 
-/** El mismo color como clases de Tailwind (fondo y el texto que contrasta encima), escritas completas para que el generador las encuentre. */
-export const FONDOS_DE_GRUPO: readonly string[] = ["bg-tinta text-crema", "bg-pizarra text-crema", "bg-verde text-crema", "bg-ambar text-crema", "bg-taupe text-crema", "bg-sand text-tinta"];
-
 export const tokenDeGrupo = (indice: number): TokenDeGrupo => TOKENS_DE_GRUPO[((indice % TOKENS_DE_GRUPO.length) + TOKENS_DE_GRUPO.length) % TOKENS_DE_GRUPO.length]!;
-export const fondoDeGrupo = (indice: number): string => FONDOS_DE_GRUPO[((indice % FONDOS_DE_GRUPO.length) + FONDOS_DE_GRUPO.length) % FONDOS_DE_GRUPO.length]!;
+
+/**
+ * El color de cada grupo como se dibuja en CUALQUIER barra, leyenda o cuadrito de la pantalla (barras del riel, leyenda, Mancuerna, Historia): un grupo, un color
+ * (ADR-0352, actualización 2026-10-10 (b)). Los cinco primeros son su token liso; el sexto era `sand` y dentro de una `<BarraApilada>` sale del color de su propia
+ * pista y de su hilo (un hueco), así que va como `taupe` a 45 %. El canvas de «Ver cada gancho» lo dibuja igual (`dibujar`: arena y encima taupe a 45 %).
+ * Clases escritas completas para que el generador de Tailwind las encuentre.
+ */
+export const CLASES_DE_TRAMO: readonly string[] = ["bg-tinta", "bg-pizarra", "bg-verde", "bg-ambar", "bg-taupe", "bg-taupe/45"];
+export const claseDeTramo = (indice: number): string => CLASES_DE_TRAMO[((indice % CLASES_DE_TRAMO.length) + CLASES_DE_TRAMO.length) % CLASES_DE_TRAMO.length]!;
+
+/** Una cifra como se escribe en Perú: coma de miles y punto decimal («1,800», «4.5»); la misma convención de `resumen-formato.ts`. */
+export const cifraEs = (x: number): string => x.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+
+/** «1 prenda», «30 prendas»: la palabra concuerda con la cifra. */
+export const prendasEs = (x: number): string => `${cifraEs(x)} ${x === 1 ? "prenda" : "prendas"}`;
+
+/**
+ * La línea bajo «Ventas confirmadas»: cuántas ventas firmes hay y cuántas están «sin registrar» (que todavía no cuentan para la propuesta). Dice solo lo que existe:
+ * sin ventas de ningún tipo, «todavía sin ventas»; sin «sin registrar», no menciona un cero.
+ */
+export function lineaDeVentas(confirmadas: number, sinRegistrar: number): string {
+  const c = `${cifraEs(confirmadas)} ${confirmadas === 1 ? "confirmada" : "confirmadas"}`;
+  if (!(sinRegistrar > 0)) return confirmadas > 0 ? c : "todavía sin ventas";
+  return `${c} · ${cifraEs(sinRegistrar)} sin registrar, que aún no ${sinRegistrar === 1 ? "cuenta" : "cuentan"}`;
+}
+
+/** Contra qué se miden las dos barras del riel: la mayor de la capacidad y lo que suma cada una. Si cuelga más de lo que cabe, «Hoy» y «Propuesta» siguen midiendo lo mismo. */
+export const escalaDelRiel = (capacidad: number, ...sumas: number[]): number => Math.max(capacidad, ...sumas.map((s) => (Number.isFinite(s) && s > 0 ? s : 0)));
 
 export type Ganchos = {
   /** Una entrada por gancho de la capacidad: el índice del grupo que lo ocupa, o -1 si está libre. */

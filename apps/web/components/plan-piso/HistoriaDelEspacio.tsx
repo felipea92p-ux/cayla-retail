@@ -5,7 +5,7 @@ import { TABLA, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
 import type { HistoriaDelEspacio as Historia } from "@/lib/espacio-piso";
-import { fondoDeGrupo } from "@/lib/mix-piso-visual";
+import { claseDeTramo } from "@/lib/mix-piso-visual";
 import type { GrupoMix } from "@/lib/plan-piso-grupos";
 
 // Plan del piso ▸ Historia (ADR-0329, actividad 12): las fotos del espacio del piso que el cron guarda cada lunes (3:00 de Lima), por
@@ -117,7 +117,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
  * parezca un cero; una foto «por cuadrar» sale apagada (se guarda igual, pero sin saber lo que cuelga de verdad no sirve para medir).
  */
 function MezclaDelRiel({ fecha, cuadrada, grupos, porGrupo }: { fecha: string; cuadrada: boolean; grupos: GrupoMix[]; porGrupo: Record<string, number> }) {
-  const segmentos = grupos.map((g, i) => ({ clave: g.clave, nombre: g.nombre, valor: porGrupo[g.clave] ?? 0, clase: fondoDeGrupo(i).split(" ")[0] }));
+  const segmentos = grupos.map((g, i) => ({ clave: g.clave, nombre: g.nombre, valor: porGrupo[g.clave] ?? 0, clase: claseDeTramo(i) }));
   const visibles = segmentos.filter((s) => s.valor > 0);
   if (visibles.length === 0) return <span className="text-xs text-taupe">sin datos</span>;
   return (
