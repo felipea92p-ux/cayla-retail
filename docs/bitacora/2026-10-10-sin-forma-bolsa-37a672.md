@@ -1,0 +1,4 @@
+## 2026-10-10 (Bolsas ya tiene forma de bolsa en Catálogo ▸ Categorías)
+Qué hice: le di a Bolsas (prefijo `BOL`) su ícono, una bolsa de compra con el asa que entra al cuerpo (`lib/icono-categoria-reglas.ts`), y a la familia Empaque el suyo, una caja con su cinta (`components/IconoFamilia.tsx`), para que la próxima categoría de Empaque no caiga al círculo; `BOL` entra a la lista de la prueba (43).
+Por qué así: Empaque y Bolsas los creó un Líder desde la pantalla (no hay migración que los traiga), así que ni la categoría ni la familia tenían dibujo y caían al círculo de reserva; el ícono va por prefijo, que no cambia aunque se renombre.
+Felipe se lleva: siguen activas sin dibujo propio, con el ícono de su familia, Accesorios de moda (`ACC`), Capas (`CAP`) y Corsets (`COR`); si quieres, se dibujan igual.

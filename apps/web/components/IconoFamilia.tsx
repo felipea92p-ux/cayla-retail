@@ -82,6 +82,17 @@ export function formasDeFamilia(familia: Familia | null): ReactNode {
           <path d="M9 12h6M9 15.5h6" />
         </>
       );
+    case "empaque":
+      // La caja con su cinta. La familia la creó un Líder desde Familias (2026-10); sin este caso, sus categorías sin dibujo
+      // propio caían al círculo de reserva.
+      return (
+        <>
+          <path d="M12 3 20 7v10l-8 4-8-4V7z" />
+          <path d="M4 7l8 4 8-4" />
+          <path d="M12 11v10" />
+          <path d="M8 5l8 4" />
+        </>
+      );
     default:
       return <circle cx="12" cy="12" r="8.5" />;
   }

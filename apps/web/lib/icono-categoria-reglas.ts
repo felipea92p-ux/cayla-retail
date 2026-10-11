@@ -299,6 +299,14 @@ export const ICONOS_POR_PREFIJO: Readonly<Record<string, readonly FormaIcono[]>>
   UOF: [
     { t: "path", d: "m21.440 11.050-9.190 9.190a6 6 0 0 1-8.490-8.490l8.570-8.570A4 4 0 1 1 18 8.840l-8.590 8.570a2 2 0 0 1-2.830-2.830l8.490-8.480" },
   ],
+
+  // ---------- Empaque (familia creada desde la pantalla, no por migración) ----------
+  // Bolsas: la bolsa de compra, con el asa que entra al cuerpo. No es la cartera (CAR: asa por encima y cierre) ni el bolso
+  // de Accesorios (solapa en V): una asa que termina en el borde de arriba, a 16 px, se lee como un candado.
+  BOL: [
+    { t: "path", d: "M5 8.5h14l-1 12H6z" },
+    { t: "path", d: "M9 11.5V7a3 3 0 0 1 6 0v4.5" },
+  ],
 };
 
 /** Las formas del ícono de una categoría, o `null` si no tiene uno propio (entonces se usa el de su familia). */
