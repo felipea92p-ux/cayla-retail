@@ -4,7 +4,7 @@ import { buscarVendiblePrimero, grupoDeResultado } from "./vender-buscador-regla
 import { hrefApartarDesdeTicket, leerPrendasDeUrl, lineasApartables } from "./apartar-desde-ticket";
 import { dniEnmascarado, lineaDeClienta, terminoBuscable } from "./clienta-ticket-reglas";
 import { precioEscribible } from "./prenda-sin-registrar-reglas";
-import { anchoBarraMeta, haceCuanto, nombreDeEspera, resumenDeHoy } from "./vender-hoy-reglas";
+import { alDiaConElServidor, anchoBarraMeta, conRelectura, haceCuanto, lecturaDelServidor, nombreDeEspera, resumenDeHoy } from "./vender-hoy-reglas";
 
 const prenda = (id: string, referencia: string, stockAqui: number, almacenAqui: number | null = 0) => ({
   varianteId: id,
@@ -86,6 +86,44 @@ describe("resumen de hoy", () => {
     expect(anchoBarraMeta(140)).toBe(100);
     expect(anchoBarraMeta(62)).toBe(62);
     expect(anchoBarraMeta(null)).toBe(0);
+  });
+});
+
+// Hallazgo 2026-10-10: con la cabecera en AQP, «Hoy» sumaba las ventas de TRU. La regla de qué lectura manda (el hook real, con el
+// cambio de sede de punta a punta, se prueba en `useVentasDeHoy.test.ts`).
+describe("de qué sede son las ventas de «Hoy»", () => {
+  const TRU = "tru";
+  const AQP = "aqp";
+  const deTru = [{ total: 5830.08 }];
+  const deAqp = [{ total: 1096.5 }];
+
+  it("sin nada nuevo del servidor, la MISMA lectura (no hace dibujar de nuevo)", () => {
+    const l = lecturaDelServidor(TRU, deTru, null);
+    expect(alDiaConElServidor(l, TRU, deTru, null)).toBe(l);
+  });
+
+  it("llega la lectura de otra sede: manda ella, con su fallo", () => {
+    const l = alDiaConElServidor(lecturaDelServidor(TRU, deTru, null), AQP, deAqp, null);
+    expect(l).toEqual({ ubicacionId: AQP, delServidor: deAqp, ventas: deAqp, fallo: null });
+    expect(alDiaConElServidor(l, TRU, [], "no cargó").fallo).toBe("no cargó");
+  });
+
+  it("una lectura nueva del servidor en la misma sede pisa lo releído en el navegador", () => {
+    const releida = conRelectura(lecturaDelServidor(AQP, deAqp, null), AQP, { ventas: [{ total: 1 }] });
+    const nueva = [{ total: 1176.4 }];
+    expect(alDiaConElServidor(releida, AQP, nueva, null).ventas).toBe(nueva);
+  });
+
+  it("una relectura de la sede de antes no toca nada", () => {
+    const l = lecturaDelServidor(AQP, deAqp, null);
+    expect(conRelectura(l, TRU, { ventas: deTru })).toBe(l);
+    expect(conRelectura(l, TRU, { fallo: "sin red" })).toBe(l);
+  });
+
+  it("una relectura que falla conserva la lista y pone el aviso; la siguiente que responde lo quita", () => {
+    const conAviso = conRelectura(lecturaDelServidor(AQP, deAqp, null), AQP, { fallo: "sin red" });
+    expect(conAviso).toMatchObject({ ventas: deAqp, fallo: "sin red" });
+    expect(conRelectura(conAviso, AQP, { ventas: deAqp }).fallo).toBeNull();
   });
 });
 
