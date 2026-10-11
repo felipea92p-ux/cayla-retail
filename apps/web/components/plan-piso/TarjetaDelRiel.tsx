@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type MouseEvent } from "react";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
-import { cifraEs, prendasEs } from "@/lib/mix-piso-visual";
-import { detalleDeFila, leyendaDeGrupo, type BloqueDelRiel, type Libre, type PanelDelPorQue } from "@/lib/plan-piso-percha";
+import { PorQue } from "@/components/plan-piso/PorQue";
+import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
+import { ariaDeLasFichasDeHoy, etiquetaDeChipHoy, leyendaDeGrupo, rotuloCabe, type BloqueDelRiel, type Libre, type PanelDelPorQue } from "@/lib/plan-piso-percha";
 import { siluetaDe } from "@/lib/plan-piso-siluetas";
 
 // Los dos rieles de perchas del Plan del piso ▸ Propuesta (maqueta A «La percha», ADR-0352 act. 2026-10-11): «Hoy» y «Cómo quedaría», cada uno con las perchas
@@ -21,6 +22,10 @@ type Props = {
   propuesta: BloqueDelRiel[];
   /** Cuántas perchas mide el riel entero: la escala de los dos. */
   escala: number;
+  /** Las perchas del tramo más largo: si no cabe en una fila (celular), la percha se achica en vez de salirse de la tarjeta. */
+  mayor: number;
+  /** ¿La sede ya cuadró su piso? Si no, «hoy» es lo que el sistema CREE y las frases lo dicen. */
+  cuadrado: boolean;
   libre: Libre;
   subHoy: string;
   subPropuesta: string;
@@ -44,16 +49,21 @@ function Percha({ clave, fraccion, i }: { clave: string; fraccion: number; i: nu
   );
 }
 
-export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota }: Props) {
+export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota }: Props) {
   const [sobre, setSobre] = useState<string | null>(null);
   const [fijo, setFijo] = useState<string | null>(null);
-  const [abierto, setAbierto] = useState(false);
-  const idPanel = useId();
   const sel = fijo ?? sobre;
   const grupoSel = sel === null ? undefined : grupos.find((g) => g.clave === sel);
-  const leyenda = grupoSel ? leyendaDeGrupo(grupoSel) : null;
+  const leyenda = grupoSel ? leyendaDeGrupo(grupoSel, cuadrado) : null;
+  // Un grupo sin ninguna percha (0 hoy y 0 en la propuesta) no tiene tramo que resaltar: sin esto, señalarlo bajaba TODOS los tramos y no encendía ninguno.
+  const hayTramo = sel !== null && [...hoy, ...propuesta].some((b) => b.clave === sel);
 
-  const alternar = (clave: string) => setFijo((f) => (f === clave ? null : clave));
+  // Con un toque no hay cursor que siga encima: al soltar lo fijado también se suelta lo señalado (si no, el segundo toque dejaba el resaltado pegado).
+  // El mouse y el teclado no entran aquí: un cursor que sigue encima SÍ sigue señalando el grupo.
+  const alternar = (clave: string, e: MouseEvent) => {
+    setFijo((f) => (f === clave ? null : clave));
+    if ((e.nativeEvent as PointerEvent).pointerType === "touch") setSobre(null);
+  };
   // Un grupo que se señala (con el mouse o el teclado) se resalta; al soltarlo vuelve todo. Lo fijado con un toque manda sobre lo señalado.
   const señas = (clave: string) => ({ onMouseEnter: () => setSobre(clave), onMouseLeave: () => setSobre(null), onFocus: () => setSobre(clave), onBlur: () => setSobre(null) });
   const on = (clave: string) => (sel === clave ? " pp-on" : "");
@@ -69,8 +79,8 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, 
           for (let k = 0; k < b.llenas; k++) perchas.push(<Percha key={k} clave={b.clave} fraccion={1} i={i++} />);
           if (b.resto > 0) perchas.push(<Percha key="resto" clave={b.clave} fraccion={b.resto} i={i++} />);
           return (
-            <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
-              {rotulos && g && <span className="pp-et">{g.corto}</span>}
+            <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} title={g?.nombre} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
+              {rotulos && g && rotuloCabe(b.perchas) && <span className="pp-et">{g.corto}</span>}
               {perchas}
             </div>
           );
@@ -80,14 +90,14 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, 
   }
 
   // La escala de los dos rieles (cuántas perchas mide el entero) y cuántos tramos hay: de ahí sale el ancho de cada percha (`plan-piso.css`).
-  const estiloRiel = vars({ "--total": escala.toFixed(4), "--ng": Math.max(1, grupos.length) });
+  const estiloRiel = vars({ "--total": escala.toFixed(4), "--ng": Math.max(1, grupos.length), "--mayor": Math.max(1, mayor).toFixed(4) });
 
   return (
-    <div className="pp-zona" data-sel={sel ?? undefined} onMouseLeave={() => setSobre(null)}>
+    <div className="pp-zona" data-sel={hayTramo ? sel : undefined} onMouseLeave={() => setSobre(null)}>
       <div className="pp-riel" data-riel="hoy">
         <div className="pp-rcab">
           <div className="pp-rtit">
-            <span className="pp-etq">Hoy</span>
+            <h3 className="pp-etq">Hoy</h3>
             <span className="pp-rsub">{subHoy}</span>
           </div>
         </div>
@@ -101,10 +111,10 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, 
             </div>
           </div>
         </div>
-        <ul className="pp-chips" aria-label="Prendas de hoy por grupo">
+        <ul className="pp-chips" aria-label={ariaDeLasFichasDeHoy(cuadrado)}>
           {grupos.map((g) => (
             <li key={g.clave}>
-              <button type="button" className={`pp-chip${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} aria-label={`${g.nombre}: ${prendasEs(g.hoy)} hoy`} onClick={() => alternar(g.clave)} {...señas(g.clave)}>
+              <button type="button" className={`pp-chip${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} aria-label={etiquetaDeChipHoy(g, cuadrado)} onClick={(e) => alternar(g.clave, e)} {...señas(g.clave)}>
                 <IconoDeGrupo clave={g.clave} />
                 {g.corto} <b>{cifraEs(g.hoy)}</b>
               </button>
@@ -116,13 +126,10 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, 
       <div className="pp-riel" data-riel="prop">
         <div className="pp-rcab">
           <div className="pp-rtit">
-            <span className="pp-etq">Cómo quedaría</span>
+            <h3 className="pp-etq">Cómo quedaría</h3>
             <span className="pp-rsub">{subPropuesta}</span>
           </div>
-          <button type="button" className="pp-porque" aria-expanded={abierto} aria-controls={idPanel} onClick={() => setAbierto((a) => !a)}>
-            <span className="pp-q" aria-hidden="true">?</span>
-            <span>{textoPorQue}</span>
-          </button>
+          <PorQue texto={textoPorQue} panel={panel} />
         </div>
         <div className="pp-banda">
           <div className="pp-rail" role="img" aria-label={ariaPropuesta} style={estiloRiel}>
@@ -132,36 +139,22 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, 
         <ul className="pp-leyenda" aria-label="Reparto propuesto por grupo">
           {grupos.map((g) => (
             <li key={g.clave}>
-              <button type="button" className={`pp-lg${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} onClick={() => alternar(g.clave)} {...señas(g.clave)}>
+              <button type="button" className={`pp-lg${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} onClick={(e) => alternar(g.clave, e)} {...señas(g.clave)}>
                 <IconoDeGrupo clave={g.clave} />
                 <span className="pp-lg-t">
                   <b>{g.nombre}</b>
                   <small>
-                    {g.propuestaPct === null ? "sin propuesta" : `${cifraEs(g.propuestaPct)} % del riel`} · hoy {cifraEs(g.hoy)}
+                    {g.propuestaPct === null ? "sin propuesta" : `${pctEs(g.propuestaPct)} del riel`} · hoy {cifraEs(g.hoy)}
                   </small>
                 </span>
-                <span className="pp-lg-n">{cifraEs(g.propuesta)}</span>
+                <span className="pp-lg-n">
+                  <span className="sr-only">quedaría con </span>
+                  {cifraEs(g.propuesta)}
+                </span>
               </button>
             </li>
           ))}
         </ul>
-        <div className="pp-panel" id={idPanel} hidden={!abierto}>
-          {panel.parrafos.map((t, k) => (
-            <p key={k}>{t}</p>
-          ))}
-          <div className="pp-pt">Cómo salió cada grupo</div>
-          <ul>
-            {panel.filas.map((f) => (
-              <li key={f.clave}>
-                <b>
-                  {f.nombre}
-                  {f.propuestaPct === null ? "" : ` → ${cifraEs(f.propuestaPct)} %`}
-                </b>
-                {detalleDeFila(f)}
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
 
       <div className="pp-pie">
@@ -175,14 +168,14 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, libre, subHoy, 
             {nota.despues}
           </span>
         </span>
-        <span className="pp-cap" aria-live="polite">
+        <span className="pp-cap">
           {leyenda ? (
             <>
               <b>{leyenda.nombre}</b>
               {leyenda.resto}
             </>
           ) : (
-            "Pasa el cursor o toca un grupo para ver dónde cuelga."
+            "Pasa el cursor, usa Tab o toca un grupo para ver dónde cuelga."
           )}
         </span>
       </div>

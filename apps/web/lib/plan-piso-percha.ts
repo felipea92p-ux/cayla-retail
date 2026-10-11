@@ -52,7 +52,8 @@ export function perchasDe(prendas: number, unidad: number): Perchas {
   const llenas = Math.floor(perchas + 1e-9);
   let resto = perchas - llenas;
   if (resto < MINIMO_DE_PARCIAL) resto = 0;
-  if (p > 0 && llenas === 0 && resto === 0) resto = MINIMO_VISIBLE;
+  // Un grupo con menos de una percha entera nunca baja de `MINIMO_VISIBLE`: así 1, 2 o 3 prendas no dibujan un tramo MÁS ancho que 6 (revisión 2026-10-11).
+  if (p > 0 && llenas === 0 && resto < MINIMO_VISIBLE) resto = MINIMO_VISIBLE;
   return { perchas, llenas, resto };
 }
 
@@ -68,7 +69,15 @@ export function escalaEnPerchas(capacidad: number, sumas: readonly number[], uni
 export type GrupoParaElRiel = { clave: string; nombre: string; hoy: number; propuesta: number };
 /** Un tramo del riel: las perchas de UN grupo, una junto a otra. */
 export type BloqueDelRiel = Perchas & { clave: string; /** La posición del grupo en la lista del riel: de ahí sale su color. */ indice: number; prendas: number };
-export type Rieles = { unidad: number; /** Cuántas perchas mide el riel entero (la escala de los dos). */ escala: number; hoy: BloqueDelRiel[]; propuesta: BloqueDelRiel[] };
+export type Rieles = {
+  unidad: number;
+  /** Cuántas perchas mide el riel entero (la escala de los dos). */
+  escala: number;
+  /** Las perchas del tramo más largo de los dos rieles (al menos 1): el CSS achica la percha si ese tramo no cabe en una fila (celular). */
+  mayor: number;
+  hoy: BloqueDelRiel[];
+  propuesta: BloqueDelRiel[];
+};
 
 /**
  * Los dos rieles de una sede, listos para dibujar. Cada tramo conserva la posición de su grupo (su color) aunque otros no tengan prendas: un
@@ -82,13 +91,20 @@ export function armarRieles(grupos: readonly GrupoParaElRiel[], capacidad: numbe
       const prendas = Number.isFinite(valor(g)) && valor(g) > 0 ? valor(g) : 0;
       return prendas > 0 ? [{ clave: g.clave, indice, prendas, ...perchasDe(prendas, unidad) }] : [];
     });
+  const hoy = bloques((g) => g.hoy);
+  const propuesta = bloques((g) => g.propuesta);
   return {
     unidad,
     escala: escalaEnPerchas(capacidad, [suma((g) => g.hoy), suma((g) => g.propuesta)], unidad),
-    hoy: bloques((g) => g.hoy),
-    propuesta: bloques((g) => g.propuesta),
+    mayor: Math.max(1, ...hoy.map((b) => b.perchas), ...propuesta.map((b) => b.perchas)),
+    hoy,
+    propuesta,
   };
 }
+
+/** Un tramo de menos de esto (en perchas) no lleva rótulo: su nombre no cabe y se vería cortado. Su nombre sigue en la leyenda, en el `title` y en el aria. */
+export const MIN_PERCHAS_PARA_ROTULO = 1.6;
+export const rotuloCabe = (perchas: number): boolean => perchas >= MIN_PERCHAS_PARA_ROTULO;
 
 /** El nombre corto de un grupo, para rotular su tramo: lo que va antes de la primera coma o de «y» («Polos, tops y blusas» → «Polos»). */
 export function nombreCorto(nombre: string): string {
@@ -105,6 +121,16 @@ export function libresDelRiel(capacidad: number, colgadas: number): Libres {
 }
 
 // ── Las frases, en palabras de tienda ─────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Cuánto del riel está ocupado, como se lee: «4 %», y «menos de 1 %» si hay prendas pero el redondeo daría 0 (un 0 diría «no cuelga nada»).
+ * Siempre es lo OCUPADO, nunca lo libre.
+ */
+export function ocupadoEs(colgadas: number, capacidad: number): string {
+  if (!(capacidad > 0) || !(colgadas > 0)) return PCT(0);
+  const pct = Math.round((colgadas / capacidad) * 100);
+  return pct === 0 ? "menos de 1\u00a0%" : PCT(pct);
+}
 
 /** Cómo se llama un llenado, de menos a más. El corte es criterio de lenguaje, no una regla de negocio. */
 export function descripcionDelLlenado(pct: number): string {
@@ -137,10 +163,18 @@ export function fraseDeEstado(e: { colgadas: number; capacidad: number; cuadrado
       : { antes: "Según el sistema cuelgan ", destacado: `${n(deMas)} ${deMas === 1 ? "prenda más" : "prendas más"}`, despues: " de las que caben en el riel.", aclaracion: "Cuadra tu piso y revisa la capacidad." };
   }
   const pct = e.capacidad > 0 ? Math.round((e.colgadas / e.capacidad) * 100) : 0;
-  const desc = descripcionDelLlenado(pct);
+  // Lleno de verdad (ni una prenda más ni menos) no es «casi lleno»; y el número entre paréntesis dice «ocupado»: junto a «lugar libre» se leía como lo libre (revisión 2026-10-11).
+  const desc = e.capacidad > 0 && e.colgadas === e.capacidad ? "lleno" : descripcionDelLlenado(pct);
+  const destacado = ocupadoEs(e.colgadas, e.capacidad);
   return e.cuadrado
-    ? { antes: `Tu riel está ${desc} (`, destacado: PCT(pct), despues: ").", aclaracion: null }
-    : { antes: `Tu riel estaría ${desc} (`, destacado: PCT(pct), despues: ").", aclaracion: aclaracionSinCuadrar };
+    ? { antes: `Tu riel está ${desc} (`, destacado, despues: " ocupado).", aclaracion: null }
+    : { antes: `Tu riel estaría ${desc} (`, destacado, despues: " ocupado).", aclaracion: aclaracionSinCuadrar };
+}
+
+/** Lo que cuelga de categorías «sin grupo»: no entra en la cuenta del riel y la persona tiene que saberlo (revisión 2026-10-11). */
+export function notaDeSinGrupo(colgadas: number): string | null {
+  if (!(colgadas > 0)) return null;
+  return `No cuenta ${prendasEs(colgadas)} de categorías sin grupo: no se sabe si cuelgan en el riel.`;
 }
 
 /** El sobretítulo de la cifra grande. */
@@ -148,8 +182,8 @@ export const etiquetaDeCifra = (cuadrado: boolean) => (cuadrado ? "Hoy cuelgan" 
 
 /** El subtítulo del riel de hoy. */
 export function subtituloDeHoy(e: { colgadas: number; capacidad: number; cuadrado: boolean }): string {
-  const pct = e.capacidad > 0 ? Math.round((e.colgadas / e.capacidad) * 100) : 0;
-  return e.cuadrado ? `${PCT(pct)} del riel` : `según el sistema · ${PCT(pct)} del riel`;
+  const ocupado = ocupadoEs(e.colgadas, e.capacidad);
+  return e.cuadrado ? `${ocupado} del riel` : `según el sistema · ${ocupado} del riel`;
 }
 
 /** El subtítulo del riel de la propuesta. */
@@ -168,16 +202,35 @@ export function bloqueLibre(e: { capacidad: number; colgadas: number; cuadrado: 
 /** La nota de abajo, que explica la escala. */
 export const notaDeEscala = (unidad: number) => ({ antes: "Cada percha = ", unidad: String(unidad), despues: ` prendas. Una percha angosta es menos de ${unidad}.` });
 
-/** La línea que cambia al pasar por un grupo. */
-export function leyendaDeGrupo(g: { nombre: string; hoy: number; propuesta: number; propuestaPct: number | null }): { nombre: string; resto: string } {
-  return { nombre: g.nombre, resto: ` · hoy ${n(g.hoy)} → quedaría ${n(g.propuesta)}${g.propuestaPct === null ? "" : ` (${PCT(g.propuestaPct)})`}` };
+/**
+ * La línea que cambia al pasar por un grupo. Sin cuadrar, «hoy» es lo que el sistema CREE y se dice así, sin flecha: la flecha insinuaría una diferencia
+ * («faltan 166») que la tabla de abajo se niega a dar (revisión 2026-10-11).
+ */
+export function leyendaDeGrupo(g: { nombre: string; hoy: number; propuesta: number; propuestaPct: number | null }, cuadrado: boolean): { nombre: string; resto: string } {
+  const queda = `quedaría ${n(g.propuesta)}${g.propuestaPct === null ? "" : ` (${PCT(g.propuestaPct)})`}`;
+  return { nombre: g.nombre, resto: cuadrado ? ` · hoy ${n(g.hoy)} → ${queda}` : ` · según el sistema hoy ${n(g.hoy)}, ${queda}` };
 }
 
-/** El botón que abre «cómo se calcula»: dice cuánto cuentan las ventas de la sede, sin la palabra «peso». */
-export function textoDelPorQue(e: { ventasConfirmadas: number; pesoPct: number }): string {
-  if (e.ventasConfirmadas <= 0) return "Todavía sin ventas confirmadas · ¿Por qué?";
+/** El nombre que oye quien usa lector de pantalla en cada ficha de «Hoy»: empieza por lo que se lee en el botón («Polos 30») y trae lo que la ficha de abajo dice. */
+export function etiquetaDeChipHoy(g: { nombre: string; corto: string; hoy: number; propuesta: number; propuestaPct: number | null }, cuadrado: boolean): string {
+  const propuesta = g.propuestaPct === null ? "sin propuesta" : `propuesta ${n(g.propuesta)}`;
+  return `${g.corto} ${n(g.hoy)}: ${g.nombre}, ${prendasEs(g.hoy)} hoy${cuadrado ? "" : " según el sistema"}; ${propuesta}`;
+}
+
+/** El nombre de la lista de fichas de «Hoy». */
+export const ariaDeLasFichasDeHoy = (cuadrado: boolean): string => (cuadrado ? "Prendas de hoy por grupo" : "Prendas de hoy por grupo, según el sistema (falta contar el piso)");
+
+/**
+ * El botón que abre «cómo se calcula»: dice cuánto cuentan las ventas de la sede, sin la palabra «peso». Las ventas sin registrar no cuentan y se dicen
+ * aquí, porque son la razón por la que una sede con 215 ventas «casi no usa» sus ventas (revisión 2026-10-11).
+ */
+export function textoDelPorQue(e: { ventasConfirmadas: number; pesoPct: number; ventasSinRegistrar?: number }): string {
+  const sin = e.ventasSinRegistrar ?? 0;
+  const faltan = sin > 0 ? `: faltan registrar ${n(sin)}` : "";
+  if (e.ventasConfirmadas <= 0) return `Todavía sin ventas confirmadas${faltan ? ` (faltan registrar ${n(sin)})` : ""} · ¿Por qué?`;
   const ventas = e.ventasConfirmadas === 1 ? "tu venta" : `tus ${n(e.ventasConfirmadas)} ventas`;
-  return `${e.pesoPct < 15 ? "Casi no usa" : "Usa"} ${ventas} (${PCT(e.pesoPct)}) · ¿Por qué?`;
+  const confirmadas = sin > 0 ? (e.ventasConfirmadas === 1 ? " confirmada" : " confirmadas") : "";
+  return `${e.pesoPct < 15 ? "Casi no usa" : "Usa"} ${ventas}${confirmadas} (${PCT(e.pesoPct)})${faltan} · ¿Por qué?`;
 }
 
 /** Lo que oye quien usa lector de pantalla del riel de hoy (el dibujo es una imagen: aquí van las mismas cifras en texto). */
@@ -194,19 +247,39 @@ export function ariaDeLaPropuesta(grupos: readonly { nombre: string; propuesta: 
   return `Cómo quedaría: ${conPrendas.map((g) => `${g.nombre} ${n(g.propuesta)}`).join(", ")}. En total ${n(repartidas)} de ${n(capacidad)} lugares repartidos.`;
 }
 
-/** La línea de una ficha de «Fuera del riel»: cuánto cuelga, cuánto se vende y la meta de la sede (o que no lo lleva). */
-export function lineaDeFicha(f: { colgadas: number; ventaPct: number | null; meta: { desde: number; hasta: number } | null; noLoLleva: boolean }): string {
+/**
+ * La línea de una ficha de «Fuera del riel»: cuánto cuelga, cuánto se vende y la meta de la sede (o que no lo lleva). El porcentaje de venta va con las
+ * ventas en que se apoya, como en la tabla («0 % (3 ventas)»): un 0 sin su muestra diría «no se vende» sin saberlo (ADR-0214, revisión 2026-10-11).
+ */
+export function lineaDeFicha(f: { colgadas: number; ventaPct: number | null; ventasConfirmadas?: number; meta: { desde: number; hasta: number } | null; noLoLleva: boolean }): string {
   const partes = [prendasEs(f.colgadas)];
-  if (f.ventaPct !== null) partes.push(`vende ${PCT(f.ventaPct)}`);
-  if (f.noLoLleva) partes.push("esta sede no lo lleva");
-  else if (f.meta) partes.push(`meta ${f.meta.desde}–${f.meta.hasta}\u00a0% de la venta`);
+  if (f.noLoLleva) return [...partes, "esta sede no lo lleva"].join(" · ");
+  if (f.ventaPct !== null) {
+    const v = f.ventasConfirmadas;
+    partes.push(`vende ${PCT(f.ventaPct)}${v === undefined ? "" : ` (${n(v)} ${v === 1 ? "venta" : "ventas"})`}`);
+  }
+  if (f.meta) partes.push(`meta ${f.meta.desde}–${f.meta.hasta}\u00a0% de la venta`);
   return partes.join(" · ");
 }
 
 // ── «Cómo se calcula», en palabras ────────────────────────────────────────────────────────────────────────────────────────
 
-export type FilaDelPorQue = { clave: string; nombre: string; propuestaPct: number | null; habitualPct: number | null; ventaPct: number | null; ventas: number };
+export type FilaDelPorQue = { clave: string; nombre: string; propuestaPct: number | null; partidaPct: number | null; ventaPct: number | null; ventas: number };
 export type PanelDelPorQue = { parrafos: string[]; filas: FilaDelPorQue[] };
+
+/** El punto de partida, en palabras de tienda y con su fuente a la vista (no «industria» ni «lo que suele funcionar»: es el surtido de otras tiendas, no su venta). */
+const PUNTO_DE_PARTIDA = "lo que ofrecen Topitop, Estilos y Oechsle en ropa de mujer, ajustado al clima de tu sede";
+
+/**
+ * Qué tan ancho es el rango de una venta (en puntos) y qué se dice de él: ≥ 40 «casi no sabemos», de 20 a 40 «ya hay una idea», menos, nada. Antes la cola
+ * «casi no sabemos» salía siempre y se contradecía con una venta bien medida.
+ */
+function colaDelRango(desde: number, hasta: number): string {
+  const ancho = hasta - desde;
+  if (ancho >= 40) return ": casi no sabemos.";
+  if (ancho >= 20) return ": ya hay una idea, aunque podría variar.";
+  return ".";
+}
 
 /**
  * El panel de «¿Por qué?»: de dónde sale la propuesta, en tres párrafos y una fila por grupo, sin «industria», «peso», «muestra efectiva» ni «Wilson»
@@ -219,19 +292,17 @@ export function panelDelPorQue(p: PropuestaMix, provisional: boolean): PanelDelP
   const sinRegistrar = p.ventasAnotadasDelRiel;
   const parrafos: string[] = [];
 
-  if (capacidad !== null) {
-    parrafos.push(`Cada grupo se lleva una parte de los ${n(capacidad)} lugares del riel. Esa parte mezcla dos cosas: lo que suele funcionar en tiendas de ropa (${PCT(100 - pesoPct)}) y lo que vendiste tú (${PCT(pesoPct)}).`);
-  } else {
-    parrafos.push(`Cada grupo se lleva una parte del riel. Esa parte mezcla dos cosas: lo que suele funcionar en tiendas de ropa (${PCT(100 - pesoPct)}) y lo que vendiste tú (${PCT(pesoPct)}).`);
-  }
+  const reparte = capacidad !== null ? `Cada grupo se lleva una parte de los ${n(capacidad)} lugares del riel.` : "Cada grupo se lleva una parte del riel.";
+  parrafos.push(`${reparte} Esa parte mezcla dos cosas: el punto de partida —${PUNTO_DE_PARTIDA}— (${PCT(100 - pesoPct)}) y lo que vendiste tú (${PCT(pesoPct)}).`);
 
-  // Un grupo con 2 ventas o más y su rango, para que se vea por qué «casi no sabemos».
+  // Un grupo con 2 ventas o más y su rango, para que se vea cuánto se sabe de verdad.
   const ejemplo = p.enRiel.find((f) => f.ventasConfirmadas >= 2 && f.rangoDeVenta !== null && f.ventaPct !== null);
-  const ventasDichas = confirmadas === 0 ? "todavía no hay ventas confirmadas" : `${pesoPct < 15 ? "solo " : ""}hay ${n(confirmadas)} ${confirmadas === 1 ? "venta confirmada" : "ventas confirmadas"}`;
-  let p2 = `Tus ventas pesan ${pesoPct < 15 ? "poco" : "bastante"} porque ${ventasDichas} en ${n(p.dias)} días.`;
+  let p2: string;
+  if (confirmadas === 0) p2 = `Tus ventas todavía no cuentan: no hay ventas confirmadas en ${n(p.dias)} días.`;
+  else p2 = `Tus ventas pesan ${pesoPct < 15 ? "poco" : "bastante"} porque ${pesoPct < 15 ? "solo " : ""}hay ${n(confirmadas)} ${confirmadas === 1 ? "venta confirmada" : "ventas confirmadas"} en ${n(p.dias)} días.`;
   if (sinRegistrar > 0) p2 += ` ${sinRegistrar === 1 ? "La venta sin registrar todavía no cuenta" : `Las ${n(sinRegistrar)} ventas sin registrar todavía no cuentan`}.`;
   if (ejemplo && ejemplo.rangoDeVenta && ejemplo.ventaPct !== null) {
-    p2 += ` Con ${ejemplo.ventasConfirmadas} ventas, «${ejemplo.grupo.nombre}» saldría ${PCT(ejemplo.ventaPct)}, pero podría ser desde ${n(ejemplo.rangoDeVenta.desde)} hasta ${PCT(ejemplo.rangoDeVenta.hasta)}: casi no sabemos.`;
+    p2 += ` Con ${ejemplo.ventasConfirmadas} ventas, «${ejemplo.grupo.nombre}» saldría ${PCT(ejemplo.ventaPct)}, pero podría ser desde ${PCT(ejemplo.rangoDeVenta.desde)} hasta ${PCT(ejemplo.rangoDeVenta.hasta)}${colaDelRango(ejemplo.rangoDeVenta.desde, ejemplo.rangoDeVenta.hasta)}`;
   }
   parrafos.push(p2);
 
@@ -244,16 +315,16 @@ export function panelDelPorQue(p: PropuestaMix, provisional: boolean): PanelDelP
     clave: f.grupo.clave,
     nombre: f.grupo.nombre,
     propuestaPct: f.propuestaPct,
-    habitualPct: f.partidaPct,
+    partidaPct: f.partidaPct,
     ventaPct: f.ventaPct,
     ventas: f.ventasConfirmadas,
   }));
   return { parrafos, filas };
 }
 
-/** Una fila del «Cómo salió cada grupo»: «lo habitual 44 % · tus ventas 40 % (2 ventas)». */
+/** Una fila del «Cómo salió cada grupo»: «punto de partida 44 % · tus ventas 40 % (2 ventas)». Los mismos nombres que la tabla y la mancuerna. */
 export function detalleDeFila(f: FilaDelPorQue): string {
-  const habitual = f.habitualPct === null ? null : `lo habitual ${PCT(f.habitualPct)}`;
+  const partida = f.partidaPct === null ? null : `punto de partida ${PCT(f.partidaPct)}`;
   const ventas = f.ventaPct === null ? "tus ventas: todavía ninguna" : `tus ventas ${PCT(f.ventaPct)} (${f.ventas} ${f.ventas === 1 ? "venta" : "ventas"})`;
-  return [habitual, ventas].filter(Boolean).join(" · ");
+  return [partida, ventas].filter(Boolean).join(" · ");
 }

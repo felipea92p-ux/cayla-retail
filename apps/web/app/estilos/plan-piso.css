@@ -19,7 +19,8 @@
   --grupo-fuera: color-mix(in srgb, var(--color-tinta) 52%, var(--color-papel));
 }
 :root[data-tema="oscuro"] {
-  --grupo-4: color-mix(in srgb, var(--color-taupe) 58%, var(--color-papel));
+  /* 66 % y no 58 %: a 58 la silueta del grupo 4 medía menos de 3:1 sobre la ficha o la tarjeta resaltada (revisión 2026-10-11) */
+  --grupo-4: color-mix(in srgb, var(--color-taupe) 66%, var(--color-papel));
 }
 
 @layer components {
@@ -66,7 +67,9 @@
 
   .pp-rail {
     display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px var(--pp-gap);
-    --paso: clamp(15px, calc((100cqi - 2 * var(--pp-pad) - 2 * var(--pp-banda) - (var(--ng) - 1) * var(--pp-gap) - 8px) / var(--total)), 34px);
+    /* El ancho de una percha: reparte el ancho de la tarjeta entre las perchas del riel entero, entre 15 y 34 px. El piso de 15 px baja si el tramo MÁS LARGO (`--mayor`,
+       en perchas) no cabría en una fila: a 375 px un grupo con más de ~19 perchas se salía de la banda y daba scroll horizontal a la página (revisión 2026-10-11). */
+    --paso: clamp(min(15px, calc((100cqi - 2 * var(--pp-pad) - 2 * var(--pp-banda) - 8px) / var(--mayor, 1))), calc((100cqi - 2 * var(--pp-pad) - 2 * var(--pp-banda) - (var(--ng) - 1) * var(--pp-gap) - 8px) / var(--total)), 34px);
     --gw: calc(var(--paso) * (1 + var(--pp-solape))); --gh: calc(var(--gw) * 1.5);
   }
   .pp-blq { position: relative; flex: none; width: max(3px, calc(var(--paso) * var(--n))); padding-top: 2px; display: flex; align-items: flex-start; }
@@ -74,7 +77,7 @@
   .pp-p {
     flex: none; display: block; width: calc(var(--gw) * var(--f, 1)); height: var(--gh);
     margin-right: calc(var(--gw) * var(--f, 1) * var(--pp-solape) / (1 + var(--pp-solape)) * -1);
-    transform-origin: 50% 0; animation: pp-cuelga 420ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--i, 0), 30) * 14ms);
+    transform-origin: 50% 0; animation: pp-cuelga 300ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--i, 0), 14) * 14ms);
     transition: opacity 220ms var(--ease-cayla);
   }
   .pp-p svg { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -88,7 +91,7 @@
   .pp-libre small { font-size: 12.5px; color: var(--color-tinta-60); max-width: 260px; line-height: 1.35; margin-top: 3px; }
 
   /* el rótulo sobre cada tramo (solo cuando el riel es ancho) */
-  .pp-et { display: none; position: absolute; left: 0; bottom: calc(100% + 7px); font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: clip; }
+  .pp-et { display: none; position: absolute; left: 0; bottom: calc(100% + 7px); font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   @container pp (min-width: 900px) {
     .pp-riel[data-riel="prop"] .pp-blq { margin-top: 22px; }
     .pp-riel[data-riel="prop"] .pp-et { display: block; }
@@ -109,12 +112,14 @@
   /* la leyenda de «Hoy»: una línea de fichas pequeñas */
   .pp-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; list-style: none; }
   .pp-chip {
-    display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 3px 12px 3px 8px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 3px 12px 3px 8px; border-radius: 999px;
     border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 12.5px; line-height: 1.2;
   }
   .pp-chip .pp-ic { width: 15px; height: 19px; }
   .pp-chip b { font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
   .pp-chip:hover, .pp-chip.pp-on { background: color-mix(in srgb, var(--pp-c) 12%, var(--color-papel)); border-color: var(--pp-c); }
+  /* un grupo FIJADO (aria-pressed) tiene cara propia: el filo doble lo distingue de uno que solo se señala con el cursor o el teclado */
+  .pp-chip[aria-pressed="true"], .pp-lg[aria-pressed="true"] { border-color: var(--pp-c); box-shadow: inset 0 0 0 1px var(--pp-c); }
 
   /* la leyenda de «Cómo quedaría» */
   .pp-leyenda { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; }
@@ -145,6 +150,8 @@
   .pp-escala .pp-hg { stroke-width: 1.5; }
   .pp-escala b { color: var(--color-tinta); font-weight: 600; }
   .pp-cap { min-height: 18px; }
+  /* en una tarjeta angosta la frase da dos renglones: se les reserva el lugar y la página no se mueve al señalar un grupo */
+  @container pp (max-width: 560px) { .pp-cap { min-height: 2.8em; } }
   .pp-cap b { color: var(--color-tinta); font-weight: 600; }
 
   /* el botón «¿Por qué?» y su panel «cómo se calcula» */
@@ -156,7 +163,7 @@
   .pp-porque:hover { background: var(--color-sand); }
   .pp-porque[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
   .pp-q { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--color-sand); font-family: var(--font-serif); font-size: 14px; font-weight: 600; line-height: 1; }
-  .pp-panel { background: var(--color-hueso); border-radius: var(--radius-lg); padding: 16px 18px; display: grid; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--color-tinta-60); animation: pp-entra 260ms var(--ease-cayla) both; }
+  .pp-panel { flex: 1 1 100%; background: var(--color-hueso); border-radius: var(--radius-lg); padding: 16px 18px; display: grid; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--color-tinta-60); animation: pp-entra 260ms var(--ease-cayla) both; }
   .pp-panel[hidden] { display: none; }
   .pp-panel p { max-width: 620px; }
   .pp-panel b { color: var(--color-tinta); font-weight: 600; }
@@ -190,6 +197,9 @@
 
   /* el icono de un grupo suelto (en la tabla y la mancuerna) */
   .pp-ic-fila { width: 20px; height: 26px; }
+
+  /* con el dedo, los controles miden 44 px */
+  @media (pointer: coarse) { .pp-chip, .pp-porque { min-height: 44px; } }
 
   @media (prefers-reduced-motion: reduce) {
     .pp-p, .pp-panel { animation: none !important; }

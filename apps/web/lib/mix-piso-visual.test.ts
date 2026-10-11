@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { cifraEs, colorDeGrupo, escalaDeMancuerna, posicionEnEscala, prendasEs } from "./mix-piso-visual";
+import { cifraEs, colorDeGrupo, escalaDeMancuerna, pctEs, posicionEnEscala, prendasEs } from "./mix-piso-visual";
 
 describe("el color de cada grupo del plan del piso (una sola fuente: --grupo-N de plan-piso.css)", () => {
   it("sale de la posición del grupo en el riel", () => {
@@ -25,6 +25,12 @@ describe("el color de cada grupo del plan del piso (una sola fuente: --grupo-N d
 });
 
 describe("cómo se escribe una cifra del plan del piso", () => {
+  it("un porcentaje lleva espacio duro: «4 %» no se parte en dos renglones", () => {
+    expect(pctEs(4)).toBe("4\u00a0%");
+    expect(pctEs(43.8)).toBe("43.8\u00a0%");
+    expect(pctEs(1000)).toBe("1,000\u00a0%");
+  });
+
   it("coma de miles y punto decimal, como en el resto del ERP (nunca «1800» pegado)", () => {
     expect(cifraEs(1800)).toBe("1,800");
     expect(cifraEs(78)).toBe("78");

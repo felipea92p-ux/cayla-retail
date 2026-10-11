@@ -14,6 +14,9 @@ export const colorDeGrupo = (indice: number): string => `var(--grupo-${((indice 
 /** Una cifra como se escribe en Perú: coma de miles y punto decimal («1,800», «4.5»); la misma convención de `resumen-formato.ts`. */
 export const cifraEs = (x: number): string => x.toLocaleString("es-PE", { maximumFractionDigits: 1 });
 
+/** Un porcentaje como se lee en la pantalla: «4 %», con espacio duro para que la cifra y el signo no se partan en dos renglones. */
+export const pctEs = (x: number): string => `${cifraEs(x)}\u00a0%`;
+
 /** «1 prenda», «30 prendas»: la palabra concuerda con la cifra. */
 export const prendasEs = (x: number): string => `${cifraEs(x)} ${x === 1 ? "prenda" : "prendas"}`;
 

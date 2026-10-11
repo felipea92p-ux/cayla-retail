@@ -8,8 +8,10 @@ import {
   armarRieles,
   bloqueLibre,
   descripcionDelLlenado,
+  ariaDeLasFichasDeHoy,
   detalleDeFila,
   escalaEnPerchas,
+  etiquetaDeChipHoy,
   etiquetaDeCifra,
   fraseDeEstado,
   leyendaDeGrupo,
@@ -17,10 +19,14 @@ import {
   libresDelRiel,
   MAX_PERCHAS,
   MINIMO_VISIBLE,
+  MIN_PERCHAS_PARA_ROTULO,
   nombreCorto,
   notaDeEscala,
+  notaDeSinGrupo,
+  ocupadoEs,
   panelDelPorQue,
   perchasDe,
+  rotuloCabe,
   subtituloDeHoy,
   subtituloDeLaPropuesta,
   textoDelPorQue,
@@ -102,6 +108,17 @@ describe("las perchas de un grupo", () => {
     expect(perchasDe(1, 50).llenas).toBe(0);
   });
 
+  it("más prendas nunca dibujan un tramo MÁS angosto: 1, 2 o 3 prendas no son más anchas que 6 (revisión 2026-10-11)", () => {
+    let anterior = 0;
+    for (let prendas = 1; prendas <= 50; prendas++) {
+      const { perchas, llenas, resto } = perchasDe(prendas, 50);
+      const dibujada = llenas + resto;
+      expect(dibujada, `${prendas} prendas`).toBeGreaterThanOrEqual(anterior);
+      anterior = dibujada;
+      expect(perchas).toBeCloseTo(prendas / 50, 9);
+    }
+  });
+
   it("sin prendas no hay percha, y lo que no es una cuenta cuenta cero", () => {
     for (const x of [0, -3, Number.NaN, Number.POSITIVE_INFINITY]) expect(perchasDe(x, 50)).toEqual({ perchas: 0, llenas: 0, resto: 0 });
   });
@@ -137,8 +154,8 @@ describe("la frase del estado, en palabras de tienda y sin afirmar lo que nadie 
   it("sin cuadrar dice «estaría» y aclara que falta contar (AQP: 78 de 1,800 = 4 %)", () => {
     expect(fraseDeEstado({ colgadas: 78, capacidad: 1800, cuadrado: false })).toEqual({
       antes: "Tu riel estaría casi vacío (",
-      destacado: "4 %",
-      despues: ").",
+      destacado: "4\u00a0%",
+      despues: " ocupado).",
       aclaracion: "Falta contar tu piso: lo que cuelga de verdad puede ser mucho más.",
     });
   });
@@ -146,8 +163,28 @@ describe("la frase del estado, en palabras de tienda y sin afirmar lo que nadie 
   it("cuadrada dice «está» y no trae aclaración", () => {
     const f = fraseDeEstado({ colgadas: 450, capacidad: 600, cuadrado: true });
     expect(f.antes).toBe("Tu riel está bastante lleno (");
-    expect(f.destacado).toBe("75 %");
+    expect(f.destacado).toBe("75\u00a0%");
     expect(f.aclaracion).toBeNull();
+  });
+
+  it("el número de la frase es siempre lo OCUPADO («mucho lugar libre (23 % ocupado)», nunca «23 % libre»); lleno de verdad no es «casi lleno»; y 1 prenda no es «0 %»", () => {
+    const mucho = fraseDeEstado({ colgadas: 138, capacidad: 600, cuadrado: true });
+    expect([mucho.antes, mucho.destacado, mucho.despues].join("")).toBe("Tu riel está con mucho lugar libre (23\u00a0% ocupado).");
+    expect(fraseDeEstado({ colgadas: 1800, capacidad: 1800, cuadrado: true }).antes).toBe("Tu riel está lleno (");
+    expect(fraseDeEstado({ colgadas: 1790, capacidad: 1800, cuadrado: true }).antes).toBe("Tu riel está casi lleno (");
+    expect(fraseDeEstado({ colgadas: 1, capacidad: 1800, cuadrado: false }).destacado).toBe("menos de 1\u00a0%");
+    expect(ocupadoEs(0, 1800)).toBe("0\u00a0%");
+    expect(ocupadoEs(1, 1800)).toBe("menos de 1\u00a0%");
+    expect(ocupadoEs(78, 1800)).toBe("4\u00a0%");
+    expect(ocupadoEs(5, 0)).toBe("0\u00a0%");
+    expect(subtituloDeHoy({ colgadas: 1, capacidad: 1800, cuadrado: true })).toBe("menos de 1\u00a0% del riel");
+  });
+
+  it("lo que cuelga de categorías sin grupo no entra en la cuenta del riel y se dice (y con cero no se dice nada)", () => {
+    expect(notaDeSinGrupo(0)).toBeNull();
+    expect(notaDeSinGrupo(-2)).toBeNull();
+    expect(notaDeSinGrupo(1)).toBe("No cuenta 1 prenda de categorías sin grupo: no se sabe si cuelgan en el riel.");
+    expect(notaDeSinGrupo(200)).toBe("No cuenta 200 prendas de categorías sin grupo: no se sabe si cuelgan en el riel.");
   });
 
   it("cada tramo de llenado tiene su palabra", () => {
@@ -177,8 +214,8 @@ describe("la frase del estado, en palabras de tienda y sin afirmar lo que nadie 
   it("los textos sueltos del encabezado y de cada riel", () => {
     expect(etiquetaDeCifra(false)).toBe("Según el sistema, hoy cuelgan");
     expect(etiquetaDeCifra(true)).toBe("Hoy cuelgan");
-    expect(subtituloDeHoy({ colgadas: 78, capacidad: 1800, cuadrado: false })).toBe("según el sistema · 4 % del riel");
-    expect(subtituloDeHoy({ colgadas: 78, capacidad: 1800, cuadrado: true })).toBe("4 % del riel");
+    expect(subtituloDeHoy({ colgadas: 78, capacidad: 1800, cuadrado: false })).toBe("según el sistema · 4\u00a0% del riel");
+    expect(subtituloDeHoy({ colgadas: 78, capacidad: 1800, cuadrado: true })).toBe("4\u00a0% del riel");
     expect(subtituloDeLaPropuesta(1800, true)).toBe("así se repartirían tus 1,800 lugares (provisional)");
     expect(subtituloDeLaPropuesta(1800, false)).toBe("así se repartirían tus 1,800 lugares");
     expect(notaDeEscala(50)).toEqual({ antes: "Cada percha = ", unidad: "50", despues: " prendas. Una percha angosta es menos de 50." });
@@ -193,21 +230,44 @@ describe("la frase del estado, en palabras de tienda y sin afirmar lo que nadie 
   });
 
   it("la línea que cambia al pasar por un grupo", () => {
-    expect(leyendaDeGrupo({ nombre: "Polos, tops y blusas", hoy: 30, propuesta: 788, propuestaPct: 43.8 })).toEqual({ nombre: "Polos, tops y blusas", resto: " · hoy 30 → quedaría 788 (43.8 %)" });
-    expect(leyendaDeGrupo({ nombre: "Jeans", hoy: 3, propuesta: 0, propuestaPct: null }).resto).toBe(" · hoy 3 → quedaría 0");
+    const polos = { nombre: "Polos, tops y blusas", hoy: 30, propuesta: 788, propuestaPct: 43.8 };
+    expect(leyendaDeGrupo(polos, true)).toEqual({ nombre: "Polos, tops y blusas", resto: " · hoy 30 → quedaría 788 (43.8\u00a0%)" });
+    expect(leyendaDeGrupo({ nombre: "Jeans", hoy: 3, propuesta: 0, propuestaPct: null }, true).resto).toBe(" · hoy 3 → quedaría 0");
+  });
+
+  it("sin cuadrar, «hoy» es lo que el sistema cree y no lleva flecha (la flecha insinuaría una diferencia que la tabla no da)", () => {
+    const polos = { nombre: "Polos, tops y blusas", hoy: 30, propuesta: 788, propuestaPct: 43.8 };
+    expect(leyendaDeGrupo(polos, false).resto).toBe(" · según el sistema hoy 30, quedaría 788 (43.8\u00a0%)");
+    expect(leyendaDeGrupo({ nombre: "Jeans", hoy: 3, propuesta: 0, propuestaPct: null }, false).resto).not.toContain("→");
+  });
+
+  it("lo que oye quien usa lector en cada ficha de «Hoy»: empieza por lo que se ve y lleva la propuesta (la línea viva ya no se anuncia sola)", () => {
+    const polos = { nombre: "Polos, tops y blusas", corto: "Polos", hoy: 30, propuesta: 788, propuestaPct: 43.8 };
+    expect(etiquetaDeChipHoy(polos, true)).toBe("Polos 30: Polos, tops y blusas, 30 prendas hoy; propuesta 788");
+    expect(etiquetaDeChipHoy(polos, false)).toBe("Polos 30: Polos, tops y blusas, 30 prendas hoy según el sistema; propuesta 788");
+    expect(etiquetaDeChipHoy({ ...polos, hoy: 1, propuesta: 0, propuestaPct: null }, true)).toBe("Polos 1: Polos, tops y blusas, 1 prenda hoy; sin propuesta");
+    expect(ariaDeLasFichasDeHoy(true)).toBe("Prendas de hoy por grupo");
+    expect(ariaDeLasFichasDeHoy(false)).toContain("según el sistema");
   });
 });
 
 describe("el botón «¿Por qué?» dice cuánto cuentan las ventas, sin la palabra «peso»", () => {
   it("con pocas ventas dice «casi no usa»", () => {
-    expect(textoDelPorQue({ ventasConfirmadas: 5, pesoPct: 6 })).toBe("Casi no usa tus 5 ventas (6 %) · ¿Por qué?");
+    expect(textoDelPorQue({ ventasConfirmadas: 5, pesoPct: 6 })).toBe("Casi no usa tus 5 ventas (6\u00a0%) · ¿Por qué?");
   });
   it("con una sola venta, en singular", () => {
-    expect(textoDelPorQue({ ventasConfirmadas: 1, pesoPct: 3 })).toBe("Casi no usa tu venta (3 %) · ¿Por qué?");
+    expect(textoDelPorQue({ ventasConfirmadas: 1, pesoPct: 3 })).toBe("Casi no usa tu venta (3\u00a0%) · ¿Por qué?");
   });
   it("con ventas de sobra dice «usa»", () => {
-    expect(textoDelPorQue({ ventasConfirmadas: 400, pesoPct: 75 })).toBe("Usa tus 400 ventas (75 %) · ¿Por qué?");
+    expect(textoDelPorQue({ ventasConfirmadas: 400, pesoPct: 75 })).toBe("Usa tus 400 ventas (75\u00a0%) · ¿Por qué?");
   });
+  it("las ventas sin registrar se dicen: son la razón por la que una sede con 215 ventas casi no usa las suyas", () => {
+    expect(textoDelPorQue({ ventasConfirmadas: 5, pesoPct: 6, ventasSinRegistrar: 210 })).toBe("Casi no usa tus 5 ventas confirmadas (6\u00a0%): faltan registrar 210 · ¿Por qué?");
+    expect(textoDelPorQue({ ventasConfirmadas: 1, pesoPct: 3, ventasSinRegistrar: 1 })).toBe("Casi no usa tu venta confirmada (3\u00a0%): faltan registrar 1 · ¿Por qué?");
+    expect(textoDelPorQue({ ventasConfirmadas: 0, pesoPct: 0, ventasSinRegistrar: 40 })).toBe("Todavía sin ventas confirmadas (faltan registrar 40) · ¿Por qué?");
+    expect(textoDelPorQue({ ventasConfirmadas: 5, pesoPct: 6, ventasSinRegistrar: 0 })).toBe("Casi no usa tus 5 ventas (6\u00a0%) · ¿Por qué?");
+  });
+
   it("sin ventas lo dice claro y no inventa un porcentaje", () => {
     expect(textoDelPorQue({ ventasConfirmadas: 0, pesoPct: 0 })).toBe("Todavía sin ventas confirmadas · ¿Por qué?");
   });
@@ -227,10 +287,10 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
   it("tres párrafos: de qué se mezcla, por qué las ventas pesan poco y qué todavía no se sabe", () => {
     const { parrafos } = panelDelPorQue(p, true);
     expect(parrafos).toHaveLength(3);
-    expect(parrafos[0]).toBe("Cada grupo se lleva una parte de los 1,800 lugares del riel. Esa parte mezcla dos cosas: lo que suele funcionar en tiendas de ropa (94 %) y lo que vendiste tú (6 %).");
+    expect(parrafos[0]).toBe("Cada grupo se lleva una parte de los 1,800 lugares del riel. Esa parte mezcla dos cosas: el punto de partida —lo que ofrecen Topitop, Estilos y Oechsle en ropa de mujer, ajustado al clima de tu sede— (94\u00a0%) y lo que vendiste tú (6\u00a0%).");
     expect(parrafos[1]).toContain("Tus ventas pesan poco porque solo hay 5 ventas confirmadas en 14 días.");
     expect(parrafos[1]).toContain("Las 210 ventas sin registrar todavía no cuentan.");
-    expect(parrafos[1]).toContain("Con 2 ventas, «Polos, tops y blusas» saldría 40 %, pero podría ser desde 9.1 hasta 81.6 %: casi no sabemos.");
+    expect(parrafos[1]).toContain("Con 2 ventas, «Polos, tops y blusas» saldría 40\u00a0%, pero podría ser desde 9.1\u00a0% hasta 81.6\u00a0%: casi no sabemos.");
     expect(parrafos[2]).toContain("Los 1,800 lugares son provisionales (falta contar el riel).");
     expect(parrafos[2]).toContain("Las 78 prendas de «Hoy» son lo que el sistema cree que cuelga, no lo que hay de verdad.");
   });
@@ -243,10 +303,10 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
   it("una fila por grupo del riel, con su detalle en palabras", () => {
     const { filas } = panelDelPorQue(p, true);
     expect(filas).toHaveLength(6);
-    expect(filas[0]).toEqual({ clave: "polos_tops_blusas", nombre: "Polos, tops y blusas", propuestaPct: 43.8, habitualPct: 44, ventaPct: 40, ventas: 2 });
-    expect(detalleDeFila(filas[0]!)).toBe("lo habitual 44 % · tus ventas 40 % (2 ventas)");
-    expect(detalleDeFila(filas[1]!)).toBe("lo habitual 10 % · tus ventas 0 % (0 ventas)");
-    expect(detalleDeFila({ ...filas[0]!, ventaPct: null, ventas: 0 })).toBe("lo habitual 44 % · tus ventas: todavía ninguna");
+    expect(filas[0]).toEqual({ clave: "polos_tops_blusas", nombre: "Polos, tops y blusas", propuestaPct: 43.8, partidaPct: 44, ventaPct: 40, ventas: 2 });
+    expect(detalleDeFila(filas[0]!)).toBe("punto de partida 44\u00a0% · tus ventas 40\u00a0% (2 ventas)");
+    expect(detalleDeFila(filas[1]!)).toBe("punto de partida 10\u00a0% · tus ventas 0\u00a0% (0 ventas)");
+    expect(detalleDeFila({ ...filas[0]!, ventaPct: null, ventas: 0 })).toBe("punto de partida 44\u00a0% · tus ventas: todavía ninguna");
     expect(detalleDeFila({ ...filas[2]!, ventas: 1 })).toContain("(1 venta)");
   });
 
@@ -261,8 +321,29 @@ describe("«cómo se calcula», en palabras y con los números de la propuesta r
   it("sin ventas confirmadas lo dice y no inventa un ejemplo", () => {
     const sinVentas = aqp({ ventas: [] });
     const { parrafos } = panelDelPorQue(sinVentas, true);
-    expect(parrafos[1]).toContain("todavía no hay ventas confirmadas");
+    expect(parrafos[1]).toContain("Tus ventas todavía no cuentan: no hay ventas confirmadas en 14 días.");
+    expect(parrafos[1]).not.toContain("pesan poco");
     expect(parrafos[1]).not.toContain("casi no sabemos");
+  });
+
+  it("la cola «casi no sabemos» solo sale cuando el rango es ancho (≥ 40 puntos); si es medio dice que ya hay una idea; si es angosto, nada", () => {
+    const ancho = (desde: number, hasta: number) => {
+      const base = aqp();
+      const enRiel = base.enRiel.map((f, i) => (i === 0 ? { ...f, ventasConfirmadas: 30, ventaPct: 36.1, rangoDeVenta: { desde, hasta } } : f));
+      return panelDelPorQue({ ...base, enRiel }, true).parrafos[1]!;
+    };
+    expect(ancho(9.1, 81.6)).toContain("hasta 81.6\u00a0%: casi no sabemos.");
+    expect(ancho(24.8, 49.3)).toContain("hasta 49.3\u00a0%: ya hay una idea, aunque podría variar.");
+    expect(ancho(30, 42)).toMatch(/hasta 42\u00a0%\.$/);
+    expect(ancho(30, 42)).not.toContain("casi no sabemos");
+    expect(ancho(30, 42)).not.toContain("ya hay una idea");
+  });
+
+  it("el panel nombra el punto de partida con su fuente y no afirma que «suele funcionar»", () => {
+    const todo = panelDelPorQue(p, true).parrafos.join(" ");
+    expect(todo).toContain("Topitop, Estilos y Oechsle");
+    expect(todo).not.toContain("suele funcionar");
+    expect(todo).not.toContain("lo habitual");
   });
 
   it("con una sola venta confirmada habla en singular y tampoco inventa un ejemplo", () => {
@@ -319,6 +400,22 @@ describe("los dos rieles de una sede, listos para dibujar", () => {
   });
 });
 
+describe("el tramo más largo y qué tramos llevan rótulo", () => {
+  it("`mayor` es el tramo más largo de los dos rieles (al menos 1) y deja que el celular achique la percha si no cabe en una fila", () => {
+    const aqp1 = armarRieles([{ clave: "a", nombre: "A", hoy: 30, propuesta: 788 }, { clave: "b", nombre: "B", hoy: 3, propuesta: 169 }], 1800);
+    expect(aqp1.mayor).toBeCloseTo(788 / 50, 9);
+    expect(armarRieles([], 1800).mayor).toBe(1);
+    expect(armarRieles([{ clave: "a", nombre: "A", hoy: 2, propuesta: 3 }], 1800).mayor).toBe(1);
+  });
+
+  it("un tramo angosto no lleva rótulo (no cabe y se vería cortado); su nombre sigue en la leyenda, el title y el aria", () => {
+    expect(rotuloCabe(MIN_PERCHAS_PARA_ROTULO)).toBe(true);
+    expect(rotuloCabe(MIN_PERCHAS_PARA_ROTULO - 0.01)).toBe(false);
+    expect(rotuloCabe(15.76)).toBe(true);
+    expect(rotuloCabe(0.1)).toBe(false);
+  });
+});
+
 describe("el nombre corto con el que se rotula cada tramo", () => {
   it("lo que va antes de la primera coma o de «y»", () => {
     expect(nombreCorto("Polos, tops y blusas")).toBe("Polos");
@@ -352,11 +449,17 @@ describe("la línea de cada ficha de «Fuera del riel»", () => {
   it("cuánto cuelga, cuánto se vende y la meta", () => {
     expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% · meta 16–18\u00a0% de la venta");
   });
+  it("el porcentaje de venta lleva las ventas en que se apoya, como la tabla: un 0 sin su muestra diría «no se vende» sin saberlo", () => {
+    expect(lineaDeFicha({ colgadas: 11, ventaPct: 0, ventasConfirmadas: 0, meta: { desde: 16, hasta: 18 }, noLoLleva: false })).toBe("11 prendas · vende 0\u00a0% (0 ventas) · meta 16–18\u00a0% de la venta");
+    expect(lineaDeFicha({ colgadas: 4, ventaPct: 16.7, ventasConfirmadas: 1, meta: null, noLoLleva: false })).toBe("4 prendas · vende 16.7\u00a0% (1 venta)");
+  });
   it("sin ventas confirmadas no inventa un porcentaje, y una sola prenda va en singular", () => {
     expect(lineaDeFicha({ colgadas: 1, ventaPct: null, meta: { desde: 6, hasta: 8 }, noLoLleva: false })).toBe("1 prenda · meta 6–8\u00a0% de la venta");
   });
   it("una sede que no lo lleva lo dice (LIM no tiene bolsos ni calzado)", () => {
     expect(lineaDeFicha({ colgadas: 0, ventaPct: null, meta: null, noLoLleva: true })).toBe("0 prendas · esta sede no lo lleva");
+    // «vende 0 %» junto a «no lo lleva» es ruido: la sede ni lo tiene
+    expect(lineaDeFicha({ colgadas: 0, ventaPct: 0, ventasConfirmadas: 0, meta: { desde: 6, hasta: 8 }, noLoLleva: true })).toBe("0 prendas · esta sede no lo lleva");
   });
   it("sin meta ni «no lo lleva» solo dice lo que hay", () => {
     expect(lineaDeFicha({ colgadas: 4, ventaPct: 12.5, meta: null, noLoLleva: false })).toBe("4 prendas · vende 12.5\u00a0%");
