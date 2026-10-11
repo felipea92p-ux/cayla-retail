@@ -37,6 +37,9 @@ import {
   type PrendaLlegada,
 } from "@/lib/llegada-reglas";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { useConteoPorSede } from "@/components/recibir/ConteoPorSede";
+import { llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
 import { Desplegable } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -50,6 +53,16 @@ export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null;
 
 type Lectura = { bueno: boolean; texto: string; varianteId?: string; crear?: boolean };
 type Recibido = { lineas: LineaLlegada[]; unidades: number; loteId: string | null; sinConexion?: boolean };
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11). El token viaja con lo escaneado: es la misma
+ *  llegada, y reintentarla no la duplica. */
+type ConteoDeLaLlegada = {
+  proveedorId: string;
+  numeroGuia: string;
+  lineas: LineaLlegada[];
+  sinFactura: string[];
+  agregados: ProveedorLlegada[];
+  token: string;
+};
 
 const ID_BUSCADOR = "llegada-buscador";
 
@@ -94,9 +107,12 @@ export function LlegoMercaderia({
   veExistencias: boolean;
 }) {
   const router = useRouter();
-  const [proveedorId, setProveedorId] = useState("");
-  const [numeroGuia, setNumeroGuia] = useState("");
-  const [lineas, setLineas] = useState<LineaLlegada[]>([]);
+  // Lo escaneado es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se escaneó en
+  // otra sede quedó guardado en `ConteoPorSede`. Si se vuelve a una sede con algo escaneado, se arranca desde ahí.
+  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useConteoPorSede<ConteoDeLaLlegada>(ubicacionId);
+  const [proveedorId, setProveedorId] = useState(guardado?.proveedorId ?? "");
+  const [numeroGuia, setNumeroGuia] = useState(guardado?.numeroGuia ?? "");
+  const [lineas, setLineas] = useState<LineaLlegada[]>(guardado?.lineas ?? []);
   const [busqueda, setBusqueda] = useState("");
   const [enBuscador, setEnBuscador] = useState(false);
   const [lectura, setLectura] = useState<Lectura | null>(null);
@@ -105,14 +121,14 @@ export function LlegoMercaderia({
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   const [ok, setOk] = useState<Recibido | null>(null);
   // Los proveedores para los que ya se contestó «No, sin factura» (la pregunta no vuelve a insistir con ese proveedor).
-  const [sinFactura, setSinFactura] = useState<string[]>([]);
+  const [sinFactura, setSinFactura] = useState<string[]>(guardado?.sinFactura ?? []);
   // Los proveedores que se agregaron aquí mismo: salen en el combo y quedan elegidos sin esperar a que la página relea el directorio.
-  const [agregados, setAgregados] = useState<ProveedorLlegada[]>([]);
+  const [agregados, setAgregados] = useState<ProveedorLlegada[]>(guardado?.agregados ?? []);
   const [agregando, setAgregando] = useState(false);
   const buscador = useRef<HTMLInputElement>(null);
   const formulario = useRef<HTMLFormElement>(null);
   // Doble clic (ADR-0190): un token por intento; se renueva solo al guardar bien.
-  const token = useRef<string>(crypto.randomUUID());
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
   // Si fueron a crear una prenda nueva en otra pestaña, al volver se relee el catálogo (la lista de aquí no se pierde).
   const fueACrear = useRef(false);
   const colaOffline = useColaRecibir();
@@ -143,6 +159,26 @@ export function LlegoMercaderia({
     facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
+
+  // «¿Salir sin guardar?» (2026-10-11): lo escaneado se perdía en silencio al tocar el menú. Llegó junto con guardar lo de cada
+  // sede: lo guardado en otra sede solo vive mientras se siga en Recibir, así que salir también lo pierde y también pregunta.
+  const contado = llegadaContada({ lineas, numeroGuia });
+  const avisoSalida = useSalidaSinGuardar(
+    !ok && (contado || guardadosEnOtras.length > 0),
+    mensajeDeSalida(contado ? "Hay prendas escaneadas que todavía no se recibieron. Si sales ahora, se pierde lo escaneado." : null, guardadosEnOtras),
+  );
+  // Lo escaneado, al día, para `ConteoPorSede`: si la sede cambia, queda guardado en ESTA sede.
+  useEffect(() => {
+    reportarConteo(
+      !ok && contado
+        ? {
+            etiqueta: ubicacionEtiqueta,
+            unidades: unidadesDeLaLlegada(lineas),
+            conteo: { proveedorId, numeroGuia, lineas, sinFactura, agregados, token: token.current },
+          }
+        : null,
+    );
+  }, [reportarConteo, ok, contado, ubicacionEtiqueta, proveedorId, numeroGuia, lineas, sinFactura, agregados]);
 
   useEffect(() => {
     const alVolver = () => {
@@ -270,7 +306,9 @@ export function LlegoMercaderia({
     token.current = crypto.randomUUID();
     avisar.exito(`${unidades} ${unidades === 1 ? "prenda recibida" : "prendas recibidas"}`, { detalle: `Ya están en el almacén de ${ubicacionEtiqueta}.` });
     setOk({ lineas, unidades, loteId: (loteId as string | null) ?? null });
-    router.refresh();
+    // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?», como en la recepción contra factura: juntos, Next
+    // podía volver a montar la página y se perdía la pantalla de «Recibida» (2026-10-08).
+    void avisoSalida.retirarYa().then(() => router.refresh());
   }
 
   function otraLlegada() {
@@ -562,6 +600,7 @@ export function LlegoMercaderia({
           onGuardado={alAgregarProveedor}
         />
       )}
+      {avisoSalida.aviso}
     </div>
   );
 }
