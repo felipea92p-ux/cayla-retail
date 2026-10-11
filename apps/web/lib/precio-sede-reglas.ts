@@ -376,6 +376,24 @@ export function textoPonerPrecio(libres: readonly { nombre: string }[], hayPreci
   return hayPrecios ? "Precio distinto en otra tienda" : "Precio distinto en una tienda";
 }
 
+/** Lo que dice la hoja (y la base: «Ese precio queda por debajo de lo que cuesta la prenda») cuando el precio no llega al costo. */
+export const FRASE_BAJO_COSTO = "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña (Catálogo ▸ Atributos ▸ Etiquetas).";
+
+/** ¿El precio queda por debajo de lo que cuesta la talla que MÁS cuesta? Es el piso de la base (Felipe 2026-10-11, como la caja): justo
+ *  en el costo se puede. `costoMaximo` null = no se sabe (quien no ve costos): no se avisa aquí y la base igual lo rechaza. Se compara en
+ *  céntimos, como la base (numeric), no en coma flotante. */
+export function quedaBajoElCosto(precio: number | null, costoMaximo: number | null): boolean {
+  if (precio === null || costoMaximo === null || !(costoMaximo > 0)) return false;
+  return Math.round(precio * 100) < Math.round(costoMaximo * 100);
+}
+
+/** El piso, con su excepción: un precio IGUAL al de la prenda no se rechaza por el costo (es quitar el de la tienda, y la base lo permite
+ *  aunque el costo ya lo supere); para eso la hoja dice «Ese ya es el precio de la prenda». `general` null (precio por talla): sin excepción. */
+export function bajoElCostoSinIgual(precio: number | null, general: number | null, costoMaximo: number | null): boolean {
+  const igual = precio !== null && general !== null && Math.abs(precio - general) < 0.005;
+  return !igual && quedaBajoElCosto(precio, costoMaximo);
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;
@@ -384,18 +402,21 @@ export function camposPonerPrecio(h: {
   motivo: string;
   responsableListo: boolean;
   responsableMotivo: string | null;
+  /** Lo que cuesta la talla activa que MÁS cuesta, si esta cuenta ve costos; null si no (la base lo rechaza igual). */
+  costoMaximo?: number | null;
 }): CampoDeGuia[] {
   const precio = leerMonto(h.monto);
   // «Igual» solo si TODAS las tallas valen eso (`general` es null cuando cambia según la talla): es lo que rechaza la base.
   const igual = precio !== null && h.general !== null && Math.abs(precio - h.general) < 0.005;
+  const bajoCosto = bajoElCostoSinIgual(precio, h.general, h.costoMaximo ?? null);
   return [
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: h.tiendaId !== null, pendiente: "Elige la tienda." },
     {
       id: "precio",
       nombre: "Precio en esta tienda",
       requerido: true,
-      hecho: precio !== null && !igual,
-      pendiente: igual ? "Ese ya es el precio de la prenda: escribe otro." : "Escribe el precio de esta tienda.",
+      hecho: precio !== null && !igual && !bajoCosto,
+      pendiente: igual ? "Ese ya es el precio de la prenda: escribe otro." : bajoCosto ? FRASE_BAJO_COSTO : "Escribe el precio de esta tienda.",
     },
     { id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo.trim().length >= 3, pendiente: "Escribe por qué esta tienda tiene otro precio." },
     { id: "responsable", nombre: "Quién lo cambia", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo cambia." },
