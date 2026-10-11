@@ -1252,6 +1252,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:corregir-prenda-sin-registrar
 
+      # Familias fuera de los motores (bolsas de despacho): `familias.entra_a_motores` nace true para todas las familias que ya
+      # existen, `fn_categoria_entra_a_motores` responde por la familia de la categoría (y true ante lo que no sabe), solo un líder
+      # cambia la marca y la migración se puede cargar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:familias-motores
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:familias-motores
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un
