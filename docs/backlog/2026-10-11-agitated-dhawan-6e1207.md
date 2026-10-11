@@ -18,5 +18,6 @@
   desborde horizontal; consola y servidor sin errores. `vitest` completo (412 archivos), `tsc` y `eslint` limpios.
 - [ ] **Sin probar en producción.** Cómo verificas tú: en Vender, con la sede A, mira «Hoy»; cambia a la sede B con el selector de la
   cabecera, sin recargar: «Hoy» tiene que decir lo mismo que «Ventas de hoy» de B (ábrela: el encabezado dice la sede y el total).
-- [ ] **Aparte, por decidir:** el resto del ticket (prendas, cliente, pagos, descuento) también sobrevive al cambio de sede por la misma
-  razón. No se tocó aquí: es una decisión de negocio (¿se vacía el ticket al cambiar de sede?).
+- [x] **Aparte, por decidir:** el resto del ticket (prendas, cliente, pagos, descuento) también sobrevive al cambio de sede por la misma
+  razón. No se tocó aquí: es una decisión de negocio (¿se vacía el ticket al cambiar de sede?). **Decidido y hecho el 2026-10-11**
+  (Felipe: queda en espera en su sede; ADR-0049 act. 2026-10-11, rama `claude/distracted-knuth-8feca0`).
