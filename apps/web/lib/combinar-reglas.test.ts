@@ -5,8 +5,11 @@ import {
   PAREJAS,
   categoriasQueCombinan,
   claveAnotada,
+  conArticuloDefinido,
   dichoDe,
   fraseCombina,
+  fraseDelColor,
+  fraseDelPapel,
   indiceDeColores,
   motivoDeColor,
   papelDe,
@@ -149,8 +152,8 @@ describe("sugerirCombina", () => {
       ["bolso", "AZM", "directa"],
       ["abrigo", "MAR", "inversa"],
     ]);
-    expect(s[0].porQue).toEqual(["Beige lista Chocolate", "va abajo a un polo", "1 en TRU"]);
-    expect(s[2].porQue[0]).toBe("Marrón lleva Beige");
+    expect(s[0].porQue).toEqual(["Un pantalón va abajo del polo", "El chocolate combina con el beige"]);
+    expect(s[2].porQue).toEqual(["Una casaca va encima del polo", "El marrón combina con el beige"]);
   });
 
   it("las cuatro puertas: sin piso, mismo papel, misma prenda, ya en el ticket, anotada sin registrar, color sin relación", () => {
@@ -213,6 +216,44 @@ describe("sugerirCombina", () => {
     const bolso = { productoId: "cartera", categoriaPrefijo: "CAR", colorCodigo: "BEI" };
     const s = sugerirCombina(bolso, [tarjeta("POL", "CHO", 1), tarjeta("VES", "NEG", 1)], INDICE);
     expect(s.map((x) => x.papel)).toEqual(["superior", "entero"]);
+  });
+});
+
+describe("el «¿Por qué?» habla en tienda (ley 4, ADR-0290)", () => {
+  const PAPELES_PAREJA: Papel[] = ["superior", "inferior", "entero", "abrigo", "calzado", "bolso", "accesorio", "bisuteria"];
+  const DICHOS = ["un polo", "una blusa", "unos botines", "unas botas"];
+  const ANCLAS = ["una falda", "un pantalón", "unos lentes de sol", "unas sandalias"];
+
+  it("toda combinación de papel × forma de decirse es una oración bien armada, sin «a un» ni «a una» ni códigos", () => {
+    for (const papel of PAPELES_PAREJA)
+      for (const sugerida of DICHOS)
+        for (const ancla of ANCLAS) {
+          const frase = fraseDelPapel(papel, sugerida, ancla);
+          expect(frase, `${papel} · ${sugerida} · ${ancla}`).toMatch(
+            /^(Un|Una|Unos|Unas) [a-záéíóú ]+ (va|van|acompaña|acompañan|remata|rematan) ((arriba|abajo|encima) (del|de la|de los|de las)|con (el|la|los|las)|(el|la|los|las)) [a-záéíóú ]+$/
+          );
+          expect(frase).not.toMatch(/ a un| a una| de el /);
+          // Singular con singular, plural con plural.
+          if (/^(unos|unas)/.test(sugerida)) expect(frase).toMatch(/ (van|acompañan|rematan) /);
+          else expect(frase).toMatch(/ (va|acompaña|remata) /);
+        }
+  });
+
+  it("ejemplos que una vendedora puede repetir", () => {
+    expect(fraseDelPapel("superior", "una blusa", "una falda")).toBe("Una blusa va arriba de la falda");
+    expect(fraseDelPapel("inferior", "un pantalón", "un polo")).toBe("Un pantalón va abajo del polo");
+    expect(fraseDelPapel("bolso", "una cartera", "una blusa")).toBe("Una cartera acompaña la blusa");
+    expect(fraseDelPapel("bisuteria", "unos aretes", "un vestido")).toBe("Unos aretes rematan el vestido");
+    expect(fraseDelPapel("calzado", "unas botas", "un pantalón")).toBe("Unas botas van con el pantalón");
+    expect(fraseDelPapel("abrigo", "una casaca", "un polo")).toBe("Una casaca va encima del polo");
+  });
+
+  it("el color se dice con artículo y en minúscula; el tono sobre tono, a secas", () => {
+    expect(fraseDelColor("directa", "Negro", "Beige")).toBe("El negro combina con el beige");
+    expect(fraseDelColor("inversa", "Azul marino", "Rosa pálido")).toBe("El azul marino combina con el rosa pálido");
+    expect(fraseDelColor("mismo", "Beige", "Beige")).toBe("Del mismo tono");
+    expect(conArticuloDefinido("unas sandalias")).toBe("las sandalias");
+    expect(conArticuloDefinido("ropa interior")).toBe("ropa interior");
   });
 });
 

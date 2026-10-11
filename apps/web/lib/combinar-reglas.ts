@@ -108,19 +108,51 @@ export const PAREJAS: Readonly<Record<Papel, readonly Papel[]>> = {
   ninguno: [],
 };
 
-/** Cómo se lee el papel en el «¿Por qué?»: qué hace la prenda sugerida por la que se mira. */
-const QUE_HACE: Readonly<Record<Papel, string>> = {
-  superior: "va arriba",
-  inferior: "va abajo",
-  entero: "es la prenda entera",
-  abrigo: "lo abriga",
-  calzado: "lo calza",
-  bolso: "lo acompaña",
-  accesorio: "lo acompaña",
-  bisuteria: "lo remata",
-  intimo: "",
-  ninguno: "",
-};
+// ── El «¿Por qué?» en español de tienda (Formidable 2026-10-10, ley 4) ────────────────────────────────────────────────────────────
+// Dos oraciones derivadas de la regla, nunca un texto a mano (ADR-0290): «Una blusa va arriba de la falda» y «El negro combina con el
+// beige». La primera versión pegaba «lo acompaña a una blusa» y «Beige lista Negro»: se leía roto y hablaba en el idioma de la
+// ficha. La prueba recorre TODOS los papeles × motivos × géneros y lee cada oración.
+
+/** «una falda» → «la falda», «un polo» → «el polo», «unas botas» → «las botas», «unos botines» → «los botines». Sin artículo, igual. */
+export function conArticuloDefinido(dicho: string): string {
+  return dicho.replace(/^(un|una|unos|unas)\s+/i, (_, art: string) => ({ un: "el ", una: "la ", unos: "los ", unas: "las " })[art.toLowerCase()] ?? "");
+}
+
+const esPlural = (dicho: string) => /^(unos|unas)\s/i.test(dicho);
+const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+/** «de» + «el polo» = «del polo»; con los demás artículos, «de la falda», «de los botines». */
+const de = (conArticulo: string) => (conArticulo.startsWith("el ") ? `del ${conArticulo.slice(3)}` : `de ${conArticulo}`);
+
+/** Qué hace la prenda sugerida por la que se mira, como lo diría la vendedora: «Una cartera acompaña la blusa». */
+export function fraseDelPapel(papelSugerida: Papel, dichoSugerida: string, dichoAncla: string): string {
+  const s = capitalizar(dichoSugerida);
+  const a = conArticuloDefinido(dichoAncla);
+  const plural = esPlural(dichoSugerida);
+  const va = plural ? "van" : "va";
+  switch (papelSugerida) {
+    case "superior":
+      return `${s} ${va} arriba ${de(a)}`;
+    case "inferior":
+      return `${s} ${va} abajo ${de(a)}`;
+    case "abrigo":
+      return `${s} ${va} encima ${de(a)}`;
+    case "bolso":
+    case "accesorio":
+      return `${s} ${plural ? "acompañan" : "acompaña"} ${a}`;
+    case "bisuteria":
+      return `${s} ${plural ? "rematan" : "remata"} ${a}`;
+    case "entero":
+    case "calzado":
+    default:
+      return `${s} ${va} con ${a}`;
+  }
+}
+
+/** «El negro combina con el beige»; tono sobre tono: «Del mismo tono». Los colores van con artículo y en minúscula. */
+export function fraseDelColor(motivo: MotivoColor, colorSugerida: string, colorAncla: string): string {
+  if (motivo === "mismo") return "Del mismo tono";
+  return `El ${colorSugerida.toLowerCase()} combina con el ${colorAncla.toLowerCase()}`;
+}
 
 export function papelDe(prefijo: string | null | undefined): Papel {
   if (!prefijo) return "ninguno";
@@ -194,7 +226,8 @@ export type SugerenciaLook<G = unknown> = {
   motivo: MotivoColor;
   /** Unidades cobrables de la tarjeta (la suma de sus tallas con piso). */
   unidadesAqui: number;
-  /** Tres líneas en lenguaje de tienda, derivadas de la regla: el color, el papel y el piso. */
+  /** Dos líneas en lenguaje de tienda, derivadas de la regla: el papel («Una blusa va arriba de la falda») y el color («El negro
+   *  combina con el beige»). Cuántas hay lo dicen ya la tarjeta y sus casillas. */
   porQue: string[];
 };
 
@@ -318,19 +351,14 @@ export function sugerirCombina<G = unknown>(ancla: AnclaLook, tarjetas: readonly
     const c = candidatas.find((x) => x.papel === papel && !coloresUsados.has(x.tarjeta.colorCodigo!));
     if (!c) continue;
     coloresUsados.add(c.tarjeta.colorCodigo!);
-    const dicho = dichoDe(ancla.categoriaPrefijo) ?? "la prenda";
-    const colorLinea =
-      c.motivo === "directa"
-        ? `${nombreDe(colorAncla)} lista ${nombreDe(c.tarjeta.colorCodigo!)}`
-        : c.motivo === "inversa"
-          ? `${nombreDe(c.tarjeta.colorCodigo!)} lleva ${nombreDe(colorAncla)}`
-          : "tono sobre tono";
+    const dichoAncla = dichoDe(ancla.categoriaPrefijo) ?? "la prenda";
+    const dichoSugerida = dichoDe(c.tarjeta.categoriaPrefijo) ?? "una prenda";
     elegidas.push({
       tarjeta: c.tarjeta,
       papel: c.papel,
       motivo: c.motivo,
       unidadesAqui: c.unidades,
-      porQue: [colorLinea, `${QUE_HACE[c.papel]} a ${dicho}`, `${c.unidades} ${opciones.sede ? `en ${opciones.sede}` : "aquí"}`],
+      porQue: [fraseDelPapel(c.papel, dichoSugerida, dichoAncla), fraseDelColor(c.motivo, nombreDe(c.tarjeta.colorCodigo!), nombreDe(colorAncla))],
     });
   }
   return elegidas;

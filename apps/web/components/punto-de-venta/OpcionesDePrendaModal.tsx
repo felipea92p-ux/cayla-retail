@@ -10,7 +10,7 @@ import { colorInicial, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo 
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
-import { FichaDelColor } from "@/components/ui/FichaDelColor";
+import { ETIQUETA_COMBINA, FichaDelColor } from "@/components/ui/FichaDelColor";
 import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -85,6 +85,9 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
       ancho="max-w-3xl"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
+      // El foco inicial en la hoja, no en el primer control (Formidable 2026-10-10): Radix enfocaba el primer círculo de «Combina bien
+      // con» y lo encendía solo («Negro · hay en el piso» sin que nadie lo tocara).
+      focoEnLaHoja
     >
       {(cerrar) => (
         <>
@@ -121,9 +124,6 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                     </Chip>
                   </span>
                 )}
-                {/* Con qué se combina el color que se mira (pasar por una fila lo anticipa, tocarla lo fija): los compañeros como
-                    círculos, con lo que cuelga aquí primero; la frase del color detrás de «¿Por qué?». Sin ficha, nada. */}
-                <FichaDelColor key={`ficha-${mostrado.clave}`} ficha={fichaDelColorDe?.(varMostrada?.colorCodigo) ?? null} forma="bloque" className="mt-2" />
               </div>
             </div>
 
@@ -183,10 +183,12 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 );
               })}
             </ul>
-            {combinaDe && (
+            {(combinaDe || fichaDelColorDe) && (
               <CombinaBienCon
                 key={elegido.clave}
                 frase={combinaMostrado?.frase ?? null}
+                ficha={fichaDelColorDe?.(varMostrada?.colorCodigo) ?? null}
+                claveColor={mostrado.clave}
                 sugerencias={combinaFijo?.sugerencias ?? []}
                 colorFijo={elegido.color}
                 enTicket={enTicket}
@@ -214,14 +216,19 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
 }
 
 /**
- * «Combina bien con» bajo la lista de colores (Felipe 2026-10-10). En reposo, la frase del color que se mira («Combina bien con un jean o
- * una cartera»): una línea de alto fijo, así pasar por las filas no mueve nada. Con el color FIJADO, hasta 3 prendas que cuelgan aquí,
- * una por papel (`lib/combinar-reglas.ts`): miniatura, nombre, color y cuántas; tocar una despliega sus tallas —las mismas casillas de
- * la lista— y tocar la talla la suma al ticket. «¿Por qué?» a un toque dice el color, el papel y el piso. Sin nada que combine, solo la
- * frase; sin frase, nada: nunca un cartel de «no hay».
+ * «Combina bien con», UN solo bloque bajo la lista de colores (Felipe 2026-10-10; Formidable 2026-10-10: antes había dos «Combina bien
+ * con» en la hoja, uno de colores y otro de prendas, y el ciego no supo cuál era «la prenda que el sistema dice»). En reposo, la frase
+ * del color que se mira («Combina bien con una blusa») y, debajo, «En estos colores:» con los círculos de la ficha (el nombre al pasar o
+ * tocar; «hay en el piso» / «no hay aquí»); las dos líneas tienen alto fijo, así pasar por las filas no mueve nada. Con el color FIJADO,
+ * hasta 3 prendas que cuelgan aquí, una por papel (`lib/combinar-reglas.ts`): miniatura, nombre, color y cuántas; tocar la fila despliega
+ * sus tallas —las mismas casillas de la lista— y tocar la talla la suma al ticket. «¿Por qué?» a un toque dice el papel y el color en
+ * español de tienda («Una blusa va arriba de la falda · El negro combina con el beige»). Sin frase ni colores ni prendas, nada: nunca
+ * un cartel de «no hay». Si no hay frase pero sí ficha, los círculos llevan la etiqueta de siempre («Combina bien con»).
  */
 function CombinaBienCon({
   frase,
+  ficha,
+  claveColor,
   sugerencias,
   colorFijo,
   enTicket,
@@ -229,6 +236,10 @@ function CombinaBienCon({
   recien,
 }: {
   frase: string | null;
+  /** La ficha del color que se mira (sus compañeros); `null` sin ficha. */
+  ficha: FichaDelColorTipo | null;
+  /** La clave del color que se mira: remonta los círculos al cambiar de color (su nombre señalado no se arrastra). */
+  claveColor: string;
   sugerencias: SugerenciaLook<Color>[];
   colorFijo: string | null;
   enTicket: (id: string) => number;
@@ -237,10 +248,12 @@ function CombinaBienCon({
 }) {
   const [abierta, setAbierta] = useState<string | null>(null);
   const [porQueDe, setPorQueDe] = useState<string | null>(null);
-  if (!frase && sugerencias.length === 0) return null;
+  const hayCirculos = (ficha?.companeros.length ?? 0) > 0;
+  if (!frase && !hayCirculos && sugerencias.length === 0) return null;
   return (
     <section className="mt-4" aria-label="Combina bien con">
-      <p className="min-h-5 truncate text-[13px] text-tinta">{frase}</p>
+      {frase && <p className="min-h-5 truncate text-[13px] text-tinta">{frase}</p>}
+      {hayCirculos && <FichaDelColor key={`circulos-${claveColor}`} ficha={ficha} forma="circulos" etiqueta={frase ? "En estos colores:" : ETIQUETA_COMBINA} />}
       {sugerencias.length > 0 && (
         <ul className="@container mt-2 divide-y divide-sand rounded-xl border border-sand bg-papel" aria-label={`Prendas que combinan con ${colorFijo ?? "este color"}`}>
           {sugerencias.map((s, i) => {
@@ -250,28 +263,37 @@ function CombinaBienCon({
             const v = g?.tallas[0]?.variante;
             return (
               <li key={clave} className="anim-entra px-3 py-2" style={{ "--i": i } as CSSProperties}>
-                <div className="flex items-center gap-3">
-                  <MiniaturaPrenda fotoUrl={t.fotoUrl} colorHex={t.colorHex} tamano="md" {...categoriaDe(v)} />
+                <div className="flex items-stretch gap-3">
+                  {/* La fila entera despliega las tallas y lo dice («Ver tallas ›»): el ciego tocó el nombre «buscando cómo agregarla» y
+                      nada avisaba que se abre. Mínimo 44 px de alto: la hoja es de celular (PL-105). */}
                   <button
                     type="button"
                     onClick={() => setAbierta((a) => (a === clave ? null : clave))}
                     aria-expanded={abierta === clave}
-                    className="min-w-0 flex-1 text-left outline-none focus-visible:underline"
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg text-left"
                   >
-                    <span className="block truncate text-[13.5px] font-semibold text-tinta">{t.referencia}</span>
-                    <span className="block truncate text-[12px] text-tinta/60">{t.colorNombre ?? "Sin color"}</span>
+                    <MiniaturaPrenda fotoUrl={t.fotoUrl} colorHex={t.colorHex} tamano="md" {...categoriaDe(v)} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-semibold text-tinta">{t.referencia}</span>
+                      <span className="block truncate text-[12px] text-tinta/70">
+                        {t.colorNombre ?? "Sin color"}
+                        <span className="text-taupe"> · {abierta === clave ? "Ocultar tallas" : "Ver tallas ›"}</span>
+                      </span>
+                    </span>
                   </button>
-                  <Chip tono="pizarra" tachado={false}>
-                    {s.unidadesAqui} aquí
-                  </Chip>
-                  <button
-                    type="button"
-                    onClick={() => setPorQueDe((p) => (p === clave ? null : clave))}
-                    aria-expanded={porQueDe === clave}
-                    className="btn-cayla btn-enlace !px-0 text-[12px]"
-                  >
-                    {porQueDe === clave ? "Cerrar" : "¿Por qué?"}
-                  </button>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <Chip tono="pizarra" tachado={false}>
+                      {s.unidadesAqui} aquí
+                    </Chip>
+                    <button
+                      type="button"
+                      onClick={() => setPorQueDe((p) => (p === clave ? null : clave))}
+                      aria-expanded={porQueDe === clave}
+                      className="btn-cayla btn-enlace inline-flex min-h-7 items-center !px-0 text-[12px] pointer-coarse:min-h-11"
+                    >
+                      {porQueDe === clave ? "Cerrar" : "¿Por qué?"}
+                    </button>
+                  </span>
                 </div>
                 {porQueDe === clave && <p className="anim-revelar mt-1.5 pl-14 text-[12px] text-tinta/70">{s.porQue.join(" · ")}</p>}
                 {abierta === clave && g && (
