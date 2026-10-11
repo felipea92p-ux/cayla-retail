@@ -140,9 +140,9 @@ estado de todo componente cliente cuya `key` siga igual. Las dos puertas de Reci
 - **Contra factura** (`RecepcionEnvio`): la sede vivía además en un `useState(ubicacionInicialId)` que nunca se ponía al día. Tras
   pasar de Lima a Trujillo, «Entra al almacén de» quedaba en blanco (buscaba Lima en una lista que solo tenía Trujillo), el
   responsable se elegía entre la gente de Lima, y `recibir_envio` salía con `p_ubicacion_id` de **Lima** junto con las facturas
-  marcadas, las cantidades, lo que llegó fuera de comprobante, las decisiones sobre lo que faltó, la guía y la nota. A un líder
-  la base no le pide que la línea tenga destino en esa sede (`if not v_es_lider and exists (…)`), así que lo contado en una
-  puerta entraba al almacén de otra.
+  marcadas, las cantidades, lo que llegó fuera de comprobante, las decisiones sobre lo que faltó, la guía y la nota. La base no
+  podía notarlo: Lima tenía su parte de la factura pendiente, así que para ella era una recepción válida en Lima aunque la
+  pantalla dijera Trujillo. Lo contado en una puerta entraba al almacén de otra.
 - **«Llegó mercadería»** (`LlegoMercaderia`): lo escaneado en Lima seguía en pantalla en Trujillo y `recibir_lote` lo recibía en
   **Trujillo**.
 
@@ -178,10 +178,11 @@ otra no se pierde con ella. La key del guardián es la vista: lo guardado en una
 una puerta sin la sede en la key o sin su guardián).
 
 **Descartado:** preguntar antes de cambiar de sede (tocaba el selector de la cabecera, que está en todo el ERP, y es un paso más
-cada vez); vaciar con aviso (un clic equivocado borra un conteo largo sin vuelta atrás). **No se tocó la base:** el candado de
-destino de `recibir_envio` sigue sin aplicarse al líder (`if not v_es_lider and exists (…)`, desde
-`20260930124000_recibir_envio_costo_atipico.sql`); con la sede en la key, la pantalla ya no le manda una sede distinta de la que
-muestra. Si la base también debe frenar al líder es una decisión aparte, anotada en el backlog del día.
+cada vez); vaciar con aviso (un clic equivocado borra un conteo largo sin vuelta atrás). **No se tocó la base, y no hace falta:**
+el chequeo temprano de `recibir_envio` (`if not v_es_lider and exists (…)`) se salta para el líder, pero cada línea pasa después por
+`recibir_compras`, cuyo tope por tienda (ADR-0139, `20260919172000_reparto_compra_por_tienda.sql`) vale para todos: rechaza una
+línea sin reparto en esa sede y lo que exceda su parte (consultado en producción el 2026-10-11, solo lectura). Lo que el bug dejaba
+pasar era una recepción dentro de la parte de OTRA sede con la pantalla mostrando la nueva: un error de pantalla, que ya no ocurre.
 
 **Cómo se verificó (2026-10-11, sin base local: Docker se desinstaló a mitad de la sesión).** Una página de ensayo fuera del repo
 montó las dos puertas reales con datos inventados (una factura repartida, 5 para Lima y 3 para Trujillo), la sede en una cookie y
