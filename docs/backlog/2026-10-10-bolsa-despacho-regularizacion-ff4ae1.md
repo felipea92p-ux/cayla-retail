@@ -8,5 +8,5 @@
 - [ ] **Refrescar el volcado del diccionario** (`pnpm datos:refrescar`) cuando el SQL esté en producción: `familias.entra_a_motores` entra ahí.
 - [ ] **Una venta anotada de «Anillos · Blanco · Talla 6» a S/ 1.00** quedó fuera del script a propósito: si era una bolsa, corregirla a mano con «Corregir lo anotado».
 - [ ] **Tres suites con fallo anterior a este trabajo** (misma cifra sin mis cambios): `frescura_lectura` 256/257, `frescura_decisiones` 155/156, `frescura_vara_cayla` 11/12 — datos sucios de la base local compartida; revisar con una base limpia.
-- [ ] **Datos de prueba en la base local compartida:** familia «ZZ Empaque», categoría «ZZ Bolsas» y 4 productos «Zz Bolsa…» (con stock en Tienda Lima), y la migración `20261010231000` aplicada ahí. Retirarlos con `archivar_producto_prueba` si molestan a otra sesión.
+- [ ] **Datos de prueba en la base local compartida:** la familia «ZZ Empaque» y la categoría «ZZ Bolsas» (los 4 productos «Zz Bolsa…» ya están archivados como de prueba con `archivar_producto_prueba`; la base no deja desactivar la categoría mientras tenga productos «activos»), y la migración `20261010231000` aplicada ahí. Inofensivos: ningún motor ni Vender los muestra.
 - [ ] Si más adelante se crean «Cajas» o «Sorpresas», caen en la misma familia y el botón «Agregar bolsa» las listaría: darles su propio botón o renombrar la fila a «Empaque».
