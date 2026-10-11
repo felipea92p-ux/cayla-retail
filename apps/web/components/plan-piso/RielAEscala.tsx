@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { asignarGanchos, cuadriculaDelRiel, fondoDeGrupo, tokenDeGrupo } from "@/lib/mix-piso-visual";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { ChevronDown } from "lucide-react";
+import { BarraApilada, MuestraTramo, type SegmentoBarra } from "@/components/ui/BarraApilada";
+import { asignarGanchos, cifraEs as n, claseDeTramo, cuadriculaDelRiel, escalaDelRiel, prendasEs, tokenDeGrupo } from "@/lib/mix-piso-visual";
 import { suscribirTema, temaDelDocumento } from "@/lib/tema-cliente";
 import { TEMA_POR_DEFECTO } from "@/lib/tema-reglas";
 
-// El riel a ESCALA (Plan del piso ▸ Propuesta, ADR-0329): una prenda es un gancho. Dos rieles con la MISMA capacidad —el de hoy y el de la
-// propuesta— para que se vea lo que una tabla no dice: cuánto del riel está lleno (TRU: 61 de 600) y cómo se reparte entre los grupos. Pasar el
-// cursor (o enfocar con el teclado) por un grupo apaga los demás en los dos rieles; tocarlo lo deja fijo.
+// El riel a ESCALA (Plan del piso ▸ Propuesta, ADR-0329): dos barras con la MISMA capacidad —la de hoy y la de la propuesta— para que se vea lo
+// que una tabla no dice: cuánto del riel está lleno (AQP: 78 de 1,800) y cómo se reparte entre los grupos. Lo libre es la pista de arena, sin
+// dibujar nada: un riel casi vacío son 1,700 contornos iguales que tapan lo único que importa. Pasar el cursor (o enfocar con el teclado) por un
+// grupo apaga los demás en las dos barras; tocarlo lo deja fijo.
 //
-// Es una ayuda para ver, no la fuente: las mismas cifras están en la tabla de abajo, que es lo que lee un lector de pantalla (el canvas lleva su
-// resumen en `aria-label`). Colores: solo tokens de la guía, leídos de las variables de CSS (`--color-*`), y sin movimiento: dibuja y listo.
+// Las barras son `<BarraApilada>` (ADR-0358, la única barra del ERP). El riel con un gancho por prenda —el de ADR-0329— sigue ahí, pero detrás de
+// «Ver cada gancho»: es lo que se abre para ESTAR en el piso, no lo que se necesita para decidir (ADR-0352, actualización 2026-10-10 (b)).
+//
+// Es una ayuda para ver, no la fuente: las mismas cifras están en la tabla de abajo, que es lo que lee un lector de pantalla (las barras y el canvas
+// llevan su resumen en `aria-label`). Colores: solo tokens de la guía, leídos de las variables de CSS (`--color-*`) en el canvas.
 
 export type GrupoDelRiel = { clave: string; nombre: string; hoy: number; propuesta: number };
 
@@ -37,7 +43,6 @@ function dibujar(canvas: HTMLCanvasElement, ganchos: number[], ancho: number, fo
   const rh = cw * 1.5;
   const linea = colorDe("sand");
   const libre = colorDe("taupe");
-  const borde = colorDe("taupe");
   const colores = [0, 1, 2, 3, 4, 5].map((i) => colorDe(tokenDeGrupo(i)));
   for (let r = 0; r < g.filas; r++) {
     const y = 3 + r * rh;
@@ -77,13 +82,16 @@ function dibujar(canvas: HTMLCanvasElement, ganchos: number[], ancho: number, fo
         ctx.stroke();
       } else {
         ctx.globalAlpha = (apagado ? 0.14 : 1) * base;
-        ctx.fillStyle = colores[((grupo % 6) + 6) % 6]!;
-        ctx.fill();
-        // El color más claro (sand) se pierde sobre el papel: lleva un borde.
         if (tokenDeGrupo(grupo) === "sand") {
-          ctx.strokeStyle = borde;
-          ctx.lineWidth = 1;
-          ctx.stroke();
+          // El sexto grupo se dibuja como su tramo en las barras (`claseDeTramo`: taupe a 45 % sobre arena), no como arena lisa que se pierde sobre el papel.
+          ctx.fillStyle = colores[((grupo % 6) + 6) % 6]!;
+          ctx.fill();
+          ctx.globalAlpha *= 0.45;
+          ctx.fillStyle = libre;
+          ctx.fill();
+        } else {
+          ctx.fillStyle = colores[((grupo % 6) + 6) % 6]!;
+          ctx.fill();
         }
       }
       ctx.globalAlpha = 1;
@@ -181,11 +189,79 @@ function Riel({
   );
 }
 
+/** Una barra del riel («Hoy» o «Propuesta»): un tramo por grupo, todos sobre la misma capacidad; lo que no se llena queda de pista (lo libre). */
+function Banda({
+  titulo,
+  cuando,
+  nota,
+  grupos,
+  cifra,
+  escala,
+  resumen,
+  atenuada,
+  retraso,
+  claveEnFoco,
+  claveFija,
+  onApuntar,
+  onElegir,
+  onSoltar,
+}: {
+  titulo: string;
+  /** Cómo se dice de qué barra es cada tramo para el lector de pantalla: «hoy», «en la propuesta» (las dos barras repiten los mismos grupos). */
+  cuando: string;
+  nota: string;
+  grupos: GrupoDelRiel[];
+  cifra: (g: GrupoDelRiel) => number;
+  /** Lo que vale el 100 % de la pista, el MISMO en las dos barras (`escalaDelRiel`): lo que sobra de lo que se llena es lo libre. */
+  escala: number;
+  resumen: string;
+  atenuada: boolean;
+  retraso: number;
+  claveEnFoco: string | null;
+  claveFija: string | null;
+  onApuntar: (clave: string | null) => void;
+  onElegir: (clave: string) => void;
+  /** Se tocó lo libre de la barra (no un tramo): suelta el grupo fijo, como hacía tocar un gancho vacío en el canvas. */
+  onSoltar: () => void;
+}) {
+  const segmentos: SegmentoBarra[] = grupos.map((g, i) => ({
+    clave: g.clave,
+    nombre: g.nombre,
+    valor: cifra(g),
+    clase: claseDeTramo(i),
+    titulo: `${g.nombre} · ${prendasEs(cifra(g))}`,
+    // Sin esto el lector diría «Jeans: 3» en una barra y «Jeans: 169» en la otra, sin decir cuál es cuál ni de qué.
+    etiqueta: `${g.nombre}: ${prendasEs(cifra(g))} ${cuando}. Resaltar este grupo en las dos barras`,
+  }));
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3 text-xs">
+        <span className="font-medium text-tinta">{titulo}</span>
+        <span className="text-right text-taupe">{nota}</span>
+      </div>
+      {/* Una sede que no cuadró su piso dibuja «Hoy» más tenue (lo que cuelga de verdad puede ser muy distinto), como lo hacía el canvas. */}
+      <div className={atenuada ? "opacity-60" : undefined} onClick={(e) => { if (!(e.target as HTMLElement).closest("button")) onSoltar(); }}>
+        <BarraApilada
+          segmentos={segmentos}
+          unidad="ganchos"
+          etiqueta={resumen}
+          total={escala}
+          alto={12}
+          retraso={retraso}
+          respuesta={{ onApuntar, onElegir, elegida: claveFija, resaltada: claveEnFoco }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function RielAEscala({ grupos, capacidad, cuadrado }: { grupos: GrupoDelRiel[]; capacidad: number; cuadrado: boolean }) {
   const caja = useRef<HTMLDivElement>(null);
+  const idGanchos = useId();
   const [ancho, setAncho] = useState(0);
   const [hover, setHover] = useState(-1);
   const [fijo, setFijo] = useState(-1);
+  const [verGanchos, setVerGanchos] = useState(false);
   const foco = fijo >= 0 ? fijo : hover;
 
   useEffect(() => {
@@ -201,37 +277,54 @@ export function RielAEscala({ grupos, capacidad, cuadrado }: { grupos: GrupoDelR
   const hoy = useMemo(() => asignarGanchos(grupos.map((g) => g.hoy), capacidad), [grupos, capacidad]);
   const propuesta = useMemo(() => asignarGanchos(grupos.map((g) => g.propuesta), capacidad), [grupos, capacidad]);
   const pctHoy = capacidad > 0 ? Math.round((hoy.ocupados / capacidad) * 100) : 0;
-  const lista = (cifra: (g: GrupoDelRiel) => number) => grupos.filter((g) => cifra(g) > 0).map((g) => `${g.nombre} ${cifra(g)}`).join(", ");
+  // Las dos barras se miden contra lo mismo: si hoy cuelga más de lo que cabe, la propuesta (que suma la capacidad) queda más corta que «Hoy» en vez de estirarse a su ancho.
+  const escala = escalaDelRiel(capacidad, grupos.reduce((s, g) => s + Math.max(0, g.hoy), 0), grupos.reduce((s, g) => s + Math.max(0, g.propuesta), 0));
+  const lista = (cifra: (g: GrupoDelRiel) => number) => grupos.filter((g) => cifra(g) > 0).map((g) => `${g.nombre} ${n(cifra(g))}`).join(", ");
+  const indiceDe = (clave: string | null) => (clave === null ? -1 : grupos.findIndex((g) => g.clave === clave));
+  const claveDe = (i: number) => (i >= 0 ? (grupos[i]?.clave ?? null) : null);
+  const apuntar = (clave: string | null) => setHover(indiceDe(clave));
+  const elegir = (clave: string) => setFijo((f) => (f === indiceDe(clave) ? -1 : indiceDe(clave)));
+  const notaHoy = cuadrado
+    ? `${n(hoy.ocupados)} de ${n(capacidad)} ganchos ocupados · ${pctHoy} %`
+    : `por cuadrar · ${n(hoy.ocupados)} de ${n(capacidad)} según el sistema`;
+  const resumenHoy = `Riel de hoy: ${n(hoy.ocupados)} de ${n(capacidad)} ganchos ocupados. ${lista((g) => g.hoy)}.`;
+  const resumenPropuesta = `Riel de la propuesta: ${n(propuesta.ocupados)} de ${n(capacidad)} ganchos. ${lista((g) => g.propuesta)}.`;
 
   return (
     <div ref={caja} className="space-y-4">
-      <Riel
+      <Banda
         titulo="Hoy"
-        nota={cuadrado ? `${hoy.ocupados} de ${capacidad} ganchos ocupados · ${pctHoy} %` : `por cuadrar · ${hoy.ocupados} de ${capacidad} según el sistema`}
-        ganchos={hoy.ganchos}
-        ancho={ancho}
-        foco={foco}
-        atenuado={!cuadrado}
-        resumen={`Riel de hoy: ${hoy.ocupados} de ${capacidad} ganchos ocupados. ${lista((g) => g.hoy)}.`}
+        cuando="hoy"
+        nota={notaHoy}
         grupos={grupos}
         cifra={(g) => g.hoy}
-        onFoco={setHover}
-        onFijar={(g) => setFijo((f) => (f === g ? -1 : g))}
+        escala={escala}
+        resumen={resumenHoy}
+        atenuada={!cuadrado}
+        retraso={0}
+        claveEnFoco={claveDe(foco)}
+        claveFija={claveDe(fijo)}
+        onApuntar={apuntar}
+        onElegir={elegir}
+        onSoltar={() => setFijo(-1)}
       />
-      <Riel
+      <Banda
         titulo="Propuesta"
-        nota={`${propuesta.ocupados} de ${capacidad} ganchos`}
-        ganchos={propuesta.ganchos}
-        ancho={ancho}
-        foco={foco}
-        atenuado={false}
-        resumen={`Riel de la propuesta: ${propuesta.ocupados} de ${capacidad} ganchos. ${lista((g) => g.propuesta)}.`}
+        cuando="en la propuesta"
+        nota={`${n(propuesta.ocupados)} de ${n(capacidad)} ganchos`}
         grupos={grupos}
         cifra={(g) => g.propuesta}
-        onFoco={setHover}
-        onFijar={(g) => setFijo((f) => (f === g ? -1 : g))}
+        escala={escala}
+        resumen={resumenPropuesta}
+        atenuada={false}
+        retraso={2}
+        claveEnFoco={claveDe(foco)}
+        claveFija={claveDe(fijo)}
+        onApuntar={apuntar}
+        onElegir={elegir}
+        onSoltar={() => setFijo(-1)}
       />
-      {hoy.deMas > 0 && <p className="text-xs text-taupe">Cuelgan {hoy.deMas} prendas más de las que caben en el riel (no se dibujan: no hay más ganchos).</p>}
+      {hoy.deMas > 0 && <p className="text-xs text-taupe">Cuelgan {n(hoy.deMas)} prendas más de las que caben en el riel (no hay más ganchos).</p>}
       <ul className="flex flex-wrap gap-2" aria-label="Grupos del riel: toca uno para resaltarlo">
         {grupos.map((g, i) => (
           <li key={g.clave}>
@@ -245,15 +338,61 @@ export function RielAEscala({ grupos, capacidad, cuadrado }: { grupos: GrupoDelR
               onClick={() => setFijo((f) => (f === i ? -1 : i))}
               className={`flex items-center gap-2 rounded-[10px] border px-2.5 py-1.5 text-left text-xs transition-colors ${fijo === i ? "border-tinta bg-sand" : "border-sand bg-papel hover:border-taupe/50"}`}
             >
-              <span aria-hidden className={`h-3 w-3 shrink-0 rounded-[3px] ${fondoDeGrupo(i).split(" ")[0]} ${tokenDeGrupo(i) === "sand" ? "border border-taupe/50" : ""}`} />
+              <MuestraTramo clase={claseDeTramo(i)} />
               <span className="text-tinta">{g.nombre}</span>
               <span className="tabular-nums text-taupe">
-                {g.hoy} → {g.propuesta}
+                {n(g.hoy)} → {n(g.propuesta)}
               </span>
             </button>
           </li>
         ))}
       </ul>
+      {/* El riel con un gancho por prenda: lo de siempre, pero cerrado. Con 1,800 ganchos son 960 px de contornos que empujan la respuesta bajo el pliegue. */}
+      <div className="border-t border-sand pt-3">
+        <button
+          type="button"
+          aria-expanded={verGanchos}
+          aria-controls={idGanchos}
+          onClick={() => setVerGanchos((v) => !v)}
+          className="btn-cayla btn-sutil gap-1.5"
+        >
+          <ChevronDown aria-hidden className={`h-4 w-4 transition-transform duration-200 ease-cayla motion-reduce:transition-none ${verGanchos ? "rotate-180" : ""}`} />
+          {verGanchos ? "Ocultar los ganchos" : `Ver cada gancho (${n(capacidad)})`}
+        </button>
+        <div id={idGanchos} hidden={!verGanchos} className="mt-3 space-y-4">
+          {verGanchos && (
+            <>
+              <p className="text-xs text-taupe">Cada gancho es una prenda y los dos rieles tienen la misma capacidad.</p>
+              <Riel
+                titulo="Hoy"
+                nota={notaHoy}
+                ganchos={hoy.ganchos}
+                ancho={ancho}
+                foco={foco}
+                atenuado={!cuadrado}
+                resumen={resumenHoy}
+                grupos={grupos}
+                cifra={(g) => g.hoy}
+                onFoco={setHover}
+                onFijar={(g) => setFijo((f) => (f === g ? -1 : g))}
+              />
+              <Riel
+                titulo="Propuesta"
+                nota={`${n(propuesta.ocupados)} de ${n(capacidad)} ganchos`}
+                ganchos={propuesta.ganchos}
+                ancho={ancho}
+                foco={foco}
+                atenuado={false}
+                resumen={resumenPropuesta}
+                grupos={grupos}
+                cifra={(g) => g.propuesta}
+                onFoco={setHover}
+                onFijar={(g) => setFijo((f) => (f === g ? -1 : g))}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
