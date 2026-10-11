@@ -980,7 +980,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
   → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
-  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
+  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. El ticket es de su sede (ADR-0049, act.
+  2026-10-11): `vender/page.tsx` monta `PuntoDeVenta` con `key={claveDelPuntoDeVenta({ ubicacionId, … })}`
+  (`lib/vender-cambio-de-sede.ts`) dentro de `punto-de-venta/TicketPorSede.tsx` (sin key: sobrevive al `router.refresh()`
+  del selector de sede); `PuntoDeVenta` le reporta su ticket (`useReportarTicket`) y, al cambiar de sede, el de la anterior
+  queda en `cayla:vender:<sede anterior>:en-espera` como «Al cambiar de sede». `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
   `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
   `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de

@@ -67,3 +67,38 @@ espera (crearía movimientos fantasma o un segundo inventario paralelo).
   con un ticket actual de 1 prenda → tope: con 5, el sexto avisa y el actual conserva su
   línea; la lista muestra hora en 24 h, prendas, total y nota → **cerrar caja** (con el OK
   de Felipe): chip fuera y llave borrada.
+
+## Actualización 2026-10-11 — al cambiar de sede, el ticket queda en espera en SU sede (Felipe)
+
+**El problema.** El selector de sede de la cabecera cambia la sede con `router.refresh()`: la ruta no cambia y React conserva el
+estado de todo componente cliente cuya `key` siga igual. Vender montaba `PuntoDeVenta` con la misma key en todas las sedes
+(`"caja"`), así que el ticket armado en Lima (prendas, cliente, nota, medio de pago y comprobante elegidos) quedaba entero en la
+caja de Trujillo, con «Confirmar cobro» encendido. Reproducido en local: el ticket de Lima apareció en Trujillo con «Stock: 0»
+en rojo y el botón activo. La base valida el stock de Trujillo al cobrar, pero si esas prendas también estaban allí, la venta, el
+dinero y la boleta quedaban en la sede equivocada. La espera ya era por sede (su llave lleva la sede); el ticket activo, no.
+
+**La decisión (Felipe, entre vaciarlo, preguntar antes de cambiar o conservarlo):** la caja de la sede nueva arranca vacía y el
+ticket que se deja queda **en la espera de su sede**, con el nombre «Al cambiar de sede» (o «Al cambiar de sede 2», si ya hay
+uno con ese nombre). Un aviso dice «El ticket de Tienda Lima quedó en espera en esa tienda». Al volver, se retoma como cualquier
+ticket en espera (con los precios de ese momento, punto 5).
+
+- Se guarda lo mismo que guarda «Dejar en espera»: prendas (con su descuento adentro), nota y cliente. El medio de pago y el
+  comprobante elegidos no, como nunca los guardó la espera.
+- **Entra aunque la sede ya tenga sus 5 en espera** (punto del tope): el tope frena a quien deja OTRO ticket en el mostrador;
+  aquí nadie lo eligió, y perder un ticket armado es peor que uno de más en la tira.
+- **Una proforma en cobro no se guarda** como ticket suelto: sigue vigente en Proformas y se cobra desde ahí; como ticket
+  suelto perdería el vínculo y se cobraría como una venta nueva.
+- **Salir de Vender** (a Caja, a Apartados, o elegir «Toda la empresa») sigue perdiendo el ticket como siempre: la regla es
+  solo para el cambio de sede con Vender a la vista. También cubre la recarga que trae la sede que eligió otra pestaña.
+
+**Cómo está hecho.** `vender/page.tsx` monta el Punto de venta con `key={claveDelPuntoDeVenta({ ubicacionId, … })}` (la sede
+primero: otra sede, otro montaje) dentro de `<TicketPorSede ubicacionId>` (`components/punto-de-venta/TicketPorSede.tsx`), que
+NO lleva key y por eso sobrevive al cambio. El Punto de venta le reporta su ticket en un efecto cada vez que cambia; cuando la
+sede cambia, `TicketPorSede` escribe el ticket de la anterior en `claveLocal(<sede anterior>, "en-espera")`. Guarda un ticket
+por sede y no uno solo: los efectos del hijo nuevo corren antes que el del padre, y el ticket vacío de la sede nueva pisaría el
+de la que se deja. La regla es pura en `lib/vender-cambio-de-sede.ts`, con su prueba (`vender-cambio-de-sede.test.ts`, que
+además falla si la página vuelve a montar el Punto de venta sin la sede en la key).
+
+**Descartado:** vaciar el ticket a secas (quien cambia de sede por error pierde todo sin aviso); preguntar antes de cambiar
+(una pregunta más cada vez y un puente entre la cabecera y Vender, y aun así hay que decidir qué pasa al confirmar); avisar
+desde el selector con un evento antes de cambiar (no cubre la recarga que trae la sede de otra pestaña).
