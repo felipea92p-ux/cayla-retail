@@ -407,3 +407,15 @@ export function fraseCombina(dichos: readonly string[]): string | null {
   const lista = dichos.length === 1 ? dichos[0] : `${dichos.slice(0, -1).join(", ")} o ${dichos[dichos.length - 1]}`;
   return `${ETIQUETA_COMBINA} ${lista}`;
 }
+
+/**
+ * El chip de una tarjeta sugerida (Formidable 2026-10-10, cambio 1, Felipe): la tarjeta se queda cuando su prenda entra al ticket,
+ * marcada con lo que lleva. Antes de tocarla dice cuántas hay en el piso («2 aquí»); con prendas en el ticket, cuántas lleva y cuántas
+ * quedan («1 en el ticket · 1 aquí»); si ya lleva todas (o el piso bajó por otra venta), solo lo que lleva. Nunca «0 aquí» ni negativos.
+ * `unidadesAqui` es el piso de cuando se sugirió; lo que queda se resta en vivo.
+ */
+export function chipDeTarjeta(unidadesAqui: number, enTicket: number): { texto: string; enTicket: boolean } {
+  if (enTicket <= 0) return { texto: `${unidadesAqui} aquí`, enTicket: false };
+  const quedan = Math.max(0, unidadesAqui - enTicket);
+  return { texto: quedan > 0 ? `${enTicket} en el ticket · ${quedan} aquí` : `${enTicket} en el ticket`, enTicket: true };
+}

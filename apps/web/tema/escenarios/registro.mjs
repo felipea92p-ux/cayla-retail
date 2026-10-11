@@ -389,6 +389,22 @@ ESCENARIOS.push(
     },
   },
   {
+    // La tarjeta sugerida que SE QUEDA al entrar al ticket (Formidable 2026-10-10, cambio 1): chip «1 en el ticket · 1 aquí», visto y «Quitar».
+    id: "vender.ver-opciones-en-ticket",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    abre: "[role=dialog]",
+    nombre: "Vender · «Todo de la prenda» con la prenda sugerida ya en el ticket",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver todos los colores y ta/ }).first().click();
+      await esperar(pagina, 1100);
+      await pagina.getByRole("button", { name: /Ver tallas/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 500);
+      await pagina.locator('[role=dialog] [aria-label^="Prendas que combinan"] button[aria-label*=" aquí"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+  {
     id: "vender.sin-registrar",
     ruta: "/vender",
     cuentas: VENDEDORAS,

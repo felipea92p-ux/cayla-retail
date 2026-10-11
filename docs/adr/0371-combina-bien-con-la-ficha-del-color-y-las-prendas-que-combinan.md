@@ -118,3 +118,28 @@ separado; hasta entonces la caja manda la clave y la base la ignora.
 
 Web: `git revert` de los commits de la rama (no toca datos). Base: la columna es inofensiva si se deja; para volver atrás la función,
 el mismo reemplazo anclado al revés (`origen_sugerencia` → nada) o `drop column`, que la función viva rechazaría hasta revertirla.
+
+## Actualización 2026-10-10 (noche): lo que decidió Felipe tras Formidable y Caos
+
+**La tarjeta sugerida SE QUEDA cuando su prenda entra al ticket**, marcada con lo que lleva (cambio 1 de Formidable). Antes
+desaparecía: es lo que hace Shopify Search & Discovery (condición oficial «It isn't currently in the visitor's cart») y lo que sus
+comerciantes reportan como problema sin ajuste para apagarlo; la prueba ciega lo vio como «se fue», no «entró». Nadie documenta la
+tarjeta marcada tal cual, pero NN/g valida la señal en el propio control y la hoja ya la tenía en su fila de colores. Cómo queda:
+la regla «lo que ya está en el ticket no se sugiere» se evalúa **al abrir la hoja y al fijar un color** (`CombinaBienCon` va con `key`
+por color y congela `combinaFijo` al montarse), no en cada toque; la casilla dibuja el visto mientras lleve unidades; el chip pasa de
+«2 aquí» a «1 en el ticket · 1 aquí» (`chipDeTarjeta`, `lib/combinar-reglas.ts`, con prueba); y un «Quitar» —el tacho rojo de la línea
+del ticket, la misma pieza también en la fila de colores— deshace sin preguntar (sumar al ticket es estado local). Otra talla se suma
+tocando otra casilla. Sin aviso en la esquina: la hoja la tapa y no hay nada que esperar. En una lista angosta (celular) el chip, el
+tacho y «¿Por qué?» bajan debajo del nombre en vez de cortarlo.
+
+**Tres tarjetas es un TOPE, no una cuota, y es decisión de negocio respaldada por la práctica del sector, no por una guía:** Zara
+«Completa tu look» muestra 1 a 3 sin rellenar (5 fichas contadas), Net-a-Porter «Shown here with» 3 fijas una por papel, Square Kiosk
+hasta 3, Shopify 3 por página; en caja Lightspeed muestra 1. Baymard y NN/g no fijan número (piden número dinámico y que una sola
+dudosa no contamine las demás); el único experimento grande (Alibaba, 1,6 M de compradores) favorece 2, pero midió ítems similares,
+no un look. «Dos de ropa y una de accesorio» no lo hace nadie como cuota: a un vestido no le existe segunda prenda que no sea abrigo.
+Se mantiene: hasta 3, una por papel, sin rellenar, y el orden de `PAREJAS` como está (calzado al final mientras sea categoría chica).
+
+**El Tab recorre toda la hoja (Caos 2026-10-10, TEC-01, gravedad 3, cerrado):** el renglón del nombre del compañero señalado se vaciaba
+al perder el foco y React quitaba su nodo de texto con el foco en tránsito; la trampa de foco del diálogo (Radix) lo devolvía a la hoja
+y «Ver tallas», «¿Por qué?» y «Listo» quedaban fuera del teclado. Ahora el renglón siempre tiene texto (`textoDelSenalado`, un espacio
+duro sin señalado), con prueba en `lib/ficha-del-color.test.ts` que falla si el hijo del renglón vuelve a poder ser `null`.

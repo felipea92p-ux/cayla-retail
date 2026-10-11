@@ -15,7 +15,7 @@ Formidable porque sus modales lo sean, ni al revés.
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | ciega ✓✓ (dos pruebas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-07) | 7,0 (provisional) · ley 1: 8 | 6 (provisional) | [inventario-ventas-sin-registrar](inventario-ventas-sin-registrar.md) | 2026-10-07 |
 | Inventario | Rótulos de anaquel (`/rotulos`) | ciega ✓ (sobre capturas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-09) | 8,0 · ley 1: 7 | 8 | [rotulos](rotulos.md) | 2026-10-09 |
 | Catálogo | Editar producto ▸ «Precio por tienda» y su hoja (`/productos/[id]/editar`) | ciega ✓ · real sin probar; un error corregido y los 3 cambios hechos (2026-10-10) | 8,3 · ley 1: 7 | 10 | [catalogo-precio-por-tienda](catalogo-precio-por-tienda.md) | 2026-10-10 |
-| Ventas | Vender ▸ «Todo de la prenda» con «Combina bien con» (`/vender`, la hoja) | **en deuda** (ley 4: 4); ciega ✓ (4 toques) · real sin probar; 3 cambios propuestos, esperan el OK de Felipe | 6,0 · ley 4: 4 | 6 | [vender-todo-de-la-prenda](vender-todo-de-la-prenda.md) | 2026-10-10 |
+| Ventas | Vender ▸ «Todo de la prenda» con «Combina bien con» (`/vender`, la hoja) | **en deuda** (ley 4: 4 en la medición anterior); ciega ✓ (4 toques) · real sin probar; los 3 cambios hechos (1 con investigación del sector); falta volver a calificar | 6,0 · ley 4: 4 (antes) | 6 (antes) | [vender-todo-de-la-prenda](vender-todo-de-la-prenda.md) | 2026-10-10 |
 
 ## Orden de despliegue (módulo por módulo, decidido 2026-10-05)
 Inventario (piloto: Frescura del piso) → el resto del módulo → siguiente módulo que Felipe indique. El orden dentro de un módulo sale de

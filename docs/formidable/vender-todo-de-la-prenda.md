@@ -64,8 +64,25 @@ Felipe dio el OK a los cambios 2 y 3 y pidió investigar a fondo el 1 (y cuánta
 - **Blancos y foco** [Medido después]: a 1440 × 900, 0 blancos nuevos bajo 24 px (solo queda la fila de color preexistente de 20 px) y el foco inicial en la hoja (`focoEnLaHoja`); a 375 × 812 (puntero grueso), círculos 36 × 36 (dibujo de 20 + área transparente; con 44 se pisarían entre sí), fila de la tarjeta 174 × 44 con «Ver tallas ›», «¿Por qué?» 36 × 44; sin desborde; un solo círculo en el tabulador y las flechas recorren los demás; rol de botón con «hay en el piso» en el nombre. Contraste del nombre de la tarjeta a `/70` (ya no aparece en la lista de 4,45).
 - **Nota provisional** (sin recalificar con ciego): ley 4 sube de 4 a ~8 (las oraciones son de tienda y están probadas); ley 8 de 5 a ~7 (una etiqueta, un «¿Por qué?» por tarjeta); ley 9 de 6 a ~7 (blancos y foco; queda el círculo de 36 en celular). Las leyes 7 y 2 esperan el cambio 1.
 
+## Después del cambio 1 (2026-10-10, noche)
+
+**Decisión de Felipe, con la investigación en la mano** (5 agentes: lecturas de Shopify, Zara, H&M, ASOS, Net-a-Porter, Square,
+Lightspeed, Amazon y Baymard, refutadas una por una): la tarjeta sugerida **se queda** cuando su prenda entra al ticket, marcada con lo
+que lleva, y tres tarjetas siguen siendo el tope (una por papel, sin rellenar).
+
+**Medido (375 px, navegador integrado):** tocar la talla M sugerida → la tarjeta sigue, el chip dice «1 en el ticket · 1 aquí», la
+casilla M lleva el visto y aparece el tacho de «Quitar»; «Quitar» → el visto se va, el chip vuelve a «2 aquí» y el ticket queda vacío;
+tocar M y L → «2 en el ticket» con dos vistos. El nombre de la prenda ya no se corta («B…»): a esa anchura el chip, el tacho y «¿Por
+qué?» bajan debajo del nombre. La frase «Combina bien con una blusa» no cambia al agregar (la lista se congela al abrir la hoja y al
+fijar el color). **Medido (teclado):** desde el primer círculo, Tab → la fila de la prenda → «¿Por qué?» (antes volvía a la hoja; caos
+TEC-01, cerrado con prueba).
+
+**Lo que falta medir:** volver a calificar las 9 leyes con una colaboradora real y con el ciego sobre esta versión; las notas de arriba
+son de la versión anterior.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-10 | `0a1b1c04` | 6,0 · ley 4: 4 | 6 | — (primer análisis; 3 cambios propuestos) |
 | 2026-10-10 (tarde) | — | ~6,9 (provisional) | ~8 (provisional: 0 blancos nuevos bajo mínimo; círculos de 36 en celular) | 2 y 3 hechos; el 1 esperando la investigación de cómo lo hacen los mejores |
+| 2026-10-10 (noche) | Cambio 1 hecho (tarjeta que se queda, chip «1 en el ticket», Quitar) y Tab arreglado; leyes y oficio sin volver a calificar | — | — |

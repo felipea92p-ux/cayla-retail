@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import Image from "next/image";
+import { Trash2 } from "lucide-react";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip } from "@/components/ui/Chip";
@@ -14,7 +15,7 @@ import { ETIQUETA_COMBINA, FichaDelColor } from "@/components/ui/FichaDelColor";
 import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
-import type { AnclaLook, SugerenciaLook } from "@/lib/combinar-reglas";
+import { chipDeTarjeta, type AnclaLook, type SugerenciaLook } from "@/lib/combinar-reglas";
 
 type Color = GrupoCatalogo<VarianteBusqueda>;
 
@@ -35,6 +36,9 @@ type Props = {
   carrito: ItemCarrito[];
   /** `origen`: la línea nació de «Combina bien con» (queda marcada en la venta). */
   onAgregar: (v: VarianteBusqueda, opciones?: { origen?: OrigenDeLinea }) => void;
+  /** Quitar del ticket una línea que entró desde aquí (Formidable 2026-10-10, cambio 1): el mismo quitar del ticket, sin
+   *  confirmación (sumar al ticket es estado local, no dinero ni stock). Ausente = la hoja no ofrece quitar. */
+  onQuitar?: (claveLinea: string) => void;
   onClose: () => void;
   alCerrarEnfocar: RefObject<HTMLElement | null>;
   /** Debajo de los colores, para el color que se está viendo: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
@@ -61,7 +65,7 @@ function rango(c: Color): number {
  * casilla dibuja un visto y la fila cuenta cuántas lleva. Una talla del almacén cierra la ventana: el aviso de la caja
  * ofrece registrar la bajada (ADR-0321) y no debe quedar tapado. Reemplaza a `ElegirTallaModal` (un color a la vez).
  */
-export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie, fichaDelColorDe, combinaDe }: Props) {
+export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onQuitar, onClose, alCerrarEnfocar, pie, fichaDelColorDe, combinaDe }: Props) {
   const inicial = prenda.colores.find((c) => c.clave === colorClave) ?? colorInicial(prenda);
   const [fijo, setFijo] = useState(inicial?.clave);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
@@ -118,10 +122,16 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                       : "Sin stock aquí"}
                 </p>
                 {llevaMostrado > 0 && (
-                  <span key={llevaMostrado} className="anim-pop mt-2 inline-block">
+                  <span key={llevaMostrado} className="anim-pop mt-2 inline-flex items-center gap-1.5">
                     <Chip tono="verde" tachado={false}>
                       {llevaMostrado} en el ticket
                     </Chip>
+                    {onQuitar && (
+                      <QuitarDelTicket
+                        nombre={`${varMostrada?.referencia ?? ""} ${mostrado.color}`.trim()}
+                        onClick={() => mostrado.tallas.forEach((t) => enTicket(t.variante.varianteId) > 0 && onQuitar(t.variante.varianteId))}
+                      />
+                    )}
                   </span>
                 )}
               </div>
@@ -186,10 +196,11 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
             {(combinaDe || fichaDelColorDe) && (
               <CombinaBienCon
                 key={elegido.clave}
-                frase={combinaMostrado?.frase ?? null}
+                fraseMostrada={combinaMostrado?.frase ?? null}
+                mirandoElFijo={mostrado.clave === elegido.clave}
+                combinaFijo={combinaFijo}
                 ficha={fichaDelColorDe?.(varMostrada?.colorCodigo) ?? null}
                 claveColor={mostrado.clave}
-                sugerencias={combinaFijo?.sugerencias ?? []}
                 colorFijo={elegido.color}
                 enTicket={enTicket}
                 onTocar={(t, bajable) => {
@@ -197,6 +208,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                   if (bajable) cerrar();
                   else setRecien((r) => ({ id: t.variante.varianteId, pulso: (r?.pulso ?? 0) + 1 }));
                 }}
+                onQuitar={onQuitar && ((id) => { onQuitar(id); setRecien((r) => (r?.id === id ? null : r)); })}
                 recien={recien}
               />
             )}
@@ -224,30 +236,47 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
  * sus tallas —las mismas casillas de la lista— y tocar la talla la suma al ticket. «¿Por qué?» a un toque dice el papel y el color en
  * español de tienda («Una blusa va arriba de la falda · El negro combina con el beige»). Sin frase ni colores ni prendas, nada: nunca
  * un cartel de «no hay». Si no hay frase pero sí ficha, los círculos llevan la etiqueta de siempre («Combina bien con»).
+ *
+ * La tarjeta SE QUEDA cuando su prenda entra al ticket (Formidable 2026-10-10, cambio 1, Felipe): antes desaparecía —lo que hace
+ * Shopify, y lo que sus comerciantes reportan como problema—, y la vendedora veía «se fue», no «entró». La regla «lo que ya está en el
+ * ticket no se sugiere» se evalúa al ABRIR la hoja y al FIJAR un color (este bloque va con `key` por color y congela `combinaFijo` al
+ * montarse), no en cada toque. La señal vive donde se tocó: la casilla dibuja el visto mientras lleve unidades, el chip pasa de «2 aquí»
+ * a «1 en el ticket · 1 aquí» (`chipDeTarjeta`) y un «Quitar» —la misma pieza que la fila de colores y la línea del ticket— deshace sin
+ * preguntar. Otra talla se suma tocando otra casilla. Sin aviso en la esquina: la hoja la tapa y nada hay que esperar (no hay red).
  */
 function CombinaBienCon({
-  frase,
+  fraseMostrada,
+  mirandoElFijo,
+  combinaFijo,
   ficha,
   claveColor,
-  sugerencias,
   colorFijo,
   enTicket,
   onTocar,
+  onQuitar,
   recien,
 }: {
-  frase: string | null;
+  /** La frase del color que se MIRA (pasar por una fila la cambia): se usa cuando no es el fijado. */
+  fraseMostrada: string | null;
+  mirandoElFijo: boolean;
+  /** La frase y las prendas del color FIJADO en el momento de montarse: se congelan aquí (ver arriba). */
+  combinaFijo: CombinaDeColor | null;
   /** La ficha del color que se mira (sus compañeros); `null` sin ficha. */
   ficha: FichaDelColorTipo | null;
   /** La clave del color que se mira: remonta los círculos al cambiar de color (su nombre señalado no se arrastra). */
   claveColor: string;
-  sugerencias: SugerenciaLook<Color>[];
   colorFijo: string | null;
   enTicket: (id: string) => number;
   onTocar: (t: Color["tallas"][number], bajable: boolean) => void;
+  onQuitar?: (claveLinea: string) => void;
   recien: { id: string; pulso: number } | null;
 }) {
   const [abierta, setAbierta] = useState<string | null>(null);
   const [porQueDe, setPorQueDe] = useState<string | null>(null);
+  // Congelado al montarse (el bloque lleva `key` por color fijado): lo que entra al ticket después no cambia la lista.
+  const [fijo] = useState(combinaFijo);
+  const frase = mirandoElFijo ? (fijo?.frase ?? null) : fraseMostrada;
+  const sugerencias = fijo?.sugerencias ?? [];
   const hayCirculos = (ficha?.companeros.length ?? 0) > 0;
   if (!frase && !hayCirculos && sugerencias.length === 0) return null;
   return (
@@ -261,9 +290,13 @@ function CombinaBienCon({
             const g = t.origen;
             const clave = `${t.productoId}|${t.colorCodigo ?? ""}`;
             const v = g?.tallas[0]?.variante;
+            const lleva = g ? g.tallas.reduce((a, talla) => a + enTicket(talla.variante.varianteId), 0) : 0;
+            const chip = chipDeTarjeta(s.unidadesAqui, lleva);
             return (
               <li key={clave} className="anim-entra px-3 py-2" style={{ "--i": i } as CSSProperties}>
-                <div className="flex items-stretch gap-3">
+                {/* `flex-wrap` + `basis-full`: en una lista angosta (el celular) el chip, el tacho y «¿Por qué?» bajan debajo del nombre,
+                    alineados con el texto (`pl-14`), en vez de cortarlo a «B…» (visto a 375 px, Formidable 2026-10-10). */}
+                <div className="flex flex-wrap items-stretch gap-x-3 gap-y-1">
                   {/* La fila entera despliega las tallas y lo dice («Ver tallas ›»): el ciego tocó el nombre «buscando cómo agregarla» y
                       nada avisaba que se abre. Mínimo 44 px de alto: la hoja es de celular (PL-105). */}
                   <button
@@ -281,10 +314,18 @@ function CombinaBienCon({
                       </span>
                     </span>
                   </button>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <Chip tono="pizarra" tachado={false}>
-                      {s.unidadesAqui} aquí
-                    </Chip>
+                  <span className="flex basis-full shrink-0 items-center gap-2 pl-14 @sm:basis-auto @sm:pl-0">
+                    <span key={chip.texto} className={chip.enTicket ? "anim-pop inline-flex items-center gap-1.5" : "inline-flex items-center"}>
+                      <Chip tono={chip.enTicket ? "verde" : "pizarra"} tachado={false}>
+                        {chip.texto}
+                      </Chip>
+                      {chip.enTicket && onQuitar && g && (
+                        <QuitarDelTicket
+                          nombre={`${t.referencia} ${t.colorNombre ?? ""}`.trim()}
+                          onClick={() => g.tallas.forEach((talla) => enTicket(talla.variante.varianteId) > 0 && onQuitar(talla.variante.varianteId))}
+                        />
+                      )}
+                    </span>
                     <button
                       type="button"
                       onClick={() => setPorQueDe((p) => (p === clave ? null : clave))}
@@ -388,11 +429,29 @@ function Casilla({
         <span className="hidden @sm:inline">{texto}</span>
       </span>
       {t.variante.precio !== precioBase && <span className="text-[11px] font-semibold tabular-nums">{money(t.variante.precio)}</span>}
-      {recien !== null && (
-        <svg key={recien} aria-hidden viewBox="0 0 24 24" className="vg-visto absolute top-1.5 right-1.5 h-4 w-4 fill-none stroke-verde [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:2.4]">
+      {/* El visto se dibuja al entrar (`recien` lo vuelve a dibujar) y SE QUEDA mientras la talla lleve unidades; al quitarla se va
+          (Formidable 2026-10-10, cambio 1). */}
+      {enTicket > 0 && (
+        <svg key={recien ?? "lleva"} aria-hidden viewBox="0 0 24 24" className="vg-visto absolute top-1.5 right-1.5 h-4 w-4 fill-none stroke-verde [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:2.4]">
           <path d="M5 12.5l4.2 4.2L19 7" />
         </svg>
       )}
+    </button>
+  );
+}
+
+/** «Quitar» del ticket, la misma pieza que la línea del ticket (`LineaDelTicket`): el tacho en rojo profundo desde el principio
+ *  (ADR-0358, lo peligroso), 28 px con mouse y 44 con dedo. Sin confirmación: deshacer lo sumado al ticket es estado local. */
+function QuitarDelTicket({ nombre, onClick }: { nombre: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`Quitar ${nombre} del ticket`}
+      title="Quitar del ticket"
+      onClick={onClick}
+      className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo pointer-coarse:h-11 pointer-coarse:w-11"
+    >
+      <Trash2 className="h-4 w-4" aria-hidden />
     </button>
   );
 }

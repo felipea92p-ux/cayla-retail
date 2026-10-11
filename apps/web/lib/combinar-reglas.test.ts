@@ -296,3 +296,25 @@ describe("la frase", () => {
     expect(categoriasQueCombinan(ancla, [tarjeta("PAN", "ROJ", 5), tarjeta("POL", "CHO", 5)], INDICE)).toEqual([]);
   });
 });
+
+// Formidable 2026-10-10, cambio 1 (Felipe): la tarjeta sugerida se queda al entrar al ticket, marcada con lo que lleva. El chip dice
+// cuántas van en el ticket y cuántas quedan en el piso; antes de tocarla, solo cuántas hay. Nunca «0 aquí» ni «0 en el ticket».
+describe("chipDeTarjeta: lo que lleva la tarjeta sugerida", () => {
+  it("antes de tocarla dice cuántas hay", async () => {
+    const { chipDeTarjeta } = await import("./combinar-reglas");
+    expect(chipDeTarjeta(2, 0)).toEqual({ texto: "2 aquí", enTicket: false });
+    expect(chipDeTarjeta(1, 0)).toEqual({ texto: "1 aquí", enTicket: false });
+  });
+  it("con prendas en el ticket dice cuántas lleva y cuántas quedan", async () => {
+    const { chipDeTarjeta } = await import("./combinar-reglas");
+    expect(chipDeTarjeta(2, 1)).toEqual({ texto: "1 en el ticket · 1 aquí", enTicket: true });
+    expect(chipDeTarjeta(3, 1)).toEqual({ texto: "1 en el ticket · 2 aquí", enTicket: true });
+  });
+  it("cuando ya lleva todas no dice «0 aquí»", async () => {
+    const { chipDeTarjeta } = await import("./combinar-reglas");
+    expect(chipDeTarjeta(2, 2)).toEqual({ texto: "2 en el ticket", enTicket: true });
+    expect(chipDeTarjeta(1, 1)).toEqual({ texto: "1 en el ticket", enTicket: true });
+    // El piso ya bajó por otra venta y el ticket lleva más de lo que queda: nunca un negativo.
+    expect(chipDeTarjeta(1, 2)).toEqual({ texto: "2 en el ticket", enTicket: true });
+  });
+});

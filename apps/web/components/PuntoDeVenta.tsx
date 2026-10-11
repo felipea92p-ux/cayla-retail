@@ -2137,6 +2137,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ubicacionEtiqueta={ubicacionEtiqueta}
           carrito={carrito}
           onAgregar={agregar}
+          onQuitar={quitar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
           fichaDelColorDe={fichaDelColorDe}
