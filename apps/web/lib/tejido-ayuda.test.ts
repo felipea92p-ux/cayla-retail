@@ -40,6 +40,17 @@ const TEJIDOS_DE_PRODUCCION = [
   "Tela",
   "Tela mojada",
   "Viscosa",
+  // Los seis materiales de bolsa que Felipe dio de alta el 2026-10-10 (ADR-0377) y los cuatro que producción tenía sin muestra.
+  "Papel kraft",
+  "Papel couché",
+  "Papel opalina",
+  "TNT",
+  "Organza",
+  "Plástico",
+  "catania",
+  "ENCAJE",
+  "Gamuza",
+  "Mesh",
 ];
 
 describe("ayudaDeTejido — cubre todo el vocabulario real", () => {
@@ -113,6 +124,12 @@ describe("ayudaDeTejido — lo que no se reconoce se calla", () => {
     expect(ayudaDeTejido("Tul")).toBeNull();
     expect(ayudaDeTejido("pruebaTEJIDO")).toBeNull();
     expect(ayudaDeTejido("")).toBeNull();
+  });
+
+  it("«catania» avisa que su fibra no está confirmada, en vez de describir otra tela", () => {
+    const ayuda = ayudaDeTejido("catania")!;
+    expect(ayuda.queEs).toMatch(/no está confirmada/i);
+    expect(ayuda.datos[0].etiqueta).toBe("Ojo");
   });
 
   it("«Tela» genérica avisa que no dice la fibra, en vez de inventar una", () => {

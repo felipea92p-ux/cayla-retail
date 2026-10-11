@@ -45,6 +45,16 @@ de lista en casi cada venta diluía además la cifra de «rebaja» de Análisis.
 - **Una función nueva y permanente de «reclasificar en bloque»:** una limpieza de una sola vez no justifica una RPC permanente (principio 3); el script
   reutiliza la función que ya existe y deja el mismo rastro.
 
+## Los materiales de las bolsas y los tejidos que salían «Sin muestra» (2026-10-11)
+
+Felipe dio de alta seis materiales en Atributos ▸ Tejidos (Papel kraft, Papel couché, Papel opalina, TNT, Organza, Plástico) y salieron «Sin muestra»: la
+muestra y la ficha se reconocen por el NOMBRE (`lib/tejido-visual.ts`), y esos nombres no existían. Al mirar producción (solo lectura) había cuatro más sin
+dibujo, de prendas reales: **ENCAJE, Gamuza, Mesh y catania**. Se agregaron diez familias con su dibujo (`components/MuestraTejido.tsx`), su ficha
+(`lib/tejido-ayuda.ts`) y su textura de «Generar dibujo» (`lib/dibujo-generado.ts`). **«catania» es la excepción:** la búsqueda no encontró una definición
+confiable de esa tela, así que su dibujo es neutro (como «Tela») y su ficha dice que la fibra no está confirmada, en vez de describir otra. Un nombre nuevo
+que no se reconozca sigue saliendo «Sin muestra» (la foto real se sube con «Subir foto»). La cuenta de colores de `MuestraTejido.tsx` en
+`lib/tema-colores-archivos.ts` pasó de 98 a 138: el color de cada hilo es dato.
+
 ## Se rompe si…
 
 - Un motor NUEVO cuenta ventas o stock por categoría sin preguntar `fn_categoria_entra_a_motores`: la bolsa vuelve a contar. Cada motor ya tiene su caso
