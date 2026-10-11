@@ -2,17 +2,18 @@ import { describe, expect, it } from "vitest";
 import { formasDePrefijo, ICONOS_POR_PREFIJO, type FormaIcono } from "./icono-categoria-reglas";
 
 // Los prefijos de las 42 categorías activas al 2026-09-29 (`select prefijo from retail.categorias where activo`, base local
-// espejo de producción), más Bolsas (BOL, familia Empaque), que un Líder creó desde la pantalla y en producción se dibujaba
-// como un círculo (Felipe 2026-10-10). Si una migración agrega una categoría de fábrica, se suma aquí Y en
-// `icono-categoria-reglas.ts`: la que se olvide cae al ícono de su familia (no se rompe), pero esta prueba avisa que se
-// quedó sin dibujo propio.
+// espejo de producción), más las cuatro que se crearon después desde la pantalla y producción tenía activas el 2026-10-10:
+// Bolsas (BOL, familia Empaque, que se dibujaba como un círculo), Capas (CAP), Corsets (COR) y Accesorios de moda (ACC)
+// (Felipe 2026-10-10). Si una migración o un Líder agrega una categoría, se suma aquí Y en `icono-categoria-reglas.ts`: la
+// que se olvide cae al ícono de su familia (no se rompe), pero esta prueba avisa que se quedó sin dibujo propio.
 const PREFIJOS_ACTIVOS = [
-  // Indumentaria (18)
+  // Indumentaria (20)
   "ABR", "BLZ", "BOD", "CMS", "CAS", "CHA", "CMP", "CON", "ENT", "FAL", "JEA", "PAN", "SUD", "POL", "LEN", "SHO", "TOP", "VES",
+  "CAP", "COR",
   // Calzado (7)
   "BAI", "BOT", "BOI", "MSN", "SAN", "ZAP", "ZFO",
-  // Accesorios y Complementos (8)
-  "CAR", "CIN", "GOR", "LSO", "MOC", "BUF", "REL", "RIN",
+  // Accesorios y Complementos (9)
+  "CAR", "CIN", "GOR", "LSO", "MOC", "BUF", "REL", "RIN", "ACC",
   // Bisutería (4), Belleza (1), Papelería (4)
   "ANL", "ARE", "COL", "PUL", "MAQ", "UTC", "LAP", "LIB", "UOF",
   // Empaque (1)
@@ -31,9 +32,9 @@ function formaValida(f: FormaIcono): boolean {
 }
 
 describe("formasDePrefijo", () => {
-  it("las 43 categorías activas tienen ícono propio", () => {
-    expect(PREFIJOS_ACTIVOS).toHaveLength(43);
-    expect(new Set(PREFIJOS_ACTIVOS).size).toBe(43);
+  it("las 46 categorías activas tienen ícono propio", () => {
+    expect(PREFIJOS_ACTIVOS).toHaveLength(46);
+    expect(new Set(PREFIJOS_ACTIVOS).size).toBe(46);
     const sinIcono = PREFIJOS_ACTIVOS.filter((p) => formasDePrefijo(p) === null);
     expect(sinIcono).toEqual([]);
   });
