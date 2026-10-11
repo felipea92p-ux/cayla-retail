@@ -91,6 +91,10 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
       items.push({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precio_unitario });
       continue;
     }
+    // Una línea de precio 0 (la bolsa de obsequio, Bolsas de despacho 2026-10-10) no cobra nada: no se declara. SUNAT no acepta una línea sin
+    // valor salvo como transferencia gratuita, y las bolsas de obsequio no se declaran así; la venta y el ticket SÍ la llevan (descuenta stock).
+    // Es el PRECIO de etiqueta en 0, no un descuento que lo deja en 0: una prenda regalada con descuento sigue declarándose.
+    if (it.precio_unitario === 0) continue;
     // Una «Prenda sin registrar» (ADR-0179) se declara con lo que anotó caja; su precio es de etiqueta, CON IGV.
     const nombre =
       typeof it.descripcion_libre === "string" && it.descripcion_libre.trim() !== ""
@@ -102,7 +106,8 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
     if (!nombre || !esNumero(descuento)) return null;
     items.push({ descripcion: nombre, cantidad: it.cantidad, precio_unitario: Math.round(((it.precio_unitario - descuento) / 1.18) * 1e6) / 1e6 });
   }
-  return items;
+  // Si todo era de precio 0 no queda nada que declarar: no es un comprobante que se pueda transmitir.
+  return items.length === 0 ? null : items;
 }
 
 const ERROR_LEGIBLE: Record<string, string> = {

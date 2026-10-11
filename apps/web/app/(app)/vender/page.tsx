@@ -57,7 +57,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resFamiliasApagadas] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -92,6 +92,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
     supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
+    // Las familias fuera de los motores: de ahí salen las bolsas de «Agregar bolsa» (Bolsas de despacho, 2026-10-10). Pocas filas.
+    supabase.from("familias").select("codigo").eq("entra_a_motores", false),
   ]);
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
@@ -104,6 +106,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   // (ADR-0141). La base lo rechazaría igual (`fn_aplicar_movimiento`); esto evita ofrecerlo.
   const pisoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, cantidadCobrable(c)]));
 
+  // Las familias que quedaron fuera de los motores (bolsas, cajas, empaque): sus prendas son las que ofrece «Agregar bolsa». Si la lectura
+  // falla, ninguna se marca y la caja vende igual (solo falta el botón); nunca tumba la pantalla.
+  const familiasFueraDeMotores = new Set(
+    resFamiliasApagadas.error ? [] : (resFamiliasApagadas.data ?? []).map((f) => f.codigo),
+  );
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
     .map((v) => ({
@@ -117,6 +124,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
+      fueraDeMotores: v.categoriaFamilia ? familiasFueraDeMotores.has(v.categoriaFamilia) : false,
       marca: v.marca,
       precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
       precioDeSede: preciosDeEstaSede.has(v.varianteId),
