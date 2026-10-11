@@ -1,5 +1,6 @@
 import { compararInstantes, historiaDeCohortes, type EventoPiso } from "./inventario-exposicion";
 import { clavePrendaDe } from "./prenda-clave";
+import type { PisoAnterior } from "./frescura-piso";
 import type { Tolerado } from "./resultado";
 import {
   aplicarDecisiones,
@@ -73,8 +74,23 @@ export const MARCA_EDAD_DESCONOCIDA = 4;
  *  distinto (antes estaba subcontado), así que la medida de «Ya decidí» se corta ahí (`frescura-decisiones-reglas.ts`). */
 export const MARCA_CUADRE = 8;
 
+/**
+ * Los días de ventas con que se arma la vara del mes (ADR-0208, act. 2026-10-10 (b), decisión 2 de Felipe: «el día 1 se
+ * recalcula con las ventas de los últimos 3 meses y queda fija todo el mes»). Cabe en la lectura de 120 días hasta el día 30
+ * del mes; el 31 empieza un día más tarde (en `desde`), sin otra consecuencia.
+ */
+export const DIAS_VARA_DEL_MES = 90;
+
 const MS_POR_DIA = 86_400_000;
 const EPS = 1e-9;
+// Lima no cambia de hora en el año: UTC−5 fijo (el mismo supuesto de `actividad-reglas.ts`).
+const LIMA_MS = 5 * 60 * 60 * 1000;
+
+/** Las 00:00 de Lima del día 1 del mes de `ahora`, en UTC: el corte de la vara del mes. */
+export function inicioDelMesLima(ahora: string): string {
+  const lima = new Date(Date.parse(ahora) - LIMA_MS);
+  return new Date(Date.UTC(lima.getUTCFullYear(), lima.getUTCMonth(), 1) + LIMA_MS).toISOString();
+}
 /**
  * Tolerancia (en segundos) al comparar el reloj de una prenda con un corte o con `tMax`. Los dos lados salen de sumas
  * distintas de las mismas horas (el reloj por tramos, la exposición de una unidad de una sola resta, o por tramos si
@@ -118,6 +134,16 @@ export type Sugerencia =
 export type Recientes = "vendio" | "dejo_de_vender" | "no_se_sabe";
 
 /** Una talla de la lectura de la sede (una fila de `prendas` de `fn_frescura_sede`). */
+/** Una venta anotada en caja sin su prenda que sigue pendiente: lo que se sabe de ella (ADR-0208, act. 2026-10-10 (c)). */
+export type DudaVendida = {
+  categoriaId: string;
+  talla: string | null;
+  colorCodigo: string | null;
+  /** Cuándo se vendió: solo deja una unidad fantasma si el sistema tenía en el piso algo de su categoría, talla y color en ese momento
+   *  (revisión adversaria: la cola de arranque se vendió ANTES de la carga inicial, que contó lo que había sin la vendida). Null: se duda. */
+  vendidoEn?: string | null;
+};
+
 export type TallaFrescuraCruda = {
   varianteId: string;
   productoId: string;
@@ -263,6 +289,10 @@ export type EstadoFrescura = ComunEstado &
     | { tipo: "clasico"; fueraDeSuEstacion: boolean }
     /** El libro de alguna de sus tallas no cuadra (piso negativo): no se juzga. */
     | { tipo: "dudosa" }
+    /** Todo lo que cuelga puede ser lo vendido sin registrar (una venta anotada en caja de su categoría, talla y color por cada
+     *  unidad): no se juzga hasta regularizar esas ventas (act. 2026-10-10 (c); revisión adversaria: con un reloj de 0 salía
+     *  «Vigente · lleva 0 días»). */
+    | { tipo: "vendida_sin_registrar" }
   );
 
 // ---------------------------------------------------------------------------
@@ -749,6 +779,31 @@ export function cortes(curva: Supervivencia): Cortes {
   return { p50: corteEn(curva, 0.5), p75: corteEn(curva, 0.25), p90: corteEn(curva, 0.1) };
 }
 
+/** El último instante con venta de una curva: cuánto se vendió hasta ahí (supervivencia y riesgo acumulado) y cuántas ventas la forman. */
+export type FinDeCurva = { t: number; s: number; h: number; vendidas: number };
+
+export function finDeCurva(c: Pick<Curva, "tiempos" | "supervivencia" | "riesgoAcumulado" | "vendidas">): FinDeCurva | null {
+  const i = c.tiempos.length - 1;
+  return i < 0 ? null : { t: c.tiempos[i], s: c.supervivencia[i], h: c.riesgoAcumulado[i], vendidas: c.vendidas };
+}
+
+/**
+ * Los cortes que la curva no alcanza, extendidos con su PROPIO ritmo (ADR-0208, act. 2026-10-10 (b), actividad 6). Cuando una categoría se
+ * estanca, sus unidades sin vender sostienen la curva: nunca llega a «3 de cada 4 vendidas», el corte queda vacío y NADA de ella sale
+ * Envejeciendo (lo mostró el ensayo: Jeans de 25 días, «Vigentes»). Pasado lo observado se supone que sigue vendiendo a su ritmo
+ * promedio —el riesgo acumulado entre los días, λ = H(t)/t—: S(t + x) = S(t)·e^(−λx), así que el corte q está en t + ln(S(t)/q)/λ.
+ * Solo con `VENTAS_PARA_JUZGAR_SOLA` ventas o más (con menos, el ritmo es ruido: «aún aprendiendo») y solo P75 y P90, cuando P50 se alcanzó
+ * de verdad: una categoría que ni vendió la mitad sigue «aún sin referencia». Extrapolar su mitad la estiraría (Casacas: 25 % vendido en 60
+ * días daba una mitad a los ~115) y sus prendas de 60 días saldrían Frescas: lo contrario de lo que se busca. Un corte alcanzado no cambia.
+ */
+export function cortesConCola(c: Cortes, fin: FinDeCurva | null): Cortes {
+  if (c.p50 === null || fin === null || fin.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS || fin.t <= 0 || fin.h <= EPS) return c;
+  const lambda = fin.h / fin.t;
+  const extender = (corte: number | null, queda: number): number | null =>
+    corte !== null || fin.s <= queda + EPS ? corte : fin.t + Math.log(fin.s / queda) / lambda;
+  return { p50: c.p50, p75: extender(c.p75, 0.25), p90: extender(c.p90, 0.1) };
+}
+
 /** El nivel de confianza por unidades vendidas CON EDAD CONOCIDA: 0 → null (no hay vara), 1-9, 10-19, 20 o más. */
 export function nivelPorVentas(vendidas: number): NivelConfianza | null {
   if (vendidas <= 0) return null;
@@ -932,6 +987,74 @@ export function relojNovedad(p: EntradaReloj, linea: LineaDelPiso = tramosColgad
   return { segundos, alMenos: desconocida };
 }
 
+/** Una tanda de unidades colgadas HOY de una talla, con los segundos que lleva colgada cada una. */
+export type UnidadColgada = { segundos: number; unidades: number; edadDesconocida: boolean };
+
+/**
+ * Las unidades de una talla que están colgadas AHORA, cada tanda con los segundos que lleva en el piso: el FIFO de
+ * `historiaDeCohortes` (ADR-0248), que no corre mientras la unidad está en el almacén o apartada y nunca se reinicia. Es
+ * el reloj de la UNIDAD (ADR-0208, act. 2026-10-10 (b)): «un polo que lleva 8 días colgado». Lo que se guardó en el almacén
+ * no está colgado y no sale; lo que entró sin fecha (carga inicial, ajuste, saldo de la ventana) sale con
+ * `edadDesconocida`: su reloj es un piso, «al menos».
+ * Límite de la convención del FIFO: retirar una prenda y volver a colgarla reanuda la cohorte pausada MÁS VIEJA, así que
+ * lo que baja trae la edad de lo que se guardó antes. Esconder una prenda en el almacén no la rejuvenece.
+ */
+export function colgadasDe(eventos: readonly EventoPiso[], ahora: string): UnidadColgada[] {
+  const ahoraMs = ms(ahora);
+  const colgadas: UnidadColgada[] = [];
+  for (const c of historiaDeCohortes(eventos).cohortes) {
+    if (c.cantidadRestante <= 0 || c.abiertaDesde === null) continue;
+    colgadas.push({
+      segundos: c.segundosAcumulados + Math.max(0, ahoraMs - ms(c.abiertaDesde)) / 1000,
+      unidades: c.cantidadRestante,
+      edadDesconocida: c.edadDesconocida,
+    });
+  }
+  return colgadas;
+}
+
+/**
+ * El reloj de la unidad más vieja colgada de una prenda (todas sus tallas): lo que dice si «se está quedando». `alMenos`
+ * si alguna unidad colgada entró sin fecha: la más vieja podría ser ella, y llevar más de lo que se ve. Sin nada colgado,
+ * 0 segundos.
+ */
+export function relojDeLaUnidad(colgadas: readonly UnidadColgada[]): RelojNovedad {
+  let segundos = 0;
+  let alMenos = false;
+  for (const u of colgadas) {
+    if (u.unidades <= 0) continue;
+    if (u.segundos > segundos) segundos = u.segundos;
+    if (u.edadDesconocida) alMenos = true;
+  }
+  return { segundos, alMenos };
+}
+
+/**
+ * El tramo con los DOS relojes (ADR-0208, act. 2026-10-10 (b)), contra los cortes de su categoría:
+ *   · Fresca («nueva») lo dice el reloj del MODELO+COLOR: todavía no llegó a P50, el día en que su categoría vendió la mitad.
+ *     Es novedad para el cliente que vuelve: reponer o volver de agotada no la hace fresca otra vez (ADR-0208, decisión 9).
+ *   · Pasado P50, lo dice la unidad más vieja colgada: Vigente antes de P75, «envejecida» antes de P90, «crítica» después.
+ *     La curva de la categoría es de UNIDADES (cuánto tarda cada una en venderse), así que se compara con una unidad: con el
+ *     reloj del modelo, que nunca se reinicia, un modelo de 6 unidades que se repone de a una llegaba a «Hay que moverla»
+ *     el 97 % de las veces vendiéndose al ritmo de su categoría (simulado, 2026-10-10).
+ * Siempre `unidad ≤ modelo` (una unidad no puede llevar colgada más que su modelo), así que los tramos no se pisan. Lo que
+ * falta de la curva se trata como en `tramoDe`: un corte que no alcanza queda después de `tMax`, y pasado eso el tramo es un
+ * piso («al menos»). Con `unidad === modelo` es exactamente `tramoDe`.
+ */
+export function tramoDosRelojes(modelo: number, unidad: number, c: Cortes, tMax: number): TramoUbicado | null {
+  if (c.p50 === null) return null;
+  if (modelo < c.p50 - TOL_SEGUNDOS) return { tramo: "nueva", alMenos: false };
+  const pasos: [Tramo, number | null][] = [
+    ["vigente", c.p75],
+    ["envejecida", c.p90],
+  ];
+  for (const [tramo, corte] of pasos) {
+    if (corte === null) return { tramo, alMenos: unidad > tMax + TOL_SEGUNDOS };
+    if (unidad < corte - TOL_SEGUNDOS) return { tramo, alMenos: false };
+  }
+  return { tramo: "critica", alMenos: false };
+}
+
 /** Su categoría SIN una prenda: contra qué se ubica su tramo y se mide su rapidez (revisión 3; D5, 2026-09-27). */
 export type MedidaContraElResto = {
   cortes: Cortes;
@@ -940,6 +1063,8 @@ export type MedidaContraElResto = {
   vendidas: number;
   /** Σ peso × riesgo acumulado del resto en los segundos de cada unidad de `suyas`: lo que la rapidez espera. */
   esperadas: number;
+  /** El último instante con venta del resto (de ahí sale la cola de sus cortes). */
+  fin: FinDeCurva | null;
 };
 
 /**
@@ -985,6 +1110,7 @@ function restar(curva: Curva, propias: readonly Observacion[], consultas: readon
   let s = 1;
   let vendidasResto = 0;
   let esperadas = 0;
+  let tUltima = 0;
   // Los cortes se cruzan en orden (la supervivencia no sube): el que falta es `umbral`.
   const umbrales = [0.5 + EPS, 0.25 + EPS, 0.1 + EPS, -Infinity];
   const cortesHallados: (number | null)[] = [null, null, null];
@@ -1024,6 +1150,7 @@ function restar(curva: Curva, propias: readonly Observacion[], consultas: readon
       h += tasa;
       s *= 1 - tasa;
       vendidasResto += vendidas;
+      tUltima = t;
       while (s <= umbral) {
         cortesHallados[u++] = t;
         umbral = umbrales[u];
@@ -1033,9 +1160,17 @@ function restar(curva: Curva, propias: readonly Observacion[], consultas: readon
     while (j < mias.length && mias[j].segundos <= g) misEnRiesgo -= mias[j++].peso;
     if (g === Infinity) break;
   }
-  while (q < nc) esperadas += consP[q++] * h;
+  // Una unidad más vieja que la última venta del resto espera lo acumulado hasta ahí MÁS la cola: seguir vendiendo a su ritmo promedio
+  // (λ = H/t; el mismo supuesto que `cortesConCola`). Antes el riesgo quedaba plano y a una unidad de 100 días se le esperaba lo de 30: su
+  // índice salía inflado hacia «pilar». Con pocas ventas del resto, sin cola (el ritmo sería ruido).
+  const cola = vendidasResto >= VENTAS_PARA_JUZGAR_SOLA - EPS && tUltima > 0 ? h / tUltima : 0;
+  while (q < nc) {
+    esperadas += consP[q] * (h + cola * Math.max(0, consT[q] - tUltima));
+    q++;
+  }
   const [p50, p75, p90] = cortesHallados;
-  return { cortes: { p50, p75, p90 }, tMax: tMaxSin(curva, mias), vendidas: vendidasResto, esperadas };
+  const fin: FinDeCurva | null = vendidasResto > EPS ? { t: tUltima, s, h, vendidas: vendidasResto } : null;
+  return { cortes: cortesConCola({ p50, p75, p90 }, fin), tMax: tMaxSin(curva, mias), vendidas: vendidasResto, esperadas, fin };
 }
 
 /** La observación más larga del resto: el último instante observado al que le queda algo que no es de la prenda. */
@@ -1120,26 +1255,45 @@ export function recientesDe(ventasRecientes: number | null, segundosColgada: num
 }
 
 /**
- * Ventas esperadas que necesita el índice de rapidez para poder DECIDIR (llamar «lenta» a una prenda y mandarla a «Por
- * decidir»; ADR-0208, actualización 2026-10-07): su categoría, sin ella, tiene que haber vendido a esa edad lo que valen
- * 2 prendas. Con 1 esperada, la prenda que vende exactamente al ritmo de su categoría sale «lenta» 1 de cada 3 veces por
- * puro azar (Poisson, e⁻¹ = 37 %); con 2, 1 de 7. El índice se calcula y se muestra desde `RAPIDEZ_MIN_EVIDENCIA`;
- * esta cifra solo frena la decisión. Verificado el 2026-10-07 con las reglas reales: con 3 ventas rápidas en una
- * categoría (días 1, 1 y 2), una capa de 4 días colgada acumulaba 1,00 esperada y salía «Por decidir».
+ * El cuantil de una Gamma(forma a, tasa b) por la aproximación de Wilson-Hilferty (la Gamma elevada a 1/3 es casi normal). Con a ≥ 1 el
+ * error es de centésimas, de sobra para decir de qué lado de un umbral cae. Lo usan «lenta» (aquí) y la acogida (`frescura-aguja.ts`).
  */
-export const ESPERADAS_PARA_DECIDIR = 2;
+export function cuantilGamma(a: number, b: number, z: number): number {
+  const c = 1 / (9 * a);
+  return (a / b) * Math.max(0, 1 - c + z * Math.sqrt(c)) ** 3;
+}
 
 /**
- * La rapidez que puede decidir: la misma, o null si dice «lenta» (índice < 100) con menos de `ESPERADAS_PARA_DECIDIR`
- * ventas esperadas. Con poca evidencia el índice solo PROTEGE (un pilar con 0,5 esperadas sigue siendo pilar: no se
- * actúa), nunca CONDENA: un pilar falso no cuesta nada, una lenta falsa manda a mover una prenda que se vende. La que
- * dejó de vender (`dejo_de_vender`: sus últimos 30 días en el piso sin una venta) pasa entera: esos 30 días son evidencia
- * por sí solos, y es lo que la revisión 6 ya decidía. Con null, `estaQuieta` no la llama lenta y `sugerenciasDe` le da
- * «revisa sus ventas» si es vieja, como a la que no tiene dato.
+ * Cuánta evidencia hace falta para llamar «lenta» a una prenda (ADR-0208, act. 2026-10-10 (b)). Su rapidez se contrae hacia 1 como si
+ * llevara `PRIOR_LENTA` ventas de su categoría —Gamma(3 + vendidas, 3 + esperadas)— y se mira su cota de 9 de cada 10. Dos escalones,
+ * según lo que cuesta equivocarse:
+ *   · LENTA (`COTA_LENTA`, 1): con 9 de cada 10 de confianza vende más lento que su categoría. Basta para «Por decidir» y «cambiar de
+ *     lugar», que es barato: una prenda que se vende como las demás sale lenta 1 de cada 10 veces. Antes bastaba vender menos que lo esperado
+ *     con 2 esperadas o más: con 2, «lenta» es vender 0 o 1, y salía lenta el 41 % de las veces (no «1 de 7», como decía este comentario:
+ *     e⁻²·(1 + 2)); con el volumen de TRU, unas 33 falsas «Por decidir» por semana contra 14 de verdad.
+ *   · MUY LENTA (`COTA_LENTA_FUERTE`, 0,7): con 9 de cada 10 de confianza vende menos de 7 de cada 10 de lo que su categoría. La pide
+ *     «Trasladar», que mueve mercadería entre tiendas (simulado: de 31 % a 80 % de acierto).
+ */
+export const PRIOR_LENTA = 3;
+export const COTA_LENTA = 1;
+export const COTA_LENTA_FUERTE = 0.7;
+const Z90 = 1.2816;
+
+/**
+ * La rapidez que puede decidir: la misma, o null si dice «lenta» (índice < 100) sin la evidencia de arriba. Con poca evidencia el índice
+ * solo PROTEGE (un pilar con 0,5 esperadas sigue siendo pilar: no se actúa), nunca CONDENA: un pilar falso no cuesta nada, una lenta falsa
+ * manda a mover una prenda que se vende. La que dejó de vender (`dejo_de_vender`: sus últimos 30 días en el piso sin una venta) pasa
+ * entera: esos 30 días son evidencia por sí solos, y es lo que la revisión 6 ya decidía. Con null, `estaQuieta` no la llama lenta y
+ * `sugerenciasDe` le da «revisa sus ventas» si es vieja, como a la que no tiene dato.
  */
 export function rapidezParaDecidir(r: Rapidez | null, recientes: Recientes): Rapidez | null {
   if (r === null || recientes === "dejo_de_vender" || r.indice >= RAPIDEZ_IGUAL) return r;
-  return r.esperadas >= ESPERADAS_PARA_DECIDIR - EPS ? r : null;
+  return esLentaConEvidencia(r) ? r : null;
+}
+
+/** Su rapidez, contraída, queda bajo `cota` con 9 de cada 10 de confianza (`COTA_LENTA` o, para mover mercadería, `COTA_LENTA_FUERTE`). */
+export function esLentaConEvidencia(r: Pick<Rapidez, "vendidas" | "esperadas">, cota: number = COTA_LENTA): boolean {
+  return cuantilGamma(PRIOR_LENTA + r.vendidas, PRIOR_LENTA + r.esperadas, Z90) < cota;
 }
 
 // ---------------------------------------------------------------------------
@@ -1172,7 +1326,14 @@ export function estaQuieta(p: { tramo: Tramo | null; temporadaPasada: boolean; r
  * de las 30 ventas de su categoría tenía vara «Sólido» y se medía contra 2 (revisión 4).
  */
 export function puedeTrasladar(p: { nivel: NivelConfianza | null; almacenHoy: number; rapidez: Rapidez | null }): boolean {
-  return p.nivel === "solido" && p.almacenHoy > 0 && p.rapidez !== null && nivelPorVentas(p.rapidez.referencia) === "solido";
+  return (
+    p.nivel === "solido" &&
+    p.almacenHoy > 0 &&
+    p.rapidez !== null &&
+    nivelPorVentas(p.rapidez.referencia) === "solido" &&
+    // Mueve mercadería: además de lenta, muy lenta con evidencia (act. 2026-10-10 (b)).
+    (p.rapidez.indice >= RAPIDEZ_IGUAL || esLentaConEvidencia(p.rapidez, COTA_LENTA_FUERTE))
+  );
 }
 
 /**
@@ -1228,10 +1389,17 @@ export type EntradaEstado = {
   /** Contra qué se ubica: el nivel de la vara de su categoría (cuántas ventas la forman) y los cortes y la observación
    *  más larga de su categoría SIN ella (`contraElResto`, D5). */
   vara: Pick<Vara, "cortes" | "nivel"> & { curva: Pick<Curva, "tMax"> };
+  /** El reloj del modelo+color: dice si todavía es Fresca (`tramoDosRelojes`). */
   reloj: RelojNovedad;
+  /** El reloj de su unidad más vieja colgada (`relojDeLaUnidad`): dice, pasada la mitad, si se está quedando. Sin él, la
+   *  unidad más vieja lleva lo mismo que su modelo (una sola tanda colgada desde el principio, sin reponer). */
+  relojUnidad?: RelojNovedad;
   rapidez: Rapidez | null;
+  /** Lo libre en el piso que se juzga: sin las unidades que apartó lo vendido sin registrar (act. 2026-10-10 (c)). */
   pisoHoy: number;
   almacenHoy: number;
+  /** Todo lo que cuelga está en duda (cada unidad puede ser una venta sin registrar): no se juzga. */
+  todaEnDuda?: boolean;
   /** Unidades de su modelo+color vendidas (o apartadas para una clienta: revisión 8) en la sede en sus últimos
    *  `DIAS_CALLADA` días en el piso (con menos días colgada en la lectura, en todos los que tiene); null si quien llama
    *  no lo sabe. Dicen si se sigue vendiendo
@@ -1258,17 +1426,21 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
     | { tipo: "sin_vara" }
     | { tipo: "sin_edad_conocida" }
     | { tipo: "clasico"; fueraDeSuEstacion: boolean }
-    | { tipo: "dudosa" };
+    | { tipo: "dudosa" }
+    | { tipo: "vendida_sin_registrar" };
   if (e.dudosa) base = { tipo: "dudosa" };
   else if (e.esClasico) base = { tipo: "clasico", fueraDeSuEstacion: e.enEstacionAhora === false };
+  else if (e.todaEnDuda) base = { tipo: "vendida_sin_registrar" };
   else if (e.vara.nivel === null) base = { tipo: "sin_ventas_sede" };
   else {
-    const t = tramoDe(e.reloj.segundos, e.vara.cortes, e.vara.curva.tMax);
+    const unidad = e.relojUnidad ?? e.reloj;
+    const t = tramoDosRelojes(e.reloj.segundos, unidad.segundos, e.vara.cortes, e.vara.curva.tMax);
     if (t === null) base = { tipo: "sin_vara" };
     else if (t.tramo === "nueva" && e.reloj.alMenos) base = { tipo: "sin_edad_conocida" };
     else {
-      // El tramo es un piso si el reloj lo es, o si la curva no llega hasta su reloj.
-      base = { tipo: "semaforo", tramo: t.tramo, alMenos: e.reloj.alMenos || t.alMenos };
+      // Fresca es exacta (su modelo no llega a P50). Pasada la mitad, el tramo es un piso si el reloj que lo decide —el de la
+      // unidad— lo es, o si la curva no llega hasta él.
+      base = { tipo: "semaforo", tramo: t.tramo, alMenos: t.tramo !== "nueva" && (unidad.alMenos || t.alMenos) };
       tramo = t.tramo;
     }
   }
@@ -1293,6 +1465,36 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
   return { ...base, temporadaPasada, sinTemporada, quieta, sugerencias };
 }
 
+/**
+ * La lectura de una sede COMO ERA en `cuando` (ADR-0208, act. 2026-10-10 (b): comparar el piso con el de hace 4 semanas sin guardar fotos):
+ * el libro y lo apartado hasta ese instante, `ahora` en ese instante y, de cada talla, lo libre en el piso que salía del libro entonces
+ * (el nivel menos lo apartado en el piso). Lo que no se puede saber de entonces queda neutro: el almacén en 0 (solo lo usa «Trasladar») y
+ * la primera exhibición borrada si fue después. Límite: la temporada y las llegadas son las de hoy (no cambian lo que pinta la barra).
+ */
+export function lecturaAl(l: LecturaFrescuraConPiso, cuando: string): LecturaFrescuraConPiso {
+  const t = ms(cuando);
+  const hasta = <T extends { ts: string }>(lista: readonly T[] | undefined): T[] => (lista ?? []).filter((x) => ms(x.ts) <= t);
+  const eventos: Record<string, EventoPiso[]> = {};
+  for (const [id, lista] of Object.entries(l.eventos)) eventos[id] = hasta(lista);
+  const apartados: Record<string, PuntoApartado[]> = {};
+  for (const [id, lista] of Object.entries(l.apartados ?? {})) apartados[id] = hasta(lista);
+  const tallas = l.tallas.map((talla): TallaFrescuraCruda => {
+    const nivel = Math.max(0, (eventos[talla.varianteId] ?? []).reduce((s, e) => s + e.delta, 0));
+    const apartadoPiso = Math.min(nivel, Math.max(0, -(apartados[talla.varianteId] ?? []).reduce((s, a) => s + a.delta, 0)));
+    const primera = talla.primeraExhibicion !== null && ms(talla.primeraExhibicion) <= t ? talla.primeraExhibicion : null;
+    return { ...talla, pisoHoy: nivel - apartadoPiso, almacenHoy: 0, apartadasHoy: apartadoPiso, apartadasPisoHoy: apartadoPiso, primeraExhibicion: primera };
+  });
+  return {
+    ...l,
+    ahora: cuando,
+    tallas,
+    eventos,
+    apartados,
+    tardias: l.tardias.filter((x) => x.bajadaEn !== "" && ms(x.bajadaEn) <= t),
+    cuadres: (l.cuadres ?? []).filter((c) => ms(c) <= t),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Una sede entera
 // ---------------------------------------------------------------------------
@@ -1313,10 +1515,29 @@ export type VaraCategoria = {
   /** La vara de CAYLA de esta categoría (ADR-0208, act. 2026-10-07), si el cron la calculó y sigue vigente; `enUso` cuando
    *  las prendas de la categoría se juzgaron contra ella (la tienda no llega a `VENTAS_PARA_JUZGAR_SOLA`). */
   respaldo: RespaldoCategoria | null;
+  /** La vara del mes (ADR-0208, act. 2026-10-10 (b)): la curva de la categoría en la tienda con lo ocurrido hasta el día 1,
+   *  congelada todo el mes; `enUso` cuando llega a `VENTAS_PARA_JUZGAR_SOLA` ventas y sus prendas se juzgaron contra ella. La
+   *  vara de arriba (`cortes`, `ventanaDias`…) sigue siendo la de HOY: las dos juntas dicen si la categoría se puso más lenta.
+   *  Null cuando quien analizó no pidió la vara del mes (el cron de CAYLA). */
+  delMes: VaraDelMesCategoria | null;
 };
 
+/**
+ * La vara que JUZGÓ a la categoría (la que decide Fresca · Vigente · Envejeciendo de sus prendas): la del mes si llegó a sus ventas, si no la
+ * de CAYLA si se usó de respaldo, y si no la de hoy. Una sola definición para la pantalla y la aguja (Formidable 2026-10-10 (c): la ayuda
+ * dibujaba la escala de hoy mientras las prendas se juzgaban con la del mes, y la encargada vio dos escalas para la misma categoría).
+ */
+export function varaQueJuzgo(v: VaraCategoria): { cortes: Cortes; ventanaDias: number; vendidas: number; cual: "mes" | "cayla" | "hoy" } {
+  if (v.delMes?.enUso) return { cortes: v.delMes.cortes, ventanaDias: v.delMes.ventanaDias, vendidas: v.delMes.vendidas, cual: "mes" };
+  if (v.respaldo?.enUso) return { cortes: v.respaldo.cortes, ventanaDias: v.respaldo.ventanaDias, vendidas: v.respaldo.vendidas, cual: "cayla" };
+  return { cortes: v.cortes, ventanaDias: v.ventanaDias, vendidas: v.vendidas, cual: "hoy" };
+}
+
 /** La vara de CAYLA de una categoría, para la pantalla: la misma forma que la de la tienda, más cuándo se calculó y si decidió. */
-export type RespaldoCategoria = Omit<VaraCategoria, "respaldo"> & { calculadaEn: string; enUso: boolean };
+export type RespaldoCategoria = Omit<VaraCategoria, "respaldo" | "delMes"> & { calculadaEn: string; enUso: boolean };
+
+/** La vara del mes de una categoría, para la pantalla: la misma forma que la de hoy, más su corte y si decidió. */
+export type VaraDelMesCategoria = Omit<VaraCategoria, "respaldo" | "delMes"> & { corte: string; enUso: boolean };
 
 /**
  * Ventas con edad conocida que necesita una categoría EN LA TIENDA para juzgar sus prendas sola (ADR-0208, actualización
@@ -1341,7 +1562,24 @@ export type FrescuraPrenda = {
   colorNombre: string | null;
   categoriaId: string;
   categoriaNombre: string;
-  tallas: { varianteId: string; talla: string | null; pisoHoy: number; almacenHoy: number; apartadasHoy: number; apartadasPisoHoy: number }[];
+  tallas: {
+    varianteId: string;
+    talla: string | null;
+    pisoHoy: number;
+    almacenHoy: number;
+    apartadasHoy: number;
+    apartadasPisoHoy: number;
+    /** Lo colgado hoy de esta talla, cada tanda con sus segundos (`colgadasDe`): lo que cuenta la barra del piso, unidad por
+     *  unidad (ADR-0208, act. 2026-10-10 (b)). Vacío para la clásica y la que no cuadra, que no se juzgan. Sin las unidades que
+     *  apartó lo vendido sin registrar (`dudadas`). */
+    colgadas: UnidadColgada[];
+    /** Unidades colgadas que puede ser que ya se vendieron sin registrar (una venta anotada en caja de su categoría, talla y color):
+     *  no se juzgan y van a «Aún no se sabe» (ADR-0208, act. 2026-10-10 (c)). */
+    dudadas?: number;
+    /** Esas mismas unidades, con sus segundos colgadas: para contar el piso «como si no se dudara» al compararlo con hace 4 semanas,
+     *  que se arma sin dudas (revisión adversaria: si no, cada venta pendiente daba un falso «más fresco»). */
+    apartadas?: UnidadColgada[];
+  }[];
   /** Lo libre en el piso y en el almacén (sin lo apartado: R7-1). */
   pisoHoy: number;
   almacenHoy: number;
@@ -1351,7 +1589,10 @@ export type FrescuraPrenda = {
   /** De lo apartado, lo del PISO (paso 4): «apartada» solo si hay algo aquí; si todo lo apartado está en el almacén, la
    *  prenda está guardada. */
   apartadasPisoHoy: number;
+  /** El reloj del modelo+color en la sede: la novedad (si todavía es Fresca). */
   reloj: RelojNovedad;
+  /** El reloj de su unidad más vieja colgada hoy: si se está quedando (ADR-0208, act. 2026-10-10 (b)). Sin nada colgado, 0. */
+  relojUnidad: RelojNovedad;
   primeraExhibicion: string | null;
   /** La última llegada de cualquiera de sus tallas a ESTA sede (incluye la recepción de un traslado). */
   ultimaLlegada: string | null;
@@ -1378,6 +1619,9 @@ export type FrescuraPrenda = {
   /** Contra qué se juzgó (ADR-0208, act. 2026-10-07): su categoría en la tienda, o la de CAYLA cuando la tienda no llega a
    *  `VENTAS_PARA_JUZGAR_SOLA` ventas y CAYLA sí. `categoriaSinElla` es la curva que de verdad la juzgó. */
   juzgadaContra: "sede" | "cayla";
+  /** Se juzgó contra la vara del mes de su categoría (congelada el día 1). Falso: la del mes todavía no llega a
+   *  `VENTAS_PARA_JUZGAR_SOLA` ventas y se juzgó con la de hoy («aún aprendiendo su ritmo»), o es clásica o no cuadra. */
+  varaDelMes: boolean;
   estado: EstadoFrescura;
   /**
    * «Por decidir» (paso 4b): quieta Y sin decisión vigente. ES EL ÚNICO LUGAR que lo dice: la cifra, el filete, el filtro y
@@ -1413,7 +1657,22 @@ export type FrescuraSede = {
   cifras: CifrasSede;
   /** Lo decidido en la sede (paso 4b) o el aviso de que no se pudo leer. `analizarSede` la deja «sin lectura»; la llena `aplicarDecisiones`. */
   decisiones: DecisionesDeSede;
+  /** El piso de hace 4 semanas, por categoría (ADR-0208, act. 2026-10-10 (b): la meta es contra el mes anterior). Lo pone quien lee la
+   *  sede si se lo piden (`pisoAnterior`, `frescura-piso.ts`); null si no se pudo reconstruir o la lectura no llega tan atrás. */
+  haceUnMes?: PisoAnterior | null;
+  /** No se pudo leer lo vendido sin registrar: se juzgó sin dudar de nada, y la pantalla lo dice una vez (act. 2026-10-10 (c)). */
+  dudasFallo?: boolean;
+  /** Cuánto estuvo colgada y cuánto vendió cada categoría en los últimos 14 y 28 días (ADR-0208, act. 2026-10-10 (b): lo que mueve la
+   *  aguja). Unidad·días LIBRES en el piso y ventas registradas (lo apartado cuenta como venta), sin mirar la edad: funciona aunque casi todo
+   *  sea carga inicial. Sin clásicos ni lo que no cuadra, como la barra. */
+  ritmoPorCategoria: RitmoCategoria[];
 };
+
+/** El ritmo de una categoría en una ventana: lo que pesa en el piso (unidad·días) contra lo que vende. */
+export type RitmoCategoria = { categoriaId: string; dias: number; unidadDias: number; vendidas: number };
+
+/** Las ventanas del ritmo: 14 días manda; 28 si en 14 todavía no hay con qué juzgar. */
+export const DIAS_RITMO = [14, 28] as const;
 
 /** Lo que una sede aporta a la referencia de CAYLA: por categoría, sus unidades con edad conocida en cada ventana (se
  *  calculan al pedirlas y quedan guardadas). Vive en el servidor: no va a la pantalla. */
@@ -1423,12 +1682,12 @@ const SIN_CATEGORIA = "";
 const NOMBRE_SIN_CATEGORIA = "Sin categoría";
 
 /** La vara, lista para la pantalla, SIN su respaldo: quien llama lo pone (la sede lo sabe; la referencia de CAYLA no tiene). */
-function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): Omit<VaraCategoria, "respaldo"> {
+function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): Omit<VaraCategoria, "respaldo" | "delMes"> {
   return {
     categoriaId,
     categoriaNombre,
     ventanaDias: v.ventanaDias,
-    cortes: v.cortes,
+    cortes: cortesConCola(v.cortes, finDeCurva(v.curva)),
     tMax: v.curva.tMax,
     vendidoAlFinal: 1 - supervivenciaEn(v.curva, v.curva.tMax),
     vendidas: v.vendidas,
@@ -1459,8 +1718,17 @@ type UnidadesDeTalla = { enVentana: (dias: number) => UnidadesTalla; todas: () =
  * La sede entera: eventos sin tardías → unidades por ventana → vara de cada categoría (sin clásicos ni dudosas) → reloj,
  * tramo y rapidez de cada prenda contra su categoría SIN ella → estado. `observaciones` sirve para la referencia de
  * CAYLA (`referenciaCayla`).
+ * `opciones.corteDelMes` (ADR-0208, act. 2026-10-10 (b)): el instante de la vara del mes (`inicioDelMesLima`). Con él, cada
+ * categoría se juzga contra su curva con lo ocurrido hasta ese instante (los `DIAS_VARA_DEL_MES` anteriores), congelada todo
+ * el mes, cuando esa curva llega a `VENTAS_PARA_JUZGAR_SOLA` ventas; si no, como sin él. Sin él, la vara es la de hoy: así lo
+ * pide el cron de CAYLA, que guarda las unidades de hoy.
+ * `opciones.dudas` (act. 2026-10-10 (c)): lo vendido sin registrar que sigue pendiente; cada una aparta una unidad colgada (ver abajo).
  */
-export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
+export function analizarSede(
+  l: LecturaFrescuraConPiso,
+  respaldo?: RespaldoCayla,
+  opciones: { corteDelMes?: string; dudas?: readonly DudaVendida[] } = {},
+): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
   const tardiasPorOid = new Map<string, number>();
   for (const t of l.tardias) tardiasPorOid.set(t.oid, (tardiasPorOid.get(t.oid) ?? 0) + t.unidadesTardias);
   const dudosas = new Set(l.dudosas);
@@ -1510,6 +1778,25 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       ),
       tardiasPorOid,
     );
+  // Las unidades de cada talla en la vara del mes: los eventos COMO ESTABAN en el corte (`limpiosEnLaFoto`, el mismo cuidado
+  // que la foto de CAYLA: lo apartado de entonces se lee con lo que se sabía entonces), en los `DIAS_VARA_DEL_MES` anteriores.
+  // Un corte que no cae dentro de la lectura no arma vara del mes.
+  const corteDelMes = opciones.corteDelMes ?? null;
+  const corteMs = corteDelMes !== null ? ms(corteDelMes) : NaN;
+  const unidadesDelMes = new Map<string, () => readonly Observacion[]>();
+  if (corteDelMes !== null && corteMs > desdeMs && corteMs <= ahoraMs) {
+    const inicioMs = corteMs - DIAS_VARA_DEL_MES * MS_POR_DIA;
+    for (const id of limpiosPorVariante.keys()) {
+      unidadesDelMes.set(
+        id,
+        unaVez(() => {
+          const hastaElCorte = limpiosEnLaFoto(id, corteMs);
+          const eventos = inicioMs <= desdeMs ? hastaElCorte : recortarEventos(hastaElCorte, new Date(inicioMs).toISOString());
+          return unidadesParaVara(eventos, corteDelMes).observaciones;
+        }),
+      );
+    }
+  }
   const observaciones: ObservacionesSede = {};
   for (const [cat, { nombre, ids }] of tallasDeCategoria) {
     if (ids.length === 0) continue;
@@ -1519,12 +1806,17 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
   // La vara de cada categoría que tiene prendas en la sede (aunque no tenga unidades con edad conocida), y si sus prendas se
   // juzgan contra ella o contra la de CAYLA (ADR-0208, act. 2026-10-07): con menos de `VENTAS_PARA_JUZGAR_SOLA` ventas aquí y
   // esa cifra o más en CAYLA, CAYLA. Lo sin categoría no tiene respaldo: no se sabe contra qué.
-  const varas = new Map<string, { nombre: string; vara: Vara; respaldo: VaraRespaldo | null; usaRespaldo: boolean }>();
-  for (const [cat, { nombre }] of tallasDeCategoria) {
+  // Y antes que las dos, la vara del mes (act. 2026-10-10 (b)): si llega a `VENTAS_PARA_JUZGAR_SOLA` ventas, juzga ella. Una
+  // vara que se recalcula con lo mismo que mide se ajusta sola —con venta exponencial, el piso de una tienda en equilibrio sale
+  // siempre 50/25/15/10 se haga bien o mal—; congelada, la tienda que se pone lenta se ve más vieja.
+  const varas = new Map<string, { nombre: string; vara: Vara; respaldo: VaraRespaldo | null; usaRespaldo: boolean; mes: Vara | null; usaMes: boolean }>();
+  for (const [cat, { nombre, ids }] of tallasDeCategoria) {
     const vara = varaPorVentanas(observaciones[cat]?.unidadesEn ?? (() => []));
+    const mes = unidadesDelMes.size > 0 ? construirVara(ids.flatMap((id) => unidadesDelMes.get(id)?.() ?? []), DIAS_VARA_DEL_MES) : null;
+    const usaMes = mes !== null && mes.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
     const r = cat === SIN_CATEGORIA ? null : (respaldo?.get(cat) ?? null);
-    const usaRespaldo = r !== null && vara.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS && r.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
-    varas.set(cat, { nombre, vara, respaldo: r, usaRespaldo });
+    const usaRespaldo = !usaMes && r !== null && vara.vendidas < VENTAS_PARA_JUZGAR_SOLA - EPS && r.vendidas >= VENTAS_PARA_JUZGAR_SOLA - EPS;
+    varas.set(cat, { nombre, vara, respaldo: r, usaRespaldo, mes, usaMes });
   }
 
   // Las tallas, juntas por prenda (modelo+color).
@@ -1536,11 +1828,52 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
     else porPrenda.set(k, [talla]);
   }
 
+  // Lo vendido sin registrar (act. 2026-10-10 (c); Felipe: «rapidez sí, días no»): cada venta anotada en caja que sigue pendiente aparta la
+  // unidad colgada MÁS VIEJA de su categoría, talla y color —puede ser la que se vendió— y esa unidad deja de juzgarse: no empuja a su
+  // prenda a «Por decidir» y en la barra cuenta como «Aún no se sabe». No toca el stock ni la vara de días (las observaciones no cambian:
+  // no se sabe desde cuándo colgaba). Es un puente: lo colgado sin etiqueta se va vendiendo o etiquetando, y con eso se acaba.
+  const colgadasConDudas = new Map<string, UnidadColgada[]>();
+  const dudadasDeTalla = new Map<string, number>();
+  const apartadasDeTalla = new Map<string, UnidadColgada[]>();
+  // Las ventas más viejas primero (el orden no depende de cómo llegaron). Solo deja una unidad fantasma la venta hecha cuando el sistema TENÍA
+  // en el piso algo de esa categoría, talla y color: si no tenía (la cola de arranque, vendida antes de la carga inicial, que contó lo que
+  // había sin la vendida), no hay nada que dudar (revisión adversaria). La unidad que se duda es la más vieja que cuelga: las tandas son
+  // FIFO del libro, así que no se filtra por cuándo colgó cada una.
+  const dudas = [...(opciones.dudas ?? [])].sort((a, b) => (a.vendidoEn ?? "").localeCompare(b.vendidoEn ?? ""));
+  const coincide = (t: TallaFrescuraCruda, d: DudaVendida) => (t.categoriaId ?? SIN_CATEGORIA) === d.categoriaId && t.talla === d.talla && t.colorCodigo === d.colorCodigo;
+  const habiaEnElPiso = (d: DudaVendida): boolean => {
+    if (!d.vendidoEn) return true;
+    const vendidaMs = ms(d.vendidoEn);
+    if (vendidaMs <= desdeMs) return true; // antes de la lectura no se sabe: se duda, como antes
+    let nivel = 0;
+    for (const t of l.tallas) if (coincide(t, d)) for (const e of l.eventos[t.varianteId] ?? []) if (ms(e.ts) <= vendidaMs) nivel += e.delta;
+    return nivel > 0;
+  };
+  for (const d of dudas) {
+    if (!habiaEnElPiso(d)) continue;
+    let mejor: { varianteId: string; i: number; segundos: number } | null = null;
+    for (const t of l.tallas) {
+      if (t.pisoHoy <= 0 || !coincide(t, d)) continue;
+      const eventos = limpiosPorVariante.get(t.varianteId);
+      if (!eventos) continue; // clásica o que no cuadra: no se juzga, no hay qué apartar
+      if (!colgadasConDudas.has(t.varianteId)) colgadasConDudas.set(t.varianteId, colgadasDe(eventos, l.ahora).map((u) => ({ ...u })));
+      const lista = colgadasConDudas.get(t.varianteId)!;
+      for (let i = 0; i < lista.length; i++) {
+        if (lista[i].unidades > 0 && (mejor === null || lista[i].segundos > mejor.segundos)) mejor = { varianteId: t.varianteId, i, segundos: lista[i].segundos };
+      }
+    }
+    if (mejor === null) continue;
+    const tanda = colgadasConDudas.get(mejor.varianteId)![mejor.i];
+    tanda.unidades -= 1;
+    dudadasDeTalla.set(mejor.varianteId, (dudadasDeTalla.get(mejor.varianteId) ?? 0) + 1);
+    apartadasDeTalla.set(mejor.varianteId, [...(apartadasDeTalla.get(mejor.varianteId) ?? []), { ...tanda, unidades: 1 }]);
+  }
+
   const prendas: FrescuraPrenda[] = [];
   for (const [clave, tallas] of porPrenda) {
     const f = tallas[0];
     const cat = f.categoriaId ?? SIN_CATEGORIA;
-    const { nombre: categoriaNombre, vara, respaldo: varaCayla, usaRespaldo } = varas.get(cat)!;
+    const { nombre: categoriaNombre, vara, respaldo: varaCayla, usaRespaldo, mes: varaMes, usaMes } = varas.get(cat)!;
     const esClasico = tallas.some((t) => t.esClasico);
     const dudosa = tallas.some((t) => dudosas.has(t.varianteId));
     const temporada = tallas.find((t) => t.temporada !== null)?.temporada ?? null;
@@ -1590,8 +1923,26 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
     // Con la vara de toda la lectura, lo que se resta y lo que se mide es lo mismo (y se ordena una vez).
     const propiasObs = enLaVara.every((u, k) => u === suyas[k]) ? suyasObs : enLaVara.flatMap((u) => u.observaciones);
     const juzgadaContra: FrescuraPrenda["juzgadaContra"] = usaRespaldo && medibles.length > 0 ? "cayla" : "sede";
+    const varaDelMes = usaMes && varaMes !== null && medibles.length > 0;
+    // El reloj de su unidad más vieja colgada: el FIFO de los eventos ya limpios (los mismos de la vara). La clásica y la que no
+    // cuadra no tienen eventos limpios: no se juzgan, su reloj de unidad queda en 0.
+    const colgadasPorTalla = tallas.map((t) => {
+      const conDudas = colgadasConDudas.get(t.varianteId);
+      if (conDudas) return conDudas.filter((u) => u.unidades > 0);
+      const eventos = limpiosPorVariante.get(t.varianteId);
+      return eventos ? colgadasDe(eventos, l.ahora) : [];
+    });
+    const relojUnidad = relojDeLaUnidad(colgadasPorTalla.flat());
+    // Lo que apartó lo vendido sin registrar no se juzga: ni empuja a «Por decidir» por temporada pasada ni la deja con un reloj de 0.
+    const enDuda = tallas.reduce((s, t) => s + (dudadasDeTalla.get(t.varianteId) ?? 0), 0);
+    const pisoJuzgable = Math.max(0, pisoHoy - enDuda);
     let resto: MedidaContraElResto | null = null;
-    if (medibles.length > 0 && juzgadaContra === "cayla" && varaCayla !== null) {
+    if (varaDelMes) {
+      // Contra la vara del mes, sus propias unidades se restan como estaban EN EL CORTE (las mismas con que entran a esa curva);
+      // lo que se MIDE (`suyasObs`) es lo de hoy, como contra CAYLA.
+      const propiasDelMes = tallas.flatMap((t) => unidadesDelMes.get(t.varianteId)?.() ?? []);
+      resto = contraElResto(varaMes.curva, propiasDelMes, suyasObs);
+    } else if (medibles.length > 0 && juzgadaContra === "cayla" && varaCayla !== null) {
       // Contra CAYLA, sus propias unidades se restan COMO LAS VIO EL CRON (D5, «sin ella»): los mismos eventos hasta
       // `calculadaEn` —el libro y los apartados de entonces, `limpiosEnLaFoto`—, la misma ventana y el mismo FIFO. La curva de
       // CAYLA es una foto de la madrugada; restarle lo que la prenda tiene HOY le quitaría unidades con una edad que la foto no
@@ -1629,10 +1980,19 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       enEstacionAhora,
       ahora: l.ahora,
       // El nivel es el de la vara que juzga: el de CAYLA cuando es CAYLA (de ahí sale si «Trasladar» puede sugerirse).
-      vara: resto === null ? vara : { nivel: juzgadaContra === "cayla" && varaCayla ? varaCayla.nivel : vara.nivel, cortes: resto.cortes, curva: { tMax: resto.tMax } },
+      vara:
+        resto === null
+          ? vara
+          : {
+              nivel: varaDelMes ? varaMes.nivel : juzgadaContra === "cayla" && varaCayla ? varaCayla.nivel : vara.nivel,
+              cortes: resto.cortes,
+              curva: { tMax: resto.tMax },
+            },
       reloj,
+      relojUnidad,
       rapidez: r,
-      pisoHoy,
+      pisoHoy: pisoJuzgable,
+      todaEnDuda: enDuda > 0 && pisoJuzgable === 0,
       almacenHoy,
       ventasRecientes,
     });
@@ -1645,19 +2005,23 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       colorNombre: f.colorNombre,
       categoriaId: cat,
       categoriaNombre,
-      tallas: tallas.map((t) => ({
+      tallas: tallas.map((t, k) => ({
         varianteId: t.varianteId,
         talla: t.talla,
         pisoHoy: t.pisoHoy,
         almacenHoy: t.almacenHoy,
         apartadasHoy: t.apartadasHoy,
         apartadasPisoHoy: t.apartadasPisoHoy,
+        colgadas: colgadasPorTalla[k],
+        // Solo cuando hay: la forma de la talla no cambia para la inmensa mayoría.
+        ...(dudadasDeTalla.has(t.varianteId) ? { dudadas: dudadasDeTalla.get(t.varianteId)!, apartadas: apartadasDeTalla.get(t.varianteId)! } : {}),
       })),
       pisoHoy,
       almacenHoy,
       apartadasHoy,
       apartadasPisoHoy,
       reloj,
+      relojUnidad,
       primeraExhibicion: primeras[0] ?? null,
       ultimaLlegada: llegadas[llegadas.length - 1] ?? null,
       ultimaLlegadaCayla: llegadasCayla[llegadasCayla.length - 1] ?? null,
@@ -1669,6 +2033,7 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       ventasRecientes,
       categoriaSinElla: resto === null ? null : { cortes: resto.cortes, tMax: resto.tMax, vendidas: resto.vendidas },
       juzgadaContra,
+      varaDelMes,
       estado,
       porDecidir: estado.quieta,
       decision: null,
@@ -1679,9 +2044,11 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
   // El respaldo está EN USO solo si alguna prenda de la categoría se juzgó contra CAYLA: una categoría de puros clásicos (o de
   // prendas que no cuadran) no se juzga contra nada, y el tablero no debe decir «Contra CAYLA» (revisión adversaria, 2026-10-08).
   const juzgadasContraCayla = new Set(prendas.filter((p) => p.juzgadaContra === "cayla").map((p) => p.categoriaId));
+  const juzgadasContraElMes = new Set(prendas.filter((p) => p.varaDelMes).map((p) => p.categoriaId));
   const categorias = [...varas.entries()]
-    .map(([id, { nombre, vara, respaldo: r }]) => ({
+    .map(([id, { nombre, vara, respaldo: r, mes }]) => ({
       ...aVaraCategoria(id, nombre, vara),
+      delMes: mes === null || corteDelMes === null ? null : { ...aVaraCategoria(id, nombre, mes), corte: corteDelMes, enUso: juzgadasContraElMes.has(id) },
       respaldo:
         r === null
           ? null
@@ -1706,6 +2073,23 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
     return { unidadSegundos, vendidas };
   };
 
+  // El ritmo de cada categoría (lo que mueve la aguja): la exposición de siempre (`exposicionDeEventos`, la medida de «¿sirvió?»), sumada.
+  const ritmoPorCategoria: RitmoCategoria[] = [];
+  for (const dias of DIAS_RITMO) {
+    const desdeRitmo = new Date(Math.max(desdeMs, ahoraMs - dias * MS_POR_DIA)).toISOString();
+    for (const [cat, { ids }] of tallasDeCategoria) {
+      if (ids.length === 0) continue;
+      let unidadSegundos = 0;
+      let vendidas = 0;
+      for (const id of ids) {
+        const e = exposicionDeEventos(limpiosPorVariante.get(id) ?? [], desdeRitmo, l.ahora);
+        unidadSegundos += e.unidadSegundos;
+        vendidas += e.vendidas;
+      }
+      ritmoPorCategoria.push({ categoriaId: cat, dias, unidadDias: unidadSegundos / 86_400, vendidas });
+    }
+  }
+
   return {
     sede: {
       separaPiso: true,
@@ -1713,6 +2097,7 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       ahora: l.ahora,
       categorias,
       prendas,
+      ritmoPorCategoria,
       cifras: cifrasSede(prendas),
       // Hasta que `aplicarDecisiones` lea la libreta, no se sabe nada de lo decidido.
       decisiones: { estado: "sin_lectura", aviso: "" },
@@ -1765,7 +2150,7 @@ export function referenciaCayla(sedes: readonly ObservacionesSede[]): VaraCatego
   const nombres = new Map<string, string>();
   for (const sede of sedes) for (const [cat, grupo] of Object.entries(sede)) if (!nombres.has(cat)) nombres.set(cat, grupo.nombre);
   return [...nombres]
-    .map(([cat, nombre]) => ({ ...aVaraCategoria(cat, nombre, varaPorVentanas((d) => sedes.flatMap((sede) => sede[cat]?.unidadesEn(d) ?? []))), respaldo: null }))
+    .map(([cat, nombre]) => ({ ...aVaraCategoria(cat, nombre, varaPorVentanas((d) => sedes.flatMap((sede) => sede[cat]?.unidadesEn(d) ?? []))), respaldo: null, delMes: null }))
     .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es"));
 }
 
@@ -1838,12 +2223,36 @@ type SedeLeida = {
   medicion: { sede: FrescuraSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe; cuadres: readonly string[] } | null;
 };
 
-async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number, respaldo?: RespaldoCayla): Promise<SedeLeida> {
+/** Cómo se reconstruye el piso de hace 4 semanas (`pisoAnterior` de `frescura-piso.ts`): lo pasa quien lee, para que este archivo no
+ *  dependa de la barra. */
+export type CalcularAnterior = (lectura: LecturaFrescuraConPiso, respaldo?: RespaldoCayla) => PisoAnterior | null;
+
+/** Cómo se piden las ventas sin registrar pendientes de una sede (lo pasa el servidor; si falla, ninguna: la pantalla sigue entera). */
+export type CargarDudas = (ubicacionId: string) => Promise<readonly DudaVendida[]>;
+
+async function leerSedeFrescura(
+  rpc: LlamarRpcFrescura,
+  u: { id: string; nombre: string },
+  dias: number,
+  respaldo?: RespaldoCayla,
+  anterior?: CalcularAnterior,
+  cargarDudas?: CargarDudas,
+): Promise<SedeLeida> {
   const que = `la frescura de ${u.nombre}`;
   const fila = (lectura: FrescuraDeSede["lectura"]): FrescuraDeSede => ({ ubicacionId: u.id, nombre: u.nombre, lectura });
   const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null, medicion: null });
   // Las dos lecturas salen a la vez: la de decisiones no espera a la del piso.
   const enCurso = leerDecisionesDeSede(rpc, u, dias);
+  // Lo vendido sin registrar: si no se pudo leer, se juzga sin dudas y la pantalla lo dice (`dudasFallo`), nunca en silencio.
+  const dudasEnCurso: Promise<{ dudas: readonly DudaVendida[]; fallo: boolean }> = cargarDudas
+    ? cargarDudas(u.id).then(
+        (dudas) => ({ dudas, fallo: false }),
+        (e) => {
+          console.error(`No se pudo leer lo vendido sin registrar de ${u.nombre}:`, e);
+          return { dudas: [], fallo: true };
+        },
+      )
+    : Promise.resolve({ dudas: [], fallo: false });
   try {
     const { data, error } = await rpc("fn_frescura_sede", { p_ubicacion_id: u.id, p_dias: dias });
     if (error) {
@@ -1856,7 +2265,19 @@ async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre:
       return fallo(avisoFrescura(que, null));
     }
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
-    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo);
+    // La pantalla juzga contra la vara del mes (act. 2026-10-10 (b)); el cron de CAYLA, que guarda las unidades de hoy, no.
+    const lectoDudas = await dudasEnCurso;
+    const { sede, observaciones, exposicion } = analizarSede(lectura, respaldo, { corteDelMes: inicioDelMesLima(lectura.ahora), dudas: lectoDudas.dudas });
+    if (lectoDudas.fallo) sede.dudasFallo = true;
+    // El piso de hace 4 semanas (la meta es contra el mes anterior): si no se puede reconstruir, la pantalla no compara y sigue entera.
+    if (anterior) {
+      try {
+        sede.haceUnMes = anterior(lectura, respaldo);
+      } catch (e) {
+        console.error(`No se pudo reconstruir el piso de hace 4 semanas de ${u.nombre}:`, e);
+        sede.haceUnMes = null;
+      }
+    }
     const decisiones = await enCurso;
     const cuadres = lectura.cuadres ?? [];
     sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora, cuadres);
@@ -1887,8 +2308,15 @@ async function leerConfianzaFrescura(rpc: LlamarRpcFrescura): Promise<Tolerado<F
  * registro al colgar ni la referencia de CAYLA (las dos necesitan leer las otras tiendas, y quien no es líder no las
  * opera). Mismo camino y mismos avisos que cada tienda de la vuelta del líder.
  */
-export async function armarFrescuraSede(tienda: { id: string; nombre: string }, rpc: LlamarRpcFrescura, dias: number, respaldo?: RespaldoCayla): Promise<FrescuraDeSede> {
-  return (await leerSedeFrescura(rpc, tienda, dias, respaldo)).fila;
+export async function armarFrescuraSede(
+  tienda: { id: string; nombre: string },
+  rpc: LlamarRpcFrescura,
+  dias: number,
+  respaldo?: RespaldoCayla,
+  anterior?: CalcularAnterior,
+  cargarDudas?: CargarDudas,
+): Promise<FrescuraDeSede> {
+  return (await leerSedeFrescura(rpc, tienda, dias, respaldo, anterior, cargarDudas)).fila;
 }
 
 /**
@@ -1901,8 +2329,10 @@ export async function armarFrescuraLider(
   rpc: LlamarRpcFrescura,
   dias: number,
   respaldo?: RespaldoCayla,
+  anterior?: CalcularAnterior,
+  cargarDudas?: CargarDudas,
 ): Promise<FrescuraLider> {
-  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo))), leerConfianzaFrescura(rpc)]);
+  const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias, respaldo, anterior, cargarDudas))), leerConfianzaFrescura(rpc)]);
 
   // «La trasladé» se mide en la tienda destino con SU lectura: solo el líder, que las lee todas, puede.
   completarTraslados(

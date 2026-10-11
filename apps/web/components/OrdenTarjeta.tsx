@@ -9,6 +9,7 @@ import {
   etapaActual,
   etapasDe,
   semaforoMargen,
+  TEXTO_SEMAFORO,
   type EstadoEntrega,
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
@@ -19,7 +20,6 @@ import { BarraApilada } from "@/components/ui/BarraApilada";
 // del Chip): la etapa actual se ve por su color, no porque parpadee.
 
 const TONO_SEMAFORO = { gana: "bg-verde", filo: "bg-ambar", pierde: "bg-rojo" } as const;
-const TEXTO_SEMAFORO = { gana: "Gana", filo: "Al filo", pierde: "Pierde" } as const;
 
 export function semaforoDeOrden(o: Pick<OrdenProduccion, "precioVenta" | "costoUnitario">) {
   const s = semaforoMargen(o.precioVenta, o.costoUnitario);

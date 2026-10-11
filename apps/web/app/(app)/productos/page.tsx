@@ -36,6 +36,8 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { urlRotulos } from "@/lib/rotulos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 
@@ -103,7 +105,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -118,6 +120,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("tallas").select("id, valor").eq("activo", true),
     // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
+    // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
+    // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
+    editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -247,6 +252,23 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         }
       />
 
+
+      {porRevisar !== null && porRevisar > 0 && (
+        // ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la rechace. Vive
+        // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
+        // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
+        <Aviso
+          tono="atencion"
+          titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
+          accion={
+            <Link href="/productos/por-revisar" className="btn-cayla btn-enlace text-[13px]">
+              Revisar
+            </Link>
+          }
+        >
+          La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
+        </Aviso>
+      )}
 
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
