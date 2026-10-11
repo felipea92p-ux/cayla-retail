@@ -98,8 +98,6 @@ export function seleccionDesdeLectura(codigo: string, catalogo: readonly Variant
   return { tipo: "elegida", cambio: { productoId: v.productoId, talla: v.talla, color: v.color }, variante: v };
 }
 
-/** Todo lo que se deriva de la selección, calculado UNA vez: el formulario, la
- *  comparación, las validaciones y la confirmación leen lo mismo. */
 /**
  * Lo mismo que `fn_precio_para_cambio` en la base (Felipe 2026-10-10, «vale lo que pagó»): la MISMA prenda en otra talla o color se
  * cobra al precio de la tienda donde se compró —comprada en TRU a 69.90 y cambiada de talla en Lima (79.90), no se cobran S/ 10—; otra
@@ -110,6 +108,8 @@ export function precioParaCambio(linea: Pick<LineaVentaReciente, "productoId" | 
   return v.preciosPorTienda?.[linea.ubicacionVentaId] ?? v.precioPrenda ?? v.precio;
 }
 
+/** Todo lo que se deriva de la selección, calculado UNA vez: el formulario, la
+ *  comparación, las validaciones y la confirmación leen lo mismo. */
 export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>, s: Seleccion) {
   const variantes = porProducto.get(s.productoId) ?? [];
   const tallas = [...new Set(variantes.map((v) => v.talla).filter((t): t is string => t !== null))].sort(compararTallas);

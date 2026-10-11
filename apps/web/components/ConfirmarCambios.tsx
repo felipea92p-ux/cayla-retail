@@ -165,7 +165,8 @@ function PrecioEnCadaTienda({
   onIgualar: (ubicacionId: string, si: boolean) => void;
   deshabilitado: boolean;
 }) {
-  const nuevo = datos.despues !== null ? soles(datos.despues) : "el precio nuevo de cada talla";
+  // «pasa a S/ 89.90» o «pasa al precio nuevo de cada talla».
+  const aNuevo = datos.despues !== null ? `a ${soles(datos.despues)}` : "al precio nuevo de cada talla";
   return (
     <section aria-label="Precio en cada tienda" className="rounded-sm border border-sand bg-hueso/40 px-3 py-2.5">
       <h3 className="label-cayla mb-1.5 text-[11px] text-taupe">Precio en cada tienda</h3>
@@ -193,7 +194,7 @@ function PrecioEnCadaTienda({
               <p className="leading-snug">
                 <span className="font-medium">{nombreCorto(t.sede)}</span>
                 <span className="text-tinta/70">
-                  {igualar.has(t.ubicacionId) ? ` pasa a ${nuevo}, como el precio de la prenda.` : ` se queda en ${soles(t.propio)}, su precio propio.`}
+                  {igualar.has(t.ubicacionId) ? ` pasa ${aNuevo}, como el precio de la prenda.` : ` se queda en ${soles(t.propio)}, su precio propio.`}
                 </span>
               </p>
               {t.puedeIgualar && (

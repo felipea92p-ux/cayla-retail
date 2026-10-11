@@ -122,6 +122,16 @@ de la tienda donde se cambia. En pantalla no se dice «general» ni «sugerido»
   precios distintos y dice «AQP y LIM S/ 79.90 · TRU S/ 69.90»; la tarjeta, la tabla, `/buscar` y la cabecera de la ficha muestran el
   precio de la tienda elegida; poner o quitar un precio dice cuántas prendas de esa tienda llevan la etiqueta vieja y ofrece imprimirlas.
 
+**Revisión adversaria (2026-10-10, antes de pegar en producción).** Se corrigió: la migración anota en el historial las tallas cuyo
+precio de tienda cambia al pasar a la tabla nueva (POL-0023: Blanco y Tostado, de 45.90 a 39.90 en AQP); «Eliminar producto» nombra la
+tabla vieja y la nueva en una sola fila; `fn_precios_en_sede` sigue devolviendo solo las variantes que cambian de precio (para que
+Vender y Existencias no marquen «Precio de AQP» donde no cambia nada); las anclas de los reemplazos no llevan la palabra que el SQL
+Editor confunde con una tabla nueva; y las migraciones van en tres partes: `100000` y `100100` (Apartar) antes de la web, `100200`
+(Cambios y filtro) junto con ella. En la web: el paso «¿Qué se lleva?» de Cambios muestra el mismo precio que la diferencia;
+«Igualar» corre justo después del guardado principal (si después falla el stock, no se pierde); agregar o desactivar una talla al
+mismo precio no se toma por un cambio de precio; la vista previa de etiquetas usa el precio de la tienda que queda; la insignia cuenta
+el rango de una prenda con precio por talla como un precio aparte; Cambios lee también el precio de una tienda cerrada.
+
 **Descartado.** Mantener la fila por variante y reconciliarla desde cada función que escribe `variantes` (catalogo_actualizar_producto,
 censo_crear_variante, crear_producto_con_variantes, abrir_produccion_con_modelo_nuevo…): son ocho puertas y la siguiente que se abra
 lo vuelve a romper; con la fila por prenda el estado imposible deja de existir.

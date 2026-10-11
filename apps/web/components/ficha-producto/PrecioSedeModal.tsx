@@ -157,7 +157,7 @@ export function PonerPrecioSedeModal({
   return (
     <Modal
       titulo={actual ? `Cambiar el precio de ${actual.sede}` : tienda && tiendas.length === 1 ? `Precio propio en ${tienda.nombre}` : "Precio distinto en una sede"}
-      subtitulo="Todas sus tallas y colores se venden a este precio en esa tienda: en Vender, apartados y cambios. Las otras tiendas no cambian."
+      subtitulo="Todas sus tallas y colores se venden a este precio en esa tienda, en Vender y en apartados. Las otras tiendas no cambian. (Un cambio de talla o color vale lo que se pagó donde se compró.)"
       onClose={onClose}
       variante="hoja"
       conCerrar

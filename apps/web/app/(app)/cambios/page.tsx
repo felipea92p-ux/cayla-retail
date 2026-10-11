@@ -2,7 +2,7 @@ import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
+import { getPreciosDeLasTiendas, getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { apartadoEnPiso } from "@/lib/vender-stock-local";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -42,10 +42,14 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     // la misma, al de la tienda donde se compró (`fn_precio_para_cambio`).
     getPreciosDeLasTiendas(),
   ]);
-  const preciosAqui = preciosSede.porSede[persona.ubicacionId] ?? {};
+  // Una venta de una tienda que ya cerró puede conservar su precio propio y la base lo usa (`fn_precio_para_cambio`): se leen también
+  // los de las tiendas de las ventas listadas que no están entre las abiertas.
+  const sinLeer = [...new Set(lineas.map((l) => l.ubicacionVentaId).filter((id): id is string => !!id && !(id in preciosSede.porSede)))];
+  const porSede = sinLeer.length > 0 ? { ...preciosSede.porSede, ...(await getPreciosPorSede(sinLeer)) } : preciosSede.porSede;
+  const preciosAqui = porSede[persona.ubicacionId] ?? {};
   const preciosPorTiendaDe = (varianteId: string) => {
     const out: Record<string, number> = {};
-    for (const [sede, precios] of Object.entries(preciosSede.porSede)) if (precios[varianteId] !== undefined) out[sede] = precios[varianteId];
+    for (const [sede, precios] of Object.entries(porSede)) if (precios[varianteId] !== undefined) out[sede] = precios[varianteId];
     return out;
   };
   // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra

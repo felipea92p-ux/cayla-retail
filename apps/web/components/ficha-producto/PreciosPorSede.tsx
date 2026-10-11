@@ -70,7 +70,7 @@ export function PreciosPorSede({
     // La ficha también lee el precio de esta tienda (la vista previa de las etiquetas): se rehace sin perder lo editado.
     router.refresh();
   };
-  const dePrenda = precioPrenda !== null ? soles(precioPrenda) : "el precio de cada talla";
+  const dePrenda = precioPrenda !== null ? `a ${soles(precioPrenda)}` : "al precio de cada talla";
 
   return (
     <div
@@ -88,7 +88,7 @@ export function PreciosPorSede({
         </p>
         {precios.length === 0 ? (
           <p className="text-[12.5px] text-tinta/65">
-            Se vende a {dePrenda} en todas las tiendas.
+            Se vende {dePrenda} en todas las tiendas.
           </p>
         ) : (
           <p className="text-[12.5px] text-tinta/65">

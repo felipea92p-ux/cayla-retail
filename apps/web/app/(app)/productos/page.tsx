@@ -160,7 +160,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const preciosTienda = preciosDeTiendaPorProducto(
     resultado.productos.map((p) => {
       const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
-      return { productoId: p.productoId, varianteIds: p.variantes.map((v) => v.varianteId), precioPrenda: precios.length > 0 ? Math.min(...precios) : null };
+      return {
+        productoId: p.productoId,
+        varianteIds: p.variantes.map((v) => v.varianteId),
+        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
+      };
     }),
     preciosTiendas.porSede,
     preciosTiendas.nombres,

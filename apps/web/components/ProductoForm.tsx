@@ -268,14 +268,13 @@ export function ProductoForm({
   lecturaStock?: LecturaStockFicha | null;
   /** Precio por tienda (Felipe 2026-10-09; 2026-10-10): las tiendas donde esta cuenta puede poner precio (`tiendas`), todas las
    *  abiertas (`todas`, para mostrar el precio en cada una), el precio de la prenda guardado (`general`: null si cambia según la
-   *  talla), la tienda de quien edita y sus precios propios (`aqui`). `null` = no se muestra (alta). */
+   *  talla) y la tienda de quien edita (sus precios propios los lee la ficha: `usePreciosDeTienda`). `null` = no se muestra (alta). */
   preciosSede?: {
     tiendas: Tienda[];
     todas: Tienda[];
     general: number | null;
     ubicacionId: string;
     sede: string;
-    aqui?: Record<string, number>;
   } | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
@@ -536,6 +535,8 @@ export function ProductoForm({
   // El precio propio de la tienda de quien edita, para la cabecera de «Variantes y precios» («S/ 69.90 en TRU»).
   const propioAqui = preciosSede ? preciosTienda.precios?.find((p) => p.ubicacionId === preciosSede.ubicacionId) : undefined;
   const precioPropioAqui = propioAqui ? { sede: nombreCorto(propioAqui.sede), precio: propioAqui.precio } : null;
+  // El precio de esta tienda después del último guardado (o null: el de la prenda), para la vista previa de las etiquetas.
+  const precioAquiTras = useRef<number | null>(null);
   const [igualarTiendas, setIgualarTiendas] = useState<ReadonlySet<string>>(new Set());
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
@@ -730,6 +731,7 @@ export function ProductoForm({
    *  (se elige ahí mismo, en la hoja); con cualquier otro error se cierra para que se vea la ficha y el campo a corregir. */
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
+    precioAquiTras.current = propioAqui?.precio ?? null;
     // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
     if (resumen.total === 0) {
       setLoading(true);
@@ -830,6 +832,34 @@ export function ProductoForm({
     setEnLaBase({ datos: datosDeLaPrenda(), fotos: fotosVista.map((f) => ({ ...f, fijo: false })) });
     logrado.current.frases = [...new Set([...logrado.current.frases, ...hecho])];
 
+    // Precio por tienda (Felipe 2026-10-10, «preguntar al guardar»): las tiendas que en la hoja se pidió igualar al precio nuevo de la
+    // prenda pierden su precio propio. Va JUSTO después del guardado principal (el precio nuevo ya está en la base) y antes del stock,
+    // las etiquetas y la temporada: si uno de esos falla, el reintento ya no ve un cambio de precio y la casilla se perdería. Si falla,
+    // la prenda igual quedó guardada y esa tienda sigue con su precio: el aviso lo dice, y se iguala desde «Precio por tienda».
+    const igualadas = new Set<string>();
+    for (const t of alCambiarPrecio?.conPropio.filter((x) => x.que === "se-queda" && x.puedeIgualar && igualarTiendas.has(x.ubicacionId)) ?? []) {
+      const { error: errorIgualar } = await firmar(
+        supabase.rpc("quitar_precio_sede", { p_producto_id: producto.id, p_ubicacion_id: t.ubicacionId, p_motivo: "Igualado al nuevo precio de la prenda" }),
+        firma
+      );
+      if (errorIgualar) {
+        avisar.error(traducirError(errorIgualar, `igualar el precio de ${t.sede}`), {
+          detalle: `${nombrePrenda} ya quedó guardado; ${t.sede} sigue con su precio propio. Iguálalo desde «Precio por tienda».`,
+        });
+        break;
+      }
+      igualadas.add(t.ubicacionId);
+    }
+    setIgualarTiendas(new Set());
+    // El precio propio de esta tienda que sigue vigente después del guardado (la vista previa de «Etiquetas de lo que entró» sale con él):
+    // ni se igualó a mano ni quedó igual al de la prenda (la base lo quita sola).
+    const quedaIgualAqui = alCambiarPrecio?.conPropio.some(
+      (t) => t.ubicacionId === propioAqui?.ubicacionId && (t.que === "se-iguala" || igualadas.has(t.ubicacionId))
+    );
+    precioAquiTras.current = propioAqui && !quedaIgualAqui ? propioAqui.precio : null;
+    // La base quita sola el precio propio que quedó igual al de la prenda: el bloque se vuelve a leer.
+    if ((preciosTienda.precios?.length ?? 0) > 0) preciosTienda.recargar();
+
     // Cómo quedaron las variantes: los ids de las nuevas (para sus etiquetas) y si la base aplicó las correcciones. Con
     // la base sin el SQL de ADR-0263, `catalogo_actualizar_producto` ignora el color y la talla de una variante que ya
     // existe SIN error: decir «guardado» sería el mismo engaño que D-133 cerró el 2026-09-26.
@@ -929,26 +959,6 @@ export function ProductoForm({
       );
     }
 
-    // Precio por tienda (Felipe 2026-10-10, «preguntar al guardar»): las tiendas que en la hoja se pidió igualar al precio nuevo de la
-    // prenda pierden su precio propio. Va después del guardado principal (el precio nuevo ya está en la base) y con la misma firma. Si
-    // falla, la prenda igual quedó guardada y esa tienda sigue con su precio: el aviso lo dice, y se iguala desde «Precio por tienda».
-    const aIgualar = alCambiarPrecio?.conPropio.filter((t) => t.que === "se-queda" && t.puedeIgualar && igualarTiendas.has(t.ubicacionId)) ?? [];
-    for (const t of aIgualar) {
-      const { error: errorIgualar } = await firmar(
-        supabase.rpc("quitar_precio_sede", { p_producto_id: producto.id, p_ubicacion_id: t.ubicacionId, p_motivo: "Igualado al nuevo precio de la prenda" }),
-        firma
-      );
-      if (errorIgualar) {
-        avisar.error(traducirError(errorIgualar, `igualar el precio de ${t.sede}`), {
-          detalle: `${nombrePrenda} ya quedó guardado; ${t.sede} sigue con su precio propio. Iguálalo desde «Precio por tienda».`,
-        });
-        break;
-      }
-    }
-    setIgualarTiendas(new Set());
-    // La base quita sola el precio propio que quedó igual al de la prenda: el bloque se vuelve a leer.
-    if ((preciosTienda.precios?.length ?? 0) > 0) preciosTienda.recargar();
-
     cerrarProceso();
     setLoading(false);
 
@@ -991,7 +1001,11 @@ export function ProductoForm({
     // Entró stock (subió una talla o un color nuevo nació con unidades) y no hubo correcciones: la hoja grande «Etiquetas de lo
     // que entró» (Felipe 2026-10-03), con una etiqueta por cada prenda que entró. Tras corregir color o talla se reimprime TODO
     // (lo pegado ya no dice lo correcto): eso sigue siendo el botón del aviso.
-    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosSede?.aqui) : [];
+    // El precio de la tienda es de la PRENDA (2026-10-10): vale para toda talla, también la que nació en este guardado (que no estaba en
+    // el mapa leído al abrir). Sin precio propio vigente, el de cada talla.
+    const precioAqui = precioAquiTras.current;
+    const preciosAquiTras = precioAqui !== null ? Object.fromEntries(filasFinales.filter((f) => f.id).map((f) => [f.id!, precioAqui])) : {};
+    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosAquiTras) : [];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
     setGuardado(true);
     if (lineas.length > 0 && hrefSubidas) {

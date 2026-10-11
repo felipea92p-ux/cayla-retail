@@ -221,3 +221,17 @@ describe("precio de tienda en un cambio (Felipe 2026-10-10, «vale lo que pagó�
     expect(precioParaCambio({ productoId: "falda", ubicacionVentaId: null }, nueva({ precio: 79.9 }))).toBe(79.9);
   });
 });
+
+describe("el precio que se muestra y la diferencia salen del mismo número (Cambios, pasos 3 y 4)", () => {
+  // Comprada en TRU a 69.90 (precio propio de TRU), cambiada de talla en Lima, donde vale 79.90.
+  const conTiendas = agruparCatalogo([
+    variante("l-negro", "polera", { talla: "L", color: "Negro", stockAqui: 2, precio: 79.9, precioPrenda: 79.9, preciosPorTienda: { tru: 69.9 } }),
+  ]);
+  const deTru = { ...linea, precioUnitario: 69.9, ubicacionVentaId: "tru" } as LineaVentaReciente;
+  it("la misma prenda: se muestra 69.90 y la diferencia es 0", () => {
+    const r = derivarReemplazo(deTru, conTiendas, sel({ talla: "L", color: "Negro" }));
+    expect(r.precioNueva).toBe(69.9);
+    expect(r.diferencia).toBeCloseTo((r.precioNueva ?? NaN) - deTru.precioUnitario);
+    expect(r.diferencia).toBeCloseTo(0);
+  });
+});

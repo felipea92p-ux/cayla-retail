@@ -11,7 +11,6 @@ import { ProductoForm } from "@/components/ProductoForm";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
-import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioUnico } from "@/lib/precio-sede-reglas";
 
 
@@ -33,7 +32,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, preciosDeSede] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -56,8 +55,6 @@ export default async function EditarProductoPage({
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
     // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
     supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
-    // El precio propio de ESTA tienda: la vista previa de «Imprimir lo que entró» sale con él, como la etiqueta impresa.
-    getPreciosPorSede([persona.ubicacionId]),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -156,7 +153,6 @@ export default async function EditarProductoPage({
           general: precioPrenda,
           ubicacionId: persona.ubicacionId,
           sede: persona.ubicacionEtiqueta,
-          aqui: preciosDeSede[persona.ubicacionId] ?? {},
         }}
         producto={producto}
         volverA={volverA}

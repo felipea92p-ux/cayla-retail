@@ -126,8 +126,8 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   it("da el precio en CADA tienda abierta: el propio o el de la prenda", () => {
     const r = preciosDeTiendaPorProducto(
       [
-        { productoId: "blusa", varianteIds: ["b1", "b2"], precioPrenda: 119.9 },
-        { productoId: "falda", varianteIds: ["f1"], precioPrenda: 59.9 },
+        { productoId: "blusa", varianteIds: ["b1", "b2"], preciosPrenda: { desde: 119.9, hasta: 119.9 } },
+        { productoId: "falda", varianteIds: ["f1"], preciosPrenda: { desde: 59.9, hasta: 59.9 } },
       ],
       { aqp: { b1: 129.9, b2: 129.9 }, tru: {} },
       nombres,
@@ -139,6 +139,15 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   it("FAL-0008: AQP 79.90 (igual a la prenda) y TRU 69.90 son DOS precios, no tres", () => {
     const lista = [{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }, { sede: "TRU", precio: 69.9 }];
     expect(insigniaPrecios(lista)).toEqual({ texto: "2 precios", detalle: "AQP y LIM S/ 79.90 · TRU S/ 69.90" });
+  });
+  it("con precio por talla, la tienda sin precio propio es un rango y cuenta aparte (no se esconde detrás del más barato)", () => {
+    const r = preciosDeTiendaPorProducto(
+      [{ productoId: "falda", varianteIds: ["s", "xl"], preciosPrenda: { desde: 79.9, hasta: 89.9 } }],
+      { aqp: { xl: 79.9 } },
+      nombres,
+    );
+    expect(r.falda).toEqual([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9, hasta: 89.9 }, { sede: "TRU", precio: 79.9, hasta: 89.9 }]);
+    expect(insigniaPrecios(r.falda)).toEqual({ texto: "2 precios", detalle: "AQP S/ 79.90 · LIM y TRU S/ 79.90–89.90" });
   });
   it("si todas las tiendas venden igual, no hay insignia", () => {
     expect(insigniaPrecios([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }])).toBeNull();
@@ -179,6 +188,10 @@ describe("al cambiar el precio de la prenda, la hoja pregunta por las tiendas", 
   const tiendas = [{ id: "tru", nombre: "Tienda TRU" }, { id: "aqp", nombre: "Tienda AQP" }, { id: "lim", nombre: "Tienda LIM" }];
   const propio = (ubicacionId: string, sede: string, precio: number) => ({ ubicacionId, sede, precio, variantes: 2, desde: "2026-10-10", motivo: "Mercado", creadoPor: null });
   const todo = () => true;
+  it("agregar o desactivar una talla al mismo precio no es cambiar el precio", () => {
+    expect(tiendasAlCambiarPrecio({ propios: [propio("tru", "Tienda TRU", 69.9)], tiendas, antes: [79.9, 79.9], despues: [79.9, 79.9, 79.9], puedeTocar: todo })).toBeNull();
+    expect(tiendasAlCambiarPrecio({ propios: [propio("tru", "Tienda TRU", 69.9)], tiendas, antes: [79.9, 79.9, 79.9], despues: [79.9], puedeTocar: todo })).toBeNull();
+  });
   it("sin cambio de precio o sin precios propios no pregunta nada", () => {
     expect(tiendasAlCambiarPrecio({ propios: [propio("tru", "Tienda TRU", 69.9)], tiendas, antes: [79.9, 79.9], despues: [79.9, 79.9], puedeTocar: todo })).toBeNull();
     expect(tiendasAlCambiarPrecio({ propios: [], tiendas, antes: [69.9], despues: [79.9], puedeTocar: todo })).toBeNull();
