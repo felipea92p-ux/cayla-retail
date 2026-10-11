@@ -266,13 +266,13 @@ select concat_ws('|', (:v1 > :v0)::text, ((select version from retail.catalogo_v
   esperar("poner y quitar el precio de una tienda suben la versión del catálogo (las pantallas abiertas se refrescan)", ultima(r) === "true|true", r);
 }
 
-// 12c. Una prenda que tuvo precio propio no se elimina: lo dice y se desactiva (20261010100400).
+// 12c. Una prenda que tuvo precio propio no se elimina: lo dice (UNA fila, la tabla vieja y la nueva juntas) y se desactiva.
 {
   const r = correr(FELIPE, `
 select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Historia');
-select (select concepto from retail.fn_producto_historia(:'p1') where orden = 23) || '|' || (select n from retail.fn_producto_historia(:'p1') where orden = 23) || '|' || (select borrable from retail.fn_producto_historia(:'p1') where orden = 23)::text;`);
+select (select concepto from retail.fn_producto_historia(:'p1') where orden = 22) || '|' || (select n from retail.fn_producto_historia(:'p1') where orden = 22) || '|' || (select borrable from retail.fn_producto_historia(:'p1') where orden = 22)::text || '|' || (select count(*) from retail.fn_producto_historia(:'p1') where orden = 23)::text;`);
   // ≥ 1: la tabla guarda la historia (otras pruebas o sesiones pueden haber dejado filas archivadas de esta prenda).
-  esperar("fn_producto_historia nombra «precios de una tienda» y no es borrable", /^precios de una tienda\|[1-9]\d*\|false$/.test(ultima(r)), r);
+  esperar("fn_producto_historia nombra «precios propios de una tienda» una sola vez y no es borrable", /^precios propios de una tienda\|[1-9]\d*\|false\|0$/.test(ultima(r)), r);
 }
 
 // 14. (2026-10-10) El precio es de la PRENDA: una talla nueva o una que se reactiva vale el de la tienda sin escribir nada. Antes

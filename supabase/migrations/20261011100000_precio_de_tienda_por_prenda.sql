@@ -26,9 +26,10 @@
 --      nueva. El historial se sigue anotando por variante (Actividad y el Historial de la prenda no cambian).
 --   6. Actividad lo dice mejor: «puso precio propio en TRU: S/ 69.90 (antes S/ 79.90, el de la prenda)», no «S/ 79.90 → S/ 69.90».
 --
--- DATOS EN PRODUCCIÓN (hoy: FAL-0008 con AQP 79.90 y TRU 69.90; POL-0023 con AQP 39.90). Las vigentes pasan una a una. Después se
--- depura: el de AQP en FAL-0008 es igual a la grilla en sus 9 tallas y se archiva («Quedó igual al precio de la prenda»). En la
--- caja NO cambia nada: AQP ya cobraba 79.90 y lo sigue cobrando.
+-- DATOS EN PRODUCCIÓN (hoy: FAL-0008 con AQP 79.90 y TRU 69.90; POL-0023 con AQP 39.90 en 7 de sus 9 colores). Las vigentes pasan a
+-- una por prenda y tienda. Después se depura: el de AQP en FAL-0008 es igual a la grilla en sus 9 tallas y se archiva («Quedó igual al
+-- precio de la prenda»); ahí la caja no cambia. En POL-0023 sí: Blanco y Tostado nacieron sin el precio de AQP (el error que esto
+-- corrige) y pasan de 45.90 a 39.90 como el resto; queda anotado en el historial.
 --
 -- PRODUCCIÓN. Una sola parte, re-ejecutable, `lock_timeout = 3s`, sin políticas ni `drop trigger` (`create or replace trigger`).
 -- Toma candados breves de `productos`, `ubicaciones` (llaves foráneas) y `variantes` (el disparador nuevo). Prueba:
@@ -358,6 +359,29 @@ select g.producto_id, g.ubicacion_id, g.precio, g.motivo, g.desde, g.creado_por,
    and not exists (select 1 from retail.precios_sede_prenda x
                     where x.producto_id = g.producto_id and x.ubicacion_id = g.ubicacion_id and x.archivado_en is null);
 
+-- Cada talla cuyo precio en esa tienda CAMBIA al pasar a la tabla nueva queda en el historial (y en Actividad): las que nacieron sin
+-- fila —POL-0023 en AQP: Blanco y Tostado, creados un minuto después del precio de la tienda, pasan de S/ 45.90 a S/ 39.90 como el
+-- resto de la prenda— o con un precio diferente al que quedó. Solo corre esta vez: después ya no quedan vigentes viejas.
+do $anotar$
+declare
+  r record;
+begin
+  for r in
+    select v.id as variante_id, n.ubicacion_id, coalesce(o.precio, v.precio) as antes, o.id is not null as antes_propio, n.precio as despues
+      from retail.precios_sede_prenda n
+      join retail.variantes v on v.producto_id = n.producto_id and v.activo
+      left join retail.precios_sede o on o.variante_id = v.id and o.ubicacion_id = n.ubicacion_id and o.archivado_en is null
+     where n.archivado_en is null
+       and coalesce(o.precio, v.precio) <> n.precio
+       and exists (select 1 from retail.precios_sede o2 join retail.variantes v2 on v2.id = o2.variante_id
+                    where v2.producto_id = n.producto_id and o2.ubicacion_id = n.ubicacion_id and o2.archivado_en is null)
+  loop
+    perform retail.fn_precio_sede_anotar(r.variante_id, r.ubicacion_id, r.antes, r.antes_propio, r.despues, true,
+      'Toda la prenda al precio de la tienda (corrección del 2026-10-10)', null);
+  end loop;
+end;
+$anotar$;
+
 update retail.precios_sede set archivado_en = now() where archivado_en is null;
 
 comment on table retail.precios_sede is
@@ -378,7 +402,7 @@ create or replace trigger precios_sede_solo_historia
 select retail.fn_precio_sede_depurar(x.producto_id)
   from (select distinct producto_id from retail.precios_sede_prenda where archivado_en is null) x;
 
--- ---------- 6. «Eliminar producto» también mira la tabla nueva ----------
+-- ---------- 6. «Eliminar producto» también mira la tabla nueva (una sola fila: la vieja y la nueva son lo mismo para quien lee) ----------
 
 create or replace function pg_temp.anclar(p_firma text, p_viejo text, p_nuevo text)
 returns void
@@ -405,10 +429,9 @@ select pg_temp.anclar(
   'retail.fn_producto_historia(uuid)',
   $v$      union all select 22, 'precios propios de una tienda', count(*), false
         from retail.precios_sede x where x.variante_id in (select id from vs)$v$,
-  $n$      union all select 22, 'precios propios de una tienda', count(*), false
-        from retail.precios_sede x where x.variante_id in (select id from vs)
-      union all select 23, 'precios de una tienda', count(*), false
-        from retail.precios_sede_prenda x where x.producto_id = p_producto_id$n$
+  $n$      union all select 22, 'precios propios de una tienda',
+        (select count(*) from retail.precios_sede x where x.variante_id in (select id from vs))
+        + (select count(*) from retail.precios_sede_prenda x where x.producto_id = p_producto_id), false$n$
 );
 
 -- ---------- 7. Actividad lo dice como pasó ----------
