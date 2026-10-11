@@ -143,6 +143,13 @@ es igual al precio de la prenda y se archiva sola. En la caja no cambia ningún 
 (sin precio propio), POL-0023 AQP 39.90 en sus 9 colores (Blanco y Tostado anotados), disparador activo, `precios_sede` sin vigentes.
 `20261011100200` (Cambios y filtro) también se pegó el 2026-10-11 y se verificó (`registrar_cambio` usa `fn_precio_para_cambio`).
 
+**Parte 4 (2026-10-11, del CI del PR #948):** el disparador diferido se encolaba en cualquier cambio de `variantes` y dejaba eventos
+pendientes: un `alter table variantes` en la misma transacción fallaba («pending trigger events»; dos suites de pruebas, y lo haría una
+migración que toque `variantes` y después la altere). `20261011100300_depurar_precio_de_tienda_solo_si_la_prenda_tiene.sql` lo cambia
+por uno con `when (fn_producto_tiene_precio_de_tienda(new.producto_id))`: en un disparador de restricción el WHEN se evalúa al momento,
+así que solo las prendas con precio de tienda dejan algo pendiente. El viejo queda apagado, no borrado (`drop trigger` está vedado en
+producción y Postgres no reemplaza un disparador de restricción).
+
 **Pendiente (decisión de Felipe, no se tocó):** un precio de tienda no tiene piso de costo ni el tope de descuento que sí tiene un
 descuento en la caja (la auditoría lo marcó como el riesgo de dinero más alto que queda).
 
