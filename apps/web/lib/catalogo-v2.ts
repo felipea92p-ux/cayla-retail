@@ -31,6 +31,9 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
+  /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
+   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
+  colorCodigo?: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
    *  color todavía no tiene foto. El cliente cae a un tinte del color (o
    *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
@@ -153,6 +156,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
+    colorCodigo: v.color_codigo ?? null,
     // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.

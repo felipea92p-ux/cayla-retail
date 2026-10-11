@@ -36,7 +36,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { efectivoACobrar, redondeoDelEfectivo } from "../../apps/web/lib/redondeo-efectivo-reglas.ts";
-import { DESHACER_PRECIO_SEDE, REHACER_PRECIO_SEDE } from "./registrar-venta-antes-de-precio-sede.mjs";
+import { DESHACER_POSTERIORES, REHACER_POSTERIORES } from "./registrar-venta-antes-de-precio-sede.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION_REGLA = "supabase/migrations/20261003100000_redondeo_efectivo_regla.sql";
@@ -454,8 +454,8 @@ alter table retail.venta_pagos add constraint venta_pagos_metodo_check check (me
   const venta = readFileSync(MIGRACION_VENTA, "utf8");
   const bandera = readFileSync(MIGRACION_BANDERA, "utf8");
   const huellaVenta = (venta.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
-  // Sobre SU punto de partida: la base ya tiene el precio por sede (ADR-0370), que cambió una línea de registrar_venta.
-  const r28 = correr(`begin;\n${DESHACER_PRECIO_SEDE}\n${venta}\n${venta}\n${bandera}\n${bandera}
+  // Sobre SU punto de partida: la base ya tiene los parches posteriores (precio por sede, ADR-0370; origen de la línea sugerida, 20261010220100).
+  const r28 = correr(`begin;\n${DESHACER_POSTERIORES}\n${venta}\n${venta}\n${bandera}\n${bandera}
 select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta';
 select 'sobrecargas|' || count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_venta';
@@ -613,8 +613,8 @@ rollback;`);
 
   // ---- 36. Cada parte, pegada ENTERA como un solo texto, termina con su fila «QUEDÓ BIEN» ----
   for (const parte of PARTES_A_PEGAR) {
-    // La de registrar_venta se pega sobre su punto de partida y después se rehace el precio por sede (ADR-0370): la base termina igual.
-    const r = pegarComoEditor(parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_PRECIO_SEDE}\n${textoDe(parte)}\n${REHACER_PRECIO_SEDE}` : textoDe(parte));
+    // La de registrar_venta se pega sobre su punto de partida y después se rehacen los parches posteriores (precio por sede, origen sugerido): la base termina igual.
+    const r = pegarComoEditor(parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_POSTERIORES}\n${textoDe(parte)}\n${REHACER_POSTERIORES}` : textoDe(parte));
     esperar(`${parte.slice(0, 14)} pegada entera (como la pega el editor) termina con su fila «QUEDÓ BIEN»`, r.ok && r.salida.split("\n").filter((l) => l.includes("QUEDÓ BIEN") && l.startsWith(parte.slice(0, 14))).length === 1, r.ok ? r.salida.slice(-400) : r.mensaje);
   }
 
