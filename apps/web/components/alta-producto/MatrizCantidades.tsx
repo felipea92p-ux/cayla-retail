@@ -107,7 +107,9 @@ export function MatrizCantidades({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
         {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho; en el
             celular cada opción parte su texto en dos líneas (2026-10-09: «¿Alguna cuesta distinto?» de una línea ensanchaba la
-            página 23 px a 375 px y la pantalla entera se corría de lado). */}
+            página 23 px a 375 px y la pantalla entera se corría de lado). Desde el 2026-10-10 también en escritorio: con el menú
+            abierto a 1024 px la columna del alta mide ~250 px, y las tres opciones en una línea se salían de su caja. Con espacio
+            siguen en una línea (`flex-auto`); sin él, se encogen y parten su texto. */}
         <SegmentoDeslizante
           forma="modo"
           etiqueta="Qué escribes en la tabla"
@@ -118,7 +120,7 @@ export function MatrizCantidades({
             { clave: "precios", etiqueta: "Precios" },
             { clave: "costos", etiqueta: "Costos" },
           ]}
-          className="w-full sm:w-auto [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center max-sm:[&>button]:px-2 max-sm:[&>button]:text-center max-sm:[&>button]:leading-tight max-sm:[&>button]:whitespace-normal sm:[&>button]:flex-none"
+          className="w-full sm:w-auto [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:text-center [&>button]:leading-tight [&>button]:whitespace-normal max-sm:[&>button]:px-2 sm:[&>button]:flex-auto"
         />
         {/* «Llenar todas» ocupa su lugar también en «Precios» y «Costos» (invisible): cambiar de segmento no mueve la tabla (ADR-0185). */}
         <div className={`flex items-center gap-1.5 text-[12.5px] text-taupe ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
