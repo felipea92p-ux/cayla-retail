@@ -35,6 +35,18 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261008120000_frescura_vara_cayla.sql"), "utf8");
 
+// Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera una familia apagada por un reemplazo anclado POSTERIOR a la vara. La
+// guarda de esta migración vigila el md5 del cuerpo que ELLA deja, así que cada caso empieza deshaciendo ese parche (sus anclas, leídas del archivo, en
+// orden inverso: el mismo `deshacer` de `cuadrar_piso`, `frescura_bajadas` y `frescura_lectura`). Cada parche posterior a la vara se suma aquí.
+const deshacer = (texto) =>
+  [...texto.matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .reverse()
+    .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+    .join("\n");
+const DESHACER_FAMILIAS_APAGADAS = deshacer(
+  readFileSync(join(RAIZ, "supabase", "migrations", "20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql"), "utf8"),
+);
+
 // Seed local: Felipe (líder).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 // Creada en cada caso: cuenta de Auth sin persona, sin colaborador, sin terminal.
@@ -61,6 +73,7 @@ function correr(sql) {
 /** Todo lo que un caso necesita, dentro de su transacción. */
 const PRELUDIO = `
 begin;
+${DESHACER_FAMILIAS_APAGADAS}
 ${EN_SECO ? MIGRACION : ""}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
