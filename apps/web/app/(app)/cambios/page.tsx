@@ -2,7 +2,7 @@ import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { apartadoEnPiso } from "@/lib/vender-stock-local";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -38,10 +38,16 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     getEstadisticasCambios(persona.ubicacionId),
     esLider ? getTallasQueNoCalzan() : Promise.resolve([]),
     getCajaAbierta(persona.ubicacionId),
-    // Precio propio de esta tienda (Felipe 2026-10-09): la diferencia del cambio se calcula con él (`registrar_cambio`).
-    getPreciosPorSede([persona.ubicacionId]),
+    // Precios propios de las tiendas (Felipe 2026-10-09; 2026-10-10): otra prenda se cobra al de ESTA tienda; otra talla o color de
+    // la misma, al de la tienda donde se compró (`fn_precio_para_cambio`).
+    getPreciosDeLasTiendas(),
   ]);
-  const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
+  const preciosAqui = preciosSede.porSede[persona.ubicacionId] ?? {};
+  const preciosPorTiendaDe = (varianteId: string) => {
+    const out: Record<string, number> = {};
+    for (const [sede, precios] of Object.entries(preciosSede.porSede)) if (precios[varianteId] !== undefined) out[sede] = precios[varianteId];
+    return out;
+  };
   // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra
   // clienta no se ofrece (ADR-0141).
   const stockAquiPorVariante = new Map([...stock].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
@@ -90,6 +96,8 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
             colorHex: v.colorHex,
             fotoUrl: v.fotoUrl,
             precio: preciosAqui[v.varianteId] ?? v.precio,
+            precioPrenda: v.precio,
+            preciosPorTienda: preciosPorTiendaDe(v.varianteId),
             stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
             apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
             stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],

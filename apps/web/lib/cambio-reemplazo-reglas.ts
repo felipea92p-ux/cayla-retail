@@ -21,7 +21,12 @@ export type VarianteCatalogo = {
   color: string | null;
   colorHex: string | null;
   fotoUrl: string | null;
+  /** El precio en ESTA tienda (su precio propio, si tiene; si no, el de la prenda). */
   precio: number;
+  /** El precio de la prenda (`variantes.precio`) y los precios propios de cada tienda (ubicación → precio): con ellos, un cambio de
+   *  talla o color de la misma prenda se cobra al precio de la tienda donde se compró (Felipe 2026-10-10). Sin ellos, `precio`. */
+  precioPrenda?: number;
+  preciosPorTienda?: Readonly<Record<string, number>>;
   /** Piso de ESTA sede: lo único que `registrar_cambio` deja entregar. */
   stockAqui: number;
   /** Lo apartado para clientas en ese mismo piso: con `stockAqui` en 0, es «apartada para un cliente» y no «no queda». */
@@ -95,6 +100,16 @@ export function seleccionDesdeLectura(codigo: string, catalogo: readonly Variant
 
 /** Todo lo que se deriva de la selección, calculado UNA vez: el formulario, la
  *  comparación, las validaciones y la confirmación leen lo mismo. */
+/**
+ * Lo mismo que `fn_precio_para_cambio` en la base (Felipe 2026-10-10, «vale lo que pagó»): la MISMA prenda en otra talla o color se
+ * cobra al precio de la tienda donde se compró —comprada en TRU a 69.90 y cambiada de talla en Lima (79.90), no se cobran S/ 10—; otra
+ * prenda es una venta nueva aquí: al precio de esta tienda.
+ */
+export function precioParaCambio(linea: Pick<LineaVentaReciente, "productoId" | "ubicacionVentaId">, v: VarianteCatalogo): number {
+  if (v.productoId !== linea.productoId || !linea.ubicacionVentaId) return v.precio;
+  return v.preciosPorTienda?.[linea.ubicacionVentaId] ?? v.precioPrenda ?? v.precio;
+}
+
 export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>, s: Seleccion) {
   const variantes = porProducto.get(s.productoId) ?? [];
   const tallas = [...new Set(variantes.map((v) => v.talla).filter((t): t is string => t !== null))].sort(compararTallas);
@@ -151,8 +166,10 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
         : textoApartada
           ? `${descripcionNueva} está ${textoApartada}: no se entrega desde aquí. ${otrasSedes ? `Hay ${otrasSedes}.` : "No hay en otra sede."}`
           : `No queda ${descripcionNueva} aquí${otrasSedes ? ` — hay ${otrasSedes}.` : ", ni en otra sede."}`,
+    /** El precio al que se lleva la prenda nueva (`precioParaCambio`): el que se muestra y el de la diferencia. */
+    precioNueva: varianteNueva ? precioParaCambio(linea, varianteNueva) : null,
     // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira).
-    diferencia: varianteNueva ? (varianteNueva.precio - linea.precioUnitario) * s.cantidad : 0,
+    diferencia: varianteNueva ? (precioParaCambio(linea, varianteNueva) - linea.precioUnitario) * s.cantidad : 0,
     condicionFija,
     condicion: condicionFija ?? s.condicionElegida,
   };

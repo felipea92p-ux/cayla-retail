@@ -12,15 +12,8 @@ import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { precioUnico } from "@/lib/precio-sede-reglas";
 
-/** El precio que más se repite (59.9 y 59.90 son el mismo); sin precios, null. */
-function masComun(precios: number[]): number | null {
-  const cuenta = new Map<number, number>();
-  for (const p of precios) cuenta.set(p, (cuenta.get(p) ?? 0) + 1);
-  let mejor: number | null = null;
-  for (const [p, n] of cuenta) if (mejor === null || n > (cuenta.get(mejor) ?? 0)) mejor = p;
-  return mejor;
-}
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
@@ -109,11 +102,12 @@ export default async function EditarProductoPage({
     : null;
 
   // Precio por tienda: quien edita Productos lo pone en SU tienda; el líder, en cualquiera (la base vuelve a exigirlo:
-  // `poner_precio_sede`). El general es el más común de las variantes activas, como lo guarda la ficha.
+  // `poner_precio_sede`). El precio de la prenda es uno solo si todas sus tallas activas valen igual (si no, null: «según la talla»,
+  // y ningún monto es «igual al de la prenda», que es lo que la base rechaza). La ficha muestra TODAS las tiendas (`todas`).
   const tiendas = resTiendas.data ?? [];
   const tiendasPrecio = esLider ? tiendas : tiendas.filter((t) => t.id === persona.ubicacionId);
   const preciosActivos = (producto.variantes ?? []).filter((v) => v.activo).map((v) => Number(v.precio)).filter((n) => n > 0);
-  const precioGeneral = masComun(preciosActivos);
+  const precioPrenda = precioUnico(preciosActivos);
 
   return (
     <div className="space-y-6">
@@ -156,7 +150,14 @@ export default async function EditarProductoPage({
         puedeCorregir={puedeCorregir}
         ajusteStock={ajusteStock}
         lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
-        preciosSede={{ tiendas: tiendasPrecio, general: precioGeneral, aqui: preciosDeSede[persona.ubicacionId] ?? {} }}
+        preciosSede={{
+          tiendas: tiendasPrecio,
+          todas: tiendas,
+          general: precioPrenda,
+          ubicacionId: persona.ubicacionId,
+          sede: persona.ubicacionEtiqueta,
+          aqui: preciosDeSede[persona.ubicacionId] ?? {},
+        }}
         producto={producto}
         volverA={volverA}
       />

@@ -8,6 +8,8 @@ import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { CampoTexto, Boton } from "@/components/ui/campos";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 
 // Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
 // `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
@@ -60,7 +62,10 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
 }
 
 async function Resultados({ term, textoOriginal }: { term: string; textoOriginal: string }) {
-  const catalogo = await getCatalogo();
+  // El precio que se le dice al cliente es el de ESTA tienda (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10).
+  const persona = await requirePersonaActualV2();
+  const [catalogo, preciosSede] = await Promise.all([getCatalogo(), getPreciosPorSede([persona.ubicacionId])]);
+  const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
 
   const k = clave(term);
   const resultados = catalogo
@@ -139,7 +144,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
                 <div className="text-right">
                   <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{stockTotal}</p>
                   <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
-                  <p className="mt-1 text-xs text-tinta/70">S/{v.precio.toFixed(2)}</p>
+                  <p className="mt-1 text-xs text-tinta/70">S/{(preciosAqui[v.varianteId] ?? v.precio).toFixed(2)}</p>
                 </div>
               </div>
 

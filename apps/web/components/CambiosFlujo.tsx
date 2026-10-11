@@ -474,7 +474,7 @@ export function CambiosFlujo({
               </dl>
               <ComparacionPrendas
                 devuelta={ficha(linea, linea.precioUnitario)}
-                nueva={ficha(r.varianteNueva, r.varianteNueva.precio)}
+                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
                 cantidad={seleccion.cantidad}
                 diferencia={r.diferencia}
               />

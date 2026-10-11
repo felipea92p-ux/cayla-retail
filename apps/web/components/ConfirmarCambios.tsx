@@ -7,6 +7,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { agruparCambios, type GrupoCambios, type ResumenCambios } from "@/lib/producto-cambios-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { Casilla } from "@/components/ui/Casilla";
+import { nombreCorto, soles, unirConY, type tiendasAlCambiarPrecio } from "@/lib/precio-sede-reglas";
 
 /**
  * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
@@ -32,6 +34,7 @@ export function ConfirmarCambios({
   avisos = [],
   notaAgregan,
   extra,
+  tiendas,
   responsable,
 }: {
   nombre: string;
@@ -46,6 +49,13 @@ export function ConfirmarCambios({
   /** Un grupo que no sale de la comparación de la ficha: el stock tocado en la matriz («S · Blanco 4 → 6»), que se guarda con el
    *  mismo «Confirmar y guardar» (ADR-0313, act. 2026-10-02 noche). Va al final, con su nota (motivo y lugar). */
   extra?: { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota?: string } | null;
+  /** Precio por tienda (Felipe 2026-10-10, «preguntar al guardar»): si cambió el precio de la prenda y alguna tienda tiene precio
+   *  propio, cómo queda cada tienda; las que se pueden igualar al precio nuevo llevan su casilla (sin marcar: se quedan con el suyo). */
+  tiendas?: {
+    datos: NonNullable<ReturnType<typeof tiendasAlCambiarPrecio>>;
+    igualar: ReadonlySet<string>;
+    onIgualar: (ubicacionId: string, si: boolean) => void;
+  } | null;
   /** Quién hace los cambios (ADR-0354). Sin elegir a alguien de turno, «Confirmar y guardar» espera y dice por qué. */
   responsable?: ControlResponsable;
 }) {
@@ -97,6 +107,8 @@ export function ConfirmarCambios({
             ))}
           </div>
 
+          {tiendas && <PrecioEnCadaTienda {...tiendas} deshabilitado={enCurso} />}
+
           {avisos.length > 0 && (
             <div className="space-y-1">
               {avisos.map((a, i) => (
@@ -136,5 +148,68 @@ export function ConfirmarCambios({
         </div>
       )}
     </Modal>
+  );
+}
+
+/** «Precio en cada tienda»: al cambiar el precio de la prenda, las tiendas sin precio propio pasan al nuevo; las que tienen uno se
+ *  quedan con el suyo (o se igualan solas si el nuevo es el mismo). Antes no se decía nada, y subir el precio de la prenda dejaba a
+ *  AQP con un «precio propio» igual al de las demás sin que nadie lo supiera (FAL-0008, 2026-10-10). */
+function PrecioEnCadaTienda({
+  datos,
+  igualar,
+  onIgualar,
+  deshabilitado,
+}: {
+  datos: NonNullable<ReturnType<typeof tiendasAlCambiarPrecio>>;
+  igualar: ReadonlySet<string>;
+  onIgualar: (ubicacionId: string, si: boolean) => void;
+  deshabilitado: boolean;
+}) {
+  const nuevo = datos.despues !== null ? soles(datos.despues) : "el precio nuevo de cada talla";
+  return (
+    <section aria-label="Precio en cada tienda" className="rounded-sm border border-sand bg-hueso/40 px-3 py-2.5">
+      <h3 className="label-cayla mb-1.5 text-[11px] text-taupe">Precio en cada tienda</h3>
+      <ul className="space-y-2 text-sm text-tinta">
+        {datos.siguen.length > 0 && (
+          <li className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <span>{unirConY(datos.siguen.map(nombreCorto))}</span>
+            {datos.antes !== null && datos.despues !== null ? (
+              <span className="tabular-nums">
+                <s className="mr-1 text-tinta/50">{soles(datos.antes)}</s>→ {soles(datos.despues)}
+              </span>
+            ) : (
+              <span className="text-tinta/65">pasa{datos.siguen.length === 1 ? "" : "n"} al precio nuevo</span>
+            )}
+          </li>
+        )}
+        {datos.conPropio.map((t) =>
+          t.que === "se-iguala" ? (
+            <li key={t.ubicacionId} className="leading-snug">
+              <span className="font-medium">{nombreCorto(t.sede)}</span>
+              <span className="text-tinta/70"> ya estaba a {soles(t.propio)}: queda igual al precio de la prenda y deja de ser precio propio.</span>
+            </li>
+          ) : (
+            <li key={t.ubicacionId} className="space-y-1">
+              <p className="leading-snug">
+                <span className="font-medium">{nombreCorto(t.sede)}</span>
+                <span className="text-tinta/70">
+                  {igualar.has(t.ubicacionId) ? ` pasa a ${nuevo}, como el precio de la prenda.` : ` se queda en ${soles(t.propio)}, su precio propio.`}
+                </span>
+              </p>
+              {t.puedeIgualar && (
+                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-tinta/80">
+                  <Casilla
+                    marcada={igualar.has(t.ubicacionId)}
+                    onCambio={() => !deshabilitado && onIgualar(t.ubicacionId, !igualar.has(t.ubicacionId))}
+                    etiqueta={`Igualar ${t.sede} al precio nuevo`}
+                  />
+                  Igualar {nombreCorto(t.sede)} al precio nuevo
+                </label>
+              )}
+            </li>
+          )
+        )}
+      </ul>
+    </section>
   );
 }
