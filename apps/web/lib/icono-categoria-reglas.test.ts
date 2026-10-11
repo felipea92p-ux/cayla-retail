@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { formasDePrefijo, ICONOS_POR_PREFIJO, type FormaIcono } from "./icono-categoria-reglas";
 
 // Los prefijos de las 42 categorías activas al 2026-09-29 (`select prefijo from retail.categorias where activo`, base local
-// espejo de producción). Si una migración agrega una categoría de fábrica, se suma aquí Y en `icono-categoria-reglas.ts`:
-// la que se olvide cae al ícono de su familia (no se rompe), pero esta prueba avisa que se quedó sin dibujo propio.
+// espejo de producción), más Bolsas (BOL, familia Empaque), que un Líder creó desde la pantalla y en producción se dibujaba
+// como un círculo (Felipe 2026-10-10). Si una migración agrega una categoría de fábrica, se suma aquí Y en
+// `icono-categoria-reglas.ts`: la que se olvide cae al ícono de su familia (no se rompe), pero esta prueba avisa que se
+// quedó sin dibujo propio.
 const PREFIJOS_ACTIVOS = [
   // Indumentaria (18)
   "ABR", "BLZ", "BOD", "CMS", "CAS", "CHA", "CMP", "CON", "ENT", "FAL", "JEA", "PAN", "SUD", "POL", "LEN", "SHO", "TOP", "VES",
@@ -13,6 +15,8 @@ const PREFIJOS_ACTIVOS = [
   "CAR", "CIN", "GOR", "LSO", "MOC", "BUF", "REL", "RIN",
   // Bisutería (4), Belleza (1), Papelería (4)
   "ANL", "ARE", "COL", "PUL", "MAQ", "UTC", "LAP", "LIB", "UOF",
+  // Empaque (1)
+  "BOL",
 ];
 
 // Solo estos caracteres puede tener el `d` de un trazo SVG; un typo (una letra suelta, una coma doble) no dibuja nada y no avisa.
@@ -27,9 +31,9 @@ function formaValida(f: FormaIcono): boolean {
 }
 
 describe("formasDePrefijo", () => {
-  it("las 42 categorías activas tienen ícono propio", () => {
-    expect(PREFIJOS_ACTIVOS).toHaveLength(42);
-    expect(new Set(PREFIJOS_ACTIVOS).size).toBe(42);
+  it("las 43 categorías activas tienen ícono propio", () => {
+    expect(PREFIJOS_ACTIVOS).toHaveLength(43);
+    expect(new Set(PREFIJOS_ACTIVOS).size).toBe(43);
     const sinIcono = PREFIJOS_ACTIVOS.filter((p) => formasDePrefijo(p) === null);
     expect(sinIcono).toEqual([]);
   });
