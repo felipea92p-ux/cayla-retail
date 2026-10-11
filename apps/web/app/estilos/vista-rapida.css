@@ -159,6 +159,23 @@
       display: none;
     }
   }
+  /* La ficha del color de la foto (ADR-0316): dos renglones de alto reservado —seis círculos no siempre caben en uno en el aside de 260 px—
+     para que pasar de un color a otro no cambie el alto de la hoja bajo el mouse (ADR-0185). */
+  .vr-color-ficha {
+    margin-top: 8px;
+    min-height: 56px;
+  }
+  /* La frase de prendas («Combina bien con un jean o una cartera»): una línea, misma altura siempre. */
+  .vr-combina {
+    margin-top: 6px;
+    font-size: 12.5px;
+    line-height: 20px;
+    height: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-tinta);
+  }
   /* La descripción de la prenda, bajo la foto (Felipe, 2026-10-06: no se veía en ninguna parte). Es de la prenda y no del color: una línea
      la separa del pie de la foto. */
   /* La ficha corta, bajo la matriz: cuatro datos en fila, rótulo arriba y dato abajo (como las cifras de la cabecera de la matriz). */

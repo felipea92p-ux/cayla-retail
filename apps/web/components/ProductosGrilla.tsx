@@ -24,6 +24,8 @@ import {
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
+import type { TarjetaLook } from "@/lib/combinar-reglas";
 import { useTamanoGrilla } from "@/components/SelectorTamanoGrilla";
 import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, type TamanoGrilla } from "@/lib/tamano-grilla";
 import { FunnelX } from "lucide-react";
@@ -57,8 +59,14 @@ export function ProductosGrilla({
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
   preciosTienda = {},
   preciosAqui,
+  colores,
+  tarjetasLook,
 }: {
   productos: ProductoListado[];
+  /** La ficha de cada color activo (ADR-0316): la vista rápida dice con qué se combina el color de la foto. Ausente = no dice nada. */
+  colores?: ColorConFicha[];
+  /** El catálogo de la sede como tarjetas prenda×color con piso: la frase «Combina bien con un jean…» de la vista rápida. */
+  tarjetasLook?: TarjetaLook[];
   /** Por prenda, las tiendas que la venden a otro precio: la insignia «2 precios» (Felipe 2026-10-09). */
   preciosTienda?: Record<string, PrecioDeTienda[]>;
   /** Precio propio de esta sede por variante: la vista rápida muestra el que cobra su caja (ADR-0370). */
@@ -121,6 +129,8 @@ export function ProductosGrilla({
           compacta={tamano === "pequeno"}
           otrosPrecios={preciosTienda[p.productoId]}
           preciosAqui={preciosAqui}
+          fichasColor={colores}
+          tarjetasLook={tarjetasLook}
         />
       ))}
     </div>
@@ -140,10 +150,15 @@ function TarjetaProducto({
   compacta = false,
   otrosPrecios,
   preciosAqui,
+  fichasColor,
+  tarjetasLook,
 }: {
   producto: ProductoListado;
   otrosPrecios?: PrecioDeTienda[];
   preciosAqui?: Record<string, number>;
+  /** Las fichas de color del vocabulario (ADR-0316), para la vista rápida. `colores`, abajo, son los de ESTA prenda. */
+  fichasColor?: ColorConFicha[];
+  tarjetasLook?: TarjetaLook[];
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
   veMovimientos: boolean;
@@ -285,6 +300,8 @@ function TarjetaProducto({
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
           preciosAqui={preciosAqui}
+          colores={fichasColor}
+          tarjetasLook={tarjetasLook}
           veExistencias={veExistencias}
           veMovimientos={veMovimientos}
           puedeEditar={puedeEditar}
