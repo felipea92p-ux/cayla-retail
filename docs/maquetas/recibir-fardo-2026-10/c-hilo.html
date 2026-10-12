@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recibir mercadería · C · Hilo de la pistola</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+</head>
+<body>
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+<script>
+/* C · HILO DE LA PISTOLA. Una sola caja arriba: cada lectura escribe una línea en el hilo y suma. Lo conocido se suma solo; lo que la
+   pistola no encuentra pregunta ahí mismo «¿es nueva?». A la derecha, lo que dijeron contra lo que va entrando, categoría por
+   categoría. Contar y separar son el MISMO gesto; para lo que no tiene código hay un «+1» por categoría. Es la cara más rápida. */
+let ui = null;
+Comun.iniciar({
+  letra: "c",
+  estilos: `
+  .inicio{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+  .inicio .card{padding:22px}
+  .inicio h2{font-size:30px}
+  .manif{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .manif span{display:inline-flex;align-items:center;gap:8px;background:var(--crema);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px}
+  .manif span .cat-ic{width:26px;height:26px;border-radius:50%;background:var(--papel)}.manif span .cat-ic svg{width:15px;height:15px}
+  .provs{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .lector{padding:14px 16px;display:flex;flex-direction:column;gap:10px;position:sticky;top:0;z-index:10;background:var(--papel)}
+  .lector .caja{min-height:60px;border-radius:var(--r-lg);padding:0 8px 0 16px;position:relative;overflow:hidden}
+  .lector .caja input{font-size:19px}
+  .lector .caja .ic{width:22px;height:22px;color:var(--t65)}
+  .laser{position:absolute;top:0;bottom:0;width:2px;background:var(--verde);opacity:0;pointer-events:none;box-shadow:0 0 10px var(--verde)}
+  .caja.leyendo .laser{animation:laser 520ms linear 1}
+  .lector .fila-herr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--t55)}
+  .tally{display:grid;grid-template-rows:0fr;transition:grid-template-rows 320ms var(--ease)}
+  .tally>div{overflow:hidden;min-height:0;display:flex;gap:8px;flex-wrap:wrap}
+  .tally.abierto{grid-template-rows:1fr}
+  .tally .t{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);border-radius:999px;padding:6px 14px 6px 8px;font-size:13.5px;font-weight:600;background:var(--papel);transition:background-color 150ms,border-color 150ms,translate 200ms var(--ease)}
+  .tally .t:hover{border-color:var(--tinta);translate:0 -1px}
+  .tally .t .cat-ic{width:26px;height:26px;border-radius:50%}.tally .t .cat-ic svg{width:15px;height:15px}
+  .tally .t b{color:var(--verde-p)}
+  .sugerencias{position:absolute;left:16px;right:16px;top:calc(100% - 6px);z-index:12;display:flex;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel);box-shadow:var(--sh-md);animation:revelar 240ms var(--ease) both}
+  .sug{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-md);text-align:left;width:100%}
+  .sug:hover,.sug[aria-selected="true"]{background:var(--hueso)}
+  .sug .crece b{font-size:13.5px}.sug .crece small{color:var(--t55);font-size:12px;margin-left:6px}
+  .sug kbd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-family:inherit}
+  .hilo-grid{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start}
+  .lineas{list-style:none;display:flex;flex-direction:column;gap:6px;position:relative;padding-left:22px}
+  .lineas::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:var(--sand);border-radius:2px}
+  .ev{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);border-left-width:3px}
+  .ev::before{content:"";position:absolute;left:-19px;top:50%;width:8px;height:8px;border-radius:50%;background:var(--sand);translate:0 -50%;border:2px solid var(--crema)}
+  .ev.entra{animation:entrada 360ms var(--ease) backwards}
+  .ev.conocida{border-left-color:var(--verde)}.ev.conocida::before{background:var(--verde)}
+  .ev.nueva{border-left-color:var(--pizarra)}.ev.nueva::before{background:var(--pizarra)}
+  .ev.pendiente{border-left-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 6%,var(--papel))}.ev.pendiente::before{background:var(--ambar)}
+  .ev.pendiente .pulso{position:absolute;inset:-1px;border-radius:inherit;border:1.5px solid var(--ambar);animation:pulso-uno 900ms var(--ease) 120ms 1 both;pointer-events:none}
+  .ev.tally{border-left-color:var(--t35)}
+  .ev.sistema{border-left-color:var(--taupe);background:var(--crema)}.ev.sistema::before{background:var(--taupe)}
+  .ev.pregunta{border-left-color:var(--ambar)}.ev.pregunta::before{background:var(--ambar)}
+  .ev .hora{font-size:11px;color:var(--t45);min-width:38px;font-variant-numeric:tabular-nums}
+  .ev .txt{flex:1;min-width:0;font-size:14px}.ev .txt b{font-weight:600}.ev .txt small{display:block;color:var(--t55);font-size:12.5px}
+  .ev .veces{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:24px;line-height:1;min-width:46px;text-align:right}
+  .ev .veces small{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--t45);font-weight:500;margin-right:2px}
+  .ev .acciones{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .ev .acciones .btn{min-height:32px;padding:0 10px;font-size:12.5px}
+  .ev .causas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .causa{border:1px solid var(--sand);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--taupe);transition:background-color 150ms,border-color 150ms,color 150ms}
+  .causa:hover{border-color:var(--t45);color:var(--tinta)}.causa[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+  .ev .quitar{color:var(--t35)}
+  .riel{display:flex;flex-direction:column;gap:12px;position:sticky;top:92px}
+  .riel .card{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .r-fila{display:grid;grid-template-columns:30px 1fr auto;gap:8px 10px;align-items:center}
+  .r-fila .cat-ic{width:30px;height:30px;border-radius:9px}.r-fila .cat-ic svg{width:16px;height:16px}
+  .r-fila .nom b{display:block;font-size:13.5px;line-height:1.2}.r-fila .nom small{color:var(--t55);font-size:11.5px}
+  .r-fila .cif{font-variant-numeric:tabular-nums;font-size:13px;text-align:right;white-space:nowrap}.r-fila .cif b{font-size:17px;font-family:'EB Garamond',Georgia,serif}
+  .r-fila .barra{grid-column:2/-1;height:6px;display:flex}
+  .r-fila .barra>i{border-radius:0;width:var(--w);transition:width 700ms var(--ease)}.r-fila .barra>i.pizarra{background:var(--pizarra)}.r-fila .barra>i.sin{background:var(--t25)}
+  .r-fila .barra>i:first-child{border-radius:999px 0 0 999px}
+  .r-fila .chip{font-size:11px;padding:2px 8px}
+  .riel .crear{border-style:dashed;border-color:color-mix(in srgb,var(--pizarra) 45%,transparent)}
+  .riel .item{display:flex;align-items:center;gap:8px;font-size:13px}
+  .riel .item .cant{margin-left:auto;font-weight:700}
+  .riel .responsables{flex-direction:column}.riel .resp{min-width:0}
+  .plegado .lineas{animation:plegar 600ms var(--ease) both}
+  @keyframes plegar{to{opacity:0;transform:translateY(-18px) scale(.98)}}
+  @container escena (max-width:900px){.hilo-grid{grid-template-columns:1fr}.riel{position:static;order:-1}.inicio{grid-template-columns:1fr}}
+  @container escena (max-width:640px){.lector .caja input{font-size:16px}.lector .caja .btn span{display:none}.lector .caja .btn{padding:0 10px}.ev{padding:8px 10px;gap:8px}.ev .hora{display:none}.ev .veces{font-size:20px;min-width:36px}}
+  `,
+  montar(escena, api) {
+    const { modelo: m, Modelo: M } = api;
+    const { icono, iconoCat, mini, esc, CATS, prov, SIN_AVISO, PROVEEDORES, CAUSAS, plural } = RF;
+    const eventos = []; let evId = 0, tallyAbierto = false, cerrando = false, minutos = 42;
+    const hora = () => `10:${String(minutos).padStart(2, "0")}`;
+    const frase = "Pasa la pistola por cada prenda: lo conocido se suma solo y lo nuevo se anota ahí mismo. A la derecha ves si cuadra con lo que dijeron.";
+    escena.innerHTML = `<div class="pagina">${api.cabecera({ frase, der: m.fardo ? `<span class="chip pizarra punto vivo">Fardo ${esc(m.fardo.codigo)} · dijeron ${M.totalDijeron(m)}</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>` })}<div id="cuerpo"></div></div>`;
+    const cuerpo = () => escena.querySelector("#cuerpo");
+
+    function pintarInicio() {
+      if (m.fardo) {
+        const f = m.fardo;
+        cuerpo().innerHTML = `<div class="inicio cascada"><section class="card"><p class="label">Llegó a ${esc(RF.SEDE)} · despachó ${esc(f.por)} desde ${esc(f.desde)} ${esc(f.cuando)}</p><h2 class="disp" style="margin-top:4px">Fardo ${esc(f.codigo)} · dijeron ${M.totalDijeron(m)} prendas</h2>
+          <div class="manif">${m.lineas.map((l) => `<span><span class="cat-ic">${iconoCat(l.cat)}</span>${esc(CATS[l.cat].nombre)} · ${esc(l.marca)}<b class="num">${l.dijeron}</b></span>`).join("")}</div>
+          <p class="tenue" style="margin-top:12px;font-size:14px">Abre el fardo y empieza a pasar la pistola. No hace falta contar antes: cada lectura cuenta y separa a la vez.</p>
+          <div class="fila envuelve" style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("scan")}Abrir y empezar a leer${icono("der", "flecha")}</button><button class="btn sut" data-sin-aviso>${icono("mensaje")}Llegó otra cosa sin aviso</button></div></section>
+          <aside class="card"><h3 class="disp" style="font-size:20px">Cómo se lee</h3><p class="tenue" style="font-size:13.5px;margin-top:6px">La pistola escribe el código y manda Enter. Si la prenda no tiene etiqueta de CAYLA, búscala por nombre; si no existe, es nueva y se anota con sus tallas. Para lo que no tiene código, «+1 sin código» por categoría.</p></aside></div>`;
+      } else {
+        cuerpo().innerHTML = `<div class="inicio cascada"><section class="card"><p class="label">Sin aviso de Compras</p><h2 class="disp" style="margin-top:4px">Llegó mercadería</h2><p class="tenue" style="margin-top:6px">Dime de quién es y empieza a leer. Las categorías aparecen a la derecha solas, con la primera prenda de cada una.</p>
+          <div class="provs">${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span></button>`).join("")}</div>
+          <p class="label" style="margin-top:14px">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">(opcional)</span></p>
+          <div class="caja" style="max-width:220px;margin-top:8px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div>
+          <p class="tenue" style="margin-top:8px;font-size:13px">${esc(SIN_AVISO.mensaje)}</p>
+          <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("scan")}Empezar a leer${icono("der", "flecha")}</button></div></section>
+          <aside class="card"><h3 class="disp" style="font-size:20px">Cuando Compras lo despache</h3><p class="tenue" style="font-size:13.5px;margin-top:6px">El fardo aparecerá con lo que dijeron por categoría, y el riel comparará solo. Hoy ese dato llega por WhatsApp.</p></aside></div>`;
+      }
+    }
+
+    // ---------- el hilo ----------
+    function ev(tipo, datos) { const e = { id: `e${++evId}`, tipo, hora: hora(), ...datos }; eventos.unshift(e); if (evId % 7 === 0) minutos++; return e; }
+    function htmlEv(e) {
+      const cab = `<span class="hora">${e.hora}</span>`;
+      if (e.tipo === "sistema") return `<li class="ev sistema" data-flip="${e.id}">${cab}<span class="txt">${e.html}</span></li>`;
+      if (e.tipo === "conocida") { const p = e.prenda; return `<li class="ev conocida" data-flip="${e.id}">${cab}${mini(e.linea.cat, p.hex, "chica")}<span class="txt"><b>${esc(p.nombre)}</b> · ${esc(p.talla)} · ${esc(p.color)}<small>${esc(CATS[e.linea.cat].nombre)} · ${esc(e.linea.marca)} · conocida, se etiqueta</small></span><span class="veces num" data-veces><small>×</small>${e.n}</span><button class="quitar" data-quitar-ev="${e.id}" aria-label="Quitar una">${icono("minus")}</button></li>`; }
+      if (e.tipo === "pendiente") return `<li class="ev pendiente" data-flip="${e.id}"><span class="pulso"></span>${cab}${mini(e.linea.cat, "#b9b2a7", "chica")}<span class="txt"><b>No está en el catálogo</b> · código <span class="mono">${esc(e.codigoProv)}</span><small>${esc(CATS[e.linea.cat].nombre)} · ${esc(e.linea.marca)} · ¿es una prenda nueva o una conocida sin etiqueta?</small><span class="acciones"><button class="btn pri" data-es-nueva="${e.id}">${icono("chispa")}Es nueva</button><button class="btn sec" data-buscar-nombre="${e.id}">${icono("buscar")}Buscar por nombre</button><button class="btn sut" data-ignorar="${e.id}">Ignorar</button></span></span></li>`;
+      if (e.tipo === "nueva") { const n = e.nueva; return `<li class="ev nueva" data-flip="${e.id}">${cab}${mini(e.linea.cat, n.hex || "#b9b2a7", "chica")}<span class="txt"><b>${esc(n.desc)}</b> · ${esc(n.color || "sin color")} · ${Object.entries(n.tallas).map(([t, k]) => `${t} ${k}`).join(", ")} <span class="chip taupe" style="font-size:11px">${icono("chispa")}Nueva</span><small>${esc(CATS[e.linea.cat].nombre)} · ${esc(e.linea.marca)} · queda por crear; guardada en el almacén</small></span><span class="veces num"><small>×</small>${n.cant}</span><button class="quitar" data-quitar-ev="${e.id}" aria-label="Quitar">${icono("x")}</button></li>`; }
+      if (e.tipo === "tally") return `<li class="ev tally" data-flip="${e.id}">${cab}<span class="cat-ic" style="width:28px;height:28px;border-radius:8px">${iconoCat(e.linea.cat)}</span><span class="txt"><b>${esc(CATS[e.linea.cat].nombre)}</b> contadas sin código<small>Después pásalas por la pistola o búscalas por nombre: sin separar no entran al stock</small></span><span class="veces num" data-veces><small>+</small>${e.n}</span></li>`;
+      if (e.tipo === "pregunta") { const l = e.linea; const d = M.diferencia(l); const c = CATS[l.cat]; return `<li class="ev pregunta" data-flip="${e.id}">${cab}<span class="cat-ic" style="width:28px;height:28px;border-radius:8px">${iconoCat(l.cat)}</span><span class="txt"><b>${esc(c.nombre)}: dijeron ${l.dijeron}, contaste ${l.contadas}.</b> ¿Por qué ${d < 0 ? `faltan ${plural(-d, c.una, c.varias)}` : `sobran ${plural(d, c.una, c.varias)}`}?<span class="causas">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" data-linea="${l.id}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</span></span></li>`; }
+      return "";
+    }
+    function pintarHilo({ nuevo = null } = {}) {
+      const ol = cuerpo().querySelector("[data-lineas]"); if (!ol) return;
+      api.flip(ol, () => { ol.innerHTML = eventos.map(htmlEv).join(""); });
+      if (nuevo) { const li = ol.querySelector(`[data-flip="${nuevo}"]`); li && li.classList.add("entra"); }
+    }
+    function refrescarEv(e) { const li = cuerpo().querySelector(`[data-flip="${e.id}"]`); if (li) { li.outerHTML = htmlEv(e); const v = cuerpo().querySelector(`[data-flip="${e.id}"] [data-veces]`); if (v && !api.quieto()) { v.classList.add("rueda"); } } }
+
+    // ---------- el riel ----------
+    function filaRiel(l) {
+      const c = CATS[l.cat]; const con = M.conocidasDe(l), nv = M.nuevasDe(l), sin = M.sinSeparar(l); const d = M.diferencia(l);
+      const base = Math.max(l.dijeron || 0, l.contadas, 1);
+      const chip = l.contadas === 0 ? "" : d == null ? `<span class="chip neutro">${l.contadas}</span>` : d === 0 ? `<span class="chip verde punto">Cuadra</span>` : d < 0 ? `<span class="chip ambar punto">Faltan ${-d}</span>` : `<span class="chip ambar punto">Sobran ${d}</span>`;
+      return `<div class="r-fila" data-riel="${l.id}"><span class="cat-ic">${iconoCat(l.cat)}</span><span class="nom"><b>${esc(c.nombre)}</b><small>${esc(l.marca)}${sin ? ` · <b style="color:var(--rojo-p)">${sin} sin separar</b>` : ""}</small></span><span class="cif"><b class="num">${l.contadas}</b>${l.dijeron != null ? ` <span class="tenue">/ ${l.dijeron}</span>` : ""} ${chip}</span>
+        <div class="barra"><i class="verde" style="--w:${(con / base) * 100}%"></i><i class="pizarra" style="--w:${(nv / base) * 100}%"></i><i class="sin" style="--w:${(sin / base) * 100}%"></i></div></div>`;
+    }
+    function riel() {
+      const visibles = m.lineas.filter((l) => m.fardo || l.contadas > 0 || M.identificadas(l) > 0);
+      const nuevos = M.modelosNuevos(m); const libres = Object.entries(CATS).filter(([k]) => !m.lineas.some((l) => l.cat === k));
+      return `<aside class="riel">
+        <div class="card lista"><div class="fila entre"><p class="label">${m.fardo ? "Lo que dijeron · lo que va" : "Lo que va entrando"}</p><span class="tenue" style="font-size:11.5px"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--verde);margin-right:3px"></i>conocidas <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--pizarra);margin:0 3px 0 6px"></i>nuevas</span></div>
+          ${visibles.length ? visibles.map(filaRiel).join("") : `<p class="tenue" style="font-size:13px">Las categorías aparecen con la primera lectura.</p>`}
+          ${!m.fardo && libres.length ? `<div class="fila envuelve" style="gap:6px"><span class="tenue" style="font-size:12px">Agregar:</span>${libres.map(([k, c]) => `<button class="pildora" data-cat="${k}" style="padding:3px 10px;font-size:12px">${esc(c.nombre)}</button>`).join("")}</div>` : ""}
+          ${api.balanza(M.totalDijeron(m), M.totalContadas(m), { chica: true })}</div>
+        <div class="card crear"><div class="fila entre"><p class="label">${icono("chispa")} Por crear</p><b class="disp num" style="font-size:24px">${M.totalNuevas(m)}</b></div>${nuevos.length ? nuevos.map((n) => `<div class="item">${mini(n.linea.cat, n.hex || "#b9b2a7", "chica")}<span><b>${esc(n.desc)}</b> <span class="tenue">· ${esc(CATS[n.linea.cat].nombre)}</span></span><span class="cant num">×${n.cant}</span></div>`).join("") : `<p class="tenue" style="font-size:12.5px">Lo que la pistola no encuentre y anotes como nuevo queda aquí, guardado pero sin vender, hasta que alguien lo cree.</p>`}</div>
+        <div class="card cerrar">${cerrando ? `<p class="label">Quién recibe</p>${api.responsableHtml(m)}${api.faltaChips(m)}<button class="btn pri grande" data-recibir ${M.listo(m) ? "" : "disabled"} style="width:100%">${icono("check")}Recibir ${M.totalContadas(m)} prendas en ${esc(RF.SEDE)}</button>` : `<p class="tenue" style="font-size:13px">Cuando termines de leer, cierra el fardo: te preguntará solo lo que no cuadre.</p><button class="btn pri grande" data-cerrar-fardo ${M.totalContadas(m) ? "" : "disabled"} style="width:100%">${icono("caja")}Cerrar el fardo${icono("der", "flecha")}</button>`}</div>
+      </aside>`;
+    }
+    function refrescarRiel() { const r = cuerpo().querySelector(".riel"); if (r) r.outerHTML = riel(); }
+
+    function pintarTodo() {
+      if (m.cerrado) { cuerpo().innerHTML = api.pantallaRecibido(m, { otra: `<button class="btn pri" data-otro>${icono("caja")}Otro fardo</button>` }); return; }
+      cuerpo().innerHTML = `<section class="card lector luz" data-estado="ahora"><div class="caja" data-lector><span class="laser"></span>${icono("scan")}<input data-buscar placeholder="Escanea la etiqueta o escribe el nombre de la prenda" autocomplete="off"><button class="btn sec" data-pistola title="La pistola escribe el código y manda Enter; aquí se simula">${icono("scan")}<span>Leer con la pistola</span></button><div class="sugerencias" data-sugerencias hidden></div></div>
+          <div class="fila-herr"><span class="sigue">Sigue aquí</span><span>· ${M.totalContadas(m)} leídas</span><span style="margin-left:auto"></span><button class="btn sut" data-tally aria-pressed="${tallyAbierto}">${icono("teclado")}Contar sin código</button></div>
+          <div class="tally ${tallyAbierto ? "abierto" : ""}" data-tally-caja><div>${m.lineas.map((l) => `<button class="t" data-mas="${l.id}"><span class="cat-ic">${iconoCat(l.cat)}</span>+1 ${esc(CATS[l.cat].nombre)} <b class="num">${l.contadas ? `· ${l.contadas}` : ""}</b></button>`).join("")}${!m.fardo ? `<span class="tenue" style="font-size:12px;align-self:center">Las categorías que faltan se agregan a la derecha.</span>` : ""}</div></div></section>
+        <div class="hilo-grid"><main><ol class="lineas" data-lineas>${eventos.map(htmlEv).join("")}</ol></main>${riel()}</div>`;
+      const inp = cuerpo().querySelector("[data-buscar]"); if (inp) setTimeout(() => inp.focus(), 300);
+    }
+    function abrir() {
+      if (!m.fardo) { const inp = cuerpo().querySelector("[data-dijeron]"); m.dijeronTotal = inp && inp.value !== "" ? Number(inp.value) : null; for (const l of RF.FARDO.lineas) if (l.prov === m.proveedor) M.agregarLinea(m, l.cat); }
+      M.abrir(m);
+      ev("sistema", { html: m.fardo ? `Abriste el fardo <b>${esc(m.fardo.codigo)}</b> · dijeron ${M.totalDijeron(m)} prendas en ${m.lineas.length} categorías de ${new Set(m.lineas.map((l) => l.prov)).size} proveedores · guía ${esc(m.guia)}` : `Llegó mercadería de <b>${esc(prov(m.proveedor).nombre)}</b> sin aviso${m.dijeronTotal != null ? ` · dijeron ${m.dijeronTotal} por WhatsApp` : ""}` });
+      pintarTodo();
+    }
+    function laser() { const c = cuerpo().querySelector("[data-lector]"); if (c && !api.quieto()) { c.classList.remove("leyendo"); void c.offsetWidth; c.classList.add("leyendo"); } return c; }
+    function leer(lineaId = null) {
+      const c = laser(); const r = M.leer(m, lineaId);
+      if (r.tipo === "vacia") { api.aviso("No queda nada por leer en la caja", "neutro"); return r; }
+      if (r.tipo === "conocida") {
+        api.flash(c, "verde");
+        const top = eventos[0];
+        if (top && top.tipo === "conocida" && top.prenda.codigo === r.prenda.codigo) { top.n++; refrescarEv(top); } else { const e = ev("conocida", { linea: r.linea, prenda: r.prenda, n: 1 }); pintarHilo({ nuevo: e.id }); }
+        refrescarRiel(); refrescarContador(); return r;
+      }
+      api.flash(c, "ambar");
+      const e = ev("pendiente", { linea: r.linea, codigoProv: r.unidad.codigoProv, modelo: r.modelo }); pintarHilo({ nuevo: e.id }); return r;
+    }
+    function refrescarContador() { const s = cuerpo().querySelector(".fila-herr span:nth-child(2)"); if (s) s.textContent = `· ${M.totalContadas(m)} leídas`; cuerpo().querySelectorAll("[data-mas]").forEach((b) => { const l = M.linea(m, b.dataset.mas); b.querySelector("b").textContent = l && l.contadas ? `· ${l.contadas}` : ""; }); }
+    function anotarNueva(e, datos) {
+      const n = M.anotarNueva(m, e.linea.id, datos);
+      const i = eventos.indexOf(e); if (i >= 0) eventos.splice(i, 1);
+      const ne = ev("nueva", { linea: e.linea, nueva: n }); pintarHilo({ nuevo: ne.id }); refrescarRiel(); refrescarContador();
+      api.aviso(`${n.cant} ${CATS[e.linea.cat].varias} nuevas anotadas: se crean después`, "pizarra");
+    }
+    function buscarEn(texto) {
+      const caja = cuerpo().querySelector("[data-sugerencias]"); if (!caja) return;
+      const l = m.lineas.find((x) => x.cola.length) || m.lineas[0]; const r = RF.buscar(texto, l ? l.marca : "");
+      caja.hidden = r.length === 0 && texto.trim().length < 2;
+      caja.innerHTML = r.length ? r.map((p, i) => `<button class="sug" data-codigo="${p.codigo}" data-linea="${p.linea}" aria-selected="${i === 0}">${mini(p.cat, p.hex, "chica")}<span class="crece"><b>${esc(p.nombre)}</b><small>${esc(p.talla)} · ${esc(p.color)} · ${esc(p.marca)}</small></span>${i === 0 ? `<kbd>Enter</kbd>` : ""}</button>`).join("") : `<div class="fila" style="padding:8px 10px;gap:10px;font-size:13.5px;flex-wrap:wrap"><span class="tenue">Nada se llama «${esc(texto)}».</span>${m.lineas.map((x) => `<button class="btn sut" data-nueva-cat="${x.id}" style="min-height:30px">${icono("chispa")}Nueva en ${esc(CATS[x.cat].nombre)}</button>`).join("")}</div>`;
+    }
+    function elegirConocida(codigo, lineaId) {
+      let l = M.linea(m, lineaId); if (!l) { const base = RF.FARDO.lineas.find((x) => x.id === lineaId); l = M.agregarLinea(m, base ? base.cat : "CMS"); }
+      const p = M.agregarConocida(m, l.id, codigo); if (!p) return; laser();
+      const top = eventos[0]; if (top && top.tipo === "conocida" && top.prenda.codigo === codigo) { top.n++; refrescarEv(top); } else { const e = ev("conocida", { linea: l, prenda: p, n: 1 }); pintarHilo({ nuevo: e.id }); }
+      refrescarRiel(); refrescarContador();
+    }
+    function cerrarFardo() {
+      cerrando = true;
+      for (const l of m.lineas) { const d = M.diferencia(l); if (d != null && d !== 0 && l.contadas > 0 && !eventos.some((e) => e.tipo === "pregunta" && e.linea.id === l.id)) { const e = ev("pregunta", { linea: l }); } }
+      const sin = m.lineas.filter((l) => M.sinSeparar(l) > 0);
+      ev("sistema", { html: `Cerrando el fardo: ${M.totalContadas(m)} leídas, ${M.totalConocidas(m)} conocidas y ${M.totalNuevas(m)} nuevas.${sin.length ? ` <b>Hay ${sin.map((l) => `${M.sinSeparar(l)} ${CATS[l.cat].varias}`).join(", ")} sin separar</b>: pásalas por la pistola o búscalas por nombre antes de recibir.` : ""}${eventos.some((e) => e.tipo === "pregunta") ? " Abajo, lo que no cuadró." : " Todo cuadra."}` });
+      pintarHilo(); refrescarRiel(); escena.scrollTop = 0;
+    }
+    async function recibir() {
+      M.cerrar(m); const ol = cuerpo().querySelector("main"); if (ol && !api.quieto()) { ol.classList.add("plegado"); await api.pausa(500); }
+      pintarTodo(); escena.scrollTop = 0;
+    }
+
+    escena.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-abrir],[data-sin-aviso],[data-prov],[data-pistola],[data-tally],[data-mas],[data-cat],[data-es-nueva],[data-buscar-nombre],[data-ignorar],[data-quitar-ev],[data-causa],.sug[data-codigo],[data-nueva-cat],[data-resp],[data-cerrar-fardo],[data-recibir],[data-falta],[data-otro],[data-accion]");
+      if (!t) return;
+      if (t.matches("[data-abrir]")) return abrir();
+      if (t.matches("[data-sin-aviso]")) { const b = document.querySelector('.spike .op[data-g="caso"][data-v="sin"]'); if (b) b.click(); return; }
+      if (t.matches("[data-prov]")) { m.proveedor = t.dataset.prov; cuerpo().querySelectorAll("[data-prov]").forEach((x) => x.setAttribute("aria-pressed", x === t)); return; }
+      if (t.matches("[data-pistola]")) return leer();
+      if (t.matches("[data-tally]")) { tallyAbierto = !tallyAbierto; t.setAttribute("aria-pressed", tallyAbierto); cuerpo().querySelector("[data-tally-caja]").classList.toggle("abierto", tallyAbierto); return; }
+      if (t.matches("[data-mas]")) { const l = M.linea(m, t.dataset.mas); M.contar(m, l.id, { delta: 1 }); const top = eventos[0]; if (top && top.tipo === "tally" && top.linea.id === l.id) { top.n++; refrescarEv(top); } else { const e2 = ev("tally", { linea: l, n: 1 }); pintarHilo({ nuevo: e2.id }); } refrescarRiel(); refrescarContador(); return; }
+      if (t.matches("[data-cat]")) { M.agregarLinea(m, t.dataset.cat); pintarTodo(); return; }
+      if (t.matches("[data-es-nueva]")) { const e2 = eventos.find((x) => x.id === t.dataset.esNueva); api.hojaNueva({ linea: e2.linea, sugerida: { ...e2.modelo, codigoProv: e2.codigoProv }, alGuardar: (d) => anotarNueva(e2, d) }); return; }
+      if (t.matches("[data-buscar-nombre]")) { const inp = cuerpo().querySelector("[data-buscar]"); inp.focus(); inp.value = ""; api.aviso("Escribe el nombre: si la encuentras, es conocida sin etiqueta", "neutro"); return; }
+      if (t.matches("[data-ignorar]")) { const i = eventos.findIndex((x) => x.id === t.dataset.ignorar); if (i >= 0) { const e2 = eventos[i]; e2.linea.cola.shift(); eventos.splice(i, 1); pintarHilo(); } return; }
+      if (t.matches("[data-quitar-ev]")) { const i = eventos.findIndex((x) => x.id === t.dataset.quitarEv); if (i < 0) return; const e2 = eventos[i]; if (e2.tipo === "conocida") { M.quitarConocida(m, e2.linea.id, e2.prenda.codigo); e2.n--; if (e2.n <= 0) eventos.splice(i, 1); else refrescarEv(e2); } else if (e2.tipo === "nueva") { M.quitarNueva(m, e2.linea.id, e2.nueva.id); eventos.splice(i, 1); } pintarHilo(); refrescarRiel(); refrescarContador(); return; }
+      if (t.matches("[data-causa]")) { M.ponerCausa(m, t.dataset.linea, t.dataset.causa); const e2 = eventos.find((x) => x.tipo === "pregunta" && x.linea.id === t.dataset.linea); e2 && refrescarEv(e2); refrescarRiel(); return; }
+      if (t.matches(".sug[data-codigo]")) { elegirConocida(t.dataset.codigo, t.dataset.linea); const inp = cuerpo().querySelector("[data-buscar]"); inp.value = ""; cuerpo().querySelector("[data-sugerencias]").hidden = true; inp.focus(); return; }
+      if (t.matches("[data-nueva-cat]")) { const l = M.linea(m, t.dataset.nuevaCat); const txt = cuerpo().querySelector("[data-buscar]").value.trim(); const falso = { linea: l, codigoProv: "", modelo: null, id: null }; api.hojaNueva({ linea: l, sugerida: txt.length >= 3 ? { desc: txt, color: "", hex: "", tallas: {} } : null, alGuardar: (d) => { anotarNueva(falso, d); cuerpo().querySelector("[data-buscar]").value = ""; cuerpo().querySelector("[data-sugerencias]").hidden = true; } }); return; }
+      if (t.matches("[data-resp]")) { m.responsable = t.dataset.resp; refrescarRiel(); return; }
+      if (t.matches("[data-cerrar-fardo]")) return cerrarFardo();
+      if (t.matches("[data-recibir]")) return recibir();
+      if (t.matches("[data-falta]")) { const k = t.dataset.falta; if (k === "causa") { const li = cuerpo().querySelector(`.ev.pregunta .causa[data-linea="${t.dataset.linea}"]`); li && li.closest(".ev").scrollIntoView({ block: "center", behavior: api.quieto() ? "auto" : "smooth" }); li && api.destello(li.closest(".ev")); } else if (k === "responsable") { api.destello(cuerpo().querySelector(".responsables")); } else { const inp = cuerpo().querySelector("[data-buscar]"); inp && inp.focus(); api.destello(cuerpo().querySelector(".lector")); } return; }
+      if (t.matches("[data-otro]")) { document.querySelector("[data-reiniciar]").click(); return; }
+      if (t.matches("[data-accion]")) { api.aviso({ etiquetas: "Abre Etiquetas de precio con las prendas cargadas", colgar: "Abre Colgar en el piso con lo recibido", crear: "Abre Nuevo producto con categoría, marca, color, tallas y stock ya puestos", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
+    });
+    escena.addEventListener("input", (e) => { if (e.target.matches("[data-buscar]")) buscarEn(e.target.value); });
+    escena.addEventListener("keydown", (e) => {
+      if (e.target.matches("[data-buscar]") && e.key === "Enter") {
+        e.preventDefault(); const txt = e.target.value.trim(); const s = cuerpo().querySelector(".sug[aria-selected=true]");
+        if (!txt) return leer();
+        const exacta = RF.CATALOGO.find((p) => p.codigo.toLowerCase() === txt.toLowerCase());
+        if (exacta) elegirConocida(exacta.codigo, exacta.linea); else if (s) s.click(); else buscarEn(txt);
+        e.target.value = ""; const c = cuerpo().querySelector("[data-sugerencias]"); if (c && (exacta || s)) c.hidden = true;
+      }
+    });
+    function saltarA(en) {
+      if (!en || en === "inicio") return pintarInicio();
+      if (!m.fardo) { m.dijeronTotal = SIN_AVISO.dijeronTotal; for (const l of RF.FARDO.lineas) if (l.prov === m.proveedor) M.agregarLinea(m, l.cat); }
+      M.abrir(m);
+      ev("sistema", { html: m.fardo ? `Abriste el fardo <b>${esc(m.fardo.codigo)}</b> · dijeron ${M.totalDijeron(m)} prendas en ${m.lineas.length} categorías · guía ${esc(m.guia)}` : `Llegó mercadería de <b>${esc(prov(m.proveedor).nombre)}</b> sin aviso · dijeron ${m.dijeronTotal} por WhatsApp` });
+      const tope = en === "contar" ? 9 : 999; let n = 0;
+      while (n < tope && m.lineas.some((l) => l.cola.length)) {
+        const r = M.leer(m, null); if (r.tipo === "vacia") break;
+        if (r.tipo === "nueva") { const nv = M.anotarNueva(m, r.linea.id, { modelo: r.modelo.id, desc: r.modelo.desc, color: r.modelo.color, hex: r.modelo.hex, tallas: r.modelo.tallas }); ev("nueva", { linea: r.linea, nueva: nv }); n++; continue; }
+        const top = eventos[0]; if (top && top.tipo === "conocida" && top.prenda.codigo === r.prenda.codigo) top.n++; else ev("conocida", { linea: r.linea, prenda: r.prenda, n: 1 }); n++;
+      }
+      if (en === "contar" || en === "separar") return pintarTodo();
+      pintarTodo(); cerrarFardo();
+      if (en === "recibido") { for (const l of m.lineas) if (M.diferencia(l)) M.ponerCausa(m, l.id, "proveedor"); m.responsable = "mari"; M.cerrar(m); pintarTodo(); }
+    }
+    saltarA(api.est.en);
+    ui = { m, abrir, leer, anotarNueva, cerrarFardo, recibir, eventos, pintar: pintarTodo, refrescarRiel };
+  },
+
+  async demo(api, viva) {
+    const { modelo: m, Modelo: M, pausa } = api;
+    await pausa(900); if (!viva()) return;
+    if (!m.fardo) m.dijeronTotal = RF.SIN_AVISO.dijeronTotal;
+    ui.abrir(); await pausa(1200); if (!viva()) return;
+    let lecturas = 0;
+    while (m.lineas.some((l) => l.cola.length) && viva()) {
+      const r = ui.leer();
+      if (r.tipo === "nueva") { await pausa(1400); if (!viva()) return; const e = ui.eventos.find((x) => x.tipo === "pendiente"); if (e) ui.anotarNueva(e, { modelo: r.modelo.id, desc: r.modelo.desc, color: r.modelo.color, hex: r.modelo.hex, tallas: r.modelo.tallas }); await pausa(900); continue; }
+      lecturas++; await pausa(lecturas < 10 ? 420 : lecturas < 30 ? 120 : 45);
+    }
+    await pausa(700); if (!viva()) return;
+    ui.cerrarFardo(); await pausa(1300); if (!viva()) return;
+    for (const l of m.lineas) if (M.diferencia(l) && !l.causa) { const b = document.querySelector(`.ev.pregunta .causa[data-linea="${l.id}"][data-causa="proveedor"]`); if (b) { b.scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(500); b.click(); await pausa(900); } }
+    if (!viva()) return;
+    m.responsable = "mari"; ui.refrescarRiel(); await pausa(1000); if (!viva()) return;
+    ui.recibir();
+  },
+});
+</script>
+</body>
+</html>

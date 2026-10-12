@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recibir mercadería · A · Camino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+</head>
+<body>
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+<script>
+/* A · CAMINO. Cuatro paradas, una a la vez: ¿Qué llegó? → Contar → Separar → Cerrar. La persona nunca ve más de una pregunta.
+   El riel de arriba dice dónde está y qué falta (el punto del paso abierto late, como en Nuevo producto, ADR-0136 act. 2026-10-06);
+   cada paso entra dando vuelta la página. Contar es por categoría, con un número grande; Separar es la pistola sobre esa categoría. */
+let ui = null;
+Comun.iniciar({
+  letra: "a",
+  estilos: `
+  .rail{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 0 2px}
+  .rail-linea{position:absolute;left:calc(12.5% + 18px);right:calc(12.5% + 18px);top:24px;height:2px;background:var(--sand);border-radius:2px;overflow:hidden}
+  .rail-linea i{display:block;height:100%;background:var(--tinta);width:calc(var(--p,0)*100%);transition:width 700ms var(--ease);transform-origin:left}
+  .parada{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:2px 6px 8px;border-radius:var(--r-lg);color:var(--t55);transition:color 240ms var(--ease)}
+  .parada:hover:not(:disabled){color:var(--tinta)}
+  .parada .punto{position:relative;z-index:1;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--crema);border:2px solid var(--sand);font-weight:700;font-size:14px;transition:background-color 300ms var(--ease),border-color 300ms var(--ease),color 300ms var(--ease)}
+  .parada[data-estado="hecho"] .punto{background:var(--verde);border-color:var(--verde);color:var(--crema-fija)}
+  .parada[data-estado="hecho"] .punto svg{width:16px;height:16px;stroke:var(--crema-fija);stroke-width:2.6}
+  .parada[data-estado="hecho"] .punto svg path{stroke-dasharray:24;animation:trazo 450ms var(--ease) backwards;--largo:24}
+  .parada[data-estado="ahora"]{color:var(--tinta)}
+  .parada[data-estado="ahora"] .punto{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+  .parada[data-estado="ahora"] .punto::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--t25);animation:late 2.4s var(--ease) infinite} /* la única señal en bucle: «estás aquí» */
+  .parada .txt b{display:block;font-size:13.5px}.parada .txt small{display:block;font-size:11.5px;color:var(--t45);margin-top:1px;min-height:16px}
+  .parada[data-estado="ahora"] .txt small{color:var(--t65)}
+  .parada:disabled{cursor:default}
+  .paso-caja{position:relative;min-height:420px}
+  .paso-pag{display:flex;flex-direction:column;gap:18px}
+  @keyframes pag-sale-izq{to{opacity:0;transform:translate3d(-28px,0,0)}}
+  @keyframes pag-sale-der{to{opacity:0;transform:translate3d(28px,0,0)}}
+  @keyframes pag-entra-der{from{opacity:0;transform:translate3d(36px,0,0)}}
+  @keyframes pag-entra-izq{from{opacity:0;transform:translate3d(-36px,0,0)}}
+  .paso-pag.sale-izq{animation:pag-sale-izq 200ms var(--ease-salida) both}.paso-pag.sale-der{animation:pag-sale-der 200ms var(--ease-salida) both}
+  .paso-pag.entra-der{animation:pag-entra-der 420ms var(--ease) backwards}.paso-pag.entra-izq{animation:pag-entra-izq 420ms var(--ease) backwards}
+  /* paso 1 */
+  .llego{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+  .fardo-card{display:grid;grid-template-columns:220px 1fr;gap:24px;padding:24px;overflow:hidden}
+  .fardo-visual{display:grid;place-items:start center;padding-top:6px}
+  .caja-svg{width:200px;height:170px;overflow:visible}
+  .caja-svg .cuerpo{fill:var(--hueso);stroke:var(--t35);stroke-width:1.5;stroke-linejoin:round}
+  .caja-svg .cara{fill:color-mix(in srgb,var(--hueso) 70%,var(--tinta) 6%)}
+  .caja-svg .tapa{fill:var(--sand);stroke:var(--t35);stroke-width:1.5;stroke-linejoin:round;transform-origin:100px 56px;transition:transform 760ms var(--ease)}
+  .caja-svg.abierta .tapa{transform:rotate(-112deg) translate(2px,0)}
+  .caja-svg .prenda{transition:transform 700ms var(--ease),opacity 500ms var(--ease);transform:translateY(26px);opacity:0}
+  .caja-svg.abierta .prenda{transform:none;opacity:1}
+  .caja-svg.abierta .prenda:nth-child(2){transition-delay:120ms}.caja-svg.abierta .prenda:nth-child(3){transition-delay:220ms}.caja-svg.abierta .prenda:nth-child(4){transition-delay:300ms}
+  .caja-svg .cinta{stroke:var(--rojo);stroke-width:3;opacity:.85;transition:opacity 300ms var(--ease)}.caja-svg.abierta .cinta{opacity:0}
+  .manifiesto{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:12px}
+  .manifiesto li{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:var(--r-md);background:var(--crema)}
+  .manifiesto li .cat-ic{width:32px;height:32px;border-radius:9px;background:var(--papel)}.manifiesto li .cat-ic svg{width:18px;height:18px}
+  .manifiesto li .det{flex:1;min-width:0;color:var(--t65);font-size:13px}.manifiesto li b.num{font-size:17px}
+  .fardo-card h2{font-size:30px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .otra{padding:20px}
+  .otra h3{font-size:20px}
+  .otra p{font-size:13.5px;color:var(--t65);margin-top:6px}
+  .provs{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .cita{display:flex;gap:10px;align-items:flex-start;background:var(--crema);border-radius:var(--r-lg);padding:10px 12px;font-size:13px;color:var(--t75);margin-top:10px}
+  /* pasos 2 y 3 */
+  .dos{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+  .lista-cats{display:flex;flex-direction:column;gap:6px;position:sticky;top:0}
+  .cat-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-lg);border:1px solid transparent;transition:background-color 200ms var(--ease),border-color 200ms var(--ease),translate 200ms var(--ease)}
+  .cat-item:hover{background:var(--papel);border-color:var(--sand)}
+  .cat-item[aria-current="true"]{background:var(--papel);border-color:var(--t25);translate:4px 0}
+  .cat-item .cat-ic{width:36px;height:36px;border-radius:10px}
+  .cat-item .txt{flex:1;min-width:0}.cat-item .txt b{display:block;font-size:14px}.cat-item .txt small{display:block;font-size:12px;color:var(--t55);line-height:1.3}
+  .cat-item .cont{font-size:18px;min-width:30px;text-align:right}
+  .cat-item .marca{position:absolute;left:-4px}
+  .cat-item.agregar{border:1px dashed var(--t25);color:var(--t65);justify-content:center}
+  .cat-item.agregar:hover{color:var(--tinta);border-color:var(--t45)}
+  .elige-cat{display:flex;flex-wrap:wrap;gap:6px;padding:8px}
+  .contador,.separar{padding:24px;display:flex;flex-direction:column;gap:14px}
+  .contador h2,.separar h2{font-size:30px;line-height:1.05}
+  .instr{font-size:14.5px;color:var(--t65);max-width:560px}
+  .numero{display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 0}
+  .numero input{width:170px;text-align:center;font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:84px;line-height:1;background:transparent;border:0;outline:0;color:var(--tinta);-moz-appearance:textfield}
+  .numero input::-webkit-inner-spin-button,.numero input::-webkit-outer-spin-button{-webkit-appearance:none}
+  .numero input:focus{text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:10px;text-decoration-thickness:2px}
+  .paso-btn{width:56px;height:56px;border-radius:50%;border:1.5px solid var(--t25);display:grid;place-items:center;background:var(--papel);transition:background-color 200ms var(--ease),border-color 200ms var(--ease),translate 200ms var(--ease),scale 120ms var(--ease)}
+  .paso-btn svg{width:22px;height:22px}
+  .paso-btn:hover{background:var(--hueso);border-color:var(--tinta);translate:0 -2px}.paso-btn:active{scale:.94;translate:0 0}
+  .rapidos{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+  .rapidos button{border:1px solid var(--sand);border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);transition:background-color 150ms,border-color 150ms,color 150ms}
+  .rapidos button:hover{border-color:var(--t45);color:var(--tinta)}
+  .avance{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .avance .barra{width:100%;max-width:520px;height:10px}
+  .pie-paso{margin-top:4px;padding-top:14px;border-top:1px solid var(--sand)}
+  .escaner{min-height:56px;border-radius:var(--r-lg);padding:0 8px 0 14px;position:relative;overflow:hidden}
+  .escaner input{font-size:17px}
+  .escaner .laser{position:absolute;top:0;bottom:0;width:2px;background:var(--verde);opacity:0;pointer-events:none;box-shadow:0 0 10px var(--verde)}
+  .escaner.leyendo .laser{animation:laser 520ms linear 1}
+  .sugerencias{display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel);box-shadow:var(--sh-md);animation:revelar 240ms var(--ease) both}
+  .sug{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-md);text-align:left;width:100%}
+  .sug:hover,.sug[aria-selected="true"]{background:var(--hueso)}
+  .sug .crece b{font-size:14px}.sug .crece small{color:var(--t55);font-size:12px;margin-left:6px}
+  .sug kbd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-family:inherit}
+  .separadas{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grupo{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .grupo .label{display:flex;align-items:center;gap:8px}
+  .barra.tres{display:flex;gap:0}.barra.tres>i{border-radius:0;width:var(--w)}.barra.tres>i:first-child{border-radius:999px 0 0 999px}.barra.tres>i.pizarra{background:var(--pizarra)}
+  .leyenda{display:flex;gap:14px;font-size:12.5px;color:var(--t65);flex-wrap:wrap}
+  .leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--hueso)}.leyenda i.verde{background:var(--verde)}.leyenda i.pizarra{background:var(--pizarra)}
+  .vacio-grupo{font-size:13px;color:var(--t45);padding:10px;border:1px dashed var(--sand);border-radius:var(--r-lg);text-align:center}
+  /* paso 4 */
+  .cierre{display:flex;flex-direction:column;gap:14px}
+  table.cierre{width:100%;border-collapse:collapse;font-size:14px}
+  table.cierre th{text-align:left;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);padding:10px 12px;border-bottom:1px solid var(--sand)}
+  table.cierre td{padding:10px 12px;border-bottom:1px solid var(--sand);vertical-align:middle}
+  table.cierre tr:last-child td{border-bottom:0}
+  table.cierre td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:16px}
+  table.cierre th.n{text-align:right}
+  .causas{display:flex;flex-wrap:wrap;gap:6px}
+  .causa{border:1px solid var(--sand);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--taupe);transition:background-color 150ms,border-color 150ms,color 150ms}
+  .causa:hover{border-color:var(--t45);color:var(--tinta)}.causa[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+  .bloque-cierre{padding:16px 18px}
+  .pie-cierre{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--crema);padding:14px 0 4px;border-top:1px solid var(--sand)}
+  @container escena (max-width:900px){.llego{grid-template-columns:1fr}.fardo-card{grid-template-columns:1fr}.dos{grid-template-columns:1fr}.lista-cats{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}.cat-item{min-width:200px}.separadas{grid-template-columns:1fr}}
+  @container escena (max-width:640px){.rail .txt small{display:none}.rail .txt b{font-size:11.5px}.rail-linea{left:calc(12.5% + 10px);right:calc(12.5% + 10px);top:18px}.parada .punto{width:28px;height:28px;font-size:12px}
+    .contador,.separar{padding:16px}.numero input{font-size:64px;width:130px}.cat-item{min-width:160px}.fardo-card h2{font-size:26px}table.cierre th:nth-child(4),table.cierre td:nth-child(4),table.cierre th:nth-child(5),table.cierre td:nth-child(5){display:none}}
+  `,
+  montar(escena, api) {
+    const { modelo: m, Modelo: M, est } = api;
+    const { icono, iconoCat, mini, esc, CATS, prov, SIN_AVISO, PROVEEDORES, CAUSAS, plural, avatar } = RF;
+    let paso = 1, foco = null, ultima = null; // ultima: lo último leído, para «Deshacer»
+    const PASOS = [{ n: 1, t: "Qué llegó" }, { n: 2, t: "Contar" }, { n: 3, t: "Separar" }, { n: 4, t: "Cerrar" }];
+    const frase = "Abre el fardo, cuenta, separa lo conocido de lo nuevo y recibe. Un paso a la vez.";
+    escena.innerHTML = `<div class="pagina">${api.cabecera({ frase, der: m.fardo ? `<span class="chip pizarra punto vivo">1 fardo en camino</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>` })}
+      <nav class="rail" aria-label="Pasos de la recepción"></nav>
+      <div class="paso-caja"><section class="paso-pag" id="pag"></section></div></div>`;
+    const pagina = () => escena.querySelector("#pag");
+
+    // ---------- el riel ----------
+    function estadoPaso(n) {
+      if (n === paso) return "ahora";
+      if (n === 1) return m.abierto ? "hecho" : "falta";
+      if (n === 2) return m.lineas.length && m.lineas.every((l) => l.visitada && l.contadas > 0) ? "hecho" : "falta";
+      if (n === 3) return m.lineas.length && M.totalContadas(m) > 0 && m.lineas.every((l) => M.sinSeparar(l) === 0) ? "hecho" : "falta";
+      return m.cerrado ? "hecho" : "falta";
+    }
+    function subPaso(n) {
+      if (n === 1) return m.abierto ? (m.fardo ? `${m.fardo.codigo} · ${M.totalDijeron(m)} prendas` : `${prov(m.proveedor).nombre.split(" ")[0]} · sin aviso`) : "Fardo o sin aviso";
+      if (n === 2) return M.totalContadas(m) ? `${M.totalContadas(m)} contadas` : "Por categoría";
+      if (n === 3) { const c = M.totalConocidas(m), nv = M.totalNuevas(m); return c + nv ? `${c} conocidas · ${nv} nuevas` : "Conocidas o nuevas"; }
+      return m.cerrado ? "Recibido" : "Diferencias y quién recibe";
+    }
+    function pintarRail() {
+      const hechos = PASOS.filter((p) => estadoPaso(p.n) === "hecho").length;
+      const p = Math.min(1, (paso - 1) / 3);
+      escena.querySelector(".rail").innerHTML = `<div class="rail-linea"><i style="--p:${p}"></i></div>` + PASOS.map((s) => {
+        const e = estadoPaso(s.n); const puede = s.n <= paso || e === "hecho" || (s.n === 2 && m.abierto) || (s.n === 3 && M.totalContadas(m) > 0) || (s.n === 4 && M.totalContadas(m) > 0);
+        return `<button class="parada" data-paso="${s.n}" data-estado="${e}" ${puede && !m.cerrado ? "" : "disabled"}><span class="punto">${e === "hecho" ? `<svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5"/></svg>` : s.n}</span><span class="txt"><b>${s.t}</b><small>${esc(subPaso(s.n))}</small></span></button>`;
+      }).join("");
+    }
+
+    // ---------- cambiar de paso: la página se da vuelta ----------
+    async function irPaso(n, { directo = false } = {}) {
+      if (n === paso && !directo) { pintarPaso(); return; }
+      const atras = n < paso; paso = n;
+      if (n === 2 || n === 3) { if (!foco || !M.linea(m, foco)) foco = (m.lineas[0] || {}).id || null; }
+      const pag = pagina();
+      if (!api.quieto() && !directo) { pag.classList.remove("entra-der", "entra-izq"); pag.classList.add(atras ? "sale-der" : "sale-izq"); await api.pausa(190); }
+      pintarPaso(); pintarRail();
+      pag.classList.remove("sale-der", "sale-izq"); pag.classList.add(atras ? "entra-izq" : "entra-der");
+      escena.scrollTop = 0;
+    }
+    function pintarPaso() {
+      const pag = pagina();
+      pag.innerHTML = paso === 1 ? pasoLlego() : paso === 2 ? pasoContar() : paso === 3 ? pasoSeparar() : m.cerrado ? api.pantallaRecibido(m, { otra: `<button class="btn pri" data-otro>${icono("caja")}Otro fardo</button>` }) : pasoCerrar();
+      pintarRail();
+      if (paso === 2) { const inp = pag.querySelector(".numero input"); if (inp && !api.quieto()) setTimeout(() => { inp.focus(); inp.select(); }, 450); }
+      if (paso === 3) { const inp = pag.querySelector(".escaner input"); if (inp) setTimeout(() => inp.focus(), 450); }
+    }
+
+    // ---------- paso 1 · ¿qué llegó? ----------
+    function cajaSvg() {
+      return `<svg class="caja-svg" viewBox="0 0 200 170" aria-hidden="true">
+        <g class="prendas"><rect class="prenda" x="62" y="52" width="26" height="40" rx="5" fill="#1f3a5f"/><rect class="prenda" x="90" y="46" width="26" height="46" rx="5" fill="#e8a5b0"/><rect class="prenda" x="118" y="54" width="22" height="38" rx="5" fill="#d8c3a5"/><rect class="prenda" x="76" y="60" width="18" height="32" rx="4" fill="#b0763a"/></g>
+        <path class="cuerpo" d="M40 70 100 92 160 70 160 140 100 162 40 140z"/><path class="cara" d="M100 92v70l60-22V70z"/>
+        <path class="cinta" d="M100 92v70"/>
+        <path class="tapa" d="M40 70 100 92 160 70 100 48z"/>
+      </svg>`;
+    }
+    function pasoLlego() {
+      if (m.fardo) {
+        const f = m.fardo;
+        return `<div class="llego cascada">
+          <article class="card fardo-card">
+            <div class="fardo-visual">${cajaSvg()}</div>
+            <div>
+              <p class="label">En camino hacia ${esc(RF.SEDE)}</p>
+              <h2 class="disp">Fardo ${esc(f.codigo)} <span class="chip pizarra punto vivo">Llega hoy</span></h2>
+              <p class="tenue" style="margin-top:4px">Lo despachó ${esc(f.por)} desde ${esc(f.desde)} · ${esc(f.cuando)} · guía ${esc(f.guia)} · ${f.ordenes.join(", ")}</p>
+              <ul class="manifiesto">${m.lineas.map((l) => `<li><span class="cat-ic">${iconoCat(l.cat)}</span><b>${esc(CATS[l.cat].nombre)}</b><span class="det">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}</span><b class="num">${l.dijeron}</b></li>`).join("")}</ul>
+              <p style="margin-top:12px;font-size:14.5px">Dijeron <b class="num disp" style="font-size:22px">${M.totalDijeron(m)}</b> prendas · ${m.lineas.length} categorías · ${new Set(m.lineas.map((l) => l.prov)).size} proveedores</p>
+              <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Abrir este fardo${icono("der", "flecha")}</button></div>
+            </div>
+          </article>
+          <aside class="card otra">
+            <h3 class="disp">¿Llegó algo que no está aquí?</h3>
+            <p>Si vino sin aviso de Compras (por WhatsApp, o directo del proveedor), se recibe igual: cuentas y separas lo mismo, solo que sin con qué comparar.</p>
+            <div style="margin-top:12px"><button class="btn sec" data-sin-aviso>${icono("mensaje")}Recibir sin aviso</button></div>
+            <p style="margin-top:14px;font-size:12.5px">Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b>Traslados</b>.</p>
+          </aside>
+        </div>`;
+      }
+      const p = prov(m.proveedor);
+      return `<div class="llego cascada">
+        <article class="card fardo-card">
+          <div class="fardo-visual">${cajaSvg()}</div>
+          <div>
+            <p class="label">Sin aviso de Compras</p>
+            <h2 class="disp">Llegó mercadería</h2>
+            <p class="tenue" style="margin-top:4px">Nadie la despachó desde el sistema. Dime de quién es y, si te lo dijeron, cuántas venían: con eso ya se puede comparar.</p>
+            <p class="label" style="margin-top:14px">¿De quién es?</p>
+            <div class="provs">${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span></button>`).join("")}</div>
+            <p class="label" style="margin-top:14px">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">(si no sabes, deja vacío)</span></p>
+            <div class="caja" style="max-width:220px;margin-top:8px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div>
+            <div class="cita">${icono("mensaje")}<span>${esc(SIN_AVISO.mensaje)}</span></div>
+            <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Empezar a contar${icono("der", "flecha")}</button></div>
+          </div>
+        </article>
+        <aside class="card otra">
+          <h3 class="disp">Cuando Compras lo despache</h3>
+          <p>El fardo aparecerá aquí con lo que dijeron por categoría y marca, y la pantalla comparará sola. Hoy ese dato viaja por WhatsApp; el módulo de Compras lo está cambiando.</p>
+        </aside>
+      </div>`;
+    }
+
+    // ---------- paso 2 · contar ----------
+    function listaCats(modo) {
+      const items = m.lineas.map((l) => {
+        const c = CATS[l.cat]; const d = M.diferencia(l);
+        const estado = modo === "contar" ? (l.visitada && l.contadas > 0 ? "hecho" : foco === l.id ? "ahora" : "falta") : (l.contadas > 0 && M.sinSeparar(l) === 0 ? "hecho" : foco === l.id ? "ahora" : "falta");
+        const sub = modo === "contar" ? (l.dijeron != null ? `${esc(l.marca)} · dijeron ${l.dijeron}${d != null && d !== 0 && l.contadas > 0 ? ` <span class="chip ambar" style="font-size:10.5px;padding:1px 7px">${d < 0 ? `−${-d}` : `+${d}`}</span>` : ""}` : esc(l.marca)) : (M.sinSeparar(l) ? `${M.conocidasDe(l) + M.nuevasDe(l)} separadas · <b>${M.sinSeparar(l)} por separar</b>` : l.contadas ? `${M.conocidasDe(l)} conocidas · ${M.nuevasDe(l)} nuevas` : "Sin contar");
+        const n = modo === "contar" ? l.contadas : M.identificadas(l);
+        return `<button class="cat-item" data-linea="${l.id}" aria-current="${foco === l.id}" style="position:relative"><span class="marca" data-estado="${estado}">${estado === "hecho" ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><span class="cat-ic">${iconoCat(l.cat)}</span><span class="txt"><b>${esc(c.nombre)}</b><small>${sub}</small></span><b class="num cont">${n}${modo === "contar" && l.dijeron != null ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}</b></button>`;
+      }).join("");
+      const agregar = !m.fardo ? `<button class="cat-item agregar" data-agregar>${icono("plus")} Agregar categoría</button><div class="elige-cat" hidden>${Object.entries(CATS).filter(([k]) => !m.lineas.some((l) => l.cat === k)).map(([k, c]) => `<button class="pildora" data-cat="${k}">${iconoCat(k)}${esc(c.nombre)}</button>`).join("")}</div>` : "";
+      return `<aside class="lista-cats"><p class="label" style="padding:0 12px 4px">Categorías${m.fardo ? " del fardo" : ""}</p>${items}${agregar}</aside>`;
+    }
+    function siguienteLinea() { const i = m.lineas.findIndex((l) => l.id === foco); return m.lineas[i + 1] || null; }
+    function anteriorLinea() { const i = m.lineas.findIndex((l) => l.id === foco); return m.lineas[i - 1] || null; }
+    function pasoContar() {
+      const l = M.linea(m, foco);
+      if (!l) return `<div class="dos">${listaCats("contar")}<div class="card vacio">${icono("montones")}<h3>Agrega la primera categoría</h3><p>Elige qué vas a contar primero: blusas, vestidos… Una a la vez.</p></div></div>`;
+      const c = CATS[l.cat]; const d = M.diferencia(l); const sig = siguienteLinea();
+      const pct = l.dijeron ? Math.min(100, (l.contadas / l.dijeron) * 100) : (l.contadas ? 100 : 0);
+      const tono = l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
+      const veredicto = l.dijeron == null ? (l.contadas ? `${plural(l.contadas, c.una, c.varias)} contadas` : "Sin aviso: cuenta y anota") : l.contadas === 0 ? `Dijeron ${l.dijeron}. Cuenta y escribe el número.` : d === 0 ? `Cuadra: llegaron las ${l.dijeron}.` : d < 0 ? `Faltan ${plural(-d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.` : `Sobran ${plural(d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.`;
+      const todasVistas = m.lineas.every((x) => x.visitada && x.contadas > 0);
+      return `<div class="dos">${listaCats("contar")}
+        <div class="col" style="gap:14px">
+        <section class="card contador luz cascada" data-estado="ahora" data-linea="${l.id}">
+          <div class="fila" style="gap:14px"><span class="cat-ic" style="width:52px;height:52px;border-radius:14px">${iconoCat(l.cat)}</span><div><h2 class="disp">${esc(c.nombre)}</h2><p class="tenue">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}${l.dijeron != null ? ` · Dijeron <b>${l.dijeron}</b>` : ""}</p></div><span class="sigue" style="margin-left:auto">Sigue aquí</span></div>
+          <p class="instr">Cuenta ${c.art} ${c.varias} del fardo y escribe cuántas llegaron. Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</p>
+          <div class="numero"><button class="paso-btn" data-d="-1" aria-label="Una menos">${icono("minus")}</button><input type="number" inputmode="numeric" min="0" value="${l.contadas}" data-contadas aria-label="Cuántas ${c.varias} llegaron"><button class="paso-btn" data-d="1" aria-label="Una más">${icono("plus")}</button></div>
+          <div class="rapidos"><button data-d="5">+5</button><button data-d="10">+10</button>${l.dijeron != null ? `<button data-exacto>Llegaron las ${l.dijeron}</button>` : ""}<button data-cero>Volver a cero</button></div>
+          <div class="avance"><div class="barra"><i class="${tono}" style="width:${pct}%"></i></div><p class="veredicto" style="font-size:14px"><span class="chip punto ${tono || "neutro"}">${veredicto}</span></p></div>
+          <div class="fila entre pie-paso envuelve"><button class="btn sut" data-ant-linea ${anteriorLinea() ? "" : "disabled"}>${icono("izq")}Anterior</button>
+            ${sig ? `<button class="btn pri" data-sig-linea>Listo, sigue ${esc(CATS[sig.cat].nombre)}${icono("der", "flecha")}</button>` : `<button class="btn pri" data-ir-paso="3" ${todasVistas || l.contadas > 0 ? "" : "disabled"}>Pasar a separar${icono("der", "flecha")}</button>`}</div>
+        </section>
+        ${api.balanza(M.totalDijeron(m), M.totalContadas(m))}
+        </div></div>`;
+    }
+
+    // ---------- paso 3 · separar (la pistola) ----------
+    function pasoSeparar() {
+      const l = M.linea(m, foco); if (!l) return pasoContar();
+      const c = CATS[l.cat]; const con = M.conocidasDe(l), nv = M.nuevasDe(l), sin = M.sinSeparar(l), tot = Math.max(l.contadas, 1);
+      const sig = siguienteLinea();
+      const conocidas = Object.values(l.conocidas); const quedan = M.quedanEnCaja(l);
+      return `<div class="dos">${listaCats("separar")}
+        <section class="card separar luz cascada" data-estado="ahora" data-linea="${l.id}">
+          <div class="fila" style="gap:14px"><span class="cat-ic" style="width:52px;height:52px;border-radius:14px">${iconoCat(l.cat)}</span><div><h2 class="disp">${esc(c.nombre)} <span class="tenue" style="font-size:20px;font-weight:500">· ${l.contadas} contadas</span></h2><p class="tenue">${esc(l.marca)} · pasa la pistola por cada una</p></div>${sin > 0 ? `<span class="sigue" style="margin-left:auto">Sigue aquí</span>` : `<span class="chip verde punto" style="margin-left:auto">Separadas</span>`}</div>
+          <div class="col" style="gap:6px"><div class="barra tres" style="height:10px"><i class="verde" style="--w:${(con / tot) * 100}%"></i><i class="pizarra" style="--w:${(nv / tot) * 100}%"></i></div>
+            <div class="leyenda"><span><i class="verde"></i>${con} conocidas (se etiquetan)</span><span><i class="pizarra"></i>${nv} nuevas (por crear)</span><span><i></i>${sin} por separar</span>${l.corregida ? `<span class="chip ambar" style="font-size:11px">Contaste menos de lo que separaste: corregimos el conteo a ${l.contadas}</span>` : ""}</div></div>
+          <p class="instr">Si la pistola encuentra la etiqueta, es una prenda <b>conocida</b> y se suma sola. Si no la encuentra, o no tiene etiqueta de CAYLA, es <b>nueva</b>: anótala y sigue contando.</p>
+          <div class="caja escaner" data-escaner><span class="laser"></span>${icono("scan")}<input placeholder="Escanea la etiqueta o busca por nombre" data-buscar autocomplete="off"><button class="btn sec" data-pistola title="En la pantalla real la pistola escribe el código y manda Enter; aquí lo simulamos">${icono("scan")}Leer con la pistola${quedan ? ` <span class="tenue num">(${quedan} en la caja)</span>` : ""}</button></div>
+          <div class="sugerencias" data-sugerencias hidden></div>
+          <div class="fila envuelve"><button class="btn sut" data-nueva>${icono("chispa")}Es nueva, no está en el catálogo</button><button class="btn enlace" data-deshacer ${ultima && ultima.lineaId === l.id ? "" : "disabled"}>${icono("deshacer")}Deshacer la última</button></div>
+          <div class="separadas">
+            <div class="grupo"><p class="label"><span class="marca" data-estado="${con ? "hecho" : "falta"}">${con ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span>Conocidas · ${con}</p>${conocidas.length ? conocidas.map((k) => api.fichaConocida(k, l)).join("") : `<p class="vacio-grupo">Lo que la pistola encuentre aparece aquí</p>`}</div>
+            <div class="grupo"><p class="label"><span class="marca" data-estado="${nv ? "hecho" : "opcional"}">${nv ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span>Nuevas · ${nv} · por crear</p>${l.nuevas.length ? l.nuevas.map((n) => api.fichaNueva(n, l)).join("") : `<p class="vacio-grupo">Si todo es conocido, aquí no va nada</p>`}</div>
+          </div>
+          <div class="fila entre pie-paso envuelve"><button class="btn sut" data-ant-linea ${anteriorLinea() ? "" : "disabled"}>${icono("izq")}Anterior</button>
+            ${sig ? `<button class="btn ${sin ? "sec" : "pri"}" data-sig-linea>${sin ? `Dejar ${sin} sin separar y seguir` : `Listo, sigue ${esc(CATS[sig.cat].nombre)}`}${icono("der", "flecha")}</button>` : `<button class="btn pri" data-ir-paso="4">Pasar a cerrar${icono("der", "flecha")}</button>`}</div>
+        </section></div>`;
+    }
+
+    // ---------- paso 4 · cerrar ----------
+    function pasoCerrar() {
+      const filas = m.lineas.map((l) => {
+        const c = CATS[l.cat]; const d = M.diferencia(l);
+        const causas = d == null || d === 0 ? "" : `<div class="causas">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" data-linea="${l.id}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</div>`;
+        return `<tr><td><span class="fila" style="gap:10px"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${iconoCat(l.cat)}</span><span><b>${esc(c.nombre)}</b><br><span class="tenue" style="font-size:12px">${esc(l.marca)}</span></span></span></td>
+          <td class="n tenue">${l.dijeron ?? "—"}</td><td class="n">${l.contadas}</td><td class="n" style="color:var(--verde-p)">${M.conocidasDe(l)}</td><td class="n" style="color:var(--pizarra)">${M.nuevasDe(l)}</td>
+          <td>${d == null ? `<span class="chip neutro">sin aviso</span>` : d === 0 ? `<span class="chip verde punto">Cuadra</span>` : `<span class="chip ambar punto">${d < 0 ? `Faltan ${-d}` : `Sobran ${d}`}</span>`}${M.sinSeparar(l) ? `<br><span class="chip rojo punto" style="margin-top:4px">${M.sinSeparar(l)} sin separar</span>` : ""}${causas ? `<div style="margin-top:8px">${causas}</div>` : ""}</td></tr>`;
+      }).join("");
+      const totalDij = M.totalDijeron(m), totalCon = M.totalContadas(m); const difTotal = totalDij == null ? null : totalCon - totalDij;
+      const causaTotal = !m.fardo && difTotal != null && difTotal !== 0 ? `<div class="card bloque-cierre"><p class="label">¿Por qué ${difTotal < 0 ? `faltan ${-difTotal}` : `sobran ${difTotal}`} contra lo que dijeron por WhatsApp?</p><div class="causas" style="margin-top:8px">${(difTotal < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa-total="${k.clave}" aria-pressed="${m.causaTotal === k.clave}">${esc(k.texto)}</button>`).join("")}</div></div>` : "";
+      return `<div class="cierre cascada">
+        <div class="card" style="overflow:hidden"><table class="cierre"><thead><tr><th>Categoría</th><th class="n">Dijeron</th><th class="n">Contaste</th><th class="n">Conocidas</th><th class="n">Nuevas</th><th>Diferencia y por qué</th></tr></thead><tbody>${filas}</tbody></table></div>
+        ${api.balanza(totalDij, totalCon)}
+        ${causaTotal}
+        <div class="card bloque-cierre"><div class="fila" style="gap:8px"><span class="marca" data-estado="opcional"></span><p class="label">Número de guía <span style="letter-spacing:0;text-transform:none;font-weight:500;color:var(--t45)">· opcional</span></p></div><div class="caja" style="max-width:260px;margin-top:8px"><input data-guia value="${esc(m.guia)}" placeholder="Ej. T001-000342"></div></div>
+        <div class="card bloque-cierre luz" data-estado="${m.responsable ? "" : "ahora"}"><div class="fila entre"><div class="fila" style="gap:8px"><span class="marca" data-estado="${m.responsable ? "hecho" : "ahora"}">${m.responsable ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">Quién recibe</p></div>${m.responsable ? "" : `<span class="sigue">Sigue aquí</span>`}</div><div style="margin-top:10px">${api.responsableHtml(m)}</div></div>
+        <div class="pie-cierre">${api.faltaChips(m)}<button class="btn pri grande" data-recibir ${M.listo(m) ? "" : "disabled"}>${icono("check")}Recibir ${totalCon} prendas en ${esc(RF.SEDE)}</button></div>
+      </div>`;
+    }
+
+    // ---------- acciones ----------
+    function refrescarContador(l) {
+      const pag = pagina(); const inp = pag.querySelector("[data-contadas]"); if (inp && document.activeElement !== inp) inp.value = l.contadas;
+      const d = M.diferencia(l); const c = CATS[l.cat];
+      const pct = l.dijeron ? Math.min(100, (l.contadas / l.dijeron) * 100) : (l.contadas ? 100 : 0);
+      const tono = l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
+      const barra = pag.querySelector(".avance .barra i"); if (barra) { barra.style.width = pct + "%"; barra.className = tono; }
+      const v = pag.querySelector(".avance .veredicto"); if (v) {
+        const texto = l.dijeron == null ? (l.contadas ? `${plural(l.contadas, c.una, c.varias)} contadas` : "Sin aviso: cuenta y anota") : l.contadas === 0 ? `Dijeron ${l.dijeron}. Cuenta y escribe el número.` : d === 0 ? `Cuadra: llegaron las ${l.dijeron}.` : d < 0 ? `Faltan ${plural(-d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.` : `Sobran ${plural(d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.`;
+        const antes = v.textContent.trim(); v.innerHTML = `<span class="chip punto ${tono || "neutro"}">${texto}</span>`; if (antes !== texto) v.firstElementChild.classList.add("anim-asentar");
+      }
+      // la lista de la izquierda y la balanza, sin redibujar la página entera
+      const item = pag.querySelector(`.cat-item[data-linea="${l.id}"] .cont`); if (item) { item.innerHTML = `${l.contadas}${l.dijeron != null ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}`; if (!api.quieto()) { item.classList.remove("rueda"); void item.offsetWidth; item.classList.add("rueda"); } }
+      const sub = pag.querySelector(`.cat-item[data-linea="${l.id}"] small`); if (sub && l.dijeron != null) sub.innerHTML = `${esc(l.marca)} · dijeron ${l.dijeron}${d != null && d !== 0 && l.contadas > 0 ? ` <span class="chip ambar" style="font-size:10.5px;padding:1px 7px">${d < 0 ? `−${-d}` : `+${d}`}</span>` : ""}`;
+      const nav = pag.querySelector("[data-ir-paso]"); if (nav) nav.disabled = !(m.lineas.every((x) => x.visitada && x.contadas > 0) || l.contadas > 0);
+      const bal = pag.querySelector(".balanza"); if (bal) bal.outerHTML = api.balanza(M.totalDijeron(m), M.totalContadas(m));
+      pintarRail();
+    }
+    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; api.rueda(inp.parentElement.querySelector("[data-rueda]"), ""); if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
+    function leer(lineaId) {
+      const l = M.linea(m, lineaId); if (!l) return null;
+      const pag = pagina(); const esc_ = pag.querySelector("[data-escaner]");
+      if (esc_ && !api.quieto()) { esc_.classList.remove("leyendo"); void esc_.offsetWidth; esc_.classList.add("leyendo"); }
+      const r = M.leer(m, lineaId);
+      if (r.tipo === "vacia") { api.aviso("No queda nada por leer en esta categoría", "neutro"); return r; }
+      if (r.tipo === "conocida") { ultima = { lineaId, codigo: r.prenda.codigo }; api.flash(esc_, "verde"); pintarPaso(); const f = pagina().querySelector(`.ficha-conocida[data-codigo="${r.prenda.codigo}"]`); if (f) { f.classList.add("anim-entrada"); api.destello(f); } return r; }
+      api.flash(esc_, "ambar");
+      api.hojaNueva({ linea: l, sugerida: { ...r.modelo, codigoProv: r.unidad.codigoProv }, alGuardar: (datos) => { const n = M.anotarNueva(m, lineaId, datos); ultima = { lineaId, nuevaId: n.id }; pintarPaso(); api.aviso(`${n.cant} ${CATS[l.cat].varias} nuevas anotadas: se crean después`, "pizarra"); } });
+      return r;
+    }
+    function buscarEn(texto) {
+      const l = M.linea(m, foco); const caja = pagina().querySelector("[data-sugerencias]"); if (!caja || !l) return;
+      const r = RF.buscar(texto, l.marca);
+      caja.hidden = r.length === 0 && texto.trim().length < 2;
+      caja.innerHTML = r.length ? r.map((p, i) => `<button class="sug" data-codigo="${p.codigo}" aria-selected="${i === 0}">${mini(p.cat, p.hex, "chica")}<span class="crece"><b>${esc(p.nombre)}</b><small>${esc(p.talla)} · ${esc(p.color)} · ${esc(p.marca)}</small></span>${i === 0 ? `<kbd>Enter</kbd>` : ""}</button>`).join("") : `<div class="fila" style="padding:8px 10px;gap:10px;font-size:13.5px"><span class="tenue">Nada se llama «${esc(texto)}».</span><button class="btn sut" data-nueva style="min-height:32px">${icono("chispa")}Anotarla como nueva</button></div>`;
+    }
+    function recibir() { M.cerrar(m); paso = 4; pintarPaso(); pintarRail(); escena.scrollTop = 0; }
+
+    escena.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-paso],[data-abrir],[data-sin-aviso],[data-prov],[data-linea].cat-item,[data-agregar],[data-cat],.paso-btn,.rapidos button,[data-sig-linea],[data-ant-linea],[data-ir-paso],[data-pistola],[data-nueva],[data-deshacer],[data-codigo].sug,[data-quitar-conocida],[data-quitar-nueva],[data-causa],[data-causa-total],[data-resp],[data-recibir],[data-falta],[data-otro],[data-accion]");
+      if (!t) return;
+      if (t.matches("[data-paso]")) return irPaso(Number(t.dataset.paso));
+      if (t.matches("[data-abrir]")) {
+        if (!m.fardo) { const inp = pagina().querySelector("[data-dijeron]"); m.dijeronTotal = inp && inp.value !== "" ? Number(inp.value) : null; }
+        M.abrir(m); const svg = pagina().querySelector(".caja-svg"); if (svg) svg.classList.add("abierta"); t.disabled = true;
+        setTimeout(() => irPaso(2), api.quieto() ? 0 : 820); return;
+      }
+      if (t.matches("[data-sin-aviso]")) { const b = document.querySelector('.spike .op[data-g="caso"][data-v="sin"]'); if (b) b.click(); return; }
+      if (t.matches("[data-prov]")) { m.proveedor = t.dataset.prov; pagina().querySelectorAll("[data-prov]").forEach((x) => x.setAttribute("aria-pressed", x === t)); return; }
+      if (t.matches(".cat-item[data-linea]")) { foco = t.dataset.linea; pintarPaso(); return; }
+      if (t.matches("[data-agregar]")) { const c = pagina().querySelector(".elige-cat"); c.hidden = !c.hidden; return; }
+      if (t.matches("[data-cat]")) { const l = M.agregarLinea(m, t.dataset.cat); foco = l.id; pintarPaso(); return; }
+      if (t.matches(".paso-btn")) return contar(foco, { delta: Number(t.dataset.d) });
+      if (t.matches(".rapidos button")) { const l = M.linea(m, foco); if (t.dataset.exacto != null) contar(foco, { valor: l.dijeron }); else if (t.dataset.cero != null) contar(foco, { valor: 0 }); else contar(foco, { delta: Number(t.dataset.d) }); return; }
+      if (t.matches("[data-sig-linea]")) { const l = M.linea(m, foco); if (l) l.visitada = true; const s = siguienteLinea(); if (s) { foco = s.id; irPaso(paso, { directo: true }); } return; }
+      if (t.matches("[data-ant-linea]")) { const a = anteriorLinea(); if (a) { foco = a.id; irPaso(paso, { directo: true }); } return; }
+      if (t.matches("[data-ir-paso]")) { const l = M.linea(m, foco); if (l) l.visitada = true; return irPaso(Number(t.dataset.irPaso)); }
+      if (t.matches("[data-pistola]")) return leer(foco);
+      if (t.matches("[data-nueva]")) { const l = M.linea(m, foco); const txt = (pagina().querySelector("[data-buscar]") || {}).value || ""; api.hojaNueva({ linea: l, sugerida: txt.trim().length >= 3 ? { desc: txt.trim(), color: "", hex: "", tallas: {} } : null, alGuardar: (d) => { const n = M.anotarNueva(m, foco, d); ultima = { lineaId: foco, nuevaId: n.id }; pintarPaso(); } }); return; }
+      if (t.matches("[data-deshacer]")) { if (!ultima) return; if (ultima.codigo) M.quitarConocida(m, ultima.lineaId, ultima.codigo); else if (ultima.nuevaId) M.quitarNueva(m, ultima.lineaId, ultima.nuevaId); ultima = null; pintarPaso(); api.aviso("Deshecho", "neutro"); return; }
+      if (t.matches(".sug[data-codigo]")) { M.agregarConocida(m, foco, t.dataset.codigo); ultima = { lineaId: foco, codigo: t.dataset.codigo }; pintarPaso(); return; }
+      if (t.matches("[data-quitar-conocida]")) { M.quitarConocida(m, t.dataset.linea, t.dataset.quitarConocida); pintarPaso(); return; }
+      if (t.matches("[data-quitar-nueva]")) { M.quitarNueva(m, t.dataset.linea, t.dataset.quitarNueva); pintarPaso(); return; }
+      if (t.matches("[data-causa]")) { M.ponerCausa(m, t.dataset.linea, t.dataset.causa); pintarPaso(); return; }
+      if (t.matches("[data-causa-total]")) { m.causaTotal = m.causaTotal === t.dataset.causaTotal ? null : t.dataset.causaTotal; pintarPaso(); return; }
+      if (t.matches("[data-resp]")) { m.responsable = t.dataset.resp; pintarPaso(); return; }
+      if (t.matches("[data-recibir]")) return recibir();
+      if (t.matches("[data-falta]")) { const k = t.dataset.falta; if (t.dataset.linea) foco = t.dataset.linea; if (k === "contar" || k === "vacio") irPaso(2); else if (k === "separar") irPaso(3); else { const el = pagina().querySelector(k === "responsable" ? ".responsables" : `[data-causa][data-linea="${t.dataset.linea}"]`); if (el) { el.scrollIntoView({ block: "center", behavior: api.quieto() ? "auto" : "smooth" }); api.destello(el.closest(".card") || el); } } return; }
+      if (t.matches("[data-otro]")) { document.querySelector("[data-reiniciar]").click(); return; }
+      if (t.matches("[data-accion]")) { api.aviso({ etiquetas: "Abre Etiquetas de precio con las 96 prendas cargadas", colgar: "Abre Colgar en el piso con lo recibido", crear: "Abre Nuevo producto con categoría, marca, color, tallas y stock ya puestos", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
+    });
+    escena.addEventListener("input", (e) => {
+      if (e.target.matches("[data-contadas]")) { const l = M.linea(m, foco); if (!l) return; M.contar(m, foco, { valor: e.target.value }); refrescarContador(l); }
+      if (e.target.matches("[data-buscar]")) buscarEn(e.target.value);
+      if (e.target.matches("[data-guia]")) m.guia = e.target.value;
+    });
+    escena.addEventListener("keydown", (e) => {
+      if (e.target.matches("[data-buscar]") && e.key === "Enter") { e.preventDefault(); const s = pagina().querySelector(".sug[aria-selected=true]"); if (s) s.click(); else if (e.target.value.trim()) buscarEn(e.target.value); e.target.value = ""; const c = pagina().querySelector("[data-sugerencias]"); if (c) c.hidden = true; }
+      if (e.target.matches("[data-contadas]") && e.key === "Enter") { e.preventDefault(); const b = pagina().querySelector("[data-sig-linea],[data-ir-paso]"); if (b && !b.disabled) b.click(); }
+    });
+    // «Abrir en» de la barra: la recepción ya avanzada hasta ese punto (sirve para mirar un paso sin recorrer los anteriores).
+    function saltarA(en) {
+      if (!en || en === "inicio") return;
+      if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); }
+      M.abrir(m); foco = (m.lineas[0] || {}).id || null;
+      if (en === "contar") { paso = 2; return; }
+      for (const l of m.lineas) { M.contarReal(m, l.id); l.visitada = true; }
+      if (en === "separar") { paso = 3; return; }
+      for (const l of m.lineas) M.separarTodo(m, l.id);
+      paso = 4; if (en === "cerrar") return;
+      for (const l of m.lineas) if (M.diferencia(l)) M.ponerCausa(m, l.id, "proveedor");
+      if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) !== m.dijeronTotal) m.causaTotal = "proveedor";
+      m.responsable = "mari"; M.cerrar(m);
+    }
+    saltarA(est.en);
+    pintarPaso();
+    ui = { m, irPaso, contar, leer, setFoco: (id) => { foco = id; }, recibir, pintar: pintarPaso, abrir: () => { const b = pagina().querySelector("[data-abrir]"); if (b) b.click(); } };
+  },
+
+  /** La demo recorre el camino completo como lo haría Mariana, de almacén, sin apuro. */
+  async demo(api, viva) {
+    const { modelo: m, Modelo: M, pausa } = api;
+    await pausa(900); if (!viva()) return;
+    if (!m.fardo) { m.dijeronTotal = RF.SIN_AVISO.dijeronTotal; }
+    ui.abrir(); await pausa(1500); if (!viva()) return;
+    if (!m.fardo) { for (const cat of ["CMS", "VES"]) { M.agregarLinea(m, cat); } ui.setFoco(m.lineas[0].id); ui.pintar(); await pausa(600); }
+    for (const l of [...m.lineas]) {
+      ui.setFoco(l.id); await ui.irPaso(2, { directo: true }); await pausa(500); if (!viva()) return;
+      const real = M.identificadas(l) + l.cola.length; const pasos = Math.min(6, real);
+      for (let i = 1; i <= pasos; i++) { ui.contar(l.id, { valor: Math.round((real * i) / pasos) }); await pausa(160); if (!viva()) return; }
+      l.visitada = true; await pausa(700);
+    }
+    await ui.irPaso(3); await pausa(600); if (!viva()) return;
+    for (const l of [...m.lineas]) {
+      ui.setFoco(l.id); await ui.irPaso(3, { directo: true }); await pausa(420); if (!viva()) return;
+      let lecturas = 0;
+      while (l.cola.length && viva()) {
+        const r = M.leer(m, l.id);
+        if (r.tipo === "nueva") { M.anotarNueva(m, l.id, { modelo: r.modelo.id, desc: r.modelo.desc, color: r.modelo.color, hex: r.modelo.hex, tallas: r.modelo.tallas }); ui.pintar(); api.aviso(`${r.modelo.cant} ${RF.CATS[l.cat].varias} nuevas anotadas: se crean después`, "pizarra"); await pausa(900); continue; }
+        lecturas++; if (lecturas <= 5 || lecturas % 6 === 0) { ui.pintar(); const esc_ = document.querySelector("[data-escaner]"); if (esc_) { esc_.classList.remove("leyendo"); void esc_.offsetWidth; esc_.classList.add("leyendo"); api.flash(esc_, "verde"); } await pausa(lecturas <= 5 ? 260 : 60); }
+      }
+      ui.pintar(); await pausa(500);
+    }
+    await ui.irPaso(4); await pausa(900); if (!viva()) return;
+    for (const l of m.lineas) if (M.diferencia(l) && !l.causa) { M.ponerCausa(m, l.id, M.diferencia(l) < 0 ? "proveedor" : "proveedor"); ui.pintar(); await pausa(700); }
+    if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) !== m.dijeronTotal) { m.causaTotal = "proveedor"; ui.pintar(); await pausa(600); }
+    m.responsable = "mari"; ui.pintar(); await pausa(900); if (!viva()) return;
+    document.querySelector("[data-recibir]").scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(700); if (!viva()) return;
+    ui.recibir();
+  },
+});
+</script>
+</body>
+</html>

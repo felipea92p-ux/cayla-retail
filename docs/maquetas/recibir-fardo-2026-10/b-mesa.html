@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recibir mercadería · B · Mesa de conteo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+</head>
+<body>
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+<script>
+/* B · MESA DE CONTEO. Sin pasos: se abre el fardo y sobre la mesa aparece UN MONTÓN por categoría, con su número grande, su anillo
+   contra lo que dijeron y su pistola. A la derecha, las bandejas donde va cayendo lo separado: «Para etiquetar» (conocidas) y
+   «Por crear» (nuevas), y abajo «Quién recibe» y el botón. Se trabaja montón por montón, en cualquier orden, todo a la vista. */
+let ui = null;
+Comun.iniciar({
+  letra: "b",
+  estilos: `
+  .fardo-cerrado{display:grid;grid-template-columns:240px 1fr;gap:24px;padding:26px;align-items:start}
+  .caja-svg{width:220px;height:180px;overflow:visible}
+  .caja-svg .cuerpo{fill:var(--hueso);stroke:var(--t35);stroke-width:1.5;stroke-linejoin:round}
+  .caja-svg .cara{fill:color-mix(in srgb,var(--hueso) 70%,var(--tinta) 6%)}
+  .caja-svg .tapa{fill:var(--sand);stroke:var(--t35);stroke-width:1.5;stroke-linejoin:round;transform-origin:100px 56px;transition:transform 760ms var(--ease)}
+  .caja-svg.abierta .tapa{transform:rotate(-112deg) translate(2px,0)}
+  .caja-svg .prenda{transition:transform 700ms var(--ease),opacity 500ms var(--ease);transform:translateY(26px);opacity:0}
+  .caja-svg.abierta .prenda{transform:none;opacity:1}
+  .caja-svg.abierta .prenda:nth-child(2){transition-delay:120ms}.caja-svg.abierta .prenda:nth-child(3){transition-delay:220ms}.caja-svg.abierta .prenda:nth-child(4){transition-delay:300ms}
+  .caja-svg .cinta{stroke:var(--rojo);stroke-width:3;opacity:.85;transition:opacity 300ms var(--ease)}.caja-svg.abierta .cinta{opacity:0}
+  .manif{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .manif span{display:inline-flex;align-items:center;gap:8px;background:var(--crema);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px}
+  .manif span .cat-ic{width:26px;height:26px;border-radius:50%;background:var(--papel)}.manif span .cat-ic svg{width:15px;height:15px}
+  .manif span b{margin-left:2px}
+  .provs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .mesa-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+  .mesa{display:flex;flex-direction:column;gap:12px}
+  .montones{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+  .montones:hover .monton:not(:hover):not(:focus-within){opacity:.78}
+  .monton{position:relative;padding:16px 16px 12px;display:flex;flex-direction:column;gap:12px;transition:opacity 300ms var(--ease),border-color 300ms var(--ease),box-shadow 300ms var(--ease),translate 300ms var(--ease)}
+  .monton:hover{translate:0 -2px;box-shadow:var(--sh-md)}
+  .monton[data-estado="verde"]{border-color:color-mix(in srgb,var(--verde) 55%,transparent)}
+  .monton[data-estado="ambar"]{border-color:color-mix(in srgb,var(--ambar) 55%,transparent)}
+  .monton header{display:flex;align-items:center;gap:10px}
+  .monton header .tit b{display:block;font-size:17px;font-family:'EB Garamond',Georgia,serif;font-weight:600;line-height:1.1}
+  .monton header .tit small{display:block;font-size:12px;color:var(--t55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+  .monton header .dijo{margin-left:auto;text-align:right;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t45)}
+  .monton header .dijo b{display:block;font-size:20px;letter-spacing:0;color:var(--t75);font-family:'EB Garamond',Georgia,serif}
+  .mcuerpo{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+  .pila{position:relative;height:96px;display:grid;place-items:center}
+  .pila .pl{position:absolute;left:18%;right:18%;top:19px;height:58px;border-radius:10px;background:var(--hueso);border:1px solid var(--sand);transition:transform 400ms var(--ease),opacity 400ms var(--ease)}
+  .pila .pl.c1{transform:translateY(calc(10px + var(--alto,0px)))}
+  .pila .pl.c2{transform:translateY(calc(4px + var(--alto,0px) * .5));background:color-mix(in srgb,var(--hueso) 70%,var(--papel))}
+  .pila .pl.c3{transform:translateY(-2px);background:var(--papel)}
+  .pila .pl.c1,.pila .pl.c2{opacity:calc(min(1,var(--n,0)))}
+  .pila .cuenta{position:relative;z-index:1;font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:54px;height:68px;line-height:68px;padding:0;text-align:center;width:120px;background:transparent;border:0;outline:0;color:var(--tinta);-moz-appearance:textfield}
+  .pila .cuenta::-webkit-inner-spin-button,.pila .cuenta::-webkit-outer-spin-button{-webkit-appearance:none}
+  .pila .cuenta:focus{text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:8px;text-decoration-thickness:2px}
+  .mas1{position:absolute;left:50%;top:0;translate:-50% 0;font-weight:700;font-size:14px;color:var(--verde);opacity:0;pointer-events:none}
+  @keyframes sube-mas1{from{opacity:1;transform:translateY(8px)}to{opacity:0;transform:translateY(-26px)}}
+  .mas1.ver{animation:sube-mas1 650ms var(--ease) 1}
+  .anillo{width:74px;height:74px;transform:rotate(-90deg)}
+  .anillo circle{fill:none;stroke-width:6;stroke-linecap:round}
+  .anillo .fondo{stroke:var(--hueso)}
+  .anillo .av{stroke:var(--tinta);stroke-dasharray:201;stroke-dashoffset:calc(201 - 201 * var(--p,0));transition:stroke-dashoffset 800ms var(--ease),stroke 400ms var(--ease)}
+  .monton[data-estado="verde"] .anillo .av{stroke:var(--verde)}.monton[data-estado="ambar"] .anillo .av{stroke:var(--ambar)}
+  .anillo-wrap{position:relative;display:grid;place-items:center}
+  .anillo-wrap .pct{position:absolute;font-size:12px;font-weight:700;color:var(--t65)}
+  .anillo-wrap .pct svg{width:22px;height:22px;stroke:var(--verde);stroke-width:2.6}
+  .contar-btns{display:flex;align-items:center;justify-content:center;gap:10px}
+  .pb{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--t25);display:grid;place-items:center;background:var(--papel);transition:background-color 200ms var(--ease),border-color 200ms var(--ease),translate 200ms var(--ease),scale 120ms var(--ease)}
+  .pb:hover{background:var(--hueso);border-color:var(--tinta);translate:0 -2px}.pb:active{scale:.94;translate:0 0}
+  .pb.grande{width:64px;height:48px;border-radius:24px;font-weight:700;font-size:16px;gap:2px;background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pb.grande:hover{background:var(--rojo-p);color:var(--crema-fija)}
+  .pb svg{width:18px;height:18px}
+  .separar-fila{display:flex;gap:6px;align-items:center;position:relative}
+  .separar-fila .caja{min-height:40px;flex:1;padding:0 10px}
+  .separar-fila .caja input{font-size:13.5px;padding:6px 0}
+  .separar-fila .btn{min-height:40px;padding:0 10px}
+  .laser{position:absolute;top:0;bottom:0;width:2px;background:var(--verde);opacity:0;pointer-events:none;box-shadow:0 0 10px var(--verde)}
+  .caja.leyendo .laser{animation:laser 520ms linear 1}
+  .caja{position:relative;overflow:hidden}
+  .sugerencias{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;display:flex;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel);box-shadow:var(--sh-md);animation:revelar 240ms var(--ease) both}
+  .sug{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-md);text-align:left;width:100%}
+  .sug:hover,.sug[aria-selected="true"]{background:var(--hueso)}
+  .sug .crece b{font-size:13.5px}.sug .crece small{color:var(--t55);font-size:12px;margin-left:6px}
+  .estado-fila{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:24px}
+  .estado-fila .chip{font-size:11.5px}
+  .estado-fila .porque{border:1px solid color-mix(in srgb,var(--ambar) 45%,transparent);color:var(--ambar-p);background:transparent;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:600}
+  .estado-fila .porque:hover{background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+  .detalle{display:grid;grid-template-rows:0fr;transition:grid-template-rows 320ms var(--ease)}
+  .detalle>div{overflow:hidden;min-height:0;display:flex;flex-direction:column;gap:8px}
+  .detalle.abierto{grid-template-rows:1fr}
+  .detalle .fila-mini{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0}
+  .detalle .fila-mini .cant{margin-left:auto;font-weight:700}
+  .causas{display:flex;flex-wrap:wrap;gap:6px}
+  .causa{border:1px solid var(--sand);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--taupe);transition:background-color 150ms,border-color 150ms,color 150ms}
+  .causa:hover{border-color:var(--t45);color:var(--tinta)}.causa[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+  .monton footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--sand);padding-top:8px}
+  .monton.agregar{border-style:dashed;align-items:center;justify-content:center;min-height:200px;color:var(--t55)}
+  .monton.agregar:hover{color:var(--tinta);border-color:var(--t45)}
+  .monton.agregar .elige{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .bandejas{display:flex;flex-direction:column;gap:12px;position:sticky;top:0}
+  .bandeja{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .bandeja header{display:flex;align-items:center;gap:10px}
+  .bandeja header .cat-ic{width:34px;height:34px;border-radius:10px}
+  .bandeja header .tit b{display:block;font-size:15px}.bandeja header .tit small{display:block;font-size:12px;color:var(--t55)}
+  .bandeja header .n{margin-left:auto;font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:28px;line-height:1}
+  .bandeja.crear{border-style:dashed;border-color:color-mix(in srgb,var(--pizarra) 45%,transparent)}
+  .bandeja .items{display:flex;flex-direction:column;gap:4px;max-height:230px;overflow:auto}
+  .bandeja .item{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 6px;border-radius:var(--r-md)}
+  .bandeja .item .cant{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+  .bandeja .item.nuevo{animation:asentar 420ms var(--ease) both}
+  .bandeja .vacia{font-size:12.5px;color:var(--t45);padding:8px;border:1px dashed var(--sand);border-radius:var(--r-md);text-align:center}
+  .bandeja.cerrar .responsables{flex-direction:column}
+  .bandeja.cerrar .resp{min-width:0}
+  .barra-cel{display:none}
+  @container escena (max-width:900px){.mesa-grid{grid-template-columns:1fr}.bandejas{display:none}.fardo-cerrado{grid-template-columns:1fr}
+    .barra-cel{display:flex;position:sticky;bottom:0;z-index:20;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:10px 14px;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;box-shadow:var(--sh-lg)}
+    .barra-cel .cifras{display:flex;gap:12px;font-size:12.5px}.barra-cel .cifras b{display:block;font-size:18px;font-family:'EB Garamond',Georgia,serif}}
+  @container escena (max-width:640px){.montones{grid-template-columns:1fr}.monton header .tit small{max-width:120px}}
+  `,
+  montar(escena, api) {
+    const { modelo: m, Modelo: M } = api;
+    const { icono, iconoCat, mini, esc, CATS, prov, SIN_AVISO, PROVEEDORES, CAUSAS, plural, avatar, PERSONAS } = RF;
+    const abiertos = new Set(); let ultima = null;
+    const frase = "Abre el fardo: cada categoría es un montón sobre la mesa. Cuenta, pasa la pistola y lo separado cae en su bandeja.";
+    escena.innerHTML = `<div class="pagina">${api.cabecera({ frase, der: m.fardo ? `<span class="chip pizarra punto vivo">Fardo ${esc(m.fardo.codigo)} en camino</span><span class="chip neutro">Dijeron ${M.totalDijeron(m)}</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>` })}<div id="cuerpo"></div></div>`;
+    const cuerpo = () => escena.querySelector("#cuerpo");
+
+    function cajaSvg() {
+      return `<svg class="caja-svg" viewBox="0 0 200 170" aria-hidden="true">
+        <g class="prendas"><rect class="prenda" x="62" y="52" width="26" height="40" rx="5" fill="#1f3a5f"/><rect class="prenda" x="90" y="46" width="26" height="46" rx="5" fill="#e8a5b0"/><rect class="prenda" x="118" y="54" width="22" height="38" rx="5" fill="#d8c3a5"/><rect class="prenda" x="76" y="60" width="18" height="32" rx="4" fill="#b0763a"/></g>
+        <path class="cuerpo" d="M40 70 100 92 160 70 160 140 100 162 40 140z"/><path class="cara" d="M100 92v70l60-22V70z"/><path class="cinta" d="M100 92v70"/><path class="tapa" d="M40 70 100 92 160 70 100 48z"/></svg>`;
+    }
+    function pintarCerrado() {
+      if (m.fardo) {
+        const f = m.fardo;
+        cuerpo().innerHTML = `<section class="card fardo-cerrado cascada"><div style="display:grid;place-items:center">${cajaSvg()}</div><div>
+          <p class="label">Llegó a ${esc(RF.SEDE)} · lo despachó ${esc(f.por)} desde ${esc(f.desde)} ${esc(f.cuando)}</p>
+          <h2 class="disp" style="font-size:32px;margin-top:4px">Fardo ${esc(f.codigo)} · dijeron ${M.totalDijeron(m)} prendas</h2>
+          <div class="manif">${m.lineas.map((l) => `<span><span class="cat-ic">${iconoCat(l.cat)}</span>${esc(CATS[l.cat].nombre)} · ${esc(l.marca)}<b class="num">${l.dijeron}</b></span>`).join("")}</div>
+          <p class="tenue" style="margin-top:12px;font-size:14px">Al abrirlo, cada categoría aparece como un montón en la mesa con lo que dijeron. Guía ${esc(f.guia)}.</p>
+          <div class="fila envuelve" style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Abrir el fardo${icono("der", "flecha")}</button><button class="btn sut" data-sin-aviso>${icono("mensaje")}Llegó otra cosa sin aviso</button></div></div></section>`;
+      } else {
+        cuerpo().innerHTML = `<section class="card fardo-cerrado cascada"><div style="display:grid;place-items:center">${cajaSvg()}</div><div>
+          <p class="label">Sin aviso de Compras</p><h2 class="disp" style="font-size:32px;margin-top:4px">Llegó mercadería</h2>
+          <p class="tenue" style="margin-top:6px">Dime de quién es. Las categorías las vas poniendo sobre la mesa a medida que las cuentas.</p>
+          <div class="provs">${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span></button>`).join("")}</div>
+          <p class="label" style="margin-top:14px">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">(opcional)</span></p>
+          <div class="caja" style="max-width:220px;margin-top:8px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div>
+          <p class="tenue" style="margin-top:8px;font-size:13px">${icono("mensaje")} ${esc(SIN_AVISO.mensaje)}</p>
+          <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("montones")}Poner sobre la mesa${icono("der", "flecha")}</button></div></div></section>`;
+      }
+    }
+
+    // ---------- la mesa ----------
+    function estadoDe(l) { const d = M.diferencia(l); return d == null || l.contadas === 0 ? "neutro" : d === 0 ? "verde" : "ambar"; }
+    function monton(l) {
+      const c = CATS[l.cat]; const d = M.diferencia(l); const con = M.conocidasDe(l), nv = M.nuevasDe(l), sin = M.sinSeparar(l);
+      const p = l.dijeron ? Math.min(1, l.contadas / l.dijeron) : (l.contadas ? 1 : 0);
+      const estado = estadoDe(l); const quedan = M.quedanEnCaja(l);
+      const conocidas = Object.values(l.conocidas);
+      return `<article class="monton card" data-flip="${l.id}" data-linea="${l.id}" data-estado="${estado}">
+        <header><span class="cat-ic">${iconoCat(l.cat)}</span><span class="tit"><b>${esc(c.nombre)}</b><small>${esc(l.marca)} · ${esc(prov(l.prov).nombre)}</small></span><span class="dijo">${l.dijeron != null ? `Dijeron<b class="num">${l.dijeron}</b>` : `Sin aviso<b class="num">—</b>`}</span></header>
+        <div class="mcuerpo">
+          <div class="pila" style="--n:${l.contadas};--alto:${Math.min(14, l.contadas * 0.35)}px"><span class="pl c1"></span><span class="pl c2"></span><span class="pl c3"></span><span class="mas1" data-mas1>+1</span>
+            <input class="cuenta num" type="number" inputmode="numeric" min="0" value="${l.contadas}" data-contadas aria-label="Cuántas ${c.varias} contaste"></div>
+          <div class="anillo-wrap"><svg class="anillo" viewBox="0 0 72 72"><circle class="fondo" cx="36" cy="36" r="32"/><circle class="av" cx="36" cy="36" r="32" style="--p:${p}"/></svg><span class="pct">${estado === "verde" ? `<svg viewBox="0 0 24 24" fill="none" class="check-trazo"><path d="M20 6 9 17l-5-5" style="--largo:24;--d:100ms"/></svg>` : l.dijeron ? `${Math.round(p * 100)}%` : l.contadas}</span></div>
+        </div>
+        <div class="contar-btns"><button class="pb" data-d="-1" aria-label="Una menos">${icono("minus")}</button><button class="pb grande" data-d="1" aria-label="Una más">${icono("plus")}1</button><button class="pb" data-d="5" aria-label="Cinco más" style="font-size:12px;font-weight:700">+5</button></div>
+        <div class="separar-fila"><button class="btn sec" data-pistola title="La pistola escribe el código y manda Enter; aquí se simula">${icono("scan")}<span>Pistola</span></button><div class="caja"><span class="laser"></span><input data-buscar placeholder="o busca por nombre…" autocomplete="off"></div><button class="btn sut" data-nueva title="No está en el catálogo">${icono("chispa")}<span>Es nueva</span></button><div class="sugerencias" data-sugerencias hidden></div></div>
+        <div class="estado-fila">${con ? `<span class="chip verde punto">${con} conocidas</span>` : ""}${nv ? `<span class="chip pizarra punto">${nv} nuevas</span>` : ""}${sin ? `<span class="chip ${l.contadas && (con || nv) ? "rojo" : "neutro"} punto">${sin} por separar</span>` : l.contadas ? `<span class="chip verde">Todo separado</span>` : `<span class="chip neutro">Cuenta y pasa la pistola</span>`}${d != null && d !== 0 && l.contadas ? `<button class="porque" data-porque>${d < 0 ? `Faltan ${-d}` : `Sobran ${d}`} · ${l.causa ? esc((d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).find((k) => k.clave === l.causa).texto) : "¿por qué?"}</button>` : ""}${quedan && !sin && l.contadas ? `<span class="tenue" style="font-size:11.5px">· ${quedan} en la caja</span>` : ""}</div>
+        <div class="detalle ${abiertos.has(l.id) ? "abierto" : ""}" data-detalle><div>
+          ${d != null && d !== 0 && l.contadas ? `<div><p class="label" style="margin:6px 0 6px">¿Por qué ${d < 0 ? `faltan ${plural(-d, c.una, c.varias)}` : `sobran ${plural(d, c.una, c.varias)}`}?</p><div class="causas">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</div></div>` : ""}
+          ${conocidas.length ? `<div><p class="label" style="margin:6px 0 2px">Conocidas</p>${conocidas.map((k) => `<div class="fila-mini">${mini(l.cat, k.prenda.hex, "chica")}<span><b>${esc(k.prenda.nombre)}</b> <span class="tenue">· ${esc(k.prenda.talla)} · ${esc(k.prenda.color)}</span></span><span class="cant num">×${k.n}</span><button class="quitar" data-quitar-conocida="${k.prenda.codigo}" aria-label="Quitar una">${icono("minus")}</button></div>`).join("")}</div>` : ""}
+          ${l.nuevas.length ? `<div><p class="label" style="margin:6px 0 2px">Nuevas · por crear</p>${l.nuevas.map((n) => `<div class="fila-mini">${mini(l.cat, n.hex || "#b9b2a7", "chica")}<span><b>${esc(n.desc)}</b> <span class="tenue">· ${esc(n.color || "sin color")} · ${Object.entries(n.tallas).map(([t, k]) => `${t} ${k}`).join(", ")}</span></span><span class="cant num">×${n.cant}</span><button class="quitar" data-quitar-nueva="${n.id}" aria-label="Quitar">${icono("x")}</button></div>`).join("")}</div>` : ""}
+          ${!conocidas.length && !l.nuevas.length ? `<p class="tenue" style="font-size:12.5px;padding:6px 0">Todavía no separaste nada de este montón.</p>` : ""}
+          <div style="height:4px"></div></div></div>
+        <footer><button class="btn enlace" data-toggle>${abiertos.has(l.id) ? "Ocultar lo separado" : "Ver lo separado"} ${icono("abajo")}</button>${ultima && ultima.lineaId === l.id ? `<button class="btn enlace" data-deshacer>${icono("deshacer")}Deshacer</button>` : ""}</footer>
+      </article>`;
+    }
+    function agregarTile() {
+      if (m.fardo) return "";
+      const libres = Object.entries(CATS).filter(([k]) => !m.lineas.some((l) => l.cat === k));
+      return `<article class="monton card agregar" data-flip="agregar"><p class="label" style="margin-bottom:8px">¿Qué más hay en el fardo?</p><div class="elige">${libres.map(([k, c]) => `<button class="pildora" data-cat="${k}">${iconoCat(k)}${esc(c.nombre)}</button>`).join("") || `<span class="tenue">No quedan categorías por agregar</span>`}</div></article>`;
+    }
+    function gruposEtiquetar() {
+      const g = [];
+      for (const l of m.lineas) for (const k of Object.values(l.conocidas)) g.push({ l, k });
+      return g;
+    }
+    function bandejas() {
+      const con = M.totalConocidas(m), nv = M.totalNuevas(m), nuevos = M.modelosNuevos(m); const g = gruposEtiquetar();
+      return `<aside class="bandejas">
+        ${api.balanza(M.totalDijeron(m), M.totalContadas(m), { chica: true })}
+        <section class="card bandeja" data-bandeja="etiquetar"><header><span class="cat-ic">${icono("etiqueta")}</span><span class="tit"><b>Para etiquetar</b><small>Conocidas: entran al almacén</small></span><b class="n num" data-n-etiquetar>${con}</b></header>
+          <div class="items">${g.length ? g.map(({ l, k }) => `<div class="item" data-item="${k.prenda.codigo}">${mini(l.cat, k.prenda.hex, "chica")}<span><b>${esc(k.prenda.nombre)}</b> <span class="tenue">· ${esc(k.prenda.talla)} · ${esc(k.prenda.color)}</span></span><span class="cant">×${k.n}</span></div>`).join("") : `<p class="vacia">Lo que la pistola encuentre cae aquí</p>`}</div></section>
+        <section class="card bandeja crear" data-bandeja="crear"><header><span class="cat-ic">${icono("chispa")}</span><span class="tit"><b>Por crear</b><small>Nuevas: guardadas, no se venden aún</small></span><b class="n num" data-n-crear>${nv}</b></header>
+          <div class="items">${nuevos.length ? nuevos.map((n) => `<div class="item" data-item="${n.id}">${mini(n.linea.cat, n.hex || "#b9b2a7", "chica")}<span><b>${esc(n.desc)}</b> <span class="tenue">· ${esc(CATS[n.linea.cat].nombre)} · ${esc(n.linea.marca)}</span></span><span class="cant">×${n.cant}</span></div>`).join("") : `<p class="vacia">Lo que no esté en el catálogo cae aquí</p>`}</div></section>
+        <section class="card bandeja cerrar"><header><span class="cat-ic">${icono("persona")}</span><span class="tit"><b>Quién recibe</b><small>Firma la recepción</small></span></header>${api.responsableHtml(m)}
+          ${api.faltaChips(m)}<button class="btn pri grande" data-recibir ${M.listo(m) ? "" : "disabled"} style="width:100%">${icono("check")}Recibir ${M.totalContadas(m)} prendas en ${esc(RF.SEDE)}</button></section>
+      </aside>`;
+    }
+    function barraCel() {
+      return `<div class="barra-cel"><div class="cifras"><span><b class="num">${M.totalContadas(m)}${M.totalDijeron(m) != null ? `<small style="font-size:12px;color:var(--t45)">/${M.totalDijeron(m)}</small>` : ""}</b>contadas</span><span><b class="num">${M.totalConocidas(m)}</b>etiquetar</span><span><b class="num">${M.totalNuevas(m)}</b>por crear</span></div><div class="fila"><button class="btn sec" data-bandejas-cel>Bandejas</button><button class="btn pri" data-recibir ${M.listo(m) ? "" : "disabled"}>Recibir</button></div></div>`;
+    }
+    function pintarMesa({ flip = false } = {}) {
+      if (m.cerrado) { cuerpo().innerHTML = api.pantallaRecibido(m, { otra: `<button class="btn pri" data-otro>${icono("caja")}Otro fardo</button>` }); return; }
+      const html = `<div class="mesa-grid"><main class="mesa cascada"><div class="fila entre envuelve"><p class="label">La mesa · un montón por categoría</p><span class="tenue" style="font-size:12.5px">Toca <b>+1</b> por cada prenda o escribe el total; la pistola separa conocidas de nuevas.</span></div><div class="montones" data-montones>${m.lineas.map(monton).join("")}${agregarTile()}</div></main>${bandejas()}</div>${barraCel()}`;
+      const cont = cuerpo();
+      if (flip && cont.querySelector("[data-montones]")) api.flip(cont, () => { cont.innerHTML = html; }); else cont.innerHTML = html;
+    }
+    /** Redibuja solo un montón y las bandejas: el resto de la mesa no parpadea. */
+    function refrescar(lineaId, { bandeja = true } = {}) {
+      const l = M.linea(m, lineaId); const viejo = cuerpo().querySelector(`.monton[data-linea="${lineaId}"]`);
+      if (l && viejo) { const foco = document.activeElement; const teniaFoco = viejo.contains(foco) && foco.matches("[data-contadas]"); viejo.outerHTML = monton(l); if (teniaFoco) { const inp = cuerpo().querySelector(`.monton[data-linea="${lineaId}"] [data-contadas]`); inp && inp.focus(); } }
+      if (bandeja) { const b = cuerpo().querySelector(".bandejas"); if (b) b.outerHTML = bandejas(); const bc = cuerpo().querySelector(".barra-cel"); if (bc) bc.outerHTML = barraCel(); }
+    }
+    function abrir() {
+      if (!m.fardo) { const inp = cuerpo().querySelector("[data-dijeron]"); m.dijeronTotal = inp && inp.value !== "" ? Number(inp.value) : null; }
+      M.abrir(m); const svg = cuerpo().querySelector(".caja-svg"); if (svg) svg.classList.add("abierta"); const b = cuerpo().querySelector("[data-abrir]"); if (b) b.disabled = true;
+      setTimeout(() => { pintarMesa(); escena.scrollTop = 0; }, api.quieto() ? 0 : 820);
+    }
+    function contar(lineaId, opts) {
+      const l = M.linea(m, lineaId); if (!l) return; const antes = l.contadas; M.contar(m, lineaId, opts);
+      const mont = cuerpo().querySelector(`.monton[data-linea="${lineaId}"]`);
+      if (mont && l.contadas > antes && !api.quieto()) { const t = mont.querySelector("[data-mas1]"); t.textContent = `+${l.contadas - antes}`; t.classList.remove("ver"); void t.offsetWidth; t.classList.add("ver"); }
+      refrescar(lineaId);
+      const inp = cuerpo().querySelector(`.monton[data-linea="${lineaId}"] [data-contadas]`); if (inp && !api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); }
+    }
+    async function leer(lineaId) {
+      const l = M.linea(m, lineaId); if (!l) return;
+      const mont = cuerpo().querySelector(`.monton[data-linea="${lineaId}"]`); const caja = mont && mont.querySelector(".separar-fila .caja");
+      if (caja && !api.quieto()) { caja.classList.remove("leyendo"); void caja.offsetWidth; caja.classList.add("leyendo"); }
+      const r = M.leer(m, lineaId);
+      if (r.tipo === "vacia") { api.aviso("No queda nada por leer en este montón", "neutro"); return r; }
+      if (r.tipo === "conocida") {
+        ultima = { lineaId, codigo: r.prenda.codigo }; api.flash(caja, "verde");
+        const destino = cuerpo().querySelector('[data-bandeja="etiquetar"] header') || cuerpo().querySelector(".barra-cel");
+        api.volar(mont, destino, `${mini(l.cat, r.prenda.hex, "chica")}<b>${esc(r.prenda.nombre)}</b> · ${esc(r.prenda.talla)}`);
+        refrescar(lineaId, { bandeja: false }); setTimeout(() => { refrescar(lineaId); const it = cuerpo().querySelector(`[data-bandeja="etiquetar"] [data-item="${r.prenda.codigo}"]`); if (it) it.classList.add("nuevo"); }, api.quieto() ? 0 : 420);
+        return r;
+      }
+      api.flash(caja, "ambar");
+      api.hojaNueva({ linea: l, sugerida: { ...r.modelo, codigoProv: r.unidad.codigoProv }, alGuardar: (datos) => {
+        const n = M.anotarNueva(m, lineaId, datos); ultima = { lineaId, nuevaId: n.id }; abiertos.add(lineaId);
+        const destino = cuerpo().querySelector('[data-bandeja="crear"] header') || cuerpo().querySelector(".barra-cel");
+        api.volar(cuerpo().querySelector(`.monton[data-linea="${lineaId}"]`), destino, `${icono("chispa")}<b>${esc(n.desc)}</b> ×${n.cant}`);
+        setTimeout(() => refrescar(lineaId), api.quieto() ? 0 : 420);
+      } });
+      return r;
+    }
+    function buscarEn(lineaId, texto) {
+      const l = M.linea(m, lineaId); const caja = cuerpo().querySelector(`.monton[data-linea="${lineaId}"] [data-sugerencias]`); if (!caja || !l) return;
+      const r = RF.buscar(texto, l.marca); caja.hidden = r.length === 0 && texto.trim().length < 2;
+      caja.innerHTML = r.length ? r.map((p, i) => `<button class="sug" data-codigo="${p.codigo}" aria-selected="${i === 0}">${mini(p.cat, p.hex, "chica")}<span class="crece"><b>${esc(p.nombre)}</b><small>${esc(p.talla)} · ${esc(p.color)}</small></span></button>`).join("") : `<div class="fila" style="padding:6px 8px;gap:8px;font-size:13px"><span class="tenue">Nada se llama «${esc(texto)}».</span><button class="btn sut" data-nueva style="min-height:30px">${icono("chispa")}Es nueva</button></div>`;
+    }
+    function recibir() { M.cerrar(m); pintarMesa(); escena.scrollTop = 0; }
+
+    escena.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-abrir],[data-sin-aviso],[data-prov],[data-cat],.pb,[data-pistola],[data-nueva],[data-toggle],[data-porque],[data-causa],[data-quitar-conocida],[data-quitar-nueva],.sug[data-codigo],[data-deshacer],[data-resp],[data-recibir],[data-falta],[data-otro],[data-accion],[data-bandejas-cel]");
+      if (!t) return;
+      const mont = t.closest(".monton"); const lineaId = mont ? mont.dataset.linea : null;
+      if (t.matches("[data-abrir]")) return abrir();
+      if (t.matches("[data-sin-aviso]")) { const b = document.querySelector('.spike .op[data-g="caso"][data-v="sin"]'); if (b) b.click(); return; }
+      if (t.matches("[data-prov]")) { m.proveedor = t.dataset.prov; cuerpo().querySelectorAll("[data-prov]").forEach((x) => x.setAttribute("aria-pressed", x === t)); return; }
+      if (t.matches("[data-cat]")) { M.agregarLinea(m, t.dataset.cat); pintarMesa({ flip: true }); return; }
+      if (t.matches(".pb")) return contar(lineaId, { delta: Number(t.dataset.d) });
+      if (t.matches("[data-pistola]")) return leer(lineaId);
+      if (t.matches("[data-nueva]")) { const l = M.linea(m, lineaId); const txt = (mont.querySelector("[data-buscar]") || {}).value || ""; api.hojaNueva({ linea: l, sugerida: txt.trim().length >= 3 ? { desc: txt.trim(), color: "", hex: "", tallas: {} } : null, alGuardar: (d) => { const n = M.anotarNueva(m, lineaId, d); ultima = { lineaId, nuevaId: n.id }; abiertos.add(lineaId); refrescar(lineaId); } }); return; }
+      if (t.matches("[data-toggle]") || t.matches("[data-porque]")) { abiertos.has(lineaId) && !t.matches("[data-porque]") ? abiertos.delete(lineaId) : abiertos.add(lineaId); const d = mont.querySelector("[data-detalle]"); d.classList.toggle("abierto", abiertos.has(lineaId)); t.matches("[data-toggle]") && (t.innerHTML = `${abiertos.has(lineaId) ? "Ocultar lo separado" : "Ver lo separado"} ${icono("abajo")}`); if (t.matches("[data-porque]")) { const c = mont.querySelector(".causas"); c && api.destello(c); } return; }
+      if (t.matches("[data-causa]")) { M.ponerCausa(m, lineaId, t.dataset.causa); refrescar(lineaId); return; }
+      if (t.matches("[data-quitar-conocida]")) { M.quitarConocida(m, lineaId, t.dataset.quitarConocida); refrescar(lineaId); return; }
+      if (t.matches("[data-quitar-nueva]")) { M.quitarNueva(m, lineaId, t.dataset.quitarNueva); refrescar(lineaId); return; }
+      if (t.matches(".sug[data-codigo]")) { M.agregarConocida(m, lineaId, t.dataset.codigo); ultima = { lineaId, codigo: t.dataset.codigo }; refrescar(lineaId); return; }
+      if (t.matches("[data-deshacer]")) { if (!ultima) return; if (ultima.codigo) M.quitarConocida(m, ultima.lineaId, ultima.codigo); else if (ultima.nuevaId) M.quitarNueva(m, ultima.lineaId, ultima.nuevaId); const id = ultima.lineaId; ultima = null; refrescar(id); api.aviso("Deshecho", "neutro"); return; }
+      if (t.matches("[data-resp]")) { m.responsable = t.dataset.resp; refrescar(null); return; }
+      if (t.matches("[data-recibir]")) return recibir();
+      if (t.matches("[data-falta]")) { const el = t.dataset.linea ? cuerpo().querySelector(`.monton[data-linea="${t.dataset.linea}"]`) : cuerpo().querySelector(".bandeja.cerrar"); if (el) { el.scrollIntoView({ block: "center", behavior: api.quieto() ? "auto" : "smooth" }); api.destello(el); if (t.dataset.falta === "causa") { abiertos.add(t.dataset.linea); refrescar(t.dataset.linea); } if (t.dataset.falta === "separar") { const inp = el.querySelector("[data-buscar]"); inp && inp.focus(); } if (t.dataset.falta === "contar" || t.dataset.falta === "vacio") { const inp = el.querySelector("[data-contadas]"); inp && inp.focus(); } } return; }
+      if (t.matches("[data-bandejas-cel]")) { api.hoja(`<h2>Bandejas</h2><p class="bajada">Lo que va saliendo del fardo.</p><div style="margin-top:12px" class="col">${bandejas().replace('class="bandejas"', 'class="bandejas" style="position:static;display:flex"')}</div>`); return; }
+      if (t.matches("[data-otro]")) { document.querySelector("[data-reiniciar]").click(); return; }
+      if (t.matches("[data-accion]")) { api.aviso({ etiquetas: "Abre Etiquetas de precio con las prendas cargadas", colgar: "Abre Colgar en el piso con lo recibido", crear: "Abre Nuevo producto con categoría, marca, color, tallas y stock ya puestos", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
+    });
+    escena.addEventListener("input", (e) => {
+      const mont = e.target.closest(".monton"); const lineaId = mont ? mont.dataset.linea : null;
+      if (e.target.matches("[data-contadas]") && lineaId) { M.contar(m, lineaId, { valor: e.target.value }); refrescar(lineaId); }
+      if (e.target.matches("[data-buscar]") && lineaId) buscarEn(lineaId, e.target.value);
+    });
+    escena.addEventListener("keydown", (e) => {
+      const mont = e.target.closest(".monton"); const lineaId = mont ? mont.dataset.linea : null;
+      if (e.target.matches("[data-buscar]") && e.key === "Enter" && lineaId) { e.preventDefault(); const s = mont.querySelector(".sug[aria-selected=true]"); if (s) s.click(); else if (e.target.value.trim()) buscarEn(lineaId, e.target.value); else leer(lineaId); e.target.value = ""; const c = mont.querySelector("[data-sugerencias]"); if (c) c.hidden = true; }
+      if (e.target.matches("[data-contadas]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); }
+    });
+    function saltarA(en) {
+      if (!en || en === "inicio") return pintarCerrado();
+      if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); }
+      M.abrir(m);
+      if (en !== "contar") for (const l of m.lineas) { M.contarReal(m, l.id); l.visitada = true; }
+      if (en === "cerrar" || en === "recibido") { for (const l of m.lineas) { M.separarTodo(m, l.id); if (M.diferencia(l)) abiertos.add(l.id); } }
+      if (en === "recibido") { for (const l of m.lineas) if (M.diferencia(l)) M.ponerCausa(m, l.id, "proveedor"); m.responsable = "mari"; M.cerrar(m); }
+      pintarMesa();
+    }
+    saltarA(api.est.en);
+    ui = { m, abrir, contar, leer, pintar: pintarMesa, refrescar, recibir, abiertos };
+  },
+
+  async demo(api, viva) {
+    const { modelo: m, Modelo: M, pausa } = api;
+    await pausa(900); if (!viva()) return;
+    if (!m.fardo) m.dijeronTotal = RF.SIN_AVISO.dijeronTotal;
+    ui.abrir(); await pausa(1500); if (!viva()) return;
+    if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); ui.pintar({ flip: true }); await pausa(700); }
+    for (const l of [...m.lineas]) {
+      const el = document.querySelector(`.monton[data-linea="${l.id}"]`); el && el.scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(350); if (!viva()) return;
+      const real = M.identificadas(l) + l.cola.length; const pasos = Math.min(5, real);
+      for (let i = 1; i <= pasos; i++) { ui.contar(l.id, { valor: Math.round((real * i) / pasos) }); await pausa(170); if (!viva()) return; }
+      await pausa(300);
+      let lecturas = 0;
+      while (l.cola.length && viva()) {
+        const u = l.cola[0];
+        if (!u.codigo) { const r = M.leer(m, l.id); M.anotarNueva(m, l.id, { modelo: r.modelo.id, desc: r.modelo.desc, color: r.modelo.color, hex: r.modelo.hex, tallas: r.modelo.tallas }); ui.abiertos.add(l.id); const dest = document.querySelector('[data-bandeja="crear"] header') || document.querySelector(".barra-cel"); api.volar(document.querySelector(`.monton[data-linea="${l.id}"]`), dest, `${RF.icono("chispa")}<b>${RF.esc(r.modelo.desc)}</b> ×${r.modelo.cant}`); await pausa(450); ui.refrescar(l.id); api.aviso(`${r.modelo.cant} ${RF.CATS[l.cat].varias} nuevas: se crean después`, "pizarra"); await pausa(700); continue; }
+        if (lecturas < 3) { await ui.leer(l.id); await pausa(520); } else { const r = M.leer(m, l.id); if (lecturas % 8 === 0) { ui.refrescar(l.id); await pausa(40); } }
+        lecturas++;
+      }
+      ui.refrescar(l.id); await pausa(500);
+    }
+    for (const l of m.lineas) if (M.diferencia(l) && !l.causa) { ui.abiertos.add(l.id); M.ponerCausa(m, l.id, "proveedor"); ui.refrescar(l.id); const el = document.querySelector(`.monton[data-linea="${l.id}"]`); el && el.scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(1000); }
+    if (!viva()) return;
+    m.responsable = "mari"; ui.refrescar(null); const b = document.querySelector(".bandeja.cerrar") || document.querySelector(".barra-cel"); b && b.scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(1100); if (!viva()) return;
+    ui.recibir();
+  },
+});
+</script>
+</body>
+</html>
