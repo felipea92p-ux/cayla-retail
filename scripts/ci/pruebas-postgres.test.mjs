@@ -1,4 +1,4 @@
-// Pruebas del reparto en tandas (ADR-0380). Solo leen archivos: corren en «Tipos, lint y pruebas», sin Docker.
+// Pruebas del reparto en tandas (ADR-0381). Solo leen archivos: corren en «Tipos, lint y pruebas», sin Docker.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";

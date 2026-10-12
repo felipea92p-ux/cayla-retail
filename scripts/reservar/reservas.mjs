@@ -1,5 +1,5 @@
 /**
- * Leer las reservas de números (ADR-0380) y decidir si una rama usa uno que es de otra.
+ * Leer las reservas de números (ADR-0381) y decidir si una rama usa uno que es de otra.
  *
  * Una reserva es una etiqueta anotada `reserva/<tipo>-<número>` cuyo mensaje dice `rama: <rama dueña>` (la crea
  * `reservar.mjs`). Este módulo la leen el propio `reservar.mjs` y los candados del CI (`scripts/adr/numeros.mjs`,

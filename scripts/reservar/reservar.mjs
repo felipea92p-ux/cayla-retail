@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Reservar un número de ADR o una versión de migración al EMPEZAR un trabajo, no al final (ADR-0380).
+ * Reservar un número de ADR o una versión de migración al EMPEZAR un trabajo, no al final (ADR-0381).
  *
  * EL PROBLEMA. Cada sesión elegía «el siguiente» número mirando el `main` que tenía delante, y varias trabajan a la vez:
  * dos elegían el mismo sin que nadie hiciera nada mal. Git no lo marca como conflicto (son archivos con nombres
  * distintos) y el choque salía recién en el CI de la segunda: `schema_migrations_pkey` con 20261010190000, 20261010200000
  * y 20261010210000 (Liquidación contra Plan de campaña y Abrir producción), y ADR-0371, 0375 y 0378 tomados dos veces.
  *
- * QUÉ PROMETE. Una reserva es una etiqueta git en el remoto: `reserva/adr-0380` o `reserva/migracion-20261012153000`.
+ * QUÉ PROMETE. Una reserva es una etiqueta git en el remoto: `reserva/adr-0381` o `reserva/migracion-20261012153000`.
  * GitHub rechaza crear una etiqueta que ya existe, así que si dos sesiones reservan a la vez, el primer push gana y el
  * segundo prueba con el número siguiente: dos sesiones nunca se llevan el mismo. El número elegido es mayor que todo lo
  * que ya existe en `main`, en cualquier rama remota y en las reservas. La etiqueta guarda en su mensaje la rama dueña

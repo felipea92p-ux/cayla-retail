@@ -1,4 +1,4 @@
-// Pruebas de las reservas (ADR-0380) contra un remoto git de verdad (un repo «bare» en una carpeta temporal): la promesa
+// Pruebas de las reservas (ADR-0381) contra un remoto git de verdad (un repo «bare» en una carpeta temporal): la promesa
 // es de git —el segundo push de una etiqueta que ya existe se rechaza—, así que se prueba con git, no con un simulacro.
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";

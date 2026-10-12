@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Las pruebas de RPC contra Postgres, repartidas en tandas que corren a la vez (ADR-0380).
+ * Las pruebas de RPC contra Postgres, repartidas en tandas que corren a la vez (ADR-0381).
  *
  * EL PROBLEMA. El job «Pruebas de RPC contra Postgres» corría ~180 `pnpm pruebas:*` EN SERIE sobre una sola base:
  * 8–11 min por corrida (81 s levantando Postgres y ~460 s de pruebas, medido el 2026-10-12), y crecía ~3 s por prueba.

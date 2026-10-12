@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 //   2. Ninguna excluida corre ya en ci.yml (se arregló y se cableó: hay que sacarla de la lista) y toda excluida existe.
 //   3. Todo `pnpm pruebas:*` de ci.yml existe en package.json: un paso con el nombre viejo no correría nada, y como el job
 //      de Postgres es `continue-on-error` nadie lo notaría.
-// Desde el 2026-10-12 (ADR-0380) el job de Postgres corre en tandas y su lista vive en `scripts/ci/pruebas-postgres.mjs`
+// Desde el 2026-10-12 (ADR-0381) el job de Postgres corre en tandas y su lista vive en `scripts/ci/pruebas-postgres.mjs`
 // (`PRUEBAS`), no en pasos de ci.yml: «cableada» es estar en esa lista o en un paso de ci.yml.
 
 /**
