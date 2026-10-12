@@ -17,7 +17,8 @@
 --
 -- QUÉ CAMBIA
 --   1. `anular_venta`, por REEMPLAZO ANCLADO (falla sin tocar nada si la función viva no es la revisada; ningún texto
---      de ancla lleva la palabra con que se guarda una consulta en una variable, ADR-0288):
+--      de ancla lleva la palabra con que se guarda una consulta en una variable, ADR-0288; y el texto que se inserta no
+--      lleva comentarios: si una vía de pegado los quita, volver a pegarlo por otra vía no debe insertar la guarda dos veces):
 --        · una guarda nueva, justo después de la de «enviado o aceptado»: si la venta tiene un comprobante pendiente
 --          o en la cola con algún intento, se niega;
 --        · la liberación ya no incluye `pendiente_reintento`.
@@ -81,7 +82,6 @@ select pg_temp.reemplazar('retail.anular_venta(uuid, text, jsonb)',
   $v$raise exception 'Esta venta ya tiene un comprobante enviado o aceptado por SUNAT — usa Cambio o Devolución en su lugar';$v$,
   $v$raise exception 'Esta venta ya tiene un comprobante enviado o aceptado por SUNAT — usa Cambio o Devolución en su lugar';
   end if;
-  -- ADR-0382 (opción A): lo que ya intentó salir a SUNAT pudo haber llegado (Lucode emite aunque el ERP deje de esperar).
   if exists (
     select 1 from comprobantes
      where venta_id = p_venta_id and estado in ('pendiente', 'pendiente_reintento') and intentos_transmision > 0
