@@ -913,6 +913,11 @@ export const PRUEBAS = [
   // vendida en 90 días y lo vendido dentro de la campaña. ROLLBACK siempre.
   "pruebas:plan-compra",
 
+  // La historia del plan (ADR-0372, C2–C6): Sinatra manda antes de la primera venta en el ERP y el ERP desde ella; «lo que sobra» solo
+  // lo fija un líder y se hereda; la propuesta trae lo vendido en 90 días, la misma campaña del año anterior, el multiplicador real de la
+  // tienda y si la categoría se agotó (sin Cuarentena); los resultados, lo vendido por prenda y a qué % se vendió lo de después. ROLLBACK.
+  "pruebas:plan-compra-historia",
+
   // Órdenes de compra (ADR-0362, fase 1): el módulo nace en Compras sin rol; solo quien lo tiene lee la lista (42501 si no) y, con
   // él, ve las órdenes de TODAS las sedes; nadie lee las tablas directo; la lista suma bien (descuento incluido), filtra por destino,
   // estado, proveedor y texto, y pagina; y el esquema no deja guardar lo imposible (descuento mayor que la línea, % que no cuadra,
