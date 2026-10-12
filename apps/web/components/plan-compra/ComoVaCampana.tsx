@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal } from "@/components/ui/Modal";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { enteroES } from "@/lib/plan-compra-reglas";
 import type { ComoVa } from "@/lib/plan-compra-resultados";
 
@@ -39,11 +38,31 @@ function Curva({ c }: { c: ComoVa }) {
   );
 }
 
-export function TarjetaComoVa({
+/** Lo que dice «¿Cómo va?» en palabras: la cifra grande, su tono y la frase. */
+export function lecturaComoVa(c: ComoVa): { valor: string; tono: string | undefined; frase: string } {
+  const dif = c.diferencia;
+  return {
+    valor: c.medidos === 0 ? "Empieza" : dif === null ? enteroES.format(c.proyeccion) : `${dif >= 0 ? "+" : "−"}${Math.abs(Math.round(dif * 100))} %`,
+    tono: dif === null || c.medidos === 0 ? undefined : dif >= 0.02 ? "text-verde" : dif <= -0.05 ? "text-rojo-profundo" : undefined,
+    frase:
+      c.medidos === 0 ? "la campaña recién empieza"
+      : dif === null ? "prendas si sigue así (sin plan)"
+      : dif >= 0.02 ? "por encima del plan"
+      : dif <= -0.05 ? "por debajo del plan"
+      : "en el plan",
+  };
+}
+
+/**
+ * «¿Cómo va?» como la primera celda de la barra de Resultados (Felipe 2026-10-12: «compacto por defecto, en una barra como antes había en
+ * Plan»): la cifra, su frase y, a un toque, la curva y las categorías que piden atención.
+ */
+export function CeldaComoVa({
   c,
   conForma,
   piden,
   de = null,
+  onPiden,
 }: {
   c: ComoVa;
   conForma: boolean;
@@ -51,47 +70,49 @@ export function TarjetaComoVa({
   piden: number;
   /** La tienda elegida (sus ventas contra su parte del plan); null = toda CAYLA. */
   de?: string | null;
+  /** Lleva a la tabla con solo las que piden atención. */
+  onPiden?: () => void;
 }) {
   const [abierta, setAbierta] = useState(false);
-  const dif = c.diferencia;
-  const valor = c.medidos === 0 ? "Empieza" : dif === null ? `${enteroES.format(c.proyeccion)}` : `${dif >= 0 ? "+" : "−"}${Math.abs(Math.round(dif * 100))} %`;
-  const tono = dif === null || c.medidos === 0 ? undefined : dif >= 0.02 ? "text-verde" : dif <= -0.05 ? "text-rojo-profundo" : undefined;
-  const frase =
-    c.medidos === 0 ? "La campaña recién empieza."
-    : dif === null ? "prendas si sigue así (sin plan con qué comparar)"
-    : dif >= 0.02 ? "por encima del plan"
-    : dif <= -0.05 ? "por debajo del plan"
-    : "en el plan";
+  const { valor, tono, frase } = lecturaComoVa(c);
   return (
     <>
-      <TarjetaCifra
-        etiqueta={de ? `¿Cómo va ${de}?` : "¿Cómo va?"}
-        valor={valor}
-        tono={tono}
-        ayuda={
-          <Ayuda titulo="¿Cómo va?">
-            <span className="block">
-              {de
-                ? `Lo vendido hasta ayer en ${de}, contra lo que su parte del plan esperaba a hoy. Su parte sale del mismo reparto del Plan: según lo que vende cada tienda, con su mínimo.`
-                : "Lo vendido hasta ayer en todas las tiendas, contra lo que el plan (la suma de los «normal» de cada categoría) esperaba a hoy."}
-            </span>
-            <span className="mt-2 block">
-              {conForma ? "Lo esperado a hoy sigue la forma de esta misma campaña el año pasado." : "Sin la misma campaña el año pasado, lo esperado se reparte parejo entre los días."}
-            </span>
-          </Ayuda>
-        }
-        accion={c.medidos > 0 ? { texto: "Ver la curva", onClick: () => setAbierta(true) } : undefined}
-        pie={piden > 0 ? <span className="text-ambar-profundo">{piden === 1 ? "1 categoría pide atención ↓" : `${piden} categorías piden atención ↓`}</span> : c.medidos > 0 ? "Ninguna categoría pide nada hoy" : undefined}
-      >
-        <span className="block">{frase}</span>
+      <span className="flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">
+        {de ? `¿Cómo va ${de}?` : "¿Cómo va?"}
+        <Ayuda titulo="¿Cómo va?">
+          <span className="block">
+            {de
+              ? `Lo vendido hasta ayer en ${de}, contra lo que su parte del plan esperaba a hoy. Su parte sale del mismo reparto del Plan: según lo que vende cada tienda, con su mínimo.`
+              : "Lo vendido hasta ayer en todas las tiendas, contra lo que el plan (la suma de los «normal» de cada categoría) esperaba a hoy."}
+          </span>
+          <span className="mt-2 block">
+            {conForma ? "Lo esperado a hoy sigue la forma de esta misma campaña el año pasado." : "Sin la misma campaña el año pasado, lo esperado se reparte parejo entre los días."}
+          </span>
+        </Ayuda>
+      </span>
+      <span className="flex flex-wrap items-baseline gap-x-2">
+        <span className={`font-display text-xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
+        <span className="whitespace-nowrap text-xs text-tinta/65">{frase}</span>
+      </span>
+      <span className="flex flex-wrap items-baseline gap-x-2 text-xs text-tinta/65">
         {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
         {c.medidos > 0 && c.esperado !== null && (
-          <span className="block text-tinta/65">
-            {enteroES.format(c.vendido)} de {c.esperado !== null ? `${enteroES.format(c.esperado)} esperadas` : "—"} · termina en {enteroES.format(c.proyeccion)}
-            {c.planTotal !== null && ` de ${enteroES.format(c.planTotal)}`}
+          <span className="whitespace-nowrap">
+            {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas · termina en {enteroES.format(c.proyeccion)}
+            {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}
           </span>
         )}
-      </TarjetaCifra>
+        {c.medidos > 0 && (
+          <button type="button" onClick={() => setAbierta(true)} className="whitespace-nowrap text-tinta underline underline-offset-2 hover:text-rojo-profundo">
+            Ver la curva
+          </button>
+        )}
+      </span>
+      {piden > 0 && (
+        <button type="button" onClick={onPiden} className="mt-0.5 whitespace-nowrap text-left text-xs text-ambar-profundo underline-offset-2 hover:underline">
+          {piden === 1 ? "1 pide atención ↓" : `${piden} piden atención ↓`}
+        </button>
+      )}
       {abierta && (
         <Modal titulo={de ? `¿Cómo va ${de}?` : "¿Cómo va la campaña?"} subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" ancho="max-w-2xl" conCerrar>
           <Curva c={c} />

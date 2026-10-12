@@ -225,3 +225,17 @@ la columna «Contra el plan» de la tabla son de ELLA, y «Toda CAYLA» sigue si
   **SE ROMPE SI** el reparto cambia a mitad de campaña (un mínimo nuevo para Lima): la parte de cada tienda se recalcula con el mínimo de hoy, también
   hacia atrás; el «esperado» de ayer no queda guardado.
 - «Pedir más o impulsar» abre Análisis ya buscando su categoría (`?q=`, que Análisis ahora lee); Análisis mira la sede elegida arriba.
+
+## Actualización 2026-10-12 (d) — la tabla primero
+
+Felipe: «la información está bien, pero no veo la tabla principal». Spike `docs/maquetas/plan-campana-rediseno-2026-10/` (5 rediseños del Plan y 3
+lugares para «Pedir más o impulsar», con la altura de la primera fila medida en cada uno). Eligió:
+
+- **Plan: el botón «Resumen y avisos»** (opción D, sin tocar la cabecera): el aviso de stock, las cifras de toda CAYLA, lo que sobra, el reparto y el
+  simulador viven en el cajón de la derecha (`CajonFicha`, el de Equipo: sin velo, la tabla sigue viva detrás). El botón lleva un número con las
+  tiendas que tienen el stock sin cuadrar (`avisosDelResumen`). La primera categoría pasó de ~1 000 px a 569 px en una pantalla de 900.
+  **DECIDÍ** el cajón con su número. **DESCARTÉ** dejar el aviso de stock a la vista (es lo que más empujaba la tabla) y la cabecera corta (cambia la
+  regla de cabecera del ERP, ADR-0220). **SE ROMPE SI** nadie abre el cajón: el número rojo es lo único que recuerda que el «Hay hoy» está incompleto.
+- **Resultados: R2**, «Pedir más o impulsar» dentro de la tabla de categorías. Durante la campaña, la columna «Lo que sobró» (que siempre decía «Al
+  terminar») se cambia por «Qué hacer» y «Alcanza para», y la píldora «Piden atención N» deja solo esas; «¿Cómo va?» lleva a esa píldora. El acceso
+  a la prenda exacta en Análisis pasó a la hoja de la categoría. Se borraron `SenalesCampana` y `ResumenCompactoPlan`: una tabla de categorías, no dos.

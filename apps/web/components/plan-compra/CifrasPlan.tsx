@@ -38,7 +38,7 @@ export function CifrasPlan({
   const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
   const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
   return (
-    <div data-guia="plan.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div data-guia="plan.cifras" className="grid gap-3">
       {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
       <TarjetaCifra
         etiqueta="Categorías con plan"

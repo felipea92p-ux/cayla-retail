@@ -2,8 +2,21 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getMovimientosCaja } from "@/lib/caja";
+import { getCierresDelMes, getMovimientosCaja, type CierreCaja } from "@/lib/caja";
 import { cobrosPorMedio, type CobroMedio } from "@/lib/historial-cierres-reglas";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Los cierres de una sede en un mes, para el modal «Historial de cierres» al cambiar de mes (Felipe 2026-10-12). Solo
+ * lee: la base decide qué cajas ve la cuenta (`cajas_select`); aquí solo se revisa que lo pedido tenga forma.
+ */
+export async function leerCierresDelMes(ubicacionId: string, anio: number, mes: number): Promise<CierreCaja[]> {
+  if (!UUID.test(ubicacionId) || !Number.isInteger(anio) || anio < 2000 || anio > 2100 || !Number.isInteger(mes) || mes < 1 || mes > 12) {
+    throw new Error("Mes o sede no válidos");
+  }
+  return getCierresDelMes(ubicacionId, { anio, mes });
+}
 
 export type EventoCaja =
   | { tipo: "venta"; id: string; hora: string; total: number; unidades: number; metodos: string[]; anulada: boolean; colaboradorNombre: string | null }

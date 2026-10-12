@@ -199,7 +199,7 @@ describe("durante la campaña: ¿cómo va? y pedir más o impulsar", () => {
   });
   it("la tabla de una tienda lee contra SU parte del plan; sin la parte, no se compara", () => {
     // AQP vendió 60 polos; su 20 % del plan es flojo 30 · normal 50 · bueno 90.
-    expect(porCategoria(porTienda, "aqp", () => 0.2).find((f) => f.id === "polos")?.lectura).toBe(fraseDeLoReal(60, { flojo: 30, normal: 50, bueno: 90 }).replace(/diciembre /g, ""));
+    expect(porCategoria(porTienda, "aqp", () => 0.2).find((f) => f.id === "polos")?.lectura).toBe(fraseDeLoReal(60, { flojo: 30, normal: 50, bueno: 90 }));
     expect(porCategoria(porTienda, "aqp").find((f) => f.id === "polos")?.lectura).toBeNull();
   });
   it("sin el stock por tienda de la base, las señales de una tienda no se inventan", () => {
@@ -256,6 +256,11 @@ describe("la tabla de categorías: buscar y ordenar", () => {
     expect(filtrarYOrdenarCategorias(filas, "POLO", "mas").map((f) => f.id)).toEqual(["polos"]);
     expect(filtrarYOrdenarCategorias(filas, "indumentária", "az").map((f) => f.id)).toEqual(["jeans", "polos"]);
     expect(filtrarYOrdenarCategorias(filas, "zzz", "mas")).toEqual([]);
+  });
+  it("«Piden atención» deja solo esas, y se combina con lo buscado", () => {
+    expect(filtrarYOrdenarCategorias(filas, "", "mas", new Set(["jeans", "casacas"])).map((f) => f.id)).toEqual(["jeans", "casacas"]);
+    expect(filtrarYOrdenarCategorias(filas, "jea", "mas", new Set(["jeans", "casacas"])).map((f) => f.id)).toEqual(["jeans"]);
+    expect(filtrarYOrdenarCategorias(filas, "", "mas", new Set())).toEqual([]);
   });
   it("no toca la lista que recibe", () => {
     const copia = filas.map((f) => f.id);
