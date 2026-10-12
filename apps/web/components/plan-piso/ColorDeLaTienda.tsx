@@ -82,7 +82,7 @@ export function ColorDeLaTienda({ color, cuadrado, dias }: Props) {
   const resumen = `Lo que cuelga por familia de color${cuadrado ? "" : ", según el sistema"}: ${piezas.map((p) => `${p.nombre} ${pctEs(p.pctColgadas)}`).join(", ")}`;
 
   return (
-    <section ref={raiz} className="pp-riel pp-col" aria-labelledby="pp-col-titulo" onKeyDown={alTeclear}>
+    <section ref={raiz} className="pp-riel pp-col" aria-labelledby="pp-col-titulo" onKeyDown={alTeclear} data-guia="plan-piso.color-de-la-tienda">
       <div className="pp-rcab">
         <div className="pp-rtit">
           <h3 className="pp-etq" id="pp-col-titulo">
