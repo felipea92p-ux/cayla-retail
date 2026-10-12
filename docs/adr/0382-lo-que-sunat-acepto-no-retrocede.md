@@ -1,9 +1,10 @@
 # ADR-0382 — Lo que SUNAT aceptó no retrocede, y lo que pudo llegar no se libera
 
-- **Fecha:** 2026-10-12 · **Estado:** construido y verificado en local (una base desechable propia, ver «Verificación»). **Sin pegar en
-  producción**: necesita el OK puntual de Felipe.
+- **Fecha:** 2026-10-12 · **Estado:** construido, verificado en local (una base desechable propia, ver «Verificación») y **aplicado en
+  producción el 2026-10-12 entre las 11:37 y las 11:40 (Lima)**, con el OK de Felipe; comprobado (ver «Producción»).
 - **Pedido:** revisión de «Transmisión a SUNAT: un segundo envío o una respuesta tardía no debe pisar un comprobante aceptado». Felipe, con el
-  diagnóstico a la vista: «Opción A y avanza con la Parte 1 en local».
+  diagnóstico a la vista: «Opción A y avanza con la Parte 1 en local»; después, con la corrección de la decisión 2 a la vista: «Confirmo A» y
+  «Aplica tú las migraciones en producción, tienes mi OK».
 - **Complementa** a [ADR-0378](0378-lucode-ya-tiene-el-numero.md) (PR #970: «ya emitido» se confirma con el XML de Lucode, solo web). Aquel
   arregla la cola atascada; este hace que la base no deje retroceder lo que SUNAT ya respondió, venga de donde venga.
 
@@ -109,3 +110,21 @@ select count(*) from retail.comprobantes
  where respuesta_sunat->>'estado' ilike 'aceptado' and estado not in ('aceptado', 'anulado');  -- 0, igual que hoy
 select tgname from pg_trigger where tgrelid = 'retail.comprobantes'::regclass and tgname = 'comprobantes_estado_no_retrocede';
 ```
+
+**Aplicado el 2026-10-12, 11:37–11:40 (Lima)**, por la integración de Supabase (`apply_migration`, que deja las dos filas en el historial de
+migraciones con su propia hora y los nombres `comprobante_aceptado_no_retrocede` y `anular_venta_no_libera_lo_que_pudo_llegar`). Antes de
+aplicar se confirmaron las huellas de partida y que nadie consultaba `comprobantes` en ese momento. Quedó:
+
+| Qué | Huella en producción (md5 de `pg_get_functiondef`) |
+|---|---|
+| `actualizar_transmision_comprobante` | `d80791c0ed94fa8926f8af85fae0df8b`, igual a la calculada en local: el texto llegó con sus comentarios |
+| `fn_comprobante_estado_no_retrocede` | `7607fa4316ff8a9ffd4a8be428a7f15a`, igual a la calculada en local |
+| `anular_venta` | `c5bc5f60febad2a5b48591cdcaac8159`: distinta de la local porque el cuerpo de producción no trae los comentarios del repo; la guarda nueva está una sola vez y la liberación ya no incluye la cola |
+
+El disparador quedó activo, los permisos de las dos funciones siguen iguales y la consulta de control sigue en 0. El registro de Postgres de esos
+minutos solo muestra los pasos de los dos pegados, sin errores.
+
+**El diccionario de `docs/datos/generado/` no se refrescó en este PR**: no registra disparadores, y estas migraciones no crean ni cambian
+tablas, columnas, candados, índices ni políticas. Lo único que sumará el próximo refresco es la firma de `fn_comprobante_estado_no_retrocede()` en
+`funciones-produccion.txt`, que ninguna pantalla llama (no afecta a `pnpm datos:comparar`). Refrescar toda la foto aquí habría metido en este PR
+lo que otras sesiones pegaron en producción.
