@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HINTS_REVISION,
+  bloqueoDeAprobacion,
   bloqueoDeRechazo,
   leerPorRevisar,
   mensajeDeRevision,
@@ -126,6 +127,43 @@ describe("bloqueoDeRechazo", () => {
       expect(HINTS_REVISION.has(hint)).toBe(true);
     }
     // Y no hay un hint nuevo en la base que la web no sepa leer.
+    const delSql = [...sql.matchAll(/using (?:errcode = '42501', )?hint = '([a-z_]+)'/g)].map((m) => m[1]);
+    for (const h of delSql) expect(HINTS_REVISION.has(h)).toBe(true);
+  });
+});
+
+describe("bloqueoDeAprobacion (ADR-0384)", () => {
+  const base = { precioMin: 59.9, precioMax: 79.9, admitePrecioCero: false };
+  it("con precio en todas sus variantes activas, se aprueba", () => {
+    expect(bloqueoDeAprobacion(base)).toBeNull();
+  });
+  it("sin variantes activas (precio null), no hay qué frenar: la base tampoco", () => {
+    expect(bloqueoDeAprobacion({ ...base, precioMin: null, precioMax: null })).toBeNull();
+  });
+  it("todas en S/ 0: «No tiene precio», y lleva a su ficha", () => {
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0, precioMax: 0 })).toMatchObject({ motivo: "precio", texto: "No tiene precio" });
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0, precioMax: 0 })?.queHacer).toMatch(/Ponle precio en su ficha/);
+  });
+  it("algunas en S/ 0: «Tiene variantes en S/ 0»", () => {
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0 })?.texto).toBe("Tiene variantes en S/ 0");
+  });
+  it("en Empaque (fuera de los motores) el 0 es la bolsa de obsequio: se aprueba", () => {
+    expect(bloqueoDeAprobacion({ precioMin: 0, precioMax: 0, admitePrecioCero: true })).toBeNull();
+  });
+  it("leerPorRevisar marca `admitePrecioCero` solo con la familia de la lista; sin lista, ninguna", () => {
+    expect(leerPorRevisar([fila({ categoria_familia: "empaque" })], new Set(["empaque"])).productos[0].admitePrecioCero).toBe(true);
+    expect(leerPorRevisar([fila({ categoria_familia: "empaque" })]).productos[0].admitePrecioCero).toBe(false);
+    expect(leerPorRevisar([fila({ categoria_familia: null })], new Set(["empaque"])).productos[0].admitePrecioCero).toBe(false);
+  });
+
+  // La base es la que niega (`revisar_producto_censo`, 20261012190000): si deja de mirar las variantes activas en 0 o cambia su hint,
+  // la web estaría adelantando otra regla.
+  it("coincide con lo que la base niega: variantes activas en 0, fuera de Empaque, con el hint sin_precio", () => {
+    const sql = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261012190000_precio_cero_solo_empaque.sql"), "utf8");
+    expect(sql).toMatch(/vc\.activo and vc\.precio <= 0/);
+    expect(sql).toMatch(/fn_categoria_admite_precio_cero/);
+    expect(sql).toContain("hint = 'sin_precio'");
+    expect(HINTS_REVISION.has("sin_precio")).toBe(true);
     const delSql = [...sql.matchAll(/using (?:errcode = '42501', )?hint = '([a-z_]+)'/g)].map((m) => m[1]);
     for (const h of delSql) expect(HINTS_REVISION.has(h)).toBe(true);
   });

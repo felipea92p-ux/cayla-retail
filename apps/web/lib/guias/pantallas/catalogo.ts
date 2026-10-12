@@ -43,7 +43,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.por-revisar",
       opcional: true,
       titulo: "Prendas por revisar",
-      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender. «Revisar» te lleva a la lista.",
+      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
     },
     {
       id: "sin-temporada",
@@ -1174,14 +1174,14 @@ export const GUIA_POR_REVISAR: Guia = {
       ancla: "por-revisar.prenda",
       opcional: true,
       titulo: "Cada prenda",
-      texto: "Su nombre y código, cuántos colores y tallas tiene, su precio, quién la propuso, cuándo y desde dónde. Si ya tiene stock u órdenes en el Taller, lo dice. Toca el nombre para abrir su ficha y corregirla antes de aprobar.",
+      texto: "Su nombre y código, cuántos colores y tallas tiene, su precio, quién la propuso, cuándo y desde dónde. Si ya tiene stock u órdenes en el Taller, lo dice, y si le falta precio también («No tiene precio»). Toca el nombre para abrir su ficha y corregirla antes de aprobar.",
     },
     {
       id: "decidir",
       ancla: "por-revisar.decidir",
       opcional: true,
       titulo: "Aprobar o rechazar",
-      texto: "«Aprobar» la deja como una prenda más del catálogo. «Rechazar» la descontinúa para siempre. Los dos abren una hoja donde eliges quién lo hace antes de guardar. Mientras tanto, la prenda se puede contar y vender igual.",
+      texto: "«Aprobar» la deja como una prenda más del catálogo. «Rechazar» la descontinúa para siempre. Los dos abren una hoja donde eliges quién lo hace antes de guardar. Una prenda sin precio no se aprueba: la hoja te lleva a su ficha con «Ponerle precio». Mientras tanto, la prenda se puede contar, y vender si tiene precio.",
     },
     {
       id: "paginas",
