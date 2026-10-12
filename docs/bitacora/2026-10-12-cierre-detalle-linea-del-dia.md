@@ -1,0 +1,4 @@
+## 2026-10-12 (Detalle del cierre de caja: «La línea del día»)
+Qué hice: el detalle de un cierre ahora es visual: veredicto con una escala de cuánto faltó o sobró, las ventas de cada hora del turno con marcas de lo que pasó (abre, cierra, retiros, devoluciones, cambios), una dona de cobros por medio de pago, la cascada del efectivo (apertura + vendido ± salidas = esperado) y los movimientos en una línea con puntos.
+Por qué así: Felipe aprobó la propuesta A entre tres maquetas; todo sale de lo que el detalle ya leía, sin migración, y «otros movimientos» se deriva para que las cifras de dinero sumen siempre igual que la base (ADR-0374, actualización).
+Felipe se lleva: un cierre que se entiende de un vistazo —si cuadró, cuándo se vendió más y a dónde fue la plata— en el mismo modal, en escritorio, celular y modo oscuro.
