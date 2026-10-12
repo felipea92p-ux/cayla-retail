@@ -3,8 +3,8 @@
 //
 // EL PROBLEMA. En CAYLA los modelos no se repiten: una prenda nueva vende 1 o 2 en su vida en una tienda. Con 1 venta, «se vende
 // 1 cada 3 días» es ruido. Lo que sí se repite es el GRUPO: polos talla M de color tierra en TRU. Zara (una elasticidad por grupo) y
-// Nextail (la familia si el producto vendió menos de 200) llegaron a lo mismo: se pronostica donde hay datos y se baja con
-// proporciones.
+// Nextail (las curvas de talla de un producto que vendió poco se mezclan con las de su familia) llegaron a lo mismo: se
+// pronostica donde hay datos y se baja con proporciones.
 //
 // LA CUENTA (encogimiento gamma-Poisson, la versión barata del modelo jerárquico bayesiano):
 //   · ritmo del grupo, por prenda colgada y por día: r_g = (vendidas del grupo + anotadas del grupo) ÷ (días-prenda colgadas del grupo)
