@@ -7,10 +7,10 @@
 - [x] **C4** «Proponer los tres» (flojo · normal · bueno) desde `fn_plan_compra_propuesta` (migración `20261012161000`) y `lib/plan-compra-propuesta.ts`.
 - [x] **C5** «Lo que sobra» de CAYLA por campaña (`guardar_plan_compra_recupero`, solo líder; hereda de la anterior).
 - [x] **C6** Pestaña «Resultados» (`/compras/plan/resultados`, `fn_plan_compra_resultados`).
-- [ ] **Producción (OK de Felipe, una cosa por vez):** pegar `20261012160000` y `20261012161000` (sin políticas ni `drop trigger`; ensayo revertido antes),
-  después generar y pegar la carga de Sinatra (`python3 scripts/plan-compra/sinatra-a-sql.py "<SINATRAS>" <fuera-del-repo>.sql`), y publicar la web.
-  La web nueva sin las migraciones se degrada: sin propuesta («Proponer el normal» de antes), Historial y Resultados dicen que no se pudieron leer.
-- [ ] **Fusionar primero el PR de B5 (#964):** esta rama sale de la suya.
+- [x] **Migraciones `20261012160000` y `20261012161000` EN PRODUCCIÓN (2026-10-12)**, verificadas como líder. B5 (#964) ya estaba fusionado.
+- [ ] **POR PEGAR: la carga de Sinatra** (`carga-sinatra.sql`, 3 901 días; se genera con `python3 scripts/plan-compra/sinatra-a-sql.py "<SINATRAS>" <fuera-del-repo>.sql`).
+  Hasta entonces el Historial de producción solo muestra lo del ERP (desde el 30-09-2026).
+- [ ] **Publicar la web:** fusionar el PR #977 (está en borrador).
 - [ ] **/formidable y /chaos** de «Lo que sobra» (la hoja nueva que guarda) y de las pestañas nuevas (solo leen: /chaos no aplica).
 - [ ] **Lima 2026 en Sinatra:** su archivo solo tiene 20 registros de «Ingresos»; si existe un diario de Lima, sumarlo a `FUENTES` del script.
 - [ ] **El formulario de una categoría dice «diciembre»** en sus títulos («¿Cuántas venderías en diciembre?») aunque la campaña sea otra: cambiarlo por el

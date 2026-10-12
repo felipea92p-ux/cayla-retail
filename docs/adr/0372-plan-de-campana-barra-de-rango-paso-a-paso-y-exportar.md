@@ -173,5 +173,9 @@ pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y
   familias que cuentan en los motores, ADR-0377). «Agotada» sale de `fn_stock_categoria_al` (el stock de hoy menos lo movido después, sin Cuarentena;
   sin fila de stock = cero). Las dos son internas (sin permiso para la web).
 - **Verificado:** reglas (historial 16, propuesta 13, resultados 11, plan 121); pruebas SQL `pnpm pruebas:plan-compra-historia` 10/10; navegador local
-  con la historia real de Trujillo (2025: S/ 1 649 544, +9 %; Navidad ×2.0, Diciembre ×1.8). **No está en producción**: migraciones `20261012160000` y
-  `20261012161000` y la carga de Sinatra esperan el OK de Felipe.
+  con la historia real de Trujillo (2025: S/ 1 649 544, +9 %; Navidad ×2.0, Diciembre ×1.8). **Migraciones `20261012160000` y `20261012161000` EN PRODUCCIÓN
+  desde el 2026-10-12** (orden de Felipe; ensayo revertido antes; verificado como líder: las 6 funciones responden, las internas no se exponen y
+  anon no lee). Falta la carga de Sinatra (`carga-sinatra.sql`, fuera del repo).
+- **El detalle de una fila del Historial** (Felipe: «al darle clic a una fila, los detalles»): `DetalleCampanaHistorial.tsx`, el día a día de la
+  campaña contra un día normal (mejor y peor día) y la misma campaña año por año (una lectura chica por año). Sinatra no sabe de prendas: el
+  detalle de prendas y colores está en Resultados, y la hoja lleva ahí si la campaña tiene su plan en el ERP.
