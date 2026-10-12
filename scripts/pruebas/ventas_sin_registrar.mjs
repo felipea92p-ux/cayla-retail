@@ -447,7 +447,7 @@ select (retail.fn_actor_persona_id(true) = '${LUCIA}'::uuid)::text || '/' || ${r
   "true/42501|regularizar_propia_venta",
 );
 caso(
-  "C8 · una venta sin vendedora registrada (no hay con quién comparar) la regulariza cualquiera de la tienda",
+  "C8 · una venta sin asesora registrada (no hay con quién comparar) la regulariza cualquiera de la tienda",
   `${EQUIPO}${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_por = null where id = :'pp';
 ${regulariza}`,
   "SIN_ERROR",
