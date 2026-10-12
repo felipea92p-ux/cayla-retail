@@ -173,6 +173,7 @@
     "pruebas:roles-lider-editable": "node scripts/pruebas/roles_lider_editable.mjs",
     "pruebas:cayla-global": "node scripts/pruebas/cayla_global.mjs",
     "pruebas:huellas-catalogo": "node scripts/pruebas/huellas_catalogo.mjs",
+    "pruebas:huellas-del-pr": "node scripts/pruebas/huellas_del_pr.mjs",
     "pruebas:etiquetas-aprobar": "node scripts/pruebas/etiquetas_aprobar_con_comentario.mjs",
     "pruebas:edicion-simultanea": "node scripts/pruebas/edicion_simultanea_version.mjs",
     "pruebas:actor-firma": "node scripts/pruebas/actor_firma_las_operaciones.mjs",
