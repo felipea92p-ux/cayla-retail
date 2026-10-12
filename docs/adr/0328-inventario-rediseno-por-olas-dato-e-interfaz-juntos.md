@@ -406,3 +406,72 @@ velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna muev
 - **Por qué:** lo decidió Felipe el 2026-10-06, al aprobar la maqueta de Análisis v4. Es su propia razón de «El norte» (Análisis y Frescura
   «ayudan a plantear estrategias de equipo sin importar el rango») llevada al dinero: quien decide comprar, mandar o liquidar no decide bien sin
   ver el costo ni las otras tiendas.
+
+## Actualización 2026-10-12 — lo que se rescató de #788 y lo que quedó superado por la mesa (ADR-0360)
+
+**El hecho que lo ordena todo:** las dos migraciones de #788 **están en producción desde el 2026-10-05** y no estaban en `main`
+(verificado en vivo el 2026-10-12, solo lectura): `20261004203000_candidatas_por_regularizar.sql` (sus comentarios llegaron con
+las tildes dañadas, Mac Roman; el código es idéntico) y `20261004204000_nadie_regulariza_su_propia_venta.sql`
+(`regularizar_prenda` conserva sus cuatro marcas; `acciones_sin_responsable` ya no tiene `regularizar_prenda`). Lo que dice
+arriba («su parte 2 está sin pegar», 2026-10-05) quedó viejo ese mismo día. El repo tiene que reflejar producción, así que
+entraron a `main` **byte a byte** como estaban en la rama de #788 (el mismo contenido, comprobado por su huella), en un PR nuevo
+desde `origin/main` (rama `claude/inventario-788-rescate`). #788 no se fusiona.
+
+**Por qué no se fusiona #788.** Mientras estuvo abierto (una semana), `main` rediseñó la misma pantalla: la **mesa del Puente**
+(ADR-0360, elegida por Felipe el 6 y 7-oct: talones · puente · prendas, seis tarjetas con su stock en la tienda de la venta, un
+buscador aparte sobre todo el catálogo, y la sugerida con la definición de `fn_candidatas_de_venta`), «Corregir lo anotado»
+(ADR-0369), el «Responsable» de vuelta en regularizar (20261006200000), el precio por sede y `<Vacio>`/`<Aviso>`/`<Buscador>`
+(ADR-0358). El modal de #788, con su combo y sus tramos rotulados, quedó superado por la mesa que eligió Felipe, y chocaba en 12
+archivos con `main`.
+
+**Lo que se rescató:**
+- **Las dos migraciones**, tal cual, y su prueba `pnpm pruebas:ventas-sin-registrar` (65 casos, ahora en el CI), más lo que #788
+  cambió en `prendas_por_regularizar.mjs` y `actor_firma_las_operaciones.mjs`. Reconstruida la base desde cero en orden (todas
+  las migraciones de `main` más estas dos, cada una en su transacción, y el seed): 0 errores, y `regularizar_prenda` queda con el
+  mismo `md5(prosrc)` que producción (`87ecfea29dcd387b642c4d8ac23edcbe`). Ninguna migración posterior de `main` choca con sus
+  anclas: la única que vuelve a tocar `regularizar_prenda` por ancla (`20261010100300`, el precio por sede) ancla en
+  `v_var.precio`, que la parte 2 no cambia.
+- **La cara del error de las reglas que ya estaban vivas:** «Quien vendió esta prenda no puede regularizarla…» caía al genérico
+  «avisa a Felipe. Código: …»; ahora dice la frase de la base. Y «sin stock para descontar» explica que las apartadas y las de
+  Cuarentena no cuentan.
+- **Vender ▸ «Prenda sin registrar» sugiere la categoría que nombra lo escrito** (decisión técnica 6): «Escribiste «Jean»: ¿no será
+  Jeans? · Cambiar a Jeans». Nunca se aplica sola. `lib/sugerir-categoria-sin-registrar.ts` (de #788), enganchada en el modal de
+  `main`; vale igual en «Corregir lo anotado» (ADR-0369), y el combo de categorías encuentra por las palabras de tienda («correa» →
+  Cinturones).
+- **En la mesa, «¿Cómo estaba?» trae la respuesta DEDUCIDA del libro** (decisión técnica 8): el sistema no tenía ninguna a la hora
+  de la venta → «Llegó nueva»; tenía y después no llegó ni se ajustó nada → «Perdió la etiqueta»; tenía y después llegó o se ajustó
+  algo → no deduce y lo dice con la fecha. La sugerida se marca sin elegirla; si se elige la contraria, un aviso en ámbar dice qué
+  pasaría. `lib/por-regularizar-deduccion.ts` (el `deducirForma` de #788) y `lib/por-regularizar-libro.ts`.
+
+**Lo que quedó superado (no se portó):** el modal «Regularizar prenda» con combo y tramos rotulados («igual a lo anotado», «color
+parecido», «lo que escribió la caja»), el buscador por la tienda de la venta, el orden por grupo, el «Probable: …» de la lista y
+la línea que agrupaba las ventas de prendas sin cargar: la mesa ya ofrece las seis que más calzan con su stock, la sugerida con la
+misma definición de la base y un buscador sobre todo el catálogo; y lo anotado mal se corrige con ADR-0369 en vez de pedir una
+segunda lectura por la categoría escrita. En la base quedan sin pantalla que las lea `fn_por_regularizar_sin_cargar` y el parámetro
+`p_categoria_de` de `fn_candidatas_por_regularizar`; `fn_prenda_cargada_en_sede` trabaja dentro de `regularizar_prenda` y, desde la
+revisión de abajo, también la lee la mesa.
+
+**Revisión adversarial del rescate (#975, 2026-10-12): dos avisos de #788 NO estaban superados.** El primer corte del rescate los
+descartó junto con su modal, pero la mesa de ADR-0360 no los cubría, y la base (en producción desde el 5-oct) sí rechaza esos casos:
+- **Una prenda que nunca entró a la tienda.** La nota del puente para una prenda sin unidades libres decía «Si nunca se contó en un
+  lote, elige «Llegó nueva»»: justo lo que `fn_exigir_prenda_cargada_en_sede` rechaza con cualquier respuesta. Y el comentario de
+  `20261004204000` (que ya no se edita) promete que «la web dice las MISMAS frases antes del botón (`prendaSinCargar`,
+  lib/por-regularizar-reglas.ts)». Ahora es cierto: con una prenda sin unidades libres, la mesa pregunta `fn_prenda_cargada_en_sede` y
+  la carga de la sede (`fn_carga_inicial_sedes`) y, si nunca entró, la nota dice la frase de la base (cárgala, o «Encontré prendas» si
+  la carga ya se cerró); `por-regularizar-reglas.test.ts` arma esas frases desde el texto de la migración y las compara al carácter.
+- **La venta propia.** «Nadie regulariza su propia venta, salvo el líder firmando él mismo» se descubría al tocar «Regularizar»,
+  después de elegir la prenda, contestar y firmar. Ahora, bajo el «Responsable», una línea en ámbar lo dice antes
+  (`motivoPropiaVenta`, los mismos casos C1–C14 de la prueba SQL; la lista trae `vendidoPorId`).
+
+Los dos **solo avisan**: el botón y la guía de foco no cambian, y si la web y la base no coinciden, manda la base. La misma revisión
+corrigió que «Escribiste «denim»» citara el nombre del color (ahora solo cuenta lo que la persona agregó: ni la descripción armada ni
+el color elegido), que el porqué de «Sugerida» quedara bajo el pie fijo en el celular, que la hoja del celular se animara con
+movimiento reducido, y que el porqué dijera «ese conteo» a una recepción o un traslado. Y sumó `lib/sugerencia-nunca-elige.test.ts`:
+ningún mutante que eligiera solo la forma o la categoría sobrevive.
+
+**DECIDÍ:** la respuesta deducida es una sugerencia marcada, nunca una elección ni un candado.
+**DESCARTÉ:** preelegir la respuesta (o rechazar la contraria en `regularizar_prenda`), porque la deducción falla cuando la carga se
+contó en papel y se registró días después, o cuando una venta sin conexión se fechó al sincronizar: ahí la regla invertiría la
+respuesta y la persona, que sí sabe, no podría corregirla.
+**SE ROMPE SI** una llegada se registra días después de colgar la prenda (el saldo a la venta sale de menos y sugiere «Llegó nueva»
+de una que sí estaba contada) o si alguien cambia `fn_ledger_puntos` y su cubeta `total` deja de ser «todo menos Cuarentena».
