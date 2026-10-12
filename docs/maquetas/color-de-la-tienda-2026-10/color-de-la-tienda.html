@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan del piso — Color de la tienda (maqueta)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* MAQUETA · Plan del piso ▸ «Color de la tienda» (2026-10-12). Solo diseño, nada decidido en código. Datos INVENTADOS con la forma de TRU.
+   Tokens = los de apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro). Los hex de prenda viven solo en el bloque de datos. */
+:root{
+  --color-rojo:#b8412d;--color-rojo-profundo:#8b2a1f;--color-crema:#f5f0e8;--color-tinta:#1a1a18;--color-sand:#e8e0d0;--color-taupe:#805c4c;
+  --color-papel:#fbf8f2;--color-hueso:#eae1d2;--color-sombra:#1a1a18;--color-vidrio:#ffffff;--color-pizarra:#4c5d6e;--color-tinta-60:#5b544c;
+  --color-verde:#48603f;--color-ambar:#74501a;--color-ambar-profundo:#734f15;--color-pizarra-profundo:#3f4f5f;
+  --color-tinta-fija:#1a1a18;--color-crema-fija:#f5f0e8;
+  --radius-md:8px;--radius-xl:16px;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);
+  --serif:'EB Garamond',ui-serif,Georgia,serif;--sans:'DM Sans',ui-sans-serif,system-ui,sans-serif;
+  --g0:var(--color-tinta);--g1:var(--color-pizarra);--g2:var(--color-verde);--g3:var(--color-ambar);--g4:var(--color-taupe);--g5:var(--color-sand);
+  --otros:color-mix(in srgb,var(--color-tinta) 28%,var(--color-sand));
+  color-scheme:light;
+}
+html[data-tema="oscuro"]{
+  --color-crema:#1a1a18;--color-papel:#242422;--color-hueso:#31302d;--color-sand:#3d3c38;--color-sombra:#000000;--color-vidrio:#31302d;
+  --color-tinta:#f5f0e8;--color-tinta-60:#b9b2a7;--color-taupe:#c4a898;
+  --color-rojo:#e8806a;--color-verde:#9ccb8d;--color-ambar:#e4b968;--color-ambar-profundo:#ecc676;--color-pizarra:#a2b8cd;--color-pizarra-profundo:#b8cbdc;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--color-tinta);background:var(--color-crema);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:left}
+:focus-visible{outline:2px solid var(--color-rojo);outline-offset:2px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no es parte del diseño) ---------- */
+.ctl{position:sticky;top:0;z-index:50;background:#1a1a18;color:#f5f0e8;padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-size:12.5px}
+.ctl b{font-weight:600;margin-right:6px;opacity:.7}
+.seg{display:inline-flex;background:rgba(255,255,255,.1);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{padding:5px 11px;border-radius:6px;color:rgba(245,240,232,.75)}
+.seg button[aria-pressed=true]{background:#f5f0e8;color:#1a1a18}
+.fuera{background:#d8d2c6;min-height:100vh;padding:0 0 60px}
+html[data-tema="oscuro"] .fuera{background:#0d0d0c}
+.hoja{display:flex;justify-content:center;padding:18px 12px 0}
+
+/* ---------- marco de la app ---------- */
+.marco{display:grid;grid-template-columns:var(--ancho-lateral) minmax(0,1fr);background:var(--color-crema);border:1px solid color-mix(in srgb,var(--color-tinta) 14%,transparent);border-radius:10px;overflow:hidden;width:var(--ancho-marco)}
+body[data-vista="1440"]{--ancho-marco:1440px;--ancho-lateral:240px;--ancho-contenido:1024px;--pad-pagina:88px}
+body[data-vista="1024"]{--ancho-marco:1024px;--ancho-lateral:271px;--ancho-contenido:657px;--pad-pagina:48px}
+body[data-vista="375"]{--ancho-marco:375px;--ancho-lateral:0px;--ancho-contenido:341px;--pad-pagina:17px}
+body[data-vista="375"] .lat{display:none}
+body[data-vista="375"] .marco{grid-template-columns:minmax(0,1fr)}
+.lat{background:color-mix(in srgb,var(--color-hueso) 55%,var(--color-crema));border-right:1px solid var(--color-sand);padding:20px 12px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.lat .logo{font-family:var(--serif);letter-spacing:.34em;font-size:15px;padding:4px 14px 22px;font-weight:500}
+.lat .logo small{display:block;font-family:var(--sans);font-size:9px;letter-spacing:.3em;color:var(--color-taupe);margin-top:2px}
+.lat a{display:flex;padding:9px 14px;border-radius:10px;color:var(--color-tinta);text-decoration:none}
+.lat a.on{background:var(--color-sand)}
+.top{height:58px;border-bottom:1px solid var(--color-sand);display:flex;align-items:center;gap:12px;padding:0 22px}
+.top .busca{background:color-mix(in srgb,var(--color-hueso) 70%,transparent);border-radius:999px;padding:7px 16px;color:var(--color-taupe);font-size:13px;min-width:190px}
+.top .der{margin-left:auto;font-size:11px;letter-spacing:.12em;font-weight:600;text-transform:uppercase;border:1px solid var(--color-sand);border-radius:8px;padding:7px 12px}
+body[data-vista="375"] .top .busca{display:none}
+.cuerpo{min-width:0}
+.pagina{max-width:var(--ancho-contenido);margin:0 auto;padding:22px 0 56px;width:calc(100% - 2*var(--pad-pagina))}
+body[data-vista="375"] .pagina{width:calc(100% - 34px)}
+.tabs{max-width:100%;overflow-x:auto;display:inline-flex;margin:0 0 20px;padding:5px;gap:2px;background:var(--color-vidrio);border:1px solid var(--color-sand);border-radius:16px}
+.tabs span{padding:9px 19px;border-radius:11px;font-size:11.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase}
+.tabs span.on{background:var(--color-tinta);color:var(--color-crema)}
+.tarjeta{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:20px;padding:26px 28px}
+body[data-vista="375"] .tarjeta{padding:20px 16px}
+.eyebrow{font-size:11px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;color:var(--color-taupe)}
+.eyebrow small{font-size:12px;letter-spacing:0;font-weight:400;text-transform:none;margin-left:10px;color:var(--color-tinta-60)}
+
+/* ---------- cifra y riel de «Hoy» (resumen fiel; no es lo que se diseña aquí) ---------- */
+.cifra{display:flex;align-items:baseline;gap:10px;margin:8px 0 4px}
+.cifra b{font-family:var(--serif);font-weight:400;font-size:52px;line-height:1}
+.cifra span{font-family:var(--serif);font-size:24px;color:var(--color-tinta-60)}
+.estado{font-size:15px;color:var(--color-tinta-60);max-width:680px}
+.estado b{color:var(--color-tinta);font-weight:600}
+.riel-caja{background:var(--color-hueso);border-radius:14px;padding:16px 18px 12px;margin-top:14px;position:relative}
+.riel{display:flex;align-items:flex-end;gap:0;min-height:62px}
+.tramo{display:flex;align-items:flex-end;flex:0 0 auto;width:calc(var(--n) / 30 * 100%);border-top:3px solid var(--g);padding-top:6px;position:relative;cursor:default;border-radius:2px;transition:opacity .2s var(--ease-cayla)}
+.tramo:focus-visible{outline-offset:3px}
+.riel.sobre .tramo:not(.on){opacity:.45}
+.percha{flex:var(--f) 1 0;min-width:0;height:44px;display:block}
+.percha svg{display:block;width:100%;height:100%}
+.libre{flex:1;border-top:3px dashed var(--color-sand);align-self:stretch;margin-top:0;position:relative;min-width:20px}
+.libre-txt{position:absolute;right:0;top:12px;text-align:center;width:min(100%,260px)}
+.libre-txt b{display:block;font-family:var(--serif);font-weight:400;font-size:30px;line-height:1}
+.libre-txt span{font-size:12px;color:var(--color-tinta-60)}
+body[data-vista="375"] .riel{flex-wrap:wrap;row-gap:8px}
+body[data-vista="375"] .tramo{width:auto}
+body[data-vista="375"] .percha{flex:0 0 14px}
+body[data-vista="375"] .libre{display:none}
+.fichas{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ficha{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--color-sand);background:var(--color-papel);border-radius:999px;padding:5px 12px;font-size:12.5px}
+.ficha i{width:8px;height:8px;border-radius:2px;background:var(--g)}
+.ficha b{font-weight:700}
+
+/* ---------- tarjeta flotante del grupo (al pasar el mouse, con teclado o con toque) ---------- */
+.tip{position:absolute;z-index:20;bottom:calc(100% + 8px);width:min(300px,calc(100vw - 48px));background:var(--color-vidrio);border:1px solid var(--color-sand);border-radius:12px;padding:12px 14px;box-shadow:0 12px 28px -12px color-mix(in srgb,var(--color-sombra) 40%,transparent);pointer-events:none;animation:revelar .24s var(--ease-cayla)}
+@keyframes revelar{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tip h4{font-size:13px;font-weight:600}
+.tip p{font-size:11.5px;color:var(--color-tinta-60);margin-bottom:8px}
+.tip .f{display:grid;grid-template-columns:12px 64px 1fr 40px;gap:8px;align-items:center;font-size:12px;margin-top:5px}
+.tip .f i{width:10px;height:10px;border-radius:50%;border:1px solid color-mix(in srgb,var(--color-tinta) 30%,transparent)}
+.tip .f u{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--color-tinta) 14%,transparent);overflow:hidden;text-decoration:none}
+.tip .f u s{display:block;height:100%;background:var(--color-tinta-60);text-decoration:none}
+.tip .f em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- LA FRANJA «Color de la tienda» (lo que se diseña) ---------- */
+.franja{margin-top:30px}
+.franja-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.lectura{font-size:15px;margin:8px 0 14px;max-width:760px}
+.lectura b{font-weight:600}
+.barra{display:flex;gap:2px;height:12px;border-radius:999px;overflow:hidden;background:var(--color-sand)}
+.seg-b{flex:var(--p) 1 0;min-width:6px;border:0;background:var(--c);transition:opacity .2s var(--ease-cayla),transform .2s var(--ease-cayla);border-radius:0;outline-offset:-2px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 22%,transparent)}
+.seg-b.otros{background:repeating-linear-gradient(135deg,var(--otros) 0 4px,color-mix(in srgb,var(--otros) 55%,var(--color-papel)) 4px 8px)}
+.barra.sobre .seg-b:not(.on){opacity:.4}
+/* Un color de prenda no cambia con el tema, pero un negro sobre el papel oscuro se pierde: en oscuro el contorno sube (el relleno sigue siendo el dato). */
+html[data-tema="oscuro"] .seg-b{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 60%,transparent)}
+html[data-tema="oscuro"] .dot,html[data-tema="oscuro"] .tip .f i,html[data-tema="oscuro"] .dg-fila .dot{border-color:color-mix(in srgb,var(--color-tinta) 60%,transparent)}
+.celdas{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:6px;margin-top:12px}
+.celda{display:flex;flex-direction:column;gap:3px;border:1px solid var(--color-sand);background:var(--color-papel);border-radius:12px;padding:10px 10px 11px;min-height:96px;transition:background .2s var(--ease-cayla),border-color .2s var(--ease-cayla)}
+.celda:hover{background:var(--color-hueso)}
+.celda[aria-expanded=true]{background:var(--color-hueso);border-color:var(--color-taupe)}
+.celda .n{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--c);border:1px solid color-mix(in srgb,var(--color-tinta) 30%,transparent);flex:none}
+.dot.otros{background:repeating-linear-gradient(135deg,var(--otros) 0 3px,color-mix(in srgb,var(--otros) 55%,var(--color-papel)) 3px 6px)}
+.celda .pct{font-family:var(--serif);font-size:26px;line-height:1.05}
+.celda .pct small{font-family:var(--sans);font-size:11px;color:var(--color-tinta-60);margin-left:4px}
+.chip{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 7px;font-size:10.5px;font-weight:500;line-height:1.4;width:fit-content}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.amb{background:color-mix(in srgb,var(--color-ambar) 14%,transparent);color:var(--color-ambar-profundo)}
+.chip.piz{background:color-mix(in srgb,var(--color-pizarra) 14%,transparent);color:var(--color-pizarra-profundo)}
+.nota{font-size:12.5px;color:var(--color-tinta-60);margin-top:12px}
+
+/* ---------- el desglose (clic en una familia o en «Otras») ---------- */
+.desglose{margin-top:12px;background:var(--color-hueso);border-radius:14px;padding:18px 20px;animation:revelar .24s var(--ease-cayla)}
+body[data-vista="375"] .desglose{padding:16px 14px}
+.dg-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;justify-content:space-between}
+.dg-tit{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:24px}
+.dg-tit small{font-family:var(--sans);font-size:13px;color:var(--color-tinta-60)}
+.dg-x{width:32px;height:32px;border-radius:50%;border:1px solid var(--color-sand);display:grid;place-items:center;font-size:16px;line-height:1;background:var(--color-papel)}
+.dg-frase{font-size:14px;margin:6px 0 4px;max-width:720px}
+.dg-sub{font-size:11px;letter-spacing:.13em;font-weight:700;text-transform:uppercase;color:var(--color-taupe);margin:16px 0 4px;display:flex;gap:8px;align-items:center}
+.dg-fila{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(60px,1fr) 78px 78px minmax(0,1.2fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid color-mix(in srgb,var(--color-tinta) 10%,transparent);font-size:13.5px}
+.dg-fila:first-of-type{border-top:0}
+.dg-fila .nom{display:flex;align-items:center;gap:8px;min-width:0}
+.dg-fila .nom span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dg-fila u{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--color-tinta) 12%,transparent);overflow:hidden;text-decoration:none}
+.dg-fila u s{display:block;height:100%;background:var(--color-tinta-60);text-decoration:none}
+.dg-fila .num{font-variant-numeric:tabular-nums;text-align:right}
+.dg-fila .num small{display:block;font-size:10.5px;color:var(--color-tinta-60)}
+body[data-vista="375"] .dg-fila{grid-template-columns:minmax(0,1fr) 62px 62px;row-gap:4px}
+body[data-vista="375"] .dg-fila u{display:none}
+body[data-vista="375"] .dg-fila .tag{grid-column:1/-1}
+.dg-fam{margin-top:14px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--color-tinta) 14%,transparent)}
+.dg-fam:first-of-type{border-top:0;padding-top:0;margin-top:8px}
+.dg-fam h5{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+.dg-fam h5 small{font-weight:400;font-size:12.5px;color:var(--color-tinta-60)}
+.mover{margin-top:34px;opacity:.55}
+.mover .riel-caja{min-height:64px;border:1px dashed var(--color-sand);background:transparent}
+</style>
+</head>
+<body data-vista="1440">
+
+<div class="ctl">
+  <span><b>Caso</b><span class="seg" data-ctl="caso"><button aria-pressed="true" data-v="tru">TRU · ventas confirmadas</button><button aria-pressed="false" data-v="aqp">AQP · casi todo sin registrar</button></span></span>
+  <span><b>Piso</b><span class="seg" data-ctl="piso"><button aria-pressed="true" data-v="sistema">Por cuadrar</button><button aria-pressed="false" data-v="cuadrado">Cuadrado</button></span></span>
+  <span><b>Aviso de colores</b><span class="seg" data-ctl="aviso"><button aria-pressed="true" data-v="si">Sí</button><button aria-pressed="false" data-v="no">No</button></span></span>
+  <span><b>Tema</b><span class="seg" data-ctl="tema"><button aria-pressed="true" data-v="claro">Claro</button><button aria-pressed="false" data-v="oscuro">Oscuro</button></span></span>
+  <span><b>Vista</b><span class="seg" data-ctl="vista"><button aria-pressed="true" data-v="1440">Escritorio 1440</button><button aria-pressed="false" data-v="1024">Laptop 1024</button><button aria-pressed="false" data-v="375">Celular 375</button></span></span>
+</div>
+
+<div class="fuera"><div class="hoja">
+<div class="marco">
+  <nav class="lat" aria-label="Menú (maqueta)">
+    <div class="logo">CAYLA<small>RETAIL</small></div>
+    <a href="#">Existencias</a><a href="#">Movimientos</a><a href="#">Traslados</a><a href="#">Conteo</a><a href="#">Análisis</a><a href="#">Frescura del piso</a><a href="#" class="on">Plan del piso</a><a href="#">Catálogo</a><a href="#">Compras</a>
+  </nav>
+  <div class="cuerpo">
+    <div class="top"><span class="busca">Buscar…</span><span class="der">Tienda TRU</span></div>
+    <main class="pagina">
+      <div class="tabs"><span class="on">Propuesta</span><span>Grupos</span><span>Historia</span></div>
+      <section class="tarjeta">
+        <div class="eyebrow" id="cabHoy">Según el sistema, hoy cuelgan</div>
+        <div class="cifra"><b id="cifraHoy"></b><span>de 600 prendas</span></div>
+        <p class="estado" id="estadoHoy"></p>
+
+        <div class="eyebrow" style="margin-top:22px">Hoy <small id="subHoy"></small></div>
+        <div class="riel-caja" id="rielCaja"><div class="riel" id="riel"></div></div>
+        <div class="fichas" id="fichas"></div>
+
+        <section class="franja" aria-labelledby="tFranja">
+          <div class="franja-cab"><div class="eyebrow" id="tFranja">Color de la tienda <small id="subFranja"></small></div></div>
+          <p class="lectura" id="lectura"></p>
+          <div class="barra" id="barra" role="group" aria-label="Reparto de lo que cuelga por familia de color"></div>
+          <div class="celdas" id="celdas"></div>
+          <div id="desglose"></div>
+          <p class="nota" id="notaFranja"></p>
+        </section>
+
+        <div class="mover"><div class="eyebrow">Cómo quedaría <small>así se repartirían tus 600 lugares · sin cambios en esta maqueta</small></div><div class="riel-caja"></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+</div></div>
+
+<script>
+/* ===================== DATOS INVENTADOS con la forma de TRU =====================
+   [color, familia, hex de la prenda (DATO, no color de la interfaz), {grupo: colgadas}, vendidas confirmadas en 14 días] */
+const GRUPOS=[
+  {n:'Polos, tops y blusas'},{n:'Jeans'},{n:'Pantalones, faldas y shorts'},{n:'Vestidos, conjuntos y enterizos'},{n:'Bodys, corsets y lencería'},{n:'Abrigo y capas'}];
+const FAMILIAS={neutro:'Neutro',tierra:'Tierra',rosado:'Rosado',rojo:'Rojo',naranja:'Naranja',amarillo:'Amarillo',verde:'Verde',azul:'Azul',morado:'Morado'};
+const TRU=[
+ ['Negro','neutro','#1f1f1d',{0:12,2:9,3:4,4:3,5:3},41],['Blanco','neutro','#fbfaf7',{0:14,2:8,3:5,4:3},29],['Crudo','neutro','#efe6d4',{0:6,2:4,3:3,5:2},12],
+ ['Gris antracita','neutro','#4a4a4d',{0:6,2:6,5:4},3],['Gris perla','neutro','#c9cacd',{0:8,2:6},3],['Nude','neutro','#e8c9b5',{0:2,4:3},1],['Crema','neutro','#f6edd6',{0:2,3:1},2],
+ ['Perla','neutro','#f1efe9',{0:1},4],['Gris','neutro','#8b8d90',{0:1,2:1},3],['Gris piedra','neutro','#c4bba6',{0:1},1],['Gris melange','neutro','#b5b5b3',{0:1},1],
+ ['Beige','tierra','#cdb592',{0:14,2:10,3:6,5:4},21],['Arena','tierra','#d8c39d',{0:14,2:9,3:5,5:3},3],['Chocolate','tierra','#5a3b2e',{0:8,2:6,4:3,5:4},26],
+ ['Marrón','tierra','#7b5337',{0:6,2:5,5:2},10],['Moka','tierra','#8d6a52',{0:4,2:3,3:2},10],['Camel','tierra','#b98a54',{0:3,2:1,5:3},5],['Coñac','tierra','#9a5a32',{0:2,5:3},1],
+ ['Tostado','tierra','#b3774a',{0:1},1],['Topo','tierra','#8a7a6a',{},5],['Caqui','tierra','#b4a47a',{},1],['Terracota','tierra','#b5604a',{},1],
+ ['Celeste','azul','#a9cbe4',{0:14,1:6,2:4,3:3},26],['Azul denim','azul','#4b6a8c',{1:11},6],['Azul marino','azul','#1f2f4d',{0:3,2:2,5:2},4],['Azul claro','azul','#b8d0e8',{0:4,3:2},2],
+ ['Azul eléctrico','azul','#1f4fd8',{0:1,3:1},2],['Azul intermedio','azul','#5f84b0',{1:4},0],['Hielo bleach','azul','#cfdbe6',{1:3},0],['Índigo','azul','#2d3e6b',{1:2},0],
+ ['Turquesa','azul','#3fb0b5',{},1],['Azul acero','azul','#6f8aa3',{0:1},0],['Azul zafiro','azul','#2a4ea0',{0:1},0],['Azul medio','azul','#4a76b8',{0:1},0],['Azul natural','azul','#7a95b3',{0:1},0],
+ ['Vino','rojo','#6b1f2b',{0:5,3:3,4:3,5:3},17],['Rojo','rojo','#c0392b',{0:3,3:2},1],['Rojo tomate','rojo','#d4503a',{0:1},0],['Marsala','rojo','#8e3a45',{3:1},0],['Cereza','rojo','#a3202f',{4:1},0],['Coral','rojo','#ef7b6a',{0:1},0],
+ ['Rosado','rosado','#e8a3b5',{0:3,3:2,4:1},4],['Palo rosa','rosado','#d9a5a0',{0:2,4:2},3],['Rosa pálido','rosado','#f2cdd2',{0:2,4:1},2],['Rosa chicle','rosado','#f27fa8',{0:1},1],['Rosa sandía','rosado','#f2607a',{0:1},0],
+ ['Salvia','verde','#9aa88a',{3:1},2],['Pistacho','verde','#b9cf9a',{0:2},1],['Verde oliva','verde','#6b7040',{0:2,5:1},0],['Verde militar','verde','#4a5b3a',{5:1},0],['Verde agua','verde','#a5d6c4',{0:1},0],
+ ['Vainilla','amarillo','#f3e6b3',{0:1,3:1},9],['Amarillo mantequilla','amarillo','#f5dc8a',{0:2,3:1},3],['Amarillo limón','amarillo','#f0e04a',{0:2},1],['Amarillo','amarillo','#f2c830',{},1],['Mostaza','amarillo','#c79a1e',{},1],
+ ['Ciruela','morado','#5a2a4a',{0:1},1],['Mora','morado','#5b2c5f',{3:2},0],['Lavanda','morado','#b7a6d6',{0:1},0],['Lila','morado','#c8a2d0',{0:1},0],['Glicina','morado','#b69ac4',{0:1},0],['Morado','morado','#6a3d9a',{0:1},0],
+ ['Naranja','naranja','#e8742a',{0:1},1]
+];
+const MOD_AQP={neutro:1,tierra:.8,azul:1.6,rojo:1,rosado:1.3,verde:1,amarillo:1,morado:1,naranja:1};
+const AQP=TRU.map(([n,f,h,g,v])=>[n,f,h,Object.fromEntries(Object.entries(g).map(([k,x])=>[k,Math.round(x*.4*MOD_AQP[f])])),['Negro','Blanco','Celeste'].includes(n)?1:0]);
+const CASOS={
+  tru:{sede:'Tienda TRU',filas:TRU,anot:{neutro:52,tierra:40,azul:22,rojo:9,rosado:7,verde:4,amarillo:6,morado:2,naranja:1}},
+  aqp:{sede:'Tienda AQP',filas:AQP,anot:{neutro:60,tierra:38,azul:25,rojo:15,rosado:12,verde:5,amarillo:8,morado:3,naranja:1}}
+};
+const MAX_FAMILIAS=6, UNIDAD=20, CAPACIDAD=600, MIN_VENTAS=30;
+
+/* ===================== LA REGLA (esto pasará a lib/plan-piso-familias.ts, con su prueba) ===================== */
+const suma=o=>Object.values(o).reduce((a,b)=>a+b,0);
+const pct=x=>(x<10?x.toFixed(1).replace(/\.0$/,''):Math.round(x))+' %';
+const colgadasDe=f=>suma(f[3]);
+/* Una marca solo con evidencia: la diferencia contra lo ESPERADO (ventas totales × la parte que cuelga) tiene que ser mayor que lo que el azar explicaría
+   (residuo de Poisson |z| ≥ 2) y de al menos 3 prendas, y con al menos MIN_VENTAS ventas en total. Sin cortes fijos: se compara contra lo que la propia tienda vende.
+   La varianza no baja de 2: con casi nada esperado, 3 ventas no son raras (con λ = 1,5 pasa 1 de cada 5 veces) y sin este piso cualquier color con 2 colgadas saldría marcado. */
+function veredicto(vendidas,esperado,S){
+  if(S<MIN_VENTAS) return null;
+  const d=vendidas-esperado, z=d/Math.sqrt(Math.max(esperado,2));
+  if(Math.abs(z)<2||Math.abs(d)<3) return null;
+  return d>0?'falta':'sobra';
+}
+function calcular(caso){
+  const fam={};
+  for(const f of caso.filas){const k=f[1];fam[k]??={clave:k,nombre:FAMILIAS[k],col:0,conf:0,colores:[]};fam[k].col+=colgadasDe(f);fam[k].conf+=f[4];fam[k].colores.push({nombre:f[0],hex:f[2],col:colgadasDe(f),conf:f[4]});}
+  const L=Object.values(fam);
+  const H=L.reduce((s,x)=>s+x.col,0), Sconf=L.reduce((s,x)=>s+x.conf,0);
+  for(const x of L){x.vend=x.conf+(caso.anot[x.clave]??0);x.anot=caso.anot[x.clave]??0;}
+  const S=L.reduce((s,x)=>s+x.vend,0);
+  for(const x of L){
+    x.pCol=100*x.col/H; x.pVend=S?100*x.vend/S:0; x.esperado=S*x.col/H;
+    x.veredicto=veredicto(x.vend,x.esperado,S);
+    x.hex=[...x.colores].sort((a,b)=>b.col-a.col)[0].hex; // el color que más cuelga de la familia pinta su tramo
+    for(const c of x.colores){c.esperado=Sconf*c.col/H;c.veredicto=veredicto(c.conf,c.esperado,Sconf);}
+    x.colores.sort((a,b)=>(rango(a)-rango(b))||b.col-a.col||a.nombre.localeCompare(b.nombre,'es'));
+    x.aMirar=x.colores.filter(c=>c.veredicto).length;
+  }
+  // Las más relevantes: por el MAYOR de lo que cuelga o lo que vende (así Amarillo no queda escondido en «Otras»).
+  const orden=[...L].sort((a,b)=>Math.max(b.pCol,b.pVend)-Math.max(a.pCol,a.pVend));
+  const top=orden.slice(0,MAX_FAMILIAS), resto=orden.slice(MAX_FAMILIAS);
+  const otras=resto.length?{clave:'otras',nombre:'Otras',otras:true,familias:resto,col:resto.reduce((s,x)=>s+x.col,0),pCol:resto.reduce((s,x)=>s+x.pCol,0),pVend:resto.reduce((s,x)=>s+x.pVend,0),aMirar:resto.reduce((s,x)=>s+x.aMirar,0),veredicto:null}:null;
+  return {fam:L,top,otras,H,S,Sconf,hayColor:Sconf>=MIN_VENTAS};
+}
+function rango(c){return c.veredicto==='falta'?0:c.veredicto==='sobra'?1:2}
+function lectura(r){
+  if(r.S<MIN_VENTAS) return `Todavía hay pocas ventas para opinar (${r.S} en 14 días): esto es solo lo que cuelga.`;
+  const m=r.fam.filter(x=>x.veredicto).sort((a,b)=>b.pVend-a.pVend);
+  if(!m.length) return 'Lo que cuelga se parece a lo que vendes.';
+  // Se nombran hasta dos con su cifra; el resto es un conteo (una frase de cinco excepciones ya no se lee en 5 segundos).
+  const dos=m.slice(0,2).map(x=>`<b>${x.nombre}</b> (${x.veredicto==='falta'?`vende ${pct(x.pVend)} y cuelga ${pct(x.pCol)}`:`cuelga ${pct(x.pCol)} y vende ${pct(x.pVend)}`})`);
+  const mas=m.length-2;
+  return `Dentro de lo esperado, salvo ${mas>0?`${dos.join(', ')} y ${mas} ${mas===1?'familia más':'familias más'}`:dos.join(' y ')}.`;
+}
+
+/* ===================== PERCHAS DE «HOY» (resumen) ===================== */
+const PERCHA='<svg viewBox="0 0 24 44" aria-hidden="true"><path d="M12 3c2.2 0 3.6 1.2 3.6 3s-1.8 2.6-3.6 3.4V12" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/><path d="M5 16 12 12.5 19 16 22.5 24 18.5 26 17 22V40H7V22L5.5 26 1.5 24Z" fill="var(--c)" stroke="color-mix(in srgb,var(--color-tinta) 38%,transparent)" stroke-width="1"/></svg>';
+function coloresDelGrupo(caso,g){const m={};for(const f of caso.filas){const n=f[3][g]||0;if(n){(m[f[0]]??={hex:f[2],n:0}).n+=n;}}return Object.values(m).sort((a,b)=>b.n-a.n);}
+function perchasDe(caso,g,n){
+  const enteras=Math.floor(n/UNIDAD), resto=n/UNIDAD-enteras, total=enteras+(resto>0?1:0), mezcla=coloresDelGrupo(caso,g), T=mezcla.reduce((s,c)=>s+c.n,0);
+  const out=[];
+  for(let i=0;i<total;i++){const centro=(i+.5)/total*T;let acum=0,elegido=mezcla[mezcla.length-1];for(const c of mezcla){acum+=c.n;if(centro<=acum){elegido=c;break;}}out.push({hex:elegido.hex,fraccion:i<enteras?1:resto});}
+  return out;
+}
+
+/* ===================== ESTADO Y DIBUJO ===================== */
+const estado={caso:'tru',piso:'sistema',aviso:'si',abierta:null,tema:'claro',vista:'1440'};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const txtSobre=hex=>{const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255;return (0.299*r+0.587*g+0.114*b)>150?'var(--color-tinta-fija)':'var(--color-crema-fija)'};
+function chipVeredicto(x){return x.veredicto?`<span class="chip amb">${x.veredicto==='falta'?'Le falta lugar':'Cuelga de más'}</span>`:''}
+function chipColores(x){return (estado.aviso==='si'&&x.aMirar>0)?`<span class="chip piz">${x.aMirar} ${x.aMirar===1?'color a mirar':'colores a mirar'}</span>`:''}
+function dot(x){return x.otras?'<span class="dot otros"></span>':`<span class="dot" style="--c:${x.hex}"></span>`}
+
+function dibujar(){
+  const caso=CASOS[estado.caso], r=calcular(caso), sistema=estado.piso==='sistema';
+  const cuelgan=r.H, libres=CAPACIDAD-cuelgan, ocupado=Math.round(100*cuelgan/CAPACIDAD);
+  $('cabHoy').textContent=sistema?'Según el sistema, hoy cuelgan':'Hoy cuelgan';
+  $('cifraHoy').textContent=cuelgan;
+  $('estadoHoy').innerHTML=sistema?`Tu riel estaría a medio llenar (<b>${ocupado} % ocupado</b>). Falta contar tu piso: lo que cuelga de verdad puede ser mucho más.`:`Tu riel está al <b>${ocupado} % ocupado</b>.`;
+  $('subHoy').textContent=sistema?`según el sistema · ${ocupado} % del riel`:`${ocupado} % del riel`;
+
+  // riel
+  let html='', fichas='';
+  GRUPOS.forEach((g,gi)=>{
+    const n=caso.filas.reduce((s,f)=>s+(f[3][gi]||0),0); if(!n) return;
+    const ps=perchasDe(caso,gi,n);
+    html+=`<div class="tramo" tabindex="0" role="group" data-g="${gi}" style="--g:var(--g${gi});--n:${ps.reduce((a,p)=>a+p.fraccion,0).toFixed(3)}" aria-label="${esc(g.n)}: ${n} prendas. Reparto por familia de color: ${esc(textoGrupo(caso,gi))}">${ps.map(p=>`<span class="percha" style="--c:${p.hex};--f:${p.fraccion.toFixed(3)}">${PERCHA}</span>`).join('')}</div>`;
+    fichas+=`<span class="ficha" style="--g:var(--g${gi})"><i></i>${esc(g.n)} <b>${n}</b></span>`;
+  });
+  html+=`<div class="libre"><div class="libre-txt"><b>${libres}</b><span>lugares libres${sistema?' según el sistema · falta contar tu piso':''}</span></div></div>`;
+  $('riel').innerHTML=html; $('fichas').innerHTML=fichas; $('cifraHoy').textContent=cuelgan;
+
+  // franja
+  $('subFranja').textContent=sistema?'según el sistema · lo que cuelga hoy':'lo que cuelga hoy';
+  $('lectura').innerHTML=lectura(r);
+  const visibles=[...r.top,...(r.otras?[r.otras]:[])];
+  $('barra').innerHTML=visibles.map(x=>`<button class="seg-b${x.otras?' otros':''}${estado.abierta===x.clave?' on':''}" style="--p:${x.pCol.toFixed(3)};--c:${x.otras?'transparent':x.hex}" data-f="${x.clave}" aria-label="${esc(x.nombre)}: ${pct(x.pCol)} de lo que cuelga" title="${esc(x.nombre)} · ${pct(x.pCol)}"></button>`).join('');
+  $('celdas').innerHTML=visibles.map(x=>`<button class="celda" data-f="${x.clave}" aria-expanded="${estado.abierta===x.clave}" aria-controls="desglose">
+      <span class="n">${dot(x)}${esc(x.nombre)}</span><span class="pct">${pct(x.pCol)}</span>${chipVeredicto(x)}${chipColores(x)}</button>`).join('');
+  $('notaFranja').textContent=r.hayColor
+    ?`Las marcas comparan lo que cuelga con tus ${r.S} ventas de 14 días (${r.Sconf} confirmadas y ${r.S-r.Sconf} sin registrar). Por color solo se cuentan las confirmadas.`
+    :`Casi no hay ventas confirmadas (${r.Sconf} de ${r.S} en 14 días): por color todavía no se puede ver qué sale. Registra las ventas anotadas para verlo.`;
+  dibujarDesglose(r);
+}
+
+function filaColor(c,max,r){
+  const tag=c.veredicto?`<span class="chip amb tag">${c.veredicto==='falta'?(c.col===0?'Se acabó y se vende':'Se vende y falta'):'Cuelga y no sale'}</span>`:'<span class="tag"></span>';
+  const vend=r.hayColor?`<span class="num">${c.conf}<small>vendió</small></span>`:`<span class="num">—<small>vendió</small></span>`;
+  return `<div class="dg-fila"><span class="nom"><span class="dot" style="--c:${c.hex}"></span><span>${esc(c.nombre)}</span></span><u><s style="width:${max?Math.max(4,100*c.col/max):0}%"></s></u><span class="num">${c.col}<small>cuelgan</small></span>${vend}${tag}</div>`;
+}
+function bloqueFamilia(x,r,cabecera){
+  const max=Math.max(...x.colores.map(c=>c.col));
+  const falta=x.colores.filter(c=>c.veredicto==='falta'), sobra=x.colores.filter(c=>c.veredicto==='sobra'), resto=x.colores.filter(c=>!c.veredicto);
+  const sec=(t,l)=>l.length?`<div class="dg-sub">${t} · ${l.length}</div>${l.map(c=>filaColor(c,max,r)).join('')}`:'';
+  const frase=`Cuelga <b>${pct(x.pCol)}</b> (${x.col} prendas) y vende <b>${pct(x.pVend)}</b> (${x.vend} ${x.vend===1?'venta':'ventas'}${x.anot?`: ${x.conf} ${x.conf===1?'confirmada':'confirmadas'} + ${x.anot} sin registrar`:''}).`;
+  const cab=cabecera?`<h5>${dot(x)}${esc(x.nombre)} ${chipVeredicto(x)}<small>${frase}</small></h5>`:`<p class="dg-frase">${frase}</p>`;
+  return `<div class="dg-fam">${cab}${r.hayColor?sec('Se vende y falta',falta)+sec('Cuelga y no sale',sobra)+sec(falta.length||sobra.length?'Los demás colores':'Colores',resto):resto.concat(falta,sobra).map(c=>filaColor(c,max,r)).join('')}</div>`;
+}
+function dibujarDesglose(r){
+  const el=$('desglose'), k=estado.abierta;
+  if(!k){el.innerHTML='';return;}
+  const x=k==='otras'?r.otras:r.top.find(f=>f.clave===k);
+  if(!x){estado.abierta=null;el.innerHTML='';return;}
+  const cuerpo=x.otras?x.familias.map(f=>bloqueFamilia(f,r,true)).join(''):bloqueFamilia(x,r,false);
+  const sub=x.otras?`<small>${x.familias.map(f=>f.nombre).join(', ')} · ${pct(x.pCol)} de lo que cuelga</small>`:'';
+  el.innerHTML=`<section class="desglose" role="region" aria-label="Colores de ${esc(x.nombre)}"><div class="dg-cab"><div class="dg-tit">${dot(x)}${esc(x.nombre)} ${sub}</div><button class="dg-x" aria-label="Cerrar el desglose" data-cerrar>×</button></div>${cuerpo}</section>`;
+}
+
+/* ===================== tarjeta del grupo ===================== */
+function mezclaGrupo(caso,gi){
+  const m={};for(const f of caso.filas){const n=f[3][gi]||0;if(n){(m[f[1]]??={clave:f[1],nombre:FAMILIAS[f[1]],n:0,colores:{}});m[f[1]].n+=n;m[f[1]].colores[f[0]]=(m[f[1]].colores[f[0]]||0)+n;}}
+  const L=Object.values(m).sort((a,b)=>b.n-a.n), T=L.reduce((s,x)=>s+x.n,0);
+  for(const x of L) x.hex=caso.filas.filter(f=>f[1]===x.clave&&f[3][gi]).sort((a,b)=>b[3][gi]-a[3][gi])[0][2];
+  return {T,L};
+}
+function filasDeTarjeta(caso,gi){
+  const {T,L}=mezclaGrupo(caso,gi), top=L.slice(0,MAX_FAMILIAS), resto=L.slice(MAX_FAMILIAS), o=resto.reduce((s,x)=>s+x.n,0);
+  const filas=top.map(x=>({nombre:x.nombre,hex:x.hex,p:100*x.n/T}));
+  if(o) filas.push({nombre:'Otras',hex:null,p:100*o/T});
+  return {T,filas};
+}
+function textoGrupo(caso,gi){const {filas}=filasDeTarjeta(caso,gi);return filas.map(f=>`${f.nombre} ${pct(f.p)}`).join(', ')}
+let tip=null;
+function mostrarTip(t){
+  quitarTip(); const caso=CASOS[estado.caso], gi=+t.dataset.g, {T,filas}=filasDeTarjeta(caso,gi);
+  tip=document.createElement('div'); tip.className='tip'; tip.setAttribute('role','tooltip');
+  tip.innerHTML=`<h4>${esc(GRUPOS[gi].n)}</h4><p>${T} prendas colgadas${estado.piso==='sistema'?' · según el sistema':''} · por familia de color</p>${filas.map(f=>`<div class="f"><i style="${f.hex?`background:${f.hex}`:'background:var(--otros)'}"></i><span>${esc(f.nombre)}</span><u><s style="width:${f.p.toFixed(1)}%"></s></u><em>${pct(f.p)}</em></div>`).join('')}`;
+  const caja=$('rielCaja'); caja.appendChild(tip);
+  const cb=caja.getBoundingClientRect(), tb=t.getBoundingClientRect();
+  const ancho=Math.min(tip.offsetWidth,cb.width-8), izq=Math.max(4,Math.min(tb.left-cb.left+tb.width/2-ancho/2,cb.width-ancho-4));
+  tip.style.left=izq+'px'; $('riel').classList.add('sobre'); t.classList.add('on');
+}
+function quitarTip(){if(tip){tip.remove();tip=null;}$('riel').classList.remove('sobre');document.querySelectorAll('.tramo.on').forEach(e=>e.classList.remove('on'));}
+
+/* ===================== eventos ===================== */
+document.addEventListener('click',e=>{
+  const c=e.target.closest('[data-ctl] button');
+  if(c){const k=c.parentElement.dataset.ctl;[...c.parentElement.children].forEach(b=>b.setAttribute('aria-pressed',b===c));
+    if(k==='tema'){document.documentElement.dataset.tema=c.dataset.v;return;}
+    if(k==='vista'){document.body.dataset.vista=c.dataset.v;estado.vista=c.dataset.v;}
+    else{estado[k]=c.dataset.v;if(k==='caso')estado.abierta=null;}
+    quitarTip();dibujar();return;}
+  if(e.target.closest('[data-cerrar]')){estado.abierta=null;dibujar();return;}
+  const f=e.target.closest('[data-f]');
+  if(f){estado.abierta=estado.abierta===f.dataset.f?null:f.dataset.f;dibujar();if(estado.abierta)$('desglose').scrollIntoView({block:'nearest',behavior:'smooth'});return;}
+  const t=e.target.closest('.tramo'); // toque: el mismo detalle sin mouse
+  if(t){t.classList.contains('on')?quitarTip():mostrarTip(t);return;}
+  quitarTip();
+});
+const rielEl=$('riel');
+rielEl.addEventListener('mouseover',e=>{const t=e.target.closest('.tramo');if(t&&!t.classList.contains('on'))mostrarTip(t);});
+rielEl.addEventListener('mouseleave',quitarTip);
+rielEl.addEventListener('focusin',e=>{const t=e.target.closest('.tramo');if(t)mostrarTip(t);});
+rielEl.addEventListener('focusout',quitarTip);
+// Pasar por una celda o un tramo de la barra apunta ese tramo y baja los demás.
+const barra=$('barra'),celdas=$('celdas');
+function apuntar(k){barra.classList.toggle('sobre',!!k);barra.querySelectorAll('.seg-b').forEach(s=>s.classList.toggle('on',k?s.dataset.f===k:s.dataset.f===estado.abierta));}
+for(const el of [barra,celdas]){el.addEventListener('mouseover',e=>{const f=e.target.closest('[data-f]');if(f)apuntar(f.dataset.f);});el.addEventListener('mouseleave',()=>apuntar(null));}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(estado.abierta){estado.abierta=null;dibujar();}else quitarTip();}});
+dibujar();
+</script>
+</body>
+</html>
