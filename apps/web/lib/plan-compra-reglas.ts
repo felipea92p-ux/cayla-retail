@@ -926,3 +926,42 @@ export const argsEditarCampana = (planId: string, b: BorradorEdicion) => ({ p_pl
 export function accionDeQuitar(data: unknown): "borrado" | "archivado" | null {
   return esObjeto(data) && (data.accion === "borrado" || data.accion === "archivado") ? data.accion : null;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 17. La lista de campañas por año y por momento (ADR-0372, C1; Felipe 2026-10-12: «ordenarlas por año para que no sobrecargue»)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Cuánto sigue en el selector una campaña que ya terminó: un año. Ahí se compara lo planificado con lo vendido; una más vieja se mira en el
+ *  Historial, que la ordena por año (sin esto, el selector crece seis campañas por año para siempre). */
+export const DIAS_TERMINADA_EN_SELECTOR = 365;
+
+/** Qué campaña se abre al entrar sin `?plan=`: la que está en curso (si hay dos a la vez, la que termina antes: es la que apura); si no, la
+ *  próxima en empezar; si no, la que terminó más tarde. Nunca una archivada. Antes se abría la de inicio más lejano: con «Día de la Madre
+ *  2027» creada, en pleno diciembre se abría mayo. */
+export function campanaQueAbre(planes: readonly CampanaPlan[], hoy: string): CampanaPlan | null {
+  const activas = planes.filter((p) => !p.archivado);
+  const por = (estado: EstadoCampana) => activas.filter((p) => estadoCampana(hoy, p.desde, p.hasta) === estado);
+  const primera = (l: CampanaPlan[], orden: (a: CampanaPlan, b: CampanaPlan) => number) => [...l].sort(orden)[0] ?? null;
+  return (
+    primera(por("durante"), (a, b) => a.hasta.localeCompare(b.hasta) || a.nombre.localeCompare(b.nombre, "es")) ??
+    primera(por("antes"), (a, b) => a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, "es")) ??
+    primera(por("despues"), (a, b) => b.hasta.localeCompare(a.hasta) || a.nombre.localeCompare(b.nombre, "es"))
+  );
+}
+
+/** Las campañas del selector, en el orden en que se leen y con el título de su grupo: «En curso», «Por venir · 2026», «Por venir · 2027»…
+ *  y «Terminadas» (solo las del último año). Las archivadas no salen (tienen su hoja). */
+export function campanasDelSelector(planes: readonly CampanaPlan[], hoy: string): { campana: CampanaPlan; grupo: string }[] {
+  const activas = planes.filter((p) => !p.archivado);
+  const de = (estado: EstadoCampana) => activas.filter((p) => estadoCampana(hoy, p.desde, p.hasta) === estado);
+  const enCurso = de("durante").sort((a, b) => a.hasta.localeCompare(b.hasta) || a.nombre.localeCompare(b.nombre, "es"));
+  const porVenir = de("antes").sort((a, b) => a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, "es"));
+  const terminadas = de("despues")
+    .filter((p) => diasEntre(p.hasta, hoy) <= DIAS_TERMINADA_EN_SELECTOR)
+    .sort((a, b) => b.hasta.localeCompare(a.hasta) || a.nombre.localeCompare(b.nombre, "es"));
+  return [
+    ...enCurso.map((campana) => ({ campana, grupo: "En curso" })),
+    ...porVenir.map((campana) => ({ campana, grupo: `Por venir · ${campana.desde.slice(0, 4)}` })),
+    ...terminadas.map((campana) => ({ campana, grupo: "Terminadas" })),
+  ];
+}

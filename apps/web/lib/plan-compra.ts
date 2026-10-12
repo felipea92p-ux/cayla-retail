@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { RPC_PLAN, RPC_PLANES, esIdDePlan, leerCampanas, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { hoyEnLima } from "@/lib/resumen-periodo";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
 export type FamiliaPlan = { codigo: string; nombre: string };
@@ -17,6 +18,10 @@ export type FamiliaPlan = { codigo: string; nombre: string };
 //
 // Una campaña pedida en la URL que no existe (un enlace viejo, un id escrito a mano) no deja la pantalla vacía diciendo «no hay ninguna
 // campaña» ni le manda basura a la base: se muestra la más reciente y la pantalla lo dice (chaos 2026-10-10).
+//
+// Sin campaña en la URL se abre la que toca hoy (`campanaQueAbre`, C1): la que está en curso, si no la próxima, si no la última terminada.
+// Para eso las campañas se leen ANTES que el plan (encadenadas, en paralelo con lo demás). Si esa lectura falla, la base elige (la de inicio
+// más reciente, como antes): el plan se ve igual.
 export async function getPlanCompra(planId?: string): Promise<{
   datos: unknown;
   falla: string | null;
@@ -29,11 +34,17 @@ export async function getPlanCompra(planId?: string): Promise<{
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
   let planPedidoNoExiste = !!planId?.trim() && pedido === null;
-  const [primera, familias, preparacion, planes] = await Promise.all([
-    supabase.rpc(RPC_PLAN as never, (pedido ? { p_plan_id: pedido } : {}) as never),
+  const leerPlanYCampanas = async () => {
+    const planes = await supabase.rpc(RPC_PLANES as never);
+    const leidas = planes.error ? null : leerCampanas(planes.data);
+    const abre = pedido ?? (leidas ? (campanaQueAbre(leidas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
+    const primera = await supabase.rpc(RPC_PLAN as never, (abre ? { p_plan_id: abre } : {}) as never);
+    return { planes, primera };
+  };
+  const [{ planes, primera }, familias, preparacion] = await Promise.all([
+    leerPlanYCampanas(),
     supabase.from("familias").select("codigo, nombre").order("orden"),
     getPreparacionMotor(),
-    supabase.rpc(RPC_PLANES as never),
   ]);
   let plan = primera;
   // `fn_plan_compra` devuelve null si el id no es de ninguna campaña: se vuelve a leer sin id (la más reciente).

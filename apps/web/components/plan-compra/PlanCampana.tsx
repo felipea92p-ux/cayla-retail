@@ -193,6 +193,7 @@ export function PlanCampana({
               <SelectorCampana
                 campanas={campanas}
                 actualId={plan.plan.id}
+                hoy={plan.hoy}
                 puedeCrear={esLider}
                 onNueva={() => setNuevaCampana(true)}
                 onEditar={() => setEditandoCampana(true)}
