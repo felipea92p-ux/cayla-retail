@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Años del Historial</title>
+<style>
+  /* Spike: cinco formas de elegir el año en Compras ▸ Plan ▸ Historial cuando los años ya no caben en una fila.
+     Tokens de la paleta CAYLA (globals.css / tema.css); la píldora es la `pildora-cayla` del ERP tal cual. */
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #ddd2c0; --tinta: #1a1a18; --taupe: #805c4c;
+    --rojo: #b8412d; --verde: #48603f; --sombra: #1a1a18;
+  }
+  :root[data-tema="oscuro"] {
+    --crema: #1a1a18; --papel: #22211e; --hueso: #2a2925; --sand: #3a3732; --tinta: #f5f0e8; --taupe: #c9a998;
+    --rojo: #d9654f; --verde: #93b384; --sombra: #000;
+  }
+  * { box-sizing: border-box }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "DM Sans", sans-serif }
+  button { font: inherit; color: inherit; cursor: pointer }
+  :focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px }
+  h1, h2 { font-family: "EB Garamond", ui-serif, Georgia, serif; font-weight: 600; margin: 0; line-height: 1.1 }
+  p { margin: 0 }
+  .etq { font: 600 11px/1.3 ui-sans-serif, system-ui; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe) }
+  .suave { color: color-mix(in srgb, var(--tinta) 62%, transparent) }
+  .envoltura { max-width: 1240px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 20px }
+  .mandos { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--crema) 92%, transparent); backdrop-filter: blur(6px);
+    display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--sand) }
+  .mandos .grupo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap }
+
+  /* La píldora del ERP */
+  .pildora { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid var(--sand); padding: 5px 14px;
+    font-size: 13px; font-weight: 600; color: var(--taupe); white-space: nowrap; background: transparent; transition: background-color 150ms, border-color 150ms, color 150ms; font-variant-numeric: tabular-nums }
+  .pildora:hover { color: var(--tinta); background: color-mix(in oklab, var(--sand) 40%, transparent) }
+  .pildora[aria-pressed="true"], .pildora[aria-current="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema) }
+
+  .opcion { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 18px 20px; display: grid; gap: 12px }
+  .opcion header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline }
+  .opcion h2 { font-size: 24px }
+  .ganas { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 18px; font-size: 13px }
+  .ganas b { font-weight: 600 }
+  /* El «ancho de pantalla» simulado: la cabecera de Historial a ese ancho */
+  .marco { border: 1px dashed var(--sand); border-radius: 12px; padding: 14px; background: var(--crema); max-width: 100% }
+  .marco .mini { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; margin-bottom: 10px }
+  .elegido { font-size: 13px; margin-top: 10px }
+  .elegido b { font-family: "EB Garamond", ui-serif, Georgia, serif; font-size: 20px }
+  .recomendada { display: inline-flex; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--verde) 16%, var(--papel)); color: var(--verde) }
+
+  /* 1 · Fila que se desliza */
+  .deslizar { position: relative; display: flex; align-items: center; gap: 6px }
+  .deslizar .pista { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; scroll-behavior: smooth; padding: 2px;
+    mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%) }
+  .deslizar .pista::-webkit-scrollbar { display: none }
+  .deslizar .pista > * { scroll-snap-align: center }
+  .flecha { flex: none; width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; color: var(--taupe) }
+  .flecha:disabled { opacity: .3; cursor: default }
+
+  /* 2 · Los recientes + «Más años» */
+  .prioridad { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow: hidden; padding: 2px }
+  .lista-flot { position: absolute; z-index: 30; margin-top: 6px; width: 280px; max-height: 320px; overflow: auto; background: var(--papel); border: 1px solid var(--sand); border-radius: 12px;
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--sombra) 22%, transparent); padding: 8px }
+  .lista-flot input { width: 100%; border: 1px solid var(--sand); background: var(--hueso); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; color: var(--tinta) }
+  .lista-flot .decada { font: 600 11px ui-sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); padding: 8px 6px 4px }
+  .lista-flot .rejilla { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px }
+  .lista-flot .rejilla button { border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 6px 0; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; color: var(--taupe) }
+  .lista-flot .rejilla button:hover { background: var(--hueso); color: var(--tinta) }
+  .lista-flot .rejilla button[aria-pressed="true"] { background: var(--tinta); color: var(--crema) }
+  .lista-flot .rejilla button:disabled { opacity: .3; cursor: default }
+
+  /* 3 · Anterior / siguiente */
+  .paso { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--sand); border-radius: 999px; padding: 3px; background: var(--papel) }
+  .paso .anio { border: 0; background: transparent; border-radius: 999px; padding: 4px 14px; font: 600 20px "EB Garamond", ui-serif, Georgia, serif; font-variant-numeric: tabular-nums }
+  .paso .anio:hover { background: var(--hueso) }
+  .paso .flecha { border: 0; width: 30px; height: 30px }
+
+  /* 4 · Por décadas */
+  .decadas { display: grid; gap: 10px }
+  .decadas .fila { display: flex; flex-wrap: wrap; gap: 8px }
+  .decadas .seg { display: inline-flex; border: 1px solid var(--sand); border-radius: 12px; padding: 3px; background: var(--hueso); flex-wrap: wrap }
+  .decadas .seg button { border: 0; background: transparent; border-radius: 9px; padding: 5px 12px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe) }
+  .decadas .seg button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 2px color-mix(in srgb, var(--sombra) 20%, transparent) }
+
+  /* 5 · Línea de tiempo con ventas */
+  .tiempo { display: grid; gap: 4px }
+  .tiempo .barras { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: end; gap: 3px; height: 72px }
+  .tiempo .barras button { border: 0; padding: 0; height: 100%; display: flex; align-items: end; background: transparent; border-radius: 4px }
+  .tiempo .barras button span { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--taupe) 38%, transparent); transition: background-color 150ms }
+  .tiempo .barras button:hover span { background: color-mix(in srgb, var(--taupe) 70%, transparent) }
+  .tiempo .barras button[aria-pressed="true"] span { background: var(--tinta) }
+  .tiempo .barras button.vacio span { background: repeating-linear-gradient(45deg, var(--sand) 0 3px, transparent 3px 6px); height: 6px !important }
+  .tiempo .ejes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; font-size: 11px; color: var(--taupe); font-variant-numeric: tabular-nums }
+  .tiempo .ejes span { text-align: center; white-space: nowrap; overflow: visible }
+  .tiempo .globo { font-size: 12px; min-height: 18px }
+  .cmp { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; overflow: hidden }
+  .cmp th, .cmp td { padding: 9px 12px; border-top: 1px solid var(--sand); text-align: left; vertical-align: top }
+  .cmp th { background: var(--hueso); font-weight: 600; color: var(--taupe); border-top: 0 }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important } }
+</style>
+</head>
+<body>
+<div class="envoltura">
+  <header style="display:grid;gap:8px">
+    <span class="etq">Spike · Compras ▸ Plan de campaña ▸ Historial</span>
+    <h1 style="font-size:clamp(32px,5vw,46px)">¿Qué pasa cuando hay 30 años?</h1>
+    <p class="suave" style="max-width:72ch">Hoy son 10 píldoras (2017–2026) y caben. Con los años la fila se vuelve dos, tres, cuatro filas y empuja las cifras hacia abajo.
+      Aquí, cinco formas de acomodarlos. Cambia cuántos años hay, el ancho de la pantalla y el tema: cada opción se redibuja.</p>
+  </header>
+
+  <div class="mandos">
+    <div class="grupo"><span class="etq">Años con historia</span>
+      <button class="pildora" data-n="10">10</button><button class="pildora" data-n="30" aria-pressed="true">30</button><button class="pildora" data-n="60">60</button></div>
+    <div class="grupo"><span class="etq">Ancho</span>
+      <button class="pildora" data-w="375">Celular 375</button><button class="pildora" data-w="768">Tablet 768</button><button class="pildora" data-w="1073" aria-pressed="true">Laptop 1073</button><button class="pildora" data-w="1440">Mac 1440</button></div>
+    <div class="grupo"><span class="etq">Tema</span>
+      <button class="pildora" data-t="claro" aria-pressed="true">Claro</button><button class="pildora" data-t="oscuro">Oscuro</button></div>
+  </div>
+
+  <section class="opcion">
+    <header><h2>0 · Lo de hoy, con 30 años</h2><span class="suave">Para comparar</span></header>
+    <div class="marco" data-marco><div class="mini suave"><span>Cabecera de Historial</span><span data-ancho></span></div><div id="o0" style="display:flex;flex-wrap:wrap;gap:8px"></div><p class="elegido suave" data-elegido="o0"></p></div>
+    <p class="suave" style="font-size:13px" id="o0nota"></p>
+  </section>
+
+  <section class="opcion">
+    <header><h2>1 · Una fila que se desliza</h2><span class="suave">Como un carrusel de fechas</span></header>
+    <div class="marco" data-marco><div class="mini suave"><span>Cabecera de Historial</span><span data-ancho></span></div><div id="o1"></div><p class="elegido suave" data-elegido="o1"></p></div>
+    <div class="ganas"><p><b>Ganas:</b> siempre una fila; el año elegido queda centrado; se desliza con el dedo o el trackpad.</p><p><b>Pagas:</b> con mouse, ir a 2019 son varios clics en la flecha; lo que no se ve, no se sabe que existe.</p></div>
+  </section>
+
+  <section class="opcion">
+    <header><h2>2 · Los recientes a la vista, el resto en «Más años»</h2><span class="recomendada">Recomendada</span></header>
+    <div class="marco" data-marco><div class="mini suave"><span>Cabecera de Historial</span><span data-ancho></span></div><div id="o2" style="position:relative"></div><p class="elegido suave" data-elegido="o2"></p></div>
+    <div class="ganas"><p><b>Ganas:</b> una fila a cualquier ancho; caben las que caben (5 en celular, 9 en laptop); el resto, por década y con buscador, como cualquier combo del ERP. Si eliges uno viejo, se queda a la vista.</p><p><b>Pagas:</b> un clic más para un año viejo, que casi nadie mira.</p></div>
+  </section>
+
+  <section class="opcion">
+    <header><h2>3 · Año anterior / siguiente</h2><span class="suave">El año grande, con flechas</span></header>
+    <div class="marco" data-marco><div class="mini suave"><span>Cabecera de Historial</span><span data-ancho></span></div><div id="o3" style="position:relative"></div><p class="elegido suave" data-elegido="o3"></p></div>
+    <div class="ganas"><p><b>Ganas:</b> lo más compacto; ‹ › para comparar un año con el de al lado; tocar el año abre la rejilla completa.</p><p><b>Pagas:</b> no se ve de un vistazo cuántos años hay; cambia el estilo de las demás pestañas de Plan (píldoras).</p></div>
+  </section>
+
+  <section class="opcion">
+    <header><h2>4 · Por décadas</h2><span class="suave">Dos niveles</span></header>
+    <div class="marco" data-marco><div class="mini suave"><span>Cabecera de Historial</span><span data-ancho></span></div><div id="o4"></div><p class="elegido suave" data-elegido="o4"></p></div>
+    <div class="ganas"><p><b>Ganas:</b> nunca más de 10 años a la vez; ordena bien 60 años.</p><p><b>Pagas:</b> dos controles para una sola pregunta («¿qué año?»); con 10 años es pura sobra.</p></div>
+  </section>
+
+  <section class="opcion">
+    <header><h2>5 · Línea de tiempo con las ventas</h2><span class="suave">Ver antes que leer</span></header>
+    <div class="marco" data-marco><div class="mini suave"><span>Cabecera de Historial · ventas inventadas</span><span data-ancho></span></div><div id="o5"></div><p class="elegido suave" data-elegido="o5"></p></div>
+    <div class="ganas"><p><b>Ganas:</b> 30 o 60 años en el mismo alto; se ve qué año vendió más antes de entrar; ← → para moverse.</p><p><b>Pagas:</b> en celular cada barra es angosta para el dedo (bajo 44 px); necesita las ventas de cada año antes de dibujarse.</p></div>
+  </section>
+
+  <section class="opcion">
+    <header><h2>Lado a lado</h2></header>
+    <div style="overflow-x:auto"><table class="cmp">
+      <thead><tr><th></th><th>Filas que ocupa</th><th>Llegar a un año viejo</th><th>Celular 375</th><th>Piezas del ERP</th></tr></thead>
+      <tbody>
+        <tr><td>0 · Hoy</td><td>2 a 6</td><td>1 clic (si lo encuentras)</td><td>6 filas</td><td>pildora-cayla</td></tr>
+        <tr><td>1 · Desliza</td><td>1</td><td>varios clics o deslizar</td><td>bien con el dedo</td><td>pildora-cayla + flechas nuevas</td></tr>
+        <tr><td>2 · Recientes + Más años</td><td>1</td><td>2 clics, o escribir el año</td><td>bien</td><td>pildora-cayla + DesplegablePildora (ya existe)</td></tr>
+        <tr><td>3 · Anterior / siguiente</td><td>1</td><td>2 clics</td><td>muy bien</td><td>pieza nueva</td></tr>
+        <tr><td>4 · Décadas</td><td>2</td><td>2 clics</td><td>3 filas</td><td>pildora-cayla + segmento</td></tr>
+        <tr><td>5 · Línea de tiempo</td><td>1 (más alta)</td><td>1 clic</td><td>barras de 9 px</td><td>pieza nueva (gráfico)</td></tr>
+      </tbody></table></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var estado = { n: 30, ancho: 1073, anio: null, abierto: null };
+  function anios() { var hoy = 2016 + estado.n; var r = []; for (var a = hoy; a > hoy - estado.n; a--) r.push(a); return r; }
+  // Ventas inventadas: crecen con ruido estable; 2020 cae (pandemia) y el año en curso va a medias.
+  function ventas(a) { var hoy = anios()[0]; var base = 80 + (a - 2017) * 9 + ((a * 37) % 23) - 11; if (a === 2020) base *= .45; if (a === hoy) base *= .7; return Math.max(8, base); }
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s); };
+
+  function elegir(a) { estado.anio = a; estado.abierto = null; pintar(); }
+  function pild(a, extra) { return '<button class="pildora" data-anio="' + a + '"' + (a === estado.anio ? ' aria-current="true"' : "") + (extra || "") + ">" + a + "</button>"; }
+
+  function pintarElegido() {
+    document.querySelectorAll("[data-elegido]").forEach(function (p) { p.innerHTML = "Viendo <b>" + estado.anio + "</b> · sus campañas y cifras van debajo"; });
+    document.querySelectorAll("[data-ancho]").forEach(function (s) { s.textContent = estado.ancho + " px"; });
+    document.querySelectorAll("[data-marco]").forEach(function (m) { m.style.width = Math.min(estado.ancho, m.parentElement.clientWidth - 40) + "px"; });
+  }
+
+  // 0 · hoy
+  function o0() {
+    $("#o0").innerHTML = anios().map(function (a) { return pild(a); }).join("");
+    requestAnimationFrame(function () {
+      var tops = new Set(); $("#o0").querySelectorAll("button").forEach(function (b) { tops.add(b.offsetTop); });
+      $("#o0nota").textContent = "A " + estado.ancho + " px: " + tops.size + (tops.size === 1 ? " fila" : " filas") + " de píldoras antes de llegar a las cifras.";
+    });
+  }
+
+  // 1 · desliza
+  function o1() {
+    $("#o1").innerHTML = '<div class="deslizar"><button class="flecha" data-mover="-1" aria-label="Años más nuevos">‹</button><div class="pista" id="pista1">' +
+      anios().map(function (a) { return pild(a); }).join("") + '</div><button class="flecha" data-mover="1" aria-label="Años más viejos">›</button></div>';
+    requestAnimationFrame(function () {
+      var p = $("#pista1"), sel = p.querySelector('[aria-current="true"]');
+      if (sel) p.scrollLeft = sel.offsetLeft - p.clientWidth / 2 + sel.offsetWidth / 2;
+      flechas1();
+    });
+    $("#pista1").addEventListener("scroll", flechas1);
+  }
+  function flechas1() {
+    var p = $("#pista1"); if (!p) return;
+    var bs = p.parentElement.querySelectorAll(".flecha");
+    bs[0].disabled = p.scrollLeft <= 2; bs[1].disabled = p.scrollLeft + p.clientWidth >= p.scrollWidth - 2;
+  }
+
+  // 2 · prioridad: caben las que caben + «Más años»
+  function rejillaPorDecada(lista, filtro) {
+    var porDec = {};
+    lista.forEach(function (a) { var d = Math.floor(a / 10) * 10; (porDec[d] = porDec[d] || []).push(a); });
+    return Object.keys(porDec).sort(function (x, y) { return y - x; }).map(function (d) {
+      var celdas = []; for (var a = +d + 9; a >= +d; a--) celdas.push(a);
+      var visibles = celdas.filter(function (a) { return !filtro || String(a).indexOf(filtro) >= 0; });
+      if (!visibles.length) return "";
+      return '<div class="decada">' + d + "s</div><div class=rejilla>" + visibles.map(function (a) {
+        var hay = lista.indexOf(a) >= 0;
+        return '<button data-anio="' + a + '"' + (a === estado.anio ? ' aria-pressed="true"' : "") + (hay ? "" : " disabled") + ">" + a + "</button>";
+      }).join("") + "</div>";
+    }).join("") || '<p class="suave" style="padding:8px">Ningún año tiene «' + esc(filtro) + '».</p>';
+  }
+  function o2() {
+    var cont = $("#o2"), todos = anios();
+    var ancho = Math.min(estado.ancho, cont.parentElement.parentElement.clientWidth - 40) - 30;
+    var PILD = 66, GAP = 8, MAS = 118;
+    var caben = Math.max(2, Math.floor((ancho - MAS + GAP) / (PILD + GAP)));
+    var vista = todos.slice(0, caben);
+    if (vista.indexOf(estado.anio) < 0) vista = todos.slice(0, caben - 1).concat([estado.anio]);
+    var resto = todos.filter(function (a) { return vista.indexOf(a) < 0; });
+    cont.innerHTML = '<div class="prioridad">' + vista.map(function (a) { return pild(a); }).join("") +
+      (resto.length ? '<button class="pildora" data-abrir="o2" aria-expanded="' + (estado.abierto === "o2") + '">Más años · ' + resto.length + " ▾</button>" : "") + "</div>" +
+      (estado.abierto === "o2" ? '<div class="lista-flot" style="right:0"><input id="buscar2" placeholder="Escribe un año" inputmode="numeric" autocomplete="off">' +
+        '<div id="rej2">' + rejillaPorDecada(resto) + "</div></div>" : "");
+    var b = $("#buscar2");
+    if (b) { b.focus(); b.addEventListener("input", function () { $("#rej2").innerHTML = rejillaPorDecada(resto, b.value.trim()); }); }
+  }
+
+  // 3 · anterior / siguiente
+  function o3() {
+    var t = anios(), i = t.indexOf(estado.anio);
+    $("#o3").innerHTML = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div class="paso">' +
+      '<button class="flecha" data-paso="1" aria-label="Año anterior"' + (i >= t.length - 1 ? " disabled" : "") + ">‹</button>" +
+      '<button class="anio" data-abrir="o3" aria-expanded="' + (estado.abierto === "o3") + '">' + estado.anio + " ▾</button>" +
+      '<button class="flecha" data-paso="-1" aria-label="Año siguiente"' + (i <= 0 ? " disabled" : "") + ">›</button></div>" +
+      '<span class="suave" style="font-size:12px">' + t.length + " años con historia · " + t[t.length - 1] + "–" + t[0] + "</span></div>" +
+      (estado.abierto === "o3" ? '<div class="lista-flot" style="left:0">' + rejillaPorDecada(t) + "</div>" : "");
+  }
+
+  // 4 · décadas
+  function o4() {
+    var t = anios(), dec = Math.floor(estado.anio / 10) * 10;
+    var decs = []; t.forEach(function (a) { var d = Math.floor(a / 10) * 10; if (decs.indexOf(d) < 0) decs.push(d); });
+    $("#o4").innerHTML = '<div class="decadas"><div class="seg">' + decs.map(function (d) {
+      return '<button data-dec="' + d + '" aria-pressed="' + (d === dec) + '">' + d + "s</button>";
+    }).join("") + '</div><div class="fila">' + t.filter(function (a) { return Math.floor(a / 10) * 10 === dec; }).map(function (a) { return pild(a); }).join("") + "</div></div>";
+  }
+
+  // 5 · línea de tiempo
+  function o5() {
+    var t = anios().slice().reverse(), max = Math.max.apply(null, t.map(ventas));
+    var paso = t.length > 40 ? 10 : 5;
+    $("#o5").innerHTML = '<div class="tiempo" role="group" aria-label="Año, con lo vendido"><div class="globo suave" id="globo5">Pasa el mouse por una barra · ← → para moverte</div><div class="barras" id="barras5">' +
+      t.map(function (a) {
+        return '<button data-anio="' + a + '" aria-pressed="' + (a === estado.anio) + '" aria-label="' + a + '" title="' + a + '"><span style="height:' + Math.round(ventas(a) / max * 100) + '%"></span></button>';
+      }).join("") + '</div><div class="ejes">' +
+      t.map(function (a, i) { return "<span>" + (a % paso === 0 || i === 0 || i === t.length - 1 || a === estado.anio ? (a === estado.anio ? "<b style='color:var(--tinta)'>" + a + "</b>" : a) : "") + "</span>"; }).join("") + "</div></div>";
+    $("#barras5").addEventListener("mouseover", function (e) {
+      var b = e.target.closest("[data-anio]"); if (!b) return;
+      var a = +b.dataset.anio; $("#globo5").innerHTML = "<b>" + a + "</b> · S/ " + Math.round(ventas(a) * 1000).toLocaleString("es-PE") + " vendidos" + (a === anios()[0] ? " (hasta hoy)" : "");
+    });
+  }
+
+  function pintar() { pintarElegido(); o0(); o1(); o2(); o3(); o4(); o5(); }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) { if (estado.abierto && !e.target.closest(".lista-flot")) { estado.abierto = null; pintar(); } return; }
+    if (b.dataset.n) { estado.n = +b.dataset.n; marcar("[data-n]", b); var t = anios(); estado.anio = t[1]; pintar(); return; }
+    if (b.dataset.w) { estado.ancho = +b.dataset.w; marcar("[data-w]", b); pintar(); return; }
+    if (b.dataset.t) { document.documentElement.dataset.tema = b.dataset.t; marcar("[data-t]", b); return; }
+    if (b.dataset.anio && !b.disabled) { elegir(+b.dataset.anio); return; }
+    if (b.dataset.abrir) { estado.abierto = estado.abierto === b.dataset.abrir ? null : b.dataset.abrir; pintar(); return; }
+    if (b.dataset.mover) { var p = $("#pista1"); p.scrollBy({ left: +b.dataset.mover * p.clientWidth * .7 }); return; }
+    if (b.dataset.paso) { var t2 = anios(), i = t2.indexOf(estado.anio) + +b.dataset.paso; if (t2[i]) elegir(t2[i]); return; }
+    if (b.dataset.dec) { var d = +b.dataset.dec, ts = anios().filter(function (a) { return Math.floor(a / 10) * 10 === d; }); elegir(ts[0]); return; }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && estado.abierto) { estado.abierto = null; pintar(); return; }
+    if (!e.target.closest || !e.target.closest("#barras5")) return;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    var t = anios(), i = t.indexOf(estado.anio) + (e.key === "ArrowLeft" ? 1 : -1);
+    if (t[i]) { elegir(t[i]); var nb = document.querySelector('#barras5 [data-anio="' + t[i] + '"]'); if (nb) nb.focus(); }
+  });
+  function marcar(sel, b) { document.querySelectorAll(sel).forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); }
+  window.addEventListener("resize", pintar);
+  estado.anio = anios()[1];
+  pintar();
+})();
+</script>
+</body>
+</html>

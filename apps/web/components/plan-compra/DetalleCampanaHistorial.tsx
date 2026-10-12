@@ -38,6 +38,7 @@ export function DetalleCampanaHistorial({
   etiquetas,
   anios,
   planDeResultados,
+  tiendaInicial = null,
   onClose,
 }: {
   campana: CampanaDelAnio;
@@ -48,10 +49,12 @@ export function DetalleCampanaHistorial({
   anios: readonly number[];
   /** Si esta campaña tiene su plan en el ERP (con prendas y colores), su id: lleva a Resultados. */
   planDeResultados: string | null;
+  /** La tienda de la cabecera: el detalle abre en ella aunque esa campaña no tenga datos ahí (lo dice). */
+  tiendaInicial?: string | null;
   onClose: () => void;
 }) {
   const conDatos = historial.tiendas.filter((t) => medir(historial, t, campana.desde, campana.hasta).estado === "medida");
-  const [tiendaId, setTiendaId] = useState(conDatos[0]?.id ?? historial.tiendas[0]?.id ?? "");
+  const [tiendaId, setTiendaId] = useState(tiendaInicial ?? conDatos[0]?.id ?? historial.tiendas[0]?.id ?? "");
   const tienda = historial.tiendas.find((t) => t.id === tiendaId) ?? historial.tiendas[0];
   const detalle = useMemo(() => (tienda ? diasDeLaCampana(historial, tienda, campana.desde, campana.hasta) : null), [historial, tienda, campana]);
   const medida = tienda ? medir(historial, tienda, campana.desde, campana.hasta) : null;

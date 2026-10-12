@@ -463,6 +463,8 @@ type FormaDesplegable = {
   flecha: boolean;
   /** Se para sobre el hilo vivo. */
   hilo: boolean;
+  /** Sin nada elegido, el marcador se lee como el resto del control (no atenuado): «Más años · 12» es una acción, no un hueco. */
+  marcadorComoTexto?: boolean;
   /** Como el <select> del navegador, que es lo que dibuja el spike de Finanzas: mide lo que su opción MÁS LARGA (no
    *  baila al elegir otra) y su lista puede ser más ancha que el control. */
   comoNativo: boolean;
@@ -476,6 +478,9 @@ const FORMA_DESPLEGABLE = {
     hilo: true,
     comoNativo: false,
   },
+  /** La `pildora-cayla` de una fila de píldoras que eligen un período (Historial: «Más años», 2026-10-12): la última píldora de la
+   *  fila abre la lista de lo que no cupo. */
+  pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
   /** Sola con su borde, en la cabecera (la sede). */
   pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
@@ -540,7 +545,7 @@ export function Desplegable<T extends string>({
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
-  const f = FORMA_DESPLEGABLE[forma];
+  const f: FormaDesplegable = FORMA_DESPLEGABLE[forma];
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
   const [busqueda, setBusqueda] = useState("");
@@ -763,7 +768,7 @@ export function Desplegable<T extends string>({
             ))}
           </span>
         ) : (
-          <span className={elegida ? "" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
+          <span className={elegida || f.marcadorComoTexto ? "" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
         )}
         {f.flecha && (
           <svg
