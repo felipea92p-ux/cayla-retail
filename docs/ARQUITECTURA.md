@@ -1310,7 +1310,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   dos rutas usan `lib/transmitir-comprobante.ts` (guardas de `lib/transmision-reglas.ts`, ítems de la venta
   con `itemsParaLucode`) → `lib/lucode.ts` (el tipo de documento sale del catálogo 06 de
   `lib/documento-comprobante-reglas.ts`, la misma tabla del QR, el papel y el registro de ventas) → `actualizar_transmision_comprobante`, o
-  `fn_marcar_reintento_transmision` si Lucode no responde. `/api/lucode/reintentar` toma lo vencido con
+  `fn_marcar_reintento_transmision` si Lucode no responde. Si Lucode contesta que el número «fue emitido anteriormente»,
+  `lib/resolver-ya-emitido.ts` (reglas en `lib/ya-emitido-reglas.ts`, ADR-0378) pregunta su estado, baja el XML firmado,
+  lo compara con el comprobante y solo entonces guarda lo que dice SUNAT; si es otro documento, queda en la cola como
+  «número ocupado». Comprobantes, al abrirse, barre en varias pasadas (`vaciarColaSunat`). `/api/lucode/reintentar` toma lo vencido con
   `fn_tomar_comprobantes_para_reintento` (reserva de 5 min, `for update skip locked`), y en la misma pasada
   pregunta por lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— con
   `fn_tomar_comprobantes_para_consultar` → `lib/consultar-comprobante.ts` (reglas en `lib/consulta-sunat-reglas.ts`)
