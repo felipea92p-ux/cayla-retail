@@ -17,6 +17,7 @@ import { ComparativaCaja } from "@/components/CajaComparativa";
 import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import { GastoRapidoModal } from "@/components/GastoRapidoModal";
+import { IngresoRapidoModal } from "@/components/IngresoRapidoModal";
 import {
   AccesosCajaEscritorio,
   AccesosCajaMovil,
@@ -101,6 +102,7 @@ export function CajaAbiertaPanel({
   contexto,
   accesos,
   gasto = null,
+  sedesIngreso = [],
   abrirCierre = false,
   comparativa = null,
 }: {
@@ -137,12 +139,14 @@ export function CajaAbiertaPanel({
     /** Los conceptos del gasto rápido, ordenados por lo que más se gasta en esta sede (`ordenarPorFrecuencia`). */
     frecuencia: { conceptos: ConceptoOrdenado[]; vecesOtro: number };
   } | null;
+  /** Las otras sedes activas (tiendas y taller), para «Préstamo de otra sede» en «Registrar ingreso». */
+  sedesIngreso?: { id: string; nombre: string }[];
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | "gastoCompleto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
+  const [modal, setModal] = useState<"movimiento" | "ingreso" | "cerrar" | "todos" | "gasto" | "gastoCompleto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
   // El recordatorio de cierre (ADR-0305) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
   // El `?cerrar=1` se borra de la barra al llegar: recargar la página no debe volver a abrir el cierre.
   useEffect(() => {
@@ -267,9 +271,10 @@ export function CajaAbiertaPanel({
           Registrar gasto
         </Boton>
       )}
+      {/* «Depósito o retiro» se fue de aquí (Felipe 2026-10-10): sacar plata que no es gasto se abre desde las hojas de gasto e ingreso. */}
       {comparativa && (
-        <Boton type="button" onClick={() => setModal("movimiento")}>
-          Depósito o retiro
+        <Boton type="button" onClick={() => setModal("ingreso")}>
+          Registrar ingreso
         </Boton>
       )}
       <Boton type="button" onClick={() => setModal("cierres")}>
@@ -477,7 +482,7 @@ export function CajaAbiertaPanel({
 
         {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
         <div className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
-          <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
+          <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <AccesosCajaMovil accesos={accesos} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <TarjetasElegibles contexto={contexto} ubicacionId={caja.ubicacionId} />
         </div>
@@ -494,9 +499,20 @@ export function CajaAbiertaPanel({
       {/* Escritorio: la barra de cierre se queda a la vista (en el celular, el «Cerrar» de la barra de abajo). */}
       <BarraCierreCaja estado={estadoCierre} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
+      <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "ingreso" && (
+        <IngresoRapidoModal
+          caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
+          ubicacionNombre={ubicacionNombre}
+          esLider={personaRol === "lider"}
+          sedes={sedesIngreso}
+          accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
+          onCerrar={() => setModal(null)}
+          onRetiro={() => setModal("movimiento")}
+        />
+      )}
       {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
       {modal === "gasto" && gasto && (
         <GastoRapidoModal
@@ -508,6 +524,7 @@ export function CajaAbiertaPanel({
           hoy={gasto.hoy}
           onCerrar={() => setModal(null)}
           onFormularioCompleto={() => setModal("gastoCompleto")}
+          onRetiro={() => setModal("movimiento")}
         />
       )}
       {modal === "gastoCompleto" && gasto && (
