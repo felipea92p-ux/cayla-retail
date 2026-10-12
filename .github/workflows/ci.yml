@@ -294,6 +294,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cuenta-sellada
 
+      # Registrar ingreso con su origen (ADR-0375): caja fuerte, líder y préstamo de otra sede bajan su cuenta en la misma
+      # operación; el flujo y el balance los leen entre cuentas o como aporte; los motivos de sistema no se tipean. ROLLBACK.
+      - name: pruebas:caja-ingresos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:caja-ingresos
+
       - name: pruebas:por-pagar-consolidado
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:por-pagar-consolidado
