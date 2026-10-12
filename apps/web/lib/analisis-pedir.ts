@@ -168,6 +168,23 @@ export function alcancePorTipo(
     .sort((a, b) => (a.dias ?? Infinity) - (b.dias ?? Infinity) || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
 }
 
+/**
+ * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que se acaba antes (lo que `alcancePorTipo` ya
+ * devuelve); o lo que más se vende primero, a igual venta lo que se acaba antes y después por nombre. Lo que no se vendió va al final.
+ */
+export type OrdenAlcance = "acaba" | "vende";
+export const ORDENES_ALCANCE: readonly { clave: OrdenAlcance; texto: string }[] = [
+  { clave: "acaba", texto: "Se acaba antes" },
+  { clave: "vende", texto: "Más vendido" },
+];
+
+export function ordenarAlcance(tipos: readonly AlcanceTipo[], orden: OrdenAlcance): AlcanceTipo[] {
+  if (orden === "acaba") return [...tipos];
+  return [...tipos].sort(
+    (a, b) => b.vendidas - a.vendidas || (a.dias ?? Infinity) - (b.dias ?? Infinity) || a.categoria.localeCompare(b.categoria, "es"),
+  );
+}
+
 /** «Ya no hay», «3 días», «4 semanas», «Más de 6 meses» o «No se vendió»: para cuánto te alcanza, como se dice en tienda. */
 export function textoAlcance(dias: number | null): string {
   if (dias === null) return "No se vendió";

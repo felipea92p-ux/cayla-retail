@@ -21,6 +21,7 @@ import {
   topsPosibles,
   cuantasVendidas,
   fraseDelTipo,
+  ordenarAlcance,
   proximaNavidad,
   rielNavidad,
   rindePorCategoria,
@@ -459,5 +460,24 @@ describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Fe
     expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
     expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
     expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega a Navidad.");
+  });
+});
+
+describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
+  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, tiene: 5, nunca: 0, dias, pide: false });
+  // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
+  const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
+
+  it("por defecto, lo que se acaba antes (el orden que ya trae)", () => {
+    expect(ordenarAlcance(tipos, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Tops", "Bodys", "Shorts"]);
+  });
+
+  it("«Más vendido»: lo que más se vende primero; a igual venta, lo que se acaba antes; lo que no se vendió, al final", () => {
+    expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
+  });
+
+  it("no cambia la lista que recibe", () => {
+    ordenarAlcance(tipos, "vende");
+    expect(tipos[0].categoria).toBe("Capas");
   });
 });
