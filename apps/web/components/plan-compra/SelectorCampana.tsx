@@ -62,6 +62,8 @@ export function SelectorCampana({
       opciones={opciones}
       forma="pastilla"
       alineacion="derecha"
+      // Las campañas crecen seis por año: se buscan por nombre o por año («madre», «2027») aunque todavía sean pocas (Felipe 2026-10-12).
+      conBuscador
       etiquetaAccesible="Campaña"
       marcador="Campaña"
       // En la cabecera mide lo mismo que «Exportar» (40 px): la pastilla de la sede mide 30 y quedaba más baja en la misma fila.
