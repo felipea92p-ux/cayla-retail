@@ -38,8 +38,8 @@ import {
 } from "@/lib/llegada-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { useConteoPorSede } from "@/components/recibir/ConteoPorSede";
-import { llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { avisoConteoGuardado, avisoConteoRetomado, llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
 import { Desplegable } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -108,8 +108,8 @@ export function LlegoMercaderia({
 }) {
   const router = useRouter();
   // Lo escaneado es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se escaneó en
-  // otra sede quedó guardado en `ConteoPorSede`. Si se vuelve a una sede con algo escaneado, se arranca desde ahí.
-  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useConteoPorSede<ConteoDeLaLlegada>(ubicacionId);
+  // otra sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo escaneado, se arranca desde ahí.
+  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useTrabajoPorSede<ConteoDeLaLlegada>(ubicacionId);
   const [proveedorId, setProveedorId] = useState(guardado?.proveedorId ?? "");
   const [numeroGuia, setNumeroGuia] = useState(guardado?.numeroGuia ?? "");
   const [lineas, setLineas] = useState<LineaLlegada[]>(guardado?.lineas ?? []);
@@ -167,14 +167,16 @@ export function LlegoMercaderia({
     !ok && (contado || guardadosEnOtras.length > 0),
     mensajeDeSalida(contado ? "Hay prendas escaneadas que todavía no se recibieron. Si sales ahora, se pierde lo escaneado." : null, guardadosEnOtras),
   );
-  // Lo escaneado, al día, para `ConteoPorSede`: si la sede cambia, queda guardado en ESTA sede.
+  // Lo escaneado, al día, para `TrabajoPorSede`: si la sede cambia, queda guardado en ESTA sede.
   useEffect(() => {
     reportarConteo(
       !ok && contado
         ? {
             etiqueta: ubicacionEtiqueta,
             unidades: unidadesDeLaLlegada(lineas),
-            conteo: { proveedorId, numeroGuia, lineas, sinFactura, agregados, token: token.current },
+            trabajo: { proveedorId, numeroGuia, lineas, sinFactura, agregados, token: token.current },
+            avisoAlGuardar: avisoConteoGuardado({ etiqueta: ubicacionEtiqueta, unidades: unidadesDeLaLlegada(lineas) }),
+            avisoAlVolver: avisoConteoRetomado({ etiqueta: ubicacionEtiqueta, unidades: 0 }),
           }
         : null,
     );

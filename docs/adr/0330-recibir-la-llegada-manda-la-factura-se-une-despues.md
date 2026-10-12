@@ -168,8 +168,8 @@ de Vender (ADR-0049, act. 2026-10-11): perder 40 cajas contadas por un clic en e
   recepción recuperada al volver a su sede también se protege.
 
 **Cómo está hecho.** `recibir/page.tsx` monta cada puerta con `key={claveDeLaRecepcion(<sede>)}` dentro de
-`<ConteoPorSede key="llegada"|"factura" ubicacionId>` (`components/recibir/ConteoPorSede.tsx`), que NO cambia de key con la sede y
-por eso sobrevive al cambio. Cada pantalla le reporta su conteo en un efecto (`useConteoPorSede`) y lo lee al montarse; cuando la
+`<TrabajoPorSede key="llegada"|"factura" ubicacionId>` (`components/ui/TrabajoPorSede.tsx`), que NO cambia de key con la sede y
+por eso sobrevive al cambio. Cada pantalla le reporta su conteo en un efecto (`useTrabajoPorSede`) y lo lee al montarse; cuando la
 sede cambia, el guardián guarda el de la anterior. Guarda uno por sede y no uno solo: los efectos del hijo nuevo corren antes que
 el del padre, y el conteo vacío de la sede nueva pisaría el de la que se deja. En la vista contra factura el guardián va por
 encima del «No hay nada pendiente de recibir»: si la sede nueva no tiene facturas, la recepción no se dibuja y lo guardado de la

@@ -26,7 +26,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getMarcasPorProveedor, getRubrosEnUso } from "@/lib/proveedores";
 import { LlegoMercaderia } from "@/components/LlegoMercaderia";
-import { ConteoPorSede } from "@/components/recibir/ConteoPorSede";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { claveDeLaRecepcion } from "@/lib/recibir-cambio-de-sede";
 import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
@@ -224,8 +224,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     return (
       // Lo escaneado es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`, sin
       // cambiar la ruta, y con la misma key React conservaba lo escaneado en una sede y lo recibía en la otra. La sede va en la key
-      // y `ConteoPorSede` (que no cambia con la sede) guarda lo de la sede que se deja para retomarlo al volver.
-      <ConteoPorSede key="llegada" ubicacionId={persona.ubicacionId}>
+      // y `TrabajoPorSede` (que no cambia con la sede) guarda lo de la sede que se deja para retomarlo al volver.
+      <TrabajoPorSede key="llegada" ubicacionId={persona.ubicacionId}>
         <div className="space-y-6">
           {encabezado}
           {/* Si lo que llegó es de otra sede de CAYLA, no se recibe aquí: se cuenta en Traslados (ADR-0299). */}
@@ -274,7 +274,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
           </section>
         </div>
-      </ConteoPorSede>
+      </TrabajoPorSede>
     );
   }
 
@@ -321,7 +321,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // Lo contado es de su sede (Felipe, 2026-10-11): ver «Llegó mercadería» arriba. Aquí la sede vivía además en un `useState` de
     // `RecepcionEnvio` que nunca se ponía al día, y `recibir_envio` salía con la sede ANTERIOR. El guardián va por encima del «no
     // hay nada pendiente»: si la sede nueva no tiene facturas, lo guardado de la otra no se pierde con él.
-    <ConteoPorSede key="factura" ubicacionId={ubicacionMirada}>
+    <TrabajoPorSede key="factura" ubicacionId={ubicacionMirada}>
       <div className="space-y-6">
         {encabezado}
         {avisoTraslados}
@@ -388,7 +388,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
         <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={{ ...params, vista: "factura" }} pathname="/recibir" />
       </div>
-    </ConteoPorSede>
+    </TrabajoPorSede>
   );
 }
 

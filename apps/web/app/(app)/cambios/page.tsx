@@ -11,6 +11,8 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
 import { exigir } from "@/lib/resultado";
 import { CambiosPanel } from "@/components/CambiosPanel";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { claveDeCambios } from "@/lib/cambios-cambio-de-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
@@ -75,39 +77,45 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
         />
       </EncabezadoPagina>
 
-      <CambiosPanel
-        lineas={lineas}
-        busqueda={q?.trim() ?? ""}
-        todasLasSedes={todasLasSedes}
-        puedeVerTodas={esLider}
-        sede={persona.ubicacionEtiqueta}
-        ubicacionId={persona.ubicacionId}
-        colaboradora={persona.nombre}
-        cajaAbierta={caja !== null}
-        tallasQueNoCalzan={tallasQueNoCalzan}
-        abrirItemId={item}
-        sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
-        catalogo={catalogo
-          .filter((v) => v.activo)
-          .map((v) => ({
-            varianteId: v.varianteId,
-            productoId: v.productoId,
-            sku: v.sku,
-            codigo: v.codigo,
-            referencia: v.referencia,
-            talla: v.talla,
-            color: v.color,
-            colorHex: v.colorHex,
-            fotoUrl: v.fotoUrl,
-            precio: preciosAqui[v.varianteId] ?? v.precio,
-            precioPrenda: v.precio,
-            preciosPorTienda: preciosPorTiendaDe(v.varianteId),
-            stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
-            apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
-            stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
-            codigosBarras: v.codigosBarras,
-          }))}
-      />
+      {/* El cambio a medio armar es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`,
+          sin cambiar la ruta. El panel lleva la sede en su key y `TrabajoPorSede`, que no cambia con la sede, guarda el cambio de la que
+          se deja para retomarlo al volver. */}
+      <TrabajoPorSede key="cambios" ubicacionId={persona.ubicacionId}>
+        <CambiosPanel
+          key={claveDeCambios(persona.ubicacionId)}
+          lineas={lineas}
+          busqueda={q?.trim() ?? ""}
+          todasLasSedes={todasLasSedes}
+          puedeVerTodas={esLider}
+          sede={persona.ubicacionEtiqueta}
+          ubicacionId={persona.ubicacionId}
+          colaboradora={persona.nombre}
+          cajaAbierta={caja !== null}
+          tallasQueNoCalzan={tallasQueNoCalzan}
+          abrirItemId={item}
+          sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
+          catalogo={catalogo
+            .filter((v) => v.activo)
+            .map((v) => ({
+              varianteId: v.varianteId,
+              productoId: v.productoId,
+              sku: v.sku,
+              codigo: v.codigo,
+              referencia: v.referencia,
+              talla: v.talla,
+              color: v.color,
+              colorHex: v.colorHex,
+              fotoUrl: v.fotoUrl,
+              precio: preciosAqui[v.varianteId] ?? v.precio,
+              precioPrenda: v.precio,
+              preciosPorTienda: preciosPorTiendaDe(v.varianteId),
+              stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
+              apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
+              stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
+              codigosBarras: v.codigosBarras,
+            }))}
+        />
+      </TrabajoPorSede>
     </div>
   );
 }
