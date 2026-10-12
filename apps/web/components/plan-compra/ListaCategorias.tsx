@@ -131,16 +131,21 @@ export function ListaCategorias({
         {vista === "tabla" && (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar categorías">
+              {/* En el celular, los filtros en UNA fila que se desliza (Felipe 2026-10-12: eran tres filas de píldoras antes de la tabla). */}
+              <span
+                className="flex flex-wrap items-center gap-2 max-sm:-mx-5 max-sm:min-w-0 max-sm:basis-full max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-5 max-sm:[scrollbar-width:none] max-sm:[&>*]:shrink-0"
+                role="group"
+                aria-label="Filtrar categorías"
+              >
                 {PILDORAS.map((p) => (
                   <BotonFiltro key={p.clave} activo={filtro === p.clave} cuenta={conteos[p.clave]} onClick={() => onFiltro(filtro === p.clave && p.clave !== "todas" ? "todas" : p.clave)}>
                     {p.texto}
                   </BotonFiltro>
                 ))}
               </span>
-              <span className="ml-auto flex flex-wrap items-center gap-2">
-                <Desplegable valor={familia} onValor={onFamilia} opciones={opcionesFamilia} forma="cajaBaja" etiquetaAccesible="Familia" className="w-52" />
-                <Desplegable valor={orden} onValor={onOrden} opciones={ORDENES} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="w-52" />
+              <span className="ml-auto flex flex-wrap items-center gap-2 max-sm:grid max-sm:w-full max-sm:grid-cols-2">
+                <Desplegable valor={familia} onValor={onFamilia} opciones={opcionesFamilia} forma="cajaBaja" etiquetaAccesible="Familia" className="w-52 max-sm:w-auto max-sm:min-w-0 max-sm:[&_button_span]:truncate" />
+                <Desplegable valor={orden} onValor={onOrden} opciones={ORDENES} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="w-52 max-sm:w-auto max-sm:min-w-0 max-sm:[&_button_span]:truncate" />
               </span>
             </div>
             <LeyendaRango conVendido={verReal} />

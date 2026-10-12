@@ -1653,7 +1653,14 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
       ancla: "plan-historial.anios",
       opcional: true,
       titulo: "Elige el año",
-      texto: "Un año a la vez. Arranca en el último año completo; toca otro para ver sus campañas.",
+      texto: "Un año a la vez. Arranca en el último año completo; toca otro para ver sus campañas. A los costados del elegido, los años que le siguen y los que le preceden.",
+    },
+    {
+      id: "mas-anios",
+      ancla: "plan-historial.mas-anios",
+      opcional: true,
+      titulo: "Más años",
+      texto: "Cuando los años no caben en una fila, los demás están aquí, por década. Escribe el año para encontrarlo.",
     },
     {
       id: "tiendas",

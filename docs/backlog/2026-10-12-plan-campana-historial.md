@@ -38,3 +38,6 @@
   verificadas como líder.
 - [ ] **Que lo pedido reste de «Comprar»** cuando Órdenes de compra reciba contra la orden (su fase 4, ADR-0362): hoy solo se muestra.
 - [ ] **Dos campañas que se pisan** (Diciembre y Navidad) muestran la misma orden en las dos: decidir si una orden puede ser de una sola.
+- [x] **Años de Historial en UNA fila** (Felipe 2026-10-12, maqueta `docs/maquetas/plan-historial-anios-2026-10/`, opción 2): los que caben, seguidos y con el
+  elegido al medio; el resto en «Más años», por década y con buscador (`ventanaDeAnios`, `aniosQueCaben`).
+- [x] **Plan en el celular:** resumen, campaña y Exportar en una fila (la campaña se corta con «…»); filtros en una fila que se desliza; los dos combos lado a lado.

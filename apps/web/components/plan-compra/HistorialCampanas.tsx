@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronRight, History, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Desplegable } from "@/components/ui/campos";
@@ -17,6 +18,8 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
+  aniosQueCaben,
+  decadaDe,
   faltaEnElCalendario,
   filasDelAnio,
   filtrarYOrdenar,
@@ -28,6 +31,7 @@ import {
   textoMultiplicador,
   totalDeCayla,
   totalDelAnio,
+  ventanaDeAnios,
   type CeldaHistorial,
   type EtiquetaHistorial,
   type LecturaHistorial,
@@ -57,6 +61,63 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
         {partes.join(" · ") || (m.enCurso ? "" : "Sin base para comparar")}
       </span>
     </span>
+  );
+}
+
+/**
+ * La fila de años (Felipe 2026-10-12: «¿qué pasa si hay 30 años?»): siempre UNA fila. Si no caben todos, se ven los que caben, seguidos y con el
+ * elegido al medio —a sus costados, los que le siguen—, y la última píldora, «Más años», abre el resto por década, con buscador (regla de combos).
+ * Se mide la fila, no la ventana: la primera pintura supone una laptop y se corrige apenas se mide.
+ */
+const SEPARACION_ANIOS = 8;
+function FilaDeAnios({ anios, anio }: { anios: number[]; anio: number }) {
+  const router = useRouter();
+  const fila = useRef<HTMLElement>(null);
+  const [medidas, setMedidas] = useState<{ ancho: number; pildora: number; mas: number } | null>(null);
+
+  useEffect(() => {
+    const el = fila.current;
+    if (!el) return;
+    const medir = () => {
+      const pildoras = [...el.querySelectorAll<HTMLElement>("[data-anio]")].map((p) => p.offsetWidth);
+      const mas = el.querySelector<HTMLElement>("[data-mas-anios]")?.offsetWidth ?? 0;
+      setMedidas((m) => {
+        const pildora = pildoras.length ? Math.max(...pildoras) : (m?.pildora ?? 0);
+        // «Más años · 12» crece un dígito al cambiar la cuenta: se guarda el más ancho medido, con 8 px de holgura (132 antes de medirlo).
+        const nuevo = { ancho: el.clientWidth, pildora, mas: mas ? Math.max(mas + 8, m?.mas ?? 0) : (m?.mas ?? 132) };
+        return m && m.ancho === nuevo.ancho && m.pildora === nuevo.pildora && m.mas === nuevo.mas ? m : nuevo;
+      });
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const caben = medidas ? aniosQueCaben(anios.length, { ...medidas, separacion: SEPARACION_ANIOS }) : 9;
+  const { visibles, resto } = ventanaDeAnios(anios, anio, caben);
+
+  return (
+    <nav ref={fila} aria-label="Año" data-guia="plan-historial.anios" className="flex flex-nowrap items-center gap-2 overflow-x-clip">
+      {visibles.map((a) => (
+        <Link key={a} data-anio href={`/compras/plan/historial?anio=${a}`} className="pildora-cayla shrink-0" aria-current={a === anio ? "page" : undefined}>
+          {a}
+        </Link>
+      ))}
+      {resto.length > 0 && (
+        <span data-mas-anios data-guia="plan-historial.mas-anios" className="shrink-0">
+          <Desplegable
+            valor=""
+            onValor={(v) => v && router.push(`/compras/plan/historial?anio=${v}`)}
+            opciones={resto.map((a) => ({ valor: String(a), texto: String(a), grupo: decadaDe(a) }))}
+            marcador={`Más años · ${resto.length}`}
+            forma="pildora"
+            alineacion="derecha"
+            etiquetaAccesible={`Más años: ${resto.length} años más con historia`}
+          />
+        </span>
+      )}
+    </nav>
   );
 }
 
@@ -143,13 +204,7 @@ export function HistorialCampanas({
       {cabecera}
       <PestanasPlan activa="historial" />
 
-      <nav aria-label="Año" data-guia="plan-historial.anios" className="flex flex-wrap gap-2">
-        {aniosConHistoria(historial).map((a) => (
-          <Link key={a} href={`/compras/plan/historial?anio=${a}`} className="pildora-cayla" aria-current={a === anio ? "page" : undefined}>
-            {a}
-          </Link>
-        ))}
-      </nav>
+      <FilaDeAnios anios={aniosConHistoria(historial)} anio={anio} />
 
       {/* Las cifras del año en UNA barra, como Resultados (Felipe 2026-10-12): primero toda CAYLA, después cada tienda. */}
       <BarraCifras

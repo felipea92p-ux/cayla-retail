@@ -126,7 +126,7 @@ export function ResultadosCampana({
           <span className="max-sm:hidden">{ayuda}</span>
         </>
       }
-      acciones={r && campanas ? <SelectorCampana campanas={campanas} actualId={r.plan.id} hoy={r.hoy} ruta="/compras/plan/resultados" puedeCrear={false} onNueva={() => {}} onEditar={() => {}} onArchivadas={() => {}} /> : undefined}
+      acciones={r && campanas ? <SelectorCampana estirarEnCelular campanas={campanas} actualId={r.plan.id} hoy={r.hoy} ruta="/compras/plan/resultados" puedeCrear={false} onNueva={() => {}} onEditar={() => {}} onArchivadas={() => {}} /> : undefined}
     />
   );
 
