@@ -50,11 +50,11 @@ import {
   leerOrigenes,
   leerPaginaDeProductos,
   leerSedes,
-  trocear,
   type AmbitoDeLectura,
   type FilaVariante,
   type SedeActiva,
 } from "./candidatas-alta-datos";
+import { trocear } from "./resultado";
 
 // ============================================================================
 // Números que mandan (todos medidos o decididos, ninguno al tuntún)

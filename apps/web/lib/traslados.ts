@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
+import { exigir, exigirOpcional, IDS_POR_URL, tolerar, trocear } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
 import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
@@ -271,10 +271,6 @@ export async function getTrasladosDeLaSede(
   return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
 }
 
-/** Cuántos ids viajan por consulta: van en la URL (`.in("id", …)`), y con cientos de uuid de 36 letras se pasaría del largo
- *  que aguanta el camino hasta la base. */
-const IDS_POR_CONSULTA = 80;
-
 /**
  * El nombre de cada prenda («Blusa Emma · L · Beige»), por id, para listar lo que otra tienda puede ofrecer («Pedir a otra
  * sede» desde Traslados). Pide los ids por tandas y en paralelo. A diferencia de las lecturas de apoyo de este archivo,
@@ -285,10 +281,8 @@ export async function getEtiquetasDeVariantes(ids: readonly string[]): Promise<M
   const unicos = [...new Set(ids)];
   if (unicos.length === 0) return new Map();
   const supabase = await createClient();
-  const tandas: string[][] = [];
-  for (let i = 0; i < unicos.length; i += IDS_POR_CONSULTA) tandas.push(unicos.slice(i, i + IDS_POR_CONSULTA));
   const respuestas = await Promise.all(
-    tandas.map(async (tanda) =>
+    trocear(unicos, IDS_POR_URL).map(async (tanda) =>
       exigir(
         await supabase.from("variantes").select("id, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia )").in("id", tanda),
         "los nombres de las prendas"

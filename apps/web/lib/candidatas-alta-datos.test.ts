@@ -19,10 +19,10 @@ import {
   nombreLegibleDeTemporada,
   tallasDe,
   totalDeProductos,
-  trocear,
   type FilaVariante,
   type SedeActiva,
 } from "./candidatas-alta-datos";
+import { trocear } from "./resultado";
 import { leerExistenciasProductos } from "./productos-stock";
 import type { Temporada } from "./temporada-reglas";
 import type { CandidataAlta } from "./parecidas-alta-tipos";

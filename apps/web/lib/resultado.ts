@@ -65,6 +65,19 @@ export function exigirOpcional<T>(resultado: ResultadoConsulta<T>, que: string):
   return resultado.data;
 }
 
+/** Cuántos ids viajan en una consulta `.in("id", …)`: van en la URL, y con cientos de uuid de 36 letras la URL pasa del largo que
+ *  aguanta el camino hasta la base y la consulta entera falla (una campaña de 400 prendas, una tienda que cuelga cientos de
+ *  tallas). Con 80 la URL queda en ~3 KB. */
+export const IDS_POR_URL = 80;
+
+/** Parte una lista en tandas (por ejemplo de `IDS_POR_URL` ids), sin perder ni repetir. Un tamaño absurdo (0) no cuelga el bucle. */
+export function trocear<T>(xs: readonly T[], tamano: number): T[][] {
+  const paso = Math.max(1, tamano);
+  const lotes: T[][] = [];
+  for (let i = 0; i < xs.length; i += paso) lotes.push(xs.slice(i, i + paso));
+  return lotes;
+}
+
 /** El `max_rows` de PostgREST en producción (y en `supabase/config.toml`). */
 export const FILAS_POR_PAGINA = 1000;
 // ponytail: tanda fija de 3 (= 3.000 filas en una vuelta); si una lectura pasa de ~10.000 filas, pedir el total

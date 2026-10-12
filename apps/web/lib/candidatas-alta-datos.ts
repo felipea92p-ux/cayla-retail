@@ -79,13 +79,6 @@ export function idsSinRepetir(ids: readonly (string | null | undefined)[]): stri
 
 export const claveDeIds = (ids: readonly (string | null | undefined)[]): string => idsSinRepetir(ids).join(",");
 
-/** Parte una lista en tandas (una URL de PostgREST con cientos de uuids deja de caber). */
-export function trocear<T>(xs: readonly T[], tamano: number): T[][] {
-  const lotes: T[][] = [];
-  for (let i = 0; i < xs.length; i += Math.max(1, tamano)) lotes.push(xs.slice(i, i + Math.max(1, tamano)));
-  return lotes;
-}
-
 /** La lectura salió a medias: estas son las candidatas que sí se pudieron armar. Quien la atrapa muestra `fallo` y las usa. */
 export class LecturaParcial extends Error {
   readonly candidatas: CandidataAlta[];

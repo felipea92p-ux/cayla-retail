@@ -20,7 +20,7 @@ import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
-import type { Tolerado } from "@/lib/resultado";
+import { IDS_POR_URL, trocear, type Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
 
 // La parte que LEE de Postgres para Frescura del piso (ADR-0208, pasos 3 y 4 del 3c): solo dice a quién preguntar. Qué se
@@ -156,9 +156,6 @@ async function familiasDelCatalogo(supabase: Supabase): Promise<Familia[]> {
   }
 }
 
-/** Ids por consulta: viajan en la URL, y una tienda grande cuelga cientos de tallas. */
-const IDS_POR_CONSULTA = 100;
-
 /**
  * El precio en esta tienda de cada talla colgada (`variantes.precio`, con el propio de la tienda encima: `fn_precios_en_sede`, la regla de
  * `fn_precio_en_sede`). Si algo falla, ninguno: la barra no dice soles que no sabe enteros. Nunca lanza.
@@ -169,10 +166,8 @@ async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: Datos
   const ids = [...new Set(sede.prendas.flatMap((p) => p.tallas.filter((t) => t.pisoHoy > 0).map((t) => t.varianteId)))];
   if (ids.length === 0) return {};
   try {
-    const trozos: string[][] = [];
-    for (let i = 0; i < ids.length; i += IDS_POR_CONSULTA) trozos.push(ids.slice(i, i + IDS_POR_CONSULTA));
     const [lecturas, propios] = await Promise.all([
-      Promise.all(trozos.map((t) => supabase.from("variantes").select("id, precio").in("id", t))),
+      Promise.all(trocear(ids, IDS_POR_URL).map((t) => supabase.from("variantes").select("id, precio").in("id", t))),
       supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: sedeId }),
     ]);
     if (lecturas.some((l) => l.error)) return {};
