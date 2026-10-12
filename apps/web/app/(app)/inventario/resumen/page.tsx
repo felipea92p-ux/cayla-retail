@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getDatosAnalisis } from "@/lib/analisis-datos";
-import { leerVista } from "@/lib/analisis-reglas";
+import { leerBusqueda, leerVista } from "@/lib/analisis-reglas";
 import { leerQueFalta, PARAM_QUE_FALTA } from "@/lib/analisis-aviso";
 import type { AccesoAnalisis } from "@/lib/analisis-tipos";
 import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
@@ -41,5 +41,5 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
   };
 
   const datos = await getDatosAnalisis(ubicacionActiva);
-  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} queFaltaInicial={leerQueFalta(params[PARAM_QUE_FALTA])} />;
+  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} busquedaInicial={leerBusqueda(params.q)} queFaltaInicial={leerQueFalta(params[PARAM_QUE_FALTA])} />;
 }

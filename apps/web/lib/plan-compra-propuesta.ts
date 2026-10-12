@@ -42,6 +42,10 @@ export type LecturaPropuesta = {
   tiendas: TiendaPropuesta[];
   /** categoría → sus hechos por tienda. */
   categorias: Map<string, HechoCategoria[]>;
+  /** Todas las tiendas activas, vendan o no (Lima también): el reparto les toca a todas. Vacío si la base todavía no lo manda. */
+  tiendasActivas: { id: string; nombre: string }[];
+  /** tienda → el mínimo (0 a 1) que fijó un líder para esta campaña. */
+  minimos: Map<string, number>;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -84,6 +88,13 @@ export function leerPropuesta(v: unknown): LecturaPropuesta | null {
     recupero: { pct: pct !== null && pct >= 0 && pct <= 100 ? Math.round(pct) : null, heredado: recupero.heredado === true },
     tiendas,
     categorias,
+    tiendasActivas: lista(v.tiendas_activas).flatMap((t) => (texto(t.id) && texto(t.nombre) ? [{ id: t.id as string, nombre: t.nombre as string }] : [])),
+    minimos: new Map(
+      lista(v.minimos).flatMap((m) => {
+        const pct = num(m.pct);
+        return texto(m.u) && pct !== null && pct > 0 && pct <= 100 ? [[m.u as string, pct / 100] as const] : [];
+      }),
+    ),
   };
 }
 
@@ -165,4 +176,30 @@ export const argsGuardarRecupero = (planId: string, texto: string | null) => ({ 
 export function fraseDelRecupero(r: LecturaPropuesta["recupero"]): string {
   if (r.pct === null) return "Nadie fijó todavía a qué % del precio se vende lo que sobra en esta campaña: cada categoría lo escribe.";
   return `Lo que sobra se vende al ${r.pct} % del precio${r.heredado ? " (el de la campaña anterior)" : ""}: con eso arranca cada categoría nueva, y cada una puede cambiarlo.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// El simulador (Felipe 2026-10-12, lo rescatado de Toolio e Increff): mover supuestos y ver la compra al instante, sin guardar nada
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type LineaSimulable = { normal: number; flojo: number; bueno: number; precio: number; costo: number; recuperoPct: number; stock: number };
+
+/**
+ * La compra de las categorías con plan si el bueno fuera `multiplicador` × el normal y lo que sobra se vendiera al `recuperoPct` (null =
+ * el de cada categoría). Usa la MISMA cuenta que el Plan (`calcular`, que se recibe para no duplicarla): solo cambia los supuestos.
+ */
+export function simular(
+  lineas: readonly LineaSimulable[],
+  multiplicador: number,
+  recuperoPct: number | null,
+  calcular: (l: Omit<LineaSimulable, "stock">, stock: number) => { comprar: number; inversion: number },
+): { prendas: number; inversion: number } {
+  return lineas.reduce(
+    (a, l) => {
+      const bueno = Math.max(l.normal + 1, Math.round(l.normal * multiplicador));
+      const c = calcular({ ...l, bueno, recuperoPct: recuperoPct ?? l.recuperoPct }, l.stock);
+      return { prendas: a.prendas + c.comprar, inversion: Math.round((a.inversion + c.inversion) * 100) / 100 };
+    },
+    { prendas: 0, inversion: 0 },
+  );
 }

@@ -20,6 +20,7 @@ import type { CategoriaPlan, FilaPlan } from "@/lib/plan-compra-reglas";
 export function PlanCategoriaModal({
   planId,
   planNombre,
+  planDias,
   fila,
   vendidoPorTalla,
   tope,
@@ -33,6 +34,8 @@ export function PlanCategoriaModal({
 }: {
   planId: string;
   planNombre: string;
+  /** Los días de la campaña (el normal de respaldo de la hoja). */
+  planDias: number;
   fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
   /** El tope de la campaña (null = sin tope) y lo que cuestan las otras categorías con plan. */
@@ -59,6 +62,7 @@ export function PlanCategoriaModal({
           <FormularioCategoria
             key={fila.c.id}
             planId={planId}
+            campana={{ nombre: planNombre, dias: planDias }}
             fila={fila}
             vendidoPorTalla={vendidoPorTalla}
             tope={tope}
