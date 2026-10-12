@@ -1,7 +1,8 @@
 # ADR-0385 — No se cambia por una prenda sin precio
 
-- **Fecha:** 2026-10-12 · **Estado:** construido y verificado en local, **SQL todavía NO en producción** (una migración, una sola parte:
-  `20261012201000_cambio_sin_precio.sql`). La web puede publicarse antes: sin la migración, lo único que no frena es la base.
+- **Fecha:** 2026-10-12 · **Estado:** construido, verificado en local y **SQL EN PRODUCCIÓN desde el 2026-10-12** (una sola parte:
+  `20261012201000_cambio_sin_precio.sql`, pegada con el OK puntual de Felipe tras un ensayo que se deshizo; la huella de `registrar_cambio` en
+  producción, `8fed9514…`, es idéntica a la de la base local donde corrieron las pruebas). La web llega al fusionar el PR #988.
 - **Pedido:** al cerrar el ADR-0384 (el precio 0 solo vale en Empaque, también en la base) apareció el mismo hueco en Cambios, con dinero de por
   medio. Felipe: «Haz esta tarea aquí: Frenar el cambio por una prenda a S/ 0».
 - **Número reservado** con `reserva/adr-0385` (y la versión de la migración con `reserva/migracion-20261012201000`), por el mecanismo del ADR-0381.
@@ -56,5 +57,6 @@ precio. El ADR-0384 cerró venderla, aprobarla, crearla o dejarla así; Cambios 
 
 ## Pendiente
 
-- Pegar la migración en producción (OK puntual de Felipe; una sola parte, solo una función).
+- ~~Pegar la migración en producción~~ **hecho el 2026-10-12** (ensayo revertido, huella esperada `8fed9514…` calculada en producción e igual a
+  la local, verificada después: el candado una vez, conserva el cambio del #968, permisos iguales).
 - Proformas (`crear_proforma`) no se revisaron con una prenda en S/ 0.
