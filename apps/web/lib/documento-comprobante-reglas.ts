@@ -47,6 +47,18 @@ export function llevaDocumento(tipo: TipoDocComprobante, numero: string | null |
   return tipo !== "sin_documento" && !!numero;
 }
 
+/** El comodín que Lucode documenta para la boleta que no identifica a quien compra (va con el código «1»). */
+export const SIN_DOCUMENTO_LUCODE = "99999999";
+
+/**
+ * Cómo viaja quien compra en el envío a Lucode, y por eso en el XML que firma: el código del catálogo 06 y el número. Sin
+ * documento, «1» con el comodín. Lo leen el envío (`payloadDe`) y la comparación con lo que Lucode ya tiene
+ * (`lib/ya-emitido-reglas.ts`): si fueran dos reglas, una boleta nuestra podría leerse como «de otro» o al revés.
+ */
+export function clienteParaLucode(tipo: TipoDocComprobante, numero: string | null | undefined): { codigo: string; numero: string } {
+  return llevaDocumento(tipo, numero) ? { codigo: CODIGO_SUNAT_DOCUMENTO[tipo], numero: numero! } : { codigo: "1", numero: SIN_DOCUMENTO_LUCODE };
+}
+
 /** «DNI 71234482», «CE 001234567», «Pasaporte AB123456», «RUC 20…»; null si el comprobante no identifica a nadie. */
 export function documentoLegibleComprobante(tipo: TipoDocComprobante, numero: string | null | undefined): string | null {
   return llevaDocumento(tipo, numero) ? `${ETIQUETA_DOCUMENTO_COMPROBANTE[tipo]} ${numero}` : null;

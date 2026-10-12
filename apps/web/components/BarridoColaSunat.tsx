@@ -2,16 +2,19 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { barrerColaSunat } from "@/lib/envio-sunat";
+import { vaciarColaSunat } from "@/lib/envio-sunat";
 
-// Al abrir la pantalla, reintenta lo que quedó en la cola de SUNAT (D-60 paso 2, sin cron). No pinta
-// nada: si algo cambió de estado, `router.refresh()` para que la lista lo muestre.
+// Al abrir la pantalla, reintenta lo que quedó en la cola de SUNAT (D-60 paso 2, sin cron) y sigue pasada tras pasada
+// mientras haya algo que hacer (ADR-0378). No pinta nada: tras cada pasada que movió algo, `router.refresh()` para que
+// la lista, el contador y el aviso lo muestren. Si la persona se va de la pantalla, deja de pedir.
 export function BarridoColaSunat({ ubicacionId }: { ubicacionId: string | null }) {
   const router = useRouter();
   useEffect(() => {
-    barrerColaSunat(ubicacionId).then((tomados) => {
-      if (tomados > 0) router.refresh();
-    });
+    let vivo = true;
+    void vaciarColaSunat(ubicacionId, { alCambiar: () => router.refresh(), seguir: () => vivo });
+    return () => {
+      vivo = false;
+    };
   }, [ubicacionId, router]);
   return null;
 }
