@@ -55,10 +55,15 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- compras ----
   "/compras": PENDIENTE,
   "/compras/@modal/(.)factura/[compraId]": PENDIENTE,
+  "/compras/@modal/(.)ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra abierta sobre la lista (ADR-0362): se lee, no se llena. Editarla y anularla llegan con su propia guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": PENDIENTE,
   "/compras/notas-credito": PENDIENTE,
   "/compras/nueva": PENDIENTE,
+  "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
+  "/compras/ordenes/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
+  "/compras/ordenes/nueva": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
+  "/compras/ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra en página completa (ADR-0362), lo que se ve al recargar la ventana: se lee, no se llena." },
   "/compras/parte/[compraId]": PENDIENTE,
   "/compras/por-pagar": PENDIENTE,
   // Plan de campaña (ADR-0349): lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria`, el mismo formulario de la hoja de cada categoría y del paso a paso, con su guía de foco hecha. `PlanCategoriaModal` ya no tiene campos propios: por eso no figura entre los modales.
@@ -107,6 +112,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
   "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
+  // ADR-0379: la pantalla tiene un solo control propio (el buscador); lo que se llena vive en sus dos hojas, que traen su guía.
+  "/productos/liquidacion": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx", "components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
   // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.
   "/inventario/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
@@ -241,6 +248,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": PENDIENTE, // 18 controles
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  "components/liquidacion/EtiquetarPiezaModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx"] },
+  "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
   "components/ficha-producto/PrecioSedeModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/PrecioSedeModal.tsx"] },
   "components/GastoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/GastoRapidoModal.tsx"] },
@@ -248,6 +257,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
+  "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },
+  "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
   "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
@@ -328,4 +339,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
+  // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
+  "components/ordenes-compra/AccionesOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/AccionesOrden.tsx"] },
 };

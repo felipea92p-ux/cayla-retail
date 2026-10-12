@@ -12,7 +12,15 @@ export const maxDuration = 60;
 // Toma lo vencido de la cola con `fn_tomar_comprobantes_para_reintento` —que lo reserva 5 minutos en la misma
 // operación, así dos pasadas a la vez (el cron y una pantalla) nunca envían el mismo comprobante— y lo transmite
 // de a uno. Hasta 3 por llamada: 3 × 15 s entra en `maxDuration`, y ninguna pantalla espera mucho.
+//
+// Un comprobante que Lucode ya tenía (ADR-0378) suma dos lecturas más (su estado y su XML): con Lucode lento, tres así
+// podrían pasar de 60 s. Por eso, pasados `PRESUPUESTO_MS`, no se empieza otro: lo que quedó tomado espera su reserva de
+// 5 minutos y lo recoge la próxima pasada. Cortar ENTRE comprobantes nunca deja uno a medias; cortar dentro de uno (lo
+// que haría Vercel al llegar a `maxDuration`) podría dejar un envío hecho sin guardar.
+const PRESUPUESTO_MS = 30_000;
+
 async function barrer(supabase: Cliente, ubicacionId: string | null, transmitir = true) {
+  const inicio = Date.now();
   const resultados = [];
   if (transmitir) {
     const { data: ids, error } = await supabase.rpc("fn_tomar_comprobantes_para_reintento", {
@@ -21,18 +29,20 @@ async function barrer(supabase: Cliente, ubicacionId: string | null, transmitir 
     });
     if (error) return { error: error.message };
     for (const id of ids ?? []) {
+      if (Date.now() - inicio > PRESUPUESTO_MS) break;
       const r = await transmitirComprobante(supabase, { comprobanteId: id });
-      resultados.push({ id, status: r.status, estado: r.body.estado ?? null });
+      resultados.push({ id, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
     }
   }
-  const consultas = await consultarLoQueQuedoEnTramite(supabase, ubicacionId);
+  // Sin tiempo, la consulta espera a la próxima pasada (no reserva nada que no vaya a preguntar).
+  const consultas = Date.now() - inicio > PRESUPUESTO_MS ? { consultados: 0, actualizados: 0 } : await consultarLoQueQuedoEnTramite(supabase, ubicacionId, inicio);
   return { tomados: resultados.length, resultados, ...consultas };
 }
 
 // Lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— se pregunta en la
 // misma pasada (`20261007200000`): sin esto, B001-113…192 pasaron una semana «enviado» estando RECHAZADAS.
 // Hasta 3 por pasada, como el reintento. Si la base todavía no tiene la función, no frena el reintento.
-async function consultarLoQueQuedoEnTramite(supabase: Cliente, ubicacionId: string | null) {
+async function consultarLoQueQuedoEnTramite(supabase: Cliente, ubicacionId: string | null, inicio: number) {
   const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>,
@@ -47,6 +57,7 @@ async function consultarLoQueQuedoEnTramite(supabase: Cliente, ubicacionId: stri
   }
   let actualizados = 0;
   for (const id of ids ?? []) {
+    if (Date.now() - inicio > PRESUPUESTO_MS) break;
     const r = await consultarComprobante(supabase, id);
     if (r.accion === "actualizar" || r.accion === "confirmar_baja") actualizados++;
   }

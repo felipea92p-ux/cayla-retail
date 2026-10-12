@@ -104,7 +104,7 @@ function conBarras(crudo: string): string {
 /** `w-[17rem]` del calendario, en px (con la letra raíz de 16 px), y el aire mínimo que se le deja al borde de la pantalla. */
 const ANCHO_CALENDARIO = 272;
 const MARGEN_PANTALLA = 8;
-/** Alto del calendario abierto (encabezado, 6 semanas y su pie), en px: si no cabe abajo, se abre hacia arriba. */
+/** Alto del calendario abierto (encabezado, 6 semanas y su pie), en px: si no cabe entero abajo, se abre hacia arriba. */
 const ALTO_CALENDARIO = 340;
 
 export function CampoFecha({
@@ -165,8 +165,9 @@ export function CampoFecha({
   const grilla = useRef<HTMLDivElement>(null);
   // El calendario flota en `fixed`, medido contra el campo y colgado fuera de él (como la lista de un combo, ADR-0211): dibujado en
   // `absolute` dentro de una hoja de <Modal>, la hoja (que scrollea) lo recortaba por abajo y por la derecha y aparecía una barra
-  // horizontal (Nueva campaña, «Hasta», 2026-10-12). Si abajo no cabe, se abre hacia arriba.
-  const pos = usePosicionLista(raiz, abierto, ALTO_CALENDARIO);
+  // horizontal (Nueva campaña, «Hasta», 2026-10-12). Abre hacia abajo solo si cabe ENTERO (`entero`): el calendario no se desplaza
+  // por dentro, y con la regla de las listas (160 px bastan) quedaba cortado al pie de la pantalla (ADR-0211, act. 2026-10-10).
+  const pos = usePosicionLista(raiz, abierto, ALTO_CALENDARIO, 6, { entero: true });
   const destino = useDestinoFlotante(raiz, abierto);
   const entrada = useRef<HTMLInputElement>(null);
 

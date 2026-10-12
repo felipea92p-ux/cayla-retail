@@ -1055,6 +1055,17 @@ ESCENARIOS.push(
   { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], nombre: "Producción · Eficiencia de otro mes", preparar: clicRol("radio", /Sep 2026/i) },
 );
 
+// ---------- Órdenes de compra (ADR-0362, fase 1) ----------
+// La ventana de una orden, su hoja «Anular orden» y «Editar» necesitan una orden «generada»: la primera de la base local.
+const idDeOrdenCompra = () => consultarLocal("select id from retail.ordenes_compra where estado = 'generada' order by numero limit 1");
+ESCENARIOS.push(
+  { id: "ordenes.ventana", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la orden abierta sobre la lista", preparar: async (pagina) => { await pagina.locator('main a[href*="/compras/ordenes/ver/"]').first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
+  { id: "ordenes.calendario", ruta: "/compras/ordenes/nueva", cuentas: ["admin"], abre: '[role=dialog][aria-label="Calendario"]', nombre: "Nueva orden de compra · el calendario de «Entrega estimada»", preparar: clicRol("button", /Abrir calendario/i) },
+  { id: "ordenes.llega-a", ruta: "/compras/ordenes/nueva", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Nueva orden de compra · la lista de «Llega a»", preparar: async (pagina) => { await pagina.locator("#oc-destino").click({ timeout: 8000 }); await esperar(pagina, 800); } },
+  { id: "ordenes.anular", ruta: "/compras/ordenes/ver/[id]", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Anular orden»", preparar: secuencia(async (pagina) => irA(`/compras/ordenes/ver/${idDeOrdenCompra()}`)(pagina), clicRol("button", /^Anular orden$/)) },
+  { id: "ordenes.editar", ruta: "/compras/ordenes/editar/[id]", cuentas: ["admin"], abre: "h1", nombre: "Órdenes de compra · «Editar OC-…»", preparar: async (pagina) => irA(`/compras/ordenes/editar/${idDeOrdenCompra()}`)(pagina) },
+);
+
 // ---------- Finanzas (actividad 12) ----------
 const FIN = ["admin"];
 ESCENARIOS.push(

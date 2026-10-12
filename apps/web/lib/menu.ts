@@ -116,7 +116,7 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -340,6 +340,10 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
+      // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
+      // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
+      // visibilidad la da su módulo, que nace solo para el líder.
+      { id: "catalogo.liquidacion", modulo: "liquidacion", etiqueta: "Liquidación", estado: "viva", ruta: "/productos/liquidacion", icono: "liquidacion", pajaro: "02 Loro" },
     ],
   },
 
@@ -362,6 +366,12 @@ export const ARBOL: readonly Nodo[] = [
       // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "analisis", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
+      // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
+      // módulo es la llave y trae sus precios (decisión 34). Es la 7.ª hija de Compras, TEMPORAL (decisión 38): la excepción vive en
+      // `menu.test.ts` y se quita cuando «Recibir mercadería» pase a Inventario (sesión de Recepción, ADR-0362 «Contrato con»). El
+      // id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
+      // puede llamarse igual en los dos módulos.
+      { id: "compras.ordenesCompra", modulo: "ordenes_compra", etiqueta: "Órdenes de compra", estado: "viva", ruta: "/compras/ordenes", icono: "ordenes", pajaro: "09 Pelícano" },
       { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
       { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDineroCompras" },
