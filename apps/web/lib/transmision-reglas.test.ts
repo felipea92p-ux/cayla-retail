@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cronNoTransmite, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { cronNoAutorizado, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -182,22 +182,21 @@ describe("diasParaElPlazo (3 días calendario de Lima)", () => {
   });
 });
 
-describe("cronNoTransmite (PL-113: quién puede correr el cron, y solo al sandbox)", () => {
+describe("cronNoAutorizado (PL-113: quién puede correr el cron; ADR-0165 act. 2026-10-12: transmite también en producción)", () => {
   it("sin CRON_SECRET no pasa nadie, tampoco quien manda «Bearer undefined» o «Bearer »", () => {
-    expect(cronNoTransmite("Bearer undefined", undefined, "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite("Bearer ", "", "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite(null, undefined, "sandbox")?.status).toBe(401);
+    expect(cronNoAutorizado("Bearer undefined", undefined)?.status).toBe(401);
+    expect(cronNoAutorizado("Bearer ", "")?.status).toBe(401);
+    expect(cronNoAutorizado(null, undefined)?.status).toBe(401);
   });
   it("con otra clave, o sin encabezado, no pasa", () => {
-    expect(cronNoTransmite("Bearer otra", "clave", "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite(null, "clave", "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite("clave", "clave", "sandbox")?.status).toBe(401);
+    expect(cronNoAutorizado("Bearer otra", "clave")?.status).toBe(401);
+    expect(cronNoAutorizado(null, "clave")?.status).toBe(401);
+    expect(cronNoAutorizado("clave", "clave")).toEqual({ status: 401, body: { error: "No autorizado" } });
   });
-  it("con la clave pero fuera del sandbox no transmite nada (y no cuenta como fallo)", () => {
-    expect(cronNoTransmite("Bearer clave", "clave", "produccion")).toEqual({ status: 200, body: { tomados: 0, omitido: "El cron solo transmite al sandbox de Lucode." } });
-  });
-  it("con la clave y en el sandbox, transmite", () => {
-    expect(cronNoTransmite("Bearer clave", "clave", "sandbox")).toBeNull();
+  it("con la clave, pasa: la regla ya no pregunta por el ambiente de Lucode (el cron transmite en producción)", () => {
+    expect(cronNoAutorizado("Bearer clave", "clave")).toBeNull();
+    // «Solo sandbox» se fue a propósito (Felipe, 2026-10-12): si alguien vuelve a pedirle el ambiente a esta regla, la prueba lo marca.
+    expect(cronNoAutorizado.length).toBe(2);
   });
 });
 
