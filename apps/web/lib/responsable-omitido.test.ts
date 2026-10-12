@@ -22,7 +22,7 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
   for (const ins of sql.matchAll(/insert into retail\.acciones_sin_responsable \(clave, descripcion\) values([\s\S]*?);/g)) {
     for (const m of ins[1]!.matchAll(/\('([a-z0-9_]+)',\s*'([^']*)'\)/g)) DESCRIPCION_VIGENTE.set(m[1]!, m[2]!);
   }
-  // Las que vuelven a pedir responsable (20261006180100: Editar producto, ADR-0354).
+  // Las que vuelven a pedir responsable (20261004204000 y 20261006200000: Regularizar prenda, ADR-0328; 20261006180100: Editar producto, ADR-0354).
   for (const m of sql.matchAll(/^delete from retail\.acciones_sin_responsable where clave = '([a-z0-9_]+)';/gm)) DESCRIPCION_VIGENTE.delete(m[1]!);
 }
 

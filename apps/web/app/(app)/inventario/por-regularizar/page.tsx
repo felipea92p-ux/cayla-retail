@@ -2,6 +2,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar";
 import { getDisponiblePorSede } from "@/lib/por-regularizar-stock";
+import { getLibroPorVenta } from "@/lib/por-regularizar-libro";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
@@ -37,7 +38,13 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // si no se puede leer, la pantalla sigue y se regulariza igual (`getDisponiblePorSede` nunca lanza).
   const sedesPendientes = filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId);
   // El precio OFICIAL de cada venta es el de su tienda (precio propio, Felipe 2026-10-09): así lo guarda `regularizar_prenda`.
-  const [disponibles, preciosPorSede] = await Promise.all([getDisponiblePorSede(sedesPendientes), getPreciosPorSede(sedesPendientes)]);
+  // Y lo que dice el libro de cada prenda a la hora de cada venta: de ahí la mesa sugiere «¿Cómo estaba?» (ADR-0328 act. 5). También es
+  // lo accesorio: `getLibroPorVenta` nunca lanza y, si falla, la mesa sigue sin esa sugerencia.
+  const [disponibles, preciosPorSede, libro] = await Promise.all([
+    getDisponiblePorSede(sedesPendientes),
+    getPreciosPorSede(sedesPendientes),
+    sedesPendientes.length > 0 ? getLibroPorVenta(esLider ? (unaSede?.id ?? null) : persona.ubicacionId) : Promise.resolve(null),
+  ]);
   const etiqueta = esLider ? (unaSede?.nombre ?? "tus tiendas") : persona.ubicacionEtiqueta;
   // De vuelta a Existencias en la misma sede que se miraba (la de la cabecera no necesita el parámetro).
   const volverA = unaSede && unaSede.id !== persona.ubicacionId ? `/inventario?ubicacion=${unaSede.id}` : "/inventario";
@@ -71,6 +78,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         prendas={prendas}
         disponibles={disponibles}
         preciosPorSede={preciosPorSede}
+        libro={libro}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
         esLider={esLider}
