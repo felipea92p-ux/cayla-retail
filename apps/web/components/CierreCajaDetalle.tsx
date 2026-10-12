@@ -9,6 +9,7 @@ import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
 import type { MetodoCobrado } from "@/lib/caja-tablero-reglas";
 import { cascadaEfectivo, diaDelTurno, duracionTurno, escalaDiferencia, estadoCierre, quienAtendio, rutaDelEfectivo, type MarcaDelDia } from "@/lib/historial-cierres-reglas";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
@@ -577,7 +578,9 @@ function FilaEvento({ evento: e }: { evento: EventoCaja }) {
   }
   if (e.tipo === "movimiento") {
     const ingreso = e.direccion === "ingreso";
-    return <Fila hora={hora(e.hora)} tono={ingreso ? "mas" : "menos"} texto={e.esAjuste ? `${e.motivo} · ajuste` : e.motivo} sub={juntar(e.nota, e.colaboradorNombre)} monto={`${ingreso ? "+" : "-"}${money(e.monto)}`} />;
+    // El mismo nombre que la lista del turno: un gasto se llama por lo que se pagó, no «Otro · Gasto · …».
+    const fila = filaDeMovimiento(e);
+    return <Fila hora={hora(e.hora)} tono={ingreso ? "mas" : "menos"} texto={e.esAjuste ? `${fila.titulo} · ajuste` : fila.titulo} sub={juntar(fila.detalle, e.colaboradorNombre)} monto={`${ingreso ? "+" : "-"}${money(e.monto)}`} />;
   }
   if (e.tipo === "devolucion") {
     return <Fila hora={e.hora ? hora(e.hora) : "—"} tono="menos" texto="Devolución" sub={`reembolso ${e.metodo ?? "—"}`} monto={`-${money(e.monto)}`} />;
