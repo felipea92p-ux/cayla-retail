@@ -138,9 +138,11 @@ type Comun = {
    *  de compras y en Inventario para quien no (ADR-0113); las dos filas apuntan a `/recibir` y nunca salen a la vez (parado en
    *  el Taller, quien ve el dinero no tiene ninguna: allí Compras no se muestra). */
   soloSinPermiso?: Permiso;
-  /** Si esta fila queda SOLA bajo su grupo de primer nivel, conserva su propio nombre en vez de tomar el del grupo. Existe por UN
-   *  caso: «Recibir mercadería» en Inventario. Un rol que solo ve ese módulo veía una fila llamada «Inventario» que abría Recibir
-   *  (la pantalla no se parece a Existencias): parecía que Recibir no existía hasta darle otro módulo (Felipe, 2026-10-03). */
+  /** Si esta fila queda SOLA bajo su grupo de primer nivel, conserva su propio nombre en vez de tomar el del grupo. Existe por dos
+   *  casos: «Recibir mercadería» en Inventario —un rol que solo ve ese módulo veía una fila llamada «Inventario» que abría Recibir
+   *  (la pantalla no se parece a Existencias): parecía que Recibir no existía hasta darle otro módulo (Felipe, 2026-10-03)— y
+   *  «Frescura del piso», que en CAYLA Global es la única pantalla de Inventario (ADR-0208, act. 2026-10-10 (b)): «Inventario» hace
+   *  esperar las existencias de la empresa, que esa vista todavía no suma. */
   conservaNombre?: true;
   /** Tipos de ubicación donde aplica; sin esto, en todas. */
   ubicaciones?: readonly TipoUbicacion[];
@@ -315,7 +317,7 @@ export const ARBOL: readonly Nodo[] = [
       // un clic más adentro). Sin `exige`: la visibilidad la da su módulo, que nace solo para el líder. El líder ve 6 filas
       // aquí («Recibir mercadería» solo sale a quien NO ve Compras); solo un rol con Análisis, Frescura y Recibir sin
       // Compras llega a 7, y para ese caso `menu.test.ts` tiene la excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`).
-      { id: "inventario.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila" },
+      { id: "inventario.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
       // Plan del piso (ADR-0329, ADR-0328 actividad 12; Felipe 2026-10-05: entrada propia en Inventario, no una pestaña de
       // Existencias, porque una pestaña no es un módulo y quien ve Existencias no tendría por qué ver el plan). Nace solo para el
       // líder. Con ella el líder ve 7 filas en Inventario (el tope de la excepción); un rol que sumara además Recibir sin Compras

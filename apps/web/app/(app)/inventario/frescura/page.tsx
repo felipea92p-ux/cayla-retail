@@ -1,7 +1,8 @@
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
-import { getFrescuraPantalla } from "@/lib/frescura";
+import { getFrescuraPantalla, getFrescuraRed } from "@/lib/frescura";
 import type { AccesoFrescura } from "@/lib/frescura-pantalla";
 import { FrescuraPanel } from "@/components/frescura/FrescuraPanel";
+import { FrescuraRed } from "@/components/frescura/FrescuraRed";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué hacer con lo que se queda.
 // La sede es la del selector global (`persona.ubicacionId`): la pantalla no tiene selector propio, como Análisis.
@@ -10,6 +11,8 @@ import { FrescuraPanel } from "@/components/frescura/FrescuraPanel";
 export default async function FrescuraPage() {
   // La repite aquí además del layout: un layout no vuelve a correr al navegar entre sus hijas (lo mismo que exigirLider).
   const persona = await exigirModulo("frescura");
+  // En CAYLA Global (ADR-0208, act. 2026-10-10 (b)): las tiendas juntas, sin prendas.
+  if (persona.vista === "global") return <FrescuraRed red={await getFrescuraRed(persona)} />;
   const acceso: AccesoFrescura = {
     existencias: veModulo(persona, "existencias"),
     historial: veModulo(persona, "historial"),

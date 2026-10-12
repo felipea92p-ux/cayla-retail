@@ -14,7 +14,8 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { fotoFormulario } from "@/lib/salida-sin-guardar";
+import { avisoConteoGuardado, avisoConteoRetomado, envioContado, mensajeDeSalida, unidadesDelEnvio } from "@/lib/recibir-cambio-de-sede";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { usePistola } from "@/components/ui/usePistola";
 import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
@@ -121,6 +122,20 @@ type Proveedor = { id: string; nombre: string };
 type Pestana = "prendas" | "fuera" | "notas";
 type FiltroLista = "todas" | "atrasadas" | "proximas";
 
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11): el conteo y lo que se escribió, no la
+ *  pantalla de «recibido» ni el resumen abierto. El token viaja con él: es el mismo envío, y reintentarlo no lo duplica. */
+type ConteoDelEnvio = {
+  seleccionadas: string[];
+  abiertos: Record<string, boolean>;
+  reparto: Reparto;
+  extras: ExtraEnvio[];
+  decisiones: Record<string, Decision | undefined>;
+  numeroGuia: string;
+  nota: string;
+  pestana: Pestana;
+  token: string;
+};
+
 // Prenda · SKU · Pendiente · Llegó · Dif. · Estado
 // El diseño de la tabla lo decide el ANCHO DEL PANEL (`@container` en la columna derecha), no el de la ventana: con el menú
 // lateral abierto una ventana de 1440 px deja al panel en ~700 px, y ahí la tabla de 6 columnas aprieta el nombre (ADR-0128).
@@ -202,17 +217,24 @@ export function RecepcionEnvio({
     [compras, lineas, enCola, ahora],
   );
 
-  const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
+  // El conteo es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se contó en otra
+  // sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo contado, se arranca desde ahí.
+  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useTrabajoPorSede<ConteoDelEnvio>(ubicacionInicialId);
+  const inicial = guardado
+    ? guardado.seleccionadas.filter((id) => compras.some((c) => c.id === id))
+    : compraInicialId && compras.some((c) => c.id === compraInicialId)
+      ? [compraInicialId]
+      : [];
   const [seleccionadas, setSeleccionadas] = useState<string[]>(inicial);
-  const [abiertos, setAbiertos] = useState<Record<string, boolean>>(() => Object.fromEntries(inicial.map((id) => [id, true])));
+  const [abiertos, setAbiertos] = useState<Record<string, boolean>>(() => guardado?.abiertos ?? Object.fromEntries(inicial.map((id) => [id, true])));
   // Las cantidades arrancan VACÍAS (D1): sin valor = sin contar.
-  const [reparto, setReparto] = useState<Reparto>({});
-  const [extras, setExtras] = useState<ExtraEnvio[]>([]);
-  const [pestana, setPestana] = useState<Pestana>("prendas");
+  const [reparto, setReparto] = useState<Reparto>(guardado?.reparto ?? {});
+  const [extras, setExtras] = useState<ExtraEnvio[]>(guardado?.extras ?? []);
+  const [pestana, setPestana] = useState<Pestana>(guardado?.pestana ?? "prendas");
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroLista>("todas");
-  const [numeroGuia, setNumeroGuia] = useState("");
-  const [nota, setNota] = useState("");
+  const [numeroGuia, setNumeroGuia] = useState(guardado?.numeroGuia ?? "");
+  const [nota, setNota] = useState(guardado?.nota ?? "");
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
   const [escaneo, setEscaneo] = useState("");
   const [ultimaLectura, setUltimaLectura] = useState<{
@@ -242,23 +264,39 @@ export function RecepcionEnvio({
   // resumen previo sigue abierto mientras tanto. Se borra al volver, al armar otro pedido y al registrar.
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   // Un token por envío: reintentar (un doble toque, una red lenta) no duplica el stock. Se renueva al terminar.
-  const [token, setToken] = useState(() => crypto.randomUUID());
+  const [token, setToken] = useState(() => guardado?.token ?? crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<Resultado | null>(null);
   const [quitarPendiente, setQuitarPendiente] = useState<CompraResumen | null>(null);
   // Qué se hace con lo que faltó, por línea (solo líder): ausente = todavía sin decidir (bloquea el confirmar).
-  const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>({});
+  const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>(guardado?.decisiones ?? {});
 
   // «¿Salir sin guardar?» (2026-09-28). El conteo de un envío (caja por caja, a veces de un cargamento grande) vive solo
   // en esta pantalla: tocar el menú o «atrás» a mitad lo perdía entero. Cuenta lo que la persona contó o escribió; qué
   // comprobantes marcó no (se vuelven a marcar en un toque). Con el envío ya recibido («Envío recibido») no hay nada que
-  // perder, y «Recibir otro» deja la pantalla como al abrir: la guardia se retira sola.
-  const fotoConteo = fotoFormulario({ reparto, extras, decisiones, numeroGuia, nota });
-  const [fotoConteoAlAbrir] = useState(fotoConteo);
+  // perder, y «Recibir otro» deja la pantalla como al abrir: la guardia se retira sola. Se compara contra la recepción VACÍA:
+  // una recuperada al volver a su sede también se protege. Y lo que quedó guardado en otra sede (2026-10-11) solo vive mientras
+  // se siga en Recibir: salir también lo pierde, así que también pregunta.
+  const contado = envioContado({ reparto, extras, decisiones, numeroGuia, nota });
   const avisoSalida = useSalidaSinGuardar(
-    !ok && fotoConteo !== fotoConteoAlAbrir,
-    "Hay un conteo a medias en este envío y todavía no se recibió. Si sales ahora, se pierde lo contado."
+    !ok && (contado || guardadosEnOtras.length > 0),
+    mensajeDeSalida(contado ? "Hay un conteo a medias en este envío y todavía no se recibió. Si sales ahora, se pierde lo contado." : null, guardadosEnOtras)
   );
+  // Lo contado, al día, para `TrabajoPorSede`: si la sede cambia, esto queda guardado en ESTA sede.
+  const etiquetaSede = ubicaciones.find((u) => u.id === ubicacionInicialId)?.nombre ?? "esta sede";
+  useEffect(() => {
+    reportarConteo(
+      !ok && contado
+        ? {
+            etiqueta: etiquetaSede,
+            unidades: unidadesDelEnvio({ reparto, extras }),
+            trabajo: { seleccionadas, abiertos, reparto, extras, decisiones, numeroGuia, nota, pestana, token },
+            avisoAlGuardar: avisoConteoGuardado({ etiqueta: etiquetaSede, unidades: unidadesDelEnvio({ reparto, extras }) }),
+            avisoAlVolver: avisoConteoRetomado({ etiqueta: etiquetaSede, unidades: 0 }),
+          }
+        : null,
+    );
+  }, [reportarConteo, ok, contado, etiquetaSede, seleccionadas, abiertos, reparto, extras, decisiones, numeroGuia, nota, pestana, token]);
   // La fila cuya decisión se está corrigiendo, y la fila cuyo campo tiene el foco (el editor no se abre mientras se teclea).
   const [editando, setEditando] = useState<string | null>(null);
   const [enfocada, setEnfocada] = useState<string | null>(null);

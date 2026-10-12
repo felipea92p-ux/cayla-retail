@@ -131,3 +131,18 @@ validaciones en vivo llevan el foco al campo que falta.
 - **Pendiente:** el clic real sobre `/devoluciones` con datos reales. El panel oculto del navegador
   no hidrata las páginas del menú (limitación conocida); el salto `?item=` se comprobó con datos
   reales solo del lado del servidor y con la ruta de ejemplo del lado del cliente.
+
+## Actualización 2026-10-11 — al cambiar de sede, la devolución a medio armar queda guardada en SU sede (Felipe)
+
+Lo mismo que Cambios (ADR-0125, actualización del mismo día), su pantalla gemela. Tras cambiar de sede con el selector de la cabecera
+(`router.refresh()`, la ruta no cambia), la devolución armada en Lima seguía en la pantalla de Trujillo. Reproducido sobre `main`
+(página de ensayo con el panel real y un Supabase falso, sin base local): la devolución de Ana («No era su talla», impecable, S/ 89.90)
+se confirmó desde Trujillo y `crear_devolucion` salió con **Trujillo**. La confirmación lo decía («Se registra en: Tienda Trujillo»),
+pero el cliente estaba en Lima.
+
+**La decisión (Felipe):** la misma regla que Cambios. Trujillo muestra su actividad y la devolución **queda guardada en Lima**, con un
+aviso («La devolución de Ana Prueba quedó guardada en Tienda Lima»). Al volver sigue en el mismo paso, con las prendas, la condición
+de cada una, el motivo y el detalle. Una cancelada o terminada no se guarda, y con `?item=` el panel montado por un cambio de sede no
+reabre esa venta desde cero. Hecho con la pieza común `TrabajoPorSede`; regla y avisos en `lib/devoluciones-cambio-de-sede.ts` (comparte
+con Cambios cómo se nombra al cliente, `deQuienEsLaVenta`). Verificado después en el mismo ensayo a 375 px (PL-105): Trujillo con su
+actividad y el aviso; Lima de vuelta en el paso 3, y `crear_devolucion` salió con Lima («Se registra en: Tienda Lima»).

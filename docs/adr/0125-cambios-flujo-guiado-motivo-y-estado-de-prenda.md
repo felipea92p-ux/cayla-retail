@@ -134,3 +134,26 @@ tiene de verdad.
 - Las 9 consultas nuevas pasaron la resolución de relaciones de PostgREST (sin PGRST201).
 - **Pendiente:** la vuelta completa con sesión real (búsquedas contra datos, cambio
   registrado y la pantalla de éxito).
+
+## Actualización 2026-10-11 — al cambiar de sede, el cambio a medio armar queda guardado en SU sede (Felipe)
+
+**El problema.** El selector de sede de la cabecera cambia la sede con `router.refresh()`: la ruta no cambia y React conserva el
+estado de todo componente cliente cuya `key` siga igual. El cambio armado en Lima (la venta, la prenda nueva, el motivo) seguía en la
+pantalla de Trujillo. Reproducido sobre `main` (página de ensayo con el panel real y un Supabase falso, sin base local): el cambio de
+Ana (S por M) se confirmó desde Trujillo y `registrar_cambio` salió con **Trujillo**, así que la prenda que vuelve entraba a su piso y
+la M salía de él. La pantalla sí lo decía («Impacto» y «Se registra en: Tienda Trujillo»), pero el cliente estaba en el mostrador de
+Lima.
+
+**La decisión (Felipe, entre guardarlo en su sede, dejarlo como estaba o descartarlo con aviso):** Trujillo muestra su propia
+actividad y el cambio **queda guardado en Lima**, con un aviso («El cambio de Ana Prueba quedó guardado en Tienda Lima»). Al volver,
+sigue en el mismo paso con lo elegido («Volvió el cambio de Ana Prueba»). Es la misma regla que Vender, Recibir y Apartados.
+
+- Un cambio cancelado o terminado no se guarda: sin flujo abierto, el panel reporta que no hay nada armado.
+- Si la página llegó con `?item=` (el salto «Cambiar por otra prenda»), el panel que se monta **por un cambio de sede** no reabre
+  esa venta desde cero en la sede nueva (`vieneDeOtraSede` de `TrabajoPorSede`). Lo de la sede que se dejó queda guardado allí.
+
+**Cómo está hecho.** `cambios/page.tsx` monta el panel con `key={claveDeCambios(<sede>)}` dentro de `<TrabajoPorSede key="cambios">`
+(`components/ui/TrabajoPorSede.tsx`, la pieza común desde Apartados). El panel retoma la venta guardada y `CambiosFlujo` su paso, su
+línea, su selección y su token, y lo reporta mientras no termina. Regla y avisos en `lib/cambios-cambio-de-sede.ts`, con su prueba
+(`cambios-cambio-de-sede.test.ts`). Verificado después en el mismo ensayo, en escritorio y a 375 px (PL-105): Trujillo con su actividad y
+el aviso; de vuelta en Lima, el paso 3 con lo elegido, y `registrar_cambio` salió con Lima («Se registra en: Tienda Lima»).

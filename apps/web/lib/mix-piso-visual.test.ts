@@ -1,84 +1,49 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { asignarGanchos, cuadriculaDelRiel, escalaDeMancuerna, fondoDeGrupo, posicionEnEscala, TOKENS_DE_GRUPO, tokenDeGrupo, FONDOS_DE_GRUPO } from "./mix-piso-visual";
+import { cifraEs, colorDeGrupo, escalaDeMancuerna, pctEs, posicionEnEscala, prendasEs } from "./mix-piso-visual";
 
-describe("los colores de los grupos salen solo de la guía", () => {
-  it("seis tokens distintos, ninguno es el rojo (acento sagrado, máx. 2 por pantalla)", () => {
-    expect(new Set(TOKENS_DE_GRUPO).size).toBe(6);
-    expect((TOKENS_DE_GRUPO as readonly string[]).includes("rojo")).toBe(false);
-    expect(FONDOS_DE_GRUPO.some((c) => c.includes("rojo"))).toBe(false);
-  });
-
-  it("cada token tiene su fondo, y el texto de encima contrasta (crema sobre oscuro, tinta sobre el color claro)", () => {
-    TOKENS_DE_GRUPO.forEach((t, i) => expect(fondoDeGrupo(i)).toContain(`bg-${t}`));
-    expect(fondoDeGrupo(5)).toContain("text-tinta");
-    expect(fondoDeGrupo(0)).toContain("text-crema");
+describe("el color de cada grupo del plan del piso (una sola fuente: --grupo-N de plan-piso.css)", () => {
+  it("sale de la posición del grupo en el riel", () => {
+    for (let i = 0; i < 6; i++) expect(colorDeGrupo(i)).toBe(`var(--grupo-${i})`);
   });
 
   it("con más de seis grupos los colores se reutilizan, y un índice negativo no se rompe", () => {
-    expect(tokenDeGrupo(6)).toBe(tokenDeGrupo(0));
-    expect(tokenDeGrupo(13)).toBe(tokenDeGrupo(1));
-    expect(tokenDeGrupo(-1)).toBe(tokenDeGrupo(5));
+    expect(colorDeGrupo(6)).toBe(colorDeGrupo(0));
+    expect(colorDeGrupo(13)).toBe(colorDeGrupo(1));
+    expect(colorDeGrupo(-1)).toBe(colorDeGrupo(5));
+  });
+
+  it("los seis colores existen en la hoja de estilos, definidos solo con tokens (nada de hex ni rgb) y con su versión oscura para el cuarto", () => {
+    const css = readFileSync(new URL("../app/estilos/plan-piso.css", import.meta.url), "utf8");
+    for (let i = 0; i < 6; i++) expect(css, `--grupo-${i}`).toMatch(new RegExp(`--grupo-${i}:\\s*[^;]*var\\(--color-`));
+    const definiciones = css.match(/--grupo-[0-9a-z]+:[^;]+;/g) ?? [];
+    expect(definiciones.length).toBeGreaterThanOrEqual(7);
+    for (const d of definiciones) expect(d, d).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/);
+    expect(css).toMatch(/:root\[data-tema="oscuro"\]\s*\{[^}]*--grupo-4/);
+    expect(css).not.toMatch(/--grupo-[0-9]:[^;]*--color-rojo/);
   });
 });
 
-describe("repartir los ganchos de un riel", () => {
-  it("un grupo junto a otro, en el orden de la lista; lo que sobra de la capacidad queda libre (-1)", () => {
-    const r = asignarGanchos([3, 2, 0, 1], 10);
-    expect(r.ganchos).toEqual([0, 0, 0, 1, 1, 3, -1, -1, -1, -1]);
-    expect(r.ocupados).toBe(6);
-    expect(r.deMas).toBe(0);
+describe("cómo se escribe una cifra del plan del piso", () => {
+  it("un porcentaje lleva espacio duro: «4 %» no se parte en dos renglones", () => {
+    expect(pctEs(4)).toBe("4\u00a0%");
+    expect(pctEs(43.8)).toBe("43.8\u00a0%");
+    expect(pctEs(1000)).toBe("1,000\u00a0%");
   });
 
-  it("nunca dibuja más ganchos que la capacidad: lo que no cabe se cuenta aparte", () => {
-    const r = asignarGanchos([8, 5], 10);
-    expect(r.ganchos).toHaveLength(10);
-    expect(r.ganchos.filter((g) => g === -1)).toHaveLength(0);
-    expect(r.ganchos.filter((g) => g === 1)).toHaveLength(2);
-    expect(r.deMas).toBe(3);
-    expect(r.ocupados).toBe(10);
+  it("coma de miles y punto decimal, como en el resto del ERP (nunca «1800» pegado)", () => {
+    expect(cifraEs(1800)).toBe("1,800");
+    expect(cifraEs(78)).toBe("78");
+    expect(cifraEs(1722)).toBe("1,722");
+    expect(cifraEs(4.55)).toBe("4.6");
+    expect(cifraEs(0)).toBe("0");
   });
 
-  it("con el riel de TRU a medias (61 de 600) quedan 539 libres", () => {
-    const r = asignarGanchos([24, 0, 20, 12, 0, 5], 600);
-    expect(r.ocupados).toBe(61);
-    expect(r.ganchos.filter((g) => g === -1)).toHaveLength(539);
-  });
-
-  it("una propuesta que suma la capacidad llena el riel entero, sin ningún libre", () => {
-    const r = asignarGanchos([288, 54, 120, 72, 36, 30], 600);
-    expect(r.ganchos.every((g) => g >= 0)).toBe(true);
-    expect(r.deMas).toBe(0);
-  });
-
-  it("cantidades raras (negativas, con decimales, capacidad 0) no rompen: se descartan o se redondean hacia abajo", () => {
-    expect(asignarGanchos([-5, 2.9], 4).ganchos).toEqual([1, 1, -1, -1]);
-    expect(asignarGanchos([5], 0).ganchos).toEqual([]);
-    expect(asignarGanchos([5], 0).deMas).toBe(5);
-    expect(asignarGanchos([], 3).ganchos).toEqual([-1, -1, -1]);
-  });
-});
-
-describe("cómo se acomodan los ganchos en el ancho disponible", () => {
-  it("cada riel entra completo: columnas × filas alcanza para todos los ganchos, y las filas no pasan de 24", () => {
-    for (const n of [180, 600, 1800, 7]) {
-      for (const ancho of [320, 640, 1088]) {
-        const c = cuadriculaDelRiel(n, ancho);
-        expect(c.columnas * c.filas, `n=${n} ancho=${ancho}`).toBeGreaterThanOrEqual(n);
-        expect(c.filas).toBeLessThanOrEqual(Math.max(24, Math.ceil(n / 12)));
-      }
-    }
-  });
-
-  it("AQP (1.800) en un ancho de escritorio usa más columnas, no más de 24 filas", () => {
-    const c = cuadriculaDelRiel(1800, 1088);
-    expect(c.filas).toBeLessThanOrEqual(24);
-    expect(c.columnas).toBeGreaterThanOrEqual(75);
-  });
-
-  it("un ancho absurdo (0, negativo) se corrige a uno mínimo en vez de dar columnas negativas", () => {
-    const c = cuadriculaDelRiel(100, -50);
-    expect(c.columnas).toBeGreaterThanOrEqual(12);
-    expect(c.alto).toBeGreaterThan(0);
+  it("la palabra concuerda con la cifra: una prenda, dos prendas, cero prendas", () => {
+    expect(prendasEs(1)).toBe("1 prenda");
+    expect(prendasEs(30)).toBe("30 prendas");
+    expect(prendasEs(0)).toBe("0 prendas");
+    expect(prendasEs(1800)).toBe("1,800 prendas");
   });
 });
 

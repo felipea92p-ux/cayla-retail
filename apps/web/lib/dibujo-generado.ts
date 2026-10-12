@@ -153,6 +153,18 @@ const TEXTURA_DE_FAMILIA: Record<FamiliaTejido, TexturaTejido> = {
   poliester: "brillo",
   viscosa: "brillo",
   mojado: "brillo",
+  // Los materiales de las bolsas (ADR-0377): la textura más cercana para «Generar dibujo».
+  papel_kraft: "lino",
+  papel_couche: "brillo",
+  papel_opalina: "tafetan",
+  tnt: "pique",
+  organza: "tafetan",
+  plastico: "brillo",
+  // Los que producción tenía sin dibujo (2026-10-11).
+  encaje: "tafetan",
+  gamuza: "pelo",
+  mesh: "punto",
+  catania: "tafetan",
 };
 
 /** El color de cada tela cuando la frase no dice ninguno: el de la tela real (el denim es índigo). */

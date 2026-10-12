@@ -278,9 +278,12 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
     expect(p.estado.sugerencias).toEqual(["cambiar_lugar", "trasladar"]);
     expect(p.rapidez?.vendidas).toBe(0);
-    // Se midió contra su categoría SIN ella (D5): no vendió nada, así que el resto tiene las mismas ventas que la vara.
+    // Se midió contra su categoría SIN ella (D5): no vendió nada, así que el resto tiene las mismas ventas que la vara. La vara que
+    // la juzgó es la del mes (ADR-0208, act. 2026-10-10 (b)): la de Camisas y Blusas al 1 de septiembre ya llegaba a 10 ventas.
     const blusas = sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!;
-    expect(p.categoriaSinElla?.vendidas).toBe(blusas.vendidas);
+    expect(p.varaDelMes).toBe(true);
+    expect(blusas.delMes).toMatchObject({ corte: "2026-09-01T05:00:00.000Z", enUso: true });
+    expect(p.categoriaSinElla?.vendidas).toBe(blusas.delMes!.vendidas);
     expect(p.categoriaSinElla?.cortes.p50).not.toBeNull();
   });
 
@@ -404,7 +407,8 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const r = await armarFrescuraLider([TIENDA], rpc, 120);
     const sede = r.sedes[0].lectura.datos as FrescuraSede;
     expect(r.referenciaCayla.fallo).toBeNull();
-    expect(r.referenciaCayla.datos).toEqual(sede.categorias);
+    // La misma vara de hoy; la del mes es de cada tienda (la referencia de CAYLA no la arma).
+    expect(r.referenciaCayla.datos).toEqual(sede.categorias.map((c) => ({ ...c, delMes: null })));
   });
 });
 

@@ -661,6 +661,17 @@ export function costoEfectivo(f: FilaFicha): string {
   return f.costo;
 }
 
+/** Lo que cuesta la talla activa que MÁS cuesta, según la base (lo guardado, no lo que se está escribiendo): el piso del precio de una
+ *  tienda (`poner_precio_sede`, Felipe 2026-10-11). `null` si no hay ninguna activa guardada o no se ve el costo (quien no ve el dinero
+ *  recibe el costo vacío, 20260923193700). Las variantes nuevas todavía no existen para la base: no cuentan. */
+export function costoMaximoGuardado(filas: readonly FilaFicha[]): number | null {
+  const costos = filas
+    .filter((f) => f.guardada?.activo)
+    .map((f) => (f.guardada!.costo.trim() === "" ? NaN : Number(f.guardada!.costo)))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return costos.length > 0 ? Math.max(...costos) : null;
+}
+
 /**
  * ¿Se pudo saber qué costos vienen de compras? `costoOficial` llega `null` cuando `fn_variantes_con_costo_oficial` falló
  * (red, permiso) o no está en la base: todas quedan fijas (`filasDeProducto`) y la ficha tiene que decir POR QUÉ, no que
@@ -710,18 +721,20 @@ function enAlcance(f: FilaFicha, alcance: string): boolean {
 
 /**
  * Pone el mismo precio (o costo) a las activas del alcance. El costo NO toca las que ya lo traen de compras (`fijas`).
- * `error` si el monto no sirve (un precio tiene que ser mayor que 0; un costo, 0 o más).
+ * `error` si el monto no sirve (un precio tiene que ser mayor que 0, o 0 o más en Empaque: `precioValido`; un costo, 0 o más).
  */
 export function aplicarEnBloque(
   filas: readonly FilaFicha[],
   campo: CampoBloque,
   alcance: string,
   monto: string,
+  admitePrecioCero = false,
 ): { filas: FilaFicha[]; aplicadas: number; fijas: number; error: string | null } {
   const n = Number(monto);
-  const invalido = monto.trim() === "" || !Number.isFinite(n) || (campo === "precio" ? n <= 0 : n < 0);
+  const invalido = monto.trim() === "" || (campo === "precio" ? !precioValido(n, admitePrecioCero) : !Number.isFinite(n) || n < 0);
   if (invalido) {
-    return { filas: [...filas], aplicadas: 0, fijas: 0, error: campo === "precio" ? "Escribe un precio mayor que 0." : "Escribe un costo de 0 o más." };
+    const error = campo === "costo" ? "Escribe un costo de 0 o más." : admitePrecioCero ? "Escribe un precio de 0 o más." : "Escribe un precio mayor que 0.";
+    return { filas: [...filas], aplicadas: 0, fijas: 0, error };
   }
   let aplicadas = 0;
   let fijas = 0;
@@ -934,7 +947,18 @@ export type CategoriaElegida = {
   nombre?: string;
   /** Es otra que la guardada: «vuelve a la categoría anterior» es una salida. */
   cambio: boolean;
+  /** Su familia está fuera de los motores (Empaque, ADR-0377): admite precio 0, la bolsa de obsequio (Felipe 2026-10-10). */
+  admitePrecioCero?: boolean;
 };
+
+/**
+ * ¿Sirve este precio? En una prenda tiene que ser mayor que 0: un 0 casi siempre es un precio olvidado, y la prenda se
+ * vendería gratis sin que nadie lo note. Solo lo de una familia fuera de los motores (Empaque) admite 0: la bolsa de obsequio,
+ * que Vender muestra como «Obsequio» y no declara a SUNAT (ADR-0377). La base acepta 0 en las dos (`variantes_precio_check`).
+ */
+export function precioValido(precio: number, admitePrecioCero = false): boolean {
+  return Number.isFinite(precio) && (admitePrecioCero ? precio >= 0 : precio > 0);
+}
 
 /**
  * Lo que impide guardar (o avisa), antes de ir a la base. En orden: primero lo que bloquea. Con `categoria`, revisa además
@@ -946,9 +970,9 @@ export function problemasVariantes(filas: readonly FilaFicha[], n: NombresFicha,
   if (filas.length === 0) return [{ texto: "Agrega al menos una variante con «Agregar color» o «Agregar talla».", bloquea: true }];
   for (const f of filas) {
     if (!f.activo) continue;
-    const precio = Number(f.precio);
-    if (f.precio.trim() === "" || !Number.isFinite(precio) || precio <= 0) {
-      p.push({ texto: `${nombreVariante(f, n)} necesita un precio mayor que 0.`, bloquea: true, clave: f.clave });
+    if (f.precio.trim() === "" || !precioValido(Number(f.precio), categoria?.admitePrecioCero)) {
+      const falta = categoria?.admitePrecioCero ? "un precio de 0 o más" : "un precio mayor que 0";
+      p.push({ texto: `${nombreVariante(f, n)} necesita ${falta}.`, bloquea: true, clave: f.clave });
     }
     const costo = Number(f.costo);
     if (!f.costoFijo && f.costo.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) {

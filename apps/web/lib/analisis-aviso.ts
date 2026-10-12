@@ -5,7 +5,7 @@
 // cosas distintas.
 
 import type { PreparacionAnalisis } from "./analisis-tipos";
-import { DIAS_SOSTENIDOS, diaAntes, UMBRAL_IDENTIFICADA } from "./motor-demanda-reglas";
+import { DIAS_SOSTENIDOS, diaAntes, UMBRAL_IDENTIFICADA, type ClaveCondicion } from "./motor-demanda-reglas";
 
 /**
  * Qué se ve:
@@ -72,4 +72,19 @@ export function avisoDatosDeHoy(p: PreparacionAnalisis | undefined): string {
   if (de100 !== null && de100 < META_CON_PRENDA) return `Solo ${de100} de cada 100 ventas tienen su prenda: ${COLA}`;
   // Las ventas ya llevan su prenda, pero todavía no 14 días seguidos (un día malo hace poco, o la tienda empezó hace poco).
   return `Llevas ${Math.min(p.racha.dias, DIAS_SOSTENIDOS)} de ${DIAS_SOSTENIDOS} días cobrando con la prenda: ${COLA}`;
+}
+
+/** Qué pantallas ve quien mira, para el botón de lo que falta (cada una con su módulo: Por regularizar y Cuadrar son de Existencias). */
+export type AccesoPaso = { regularizar: boolean; cuadrar: boolean; conteo: boolean };
+
+/**
+ * El botón de lo PRIMERO que le falta a una tienda para que el motor hable: registrar las ventas sin su prenda, cuadrar el piso o contar el
+ * almacén. Una sola regla para Análisis («Todavía no») y Frescura (el aviso de la puerta: Formidable 2026-10-10 (c)), así las dos pantallas
+ * nunca mandan a lugares distintos por lo mismo. Null si no falta nada, si no hay qué registrar o si la cuenta no ve esa pantalla.
+ */
+export function pasoParaHablar(falta: ClaveCondicion | null, sinPrenda: number, acceso: AccesoPaso): { href: string; texto: string } | null {
+  if (falta === "venta_identificada") return acceso.regularizar && sinPrenda > 0 ? { href: "/inventario/por-regularizar", texto: `Registrar ${sinPrenda} sin prenda` } : null;
+  if (falta === "piso_cuadrado") return acceso.cuadrar ? { href: "/inventario/cuadrar", texto: "Cuadrar el piso" } : null;
+  if (falta === "almacen_contado") return acceso.conteo ? { href: "/inventario/conteo", texto: "Contar el almacén" } : null;
+  return null;
 }

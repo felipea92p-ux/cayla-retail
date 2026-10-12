@@ -134,7 +134,7 @@ export function OrdenesTablero({
             style={{ ["--i" as string]: 2 }}
             valor={resumen.margenPromedio === null ? null : <CifraQueCuenta valor={resumen.margenPromedio * 100} formato="porcentaje" alMontar />}
           >
-            {resumen.margenPromedio === null ? "sin precio o costo todavía" : "sobre el precio de venta"}
+            {resumen.margenPromedio === null ? "sin precio o costo todavía" : "sobre el precio de venta más bajo"}
           </TarjetaCifra>
         )}
       </div>
@@ -227,6 +227,7 @@ export function OrdenesTablero({
                       {esLider && (
                         <span className="ml-auto inline-flex items-center gap-2 tabular-nums text-tinta">
                           {soles(o.costoUnitario)}
+                          {sem?.sede && <span className="text-xs text-tinta/65">en {sem.sede}</span>}
                           {sem && <span aria-hidden className={`h-2 w-2 rounded-full ${sem.clase}`} />}
                         </span>
                       )}

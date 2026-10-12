@@ -26,6 +26,7 @@ export function CambiarEnBloque({
   deshabilitado,
   onCampo,
   campoFijo,
+  admitePrecioCero = false,
 }: {
   filas: FilaFicha[];
   onFilas: (siguiente: FilaFicha[]) => void;
@@ -38,6 +39,8 @@ export function CambiarEnBloque({
   onCampo?: (campo: CampoBloque) => void;
   /** Lo decide la pestaña de la matriz («Precios» o «Costos»): sin selector propio, la frase dice cuál se cambia. */
   campoFijo?: CampoBloque;
+  /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): el precio puede ser 0, la bolsa de obsequio. */
+  admitePrecioCero?: boolean;
 }) {
   const [campoPropio, setCampo] = useState<CampoBloque>("precio");
   const campo = campoFijo ?? campoPropio;
@@ -68,7 +71,7 @@ export function CambiarEnBloque({
       setAlcance("todas");
       return setResultado({ texto: "Ese grupo ya no está en la tabla: elige a cuáles poner el monto y vuelve a pulsar Aplicar.", error: true });
     }
-    const r = aplicarEnBloque(filas, campo, alcanceVigente, monto);
+    const r = aplicarEnBloque(filas, campo, alcanceVigente, monto, admitePrecioCero);
     if (r.error) return setResultado({ texto: r.error, error: true });
     if (r.aplicadas === 0 && r.fijas === 0) return setResultado({ texto: "No hay variantes activas en ese grupo.", error: true });
     onFilas(r.filas);

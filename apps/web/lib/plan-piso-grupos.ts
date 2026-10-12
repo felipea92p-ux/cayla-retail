@@ -122,6 +122,49 @@ export function resumir(categorias: readonly CategoriaMix[]): ResumenGrupos {
   return { total: categorias.length, confirmadas, porRevisar, sinGrupo };
 }
 
+/** Lo que dice la Propuesta cuando quedan categorías cuyo grupo nadie ha confirmado, y a dónde lleva (la pestaña Grupos). */
+export type AvisoDeGruposPorRevisar = { titulo: string; detalle: string; accion: string };
+
+/**
+ * El aviso de la Propuesta sobre las categorías que esperan al líder, que son DOS cosas distintas y la propuesta las trata distinto:
+ *  · «por revisar»: el sistema les puso un grupo, que la propuesta SÍ usa mientras nadie lo confirme;
+ *  · «sin grupo»: son nuevas y no tienen ninguno, así que NO entran al reparto (`armarPropuesta` las cuenta aparte).
+ * Dice cuántas son de cada una, qué pasa mientras tanto y a dónde ir. Quien es líder las confirma; quien no, solo las ve. Sin ninguna, no hay aviso.
+ */
+export function avisoDeGruposPorRevisar(porRevisar: number, sinGrupo: number, esLider: boolean): AvisoDeGruposPorRevisar | null {
+  const rev = Number.isFinite(porRevisar) && porRevisar > 0 ? Math.floor(porRevisar) : 0;
+  const sin = Number.isFinite(sinGrupo) && sinGrupo > 0 ? Math.floor(sinGrupo) : 0;
+  const total = rev + sin;
+  if (total === 0) return null;
+  const cuantas = total.toLocaleString("es-PE");
+  const accion = esLider ? (total === 1 ? "Revisar la categoría" : `Revisar las ${cuantas} categorías`) : total === 1 ? "Ver la categoría" : `Ver las ${cuantas} categorías`;
+  const quien = esLider ? "no" : "el líder no";
+  const nRev = rev.toLocaleString("es-PE");
+  const nSin = sin.toLocaleString("es-PE");
+
+  if (sin === 0) {
+    const una = rev === 1;
+    return {
+      titulo: una ? "1 categoría sigue por revisar" : `${nRev} categorías siguen por revisar`,
+      detalle: `Mientras ${quien} ${una ? "la" : "las"} ${esLider ? "confirmes" : "confirme"}, la propuesta usa el grupo que el sistema ${una ? "le" : "les"} puso.`,
+      accion,
+    };
+  }
+  if (rev === 0) {
+    const una = sin === 1;
+    return {
+      titulo: una ? "1 categoría no tiene grupo" : `${nSin} categorías no tienen grupo`,
+      detalle: `Mientras ${quien} ${una ? "le" : "les"} ${esLider ? "elijas" : "elija"} uno, ${una ? "no entra" : "no entran"} al reparto de la propuesta.`,
+      accion,
+    };
+  }
+  return {
+    titulo: `${cuantas} categorías esperan revisión`,
+    detalle: `${rev === 1 ? "1 sigue con el grupo que le puso el sistema" : `${nRev} siguen con el grupo que les puso el sistema`}; ${sin === 1 ? "1 no tiene grupo y no entra" : `${nSin} no tienen grupo y no entran`} al reparto de la propuesta.`,
+    accion,
+  };
+}
+
 /**
  * ¿La ropa o lo que va fuera del riel? La misma regla que la base (`fn_categoria_grupo_mix_coherente`): una familia de
  * `FAMILIAS_FUERA_DEL_RIEL` va a un grupo de fuera del riel; todo lo demás —y una categoría sin familia— cuelga en el riel.

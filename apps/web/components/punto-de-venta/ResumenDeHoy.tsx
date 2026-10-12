@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Clock, History, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { VentasDeHoyLista, type VentaDeHoy } from "@/components/VentasDeHoy";
+import { VentasDeHoyLista } from "@/components/VentasDeHoy";
+import type { VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { anchoBarraMeta, resumenDeHoy } from "@/lib/vender-hoy-reglas";
 
 const soles = (n: number) => `S/${n.toFixed(2)}`;
@@ -23,7 +24,7 @@ export function ResumenDeHoy({
   verHistorial,
   forma,
 }: {
-  ventas: VentaDeHoy[];
+  ventas: readonly VentaDeHoy[];
   fallo: string | null;
   meta: number | null;
   ubicacionEtiqueta: string;
