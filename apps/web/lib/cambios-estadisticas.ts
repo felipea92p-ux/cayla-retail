@@ -26,7 +26,7 @@ export async function getEstadisticasCambios(ubicacionId: string, ahora = new Da
       .gte("created_at", inicioDeDiaLima(diaLima(ahora.getTime())).toISOString()),
     supabase
       .from("cambios")
-      .select("cantidad, venta_item:venta_items ( precio_unitario )")
+      .select("cantidad, venta_item:venta_items ( precio_unitario, descuento_unitario )")
       .eq("ubicacion_id", ubicacionId)
       .gte("created_at", inicioDeMesLima(ahora.getTime()).toISOString()),
   ]);
@@ -35,7 +35,7 @@ export async function getEstadisticasCambios(ubicacionId: string, ahora = new Da
   return {
     cambiosHoy: hoyRes.count ?? 0,
     cambiosMes: delMes.length,
-    valorMes: delMes.reduce((suma, c) => suma + c.cantidad * Number(c.venta_item?.precio_unitario ?? 0), 0),
+    valorMes: delMes.reduce((suma, c) => suma + c.cantidad * (Number(c.venta_item?.precio_unitario ?? 0) - Number(c.venta_item?.descuento_unitario ?? 0)), 0),
   };
 }
 

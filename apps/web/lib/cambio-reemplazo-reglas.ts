@@ -8,6 +8,8 @@ import type { LineaVentaReciente } from "./ventas-v2";
 import { condicionForzada, unidadesDisponibles, varianteLegible, type CondicionCambio, type MetodoDiferencia, type MotivoCambio } from "./cambios-reglas";
 import { resolverCodigoV2 } from "./buscar-prenda-v2";
 import { compararTallas } from "./tallas";
+import { soles } from "./compras-reglas";
+import { valorPagado } from "./devoluciones-reglas";
 import { textoOtrasSedes, type SedeConStock } from "./stock-por-sede";
 import { sinStockPorApartado, textoSinStock } from "./vender-reglas";
 
@@ -108,6 +110,23 @@ export function precioParaCambio(linea: Pick<LineaVentaReciente, "productoId" | 
   return v.preciosPorTienda?.[linea.ubicacionVentaId] ?? v.precioPrenda ?? v.precio;
 }
 
+/**
+ * Lo que la clienta pagó por UNA unidad de la prenda que devuelve: el precio menos su descuento (la campaña, el club, lo que fuera).
+ * Es contra esto —no contra el precio de lista— que se mide la diferencia del cambio (`registrar_cambio`, ADR-0378): pagó S/ 80 por
+ * una polera de S/ 100 con campaña y la cambia por otra de S/ 100 → S/ 20 a cobrar. La misma cuenta que el tope de reembolso de
+ * Devoluciones (`valorPagado`); no se repite aquí.
+ */
+export function pagadoPorUnidad(linea: Pick<LineaVentaReciente, "precioUnitario" | "descuentoUnitario">): number {
+  return valorPagado(linea, 1);
+}
+
+/** «Pagó con S/ 20.00 de descuento (lista S/ 100.00)», o null si la línea no tuvo descuento: la explicación de por qué se compara con
+ *  menos que el precio de la etiqueta. */
+export function textoPagoConDescuento(linea: Pick<LineaVentaReciente, "precioUnitario" | "descuentoUnitario">): string | null {
+  if (!(linea.descuentoUnitario > 0)) return null;
+  return `Pagó con ${soles(linea.descuentoUnitario)} de descuento (lista ${soles(linea.precioUnitario)})`;
+}
+
 /** Todo lo que se deriva de la selección, calculado UNA vez: el formulario, la
  *  comparación, las validaciones y la confirmación leen lo mismo. */
 export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>, s: Seleccion) {
@@ -168,8 +187,11 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
           : `No queda ${descripcionNueva} aquí${otrasSedes ? ` — hay ${otrasSedes}.` : ", ni en otra sede."}`,
     /** El precio al que se lleva la prenda nueva (`precioParaCambio`): el que se muestra y el de la diferencia. */
     precioNueva: varianteNueva ? precioParaCambio(linea, varianteNueva) : null,
-    // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira).
-    diferencia: varianteNueva ? (precioParaCambio(linea, varianteNueva) - linea.precioUnitario) * s.cantidad : 0,
+    /** Lo que pagó por cada unidad que devuelve (precio − descuento): lo que se muestra como «precio» de la prenda devuelta. */
+    pagadoUnitario: pagadoPorUnidad(linea),
+    // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira). Lo mismo que calcula `registrar_cambio`: la
+    // prenda nueva a su precio contra lo que la clienta PAGÓ por la devuelta (ADR-0378), redondeada al céntimo como la base.
+    diferencia: varianteNueva ? Math.round((precioParaCambio(linea, varianteNueva) * s.cantidad - valorPagado(linea, s.cantidad)) * 100) / 100 : 0,
     condicionFija,
     condicion: condicionFija ?? s.condicionElegida,
   };
