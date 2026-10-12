@@ -14,8 +14,8 @@ import { RegistrarComprobanteOrden } from "@/components/ordenes-compra/Registrar
 // el proveedor entregó por lo que se le pidió. Hermana de `editar/[id]`: la puerta del módulo la pone `ordenes/layout.tsx`, y las
 // reglas viven en `registrar_comprobante_orden` (la pantalla las espeja para decirlas antes de pulsar).
 //
-// Solo una orden «generada» y con «Llega a» registra comprobante: una anulada no, y una «Por repartir» todavía no (pasa a otra fase, Felipe
-// 2026-10-12). Si la base aún no conoce los comprobantes de orden (la web publicada antes que la migración), lo dice: nunca un formulario
+// Solo una orden «generada» registra comprobante (una anulada no). Una «Por repartir» también, desde la fase 3: la deuda queda en la sede de
+// quien hizo la orden (decisión 46, Felipe 2026-10-12); con una base de la fase 2, que todavía no lo sabe, se explica. Si la base aún no conoce los comprobantes de orden (la web publicada antes que la migración), lo dice: nunca un formulario
 // que falle al guardar.
 export default async function RegistrarComprobanteOrdenPage({ params }: { params: Promise<{ id: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
@@ -65,7 +65,7 @@ export default async function RegistrarComprobanteOrdenPage({ params }: { params
     );
   }
 
-  if (!detalle.destino) {
+  if (!detalle.destino && !detalle.deudaDe) {
     return (
       <div className="space-y-6">
         {cabecera}

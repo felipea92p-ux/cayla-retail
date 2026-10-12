@@ -174,6 +174,7 @@
     "pruebas:compras-llave": "node scripts/pruebas/compras_modulo_es_la_llave.mjs",
     "pruebas:ordenes-compra-comprobante": "node scripts/pruebas/ordenes_compra_comprobante.mjs",
     "pruebas:compras-lineas-sin-prenda": "node scripts/pruebas/compras_lineas_sin_prenda.mjs",
+    "pruebas:ordenes-compra-envios": "node scripts/pruebas/ordenes_compra_envios.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
     "pruebas:roles-cobertura": "node scripts/pruebas/roles_cobertura_modulos.mjs",

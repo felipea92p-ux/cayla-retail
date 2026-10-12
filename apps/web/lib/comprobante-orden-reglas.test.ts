@@ -70,6 +70,8 @@ function pedida(over: Partial<LineaDetalle> = {}): LineaDetalle {
     subtotal: 255,
     facturado: 0,
     pendiente: 10,
+    enviado: null,
+    porEnviar: null,
     ...over,
   };
 }

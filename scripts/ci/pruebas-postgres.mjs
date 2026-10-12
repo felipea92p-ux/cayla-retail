@@ -959,6 +959,11 @@ export const PRUEBAS = [
   // lecturas que nombran la prenda de una línea no se rompen. ROLLBACK siempre.
   "pruebas:compras-lineas-sin-prenda",
 
+  // Envíos a una sede (ADR-0362, fase 3): una guía a una sola sede, desde una orden «directo» (solo a su tienda) o «Por repartir» (a
+  // varias); no se envía más de lo pedido o facturado; se anula solo en camino; una orden con envío no se edita; la deuda del comprobante
+  // es de la sede de quien hizo la orden (decisión 46). ROLLBACK siempre.
+  "pruebas:ordenes-compra-envios",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

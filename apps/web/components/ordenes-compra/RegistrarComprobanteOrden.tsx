@@ -305,7 +305,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
       <EncabezadoPagina
         sede={sede}
         titulo={`Comprobante de ${numeroOrdenCompra(orden.numero)}`}
-        subtitulo={`${orden.proveedor.nombre}${destino ? ` · llega a ${destino.nombre}` : ""}. Copia el papel tal como llegó: lo que falta de la orden ya viene puesto.`}
+        subtitulo={`${orden.proveedor.nombre}${destino ? ` · llega a ${destino.nombre}` : " · por repartir"}${orden.deudaDe ? ` · la deuda queda en ${orden.deudaDe.nombre}` : ""}. Copia el papel tal como llegó: lo que falta de la orden ya viene puesto.`}
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
         <div data-guia="comprobante.cifras" className="anim-sube text-right" style={{ ["--i" as string]: 1 }}>
