@@ -101,9 +101,12 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-op={m.id} data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
+    // La guía (ADR-0389) abre una fila de ejemplo; salta la de una prenda «sin registrar», porque su nombre lleva un verbo que el
+    // piloto no toca (regla «nunca guardar»).
+    <li className="mv-fila" data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila"} data-op={m.id} data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
       <button
         type="button"
+        data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila-abrir"}
         onClick={() => ctx.onAbrir(m)}
         aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? ` ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan}` : ""}`}
         className={BOTON_CUBRE_FILA}
@@ -123,7 +126,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
         <div className="mt-1.5 flex min-w-0 items-center gap-2.5" title={m.sku}>
           <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} />
           <span className="min-w-0">
-            <span className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
+            <span data-guia="movimientos.prenda-nombre" className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
             <span className="block truncate text-xs tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
           </span>
         </div>
@@ -172,7 +175,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const unidades = r.entran + r.salen + r.movidas + r.apartadas + r.liberadas;
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
+    <li className="mv-fila" data-guia="movimientos.grupo" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(primera)}

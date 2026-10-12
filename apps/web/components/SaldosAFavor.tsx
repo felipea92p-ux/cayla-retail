@@ -13,7 +13,7 @@ export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /*
   if (saldos.length === 0) return null;
   const total = Math.round(saldos.reduce((a, s) => a + s.saldoFavor, 0) * 100) / 100;
   return (
-    <section aria-labelledby="a-favor-titulo" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: indice }}>
+    <section aria-labelledby="a-favor-titulo" data-guia="por-pagar.a-favor" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: indice }}>
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-2 pt-4">
         <p id="a-favor-titulo" className="label-cayla flex items-center gap-2 text-[11px] text-tinta/65">
           <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-verde" />

@@ -42,7 +42,7 @@ export function FrescuraTablero({
     : "md:grid-cols-[minmax(150px,1fr)_minmax(200px,2fr)_auto_auto]";
   const tramo = compacto ? "md:col-span-5" : "md:col-span-4";
   return (
-    <section aria-label="El piso, por categoría" className="border-b border-sand px-4 pb-3 pt-4 sm:px-5">
+    <section aria-label="El piso, por categoría" data-guia="frescura.tablero" className="border-b border-sand px-4 pb-3 pt-4 sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">Por categoría</h2>
         {acciones}

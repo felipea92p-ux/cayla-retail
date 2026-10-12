@@ -235,14 +235,16 @@ export function MatrizStockFicha({
   return (
     <div className="scroll-mt-20 space-y-2" ref={raiz}>
       {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
+      <div data-guia="editar.vistas">
       <SegmentoDeslizante
         forma="modo"
         etiqueta="Qué se escribe en la tabla"
         valor={vista}
         onCambio={(v) => cambiarVista(v as VistaMatriz)}
-        opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t }))}
+        opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t, guia: `editar.vista-${v}` }))}
         className="w-full @lg:w-auto [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
       />
+      </div>
 
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">
@@ -315,6 +317,8 @@ export function MatrizStockFicha({
                           <button
                             type="button"
                             disabled={deshabilitado}
+                            aria-haspopup="dialog"
+                            data-guia="editar.corregir-talla"
                             title={`Corregir la talla ${nombreTalla}, si se registró mal`}
                             onClick={() => onCorregirTalla(t)}
                             className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"

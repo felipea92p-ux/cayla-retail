@@ -26,14 +26,14 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
 
   return (
     <div className="space-y-8">
-      <p className="max-w-3xl text-xs leading-relaxed text-tinta/65">
+      <p className="max-w-3xl text-xs leading-relaxed text-tinta/65" data-guia="calidad.periodo">
         Ventas del <strong>{fechaCorta(panel.cohorteDesde)}</strong> al <strong>{fechaCorta(panel.cohorteHasta)}</strong>. No se
         cuentan las ventas de las últimas {panel.plazoDias}{" "}días: todavía no cumplieron su plazo de cambio y contarlas como
         &quot;vendidas y no devueltas&quot; haría parecer que todo va mejor de lo que va.
       </p>
 
       {/* ---------- Totales ---------- */}
-      <section aria-labelledby="titulo-calidad-total" className="space-y-3">
+      <section aria-labelledby="titulo-calidad-total" className="space-y-3" data-guia="calidad.total">
         <h2 id="titulo-calidad-total" className="label-cayla text-[11px] text-tinta/65">
           Todas las tiendas
         </h2>
@@ -68,7 +68,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
       </section>
 
       {t.vendidas === 0 ? (
-        <div className="card-cayla p-6 text-sm text-tinta/75">
+        <div className="card-cayla p-6 text-sm text-tinta/75" data-guia="calidad.sin-ventas">
           Todavía no hay ventas que hayan cumplido su plazo de cambio en este período. Cuando las haya, aquí aparecerá qué
           talla, qué proveedor y qué producto se devuelve más.
         </div>
@@ -98,7 +98,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
       )}
 
       {/* ---------- Dañadas por tienda y mes ---------- */}
-      <section aria-labelledby="titulo-danadas" className="space-y-3">
+      <section aria-labelledby="titulo-danadas" className="space-y-3" data-guia="calidad.danadas">
         <div>
           <h2 id="titulo-danadas" className="label-cayla text-[11px] text-tinta/65">
             Prendas dañadas por tienda y mes
@@ -156,8 +156,8 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
         </div>
       </section>
 
-      <details className="card-cayla p-4 text-xs text-tinta/75">
-        <summary className="cursor-pointer font-semibold text-tinta">Cómo se calcula todo esto</summary>
+      <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="calidad.como-se-calcula">
+        <summary className="cursor-pointer font-semibold text-tinta" data-guia="calidad.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
             <strong>Qué ventas entran:</strong> las de los últimos {panel.ventanaDias}{" "}días que ya cumplieron su plazo de
@@ -206,7 +206,7 @@ function TablaCalidad({
 }) {
   const visibles = tope ? filas.slice(0, tope) : filas;
   return (
-    <section aria-labelledby={`titulo-${id}`} className="space-y-3">
+    <section aria-labelledby={`titulo-${id}`} className="space-y-3" data-guia={`calidad.tabla-${id}`}>
       <div>
         <h2 id={`titulo-${id}`} className="label-cayla text-[11px] text-tinta/65">
           {titulo}

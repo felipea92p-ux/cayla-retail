@@ -101,8 +101,8 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
   return (
     <CtxBilletera.Provider value={{ billetera, seleccion, idEnRuta }}>
       <div className="tp-cols" data-con-pase={idEnRuta ? "" : undefined}>
-        <aside className="tp-billetera" aria-label="Tus cajas">
-          <div className="tp-dia">
+        <aside data-guia="traslados.billetera" className="tp-billetera" aria-label="Tus cajas">
+          <div data-guia="traslados.dia" className="tp-dia">
             <Anillo fraccion={anillo.fraccion} />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-tinta">{dia.titulo}</p>
@@ -110,7 +110,7 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
             </div>
           </div>
 
-          <Buscador
+          <Buscador guia="traslados.buscador"
             valor={consulta}
             onCambio={setConsulta}
             placeholder="Busca una caja por número, sede o prenda" // sugerir-fijo: el buscador no depende de nada elegido antes
@@ -124,17 +124,18 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
             activa={pestana}
             onCambio={(c) => setPestana(c as PestanaPase)}
             idIndicador="billetera"
+            guia="traslados.pestanas"
             className="pestanas-cayla--llenar"
             items={PESTANAS.map((p) => {
               const hay = billetera.pases[p.id].filter(coincide).length;
               const porHacer = consulta.trim() ? 0 : billetera.porHacer[p.id];
               return porHacer > 0
-                ? { clave: p.id, etiqueta: p.nombre, conteo: porHacer, pide: "por hacer" }
-                : { clave: p.id, etiqueta: p.nombre, conteo: hay, tono: "neutro" as const, pide: hay === 1 ? "caja" : "cajas" };
+                ? { clave: p.id, etiqueta: p.nombre, conteo: porHacer, pide: "por hacer", guia: `traslados.pestana-${p.id}` }
+                : { clave: p.id, etiqueta: p.nombre, conteo: hay, tono: "neutro" as const, pide: hay === 1 ? "caja" : "cajas", guia: `traslados.pestana-${p.id}` };
             })}
           />
 
-          <nav className="tp-pila" aria-label={PESTANAS[k].nombre}>
+          <nav data-guia="traslados.pila" className="tp-pila" aria-label={PESTANAS[k].nombre}>
             {lista.length > 0 ? (
               lista.map((p) => <MiniPase key={p.id} pase={p} href={rutaDelPase(p.id)} actual={p.id === seleccion} />)
             ) : (

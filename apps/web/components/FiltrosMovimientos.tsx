@@ -220,7 +220,7 @@ export function FiltrosMovimientos({
   }
 
   const periodos = (
-    <div role="group" aria-label="Período" className={FILA_DESLIZA}>
+    <div role="group" aria-label="Período" data-guia="movimientos.periodos" className={FILA_DESLIZA}>
       {PERIODOS.map((p) => (
         <Pastilla key={p.valor} activa={!mostrarFechas && periodo === String(p.valor)} onClick={() => elegirPeriodo(p.valor)}>
           {p.texto}
@@ -263,7 +263,7 @@ export function FiltrosMovimientos({
   const zona = subDisponibles.length > 0 && (
     // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
     // dicen qué se está eligiendo.
-    <div className="flex max-w-full shrink-0 items-center gap-2">
+    <div data-guia="movimientos.zona" className="flex max-w-full shrink-0 items-center gap-2">
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Zona
       </span>
@@ -302,7 +302,7 @@ export function FiltrosMovimientos({
       {/* Búsqueda. En el celular queda FIJA arriba al bajar (ADR-0241), con la cámara para leer una etiqueta y el botón
           de los filtros: lo que se hace con el pulgar sin volver a subir. La cabecera del ERP es `fixed` (≈58 px). */}
       <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
-        <Buscador
+        <Buscador guia="movimientos.buscador"
           ref={entrada}
           valor={busqueda}
           onCambio={setBusqueda}
@@ -322,6 +322,7 @@ export function FiltrosMovimientos({
         <button
           type="button"
           onClick={() => setHoja(true)}
+          data-guia="movimientos.filtros-celular"
           className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[13px] font-medium text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
         >
           <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-4 w-4" />
@@ -352,7 +353,7 @@ export function FiltrosMovimientos({
           {procesoSueltoPildora}
           {zona}
           {hayFiltros && (
-            <button type="button" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
+            <button type="button" data-guia="movimientos.limpiar" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
               Limpiar filtros
             </button>
           )}

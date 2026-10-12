@@ -68,7 +68,7 @@ export function FichaTerminal({
         </div>
       </div>
 
-      <p className="rounded-xl bg-hueso px-4 py-3 text-[15px] leading-snug text-tinta">
+      <p className="rounded-xl bg-hueso px-4 py-3 text-[15px] leading-snug text-tinta" data-guia="colaboradores.terminal-frase">
         {!t.activo ? (
           <>
             <strong className="font-semibold">Desactivada:</strong> no puede leer ni guardar nada. Su historial se conserva.
@@ -84,7 +84,7 @@ export function FichaTerminal({
         )}
       </p>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2" data-guia="colaboradores.terminal-acciones">
         <BotonAccion icono={KeyRound} texto="Clave nueva" onClick={onClave} />
         {onCambiarRol && <BotonAccion icono={ArrowLeftRight} texto="Cambiar rol" onClick={onCambiarRol} />}
         {t.activo ? (

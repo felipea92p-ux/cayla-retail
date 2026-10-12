@@ -29,7 +29,7 @@ export function FilaDeBolsas({ bolsas, carrito, bloqueado, onAbrir }: Fila) {
   if (bolsas.length === 0) return null;
   const lleva = totalBolsasEnElTicket(carrito, bolsas);
   return (
-    <div className="px-5 pt-3">
+    <div className="px-5 pt-3" data-guia="vender.bolsas">
       <div className="flex items-center gap-2.5 rounded-xl border border-sand bg-crema py-1.5 pr-1.5 pl-3">
         <ShoppingBag className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
         <span className="min-w-0 flex-1 truncate text-[13px] text-tinta">

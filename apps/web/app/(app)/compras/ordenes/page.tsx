@@ -79,7 +79,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
   const { filas, cursorSiguiente } = paginaDeOrdenes(leidas);
 
   const nuevaOrden = (
-    <BotonEnlace href="/compras/ordenes/nueva" peso="primario">
+    <BotonEnlace href="/compras/ordenes/nueva" peso="primario" data-guia="ordenes.nueva">
       + Nueva orden de compra
     </BotonEnlace>
   );
@@ -118,7 +118,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
               en dos filas: el total arriba, a lo ancho, y las otras dos lado a lado; una debajo de otra empujaban la lista fuera de
               la primera pantalla. */}
           {resumen && (
-            <div className="@container">
+            <div className="@container" data-guia="ordenes.cifras">
               <div className={`grid grid-cols-2 gap-3 ${miSede ? "@min-[40rem]:grid-cols-3" : ""}`}>
                 <CifraGeneradas
                   etiqueta="Pedido a proveedores"
@@ -143,7 +143,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
               <BuscadorOrdenes filtros={filtros} />
               {/* A dónde llega y el estado dejan menos órdenes en la MISMA lista: la píldora de filtro del sistema (ADR-0358). Cambiar
                   uno conserva el otro y la búsqueda, y vuelve a la primera página (`hrefLista`). */}
-              <nav aria-label="Filtrar las órdenes" className="pildoras-desliza items-center gap-2 sm:flex-wrap">
+              <nav aria-label="Filtrar las órdenes" data-guia="ordenes.filtros" className="pildoras-desliza items-center gap-2 sm:flex-wrap">
                 {pildoras.map((p) => (
                   <Link
                     key={p.valor}
@@ -176,7 +176,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
             </div>
 
             {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-            <div data-resultados className="divide-y divide-sand">
+            <div data-resultados data-guia="ordenes.lista" className="divide-y divide-sand">
               {filas.length === 0 ? (
                 <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} />
               ) : (
@@ -207,6 +207,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                         href={`/compras/ordenes/ver/${f.id}`}
                         style={{ ["--k" as string]: Math.min(i, 8) }}
                         data-recien={esRecien ? "" : undefined}
+                        data-guia="ordenes.fila"
                         className={fila(PLANTILLA, "cmp-fila")}
                       >
                         <span className={celda()}>
@@ -224,7 +225,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                             <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
                           )}
                         </span>
-                        <span className={celda("izq", "text-tinta")}>
+                        <span className={celda("izq", "text-tinta")} data-guia="ordenes.proveedor">
                           <Resaltado texto={f.proveedorNombre} busqueda={filtros.q} />
                           <span className={`${SEGUNDA_LINEA} truncate`}>
                             {fraseDestino(f.destinoNombre)}

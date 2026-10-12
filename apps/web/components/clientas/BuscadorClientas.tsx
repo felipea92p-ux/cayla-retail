@@ -39,7 +39,7 @@ export function BuscadorClientas({ params }: { params: ParamsLista }) {
   // La pieza única (ADR-0358 ronda 5): el «×» y Escape vacían el texto (y no cierran la hoja de alrededor), «Buscando…» sale
   // solo si la base tarda.
   return (
-    <Buscador
+    <Buscador guia="clientas.buscador"
       valor={texto}
       onCambio={setTexto}
       buscando={buscando}

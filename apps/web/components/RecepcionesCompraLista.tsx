@@ -98,6 +98,7 @@ export function RecepcionesCompraLista({
         key={id}
         ref={refFila(id)}
         type="button"
+        data-guia="recibidas.fila"
         onClick={() => setAbierta(r)}
         className={`${fila(PLANTILLA)} group relative w-full text-left transition-colors before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""} ${nuevaId === id ? "anim-destello-fila" : ""}`}
       >

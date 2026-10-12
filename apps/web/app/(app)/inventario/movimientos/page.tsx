@@ -188,6 +188,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       </section>
 
       <PaginacionCursor
+        guia="movimientos.paginas"
         mostradas={operaciones.length}
         cursorSiguiente={siguiente ? serializarCursorMovimientos(siguiente) : null}
         hayCursor={!!cursor}
@@ -203,7 +204,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           prometer lo que no hace (ADR-0234). Las filas ya se ven tocables (flecha, referencia subrayada). */}
       {/* ADR-0241: sin la instrucción de uso («Toca un movimiento…»): las filas ya se ven tocables (flecha, referencia
           subrayada) y a la tercera visita era ruido. Queda la regla del negocio. */}
-      <p className="nota-cayla">
+      <p data-guia="movimientos.nota" className="nota-cayla">
         <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
       </p>
@@ -217,11 +218,12 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
   return (
     <Pestanas
       idIndicador="movimientos-vistas"
+      guia="movimientos.pestanas"
       etiquetaAccesible="Vistas de Movimientos"
       activa={activa}
       items={[
-        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos" },
-        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas() },
+        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos", guia: "movimientos.pestana-movimientos" },
+        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas(), guia: "movimientos.pestana-perdidas" },
       ]}
     />
   );

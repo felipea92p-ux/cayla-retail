@@ -87,7 +87,7 @@ export function FrescuraAguja({
 }) {
   if (!pisoCuadrado && seLlevan.length === 0) return null;
   return (
-    <section aria-labelledby="frescura-aguja-titulo" className="card-cayla px-4 py-4 sm:px-5">
+    <section aria-labelledby="frescura-aguja-titulo" data-guia="frescura.aguja" className="card-cayla px-4 py-4 sm:px-5">
       <h2 id="frescura-aguja-titulo" className="font-display text-[20px] leading-tight sm:text-[22px]">
         {pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}
       </h2>

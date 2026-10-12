@@ -106,7 +106,7 @@ export function FiltrosRecibidas({
   const periodoActivo = periodoDeRango(filtros.desde, filtros.hasta, hoy);
 
   return (
-    <div role="search" aria-label="Filtrar las recepciones" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
+    <div role="search" aria-label="Filtrar las recepciones" data-guia="recibidas.filtros" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
       <Buscador
         valor={busqueda}
         onCambio={alTipear}

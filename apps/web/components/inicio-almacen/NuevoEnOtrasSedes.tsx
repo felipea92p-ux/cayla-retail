@@ -53,7 +53,7 @@ export function NuevoEnOtrasSedes({
   let ultimoDia = "";
 
   return (
-    <section id="nuevos" className="ia-rv">
+    <section id="nuevos" className="ia-rv" data-guia="inicio.almacen-nuevos">
       <div className="ia-sec-h">
         <div className="ia-l">
           <p className="label-cayla text-[11px] text-tinta/65">{titulo.seccion}</p>

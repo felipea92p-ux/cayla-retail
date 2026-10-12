@@ -92,7 +92,7 @@ export function CompraAcciones({
             </Boton>
           )}
           {puedePagar ? (
-            <Boton peso="primario" onClick={() => setPagando(true)}>
+            <Boton peso="primario" onClick={() => setPagando(true)} aria-haspopup="dialog" data-guia="factura.registrar-pago">
               <span className="inline-flex items-center gap-2">
                 <Banknote aria-hidden className="h-4 w-4" />
                 Registrar pago
@@ -180,6 +180,7 @@ export function BotonPagar({
         peso={compacto ? "discreto" : "primario"}
         className={compacto ? "px-2.5 py-1.5 text-[11px]" : ""}
         onClick={() => setAbierto(true)}
+        aria-haspopup="dialog"
       >
         {compacto ? (
           "Pagar"
@@ -340,7 +341,7 @@ export function RegistrarPagoModal({
           <form onSubmit={onSubmit} className="space-y-5">
             <DatosDelProveedor datos={datos} />
 
-            <section>
+            <section data-guia="pago-modal.aplica">
               <p className="label-cayla mb-2 text-[11px] text-tinta/65">Cómo se aplica el pago</p>
               <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
                 <div className="hidden gap-x-4 px-5 py-2 sm:grid sm:grid-cols-[1fr_9.5rem_7.5rem_8.5rem]">
@@ -470,17 +471,19 @@ export function RegistrarPagoModal({
               </p>
             </div>
 
-            <ComboResponsable control={responsable} deshabilitado={loading} />
+            <div className="space-y-5" data-guia="pago-modal.pie">
+              <ComboResponsable control={responsable} deshabilitado={loading} />
 
-            {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-            <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
-              <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
-              <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
-                Cancelar
-              </button>
-              <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
-              </Boton>
+              {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
+              <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+                <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
+                <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
+                  Cancelar
+                </button>
+                <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
+                  {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
+                </Boton>
+              </div>
             </div>
           </form>
         )
