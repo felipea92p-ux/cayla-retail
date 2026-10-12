@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Bike, Coffee, Droplet, Package, Paperclip, PencilLine, ShoppingBag, Smartphone, SprayCan, Star, Toilet, Wrench, Zap, type LucideIcon } from "lucide-react";
+import { Bike, Check, Coffee, Droplet, Package, Paperclip, PencilLine, ShoppingBag, Smartphone, SprayCan, Star, Toilet, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { traducirError } from "@/lib/error-escritura";
@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -136,6 +137,55 @@ export function Baldosa({
       <span className="gr-nombre">{nombre}</span>
       {frecuente && <span className="gr-veces tabular-nums">{textoVeces(cuenta)}</span>}
     </button>
+  );
+}
+
+/**
+ * «¿Cómo lo pagaste?»: las fichas de medio de la hoja de cobro de Vender (mismo ícono, mismo color, se rellenan al elegir), acostadas
+ * para que ocupen 50 px (Felipe 2026-10-12, «similar al de cobrar, sin ocupar tanto espacio»). Un radiogroup como `Segmentado`: una sola
+ * parada de Tab y las flechas cambian de medio.
+ */
+function FichasMedio({ valor, onValor }: { valor: MedioRapido; onValor: (m: MedioRapido) => void }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  function alTeclado(e: KeyboardEvent<HTMLButtonElement>, i: number) {
+    const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!delta) return;
+    e.preventDefault();
+    const siguiente = (i + delta + MEDIOS_RAPIDOS.length) % MEDIOS_RAPIDOS.length;
+    onValor(MEDIOS_RAPIDOS[siguiente]);
+    refs.current[siguiente]?.focus();
+  }
+  return (
+    <div role="radiogroup" aria-label="Cómo lo pagaste" className="grid grid-cols-3 gap-2">
+      {MEDIOS_RAPIDOS.map((m, i) => {
+        const elegida = m === valor;
+        return (
+          <button
+            key={m}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={elegida}
+            tabIndex={elegida ? 0 : -1}
+            onClick={() => onValor(m)}
+            onKeyDown={(e) => alTeclado(e, i)}
+            className={`metodo-${m} hoja-cobro-medio es-acostada ${elegida ? "es-elegido" : ""}`}
+          >
+            {elegida && (
+              <span className="hoja-cobro-marca">
+                <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+              </span>
+            )}
+            <span className="hoja-cobro-acostada">
+              <span className="hoja-cobro-icono">{iconoMetodo(m, "h-full w-full")}</span>
+              <span className="hoja-cobro-nombre label-cayla font-bold leading-none">{TEXTO_MEDIO_RAPIDO[m]}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -390,14 +440,10 @@ export function GastoRapidoModal({
           </CampoGuiado>
 
           <CampoGuiado id="medio" guia={guia} titulo="¿Cómo lo pagaste?">
-            <Segmentado<MedioRapido>
-              etiqueta="¿Cómo lo pagaste?"
-              etiquetaOculta
-              valor={e.medio}
-              onValor={(v) => setE((x) => ({ ...x, medio: v, medioElegido: true }))}
-              opciones={MEDIOS_RAPIDOS.map((m) => ({ valor: m, texto: TEXTO_MEDIO_RAPIDO[m] }))}
-              pie={textos.ayuda}
-            />
+            <FichasMedio valor={e.medio} onValor={(v) => setE((x) => ({ ...x, medio: v, medioElegido: true }))} />
+            <p key={e.medio} className="anim-revelar mt-1.5 text-xs text-tinta/65">
+              {textos.ayuda}
+            </p>
           </CampoGuiado>
 
           <CampoGuiado id="nota" guia={guia} titulo="Nota">
