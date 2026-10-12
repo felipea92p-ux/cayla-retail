@@ -23,7 +23,7 @@ import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
 import { ResumenCompactoPlan } from "@/components/plan-compra/ResumenCompactoPlan";
 import { RepartoModal } from "@/components/plan-compra/RepartoModal";
-import { fraseDeLosMinimos } from "@/lib/plan-compra-reparto";
+import { fraseDeLosMinimos, tiendasParaRepartir } from "@/lib/plan-compra-reparto";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
@@ -124,14 +124,7 @@ export function PlanCampana({
       // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
       reparto:
         hechos.tiendasActivas.length > 0
-          ? hechos.tiendasActivas.map((t) => ({
-              id: t.id,
-              nombre: t.nombre,
-              u90: hechos.categorias.get(f.c.id)?.find((h) => h.tienda === t.id)?.u90 ?? 0,
-              dias90: hechos.tiendas.find((x) => x.id === t.id)?.dias90 ?? 0,
-              stock: f.sedes?.find((s) => s.ubicacion === t.nombre)?.unidades ?? 0,
-              minimo: hechos.minimos.get(t.id) ?? null,
-            }))
+          ? tiendasParaRepartir(hechos, f.c.id, (nombre) => f.sedes?.find((s) => s.ubicacion === nombre)?.unidades ?? 0)
           : undefined,
     }));
   }, [plan, hechos]);

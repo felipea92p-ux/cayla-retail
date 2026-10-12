@@ -39,7 +39,19 @@ function Curva({ c }: { c: ComoVa }) {
   );
 }
 
-export function TarjetaComoVa({ c, conForma, piden }: { c: ComoVa; conForma: boolean; /** Cuántas categorías piden más o piden impulso (la tabla de abajo). */ piden: number }) {
+export function TarjetaComoVa({
+  c,
+  conForma,
+  piden,
+  de = null,
+}: {
+  c: ComoVa;
+  conForma: boolean;
+  /** Cuántas categorías piden más o piden impulso (la tabla de abajo). */
+  piden: number;
+  /** La tienda elegida (sus ventas contra su parte del plan); null = toda CAYLA. */
+  de?: string | null;
+}) {
   const [abierta, setAbierta] = useState(false);
   const dif = c.diferencia;
   const valor = c.medidos === 0 ? "Empieza" : dif === null ? `${enteroES.format(c.proyeccion)}` : `${dif >= 0 ? "+" : "−"}${Math.abs(Math.round(dif * 100))} %`;
@@ -53,12 +65,16 @@ export function TarjetaComoVa({ c, conForma, piden }: { c: ComoVa; conForma: boo
   return (
     <>
       <TarjetaCifra
-        etiqueta="¿Cómo va?"
+        etiqueta={de ? `¿Cómo va ${de}?` : "¿Cómo va?"}
         valor={valor}
         tono={tono}
         ayuda={
           <Ayuda titulo="¿Cómo va?">
-            <span className="block">Lo vendido hasta ayer en todas las tiendas, contra lo que el plan (la suma de los «normal» de cada categoría) esperaba a hoy.</span>
+            <span className="block">
+              {de
+                ? `Lo vendido hasta ayer en ${de}, contra lo que su parte del plan esperaba a hoy. Su parte sale del mismo reparto del Plan: según lo que vende cada tienda, con su mínimo.`
+                : "Lo vendido hasta ayer en todas las tiendas, contra lo que el plan (la suma de los «normal» de cada categoría) esperaba a hoy."}
+            </span>
             <span className="mt-2 block">
               {conForma ? "Lo esperado a hoy sigue la forma de esta misma campaña el año pasado." : "Sin la misma campaña el año pasado, lo esperado se reparte parejo entre los días."}
             </span>
@@ -68,7 +84,8 @@ export function TarjetaComoVa({ c, conForma, piden }: { c: ComoVa; conForma: boo
         pie={piden > 0 ? <span className="text-ambar-profundo">{piden === 1 ? "1 categoría pide atención ↓" : `${piden} categorías piden atención ↓`}</span> : c.medidos > 0 ? "Ninguna categoría pide nada hoy" : undefined}
       >
         <span className="block">{frase}</span>
-        {c.medidos > 0 && (
+        {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
+        {c.medidos > 0 && c.esperado !== null && (
           <span className="block text-tinta/65">
             {enteroES.format(c.vendido)} de {c.esperado !== null ? `${enteroES.format(c.esperado)} esperadas` : "—"} · termina en {enteroES.format(c.proyeccion)}
             {c.planTotal !== null && ` de ${enteroES.format(c.planTotal)}`}
@@ -76,7 +93,7 @@ export function TarjetaComoVa({ c, conForma, piden }: { c: ComoVa; conForma: boo
         )}
       </TarjetaCifra>
       {abierta && (
-        <Modal titulo="¿Cómo va la campaña?" subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" ancho="max-w-2xl" conCerrar>
+        <Modal titulo={de ? `¿Cómo va ${de}?` : "¿Cómo va la campaña?"} subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" ancho="max-w-2xl" conCerrar>
           <Curva c={c} />
         </Modal>
       )}

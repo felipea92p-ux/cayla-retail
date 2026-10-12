@@ -31,10 +31,12 @@ import {
   recuperoRealTotal,
   senales,
   ORDENES_RESULTADOS,
+  type Enfoque,
   type FilaCategoria,
   type OrdenResultados,
 } from "@/lib/plan-compra-resultados";
 import { leerPropuesta } from "@/lib/plan-compra-propuesta";
+import { porcentajes, tiendasParaRepartir } from "@/lib/plan-compra-reparto";
 import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
 import { TarjetaComoVa } from "@/components/plan-compra/ComoVaCampana";
 import { SenalesCampana } from "@/components/plan-compra/SenalesCampana";
@@ -89,6 +91,10 @@ export function ResultadosCampana({
       <span className="mt-2 block">
         «Se agotó» es una categoría que quedó en cero en esa tienda antes de terminar: lo vendido ahí quedó corto por falta de stock, y la propuesta
         del año que viene no lo promedia.
+      </span>
+      <span className="mt-2 block">
+        «Sin base» es una tienda que no vendía en el ERP los 60 días antes de la campaña: no hay un día normal con qué compararla. Toca una tienda
+        para ver solo lo suyo; «Toda CAYLA» vuelve a todas.
       </span>
       <span className="mt-2 block">«Lo que sobró» es lo vendido de esa categoría en los 60 días después de la campaña, contra su precio de etiqueta.</span>
     </Ayuda>
@@ -147,7 +153,14 @@ export function ResultadosCampana({
     );
   }
 
-  const todasLasCategorias = porCategoria(r, tienda);
+  // Con una tienda elegida, «¿Cómo va?» y «Pedir más» son de ELLA (Felipe 2026-10-12): sus ventas, su stock y su parte del plan, que sale de la
+  // misma regla del reparto del Plan. «Toda CAYLA» sigue siendo el total.
+  const tiendaElegida = tienda ? (r.tiendas.find((t) => t.id === tienda) ?? null) : null;
+  const propuestaDeEsta = lecturaPropuesta && lecturaPropuesta.planId === r.plan.id && lecturaPropuesta.tiendasActivas.length > 0 ? lecturaPropuesta : null;
+  const enfoque: Enfoque | null = tiendaElegida
+    ? { tienda: tiendaElegida.id, parte: propuestaDeEsta ? (c: string) => porcentajes(tiendasParaRepartir(propuestaDeEsta, c)).get(tiendaElegida.id)?.pct ?? 0 : null }
+    : null;
+  const todasLasCategorias = porCategoria(r, tienda, enfoque?.parte ?? null);
   const categorias = filtrarYOrdenarCategorias(todasLasCategorias, q, orden);
   const familias = porFamilia(r, tienda);
   const prendas = prendasQueMasVendieron(r, tienda);
@@ -159,7 +172,11 @@ export function ResultadosCampana({
   const datosCierre = cierre(r);
   const enCurso =
     momento === "en-curso"
-      ? { como: comoVa(r, pesos.pesos), piden: senales(r, pesos.pesos).filter((s) => s.senal !== "bien"), faltan: pesos.pesos.length - Math.min(pesos.pesos.length, dias) }
+      ? {
+          como: comoVa(r, pesos.pesos, enfoque),
+          piden: senales(r, pesos.pesos, enfoque).filter((s) => s.senal !== "bien"),
+          faltan: pesos.pesos.length - Math.min(pesos.pesos.length, dias),
+        }
       : null;
 
   return (
@@ -172,25 +189,20 @@ export function ResultadosCampana({
       <PestanasPlan activa="resultados" planId={r.plan.id} />
 
       {/* Al terminar, el cierre arriba (Felipe 2026-10-12). Durante, «¿cómo va?» es la primera tarjeta de cifras y «Pedir más o impulsar»
-          aparece debajo solo si alguna categoría pide algo. Toda CAYLA: las píldoras de tienda filtran la tabla, no esto. */}
+          aparece debajo solo si alguna categoría pide algo. */}
       {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
-      {r.tiendas.length > 1 && (
-        <div role="group" aria-label="Tienda" data-guia="plan-resultados.tiendas" className="flex flex-wrap gap-2">
-          <button type="button" className="pildora-cayla" aria-pressed={tienda === null} onClick={() => setTienda(null)}>
-            Todas
-          </button>
-          {r.tiendas.map((t) => (
-            <button key={t.id} type="button" className="pildora-cayla" aria-pressed={tienda === t.id} onClick={() => setTienda(t.id)}>
-              {t.nombre}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div data-guia="plan-resultados.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} />}
-        <TarjetaCifra etiqueta="Toda CAYLA" valor={enteroES.format(total.unidades)} unidad="prendas">
+      {/* Una sola fila (Felipe 2026-10-12: «ocupa mucho espacio»): las tarjetas de tienda SON el filtro —la que filtra se rellena de arena,
+          «Toda CAYLA» vuelve a todas—, así que las píldoras que repetían lo mismo se fueron. En un celular, de a dos. */}
+      <div data-guia="plan-resultados.cifras" className="grid gap-3 sm:grid-cols-2 lg:auto-cols-fr lg:grid-flow-col">
+        {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} de={tiendaElegida?.nombre ?? null} />}
+        <TarjetaCifra
+          etiqueta="Toda CAYLA"
+          valor={enteroES.format(total.unidades)}
+          unidad="prendas"
+          activa={r.tiendas.length > 1 ? tienda === null : undefined}
+          onClick={r.tiendas.length > 1 ? () => setTienda(null) : undefined}
+        >
           {solesES(total.soles)}
           {momento === "en-curso" ? " · hasta ayer" : ""}
         </TarjetaCifra>
@@ -198,13 +210,13 @@ export function ResultadosCampana({
           const m = multiplicadorReal(r, t);
           return (
             <TarjetaCifra key={t.id} etiqueta={t.nombre} valor={enteroES.format(t.unidades)} unidad="prendas" activa={tienda === t.id} onClick={() => setTienda(tienda === t.id ? null : t.id)}>
-              {solesES(t.soles)} · {m !== null ? `${textoMultiplicador(m)} un día normal` : "sin 60 días de antes en el ERP para comparar"}
+              {solesES(t.soles)} · {m !== null ? `${textoMultiplicador(m)} un día normal` : "sin base"}
             </TarjetaCifra>
           );
         })}
       </div>
 
-      {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} />}
+      {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} de={tiendaElegida?.nombre ?? null} />}
 
       <Tabla guia="plan-resultados.tabla">
         {/* Buscar y ordenar (Felipe 2026-10-12): como en el Historial, en la misma tarjeta que la tabla. «Más vendidas» es el de siempre. */}
@@ -219,7 +231,7 @@ export function ResultadosCampana({
               ["Categoría", "izq"],
               ["Vendidas", "der"],
               ["Soles", "der"],
-              [tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "izq"],
+              [tienda === null ? "Contra el plan" : enfoque?.parte ? "Contra su parte del plan" : "Contra el plan (todas las tiendas)", "izq"],
               ["Lo que sobró", "der"],
             ] as const
           ).map(([t, alinear]) => (
