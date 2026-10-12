@@ -41,13 +41,13 @@ export function CabinaAlmacen({
 }) {
   const lista = nuevos ? nuevos.slice(0, 3) : null;
   return (
-    <section className="ia-hero ia-rv" style={{ "--i": 1 } as CSSProperties} aria-label="Nuevo producto">
+    <section className="ia-hero ia-rv" style={{ "--i": 1 } as CSSProperties} aria-label="Nuevo producto" data-guia="inicio.almacen-cabina">
       <i className="ia-aur ia-a" aria-hidden />
       <i className="ia-aur ia-b" aria-hidden />
       <div className="ia-hl">
         <p className="ia-lbl">Registrar mercadería</p>
         <h2>Nuevo producto</h2>
-        <div className="ia-ac">
+        <div className="ia-ac" data-guia="inicio.almacen-crear">
           <Link id="ia-cta" href="/productos/nuevo" className="ia-cta ia-mag">
             <span>Crear producto</span>
             <span className="ia-plus">
@@ -76,7 +76,7 @@ export function CabinaAlmacen({
             </a>
           )}
         </div>
-        <div className="ia-lst">
+        <div className="ia-lst" data-guia="inicio.almacen-ultimos">
           {lista === null ? (
             <p className="ia-rs-msg">
               No se pudo leer lo último registrado. Puedes crear el producto igual.
@@ -144,7 +144,7 @@ function SigueAhora({
 
   if (!ahora) {
     return (
-      <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties}>
+      <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties} guia="inicio.almacen-sigue">
         <p className="ia-lbl">
           <i className={hayColaSinLeer ? "ia-toca" : "ia-ok"} />
           Sigue ahora
@@ -178,7 +178,7 @@ function SigueAhora({
   }
 
   return (
-    <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties}>
+    <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties} guia="inicio.almacen-sigue">
       <p className="ia-lbl">
         <i className={ahora.nivel === "urgente" ? "" : "ia-toca"} />
         Sigue ahora

@@ -24,7 +24,7 @@ export const COLOR_ESTADO: Record<Estado, string> = {
 };
 
 /** La insignia con ícono de la maqueta (`.chip.urg` …). Con `onClick` es un botón. */
-export function ChipEstado({ est, children, onClick, tip }: { est: Estado; children?: ReactNode; onClick?: () => void; tip?: string }) {
+export function ChipEstado({ est, children, onClick, tip, guia }: { est: Estado; children?: ReactNode; onClick?: () => void; tip?: string; guia?: string }) {
   const contenido = (
     <>
       <Icono nombre={ICONO_ESTADO[est]} />
@@ -32,7 +32,7 @@ export function ChipEstado({ est, children, onClick, tip }: { est: Estado; child
     </>
   );
   return onClick ? (
-    <button type="button" className={`chip ${est}`} onClick={onClick} data-tip={tip}>
+    <button type="button" className={`chip ${est}`} onClick={onClick} data-tip={tip} data-guia={guia}>
       {contenido}
     </button>
   ) : (

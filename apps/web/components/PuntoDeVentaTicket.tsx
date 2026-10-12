@@ -433,7 +433,7 @@ export function PuntoDeVentaTicket({
   return (
     // En escritorio el aside llena toda la fila del POS (la raíz fija la altura al
     // viewport): cabecera y pie quedan fijos y solo el medio scrollea.
-    <aside className="flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
+    <aside data-guia="vender.ticket" className="flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
@@ -801,7 +801,7 @@ export function PuntoDeVentaTicket({
           )}
         </div>
 
-        <div className="border-t border-sand bg-papel px-5 pt-4 pb-5">
+        <div data-guia="vender.ticket-pie" className="border-t border-sand bg-papel px-5 pt-4 pb-5">
           {/* El cumpleaños del club (tanda 1c; spike, `descuentoClub`): UNA línea de toda la compra, en cualquier momento
               del ticket mientras esté aplicado, porque el Total de abajo ya lo descuenta. `key` en el monto: se asienta
               cuando cambia (entra o sale una prenda), como el Total. */}
@@ -973,6 +973,7 @@ export function PuntoDeVentaTicket({
             <button
               type="button"
               onClick={onIrACobrar}
+              data-guia="vender.cobrar"
               disabled={apagado}
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={BOTON_PRINCIPAL}

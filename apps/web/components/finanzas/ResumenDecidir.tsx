@@ -36,7 +36,7 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
                 </p>
               </div>
               {a.href ? (
-                <Link href={a.href} className="btn-cayla btn-sutil btn-chico">
+                <Link href={a.href} className="btn-cayla btn-sutil btn-chico" data-guia="fin-resumen.aviso-accion">
                   {a.boton}
                 </Link>
               ) : (
@@ -56,7 +56,7 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
         )}
       </ul>
       {avisos.length > VISIBLES && (
-        <button type="button" className="btn-cayla btn-enlace mt-2" onClick={() => setTodos((v) => !v)} aria-expanded={todos}>
+        <button type="button" className="btn-cayla btn-enlace mt-2" onClick={() => setTodos((v) => !v)} aria-expanded={todos} data-guia="fin-resumen.ver-mas">
           {todos ? "Ver menos" : `Ver ${avisos.length - VISIBLES} más`}
         </button>
       )}

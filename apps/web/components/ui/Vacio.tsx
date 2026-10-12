@@ -45,12 +45,14 @@ type Props = {
   /** Chico: en una lista desplegable va a la izquierda; en una tabla o una hoja, centrado. */
   alinear?: "centro" | "izquierda";
   className?: string;
+  /** Ancla de la guía interactiva (ADR-0389). */
+  guia?: string;
 };
 
-export function Vacio({ icono, titulo, children, detalle, acciones, filtros, accion, tamano = "grande", alinear = "centro", className = "" }: Props) {
+export function Vacio({ icono, titulo, children, detalle, acciones, filtros, accion, tamano = "grande", alinear = "centro", className = "", guia }: Props) {
   if (tamano === "chico") {
     return (
-      <div role="status" className={`vacio-chico ${alinear === "izquierda" ? "a-la-izquierda" : ""} ${className}`}>
+      <div data-guia={guia} role="status" className={`vacio-chico ${alinear === "izquierda" ? "a-la-izquierda" : ""} ${className}`}>
         <span className="vacio-ic trazo-dibuja" aria-hidden>
           {icono}
         </span>
@@ -61,7 +63,7 @@ export function Vacio({ icono, titulo, children, detalle, acciones, filtros, acc
   }
   let i = 0;
   return (
-    <div role="status" className={`vacio ${className}`}>
+    <div data-guia={guia} role="status" className={`vacio ${className}`}>
       <span className="vacio-ic trazo-dibuja" aria-hidden style={{ ["--i" as string]: i++ }}>
         {icono}
       </span>

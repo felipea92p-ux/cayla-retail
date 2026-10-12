@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
+import { clasificarFalloDeSubida, debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -217,6 +217,14 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
       "registrar la venta"
     );
     expect(salida).toBe("El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve a agregarla.");
+  });
+
+  it("sin precio (ADR-0384): nombra la prenda y dice qué hacer, no `venta_sin_precio` crudo", () => {
+    const salida = traducirError(
+      { message: "venta_sin_precio", details: "Blusa Emma (BLU-EMMA-BEI-S)", hint: "La prenda no tiene precio en el catálogo: ponle precio en su ficha antes de venderla.", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.");
   });
 
   it("variante restringida a otra sede en la venta: nombra la prenda, no el código crudo", () => {
@@ -712,5 +720,67 @@ describe("club de clientas: socia, publicidad y WhatsApp de la tienda (ADR-0288 
     expect(traducirError({ message: "", code: "P0001", hint: "celular_con_publicidad" }, "editar la ficha")).toBe(
       "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."
     );
+  });
+});
+
+describe("clasificarFalloDeSubida — ¿esto que falló al subir es un rechazo de verdad?", () => {
+  it("sin red, ni llegó al servidor: «red»", () => {
+    expect(clasificarFalloDeSubida({ message: "TypeError: Failed to fetch" })).toBe("red");
+  });
+
+  it("un 504 sin código de Postgres (se cortó en el camino) es pasajero, NO rechazo: la venta pudo haberse guardado", () => {
+    expect(clasificarFalloDeSubida({ message: "upstream request timeout", code: "" }, 504)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "upstream request timeout" }, 504)).toBe("pasajero");
+  });
+
+  it("un deadlock o un choque de transacciones (con código) es pasajero", () => {
+    expect(clasificarFalloDeSubida({ message: "deadlock detected", code: "40P01" }, 400)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "could not serialize access", code: "40001" }, 409)).toBe("pasajero");
+  });
+
+  it("un error SIN código y con estado 4xx (el servidor no dio veredicto) también se reintenta", () => {
+    expect(clasificarFalloDeSubida({ message: "Bad gateway html" }, 404)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "excepción del cliente" }, null)).toBe("pasajero");
+  });
+
+  it("la base respondió con código y no es «intenta de nuevo»: rechazo definitivo", () => {
+    expect(clasificarFalloDeSubida({ message: "Esta caja ya está cerrada", code: "P0001" }, 400)).toBe("definitivo");
+    expect(clasificarFalloDeSubida({ message: "permission denied", code: "42501" }, 403)).toBe("definitivo");
+    expect(clasificarFalloDeSubida({ message: "Stock insuficiente", code: "P0001" }, 400)).toBe("definitivo");
+  });
+});
+
+// ADR-0328 (20261004204000, en producción desde el 5-oct): `regularizar_prenda` rechaza a quien vendió la prenda (salvo el líder firmando
+// él mismo) con 42501 y un hint propio. Sin su huella caería al genérico con «Código: …»; y no es un rechazo del combo «Responsable».
+describe("regularizar la propia venta (ADR-0328)", () => {
+  it("dice, en palabras de tienda, que lo haga otra persona o un líder", () => {
+    const salida = traducirError(
+      { code: "42501", message: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.", hint: "regularizar_propia_venta" },
+      "regularizar la prenda",
+    );
+    expect(salida).toBe("Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.");
+  });
+
+  // La base nombra la sede en el mensaje; pasa tal cual (P0001), sin caer al genérico.
+  it("una prenda todavía sin cargar en la sede: el mensaje de la base, con su sede", () => {
+    const mensaje =
+      "Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial (la carga de Tienda Trujillo sigue abierta), con lo que hay hoy en la tienda sin la vendida, y vuelve a regularizarla.";
+    expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_en_sede" }, "regularizar la prenda")).toBe(mensaje);
+  });
+
+  // Con la carga inicial de la sede cerrada, la salida es «Encontré prendas»; también pasa tal cual.
+  it("una prenda sin cargar en una sede con la carga cerrada: el mensaje de la base, con su fecha", () => {
+    const mensaje =
+      "La carga de Tienda Trujillo se cerró el 15-oct y esta prenda nunca se cargó ahí: regístrala con «Encontré prendas» (lo que hay hoy en la tienda, sin la vendida) y después regulariza.";
+    expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_carga_cerrada" }, "regularizar la prenda")).toBe(mensaje);
+  });
+
+  // «Perdió la etiqueta» ya no descuenta de Cuarentena ni de lo apartado; el mensaje lo dice.
+  it("sin unidades libres para descontar: dice que las apartadas y las de Cuarentena no cuentan", () => {
+    const salida = traducirError(
+      { code: "P0001", message: "prenda_sin_stock_para_descontar", hint: "Esa prenda no tiene stock en esta sede. Si llegó en un lote que se contó sin ella, elige «llegó nueva»." },
+      "regularizar la prenda",
+    );
+    expect(salida).toContain("las apartadas y las de Cuarentena no cuentan");
   });
 });

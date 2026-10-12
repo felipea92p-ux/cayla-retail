@@ -22,17 +22,17 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
   for (const ins of sql.matchAll(/insert into retail\.acciones_sin_responsable \(clave, descripcion\) values([\s\S]*?);/g)) {
     for (const m of ins[1]!.matchAll(/\('([a-z0-9_]+)',\s*'([^']*)'\)/g)) DESCRIPCION_VIGENTE.set(m[1]!, m[2]!);
   }
-  // Las que vuelven a pedir responsable (20261006180100: Editar producto, ADR-0354).
+  // Las que vuelven a pedir responsable (20261004204000 y 20261006200000: Regularizar prenda, ADR-0328; 20261006180100: Editar producto, ADR-0354).
   for (const m of sql.matchAll(/^delete from retail\.acciones_sin_responsable where clave = '([a-z0-9_]+)';/gm)) DESCRIPCION_VIGENTE.delete(m[1]!);
 }
 
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
 
-  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club y las tres de la cola de arranque (cerrar, reabrir e identificar), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
+  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar) y crear, editar y anular una orden de compra (ADR-0362), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(32);
+    expect(DESCRIPCION_VIGENTE.size).toBe(35);
     expect(DESCRIPCION_VIGENTE.has("producto_confirmar_cambios")).toBe(false);
     expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });

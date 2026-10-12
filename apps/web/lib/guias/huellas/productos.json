@@ -1,0 +1,118 @@
+{
+  "guia": "productos",
+  "ruta": "/productos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 80,
+  "controles": {
+    "app/(app)/productos/page.tsx": [
+      "Link «Existencias»",
+      "SegmentoEnlaces «(sin nombre)»",
+      "BotonEnlace «productos.rotulos»",
+      "BotonEnlace «productos.nuevo»",
+      "Link «Revisar»",
+      "Link «Completar»"
+    ],
+    "components/CambiarEstadoProductosHoja.tsx": [
+      "ComboResponsable «{textos.nota}»",
+      "button «Volver»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/EliminarProductoModal.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{puede ? \"Cancelar\" : \"Cerrar\"}»",
+      "Link «Editar»",
+      "Boton «Desactivar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/EnlaceEtiquetas.tsx": [
+      "Link «{children}»"
+    ],
+    "components/FiltrosProductos.tsx": [
+      "button «{`Quitar filtro ${c.texto}»",
+      "button «Limpiar todo»",
+      "DesplegablePildora «Ordenar por»",
+      "button «Limpiar filtros»",
+      "button «Copiar enlace de esta lista»",
+      "DesplegablePildora «Categoría»",
+      "DesplegablePildora «Talla»",
+      "DesplegablePildora «Color»",
+      "DesplegablePildora «Disponibilidad»",
+      "DesplegablePildora «Marca»",
+      "DesplegablePildora «Proveedor»",
+      "DesplegablePildora «Estado»",
+      "DesplegablePildora «Temporada»",
+      "DesplegablePildora «Por completar»",
+      "BotonFiltros «→alTocarFiltros»",
+      "BotonFiltros «→alTocarFiltros» #2",
+      "button «Limpiar»",
+      "button «Ver»",
+      "button «{textoTramo(t)}»",
+      "input «{etiqueta}»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «← Volver al inicio»",
+      "Link «Siguiente página →»",
+      "Link «‹»",
+      "Link «{n}»",
+      "Link «›»"
+    ],
+    "components/ProductoPiezas.tsx": [
+      "button «{c.nombre}»",
+      "button «Ver todos los colores»"
+    ],
+    "components/ProductosGrilla.tsx": [
+      "BotonEnlace «Limpiar filtros»",
+      "button «{`Vista rápida de ${producto.referencia}»"
+    ],
+    "components/ProductosTabla.tsx": [
+      "BotonEnlace «Limpiar filtros»",
+      "input «{etiqueta}»",
+      "button «productos.tabla-abrir»",
+      "Link «{`Editar ${referencia}»",
+      "Link «{`Ver ${referencia}»",
+      "Link «{`Historial de ${referencia}»",
+      "Link «Editar»",
+      "Link «Ver en Existencias»",
+      "Link «Historial»",
+      "button «Eliminar»",
+      "button «Descontinuar»",
+      "button «Reactivar»",
+      "Link «Rótulo»",
+      "button «Quitar la marca»"
+    ],
+    "components/SelectorTamanoGrilla.tsx": [
+      "SegmentoDeslizante «Tamaño de las tarjetas»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "Link «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/historial-prenda/HistorialPrenda.tsx": [
+      "button «historial-prenda.volver»",
+      "button «Todo»",
+      "button «{f.nombre}»",
+      "button «{`${g.persona?.nombre ?? \"Sin firma\"}»",
+      "button «Reintentar»",
+      "Link «Movimientos»"
+    ],
+    "components/vista-rapida/FotoVistaRapida.tsx": [
+      "button «vista-rapida.ampliar»"
+    ],
+    "components/vista-rapida/MatrizUnidades.tsx": [
+      "button «Quitar»",
+      "button «Quitar» #2",
+      "SegmentoDeslizante «{`Dónde están las unidades en ${sedeNombre}»",
+      "button «{`Elegir la talla ${c.nombre}»",
+      "button «{`Elegir todas las tallas de ${fila.nombre}»",
+      "button «{`${celda.nombre}»"
+    ],
+    "components/vista-rapida/VistaRapidaProducto.tsx": [
+      "button «→onCambiarEstado»",
+      "Link «Editar»",
+      "Link «Rótulo»",
+      "button «vista-rapida.historial»",
+      "Link «Ver en Existencias»",
+      "button «Eliminar»"
+    ]
+  }
+}

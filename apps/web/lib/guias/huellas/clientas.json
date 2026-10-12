@@ -1,0 +1,68 @@
+{
+  "guia": "clientas",
+  "ruta": "/clientas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 46,
+  "controles": {
+    "components/CampoDocumentoClienta.tsx": [
+      "CampoSelect «{etiqueta}»",
+      "CampoTexto «{<> {etiqueta}»"
+    ],
+    "components/ClientaFichaModal.tsx": [
+      "Boton «Cancelar»",
+      "Pestanas «(sin nombre)»",
+      "Boton «clientas.ficha-editar»",
+      "Boton «Registrar su BAJA»",
+      "button «Unir con otra ficha»",
+      "button «Archivar»",
+      "ComboResponsable «Reactivar»",
+      "Boton «Reactivar»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "ComboResponsable «{volverAVer}»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «{guia.etiqueta(\"motivo\", \"Motivo\")}»",
+      "ComboResponsable «{volverAVer}» #2",
+      "Boton «{guia.frase ?? undefined}»",
+      "CampoTexto «Buscar»",
+      "Boton «Buscar»",
+      "button «{otra.nombre ?? \"Sin nombre\"}»",
+      "ComboResponsable «{volverAVer}» #3",
+      "Boton «{guia.frase ?? undefined}» #2",
+      "ComboResponsable «{volverAVer}» #4",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "button «{todas ? \"Ver menos\" : `Ver las ${total}»"
+    ],
+    "components/ClientasPanel.tsx": [
+      "Boton «clientas.exportar»",
+      "Boton «clientas.nuevo»",
+      "Link «{f.texto}»",
+      "Link «‹ Anterior»",
+      "Link «Siguiente ›»",
+      "button «clientas.fila»"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/NuevaClientaModal.tsx": [
+      "CampoTexto «Nombre completo»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/clientas/PreferenciasClienta.tsx": [
+      "button «{o.valor}»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Deshacer»",
+      "Boton «Guardar preferencias»"
+    ],
+    "components/clientas/club-piezas.tsx": [
+      "CampoTexto «{etiqueta}»",
+      "CampoTexto «Día del cumpleaños»",
+      "CampoSelect «Mes del cumpleaños»",
+      "CampoTexto «Año del cumpleaños (opcional)»",
+      "button «Omitir por ahora»"
+    ]
+  }
+}

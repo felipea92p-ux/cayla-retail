@@ -39,7 +39,7 @@ const ICONO_TAMANO: Record<TamanoGrilla, typeof Square> = { grande: Square, medi
 export function SelectorTamanoGrilla({ inicial }: { inicial: TamanoGrilla }) {
   const [valor, elegir] = useTamanoGrilla(inicial);
   return (
-    <div className="flex items-center gap-2.5">
+    <div data-guia="productos.tamano" className="flex items-center gap-2.5">
       <span aria-hidden className="label-cayla hidden text-[10.5px] text-tinta/60 sm:inline">
         Tamaño
       </span>

@@ -8,6 +8,7 @@ import type { CierreCaja } from "@/lib/caja";
 import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
 import type { MetodoCobrado } from "@/lib/caja-tablero-reglas";
 import { cuadreDelTurno, duracionTurno, estadoCierre, rutaDelEfectivo } from "@/lib/historial-cierres-reglas";
+import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
@@ -71,6 +72,7 @@ export function BotonVerDetalleCierre({ cierre }: { cierre: CierreCaja }) {
       <button
         type="button"
         onClick={() => abrir(cierre)}
+        data-guia="caja-historial.ver"
         aria-label={`Ver el detalle del cierre de ${cierre.ubicacionNombre} (${hora(cierre.cerradaEn)})`}
         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-tinta/8 hover:text-rojo"
       >
@@ -127,7 +129,7 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
   const tonoDiferencia = estado === "cuadro" ? "text-verde-profundo" : estado === "sobro" ? "text-ambar-profundo" : "text-rojo-profundo";
 
   return (
-    <div className="@container mt-1">
+    <div data-guia="caja-historial.detalle" className="@container mt-1">
       {/* Veredicto: lo primero que se quiere saber de un cierre es si cuadró. */}
       <div className="flex items-center justify-between gap-4 rounded-2xl bg-tinta px-5 py-4 text-crema">
         <p className="font-display min-w-0 text-2xl leading-tight">{estado === "cuadro" ? "Cuadró, sin diferencia" : `${estado === "sobro" ? "Sobró" : "Faltó"} ${money(Math.abs(cierre.diferencia))}`}</p>
@@ -396,6 +398,8 @@ function FilaEvento({ evento: e }: { evento: EventoCaja }) {
   }
   if (e.tipo === "movimiento") {
     const ingreso = e.direccion === "ingreso";
+    // El mismo nombre que la lista del turno: un gasto se llama por lo que se pagó, no «Otro · Gasto · …».
+    const fila = filaDeMovimiento(e);
     return (
       <Fila
         hora={hora(e.hora)}
@@ -404,9 +408,9 @@ function FilaEvento({ evento: e }: { evento: EventoCaja }) {
         quien={e.colaboradorNombre}
         texto={
           <>
-            {e.motivo}
+            {fila.titulo}
             {e.esAjuste && <span className="text-tinta/55"> · ajuste</span>}
-            {e.nota && <span className="text-tinta/55"> · {e.nota}</span>}
+            {fila.detalle && <span className="text-tinta/55"> · {fila.detalle}</span>}
           </>
         }
         monto={`${ingreso ? "+" : "-"}${money(e.monto)}`}

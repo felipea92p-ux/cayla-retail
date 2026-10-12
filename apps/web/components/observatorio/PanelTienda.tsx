@@ -210,7 +210,15 @@ function Ritmo({
             </span>
           )}
         </div>
-        <Segmento valor={comparar} opciones={opcionesComparar} onValor={onComparar} chico etiqueta="Comparar el ritmo" />
+        <Segmento
+          valor={comparar}
+          opciones={opcionesComparar}
+          onValor={onComparar}
+          chico
+          etiqueta="Comparar el ritmo"
+          guia="inicio.obs-comparar"
+          data-guia={(v: string) => (v === "TODAS" ? "inicio.obs-comparar-cayla" : v === "nadie" ? "inicio.obs-comparar-sola" : undefined)}
+        />
       </div>
       <div className="o-graf o-ritmo" ref={grafRef}>
         <Revela key={c.curva.length}>
@@ -542,7 +550,7 @@ export function PanelTienda({
 
   return (
     <div className="o-pn">
-      <div className="o-t-cab" style={i(0)}>
+      <div className="o-t-cab" style={i(0)} data-guia="inicio.obs-tienda">
         <div>
           <span className="o-lbl">
             {tienda.sigla} · {ciudad}
@@ -581,7 +589,7 @@ export function PanelTienda({
           </div>
         )}
       </div>
-      <div className="o-t-kpi" style={i(1)}>
+      <div className="o-t-kpi" style={i(1)} data-guia="inicio.obs-tienda-cifras">
         <span className="big">
           <Odometro key={tienda.id} v={c.total} />
         </span>
@@ -609,13 +617,13 @@ export function PanelTienda({
         </div>
       </div>
       <div className="o-t-tabs" style={i(2)}>
-        <Segmento valor={tab} opciones={TABS} onValor={onTab} etiqueta="Qué ver de la tienda" />
+        <Segmento valor={tab} opciones={TABS} onValor={onTab} etiqueta="Qué ver de la tienda" guia="inicio.obs-tienda-tabs" data-guia={(v: Tab) => (v === "productos" ? "inicio.obs-tab-productos" : v === "ritmo" ? "inicio.obs-tab-ritmo" : v === "equipo" ? "inicio.obs-tab-equipo" : v === "stock" ? "inicio.obs-tab-stock" : undefined)} />
       </div>
-      <div key={`${tienda.id}-${tab}`} className={`o-t-cuerpo nuevo ${dirTab}`} style={i(3)}>
+      <div key={`${tienda.id}-${tab}`} className={`o-t-cuerpo nuevo ${dirTab}`} style={i(3)} data-guia="inicio.obs-tienda-cuerpo">
         {cuerpo}
       </div>
       {revisar.length > 0 && (
-        <div className="o-t-rev" style={i(4)}>
+        <div className="o-t-rev" style={i(4)} data-guia="inicio.obs-tienda-revisar">
           <span className="o-lbl">Por revisar en {tienda.sigla}</span>
           {revisar.map((x) => (
             <button key={x.clave} type="button" className={x.nivel} onClick={() => onIrAviso(x.clave)}>

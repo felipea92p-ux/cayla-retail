@@ -68,6 +68,7 @@ export function AnilloMision({
   return (
     <button
       type="button"
+      data-guia="existencias.pendientes"
       onClick={onAbrir}
       aria-label={
         total === 0

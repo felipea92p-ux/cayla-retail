@@ -65,7 +65,7 @@ export const ALIAS_PRODUCCION = new Map([
 ]);
 
 /** Producción con los nombres de main (solo si main no tiene ya un objeto con el nombre de producción). */
-function conNombresDeMain(produccion, main, alias) {
+export function conNombresDeMain(produccion, main, alias) {
   const r = new Map();
   for (const [clave, huella] of produccion) {
     const enMain = alias.get(clave);

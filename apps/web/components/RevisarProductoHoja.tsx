@@ -11,6 +11,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import {
+  bloqueoDeAprobacion,
   bloqueoDeRechazo,
   mensajeDeRevision,
   textoPrecio,
@@ -26,8 +27,9 @@ import {
  * catálogo se firma). Se monta solo al abrirse: la lista no lee la asistencia mientras nadie va a guardar nada.
  *
  * Rechazar es permanente (la prenda queda descontinuada y ya no se reactiva), y la base se niega si tiene una orden de producción en
- * proceso o stock. La hoja lo adelanta con `bloqueoDeRechazo` (las mismas dos condiciones): en vez de pedir confirmar algo que va a
- * fallar, dice qué lo frena y qué hacer, y deja ir directo a Producción o a Existencias. El candado real sigue siendo el de la base.
+ * proceso o stock; aprobar se niega si una variante activa está en S/ 0 (ADR-0384). La hoja lo adelanta con `bloqueoDeRechazo` y
+ * `bloqueoDeAprobacion` (las mismas condiciones): en vez de pedir confirmar algo que va a fallar, dice qué lo frena y qué hacer, y deja
+ * ir directo a Producción, a Existencias o a la ficha. El candado real sigue siendo el de la base.
  */
 export function RevisarProductoHoja({
   modo,
@@ -48,7 +50,7 @@ export function RevisarProductoHoja({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textos = textosRevision(modo, producto.referencia);
-  const bloqueo = modo === "rechazar" ? bloqueoDeRechazo(producto) : null;
+  const bloqueo = modo === "rechazar" ? bloqueoDeRechazo(producto) : bloqueoDeAprobacion(producto);
 
   async function confirmar() {
     if (!responsable.listo || bloqueo) return;
@@ -79,7 +81,7 @@ export function RevisarProductoHoja({
   }
 
   return (
-    <Modal variante="hoja" ancho="max-w-lg" bloqueado={guardando} titulo={bloqueo ? `No se puede rechazar «${producto.referencia}» todavía` : textos.titulo} subtitulo={bloqueo ? undefined : textos.subtitulo} onClose={onClose}>
+    <Modal variante="hoja" ancho="max-w-lg" bloqueado={guardando} titulo={bloqueo ? `No se puede ${modo === "rechazar" ? "rechazar" : "aprobar"} «${producto.referencia}» todavía` : textos.titulo} subtitulo={bloqueo ? undefined : textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="text-[13.5px] leading-normal text-tinta/70">
@@ -103,6 +105,12 @@ export function RevisarProductoHoja({
                 {bloqueo.motivo === "stock" && veExistencias && (
                   <BotonEnlace href="/inventario" peso="primario" className="flex-1">
                     Ir a Existencias
+                  </BotonEnlace>
+                )}
+                {/* Quien revisa edita el catálogo (la pantalla lo exige): la ficha siempre se le abre. */}
+                {bloqueo.motivo === "precio" && (
+                  <BotonEnlace href={`/productos/${producto.productoId}/editar`} peso="primario" className="flex-1">
+                    Ponerle precio
                   </BotonEnlace>
                 )}
               </div>

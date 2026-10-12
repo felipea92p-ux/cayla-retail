@@ -12,6 +12,8 @@ export type OpcionSegmento = {
   deshabilitada?: boolean;
   /** Solo en `forma="modo"`: la línea que sale al pasar el mouse (`title`). */
   ayuda?: string;
+  /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0389): la demo la toca para cambiar de opción. */
+  guia?: string;
 };
 
 /**
@@ -83,6 +85,7 @@ function SegmentoModo({ opciones, valor, onCambio, etiqueta, className = "" }: P
             type="button"
             role="radio"
             aria-checked={activa}
+            data-guia={o.guia}
             tabIndex={activa || (!hayElegida && i === 0) ? 0 : -1}
             disabled={o.deshabilitada}
             title={o.ayuda}
@@ -148,6 +151,7 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
             type="button"
             role="radio"
             aria-checked={activa}
+            data-guia={o.guia}
             onClick={() => onCambio(o.clave)}
             className={`label-cayla relative shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors duration-200 ${activa ? "text-crema" : "text-tinta/65 hover:text-rojo"}`}
           >

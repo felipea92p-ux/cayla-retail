@@ -12,8 +12,10 @@ import {
   costoDistinto,
   limpiarPrecio,
   llenarTodas,
+  nombreCelda,
   pasoCantidad,
   precioDistinto,
+  precioPropioInvalido,
   textoCostoBase,
   textoPrecioBase,
   totalesCantidades,
@@ -221,7 +223,7 @@ export function MatrizCantidades({
                         </td>
                       );
                     }
-                    const etiqueta = `${nombre} en ${textoTalla(talla)}`;
+                    const etiqueta = nombreCelda(c?.nombre, textoTalla(talla));
                     const propio = (enCostos ? costos[cel.clave] : precios[cel.clave]) ?? "";
                     const distinto = enCostos ? costoDistinto(propio, costoBase) : precioDistinto(propio, precioBase);
                     const valorCelda = cantidades[cel.clave] ?? "";
@@ -269,6 +271,7 @@ export function MatrizCantidades({
                               inputMode="decimal"
                               autoComplete="off"
                               aria-label={`${enCostos ? "Costo" : "Precio"} de ${etiqueta}`}
+                              aria-invalid={!enCostos && precioPropioInvalido(propio) ? true : undefined}
                               placeholder={enCostos ? baseCosto : base}
                               value={propio}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)(cel.clave, limpiarPrecio(e.target.value))}

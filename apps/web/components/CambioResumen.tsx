@@ -19,6 +19,8 @@ export type PrendaFicha = {
   colorHex: string | null;
   fotoUrl: string | null;
   precio: number;
+  /** Una línea corta bajo el precio (p. ej. «Pagó con S/ 20.00 de descuento (lista S/ 100.00)»): por qué ese precio es el que cuenta. */
+  detalle?: string | null;
 };
 
 function FichaPrenda({ titulo, prenda, vacia, hueco = false }: { titulo: string; prenda: PrendaFicha | null; vacia: string; hueco?: boolean }) {
@@ -32,6 +34,7 @@ function FichaPrenda({ titulo, prenda, vacia, hueco = false }: { titulo: string;
             <p className="font-display truncate text-[21px] leading-tight text-tinta">{prenda.referencia}</p>
             <p className="text-sm text-tinta/75">{varianteLegible(prenda)}</p>
             <p className="mt-0.5 text-sm tabular-nums text-tinta">{soles(prenda.precio)}</p>
+            {prenda.detalle && <p className="text-xs text-tinta/70">{prenda.detalle}</p>}
           </div>
         </div>
       ) : (

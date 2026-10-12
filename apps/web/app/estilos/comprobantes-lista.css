@@ -10,6 +10,7 @@
      · .cmp-reparto   barra de 4 px bajo «Por pagar» (parte vencida) y «Por recibir» (parte atrasada).
      · .cmp-ind       el indicador que VIAJA entre pestañas / entre Emisión y Vencimiento.
      · .cmp-fila      fila de la tabla: entra escalonada, barrita de acento y flecha al pasar el mouse.
+                      Con `data-recien`, la orden recién guardada: barrita verde puesta y un tinte suave.
      · .cmp-mini      barra de 3 px con el avance real de recepción / pago.
      · .cmp-punto-vivo el punto que late en el chip «Vencida» (única animación en bucle de la lista).
      · .cmp-sk        esqueleto brillante de la carga (loading.tsx).
@@ -134,6 +135,12 @@
   .cmp-fila:focus-visible { background-color: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
   .cmp-fila:hover::before,
   .cmp-fila:focus-visible::before { transform: scaleY(1); }
+  /* La orden recién guardada (Órdenes de compra, Formidable 2026-10-10): la barrita queda puesta, en verde —lo que quedó guardado—, y
+     la fila con un tinte suave, para que se vea al volver a la lista. Sin animación propia: entra como las demás. */
+  /* `:nth-child(n of .fila-cayla)` le gana al rayado de la tabla (`.fila-cayla:nth-child(even of .fila-cayla)`, globals.css): sin él,
+     una orden recién guardada que caía en una fila par quedaba con el rayado y sin su tinte. */
+  .cmp-fila[data-recien]:nth-child(n of .fila-cayla) { background: color-mix(in srgb, var(--color-verde) 8%, transparent); }
+  .cmp-fila[data-recien]::before { transform: scaleY(1); background: var(--color-verde); }
   /* El foco de teclado (j/k, Tab) se ve igual que el hover más un contorno: no depende solo de un tinte. */
   .cmp-fila:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--color-tinta) 40%, transparent);

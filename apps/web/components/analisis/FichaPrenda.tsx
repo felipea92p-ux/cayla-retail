@@ -141,10 +141,18 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
                           <th className="color" scope="row">
                             <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
                             {f.color || "Sin color"}
+                            {f.sinStock && <span className="m-sin-stock">Sin stock</span>}
                           </th>
                           {f.celdas.map((c) => (
                             <td key={c.talla} className={c.estado} tabIndex={0} data-tip={c.tip} aria-label={c.tip}>
-                              <b>{c.fuerte}</b>
+                              <b>
+                                {c.estado === "pedir" && (
+                                  <span className="m-alerta" aria-hidden="true">
+                                    !
+                                  </span>
+                                )}
+                                {c.fuerte}
+                              </b>
                               {c.suave && <span>{c.suave}</span>}
                             </td>
                           ))}
@@ -168,7 +176,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
                   </table>
                 </div>
                 <div className="m-leyenda">
-                  <span className="pedir">se vendía y no queda</span>
+                  <span className="pedir">vendido y sin stock</span>
                   <span className="queda">te queda</span>
                   <span className="nada">no hay</span>
                 </div>

@@ -29,6 +29,7 @@
     /* Cada fila conserva su alto: sin esto, al limitar el alto de la lista, el flex las encogía y el nombre de un tipo quedaba
        encima de «vendiste · tienes» del de arriba (Felipe 2026-10-12). */
     .al-lista > .al-f{flex:none}
+    .al-nota{margin:-4px 0 10px}
     .al-mas{position:sticky;bottom:0;flex:none;margin-top:-34px;min-height:44px;padding-top:18px;border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
       color:var(--color-taupe);background:linear-gradient(to bottom,transparent,var(--color-papel) 62%)}
     .al-mas:hover{color:var(--color-tinta)}
@@ -42,7 +43,9 @@
     .pt-sub{margin:0;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--color-taupe)}
     .pt-bloque{display:flex;flex-direction:column}
     .pt-de{margin:-4px 0 0}
-    .panel-tipo .rank-f{grid-template-columns:32px minmax(0,1fr) minmax(60px,.8fr) auto}
+    /* Columnas de ancho fijo salvo el nombre: con la última en `auto`, cada fila medía su «Quedan N» y la barra arrancaba en otro
+       lugar (Felipe 2026-10-12). Así todas las barras salen de la misma línea. */
+    .panel-tipo .rank-f{grid-template-columns:32px minmax(0,1fr) minmax(60px,.8fr) 108px}
     @container analisis (max-width:1000px){ .pedir-ad{grid-template-columns:minmax(0,1fr)} .panel-tipo{position:static} }
     .al-cab{font-size:11px;color:var(--color-tinta-60);padding:0 8px 6px}
     .al-cab .eje{position:relative;height:14px}

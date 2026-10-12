@@ -154,7 +154,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
 
   return (
     <div className="pp-zona" data-sel={hayTramo ? sel : undefined} onMouseLeave={() => setSobre(null)}>
-      <div className="pp-riel" data-riel="hoy">
+      <div className="pp-riel" data-riel="hoy" data-guia="plan-piso.riel-hoy">
         <div className="pp-rcab">
           <div className="pp-rtit">
             <h3 className="pp-etq">Hoy</h3>
@@ -186,7 +186,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
 
       {colorDeLaTienda && <ColorDeLaTienda color={colorDeLaTienda} cuadrado={cuadrado} dias={dias} />}
 
-      <div className="pp-riel" data-riel="prop">
+      <div className="pp-riel" data-riel="prop" data-guia="plan-piso.riel-propuesta">
         <div className="pp-rcab">
           <div className="pp-rtit">
             <h3 className="pp-etq">Cómo quedaría</h3>
@@ -220,7 +220,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
         </ul>
       </div>
 
-      <div className="pp-pie">
+      <div className="pp-pie" data-guia="plan-piso.riel-pie">
         <span className="pp-escala">
           <svg className="pp-ic" viewBox="0 0 40 60" aria-hidden="true" focusable="false">
             <use href="#pp-h" />
