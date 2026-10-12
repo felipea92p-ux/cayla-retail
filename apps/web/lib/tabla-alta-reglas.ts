@@ -10,6 +10,7 @@
 //   NO HACE: no guarda nada ni decide qué se manda a la RPC: eso sigue en `NuevoProductoForm`.
 
 import { leerCantidad, limpiarCantidad, type CeldaAlta } from "./alta-producto";
+import { precioValido } from "./variantes-ficha-reglas";
 
 /** Tope de una celda de cantidad (`leerCantidad`/`crear_producto_con_stock_inicial`): un entero de 4 dígitos. */
 const CANTIDAD_MAXIMA = 9999;
@@ -116,6 +117,27 @@ export function textoCostoBase(costoBase: string): string {
  *  número da NaN a propósito: el formulario lo frena antes de llamar a la base. */
 export function montoDeCelda(propio: string | undefined, base: number): number {
   return propio !== undefined && propio.trim() !== "" ? Number(propio) : base;
+}
+
+/** Cómo se llama una celda en pantalla: «Negro en M», «Sin color en Única». La misma frase en la tabla (para el lector) y en
+ *  «Falta», para que la persona encuentre la celda que se le nombra. */
+export function nombreCelda(color: string | null | undefined, talla: string | null | undefined): string {
+  return `${color || "Sin color"} en ${talla || "Única"}`;
+}
+
+/**
+ * La primera celda (de las que siguen en la tabla) con un precio PROPIO que no sirve: un 0, o algo que no es un número. Vacía no
+ * cuenta: toma el precio de todas, que se revisa aparte. Es la regla de Editar producto (`precioValido`, ADR-0377), sin la
+ * excepción de Empaque: Nuevo producto pide siempre un precio mayor que 0 (una bolsa de obsequio se deja en 0 desde su ficha).
+ * Sin esto, un «0» escrito por error en una celda creaba la prenda a S/ 0 y la caja la vendía gratis (ADR-0380).
+ */
+export function celdaSinPrecio<C extends { clave: string }>(celdas: readonly C[], precios: Readonly<Record<string, string>>): C | null {
+  return celdas.find((c) => precioPropioInvalido(precios[c.clave])) ?? null;
+}
+
+/** ¿Lo escrito en una celda de «Precios» no sirve? Vacía sirve (toma el de todas). La celda lo marca y `celdaSinPrecio` la nombra. */
+export function precioPropioInvalido(propio: string | undefined): boolean {
+  return propio !== undefined && propio.trim() !== "" && !precioValido(Number(propio));
 }
 
 export type Leyenda = {

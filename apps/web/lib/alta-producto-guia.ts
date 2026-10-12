@@ -14,7 +14,7 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, TEXTO_FALTA_LUGAR, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
@@ -108,7 +108,16 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       pendiente: e.categoriaSinTallas ? "Habilita las tallas de esta categoría." : "Elige al menos una talla.",
     },
     { id: "colores", paso: 3, nombre: "Colores", requerido: false, sugerido: true, hecho: x.coloresElegidos > 0, pendiente: "Elige los colores, o sigue así si no lleva." },
-    { id: "precio", paso: 4, nombre: "Precio", requerido: true, sugerido: false, hecho: precioOk && costoOk, pendiente: costoOk ? "Pon el precio de venta." : "El costo no puede ser negativo." },
+    {
+      id: "precio",
+      paso: 4,
+      nombre: "Precio",
+      requerido: true,
+      sugerido: false,
+      hecho: precioOk && costoOk && !e.celdaSinPrecio,
+      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0380) y el costo.
+      pendiente: !precioOk ? "Pon el precio de venta." : e.celdaSinPrecio ? textoCeldaSinPrecio(e.celdaSinPrecio) : "El costo no puede ser negativo.",
+    },
     {
       id: "stock",
       paso: 4,

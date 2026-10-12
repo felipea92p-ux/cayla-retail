@@ -34,6 +34,7 @@ import {
   type DetalleDescuento,
   type PagoAplicado,
   type Vendedora,
+  sinPrecioParaVender,
 } from "./vender-reglas";
 import { METODOS_PAGO_VENTA } from "@cayla-retail/shared";
 
@@ -1018,5 +1019,23 @@ describe("lecturaDelRecibido — vuelto, falta o exacto bajo los billetes (la ho
     // deuda S/ 79.88 → se cobran S/ 79.80 en monedas; con 79.80 recibidos es exacto, con 79.70 faltan 0.10
     expect(lecturaDelRecibido(79.8, 79.8, 0)).toEqual({ estado: "exacto", monto: 79.8 });
     expect(lecturaDelRecibido(79.7, 79.8, 0)).toEqual({ estado: "falta", monto: 0.1 });
+  });
+});
+
+describe("sinPrecioParaVender — una prenda de mercadería en S/ 0 no entra al ticket (ADR-0380)", () => {
+  it("con precio, entra", () => {
+    expect(sinPrecioParaVender({ precio: 79.9 })).toBe(false);
+    expect(sinPrecioParaVender({ precio: 0.5, fueraDeMotores: true })).toBe(false);
+  });
+
+  it("en 0, no entra (un precio olvidado)", () => {
+    expect(sinPrecioParaVender({ precio: 0 })).toBe(true);
+    expect(sinPrecioParaVender({ precio: 0, fueraDeMotores: false })).toBe(true);
+    expect(sinPrecioParaVender({ precio: Number.NaN })).toBe(true);
+  });
+
+  it("la bolsa de obsequio (familia fuera de los motores) sí entra en 0; un negativo nunca", () => {
+    expect(sinPrecioParaVender({ precio: 0, fueraDeMotores: true })).toBe(false);
+    expect(sinPrecioParaVender({ precio: -1, fueraDeMotores: true })).toBe(true);
   });
 });

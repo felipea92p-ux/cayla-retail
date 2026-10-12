@@ -142,6 +142,28 @@ describe("la frase de lo que hay que hacer con el nombre es la de `problemasAlta
   });
 });
 
+describe("una celda en 0 (ADR-0380): la guía y `problemasAlta` la nombran con la misma frase", () => {
+  it("el precio queda por hacer, y dice qué celda y qué hacer", () => {
+    const estado = { ...completo, celdaSinPrecio: "Negro en M" };
+    const precio = camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio");
+    const problema = problemasAlta(estado).find((p) => p.bloque === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(problema?.texto).toMatch(/^Negro en M tiene el precio en 0/);
+    expect(precio?.pendiente).toBe(problema?.texto);
+  });
+
+  it("sin precio de todas, eso va primero (es lo que la persona ve antes)", () => {
+    const estado = { ...completo, precioBase: "", celdaSinPrecio: "Negro en M" };
+    expect(camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio")?.pendiente).toBe("Pon el precio de venta.");
+    expect(problemasAlta(estado).filter((p) => p.bloque === "precio").map((p) => p.texto)[0]).toBe("Pon el precio de venta.");
+  });
+
+  it("sin celda en 0 (o ausente, como antes de la regla), nada cambia", () => {
+    expect(problemasAlta({ ...completo, celdaSinPrecio: null })).toEqual([]);
+    expect(problemasAlta(completo)).toEqual([]);
+  });
+});
+
 describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", () => {
   // Cada caso quita una cosa. «Requerido y sin hacer» en la guía ⇔ hay un problema en `problemasAlta`.
   const casos: [string, Partial<EstadoAlta>, Partial<ExtraGuia>][] = [
@@ -158,6 +180,7 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["categoría sin tallas", { categoriaSinTallas: true, tallasElegidas: 0 }, {}],
     ["sin precio", { precioBase: "" }, {}],
     ["precio cero", { precioBase: "0" }, {}],
+    ["una celda de la tabla con el precio en 0 (ADR-0380)", { celdaSinPrecio: "Negro en M" }, {}],
     ["costo negativo", { costoBase: "-1" }, {}],
     ["sin decidir stock", { stockTotal: 0 }, {}],
     ["stock inválido", { stockInvalidas: 2 }, {}],

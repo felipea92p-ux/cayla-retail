@@ -3,9 +3,10 @@
  * (el conteo, el «Modelo nuevo» del Taller) y que un líder aprueba o rechaza.
  *
  * La REGLA de qué se puede revisar no vive aquí: la decide `revisar_producto_censo` en la base (permiso, idempotencia, y que rechazar
- * se niegue con una orden en proceso o con stock). Este archivo solo (1) lee las filas de `fn_productos_por_revisar`, (2) redacta lo
- * que se le dice a quien revisa y (3) adelanta el bloqueo del rechazo, con las mismas dos condiciones de la base, para que el botón
- * no prometa lo que la base va a negar. Si la base cambia la regla, `bloqueoDeRechazo` y su prueba son lo primero que hay que tocar.
+ * se niegue con una orden en proceso o con stock; y, desde ADR-0380, que aprobar se niegue sin precio). Este archivo solo (1) lee las
+ * filas de `fn_productos_por_revisar`, (2) redacta lo que se le dice a quien revisa y (3) adelanta esos bloqueos, con las mismas
+ * condiciones de la base, para que el botón no prometa lo que la base va a negar. Si la base cambia la regla, `bloqueoDeRechazo`,
+ * `bloqueoDeAprobacion` y su prueba son lo primero que hay que tocar.
  */
 import type { Database } from "@cayla-retail/database";
 import { compararTallas } from "./tallas";
@@ -44,10 +45,17 @@ export type ProductoPorRevisar = {
   stock: number;
   /** Órdenes de producción en proceso de este modelo. */
   ordenesAbiertas: number;
+  /** Su familia está fuera de los motores (Empaque, ADR-0377): una variante en S/ 0 es la bolsa de obsequio, no un precio
+   *  olvidado, y se puede aprobar así (ADR-0380). */
+  admitePrecioCero: boolean;
 };
 
 /** Lo que devuelve la base, con tallas en su orden de curva y los números como números (PostgREST manda `numeric` como texto o número). */
-export function leerPorRevisar(filas: readonly FilaPorRevisar[]): { productos: ProductoPorRevisar[]; total: number } {
+export function leerPorRevisar(
+  filas: readonly FilaPorRevisar[],
+  /** Los códigos de las familias fuera de los motores (Empaque): las únicas que admiten precio 0. Sin el dato, ninguna. */
+  familiasConPrecioCero: ReadonlySet<string> = new Set(),
+): { productos: ProductoPorRevisar[]; total: number } {
   const num = (v: unknown): number | null => {
     if (v === null || v === undefined || v === "") return null;
     const n = Number(v);
@@ -75,6 +83,7 @@ export function leerPorRevisar(filas: readonly FilaPorRevisar[]): { productos: P
       precioMax: num(f.precio_max),
       stock: num(f.stock) ?? 0,
       ordenesAbiertas: num(f.ordenes_abiertas) ?? 0,
+      admitePrecioCero: f.categoria_familia ? familiasConPrecioCero.has(f.categoria_familia) : false,
     })),
     total: num(filas[0]?.total) ?? 0,
   };
@@ -110,7 +119,8 @@ export function textoPropuesta(p: Pick<ProductoPorRevisar, "propuestoPor" | "cre
 }
 
 export type BloqueoRechazo = {
-  motivo: "ordenes" | "stock";
+  /** `precio`: lo que frena APROBAR (ADR-0380); los otros dos frenan rechazar (ADR-0371). */
+  motivo: "ordenes" | "stock" | "precio";
   /** Una frase corta para la fila y la hoja. */
   texto: string;
   /** Qué hacer, completo. */
@@ -120,7 +130,8 @@ export type BloqueoRechazo = {
 /**
  * ¿Se puede rechazar? Las mismas dos condiciones de la base (`revisar_producto_censo`, ADR-0371): una orden de producción en
  * proceso, o stock. Rechazar es permanente (la prenda queda descontinuada y no se reactiva) y cerrar una orden no mira el estado
- * del producto: una orden abierta de un modelo rechazado igual metería stock. Aprobar nunca se bloquea.
+ * del producto: una orden abierta de un modelo rechazado igual metería stock. Aprobar no mira órdenes ni stock (lo que la frena es
+ * el precio: `bloqueoDeAprobacion`).
  */
 export function bloqueoDeRechazo(p: Pick<ProductoPorRevisar, "ordenesAbiertas" | "stock">): BloqueoRechazo | null {
   if (p.ordenesAbiertas > 0) {
@@ -139,6 +150,20 @@ export function bloqueoDeRechazo(p: Pick<ProductoPorRevisar, "ordenesAbiertas" |
     };
   }
   return null;
+}
+
+/**
+ * ¿Se puede aprobar? Lo mismo que niega la base (`revisar_producto_censo`, ADR-0380): una variante ACTIVA en S/ 0 fuera de Empaque.
+ * Proponer una prenda en 0 sí se puede (el conteo: «déjalo en 0 y lo completa el Líder»; la muestra del Taller), pero aprobarla es
+ * decir que está lista para vender, y en S/ 0 no lo está: la caja no la cobraría. `precioMin` es el de las variantes activas.
+ */
+export function bloqueoDeAprobacion(p: Pick<ProductoPorRevisar, "precioMin" | "precioMax" | "admitePrecioCero">): BloqueoRechazo | null {
+  if (p.admitePrecioCero || p.precioMin === null || p.precioMin > 0) return null;
+  return {
+    motivo: "precio",
+    texto: p.precioMax !== null && p.precioMax > 0 ? "Tiene variantes en S/ 0" : "No tiene precio",
+    queHacer: "Ponle precio en su ficha y vuelve a aprobarla; mientras tanto, la caja no la deja vender. Si se creó por error, recházala.",
+  };
 }
 
 export type ModoRevision = "aprobar" | "rechazar";
@@ -175,7 +200,7 @@ export function textosRevision(modo: ModoRevision, referencia: string): TextosRe
 }
 
 /** Los `hint` con los que `revisar_producto_censo` rechaza. Sus mensajes ya vienen en castellano de tienda: se muestran tal cual. */
-export const HINTS_REVISION = new Set(["con_ordenes_abiertas", "con_stock", "ya_revisada", "no_existe", "sin_permiso", "datos_incompletos"]);
+export const HINTS_REVISION = new Set(["con_ordenes_abiertas", "con_stock", "ya_revisada", "no_existe", "sin_permiso", "datos_incompletos", "sin_precio"]);
 
 /** ¿Alguien más ya decidió esta prenda? Entonces lo que se ve está viejo y la pantalla se refresca. */
 export function yaSeRevisoOtraVez(error: ErrorEscritura): boolean {

@@ -6,6 +6,7 @@
 import { METODOS_PAGO, type MetodoPagoVenta } from "@cayla-retail/shared";
 import { efectivoACobrar, redondeoDelEfectivo, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
 import { motivoNoCobrable } from "./vender-stock-local";
+import { precioValido } from "./variantes-ficha-reglas";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -544,4 +545,14 @@ export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
   if (!sinStockPorApartado(p)) return agotada;
   const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
   return empiezaEnMayuscula ? "Apartada para un cliente" : "apartada para un cliente";
+}
+
+/**
+ * ¿Esta prenda no puede entrar al ticket porque no tiene precio? (ADR-0380.) Una prenda de mercadería en S/ 0 es un precio
+ * olvidado: la base la rechaza al cobrar (`venta_sin_precio`), y una venta sin conexión recién se rechazaría al subir, con la prenda
+ * ya entregada. Por eso la caja la frena al agregarla, con la misma regla de Editar producto (`precioValido`): solo lo de una familia
+ * fuera de los motores (la bolsa de obsequio) va en 0. `precio` es el que cobra ESTA tienda (su precio propio, si tiene).
+ */
+export function sinPrecioParaVender(v: { precio: number; fueraDeMotores?: boolean }): boolean {
+  return !precioValido(v.precio, v.fueraDeMotores === true);
 }
