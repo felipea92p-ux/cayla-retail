@@ -54,8 +54,10 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion = false }: {
+export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion = false, onDemo }: {
   onClose: () => void;
+  /** Abre «Demo» (ADR-0389): elegir qué módulo o submódulo volver a ver con su guía interactiva. */
+  onDemo?: () => void;
   /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
   veAdministracion?: boolean;
   /** ¿Ve el módulo Configuración? (ADR-0253: ya se da a un rol; al líder se le puede quitar). */
@@ -257,6 +259,24 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <span aria-hidden className="text-tinta/45">→</span>
                   </Link>
                 )}
+              </div>
+            )}
+
+            {/* Demo (ADR-0389, Felipe 2026-10-07): la guía de cada pantalla se ofrece una sola vez; aquí se repite la que quieras. */}
+            {onDemo && (
+              <div>
+                <p className="label-cayla mb-3 text-[11px] text-tinta/65">Aprender</p>
+                <button
+                  type="button"
+                  onClick={onDemo}
+                  className="card-cayla flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-sand/40"
+                >
+                  <span>
+                    <span className="block text-sm text-tinta">Demo</span>
+                    <span className="mt-0.5 block text-xs text-tinta/55">Elige un módulo y te mostramos, paso a paso, qué hace cada cosa.</span>
+                  </span>
+                  <span aria-hidden className="text-tinta/45">→</span>
+                </button>
               </div>
             )}
 

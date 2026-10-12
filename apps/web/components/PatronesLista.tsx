@@ -256,6 +256,7 @@ export function PatronesLista({
   return (
     <div className="space-y-6">
       <BarraAtributos
+        guia="atributos.barra-patrones"
         etiqueta="Filtrar patrones"
         filtros={
           <>

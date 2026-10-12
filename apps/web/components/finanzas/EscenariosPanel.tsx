@@ -100,7 +100,7 @@ export function EscenariosPanel({
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!proyeccion}>
+            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!proyeccion} data-guia="fin-reportes.excel">
               Descargar Excel
             </button>
           </>
@@ -114,16 +114,16 @@ export function EscenariosPanel({
       ))}
 
       <section className="fin-dos-col fin-esc">
-        <div {...entra(1)}>
+        <div {...entra(1)} data-guia="fin-escenarios.valores">
           <Superficie pad>
             <CabeceraBloque titulo="Mueve los valores" bajada={`Parte de ${textoMes(mesBase).split(" ")[0]}, el último mes completo, y de tu caja de hoy.`}>
-              <button type="button" className="btn-cayla btn-sutil btn-sm" onClick={volver} disabled={!movido}>
+              <button type="button" className="btn-cayla btn-sutil btn-sm" onClick={volver} disabled={!movido} data-guia="fin-escenarios.volver">
                 Volver a como está
               </button>
             </CabeceraBloque>
 
             {tiendas.length > 1 && (
-              <div className="fin-campo-esc">
+              <div className="fin-campo-esc" data-guia="fin-escenarios.tienda">
                 <label htmlFor="esc-tienda">¿Qué tienda?</label>
                 <SelectFin
                   id="esc-tienda"
@@ -136,6 +136,7 @@ export function EscenariosPanel({
 
             {nombreTienda && alquilerActual !== null && alquilerActual > 0 && (
               <Deslizador
+                guia="fin-escenarios.alquiler"
                 id="esc-alquiler"
                 nombre={`Alquiler de ${nombreTienda}`}
                 valor={Math.round(p.alquilerTienda ?? alquilerActual)}
@@ -149,6 +150,7 @@ export function EscenariosPanel({
             )}
             {nombreTienda && (
               <Deslizador
+                guia="fin-escenarios.ventas-tienda"
                 id="esc-ventas-tienda"
                 nombre={`Ventas de ${nombreTienda}`}
                 valor={p.ventasTienda}
@@ -161,6 +163,7 @@ export function EscenariosPanel({
               />
             )}
             <Deslizador
+              guia="fin-escenarios.ventas-todas"
               id="esc-ventas-todas"
               nombre="Ventas de todas las tiendas"
               valor={p.ventasTodas}
@@ -172,8 +175,8 @@ export function EscenariosPanel({
             />
 
             {pagos.length > 0 && (
-              <div className="fin-opcion-esc" data-marcada={p.moverPago ? "" : undefined}>
-                <label className="fin-opcion-esc-fila">
+              <div className="fin-opcion-esc" data-marcada={p.moverPago ? "" : undefined} data-guia="fin-escenarios.mover-pago">
+                <label className="fin-opcion-esc-fila" data-guia="fin-escenarios.mover-pago-marca">
                   <input
                     type="checkbox"
                     checked={!!p.moverPago}
@@ -189,7 +192,7 @@ export function EscenariosPanel({
                   </span>
                 </label>
                 {p.moverPago && (
-                  <div className="fin-opcion-esc-campos">
+                  <div className="fin-opcion-esc-campos" data-guia="fin-escenarios.mover-pago-campos">
                     <SelectFin
                       etiqueta="Qué pago"
                       valor={p.moverPago.id}
@@ -208,7 +211,7 @@ export function EscenariosPanel({
             )}
 
             {nombreTienda && (
-              <div className="fin-opcion-esc">
+              <div className="fin-opcion-esc" data-guia="fin-escenarios.cerrar-tienda">
                 <label className="fin-opcion-esc-fila">
                   <input type="checkbox" checked={p.cerrarTienda} onChange={(e) => cambiar({ cerrarTienda: e.target.checked })} />
                   <span>
@@ -219,8 +222,8 @@ export function EscenariosPanel({
               </div>
             )}
 
-            <div className="fin-opcion-esc" data-marcada={p.gastoNuevo ? "" : undefined}>
-              <label className="fin-opcion-esc-fila">
+            <div className="fin-opcion-esc" data-marcada={p.gastoNuevo ? "" : undefined} data-guia="fin-escenarios.gasto-nuevo">
+              <label className="fin-opcion-esc-fila" data-guia="fin-escenarios.gasto-nuevo-marca">
                 <input
                   type="checkbox"
                   checked={!!p.gastoNuevo}
@@ -235,10 +238,11 @@ export function EscenariosPanel({
                 </span>
               </label>
               {p.gastoNuevo && proyeccion && (
-                <div className="fin-opcion-esc-campos">
+                <div className="fin-opcion-esc-campos" data-guia="fin-escenarios.gasto-campos">
                   <div className="fin-con-unidad">
                     <span>S/</span>
                     <InputFin
+                      data-guia="fin-escenarios.gasto-monto"
                       aria-label="Monto del gasto nuevo"
                       inputMode="decimal"
                       value={montoNuevo}
@@ -272,7 +276,7 @@ export function EscenariosPanel({
         </div>
 
         <div className="fin-columna">
-          <div {...entra(2)}>
+          <div {...entra(2)} data-guia="fin-escenarios.que-pasaria">
             <Superficie pad>
               <CabeceraBloque titulo="Qué pasaría" bajada="Comparado con cómo está hoy." />
               {frases.length ? (
@@ -287,7 +291,7 @@ export function EscenariosPanel({
             </Superficie>
           </div>
 
-          <div {...entra(3)}>
+          <div {...entra(3)} data-guia="fin-escenarios.utilidad">
             {utilidad ? (
               <Superficie>
                 <div className="fin-tabla-wrap">
@@ -333,7 +337,7 @@ export function EscenariosPanel({
           </div>
 
           {proyeccion && (
-            <div {...entra(4)}>
+            <div {...entra(4)} data-guia="fin-escenarios.caja">
               <Superficie pad>
                 <CabeceraBloque titulo="Tu caja con el cambio" bajada={`Próximas ${proyeccion.semanas.length} semanas.`} />
                 <GraficoSemanas
@@ -361,7 +365,7 @@ export function EscenariosPanel({
         </div>
       </section>
 
-      <div className="nota-cayla">
+      <div className="nota-cayla" data-guia="fin-escenarios.nota">
         Un escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender 15 % más requiere un plan. Lo que sí hace es decirte{" "}
         <b>cuánto vale</b> cada decisión antes de tomarla.
       </div>
@@ -370,6 +374,7 @@ export function EscenariosPanel({
 }
 
 function Deslizador({
+  guia,
   id,
   nombre,
   valor,
@@ -380,6 +385,8 @@ function Deslizador({
   deshabilitado = false,
   onValor,
 }: {
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389): cada deslizador explica otra cosa. */
+  guia: string;
   id: string;
   nombre: string;
   valor: number;
@@ -391,7 +398,7 @@ function Deslizador({
   onValor: (v: number) => void;
 }) {
   return (
-    <div className="fin-campo-esc" data-apagado={deshabilitado ? "" : undefined}>
+    <div className="fin-campo-esc" data-apagado={deshabilitado ? "" : undefined} data-guia={guia}>
       <label htmlFor={id}>
         {nombre}
         <b>{texto}</b>

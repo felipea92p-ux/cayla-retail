@@ -1,0 +1,24 @@
+{
+  "guia": "finanzas.cierre",
+  "ruta": "/finanzas/cierre",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 14,
+  "controles": {
+    "components/finanzas/CierreMes.tsx": [
+      "button «{x.nombre}»",
+      "button «Cerrar»",
+      "Link «fin-cierre.resolver»",
+      "button «Reabrir…»",
+      "button «{textoBotonCerrar(panel.mes, u)}»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{guardando ? \"Cerrando…\" : \"Cerrar el mes\"}»",
+      "ComboResponsable «Cancelar» #2",
+      "button «Cancelar» #2",
+      "button «{guardando ? \"Cerrando…\" : \"Cerrar consolidado\"}»",
+      "ComboResponsable «Cancelar» #3",
+      "button «Cancelar» #3",
+      "button «{guardando ? \"Reabriendo…\" : \"Reabrir\"}»"
+    ]
+  }
+}

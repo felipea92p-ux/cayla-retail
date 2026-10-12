@@ -31,13 +31,13 @@ export function PorRevisarLista({
 
   return (
     <>
-      <ul className="card-cayla divide-y divide-sand overflow-hidden p-0" data-resultados>
+      <ul className="card-cayla divide-y divide-sand overflow-hidden p-0" data-resultados data-guia="por-revisar.lista">
         {productos.map((p) => {
           // ADR-0384: lo que frena aprobar se ve en la fila, como lo que frena rechazar.
           const sinPrecio = bloqueoDeAprobacion(p);
           return (
             <li key={p.productoId} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-              <div className="flex min-w-0 gap-3.5">
+              <div className="flex min-w-0 gap-3.5" data-guia="por-revisar.prenda">
                 <MiniaturaPrenda
                   fotoUrl={null}
                   colorHex={p.colorHex}
@@ -80,7 +80,7 @@ export function PorRevisarLista({
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2 max-sm:[&>button]:flex-1">
+              <div className="flex shrink-0 gap-2 max-sm:[&>button]:flex-1" data-guia="por-revisar.decidir">
                 <Boton type="button" peso="fantasma" className="max-sm:min-h-11" onClick={() => setAbierta({ modo: "rechazar", productoId: p.productoId })}>
                   Rechazar
                 </Boton>

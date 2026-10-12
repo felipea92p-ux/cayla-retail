@@ -140,7 +140,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
             <div className="min-w-0">
             {/* Un color por fila. Pasar el mouse por una fila anticipa su color a la izquierda; tocar su nombre lo fija. */}
             {/* `@container`: las casillas se acomodan al ancho de la LISTA (en el celular, tres por fila con el texto corto). */}
-            <ul className="@container min-w-0 divide-y divide-sand border-y border-sand" aria-label="Colores y tallas" onPointerLeave={() => setVistaPrevia(null)}>
+            <ul data-guia="vender.prenda-tallas" className="@container min-w-0 divide-y divide-sand border-y border-sand" aria-label="Colores y tallas" onPointerLeave={() => setVistaPrevia(null)}>
               {colores.map((c, i) => {
                 const lleva = c.tallas.reduce((a, t) => a + enTicket(t.variante.varianteId), 0);
                 const activo = c.clave === mostrado.clave;
@@ -215,7 +215,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+          <div data-guia="vender.prenda-pie" className="mt-5 flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0 flex-1">{pie?.(elegido)}</div>
             <button type="button" onClick={cerrar} className={`${botonPrimario} flex-none px-6`}>
               Listo
@@ -280,7 +280,7 @@ function CombinaBienCon({
   const hayCirculos = (ficha?.companeros.length ?? 0) > 0;
   if (!frase && !hayCirculos && sugerencias.length === 0) return null;
   return (
-    <section className="mt-4" aria-label="Combina bien con">
+    <section className="mt-4" aria-label="Combina bien con" data-guia="vender.combina">
       {frase && <p className="min-h-5 truncate text-[13px] text-tinta">{frase}</p>}
       {hayCirculos && <FichaDelColor key={`circulos-${claveColor}`} ficha={ficha} forma="circulos" etiqueta={frase ? "En estos colores:" : ETIQUETA_COMBINA} />}
       {sugerencias.length > 0 && (

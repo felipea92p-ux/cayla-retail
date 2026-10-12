@@ -29,7 +29,7 @@ const codigo = readFileSync(ruta, "utf8");
 
 describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", () => {
   it("el <aside> raíz puede encogerse al ancho real del viewport (min-w-0)", () => {
-    expect(codigo).toMatch(/<aside className="[^"]*\bmin-w-0\b[^"]*">/);
+    expect(codigo).toMatch(/<aside[^>]*\bclassName="[^"]*\bmin-w-0\b[^"]*"[^>]*>/);
   });
 
   // Desde el 2026-09-30 cada prenda es UNA fila compacta (`punto-de-venta/LineaDelTicket.tsx`, spike del club):

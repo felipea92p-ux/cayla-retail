@@ -70,11 +70,11 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
   // Lo que se lleva vencido y por vencer hasta cada semana (el globo de cada barra lo dice).
   const acumulados = salidas.map((_, i) => Math.round(salidas.slice(0, i + 1).reduce((a, x) => a + x.monto, 0) * 100) / 100);
   return (
-    <div className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
+    <div data-guia="por-pagar.salidas" className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[11px] text-tinta/65">Salidas de caja · próximos 30 días</p>
         {max > 0 && (
-          <label className="flex items-center gap-1.5 text-xs text-tinta/65">
+          <label data-guia="por-pagar.caja" className="flex items-center gap-1.5 text-xs text-tinta/65">
             Tengo
             <span className="relative flex items-center gap-1 border-b border-tinta/25 px-0.5 [&:focus-within>span:last-child]:scale-x-100">
               S/

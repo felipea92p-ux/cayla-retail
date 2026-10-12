@@ -368,6 +368,7 @@ export function ProveedorModal({
               <div className="scroll-cayla min-h-0 flex-1 space-y-2 overflow-y-auto px-6 pb-5 pt-2">
                 {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
                     la lógica del padrón). `contador` le agrega «n/11», el hilo verde y el ✓ del spike. */}
+                <div data-guia="proveedor-modal.ruc">
                 <ConsultaDocumento
                   tipo="ruc"
                   obligatorio={false}
@@ -379,6 +380,7 @@ export function ProveedorModal({
                   nombre={nombre}
                   onNombre={setNombre}
                 />
+                </div>
 
                 {pregunta.igual && (
                   <PreguntaParecido
@@ -403,11 +405,12 @@ export function ProveedorModal({
                   />
                 )}
 
-                <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                <div data-guia="proveedor-modal.contacto" className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                   <CampoTexto etiqueta="Contacto" autoComplete="off" placeholder="Con quién se coordina" value={contacto} onChange={(e) => setContacto(e.target.value)} />
                   <CampoTexto etiqueta="Teléfono" type="tel" autoComplete="off" placeholder="El WhatsApp de los pedidos" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
                 </div>
 
+                <div data-guia="proveedor-modal.rubros">
                 <Campo
                   etiqueta={
                     <>
@@ -450,7 +453,9 @@ export function ProveedorModal({
                     </button>
                   </div>
                 </Campo>
+                </div>
 
+                <div data-guia="proveedor-modal.plazo">
                 <Campo etiqueta="Plazo de crédito" idEtiqueta="etiqueta-plazo">
                   <SegmentoDeslizante
                     etiqueta="Plazo de crédito"
@@ -464,7 +469,9 @@ export function ProveedorModal({
                     </div>
                   )}
                 </Campo>
+                </div>
 
+                <div data-guia="proveedor-modal.forma-pago">
                 <Campo etiqueta="Forma de pago preferida" idEtiqueta="etiqueta-forma-pago">
                   <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-forma-pago">
                     {FORMAS_PAGO.map((m) => {
@@ -478,9 +485,10 @@ export function ProveedorModal({
                     })}
                   </div>
                 </Campo>
+                </div>
 
                 {/* ADR-0134 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
-                <section aria-labelledby="proveedor-pago-titulo" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
+                <section aria-labelledby="proveedor-pago-titulo" data-guia="proveedor-modal.como-pagarle" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
                   <p id="proveedor-pago-titulo" className="label-cayla text-[11px] text-tinta/65">
                     Cómo pagarle
                   </p>
@@ -603,7 +611,7 @@ export function ProveedorModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4">
+              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
                 <Boton type="button" peso="fantasma" onClick={pedirCierre} disabled={fase !== "reposo"}>
                   Cancelar
                 </Boton>

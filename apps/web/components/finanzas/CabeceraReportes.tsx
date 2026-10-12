@@ -38,6 +38,7 @@ export function CabeceraReportes({
       </CabeceraPantalla>
       <PestanasFin
         etiqueta="Reportes"
+        guia="fin-reportes.pestanas"
         valor={pestana}
         items={PESTANAS.filter((p) => p.lista || p.clave === pestana).map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: p.href }))}
       />

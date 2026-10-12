@@ -160,9 +160,16 @@ export function PanelRendimiento({
       <div className="flex flex-wrap items-center gap-3">
         <span className="label-cayla text-[11px] font-bold text-taupe">Período</span>
         {/* El período es un filtro de un valor: la píldora del sistema, con su rótulo (ADR-0358). */}
-        <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-2" data-guia="rendimiento.periodo">
           {VISTAS.map((v) => (
-            <button key={v.clave} type="button" aria-pressed={vista === v.clave} onClick={() => cambiarVista(v.clave as Vista)} className="pildora-cayla">
+            <button
+              key={v.clave}
+              type="button"
+              aria-pressed={vista === v.clave}
+              onClick={() => cambiarVista(v.clave as Vista)}
+              className="pildora-cayla"
+              data-guia={v.clave === "mes" ? "rendimiento.periodo-mes" : v.clave === "hoy" ? "rendimiento.periodo-hoy" : undefined}
+            >
               {v.etiqueta}
             </button>
           ))}
@@ -170,7 +177,7 @@ export function PanelRendimiento({
       </div>
 
       {/* Las cuatro cifras */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="rendimiento.cifras">
         <TarjetaCifra etiqueta={`Soles ${t.periodo}`} valor={SOLES.format(res.soles)}>
           {res.ventas > 0 ? `${res.ventas} ${plural(res.ventas, "venta", "ventas")}` : "Sin ventas todavía"}
         </TarjetaCifra>
@@ -208,7 +215,7 @@ export function PanelRendimiento({
 
       {/* Las tres medidas de la propuesta final (Felipe, 2026-10-03): proyección del mes, prendas por venta y ventas por hora */}
       {(proyeccion || prendas) && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2" data-guia="rendimiento.proyeccion">
           {proyeccion && (
             // La pieza única de cifra (TarjetaCifra, ADR-0358): antes era una copia a mano con la receta del Inicio.
             <TarjetaCifra etiqueta="Proyección del mes" valor={SOLES.format(proyeccion.proyeccion)}>
@@ -232,7 +239,7 @@ export function PanelRendimiento({
       )}
 
       {porHora && (
-        <div className="card-cayla p-4 sm:p-5">
+        <div className="card-cayla p-4 sm:p-5" data-guia="rendimiento.por-hora">
           <p className="label-cayla text-[11px] text-tinta/65">Ventas por hora ({t.periodo})</p>
           {porHora.mejor ? (
             <>
@@ -276,7 +283,7 @@ export function PanelRendimiento({
       )}
 
       {/* Cómo va cada persona */}
-      <section className="space-y-3" aria-label={t.tabla}>
+      <section className="space-y-3" aria-label={t.tabla} data-guia="rendimiento.personas">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="label-cayla text-[11px] font-bold text-taupe">{t.tabla}</h2>
           <Chip tono="neutro" versalitas={false}>
@@ -360,6 +367,7 @@ export function PanelRendimiento({
                       title={permiso.puede ? `Cambiar la meta de ${p.nombre}` : permiso.motivo}
                       aria-label={`Cambiar la meta de ${p.nombre}`}
                       onClick={() => setEditando(p)}
+                      data-guia={permiso.puede ? "rendimiento.meta-boton" : undefined}
                     >
                       Meta
                     </BotonCompacto>
@@ -367,7 +375,7 @@ export function PanelRendimiento({
                 </div>
               );
             })}
-            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-1`}>
+            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-1`} data-guia="rendimiento.reparto">
               {asignacion.tipo === "sin_meta" ? (
                 <span>Sin meta de la sede no hay qué repartir.</span>
               ) : (
@@ -436,8 +444,8 @@ function BotonOrden({ activo, onClick, children }: { activo: boolean; onClick: (
 
 function Historial({ cambios }: { cambios: CambioMeta[] }) {
   return (
-    <details className="card-cayla p-5">
-      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta">
+    <details className="card-cayla p-5" data-guia="rendimiento.historial">
+      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta" data-guia="rendimiento.historial-abrir">
         <span>Cambios de meta ({cambios.length})</span>
         <Chip tono="neutro" versalitas={false}>
           no se borran

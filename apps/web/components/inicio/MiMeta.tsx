@@ -48,7 +48,7 @@ export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta;
   // Hoy no tiene parte de la meta (descanso): no hay anillo que llenar, y no se inventa uno.
   if (r.hoy.meta === null || r.hoy.pct === null) {
     return (
-      <section>
+      <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <TarjetaCifra etiqueta="Tus ventas de hoy" valor={formatoSoles(r.hoy.vendido)}>
           {r.hoy.ventas > 0 ? `${ventasTxt(r.hoy.ventas)} · ` : ""}Hoy no tienes parte de la meta
@@ -63,7 +63,7 @@ export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta;
       ? `Llevas el ${r.hoy.pct} % de tu meta de hoy.`
       : `Aún sin ventas: tu meta de hoy es ${formatoSoles(r.hoy.meta)}.`;
   return (
-    <section>
+    <section data-guia="inicio.hoy">
       <Etiqueta>{`Tu meta de hoy`}</Etiqueta>
       <div className="card-cayla flex flex-col items-center gap-4 p-5 text-center sm:flex-row sm:text-left">
         <Anillo pct={r.hoy.pct} vendido={r.hoy.vendido} meta={r.hoy.meta} />
@@ -111,7 +111,7 @@ export function SeccionLoQueVaBien({ miMeta }: { miMeta: MiMeta }) {
   }
   if (filas.length === 0) return null;
   return (
-    <section>
+    <section data-guia="inicio.va-bien">
       <Etiqueta>Lo que va bien</Etiqueta>
       <div className="card-cayla divide-y divide-tinta/10 px-5 py-1">
         {filas.map((f) => (
@@ -136,7 +136,7 @@ export function SeccionTuMes({ miMeta }: { miMeta: MiMeta }) {
   const { hito } = reconocer(miMeta);
   const dias = (n: number) => `${n.toLocaleString("es-PE", { maximumFractionDigits: 1 })} ${n === 1 ? "día" : "días"}`;
   return (
-    <section>
+    <section data-guia="inicio.tu-mes">
       <Etiqueta>Tu mes</Etiqueta>
       <div className="card-cayla p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
