@@ -131,7 +131,7 @@ export function CorregirVarianteModal({
     // contra el único error caro de esta pantalla. Primero se lee; el combo se abre al tocarlo.
     <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} ancho="max-w-lg" focoEnLaHoja>
       {(cerrar) => (
-        <div className="space-y-4">
+        <div data-guia="corregir.cuerpo" className="space-y-4">
           {nuevas ? (
             <p className="text-sm text-tinta/80">
               {cuantas === 1 ? "Todavía no existe: cambiarla no toca stock ni historia." : "Todavía no existen: cambiarlas no toca stock ni historia."}

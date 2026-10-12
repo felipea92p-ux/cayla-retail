@@ -38,14 +38,14 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
-        <Aviso tono="atencion" titulo="Esta orden está anulada">
+        <Aviso tono="atencion" titulo="Esta orden está anulada" guia="orden.anulada">
           {d.motivoAnulacion ? `«${d.motivoAnulacion}»` : "Sin motivo escrito"}
           {anulada && ` · ${d.anuladaPor ?? "alguien"} la anuló el ${anulada.dia} a las ${anulada.hora}.`}
           {" "}Su número no vuelve a usarse.
         </Aviso>
       )}
 
-      <dl className="grid gap-x-6 gap-y-3 text-sm @min-[28rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
+      <dl data-guia="orden.datos" className="grid gap-x-6 gap-y-3 text-sm @min-[28rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
         <div>
           <dt className="text-xs text-taupe">Proveedor</dt>
           <dd className="font-medium text-tinta">{d.proveedor.nombre}</dd>
@@ -66,7 +66,7 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
         </div>
       </dl>
 
-      <Tabla>
+      <Tabla guia="orden.lineas">
         {/* Los títulos, solo con la tabla en columnas (el `Encabezado` decide por la ventana; esta caja, por el ancho disponible). */}
         <div className="hidden @min-[40rem]:block">
           <Encabezado
@@ -135,7 +135,7 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
         </p>
       )}
 
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
+      <p data-guia="orden.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {conPapel && <Chip tono={d.papel === "completa" ? "verde" : "ambar"}>{d.papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
         <span>

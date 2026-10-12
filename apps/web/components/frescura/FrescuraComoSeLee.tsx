@@ -35,7 +35,7 @@ export function FrescuraComoSeLee({
   sinTemporada: { texto: string; href: string | null } | null;
 }) {
   return (
-    <div id={id} className="nota-cayla mx-4 mb-3.5 space-y-2 sm:mx-5">
+    <div id={id} data-guia="frescura.lectura" className="nota-cayla mx-4 mb-3.5 space-y-2 sm:mx-5">
       {/* Las cuatro palabras, definidas una vez (la prueba de palabras de Formidable 2026-10-10 (c): «Aún no se sabe» se entendía a medias). */}
       <p>
         <b>Fresca</b>: su modelo todavía no llega a lo que tarda en venderse la mitad de su categoría. <b>Vigente</b>: ya pasó la mitad, pero no lo que

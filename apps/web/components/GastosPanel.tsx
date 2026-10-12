@@ -138,7 +138,7 @@ export function GastosPanel({
         acciones={
           <>
             {esLider ? (
-              <label className="fin-ver">
+              <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
                   etiqueta="Qué mirar"
@@ -155,11 +155,11 @@ export function GastosPanel({
               <Chip versalitas={false}>{nombreCorto}</Chip>
             )}
             {pestana === "activos" ? (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
                 + Registrar activo
               </Boton>
             ) : (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({})}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({})} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
                 + Registrar gasto
               </Boton>
             )}
@@ -173,7 +173,7 @@ export function GastosPanel({
         </p>
       ))}
 
-      <section className="fin-cifras">
+      <section className="fin-cifras" data-guia="fin-gastos.cifras">
         {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
         <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
@@ -199,13 +199,14 @@ export function GastosPanel({
       <div {...entra(5)}>
         <PestanasFin
           etiqueta="Secciones de Gastos"
+          guia="fin-gastos.pestanas"
           valor={pestana}
           onCambio={(v) => setPestana(v as PestanaGastos)}
           items={[
-            { clave: "gastos", etiqueta: "Gastos" },
-            { clave: "fijos", etiqueta: "Fijos del mes", conteo: rf.faltan + rf.vienen },
-            { clave: "activos", etiqueta: "Activos fijos", conteo: enUso },
-            { clave: "egresos", etiqueta: "Egresos de caja por clasificar", conteo: egresos.length },
+            { clave: "gastos", etiqueta: "Gastos", guia: "fin-gastos.tab-gastos" },
+            { clave: "fijos", etiqueta: "Fijos del mes", conteo: rf.faltan + rf.vienen, guia: "fin-gastos.tab-fijos" },
+            { clave: "activos", etiqueta: "Activos fijos", conteo: enUso, guia: "fin-gastos.tab-activos" },
+            { clave: "egresos", etiqueta: "Egresos de caja por clasificar", conteo: egresos.length, guia: "fin-gastos.tab-egresos" },
           ]}
         />
       </div>
@@ -242,7 +243,7 @@ export function GastosPanel({
               </Vacio>
             </Superficie>
           ) : (
-            <Superficie className="anim-sube">
+            <Superficie className="anim-sube" guia="fin-gastos.egresos">
               <div className="fin-tabla-wrap">
                 <table className="fin-tabla">
                   <thead>
@@ -267,7 +268,7 @@ export function GastosPanel({
                           {soles(e.monto)}
                         </td>
                         <td className="fin-ancha fin-num">
-                          <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setClasificar(e)}>
+                          <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setClasificar(e)} data-guia="fin-gastos.clasificar">
                             Clasificar
                           </button>
                         </td>
@@ -357,8 +358,8 @@ function TablaGastos({
 
   return (
     <>
-      <Superficie className="anim-sube">
-        <Herramientas>
+      <Superficie className="anim-sube" guia="fin-gastos.lista">
+        <Herramientas guia="fin-gastos.filtros">
           <Buscador valor={busqueda} onValor={setBusqueda} placeholder="Buscar por descripción, proveedor o número" />
           <SelectFin
             etiqueta="Categoría"
@@ -413,6 +414,7 @@ function TablaGastos({
                       data-clic
                       tabIndex={0}
                       className={g.estado === "anulado" ? "fin-anulada" : undefined}
+                      data-guia="fin-gastos.fila"
                       onClick={() => onAbrir(g)}
                       onKeyDown={(ev) => {
                         if (ev.key === "Enter" || ev.key === " ") {
@@ -528,6 +530,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
       ancho="max-w-[520px]"
     >
       <ListaDatos
+        guia="fin-gastos.detalle"
         filas={[
           { dato: "Total", valor: soles(g.montoTotal) },
           { dato: "IGV descontable", valor: soles(g.igv) },
@@ -539,7 +542,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
         ]}
       />
       {pendiente && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>}
-      <div className="fin-botones">
+      <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
         {puedeAnular(g) && (
           <button type="button" className="btn-cayla btn-sutil" onClick={() => setAnulando(true)}>
@@ -661,9 +664,9 @@ function ClasificarEgresoModal({
       onClose={onCerrar}
       ancho="max-w-[560px]"
     >
-      <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} />
+      <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} guia="fin-gastos.clasificar-opciones" />
       {que === "gasto" && (
-        <div data-sin-cascada>
+        <div data-sin-cascada data-guia="fin-gastos.clasificar-gasto">
           <div className="fin-dos-campos">
             <CampoFin etiqueta="Categoría" htmlFor="clas-categoria" ayuda={cat ? `Va a la cuenta ${cat.cuenta}. Nadie la elige: viene con la categoría.` : undefined}>
               <SelectFin
@@ -701,7 +704,7 @@ function ClasificarEgresoModal({
         </div>
       )}
       {que !== "activo" && <ComboResponsable control={responsable} deshabilitado={guardando} />}
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-gastos.clasificar-guardar">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>

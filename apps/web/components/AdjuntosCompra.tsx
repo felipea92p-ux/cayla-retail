@@ -179,7 +179,7 @@ export function AdjuntosDeFactura({
   }
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-guia="factura.adjuntos">
       <div className="flex items-baseline justify-between">
         <p className="label-cayla text-[11px] text-tinta/65">Adjuntos</p>
         {adjuntos.some((a) => a.url === null) && <span className="text-xs text-tinta/45">Sin acceso al almacén de archivos ahora</span>}

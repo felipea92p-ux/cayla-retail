@@ -86,7 +86,7 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
           <p className="py-8 text-center text-sm text-tinta/60">Todavía no hay cierres en esta sede. Aparecerán aquí cuando se cierre la primera caja.</p>
         ) : (
           <>
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div data-guia="caja.historial-cifras" className="mt-3 grid grid-cols-3 gap-2">
               <TarjetaCifra etiqueta="Cierres" valor={resumen.total} />
               <TarjetaCifra etiqueta="Cuadraron" valor={resumen.cuadraron} tono="text-verde-profundo">
                 de {resumen.total}
@@ -100,16 +100,16 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
               </TarjetaCifra>
             </div>
 
-            <div role="group" aria-label="Filtrar cierres" className="mt-4 flex flex-wrap gap-2">
+            <div role="group" aria-label="Filtrar cierres" data-guia="caja.historial-filtro" className="mt-4 flex flex-wrap gap-2">
               <button type="button" aria-pressed={!soloDiferencia} onClick={() => setSoloDiferencia(false)} className="pildora-cayla">
                 Todos
               </button>
-              <button type="button" aria-pressed={soloDiferencia} onClick={() => setSoloDiferencia(true)} className="pildora-cayla">
+              <button type="button" aria-pressed={soloDiferencia} onClick={() => setSoloDiferencia(true)} data-guia="caja.historial-con-diferencia" className="pildora-cayla">
                 Con diferencia · {resumen.conDiferencia}
               </button>
             </div>
 
-            <div data-lista-cierres className="scroll-cayla -mx-1 mt-2 max-h-[52vh] overflow-y-auto px-1">
+            <div data-lista-cierres data-guia="caja.historial-lista" className="scroll-cayla -mx-1 mt-2 max-h-[52vh] overflow-y-auto px-1">
               {grupos.length === 0 && <p className="py-8 text-center text-sm text-tinta/60">Todos los cierres cuadraron. No hay nada que revisar.</p>}
               {grupos.map((g) => (
                 <section key={g.clave} aria-label={g.etiqueta}>
@@ -152,7 +152,7 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
             </div>
           </>
         )}
-        <div className="flex items-center justify-between gap-3 pt-3">
+        <div data-guia="caja.historial-pie" className="flex items-center justify-between gap-3 pt-3">
           <p className="text-xs text-tinta/60">Toca un cierre para ver su detalle</p>
           <Link href="/caja/historial" className="label-cayla text-[11px] text-rojo hover:text-rojo-profundo">
             Ver todas las sedes →

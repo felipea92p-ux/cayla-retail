@@ -89,7 +89,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   return (
     <>
       {lugar === "pie" ? (
-        <div className="flex w-full flex-wrap items-center gap-3">
+        <div data-guia="orden.acciones" className="flex w-full flex-wrap items-center gap-3">
           {anular}
           <div className="ml-auto flex flex-wrap items-center gap-3">
             {imprimir}
@@ -98,7 +98,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
+        <div data-guia="orden.acciones" className="flex flex-wrap items-center gap-3">
           {anular}
           {imprimir}
           {puedeEditar && <BotonEditarOrden id={orden.id} />}

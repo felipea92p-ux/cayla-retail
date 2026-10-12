@@ -30,7 +30,7 @@ export function MisPartesDeCompras({
   if (partes.length === 0) return null;
   const nuevas = partes.filter((p) => p.parteNueva).length;
   return (
-    <section className="card-cayla anim-entra p-5" style={{ ["--i" as string]: indice }} aria-labelledby="mis-partes-titulo">
+    <section data-guia="mis-partes.panel" className="card-cayla anim-entra p-5" style={{ ["--i" as string]: indice }} aria-labelledby="mis-partes-titulo">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="mis-partes-titulo" className="font-display text-lg text-tinta">
           Tu parte en comprobantes de otras tiendas

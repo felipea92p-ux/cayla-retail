@@ -8,6 +8,7 @@
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
 @import "./estilos/alta-guia.css";
+@import "./estilos/guias.css";
 @import "./estilos/alta-parecidas.css";
 @import "./estilos/lista-compra.css";
 @import "./estilos/puntos-avance.css";
@@ -15,6 +16,8 @@
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
 @import "./estilos/rotulo.css";
+/* Rótulos de anaquel, la pantalla: la Brother y la tira que sale (ADR-0366, act. 2026-10-12, maqueta A «Rollo»). */
+@import "./estilos/rotulos-brother.css";
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
 @import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";

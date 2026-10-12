@@ -9,6 +9,7 @@ import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimiento
 import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
 import { HistorialCierresModal } from "@/components/HistorialCierresModal";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
+import { DetalleMovimientoCajaModal } from "@/components/DetalleMovimientoCajaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
 import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
@@ -36,6 +37,7 @@ import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, Cierre
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
@@ -160,8 +162,11 @@ export function CajaAbiertaPanel({
   // La vista de «Cierres anteriores» decide el ancho de su tarjeta: tabla y gráfico piden todo el ancho.
   const [modoCierres, setModoCierres] = useState<ModoCierres | null>(null);
   const alCambiarModo = useCallback((m: ModoCierres) => setModoCierres(m), []);
-  // La venta cuyo detalle está abierto. Aparte de `modal`: se apila sobre «Ver todo».
+  // La fila cuyo detalle está abierto (una venta o un movimiento del cajón). Aparte de `modal`: se apila sobre «Ver todo».
   const [ventaAbiertaId, setVentaAbiertaId] = useState<string | null>(null);
+  const [movimientoAbiertoId, setMovimientoAbiertoId] = useState<string | null>(null);
+  // Una sola puerta para toda la lista: la venta abre su detalle, la entrada o la salida del cajón abre el suyo.
+  const abrirFila = useCallback((e: EventoCaja) => (e.icono === "venta" ? setVentaAbiertaId(e.id) : setMovimientoAbiertoId(e.id)), []);
   // Cola de ventas offline de ESTA sede (ADR-0092): ver nota original en este
   // archivo — no existe `localStorage` en el servidor, se lee tras montar.
   const [cola, setCola] = useState<VentaEncolada[]>([]);
@@ -240,15 +245,19 @@ export function CajaAbiertaPanel({
     ...movimientos.map((m) => {
       // Hora de Lima, no la del navegador: las ventas de la misma lista ya llegan en hora de Lima.
       const horaLima = diaYHoraLima(m.creadoEn).hora;
+      // Un gasto se llama por lo que se pagó, nunca «Otro» (el motivo que le pone la base, que tiene vocabulario
+      // cerrado): su categoría va junto a quién lo registró, en la línea de abajo.
+      const fila = filaDeMovimiento(m);
       return {
         id: m.id,
         minutos: minutosDeHora(horaLima),
         horaTexto: horaLima,
         icono: m.tipo,
-        titulo: m.motivo,
-        meta: m.registradoPorNombre ?? "—",
+        titulo: fila.titulo,
+        meta: [fila.detalle, m.registradoPorNombre].filter(Boolean).join(" · ") || "—",
         monto: m.tipo === "egreso" ? -m.monto : m.monto,
         color: m.tipo === "egreso" ? "var(--color-rojo)" : "var(--color-verde)",
+        esGasto: fila.esGasto,
       };
     }),
   ].sort((a, b) => b.minutos - a.minutos);
@@ -258,6 +267,8 @@ export function CajaAbiertaPanel({
   // Una venta de pago mixto sale en cada uno de sus medios: si la lista filtrada trae alguna, se avisa para que no parezca un doble conteo.
   const hayMixtas = filtroMov.metodo !== null && filtrados.some((e) => (e.metodos?.length ?? 0) > 1);
   const eventos = filtrados.slice(0, LIMITE_TARJETA);
+  // Si el movimiento abierto se fue de la lista (otra sesión lo movió, cambió el turno), la hoja se cierra sola.
+  const movimientoAbierto = movimientos.find((m) => m.id === movimientoAbiertoId) ?? null;
   const cierresUbicacion = cierresRecientes.filter((c) => c.ubicacionId === caja.ubicacionId);
   const cierresAncho = modoCierres === "tabla" || modoCierres === "grafico";
   const abrirGasto = gasto ? () => setModal("gasto") : null;
@@ -267,17 +278,17 @@ export function CajaAbiertaPanel({
     <div className="hidden flex-wrap items-center justify-end gap-3 sm:flex">
       {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
       {comparativa && abrirGasto && (
-        <Boton type="button" onClick={abrirGasto}>
+        <Boton type="button" data-guia="caja.gasto" onClick={abrirGasto}>
           Registrar gasto
         </Boton>
       )}
       {/* «Depósito o retiro» se fue de aquí (Felipe 2026-10-10): sacar plata que no es gasto se abre desde las hojas de gasto e ingreso. */}
       {comparativa && (
-        <Boton type="button" onClick={() => setModal("ingreso")}>
+        <Boton type="button" data-guia="caja.ingreso" onClick={() => setModal("ingreso")}>
           Registrar ingreso
         </Boton>
       )}
-      <Boton type="button" onClick={() => setModal("cierres")}>
+      <Boton type="button" data-guia="caja.historial" onClick={() => setModal("cierres")}>
         Historial de cierres
       </Boton>
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
@@ -291,14 +302,14 @@ export function CajaAbiertaPanel({
 
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
-          <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
+          <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
+                <p className="text-xs text-tinta/50">Toca cualquier fila para ver el detalle</p>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
-              <div role="group" aria-label="Filtrar movimientos" className="flex flex-wrap items-center gap-2">
+              <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
                 {(
                   [
                     ["todo", "Todo"],
@@ -350,7 +361,7 @@ export function CajaAbiertaPanel({
             ) : (
               <div className={`mt-1.5 divide-y divide-sand ${cierresAncho ? "@[900px]:columns-2 @[900px]:gap-x-10" : ""}`}>
                 {eventos.map((e) => (
-                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrirVenta={setVentaAbiertaId} />
+                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrir={abrirFila} />
                 ))}
               </div>
             )}
@@ -387,7 +398,7 @@ export function CajaAbiertaPanel({
             {/* `sm:ml-auto`: con los botones en versalitas (ADR-0358, accion.nuevo) la columna no siempre cabe junto al título y
                 baja de fila; ahí sigue pegada a la derecha, donde la busca quien cierra la caja. */}
             <div className="flex w-full flex-col sm:ml-auto sm:w-auto sm:items-end">
-            <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
+            <div data-guia="caja.turno" className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
               <EstadoSync pendientes={cola.length} />
               <TurnoCompacto abiertaEn={caja.abiertaEn} />
             </div>
@@ -429,7 +440,7 @@ export function CajaAbiertaPanel({
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
           <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
-            <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
+            <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <h2 className="font-display text-[22px] leading-tight text-tinta">Meta de hoy · {soles0(metaVentaDiaria)}</h2>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
               <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
@@ -481,7 +492,7 @@ export function CajaAbiertaPanel({
 
 
         {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
-        <div className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
+        <div data-guia="caja.accesos" className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
           <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <AccesosCajaMovil accesos={accesos} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <TarjetasElegibles contexto={contexto} ubicacionId={caja.ubicacionId} />
@@ -545,7 +556,7 @@ export function CajaAbiertaPanel({
           eventos={filtrados}
           idsNuevos={idsNuevos}
           ubicacionNombre={ubicacionNombre}
-          onAbrirVenta={setVentaAbiertaId}
+          onAbrir={abrirFila}
           onClose={() => setModal(null)}
         />
       )}
@@ -556,6 +567,9 @@ export function CajaAbiertaPanel({
           ubicacionNombre={ubicacionNombre}
           onClose={() => setVentaAbiertaId(null)}
         />
+      )}
+      {movimientoAbierto && (
+        <DetalleMovimientoCajaModal movimiento={movimientoAbierto} ubicacionNombre={ubicacionNombre} onClose={() => setMovimientoAbiertoId(null)} />
       )}
     </div>
   );

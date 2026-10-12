@@ -43,7 +43,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="plan-piso.historia-cifras">
         <TarjetaCifra etiqueta="Fotos tomadas" valor={h.filas.length} className="anim-sube">
           {h.filas.length === 0 ? "todavía ninguna" : "una cada lunes, desde que se pegó"}
         </TarjetaCifra>
@@ -58,7 +58,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
         </TarjetaCifra>
       </div>
 
-      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Fotos del espacio del piso">
+      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Fotos del espacio del piso" data-guia="plan-piso.historia-fotos">
         <div className="border-b border-sand px-5 py-4">
           <h2 className="font-display text-xl text-tinta">Fotos del riel</h2>
           <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">

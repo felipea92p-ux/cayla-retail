@@ -15,7 +15,7 @@ export default async function CalidadPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-guia="calidad.cabecera">
         <Volver href="/comercial" a="Comercial" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">Qué se devuelve y por qué</h1>
         <p className="mt-1 text-sm text-tinta/65">

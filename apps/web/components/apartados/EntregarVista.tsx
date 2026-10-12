@@ -146,7 +146,7 @@ export function EntregarVista({
       {cabecera}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
         {/* El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe. */}
-        <Buscador
+        <Buscador guia="apartados.entregar-buscador"
           tamano="mostrador"
           autoFocus
           valor={texto}
@@ -258,7 +258,7 @@ export function EntregarVista({
       </div>
 
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
-      <aside className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
+      <aside data-guia="apartados.entregar-detalle" className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
         <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
           <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
             <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo

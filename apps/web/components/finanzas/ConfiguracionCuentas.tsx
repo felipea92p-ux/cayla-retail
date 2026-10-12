@@ -76,7 +76,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.cuentas-lista">
         <TituloDeTarjeta titulo="Cuentas de CAYLA" bajada="Cada lugar donde hay plata. Una cuenta sin movimientos se elimina; con movimientos, se archiva.">
           <Boton type="button" peso="primario" onClick={() => setAgregar(true)}>
             + Agregar cuenta
@@ -129,7 +129,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
         </PieTabla>
       </Superficie>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.cuentas-cobros">
         <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una tienda a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
         {tiendas.length === 0 ? (
           <Vacio tamano="chico" icono={<Store />}>

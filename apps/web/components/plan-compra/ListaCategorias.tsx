@@ -108,8 +108,8 @@ export function ListaCategorias({
   };
 
   return (
-    <Tabla>
-      <div className="space-y-3 px-5 py-4">
+    <Tabla guia="plan.tabla">
+      <div data-guia="plan.herramientas" className="space-y-3 px-5 py-4">
         <div className="flex flex-wrap items-center gap-3">
           {vista === "tabla" ? (
             <Buscador valor={q} onCambio={onQ} placeholder="Buscar una categoría" etiqueta="Buscar una categoría" atajo className="min-w-0 flex-1 sm:max-w-sm" />

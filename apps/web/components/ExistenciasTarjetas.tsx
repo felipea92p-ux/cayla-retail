@@ -104,7 +104,7 @@ function TablaTallas({
   // Una sola fila (un lugar elegido): la cifra se lee de lejos, en el piso de venta, sin acercarse a la pantalla.
   const grande = separa && filas.length === 1;
   return (
-    <table className="w-full table-fixed border-collapse text-center text-[13px] tabular-nums">
+    <table data-guia="existencias.tallas" className="w-full table-fixed border-collapse text-center text-[13px] tabular-nums">
       <thead>
         <tr>
           <th className="w-[54px]" aria-hidden />
@@ -312,6 +312,7 @@ export function ExistenciasTarjetas({
               else tarjetas.current.delete(m.clave);
             }}
             tabIndex={0}
+            data-guia="existencias.prenda"
             aria-label={`${etiqueta}. Enter abre el detalle`}
             // Toda la tarjeta abre el cajón (Felipe, 2026-10-07). Los controles de adentro (colores, tallas, acciones) hacen lo suyo;
             // un clic que no nació en el DOM de la tarjeta (un modal abierto desde ella sube por React) se ignora (CLAUDE.md, ADR-0128).
@@ -334,7 +335,7 @@ export function ExistenciasTarjetas({
                 {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={80} height={92} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} />}
               </span>
               <span className="min-w-0">
-                <span className="block truncate font-display text-[16.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
+                <span data-guia="existencias.prenda-nombre" className="block truncate font-display text-[16.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
                   {p.referencia}
                 </span>
                 <span className="mt-1 flex min-w-0 items-center gap-1.5">

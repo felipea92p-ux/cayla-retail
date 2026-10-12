@@ -507,7 +507,7 @@ export function CompraFormV2({
     >
       <div className="anim-entra col-span-full flex flex-wrap items-end justify-between gap-x-6 gap-y-4" style={{ "--i": 0 } as CSSProperties}>
         {cabecera && <div className="min-w-0 max-w-3xl flex-1">{cabecera}</div>}
-        <div className="w-full sm:ml-auto sm:w-56">
+        <div className="w-full sm:ml-auto sm:w-56" data-guia="nueva.progreso">
           <BarraProgreso listos={progreso.listos} total={progreso.total} />
         </div>
       </div>
@@ -515,7 +515,7 @@ export function CompraFormV2({
           la columna de la derecha y se queda fijo al hacer scroll. */}
       <div className="min-w-0 space-y-6">
         {/* ---------- cabecera ---------- */}
-        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 2 } as CSSProperties}>
+        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 2 } as CSSProperties} data-guia="nueva.documento">
           <p className={`${campoEtiqueta} flex items-center gap-2`}>
             <NumeroTramo n={1} listo={progreso.tramos.documento} />
             Documento
@@ -570,7 +570,7 @@ export function CompraFormV2({
                 opciones={TIPOS.map((t) => ({ clave: t.valor, etiqueta: t.texto }))}
               />
             </div>
-            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]" data-guia="nueva.serie">
               <CampoTexto
                 etiqueta="Serie"
                 id="compra-serie"
@@ -601,7 +601,7 @@ export function CompraFormV2({
                 <CampoFecha etiqueta="Fecha de emisión" valor={fechaEmision} onValor={setFechaEmision} required />
               </div>
             </div>
-            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-3">
+            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-3" data-guia="nueva.condicion">
               <div>
                 <p className={campoEtiqueta}>Condición de pago</p>
                 <SegmentoDeslizante
@@ -616,8 +616,8 @@ export function CompraFormV2({
                     if (cond === "contado" && pagos.length === 1) setPagos([{ ...pagos[0], monto: total > 0 ? total.toFixed(2) : "" }]);
                   }}
                   opciones={[
-                    { clave: "contado", etiqueta: "Contado" },
-                    { clave: "credito", etiqueta: "Crédito" },
+                    { clave: "contado", etiqueta: "Contado", guia: "nueva.contado" },
+                    { clave: "credito", etiqueta: "Crédito", guia: "nueva.credito" },
                   ]}
                 />
                 <p className="mt-1.5 text-xs leading-snug text-tinta/55">{condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}</p>
@@ -687,7 +687,7 @@ export function CompraFormV2({
         </section>
 
         {/* ---------- líneas ---------- */}
-        <section className="anim-entra card-cayla space-y-3 p-5" style={{ "--i": 3 } as CSSProperties}>
+        <section className="anim-entra card-cayla space-y-3 p-5" style={{ "--i": 3 } as CSSProperties} data-guia="nueva.lineas">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-1">
             <p className={`${campoEtiqueta} flex items-center gap-2`}>
               <NumeroTramo n={2} listo={progreso.tramos.lineas} />
@@ -804,7 +804,7 @@ export function CompraFormV2({
         </section>
 
         {/* ---------- pago ---------- */}
-        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 4 } as CSSProperties}>
+        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 4 } as CSSProperties} data-guia="nueva.pago">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className={`${campoEtiqueta} flex items-center gap-2`}>
               <NumeroTramo n={3} listo={progreso.tramos.pago} />
@@ -868,7 +868,7 @@ export function CompraFormV2({
             </dd>
           </div>
         </dl>
-        <div className="border-t border-sand pt-3">
+        <div className="border-t border-sand pt-3" data-guia="nueva.total">
           <p className={campoEtiqueta}>Total</p>
           <p className="font-display mt-1 text-3xl tabular-nums text-tinta">
             <CifraCompra valor={total} />
@@ -878,7 +878,7 @@ export function CompraFormV2({
           </p>
         </div>
         {/* Antes de guardar: dónde cae este comprobante y cómo cambian las cuentas con ese proveedor. */}
-        <div className="space-y-1.5 border-t border-sand pt-3 text-sm">
+        <div className="space-y-1.5 border-t border-sand pt-3 text-sm" data-guia="nueva.donde-cae">
           <p className={campoEtiqueta}>Dónde cae</p>
           <div className="flex justify-between gap-3">
             <span className="text-tinta/65">Por pagar</span>
@@ -914,16 +914,24 @@ export function CompraFormV2({
         {proveedor && proveedor.saldo != null && total > 0 && (
           <CuentasConProveedor saldo={proveedor.saldo} deudaTotal={deudaTotal} nuevaDeuda={condicion === "credito" ? Math.max(0, total - (hayPago ? sumaPagos : 0)) : 0} />
         )}
-        <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
+        <div data-guia="nueva.adjuntos">
+          <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
+        </div>
         {/* La nota va en el resumen y no al final de la columna larga, y
             DESPUÉS de los adjuntos: es lo último que se escribe antes de
             registrar, así queda pegada al botón (pedido de Felipe, 2026-09-14). */}
-        <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
+        <div data-guia="nueva.nota">
+          <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
+        </div>
         {/* Lo que falta, a la vista: el botón se activa recién con los cuatro, y en vez de quedar solo gris, esta
             lista dice qué falta (es una vista de `requisitosDeCompra`, las mismas reglas que valida `onSubmit`). */}
-        <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
-        <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
-        <div className="flex flex-col gap-2">
+        <div data-guia="nueva.pendientes">
+          <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
+        </div>
+        <div data-guia="nueva.responsable">
+          <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
+        </div>
+        <div className="flex flex-col gap-2" data-guia="nueva.registrar">
           {costosAtipicos ? (
             <AvisoCostoAtipico
               costos={costosAtipicos}

@@ -33,7 +33,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-guia="parte.cabecera">
         <Volver href="/compras/por-pagar" a="Por pagar" className="mb-4" />
         <CabeceraPantalla
           sobretitulo="Compras · Tu parte"
@@ -48,6 +48,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
         </CabeceraPantalla>
       </div>
 
+      <div data-guia="parte.partes" className="space-y-6">
       {partes.map((p, i) => (
         // La parte de cada tienda es la pieza única de cifra (TarjetaCifra, ADR-0358); lo pagado y el botón, al pie.
         <TarjetaCifra
@@ -60,7 +61,9 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
                 <p className="text-sm tabular-nums text-tinta">Pagado {soles(p.pagado)}</p>
                 <p className={`mt-0.5 text-sm tabular-nums ${p.saldo > 0 ? "text-tinta" : "text-verde"}`}>{p.saldo > 0 ? `Por pagar ${soles(p.saldo)}` : "Pagada"}</p>
               </div>
-              <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} />
+              <span data-guia="parte.pagar">
+                <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} />
+              </span>
             </div>
           }
         >
@@ -69,8 +72,9 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
           </span>
         </TarjetaCifra>
       ))}
+      </div>
 
-      <section className="card-cayla p-5">
+      <section className="card-cayla p-5" data-guia="parte.lineas">
         <h2 className="font-display text-lg text-tinta">Lo que llega para tu tienda</h2>
         <ul className="mt-3 divide-y divide-tinta/10 text-sm">
           {lineas.map((l, i) => (
@@ -89,7 +93,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
         <p className="nota-cayla mt-4">Los costos van sin IGV; el total de arriba lo suma. La mercadería se recibe en Recibir mercadería, como siempre.</p>
       </section>
 
-      <section className="card-cayla p-5">
+      <section className="card-cayla p-5" data-guia="parte.pagos">
         <h2 className="font-display text-lg text-tinta">Pagos de tu tienda</h2>
         {pagos.length === 0 ? (
           <p className="mt-2 text-sm text-taupe">Tu tienda todavía no pagó nada de este comprobante.</p>

@@ -111,6 +111,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
 
   return (
     <article
+      data-guia="vender.prenda"
       aria-label={nombre}
       style={{ "--i": Math.min(indice, 11) } as CSSProperties}
       // Toda la prenda sin nada en el piso: «solo en el almacén» se distingue de «agotada» (D-40). Al 55 % el ámbar ya
@@ -126,6 +127,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         onClick={() => onAbrir(prenda.clave, elegido.clave)}
         disabled={bloqueado}
         aria-label={`Ver todos los colores y tallas de ${nombre}`}
+        data-guia="vender.prenda-abrir"
         className="absolute inset-0 cursor-pointer rounded-xl disabled:cursor-default"
       />
       <div className={`pointer-events-none relative aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
@@ -140,7 +142,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       </div>
 
       {prenda.colores.length > 1 && (
-        <div role="radiogroup" aria-label={`Color de ${nombre}`} onKeyDown={alTecladoPuntos} className="relative z-10 flex flex-wrap items-center gap-1" onPointerLeave={() => setVistaPrevia(null)}>
+        <div role="radiogroup" aria-label={`Color de ${nombre}`} data-guia="vender.prenda-colores" onKeyDown={alTecladoPuntos} className="relative z-10 flex flex-wrap items-center gap-1" onPointerLeave={() => setVistaPrevia(null)}>
           {aVista.map((c) => {
             const estado = c.stockTotal > 0 ? "piso" : c.almacenTotal > 0 ? "almacen" : "agotado";
             const activo = c.clave === elegido.clave;

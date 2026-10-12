@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparCatalogo, derivarReemplazo, opcionesDePrenda, precioParaCambio, seleccionDesdeLectura, type Seleccion, type VarianteCatalogo } from "./cambio-reemplazo-reglas";
+import { agruparCatalogo, derivarReemplazo, opcionesDePrenda, pagadoPorUnidad, precioParaCambio, textoPagoConDescuento, seleccionDesdeLectura, type Seleccion, type VarianteCatalogo } from "./cambio-reemplazo-reglas";
 import { validarCambio } from "./cambios-reglas";
 import type { LineaVentaReciente } from "./ventas-v2";
 
@@ -40,7 +40,7 @@ const catalogo: VarianteCatalogo[] = [
 const porProducto = agruparCatalogo(catalogo);
 
 // Solo lo que `derivarReemplazo` lee de la línea comprada.
-const linea = { productoId: "polera", referencia: "Polera Sofía", precioUnitario: 100 } as LineaVentaReciente;
+const linea = { productoId: "polera", referencia: "Polera Sofía", precioUnitario: 100, descuentoUnitario: 0 } as LineaVentaReciente;
 
 const sel = (extra: Partial<Seleccion> = {}): Seleccion => ({
   motivo: "talla_chica",
@@ -139,7 +139,7 @@ describe("descripcionNueva — una prenda sin talla ni color se nombra por su re
     expect(r.avisoSinStock).toBe("Cinturón Cuero está apartada para un cliente: no se entrega desde aquí. No hay en otra sede.");
 
     // Lo que CambiosFlujo le pasa a validarCambio: el título arranca con el nombre, no con un espacio.
-    const nueva = { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva!.stockAqui, apartadoAqui: r.varianteNueva!.apartadoAqui, otrasSedes: r.otrasSedes };
+    const nueva = { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva!.stockAqui, apartadoAqui: r.varianteNueva!.apartadoAqui, otrasSedes: r.otrasSedes, precio: r.precioNueva! };
     const ahora = new Date("2026-09-18T17:00:00Z");
     const stock = validarCambio({
       venta: { comprobante: "Boleta B001-000010", creadoEn: ahora.toISOString(), anulada: false },
@@ -233,5 +233,51 @@ describe("el precio que se muestra y la diferencia salen del mismo número (Camb
     expect(r.precioNueva).toBe(69.9);
     expect(r.diferencia).toBeCloseTo((r.precioNueva ?? NaN) - deTru.precioUnitario);
     expect(r.diferencia).toBeCloseTo(0);
+  });
+});
+
+describe("la diferencia se mide contra lo que la clienta pagó, no contra el precio de lista (ADR-0380)", () => {
+  // Polera de S/ 100 con campaña del 20 %: pagó S/ 80. `variante()` pone S/ 100 de precio por defecto.
+  const conCampana = { ...linea, precioUnitario: 100, descuentoUnitario: 20 } as LineaVentaReciente;
+  const otraPrenda = (precio: number) =>
+    agruparCatalogo([variante("vestido-m", "vestido", { talla: "M", color: "Rojo", stockAqui: 2, precio, precioPrenda: precio })]);
+  const aOtraPrenda = (precio: number, cantidad = 1) =>
+    derivarReemplazo(conCampana, otraPrenda(precio), sel({ productoId: "vestido", talla: "M", color: "Rojo", cantidad }));
+
+  it("lo que pagó es el precio menos el descuento", () => {
+    expect(pagadoPorUnidad(conCampana)).toBe(80);
+    expect(pagadoPorUnidad(linea)).toBe(100);
+  });
+
+  it("por otra de S/ 100: S/ 20 a cobrar (antes decía «diferencia 0» y regalaba el descuento)", () => {
+    expect(aOtraPrenda(100).diferencia).toBe(20);
+  });
+
+  it("por una de S/ 40: se le devuelven S/ 40, no S/ 60 (antes devolvía más de lo que sobraba de lo pagado)", () => {
+    expect(aOtraPrenda(40).diferencia).toBe(-40);
+  });
+
+  it("por una de S/ 80 —justo lo que pagó— no hay diferencia", () => {
+    expect(aOtraPrenda(80).diferencia).toBe(0);
+  });
+
+  it("con varias unidades: por unidad × cantidad, y sin ruido de decimales", () => {
+    expect(aOtraPrenda(100, 3).diferencia).toBe(60);
+    const conCentimos = { ...linea, precioUnitario: 79.9, descuentoUnitario: 10.1 } as LineaVentaReciente;
+    expect(derivarReemplazo(conCentimos, otraPrenda(149.9), sel({ productoId: "vestido", talla: "M", color: "Rojo", cantidad: 3 })).diferencia).toBe(240.3);
+  });
+
+  it("sin prenda nueva elegida no hay diferencia", () => {
+    expect(derivarReemplazo(conCampana, porProducto, sel()).diferencia).toBe(0);
+  });
+
+  it("sin descuento nada cambia: la misma cuenta de siempre", () => {
+    const r = derivarReemplazo(linea, otraPrenda(130), sel({ productoId: "vestido", talla: "M", color: "Rojo" }));
+    expect(r.diferencia).toBe(30);
+  });
+
+  it("explica el precio de una línea con descuento, y calla si no lo tuvo", () => {
+    expect(textoPagoConDescuento(conCampana)).toBe("Pagó con S/ 20.00 de descuento (lista S/ 100.00)");
+    expect(textoPagoConDescuento(linea)).toBeNull();
   });
 });

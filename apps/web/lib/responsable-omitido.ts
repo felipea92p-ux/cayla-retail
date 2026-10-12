@@ -30,8 +30,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // mismo día si esa persona sigue de turno (`fn_firma_heredada`) y, si no, pide el nombre una vez (la pantalla muestra el combo).
   traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado (firma quien firmó la recepción hoy, si sigue de turno; si no, se pregunta una vez)",
   conteo_cerrar: "Cerrar el conteo y aplicar las diferencias (firma quien lo abrió hoy, si sigue de turno; si no, se pregunta una vez)",
-  // `regularizar_prenda` salió el 2026-10-06 (20261006200000): regularizar vuelve a pedir «Responsable», para que la venta sin registrar
-  // quede a nombre de la colaboradora que la identificó y no de la terminal de la tienda.
+  // `regularizar_prenda` salió de la lista con 20261004204000 (ADR-0328, en producción desde el 2026-10-05; 20261006200000 repite el
+  // borrado): regularizar vuelve a pedir «Responsable», para que la venta sin registrar quede a nombre de la colaboradora que la
+  // identificó y no de la terminal de la tienda, y para que la base pueda comparar con quien la vendió (nadie regulariza su propia venta).
   cola_arranque_cerrar: "Cerrar la cola de arranque de ventas sin registrar de una tienda",
   cola_arranque_reabrir: "Reabrir una venta sin registrar que se cerró sin prenda",
   cola_arranque_identificar: "Identificar con sugerencias las ventas sin registrar de una tienda (varias a la vez)",

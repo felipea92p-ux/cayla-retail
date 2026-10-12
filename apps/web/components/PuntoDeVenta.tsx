@@ -28,6 +28,7 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinPrecioParaVender,
   totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
@@ -945,8 +946,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function agregar(
     v: VarianteBusqueda,
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
-  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | null {
     if (bloqueado) return null;
+    // ADR-0384: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
+    // con la prenda ya entregada). La bolsa de obsequio sí: es de una familia fuera de los motores.
+    if (sinPrecioParaVender(v)) {
+      if (!silencioso) {
+        avisar.error(`${[v.referencia, v.talla].filter(Boolean).join(" · ")} no tiene precio`, {
+          detalle: "No entra al ticket. Pide que le pongan precio en su ficha (Catálogo ▸ Productos) antes de venderla.",
+        });
+      }
+      setAviso(null);
+      setQ("");
+      setActivo(0);
+      buscador.current?.focus();
+      return "sin_precio";
+    }
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
@@ -2121,7 +2136,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   : undefined
               }
             />
-            <span className="ml-auto">
+            <span className="ml-auto" data-guia="vender.hoy">
               <ResumenDeHoy
                 forma="texto"
                 ventas={ventasDeHoy.ventas}
@@ -2247,6 +2262,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         <button
           type="button"
           onClick={() => setHojaTicket(true)}
+          data-guia="vender.barra-ticket"
           aria-haspopup="dialog"
           className="anim-revelar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-2xl bg-tinta py-2.5 pl-3 pr-2.5 text-left text-crema shadow-lg sm:left-[calc(var(--ancho-lateral,0px)+0.75rem)] lg:hidden"
         >

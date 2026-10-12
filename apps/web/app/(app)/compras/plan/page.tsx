@@ -8,7 +8,7 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
   // Se repite aquí además del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("plan_compra");
   const { plan } = await searchParams;
-  const { datos, falla, familias, preparacion, campanas, planPedidoNoExiste } = await getPlanCompra(plan);
+  const { datos, falla, familias, preparacion, campanas, planPedidoNoExiste, propuesta } = await getPlanCompra(plan);
   return (
     <PlanCampana
       datos={datos}
@@ -21,6 +21,7 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
       // líder o no (la base ya no pide más). La prop conserva su nombre por ahora: hay un PR abierto sobre PlanCampana (#977).
       esLider={veModulo(persona, "plan_compra")}
       planPedidoNoExiste={planPedidoNoExiste}
+      propuesta={propuesta}
     />
   );
 }

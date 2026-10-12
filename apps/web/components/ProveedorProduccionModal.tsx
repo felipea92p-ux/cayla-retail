@@ -139,9 +139,11 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
   return (
     <Modal titulo={esAlta ? "Nuevo proveedor" : proveedor.nombre} subtitulo={esAlta ? "Quien le vende tela, avíos o maquila al Taller" : "Proveedor de Producción"} onClose={onClose} ancho="max-w-xl">
       <form onSubmit={guardar} className="space-y-5">
+        <div data-guia="prod-proveedor-modal.nombre">
         <CampoTexto etiqueta="Nombre o razón social" placeholder="Textiles Gamarra SAC" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus={esAlta} />
+        </div>
 
-        <fieldset>
+        <fieldset data-guia="prod-proveedor-modal.rubro">
           <legend className="label-cayla text-[11px] text-tinta/65">¿Qué le vende al Taller?</legend>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {RUBROS_PRODUCCION.map((r) => (
@@ -160,11 +162,11 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
           <p className="mt-1 min-h-4 text-xs text-tinta/65">{RUBROS_PRODUCCION.find((r) => r.valor === rubro)?.ayuda ?? ""}</p>
         </fieldset>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-guia="prod-proveedor-modal.ruc" className="grid gap-3 sm:grid-cols-2">
           <CampoTexto etiqueta="RUC" mono inputMode="numeric" placeholder="Opcional · 11 dígitos" value={ruc} onChange={(e) => setRuc(e.target.value)} tono={errorRuc ? "error" : "neutro"} pie={errorRuc ?? undefined} />
           <CampoTexto etiqueta="Contacto" placeholder="Persona con quien se habla" value={contacto} onChange={(e) => setContacto(e.target.value)} />
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div data-guia="prod-proveedor-modal.plazo" className="grid gap-3 sm:grid-cols-3">
           <CampoTexto etiqueta="Teléfono" inputMode="tel" placeholder="Opcional" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
           <CampoTexto
             etiqueta="Plazo de crédito (días)"
@@ -183,7 +185,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
           />
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
+        <div data-guia="prod-proveedor-modal.pagarle" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">Cómo pagarle · todo opcional</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <CampoTexto etiqueta="Banco" list="bancos-produccion" placeholder="BCP, Interbank…" value={banco} onChange={(e) => setBanco(e.target.value)} />
@@ -242,6 +244,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
           />
         </div>
 
+        <div data-guia="prod-proveedor-modal.guardar" className="space-y-5">
         <ComboResponsable control={responsable} deshabilitado={cargando || archivando} />
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -255,6 +258,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:min-w-44">
             {cargando ? "Guardando…" : esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
+        </div>
         </div>
       </form>
     </Modal>

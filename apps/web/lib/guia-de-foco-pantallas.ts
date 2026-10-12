@@ -69,6 +69,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/por-pagar": PENDIENTE,
   // Plan de campaña (ADR-0349): lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria`, el mismo formulario de la hoja de cada categoría y del paso a paso, con su guía de foco hecha. `PlanCategoriaModal` ya no tiene campos propios: por eso no figura entre los modales.
   "/compras/plan": { estado: "aplicada", evidencia: ["components/plan-compra/FormularioCategoria.tsx"] },
+  "/compras/plan/resultados": { estado: "no-aplica", motivo: "Solo lectura (ADR-0372, C6): lo vendido en una campaña por tienda, prenda y color; elegir la tienda es una píldora y la campaña, el selector." },
+  "/compras/plan/historial": { estado: "no-aplica", motivo: "Solo lectura (ADR-0372, C3): lo vendido por tienda en cada campaña, un año a la vez; elegir el año es una píldora, no un campo." },
   "/compras/proveedores": PENDIENTE,
   "/compras/proveedores/[id]": PENDIENTE,
   // ---- configuracion ----
@@ -261,6 +263,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
+  "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
   "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles

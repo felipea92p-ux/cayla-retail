@@ -1,0 +1,29 @@
+{
+  "guia": "inventario.traslados.nuevo",
+  "ruta": "/inventario/traslados/nuevo",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 15,
+  "controles": {
+    "app/(app)/inventario/traslados/nuevo/page.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/MoverMercaderiaFormV2.tsx": [
+      "CampoSelect «Hacia»",
+      "input «(sin nombre)»",
+      "input «Prendas que envías»",
+      "Desplegable «actualizarLinea(i,»",
+      "input «Cantidad»",
+      "button «Quitar»",
+      "button «+ Agregar otra prenda»",
+      "ComboResponsable «(sin nombre)»",
+      "button «nuevo-traslado.enviar»"
+    ],
+    "components/TrasladoEnviado.tsx": [
+      "textarea «{`Mensaje para ${destino}»",
+      "a «Abrir WhatsApp»",
+      "button «Copiar mensaje»",
+      "Link «{id ? \"Ver el traslado\" : \"Ver traslados en curso\"}»",
+      "button «Enviar otro traslado»"
+    ]
+  }
+}

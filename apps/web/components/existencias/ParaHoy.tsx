@@ -79,7 +79,7 @@ export function ParaHoy({
   const ocultas = tareas.length - visibles.length;
 
   return (
-    <section aria-labelledby="para-hoy-titulo" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
+    <section data-guia="existencias.pendientes-lista" aria-labelledby="para-hoy-titulo" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-5 pb-2 pt-4 max-sm:px-4">
         <h2 id="para-hoy-titulo" className="font-display text-[22px] leading-tight text-tinta">
           Para hoy

@@ -109,6 +109,7 @@ export function CajaCerrada({ cerrada, ubicacionEtiqueta, cierreAnterior, onAbri
   const info = lineaUltimoCierre(cierreAnterior);
   return createPortal(
     <section
+      data-guia="vender.caja-cerrada"
       aria-labelledby="caja-cerrada-titulo"
       // `por-abrir` se ve como `cerrada` (el cartel todavía dice «Cerrado»), pero ya no se toca.
       data-fase={fase === "por-abrir" ? "cerrada" : fase}
@@ -159,7 +160,7 @@ export function CajaCerrada({ cerrada, ubicacionEtiqueta, cierreAnterior, onAbri
           </h2>
           <p className="caja-cerrada-bajada">Mientras esté cerrada no se puede cobrar ni apartar.</p>
           <div>
-            <button ref={botonRef} type="button" onClick={onAbrir} className="caja-cerrada-boton">
+            <button ref={botonRef} type="button" data-guia="vender.abrir-caja" onClick={onAbrir} className="caja-cerrada-boton">
               <LockOpen className="h-4 w-4" aria-hidden />
               Abrir caja
               <ArrowRight className="caja-cerrada-flecha h-4 w-4" aria-hidden />

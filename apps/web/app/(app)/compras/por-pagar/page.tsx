@@ -142,7 +142,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             apiladas a ancho completo la lista —lo que se vino a ver— quedaba a ~830 px de scroll.
             «Deuda total» ocupa las dos columnas por ser la cifra ancla. Las cifras cuentan desde 0 al llegar
             y, cuando algo las mueve (un pago), cuentan hasta su valor nuevo. */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div data-guia="por-pagar.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="col-span-2 sm:col-span-1 [&>*]:h-full">
             <TarjetaCifra punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
               {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
@@ -204,7 +204,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             visibles={["proveedor", "destino", "vencidas", "condicion"]}
             estiloSpike
             accionesAntes={
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3" data-guia="por-pagar.controles">
                 <BotonSoloVencidas cantidad={resumen.vencidas} />
                 <SelectorAgrupar />
               </div>

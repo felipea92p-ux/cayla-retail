@@ -233,7 +233,7 @@ export function CompraDetalle({
         {/* Dos tarjetas lado a lado: RECEPCIÓN a la izquierda («210 de 600 u.») y PAGO a la derecha («S/ 2,000.00 de
             S/ 5,923.60»), cada una con su barra que se llena. El «Destino» y la «Condición» que antes vivían acá pasaron
             a la línea gris de la cabecera; el saldo, a la línea de abajo. */}
-        <div className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
+        <div data-guia="factura.avance" className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
           {/* La pieza única de cifra (TarjetaCifra, ADR-0358), con la barra que se llena en su contexto. */}
           {!esGasto && (
             <TarjetaCifra
@@ -279,7 +279,7 @@ export function CompraDetalle({
         {/* ---------- lo que el prototipo no tiene pero la app necesita, bajo un separador discreto ---------- */}
         <div className="cd-mas space-y-6 border-t border-tinta/10 pt-6">
           {/* ---------- líneas ---------- */}
-          <section className="space-y-2">
+          <section className="space-y-2" data-guia="factura.lineas">
             <p className="label-cayla text-[11px] text-tinta/65">Líneas del comprobante</p>
             <Tabla>
               <Encabezado
@@ -350,7 +350,7 @@ export function CompraDetalle({
           <RepartoPorTienda compra={compra} lineas={lineas} reparto={reparto} ubicaciones={ubicaciones} puedeReasignar={permite.facturas} />
 
           {/* ---------- recepciones ---------- */}
-          <section className="space-y-2">
+          <section className="space-y-2" data-guia="factura.recepciones">
             <div className="flex items-baseline justify-between">
               <p className="label-cayla text-[11px] text-tinta/65">Recepciones</p>
               {!anulada && compra.estadoRecepcion !== "recibida" && hayAlgoQueRecibir(lineas) && (
@@ -396,7 +396,7 @@ export function CompraDetalle({
       {/* Página completa: el pie con las acciones va al final del cuerpo, con la misma composición que en el modal
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
-        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
+        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4" data-guia="factura.acciones">
           <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} hayQueRecibir={hayAlgoQueRecibir(lineas)} />
         </div>
       )}

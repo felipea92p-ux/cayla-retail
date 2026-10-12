@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorDia, agruparPorMes, bloqueFecha, cobrosPorMedio, cuadreDelTurno, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
+import { agruparPorDia, agruparPorMes, bloqueFecha, cascadaEfectivo, cobrosPorMedio, diaDelTurno, escalaDiferencia, etiquetaHora, franjaHora, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
 
 function cierre(p: Partial<CierreCaja>): CierreCaja {
   return {
@@ -41,12 +41,6 @@ describe("historial de cierres", () => {
     expect(duracionTurno("2026-10-05T13:37:00Z", "2026-10-06T02:12:00Z")).toBe("12 h 35 min");
     expect(duracionTurno("2026-10-05T13:00:00Z", "2026-10-05T13:45:00Z")).toBe("45 min");
     expect(duracionTurno("2026-10-06T13:00:00Z", "2026-10-05T13:45:00Z")).toBe("");
-  });
-
-  it("cuadreDelTurno: apertura + movió = esperado, siempre", () => {
-    const c = cuadreDelTurno({ montoApertura: 317, montoCierreSistema: 1204.5 });
-    expect(c.apertura + c.movio).toBeCloseTo(c.esperado, 2);
-    expect(c.movio).toBe(887.5);
   });
 
   it("rutaDelEfectivo: sin fondo registrado no hay ruta; con fondo reparte la barra al 100 %", () => {
@@ -153,5 +147,71 @@ describe("«Qué se cobró» del detalle de un cierre", () => {
 
   it("un método que no se conoce cae en «Otro»", () => {
     expect(cobrosPorMedio([{ ventaId: "z", metodo: "cripto", monto: 10 }]).medios[0]).toMatchObject({ clave: "otro", monto: 10, ventas: 1, pct: 100 });
+  });
+});
+
+describe("detalle de un cierre: «La línea del día»", () => {
+  it("escalaDiferencia: cuadró al centro; el rango crece con la diferencia y nunca se sale de la escala", () => {
+    expect(escalaDiferencia(0)).toEqual({ rango: 20, pos: 50 });
+    expect(escalaDiferencia(0.004)).toEqual({ rango: 20, pos: 50 });
+    expect(escalaDiferencia(2)).toEqual({ rango: 20, pos: 55 });
+    expect(escalaDiferencia(-5.6)).toEqual({ rango: 20, pos: 36 });
+    expect(escalaDiferencia(-114.6)).toMatchObject({ rango: 200 });
+    expect(escalaDiferencia(-511.4)).toMatchObject({ rango: 1000 });
+    expect(escalaDiferencia(-999999)).toEqual({ rango: 5000, pos: 3 });
+    expect(escalaDiferencia(999999).pos).toBe(97);
+  });
+
+  it("etiquetaHora y franjaHora hablan en horas de tienda", () => {
+    expect([0, 8, 12, 13, 23, 24].map(etiquetaHora)).toEqual(["12 a. m.", "8 a. m.", "12 p. m.", "1 p. m.", "11 p. m.", "12 a. m."]);
+    expect(franjaHora(13)).toBe("1 – 2 p. m.");
+    expect(franjaHora(11)).toBe("11 a. m. – 12 p. m.");
+    expect(franjaHora(23)).toBe("11 p. m. – 12 a. m.");
+  });
+
+  // 2026-10-09 en Lima (UTC−5): 08:02 abre, 19:50 cierra.
+  const base = { abiertaEn: "2026-10-09T13:02:00Z", cerradaEn: "2026-10-10T00:50:00Z" };
+  const venta = (hora: string, total: number, unidades = 1, anulada = false) => ({ tipo: "venta" as const, hora, total, unidades, anulada });
+
+  it("diaDelTurno: una barra por hora del turno, la hora fuerte y las cifras sin contar lo anulado", () => {
+    const d = diaDelTurno(base, [
+      venta("2026-10-09T14:00:00Z", 100, 2), // 09:00
+      venta("2026-10-09T18:30:00Z", 250, 3), // 13:30 → hora fuerte
+      venta("2026-10-09T18:50:00Z", 50, 1), // 13:50
+      venta("2026-10-09T19:10:00Z", 999, 9, true), // anulada
+    ]);
+    expect(d.horas.map((h) => h.hora)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+    expect(d.horas.find((h) => h.pico)).toMatchObject({ hora: 13, total: 300 });
+    expect(d.horas.filter((h) => h.pico)).toHaveLength(1);
+    expect(d).toMatchObject({ ventas: 3, anuladas: 1, prendas: 6, vendido: 400, promedio: 133.33, horaFuerte: "1 – 2 p. m." });
+    expect(d.horas.reduce((a, h) => a + h.total, 0)).toBe(400);
+  });
+
+  it("diaDelTurno: sin ventas no hay hora fuerte ni promedio, y las marcas caen dentro de la línea", () => {
+    const d = diaDelTurno(base, [
+      { tipo: "movimiento", hora: "2026-10-09T14:41:00Z", direccion: "egreso" },
+      { tipo: "movimiento", hora: "2026-10-09T15:00:00Z", direccion: "ingreso" },
+      { tipo: "devolucion", hora: "2026-10-09T16:05:00Z" },
+      { tipo: "cambio", hora: "2026-10-09T17:02:00Z" },
+    ]);
+    expect(d).toMatchObject({ ventas: 0, promedio: null, horaFuerte: null, vendido: 0 });
+    expect(d.marcas.map((m) => m.tipo)).toEqual(["apertura", "cierre", "sale", "entra", "sale", "cambio"]);
+    expect(d.marcas.every((m) => m.pos >= 0 && m.pos <= 1)).toBe(true);
+    expect(d.marcas[0].pos).toBeCloseTo(2 / 60 / 12, 3);
+  });
+
+  it("diaDelTurno: un turno que pasa la medianoche no se rompe", () => {
+    const d = diaDelTurno({ abiertaEn: "2026-10-10T01:00:00Z", cerradaEn: "2026-10-10T06:30:00Z" }, [venta("2026-10-10T05:30:00Z", 80)]); // 20:00 → 01:30
+    expect(d.horas.map((h) => h.hora)).toEqual([20, 21, 22, 23, 0, 1]);
+    expect(d.horas.find((h) => h.pico)).toMatchObject({ hora: 0, total: 80 });
+  });
+
+  it("cascadaEfectivo: apertura + vendido + otros = esperado, siempre", () => {
+    const c = { montoApertura: 277.2, montoCierreSistema: 967.6, montoCierreReal: 969.6 };
+    const r = cascadaEfectivo(c, 712.1);
+    expect(r).toEqual({ apertura: 277.2, vendido: 712.1, otros: -21.7, esperado: 967.6, contado: 969.6, diferencia: 2 });
+    expect(r.apertura + r.vendido + r.otros).toBeCloseTo(r.esperado, 2);
+    expect(cascadaEfectivo(c, 690.4).otros).toBe(0);
+    expect(cascadaEfectivo(c, 600).otros).toBe(90.4); // entró plata que no fue venta (ingresos, cambios)
   });
 });

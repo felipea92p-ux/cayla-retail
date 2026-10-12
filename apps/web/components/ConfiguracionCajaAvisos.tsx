@@ -127,11 +127,11 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
         </div>
       </div>
       <section className="fin-dos-col">
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="config.caja-caja">
           <CabeceraBloque titulo="Caja" bajada="El piso que no quieres perforar." />
           {casilla("minimoCaja", "Mínimo de caja", "Si la proyección de alguna semana baja de aquí, el Resumen y el Flujo de caja avisan.", "S/")}
         </Superficie>
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="config.caja-avisos">
           <CabeceraBloque titulo="Avisos" bajada="Cuándo el sistema te llama la atención." />
           {casilla("avisoGastoPct", "Un gasto está «fuera de lo normal» si supera su promedio en", "Compara con los últimos 6 meses del mismo proveedor y tienda.", undefined, "%")}
           {casilla("avisoVenceDias", "Avisar los vencimientos con", "Las facturas que vencen dentro de ese plazo suben al Resumen.", undefined, "días")}
@@ -140,7 +140,7 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
       {!parametros.corteDisponible ? (
         <p className="nota-cayla">Falta pegar en la base la migración «Finanzas cuenta desde» (20261004190000) para poder elegir desde cuándo cuenta Finanzas.</p>
       ) : (
-      <Superficie pad className="anim-sube">
+      <Superficie pad className="anim-sube" guia="config.caja-corte">
         <CabeceraBloque titulo="Desde cuándo cuenta Finanzas" bajada="Para un sistema que empezó a usarse a mitad de camino: lo de antes no entra a los estados." />
         <CampoFin etiqueta="Finanzas cuenta" htmlFor="cfg-corte" ayuda={consecuenciaCorte(corteParaBase(corte))}>
           <SelectFin id="cfg-corte" valor={corte} onValor={setCorte} opciones={opciones} deshabilitado={guardando} />

@@ -24,7 +24,7 @@ function ConActividad({ esLider }: { esLider: boolean }) {
   const [periodo, setPeriodo] = useState<Periodo>("30d");
   const actividad = useActividad({ modulo: tema, ubicacionId: null, personaId: null, periodo });
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 space-y-4" data-guia="colaboradores.actividad-lista">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div role="group" aria-label="Qué cambios" className="flex flex-wrap gap-1.5">
           {TEMAS.map((t) => (
@@ -66,7 +66,7 @@ export function ActividadEquipo({
       {veActividad ? (
         <ConActividad esLider={esLider} />
       ) : (
-        <div className="mt-4 max-h-[65vh] overflow-y-auto pr-1">
+        <div className="mt-4 max-h-[65vh] overflow-y-auto pr-1" data-guia="colaboradores.actividad-lista">
           {accesos.length === 0 ? <p className="nota-cayla">Todavía no hay movimientos de acceso.</p> : <ListaAccesos eventos={accesos} />}
         </div>
       )}
