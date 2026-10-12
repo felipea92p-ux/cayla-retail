@@ -202,11 +202,13 @@ caso(
      -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
      -- fn_mis_ventas_del_dia, fn_mi_meta y fn_mis_ventas_por_dia (ADR-0325, D-149): «lo mío» de la integrante. Preguntan por la CUENTA que
      -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia)\\('),
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia|regularizar_prenda)\\('),
+     -- regularizar_prenda (20261004204000, ADR-0328): firma con el responsable (true) y compara la CUENTA (false) con quien vendió
+     -- —«nadie regulariza su propia venta»—: un permiso, como fn_alcanzo_a.
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
                         -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
                         -- firma en el alta y otra en la edición, caminos excluyentes.
-                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion)\\('))
+                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion|regularizar_prenda)\\('))
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   // Pisos, no números exactos: el total depende de qué migraciones tiene la base (local 41/29 con Apartados y series;
   // CI desde cero 41/28). Que cada función calce con SU lista lo prueban la re-ejecución y la falla cerrada de abajo.

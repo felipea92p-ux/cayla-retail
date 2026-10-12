@@ -454,6 +454,123 @@ select retail.quitar_precio_sede(:'p1', :'tru', null) = :nvar;`);
   esperar("quitar el precio de una tienda siempre se puede, aunque el costo haya subido", ultima(quita) === "t", quita);
 }
 
+// ---------------------------------------------------------------------------------------------------------------------------------
+// 21-23. (2026-10-12) Las funciones que fijan un precio, EJECUTADAS de punta a punta con una tienda de precio propio. El guardián 13
+//        solo mira que el texto de la función nombre `fn_precio_en_sede` (dejó pasar el bug de las dos lecturas de separar_prendas), y
+//        el caso 18 solo llama a `fn_precio_para_cambio`: aquí se corre `registrar_cambio` y `regularizar_prenda` y se mira lo que
+//        quedó guardado (la diferencia, la caja, el movimiento, el precio oficial).
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+const CENTINELA = "22222222-2222-4222-8222-222222222222"; // el «cargo especial» de las prendas sin registrar
+
+/** Deja `s` (variable psql con el id de la sede) con piso, almacén y una caja recién abierta; guarda :piso_<s> y :caja_<s>. */
+const montarSede = (s) => `
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select :'${s}', 'Piso de venta', 'piso_venta'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'${s}' and tipo = 'piso_venta');
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select :'${s}', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'${s}' and tipo = 'almacen_tienda');
+select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'${s}' and estado = 'abierta') x) as _c_${s} \\gset
+select retail.abrir_caja(:'${s}', 100.00, 'prueba precio de sede') as caja_${s} \\gset
+select retail.fn_sububicacion_por_defecto(:'${s}', 'venta') as piso_${s} \\gset
+`;
+
+/** Entrada de `n` unidades de la variante `v` (variable psql) al piso de la sede `s`. */
+const conStock = (v, s, n = 10) => `
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'${v}', :'${s}', :'piso_${s}', 'entrada', ${n}, 'colchón de prueba') returning id as mov_${v}_${s} \\gset
+select retail.fn_aplicar_movimiento(:'mov_${v}_${s}') as _d_${v}_${s} \\gset
+`;
+
+const PRENDA_BASE = `select id as vv, precio as vv_general, producto_id as vp from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset`;
+
+// 21. Cambio en la misma tienda: la MISMA prenda en otra talla no cobra nada si se compró al precio propio de la tienda; OTRA prenda
+//     cobra el precio de la tienda donde se cambia, y esa diferencia queda en el cambio y en la caja (efectivo).
+{
+  const r = correr(MICAELA, `
+${montarSede("tru")}
+${PRENDA_BASE}
+select id as vv2 from retail.variantes where producto_id = :'vp' and id <> :'vv' and activo order by id limit 1 \\gset
+-- Otra prenda con un solo precio, cuyo costo deja poner :vv_general + 25 como precio de Trujillo (diferencia exacta de +15).
+select v.id as otra, v.producto_id as otra_p from retail.variantes v
+ where v.activo and v.producto_id <> :'vp' and v.precio <> :vv_general + 25
+   and (select count(distinct x.precio) from retail.variantes x where x.producto_id = v.producto_id and x.activo) = 1
+   and not exists (select 1 from retail.variantes x where x.producto_id = v.producto_id and x.activo and x.costo >= :vv_general + 25)
+ order by v.id limit 1 \\gset
+${conStock("vv", "tru")}${conStock("vv2", "tru")}${conStock("otra", "tru")}
+select retail.poner_precio_sede(:'vp', :'tru', :vv_general + 10, 'Cambio de punta a punta') as _p1 \\gset
+select retail.poner_precio_sede(:'otra_p', :'tru', :vv_general + 25, 'Cambio de punta a punta') as _p2 \\gset
+select retail.registrar_venta(:'tru',
+  jsonb_build_array(jsonb_build_object('variante_id', :'vv', 'cantidad', 2, 'precio_unitario', :vv_general + 10)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 2 * (:vv_general + 10))),
+  null, gen_random_uuid()) as venta_id \\gset
+select id as item from retail.venta_items where venta_id = :'venta_id' \\gset
+select retail.registrar_cambio(:'item', :'tru', :'vv2', 1, null, gen_random_uuid()) as cambio_misma \\gset
+select retail.registrar_cambio(:'item', :'tru', :'otra', 1, 'efectivo', gen_random_uuid()) as cambio_otra \\gset
+select concat_ws('|',
+  (select diferencia = 0 and metodo_pago_diferencia is null from retail.cambios where id = :'cambio_misma')::text,
+  (select diferencia = 15 and metodo_pago_diferencia = 'efectivo' and caja_id = :'caja_tru' from retail.cambios where id = :'cambio_otra')::text,
+  (select count(*) = 1 from retail.movimientos where cambio_id = :'cambio_misma' and tipo = 'salida' and variante_id = :'vv2')::text,
+  (select count(*) = 1 from retail.movimientos where cambio_id = :'cambio_otra' and tipo = 'salida' and variante_id = :'otra')::text);`);
+  esperar(
+    "registrar_cambio en Trujillo: la misma prenda no cobra, otra prenda cobra la de Trujillo, y queda en el cambio, la caja y el stock",
+    ultima(r) === "true|true|true|true",
+    r,
+  );
+}
+
+// 22. Cambio EN OTRA tienda: comprada en Trujillo al precio propio, la misma prenda cambiada de talla en Lima no cobra los S/ 10 que
+//     Lima cuesta de más (antes salía +10 por la misma falda y la caja de Lima recibía de más).
+{
+  const r = correr(FELIPE, `
+${montarSede("tru")}${montarSede("lima")}
+${PRENDA_BASE}
+select id as vv2 from retail.variantes where producto_id = :'vp' and id <> :'vv' and activo order by id limit 1 \\gset
+${conStock("vv", "tru")}${conStock("vv2", "lima")}
+select retail.poner_precio_sede(:'vp', :'tru', :vv_general + 10, 'Cambio en otra tienda') as _p \\gset
+select retail.registrar_venta(:'tru',
+  jsonb_build_array(jsonb_build_object('variante_id', :'vv', 'cantidad', 1, 'precio_unitario', :vv_general + 10)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', :vv_general + 10)),
+  null, gen_random_uuid()) as venta_id \\gset
+select id as item from retail.venta_items where venta_id = :'venta_id' \\gset
+select retail.registrar_cambio(:'item', :'lima', :'vv2', 1, null, gen_random_uuid()) as cambio \\gset
+select concat_ws('|',
+  (select diferencia = 0 and ubicacion_id = :'lima' and caja_id = :'caja_lima' from retail.cambios where id = :'cambio')::text,
+  (select count(*) = 1 from retail.movimientos where cambio_id = :'cambio' and tipo = 'salida' and variante_id = :'vv2' and ubicacion_id = :'lima')::text);`);
+  esperar("registrar_cambio en Lima de lo comprado en Trujillo vale lo de Trujillo: diferencia 0 y la caja de Lima no cobra de más", ultima(r) === "true|true", r);
+}
+
+/** Vende UNA prenda sin registrar a S/ 50 en la sede `s`; deja :venta_id y :item_id. */
+const ventaLibreEn = (s) => `
+select id as cat from retail.categorias where activo order by nombre limit 1 \\gset
+select id as talla from retail.tallas where activo and estado = 'aprobado' order by valor limit 1 \\gset
+select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
+select retail.registrar_venta(:'${s}',
+  jsonb_build_array(jsonb_build_object('variante_id', '${CENTINELA}', 'cantidad', 1, 'precio_unitario', 50, 'descuento_unitario', 0,
+    'descripcion_libre', 'Blusa lino beige', 'categoria_id', :'cat', 'talla_id', :'talla', 'color_codigo', :'color')),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 50)),
+  null, gen_random_uuid()) as venta_id_${s} \\gset
+select id as item_${s} from retail.venta_items where venta_id = :'venta_id_${s}' \\gset
+`;
+
+// 23. Regularizar una prenda sin registrar en una tienda de precio propio: el «precio oficial» y la diferencia salen del precio de ESA
+//     tienda; en otra sede sin precio propio, del de la prenda (el cambio de una tienda no se filtra a las demás).
+{
+  const r = correr(FELIPE, `
+${montarSede("tru")}${montarSede("lima")}
+${PRENDA_BASE}
+${conStock("vv", "tru")}${conStock("vv", "lima")}
+select retail.poner_precio_sede(:'vp', :'tru', :vv_general + 10, 'Regularizar de punta a punta') as _p \\gset
+${ventaLibreEn("tru")}${ventaLibreEn("lima")}
+select retail.regularizar_prenda(p.id, :'vv', 'ya_registrada') as dif_tru from retail.prendas_por_regularizar p where venta_item_id = :'item_tru' \\gset
+select retail.regularizar_prenda(p.id, :'vv', 'ya_registrada') as dif_lima from retail.prendas_por_regularizar p where venta_item_id = :'item_lima' \\gset
+select concat_ws('|',
+  (select estado = 'regularizada' and precio_oficial = :vv_general + 10 and diferencia = 50 - (:vv_general + 10) and diferencia = :dif_tru
+     from retail.prendas_por_regularizar where venta_item_id = :'item_tru')::text,
+  (select estado = 'regularizada' and precio_oficial = :vv_general and diferencia = 50 - :vv_general and diferencia = :dif_lima
+     from retail.prendas_por_regularizar where venta_item_id = :'item_lima')::text);`);
+  esperar("regularizar_prenda: en Trujillo el precio oficial es el de Trujillo; en Lima, el de la prenda", ultima(r) === "true|true", r);
+}
+
 // 13. Guardián: toda función que cobra, aparta, cotiza, cambia o regulariza toma el precio de `fn_precio_en_sede` — y en TODAS
 //     sus lecturas (separar_prendas leía el precio dos veces y solo una se había cambiado: el guardián pasaba en verde).
 {
