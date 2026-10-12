@@ -210,3 +210,18 @@ pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y
   interactivas recorridas en local (Plan 22 pasos, Resultados 12, Historial 11; la demo no escribió en la base). **Migraciones `20261012163000` y
   `20261012164000` EN PRODUCCIÓN desde el 2026-10-12** (ensayadas y deshechas antes; las pegó Felipe; verificadas como líder: Aniversario CAYLA 2026
   trae 11 días, 34 categorías con stock y las tres tiendas activas; la tabla nueva con RLS y sin políticas, no la lee la web).
+
+## Actualización 2026-10-12 (c) — Resultados de una tienda
+
+Felipe: «al seleccionar una tienda, ¿no debería mostrar de manera individual lo que es suyo, y Toda CAYLA el global?». Eligió que todo siga a la
+tienda. Las tarjetas de tienda son el filtro (las píldoras que repetían lo mismo se fueron); con una elegida, «¿Cómo va?», «Pedir más o impulsar» y
+la columna «Contra el plan» de la tabla son de ELLA, y «Toda CAYLA» sigue siendo el total.
+
+- **Su parte del plan** sale de la misma regla del reparto del Plan (`porcentajes` de `lib/plan-compra-reparto.ts`, con `tiendasParaRepartir`, que
+  ahora usan los dos): el «normal» de cada categoría × la fracción que le toca. Sin la propuesta, no hay plan de la tienda: se dice, no se inventa.
+- Migración `20261012212000` (reservada): `por_dia_tienda` y `stock_tienda` en `fn_plan_compra_resultados` (reemplazo anclado, solo lee). Sin ella,
+  «¿Cómo va?» de una tienda queda en cero y «Pedir más» de una tienda no aparece (no se inventa sin su stock).
+- **DECIDÍ** medir la tienda contra su parte del reparto. **DESCARTÉ** guardar un plan por tienda (otra cifra que llenar y que se desalinea del total).
+  **SE ROMPE SI** el reparto cambia a mitad de campaña (un mínimo nuevo para Lima): la parte de cada tienda se recalcula con el mínimo de hoy, también
+  hacia atrás; el «esperado» de ayer no queda guardado.
+- «Pedir más o impulsar» abre Análisis ya buscando su categoría (`?q=`, que Análisis ahora lee); Análisis mira la sede elegida arriba.

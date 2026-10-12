@@ -9,6 +9,7 @@ import {
   LIQUIDAR_DEFECTO,
   LIQUIDAR_MAX,
   LIQUIDAR_MIN,
+  leerBusqueda,
   leerVista,
   liquidarDesdeValido,
   ordenSeAcaba,
@@ -145,6 +146,12 @@ describe("Liquidar desde, la vista y el buscador", () => {
     expect(leerVista(["pedir"])).toBe("pedir");
     expect(leerVista("comparar")).toBe("hoy");
     expect(leerVista(undefined)).toBe("hoy");
+  });
+  it("lo buscado llega en la URL (otra pantalla trae Análisis ya filtrado); recortado, o vacío", () => {
+    expect(leerBusqueda("  Aretes ")).toBe("Aretes");
+    expect(leerBusqueda(["Collares", "otra"])).toBe("Collares");
+    expect(leerBusqueda(undefined)).toBe("");
+    expect(leerBusqueda("x".repeat(100))).toHaveLength(60);
   });
   it("busca sin tildes ni mayúsculas", () => {
     expect(coincideBusqueda(prenda({ nombre: "Blusa Rayón" }), "rayon")).toBe(true);
