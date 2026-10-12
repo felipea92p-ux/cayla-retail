@@ -1,9 +1,9 @@
--- ADR-0375. Nació como `20261010170000` y ADR-0371 (los dos números chocaron con otros PR que entraron antes a main). Ya está
+-- ADR-0375. Nació como `20261010170000` (después `20261010220100`) y ADR-0371 (los dos números chocaron con otros PR que entraron antes a main). Ya está
 -- en producción (versión `20261010144250`). Lo de adentro de las funciones, el comentario de la columna y el de
 -- `registrar_ingreso_caja` quedaron guardados con «ADR-0371» y no se tocan, para que el repo y producción sigan iguales.
 -- Caja ▸ Registrar ingreso, segunda parte (Felipe 2026-10-10, ADR-0375 «Actualización»): cada entrada dice de qué CUENTA sale.
 --
--- EL PROBLEMA. `20261010220000` le dio nombre a las entradas del cajón, pero el dinero seguía apareciendo sin origen. La caja
+-- EL PROBLEMA. `20261010223117` le dio nombre a las entradas del cajón, pero el dinero seguía apareciendo sin origen. La caja
 -- fuerte es una cuenta de Finanzas ▸ Cuentas y dinero con su propio saldo: sube con cada cierre que guarda ahí y solo baja con
 -- un depósito o un retiro. No había forma de devolver plata de la caja fuerte al cajón: un movimiento de dinero no podía tener
 -- un cajón como destino. Si se sacaban S/ 100 de la caja fuerte para sencillo, el cajón subía S/ 100, la caja fuerte no bajaba,
@@ -28,7 +28,7 @@
 --
 -- CÓMO. Columna nueva y función nueva. Las funciones vivas se parchan por ancla, con una marca que las hace idempotentes; si un
 -- ancla no aparece exactamente una vez, se detiene sin tocar nada. Sin políticas: se pega en una sola parte (ADR-0195).
--- Depende de `20261010220000` (sus motivos), que va antes.
+-- Depende de `20261010223117` (sus motivos), que va antes.
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -45,7 +45,7 @@ comment on column retail.movimientos_dinero.caja_ingreso_id is
 -- otras migraciones ya crean un `pg_temp.parchar` con la misma firma (lo encontró el CI, «function parchar already exists»).
 -- Cambia `p_viejo` por `p_nuevo` en la única función `retail.<p_nombre>`. Si la función ya trae `p_marca`, se salta (ya se
 -- aplicó). Si no, exige que `p_viejo` aparezca exactamente una vez.
-create function pg_temp.parchar_220100(p_nombre text, p_viejo text, p_nuevo text, p_marca text)
+create function pg_temp.parchar_223118(p_nombre text, p_viejo text, p_nuevo text, p_marca text)
 returns void
 language plpgsql
 as $$
@@ -74,22 +74,22 @@ $$;
 -- 3. El vocabulario de la caja --------------------------------------------------------------------------------------------
 -- Salidas: sin «Compra de insumos»; «Préstamo a otra sede» solo de sistema. Entradas: caja fuerte, líder y otra sede solo de
 -- sistema (llegan con su contraparte por `registrar_ingreso_caja`); «Devolución de un retiro» sigue tipeable.
-select pg_temp.parchar_220100('registrar_movimiento_caja',
+select pg_temp.parchar_223118('registrar_movimiento_caja',
   $a$'Ajuste de caja (faltante)', 'Compra de insumos', 'Otro')$a$,
   $a$'Ajuste de caja (faltante)', 'Otro')$a$,
   $a$'Ajuste de caja (faltante)', 'Otro')$a$);
 -- `coalesce`: sin él, en una sesión donde la marca nunca se puso `current_setting(…, true)` es NULL, `not (… and NULL)` es NULL
 -- y el `if` no rechaza: un motivo de sistema se podía tipear suelto (pasaba también con «Pago a proveedor» y «Reembolso de
 -- proveedor» desde 20260925150000; lo encontró scripts/pruebas/caja_ingresos_con_origen.mjs).
-select pg_temp.parchar_220100('registrar_movimiento_caja',
+select pg_temp.parchar_223118('registrar_movimiento_caja',
   $a$p_motivo = 'Pago a proveedor' and current_setting('retail.movimiento_de_sistema', true) = 'si')$a$,
   $a$p_motivo in ('Pago a proveedor', 'Préstamo a otra sede') and coalesce(current_setting('retail.movimiento_de_sistema', true), '') = 'si')$a$,
   $a$'Préstamo a otra sede'$a$);
-select pg_temp.parchar_220100('registrar_movimiento_caja',
+select pg_temp.parchar_223118('registrar_movimiento_caja',
   $a$'Sencillo de la caja fuerte', 'Entrega del líder', 'Préstamo de otra sede', 'Devolución de un retiro')$a$,
   $a$'Devolución de un retiro')$a$,
   $a$p_motivo in ('Reembolso de proveedor',$a$);
-select pg_temp.parchar_220100('registrar_movimiento_caja',
+select pg_temp.parchar_223118('registrar_movimiento_caja',
   $a$p_motivo = 'Reembolso de proveedor' and current_setting('retail.movimiento_de_sistema', true) = 'si')$a$,
   $a$p_motivo in ('Reembolso de proveedor', 'Sencillo de la caja fuerte', 'Entrega del líder', 'Préstamo de otra sede')
          and coalesce(current_setting('retail.movimiento_de_sistema', true), '') = 'si')$a$,
@@ -210,13 +210,13 @@ begin
 end $function$;
 
 -- 5. El libro de cuentas: el cajón no lleva su saldo en el libro (sale de sus cajas), igual que ya no llevaba lo que sale de él.
-select pg_temp.parchar_220100('fn_dinero_libro',
+select pg_temp.parchar_223118('fn_dinero_libro',
   $a$where d.estado = 'vigente' and d.cuenta_destino_id is not null and d.fecha <= p_hasta$a$,
   $a$where d.estado = 'vigente' and d.cuenta_destino_id is not null and d.caja_ingreso_id is null and d.fecha <= p_hasta$a$,
   $a$d.caja_ingreso_id is null$a$);
 
 -- 6. El flujo: un ingreso de caja con su movimiento es plata del dueño (aporte o préstamo) o plata que cambió de lugar.
-select pg_temp.parchar_220100('fn_flujo_lineas',
+select pg_temp.parchar_223118('fn_flujo_lineas',
   $a$then 'efectivo' else coalesce(vi.categoria, 'otros_ingresos') end$a$,
   $a$then 'efectivo' else coalesce(vi.categoria,
                     (select case when di.tipo in ('aporte', 'prestamo') then 'dueno_pone' else 'entre_cuentas' end
@@ -225,7 +225,7 @@ select pg_temp.parchar_220100('fn_flujo_lineas',
   $a$di.caja_ingreso_id = m.id$a$);
 
 -- 7. El balance: un ingreso con su movimiento ya está en el diario (por el movimiento), no es un «ingreso sin origen».
-select pg_temp.parchar_220100('fn_bal_causas_dinero',
+select pg_temp.parchar_223118('fn_bal_causas_dinero',
   $a$and not (cm.id = any (v_reemb_ids))$a$,
   $a$and not (cm.id = any (v_reemb_ids)
                 or exists (select 1 from retail.movimientos_dinero di where di.caja_ingreso_id = cm.id and di.estado = 'vigente'))$a$,
@@ -233,7 +233,7 @@ select pg_temp.parchar_220100('fn_bal_causas_dinero',
 
 -- 8. Anular: lo que entró a un cajón desde Caja no se anula en Finanzas, porque la plata ya se contó en la caja y el ingreso no
 --    se deshace. Si quedaría a medias (el ingreso sin su origen), mejor no dejarlo.
-select pg_temp.parchar_220100('anular_movimiento_dinero',
+select pg_temp.parchar_223118('anular_movimiento_dinero',
   $a$  v_actor := retail.fn_actor_persona_id(true);$a$,
   $a$  if v_m.caja_ingreso_id is not null then
     raise exception 'Este movimiento nació en Caja, con la plata que entró al cajón, y no se anula aquí: el ingreso ya está contado en la caja. Si fue un error, se corrige con una salida del cajón.' using errcode = 'P0001';
@@ -390,6 +390,6 @@ comment on function retail.registrar_ingreso_caja(uuid, text, numeric, text, tex
 revoke all on function retail.registrar_ingreso_caja(uuid, text, numeric, text, text, uuid, uuid) from public, anon;
 grant execute on function retail.registrar_ingreso_caja(uuid, text, numeric, text, text, uuid, uuid) to authenticated;
 
-drop function pg_temp.parchar_220100(text, text, text, text);
+drop function pg_temp.parchar_223118(text, text, text, text);
 
 reset lock_timeout;
