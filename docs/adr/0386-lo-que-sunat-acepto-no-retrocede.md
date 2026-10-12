@@ -1,4 +1,4 @@
-# ADR-0382 — Lo que SUNAT aceptó no retrocede, y lo que pudo llegar no se libera
+# ADR-0386 — Lo que SUNAT aceptó no retrocede, y lo que pudo llegar no se libera
 
 - **Fecha:** 2026-10-12 · **Estado:** construido, verificado en local (una base desechable propia, ver «Verificación») y **aplicado en
   producción el 2026-10-12 entre las 11:37 y las 11:40 (Lima)**, con el OK de Felipe; comprobado (ver «Producción»).
@@ -7,6 +7,10 @@
   «Aplica tú las migraciones en producción, tienes mi OK».
 - **Complementa** a [ADR-0378](0378-lucode-ya-tiene-el-numero.md) (PR #970: «ya emitido» se confirma con el XML de Lucode, solo web). Aquel
   arregla la cola atascada; este hace que la base no deje retroceder lo que SUNAT ya respondió, venga de donde venga.
+- **Número:** nació como 0380 y pasó a 0382 porque el 0380 lo tenía el PR #968. El detector de choques del ADR-0381 encontró después el 0382 en el
+  PR #978, que lo subió antes, así que quedó en **0386**, esta vez reservado (`reserva/adr-0386`). En producción, dos comentarios dentro de
+  `actualizar_transmision_comprobante` y de `fn_comprobante_estado_no_retrocede` todavía dicen «ADR-0382», porque se aplicaron antes de este
+  cambio. El código es el mismo y el control de deriva ignora comentarios; el número se corregirá la próxima vez que se recreen esas funciones.
 
 ## El problema (producción, solo lectura, 2026-10-12)
 
@@ -123,6 +127,9 @@ aplicar se confirmaron las huellas de partida y que nadie consultaba `comprobant
 
 El disparador quedó activo, los permisos de las dos funciones siguen iguales y la consulta de control sigue en 0. El registro de Postgres de esos
 minutos solo muestra los pasos de los dos pegados, sin errores.
+
+Esas huellas son las del texto que se aplicó, con «ADR-0382» en sus comentarios. Los archivos de hoy dicen ADR-0386 (ver «Número»): pegarlos de
+nuevo daría otras huellas con el mismo código. Para comparar, mandan las consultas de comprobación y el control de deriva, que no mira comentarios.
 
 **El diccionario de `docs/datos/generado/` no se refrescó en este PR**: no registra disparadores, y estas migraciones no crean ni cambian
 tablas, columnas, candados, índices ni políticas. Lo único que sumará el próximo refresco es la firma de `fn_comprobante_estado_no_retrocede()` en

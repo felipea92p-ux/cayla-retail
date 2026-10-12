@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de concurrencia de ADR-0382 «lo que SUNAT aceptó no retrocede» — `actualizar_transmision_comprobante` con dos
+ * Prueba de concurrencia de ADR-0386 «lo que SUNAT aceptó no retrocede» — `actualizar_transmision_comprobante` con dos
  * conexiones reales y COMMIT.
  *
  * POR QUÉ APARTE. `sunat_estado_no_retrocede.mjs` corre todo en ROLLBACK, en una sola conexión: ahí no se ve lo único que

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261012180000_comprobante_aceptado_no_retrocede.sql — CAYLA V2 (ADR-0382, Felipe 2026-10-12)
+-- 20261012180000_comprobante_aceptado_no_retrocede.sql — CAYLA V2 (ADR-0386, Felipe 2026-10-12)
 --
 -- EL PROBLEMA. Lo que SUNAT ya aceptó no puede volver atrás en el ERP, y hasta hoy nada en la base lo
 -- impedía: `actualizar_transmision_comprobante` escribía cualquier estado sobre cualquier otro. Dos respuestas
@@ -100,7 +100,7 @@ begin
   if p_estado not in ('enviado', 'aceptado', 'rechazado') then
     raise exception 'actualizar_transmision_comprobante no maneja el estado % — anular_comprobante() es aparte', p_estado;
   end if;
-  -- ADR-0382: aceptado (y anulado, que viene después) es la última palabra de SUNAT. Lo que llega cuando ya está
+  -- ADR-0386: aceptado (y anulado, que viene después) es la última palabra de SUNAT. Lo que llega cuando ya está
   -- escrito es una respuesta vieja: se ignora sin error. Cualquier otro paso imposible lo frena el disparador
   -- `comprobantes_estado_no_retrocede`, con su mensaje.
   if v_estado in ('aceptado', 'anulado') then

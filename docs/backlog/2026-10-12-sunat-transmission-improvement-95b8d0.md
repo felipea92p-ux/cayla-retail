@@ -1,4 +1,4 @@
-## Comprobantes: lo que SUNAT aceptó no retrocede (2026-10-12, ADR-0382)
+## Comprobantes: lo que SUNAT aceptó no retrocede (2026-10-12, ADR-0386)
 - [x] **Una respuesta vieja de Lucode no pisa un aceptado ni un anulado** (`actualizar_transmision_comprobante` con `for update`) y el disparador `comprobantes_estado_no_retrocede` deja solo los pasos que existen. `20261012180000`.
 - [x] **Anular una venta no libera la boleta que ya intentó salir a SUNAT** (opción A de Felipe, confirmada con la corrección: una venta cuya boleta intentó salir ya no se anula, va por Devolución). `20261012180100`.
 - [x] **Pegado en producción el 2026-10-12, 11:37–11:40 (Lima)**, con el OK de Felipe, en orden; huellas y comprobación en el ADR («Producción»). Control en 0 y sin errores en el registro de Postgres.

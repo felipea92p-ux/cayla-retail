@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261012180100_anular_venta_no_libera_lo_que_pudo_llegar.sql — CAYLA V2 (ADR-0382, opción A, Felipe 2026-10-12)
+-- 20261012180100_anular_venta_no_libera_lo_que_pudo_llegar.sql — CAYLA V2 (ADR-0386, opción A, Felipe 2026-10-12)
 --
 -- EL PROBLEMA. `anular_venta` liberaba (`no_emitido`) también el comprobante que ya estaba en la cola de reintento
 -- (`pendiente_reintento`, agregado en 20260922151500). Esa decisión supuso que lo que está en la cola «nunca se
@@ -100,7 +100,7 @@ as $$
 begin
   if (old.estado in ('pendiente', 'pendiente_reintento')
         and new.estado in ('pendiente_reintento', 'enviado', 'aceptado', 'rechazado'))
-     -- ADR-0382 (opción A): solo se libera lo que nunca intentó salir a SUNAT.
+     -- ADR-0386 (opción A): solo se libera lo que nunca intentó salir a SUNAT.
      or (old.estado in ('pendiente', 'interna') and new.estado = 'no_emitido' and old.intentos_transmision = 0)
      or (old.estado in ('enviado', 'rechazado') and new.estado in ('enviado', 'aceptado', 'rechazado'))
      or (old.estado = 'aceptado' and new.estado = 'anulado')

@@ -24,7 +24,7 @@
  *      líder no tiene tope (puede aplicar cualquier descuento de venta sin autorización); y
  *      `anular_venta` NO libera un comprobante que ya estaba en la cola de reintento
  *      (`pendiente_reintento`): pudo haber llegado a SUNAT, así que la venta no se anula
- *      (ADR-0382, opción A, que reemplaza lo que aquí probaba D-60 desde `20260922151500`).
+ *      (ADR-0386, opción A, que reemplaza lo que aquí probaba D-60 desde `20260922151500`).
  *
  * CÓMO. Mismo patrón que `registrar_venta.mjs` (léelo primero si esto no tiene sentido): cada
  * escenario en su propia transacción con ROLLBACK — nunca se commitea nada, corre seguro contra
@@ -344,11 +344,11 @@ select retail.registrar_venta(
   'p_emisor solo puede ser "alegra" o "retail"'
 );
 
-// ADR-0382 (opción A, 2026-10-12) reemplaza lo que aquí probaba D-60: un comprobante en la cola de reintento ya
+// ADR-0386 (opción A, 2026-10-12) reemplaza lo que aquí probaba D-60: un comprobante en la cola de reintento ya
 // intentó salir y pudo haber llegado a SUNAT (Lucode emite aunque el ERP deje de esperar), así que su venta NO se
 // anula y nada cambia. Lo que nunca intentó salir se sigue liberando (`anular_venta_comprobante.mjs`, punto 1).
 exito(
-  "ADR-0382: anular_venta NO libera un comprobante que ya intentó salir (pendiente_reintento): se niega, lo nombra y no toca nada",
+  "ADR-0386: anular_venta NO libera un comprobante que ya intentó salir (pendiente_reintento): se niega, lo nombra y no toca nada",
   comoPersona(
     FELIPE,
     `${INTENTO}

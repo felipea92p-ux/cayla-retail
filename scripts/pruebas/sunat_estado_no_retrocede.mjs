@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de «lo que SUNAT aceptó no retrocede» — CAYLA V2 (ADR-0382,
+ * Prueba de «lo que SUNAT aceptó no retrocede» — CAYLA V2 (ADR-0386,
  * `20261012180000_comprobante_aceptado_no_retrocede.sql`).
  *
  * QUÉ PRUEBA.
@@ -124,7 +124,7 @@ ${FOTO("tras_tramite")}`,
     "una respuesta vieja tampoco pisa una boleta ya anulada (la baja viene después de aceptar)",
     `${ACEPTADA}
 ${A_MANO}
-update retail.comprobantes set estado = 'anulado', motivo_anulacion = 'prueba de ADR-0382' where id = :'b';
+update retail.comprobantes set estado = 'anulado', motivo_anulacion = 'prueba de ADR-0386' where id = :'b';
 ${COMO_FELIPE}
 select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{"estado": "ACEPTADO", "prueba": "vieja"}'::jsonb) as _a2 \\gset
 ${FOTO("tras_vieja")}`,
@@ -145,7 +145,7 @@ ${FOTO("reenvio")}
 select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{"estado": "ACEPTADO", "prueba": "acepta"}'::jsonb) as _a \\gset
 ${FOTO("aceptado")}
 ${A_MANO}
-update retail.comprobantes set estado = 'anulado', motivo_anulacion = 'prueba de ADR-0382' where id = :'b';
+update retail.comprobantes set estado = 'anulado', motivo_anulacion = 'prueba de ADR-0386' where id = :'b';
 ${FOTO("anulado")}`,
     (d) =>
       d("cola") === "pendiente_reintento|-|-" &&
@@ -159,7 +159,7 @@ ${FOTO("anulado")}`,
   escenario(
     "una boleta pendiente que nunca salió se puede liberar (no emitido), como siempre",
     `${A_MANO}
-update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'prueba de ADR-0382' where id = :'b';
+update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'prueba de ADR-0386' where id = :'b';
 ${FOTO("liberada")}`,
     (d) => d("liberada") === "no_emitido|-|-"
   );
@@ -197,7 +197,7 @@ update retail.comprobantes set estado = 'aceptado' where id = :'b';`,
   denegado(
     "si SUNAT acepta algo que el ERP ya liberó, la RPC NO lo ignora: falla, para que se vea",
     `${A_MANO}
-update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'prueba de ADR-0382' where id = :'b';
+update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'prueba de ADR-0386' where id = :'b';
 ${COMO_FELIPE}
 select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{"estado": "ACEPTADO"}'::jsonb);`,
     "está «no_emitido» y no puede pasar a «aceptado»"

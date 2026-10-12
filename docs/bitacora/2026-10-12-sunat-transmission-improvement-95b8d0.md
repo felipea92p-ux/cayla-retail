@@ -1,4 +1,4 @@
-## 2026-10-12 (Comprobantes: lo que SUNAT aceptó no retrocede, y anular no libera lo que pudo llegar — ADR-0382)
+## 2026-10-12 (Comprobantes: lo que SUNAT aceptó no retrocede, y anular no libera lo que pudo llegar — ADR-0386)
 Qué hice: la base ya no deja que una respuesta vieja de Lucode deje en «rechazado» o «en trámite» una boleta que SUNAT aceptó: la segunda
 respuesta espera a la primera y, si ya está aceptada, se ignora sin error. Un candado en la tabla deja solo los pasos de estado que existen,
 venga de donde venga. Y, con la opción A que eligió Felipe, anular una venta ya no libera la boleta que intentó salir a SUNAT: se niega, la
