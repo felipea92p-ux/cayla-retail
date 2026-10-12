@@ -26,6 +26,9 @@ export type FilaPorRegularizar = {
   categoriaFamilia: string | null;
   precioCobrado: number;
   vendidoPor: string;
+  /** Quién la vendió, como id de persona (`null` = no quedó registrado): la mesa avisa ANTES del botón que nadie regulariza su propia
+   *  venta (20261004204000, `motivoPropiaVenta`). */
+  vendidoPorId: string | null;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
@@ -117,6 +120,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     categoriaFamilia: f.categoria?.familia ?? null,
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
+    vendidoPorId: f.vendido_por ?? null,
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",
