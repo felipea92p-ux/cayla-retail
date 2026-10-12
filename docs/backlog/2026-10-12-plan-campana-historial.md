@@ -34,7 +34,7 @@
 - [ ] **Refrescar el volcado de producción** cuando entren las migraciones (`ventas_historicas`, `recupero_defecto_pct` y las funciones nuevas).
 - [x] **`20261012212000_plan_compra_resultados_por_tienda.sql` EN PRODUCCIÓN (2026-10-12)**, verificada como líder: «¿Cómo va?» y «Pedir más» de una
   tienda.
-- [ ] **POR PEGAR en producción, en este orden y por separado:** `20261012223000_plan_compra_precio_lleno_al_vender.sql` (reemplazo anclado en
-  `fn_unidades_vendidas`) y `20261012224000_plan_compra_lo_pedido_en_ordenes.sql` (función nueva). Antes de fusionar el PR que las trae.
+- [x] **`20261012223000_plan_compra_precio_lleno_al_vender.sql` y `20261012224000_plan_compra_lo_pedido_en_ordenes.sql` EN PRODUCCIÓN (2026-10-12)**,
+  verificadas como líder.
 - [ ] **Que lo pedido reste de «Comprar»** cuando Órdenes de compra reciba contra la orden (su fase 4, ADR-0362): hoy solo se muestra.
 - [ ] **Dos campañas que se pisan** (Diciembre y Navidad) muestran la misma orden en las dos: decidir si una orden puede ser de una sola.
