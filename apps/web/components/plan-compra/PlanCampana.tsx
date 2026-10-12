@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays, ChevronUp } from "lucide-react";
+import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
@@ -21,7 +23,6 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
-import { ResumenCompactoPlan } from "@/components/plan-compra/ResumenCompactoPlan";
 import { RepartoModal } from "@/components/plan-compra/RepartoModal";
 import { fraseDeLosMinimos, tiendasParaRepartir } from "@/lib/plan-compra-reparto";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
@@ -29,6 +30,7 @@ import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import {
   armarFilas,
+  avisosDelResumen,
   campanasArchivadas,
   diasEntre,
   confianzaDelStock,
@@ -210,6 +212,8 @@ export function PlanCampana({
   };
   const rango = `del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}`;
   const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
+  const avisos = avisosDelResumen(confianza);
+  const sedesDelPlan = [...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"));
 
   return (
     <div className="space-y-6">
@@ -223,6 +227,19 @@ export function PlanCampana({
         }
         acciones={
           <>
+            {/* El resumen y los avisos, en un cajón (Felipe 2026-10-12): la tabla queda justo bajo las pestañas. El número dice cuántas
+                tiendas tienen el stock sin cuadrar, para que el aviso no se olvide aunque no se vea. */}
+            <Boton peso="fantasma" data-guia="plan.resumen" onClick={() => setResumenAbierto(true)} aria-expanded={resumenAbierto}>
+              <span className="inline-flex items-center gap-2">
+                <PanelRightOpen aria-hidden className="h-4 w-4" />
+                Resumen y avisos
+                {avisos > 0 && (
+                  <span className="inline-grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1.5 text-[11px] font-semibold text-crema" aria-label={`${avisos} ${avisos === 1 ? "aviso" : "avisos"}`}>
+                    {avisos}
+                  </span>
+                )}
+              </span>
+            </Boton>
             {campanas && (
               <SelectorCampana
                 campanas={campanas}
@@ -282,63 +299,55 @@ export function PlanCampana({
         </Aviso>
       )}
 
-      <AvisoStock confianza={confianza} puedeContar={puedeContar} />
+      {/* El cajón de «Resumen y avisos» (Felipe 2026-10-12, opción D del spike docs/maquetas/plan-campana-rediseno-2026-10/): sin velo, la tabla
+          sigue viva detrás (tocar una cifra que filtra, filtra la tabla). De arriba abajo: lo que avisa, las cifras de toda CAYLA, lo que
+          sobra, el reparto entre tiendas y, antes de la campaña, el simulador. */}
+      {resumenAbierto && (
+        <CajonFicha clave="resumen" onCerrar={() => setResumenAbierto(false)}>
+          <div className="pr-8">
+            <Dialog.Title className="font-display text-2xl leading-tight text-tinta">Resumen y avisos</Dialog.Title>
+            <Dialog.Description className="mt-1 text-[13.5px] text-taupe">
+              {plan.plan.nombre} · toda CAYLA{sedesDelPlan.length > 0 ? ` (${sedesDelPlan.join(", ")})` : ""}. La sede elegida arriba no filtra esta pantalla.
+            </Dialog.Description>
+          </div>
 
-      {/* Compacto por defecto (Felipe 2026-10-12): una línea con las cifras y la tabla a la vista; «Ver detalle» abre las tarjetas, la
-          banda de lo que sobra y el simulador. */}
-      {!resumenAbierto ? (
-        <ResumenCompactoPlan
-          totales={totales}
-          estado={momento.estado}
-          tope={plan.tope.valor}
-          recuperoPct={hechos && hechos.planId === plan.plan.id ? hechos.recupero.pct : null}
-          sedes={[...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"))}
-          onAbrir={() => setResumenAbierto(true)}
-        />
-      ) : (
-      <>
-      {hechos && hechos.planId === plan.plan.id && (
-        // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
-        <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
-          <span className="min-w-0 flex-1 basis-72">{fraseDelRecupero(hechos.recupero)}</span>
-          {esLider && (
-            <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
-              {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
-            </Boton>
+          <AvisoStock confianza={confianza} puedeContar={puedeContar} />
+
+          <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
+
+          {hechos && hechos.planId === plan.plan.id && (
+            // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
+            <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
+              <span className="min-w-0 basis-full">{fraseDelRecupero(hechos.recupero)}</span>
+              {esLider && (
+                <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
+                  {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
+                </Boton>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
-        // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; un líder fija el mínimo de la que vende poco (Lima).
-        <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
-          <span className="min-w-0 flex-1 basis-72">
-            Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
-            {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
-            detalle, en la hoja de cada categoría.
-          </span>
-          {esLider && (
-            <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
-              {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
-            </Boton>
+          {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
+            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; un líder fija el mínimo de la que vende poco (Lima).
+            <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
+              <span className="min-w-0 basis-full">
+                Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
+                {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
+                detalle, en la hoja de cada categoría.
+              </span>
+              {esLider && (
+                <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
+                  {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
+                </Boton>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
-
-      {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
-      {momento.estado === "antes" && vista === "tabla" && (
-        <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
-      )}
-
-      <div className="flex justify-end">
-        <button type="button" onClick={() => setResumenAbierto(false)} aria-expanded className="btn-cayla btn-sutil inline-flex items-center gap-1.5">
-          Ocultar detalle
-          <ChevronUp aria-hidden className="h-4 w-4" />
-        </button>
-      </div>
-      </>
+          {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
+          {momento.estado === "antes" && (
+            <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
+          )}
+        </CajonFicha>
       )}
 
       <ListaCategorias

@@ -679,6 +679,16 @@ export type SedeStock = {
   falta: string | null;
 };
 
+/**
+ * El número del botón «Resumen y avisos» (Felipe 2026-10-12: el resumen va en un cajón y la tabla queda a la vista): cuántas tiendas no
+ * tienen su stock al día; 1 si no se pudo comprobar (no se dice «todo bien» por un error). 0 = el botón va sin número.
+ */
+export function avisosDelResumen(c: Pick<ConfianzaDelStock, "estado" | "sedes">): number {
+  if (c.estado === "sin-dato") return 1;
+  if (c.estado === "confiable") return 0;
+  return c.sedes.filter((s) => !s.alDia).length;
+}
+
 export type ConfianzaDelStock = {
   /** `sin-dato`: no se pudo comprobar (la lectura falló o la cuenta no opera ninguna tienda). Nunca se dice «confiable» por omisión. */
   estado: "confiable" | "incompleto" | "sin-dato";

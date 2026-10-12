@@ -23,7 +23,7 @@ export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis }: { fi
   const sim = simular(lineas, mult / 10, rec, calcular);
   const dif = sim.inversion - hoy.inversion;
   return (
-    <section data-guia="plan.simulador" className="card-cayla grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center">
+    <section data-guia="plan.simulador" className="card-cayla grid gap-5 p-5">
       <div className="space-y-3">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-taupe">
           ¿Y si la campaña vende distinto?

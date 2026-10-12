@@ -257,6 +257,11 @@ describe("la tabla de categorías: buscar y ordenar", () => {
     expect(filtrarYOrdenarCategorias(filas, "indumentária", "az").map((f) => f.id)).toEqual(["jeans", "polos"]);
     expect(filtrarYOrdenarCategorias(filas, "zzz", "mas")).toEqual([]);
   });
+  it("«Piden atención» deja solo esas, y se combina con lo buscado", () => {
+    expect(filtrarYOrdenarCategorias(filas, "", "mas", new Set(["jeans", "casacas"])).map((f) => f.id)).toEqual(["jeans", "casacas"]);
+    expect(filtrarYOrdenarCategorias(filas, "jea", "mas", new Set(["jeans", "casacas"])).map((f) => f.id)).toEqual(["jeans"]);
+    expect(filtrarYOrdenarCategorias(filas, "", "mas", new Set())).toEqual([]);
+  });
   it("no toca la lista que recibe", () => {
     const copia = filas.map((f) => f.id);
     filtrarYOrdenarCategorias(filas, "", "za");

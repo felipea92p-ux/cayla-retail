@@ -394,10 +394,13 @@ export const ORDENES_RESULTADOS: { valor: OrdenResultados; texto: string }[] = [
 
 const comparable = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
-/** Las categorías que calzan con lo buscado (nombre o familia, sin tildes ni mayúsculas), en el orden pedido. «Más vendidas» es el de siempre. */
-export function filtrarYOrdenarCategorias(filas: readonly FilaCategoria[], q: string, orden: OrdenResultados): FilaCategoria[] {
+/**
+ * Las categorías que calzan con lo buscado (nombre o familia, sin tildes ni mayúsculas), en el orden pedido. «Más vendidas» es el de siempre.
+ * `solo`: deja únicamente esas (la píldora «Piden atención», Felipe 2026-10-12: «Pedir más o impulsar» vive dentro de esta tabla).
+ */
+export function filtrarYOrdenarCategorias(filas: readonly FilaCategoria[], q: string, orden: OrdenResultados, solo: ReadonlySet<string> | null = null): FilaCategoria[] {
   const busca = comparable(q.trim());
-  const quedan = busca ? filas.filter((f) => comparable(`${f.nombre} ${f.familia}`).includes(busca)) : [...filas];
+  const quedan = filas.filter((f) => (!busca || comparable(`${f.nombre} ${f.familia}`).includes(busca)) && (!solo || solo.has(f.id)));
   const porNombre = (a: FilaCategoria, b: FilaCategoria) => a.nombre.localeCompare(b.nombre, "es");
   if (orden === "az") return quedan.sort(porNombre);
   if (orden === "za") return quedan.sort((a, b) => porNombre(b, a));

@@ -44,6 +44,7 @@ export function TarjetaComoVa({
   conForma,
   piden,
   de = null,
+  onPiden,
 }: {
   c: ComoVa;
   conForma: boolean;
@@ -51,6 +52,8 @@ export function TarjetaComoVa({
   piden: number;
   /** La tienda elegida (sus ventas contra su parte del plan); null = toda CAYLA. */
   de?: string | null;
+  /** Lleva a la tabla con solo las que piden atención. */
+  onPiden?: () => void;
 }) {
   const [abierta, setAbierta] = useState(false);
   const dif = c.diferencia;
@@ -81,7 +84,15 @@ export function TarjetaComoVa({
           </Ayuda>
         }
         accion={c.medidos > 0 ? { texto: "Ver la curva", onClick: () => setAbierta(true) } : undefined}
-        pie={piden > 0 ? <span className="text-ambar-profundo">{piden === 1 ? "1 categoría pide atención ↓" : `${piden} categorías piden atención ↓`}</span> : c.medidos > 0 ? "Ninguna categoría pide nada hoy" : undefined}
+        pie={
+          piden > 0 ? (
+            <button type="button" onClick={onPiden} className="text-left text-ambar-profundo underline-offset-2 hover:underline">
+              {piden === 1 ? "1 categoría pide atención ↓" : `${piden} categorías piden atención ↓`}
+            </button>
+          ) : c.medidos > 0 ? (
+            "Ninguna categoría pide nada hoy"
+          ) : undefined
+        }
       >
         <span className="block">{frase}</span>
         {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
