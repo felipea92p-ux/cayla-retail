@@ -90,6 +90,10 @@ export function ResultadosCampana({
         «Se agotó» es una categoría que quedó en cero en esa tienda antes de terminar: lo vendido ahí quedó corto por falta de stock, y la propuesta
         del año que viene no lo promedia.
       </span>
+      <span className="mt-2 block">
+        «Sin base» es una tienda que no vendía en el ERP los 60 días antes de la campaña: no hay un día normal con qué compararla. Toca una tienda
+        para ver solo lo suyo; «Toda CAYLA» vuelve a todas.
+      </span>
       <span className="mt-2 block">«Lo que sobró» es lo vendido de esa categoría en los 60 días después de la campaña, contra su precio de etiqueta.</span>
     </Ayuda>
   );
@@ -172,25 +176,20 @@ export function ResultadosCampana({
       <PestanasPlan activa="resultados" planId={r.plan.id} />
 
       {/* Al terminar, el cierre arriba (Felipe 2026-10-12). Durante, «¿cómo va?» es la primera tarjeta de cifras y «Pedir más o impulsar»
-          aparece debajo solo si alguna categoría pide algo. Toda CAYLA: las píldoras de tienda filtran la tabla, no esto. */}
+          aparece debajo solo si alguna categoría pide algo. */}
       {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
-      {r.tiendas.length > 1 && (
-        <div role="group" aria-label="Tienda" data-guia="plan-resultados.tiendas" className="flex flex-wrap gap-2">
-          <button type="button" className="pildora-cayla" aria-pressed={tienda === null} onClick={() => setTienda(null)}>
-            Todas
-          </button>
-          {r.tiendas.map((t) => (
-            <button key={t.id} type="button" className="pildora-cayla" aria-pressed={tienda === t.id} onClick={() => setTienda(t.id)}>
-              {t.nombre}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div data-guia="plan-resultados.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Una sola fila (Felipe 2026-10-12: «ocupa mucho espacio»): las tarjetas de tienda SON el filtro —la que filtra se rellena de arena,
+          «Toda CAYLA» vuelve a todas—, así que las píldoras que repetían lo mismo se fueron. En un celular, de a dos. */}
+      <div data-guia="plan-resultados.cifras" className="grid gap-3 sm:grid-cols-2 lg:auto-cols-fr lg:grid-flow-col">
         {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} />}
-        <TarjetaCifra etiqueta="Toda CAYLA" valor={enteroES.format(total.unidades)} unidad="prendas">
+        <TarjetaCifra
+          etiqueta="Toda CAYLA"
+          valor={enteroES.format(total.unidades)}
+          unidad="prendas"
+          activa={r.tiendas.length > 1 ? tienda === null : undefined}
+          onClick={r.tiendas.length > 1 ? () => setTienda(null) : undefined}
+        >
           {solesES(total.soles)}
           {momento === "en-curso" ? " · hasta ayer" : ""}
         </TarjetaCifra>
@@ -198,7 +197,7 @@ export function ResultadosCampana({
           const m = multiplicadorReal(r, t);
           return (
             <TarjetaCifra key={t.id} etiqueta={t.nombre} valor={enteroES.format(t.unidades)} unidad="prendas" activa={tienda === t.id} onClick={() => setTienda(tienda === t.id ? null : t.id)}>
-              {solesES(t.soles)} · {m !== null ? `${textoMultiplicador(m)} un día normal` : "sin 60 días de antes en el ERP para comparar"}
+              {solesES(t.soles)} · {m !== null ? `${textoMultiplicador(m)} un día normal` : "sin base"}
             </TarjetaCifra>
           );
         })}

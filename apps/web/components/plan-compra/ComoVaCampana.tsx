@@ -68,7 +68,8 @@ export function TarjetaComoVa({ c, conForma, piden }: { c: ComoVa; conForma: boo
         pie={piden > 0 ? <span className="text-ambar-profundo">{piden === 1 ? "1 categoría pide atención ↓" : `${piden} categorías piden atención ↓`}</span> : c.medidos > 0 ? "Ninguna categoría pide nada hoy" : undefined}
       >
         <span className="block">{frase}</span>
-        {c.medidos > 0 && (
+        {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
+        {c.medidos > 0 && c.esperado !== null && (
           <span className="block text-tinta/65">
             {enteroES.format(c.vendido)} de {c.esperado !== null ? `${enteroES.format(c.esperado)} esperadas` : "—"} · termina en {enteroES.format(c.proyeccion)}
             {c.planTotal !== null && ` de ${enteroES.format(c.planTotal)}`}

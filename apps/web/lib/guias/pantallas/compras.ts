@@ -1553,18 +1553,11 @@ export const GUIA_PLAN_RESULTADOS: Guia = {
       texto: "Cuando termina: qué parte se vendió a precio lleno, cuánto con rebaja y cuánto sobró, categoría por categoría, y cuál conviene liquidar primero.",
     },
     {
-      id: "tiendas",
-      ancla: "plan-resultados.tiendas",
-      opcional: true,
-      titulo: "Una tienda o todas",
-      texto: "Toca una tienda y todo lo de abajo se filtra a ella; «Todas» vuelve a CAYLA completa. También puedes tocar la tarjeta de la tienda.",
-    },
-    {
       id: "cifras",
       ancla: "plan-resultados.cifras",
       opcional: true,
       titulo: "¿Cómo va? y cada tienda",
-      texto: "Mientras dura la campaña, «¿Cómo va?» compara lo vendido con lo que el plan esperaba a hoy («Ver la curva» lo dibuja). Al lado, las prendas y soles de cada tienda; «×2.0 un día normal» es el doble que en los 60 días de antes.",
+      texto: "«¿Cómo va?» compara lo vendido con lo que el plan esperaba a hoy («Ver la curva» lo dibuja). Al lado, cada tienda: tócala y todo lo de abajo se filtra a ella; «Toda CAYLA» vuelve a todas. «×2.0 un día normal» es el doble que en los 60 días de antes.",
     },
     {
       id: "senales",

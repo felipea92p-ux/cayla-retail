@@ -170,7 +170,9 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
   const esViva = viva && tocable;
 
   const clase = [
-    "card-cayla @container flex flex-col p-4 text-left sm:px-5",
+    // `@container` encierra lo que se sale (es un contexto de apilamiento): con el «!» abierto, la tarjeta sube por encima de lo que
+    // viene después, o la tarjeta de al lado o la tabla de abajo tapan el globo (Plan de campaña, 2026-10-12).
+    "card-cayla @container flex flex-col p-4 text-left sm:px-5 has-[.anim-globo]:relative has-[.anim-globo]:z-30",
     tocable ? "w-full cursor-pointer" : "",
     // `viva` no lleva la transición de utilidad: le ganaría a la de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
     esViva ? "alza-cayla cmp-viva" : tocable ? "transition-[background-color,border-color] duration-200 ease-cayla motion-reduce:transition-none" : "",

@@ -38,7 +38,8 @@ export function ResumenCompactoPlan({
   return (
     // Una sola fila según el ancho de la TARJETA, no de la ventana (Felipe 2026-10-12: a ~940 px de tarjeta se partía en una grilla de
     // tres columnas «que no queda bien»). Solo en una tarjeta angosta (celular) pasa a dos columnas, sin líneas sueltas al borde.
-    <div data-guia="plan.cifras" className="card-cayla @container">
+    // Con el «!» abierto, la tarjeta sube sobre la tabla: `@container` encierra el globo y la búsqueda de abajo lo tapaba (Felipe 2026-10-12).
+    <div data-guia="plan.cifras" className="card-cayla @container has-[.anim-globo]:relative has-[.anim-globo]:z-30">
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-3 @3xl:flex @3xl:flex-wrap @3xl:items-center @3xl:gap-x-0 @3xl:px-1">
         <div className="col-span-2 flex flex-col justify-center @3xl:px-3">
           <span className="flex items-center gap-1.5">
@@ -49,7 +50,7 @@ export function ResumenCompactoPlan({
                 {sedes.length > 0 ? `${sedes.slice(0, -1).join(", ")}${sedes.length > 1 ? " y " : ""}${sedes.at(-1)}` : "todas las tiendas y el Taller"}.
               </span>
               <span className="mt-2 block">La sede elegida arriba (la de Vender y Caja) no filtra esta pantalla.</span>
-              <span className="mt-2 block">Cuánto le toca a cada tienda está en la hoja de cada categoría; Resultados tiene una píldora por tienda.</span>
+              <span className="mt-2 block">Cuánto le toca a cada tienda está en la hoja de cada categoría; en Resultados, toca la tarjeta de una tienda.</span>
             </Ayuda>
           </span>
           <span className="mt-0.5 whitespace-nowrap text-xs text-taupe">todas las tiendas</span>
