@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaPrenda } from "./existencias-prendas";
-import { celdaTarjeta, colorDeEntrada, destinoDeTalla, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
+import { celdaTarjeta, colorDeEntrada, destinoDeTalla, lineaGuardadas, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
 import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
@@ -102,5 +102,21 @@ describe("colorDeEntrada", () => {
   });
   it("uno con foto pero agotado no le gana a uno con algo libre", () => {
     expect(colorDeEntrada([{ ...celeste, fotoUrl: "celeste.jpg" }, rosado])?.color).toBe("Rosado");
+  });
+});
+
+describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su palabra)", () => {
+  it("con 3 tallas o menos dice la palabra: «+2 guardadas», «+1 guardada», «0 guardadas» tenue", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 3)).toEqual({ texto: "+2 guardadas", cero: false });
+    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 2)).toEqual({ texto: "+1 guardada", cero: false });
+    expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 1)).toEqual({ texto: "0 guardadas", cero: true });
+  });
+  it("con 4 tallas o más no cabe la palabra: solo el número (la leyenda del pie la pone)", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 4)).toEqual({ texto: "+3", cero: false });
+    expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 6)).toEqual({ texto: "0", cero: true });
+  });
+  it("agotada: «se acabó», apretado «acabó»; nunca tenue (es un aviso, no un cero)", () => {
+    expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 3)).toEqual({ texto: "se acabó", cero: false });
+    expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 5)).toEqual({ texto: "acabó", cero: false });
   });
 });

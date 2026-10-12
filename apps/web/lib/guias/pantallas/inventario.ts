@@ -22,7 +22,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "resumen-sede.cifras",
       opcional: true,
       titulo: "La tienda en tres números",
-      texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Si dice «por cuadrar», el piso todavía no se contó.",
+      texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «por cuadrar», el piso todavía no se contó.",
     },
     {
       id: "buscador",
@@ -154,11 +154,11 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Las preguntas de siempre: qué falta colgar, qué se acabó atrás, qué está apartado o dañado, qué se está acabando y qué no se vende. El número dice cuántas prendas caen ahí.",
     },
     {
-      id: "lugar",
-      ancla: "existencias.lugar",
+      id: "aviso-cuadre",
+      ancla: "existencias.aviso-cuadre",
       opcional: true,
-      titulo: "Piso, almacén o ambos",
-      texto: "Elige qué lugar leer en las tarjetas: solo lo colgado en el piso, solo lo guardado en el almacén, o los dos juntos. Cada opción dice cuántas unidades hay ahí. No quita prendas de la lista: cambia lo que se lee.",
+      titulo: "Mientras el piso no se cuadre",
+      texto: "Este aviso sale hasta que la tienda cuadre su piso por primera vez: lo que las tarjetas dicen «guardado» puede estar colgado, porque nadie lo ha verificado todavía. «Cuadrar el piso» abre la pantalla donde se hace con la pistola.",
     },
     {
       id: "prenda",
@@ -172,7 +172,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.tallas",
       opcional: true,
       titulo: "Piso y almacén por talla",
-      texto: "Una columna por talla: arriba lo colgado en el piso, abajo lo guardado en el almacén. En ámbar, la talla que falta colgar; en rojo, la que se acabó en la sede.",
+      texto: "Una columna por talla: el número grande es lo colgado en el piso, lo que el cliente puede comprar; debajo, «+2 guardadas» es lo que hay en el almacén. En ámbar, la talla que falta colgar; en rojo, la que se acabó en la sede.",
     },
     {
       id: "colgar",
