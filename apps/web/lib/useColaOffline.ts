@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { guardar, leer } from "@/lib/almacen-local";
-import { esErrorPasajero, esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { clasificarFalloDeSubida, traducirError } from "@/lib/error-escritura";
+import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { firmar } from "@/lib/responsable-reglas";
 import { claveCola, colaValida, conOperacion, porSubir, reconciliar, sinOperacion, trasFallo, type OperacionEncolada } from "@/lib/cola-offline";
 
@@ -15,8 +16,8 @@ import { claveCola, colaValida, conOperacion, porSubir, reconciliar, sinOperacio
  *
  * Quién sube: SOLO `components/ColasSinConexion.tsx`, montado una vez en el layout de la app (`subir: true`) —
  * lo guardado sube aunque la persona ya esté en Vender. Las pantallas llaman al hook sin `subir`: pintan y encolan.
- * El candado por módulo a nivel de archivo cubre React Strict Mode (dos montajes). Entre pestañas no hay candado;
- * ahí protege el token en la base (`token_cliente unique`).
+ * El candado por módulo a nivel de archivo cubre React Strict Mode (dos montajes). Entre pestañas, `conCandadoDeSubida`
+ * (`navigator.locks`, `lib/candado-subida.ts`) deja subir a UNA; y por si algo igual se cruza, protege el token en la base.
  */
 const pasadasEnCurso = new Map<string, Promise<void>>();
 
@@ -92,8 +93,11 @@ export function useColaOffline(
     const supabase = createClient();
 
     async function pasada() {
-      await subirCola();
-      await trasPasadaRef.current?.(supabase);
+      // Una sola pestaña sube (y hace el trabajo de después, las fotos): si otra ya lo está haciendo, esta no.
+      await conCandadoDeSubida(clave, async () => {
+        await subirCola();
+        await trasPasadaRef.current?.(supabase);
+      });
     }
 
     async function subirCola() {
@@ -109,9 +113,10 @@ export function useColaOffline(
           subidas.push({ op, data });
           continue;
         }
-        // Sin red: no se toca ni se cuenta. Servidor momentáneamente mal (5xx, bloqueo…): suma un intento, hasta el tope.
-        // Rechazo de verdad: queda esperando «Descartar».
-        const tipo = esFalloDeRed(error) ? "red" : esErrorPasajero(error, status) ? "pasajero" : "definitivo";
+        // Sin red: no se toca ni se cuenta. Servidor momentáneamente mal (5xx, bloqueo, o una respuesta sin código de
+        // la base): suma un intento, hasta el tope. Rechazo de verdad (la base respondió con código): queda esperando
+        // «Descartar». La regla es la misma que la de la cola de ventas: `clasificarFalloDeSubida`.
+        const tipo = clasificarFalloDeSubida(error, status);
         const siguiente = trasFallo(op, tipo, traducirError(error, "subir lo guardado sin conexión"));
         if (siguiente) resueltos.set(op.token, siguiente);
       }

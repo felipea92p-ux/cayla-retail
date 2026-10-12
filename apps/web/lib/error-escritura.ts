@@ -626,6 +626,25 @@ export function esErrorPasajero(error: ErrorEscritura, status?: number | null): 
   return typeof status === "number" && (status >= 500 || status === 429 || status === 408);
 }
 
+/** Qué significa un fallo al SUBIR una operación guardada sin conexión (ver `clasificarFalloDeSubida`). */
+export type TipoFalloSubida = "red" | "pasajero" | "definitivo";
+
+/**
+ * La ÚNICA regla de «¿esto que falló al subir es un rechazo de verdad?», compartida por la cola de ventas
+ * (`PuntoDeVenta.tsx`) y la cola genérica (`useColaOffline.ts`). Solo es `definitivo` cuando la base RESPONDIÓ con un
+ * veredicto (trae código de Postgres) y ese veredicto no es «ahora no, intenta de nuevo». Todo lo demás se reintenta:
+ *  · `red`: ni siquiera llegó al servidor.
+ *  · `pasajero`: respondió con un 5xx/429/408, o con un bloqueo/deadlock (`esErrorPasajero`), o con algo SIN código de
+ *    Postgres (un 502/504 del camino, una excepción del cliente: `esRespuestaIncierta`) — en esos casos la transacción
+ *    pudo confirmarse igual, y marcar la venta «rechazada» invita a cobrarla de nuevo a mano y duplicarla.
+ * Reintentar es seguro porque cada operación viaja con su `p_token` y la base devuelve lo ya guardado (ADR-0063/0210).
+ */
+export function clasificarFalloDeSubida(error: ErrorEscritura, status?: number | null): TipoFalloSubida {
+  if (esFalloDeRed(error)) return "red";
+  if (esErrorPasajero(error, status) || esRespuestaIncierta(error)) return "pasajero";
+  return "definitivo";
+}
+
 /** ¿Guardar esto en la cola en vez de mostrar el error? Sin red, o con el servidor momentáneamente mal. */
 export function debeEncolarse(error: ErrorEscritura, status?: number | null): boolean {
   return esFalloDeRed(error) || esErrorPasajero(error, status);
