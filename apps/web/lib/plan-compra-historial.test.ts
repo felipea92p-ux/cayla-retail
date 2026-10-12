@@ -18,6 +18,7 @@ import {
   sumarDias,
   textoCrecimiento,
   textoMultiplicador,
+  totalDeCayla,
   totalDelAnio,
   type LecturaHistorial,
   type Medida,
@@ -135,6 +136,15 @@ describe("crecer contra el año anterior", () => {
       ["tru", 10],
       ["aqp", 10],
     ]);
+  });
+  it("el año de toda CAYLA suma las tiendas y crece solo si todas tienen los dos años completos", () => {
+    const parejo = lectura("2026-10-12", [TRU, AQP], "2024-01-01", "2025-12-31", (_t, f) => (f.startsWith("2025") ? 2 : 1));
+    const t = totalDeCayla(parejo, 2025);
+    expect(t.soles).toBe(365 * 2 * 2);
+    expect(t.crecimiento).toBeCloseTo((365 * 2) / 366 - 1);
+    // Arequipa abrió en 2025: sumarla haría «crecer» a CAYLA sin vender más. No se compara.
+    const nueva = lectura("2026-10-12", [TRU, AQP], "2024-01-01", "2025-12-31", (t2, f) => (t2 === "aqp" && f < "2025-01-01" ? 0 : 1));
+    expect(totalDeCayla(nueva, 2025).crecimiento).toBeNull();
   });
   it("el total del año crece solo si los dos años están completos", () => {
     const l = lectura("2026-10-12", [TRU], "2024-01-01", "2025-12-31", (_t, f) => (f.startsWith("2025") ? 2 : 1));

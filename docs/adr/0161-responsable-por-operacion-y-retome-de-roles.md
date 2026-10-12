@@ -364,3 +364,34 @@ cargada), no puede guardar nada. **Cómo se ve mal hecho:** saltarse el candado 
 igual («Elige quién hace esta operación»); o hacerlo por `fn_es_lider()` — las terminales y los líderes perderían el rastro.
 Pruebas: 4 casos en `pnpm pruebas:terminales-sin-persona` (Admin sin responsable, Admin eligiéndose, Admin eligiendo a otra
 persona ausente, líder no admin sigue bloqueado) y `estadoCombo` en `lib/responsable-reglas.test.ts`.
+
+
+## Actualización 2026-10-12 — P5 cerró el costo y la red de `fn_resumen_variantes`, no el stock de otras sedes
+
+**El problema primero.** El punto 5 de «Las 6 preguntas» y su fila en «P1–P6 construidas» dicen que quien no es líder «no ve costo ni
+stock de otras sedes en Existencias» («Existencias ya pintaba costo y red solo al líder»), y el comentario de `SIEMPRE_SOLO_LIDER`
+(`apps/web/lib/modulos.ts`) lo repetía como una regla vigente. Quien lee eso concluye que una integrante con Existencias no puede
+saber si otra tienda tiene una prenda. No es así, y la lista de «lo que sigue siendo solo del líder» se estaba leyendo más ancha de lo
+que la base hace cumplir. Medido el 2026-10-12 contra producción (`cayla-dynamic`, solo lectura) y contra el código:
+
+| Qué | Quién lo ve hoy | Evidencia |
+|---|---|---|
+| **Costo** (`costo`, `estado_costo`) de `fn_resumen_variantes` | solo el líder | `case when (select ok from lider)`, con `lider = select retail.fn_es_lider()` (`20260923140000`) |
+| **`en_red`** de `fn_resumen_variantes` (la red con sus ventas, días con stock y ledger) | solo el líder | `en_red_agg` filtra con `and (select ok from lider)` |
+| **Stock de las otras sedes** en Existencias («Dónde más hay», «En la red», «Pedir a otra sede») | **toda cuenta con acceso a retail** | `fn_existencias` y `fn_stock_por_sede` solo piden `retail.fn_tiene_acceso_retail()` (cuerpos vivos leídos el 2026-10-12; `fn_stock_por_sede`: ADR-0270 sección C, `20260929020000`, y ADR-0289, `20261004110000`) |
+
+**Cómo llega a la pantalla.** La web llena `enRed` de cada fila con `fn_stock_por_sede_json` (`lib/inventario-v2.ts`, `leerStockDeLasSedes`),
+que no pregunta el rol, y `InventarioPanel` lo pinta con `resumenRed(f.enRed)` sin condición de líder (`esLider` solo gobierna las
+dañadas). Lo que sí viaja es **cifra por prenda y sede** (`variante`, `sede`, `cantidad` disponible): sin dinero, sin personas. La
+función nunca tuvo un candado de líder (su migración original, `20260914220001`, no menciona `fn_es_lider`): P5 no lo abrió, porque
+nunca estuvo cerrado, y lo que P5 construyó (`20260923140000`) solo tocó `fn_resumen_variantes`.
+
+**Qué no cambia.** Ni una función, ni un permiso, ni un dato: esta actualización corrige el texto. La lista `SIEMPRE_SOLO_LIDER` de
+`lib/modulos.ts` queda **igual** (su línea «Ver el costo y el stock de las otras sedes en Existencias» sigue ahí y se muestra tal cual
+en Roles y accesos); se corrigió solo su comentario, que ahora dice lo de arriba. Reescribir esa línea para que diga «el costo y la
+red de `fn_resumen_variantes`» es una decisión sobre qué ve el equipo en Roles y accesos, y queda para Felipe. Tampoco se decide
+aquí si el stock de otras sedes **debería** ser solo del líder: hoy Vender, Cambios, Apartados y «Pedir a otra sede» leen esa lista
+(ADR-0270, ADR-0289) para toda cuenta que ve esas pantallas, y cambiarlo es una decisión de Felipe.
+
+**Lo que se rompería si se «arregla» al revés.** Cerrar `fn_stock_por_sede` al líder dejaría a Vender, Cambios y Apartados diciendo
+«ninguna otra sede tiene stock» a toda integrante, sin error: la misma falla silenciosa que el ADR-0289 corrigió para las terminales.

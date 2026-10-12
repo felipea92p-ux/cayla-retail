@@ -1164,6 +1164,13 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Toda CAYLA: cuántas categorías ya tienen plan, cuántas prendas comprar, cuánto cuesta al costo contra el tope y lo vendido. El plan es uno para todas las tiendas. Una cifra que filtra (las que siguen sin plan) filtra la tabla de atrás.",
     },
     {
+      id: "pedido",
+      ancla: "plan.pedido",
+      opcional: true,
+      titulo: "Ya pedido en órdenes de compra",
+      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Se muestran, no se restan de «Comprar»: todavía no sabemos cuándo llegó cada una. En la tabla, cada categoría dice cuántas ya se pidieron.",
+    },
+    {
       id: "recupero-cayla",
       ancla: "plan.recupero",
       opcional: true,
@@ -1231,7 +1238,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan-modal.precios",
       opcional: true,
       titulo: "Precio y costo",
-      texto: "El precio de venta y el costo por prenda, en promedio. Si vienen del catálogo, lo dice debajo: revísalos.",
+      texto: "El precio de venta y el costo por prenda, en promedio. Son supuestos: no cambian el precio de las prendas. Si se apartan del catálogo, te avisa; «Usar el del catálogo» los vuelve a poner.",
     },
     {
       id: "recupero",
@@ -1273,7 +1280,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.como",
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo se calcula",
-      texto: "La explicación del cálculo en palabras simples: cuánto cuesta quedarse corto frente a cuánto se pierde si sobra.",
+      texto: "Este «!», junto a la frase de arriba, explica el cálculo en palabras simples: cuánto cuesta quedarse corto frente a cuánto se pierde si sobra.",
     },
     {
       id: "fin",
@@ -1653,7 +1660,7 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
       ancla: "plan-historial.tiendas",
       opcional: true,
       titulo: "El año de cada tienda",
-      texto: "Lo que vendió cada tienda en todo el año y cuánto creció contra el anterior. Si el año está en curso, dice «hasta hoy».",
+      texto: "Lo que vendió toda CAYLA y cada tienda en todo el año, y cuánto creció contra el anterior. Si el año está en curso, dice «hasta hoy».",
     },
     {
       id: "buscar",
