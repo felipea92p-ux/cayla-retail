@@ -79,7 +79,7 @@
       "button «Imprimir»"
     ],
     "components/FilaMovimientoCaja.tsx": [
-      "button «{`Ver el detalle de la venta de ${money(e.monto)}»"
+      "button «{`Ver el detalle de ${e.titulo}»"
     ],
     "components/GastoRapidoModal.tsx": [
       "button «{frecuente ? `${nombre}»",
