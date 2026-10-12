@@ -408,7 +408,7 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:revisar-productos
 
-      # El precio 0 solo vale en Empaque, también en la base (ADR-0380): Nuevo producto y Editar producto no dejan una variante activa
+      # El precio 0 solo vale en Empaque, también en la base (ADR-0381): Nuevo producto y Editar producto no dejan una variante activa
       # en S/ 0 fuera de una familia apagada; la regla, sus permisos y que la migración se pueda pegar dos veces. ROLLBACK.
       - name: pruebas:precio-cero
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}

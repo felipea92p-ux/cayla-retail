@@ -178,7 +178,7 @@ describe("textoFotosDeFila", () => {
   });
 });
 
-describe("celdaSinPrecio — un 0 escrito en una celda de «Precios» no crea la variante a S/ 0 (ADR-0380)", () => {
+describe("celdaSinPrecio — un 0 escrito en una celda de «Precios» no crea la variante a S/ 0 (ADR-0381)", () => {
   const celdas = construirCeldas(["s", "m"], ["NEG", "BEI"]);
   const clave = (talla: string, color: string) => claveCelda(talla, color);
 

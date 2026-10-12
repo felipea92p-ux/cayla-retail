@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0380 «El precio 0 solo vale en Empaque, también en la base» — la mitad del CATÁLOGO
+ * Prueba de ADR-0381 «El precio 0 solo vale en Empaque, también en la base» — la mitad del CATÁLOGO
  * (`supabase/migrations/20261012190000_precio_cero_solo_empaque.sql`). La venta y la aprobación tienen sus casos en
  * `registrar_venta.mjs` y `revisar_productos_pendientes.mjs`, junto a las demás pruebas de esas funciones.
  *

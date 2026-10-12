@@ -1,7 +1,9 @@
-# ADR-0380 — El precio 0 solo vale en Empaque, también en la base
+# ADR-0381 — El precio 0 solo vale en Empaque, también en la base
 
 - **Fecha:** 2026-10-12 · **Estado:** construido y verificado en local, **SQL todavía NO en producción** (una migración, una sola parte:
   `20261012190000_precio_cero_solo_empaque.sql`). La web puede publicarse antes: sin la migración, lo único que no frena es la base.
+- **Numeración:** se escribió como ADR-0380; el PR #968 (cambios y devoluciones con lo que pagó el cliente) ya lo usaba, así que pasó a 0381 antes de
+  publicarse. El `comment on function` de la migración no lleva número de ADR, a propósito: va a producción.
 - **Pedido:** una revisión marcó, como urgente, que «una prenda con precio S/ 0 se puede aprobar, crear y vender» y pidió el OK de Felipe porque
   toca precios, el candado de venta y una decisión previa suya. Felipe lo verificó conmigo y dio el OK: «hazlo en una rama como recomiendas».
 

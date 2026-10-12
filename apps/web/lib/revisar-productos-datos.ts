@@ -19,7 +19,7 @@ export async function getProductosPorRevisar(pagina: number): Promise<PorRevisar
       p_limite: POR_PAGINA_POR_REVISAR,
       p_desde: Math.max(0, pagina - 1) * POR_PAGINA_POR_REVISAR,
     }),
-    // ADR-0380: las familias fuera de los motores (Empaque) son las únicas cuyo S/ 0 se aprueba. Si la lectura falla, ninguna: la
+    // ADR-0381: las familias fuera de los motores (Empaque) son las únicas cuyo S/ 0 se aprueba. Si la lectura falla, ninguna: la
     // hoja frena también la bolsa de obsequio en 0 (se aprueba al recargar) en vez de prometer un «Aprobar» que la base negaría.
     supabase.from("familias").select("codigo").eq("entra_a_motores", false),
   ]);

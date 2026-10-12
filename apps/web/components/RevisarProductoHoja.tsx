@@ -27,7 +27,7 @@ import {
  * catálogo se firma). Se monta solo al abrirse: la lista no lee la asistencia mientras nadie va a guardar nada.
  *
  * Rechazar es permanente (la prenda queda descontinuada y ya no se reactiva), y la base se niega si tiene una orden de producción en
- * proceso o stock; aprobar se niega si una variante activa está en S/ 0 (ADR-0380). La hoja lo adelanta con `bloqueoDeRechazo` y
+ * proceso o stock; aprobar se niega si una variante activa está en S/ 0 (ADR-0381). La hoja lo adelanta con `bloqueoDeRechazo` y
  * `bloqueoDeAprobacion` (las mismas condiciones): en vez de pedir confirmar algo que va a fallar, dice qué lo frena y qué hacer, y deja
  * ir directo a Producción, a Existencias o a la ficha. El candado real sigue siendo el de la base.
  */

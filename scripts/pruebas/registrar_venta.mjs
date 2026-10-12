@@ -582,7 +582,7 @@ select retail.registrar_venta(:'ubic',
 );
 
 // ---------------------------------------------------------------------------
-// ADR-0380: una prenda sin precio no se vende (el 0 solo vale en una familia fuera de los motores)
+// ADR-0381: una prenda sin precio no se vende (el 0 solo vale en una familia fuera de los motores)
 // ---------------------------------------------------------------------------
 // Antes, `registrar_venta` solo comparaba el precio de la caja con el del catálogo: 0 = 0 pasaba, y una prenda con el precio olvidado
 // salía de la tienda a S/ 0.00 junto con otra que sí se cobraba (y, por `itemsParaLucode`, sin declararse a SUNAT).

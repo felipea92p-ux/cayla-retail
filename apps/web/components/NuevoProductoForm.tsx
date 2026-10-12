@@ -429,7 +429,7 @@ export function NuevoProductoForm({
     celdasIncluidas.map((c) => c.clave)
   );
   const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
-  // ADR-0380: una celda de «Precios» con 0 crearía esa variante a S/ 0. Se nombra como en la tabla, para que se encuentre.
+  // ADR-0381: una celda de «Precios» con 0 crearía esa variante a S/ 0. Se nombra como en la tabla, para que se encuentre.
   const celdaEnCero = celdaSinPrecio(celdasIncluidas, overridePrecio);
   const nombreCeldaEnCero = celdaEnCero
     ? nombreCelda(colores.find((c) => c.codigo === celdaEnCero.color)?.nombre, tallasOrdenadas.find((t) => t.id === celdaEnCero.tallaId)?.texto)
@@ -577,7 +577,7 @@ export function NuevoProductoForm({
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     // La misma regla que Editar producto (`precioValido`): mayor que 0. `problemasAlta` ya lo frena; esto es por si llega un envío
-    // programático (ADR-0380).
+    // programático (ADR-0381).
     if (variantes.some((v) => !precioValido(v.precio))) {
       avisar.error("Una de las celdas tiene un precio en 0 o inválido.");
       return;

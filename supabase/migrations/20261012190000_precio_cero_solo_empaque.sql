@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261012190000_precio_cero_solo_empaque.sql — CAYLA V2 (ADR-0380, Felipe 2026-10-12)
+-- 20261012190000_precio_cero_solo_empaque.sql — CAYLA V2 (ADR-0381, Felipe 2026-10-12)
 --
 -- EL PROBLEMA PRIMERO. Una prenda con precio S/ 0 se podía crear, aprobar y vender. Una celda de la tabla de precios de Nuevo
 -- producto con «0», o una prenda que alguien propuso en el conteo con el precio en 0 («déjalo en 0 y lo completa el Líder»), llegaba
@@ -51,14 +51,15 @@ language sql
 stable
 set search_path = retail, public
 as $$
-  -- ADR-0377/0380: el precio 0 solo vale donde lo que se vende no es mercadería (bolsas, cajas, empaque). Es la misma frontera que
+  -- ADR-0377/0381: el precio 0 solo vale donde lo que se vende no es mercadería (bolsas, cajas, empaque). Es la misma frontera que
   -- la de los motores, a propósito: Felipe la definió así. Sin categoría o sin dato, `fn_categoria_entra_a_motores` dice «sí entra»
   -- y esto dice «no admite 0».
   select p_categoria_id is not null and not retail.fn_categoria_entra_a_motores(p_categoria_id);
 $$;
 
+-- (Sin número de ADR en el comentario: va a producción y un número se puede renumerar.)
 comment on function retail.fn_categoria_admite_precio_cero(uuid) is
-  'ADR-0380: ¿una variante de esta categoría puede tener precio 0? Solo si su familia está fuera de los motores (Empaque). Sin categoría o sin dato: no.';
+  '¿Una variante de esta categoría puede tener precio 0? Solo si su familia está fuera de los motores (Empaque). Sin categoría o sin dato: no.';
 
 revoke all on function retail.fn_categoria_admite_precio_cero(uuid) from public, anon;
 grant execute on function retail.fn_categoria_admite_precio_cero(uuid) to authenticated;
@@ -94,7 +95,7 @@ $f$;
 select pg_temp.reemplazar(
   'retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text, uuid, text, numeric, uuid, text, boolean, boolean)',
   $v$    -- ADR-0371: una pieza de liquidación se cobra al precio de su etiqueta vigente, sin descuentos, en su sede.$v$,
-  $v$    -- ADR-0380: una prenda de mercadería sin precio no se vende: el 0 solo vale en una familia fuera de los motores (la bolsa de
+  $v$    -- ADR-0381: una prenda de mercadería sin precio no se vende: el 0 solo vale en una familia fuera de los motores (la bolsa de
     -- obsequio). Se mira el precio que se cobra (el de la tienda, si tiene). La centinela —prenda sin registrar, pieza de
     -- liquidación— vale 0 en el catálogo y lleva el suyo en la línea: no entra aquí.
     if (v_item ->> 'variante_id')::uuid <> c_cargo_especial
@@ -116,7 +117,7 @@ select pg_temp.reemplazar(
 select pg_temp.reemplazar(
   'retail.revisar_producto_censo(uuid, boolean)',
   $v$  -- El disparador `productos_estado_alta_biut` valida la transición, firma `aprobado_por` y, al rechazar, apaga `estado`.$v$,
-  $v$  -- ADR-0380: una prenda sin precio no se aprueba. Proponerla en 0 sí se puede (el conteo: «déjalo en 0 y lo completa el Líder»;
+  $v$  -- ADR-0381: una prenda sin precio no se aprueba. Proponerla en 0 sí se puede (el conteo: «déjalo en 0 y lo completa el Líder»;
   -- la muestra del Taller, ADR-0361); aprobarla es decir «está lista», y en S/ 0 no lo está. Cuentan las variantes ACTIVAS (una
   -- desactivada no se vende) y el 0 solo vale en una familia fuera de los motores (la bolsa de obsequio, ADR-0377). Rechazar no mira
   -- el precio. La prenda ya está bloqueada (`for update`, arriba): Editar producto, que también la bloquea, espera a que esto termine.
@@ -144,7 +145,7 @@ select pg_temp.reemplazar(
   $v$    if v_precio is null or v_precio < 0 then
       raise exception 'Cada variante necesita un precio de venta mayor que S/ 0.';
     end if;
-    -- ADR-0380: el 0 solo vale en una familia fuera de los motores (la bolsa de obsequio). Nuevo producto pide además un precio
+    -- ADR-0381: el 0 solo vale en una familia fuera de los motores (la bolsa de obsequio). Nuevo producto pide además un precio
     -- mayor que 0 siempre (ADR-0377): esta es la red de la base, por si un camino se salta la pantalla.
     if v_precio = 0 and not retail.fn_categoria_admite_precio_cero(p_categoria_id) then
       raise exception 'Cada variante necesita un precio de venta mayor que S/ 0. En la tabla de precios, una celda vacía toma el precio de todas.'
@@ -163,7 +164,7 @@ select pg_temp.reemplazar(
   $v$    if v_variante->>'precio' is null then
       raise exception 'Cada variante necesita un precio.';
     end if;
-    -- ADR-0380: una variante ACTIVA no queda en S/ 0, salvo en una familia fuera de los motores (la bolsa de obsequio, ADR-0377).
+    -- ADR-0381: una variante ACTIVA no queda en S/ 0, salvo en una familia fuera de los motores (la bolsa de obsequio, ADR-0377).
     -- La ficha ya lo frenaba (`precioValido`); esta es la red de la base. Una desactivada sí puede (no se vende). La categoría es
     -- la de este guardado: si la bolsa pasa a una categoría de mercadería, el 0 vuelve a frenarse.
     if (v_variante->>'precio')::numeric <= 0
@@ -183,7 +184,7 @@ begin
      or position('sin_precio' in pg_get_functiondef('retail.revisar_producto_censo(uuid, boolean)'::regprocedure)) = 0
      or position('fn_categoria_admite_precio_cero' in pg_get_functiondef('retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid)'::regprocedure)) = 0
      or position('fn_categoria_admite_precio_cero' in pg_get_functiondef('retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid, uuid, uuid, boolean, integer)'::regprocedure)) = 0 then
-    raise exception 'ADR-0380: alguna de las cuatro funciones no quedó con su candado del precio 0';
+    raise exception 'ADR-0381: alguna de las cuatro funciones no quedó con su candado del precio 0';
   end if;
 end;
 $$;

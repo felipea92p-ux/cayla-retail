@@ -142,7 +142,7 @@ describe("la frase de lo que hay que hacer con el nombre es la de `problemasAlta
   });
 });
 
-describe("una celda en 0 (ADR-0380): la guía y `problemasAlta` la nombran con la misma frase", () => {
+describe("una celda en 0 (ADR-0381): la guía y `problemasAlta` la nombran con la misma frase", () => {
   it("el precio queda por hacer, y dice qué celda y qué hacer", () => {
     const estado = { ...completo, celdaSinPrecio: "Negro en M" };
     const precio = camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio");
@@ -180,7 +180,7 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["categoría sin tallas", { categoriaSinTallas: true, tallasElegidas: 0 }, {}],
     ["sin precio", { precioBase: "" }, {}],
     ["precio cero", { precioBase: "0" }, {}],
-    ["una celda de la tabla con el precio en 0 (ADR-0380)", { celdaSinPrecio: "Negro en M" }, {}],
+    ["una celda de la tabla con el precio en 0 (ADR-0381)", { celdaSinPrecio: "Negro en M" }, {}],
     ["costo negativo", { costoBase: "-1" }, {}],
     ["sin decidir stock", { stockTotal: 0 }, {}],
     ["stock inválido", { stockInvalidas: 2 }, {}],

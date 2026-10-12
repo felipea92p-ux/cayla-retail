@@ -115,7 +115,7 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       requerido: true,
       sugerido: false,
       hecho: precioOk && costoOk && !e.celdaSinPrecio,
-      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0380) y el costo.
+      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0381) y el costo.
       pendiente: !precioOk ? "Pon el precio de venta." : e.celdaSinPrecio ? textoCeldaSinPrecio(e.celdaSinPrecio) : "El costo no puede ser negativo.",
     },
     {

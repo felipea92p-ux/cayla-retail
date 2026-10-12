@@ -129,7 +129,7 @@ export function nombreCelda(color: string | null | undefined, talla: string | nu
  * La primera celda (de las que siguen en la tabla) con un precio PROPIO que no sirve: un 0, o algo que no es un número. Vacía no
  * cuenta: toma el precio de todas, que se revisa aparte. Es la regla de Editar producto (`precioValido`, ADR-0377), sin la
  * excepción de Empaque: Nuevo producto pide siempre un precio mayor que 0 (una bolsa de obsequio se deja en 0 desde su ficha).
- * Sin esto, un «0» escrito por error en una celda creaba la prenda a S/ 0 y la caja la vendía gratis (ADR-0380).
+ * Sin esto, un «0» escrito por error en una celda creaba la prenda a S/ 0 y la caja la vendía gratis (ADR-0381).
  */
 export function celdaSinPrecio<C extends { clave: string }>(celdas: readonly C[], precios: Readonly<Record<string, string>>): C | null {
   return celdas.find((c) => precioPropioInvalido(precios[c.clave])) ?? null;

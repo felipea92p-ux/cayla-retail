@@ -169,7 +169,7 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
   },
   {
-    // 20261012190000_precio_cero_solo_empaque.sql (ADR-0380) — una prenda de mercadería con precio 0 en el catálogo no se vende
+    // 20261012190000_precio_cero_solo_empaque.sql (ADR-0381) — una prenda de mercadería con precio 0 en el catálogo no se vende
     // (solo la bolsa de obsequio, de Empaque, va en S/ 0). La caja ya no la deja entrar al ticket; esto es la red si llega igual
     // (una venta sin conexión, una pantalla vieja). El detalle es «referencia (sku)».
     marca: "venta_sin_precio",
