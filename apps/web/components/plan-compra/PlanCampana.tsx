@@ -14,12 +14,15 @@ import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaC
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
+import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal";
+import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import {
   armarFilas,
+  campanasArchivadas,
   confianzaDelStock,
   fechaLargaES,
   leerPlan,
@@ -85,6 +88,8 @@ export function PlanCampana({
   const [exportando, setExportando] = useState(false);
   const [editandoTope, setEditandoTope] = useState(false);
   const [nuevaCampana, setNuevaCampana] = useState(false);
+  const [editandoCampana, setEditandoCampana] = useState(false);
+  const [verArchivadas, setVerArchivadas] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
   const salidaPaso = useSalidaSinGuardar(
     vista === "guiado" && pasoSucio,
@@ -119,6 +124,7 @@ export function PlanCampana({
     });
   };
 
+  const hayArchivadas = !!campanas && campanasArchivadas(campanas).length > 0;
   if (!plan) {
     return (
       <div className="space-y-6">
@@ -129,20 +135,30 @@ export function PlanCampana({
           <div className="card-cayla">
             <Vacio
               icono={<CalendarDays />}
-              titulo="Todavía no hay ninguna campaña para planificar"
+              titulo={hayArchivadas ? "No hay campañas activas" : "Todavía no hay ninguna campaña para planificar"}
               acciones={
                 esLider && campanas ? (
-                  <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
-                    Nueva campaña
-                  </Boton>
+                  <>
+                    <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
+                      Nueva campaña
+                    </Boton>
+                    {hayArchivadas && <Boton onClick={() => setVerArchivadas(true)}>Ver campañas archivadas</Boton>}
+                  </>
                 ) : undefined
               }
             >
-              {esLider ? "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría." : "Cuando un líder cree una campaña, aquí se arma cuánto comprar de cada categoría."}
+              {hayArchivadas
+                ? esLider
+                  ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Etiquetas."
+                  : "Las campañas que había están archivadas. Cuando un líder restaure o cree una, aquí se arma cuánto comprar."
+                : esLider
+                  ? "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría."
+                  : "Cuando un líder cree una campaña, aquí se arma cuánto comprar de cada categoría."}
             </Vacio>
           </div>
         )}
         {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+        {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
       </div>
     );
   }
@@ -159,6 +175,7 @@ export function PlanCampana({
     setHechas([]);
   };
   const rango = `del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}`;
+  const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
 
   return (
     <div className="space-y-6">
@@ -172,7 +189,16 @@ export function PlanCampana({
         }
         acciones={
           <>
-            {campanas && <SelectorCampana campanas={campanas} actualId={plan.plan.id} puedeCrear={esLider} onNueva={() => setNuevaCampana(true)} />}
+            {campanas && (
+              <SelectorCampana
+                campanas={campanas}
+                actualId={plan.plan.id}
+                puedeCrear={esLider}
+                onNueva={() => setNuevaCampana(true)}
+                onEditar={() => setEditandoCampana(true)}
+                onArchivadas={() => setVerArchivadas(true)}
+              />
+            )}
             {totales.conPlan > 0 && (
               <Boton peso="fantasma" onClick={() => setExportando(true)}>
                 Exportar
@@ -194,6 +220,22 @@ export function PlanCampana({
           </Chip>
         }
       />
+
+      {plan.plan.archivado && (
+        <Aviso
+          tono="atencion"
+          titulo="Esta campaña está archivada"
+          accion={
+            esLider && campanas ? (
+              <Boton peso="fantasma" onClick={() => setVerArchivadas(true)}>
+                Restaurar…
+              </Boton>
+            ) : undefined
+          }
+        >
+          No sale en el selector. La ves tal como quedó; para volver a usarla, restáurala.
+        </Aviso>
+      )}
 
       {planPedidoNoExiste && (
         <Aviso tono="atencion" titulo="No encontramos esa campaña">
@@ -253,6 +295,18 @@ export function PlanCampana({
       {salidaPaso.aviso}
 
       {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+
+      {editandoCampana && campanaActual && campanas && (
+        <EditarCampanaModal
+          campana={campanaActual}
+          etiqueta={campanas.etiquetas.find((e) => e.id === campanaActual.etiquetaId)}
+          otrosNombres={campanas.planes.filter((c) => c.id !== campanaActual.id).map((c) => c.nombre)}
+          esLaActual
+          onClose={() => setEditandoCampana(false)}
+        />
+      )}
+
+      {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
 
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
 
