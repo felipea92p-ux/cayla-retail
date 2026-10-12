@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { History } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Tabla, celda } from "@/components/ui/Tabla";
@@ -46,11 +47,39 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
 }
 
 export function HistorialCampanas({ anio, historial, etiquetas, falla }: { anio: number; historial: LecturaHistorial | null; etiquetas: EtiquetaHistorial[]; falla: string | null }) {
+  const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
+  // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
+  const ayuda = (
+    <Ayuda titulo="Historial">
+      <span className="block">
+        «×1.8 un día normal» quiere decir que en esa campaña la tienda vendió, por día, 1.8 veces lo que vendía por día en los 60 días anteriores.
+      </span>
+      <span className="mt-2 block">
+        Las fechas son las de cada campaña en Catálogo ▸ Etiquetas llevadas a {anio} (Día de la Madre se mueve con su segundo domingo de mayo).
+      </span>
+      <span className="mt-2 block">
+        {arranqueErp ? `Antes del ${fechaCortaES(arranqueErp)} de ${arranqueErp.slice(0, 4)} ` : "Antes del ERP "}las cifras salen de Sinatra, los Excel de
+        Finanzas: son soles por tienda, sin categorías ni unidades.
+      </span>
+      <span className="mt-2 block">«Sin dato» es una tienda que todavía no abría o un tramo que no está en Sinatra (como los meses de la pandemia en 2020).</span>
+    </Ayuda>
+  );
   const cabecera = (
     <EncabezadoPagina
       sede="Todas las tiendas"
-      titulo="Plan de campaña"
-      subtitulo="Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció."
+      titulo={
+        <>
+          Plan de campaña
+          {/* En el celular la frase se esconde y el «!» sube junto al título, como en Productos. */}
+          <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayuda}</span>
+        </>
+      }
+      subtitulo={
+        <>
+          <span className="max-sm:hidden">Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció. </span>
+          <span className="max-sm:hidden">{ayuda}</span>
+        </>
+      }
     />
   );
   if (!historial || historial.tiendas.length === 0) {
@@ -75,7 +104,6 @@ export function HistorialCampanas({ anio, historial, etiquetas, falla }: { anio:
   const tiendas = historial.tiendas;
   const columnas = `minmax(0,1.2fr) repeat(${tiendas.length}, minmax(0,1fr))`;
   const anioEnCurso = anio === Number(historial.hoy.slice(0, 4));
-  const arranqueErp = tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
 
   return (
     <div className="space-y-6">
@@ -137,14 +165,6 @@ export function HistorialCampanas({ anio, historial, etiquetas, falla }: { anio:
           </div>
         ))}
       </Tabla>
-
-      <p className="nota-cayla">
-        Cómo leerlo: «×1.8 un día normal» quiere decir que en esa campaña la tienda vendió, por día, 1.8 veces lo que vendía por día en los 60
-        días anteriores. Las fechas son las de cada campaña en Catálogo ▸ Etiquetas llevadas a {anio} (Día de la Madre se mueve con su segundo
-        domingo de mayo). {arranqueErp ? `Antes del ${fechaCortaES(arranqueErp)} de ${arranqueErp.slice(0, 4)} ` : "Antes del ERP "}las cifras salen
-        de Sinatra, los Excel de Finanzas: son soles por tienda, sin categorías ni unidades. «Sin dato» es una tienda que todavía no abría o un
-        tramo que no está en Sinatra (como los meses de la pandemia en 2020).
-      </p>
     </div>
   );
 }

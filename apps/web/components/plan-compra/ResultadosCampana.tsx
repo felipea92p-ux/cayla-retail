@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChartColumn } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { Ayuda } from "@/components/Ayuda";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -33,11 +34,36 @@ const PLANTILLA = "sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)_minmax(0,0.8fr)
 export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; campanas: CampanasLeidas | null; falla: string | null }) {
   const r = useMemo(() => leerResultados(datos), [datos]);
   const [tienda, setTienda] = useState<string | null>(null);
+  // El «!» con lo que la frase no alcanza a decir, como en Productos y en el Historial (Felipe 2026-10-12).
+  const ayuda = (
+    <Ayuda titulo="Resultados">
+      <span className="block">
+        «×2.0 un día normal» quiere decir que la tienda vendió, por día, el doble de prendas que en los 60 días anteriores a la campaña. El año que
+        viene, la propuesta del Plan usa ese número en vez de × 3.
+      </span>
+      <span className="mt-2 block">
+        «Se agotó» es una categoría que quedó en cero en esa tienda antes de terminar: lo vendido ahí quedó corto por falta de stock, y la propuesta
+        del año que viene no lo promedia.
+      </span>
+      <span className="mt-2 block">«Lo que sobró» es lo vendido de esa categoría en los 60 días después de la campaña, contra su precio de etiqueta.</span>
+    </Ayuda>
+  );
   const cabecera = (subtitulo: string) => (
     <EncabezadoPagina
       sede="Todas las tiendas"
-      titulo="Plan de campaña"
-      subtitulo={subtitulo}
+      titulo={
+        <>
+          Plan de campaña
+          {/* En el celular la frase se esconde y el «!» sube junto al título, como en Productos. */}
+          <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayuda}</span>
+        </>
+      }
+      subtitulo={
+        <>
+          <span className="max-sm:hidden">{subtitulo} </span>
+          <span className="max-sm:hidden">{ayuda}</span>
+        </>
+      }
       acciones={r && campanas ? <SelectorCampana campanas={campanas} actualId={r.plan.id} hoy={r.hoy} ruta="/compras/plan/resultados" puedeCrear={false} onNueva={() => {}} onEditar={() => {}} onArchivadas={() => {}} /> : undefined}
     />
   );
@@ -200,16 +226,13 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
         </section>
       </div>
 
-      <p className="nota-cayla">
-        Cómo leerlo: «×2.0 un día normal» quiere decir que la tienda vendió, por día, el doble de prendas que en los 60 días anteriores a la campaña;
-        el año que viene, la propuesta del Plan usa ese número en vez de × 3.{" "}
-        {conMultiplicador.length > 0 && momento === "terminada"
-          ? `Para la próxima: ${conMultiplicador.map((x) => `${x.t.nombre} ${textoMultiplicador(x.m!)}`).join(", ")}${recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. `
-          : ""}
-        «Se agotó» es una categoría que quedó en cero en esa tienda antes de terminar: lo vendido ahí quedó corto por falta de stock, y la propuesta
-        del año que viene no lo promedia. «Lo que sobró» es lo vendido de esa categoría en los 60 días después de la campaña, contra su precio de
-        etiqueta.
-      </p>
+      {/* Lo que deja la campaña para la próxima es un dato, no una definición: queda a la vista (las definiciones van en el «!»). */}
+      {conMultiplicador.length > 0 && momento === "terminada" && (
+        <p className="nota-cayla">
+          Para la próxima: {conMultiplicador.map((x) => `${x.t.nombre} ${textoMultiplicador(x.m!)}`).join(", ")}
+          {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números en vez de × 3.
+        </p>
+      )}
     </div>
   );
 }
