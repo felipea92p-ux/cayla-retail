@@ -40,6 +40,8 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 // La versión vigente: 20261006213000 reemplazó a 20261005223000 (que reemplazó a 20261005210000): sin sede, cada cuenta recibe las
 // tiendas que opera, y quien puede analizar recibe todas (Análisis v4: la encargada y el líder ven lo mismo).
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261006213000_analisis_preparacion_tres_tiendas.sql"), "utf8");
+// Y el parche anclado sobre ella: las familias apagadas (bolsas) no cuentan (20261012220000; su caso vive en motores_familias_apagadas.mjs).
+const SIN_FAMILIAS_APAGADAS = readFileSync(join(RAIZ, "supabase", "migrations", "20261012220000_preparacion_motor_ignora_familias_apagadas.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -68,6 +70,8 @@ const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
 ${MIGRACION.replace(/^set lock_timeout.*$/m, "")}
+set local search_path = retail, public, extensions;
+${SIN_FAMILIAS_APAGADAS.replace(/^set lock_timeout.*$/m, "")}
 set local search_path = retail, public, extensions;
 
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$

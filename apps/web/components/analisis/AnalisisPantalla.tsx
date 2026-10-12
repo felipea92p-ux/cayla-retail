@@ -51,16 +51,19 @@ export function AnalisisPantalla({
   datos,
   acceso,
   vistaInicial,
+  busquedaInicial = "",
   queFaltaInicial = false,
 }: {
   datos: DatosAnalisis;
   acceso: AccesoAnalisis;
   vistaInicial: VistaAnalisis;
+  /** Lo buscado que llega en la dirección (`?q=`, `leerBusqueda`): otra pantalla trae Análisis ya filtrado. */
+  busquedaInicial?: string;
   queFaltaInicial?: boolean;
 }) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(busquedaInicial);
   const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
   const [filtroAcaba, setFiltroAcaba] = useState<FiltroAcaba>("todos");
   const [categoria, setCategoria] = useState<string | null>(null);

@@ -8,7 +8,7 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
   // Se repite aquí además del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("plan_compra");
   const { plan } = await searchParams;
-  const { datos, falla, familias, preparacion, campanas, planPedidoNoExiste, propuesta } = await getPlanCompra(plan);
+  const { datos, falla, familias, preparacion, campanas, planPedidoNoExiste, propuesta, pedido } = await getPlanCompra(plan);
   return (
     <PlanCampana
       datos={datos}
@@ -17,8 +17,13 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
       preparacion={preparacion}
       campanas={campanas}
       puedeContar={veModulo(persona, "conteos")}
+      veAnalisis={veModulo(persona, "analisis")}
+      // Solo para «Fijar un mínimo» por tienda: `guardar_plan_compra_minimo` (de main, 20261012164000) todavía pide ser líder en la base.
+      // El tope y el % de lo que sobra ya son de quien tiene el módulo (ADR-0387).
+      esLider={persona.rol === "lider"}
       planPedidoNoExiste={planPedidoNoExiste}
       propuesta={propuesta}
+      pedido={pedido}
     />
   );
 }

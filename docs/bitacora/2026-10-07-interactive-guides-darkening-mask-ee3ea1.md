@@ -17,3 +17,8 @@ Cómo se verifica: `pnpm --filter web exec vitest run lib/guias.test.ts lib/guia
 Qué hice: medí en vivo qué controles de cada pantalla encendía su guía (`guias:recorrer --cobertura`) y, tramo por tramo con un agente cada uno, profundicé hasta que lo que queda sin encender sea solo repetición: vistas por parámetro (Tabla, Pérdidas, Recibidas, meses), modales que se abren sin guardar, todas las pestañas y las cuatro caras de Inicio. Endurecí la regla (15 verbos más, `aria-haspopup` para los botones que solo abren) y arreglé el motor (demo que reaparece por un enlace, «si está», `solo` antes de preparar, velo en SVG).
 Por qué así: Felipe pidió seguir con todo el sistema sin preguntar; una guía que nombra un botón sin mostrarlo enseña la mitad. Corrección honesta en el ADR: el «velo que no se pintaba» era una mala lectura de capturas en miniatura.
 Cómo se verifica: `pnpm --filter web guias:recorrer -- --base-url http://localhost:<puerto> --cobertura` da 76 ✓, 3 ⚠ sin datos locales y la cobertura por guía en `cobertura.json`.
+
+**2026-10-12 — el foco de la guía viaja sin cortes.** Un solo motor de movimiento (resorte amortiguado, escribe directo en el DOM)
+reemplaza a los tres que se desincronizaban; la tarjeta espera a que el desplazamiento termine en vez de saltar a los 320 ms.
+Verificado: registro cuadro a cuadro en Existencias y `guias:recorrer` en inventario, vender (también a 375 px), caja, nuevo
+producto y gastos, todo en verde (ADR-0389, act. 2026-10-12).

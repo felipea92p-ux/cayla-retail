@@ -181,6 +181,53 @@ export function filasDelAnio(l: LecturaHistorial, etiquetas: readonly EtiquetaHi
   }));
 }
 
+export type OrdenHistorial = "ahora" | "fecha" | "az" | "za" | "mas" | "menos";
+export const ORDENES_HISTORIAL: { valor: OrdenHistorial; texto: string }[] = [
+  { valor: "ahora", texto: "La de ahora y las que vienen" },
+  { valor: "fecha", texto: "Por fecha, de enero a diciembre" },
+  { valor: "mas", texto: "Más vendidas primero" },
+  { valor: "menos", texto: "Menos vendidas primero" },
+  { valor: "az", texto: "Nombre, A a Z" },
+  { valor: "za", texto: "Nombre, Z a A" },
+];
+
+const comparable = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+/** Lo vendido en la campaña sumando las tiendas con dato (para ordenar por «más vendidas»). */
+const solesDeLaFila = (f: FilaHistorial) => f.celdas.reduce((a, c) => a + (c.medida.estado === "medida" ? c.medida.soles : 0), 0);
+
+/**
+ * Cuánto falta en el calendario para una campaña, mirando solo el día y el mes (las filas de cualquier año caen en el mismo calendario):
+ * 0 si `hoy` cae dentro de ella; si no, los días hasta que empiece, dando la vuelta al año. Así «la de ahora y las que vienen» arranca por
+ * la que está en curso (Aniversario CAYLA en octubre) y sigue con Halloween, Black Friday y Navidad (Felipe 2026-10-12).
+ */
+export function faltaEnElCalendario(c: Pick<CampanaDelAnio, "desde" | "hasta">, hoy: string): number {
+  const md = (iso: string) => iso.slice(5);
+  const h = md(hoy), d = md(c.desde), f = md(c.hasta);
+  // Una campaña que cruza el año (del 20 dic al 6 ene) está en curso si hoy cae a un lado u otro del cambio.
+  const enCurso = d <= f ? d <= h && h <= f : h >= d || h <= f;
+  if (enCurso) return 0;
+  const anio = Number(hoy.slice(0, 4));
+  const inicio = `${anio}-${d}`;
+  const falta = diasEntre(hoy, inicio);
+  return falta > 0 ? falta : diasEntre(hoy, `${anio + 1}-${d}`);
+}
+
+/**
+ * Las filas del año que calzan con lo buscado (sin tildes ni mayúsculas), en el orden pedido (Felipe 2026-10-12). «La de ahora y las que vienen»
+ * (el de entrada) necesita `hoy`; por fecha es el de enero a diciembre.
+ */
+export function filtrarYOrdenar(filas: readonly FilaHistorial[], q: string, orden: OrdenHistorial, hoy?: string): FilaHistorial[] {
+  const busca = comparable(q.trim());
+  const quedan = busca ? filas.filter((f) => comparable(f.campana.nombre).includes(busca)) : [...filas];
+  const porNombre = (a: FilaHistorial, b: FilaHistorial) => a.campana.nombre.localeCompare(b.campana.nombre, "es");
+  if (orden === "az") return quedan.sort(porNombre);
+  if (orden === "za") return quedan.sort((a, b) => porNombre(b, a));
+  if (orden === "mas") return quedan.sort((a, b) => solesDeLaFila(b) - solesDeLaFila(a) || porNombre(a, b));
+  if (orden === "menos") return quedan.sort((a, b) => solesDeLaFila(a) - solesDeLaFila(b) || porNombre(a, b));
+  if (orden === "ahora" && hoy) return quedan.sort((a, b) => faltaEnElCalendario(a.campana, hoy) - faltaEnElCalendario(b.campana, hoy) || porNombre(a, b));
+  return quedan;
+}
+
 /** El total del año por tienda y su crecimiento contra el anterior (solo si los dos años están completos y con datos). */
 export function totalDelAnio(l: LecturaHistorial, tiendaId: string, anio: number): { soles: number; completo: boolean; crecimiento: number | null } {
   const meses = l.meses.get(tiendaId);
@@ -191,6 +238,18 @@ export function totalDelAnio(l: LecturaHistorial, tiendaId: string, anio: number
   const completo = este.length === 12;
   const anterior = previo.reduce((s, [, v]) => s + v, 0);
   return { soles, completo, crecimiento: completo && previo.length === 12 && anterior > 0 ? soles / anterior - 1 : null };
+}
+
+/**
+ * El año de toda CAYLA: la suma de las tiendas, y su crecimiento solo si TODAS las que vendieron tienen los dos años completos (si una tienda
+ * abrió este año, sumarla haría «crecer» a CAYLA sin que nadie vendiera más). null = no hay con qué comparar parejo.
+ */
+export function totalDeCayla(l: LecturaHistorial, anio: number): { soles: number; crecimiento: number | null } {
+  const tiendas = l.tiendas.map((t) => totalDelAnio(l, t.id, anio)).filter((t) => t.soles > 0);
+  const soles = tiendas.reduce((s, t) => s + t.soles, 0);
+  if (tiendas.length === 0 || tiendas.some((t) => t.crecimiento === null)) return { soles, crecimiento: null };
+  const anterior = tiendas.reduce((s, t) => s + t.soles / (1 + (t.crecimiento as number)), 0);
+  return { soles, crecimiento: anterior > 0 ? soles / anterior - 1 : null };
 }
 
 /** Los años con historia, del más nuevo al más viejo. */

@@ -2,8 +2,11 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 70,
+  "total": 82,
   "controles": {
+    "components/colaboradores/CajonFicha.tsx": [
+      "button «Cerrar»"
+    ],
     "components/plan-compra/AvisoStock.tsx": [
       "BotonEnlace «Ir a Conteo»"
     ],
@@ -31,11 +34,12 @@
       "button «plan.categoria»"
     ],
     "components/plan-compra/FormularioCategoria.tsx": [
-      "Boton «Proponer los tres desde lo vendido»",
+      "button «Usar el del catálogo: S/»",
+      "Boton «Usar estos tres»",
       "Boton «Proponer el normal desde lo vendido»",
-      "CampoTexto «Diciembre flojo, prendas»",
-      "CampoTexto «Diciembre normal, prendas»",
-      "CampoTexto «Diciembre bueno, prendas»",
+      "CampoTexto «Flojo, prendas»",
+      "CampoTexto «Normal, prendas»",
+      "CampoTexto «Bueno, prendas»",
       "CampoMonto «{<span className=\"sr-only\">Precio de venta, promedio de la categoría</span>}»",
       "CampoMonto «{<span className=\"sr-only\">Costo por prenda, promedio</span>}»",
       "CampoTexto «Lo que sobre, en % del precio»",
@@ -77,10 +81,13 @@
     "components/plan-compra/PlanCampana.tsx": [
       "Boton «Nueva campaña»",
       "Boton «Ver campañas archivadas»",
+      "Boton «plan.resumen»",
       "Boton «Exportar»",
       "Boton «plan.empezar»",
       "Boton «Restaurar…»",
-      "Boton «→() => setEditandoRecupero(true)»"
+      "Link «{numeroDeOrden(o.numero)}»",
+      "Boton «→() => setEditandoRecupero(true)»",
+      "Boton «→() => setEditandoReparto(true)»"
     ],
     "components/plan-compra/PlanCategoriaModal.tsx": [
       "Boton «Cancelar»",
@@ -94,8 +101,19 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
+    "components/plan-compra/RepartoModal.tsx": [
+      "CampoTexto «{`Mínimo de ${t.nombre}»",
+      "ComboResponsable «0 ? \"Todo listo para guardar.\" : \"Sin cambios todavía.\"»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
     "components/plan-compra/SelectorCampana.tsx": [
       "Desplegable «);»"
+    ],
+    "components/plan-compra/SimuladorPlan.tsx": [
+      "input «Lo que sobra se vende al»",
+      "input «Comprarías»",
+      "Link «Qué pedir, prenda por prenda, en Análisis»"
     ],
     "components/plan-compra/TopeModal.tsx": [
       "CampoMonto «(sin nombre)»",

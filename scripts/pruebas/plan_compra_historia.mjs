@@ -24,6 +24,12 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const leer = (n) => readFileSync(join(RAIZ, "supabase", "migrations", n), "utf8").replace(/^set lock_timeout.*$/m, "");
 const C2 = leer("20261012160000_ventas_historicas_sinatra.sql");
 const C4 = leer("20261012161000_plan_compra_propuesta_y_resultados.sql");
+const TIENDAS_ACTIVAS = leer("20261012162000_plan_compra_tiendas_activas.sql");
+const EN_CURSO_Y_CIERRE = leer("20261012163000_plan_compra_resultados_en_curso_y_cierre.sql");
+const REPARTO = leer("20261012164000_plan_compra_reparto_por_tienda.sql");
+const POR_TIENDA = leer("20261012212000_plan_compra_resultados_por_tienda.sql");
+const PRECIO_LLENO = leer("20261012223000_plan_compra_precio_lleno_al_vender.sql");
+const PEDIDO = leer("20261012224000_plan_compra_lo_pedido_en_ordenes.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -46,6 +52,18 @@ set local search_path = retail, public, extensions;
 ${C2}
 set local search_path = retail, public, extensions;
 ${C4}
+set local search_path = retail, public, extensions;
+${TIENDAS_ACTIVAS}
+set local search_path = retail, public, extensions;
+${EN_CURSO_Y_CIERRE}
+set local search_path = retail, public, extensions;
+${REPARTO}
+set local search_path = retail, public, extensions;
+${POR_TIENDA}
+set local search_path = retail, public, extensions;
+${PRECIO_LLENO}
+set local search_path = retail, public, extensions;
+${PEDIDO}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text;
@@ -70,10 +88,11 @@ insert into retail.variantes (producto_id, sku, precio, costo, color_codigo, tal
 insert into retail.planes_compra (nombre, desde, hasta) values ('PH Futura', :'hoy'::date + 60, :'hoy'::date + 74), ('PH Pasada', :'hoy'::date - 30, :'hoy'::date - 20);
 select id as futura from retail.planes_compra where nombre = 'PH Futura' \\gset
 select id as pasada from retail.planes_compra where nombre = 'PH Pasada' \\gset
-create function pg_temp.vende(p_dia date, p_cant int, p_precio numeric) returns void language sql as $f$
+create function pg_temp.vende(p_dia date, p_cant int, p_precio numeric, p_lista numeric default 80) returns void language sql as $f$
   with v as (insert into retail.ventas (ubicacion_id, estado, created_at)
              values (current_setting('ph.tienda')::uuid, 'completada', (p_dia::timestamp + interval '12 hours') at time zone 'America/Lima') returning id)
-  insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, current_setting('ph.v')::uuid, p_cant, p_precio, 30 from v
+  insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, motivo_descuento, costo_unitario)
+  select id, current_setting('ph.v')::uuid, p_cant, p_lista, p_lista - p_precio, case when p_lista > p_precio then 'liquidacion_temporada' end, 30 from v
 $f$;
 select set_config('ph.tienda', :'tienda', true) as _1, set_config('ph.v', :'v', true) as _2 \\gset
 set local session_replication_role = replica;
@@ -139,7 +158,11 @@ caso(
 // R. LO QUE SOBRA ---------------------------------------------------------------------------------------------------------
 caso(
   "R1 un líder fija el % (firmado) y la otra campaña lo hereda; 101 se rechaza; NULL lo quita",
-  `select retail.guardar_plan_compra_recupero(:'pasada', 40);
+  `reset role;
+   -- Que el caso no dependa de lo que alguien fijó en otra campaña de la base local.
+   update retail.planes_compra set recupero_defecto_pct = null, recupero_actualizado_por = null, recupero_actualizado_en = null where id not in (:'pasada', :'futura');
+   ${como(FELIPE)}
+   select retail.guardar_plan_compra_recupero(:'pasada', 40);
    select concat_ws(',',
      (select recupero_defecto_pct || ':' || (recupero_actualizado_por is not null) from retail.planes_compra where id = :'pasada'),
      retail.fn_plan_compra_propuesta(:'futura')->'recupero_defecto'->>'pct',
@@ -205,6 +228,116 @@ caso(
      (select round((d->>'soles')::numeric / (d->>'a_precio_lista')::numeric, 2) from jsonb_array_elements(:'r'::jsonb->'despues'->'categorias') d where d->>'c' = :'cat'),
      (select p->>'nombre' from jsonb_array_elements(:'r'::jsonb->'productos') p limit 1));`,
   "4:320.00,4,0.50,Polo PH"
+);
+
+caso(
+  "S2 en curso y cierre: lo vendido por día, cuántas se cobraron con rebaja y el stock de hoy y al cierre de la categoría",
+  `reset role;
+   set local session_replication_role = replica;
+   select pg_temp.vende(:'hoy'::date - 22, 2, 40);
+   set local session_replication_role = origin;
+   insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+     values (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'piso_venta'), 5, 0);
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select concat_ws(',',
+     (select string_agg((d->>'u'), '+' order by d->>'f') from jsonb_array_elements(:'r'::jsonb->'por_dia') d),
+     (select sum((f->>'rebajadas')::int) from jsonb_array_elements(:'r'::jsonb->'filas') f where f->>'c' = :'cat'),
+     (select (s->>'hoy') || '/' || (s->>'cierre') from jsonb_array_elements(:'r'::jsonb->'stock') s where s->>'c' = :'cat'));`,
+  "4+2,2,5/5"
+);
+
+caso(
+  "S4 a precio lleno es contra el precio AL QUE SE VENDIÓ: una tienda con su propio precio (60, sin descuento) no cuenta como rebajada, y subir el precio base después no vuelve rebajado lo pasado",
+  `reset role;
+   set local session_replication_role = replica;
+   select pg_temp.vende(:'hoy'::date - 23, 3, 60, 60);
+   set local session_replication_role = origin;
+   update retail.variantes set precio = 120 where id = :'v';
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select (select sum((f->>'rebajadas')::int) from jsonb_array_elements(:'r'::jsonb->'filas') f where f->>'c' = :'cat');`,
+  "0"
+);
+
+caso(
+  "S3 por tienda: lo vendido cada día de ESA tienda y su stock de hoy y al cierre (para «¿Cómo va?» y «Pedir más» de una tienda)",
+  `reset role;
+   set local session_replication_role = replica;
+   select pg_temp.vende(:'hoy'::date - 22, 2, 40);
+   set local session_replication_role = origin;
+   insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+     values (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'piso_venta'), 5, 0);
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select concat_ws(',',
+     (select string_agg((d->>'u'), '+' order by d->>'f') from jsonb_array_elements(:'r'::jsonb->'por_dia_tienda') d where d->>'t' = :'tienda'),
+     (select (s->>'hoy') || '/' || (s->>'cierre') from jsonb_array_elements(:'r'::jsonb->'stock_tienda') s where s->>'c' = :'cat' and s->>'t' = :'tienda'),
+     (select count(*) from jsonb_array_elements(:'r'::jsonb->'stock_tienda') s where s->>'c' = :'cat' and s->>'t' <> :'tienda'));`,
+  "4+2,5/5,0"
+);
+
+// O. LO PEDIDO EN ÓRDENES DE COMPRA ---------------------------------------------------------------------------------------
+caso(
+  "O1 lo pedido: cuenta la orden generada que llega dentro de la campaña (o, sin fecha de entrega, que se emitió dentro); no la que llega fuera ni la anulada",
+  `reset role;
+   select desde as f_desde, hasta as f_hasta from retail.planes_compra where id = :'futura' \\gset
+   select id as prov from retail.proveedores limit 1 \\gset
+   select id as marca from retail.marcas limit 1 \\gset
+   set local session_replication_role = replica;
+   insert into retail.ordenes_compra (id, proveedor_id, fecha_emision, fecha_entrega_estimada, estado, creada_por)
+   values ('11111111-0000-4000-8000-000000000001', :'prov', :'f_desde'::date - 20, :'f_desde'::date + 1, 'generada', gen_random_uuid()),
+          ('11111111-0000-4000-8000-000000000002', :'prov', :'f_desde'::date - 20, :'f_hasta'::date + 5, 'generada', gen_random_uuid()),
+          ('11111111-0000-4000-8000-000000000003', :'prov', :'f_desde'::date, null, 'generada', gen_random_uuid());
+   insert into retail.ordenes_compra (id, proveedor_id, fecha_emision, fecha_entrega_estimada, estado, creada_por, anulada_por, anulada_en, motivo_anulacion)
+   values ('11111111-0000-4000-8000-000000000004', :'prov', :'f_desde'::date - 20, :'f_desde'::date + 1, 'anulada', gen_random_uuid(), gen_random_uuid(), now(), 'prueba');
+   insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
+   values ('11111111-0000-4000-8000-000000000001', 1, :'cat', :'marca', 20, 35),
+          ('11111111-0000-4000-8000-000000000002', 1, :'cat', :'marca', 50, 35),
+          ('11111111-0000-4000-8000-000000000003', 1, :'cat', :'marca', 5, 35),
+          ('11111111-0000-4000-8000-000000000004', 1, :'cat', :'marca', 99, 35);
+   set local session_replication_role = origin;
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_pedido(:'futura') as r \\gset
+   select concat_ws(',',
+     jsonb_array_length(:'r'::jsonb->'ordenes'),
+     (select g->>'unidades' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'),
+     (select g->>'soles' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'));`,
+  "2,25,875.00"
+);
+
+// D. REPARTO POR TIENDA ---------------------------------------------------------------------------------------------------
+caso(
+  "D1 un líder fija el mínimo de una tienda (lo trae la propuesta, con todas las tiendas activas); la suma no pasa de 100; el Taller no; NULL lo quita",
+  `select id as otra from retail.ubicaciones where tipo = 'tienda' and activo and id <> :'tienda' order by nombre limit 1 \\gset
+   select id as taller from retail.ubicaciones where tipo <> 'tienda' limit 1 \\gset
+   select retail.guardar_plan_compra_minimo(:'futura', :'otra', 20);
+   select concat_ws(',',
+     (select m->>'pct' from jsonb_array_elements(retail.fn_plan_compra_propuesta(:'futura')->'minimos') m where m->>'u' = :'otra'),
+     (select count(*) >= 2 from jsonb_array_elements(retail.fn_plan_compra_propuesta(:'futura')->'tiendas_activas')),
+     split_part(pg_temp.intento(format('select retail.guardar_plan_compra_minimo(%L, %L, 91)', :'futura', :'tienda')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.guardar_plan_compra_minimo(%L, %L, 90)', :'futura', :'tienda')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.guardar_plan_compra_minimo(%L, %L, 5)', :'futura', :'taller')), '|', 2)) as antes \\gset
+   -- Quitarlo, en su propia sentencia: una lectura en la misma sentencia no ve el cambio.
+   select (retail.guardar_plan_compra_minimo(:'futura', :'otra', null)->>'minimo_pct') is null as quitado \\gset
+   select concat_ws(',', :'antes', :'quitado', jsonb_array_length(retail.fn_plan_compra_propuesta(:'futura')->'minimos'));`,
+  "20,t,El mínimo va de 1 a 90 % del objetivo.,Los mínimos de las tiendas sumarían 110 %: no pueden pasar de 100 %.,El mínimo es para una tienda activa,t,0"
+);
+
+// T. TIENDAS ACTIVAS ------------------------------------------------------------------------------------------------------
+caso(
+  "T1 una tienda activa sin historia ni ventas sale en el Historial y en los Resultados (con 0); una inactiva sin nada, no",
+  `reset role;
+   insert into retail.ubicaciones (nombre, tipo, activo) values ('ZZ Tienda nueva', 'tienda', true), ('ZZ Tienda cerrada', 'tienda', false);
+   ${como(FELIPE)}
+   select retail.fn_historial_ventas(:'hoy'::date - 30, :'hoy'::date) as h \\gset
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select concat_ws(',',
+     (select count(*) from jsonb_array_elements(:'h'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda nueva'),
+     (select count(*) from jsonb_array_elements(:'h'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda cerrada'),
+     (select t->>'unidades' from jsonb_array_elements(:'r'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda nueva'),
+     (select count(*) from jsonb_array_elements(:'r'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda cerrada'));`,
+  "1,0,0,0"
 );
 
 // M. PUERTAS --------------------------------------------------------------------------------------------------------------

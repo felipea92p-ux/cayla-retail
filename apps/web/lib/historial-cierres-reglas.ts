@@ -4,6 +4,7 @@
 import type { CierreCaja } from "@/lib/caja";
 import { horaDelDiaLima } from "./panel-serie";
 import { claveDeMetodo, cobradoDelTurno, type MetodoCobrado } from "./caja-tablero-reglas";
+import { NOMBRES_MES, type Mes } from "./facturacion-reglas";
 
 const ZONA = "America/Lima";
 
@@ -17,19 +18,50 @@ export function estadoCierre(diferencia: number): EstadoCierre {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-export type ResumenCierres = { total: number; cuadraron: number; conDiferencia: number; diferenciaNeta: number };
+/** Cuántas veces y cuánto, en positivo: lo que dice cada sello del modal («FALTÓ · 4 veces · S/ 631.80»). */
+export type VecesYMonto = { veces: number; monto: number };
+
+export type ResumenCierres = {
+  total: number;
+  cuadraron: number;
+  conDiferencia: number;
+  diferenciaNeta: number;
+  faltaron: VecesYMonto;
+  sobraron: VecesYMonto;
+};
 
 export function resumirCierres(cierres: CierreCaja[]): ResumenCierres {
   let cuadraron = 0;
   let neta = 0;
+  const faltaron = { veces: 0, monto: 0 };
+  const sobraron = { veces: 0, monto: 0 };
   for (const c of cierres) {
-    if (estadoCierre(c.diferencia) === "cuadro") cuadraron += 1;
-    else neta += c.diferencia;
+    const estado = estadoCierre(c.diferencia);
+    if (estado === "cuadro") {
+      cuadraron += 1;
+      continue;
+    }
+    neta += c.diferencia;
+    const lado = estado === "falto" ? faltaron : sobraron;
+    lado.veces += 1;
+    lado.monto += Math.abs(c.diferencia);
   }
-  return { total: cierres.length, cuadraron, conDiferencia: cierres.length - cuadraron, diferenciaNeta: redondear(neta) };
+  return {
+    total: cierres.length,
+    cuadraron,
+    conDiferencia: cierres.length - cuadraron,
+    diferenciaNeta: redondear(neta),
+    faltaron: { veces: faltaron.veces, monto: redondear(faltaron.monto) },
+    sobraron: { veces: sobraron.veces, monto: redondear(sobraron.monto) },
+  };
 }
 
-export type GrupoMes = { clave: string; etiqueta: string; cierres: CierreCaja[] };
+/** El filtro del modal: todos, solo los que faltó o solo los que sobró (Felipe 2026-10-12, maqueta E «Los tickets»). */
+export type FiltroCierres = "todos" | "falto" | "sobro";
+
+export function filtrarCierres(cierres: CierreCaja[], filtro: FiltroCierres): CierreCaja[] {
+  return filtro === "todos" ? cierres : cierres.filter((c) => estadoCierre(c.diferencia) === filtro);
+}
 
 function partes(iso: string) {
   const p = new Intl.DateTimeFormat("es-PE", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "numeric", weekday: "short" }).formatToParts(new Date(iso));
@@ -43,21 +75,92 @@ export function bloqueFecha(iso: string): { dia: string; diaSemana: string } {
   return { dia, diaSemana };
 }
 
-/** Agrupa por mes de Lima conservando el orden recibido (el más reciente primero). */
-export function agruparPorMes(cierres: CierreCaja[]): GrupoMes[] {
-  const grupos: GrupoMes[] = [];
-  for (const c of cierres) {
-    const { anio, mes } = partes(c.cerradaEn);
-    const clave = `${anio}-${mes}`;
-    let g = grupos.find((x) => x.clave === clave);
-    if (!g) {
-      const nombre = new Intl.DateTimeFormat("es-PE", { timeZone: ZONA, month: "long" }).format(new Date(c.cerradaEn));
-      g = { clave, etiqueta: `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${anio}`, cierres: [] };
-      grupos.push(g);
-    }
-    g.cierres.push(c);
+// ---------------------------------------------------------------------------------------------------------------
+// El mes del modal y su gráfico (Felipe 2026-10-12): el modal abre siempre en el mes actual, se puede elegir cualquier
+// mes del año (los que aún no llegan, bloqueados) o pasar al año anterior, y arriba un gráfico de barras con lo que se
+// contó en cada cierre del mes, día por día. Todo en hora de Lima (UTC−5 fijo, Perú no cambia la hora).
+
+/** El mes (de Lima) en que cayó un instante. */
+export function mesDeLima(iso: string): Mes {
+  const { anio, mes } = partes(iso);
+  return { anio: Number(anio), mes: Number(mes) };
+}
+
+/** El día de Lima (año, mes y día) de un instante. */
+export function diaDeLima(iso: string): Mes & { dia: number } {
+  const { anio, mes, dia } = partes(iso);
+  return { anio: Number(anio), mes: Number(mes), dia: Number(dia) };
+}
+
+/** Desde y hasta (sin incluir) de un mes de Lima, para pedirle a la base los cierres de ese mes. */
+export function limitesDelMes({ anio, mes }: Mes): { desde: string; hasta: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const sig = mes === 12 ? { anio: anio + 1, mes: 1 } : { anio, mes: mes + 1 };
+  return { desde: `${anio}-${pad(mes)}-01T00:00:00-05:00`, hasta: `${sig.anio}-${pad(sig.mes)}-01T00:00:00-05:00` };
+}
+
+export function diasEnMes({ anio, mes }: Mes): number {
+  return new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+}
+
+const compararMes = (a: Mes, b: Mes) => a.anio * 12 + a.mes - (b.anio * 12 + b.mes);
+
+/** Un mes del selector: su nombre y si todavía no llega (se ve, no se elige). */
+export type MesDelSelector = { mes: number; nombre: string; bloqueado: boolean };
+
+/** Los doce meses de un año para el selector; los posteriores al mes actual van bloqueados. */
+export function mesesDelSelector(anio: number, actual: Mes): MesDelSelector[] {
+  return NOMBRES_MES.map((nombre, i) => ({ mes: i + 1, nombre, bloqueado: compararMes({ anio, mes: i + 1 }, actual) > 0 }));
+}
+
+/**
+ * Un día del gráfico. `cierres`: los que se CERRARON ese día, del más antiguo al más nuevo (así quedan de izquierda a
+ * derecha). Sin cierres, el día es `abierta` si una caja seguía abierta esa noche (se abrió antes y se cerró después),
+ * `hoy` si es hoy, `futuro` si todavía no llega y `vacio` si no hubo caja.
+ */
+export type DiaGrafico = { dia: number; cierres: CierreCaja[]; tipo: "con" | "abierta" | "hoy" | "futuro" | "vacio" };
+
+export function diasDelGrafico(cierres: CierreCaja[], mes: Mes, hoy: Mes & { dia: number }): DiaGrafico[] {
+  const total = diasEnMes(mes);
+  const porDia = new Map<number, CierreCaja[]>();
+  const abiertas = new Set<number>();
+  // Un día se cuenta por su número dentro del mes; lo de otros meses queda fuera (o, si la caja cruzó de mes, en el borde).
+  const indice = (d: Mes & { dia: number }) => {
+    const c = compararMes(d, mes);
+    return c < 0 ? 0 : c > 0 ? total + 1 : d.dia;
+  };
+  for (const c of [...cierres].sort((a, b) => a.cerradaEn.localeCompare(b.cerradaEn))) {
+    const cierre = diaDeLima(c.cerradaEn);
+    if (compararMes(cierre, mes) === 0) porDia.set(cierre.dia, [...(porDia.get(cierre.dia) ?? []), c]);
+    // La caja quedó abierta las noches entre el día que se abrió y el anterior al que se cerró.
+    for (let d = Math.max(1, indice(diaDeLima(c.abiertaEn))); d < Math.min(total + 1, indice(cierre)); d++) abiertas.add(d);
   }
-  return grupos;
+  const esMesActual = compararMes(mes, hoy) === 0;
+  const esFuturo = compararMes(mes, hoy) > 0;
+  return Array.from({ length: total }, (_, i) => {
+    const dia = i + 1;
+    const delDia = porDia.get(dia) ?? [];
+    if (delDia.length > 0) return { dia, cierres: delDia, tipo: "con" as const };
+    const tipo = abiertas.has(dia)
+      ? ("abierta" as const)
+      : esFuturo || (esMesActual && dia > hoy.dia)
+        ? ("futuro" as const)
+        : esMesActual && dia === hoy.dia
+          ? ("hoy" as const)
+          : ("vacio" as const);
+    return { dia, cierres: [], tipo };
+  });
+}
+
+/** El techo del gráfico: lo más alto entre lo que se contó y lo que debía haber, redondeado hacia arriba a S/ 500. */
+export function topeDelGrafico(cierres: Pick<CierreCaja, "montoCierreReal" | "montoCierreSistema">[]): number {
+  const max = Math.max(0, ...cierres.map((c) => Math.max(c.montoCierreReal, c.montoCierreSistema)));
+  return Math.max(500, Math.ceil(max / 500) * 500);
+}
+
+/** «Octubre 2026». */
+export function nombreDelMes({ anio, mes }: Mes): string {
+  return `${NOMBRES_MES[mes - 1]} ${anio}`;
 }
 
 /** «12 h 35 min» · «45 min». Vacío si las fechas no se pueden leer o van al revés. */

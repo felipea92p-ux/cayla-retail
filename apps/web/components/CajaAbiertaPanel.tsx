@@ -550,7 +550,7 @@ export function CajaAbiertaPanel({
           onCerrar={() => setModal(null)}
         />
       )}
-      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
+      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionId={caja.ubicacionId} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={filtrados}

@@ -470,6 +470,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `armarHistoria` (`lib/espacio-piso.ts`, puro). Tres pestañas en estado (`PlanDelPisoPestanas.tsx`, cliente; las tres quedan montadas): **Propuesta**
   (`PropuestaDelMix.tsx`, servidor, solo lectura; maqueta A «La percha», ADR-0352 act. 2026-10-11: la tarjeta «78 de 1,800 prendas» con su frase, los dos rieles de perchas «Hoy» y «Cómo quedaría» en `TarjetaDelRiel.tsx` —cliente: el resaltado al señalar o fijar un grupo— con el botón «¿Por qué?» y su panel en `PorQue.tsx` —cliente—,
   las fichas de «Fuera del riel», el aviso de las categorías «por revisar» `AvisoPorRevisar.tsx` (cliente: su botón abre la pestaña Grupos por el contexto de `PlanDelPisoPestanas.tsx`), y «El detalle, grupo por grupo»: la mancuerna `Mancuerna.tsx` (cliente: el cursor enciende una fila y flota una tarjeta con sus cuatro cifras; su lógica pura, en `lib/mancuerna-lectura.ts`) y la tabla; las siluetas se dibujan una vez con `SiluetasDelPlan.tsx` y se usan con `IconoDeGrupo.tsx`.
+  **«Color de la tienda»** (ADR-0352 act. 2026-10-12; entre «Hoy» y «Cómo quedaría»): de qué familias de color es lo que cuelga y si se parece a lo que se vende. `armarPropuesta` suma `colorDeLaTienda` (y `repartoDeColor` en cada fila del riel) con `lib/plan-piso-familias.ts` (puro, con su prueba: las 6 familias más relevantes y «Otras», la marca solo con evidencia —residuo de Poisson, 30 ventas—, el desglose por color), sobre las mismas tallas y ventas del riel; sin RPC nuevo. Se dibuja con `ColorDeLaTienda.tsx` (cliente: `<BarraApilada>`, una celda por familia y qué familia está abierta), `DesgloseDeColor.tsx` (la `Tabla` de colores de una familia) y, al señalar un grupo, `DetalleDelGrupo.tsx` (la tarjeta de su reparto por familia, anclada al tramo por `TarjetaDelRiel.tsx`); estilos `pp-col*`, `pp-det*` y `pp-des*` en `app/estilos/plan-piso.css`.
   Las perchas, las unidades (5 a 100 prendas por percha) y todas las frases salen de `lib/plan-piso-percha.ts` y la silueta de cada grupo de `lib/plan-piso-siluetas.ts` (puros, con sus pruebas); el color de cada grupo vive en `app/estilos/plan-piso.css` (`--grupo-0..5`), la lectura en palabras `lecturaDeGrupo` y «Para empezar» de «Fuera del riel» —`referenciaFueraDelRiel`, con sus semanas en `lib/mix-piso-partida.ts`— en `lib/mix-piso.ts`; ADR-0352 act. 2026-10-11 (b)), **Grupos** (`GruposDelMix.tsx`, cliente: el líder prepara cambios en las filas y los guarda juntos con «Revisar y guardar» →
   RPC `fijar_grupos_de_categorias`, todo o nada, con el combo Responsable y PT409; un cambio preparado caduca si otra persona cambió la categoría) e
   **Historia** (`HistoriaDelEspacio.tsx`, servidor). Se degrada por pestaña: sin la lectura del piso o de las fotos se apaga solo esa pestaña.
@@ -744,7 +745,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   nacimiento de `producto_origen`; el costo solo a quien ve el dinero de compras. Lo llenan disparadores: `fn_registrar_cambio_producto`
   (precio, costo, categoría, estado, marca, proveedor, color/talla/código corregidos), `fn_historial_nombre_producto`, la temporada y,
   desde ADR-0354, etiquetas (`variante_etiquetas`), variantes nuevas, fotos (`producto_fotos`), tejido y patrón; cada fila lleva su
-  sede (`ubicacion_id`). `fn_historial_producto_cambios` y `HistorialProductoPanel` quedaron sin uso (el panel se borró).
+  sede (`ubicacion_id`). `HistorialProductoPanel` se borró, y `fn_historial_producto_cambios` también (20261012213000).
 - Eliminar un producto (solo Admin y Líder, ADR-0218): la opción vive en la vista rápida de `ProductosGrilla.tsx` y en la ficha
   de la prenda en `ProductosTabla.tsx` (`page.tsx` la enciende con `persona.rol === "lider"`, un Admin es un Líder) y abre
   `EliminarProductoModal.tsx`, que PRIMERO pregunta a la RPC `fn_producto_se_puede_eliminar` (`20260926220000`) y solo
@@ -1360,7 +1361,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   pregunta por lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— con
   `fn_tomar_comprobantes_para_consultar` → `lib/consultar-comprobante.ts` (reglas en `lib/consulta-sunat-reglas.ts`)
   → `actualizar_transmision_comprobante` o `fn_confirmar_baja_sunat` (`20261007200000`). El trabajo programado
-  consulta también en producción (solo lee de SUNAT); transmitir sigue siendo solo sandbox. La numeración sale
+  (`GET`, cada 5 min, `cronNoAutorizado` solo mira `CRON_SECRET`) transmite y consulta también en producción desde
+  el 2026-10-12 (ADR-0165, «Actualización 2026-10-12»). La numeración sale
   de `fn_reservar_numero_serie` (solo la serie activa; en las notas, la de la letra del original: BC.. corrige
   boletas, FC.. facturas, ADR-0278), que llaman `emitir_comprobante` y `emitir_nota` (esta última desde
   `aprobar_devolucion`). El modal de emisión usa `ConsultaDocumento.tsx` → `GET /api/padron` →

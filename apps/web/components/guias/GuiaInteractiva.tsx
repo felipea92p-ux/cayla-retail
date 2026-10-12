@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Boton } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
@@ -31,7 +31,6 @@ const prefiereQuieto = () => typeof window !== "undefined" && window.matchMedia(
 export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: (fin: FinDeGuia) => void }) {
   const [mostrando, setMostrando] = useState<Mostrando | null>(null);
   const [ocupada, setOcupada] = useState(true);
-  const [tarjeta, setTarjeta] = useState({ ancho: 360, alto: 220 });
   const [ventana, setVentana] = useState({ ancho: 1280, alto: 800 });
   const [total, setTotal] = useState(guia.pasos.length);
   /** Cuántos pasos lleva vistos (el historial, como estado para dibujarlo). */
@@ -54,6 +53,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const refTarjeta = useRef<HTMLDivElement>(null);
   const elementoActual = useRef<HTMLElement | null>(null);
   const ultimoRescate = useRef(0);
+  /** La guía está desplazando la pantalla hacia la pieza: el rescate no debe pelear con ese desplazamiento. */
+  const desplazando = useRef(false);
   const dialogosAlEmpezar = useRef(0);
   const terminada = useRef(false);
   // El aviso de fin va por ref: si la pantalla de abajo se redibuja y `onTerminar` cambia de identidad, la guía NO debe
@@ -63,25 +64,22 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     avisarFin.current = onTerminar;
   }, [onTerminar]);
 
-  const medirRecorte = useCallback(() => {
+  /**
+   * Dónde está la pieza AHORA (se pregunta en cada cuadro). No toca el estado de React: antes cada cuadro de un desplazamiento
+   * redibujaba la guía entera y el anillo reiniciaba su transición, y el foco avanzaba a saltos.
+   */
+  const medirMeta = useCallback((v: { ancho: number; alto: number }): Caja | null | undefined => {
     const el = elementoActual.current;
-    const v = { ancho: window.innerWidth, alto: window.innerHeight };
-    setVentana((a) => (a.ancho === v.ancho && a.alto === v.alto ? a : v));
-    if (!el || !el.isConnected) return;
+    if (!el || !el.isConnected) return undefined; // sin pieza viva: se queda donde estaba
     const r = el.getBoundingClientRect();
     const nuevo = recorteDe({ top: r.top, left: r.left, width: r.width, height: r.height }, v);
     // La pantalla se movió sola y dejó la pieza fuera de la vista (el Observatorio se desplaza al mapa al acercarse a una tienda):
     // la guía la trae de vuelta, como mucho una vez cada 700 ms para no pelear con un desplazamiento que todavía está en curso.
-    if ((nuevo.height < 4 || nuevo.width < 4) && r.height > 0 && performance.now() - ultimoRescate.current > 700) {
+    if ((nuevo.height < 4 || nuevo.width < 4) && r.height > 0 && !desplazando.current && performance.now() - ultimoRescate.current > 700) {
       ultimoRescate.current = performance.now();
-      el.scrollIntoView({ block: r.height > v.alto * 0.6 ? "start" : "center", inline: "nearest" });
+      el.scrollIntoView({ block: r.height > v.alto * 0.6 ? "start" : "center", inline: "nearest", behavior: prefiereQuieto() ? "auto" : "smooth" });
     }
-    setMostrando((m) => {
-      if (!m || !m.recorte) return m;
-      const a = m.recorte;
-      if (Math.abs(a.top - nuevo.top) < 0.5 && Math.abs(a.left - nuevo.left) < 0.5 && Math.abs(a.width - nuevo.width) < 0.5 && Math.abs(a.height - nuevo.height) < 0.5) return m;
-      return { ...m, recorte: nuevo };
-    });
+    return nuevo;
   }, []);
 
   /** Lleva el cursor fantasma hasta la pieza y marca el clic. Arranca desde el botón «Siguiente» de la tarjeta si estaba oculto. */
@@ -171,8 +169,12 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         elementoActual.current = el;
         if (el && !aLaVista(el)) {
           // Solo se desplaza si la pieza no se ve entera: mover la pantalla sin necesidad desorienta.
+          // El velo ya la sigue mientras la pantalla se desplaza; la tarjeta cambia de texto cuando la pieza llegó y se quedó
+          // quieta. Antes se cortaba a los 320 ms y, si el desplazamiento suave seguía, saltaba de golpe: el «entrecortado».
+          desplazando.current = true;
           el.scrollIntoView({ block: el.getBoundingClientRect().height > window.innerHeight * 0.6 ? "start" : "center", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });
-          await pausa(conMovimiento ? 320 : 0);
+          if (conMovimiento) await hastaQueQuieta(el, senal, 1200);
+          desplazando.current = false;
           if (senal.aborted) return;
           // Respaldo: si el desplazamiento suave no llegó (pestaña en segundo plano, otro scroll en curso), salta directo.
           if (!aLaVista(el) && el.getBoundingClientRect().height < window.innerHeight) el.scrollIntoView({ block: "center", inline: "nearest" });
@@ -279,51 +281,115 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     };
   }, []);
 
-  // El velo se dibuja en un SVG con un agujero (relleno par-impar), y el agujero viaja hacia el recorte cuadro a cuadro. Antes era
-  // la sombra gigante de una caja: Chrome a veces no la repintaba y la pantalla quedaba sin velo (Finanzas, el cajón de Existencias).
-  // Un SVG se repinta siempre.
-  const objetivo = useRef<Caja | null>(null);
-  const [agujero, setAgujero] = useState<Caja>({ top: 0, left: 0, width: 0, height: 0 });
-  const agujeroRef = useRef<Caja>({ top: 0, left: 0, width: 0, height: 0 });
+  // UN solo motor de movimiento para el agujero del velo, su anillo, la onda de llegada y la tarjeta (ADR-0389, act. 2026-10-12).
+  // Antes eran tres: el agujero en JS, el anillo con transiciones CSS de left/top (que se reiniciaban en cada cuadro de un
+  // desplazamiento y quedaban atrás) y la tarjeta con otra transición; además cada cuadro redibujaba la guía entera en React.
+  // Ahora un `requestAnimationFrame` escribe directo en el DOM y cada medida viaja con un RESORTE amortiguado (`resorte`, abajo):
+  // sale desde quieto, acelera y frena suave, sigue sin tirones a una pieza que se mueve (un desplazamiento, un modal que entra) y
+  // mide el tiempo real de cada cuadro (igual a 60 o a 120 Hz, y sin saltar cuando se pierde uno). El suavizado anterior arrancaba
+  // a toda velocidad: el anillo saltaba hasta 98 px en el primer cuadro de cada viaje. El velo es un SVG con un agujero (relleno par-impar): Chrome lo repinta siempre, a diferencia
+  // de la sombra gigante de una caja que usábamos antes.
+  const refCamino = useRef<SVGPathElement>(null);
+  const refAnillo = useRef<HTMLDivElement>(null);
+  const refLlegada = useRef<HTMLDivElement>(null);
+  const tamTarjeta = useRef({ ancho: 360, alto: 220 });
+  const mostrandoRef = useRef<Mostrando | null>(null);
   useEffect(() => {
-    objetivo.current = mostrando?.recorte ?? null;
+    mostrandoRef.current = mostrando;
   }, [mostrando]);
 
-  // La pieza se mueve (scroll, una lista que carga, el modal que termina de entrar): el recorte la sigue.
+  useEffect(() => {
+    const el = refTarjeta.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      tamTarjeta.current = { ancho: r.width, alto: r.height };
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     let cuadro = 0;
-    const quieto = prefiereQuieto();
-    const vuelta = () => {
-      medirRecorte();
+    let antes = 0;
+    let meta: Caja | null = null;
+    let agujero: Caja | null = null;
+    const velAgujero = { top: 0, left: 0, width: 0, height: 0 };
+    let carta: { left: number; top: number } | null = null;
+    const velCarta = { left: 0, top: 0 };
+    let lado = "";
+    let escrito = "";
+    // La pieza del cuadro anterior y dónde estaba: si es la MISMA y se movió (la página o la hoja se desplazan, un modal termina
+    // de entrar), el agujero y la tarjeta se mueven con ella al instante, pegados; el resorte queda solo para el viaje de una
+    // pieza a otra. Con el resorte solo, en un desplazamiento rápido el velo quedaba atrás de la pieza.
+    let piezaPrevia: HTMLElement | null = null;
+    let metaPrevia: Caja | null = null;
+    let cartaPrevia: { left: number; top: number } | null = null;
+    const vuelta = (ahora: number) => {
       const v = { ancho: window.innerWidth, alto: window.innerHeight };
-      const meta = objetivo.current ?? { top: v.alto / 2, left: v.ancho / 2, width: 0, height: 0 };
-      const a = agujeroRef.current;
-      const k = quieto ? 1 : 0.16; // ~420 ms hasta llegar, frenando al final (como --ease-cayla)
-      const sig = {
-        top: a.top + (meta.top - a.top) * k,
-        left: a.left + (meta.left - a.left) * k,
-        width: a.width + (meta.width - a.width) * k,
-        height: a.height + (meta.height - a.height) * k,
-      };
-      const cerca = Math.abs(sig.top - meta.top) + Math.abs(sig.left - meta.left) + Math.abs(sig.width - meta.width) + Math.abs(sig.height - meta.height) < 0.6;
-      const nuevo = cerca ? meta : sig;
-      if (nuevo.top !== a.top || nuevo.left !== a.left || nuevo.width !== a.width || nuevo.height !== a.height) {
-        agujeroRef.current = nuevo;
-        setAgujero(nuevo);
+      setVentana((a) => (a.ancho === v.ancho && a.alto === v.alto ? a : v));
+      const m = mostrandoRef.current;
+      const medido = medirMeta(v);
+      if (medido !== undefined) meta = medido;
+      else if (m && !m.recorte) meta = null;
+      const centro = { top: v.alto / 2, left: v.ancho / 2, width: 0, height: 0 };
+      const destino = meta ?? centro;
+      // Segundos del cuadro, con techo: una pestaña que vuelve del fondo no debe dar un salto de 20 s.
+      const dt = antes ? Math.min(0.05, (ahora - antes) / 1000) : 1 / 60;
+      antes = ahora;
+      const quieto = prefiereQuieto();
+      const pieza = elementoActual.current;
+      const misma = !!pieza && pieza === piezaPrevia && !!meta && !!metaPrevia;
+      const a = { ...(agujero ?? centro) };
+      if (misma) {
+        a.top += meta!.top - metaPrevia!.top;
+        a.left += meta!.left - metaPrevia!.left;
+      }
+      for (const k of ["top", "left", "width", "height"] as const) {
+        if (quieto) [a[k], velAgujero[k]] = [destino[k], 0];
+        else [a[k], velAgujero[k]] = resorte(a[k], velAgujero[k], destino[k], dt);
+      }
+      agujero = a;
+
+      const p = posicionTarjeta(m ? meta : null, v, tamTarjeta.current);
+      const c = { ...(carta ?? { left: p.left, top: p.top }) };
+      // Si la tarjeta cambia de lado (la pieza bajó y ya no cabe debajo), ese cambio sí viaja con el resorte.
+      if (misma && cartaPrevia && p.lado === lado) {
+        c.left += p.left - cartaPrevia.left;
+        c.top += p.top - cartaPrevia.top;
+      }
+      for (const k of ["left", "top"] as const) {
+        if (quieto) [c[k], velCarta[k]] = [p[k], 0];
+        else [c[k], velCarta[k]] = resorte(c[k], velCarta[k], p[k], dt);
+      }
+      carta = c;
+      piezaPrevia = pieza;
+      metaPrevia = meta;
+      cartaPrevia = { left: p.left, top: p.top };
+
+      // Solo se escribe en el DOM si algo cambió (una pantalla quieta no recalcula estilos).
+      const h = agujero;
+      const firma = `${v.ancho}|${v.alto}|${h.top.toFixed(1)}|${h.left.toFixed(1)}|${h.width.toFixed(1)}|${h.height.toFixed(1)}|${carta.left.toFixed(1)}|${carta.top.toFixed(1)}`;
+      if (firma !== escrito) {
+        escrito = firma;
+        refCamino.current?.setAttribute("d", caminoDelVelo(v, h));
+        for (const anillo of [refAnillo.current, refLlegada.current]) {
+          if (!anillo) continue;
+          anillo.style.transform = `translate3d(${h.left}px, ${h.top}px, 0)`;
+          anillo.style.width = `${h.width}px`;
+          anillo.style.height = `${h.height}px`;
+        }
+        if (refTarjeta.current) refTarjeta.current.style.transform = `translate3d(${carta.left}px, ${carta.top}px, 0)`;
+      }
+      if (p.lado !== lado && refTarjeta.current) {
+        lado = p.lado;
+        refTarjeta.current.dataset.lado = p.lado;
       }
       cuadro = requestAnimationFrame(vuelta);
     };
     cuadro = requestAnimationFrame(vuelta);
     return () => cancelAnimationFrame(cuadro);
-  }, [medirRecorte]);
-
-  // El tamaño real de la tarjeta, para ubicarla sin taparse con la pieza.
-  useLayoutEffect(() => {
-    const el = refTarjeta.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    if (Math.abs(r.width - tarjeta.ancho) > 1 || Math.abs(r.height - tarjeta.alto) > 1) setTarjeta({ ancho: r.width, alto: r.height });
-  }, [mostrando, tarjeta.ancho, tarjeta.alto]);
+  }, [medirMeta]);
 
   // El foco va a la tarjeta SOLO al empezar. Después se queda donde la demo lo deja: si la tarjeta se lo quitara al buscador,
   // su lista de resultados se cerraría justo cuando se la está explicando. El teclado igual manda (se escucha en `window`) y el
@@ -337,7 +403,6 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
 
   if (typeof document === "undefined") return null;
 
-  const pos = posicionTarjeta(mostrando?.recorte ?? null, ventana, tarjeta);
   const recorte = mostrando?.recorte;
   const esUltimo = !!mostrando && guia.pasos.slice(mostrando.indice + 1).every((p) => !pasoAplica(p, anclasPresentes(), ventana.ancho) && !p.preparar);
   const esCierre = esUltimo && !recorte;
@@ -346,26 +411,18 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     <div ref={capa} className="guia-capa" data-guia-motor role="presentation">
       <div className="guia-bloqueo" aria-hidden />
       <svg className="guia-velo" width={ventana.ancho} height={ventana.alto} aria-hidden>
-        <path fillRule="evenodd" d={caminoDelVelo(ventana, agujero)} />
+        <path ref={refCamino} fillRule="evenodd" d={`M0 0H${ventana.ancho}V${ventana.alto}H0Z`} />
       </svg>
-      <div
-        aria-hidden
-        className="guia-recorte"
-        data-sin-pieza={recorte ? undefined : ""}
-        style={
-          recorte
-            ? { left: recorte.left, top: recorte.top, width: recorte.width, height: recorte.height }
-            : // Sin pieza, un punto de 2 px al centro: con 0 × 0 Chrome no dibuja la sombra y la pantalla quedaba sin velo.
-              { left: ventana.ancho / 2 - 1, top: ventana.alto / 2 - 1, width: 2, height: 2 }
-        }
-      />
+      {/* El anillo claro alrededor de la pieza: su lugar lo escribe el motor de movimiento, cuadro a cuadro. */}
+      <div ref={refAnillo} aria-hidden className="guia-recorte" data-sin-pieza={recorte ? undefined : ""} />
       {/* La llegada: una onda que sale del borde de la pieza una sola vez, cada vez que la guía llega a otra. */}
       {recorte && mostrando && (
         <div
           key={`llega-${mostrando.indice}`}
+          ref={refLlegada}
           aria-hidden
           className="guia-llegada"
-          style={{ left: recorte.left, top: recorte.top, width: recorte.width, height: recorte.height }}
+          style={{ transform: `translate3d(${recorte.left}px, ${recorte.top}px, 0)`, width: recorte.width, height: recorte.height }}
         />
       )}
       {/* El cursor fantasma: muestra DÓNDE toca o escribe el piloto antes de que pase. */}
@@ -389,10 +446,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         aria-labelledby="guia-titulo"
         aria-describedby="guia-texto"
         className="guia-tarjeta"
-        data-lado={pos.lado}
         data-ocupada={ocupada ? "" : undefined}
         data-piloto={pilotoActuando ? "" : undefined}
-        style={{ transform: `translate3d(${pos.left}px, ${pos.top}px, 0)` }}
       >
         <div className="flex items-center justify-between gap-3">
           <p className="label-cayla text-[10.5px] text-taupe-profundo">Guía · {guia.titulo}</p>
@@ -469,6 +524,42 @@ function caminoDelVelo(v: { ancho: number; alto: number }, a: Caja): string {
 /** Cuántos modales de la pantalla hay abiertos (la tarjeta de la guía no cuenta). */
 function modalesAbiertos(): number {
   return [...document.querySelectorAll("[role=dialog]")].filter((d) => !d.closest("[data-guia-motor]")).length;
+}
+
+/**
+ * Un paso de un resorte con amortiguación crítica (la solución exacta, estable con cualquier `dt`): parte con la velocidad que
+ * traía, llega sin pasarse ni rebotar (ADR-0136) y se asienta en ~0,45 s. Cerca del destino y casi quieto, se clava en él.
+ */
+const OMEGA = 13; // rad/s: más alto = más rápido. 13 → el 95 % del viaje en ~0,36 s, asentado a los ~0,45 s.
+function resorte(x: number, v: number, meta: number, dt: number): [number, number] {
+  const d = x - meta;
+  const e = Math.exp(-OMEGA * dt);
+  const t = (v + OMEGA * d) * dt;
+  const d2 = (d + t) * e;
+  const v2 = (v - OMEGA * t) * e;
+  return Math.abs(d2) < 0.25 && Math.abs(v2) < 4 ? [meta, 0] : [meta + d2, v2];
+}
+
+/**
+ * Espera a que la pieza deje de moverse (el desplazamiento suave terminó): la misma posición durante 4 cuadros seguidos, o
+ * como mucho `ms`. Sirve con cualquier cosa que se desplace (la página o la hoja de un modal), no solo con la ventana.
+ */
+async function hastaQueQuieta(el: HTMLElement, senal: AbortSignal, ms: number): Promise<void> {
+  const fin = performance.now() + ms;
+  let previo = "";
+  let quietos = 0;
+  await new Promise<void>((listo) => {
+    const mirar = () => {
+      if (senal.aborted || !el.isConnected || performance.now() > fin) return listo();
+      const r = el.getBoundingClientRect();
+      const ahora = `${Math.round(r.top)}|${Math.round(r.left)}`;
+      quietos = ahora === previo ? quietos + 1 : 0;
+      previo = ahora;
+      if (quietos >= 4) return listo();
+      requestAnimationFrame(mirar);
+    };
+    requestAnimationFrame(mirar);
+  });
 }
 
 /** ¿La pieza se ve entera en la ventana? */

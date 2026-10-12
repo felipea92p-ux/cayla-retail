@@ -21,6 +21,7 @@
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
+import type { TiendaReparto } from "./plan-compra-reparto";
 import { compararTallas } from "./tallas";
 
 export const RPC_PLAN = "fn_plan_compra";
@@ -231,14 +232,14 @@ export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "prec
  * más, sobrar o quedarse corto, y hacia qué diciembre empuja la compra. Las cinco franjas son las del número, no una regla nueva.
  */
 export function lecturaDelCuantil(cuantil: number): { costo: string; compra: string } {
-  if (cuantil >= 0.99) return { costo: "lo que sobra se vende casi al costo: sobrar no te cuesta", compra: "cubrir hasta un diciembre bueno" };
-  if (cuantil >= 0.75) return { costo: "sobrar te cuesta poco frente a quedarte corto", compra: "comprar más cerca del diciembre bueno" };
-  if (cuantil > 0.6) return { costo: "quedarte corto te cuesta un poco más que sobrar", compra: "comprar un poco por encima del diciembre normal" };
-  if (cuantil >= 0.4) return { costo: "quedarte corto y sobrar te cuestan parecido", compra: "comprar cerca del diciembre normal" };
-  return { costo: "sobrar te cuesta caro", compra: "comprar más cerca del diciembre flojo" };
+  if (cuantil >= 0.99) return { costo: "lo que sobra se vende casi al costo: sobrar no te cuesta", compra: "cubrir hasta el bueno" };
+  if (cuantil >= 0.75) return { costo: "sobrar te cuesta poco frente a quedarte corto", compra: "comprar más cerca del bueno" };
+  if (cuantil > 0.6) return { costo: "quedarte corto te cuesta un poco más que sobrar", compra: "comprar un poco por encima del normal" };
+  if (cuantil >= 0.4) return { costo: "quedarte corto y sobrar te cuestan parecido", compra: "comprar cerca del normal" };
+  return { costo: "sobrar te cuesta caro", compra: "comprar más cerca del flojo" };
 }
 
-/** «Lo que sobra se vende casi al costo: sobrar no te cuesta, así que conviene cubrir hasta un diciembre bueno.» El porqué del número. */
+/** «Lo que sobra se vende casi al costo: sobrar no te cuesta, así que conviene cubrir hasta el bueno.» El porqué del número. */
 export function porQue(c: Calculo): string {
   const { costo, compra } = lecturaDelCuantil(c.cuantil);
   return `${costo.charAt(0).toUpperCase()}${costo.slice(1)}, así que conviene ${compra}.`;
@@ -318,7 +319,7 @@ export function leerNumeroDeMonto(t: string): number | null {
   return /^\d+(\.\d{1,2})?$/.test(sinMiles) ? Number(sinMiles) : null;
 }
 
-/** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en un diciembre ni una prenda cuesta
+/** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en una campaña ni una prenda cuesta
  *  S/ 100 000. Sin ellos, un «999999999999» pasaba la guía y la base respondía un error técnico (chaos 2026-10-10). */
 export const MAX_UNIDADES_ESCENARIO = 100_000;
 export const MAX_MONTO_PRENDA = 100_000;
@@ -329,15 +330,15 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   const flojo = entero(b.flojo);
   const normal = entero(b.normal);
   const bueno = entero(b.bueno);
-  const demasiadas = `Revisa el número: más de ${MAX_UNIDADES_ESCENARIO.toLocaleString("es-PE")} prendas en un diciembre no parece de una categoría.`;
-  if (flojo === null) p.flojo = "Escribe cuántas venderías en un diciembre flojo (puede ser 0).";
+  const demasiadas = `Revisa el número: más de ${MAX_UNIDADES_ESCENARIO.toLocaleString("es-PE")} prendas en una campaña no parece de una categoría.`;
+  if (flojo === null) p.flojo = "Escribe cuántas venderías si la campaña va floja (puede ser 0).";
   else if (flojo > MAX_UNIDADES_ESCENARIO) p.flojo = demasiadas;
-  if (normal === null) p.normal = "Escribe cuántas venderías en un diciembre normal.";
+  if (normal === null) p.normal = "Escribe cuántas venderías si la campaña va normal.";
   else if (normal > MAX_UNIDADES_ESCENARIO) p.normal = demasiadas;
-  else if (flojo !== null && normal < flojo) p.normal = "Un diciembre normal no vende menos que uno flojo.";
-  if (bueno === null) p.bueno = "Escribe cuántas venderías en un diciembre bueno.";
+  else if (flojo !== null && normal < flojo) p.normal = "El normal no puede ser menos que el flojo.";
+  if (bueno === null) p.bueno = "Escribe cuántas venderías si la campaña va buena.";
   else if (bueno > MAX_UNIDADES_ESCENARIO) p.bueno = demasiadas;
-  else if (normal !== null && bueno < normal) p.bueno = "Un diciembre bueno no vende menos que uno normal.";
+  else if (normal !== null && bueno < normal) p.bueno = "El bueno no puede ser menos que el normal.";
   const precio = leerNumeroDeMonto(b.precio);
   const costo = leerNumeroDeMonto(b.costo);
   const caro = `Revisa el monto: más de S/ ${MAX_MONTO_PRENDA.toLocaleString("es-PE")} por prenda no parece real.`;
@@ -431,10 +432,10 @@ export const estadoCampana = (hoy: string, desde: string, hasta: string): Estado
 /** «Se vendieron 140: entre el normal (120) y el bueno (180).» Para comparar el supuesto con lo que pasó. */
 export function fraseDeLoReal(vendido: number, l: Pick<LineaPlan, "flojo" | "normal" | "bueno">): string {
   const donde =
-    vendido < l.flojo ? "menos que el diciembre flojo"
+    vendido < l.flojo ? "menos que el flojo"
     : vendido <= l.normal ? "entre el flojo y el normal"
     : vendido <= l.bueno ? "entre el normal y el bueno"
-    : "más que el diciembre bueno";
+    : "más que el bueno";
   return `Se vendieron ${vendido}: ${donde}.`;
 }
 
@@ -472,6 +473,10 @@ export type FilaPlan = {
   propuesta?: PropuestaCategoria | null;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
+  /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
+  reparto?: TiendaReparto[];
+  /** Lo ya pedido en órdenes de compra para esta campaña (`lib/plan-compra-pedido.ts`); undefined = nada pedido o la base no lo manda. */
+  pedido?: { unidades: number; soles: number; ordenes: number[] };
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -618,18 +623,14 @@ export const posicionEnEscala = (valor: number, escala: number): number => (esca
 
 /** Cuántos días de ventas mira `fn_plan_compra` para la curva y para «lo que vendiste» (los 90 días de siempre). */
 export const DIAS_DE_VENTAS = 90;
-/** «Diciembre triplica un mes promedio» (R-19, docs/datos/15-COMO-OPERA-CAYLA.md): un diciembre normal vende tres meses normales. */
-export const MESES_DE_UN_DICIEMBRE = 3;
-
 /**
- * Lo que sale de «un diciembre normal vende el triple de un mes normal», con lo vendido en los últimos 90 días: un mes normal es
- * ventas ÷ 3 y diciembre, tres de esos. Es UNA sola propuesta, la del escenario normal, porque es la única que tiene un dato detrás
- * (R-19): el flojo y el bueno los decide quien arma el plan. Sin ventas no hay qué proponer (null).
+ * El «normal» cuando la base todavía no manda la propuesta de tres escenarios (C4): lo que la categoría vende por día en los últimos 90
+ * días, llevado a los días de ESTA campaña (la misma regla del normal de C4, que reemplazó a «diciembre triplica un mes», R-19: con ella,
+ * San Valentín de dos semanas pedía tres meses de venta). Sin ventas o sin días, no hay qué proponer (null).
  */
-export function propuestaDeNormal(ventas90: number): number | null {
-  if (!Number.isFinite(ventas90) || ventas90 <= 0) return null;
-  const mensual = ventas90 / (DIAS_DE_VENTAS / 30);
-  return Math.round(mensual * MESES_DE_UN_DICIEMBRE);
+export function propuestaDeNormal(ventas90: number, diasCampana: number): number | null {
+  if (!Number.isFinite(ventas90) || ventas90 <= 0 || !Number.isFinite(diasCampana) || diasCampana <= 0) return null;
+  return Math.round((ventas90 / DIAS_DE_VENTAS) * diasCampana);
 }
 
 /**
@@ -679,6 +680,16 @@ export type SedeStock = {
   /** Lo que falta, dicho corto («piso sin cuadrar»), o null si está al día. */
   falta: string | null;
 };
+
+/**
+ * El número del botón «Resumen y avisos» (Felipe 2026-10-12: el resumen va en un cajón y la tabla queda a la vista): cuántas tiendas no
+ * tienen su stock al día; 1 si no se pudo comprobar (no se dice «todo bien» por un error). 0 = el botón va sin número.
+ */
+export function avisosDelResumen(c: Pick<ConfianzaDelStock, "estado" | "sedes">): number {
+  if (c.estado === "sin-dato") return 1;
+  if (c.estado === "confiable") return 0;
+  return c.sedes.filter((s) => !s.alDia).length;
+}
 
 export type ConfianzaDelStock = {
   /** `sin-dato`: no se pudo comprobar (la lectura falló o la cuenta no opera ninguna tienda). Nunca se dice «confiable» por omisión. */
