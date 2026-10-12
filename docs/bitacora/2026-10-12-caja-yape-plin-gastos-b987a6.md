@@ -1,0 +1,4 @@
+## 2026-10-12 (Caja: el gasto rápido también se paga con Yape o Plin)
+Qué hice: la hoja «Registrar gasto» de Caja pregunta «¿Cómo lo pagaste?» (Efectivo · Yape · Plin); con Yape o Plin no toca el cajón y la base sella la cuenta de ese medio en la tienda, y «Gastos del turno» los muestra aparte. De paso, «Cancelar» ya no pregunta dos veces «¿Salir sin guardar?».
+Por qué así: las tiendas pagan el mototaxi o las bolsas con el Yape donde les pagan las clientas; anotarlo como efectivo hacía sobrar plata en el cierre. La base ya lo aceptaba (Finanzas lo usaba): fue solo web, sin migración (ADR-0368, actualización 2026-10-12).
+Felipe se lleva: si una tienda no configuró su Yape o Plin en Configuración ▸ Cuentas y cobros, esos gastos quedan «sin cuenta» en Cuentas y dinero hasta que el líder la diga.

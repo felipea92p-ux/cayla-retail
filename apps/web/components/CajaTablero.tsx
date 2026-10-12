@@ -43,6 +43,7 @@ import {
 } from "@/lib/caja-tablero-reglas";
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
+import { TEXTO_MEDIO } from "@/lib/gastos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 
@@ -445,7 +446,13 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
       <div className="card-cayla anim-sube p-5">
         <CabeceraPanel
           titulo="Gastos del turno"
-          bajada={g ? `Salieron del cajón · ${soles(g.total)}` : "Lo que salió del cajón como gasto"}
+          bajada={
+            !g
+              ? "Lo que salió del cajón como gasto"
+              : g.totalApp > 0
+                ? `Del cajón ${soles(g.total)} · con Yape o Plin ${soles(g.totalApp)}`
+                : `Salieron del cajón · ${soles(g.total)}`
+          }
           derecha={
             <Link href="/finanzas/gastos" className={enlaceVer}>
               Ver en Finanzas →
@@ -455,7 +462,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
         {!g ? (
           <SinLectura />
         ) : g.lista.length === 0 ? (
-          <p className="py-3 text-xs text-tinta/50">Todavía no salió ningún gasto de este cajón.</p>
+          <p className="py-3 text-xs text-tinta/50">Todavía no hay gastos en este turno.</p>
         ) : (
           <div>
             {g.lista.map((x) => (
@@ -463,7 +470,8 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                 <span className="min-w-0">
                   <span className="block truncate">{x.descripcion}</span>
                   <span className="block text-[11.5px] text-tinta/50">
-                    {x.hora} · {x.conComprobante ? "con comprobante" : "sin comprobante"}
+                    {x.hora}
+                    {x.medio && ` · con ${TEXTO_MEDIO[x.medio]}`} · {x.conComprobante ? "con comprobante" : "sin comprobante"}
                   </span>
                 </span>
                 <b className="whitespace-nowrap font-semibold text-rojo-profundo tabular-nums">−{soles(x.monto)}</b>
