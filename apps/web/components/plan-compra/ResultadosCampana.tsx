@@ -31,10 +31,12 @@ import {
   recuperoRealTotal,
   senales,
   ORDENES_RESULTADOS,
+  type Enfoque,
   type FilaCategoria,
   type OrdenResultados,
 } from "@/lib/plan-compra-resultados";
 import { leerPropuesta } from "@/lib/plan-compra-propuesta";
+import { porcentajes, tiendasParaRepartir } from "@/lib/plan-compra-reparto";
 import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
 import { TarjetaComoVa } from "@/components/plan-compra/ComoVaCampana";
 import { SenalesCampana } from "@/components/plan-compra/SenalesCampana";
@@ -151,7 +153,14 @@ export function ResultadosCampana({
     );
   }
 
-  const todasLasCategorias = porCategoria(r, tienda);
+  // Con una tienda elegida, «¿Cómo va?» y «Pedir más» son de ELLA (Felipe 2026-10-12): sus ventas, su stock y su parte del plan, que sale de la
+  // misma regla del reparto del Plan. «Toda CAYLA» sigue siendo el total.
+  const tiendaElegida = tienda ? (r.tiendas.find((t) => t.id === tienda) ?? null) : null;
+  const propuestaDeEsta = lecturaPropuesta && lecturaPropuesta.planId === r.plan.id && lecturaPropuesta.tiendasActivas.length > 0 ? lecturaPropuesta : null;
+  const enfoque: Enfoque | null = tiendaElegida
+    ? { tienda: tiendaElegida.id, parte: propuestaDeEsta ? (c: string) => porcentajes(tiendasParaRepartir(propuestaDeEsta, c)).get(tiendaElegida.id)?.pct ?? 0 : null }
+    : null;
+  const todasLasCategorias = porCategoria(r, tienda, enfoque?.parte ?? null);
   const categorias = filtrarYOrdenarCategorias(todasLasCategorias, q, orden);
   const familias = porFamilia(r, tienda);
   const prendas = prendasQueMasVendieron(r, tienda);
@@ -163,7 +172,11 @@ export function ResultadosCampana({
   const datosCierre = cierre(r);
   const enCurso =
     momento === "en-curso"
-      ? { como: comoVa(r, pesos.pesos), piden: senales(r, pesos.pesos).filter((s) => s.senal !== "bien"), faltan: pesos.pesos.length - Math.min(pesos.pesos.length, dias) }
+      ? {
+          como: comoVa(r, pesos.pesos, enfoque),
+          piden: senales(r, pesos.pesos, enfoque).filter((s) => s.senal !== "bien"),
+          faltan: pesos.pesos.length - Math.min(pesos.pesos.length, dias),
+        }
       : null;
 
   return (
@@ -182,7 +195,7 @@ export function ResultadosCampana({
       {/* Una sola fila (Felipe 2026-10-12: «ocupa mucho espacio»): las tarjetas de tienda SON el filtro —la que filtra se rellena de arena,
           «Toda CAYLA» vuelve a todas—, así que las píldoras que repetían lo mismo se fueron. En un celular, de a dos. */}
       <div data-guia="plan-resultados.cifras" className="grid gap-3 sm:grid-cols-2 lg:auto-cols-fr lg:grid-flow-col">
-        {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} />}
+        {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} de={tiendaElegida?.nombre ?? null} />}
         <TarjetaCifra
           etiqueta="Toda CAYLA"
           valor={enteroES.format(total.unidades)}
@@ -203,7 +216,7 @@ export function ResultadosCampana({
         })}
       </div>
 
-      {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} />}
+      {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} de={tiendaElegida?.nombre ?? null} />}
 
       <Tabla guia="plan-resultados.tabla">
         {/* Buscar y ordenar (Felipe 2026-10-12): como en el Historial, en la misma tarjeta que la tabla. «Más vendidas» es el de siempre. */}
@@ -218,7 +231,7 @@ export function ResultadosCampana({
               ["Categoría", "izq"],
               ["Vendidas", "der"],
               ["Soles", "der"],
-              [tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "izq"],
+              [tienda === null ? "Contra el plan" : enfoque?.parte ? "Contra su parte del plan" : "Contra el plan (todas las tiendas)", "izq"],
               ["Lo que sobró", "der"],
             ] as const
           ).map(([t, alinear]) => (

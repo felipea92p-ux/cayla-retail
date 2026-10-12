@@ -14,7 +14,18 @@ const PLANTILLA = "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,0.6fr)_minmax(0,0.8fr)
 // El enlace lleva a Análisis ya buscando la categoría (Felipe 2026-10-12: «¿solo eso? ¿no te muestra la categoría?»).
 const VISTA = { pedir: { texto: "Sus prendas que se acaban" }, impulsar: { texto: "Sus prendas que no se venden" } } as const;
 
-export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: SenalCategoria[]; faltan: number; veAnalisis: boolean }) {
+export function SenalesCampana({
+  senales,
+  faltan,
+  veAnalisis,
+  de = null,
+}: {
+  senales: SenalCategoria[];
+  faltan: number;
+  veAnalisis: boolean;
+  /** La tienda elegida (su stock, sus ventas y su parte del plan); null = toda CAYLA. */
+  de?: string | null;
+}) {
   const piden = senales.filter((s) => s.senal !== "bien");
   return (
     // Sin `overflow-hidden` en la tarjeta: recortaba el globo del «!» (Felipe 2026-10-12). Lo que sí debe quedar dentro de las esquinas (las
@@ -22,9 +33,13 @@ export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: Senal
     <section data-guia="plan-resultados.senales" className="card-cayla">
       <div className={`flex flex-wrap items-center justify-between gap-2 px-5 ${piden.length === 0 ? "py-3" : "py-4"}`}>
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-taupe">
-          Pedir más o impulsar
+          {de ? `Pedir más o impulsar · ${de}` : "Pedir más o impulsar"}
           <Ayuda titulo="Pedir más o impulsar">
-            <span className="block">«Alcanza para»: lo que queda de la categoría en todas las sedes (Taller incluido), al ritmo de esta campaña.</span>
+            <span className="block">
+              {de
+                ? `«Alcanza para»: lo que queda de la categoría en ${de}, al ritmo con que ella vende en esta campaña. «Contra el plan» es contra su parte del plan.`
+                : "«Alcanza para»: lo que queda de la categoría en todas las sedes (Taller incluido), al ritmo de esta campaña."}
+            </span>
             <span className="mt-2 block">«Pide más» si se acaba antes de que termine la campaña y no va por debajo del plan. «Impúlsala» si va 20 % o más por debajo del plan y le sobra: vitrina, combo o una rebaja chica.</span>
             <span className="mt-2 block">«Sus prendas…» abre Análisis ya buscando esa categoría: ahí ves la prenda exacta. Análisis mira la sede elegida arriba, no toda CAYLA.</span>
           </Ayuda>

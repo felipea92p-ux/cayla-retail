@@ -34,6 +34,10 @@ export type LecturaResultados = {
   porDia: Map<string, number>;
   /** categoría → lo que hay hoy y lo que había al cerrar lo medido (todas las sedes, sin Cuarentena); null si la base no lo manda. */
   stock: Map<string, { hoy: number; cierre: number }> | null;
+  /** tienda → sus unidades vendidas cada día de la campaña; vacío si la base todavía no lo manda. */
+  porDiaTienda: Map<string, Map<string, number>>;
+  /** tienda → categoría → lo que hay hoy y al cierre en esa sede; null si la base todavía no lo manda. */
+  stockTienda: Map<string, Map<string, { hoy: number; cierre: number }>> | null;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -44,6 +48,17 @@ const num = (v: unknown): number => {
 };
 const lista = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter(esObjeto) : []);
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+
+/** Filas en un mapa de dos niveles (tienda → clave → valor); lo que no se entiende se salta. */
+function agrupar<V>(filas: Record<string, unknown>[], leer: (f: Record<string, unknown>) => [string, string, V] | null): Map<string, Map<string, V>> {
+  const m = new Map<string, Map<string, V>>();
+  for (const f of filas) {
+    const x = leer(f);
+    if (!x) continue;
+    (m.get(x[0]) ?? m.set(x[0], new Map()).get(x[0])!).set(x[1], x[2]);
+  }
+  return m;
+}
 
 /** Lo que devuelve `fn_plan_compra_resultados`; null si no se entiende. */
 export function leerResultados(v: unknown): LecturaResultados | null {
@@ -83,6 +98,12 @@ export function leerResultados(v: unknown): LecturaResultados | null {
     porDia: new Map(lista(v.por_dia).flatMap((d) => (fechaIso(d.f) ? [[d.f as string, num(d.u)] as const] : []))),
     stock: Array.isArray(v.stock)
       ? new Map(lista(v.stock).flatMap((s) => (texto(s.c) ? [[s.c as string, { hoy: Math.max(0, num(s.hoy)), cierre: Math.max(0, num(s.cierre)) }] as const] : [])))
+      : null,
+    porDiaTienda: agrupar(lista(v.por_dia_tienda), (d) => (texto(d.t) && fechaIso(d.f) ? [d.t as string, d.f as string, num(d.u)] : null)),
+    stockTienda: Array.isArray(v.stock_tienda)
+      ? agrupar(lista(v.stock_tienda), (s) =>
+          texto(s.t) && texto(s.c) ? [s.t as string, s.c as string, { hoy: Math.max(0, num(s.hoy)), cierre: Math.max(0, num(s.cierre)) }] : null,
+        )
       : null,
   };
 }
@@ -127,15 +148,28 @@ export type ComoVa = {
   proyectado: number[];
 };
 
-/** «¿Cómo va?»: lo vendido contra el plan, a hoy, y la proyección al cierre con la forma de la campaña del año pasado. */
-export function comoVa(r: LecturaResultados, pesos: readonly number[]): ComoVa {
+/**
+ * Mirar UNA tienda (Felipe 2026-10-12: «al seleccionar una tienda, lo suyo; Toda CAYLA, el global»): sus ventas, su stock y SU parte del plan.
+ * `parte(categoría)` es la fracción del plan que le toca (la regla del reparto, `lib/plan-compra-reparto.ts`); null si la propuesta no se pudo
+ * leer: entonces no hay plan de la tienda con qué comparar, y se dice.
+ */
+export type Enfoque = { tienda: string; parte: ((categoriaId: string) => number) | null };
+
+/** El plan («normal») de una categoría para lo que se mira: todo, o la parte de la tienda. null si no hay con qué. */
+const normalPara = (normal: number, categoriaId: string, enfoque: Enfoque | null): number | null =>
+  enfoque === null ? normal : enfoque.parte ? normal * enfoque.parte(categoriaId) : null;
+
+/** «¿Cómo va?»: lo vendido contra el plan, a hoy, y la proyección al cierre con la forma de la campaña del año pasado. Con `enfoque`, de una tienda. */
+export function comoVa(r: LecturaResultados, pesos: readonly number[], enfoque: Enfoque | null = null): ComoVa {
   const dias = pesos.length;
   const medidos = Math.min(dias, diasMedidos(r));
   const total = pesos.reduce((a, p) => a + p, 0);
   const fraccion = (n: number) => pesos.slice(0, n).reduce((a, p) => a + p, 0) / total;
-  const planTotal = r.lineas.size > 0 ? [...r.lineas.values()].reduce((a, l) => a + l.normal, 0) : null;
+  const normales = [...r.lineas.entries()].map(([c, l]) => normalPara(l.normal, c, enfoque));
+  const planTotal = normales.length > 0 && normales.every((n) => n !== null) ? Math.round(normales.reduce((a: number, n) => a + (n ?? 0), 0)) : null;
+  const porDia = enfoque ? (r.porDiaTienda.get(enfoque.tienda) ?? new Map<string, number>()) : r.porDia;
   const real: number[] = [];
-  for (let i = 0; i < medidos; i++) real.push((real.at(-1) ?? 0) + (r.porDia.get(sumarDias(r.plan.desde, i)) ?? 0));
+  for (let i = 0; i < medidos; i++) real.push((real.at(-1) ?? 0) + (porDia.get(sumarDias(r.plan.desde, i)) ?? 0));
   const vendido = real.at(-1) ?? 0;
   const yaPaso = fraccion(medidos);
   const proyeccion = yaPaso > 0 ? Math.round(vendido / yaPaso) : 0;
@@ -161,19 +195,22 @@ export type SenalCategoria = { id: string; nombre: string; vendidas: number; dif
  * prenda exacta se lleva allá). Pedir: lo que queda se acaba antes del fin y no va por debajo del plan. Impulsar: va 20 % o más por
  * debajo del plan y lo que queda alcanza para 1.5 veces lo que falta. Sin plan, solo «pedir» (no hay contra qué decir que va lenta).
  */
-export function senales(r: LecturaResultados, pesos: readonly number[]): SenalCategoria[] {
-  if (!r.stock) return [];
+export function senales(r: LecturaResultados, pesos: readonly number[], enfoque: Enfoque | null = null): SenalCategoria[] {
+  // De una tienda: sus ventas, su stock y su parte del plan. Sin el stock por tienda en la base, no se inventa.
+  const stock = enfoque ? (r.stockTienda?.get(enfoque.tienda) ?? (r.stockTienda ? new Map<string, { hoy: number; cierre: number }>() : null)) : r.stock;
+  if (!stock) return [];
   const dias = pesos.length;
   const medidos = Math.min(dias, diasMedidos(r));
   const faltan = dias - medidos;
   const total = pesos.reduce((a, p) => a + p, 0);
   const yaPaso = pesos.slice(0, medidos).reduce((a, p) => a + p, 0) / total;
-  return porCategoria(r, null)
+  return porCategoria(r, enfoque?.tienda ?? null, enfoque?.parte ?? null)
     .filter((c) => c.unidades > 0)
     .map((c): SenalCategoria => {
-      const diferencia = c.plan && c.plan.normal > 0 && yaPaso > 0 ? c.unidades / (c.plan.normal * yaPaso) - 1 : null;
+      const normal = c.plan ? normalPara(c.plan.normal, c.id, enfoque) : null;
+      const diferencia = normal !== null && normal > 0 && yaPaso > 0 ? c.unidades / (normal * yaPaso) - 1 : null;
       const porDia = medidos > 0 ? c.unidades / medidos : 0;
-      const queda = r.stock?.get(c.id)?.hoy ?? 0;
+      const queda = stock.get(c.id)?.hoy ?? 0;
       const alcanzaDias = porDia > 0 ? queda / porDia : null;
       const senal: Senal =
         alcanzaDias !== null && alcanzaDias < faltan && (diferencia === null || diferencia > -0.05) ? "pedir"
@@ -243,8 +280,11 @@ export type FilaCategoria = {
   recuperoReal: number | null;
 };
 
-/** Una fila por categoría (vendida o con plan), de la que más vendió a la que menos. `tienda` filtra (null = todas). */
-export function porCategoria(r: LecturaResultados, tienda: string | null): FilaCategoria[] {
+/**
+ * Una fila por categoría (vendida o con plan), de la que más vendió a la que menos. `tienda` filtra (null = todas). Con una tienda, la
+ * lectura contra el plan es contra SU parte (`parte`, la regla del reparto); sin `parte`, no hay con qué y queda vacía.
+ */
+export function porCategoria(r: LecturaResultados, tienda: string | null, parte: ((categoriaId: string) => number) | null = null): FilaCategoria[] {
   const nombres = new Map(r.tiendas.map((t) => [t.id, t.nombre]));
   const ids = new Set([...r.filas.map((f) => f.categoria), ...r.lineas.keys()]);
   return [...ids]
@@ -260,9 +300,15 @@ export function porCategoria(r: LecturaResultados, tienda: string | null): FilaC
         familia: (cat?.familia && r.familias.get(cat.familia)) ?? cat?.familia ?? "Sin familia",
         unidades,
         soles: vendidas.reduce((s, f) => s + f.soles, 0),
-        // El plan es de toda CAYLA: la lectura contra el plan solo vale mirando todas las tiendas.
+        // El plan es de toda CAYLA: con una tienda, la lectura es contra su parte (redondeada como en el reparto), o no hay.
         plan,
-        lectura: plan && tienda === null ? fraseDeLoReal(unidades, plan).replace(/diciembre /g, "") : null,
+        lectura: !plan
+          ? null
+          : tienda === null
+            ? fraseDeLoReal(unidades, plan).replace(/diciembre /g, "")
+            : parte
+              ? fraseDeLoReal(unidades, escalar(plan, parte(id))).replace(/diciembre /g, "")
+              : null,
         agotadaEn: r.agotadas.filter((a) => a.categoria === id && (tienda === null || a.tienda === tienda)).map((a) => nombres.get(a.tienda) ?? "una tienda"),
         recuperoReal: desp && desp.aPrecioLista > 0 && tienda === null ? Math.round((desp.soles / desp.aPrecioLista) * 100) : null,
       };
@@ -270,6 +316,13 @@ export function porCategoria(r: LecturaResultados, tienda: string | null): FilaC
     .filter((f) => f.unidades > 0 || f.plan !== null)
     .sort((a, b) => b.unidades - a.unidades || b.soles - a.soles || a.nombre.localeCompare(b.nombre, "es"));
 }
+
+/** El plan de una categoría llevado a la parte de una tienda (enteros, como cuenta la tienda). */
+const escalar = (p: { flojo: number; normal: number; bueno: number }, f: number) => ({
+  flojo: Math.round(p.flojo * f),
+  normal: Math.round(p.normal * f),
+  bueno: Math.round(p.bueno * f),
+});
 
 /** Lo vendido agrupado por familia, de la que más a la que menos. */
 export function porFamilia(r: LecturaResultados, tienda: string | null): { familia: string; unidades: number; soles: number }[] {
