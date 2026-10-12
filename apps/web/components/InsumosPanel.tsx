@@ -52,10 +52,10 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
         </div>
         {esLider && (
           <div className="flex flex-wrap gap-2">
-            <Boton peso="fantasma" onClick={() => setNuevo(true)}>
+            <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
               + Nuevo insumo
             </Boton>
-            <Boton peso="primario" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
+            <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
               Ingresar insumo
             </Boton>
           </div>
@@ -63,7 +63,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
       </div>
 
       {/* ==================== cifras ==================== */}
-      <div className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
+      <div data-guia="prod-insumos.cifras" className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
         <TarjetaCifra
           punto={bajos > 0 ? "ambar" : "verde"}
           etiqueta="Bajo el mínimo"
@@ -93,6 +93,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
       {insumos.length === 0 ? (
         <div className="card-cayla">
           <Vacio
+            guia="prod-insumos.lista"
             icono={<Layers />}
             titulo="Todavía no hay insumos"
             acciones={
@@ -109,7 +110,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
         </div>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
-          <div className="space-y-6">
+          <div data-guia="prod-insumos.lista" className="space-y-6">
             {TIPOS_INSUMO.map((t) => {
               const lista = insumos.filter((i) => i.tipo === t.valor);
               if (lista.length === 0) return null;
@@ -136,7 +137,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
           </div>
 
           {/* ==================== libro de movimientos ==================== */}
-          <aside className="card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
+          <aside data-guia="prod-insumos.libro" className="card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
             <h2 className="font-display text-lg text-tinta">Libro de movimientos</h2>
             <p className="mb-2 text-xs text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
             {libro.length === 0 ? (
@@ -198,7 +199,7 @@ function FilaInsumo({
     .join(" · ");
 
   return (
-    <article className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
+    <article data-guia="prod-insumos.fila" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
       <button
         type="button"
         onClick={onAlternar}

@@ -241,9 +241,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               etiquetaAccesible="Cómo ver el catálogo"
               activo={vista}
               reemplazar={false}
+              guia="productos.vista"
               opciones={[
-                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} /> },
-                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} /> },
+                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} />, guia: "productos.vista-grilla" },
+                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} />, guia: "productos.vista-tabla" },
               ]}
               soloIconoEnCelular
             />
@@ -251,12 +252,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                 y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
             {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
                 palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
-            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3">
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
               <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {editaCatalogo && (
-              <BotonEnlace href="/productos/nuevo" peso="primario">
+              <BotonEnlace href="/productos/nuevo" peso="primario" data-guia="productos.nuevo">
                 + Nuevo producto
               </BotonEnlace>
             )}
@@ -270,6 +271,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
         // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
         <Aviso
+          guia="productos.por-revisar"
           tono="atencion"
           titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
           accion={
@@ -285,7 +287,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
         // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
-        <div className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <div data-guia="productos.sin-temporada" className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <details className="group min-w-0 flex-1">
             <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
               <strong>
@@ -361,6 +363,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           />
         )}
 
+        <div data-guia="productos.paginacion">
         <PaginacionPaginas
           pagina={resultado.pagina}
           totalPaginas={resultado.totalPaginas}
@@ -369,6 +372,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           pathname="/productos"
           sustantivo={["producto", "productos"]}
         />
+        </div>
       </div>
     </div>
   );

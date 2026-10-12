@@ -23,13 +23,13 @@ function subtituloDeSede(nombre: string, codigo: string, soy: boolean): string {
 export function PaseFrente({ vista, accion, sello }: { vista: VistaPase; accion: ReactNode; sello?: SelloPuesto | null }) {
   const estampa = sello === undefined ? vista.sello : sello;
   return (
-    <article className="tp-pase" data-tp-tono={vista.tono} data-clase={vista.clase} aria-label={`${vista.rotulo}: ${vista.nombre}`}>
+    <article data-guia="pase.frente" className="tp-pase" data-tp-tono={vista.tono} data-clase={vista.clase} aria-label={`${vista.rotulo}: ${vista.nombre}`}>
       <header className="tp-banda">
         <SelloPase glifo={glifoDeTono(vista.tono)} tono={vista.tono} />
         <span className="tp-banda-nombre">{vista.nombre}</span>
         <span className="tp-banda-num">{vista.rotulo}</span>
       </header>
-      <div className="tp-ruta">
+      <div data-guia="pase.ruta" className="tp-ruta">
         <div>
           <b className="tp-cod" data-largo={vista.codigoOrigen.length > 3 ? "" : undefined}>
             <LetrasQueGiran texto={vista.codigoOrigen} />
@@ -44,7 +44,7 @@ export function PaseFrente({ vista, accion, sello }: { vista: VistaPase; accion:
           <span className="tp-sede">{subtituloDeSede(vista.sedeDestino, vista.codigoDestino, vista.soyDestino)}</span>
         </div>
       </div>
-      <dl className="tp-campos">
+      <dl data-guia="pase.campos" className="tp-campos">
         {vista.campos.map((c) => (
           <div key={c.etiqueta} data-tarde={c.tarde ? "" : undefined}>
             <dt>
@@ -61,7 +61,7 @@ export function PaseFrente({ vista, accion, sello }: { vista: VistaPase; accion:
         <i />
         <i />
       </div>
-      <div className="tp-pie">
+      <div data-guia="pase.pie" className="tp-pie">
         <div>
           <TrasladoMiniaturas fotos={vista.fotos} colores={vista.colores} />
           {vista.enviaNombre && (

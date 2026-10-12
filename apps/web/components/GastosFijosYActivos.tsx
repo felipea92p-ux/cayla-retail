@@ -91,6 +91,7 @@ export function FijosDelMes({
       <>
         <Superficie>
           <Vacio
+            guia="fin-gastos.fijos"
             icono={<CalendarClock />}
             titulo="Todavía no hay gastos fijos"
             acciones={
@@ -111,7 +112,7 @@ export function FijosDelMes({
 
   return (
     <>
-      <section className="fin-dos-col">
+      <section className="fin-dos-col" data-guia="fin-gastos.fijos">
         <Superficie pad className="anim-sube">
           <CabeceraBloque titulo="Para confirmar" bajada="Llegan en los próximos días. «Registrar» abre el gasto lleno con el monto y los datos de siempre." />
           <ul className="fin-fijos">
@@ -265,7 +266,7 @@ export function TablaGastosFijos({
   const total = fijos.reduce((t, f) => t + f.monto, 0);
   return (
     <>
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.fijos">
         <TituloDeTarjeta titulo="Gastos que se repiten" bajada="El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.">
           <Boton type="button" peso="primario" onClick={() => setEditar({})}>
             + Agregar fijo
@@ -534,7 +535,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
     return (
       <>
         <Superficie>
-          <Vacio icono={<Laptop />} titulo="Sin activos fijos registrados">
+          <Vacio guia="fin-gastos.activos" icono={<Laptop />} titulo="Sin activos fijos registrados">
             Un mostrador, una laptop, una máquina del Taller: regístralos con «+ Registrar activo» y el sistema los deprecia cada mes.
           </Vacio>
         </Superficie>
@@ -544,7 +545,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
   }
   return (
     <>
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-gastos.activos">
         <div className="fin-tabla-wrap">
           <table className="fin-tabla">
             <thead>
@@ -569,6 +570,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
                     data-clic
                     tabIndex={0}
                     className={a.estado !== "activo" ? "fin-suave" : undefined}
+                    data-guia="fin-gastos.activo-fila"
                     onClick={() => onAbrir(a)}
                     onKeyDown={(ev) => {
                       if (ev.key === "Enter" || ev.key === " ") {
@@ -712,6 +714,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
       ancho="max-w-[520px]"
     >
       <ListaDatos
+        guia="fin-gastos.activo-detalle"
         filas={[
           { dato: a.cargaInicial ? "Costo (lo que se pagó)" : "Costo (sin IGV)", valor: soles(a.costo) },
           { dato: "Vida útil", valor: textoVidaUtil(a.vidaUtilMeses) },
@@ -727,7 +730,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
           ...(a.registradoPor ? [{ dato: "Lo registró", valor: a.registradoPor, tenue: true }] : []),
         ]}
       />
-      <div className="fin-botones">
+      <div className="fin-botones" data-guia="fin-gastos.activo-botones">
         {a.estado === "activo" && puedeAnularActivo(a) && (
           <button type="button" className="btn-cayla btn-sutil" onClick={() => setAccion("anular")}>
             Se registró por error…

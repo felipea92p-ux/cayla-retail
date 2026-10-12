@@ -101,7 +101,7 @@ function ResumenCompraVentaCambio({
         {actividadPrevia && <ChipEstado estado={actividadPrevia} />}
       </div>
       {algoCambiable && (
-        <button type="button" onClick={() => onIniciar(primera, false)} className={CLASE_BOTON_FILA}>
+        <button type="button" data-guia="cambios.iniciar" onClick={() => onIniciar(primera, false)} className={CLASE_BOTON_FILA}>
           Iniciar cambio
           <ArrowRight className="h-4 w-4" aria-hidden />
         </button>

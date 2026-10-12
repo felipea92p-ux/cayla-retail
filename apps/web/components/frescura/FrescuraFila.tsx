@@ -75,6 +75,7 @@ function Prenda({ fila, apariencia, categoria, onAbrir }: { fila: FilaVista; apa
             onAbrir();
           }}
           aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
+          data-guia="frescura.prenda-nombre"
           // `min-h-7`: un blanco de 24 px o más con el mouse (medía 19; oficio visual, Formidable 2026-10-09).
           className="block min-h-7 py-0.5 text-left text-[15px] font-semibold leading-tight hover:underline focus-visible:underline"
         >
@@ -134,7 +135,7 @@ function Accion({
 }) {
   const detener = (e: MouseEvent) => e.stopPropagation();
   return (
-    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:justify-end">
+    <span data-guia="frescura.accion" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:justify-end">
       {accion?.tipo === "anotar" && (
         <button
           type="button"
@@ -240,6 +241,7 @@ export function FrescuraFila({
       onClick={onAbrir}
       tabIndex={-1}
       data-prenda={fila.clave}
+      data-guia="frescura.fila"
       className={`fila-cayla relative cursor-pointer border-t border-sand ${fila.porDecidir ? FILETE : ""}`}
     >
       {/* Computadora: una fila de la tabla. */}

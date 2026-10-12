@@ -83,7 +83,7 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
           Desde ahora cada cobro y cada pago sella su cuenta al guardarse.
         </Vacio>
       ) : (
-        <ul className="fin-sin-cuenta">
+        <ul className="fin-sin-cuenta" data-guia="fin-dinero.sin-cuenta-lista">
           {pendientes.map((p) => {
             const clase = claseDePagoSinCuenta(p.origen);
             const medio = medioDePagoSinCuenta(p);

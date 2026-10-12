@@ -90,7 +90,7 @@ export function OrdenesTablero({
           <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Dónde está cada corrida, cuánto lleva costando y si llega a tiempo.</p>
         </div>
-        <Boton peso="primario" onClick={() => setNuevaAbierta(true)}>
+        <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)}>
           + Nueva orden
         </Boton>
       </div>
@@ -112,7 +112,7 @@ export function OrdenesTablero({
       )}
 
       {/* ==================== cifras ==================== */}
-      <div className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
+      <div data-guia="prod-ordenes.cifras" className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
         <TarjetaCifra punto="verde" etiqueta="Órdenes en curso" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.enCurso} alMontar />}>
           {resumen.prendas} prendas planeadas
         </TarjetaCifra>
@@ -157,7 +157,7 @@ export function OrdenesTablero({
           </Vacio>
         </div>
       ) : (
-        <div ref={refTablero} className="relative grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-3.5 overflow-x-auto pb-2 min-[1240px]:grid-flow-row min-[1240px]:auto-cols-auto min-[1240px]:grid-cols-4 min-[1240px]:overflow-visible">
+        <div ref={refTablero} data-guia="prod-ordenes.tablero" className="relative grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-3.5 overflow-x-auto pb-2 min-[1240px]:grid-flow-row min-[1240px]:auto-cols-auto min-[1240px]:grid-cols-4 min-[1240px]:overflow-visible">
           {COLUMNAS_TABLERO.map((col) => {
             const tarjetas = porColumna(col.clave);
             return (
@@ -185,7 +185,7 @@ export function OrdenesTablero({
 
       {/* ==================== muestras ==================== */}
       {muestras.length > 0 && (
-        <section className="space-y-3">
+        <section data-guia="prod-ordenes.muestras" className="space-y-3">
           <h2 className="label-cayla text-[11px] text-tinta/65">Muestras en desarrollo</h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {muestras.map((o) => (
@@ -197,7 +197,7 @@ export function OrdenesTablero({
 
       {/* ==================== terminadas ==================== */}
       {terminadas.length > 0 && (
-        <section className="space-y-2">
+        <section data-guia="prod-ordenes.terminadas" className="space-y-2">
           <button
             type="button"
             aria-expanded={verTerminadas}
@@ -242,7 +242,7 @@ export function OrdenesTablero({
 
       {/* ==================== anuladas ==================== */}
       {anuladas.length > 0 && (
-        <section className="space-y-2">
+        <section data-guia="prod-ordenes.anuladas" className="space-y-2">
           <h2 className="label-cayla text-[11px] text-tinta/65">Anuladas</h2>
           {anuladas.map((o) => (
             <div key={o.id} className="card-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-3 text-sm text-tinta/65">

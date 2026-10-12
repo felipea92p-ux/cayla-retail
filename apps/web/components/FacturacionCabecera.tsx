@@ -54,7 +54,7 @@ export function CajaDeBusqueda() {
   const pista = PISTA_DE_BUSQUEDA[pestanaDeRuta(usePathname())];
 
   // La pieza única de buscar (ADR-0358, ronda 5); filtra en el navegador, así que nunca dice «Buscando…».
-  return <Buscador valor={texto} onCambio={setTexto} placeholder={pista} etiqueta="Buscar en esta vista" className="w-full sm:ml-auto sm:w-64" />;
+  return <Buscador guia="comprobantes.buscador" valor={texto} onCambio={setTexto} placeholder={pista} etiqueta="Buscar en esta vista" className="w-full sm:ml-auto sm:w-64" />;
 }
 
 /** Las dos cifras de la cabecera. Cada una es `null` si su lectura falló (`opcional` en el layout): sin dato no se

@@ -1,0 +1,62 @@
+{
+  "guia": "productos.marcas",
+  "ruta": "/productos/marcas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 36,
+  "controles": {
+    "components/ConfirmarConResponsable.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/EditarMarcaModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la marca\")}»",
+      "button «Deshacer»",
+      "button «Quitar»",
+      "button «Quitar» #2",
+      "button «Quitar» #3",
+      "input «Razón social o nombre del proveedor nuevo»",
+      "input «RUC del proveedor nuevo (opcional)»",
+      "ComboBuscable «(sin nombre)»",
+      "ComboResponsable «void guardar(cerrar)»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "button «Cancelar»"
+    ],
+    "components/MarcasLista.tsx": [
+      "Boton «marcas.nueva»",
+      "button «marcas.desactivadas»",
+      "button «marcas.resumen»",
+      "Boton «Borrar la búsqueda»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «);»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevaMarcaForm.tsx": [
+      "button «Cambiar»",
+      "ComboBuscable «)»",
+      "button «+ Proveedor nuevo»",
+      "button «Cambiar» #2",
+      "input «Textil Andina SAC»",
+      "input «11 dígitos»",
+      "button «Mejor elijo uno que ya existe»",
+      "ComboBuscable «)» #2",
+      "button «Cancelar»",
+      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "Link «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/marcas/FiltrosMarcas.tsx": [
+      "button «→() => onFiltro(f)»"
+    ],
+    "components/marcas/IndiceLetras.tsx": [
+      "button «{letra === \"#\" ? \"Ir a las marcas que empiezan con un número\" : `Ir a la ${letra}»"
+    ],
+    "components/marcas/TarjetaMarca.tsx": [
+      "button «Reactivar»",
+      "button «marcas.editar»"
+    ]
+  }
+}

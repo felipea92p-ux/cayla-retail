@@ -58,6 +58,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
+      <div data-guia="caja-historial.cabecera">
       <EncabezadoPagina
         sede="Caja · todas las sedes"
         sinHora
@@ -70,6 +71,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
           </>
         }
       />
+      </div>
 
       {aperturas && aperturas.length > 0 && <AperturasPorRevisar aperturas={aperturas} />}
 
@@ -81,7 +83,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div data-guia="caja-historial.cifras" className="grid gap-3 sm:grid-cols-3">
             <TarjetaCifra
               etiqueta="Cuadraron"
               valor={resumen.cuadraron}
@@ -98,7 +100,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
             </TarjetaCifra>
           </div>
 
-          <nav aria-label="Filtrar cierres" className="flex flex-wrap items-center gap-2">
+          <nav aria-label="Filtrar cierres" data-guia="caja-historial.filtros" className="flex flex-wrap items-center gap-2">
             <Link href={href({ sede: undefined })} aria-current={!sede ? "page" : undefined} className="pildora-cayla">
               Todas las tiendas
             </Link>

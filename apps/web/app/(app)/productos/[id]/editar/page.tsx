@@ -111,7 +111,7 @@ export default async function EditarProductoPage({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-guia="editar.cabecera">
         <Volver href={volverA} a="Productos" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">
           {producto.referencia}

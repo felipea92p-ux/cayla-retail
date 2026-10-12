@@ -212,6 +212,11 @@ flowchart TB
   pinta con `components/ui/AvatarPersona.tsx` (foto o iniciales, nunca imagen rota): pie del lateral, «Mi perfil», combo
   «Responsable» y las tablas de Colaboradores. «Mi perfil» sube la foto a `fotos-perfil` y guarda la RUTA con
   `actualizar_mi_foto_perfil` → `public.fn_actualizar_foto_perfil` (rechaza lo que no empiece por `perfil/`).
+  **Guías interactivas (ADR-0389, 2026-10-07):** `components/guias/MotorGuias.tsx`, montado en `AppShell`, ofrece la demo de la pantalla
+  una vez por persona (`fn_guias_vistas` / `marcar_guia_vista` sobre `retail.guias_vistas`, migración `20261007180000`, aún no en
+  producción; sin ella, se recuerda en el navegador) y la arranca con `?demo=1` o con el evento `cayla:abrir-guia`. «Mi perfil ▸ Demo»
+  abre `components/guias/ElegirDemoModal.tsx` (las filas del lateral de la cuenta). El contenido vive en `lib/guias/pantallas/`, el tablero
+  en `lib/guias/registro.ts` y el candado en `lib/guias.test.ts` + `guias/escaner.mjs` (huellas en `lib/guias/huellas/`).
 
 **Catálogo / inventario**
 - `/inventario` (Existencias; rediseño 2026-10-04, ADR-0331) → `app/(app)/inventario/page.tsx` lee `lib/inventario-v2.ts`
@@ -617,8 +622,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `lib/recibir-cambio-de-sede.ts`. Las dos puertas usan `useSalidaSinGuardar`, que también avisa lo guardado en otra sede.
 - **Ventas sin registrar = `/inventario/por-regularizar`** (ADR-0330, 2026-10-04; antes la pestaña `/recibir?vista=por-regularizar`,
   que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
-  `lib/por-regularizar.ts` + `lib/por-regularizar-stock.ts` (`fn_existencias` por tienda) + `PorRegularizarLista.tsx` → la mesa **talones · puente · prendas** (ADR-0360, 2026-10-07; maqueta A2 «Puente»): `components/por-regularizar/` (`MesaRegularizar`, `TalonVenta`, `PuenteUnion`, `PanelPrendas`, `TarjetaCandidata`, `HilosMesa`, `FranjaAvance`), lógica pura en `lib/por-regularizar-mesa.ts`, estilos en `app/estilos/ventas-sin-registrar.css`; el modal «Regularizar» ya no existe (es el puente) → RPC `regularizar_prenda` (sin cambios; detalle en «Recibir mercadería»,
-  más abajo). Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
+  `lib/por-regularizar.ts` + `lib/por-regularizar-stock.ts` (`fn_existencias` por tienda) + `PorRegularizarLista.tsx` → la mesa **talones · puente · prendas** (ADR-0360, 2026-10-07; maqueta A2 «Puente»): `components/por-regularizar/` (`MesaRegularizar`, `TalonVenta`, `PuenteUnion`, `PanelPrendas`, `TarjetaCandidata`, `HilosMesa`, `FranjaAvance`), lógica pura en `lib/por-regularizar-mesa.ts`, estilos en `app/estilos/ventas-sin-registrar.css`; el modal «Regularizar» ya no existe (es el puente) → RPC `regularizar_prenda` (detalle en «Recibir mercadería»,
+  más abajo). **«¿Cómo estaba?» sugerido por el libro (ADR-0328 act. 5, rescatado de #788 el 2026-10-12):** `lib/por-regularizar-libro.ts` (`getLibroPorVenta`, nunca lanza) → RPC de lectura `fn_candidatas_por_regularizar` (saldo de cada prenda a la hora de la venta y lo primero que llegó o se ajustó después) → lógica pura `lib/por-regularizar-deduccion.ts` (`deducirForma`, `avisoDeRespuesta`) → `MesaRegularizar` → `PuenteUnion` marca «Sugerida» (sin elegirla) y avisa en ámbar si se elige la contraria. **Lo que `regularizar_prenda` va a rechazar, dicho antes del botón (revisión de #975):** una prenda sin unidades libres pregunta desde el navegador si entró alguna vez a la tienda (`components/por-regularizar/usePrendaSinCargar.ts` → RPC de lectura `fn_prenda_cargada_en_sede` + `fn_carga_inicial_sedes`, `x-espera: no`) y, si no, la nota dice la misma frase que la base (`prendaSinCargar`/`notaSinUnidades` en `lib/por-regularizar-reglas.ts`); y bajo el «Responsable», que nadie regulariza su propia venta (`motivoPropiaVenta`, con `FilaPorRegularizar.vendidoPorId`). Solo avisan: el botón y la guía de foco no cambian. Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
   con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí. **Corregir lo anotado (ADR-0369, 2026-10-09):** «Corregir lo anotado» en el puente (`PuenteUnion`) y en `ResumenResuelta` (cerradas) → `CorregirPrendaSinRegistrarModal` (la hoja de Vender, `PrendaSinRegistrarModal` en modo `corregir`; listas de `lib/prenda-sin-registrar-listas.ts`, reglas en `lib/corregir-prenda-sin-registrar-reglas.ts`) → RPC `corregir_prenda_sin_registrar`; la línea «Corregido por …» sale de `fn_correcciones_prenda_sin_registrar` (leída en `getPorRegularizar`). **Desde el detalle de una venta (2026-10-06):** Ventas ▸ Historial ofrece «Regularizar prenda» (`accionesDeVenta`, clave `regularizar`) si la línea tiene su fila de la cola `pendiente` (`FilaHistorial.itemsPorRegularizar`, embebida desde `venta_items`) y lleva a `/inventario/por-regularizar?ubicacion=&item=`, que abre la hoja de esa prenda (`PorRegularizarLista`, prop `abrirItemId`). **Cierre de arranque (ADR-0334, 2026-10-04):**
   un líder da por hechas, en bloque y dentro del plazo de su tienda, las ventas que ya no se pueden identificar → botón en la lista →
   `CerrarColaArranqueModal.tsx` (reglas puras en `lib/cola-arranque-reglas.ts`; plazos por `getPlazosColaArranque`) → RPC `cerrar_cola_arranque`
@@ -976,7 +981,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   listas de `categorias`/`tallas`/`colores` que carga `vender/page.tsx`) agrega una línea de la variante centinela
   `ID_CARGO_ESPECIAL` con `descripcion_libre`/`categoria_id`/`talla_id`/`color_codigo` en su ítem de `p_items`;
   `registrar_venta` la exige completa y en cantidad 1, **no mueve stock** por ella y la deja en
-  `prendas_por_regularizar` (estado `pendiente`). El comprobante electrónico la nombra con `descripcion_libre`
+  `prendas_por_regularizar` (estado `pendiente`). Si lo escrito nombra otra categoría que la elegida («Jean…» con Pantalones), el
+  modal la sugiere bajo la descripción sin aplicarla (`lib/sugerir-categoria-sin-registrar.ts`, ADR-0328 decisión 6; también al
+  corregir lo anotado). El comprobante electrónico la nombra con `descripcion_libre`
   (`itemsParaLucode`). `anular_venta` salta la línea pendiente; un trigger en `ventas` pasa la fila a `anulada`, y
   otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
@@ -1202,9 +1209,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   **«Por regularizar» / Ventas sin registrar** (ADR-0179; desde ADR-0330 en `/inventario/por-regularizar`, ver Inventario V2) → `lib/por-regularizar.ts` (lectura de
   `prendas_por_regularizar` + `fn_nombres_personas`; el líder ve todas sus sedes) + `lib/por-regularizar-reglas.ts`
   (vencida a los `DIAS_PARA_VENCER` = 2 días, tipo de diferencia, cifras del mes) → `PorRegularizarLista.tsx` → RPC
-  `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 (piso, si no almacén);
+  `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 de lo DISPONIBLE (ni Cuarentena ni apartadas; piso, si no almacén);
   `llego_nueva` = entrada `ingreso_regularizado` + salida; la salida lleva motivo `venta` y el `venta_item_id`, la
-  línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. `contarVencidas` alimenta la
+  línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. Desde `20261004204000` (ADR-0328, en
+  producción desde el 2026-10-05; en el repo desde el rescate de #788): pide quién firma (`responsable_requerido`), nadie
+  regulariza su propia venta salvo el líder firmando él mismo (`regularizar_propia_venta`) y una prenda sin ningún movimiento en
+  la sede no se regulariza (`fn_exigir_prenda_cargada_en_sede`, con la salida que siga abierta: cargarla o «Encontré prendas»).
+  `contarVencidas` alimenta la
   cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):

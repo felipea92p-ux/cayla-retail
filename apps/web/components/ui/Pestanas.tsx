@@ -43,6 +43,8 @@ export type Pestana = {
   tono?: "rojo" | "neutro";
   /** Una línea de ayuda al pasar el mouse (`title`): «Cuánto cuesta cada prenda». */
   ayuda?: string;
+  /** El ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389): la guía enciende y toca esta pestaña. */
+  guia?: string;
 };
 
 export function Pestanas({
@@ -53,6 +55,7 @@ export function Pestanas({
   className = "",
   style,
   idIndicador = "pestanas",
+  guia,
 }: {
   items: Pestana[];
   activa: string;
@@ -64,6 +67,8 @@ export function Pestanas({
   style?: CSSProperties;
   /** Nombra la memoria del subrayado que viaja (una por fila de pestañas de la pantalla). */
   idIndicador?: string;
+  /** El ancla de la guía interactiva para la fila entera (`data-guia`, ADR-0389). */
+  guia?: string;
 }) {
   const fila = useRef<HTMLDivElement>(null);
   const filaNav = useRef<HTMLElement>(null);
@@ -107,7 +112,7 @@ export function Pestanas({
 
   if (porEstado) {
     return (
-      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} className={`vidrio-cayla pestanas-cayla ${className}`} style={style}>
+      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style}>
         {items.map((p, i) => {
           const esActiva = p.clave === activa;
           return (
@@ -115,6 +120,7 @@ export function Pestanas({
               key={p.clave}
               type="button"
               role="tab"
+              data-guia={p.guia}
               aria-selected={esActiva}
               tabIndex={esActiva ? 0 : -1}
               onClick={() => onCambio?.(p.clave)}
@@ -132,9 +138,9 @@ export function Pestanas({
   }
 
   return (
-    <nav ref={filaNav} aria-label={etiquetaAccesible} className={`vidrio-cayla pestanas-cayla ${className}`} style={style}>
+    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style}>
       {items.map((p) => (
-        <Link key={p.clave} href={p.href ?? "#"} aria-current={p.clave === activa ? "page" : undefined} title={p.ayuda} className="pestana-cayla">
+        <Link key={p.clave} href={p.href ?? "#"} aria-current={p.clave === activa ? "page" : undefined} title={p.ayuda} data-guia={p.guia} className="pestana-cayla">
           {contenido(p)}
         </Link>
       ))}

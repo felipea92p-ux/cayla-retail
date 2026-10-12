@@ -31,6 +31,7 @@ export function TarjetaCandidata({
     <button
       type="button"
       className="vsr-ct"
+      data-guia="regularizar.candidata"
       data-vsr-prenda={p.id}
       data-sin-unidades={disponible === 0 ? "" : undefined}
       aria-pressed={seleccionada}

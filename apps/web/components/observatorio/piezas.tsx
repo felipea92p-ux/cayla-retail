@@ -262,6 +262,8 @@ export function Segmento<T extends string>({
   onPasar,
   chico = false,
   etiqueta,
+  guia,
+  "data-guia": guiaDe,
 }: {
   valor: T;
   opciones: readonly (readonly [T, ReactNode])[];
@@ -269,15 +271,21 @@ export function Segmento<T extends string>({
   onPasar?: (v: T) => void;
   chico?: boolean;
   etiqueta: string;
+  /** Ancla de la guía interactiva para la fila (`data-guia`, ADR-0389). */
+  guia?: string;
+  /** El ancla de la guía interactiva de CADA opción (`data-guia`, ADR-0389): una función que la devuelve (o nada). Se llama
+   *  `data-guia` para que el escáner de las guías (`guias/escaner.mjs`) lea las anclas escritas en quien la usa. */
+  "data-guia"?: (v: T, i: number) => string | undefined;
 }) {
   const i = Math.max(0, opciones.findIndex((o) => o[0] === valor));
   return (
-    <div className={`o-sd ${chico ? "chico" : ""}`} style={{ "--n": opciones.length } as CSSProperties} role="tablist" aria-label={etiqueta}>
+    <div className={`o-sd ${chico ? "chico" : ""}`} style={{ "--n": opciones.length } as CSSProperties} role="tablist" aria-label={etiqueta} data-guia={guia}>
       <i className="o-sd-ind" style={{ transform: `translateX(${i * 100}%)` }} />
-      {opciones.map(([v, t]) => (
+      {opciones.map(([v, t], n) => (
         <button
           key={v}
           type="button"
+          data-guia={guiaDe?.(v, n)}
           role="tab" // unificar-fijo: Segmento del Observatorio, ADR-0322
           aria-selected={v === valor}
           className={v === valor ? "on" : ""}

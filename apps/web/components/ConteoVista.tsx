@@ -81,7 +81,7 @@ export function ConteoVista({
       {/* `#contar`: `/inventario/conteo#contar` sigue llegando aquí (enlaces de Movimientos, Existencias y el menú). */}
       <div id="contar" className="scroll-mt-24">
         {abierto ? (
-          <section className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
+          <section data-guia="conteo.en-curso" className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
             <div className="space-y-1">
               <h2 id="conteo-en-curso" className="font-display text-xl text-tinta">
                 Conteo {abierto.numero} en curso
@@ -112,7 +112,7 @@ export function ConteoVista({
 
       {/* Sin `overflow-hidden` en la tarjeta: el calendario del filtro se abre hacia abajo y una tarjeta que recorta lo cortaría. La
           lista lleva su propio recorte para sus esquinas. */}
-      <section className="card-cayla @container" aria-labelledby="conteos-recientes">
+      <section data-guia="conteo.recientes" className="card-cayla @container" aria-labelledby="conteos-recientes">
         {/* Título y filtro en UNA fila (se acomodan en dos cuando no caben). El total de conteos ya no va arriba a la derecha: cada
             día dice cuántos trae y el pie dice qué se está viendo; aquí queda solo para el lector de pantalla, que oye el cambio. */}
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 pb-4 pt-4 @[36rem]:px-5">
@@ -167,7 +167,7 @@ export function ConteoVista({
         </div>
       </section>
 
-      <p className="nota-cayla">
+      <p data-guia="conteo.nota" className="nota-cayla">
         <b>Cómo se cuenta:</b> se escanea o se escribe lo que encuentras en la tienda y se compara con lo que CAYLA esperaba. Cada diferencia se confirma antes de cerrar y
         cada ajuste queda como movimiento.{" "}
         <Link href="/inventario/movimientos?proc=conteo" className="text-tinta underline underline-offset-2 hover:text-taupe">

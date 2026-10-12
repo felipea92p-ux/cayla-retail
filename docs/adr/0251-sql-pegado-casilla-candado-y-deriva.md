@@ -1,7 +1,7 @@
 # ADR-0251 · SQL pegado en producción: la casilla, el candado de `drop trigger` y la deriva
 
-- **Fecha:** 2026-09-28 · **Estado:** construido; la revisión diaria espera que Felipe pegue `20260928210000` y guarde la
-  llave en GitHub.
+- **Fecha:** 2026-09-28 (act. 2026-10-12: la casilla se comprueba) · **Estado:** construido; la revisión diaria corre desde el
+  2026-10-03 (llave guardada en GitHub) y, desde el 2026-10-12, el check «SQL pegado» comprueba la casilla en producción.
 - **Pedido:** Felipe, 2026-09-27 (eligió «casilla + revisión diaria»): que no se vuelva a publicar un cambio sin su SQL.
 - **Migración:** `20260928210000_huellas_catalogo_con_llave.sql` (la llave de la revisión diaria). Lo demás vive en
   `.github/` y `scripts/migraciones/`.
@@ -121,3 +121,69 @@ pushes forzados ni se puede borrar. Sin aprobaciones obligatorias (Felipe fusion
 la regla en una urgencia. **«SQL pegado» se suma a los checks exigidos cuando este PR esté en `main`:** exigir un check que
 todavía no corre bloquearía todos los PR. Motivo: #542, #544 y #545 se fusionaron con su revisión corriendo; con la
 protección y el PR en borrador, eso ya no pasa.
+
+## Actualización 2026-10-12 — la casilla se comprueba antes de fusionar
+
+**Pedido:** Felipe, 2026-10-12 («agrega ese chequeo de migraciones antes del deploy»), después de que el despliegue de #970
+fallara en Vercel y hubiera que confirmar a mano que las 6 migraciones de #973 ya estaban en producción.
+
+**El hueco.** El check «SQL pegado» le creía a la casilla. Lo que la desmentía era la revisión diaria, y esa llevaba desde
+el 2026-10-03 en rojo todos los días: producción va casi siempre POR DELANTE de `main` (Felipe pega el SQL antes de
+fusionar, y hay PR abiertos con su SQL ya pegado), así que «producción ≠ main» era el estado normal y el aviso ya no decía
+nada. Medido hoy, solo lectura: 189 diferencias, ninguna de «main tiene algo que producción no» (183 adelantadas, 6 con
+otra versión). Un PR marcado «pegado» sin estarlo se publicaba igual.
+
+**DECIDÍ: el check «SQL pegado», cuando el PR marca «SQL pegado en producción», compara con producción lo que deja CADA
+migración del PR.** Tres piezas:
+1. **El CI aparta las migraciones del PR** antes de `supabase start`, levanta la base de main y las aplica una por una
+   —cada una en su sesión y su transacción, como el SQL Editor— (las cuatro tandas del ADR-0381; solo la tanda 1 toma
+   huellas con `deriva.sql`, antes y después de cada una: `scripts/migraciones/huellas-del-pr.mjs`). Sube el artefacto `huellas-del-pr`: por archivo, cada objeto que cambió
+   y la huella FINAL que tiene que tener en producción (o que no tiene que existir). Sale apenas la base está arriba (~3
+   min), sin esperar las pruebas. Después devuelve los archivos a su carpeta: 42 scripts de `scripts/pruebas/` leen el
+   archivo de su migración.
+2. **El check espera esas huellas, le pide las suyas a producción** con la misma llave de la revisión diaria
+   (`retail.huellas_catalogo`, `DERIVA_LLAVE`) y las compara (`sql-en-produccion.sh` → `sql-en-produccion.mjs`). Por
+   archivo: ✓ pegada, ✗ falta (o está con otra versión), ? sin huella (solo datos: vale la casilla).
+3. **Solo se mira lo que el PR cambia**, no todo `main`: lo adelantado en producción por otros PR no tiñe a este de rojo.
+
+Como «SQL pegado» ya es obligatorio en `main`, un PR con SQL no se fusiona —y Vercel no publica su web— hasta que producción
+lo tiene. Marcar «El SQL se pega después de fusionar» sigue sin mirar producción (lo cubre la revisión diaria).
+
+Verificado con datos reales (2026-10-12): las huellas de `main` antes y después de #973 contra las de producción dan los 98
+objetos que cambiaron idénticos (✓, que es lo correcto: su SQL estaba pegado); y un cambio simulado de `regularizar_prenda`
+que producción no tiene sale ✗.
+
+**Lo público.** El repo sigue público (verificado hoy) y el registro del check lo ve cualquiera: dice solo el NOMBRE de cada
+archivo del PR (que ya está en el PR) y si está o no, nunca qué objeto falta ni cuántos (el mismo criterio de la revisión
+diaria). El detalle, en privado: `sql-en-produccion.mjs <huellas> <produccion> --detalle`, o pedírselo a Claude.
+
+**DESCARTÉ:**
+- **Frenar en Vercel, al construir.** Vercel tendría que leer los artefactos de GitHub con un token propio, y un SQL
+  pendiente frenaría TODA publicación de `main`, también un arreglo urgente de otra pantalla que no tiene nada que ver.
+  Frenar antes de fusionar deja `main` siempre publicable.
+- **Comparar todo `main` con producción** (la revisión diaria, pero antes de fusionar). Con producción adelantada por otros
+  PR, saldría rojo siempre, que es justo lo que le pasó a la revisión diaria.
+- **Leer los nombres del SQL** (qué función crea cada archivo) en vez de aplicarlo. No entiende un `create or replace` que
+  no cambia nada, ni un reemplazo anclado, ni un `revoke`; aplicarlo y mirar el catálogo sí.
+- **Comprobar dentro del job de Postgres.** Un rojo ahí obliga a repetir ~8 min de pruebas solo porque el SQL se pegó
+  después de abrir el PR; el check liviano se vuelve a correr en segundos al marcar la casilla.
+
+Lo vigilan `huellas-del-pr.test.mjs` y `sql-en-produccion.test.mjs` (en «Tipos, lint y pruebas», con `gh` y `curl` falsos
+para cada «no pude mirar») y `pnpm pruebas:huellas-del-pr`, que recorre el camino del CI de punta a punta en una base aparte
+del mismo Postgres (en una de las tandas).
+
+**SE ROMPE SI:**
+- **Producción tiene otra versión de algo que el PR toca** (un arreglo que vive solo allá, u otro PR pegado encima): el
+  check sale ✗ aunque el SQL se haya pegado. Es real —la web del PR se publicaría contra otra versión—: se trae el
+  arreglo de producción a la migración (memoria «reescribir función parchada por ancla») o se decide cuál vale.
+- **Una migración solo de datos** (un `insert` en `modulos`) no tiene huella: sale «?» y vale la casilla. Si nadie la pegó,
+  no lo ve este check (sí, sin nombre, la revisión diaria si deja algo en el catálogo).
+- **Se marca la casilla antes de que el CI levante su base:** el check espera hasta 20 min; si el CI no deja huellas
+  (una migración que no se aplica), sale rojo diciéndolo. Nunca verde sin haber mirado.
+- **La versión de una migración del PR es anterior a la última de main:** en el CI corre DESPUÉS de las de main (es el
+  orden real de producción, no el de los nombres). Si las dos tocan lo mismo, el CI lo muestra como lo verá producción.
+- **Dos PR pegan sobre la misma función:** el primero pasó su check; si el segundo pisa su versión en producción antes de
+  que el primero se fusione, el primero se fusiona contra la versión del segundo. Este check no vuelve a correr solo; lo
+  ve la revisión diaria.
+- **Supabase o la API de artefactos de GitHub no responden:** los PR con SQL quedan en rojo («no se pudo leer producción»)
+  hasta que vuelvan; los PR sin SQL no se enteran. El dueño puede saltarse la regla en una urgencia.

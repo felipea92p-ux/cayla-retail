@@ -22,7 +22,10 @@ export function BarraFija({
   className = "",
   visible,
   resumenMinimo,
+  guia,
 }: {
+  /** Ancla de la guía (ADR-0389). */
+  guia?: string;
   resumen: ReactNode;
   acciones: ReactNode;
   /** Una franja de 3 px pegada al borde superior (Recibir: contado · faltante · sin contar). */
@@ -40,6 +43,7 @@ export function BarraFija({
   const animada = visible !== undefined;
   return (
     <div
+      data-guia={guia}
       aria-hidden={animada && !visible ? true : undefined}
       inert={animada && !visible ? true : undefined}
       // `left` NO se anima al plegar el menú (ADR-0130, 2026-10-10): salta a su lugar junto con el contenido, que

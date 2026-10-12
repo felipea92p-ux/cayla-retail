@@ -1,0 +1,90 @@
+{
+  "guia": "inventario.resumen",
+  "ruta": "/inventario/resumen",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 56,
+  "controles": {
+    "components/PedirAOtraSedeModal.tsx": [
+      "button «{`Una menos de ${etiqueta}»",
+      "button «{`Una más de ${etiqueta}»",
+      "Desplegable «)»",
+      "button «Reintentar»",
+      "Desplegable «(sin nombre)»",
+      "button «{`Quitar ${prenda?.etiqueta ?? \"esta línea\"}»",
+      "button «+ Agregar otra prenda»",
+      "input «Nota (opcional)»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Mejor no»",
+      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+    ],
+    "components/analisis/AnalisisPantalla.tsx": [
+      "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/analisis/Carril.tsx": [
+      "button «{textoVerMas(g.prendas.length - g.corte)}»"
+    ],
+    "components/analisis/FichaPrenda.tsx": [
+      "Link «{principal.texto}»",
+      "button «Pedir a»",
+      "Link «Ver en Existencias»",
+      "Link «Movimientos»"
+    ],
+    "components/analisis/HojaConfianza.tsx": [
+      "button «Ver qué falta»",
+      "button «Ver con los datos de hoy»"
+    ],
+    "components/analisis/HojaLiquidarDesde.tsx": [
+      "ComboResponsable «)»",
+      "button «{responsable.motivo ?? undefined}»",
+      "button «Cancelar»"
+    ],
+    "components/analisis/PestanaAcaba.tsx": [
+      "Link «Comprar todas»",
+      "button «{f.texto}»",
+      "Link «{`Comprar: ${nombreLargo(p)}»",
+      "button «{`${textoPedirA(sede)}»"
+    ],
+    "components/analisis/PestanaHoy.tsx": [
+      "Pastilla «))»",
+      "Pastilla «))» #2",
+      "button «{c.verbo}»",
+      "Link «{contenido}»"
+    ],
+    "components/analisis/PestanaPedir.tsx": [
+      "Link «Plan de campaña»",
+      "button «{o.texto}»",
+      "button «{`Quitar el filtro: ${categoria}»",
+      "button «Top»",
+      "button «[0][\"familia\"]»",
+      "button «↓»"
+    ],
+    "components/analisis/PestanaPiso.tsx": [
+      "Link «{`Bájalas al piso: ${cuantas}»",
+      "Link «{`Bajar al piso: ${nombreLargo(p)}»"
+    ],
+    "components/analisis/PestanaQuieta.tsx": [
+      "Link «{etiqueta}»",
+      "button «{`${LIQUIDAR_PASO}»",
+      "input «= LIQUIDAR_MAX»",
+      "button «{`${LIQUIDAR_PASO}» #2",
+      "button «Guardar para todos»",
+      "Link «{`${texto}»",
+      "Link «{`Liquidar: ${nombreLargo(p)}»",
+      "button «Nunca salió al piso»",
+      "Link «Frescura del piso»"
+    ],
+    "components/analisis/TodaviaNo.tsx": [
+      "Link «Registrar»",
+      "Link «Cuadrar»",
+      "Link «Contar»",
+      "button «→() => abrirFicha(t.varianteId)»",
+      "Link «{boton.texto}»",
+      "button «Ver qué falta»"
+    ],
+    "components/analisis/piezas.tsx": [
+      "button «{guia}»",
+      "button «{texto}»"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "guia": "finanzas.reportes",
+  "ruta": "/finanzas/reportes",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 3,
+  "controles": {
+    "components/finanzas/EstadoResultadosPanel.tsx": [
+      "button «fin-reportes.excel»",
+      "input «Comparar con»",
+      "button «{k.clave === \"ventas\" ? \"fin-resultados.celda\" : undefined}»"
+    ]
+  }
+}

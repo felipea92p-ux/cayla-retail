@@ -19,6 +19,7 @@ export function SeccionFicha({
   onAbierta,
   children,
   retraso = 0,
+  guia,
 }: {
   id: string;
   numero: number;
@@ -30,9 +31,11 @@ export function SeccionFicha({
   children: ReactNode;
   /** Entrada en cascada de la maqueta (40, 90, 140, 190 ms). */
   retraso?: number;
+  /** El ancla de la guía interactiva de la sección (`data-guia`, ADR-0389): la demo la abre tocando su cabecera. */
+  guia?: string;
 }) {
   return (
-    <section id={id} className="taller-sec anim-revelar scroll-mt-24" data-hecho={hecho} data-abierta={abierta} style={{ animationDelay: `${retraso}ms` }}>
+    <section id={id} data-guia={guia} className="taller-sec anim-revelar scroll-mt-24" data-hecho={hecho} data-abierta={abierta} style={{ animationDelay: `${retraso}ms` }}>
       <button type="button" className="taller-sec-cab" aria-expanded={abierta} aria-controls={`${id}-cuerpo`} onClick={() => onAbierta(!abierta)}>
         <span className="taller-num" aria-label={hecho ? "Completa" : `Paso ${numero}`}>
           {hecho ? "✓" : numero}
