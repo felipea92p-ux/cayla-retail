@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   campanaParaResultados,
   cierre,
+  contraLaCampanaPasada,
+  contraLoEsperado,
+  filtrarYOrdenarCategorias,
+  parteQuePaso,
   coloresQueMasVendieron,
   comoVa,
   pesosDeLosDias,
@@ -16,6 +20,7 @@ import {
   recuperoRealTotal,
   type LecturaResultados,
 } from "./plan-compra-resultados";
+import { leerPropuesta } from "./plan-compra-propuesta";
 
 const CRUDO = {
   plan: { id: "p", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25" },
@@ -194,5 +199,79 @@ describe("qué campaña se muestra", () => {
     expect(campanaParaResultados(planes, "2026-11-10")?.id).toBe("hall");
     expect(campanaParaResultados([c("dic", "2026-12-01", "2026-12-31")], "2026-10-12")?.id).toBe("dic");
     expect(campanaParaResultados([c("x", "2026-01-01", "2026-01-10", true)], "2026-10-12")).toBeNull();
+  });
+});
+
+describe("la tabla de categorías: buscar y ordenar", () => {
+  const filas = porCategoria(r, null);
+  it("por defecto, la que más vendió primero (el orden de siempre)", () => {
+    expect(filtrarYOrdenarCategorias(filas, "", "mas").map((f) => f.id)).toEqual(filas.map((f) => f.id));
+  });
+  it("menos vendidas, A a Z y Z a A", () => {
+    expect(filtrarYOrdenarCategorias(filas, "", "menos").map((f) => f.nombre)).toEqual(["Casacas", "Jeans", "Polos"]);
+    expect(filtrarYOrdenarCategorias(filas, "", "az").map((f) => f.nombre)).toEqual(["Casacas", "Jeans", "Polos"]);
+    expect(filtrarYOrdenarCategorias(filas, "", "za").map((f) => f.nombre)).toEqual(["Polos", "Jeans", "Casacas"]);
+  });
+  it("busca por nombre o familia, sin tildes ni mayúsculas", () => {
+    expect(filtrarYOrdenarCategorias(filas, "POLO", "mas").map((f) => f.id)).toEqual(["polos"]);
+    expect(filtrarYOrdenarCategorias(filas, "indumentária", "az").map((f) => f.id)).toEqual(["jeans", "polos"]);
+    expect(filtrarYOrdenarCategorias(filas, "zzz", "mas")).toEqual([]);
+  });
+  it("no toca la lista que recibe", () => {
+    const copia = filas.map((f) => f.id);
+    filtrarYOrdenarCategorias(filas, "", "za");
+    expect(filas.map((f) => f.id)).toEqual(copia);
+  });
+});
+
+describe("el detalle de una categoría: contra lo esperado y contra la campaña pasada", () => {
+  it("terminada: lo vendido en todas las tiendas contra el normal completo", () => {
+    const c = contraLoEsperado(r, "polos", Array(15).fill(1));
+    expect(c).toMatchObject({ vendidas: 310, esperado: 250, terminada: true, plan: { flojo: 150, normal: 250, bueno: 450 } });
+    expect(c?.diferencia).toBeCloseTo(0.24);
+  });
+  it("en curso: lo que el normal esperaba a hoy, con el peso de los días", () => {
+    const enCurso = { ...r, hoy: "2026-12-16", medidoHasta: "2026-12-15" };
+    expect(parteQuePaso(enCurso, Array(15).fill(1))).toBeCloseTo(5 / 15);
+    expect(contraLoEsperado(enCurso, "polos", Array(15).fill(1))).toMatchObject({ esperado: 83, terminada: false });
+    // Con la forma de los días, los primeros pesan menos: se esperaba menos a esta altura.
+    expect(contraLoEsperado(enCurso, "polos", [...Array(5).fill(1), ...Array(10).fill(3)])?.esperado).toBe(Math.round((250 * 5) / 35));
+  });
+  it("sin plan no hay contra qué comparar", () => {
+    expect(contraLoEsperado(r, "jeans", Array(15).fill(1))).toBeNull();
+  });
+
+  const propuesta = leerPropuesta({
+    plan_id: "p",
+    hoy: "2026-12-20",
+    dias_campana: 15,
+    previa: { desde: "2025-12-11", hasta: "2025-12-25" },
+    recupero_defecto: { pct: 40, heredado: false },
+    tiendas: [
+      { id: "tru", nombre: "Tienda TRU", erp_desde: "2024-01-01", dias_90: 90, ventanas: 6, previa_disponible: true, multiplicador: 2 },
+      { id: "aqp", nombre: "Tienda AQP", erp_desde: "2026-09-01", dias_90: 90, ventanas: 3, previa_disponible: false, multiplicador: null },
+    ],
+    categorias: [
+      { c: "polos", u: "tru", u90: 300, ventanas: [100, 100, 100, 0, 0, 0], previa: 280, agotada: false },
+      { c: "polos", u: "aqp", u90: 60, ventanas: [20, 20, 20, 0, 0, 0], previa: 0, agotada: false },
+    ],
+  });
+  it("suma solo las tiendas que ya vendían en el ERP en esa campaña, y dice cuáles no", () => {
+    expect(contraLaCampanaPasada(propuesta, "polos", null)).toEqual({
+      desde: "2025-12-11",
+      hasta: "2025-12-25",
+      unidades: 280,
+      conDato: ["Tienda TRU"],
+      sinDato: ["Tienda AQP"],
+    });
+  });
+  it("una tienda sin esa campaña en el ERP no tiene con qué comparar", () => {
+    expect(contraLaCampanaPasada(propuesta, "polos", "aqp")).toMatchObject({ unidades: 0, conDato: [], sinDato: ["Tienda AQP"] });
+  });
+  it("una categoría que no se vendió el año pasado da cero, no falta de dato", () => {
+    expect(contraLaCampanaPasada(propuesta, "jeans", null)).toMatchObject({ unidades: 0, conDato: ["Tienda TRU"] });
+  });
+  it("sin la propuesta no se inventa nada", () => {
+    expect(contraLaCampanaPasada(null, "polos", null)).toBeNull();
   });
 });

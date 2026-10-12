@@ -9,6 +9,7 @@
 //   · Lo que sobró = lo vendido en los 60 días después de la campaña: lo cobrado ÷ lo que valía a precio de etiqueta.
 
 import { fraseDeLoReal } from "./plan-compra-reglas";
+import type { LecturaPropuesta } from "./plan-compra-propuesta";
 
 export const RPC_RESULTADOS = "fn_plan_compra_resultados";
 const DIAS_BASE = 60;
@@ -316,4 +317,85 @@ export function campanaParaResultados<T extends { id: string; desde: string; has
   const terminada = activas.filter((p) => p.hasta < hoy).sort((a, b) => b.hasta.localeCompare(a.hasta))[0];
   const proxima = activas.filter((p) => p.desde > hoy).sort((a, b) => a.desde.localeCompare(b.desde))[0];
   return enCurso ?? terminada ?? proxima ?? null;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// La tabla de categorías: buscar y ordenar (Felipe 2026-10-12, «como en el Historial»)
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type OrdenResultados = "mas" | "menos" | "az" | "za";
+export const ORDENES_RESULTADOS: { valor: OrdenResultados; texto: string }[] = [
+  { valor: "mas", texto: "Más vendidas primero" },
+  { valor: "menos", texto: "Menos vendidas primero" },
+  { valor: "az", texto: "Nombre, A a Z" },
+  { valor: "za", texto: "Nombre, Z a A" },
+];
+
+const comparable = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Las categorías que calzan con lo buscado (nombre o familia, sin tildes ni mayúsculas), en el orden pedido. «Más vendidas» es el de siempre. */
+export function filtrarYOrdenarCategorias(filas: readonly FilaCategoria[], q: string, orden: OrdenResultados): FilaCategoria[] {
+  const busca = comparable(q.trim());
+  const quedan = busca ? filas.filter((f) => comparable(`${f.nombre} ${f.familia}`).includes(busca)) : [...filas];
+  const porNombre = (a: FilaCategoria, b: FilaCategoria) => a.nombre.localeCompare(b.nombre, "es");
+  if (orden === "az") return quedan.sort(porNombre);
+  if (orden === "za") return quedan.sort((a, b) => porNombre(b, a));
+  if (orden === "menos") return quedan.sort((a, b) => a.unidades - b.unidades || a.soles - b.soles || porNombre(a, b));
+  return quedan.sort((a, b) => b.unidades - a.unidades || b.soles - a.soles || porNombre(a, b));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// El detalle de una categoría: contra lo esperado y contra la campaña pasada (Felipe 2026-10-12)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Qué parte de la campaña ya pasó (0 a 1), con el peso de cada día; 1 si terminó. */
+export function parteQuePaso(r: Pick<LecturaResultados, "plan" | "medidoHasta">, pesos: readonly number[]): number {
+  const total = pesos.reduce((a, p) => a + p, 0);
+  if (total <= 0) return 0;
+  return pesos.slice(0, Math.min(pesos.length, diasMedidos(r))).reduce((a, p) => a + p, 0) / total;
+}
+
+export type ContraLoEsperado = {
+  /** Lo vendido en todas las tiendas (el plan es de toda CAYLA). */
+  vendidas: number;
+  plan: { flojo: number; normal: number; bueno: number };
+  /** Lo que el «normal» esperaba a hoy; igual al normal si la campaña terminó. */
+  esperado: number;
+  /** vendidas ÷ esperado − 1; null si no se esperaba nada todavía. */
+  diferencia: number | null;
+  terminada: boolean;
+};
+
+/** Una categoría contra su plan, a hoy (o al cierre). null si la categoría no tuvo plan: no hay contra qué comparar. */
+export function contraLoEsperado(r: LecturaResultados, categoriaId: string, pesos: readonly number[]): ContraLoEsperado | null {
+  const plan = r.lineas.get(categoriaId);
+  if (!plan) return null;
+  const vendidas = r.filas.filter((f) => f.categoria === categoriaId).reduce((a, f) => a + f.unidades, 0);
+  const terminada = momentoDeResultados(r) === "terminada";
+  const esperado = Math.round(plan.normal * (terminada ? 1 : parteQuePaso(r, pesos)));
+  return { vendidas, plan: { flojo: plan.flojo, normal: plan.normal, bueno: plan.bueno }, esperado, diferencia: esperado > 0 ? vendidas / esperado - 1 : null, terminada };
+}
+
+export type ContraLaPasada = {
+  desde: string;
+  hasta: string;
+  /** Lo que vendió esa categoría en la misma campaña del año anterior, en toda la campaña, sumando las tiendas con dato. */
+  unidades: number;
+  /** Tiendas que ya vendían en el ERP en esa campaña (con sus 60 días de antes). */
+  conDato: string[];
+  /** Tiendas sin esa campaña en el ERP: Sinatra trae soles por tienda, no categorías, así que no hay con qué comparar. */
+  sinDato: string[];
+};
+
+/**
+ * La misma categoría en la misma campaña del año anterior, por unidades. Sale de la propuesta del Plan (C4), que ya lo lee. null si la
+ * propuesta no se pudo leer. `tienda` filtra (null = todas).
+ */
+export function contraLaCampanaPasada(p: LecturaPropuesta | null, categoriaId: string, tienda: string | null): ContraLaPasada | null {
+  if (!p) return null;
+  const tiendas = p.tiendas.filter((t) => tienda === null || t.id === tienda);
+  const conDato = tiendas.filter((t) => t.previaDisponible);
+  const hechos = p.categorias.get(categoriaId) ?? [];
+  const unidades = hechos.filter((h) => conDato.some((t) => t.id === h.tienda)).reduce((a, h) => a + h.previa, 0);
+  return { desde: p.previa.desde, hasta: p.previa.hasta, unidades, conDato: conDato.map((t) => t.nombre), sinDato: tiendas.filter((t) => !t.previaDisponible).map((t) => t.nombre) };
 }

@@ -77,29 +77,32 @@ export async function getPlanCompra(planId?: string): Promise<{
  * Resultados (ADR-0372, C6): lo vendido en una campaña. Sin campaña válida en la URL, la que está en curso, si no la última terminada, si no la
  * próxima (`campanaParaResultados`). Si la base falla, lo dice.
  */
-export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown }> {
+export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown; propuesta: unknown }> {
   const supabase = await createClient();
   const planes = await supabase.rpc(RPC_PLANES as never);
   if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
   const campanas = planes.error ? null : leerCampanas(planes.data);
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
   const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
-  if (!id) return { datos: null, campanas, falla: null, anterior: null };
+  if (!id) return { datos: null, campanas, falla: null, anterior: null, propuesta: null };
   // La misma campaña un año antes (Sinatra o ERP), en paralelo: da la forma de los días para «¿Cómo va?». Es una ayuda: si falla, los
-  // días pesan igual.
+  // días pesan igual. La propuesta (C4) trae lo que vendió cada categoría en esa campaña del año anterior, para el detalle de una fila:
+  // también es una ayuda; si falla, el detalle dice que no hay con qué comparar.
   const fechas = campanas?.planes.find((p) => p.id === id);
-  const [r, anterior] = await Promise.all([
+  const [r, anterior, propuesta] = await Promise.all([
     supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never),
     fechas
       ? supabase.rpc(RPC_HISTORIAL as never, { p_desde: sumarDias(fechas.desde, -366), p_hasta: sumarDias(fechas.hasta, -365) } as never)
       : Promise.resolve({ data: null, error: null }),
+    supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: id } as never),
   ]);
   if (r.error) {
     console.error(`${RPC_RESULTADOS}: ${r.error.message}`);
-    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", anterior: null };
+    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", anterior: null, propuesta: null };
   }
   if (anterior.error) console.error(`${RPC_HISTORIAL} (resultados): ${anterior.error.message}`);
-  return { datos: r.data, campanas, falla: null, anterior: anterior.error ? null : anterior.data };
+  if (propuesta.error) console.error(`${RPC_PROPUESTA} (resultados): ${propuesta.error.message}`);
+  return { datos: r.data, campanas, falla: null, anterior: anterior.error ? null : anterior.data, propuesta: propuesta.error ? null : propuesta.data };
 }
 
 /**

@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChartColumn, ChevronRight } from "lucide-react";
+import { ChartColumn, ChevronRight, SearchX } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { Desplegable } from "@/components/ui/campos";
 import { DetalleCategoriaResultados } from "@/components/plan-compra/DetalleCategoriaResultados";
 import { Aviso } from "@/components/ui/Aviso";
 import { Ayuda } from "@/components/Ayuda";
@@ -18,6 +20,7 @@ import {
   coloresQueMasVendieron,
   comoVa,
   diasMedidos,
+  filtrarYOrdenarCategorias,
   leerResultados,
   momentoDeResultados,
   multiplicadorReal,
@@ -27,8 +30,11 @@ import {
   prendasQueMasVendieron,
   recuperoRealTotal,
   senales,
+  ORDENES_RESULTADOS,
   type FilaCategoria,
+  type OrdenResultados,
 } from "@/lib/plan-compra-resultados";
+import { leerPropuesta } from "@/lib/plan-compra-propuesta";
 import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
 import { TarjetaComoVa } from "@/components/plan-compra/ComoVaCampana";
 import { SenalesCampana } from "@/components/plan-compra/SenalesCampana";
@@ -45,6 +51,7 @@ export function ResultadosCampana({
   campanas,
   falla,
   anterior = null,
+  propuesta = null,
   veAnalisis = false,
 }: {
   datos: unknown;
@@ -52,6 +59,8 @@ export function ResultadosCampana({
   falla: string | null;
   /** La misma campaña un año antes (`fn_historial_ventas`, crudo): la forma de los días para «¿Cómo va?». */
   anterior?: unknown;
+  /** La propuesta del Plan (`fn_plan_compra_propuesta`, crudo): lo vendido por categoría en la misma campaña el año anterior. */
+  propuesta?: unknown;
   /** Quien ve Análisis recibe los accesos a la prenda exacta (Se está acabando, No se vende). */
   veAnalisis?: boolean;
 }) {
@@ -67,6 +76,9 @@ export function ResultadosCampana({
   }, [r, anterior]);
   const [tienda, setTienda] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<FilaCategoria | null>(null);
+  const [q, setQ] = useState("");
+  const [orden, setOrden] = useState<OrdenResultados>("mas");
+  const lecturaPropuesta = useMemo(() => leerPropuesta(propuesta), [propuesta]);
   // El «!» con lo que la frase no alcanza a decir, como en Productos y en el Historial (Felipe 2026-10-12).
   const ayuda = (
     <Ayuda titulo="Resultados">
@@ -135,7 +147,8 @@ export function ResultadosCampana({
     );
   }
 
-  const categorias = porCategoria(r, tienda);
+  const todasLasCategorias = porCategoria(r, tienda);
+  const categorias = filtrarYOrdenarCategorias(todasLasCategorias, q, orden);
   const familias = porFamilia(r, tienda);
   const prendas = prendasQueMasVendieron(r, tienda);
   const colores = coloresQueMasVendieron(r, tienda);
@@ -194,6 +207,11 @@ export function ResultadosCampana({
       {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} />}
 
       <Tabla>
+        {/* Buscar y ordenar (Felipe 2026-10-12): como en el Historial, en la misma tarjeta que la tabla. «Más vendidas» es el de siempre. */}
+        <div className="flex flex-wrap items-center gap-3 px-5 py-3">
+          <Buscador valor={q} onCambio={setQ} placeholder="Buscar una categoría o familia" etiqueta="Buscar una categoría o familia" atajo conteo={q ? `${categorias.length} de ${todasLasCategorias.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
+          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenResultados)} opciones={ORDENES_RESULTADOS} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+        </div>
         <div className={`encabezado-tabla-cayla hidden gap-x-6 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
           {/* Cada título se alinea como su columna (Tabla, «celda»): las cifras y su título a la derecha, el texto a la izquierda. */}
           {(
@@ -210,25 +228,29 @@ export function ResultadosCampana({
             </span>
           ))}
         </div>
-        {categorias.length === 0 ? (
+        {todasLasCategorias.length === 0 ? (
           <Vacio tamano="chico" icono={<ChartColumn />} titulo="Sin ventas todavía">
             En estas fechas no se vendió ninguna categoría{tienda ? " en esta tienda" : ""}.
           </Vacio>
+        ) : categorias.length === 0 ? (
+          <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna categoría se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
+            Prueba con otra palabra o borra la búsqueda.
+          </Vacio>
         ) : (
           categorias.map((c) => (
-            // Toda la fila abre su detalle (qué prendas y de qué colores se vendieron); una categoría sin ventas no tiene qué mostrar.
+            // Toda la fila abre su detalle: contra lo esperado, contra la campaña pasada y qué prendas y colores se vendieron. También una
+            // categoría que todavía no vende: su detalle dice cuánto se esperaba (Felipe 2026-10-12).
             <button
               key={c.id}
               type="button"
-              disabled={c.unidades === 0}
               onClick={() => setAbierta(c)}
-              aria-label={`Ver qué prendas de ${c.nombre} se vendieron`}
-              className={`fila-cayla grid w-full gap-x-6 gap-y-1 px-5 py-3 text-left transition-colors sm:items-baseline enabled:cursor-pointer enabled:hover:bg-hueso ${PLANTILLA}`}
+              aria-label={`Ver el detalle de ${c.nombre}`}
+              className={`fila-cayla grid w-full cursor-pointer gap-x-6 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline ${PLANTILLA}`}
             >
               <span className={celda("izq")}>
                 <span className="flex items-center gap-1.5 font-semibold text-tinta">
                   {c.nombre}
-                  {c.unidades > 0 && <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />}
+                  <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
                 </span>
                 <span className="block text-xs text-taupe">{c.familia}</span>
               </span>
@@ -250,7 +272,9 @@ export function ResultadosCampana({
         )}
       </Tabla>
 
-      {abierta && <DetalleCategoriaResultados r={r} categoria={abierta} tiendaInicial={tienda} onClose={() => setAbierta(null)} />}
+      {abierta && (
+        <DetalleCategoriaResultados r={r} categoria={abierta} tiendaInicial={tienda} pesos={pesos.pesos} propuesta={lecturaPropuesta} onClose={() => setAbierta(null)} />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card-cayla p-5">
