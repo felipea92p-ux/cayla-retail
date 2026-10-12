@@ -48,3 +48,38 @@ Se rompe si: falta `CRON_SECRET` en Vercel (el cron responde 401 y no hace nada 
 ## Actualización 2026-09-29 — salida a la SUNAT real: series nuevas y una nota de crédito por letra (ADR-0278)
 
 Felipe decidió salir a la SUNAT real. El ADR-0278 fija las series nuevas (Trujillo 1, Arequipa 2, Lima 3: `B001`–`B003`, `F001`–`F003`, `BC01`–`BC03`, `FC01`–`FC03`), archiva las de prueba y resuelve lo que la sección «Se rompe si» de arriba dejaba en BACKLOG (una tienda que corrige boletas **y** facturas): sin cambiar la firma de `emitir_nota` ni de `aprobar_devolucion`, porque `emitir_nota` ya conoce el tipo del original. Los cuatro pasos de «Consecuencias» quedan escritos con su orden, sus SQL y la ventana sin ventas en el ADR-0278. **El cuarto paso —la regla «Solo sandbox» del cron— sigue como estaba** hasta que Felipe lo autorice a propósito.
+
+## Actualización 2026-10-12 — el cuarto paso: el reintento automático transmite en producción
+
+**Felipe lo autorizó en el chat del 2026-10-12** («Haz la A», y «hazlo» después de ver el cambio exacto). `cronNoTransmite` pasa a
+llamarse `cronNoAutorizado(autorizacion, secreto)` y solo mira la clave del cron; ya no pregunta por `LUCODE_ENTORNO`. La ruta
+`GET /api/lucode/reintentar` siempre toma la cola y transmite; desaparece su modo «solo consultar».
+
+**Por qué ahora (medido en producción, solo lectura).** Lucode contesta normalmente en ~2 s (mediana 2,2 s, 9 de cada 10 bajo 3 s,
+del 2 al 12-oct). Hasta el 10-oct no hubo ni un corte por los 15 s de espera en ~500 comprobantes; el 11-oct se cortaron 11 de 32 y el
+12-oct, 3 de 10, todos de TRU (la única sede que vendió esos días; el corte es entre el servidor y Lucode, no el internet de la tienda).
+Con la regla «solo sandbox», en producción la cola avanzaba solo cuando alguien cobraba en esa sede o un líder abría Comprobantes: las 11
+del 11-oct esperaron unas 20 horas, y B005-375 seguía con un solo intento 35 minutos después de su hora de reintento. La pantalla
+decía «En cola: se reintenta solo», que en producción era verdad a medias.
+
+**Lo que ya estaba y no cambia.** El cron corre cada 5 minutos con `CRON_SECRET` desde el 23-sep (en producción solo consultaba a SUNAT:
+una llamada a `fn_tomar_comprobantes_para_consultar` cada 5 minutos en los registros del 12-oct). Las cinco funciones que usa aceptan la
+llave de servicio en producción (`fn_tomar_comprobantes_para_reintento`, `fn_marcar_reintento_transmision`,
+`actualizar_transmision_comprobante`, `fn_tomar_comprobantes_para_consultar`, `fn_confirmar_baja_sunat`; verificado en vivo con
+`has_function_privilege`): **no hace falta SQL**. La reserva de 5 minutos (`for update skip locked`) impide que el cron y una pantalla
+manden el mismo comprobante; el número no cambia nunca, así que un reenvío de algo que Lucode ya tenía recibe «fue emitido
+anteriormente» y `resolverYaEmitido` lo confirma con el XML sin duplicarlo (ADR-0378). Las ventas anuladas no se toman.
+
+- **DECIDÍ:** que el cron transmita en el ambiente que tenga Lucode, sin una variable nueva.
+- **DESCARTÉ:** (a) cambiar solo el texto («se envía con la próxima venta»): honesto, pero la última boleta del día seguía durmiendo hasta
+  el día siguiente; (b) subir la espera de 15 a 30 s: sin medir cuánto tarda Lucode cuando se cuelga es adivinar (ADR-0378 ya lo
+  descartó por eso); (c) un interruptor por variable de entorno: es justo lo que la regla original no quería («una variable que alguien
+  toca sin saber»), y Vercel ya trae el apagado sin publicar (Settings ▸ Cron Jobs ▸ Disable).
+- **SE ROMPE SI:** Lucode cambia la frase «fue emitido anteriormente»: el ERP dejaría de reconocerla y el cron insistiría sobre esa boleta
+  cada 15 minutos o más hasta las 4 horas (sin duplicarla, porque el número es el mismo, pero sin cerrarla). O si hay 3 o más
+  comprobantes que nunca se pueden transmitir (un anticipo de apartado, ADR-0166) emitidos en las últimas 4 horas: el cron toma los 3 más
+  viejos de todas las sedes, cada pasada los vuelve a tomar al vencer su reserva y taparían a los demás (hoy hay 1 anticipo en toda la
+  base, del 9-oct, fuera de esa ventana).
+
+**Cómo se apaga sin publicar nada:** Vercel ▸ proyecto ▸ Settings ▸ Cron Jobs ▸ Disable. Con el cron apagado vuelve a pasar lo de
+antes (la cola avanza con los cobros y al abrir Comprobantes), y tampoco consulta a SUNAT lo que quedó en trámite.
