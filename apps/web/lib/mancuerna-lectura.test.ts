@@ -76,17 +76,20 @@ describe("las etiquetas sobre la pista de cada fila", () => {
       casos++;
       const vistos = e.flatMap((x) => x.partes.map((p) => p.tipo)).sort().join(",");
       if (vistos !== todas) fallos.push(`${JSON.stringify(valores)}: salen las marcas ${vistos}`);
+      // El centro de una etiqueta que junta varias queda dentro de su grupo, y entre dos grupos hay al menos una separación: dos vecinas nunca
+      // quedan más cerca que eso. Y como los carriles se alternan, dos del mismo carril tienen otra etiqueta en medio: al menos dos separaciones.
+      // (Hasta el 2026-10-12 aquí se pedía solo «más de 0» y «una separación»: una función que encimaba etiquetas a media separación, o que ponía
+      // dos vecinas en el mismo carril, pasaba en verde.)
       for (let i = 1; i < e.length; i++) {
         const dist = e[i]!.pos - e[i - 1]!.pos;
-        // el centro de una etiqueta que junta varias queda dentro del grupo: la distancia entre centros nunca baja de lo que separa a las marcas de los bordes
-        if (!(dist > 0)) fallos.push(`${JSON.stringify(valores)}: dos etiquetas vecinas a ${dist}`);
+        if (!(dist >= SEPARACION_MINIMA)) fallos.push(`${JSON.stringify(valores)}: dos etiquetas vecinas a ${dist}`);
       }
       const carriles = { arriba: [] as number[], abajo: [] as number[] };
       for (const x of e) carriles[x.carril].push(x.pos);
       for (const [carril, lista] of Object.entries(carriles))
         for (let i = 1; i < lista.length; i++) {
           const dist = lista[i]! - lista[i - 1]!;
-          if (!(dist >= SEPARACION_MINIMA)) fallos.push(`${JSON.stringify(valores)}: dos etiquetas de ${carril} a ${dist}`);
+          if (!(dist >= 2 * SEPARACION_MINIMA)) fallos.push(`${JSON.stringify(valores)}: dos etiquetas de ${carril} a ${dist}`);
         }
     }
     // Los primeros bastan para ver el patrón; la cuenta dice cuántos más hay.
