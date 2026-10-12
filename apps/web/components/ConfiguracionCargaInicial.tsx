@@ -37,7 +37,7 @@ export function ConfiguracionCargaInicial({ lectura, esLider, esAdmin }: { lectu
   const [abierta, setAbierta] = useState<SedeCargaInicial | null>(null);
 
   return (
-    <Superficie className="anim-sube">
+    <Superficie className="anim-sube" guia="config.carga-inicial">
       <TituloDeTarjeta
         titulo="Carga inicial de cada sede"
         bajada="Hasta qué día cada sede carga, sin comprobante, lo que ya tenía al pasar al sistema. Pasada esa fecha, lo que aparezca entra por «Encontré prendas» (Existencias ▸ Ajustar), con su nota."

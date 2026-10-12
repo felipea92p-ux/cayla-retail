@@ -152,7 +152,7 @@ export function PiezaLiquidacionModal({
         </div>
 
         {pieza.estado === "disponible" && pieza.codigo && (
-          <div className="liq-previa" key={pieza.codigo}>
+          <div className="liq-previa" key={pieza.codigo} data-guia="liquidacion-prenda.etiqueta">
             <EtiquetaLiquidacion codigo={pieza.codigo} categoria={pieza.categoria} descripcion={pieza.descripcion} precio={pieza.precio} impreso={impreso} />
           </div>
         )}
@@ -206,7 +206,7 @@ export function PiezaLiquidacionModal({
             {impresion.avisoMac && (
               <AvisoAyudanteMac {...impresion.avisoMac} instalar={impresion.instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: la etiqueta sale, pero con papel de sobra." />
             )}
-            <div className="pie-hoja-fijo flex flex-wrap items-center justify-end gap-3 pt-2">
+            <div className="pie-hoja-fijo flex flex-wrap items-center justify-end gap-3 pt-2" data-guia="liquidacion-prenda.acciones">
               <Boton type="button" peso="peligro" onClick={() => setModo("retirar")}>
                 Retirar
               </Boton>

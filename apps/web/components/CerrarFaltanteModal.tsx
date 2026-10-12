@@ -118,7 +118,7 @@ export function CerrarFaltanteModal({
             />
           )}
 
-          <div>
+          <div data-guia="faltante-modal.cantidad">
             <label htmlFor="cierre-cantidad" className="label-cayla text-[11px] text-tinta/65">
               ¿Cuántas unidades se cierran?
             </label>
@@ -137,7 +137,7 @@ export function CerrarFaltanteModal({
             </span>
           </div>
 
-          <div>
+          <div data-guia="faltante-modal.motivo">
             <p className="label-cayla mb-2 text-[11px] text-tinta/65">¿Qué pasó con las {cantidadOk ? n : "que faltan"}?</p>
             <div role="radiogroup" aria-label="Qué pasó con las unidades que faltan" className="inline-flex h-9 overflow-hidden rounded-lg border border-tinta/15">
               {MOTIVOS.map(([valor, texto]) => (
@@ -160,12 +160,14 @@ export function CerrarFaltanteModal({
             No se borra nada: el cierre queda como un registro nuevo en el historial del comprobante. La nota de crédito del proveedor, si emite una, se registra aparte, cuando el comprobante esté resuelto.
           </p>
 
-          <ComboResponsable control={responsable} deshabilitado={loading} />
+          <div className="space-y-5" data-guia="faltante-modal.pie">
+            <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          <div className="flex justify-end border-t border-tinta/10 pt-4">
-            <button type="submit" className={BTN_PRIMARIO} disabled={loading}>
-              {loading ? "Cerrando…" : "Cerrar línea con faltante"}
-            </button>
+            <div className="flex justify-end border-t border-tinta/10 pt-4">
+              <button type="submit" className={BTN_PRIMARIO} disabled={loading}>
+                {loading ? "Cerrando…" : "Cerrar línea con faltante"}
+              </button>
+            </div>
           </div>
         </form>
       )}

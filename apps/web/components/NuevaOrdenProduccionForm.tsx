@@ -403,6 +403,7 @@ export function NuevaOrdenProduccionForm({
     <Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)} ancho="max-w-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
+          <div data-guia="prod-orden-nueva.tipo">
           <Segmentado<Tipo>
             etiqueta="Tipo"
             valor={tipo}
@@ -410,6 +411,8 @@ export function NuevaOrdenProduccionForm({
             opciones={TIPOS}
             pie={tipo === "muestra" ? "Desarrollar el modelo: patrón y prototipo. No entra al stock." : "Fabricar el lote. Al cerrar entra al stock del Taller."}
           />
+          </div>
+          <div data-guia="prod-orden-nueva.modo">
           {modelos.length > 0 ? (
             <Segmentado<ModoModelo>
               etiqueta="Modelo"
@@ -424,6 +427,7 @@ export function NuevaOrdenProduccionForm({
               <p className="text-sm text-tinta/70">Todavía no hay modelos en el catálogo: este será el primero.</p>
             </div>
           )}
+          </div>
         </div>
 
         {esNuevo ? (
@@ -452,16 +456,19 @@ export function NuevaOrdenProduccionForm({
           />
         ) : (
           <CampoGuiado id="modelo" guia={guia}>
+            <div data-guia="prod-orden-nueva.modelo">
             <CampoSelect
               etiqueta={guia.etiqueta("modelo", "Modelo")}
               valor={productoId}
               onValor={(v) => cambiarModelo(v)}
               opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
             />
+            </div>
           </CampoGuiado>
         )}
 
         {modelo && (
+          <div data-guia="prod-orden-nueva.matriz">
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas por talla y color")}</span>
             {mostrarMatriz ? (
@@ -545,12 +552,13 @@ export function NuevaOrdenProduccionForm({
               </p>
             )}
           </CampoGuiado>
+          </div>
         )}
 
         {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
 
         {datos && modelo && !esNuevo && (
-          <section aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
+          <section data-guia="prod-orden-nueva.red" aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className={campoEtiqueta}>Curva sugerida por la red</p>
@@ -558,7 +566,7 @@ export function NuevaOrdenProduccionForm({
                   Ritmo de venta y stock de todas las tiendas, con lo que ya hay en el Taller, viene en camino o se está fabricando.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div data-guia="prod-orden-nueva.cubrir" className="flex items-center gap-2">
                 <label className="flex items-center gap-1.5 text-xs text-tinta/70">
                   Cubrir
                   <Desplegable
@@ -582,8 +590,8 @@ export function NuevaOrdenProduccionForm({
             {curva.porVariante.size === 0 ? (
               <p className="text-xs text-tinta/65">La red todavía no tiene datos de venta de este modelo.</p>
             ) : (
-              <details>
-                <summary className="cursor-pointer text-xs text-tinta/75">Ver por qué, variante por variante</summary>
+              <details data-guia="prod-orden-nueva.por-que">
+                <summary data-guia="prod-orden-nueva.por-que-abrir" className="cursor-pointer text-xs text-tinta/75">Ver por qué, variante por variante</summary>
                 <ul className="mt-2 divide-y divide-tinta/10">
                   {(modelo.variantes ?? [])
                     .filter((v) => curva.porVariante.has(v.varianteId))
@@ -617,13 +625,15 @@ export function NuevaOrdenProduccionForm({
               </details>
             )}
             {datos.motor && (
-              <MotorEnProduccion motor={datos.motor} modelo={modelo} disponible={disponibleDeVariante} diasObjetivo={diasObjetivo} onUsar={setCantidades} />
+              <div data-guia="prod-orden-nueva.motor">
+                <MotorEnProduccion motor={datos.motor} modelo={modelo} disponible={disponibleDeVariante} diasObjetivo={diasObjetivo} onUsar={setCantidades} />
+              </div>
             )}
           </section>
         )}
 
         {datos && modelo && !esNuevo && (
-          <section aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
+          <section data-guia="prod-orden-nueva.insumos" aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
             <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
             {rendimiento.length === 0 ? (
               <p className="text-xs text-tinta/65">
@@ -672,14 +682,14 @@ export function NuevaOrdenProduccionForm({
         )}
 
         <CampoGuiado id="costos" guia={guia}>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div data-guia="prod-orden-nueva.costos" className="grid gap-3 sm:grid-cols-3">
             <CampoMonto etiqueta="Tela" pie="Opcional · de toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
             <CampoMonto etiqueta="Avíos" pie="Opcional · botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
             <CampoMonto etiqueta="Maquila" pie="Opcional · lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
           </div>
         </CampoGuiado>
 
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand/60 px-3 py-2 text-sm">
+        <div data-guia="prod-orden-nueva.resumen" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand/60 px-3 py-2 text-sm">
           <span className="text-tinta/70">
             {total} prendas · costo estimado {soles(costoTotal)}
             {precio > 0 && ` · se vende a ${soles(precio)}`}
@@ -701,11 +711,12 @@ export function NuevaOrdenProduccionForm({
           </p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
 
+        <div data-guia="prod-orden-nueva.cierre" className="space-y-5">
         <ComboResponsable control={responsable} deshabilitado={cargando} />
 
         {choque && (
@@ -745,6 +756,7 @@ export function NuevaOrdenProduccionForm({
               {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
             </button>
           </div>
+        </div>
         </div>
       </form>
       {avisoSalida.aviso}

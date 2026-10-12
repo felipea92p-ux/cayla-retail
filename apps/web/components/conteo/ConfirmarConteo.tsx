@@ -165,7 +165,7 @@ export function ConfirmarConteo({
 
   return (
     <>
-      <section ref={tarjeta} className="card-cayla @container scroll-mt-24 space-y-4 p-4 sm:p-5">
+      <section ref={tarjeta} data-guia="confirmar.lista" className="card-cayla @container scroll-mt-24 space-y-4 p-4 sm:p-5">
         <h2 className="font-display text-2xl text-tinta">{filas.length === 0 ? "No hay existencias que cambiar." : textoSeActualizaran(filas.length)}</h2>
 
         {negativas > 0 && (
@@ -269,7 +269,7 @@ export function ConfirmarConteo({
       {/* Quién cierra: a nombre de quién va (lo que sabe el aparato o el heredado de hoy, con «¿No es…?»), o el combo una sola vez.
           La persona de la sesión no ve nada. */}
       {enPantalla.modo === "elegir" ? (
-        <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién cierra el conteo">
+        <section data-guia="confirmar.quien" className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién cierra el conteo">
           <p className="text-sm text-tinta/80">{enPantalla.texto}</p>
           <CampoGuiado id="firma" guia={guia} titulo={preguntaFirma("cierre_conteo")}>
             <ComboResponsable control={combo} deshabilitado={cerrando} compacto className="w-full sm:w-80" />
@@ -305,7 +305,7 @@ export function ConfirmarConteo({
         }
         resumen={<p>{razonApagado ?? resumenPie}</p>}
         acciones={
-          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div data-guia="confirmar.pie" className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
             {/* Mientras se cierra el conteo no se sale a revisar (como antes): la flecha queda apagada y no responde. */}
             <Volver href={urlRevisar} a="Volver a revisar" className={`self-center ${cerrando ? "pointer-events-none opacity-50" : ""}`} />
             <button

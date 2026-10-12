@@ -306,7 +306,7 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
         <span className="rcc-aurora" aria-hidden />
 
         {/* La cápsula entera abre y pliega la pestaña; el botón de la derecha es el control accesible. */}
-        <div className={["rcc-caps", cerrada && "rcc-ok"].filter(Boolean).join(" ")} onClick={(e) => !cerrada && !(e.target as HTMLElement).closest("button") && alternar()}>
+        <div data-guia="inicio.aviso-cierre" className={["rcc-caps", cerrada && "rcc-ok"].filter(Boolean).join(" ")} onClick={(e) => !cerrada && !(e.target as HTMLElement).closest("button") && alternar()}>
           {cerrada ? (
             <svg className="rcc-check-caja" viewBox="0 0 24 24" aria-hidden>
               <path className="rcc-check" d="M5 12.5l4.5 4.5L19 7.5" />

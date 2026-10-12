@@ -19,7 +19,9 @@ export function ProveedorCuentasFicha({ proveedor, rubros }: { proveedor: Provee
 
   return (
     <>
-      <CuentasProveedor datos={datosPagoDe(proveedor)} titulo="Datos para pagar" onEditar={() => setEditando(true)} />
+      <div data-guia="proveedor-ficha.cuentas">
+        <CuentasProveedor datos={datosPagoDe(proveedor)} titulo="Datos para pagar" onEditar={() => setEditando(true)} />
+      </div>
 
       {editando && (
         <ProveedorModal

@@ -27,7 +27,7 @@ export function CanceladoConteo({ detalle, sede, volverA }: { detalle: DetalleCo
           </Chip>
         }
       />
-      <p className="nota-cayla">Este conteo se canceló: no cambió ninguna existencia.</p>
+      <p data-guia="conteo-cancelado.nota" className="nota-cayla">Este conteo se canceló: no cambió ninguna existencia.</p>
     </div>
   );
 }

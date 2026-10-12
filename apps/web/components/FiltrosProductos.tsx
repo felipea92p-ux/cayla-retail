@@ -307,7 +307,7 @@ export function FiltrosProductos({
     />
   );
   const barraResultados = (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div data-guia="productos.resultados" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p className="flex items-baseline gap-3 text-sm text-tinta/70">
         <span aria-live="polite">
           <strong className="font-semibold text-tinta">{totalProductos.toLocaleString("es-PE")}</strong>{" "}
@@ -519,6 +519,7 @@ export function FiltrosProductos({
         {/* La pieza única (ADR-0358 ronda 5): filtra mientras se escribe (la pausa de 350 ms de arriba), «/» la enfoca desde
             cualquier parte de la pantalla (el atajo de Shopify y GitHub, Felipe 2026-10-02) y «Buscando…» sale solo si la base tarda. */}
         <Buscador
+          guia="productos.buscador"
           valor={busqueda}
           onCambio={(q) => setTipeado((t) => ({ ...t, q }))}
           buscando={buscando}
@@ -534,16 +535,16 @@ export function FiltrosProductos({
         {/* Celular (2026-10-09): «Ordenar» y «Filtros» como dos cuadrados de 40 px, para que el buscador conserve su ancho y el
             conteo, el enlace y el tamaño quepan en UNA fila debajo: antes eran tres filas antes de la primera prenda. */}
         <div className="shrink-0 rounded-xl border border-sand bg-papel sm:hidden">{ordenar(true)}</div>
-        <div className="shrink-0 sm:hidden">
+        <div data-guia="productos.filtros" className="shrink-0 sm:hidden">
           <BotonFiltros soloIcono abierto={hojaAbierta} activos={activos} onClick={alTocarFiltros} />
         </div>
-        <div className="hidden shrink-0 sm:block">
+        <div data-guia="productos.filtros" className="hidden shrink-0 sm:block">
           <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
         </div>
       </div>
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
-      {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
+      {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
         <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">

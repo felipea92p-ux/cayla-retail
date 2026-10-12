@@ -338,12 +338,14 @@ export function DevolucionesPanel({
           <Pestanas
             etiquetaAccesible="Qué ver"
             idIndicador="devoluciones-vistas"
+            guia="devoluciones.pestanas"
             activa={vista}
             onCambio={(v) => setVista(v as Vista)}
             items={PESTANAS.map((p) => ({
               clave: p.valor,
               etiqueta: p.texto,
               conteo: p.cuantas,
+              guia: `devoluciones.pestana-${p.valor}`,
               pide: p.alerta ? (p.cuantas === 1 ? "espera revisión" : "esperan revisión") : undefined,
             }))}
           />
@@ -352,7 +354,7 @@ export function DevolucionesPanel({
             <>
               {/* Filtros de la pestaña con la píldora de filtro del sistema, no con la forma de las pestañas:
                   dos filas iguales no decían cuál manda. */}
-              <div role="group" aria-label="Filtrar las compras" className="pildoras-desliza gap-2 sm:flex-wrap">
+              <div role="group" aria-label="Filtrar las compras" data-guia="devoluciones.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
                 {FILTROS.map((f) => (
                   <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla shrink-0">
                     {f.texto} <span className="pildora-cayla__n">{ventasDelFiltro(lineas, f.valor).size}</span>
@@ -388,7 +390,7 @@ export function DevolucionesPanel({
       )}
 
       {/* Celular: la prenda en la mano es la entrada más rápida, al alcance del pulgar (spike 2026-09-26). */}
-      <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+      <div data-guia="devoluciones.barra-movil" className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
         <button
           type="button"
           onClick={() => {
@@ -431,7 +433,7 @@ function AvisosDevoluciones({ accesos, cajaAbierta, esLider }: { accesos: Acceso
   if (cuarentena === 0 && !cajaCerrada) return null;
   const fila = "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-papel px-4 py-3 text-sm ring-1 ring-tinta/[0.07]";
   return (
-    <div className="space-y-2">
+    <div data-guia="devoluciones.avisos" className="space-y-2">
       {cuarentena > 0 && (
         <p className={fila}>
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ambar/10 text-ambar-profundo">

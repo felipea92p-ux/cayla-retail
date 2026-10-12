@@ -148,7 +148,7 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.presupuesto">
         <div className="fin-herramientas justify-between">
           <div className="fin-herramientas-titulo min-w-0">
             <b>{mesTitulo(mes)}</b>
@@ -178,7 +178,14 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
             >
               {proponiendo === "mes_anterior" ? "Preparando…" : textoOrigen("mes_anterior", mes)}
             </button>
-            <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => proponer("promedio_3_meses")} disabled={!!proponiendo}>
+            <button
+              type="button"
+              className="btn-cayla btn-secundario btn-chico"
+              onClick={() => proponer("promedio_3_meses")}
+              disabled={!!proponiendo}
+              aria-haspopup="dialog"
+              data-guia="config.presupuesto-sugerir"
+            >
               {proponiendo === "promedio_3_meses" ? "Preparando…" : textoOrigen("promedio_3_meses", mes)}
             </button>
           </div>
@@ -291,7 +298,7 @@ function HojaPropuesta({
     <Modal variante="hoja" titulo={textoOrigen(propuesta.origen, datos.mes)} subtitulo={deDonde} onClose={onCerrar} ancho="max-w-[600px]">
       {cambios.length ? (
         <>
-          <div className="fin-tabla-wrap">
+          <div className="fin-tabla-wrap" data-guia="config.propuesta">
             <table className="fin-tabla fin-tabla-hoja">
               <thead>
                 <tr>
@@ -323,7 +330,7 @@ function HojaPropuesta({
           <div className="mt-4">{responsable}</div>
         </>
       ) : (
-        <p className="text-[13px] leading-relaxed text-taupe">
+        <p className="text-[13px] leading-relaxed text-taupe" data-guia="config.propuesta">
           {propuesta.filas.length
             ? "Los topes de este mes ya son los que se proponen: no hay nada que cambiar."
             : propuesta.origen === "mes_anterior"
@@ -331,7 +338,7 @@ function HojaPropuesta({
               : "No hubo gastos en esos meses: no hay de dónde sugerir."}
         </p>
       )}
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="config.propuesta-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           {cambios.length ? "Cancelar" : "Cerrar"}
         </button>
