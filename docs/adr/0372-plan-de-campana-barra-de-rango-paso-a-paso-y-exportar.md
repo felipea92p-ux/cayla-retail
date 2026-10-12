@@ -239,3 +239,22 @@ lugares para «Pedir más o impulsar», con la altura de la primera fila medida 
 - **Resultados: R2**, «Pedir más o impulsar» dentro de la tabla de categorías. Durante la campaña, la columna «Lo que sobró» (que siempre decía «Al
   terminar») se cambia por «Qué hacer» y «Alcanza para», y la píldora «Piden atención N» deja solo esas; «¿Cómo va?» lleva a esa píldora. El acceso
   a la prenda exacta en Análisis pasó a la hoja de la categoría. Se borraron `SenalesCampana` y `ResumenCompactoPlan`: una tabla de categorías, no dos.
+
+## Actualización 2026-10-12 (e) — las órdenes de compra en el Plan, el precio como supuesto y «a precio lleno» al vender
+
+Spike `docs/maquetas/plan-precios-ordenes-2026-10/`. Decisiones de Felipe:
+
+- **Una orden de compra es de una campaña por sus fechas** («Diciembre es del 1 al 31»): la que llega dentro de ellas (su entrega estimada; sin
+  ella, su emisión). Sin campo nuevo en la orden. `fn_plan_compra_pedido` (migración `20261012224000`) da lo pedido por categoría (solo órdenes
+  `generada`) y la lista de órdenes. **Lo pedido se muestra, no se resta** de «Comprar»: las órdenes (ADR-0362) solo están generadas o anuladas y no
+  saben cuándo llegó la mercadería; restarlo contaría dos veces lo que ya entró al stock. Cuando Órdenes reciba contra la orden (su fase 4), pasa
+  a restar. Se ve en la fila («12 ya pedidas»), en la hoja de la categoría (con sus números de orden) y en el cajón «Resumen y avisos» (total y
+  órdenes, cada una lleva a su detalle).
+  **DECIDÍ** por fechas, como pidió Felipe. **DESCARTÉ** que la orden elija su campaña (exacto, pero un campo nuevo en Órdenes). **SE ROMPE SI**
+  dos campañas se pisan (Diciembre y Navidad): la misma orden sale en las dos; y una orden para Navidad que llega en noviembre no cuenta en ninguna.
+- **El precio del Plan es un supuesto** (no cambia el de las prendas). Si se aparta 1 % o más del promedio del catálogo, la hoja lo avisa con
+  cuánto y lleva a cambiarlo en Productos (`avisoDelPrecio`). Se descartó llevarlo al catálogo desde el Plan y el «precio de campaña con fechas»
+  (Vender hoy solo acepta descuentos y la etiqueta colgada mentiría al volver, ADR-0370).
+- **«A precio lleno» se mide con el precio al que se vendió** (migración `20261012223000`): `fn_unidades_vendidas` comparaba lo cobrado con el
+  precio de lista de HOY, así que una tienda con su propio precio contaba como «rebajada» sin descuento y cualquier cambio de precio deformaba
+  «Rebajadas» y «Lo que sobró» hacia atrás. Ahora usa `venta_items.precio_unitario` (el precio de la sede al vender; el descuento va aparte).

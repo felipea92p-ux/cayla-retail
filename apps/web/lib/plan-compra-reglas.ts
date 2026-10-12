@@ -475,6 +475,8 @@ export type FilaPlan = {
   recuperoDefecto?: number | null;
   /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
   reparto?: TiendaReparto[];
+  /** Lo ya pedido en órdenes de compra para esta campaña (`lib/plan-compra-pedido.ts`); undefined = nada pedido o la base no lo manda. */
+  pedido?: { unidades: number; soles: number; ordenes: number[] };
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);

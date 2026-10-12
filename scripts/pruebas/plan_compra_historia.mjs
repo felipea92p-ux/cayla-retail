@@ -28,6 +28,8 @@ const TIENDAS_ACTIVAS = leer("20261012162000_plan_compra_tiendas_activas.sql");
 const EN_CURSO_Y_CIERRE = leer("20261012163000_plan_compra_resultados_en_curso_y_cierre.sql");
 const REPARTO = leer("20261012164000_plan_compra_reparto_por_tienda.sql");
 const POR_TIENDA = leer("20261012212000_plan_compra_resultados_por_tienda.sql");
+const PRECIO_LLENO = leer("20261012223000_plan_compra_precio_lleno_al_vender.sql");
+const PEDIDO = leer("20261012224000_plan_compra_lo_pedido_en_ordenes.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -59,6 +61,10 @@ ${REPARTO}
 set local search_path = retail, public, extensions;
 ${POR_TIENDA}
 set local search_path = retail, public, extensions;
+${PRECIO_LLENO}
+set local search_path = retail, public, extensions;
+${PEDIDO}
+set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text;
 begin
@@ -82,10 +88,11 @@ insert into retail.variantes (producto_id, sku, precio, costo, color_codigo, tal
 insert into retail.planes_compra (nombre, desde, hasta) values ('PH Futura', :'hoy'::date + 60, :'hoy'::date + 74), ('PH Pasada', :'hoy'::date - 30, :'hoy'::date - 20);
 select id as futura from retail.planes_compra where nombre = 'PH Futura' \\gset
 select id as pasada from retail.planes_compra where nombre = 'PH Pasada' \\gset
-create function pg_temp.vende(p_dia date, p_cant int, p_precio numeric) returns void language sql as $f$
+create function pg_temp.vende(p_dia date, p_cant int, p_precio numeric, p_lista numeric default 80) returns void language sql as $f$
   with v as (insert into retail.ventas (ubicacion_id, estado, created_at)
              values (current_setting('ph.tienda')::uuid, 'completada', (p_dia::timestamp + interval '12 hours') at time zone 'America/Lima') returning id)
-  insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, current_setting('ph.v')::uuid, p_cant, p_precio, 30 from v
+  insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, motivo_descuento, costo_unitario)
+  select id, current_setting('ph.v')::uuid, p_cant, p_lista, p_lista - p_precio, case when p_lista > p_precio then 'liquidacion_temporada' end, 30 from v
 $f$;
 select set_config('ph.tienda', :'tienda', true) as _1, set_config('ph.v', :'v', true) as _2 \\gset
 set local session_replication_role = replica;
@@ -241,6 +248,19 @@ caso(
 );
 
 caso(
+  "S4 a precio lleno es contra el precio AL QUE SE VENDIÓ: una tienda con su propio precio (60, sin descuento) no cuenta como rebajada, y subir el precio base después no vuelve rebajado lo pasado",
+  `reset role;
+   set local session_replication_role = replica;
+   select pg_temp.vende(:'hoy'::date - 23, 3, 60, 60);
+   set local session_replication_role = origin;
+   update retail.variantes set precio = 120 where id = :'v';
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select (select sum((f->>'rebajadas')::int) from jsonb_array_elements(:'r'::jsonb->'filas') f where f->>'c' = :'cat');`,
+  "0"
+);
+
+caso(
   "S3 por tienda: lo vendido cada día de ESA tienda y su stock de hoy y al cierre (para «¿Cómo va?» y «Pedir más» de una tienda)",
   `reset role;
    set local session_replication_role = replica;
@@ -255,6 +275,35 @@ caso(
      (select (s->>'hoy') || '/' || (s->>'cierre') from jsonb_array_elements(:'r'::jsonb->'stock_tienda') s where s->>'c' = :'cat' and s->>'t' = :'tienda'),
      (select count(*) from jsonb_array_elements(:'r'::jsonb->'stock_tienda') s where s->>'c' = :'cat' and s->>'t' <> :'tienda'));`,
   "4+2,5/5,0"
+);
+
+// O. LO PEDIDO EN ÓRDENES DE COMPRA ---------------------------------------------------------------------------------------
+caso(
+  "O1 lo pedido: cuenta la orden generada que llega dentro de la campaña (o, sin fecha de entrega, que se emitió dentro); no la que llega fuera ni la anulada",
+  `reset role;
+   select desde as f_desde, hasta as f_hasta from retail.planes_compra where id = :'futura' \\gset
+   select id as prov from retail.proveedores limit 1 \\gset
+   select id as marca from retail.marcas limit 1 \\gset
+   set local session_replication_role = replica;
+   insert into retail.ordenes_compra (id, proveedor_id, fecha_emision, fecha_entrega_estimada, estado, creada_por)
+   values ('11111111-0000-4000-8000-000000000001', :'prov', :'f_desde'::date - 20, :'f_desde'::date + 1, 'generada', gen_random_uuid()),
+          ('11111111-0000-4000-8000-000000000002', :'prov', :'f_desde'::date - 20, :'f_hasta'::date + 5, 'generada', gen_random_uuid()),
+          ('11111111-0000-4000-8000-000000000003', :'prov', :'f_desde'::date, null, 'generada', gen_random_uuid());
+   insert into retail.ordenes_compra (id, proveedor_id, fecha_emision, fecha_entrega_estimada, estado, creada_por, anulada_por, anulada_en, motivo_anulacion)
+   values ('11111111-0000-4000-8000-000000000004', :'prov', :'f_desde'::date - 20, :'f_desde'::date + 1, 'anulada', gen_random_uuid(), gen_random_uuid(), now(), 'prueba');
+   insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
+   values ('11111111-0000-4000-8000-000000000001', 1, :'cat', :'marca', 20, 35),
+          ('11111111-0000-4000-8000-000000000002', 1, :'cat', :'marca', 50, 35),
+          ('11111111-0000-4000-8000-000000000003', 1, :'cat', :'marca', 5, 35),
+          ('11111111-0000-4000-8000-000000000004', 1, :'cat', :'marca', 99, 35);
+   set local session_replication_role = origin;
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_pedido(:'futura') as r \\gset
+   select concat_ws(',',
+     jsonb_array_length(:'r'::jsonb->'ordenes'),
+     (select g->>'unidades' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'),
+     (select g->>'soles' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'));`,
+  "2,25,875.00"
 );
 
 // D. REPARTO POR TIENDA ---------------------------------------------------------------------------------------------------
