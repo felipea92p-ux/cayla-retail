@@ -38,3 +38,24 @@ calcula de otra forma: `fn_calcular_esperado_caja` sigue siendo la dueña del es
 
 Sin la hoja única, quien abría un cierre veía dos hojas apiladas y sin pista de que la de atrás seguía ahí; sin el desglose por medio, el
 cuadre del cajón no se podía comparar con lo que entró por Yape, tarjeta o transferencia.
+
+## Actualización 2026-10-12 — «La línea del día»
+
+Felipe pidió un detalle «mucho más visual» y, de tres propuestas (`docs/maquetas/historial-cierres-visual-2026-10/`), **aprobó la A, «La línea del día»**.
+Sigue siendo la misma hoja, el mismo `<Volver>` y los mismos datos; cambia cómo se cuenta el cierre, de arriba abajo:
+
+1. **Veredicto con escala**: «Sobró S/ 2.00» sobre una regla falta ◄ cuadra ► sobra, con un punto donde cae la diferencia (`escalaDiferencia`: el
+   rango crece de S/ 20 a S/ 5 000 según la diferencia, y el punto nunca se sale). Lo que se contó, a la derecha.
+2. **Cómo fue el día**: una barra por cada hora del turno (`diaDelTurno`; solo las horas entre abrir y cerrar), la hora fuerte en negro, y sobre ellas
+   una línea con marcas: ⚑ abre y cierra, ● sale plata (retiro, devolución), ● cambio. Debajo: ventas, prendas, venta promedio y anuladas.
+3. **Tres tarjetas con su gráfico**: *Qué se cobró* (dona por medio de pago con los tokens `--color-metodo-*`), *Cómo cuadró el efectivo* (cascada
+   apertura + efectivo vendido ± salidas o entradas = esperado, y lo contado) y *A dónde fue el efectivo* (la barra de siempre más una barra contra
+   el fondo que pedía el día).
+4. **Lo que pasó en el turno** en una línea con puntos del color de cada hecho (verde entra, rojo sale, gris anulada), con quién y con qué se pagó.
+5. El subtítulo de la hoja ahora lleva el turno completo («8:02 – 7:50 p. m. (11 h 48 min) · abrió X, cerró Y»), así que desaparece el bloque
+   «Cómo abrió y cerró». El aviso de «abrió con otro monto» y la nota del cierre se conservan.
+
+**Sin migración y sin cifras nuevas de dinero.** «Otros movimientos» de la cascada se **deriva** (esperado − apertura − efectivo vendido), igual que antes
+`cuadreDelTurno` (que se borró: nadie más la usaba), para que las cinco cifras sumen siempre y el total siga siendo el de `fn_calcular_esperado_caja`;
+si un cambio o una venta mixta mueve efectivo sin que `venta_pagos` lo diga, cae ahí y no descuadra. En celular las tarjetas pasan a una columna y
+la hora de cada movimiento va sobre su texto. Verificado en escritorio, a 375 px y en modo oscuro.

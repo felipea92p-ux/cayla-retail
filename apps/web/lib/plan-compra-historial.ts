@@ -181,6 +181,31 @@ export function filasDelAnio(l: LecturaHistorial, etiquetas: readonly EtiquetaHi
   }));
 }
 
+export type OrdenHistorial = "fecha" | "az" | "za" | "mas" | "menos";
+export const ORDENES_HISTORIAL: { valor: OrdenHistorial; texto: string }[] = [
+  { valor: "fecha", texto: "Por fecha" },
+  { valor: "mas", texto: "Más vendidas primero" },
+  { valor: "menos", texto: "Menos vendidas primero" },
+  { valor: "az", texto: "Nombre, A a Z" },
+  { valor: "za", texto: "Nombre, Z a A" },
+];
+
+const comparable = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+/** Lo vendido en la campaña sumando las tiendas con dato (para ordenar por «más vendidas»). */
+const solesDeLaFila = (f: FilaHistorial) => f.celdas.reduce((a, c) => a + (c.medida.estado === "medida" ? c.medida.soles : 0), 0);
+
+/** Las filas del año que calzan con lo buscado (sin tildes ni mayúsculas), en el orden pedido (Felipe 2026-10-12). Por fecha es el de siempre. */
+export function filtrarYOrdenar(filas: readonly FilaHistorial[], q: string, orden: OrdenHistorial): FilaHistorial[] {
+  const busca = comparable(q.trim());
+  const quedan = busca ? filas.filter((f) => comparable(f.campana.nombre).includes(busca)) : [...filas];
+  const porNombre = (a: FilaHistorial, b: FilaHistorial) => a.campana.nombre.localeCompare(b.campana.nombre, "es");
+  if (orden === "az") return quedan.sort(porNombre);
+  if (orden === "za") return quedan.sort((a, b) => porNombre(b, a));
+  if (orden === "mas") return quedan.sort((a, b) => solesDeLaFila(b) - solesDeLaFila(a) || porNombre(a, b));
+  if (orden === "menos") return quedan.sort((a, b) => solesDeLaFila(a) - solesDeLaFila(b) || porNombre(a, b));
+  return quedan;
+}
+
 /** El total del año por tienda y su crecimiento contra el anterior (solo si los dos años están completos y con datos). */
 export function totalDelAnio(l: LecturaHistorial, tiendaId: string, anio: number): { soles: number; completo: boolean; crecimiento: number | null } {
   const meses = l.meses.get(tiendaId);

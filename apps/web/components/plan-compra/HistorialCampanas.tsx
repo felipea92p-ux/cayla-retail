@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, History } from "lucide-react";
+import { ChevronRight, History, SearchX } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
 import { Aviso } from "@/components/ui/Aviso";
 import { Ayuda } from "@/components/Ayuda";
@@ -15,7 +17,10 @@ import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
   filasDelAnio,
+  filtrarYOrdenar,
   leerHistorial,
+  ORDENES_HISTORIAL,
+  type OrdenHistorial,
   type CampanaDelAnio,
   textoCrecimiento,
   textoMultiplicador,
@@ -68,6 +73,8 @@ export function HistorialCampanas({
   const historial: LecturaHistorial | null = useMemo(() => leerHistorial(crudo), [crudo]);
   // La fila abierta: su hoja muestra el día a día y la misma campaña año por año (Felipe 2026-10-12).
   const [abierta, setAbierta] = useState<CampanaDelAnio | null>(null);
+  const [q, setQ] = useState("");
+  const [orden, setOrden] = useState<OrdenHistorial>("fecha");
   const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
   // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
   const ayuda = (
@@ -122,6 +129,7 @@ export function HistorialCampanas({
   }
 
   const filas = filasDelAnio(historial, etiquetas, anio);
+  const visibles = filtrarYOrdenar(filas, q, orden);
   const tiendas = historial.tiendas;
   const columnas = `minmax(0,1.2fr) repeat(${tiendas.length}, minmax(0,1fr))`;
   const anioEnCurso = anio === Number(historial.hoy.slice(0, 4));
@@ -159,6 +167,11 @@ export function HistorialCampanas({
       </div>
 
       <Tabla guia="plan-historial.tabla">
+        {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. Por fecha es el orden de siempre. */}
+        <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
+          <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
+          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+        </div>
         <div className="encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid" role="row" style={{ gridTemplateColumns: columnas }}>
           <span className="text-xs font-normal text-taupe" role="columnheader">
             Campaña · {anio}
@@ -169,7 +182,12 @@ export function HistorialCampanas({
             </span>
           ))}
         </div>
-        {filas.map(({ campana, celdas }) => (
+        {visibles.length === 0 && (
+          <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna campaña de ${anio} se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
+            Prueba con otra palabra o borra la búsqueda.
+          </Vacio>
+        )}
+        {visibles.map(({ campana, celdas }) => (
           // Toda la fila abre su detalle (el día a día y la misma campaña año por año); la flecha dice que se puede tocar.
           <button
             key={campana.clave}
