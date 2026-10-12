@@ -119,7 +119,7 @@ export function PantallaActividad({
   );
 }
 
-function Filtro({ etiqueta, guia, children }: { etiqueta: string; /** Ancla de la guía interactiva (ADR-0362). */ guia?: string; children: React.ReactNode }) {
+function Filtro({ etiqueta, guia, children }: { etiqueta: string; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string; children: React.ReactNode }) {
   return (
     <div className="w-full sm:w-52" data-guia={guia}>
       <p className="label-cayla mb-1 text-[11px] text-taupe">{etiqueta}</p>

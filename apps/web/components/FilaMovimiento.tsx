@@ -101,7 +101,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    // La guía (ADR-0362) abre una fila de ejemplo; salta la de una prenda «sin registrar», porque su nombre lleva un verbo que el
+    // La guía (ADR-0389) abre una fila de ejemplo; salta la de una prenda «sin registrar», porque su nombre lleva un verbo que el
     // piloto no toca (regla «nunca guardar»).
     <li className="mv-fila" data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila"} data-op={m.id} data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
       <button

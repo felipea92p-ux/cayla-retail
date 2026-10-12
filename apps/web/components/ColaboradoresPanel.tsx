@@ -47,7 +47,7 @@ import { Aviso } from "@/components/ui/Aviso";
 // y recargan los datos del servidor.
 
 /** Una de las dos secciones: título y, debajo, su resumen (con lo que pide atención en ámbar). */
-function BotonSeccion({ activa, onClick, titulo, guia, children }: { activa: boolean; onClick: () => void; titulo: string; /** Ancla de la guía interactiva (ADR-0362). */ guia?: string; children: React.ReactNode }) {
+function BotonSeccion({ activa, onClick, titulo, guia, children }: { activa: boolean; onClick: () => void; titulo: string; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string; children: React.ReactNode }) {
   return (
     <button
       type="button"

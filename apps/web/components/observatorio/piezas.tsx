@@ -271,9 +271,9 @@ export function Segmento<T extends string>({
   onPasar?: (v: T) => void;
   chico?: boolean;
   etiqueta: string;
-  /** Ancla de la guía interactiva para la fila (`data-guia`, ADR-0362). */
+  /** Ancla de la guía interactiva para la fila (`data-guia`, ADR-0389). */
   guia?: string;
-  /** El ancla de la guía interactiva de CADA opción (`data-guia`, ADR-0362): una función que la devuelve (o nada). Se llama
+  /** El ancla de la guía interactiva de CADA opción (`data-guia`, ADR-0389): una función que la devuelve (o nada). Se llama
    *  `data-guia` para que el escáner de las guías (`guias/escaner.mjs`) lea las anclas escritas en quien la usa. */
   "data-guia"?: (v: T, i: number) => string | undefined;
 }) {

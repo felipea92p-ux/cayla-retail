@@ -92,7 +92,7 @@ function FilaMiembro({
   elegido: boolean;
   ahoraIso: string;
   onTocar: () => void;
-  /** Ancla de la guía interactiva (ADR-0362): solo la primera persona que no eres tú ni un líder, y la primera terminal. */
+  /** Ancla de la guía interactiva (ADR-0389): solo la primera persona que no eres tú ni un líder, y la primera terminal. */
   guia?: string;
 }) {
   const apagado = m.tipo === "persona" ? m.estado !== "activa" : !m.activo;
@@ -240,7 +240,7 @@ export function EquipoLista({
   const [texto, setTexto] = useState("");
   const atajos = useMemo(() => atajosEquipo(miembros, ubicaciones, conTerminales), [miembros, ubicaciones, conTerminales]);
   const grupos = useMemo(() => agruparPorSede(miembros, ubicaciones, filtro, texto), [miembros, ubicaciones, filtro, texto]);
-  // La guía interactiva (ADR-0362) abre la ficha de alguien que no eres tú ni un líder (así se ven sus acciones) y la de una terminal.
+  // La guía interactiva (ADR-0389) abre la ficha de alguien que no eres tú ni un líder (así se ven sus acciones) y la de una terminal.
   const enOrden = grupos.flatMap((g) => g.miembros);
   const guiaPersona = enOrden.find((m) => m.tipo === "persona" && !m.esYo && m.nivel !== "lider")?.id;
   const guiaTerminal = enOrden.find((m) => m.tipo === "terminal")?.id;

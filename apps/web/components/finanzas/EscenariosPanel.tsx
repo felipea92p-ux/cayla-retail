@@ -385,7 +385,7 @@ function Deslizador({
   deshabilitado = false,
   onValor,
 }: {
-  /** Ancla de la guía interactiva (`data-guia`, ADR-0362): cada deslizador explica otra cosa. */
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389): cada deslizador explica otra cosa. */
   guia: string;
   id: string;
   nombre: string;

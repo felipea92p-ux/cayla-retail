@@ -45,7 +45,7 @@ type Props = {
   /** Chico: en una lista desplegable va a la izquierda; en una tabla o una hoja, centrado. */
   alinear?: "centro" | "izquierda";
   className?: string;
-  /** Ancla de la guía interactiva (ADR-0362). */
+  /** Ancla de la guía interactiva (ADR-0389). */
   guia?: string;
 };
 

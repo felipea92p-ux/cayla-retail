@@ -31,7 +31,7 @@ export function SeccionFicha({
   children: ReactNode;
   /** Entrada en cascada de la maqueta (40, 90, 140, 190 ms). */
   retraso?: number;
-  /** El ancla de la guía interactiva de la sección (`data-guia`, ADR-0362): la demo la abre tocando su cabecera. */
+  /** El ancla de la guía interactiva de la sección (`data-guia`, ADR-0389): la demo la abre tocando su cabecera. */
   guia?: string;
 }) {
   return (

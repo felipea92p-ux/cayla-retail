@@ -60,7 +60,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | 
   etiqueta?: string;
   ref?: Ref<HTMLInputElement>;
   className?: string;
-  /** Ancla de la guía interactiva (ADR-0362): va en la caja de afuera, no en el texto. */
+  /** Ancla de la guía interactiva (ADR-0389): va en la caja de afuera, no en el texto. */
   guia?: string;
 };
 

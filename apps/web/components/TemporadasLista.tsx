@@ -226,7 +226,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   );
 }
 
-function Atajo({ accion, punto, onClick, children, guia }: { accion: string; punto: string; onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (ADR-0362). */ guia?: string }) {
+function Atajo({ accion, punto, onClick, children, guia }: { accion: string; punto: string; onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string }) {
   return (
     <button type="button" onClick={onClick} data-guia={guia} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
       <span aria-hidden className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${punto}`} />

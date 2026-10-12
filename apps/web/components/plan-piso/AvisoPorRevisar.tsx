@@ -11,7 +11,7 @@ import { avisoDeGruposPorRevisar } from "@/lib/plan-piso-grupos";
 //
 // Es cliente porque cambiar de pestaña es estado de `PlanDelPisoPestanas`. Fuera de esa pantalla (sin el contexto) no hay a dónde llevar: queda
 // el aviso sin botón, nunca un botón que no hace nada.
-export function AvisoPorRevisar({ porRevisar, sinGrupo, esLider, guia }: { porRevisar: number; sinGrupo: number; esLider: boolean; /** El ancla de la guía interactiva (`data-guia`, ADR-0362). */ guia?: string }) {
+export function AvisoPorRevisar({ porRevisar, sinGrupo, esLider, guia }: { porRevisar: number; sinGrupo: number; esLider: boolean; /** El ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
   const irALaVista = useIrALaVista();
   const aviso = avisoDeGruposPorRevisar(porRevisar, sinGrupo, esLider);
   if (!aviso) return null;

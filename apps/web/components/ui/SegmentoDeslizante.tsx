@@ -12,7 +12,7 @@ export type OpcionSegmento = {
   deshabilitada?: boolean;
   /** Solo en `forma="modo"`: la línea que sale al pasar el mouse (`title`). */
   ayuda?: string;
-  /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0362): la demo la toca para cambiar de opción. */
+  /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0389): la demo la toca para cambiar de opción. */
   guia?: string;
 };
 

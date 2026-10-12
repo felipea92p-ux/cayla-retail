@@ -26,7 +26,7 @@ export type OpcionSegmento = {
   etiqueta: string;
   href: string;
   icono?: ReactNode;
-  /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0362): la demo la toca para cambiar de vista. */
+  /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0389): la demo la toca para cambiar de vista. */
   guia?: string;
 };
 
@@ -51,7 +51,7 @@ export function SegmentoEnlaces({
    *  Productos del celular, para que las acciones quepan en una fila (2026-10-09). Solo si TODAS las opciones traen icono. */
   soloIconoEnCelular?: boolean;
   className?: string;
-  /** El ancla de la guía interactiva para el segmento entero (`data-guia`, ADR-0362). */
+  /** El ancla de la guía interactiva para el segmento entero (`data-guia`, ADR-0389). */
   guia?: string;
 }) {
   return (

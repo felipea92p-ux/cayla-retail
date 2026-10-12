@@ -8,7 +8,7 @@ import { esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, 
 import type { AccionGuia, Guia, PasoGuia } from "@/lib/guias/tipos";
 import { anclasPresentes, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
 
-// El motor de una guía interactiva (ADR-0362): oscurece la pantalla, deja a la vista solo la pieza que se explica y la
+// El motor de una guía interactiva (ADR-0389): oscurece la pantalla, deja a la vista solo la pieza que se explica y la
 // recorre paso a paso con una tarjeta. El piloto automático (`piloto.ts`) abre, escribe un ejemplo y elige, pero NUNCA
 // guarda: si un paso le pide tocar algo que escribe, lo explica sin tocarlo. Al salir deja la pantalla como estaba.
 //
@@ -38,7 +38,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const [enCurso, setEnCurso] = useState(0);
   /** El piloto está haciendo algo a la vista («demostrar»): la tarjeta lo marca (`data-piloto`) y el recorredor lo espera. */
   const [pilotoActuando, setPilotoActuando] = useState(false);
-  /** El cursor fantasma: viaja a la pieza que el piloto va a tocar y «hace clic» con una onda (ADR-0362, act. 2026-10-07). */
+  /** El cursor fantasma: viaja a la pieza que el piloto va a tocar y «hace clic» con una onda (ADR-0389, act. 2026-10-07). */
   const [cursor, setCursor] = useState<{ x: number; y: number; visible: boolean; instante: boolean; pulso: number; escribe: boolean }>({
     x: 0,
     y: 0,

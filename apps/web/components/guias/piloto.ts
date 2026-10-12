@@ -1,4 +1,4 @@
-// El piloto automático de las guías (ADR-0362): lo único que toca el DOM. Encuentra las piezas por `data-guia`, y abre,
+// El piloto automático de las guías (ADR-0389): lo único que toca el DOM. Encuentra las piezas por `data-guia`, y abre,
 // escribe un ejemplo o cierra como lo haría una persona. Antes de TOCAR algo le pregunta a `motivoParaNoTocar` (lib/guias):
 // la demo corre en la tienda de verdad y nunca guarda.
 

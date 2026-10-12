@@ -172,7 +172,7 @@ function AnilloProgreso({ pct }: { pct: number }) {
  *  devolución— no frena, así que cuenta como revisado) y el plazo de la compra, verde o
  *  rojo. Con `impacto`, debajo una segunda tarjeta con lo que va a pasar en el inventario
  *  y en la caja: se ve mientras se elige, no solo al final. */
-export function PanelValidaciones({ validaciones, impacto, guia }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
+export function PanelValidaciones({ validaciones, impacto, guia }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   const total = validaciones.length;
   const cumplidas = validaciones.filter((v) => v.estado === "ok" || v.estado === "aviso").length;
   const completo = cumplidas === total;
@@ -229,7 +229,7 @@ export function Dato({ titulo, children }: { titulo: string; children: ReactNode
 }
 
 /** Los botones del paso, y debajo —pegado a ellos— el motivo por el que no se puede seguir. */
-export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; children: ReactNode; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
+export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; children: ReactNode; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
     <div data-guia={guia} className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-3">{children}</div>
@@ -256,7 +256,7 @@ function ContenidoBoton({ children, monto }: { children: ReactNode; monto?: stri
   );
 }
 
-export function BotonPrincipal({ onClick, children, disabled = false, monto, guia }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
+export function BotonPrincipal({ onClick, children, disabled = false, monto, guia }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
     <button
       type="button"

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * El recorredor de las guías interactivas (ADR-0362): corre cada guía en un navegador de verdad contra el ERP LOCAL, como lo
+ * El recorredor de las guías interactivas (ADR-0389): corre cada guía en un navegador de verdad contra el ERP LOCAL, como lo
  * haría una persona, y comprueba lo que la prueba del CI no puede ver:
  *   · que cada paso encuentra su pieza VISIBLE (un paso no opcional que dice «no está a la vista» es una guía rota);
  *   · que la demo NUNCA escribe en la base: vigila la red y falla si sale una escritura (POST/PATCH/DELETE a una tabla, o una

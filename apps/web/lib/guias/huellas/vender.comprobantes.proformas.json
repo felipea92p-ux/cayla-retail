@@ -1,7 +1,7 @@
 {
   "guia": "vender.comprobantes.proformas",
   "ruta": "/vender/comprobantes/proformas",
-  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 31,
   "controles": {
     "components/ConsultaDocumento.tsx": [

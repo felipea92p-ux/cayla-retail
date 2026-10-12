@@ -8,7 +8,7 @@ import { guiaDeRuta, rutaCoincide } from "@/lib/guias/reglas";
 import { esGrupoMenu, hojasDe, type FilaMenu } from "@/lib/menu";
 import { abrirGuiaAqui } from "./MotorGuias";
 
-// «Demo» de Mi perfil (ADR-0362, Felipe 2026-10-07): elegir qué módulo o submódulo volver a ver. Muestra SOLO lo que tu rol
+// «Demo» de Mi perfil (ADR-0389, Felipe 2026-10-07): elegir qué módulo o submódulo volver a ver. Muestra SOLO lo que tu rol
 // ve (las filas del lateral que ya resolvió `menuPara`), agrupado como en el menú. Lo que aún no tiene guía se ve, apagado,
 // con «Pronto»: así se nota qué falta del despliegue sin prometer algo que no existe.
 

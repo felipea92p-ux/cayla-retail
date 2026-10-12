@@ -34,7 +34,7 @@ import {
 
 // El período y los atajos son filtros de un valor: la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no la
 // copia a mano de antes (MAYÚSCULAS de 10 px, rojo al pasar el mouse). La elegida se rellena de tinta sola (`aria-pressed`).
-function Pastilla({ activa, onClick, children, guia }: { activa: boolean; onClick: () => void; children: ReactNode; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
+function Pastilla({ activa, onClick, children, guia }: { activa: boolean; onClick: () => void; children: ReactNode; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={activa} data-guia={guia} className="pildora-cayla shrink-0">
       {children}
@@ -207,7 +207,7 @@ export function FiltrosHistorialVentas({
               <Download className="h-3.5 w-3.5" aria-hidden /> Exportar
             </a>
           )}
-          {/* La guía (ADR-0362) abre el panel con «historial.filtros» y lo cierra con «historial.filtros-cerrar»: un ancla por estado,
+          {/* La guía (ADR-0389) abre el panel con «historial.filtros» y lo cierra con «historial.filtros-cerrar»: un ancla por estado,
               para que cerrar nunca vuelva a abrir. `inline-flex` no cambia nada del lugar del botón. */}
           <span data-guia={panelAbierto ? "historial.filtros-cerrar" : "historial.filtros"} className="inline-flex">
             <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />

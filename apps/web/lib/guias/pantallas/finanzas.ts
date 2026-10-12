@@ -1,4 +1,4 @@
-// Guías de Finanzas (ADR-0362): Resumen, Gastos, Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación), los seis
+// Guías de Finanzas (ADR-0389): Resumen, Gastos, Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación), los seis
 // Reportes (Estado de resultados, Presupuesto, Campañas, Escenarios, Flujo de caja, Balance), Impuestos y Cierre de mes. Es dinero:
 // cada guía dice con cuidado QUÉ muestra cada cifra y DE DÓNDE sale (casi siempre: de lo que ya registran Ventas, Caja, Compras y
 // Producción; aquí nadie escribe un saldo a mano), en lenguaje de tienda y sin estadística. El piloto solo cambia de pestaña dentro de

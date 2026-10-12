@@ -1,4 +1,4 @@
-// Guías interactivas (ADR-0362, Felipe 2026-10-07): el vocabulario de una guía, sin React ni DOM.
+// Guías interactivas (ADR-0389, Felipe 2026-10-07): el vocabulario de una guía, sin React ni DOM.
 //
 // Una GUÍA es la demo de UNA pantalla (una `page.tsx`): una lista de PASOS que el motor (`components/guias/`) recorre
 // encendiendo una pieza a la vez bajo un velo oscuro, con una tarjeta que dice qué es y para qué sirve. Cada paso se ancla a

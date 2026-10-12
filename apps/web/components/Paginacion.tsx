@@ -39,7 +39,7 @@ export function PaginacionCursor({
   sustantivo,
   guia,
 }: {
-  /** Ancla de la guía (ADR-0362). */
+  /** Ancla de la guía (ADR-0389). */
   guia?: string;
   mostradas: number;
   cursorSiguiente: string | null;

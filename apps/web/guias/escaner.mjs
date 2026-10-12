@@ -1,4 +1,4 @@
-// El escáner de las guías interactivas (ADR-0362): la ÚNICA definición de «qué controles tiene una pantalla» y de «qué
+// El escáner de las guías interactivas (ADR-0389): la ÚNICA definición de «qué controles tiene una pantalla» y de «qué
 // anclas existen en el código». Lo usan la prueba (`lib/guias.test.ts`), el comando que acepta una huella
 // (`guias/huella.mjs`) y la skill `/guia`. Lee el código como texto, sin compilar: rápido y sin dependencias.
 //

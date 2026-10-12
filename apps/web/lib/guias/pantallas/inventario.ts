@@ -1,4 +1,4 @@
-// Guías de Inventario, parte 1 (ADR-0362): Existencias, Bajar al piso, Cuadrar el piso, Frescura del piso, Movimientos,
+// Guías de Inventario, parte 1 (ADR-0389): Existencias, Bajar al piso, Cuadrar el piso, Frescura del piso, Movimientos,
 // Ventas sin registrar, Análisis y Pedidos no atendidos. Cada paso se ancla a un `data-guia` del código y le habla a quien
 // trabaja en la tienda («tú»), en lenguaje de tienda. La demo abre cajones, fichas y pestañas, escribe ejemplos, pero nunca
 // cuelga, sube, ajusta, registra ni confirma: lo que guarda se explica con la pieza encendida, sin tocarla.
@@ -970,7 +970,7 @@ export const GUIA_PEDIDOS_NO_ATENDIDOS: Guia = {
   ],
 };
 
-// ---- Inventario, parte 2 (ADR-0362): Conteo (inicio, contar, revisar y confirmar), Traslados (billetera, una caja y nuevo) y
+// ---- Inventario, parte 2 (ADR-0389): Conteo (inicio, contar, revisar y confirmar), Traslados (billetera, una caja y nuevo) y
 // Recibir mercadería. Mismas reglas: la demo abre, cambia de opción, gira el pase y escribe un ejemplo, pero nunca empieza ni
 // cierra un conteo, ni envía, pide, cuenta o recibe una caja.
 

@@ -1,4 +1,4 @@
-// Guías de las pantallas sueltas (ADR-0362): Inicio (las tres caras: tienda, Almacén y el Observatorio del Admin), Actividad,
+// Guías de las pantallas sueltas (ADR-0389): Inicio (las tres caras: tienda, Almacén y el Observatorio del Admin), Actividad,
 // Búsqueda, Colaboradores (con Roles y accesos), Comercial y su Calidad, Configuración, Salud del negocio (CAYLA Global) y
 // Rendimiento. Casi todas solo se MIRAN: el piloto cambia de período o de pestaña, abre una ficha o una ventana para mostrarla y
 // la cierra. Lo que da o quita acceso, cambia un rol, aprueba, suspende, guarda una meta o un ajuste de Configuración se

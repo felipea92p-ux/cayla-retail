@@ -18,7 +18,7 @@ export function EnVista({
   como?: "div" | "section" | "aside";
   className?: string;
   style?: CSSProperties;
-  /** Ancla de la guía interactiva (`data-guia`, ADR-0362): no cambia nada de cómo se ve. */
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389): no cambia nada de cómo se ve. */
   guia?: string;
   children: ReactNode;
 }) {

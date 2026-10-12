@@ -54,7 +54,7 @@ export function SelectorCampana({
   }, [enLista, actual, archivadas, campanas.edicion, puedeCrear]);
   if (opciones.length < 2) return null;
   return (
-    // La caja solo lleva el ancla de la guía (ADR-0362): el desplegable no recibe atributos sueltos.
+    // La caja solo lleva el ancla de la guía (ADR-0389): el desplegable no recibe atributos sueltos.
     <div data-guia="plan.selector">
       <Desplegable
         valor={actual ? actualId : ""}

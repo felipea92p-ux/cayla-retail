@@ -1,5 +1,5 @@
 -- ============================================================================
--- Guías interactivas: «ya se la ofrecí» (ADR-0362, Felipe 2026-10-07)
+-- Guías interactivas: «ya se la ofrecí» (ADR-0389, Felipe 2026-10-07)
 --
 -- QUÉ. Cada pantalla del ERP tiene una guía (una demo con el velo oscuro que recorre sus piezas). Se le OFRECE a cada persona
 -- una sola vez por pantalla, la primera vez que entra (Felipe: «una vez por persona y pantalla»); después se repite a pedido
@@ -42,7 +42,7 @@ create table if not exists retail.guias_vistas (
   primary key (quien, guia)
 );
 comment on table retail.guias_vistas is
-  'ADR-0362: a quién ya se le ofreció cada guía interactiva (una vez por persona y pantalla). Solo la tocan fn_guias_vistas y marcar_guia_vista.';
+  'ADR-0389: a quién ya se le ofreció cada guía interactiva (una vez por persona y pantalla). Solo la tocan fn_guias_vistas y marcar_guia_vista.';
 
 alter table retail.guias_vistas enable row level security;
 revoke all on table retail.guias_vistas from anon, authenticated;
@@ -90,7 +90,7 @@ end;
 $$;
 
 comment on function retail.fn_guias_vistas() is
-  'ADR-0362: las claves de las guías interactivas que ya se le ofrecieron a quien mira (persona, responsable de la terminal o la cuenta).';
+  'ADR-0389: las claves de las guías interactivas que ya se le ofrecieron a quien mira (persona, responsable de la terminal o la cuenta).';
 revoke all on function retail.fn_guias_vistas() from public, anon;
 grant execute on function retail.fn_guias_vistas() to authenticated, service_role;
 
@@ -120,7 +120,7 @@ end;
 $$;
 
 comment on function retail.marcar_guia_vista(text, boolean) is
-  'ADR-0362: anota que a quien mira ya se le ofreció la guía p_guia (y, con p_completa, que la terminó). No es una operación del negocio: no pide responsable.';
+  'ADR-0389: anota que a quien mira ya se le ofreció la guía p_guia (y, con p_completa, que la terminó). No es una operación del negocio: no pide responsable.';
 revoke all on function retail.marcar_guia_vista(text, boolean) from public, anon;
 grant execute on function retail.marcar_guia_vista(text, boolean) to authenticated, service_role;
 

@@ -334,7 +334,7 @@ function ListaHechos({
   modulos,
   vacio,
 }: {
-  /** Ancla de la guía (ADR-0362). */
+  /** Ancla de la guía (ADR-0389). */
   guia: string;
   titulo: string;
   bajada: string;

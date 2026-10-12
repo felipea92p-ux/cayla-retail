@@ -1,4 +1,4 @@
-// Guías de Ventas (ADR-0362, piloto). Cada paso se ancla a un `data-guia` del código; si una pieza cambia de nombre o
+// Guías de Ventas (ADR-0389, piloto). Cada paso se ancla a un `data-guia` del código; si una pieza cambia de nombre o
 // desaparece, `lib/guias.test.ts` falla y dice qué paso quedó huérfano. El texto le habla a quien atiende («tú»), en
 // lenguaje de tienda, y explica PARA QUÉ sirve cada cosa, no cómo está hecha.
 

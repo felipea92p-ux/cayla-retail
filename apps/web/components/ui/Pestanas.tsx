@@ -43,7 +43,7 @@ export type Pestana = {
   tono?: "rojo" | "neutro";
   /** Una línea de ayuda al pasar el mouse (`title`): «Cuánto cuesta cada prenda». */
   ayuda?: string;
-  /** El ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0362): la guía enciende y toca esta pestaña. */
+  /** El ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389): la guía enciende y toca esta pestaña. */
   guia?: string;
 };
 
@@ -67,7 +67,7 @@ export function Pestanas({
   style?: CSSProperties;
   /** Nombra la memoria del subrayado que viaja (una por fila de pestañas de la pantalla). */
   idIndicador?: string;
-  /** El ancla de la guía interactiva para la fila entera (`data-guia`, ADR-0362). */
+  /** El ancla de la guía interactiva para la fila entera (`data-guia`, ADR-0389). */
   guia?: string;
 }) {
   const fila = useRef<HTMLDivElement>(null);

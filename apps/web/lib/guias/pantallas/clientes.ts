@@ -1,4 +1,4 @@
-// Guías de Clientes (ADR-0362): Fichas (la libreta de clientes y el club) y Avisos (los mensajes del club por WhatsApp). El plan de
+// Guías de Clientes (ADR-0389): Fichas (la libreta de clientes y el club) y Avisos (los mensajes del club por WhatsApp). El plan de
 // este módulo es de Dany (ADR-0288, acta D-92 a D-111): estas guías solo lo EXPLICAN como está, sin cambiar nada. En pantalla se
 // dice «cliente» y, en el club, «miembro». El piloto busca un cliente de la lista, abre su ficha y la ventana de «Nuevo cliente» o
 // la de los beneficios para mostrarlas, y las cierra. Registrar, Editar, Enviar, Pidió BAJA, Archivar y Guardar se EXPLICAN.

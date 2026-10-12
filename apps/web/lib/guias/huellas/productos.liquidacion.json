@@ -1,7 +1,7 @@
 {
   "guia": "productos.liquidacion",
   "ruta": "/productos/liquidacion",
-  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 33,
   "controles": {
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [

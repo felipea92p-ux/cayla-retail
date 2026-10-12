@@ -1,4 +1,4 @@
-// Guías interactivas (ADR-0362): las reglas puras que usa el motor. Sin React ni DOM: se prueban en `reglas.test.ts`.
+// Guías interactivas (ADR-0389): las reglas puras que usa el motor. Sin React ni DOM: se prueban en `reglas.test.ts`.
 
 import type { Guia, PasoGuia, PiezaATocar } from "./tipos";
 

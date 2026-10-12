@@ -53,5 +53,5 @@ tema/.sesion/
 tema/.salida/
 # /unificar: censo, capturas y lámina (se regeneran; lo que se decide queda en docs/unificar/)
 unificar/.salida/
-# Guías interactivas (ADR-0362): capturas del recorredor.
+# Guías interactivas (ADR-0389): capturas del recorredor.
 guias/.salida/

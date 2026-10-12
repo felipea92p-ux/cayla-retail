@@ -9,7 +9,7 @@ import type { Guia } from "@/lib/guias/tipos";
 import { GuiaInteractiva, type FinDeGuia } from "./GuiaInteractiva";
 import { leerVistas, marcarVista } from "./vistas";
 
-// El que decide CUÁNDO corre una guía (ADR-0362). Montado una vez en `AppShell`; una pantalla no tiene que hacer nada.
+// El que decide CUÁNDO corre una guía (ADR-0389). Montado una vez en `AppShell`; una pantalla no tiene que hacer nada.
 //   · La primera vez que una persona entra a una pantalla con guía, se le OFRECE (una tarjeta abajo a la derecha, sin velo):
 //     una sola vez por persona y por pantalla (Felipe, 2026-10-07), diga que sí o que no.
 //   · `?demo=1` en la URL (lo pone «Demo» de Mi perfil al llevarte a otra pantalla) la arranca sola.

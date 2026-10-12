@@ -1,4 +1,4 @@
-// Registro de las GUÍAS INTERACTIVAS por pantalla (ADR-0362, Felipe 2026-10-07). Es, a la vez, cómo se vigila y el tablero del
+// Registro de las GUÍAS INTERACTIVAS por pantalla (ADR-0389, Felipe 2026-10-07). Es, a la vez, cómo se vigila y el tablero del
 // despliegue módulo por módulo: `lib/guias.test.ts` exige que CADA `page.tsx` de `app/(app)` esté aquí con uno de tres estados.
 //
 //   aplicada   la pantalla tiene su guía (`guia`: su clave en `GUIAS`). La prueba comprueba que cada ancla de cada paso existe en el

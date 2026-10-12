@@ -1,4 +1,4 @@
-// Guías del resto de Ventas (ADR-0362): las vistas de Comprobantes (Este mes, Por enviar, Proformas, Series), Caja y su
+// Guías del resto de Ventas (ADR-0389): las vistas de Comprobantes (Este mes, Por enviar, Proformas, Series), Caja y su
 // historial, Cambios y Devoluciones. Mismas reglas que `vender.ts`: cada paso se ancla a un `data-guia` del código, el texto le
 // habla a quien atiende («tú») y explica PARA QUÉ sirve cada cosa. Lo que guarda (Registrar, Cerrar caja, Reintentar, Devolver,
 // Anular, Crear proforma…) se EXPLICA con la pieza encendida y nunca se toca: el piloto solo abre, cambia de pestaña y escribe.

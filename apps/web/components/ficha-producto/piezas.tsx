@@ -160,7 +160,7 @@ export function PieModal({
   texto: string;
   onConfirmar: () => void;
   deshabilitado: boolean;
-  /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
   guia?: string;
 }) {
   return (

@@ -1,4 +1,4 @@
-/* GUÍAS INTERACTIVAS (ADR-0362, Felipe 2026-10-07)
+/* GUÍAS INTERACTIVAS (ADR-0389, Felipe 2026-10-07)
    El velo oscuro con un recorte alrededor de la pieza que se explica (el «efecto de máscara»), y la tarjeta que dice qué es.
    El velo es un SVG con un agujero redondeado que el motor lleva de pieza en pieza cuadro a cuadro (antes era la sombra gigante de
    una caja, que Chrome a veces no repintaba); el anillo del recorte lo sigue con `left/top` y `width/height`, 420 ms con `--ease-cayla`, sin rebote ni bucle (ADR-0136). El velo es
@@ -121,7 +121,7 @@
 }
 
 /* ---- Movimiento rico (Felipe, 2026-10-07: «lo más sofisticado e interactivo posible, con muchas animaciones»; ADR-0136 act.
-   2026-10-07 (d), ADR-0362). Sin rebote. Los únicos bucles son SEÑALES de «mira aquí» mientras la guía espera: el halo que
+   2026-10-07 (d), ADR-0389). Sin rebote. Los únicos bucles son SEÑALES de «mira aquí» mientras la guía espera: el halo que
    respira alrededor de la pieza y el cursor de texto que parpadea. Todo se apaga con `prefers-reduced-motion`. ---- */
 
 /* El halo: un borde suave alrededor del recorte que respira (señal de «esta es la pieza»). */

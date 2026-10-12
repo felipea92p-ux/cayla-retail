@@ -1,7 +1,9 @@
-# ADR-0362 · Guías interactivas con máscara: una demo por pantalla, siempre al día
+# ADR-0389 · Guías interactivas con máscara: una demo por pantalla, siempre al día
 
 - **Fecha:** 2026-10-07 · **Estado:** construido y probado en local; piloto en Ventas (Punto de Venta, Apartados, Historial,
   Comprobantes). Migración `20261007180000_guias_vistas.sql` aplicada en local y **en producción el 2026-10-07** (por orden de Felipe).
+- **Número:** nació como ADR-0362; el 2026-10-12, al fusionar, ese número ya era de Órdenes de compra en `main`, y pasó a 0389
+  (reservado con `pnpm reservar adr`, ADR-0381). Los comentarios de las tablas y funciones en producción todavía dicen «ADR-0362».
 - **Pedido:** Felipe, 2026-10-07: «guías interactivas para cada módulo que tengan efecto de foto o máscara de oscurecimiento, que te
   vayan haciendo una demo en el sistema y explicando cada funcionalidad y para qué sirve», hechas «de la mejor manera posible para cada
   una de las vistas», y que **cada vez que se modifique un módulo o se cambie una vista, también cambie la guía**, para que esté siempre

@@ -1,4 +1,4 @@
-// Guías de Compras (ADR-0362): Facturas de proveedor, su detalle, Por pagar, Notas de crédito, Proveedores y su ficha, Registrar
+// Guías de Compras (ADR-0389): Facturas de proveedor, su detalle, Por pagar, Notas de crédito, Proveedores y su ficha, Registrar
 // factura, la parte de tu tienda y el Plan de campaña. Es dinero: cada guía dice con cuidado QUÉ registra cada cosa (la factura es
 // la deuda con el proveedor; el pago la baja; la nota de crédito la baja o queda a tu favor) y nunca toca lo que guarda. El piloto
 // solo abre vistas rápidas, la ventana de editar un proveedor o la de una categoría del plan, cambia de pestaña o de agrupación y
@@ -1247,7 +1247,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
   alSalir: [{ tipo: "escape" }],
 };
 
-// ---- Órdenes de compra (ADR-0362, fase 1) y las vistas Resultados e Historial del Plan de campaña (ADR-0372) ----
+// ---- Órdenes de compra (ADR-0389, fase 1) y las vistas Resultados e Historial del Plan de campaña (ADR-0372) ----
 // Una orden es lo que se le PIDE al proveedor, antes de su factura. La demo no crea, no edita, no imprime ni anula: abrir una orden
 // desde la lista es ir a otra dirección (el piloto no sale de la pantalla), así que la fila se explica y la orden tiene su propia guía.
 

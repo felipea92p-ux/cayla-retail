@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Acepta la huella de controles de una o más guías (ADR-0362). Se corre DESPUÉS de revisar la guía contra lo que cambió en la
+// Acepta la huella de controles de una o más guías (ADR-0389). Se corre DESPUÉS de revisar la guía contra lo que cambió en la
 // pantalla: la prueba `lib/guias.test.ts` falla mientras la huella guardada no coincida con el código, y su mensaje dice qué
 // controles nacieron o desaparecieron. Aceptarla sin mirar la guía es exactamente lo que este candado quiere evitar.
 //
@@ -48,7 +48,7 @@ for (const g of elegidas) {
       {
         guia: g.id,
         ruta: g.ruta,
-        nota: "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+        nota: "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
         total,
         controles: hoy,
       },

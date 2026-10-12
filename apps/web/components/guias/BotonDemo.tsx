@@ -2,7 +2,7 @@
 
 import { PlayCircle } from "lucide-react";
 
-// «Demo» en la cabecera de una TERMINAL (ADR-0362, Felipe 2026-10-07): un aparato de tienda no tiene «Mi perfil», que es donde
+// «Demo» en la cabecera de una TERMINAL (ADR-0389, Felipe 2026-10-07): un aparato de tienda no tiene «Mi perfil», que es donde
 // una persona repite las guías. Va en el lugar de «Actividad» (que una terminal nunca ve) y con su misma forma, y abre el mismo
 // selector que el perfil (`ElegirDemoModal`).
 export function BotonDemo({ onClick }: { onClick: () => void }) {

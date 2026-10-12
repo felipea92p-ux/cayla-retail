@@ -763,7 +763,7 @@ const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
-  // «Demo» de Mi perfil (ADR-0362): el selector de guías interactivas.
+  // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
   const [demoAbierto, setDemoAbierto] = useState(false);
   // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
   const esLider = persona.rol === "lider";
@@ -1169,7 +1169,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
-            {/* «Demo» (ADR-0362): una terminal no tiene «Mi perfil», que es donde una persona repite las guías interactivas. */}
+            {/* «Demo» (ADR-0389): una terminal no tiene «Mi perfil», que es donde una persona repite las guías interactivas. */}
             {esAparato ? <BotonDemo onClick={() => setDemoAbierto(true)} /> : null}
             {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
                 del aparato, no un módulo ni una pantalla. */}
@@ -1211,7 +1211,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>
       </main>
 
-      {/* Guías interactivas (ADR-0362): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
+      {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
           persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
       <Suspense fallback={null}>
         <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} />

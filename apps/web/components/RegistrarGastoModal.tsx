@@ -424,7 +424,7 @@ export function RegistrarGastoModal({
         </CampoFin>
       </div>
 
-      {/* Guía interactiva (ADR-0362): la condición y de dónde salió, juntas en un recorte. */}
+      {/* Guía interactiva (ADR-0389): la condición y de dónde salió, juntas en un recorte. */}
       {!egreso && (
         <div data-guia="fin-gastos.form-pago">
         <CampoFin etiqueta="¿Cómo se paga?">

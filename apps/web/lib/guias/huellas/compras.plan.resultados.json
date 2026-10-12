@@ -1,7 +1,7 @@
 {
   "guia": "compras.plan.resultados",
   "ruta": "/compras/plan/resultados",
-  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 4,
   "controles": {
     "components/plan-compra/PestanasPlan.tsx": [

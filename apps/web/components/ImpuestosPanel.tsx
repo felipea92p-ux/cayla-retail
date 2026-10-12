@@ -225,7 +225,7 @@ function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: stri
       tabIndex={0}
       aria-current={activa ? "true" : undefined}
       className={activa ? "fin-fila-activa" : undefined}
-      // Guía interactiva (ADR-0362): el mes en curso y el que se declara ahora, para pasar de uno al otro y volver.
+      // Guía interactiva (ADR-0389): el mes en curso y el que se declara ahora, para pasar de uno al otro y volver.
       data-guia={m.mes === mesActual ? "fin-impuestos.mes-en-curso" : m.mes === mesAnteriorA(mesActual) ? "fin-impuestos.mes-a-declarar" : undefined}
       onClick={onAbrir}
       onKeyDown={(ev) => {

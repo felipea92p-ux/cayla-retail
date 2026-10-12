@@ -1,4 +1,4 @@
-// «Ya se la ofrecí» (ADR-0362): qué guías se le ofrecieron a quien mira. La fuente es la base (`retail.guias_vistas`, una vez
+// «Ya se la ofrecí» (ADR-0389): qué guías se le ofrecieron a quien mira. La fuente es la base (`retail.guias_vistas`, una vez
 // por persona y pantalla); si no responde o la migración aún no está, se recuerda en el navegador y la demo no se cae
 // (principio 9). Las dos peticiones llevan `x-espera: no`: recordar una oferta no es un guardado y no debe abrir el loader.
 

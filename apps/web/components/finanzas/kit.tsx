@@ -9,13 +9,13 @@ import { Buscador as BuscadorUnico } from "@/components/ui/Buscador";
 
 // ---- Pestañas -----------------------------------------------------------------------------------------------------------
 
-export type PestanaFin = { clave: string; etiqueta: string; conteo?: number | null; href?: string; /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */ guia?: string };
+export type PestanaFin = { clave: string; etiqueta: string; conteo?: number | null; href?: string; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string };
 
 /** Las pestañas de Finanzas y Configuración: desde el 2026-10-06 son la pestaña de vista del sistema (`<Pestanas>`, el vidrio con
  *  la píldora oscura, ADR-0358), por decisión de Felipe al elegir mirando («también Finanzas»). Esta función solo traduce
  *  la forma de los datos del kit, para no tocar las pantallas. Con `href` son enlaces (la vista vive en la URL); sin él, botones
  *  que avisan `onCambio`. */
-export function PestanasFin({ items, valor, onCambio, etiqueta, guia }: { items: PestanaFin[]; valor: string; onCambio?: (clave: string) => void; etiqueta: string; /** Ancla de la guía interactiva para la fila (ADR-0362). */ guia?: string }) {
+export function PestanasFin({ items, valor, onCambio, etiqueta, guia }: { items: PestanaFin[]; valor: string; onCambio?: (clave: string) => void; etiqueta: string; /** Ancla de la guía interactiva para la fila (ADR-0389). */ guia?: string }) {
   return (
     <Pestanas
       etiquetaAccesible={etiqueta}
@@ -31,7 +31,7 @@ export function PestanasFin({ items, valor, onCambio, etiqueta, guia }: { items:
 
 // ---- Superficie, herramientas y pie ---------------------------------------------------------------------------------------
 
-/** `guia`: solo el ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0362); no cambia nada de cómo se ve. */
+/** `guia`: solo el ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389); no cambia nada de cómo se ve. */
 export function Superficie({ children, className = "", pad = false, guia }: { children: ReactNode; className?: string; pad?: boolean; guia?: string }) {
   return (
     <div className={`fin-superficie ${pad ? "fin-pad" : ""} ${className}`} data-guia={guia}>
@@ -153,7 +153,7 @@ export function CampoFin({
   tono?: "aviso";
   children: ReactNode;
   className?: string;
-  /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
   guia?: string;
 }) {
   return (
@@ -214,7 +214,7 @@ export function OpcionesFin<T extends string>({
   onValor: (v: T) => void;
   opciones: { valor: T; titulo: string; detalle: string }[];
   etiqueta: string;
-  /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
   guia?: string;
 }) {
   return (
@@ -231,7 +231,7 @@ export function OpcionesFin<T extends string>({
 }
 
 /** Lista de pares «dato · valor» (el detalle de un gasto o de un activo). */
-export function ListaDatos({ filas, guia }: { filas: { dato: ReactNode; valor: ReactNode; tenue?: boolean }[]; /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */ guia?: string }) {
+export function ListaDatos({ filas, guia }: { filas: { dato: ReactNode; valor: ReactNode; tenue?: boolean }[]; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
   return (
     <ul className="fin-lista" data-guia={guia}>
       {filas.map((f, i) => (

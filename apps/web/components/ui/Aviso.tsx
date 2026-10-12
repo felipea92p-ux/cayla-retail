@@ -41,7 +41,7 @@ type Props = {
   /** El de error recibe el foco al aparecer en un flujo (para el lector de pantalla). */
   enfocable?: boolean;
   ref?: Ref<HTMLDivElement>;
-  /** Ancla de la guía interactiva (ADR-0362). */
+  /** Ancla de la guía interactiva (ADR-0389). */
   guia?: string;
 };
 

@@ -1,4 +1,4 @@
-// Guías de Producción, el Taller (ADR-0362): Resumen, Órdenes, Insumos, Recibir, Proveedores, Facturas de insumos, Por pagar,
+// Guías de Producción, el Taller (ADR-0389): Resumen, Órdenes, Insumos, Recibir, Proveedores, Facturas de insumos, Por pagar,
 // Cotizaciones de maquila y Eficiencia. Producción solo se ve parado en el Taller (`guias/ejemplos.mjs` entra con `admin-taller`).
 // Es dinero y stock: cada guía dice con cuidado QUÉ guarda cada botón (abrir una orden, ingresar un lote, registrar una factura,
 // pagar) y nunca lo toca. El piloto solo abre las ventanas de «Nueva orden», «Nuevo insumo», «Nuevo proveedor», «Nueva factura» y

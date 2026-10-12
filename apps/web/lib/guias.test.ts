@@ -5,7 +5,7 @@ import { anclaExiste, anclasDelCodigo, diferenciaDeHuella, guiasDeLosArchivos, h
 import { GUIAS, PANTALLAS, PENDIENTES_HOY } from "./guias/registro";
 import type { AccionGuia, Guia } from "./guias/tipos";
 
-// REGLA (Felipe, 2026-10-07 — CLAUDE.md «Guías interactivas», ADR-0362): cada pantalla tiene una guía interactiva que la
+// REGLA (Felipe, 2026-10-07 — CLAUDE.md «Guías interactivas», ADR-0389): cada pantalla tiene una guía interactiva que la
 // recorre con el velo oscuro, y la guía tiene que estar SIEMPRE al día con la pantalla. Esta prueba es la parte que no depende
 // de que alguien se acuerde:
 //   · toda `page.tsx` declara su guía (o por qué no aplica); una pantalla nueva no nace «pendiente»;

@@ -49,7 +49,7 @@ export function BarraAtributos({
   filtros: ReactNode;
   busqueda?: Busqueda;
   agregar?: { texto: string; onClick: () => void };
-  /** Ancla de la guía interactiva para la barra entera (`data-guia`, ADR-0362). Una por pestaña: al cambiar de pestaña, la
+  /** Ancla de la guía interactiva para la barra entera (`data-guia`, ADR-0389). Una por pestaña: al cambiar de pestaña, la
    *  guía tiene que encontrar la barra NUEVA, no la de la pestaña que se está yendo. */
   guia?: string;
 }) {
@@ -222,7 +222,7 @@ export function PieTarjeta({ children }: { children: ReactNode }) {
 }
 
 /** Un enlace del pie. Cada uno en una sola línea: «Configurar campaña» partido en dos se leía como dos acciones. */
-export function AccionTarjeta({ onClick, children, guia }: { onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */ guia?: string }) {
+export function AccionTarjeta({ onClick, children, guia }: { onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
   return (
     <button
       type="button"

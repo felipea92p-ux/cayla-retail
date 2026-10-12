@@ -70,7 +70,7 @@ export const TABLA = {
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
-export function Tabla({ children, className = "", style, guia }: { children: ReactNode; className?: string; style?: CSSProperties; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
+export function Tabla({ children, className = "", style, guia }: { children: ReactNode; className?: string; style?: CSSProperties; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
     <div data-guia={guia} className={`${TABLA.contenedor} ${className}`} style={style}>
       {children}

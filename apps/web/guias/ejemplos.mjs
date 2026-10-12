@@ -1,4 +1,4 @@
-// Cómo entra el recorredor (`guias/recorrer.mjs`) a cada pantalla con guía cuando no basta su ruta (ADR-0362):
+// Cómo entra el recorredor (`guias/recorrer.mjs`) a cada pantalla con guía cuando no basta su ruta (ADR-0389):
 //   · `url`: una ruta con `[id]` necesita un id real de la base LOCAL (una consulta de solo lectura).
 //   · `cuenta`: la cuenta de `tema/cuentas.mjs` que ve esa pantalla (Producción solo se ve parado en el Taller).
 //   · `sinDatos`: una consulta de solo lectura que dice si la base local NO tiene con qué mostrar la pantalla (devuelve el motivo,

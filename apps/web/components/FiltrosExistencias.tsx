@@ -413,7 +413,7 @@ export function FiltrosExistencias({
               abierto={hojaAbierta || (esEscritorio && panelAbierto)}
               activos={activos}
               onClick={alTocarFiltros}
-              // La guía (ADR-0362) abre el panel y lo vuelve a cerrar: el ancla dice qué hará el toque, para que cerrar nunca reabra.
+              // La guía (ADR-0389) abre el panel y lo vuelve a cerrar: el ancla dice qué hará el toque, para que cerrar nunca reabra.
               data-guia={esEscritorio && panelAbierto ? "existencias.filtros-cerrar" : "existencias.filtros-abrir"}
             />
           </span>

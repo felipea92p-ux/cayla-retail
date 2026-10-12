@@ -56,7 +56,7 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 
 export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion = false, onDemo }: {
   onClose: () => void;
-  /** Abre «Demo» (ADR-0362): elegir qué módulo o submódulo volver a ver con su guía interactiva. */
+  /** Abre «Demo» (ADR-0389): elegir qué módulo o submódulo volver a ver con su guía interactiva. */
   onDemo?: () => void;
   /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
   veAdministracion?: boolean;
@@ -262,7 +262,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               </div>
             )}
 
-            {/* Demo (ADR-0362, Felipe 2026-10-07): la guía de cada pantalla se ofrece una sola vez; aquí se repite la que quieras. */}
+            {/* Demo (ADR-0389, Felipe 2026-10-07): la guía de cada pantalla se ofrece una sola vez; aquí se repite la que quieras. */}
             {onDemo && (
               <div>
                 <p className="label-cayla mb-3 text-[11px] text-tinta/65">Aprender</p>

@@ -1,4 +1,4 @@
-// Guías de Catálogo (ADR-0362): Productos (con su vista rápida y su Historial), Editar producto, Historial de una prenda,
+// Guías de Catálogo (ADR-0389): Productos (con su vista rápida y su Historial), Editar producto, Historial de una prenda,
 // Atributos, Categorías, Familias, Marcas y Nuevo producto. Cada paso se ancla a un `data-guia` del código y le habla a quien
 // trabaja en la tienda («tú»). La demo abre la vista rápida, cambia de Grilla a Tabla, abre fichas y formularios y escribe
 // ejemplos sacados de la pantalla, pero nunca crea, guarda, desactiva ni elimina: eso se explica con la pieza encendida.
