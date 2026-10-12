@@ -1111,7 +1111,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Planificar la compra",
-      texto: "Antes de una campaña (como diciembre), aquí decides cuánto comprar de cada categoría. Imaginas un mes flojo, uno normal y uno bueno, y el sistema te dice cuánto conviene comprar. Es una demo: no se guarda nada.",
+      texto: "Antes de una campaña (Navidad, Día de la Madre, San Valentín…), aquí decides cuánto comprar de cada categoría. Imaginas una campaña floja, una normal y una buena, y el sistema te dice cuánto conviene comprar. Es una demo: no se guarda nada.",
     },
     {
       id: "empezar",
@@ -1223,7 +1223,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan-modal.escenarios",
       opcional: true,
       titulo: "Flojo, normal y bueno",
-      texto: "Cuántas prendas de esta categoría crees que venderías en un diciembre flojo, uno normal y uno bueno. Son tus supuestos: en enero se comparan con lo que pasó.",
+      texto: "Cuántas prendas de esta categoría crees que venderías en la campaña si va floja, normal o buena. Son tus supuestos: al terminar, Resultados los compara con lo que pasó.",
     },
     {
       id: "precios",
@@ -1237,7 +1237,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan-modal.recupero",
       opcional: true,
       titulo: "Lo que sobre",
-      texto: "A qué porcentaje del precio venderías lo que quede en la liquidación de enero. Con eso el sistema decide si conviene arriesgar más o quedarse corto, y al lado te dice qué cambia.",
+      texto: "A qué porcentaje del precio venderías lo que quede al terminar la campaña, en la liquidación. Con eso el sistema decide si conviene arriesgar más o quedarse corto, y al lado te dice qué cambia.",
     },
     {
       id: "curva",
@@ -1251,7 +1251,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan-modal.porque",
       opcional: true,
       titulo: "Por qué se compra eso",
-      texto: "Cuántas conviene tener para la campaña, cuántas ya hay y, en una frase, por qué. La barra muestra dónde cae entre el diciembre flojo y el bueno.",
+      texto: "Cuántas conviene tener para la campaña, cuántas ya hay y, en una frase, por qué. La barra muestra dónde cae entre el flojo y el bueno.",
     },
     {
       id: "reparto-categoria",

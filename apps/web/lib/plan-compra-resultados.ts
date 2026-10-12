@@ -305,9 +305,9 @@ export function porCategoria(r: LecturaResultados, tienda: string | null, parte:
         lectura: !plan
           ? null
           : tienda === null
-            ? fraseDeLoReal(unidades, plan).replace(/diciembre /g, "")
+            ? fraseDeLoReal(unidades, plan)
             : parte
-              ? fraseDeLoReal(unidades, escalar(plan, parte(id))).replace(/diciembre /g, "")
+              ? fraseDeLoReal(unidades, escalar(plan, parte(id)))
               : null,
         agotadaEn: r.agotadas.filter((a) => a.categoria === id && (tienda === null || a.tienda === tienda)).map((a) => nombres.get(a.tienda) ?? "una tienda"),
         recuperoReal: desp && desp.aPrecioLista > 0 && tienda === null ? Math.round((desp.soles / desp.aPrecioLista) * 100) : null,

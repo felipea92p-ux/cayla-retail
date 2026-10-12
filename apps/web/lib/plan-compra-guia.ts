@@ -15,9 +15,9 @@ export function camposDelPlan(
   const p = problemasDelBorrador(b, tallas);
   const campo = (id: keyof typeof p, nombre: string, pendiente: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? pendiente });
   return [
-    campo("flojo", "Diciembre flojo", "Escribe cuántas venderías en un diciembre flojo."),
-    campo("normal", "Diciembre normal", "Escribe cuántas venderías en un diciembre normal."),
-    campo("bueno", "Diciembre bueno", "Escribe cuántas venderías en un diciembre bueno."),
+    campo("flojo", "Flojo", "Escribe cuántas venderías si la campaña va floja."),
+    campo("normal", "Normal", "Escribe cuántas venderías si la campaña va normal."),
+    campo("bueno", "Bueno", "Escribe cuántas venderías si la campaña va buena."),
     campo("precio", "Precio", "Escribe el precio de venta promedio."),
     campo("costo", "Costo", "Escribe el costo promedio por prenda."),
     campo("recupero", "Lo que sobra", "Escribe a qué % del precio vendes lo que sobre."),

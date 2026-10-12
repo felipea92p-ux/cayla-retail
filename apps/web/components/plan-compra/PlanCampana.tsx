@@ -30,6 +30,7 @@ import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal"
 import {
   armarFilas,
   campanasArchivadas,
+  diasEntre,
   confianzaDelStock,
   fechaLargaES,
   leerPlan,
@@ -361,6 +362,7 @@ export function PlanCampana({
         pasoAPaso={
           <PasoAPaso
             planId={plan.plan.id}
+            campana={{ nombre: plan.plan.nombre, dias: diasEntre(plan.plan.desde, plan.plan.hasta) + 1 }}
             filas={filas}
             vendidoPorTalla={plan.vendidoPorTalla}
             totales={totales}
@@ -379,9 +381,9 @@ export function PlanCampana({
 
       <p className="nota-cayla" data-guia="plan.como">
         Cómo se calcula: con tus tres escenarios, el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente a
-        sobrar (lo que pierdes al vender lo que queda más barato). Si lo que sobra se vende casi al mismo precio, conviene cubrir un
-        diciembre bueno; si se pierde, conviene quedarse más cerca del flojo. No hay historia de ventas de diciembre en el ERP: estos
-        números son tus supuestos, y en enero se comparan con lo que pasó.
+        sobrar (lo que pierdes al vender lo que queda más barato). Si lo que sobra se vende casi al mismo precio, conviene cubrir el
+        escenario bueno; si se pierde, conviene quedarse más cerca del flojo. Estos números son tus supuestos (o los que propone el sistema):
+        al terminar la campaña, Resultados los compara con lo que pasó.
       </p>
 
       {salidaPaso.aviso}
@@ -414,6 +416,7 @@ export function PlanCampana({
         <PlanCategoriaModal
           planId={plan.plan.id}
           planNombre={plan.plan.nombre}
+          planDias={diasEntre(plan.plan.desde, plan.plan.hasta) + 1}
           fila={filaAbierta}
           vendidoPorTalla={plan.vendidoPorTalla.get(abierta.id)}
           tope={plan.tope.valor}

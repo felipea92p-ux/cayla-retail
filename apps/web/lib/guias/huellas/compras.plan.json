@@ -33,9 +33,9 @@
     "components/plan-compra/FormularioCategoria.tsx": [
       "Boton «Usar estos tres»",
       "Boton «Proponer el normal desde lo vendido»",
-      "CampoTexto «Diciembre flojo, prendas»",
-      "CampoTexto «Diciembre normal, prendas»",
-      "CampoTexto «Diciembre bueno, prendas»",
+      "CampoTexto «Flojo, prendas»",
+      "CampoTexto «Normal, prendas»",
+      "CampoTexto «Bueno, prendas»",
       "CampoMonto «{<span className=\"sr-only\">Precio de venta, promedio de la categoría</span>}»",
       "CampoMonto «{<span className=\"sr-only\">Costo por prenda, promedio</span>}»",
       "CampoTexto «Lo que sobre, en % del precio»",
