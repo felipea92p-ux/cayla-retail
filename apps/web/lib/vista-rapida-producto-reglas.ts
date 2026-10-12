@@ -1,5 +1,6 @@
 import type { VarianteListado } from "./catalogo-v2";
 import { variantesQueSeVenden } from "./productos-vista";
+import type { LugaresDeVariante } from "./stock-en-sede-reglas";
 import { compararTallas } from "./tallas";
 
 /* ====================================================================
@@ -210,6 +211,98 @@ export const unidadesTexto = (n: number): string => `${n.toLocaleString("es-PE")
 export function avisoSinUnidadesAqui(sede: string, detalleOtrasSedes: string | null): string {
   const donde = sede.trim() || "tu sede";
   return detalleOtrasSedes ? `Sin unidades en ${donde}. En otras sedes: ${detalleOtrasSedes}.` : `Sin unidades en ${donde}.`;
+}
+
+/* ---- Piso y almacén (Felipe 2026-10-12: «no sé si esa cantidad es del almacén o la tienda») ----
+   El número de cada celda era TODO lo de la sede —lo colgado en el piso y lo guardado en el almacén— sin decirlo. Ahora la ficha lo
+   reparte: «Dónde» elige qué cuenta la matriz (Todo · Piso · Almacén) y, en «Todo», la barrita de cada celda va en dos tonos. Los lugares
+   salen de `lugaresEnSede`, la misma lectura de la sede; aquí solo se eligen y se redactan. «Todo» no cambia: sigue siendo el número que
+   decide cuántas etiquetas salen. */
+
+export type Donde = "todo" | "piso" | "almacen";
+/** Dónde está cada unidad, por variante; `null` = todavía no se lee, o no se pudo. */
+export type LugaresPorVariante = ReadonlyMap<string, LugaresDeVariante> | null;
+export type RepartoLugares = LugaresDeVariante & { total: number };
+
+/** Cuánto de esas prendas hay en cada lugar de la sede. Una prenda sin fila no suma nada (`stock` solo guarda lo que hay). */
+export function repartoDe(lugares: ReadonlyMap<string, LugaresDeVariante>, ids: readonly string[]): RepartoLugares {
+  const r: LugaresDeVariante = { piso: 0, almacen: 0, danadas: 0, sinLugar: 0 };
+  for (const id of ids) {
+    const l = lugares.get(id);
+    if (!l) continue;
+    r.piso += l.piso;
+    r.almacen += l.almacen;
+    r.danadas += l.danadas;
+    r.sinLugar += l.sinLugar;
+  }
+  return { ...r, total: r.piso + r.almacen + r.danadas + r.sinLugar };
+}
+
+/**
+ * El reparto de la prenda entera (las variantes de la matriz), o `null` si no hay nada que repartir: la lectura no llegó, o nada está ni
+ * en el piso ni en el almacén (el Taller no separa; una prenda sin unidades aquí ya tiene su aviso). Con `null` la ficha no ofrece
+ * «Dónde»: tres opciones con 0 en dos de ellas solo confunden.
+ */
+export function repartoDeLaPrenda(m: Matriz, lugares: LugaresPorVariante): RepartoLugares | null {
+  if (!lugares || m.totalGeneral === null) return null;
+  const r = repartoDe(lugares, m.celdas.map((c) => c.varianteId));
+  return r.piso + r.almacen > 0 ? r : null;
+}
+
+/** Lo que dibuja la matriz según «Dónde»: «Todo» es la lectura de siempre; «Piso» o «Almacén», solo lo de ese lugar. */
+export function stockSegunDonde(donde: Donde, stock: StockPorVariante, lugares: LugaresPorVariante): StockPorVariante {
+  if (donde === "todo" || stock === null || lugares === null) return stock;
+  return new Map([...lugares].map(([id, l]) => [id, l[donde]]));
+}
+
+/** La barrita de dos tonos de una celda en «Todo»: qué parte está en el piso y qué parte en el almacén (de 0 a 1; lo que falta para 1 son
+ *  dañadas o prendas sin ubicar). `null` si la celda no tiene nada que partir. */
+export function partesDeLaCelda(lugares: LugaresPorVariante, varianteId: string): { piso: number; almacen: number } | null {
+  const l = lugares?.get(varianteId);
+  if (!l) return null;
+  const total = l.piso + l.almacen + l.danadas + l.sinLugar;
+  return total > 0 ? { piso: l.piso / total, almacen: l.almacen / total } : null;
+}
+
+const danadasTexto = (n: number) => (n === 1 ? "1 dañada" : `${n} dañadas`);
+
+/** «4 en el piso · 3 en almacén»: solo los lugares con algo, para lo que se eligió en la matriz. Vacío si no hay nada. */
+export function textoLugares(r: LugaresDeVariante): string {
+  const partes: string[] = [];
+  if (r.piso > 0) partes.push(`${r.piso} en el piso`);
+  if (r.almacen > 0) partes.push(`${r.almacen} en almacén`);
+  if (r.danadas > 0) partes.push(danadasTexto(r.danadas));
+  if (r.sinLugar > 0) partes.push(`${r.sinLugar} sin ubicar`);
+  return partes.join(" · ");
+}
+
+/** Lo que «Todo» cuenta y no está ni en el piso ni en el almacén: se dice, para que piso + almacén cuadre con «Todo» a la vista. */
+export function notaFueraDePisoYAlmacen(r: RepartoLugares): string | null {
+  const partes: string[] = [];
+  if (r.danadas > 0) partes.push(danadasTexto(r.danadas));
+  if (r.sinLugar > 0) partes.push(`${r.sinLugar} sin ubicar`);
+  return partes.length > 0 ? `«Todo» incluye ${partes.join(" y ")}` : null;
+}
+
+/** Junto a la cifra grande, de dónde es: «en Trujillo» o, al elegir un lugar, «en el piso» / «de Trujillo». */
+export function rotuloDeLaCifra(donde: Donde, sedeCorta: string): { linea: string; deSede: string | null } {
+  if (donde === "piso") return { linea: "en el piso", deSede: `de ${sedeCorta}` };
+  if (donde === "almacen") return { linea: "en almacén", deSede: `de ${sedeCorta}` };
+  return { linea: `en ${sedeCorta}`, deSede: null };
+}
+
+/** Bajo el nombre de cada color: «5 unidades», o, si no tiene nada, de DÓNDE no tiene («0 en piso» no es «sin unidades»: puede haber
+ *  en el almacén). Corto a propósito: cabe en una línea como «24 unidades», y la fila no crece al cambiar de lugar (ADR-0185). Vacío
+ *  mientras no se lee. */
+export function unidadesDeLaFila(n: number | null, donde: Donde): string {
+  if (n === null) return "";
+  if (n > 0) return unidadesTexto(n);
+  return donde === "piso" ? "0 en piso" : donde === "almacen" ? "0 en almacén" : "sin unidades";
+}
+
+/** «7 unidades», «4 unidades en el piso», «3 unidades en almacén»: lo elegido dice de qué lugar es su número. */
+export function unidadesEnDonde(n: number, donde: Donde): string {
+  return donde === "piso" ? `${unidadesTexto(n)} en el piso` : donde === "almacen" ? `${unidadesTexto(n)} en almacén` : unidadesTexto(n);
 }
 
 /* ---- La ficha corta de la prenda (Felipe 2026-10-09: «debería salir el material, el patrón y algo útil») ----
