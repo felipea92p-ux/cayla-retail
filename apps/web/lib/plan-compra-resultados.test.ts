@@ -94,6 +94,14 @@ describe("por categoría, familia, prenda y color", () => {
       ["Polo Aurora", "Blanco", 50],
     ]);
   });
+  it("el detalle de una categoría: solo sus prendas y sus colores", () => {
+    expect(prendasQueMasVendieron(r, null, 10, "jeans").map((p) => [p.prenda, p.color, p.unidades])).toEqual([["Jean Recto", "Negro", 50]]);
+    expect(coloresQueMasVendieron(r, null, 8, "polos").map((c) => [c.nombre, c.unidades])).toEqual([
+      ["Negro", 200],
+      ["Rojo", 60],
+      ["Blanco", 50],
+    ]);
+  });
   it("los colores que más vendieron", () => {
     expect(coloresQueMasVendieron(r, null).map((c) => [c.nombre, c.unidades])).toEqual([
       ["Negro", 250],

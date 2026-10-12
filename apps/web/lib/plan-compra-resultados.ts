@@ -150,10 +150,10 @@ export function porFamilia(r: LecturaResultados, tienda: string | null): { famil
 }
 
 /** Las prendas que más vendieron (prenda + color), hasta `n`. Lo anotado «sin registrar» va como «Sin registrar · <categoría>». */
-export function prendasQueMasVendieron(r: LecturaResultados, tienda: string | null, n = 10): { clave: string; prenda: string; color: string | null; hex: string | null; unidades: number; soles: number }[] {
+export function prendasQueMasVendieron(r: LecturaResultados, tienda: string | null, n = 10, categoria: string | null = null): { clave: string; prenda: string; color: string | null; hex: string | null; unidades: number; soles: number }[] {
   const m = new Map<string, { prenda: string; color: string | null; hex: string | null; unidades: number; soles: number }>();
   for (const f of r.filas) {
-    if (tienda !== null && f.tienda !== tienda) continue;
+    if ((tienda !== null && f.tienda !== tienda) || (categoria !== null && f.categoria !== categoria)) continue;
     const clave = `${f.producto ?? `anotada:${f.categoria}`}|${f.color ?? ""}`;
     const prenda = f.producto ? (r.productos.get(f.producto) ?? "Prenda") : `Sin registrar · ${r.categorias.get(f.categoria)?.nombre ?? "categoría"}`;
     const color = f.color ? (r.colores.get(f.color) ?? null) : null;
@@ -167,9 +167,9 @@ export function prendasQueMasVendieron(r: LecturaResultados, tienda: string | nu
 }
 
 /** Los colores que más vendieron, hasta `n`. */
-export function coloresQueMasVendieron(r: LecturaResultados, tienda: string | null, n = 8): { codigo: string; nombre: string; hex: string | null; unidades: number }[] {
+export function coloresQueMasVendieron(r: LecturaResultados, tienda: string | null, n = 8, categoria: string | null = null): { codigo: string; nombre: string; hex: string | null; unidades: number }[] {
   const m = new Map<string, number>();
-  for (const f of r.filas) if (f.color && (tienda === null || f.tienda === tienda)) m.set(f.color, (m.get(f.color) ?? 0) + f.unidades);
+  for (const f of r.filas) if (f.color && (tienda === null || f.tienda === tienda) && (categoria === null || f.categoria === categoria)) m.set(f.color, (m.get(f.color) ?? 0) + f.unidades);
   return [...m.entries()]
     .map(([codigo, unidades]) => ({ codigo, nombre: r.colores.get(codigo)?.nombre ?? codigo, hex: r.colores.get(codigo)?.hex ?? null, unidades }))
     .sort((a, b) => b.unidades - a.unidades || a.nombre.localeCompare(b.nombre, "es"))

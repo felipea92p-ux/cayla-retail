@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChartColumn } from "lucide-react";
+import { ChartColumn, ChevronRight } from "lucide-react";
+import { DetalleCategoriaResultados } from "@/components/plan-compra/DetalleCategoriaResultados";
 import { Aviso } from "@/components/ui/Aviso";
 import { Ayuda } from "@/components/Ayuda";
 import { Chip } from "@/components/ui/Chip";
@@ -22,6 +23,7 @@ import {
   porFamilia,
   prendasQueMasVendieron,
   recuperoRealTotal,
+  type FilaCategoria,
 } from "@/lib/plan-compra-resultados";
 import { textoMultiplicador } from "@/lib/plan-compra-historial";
 
@@ -34,6 +36,7 @@ const PLANTILLA = "sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)_minmax(0,0.8fr)
 export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; campanas: CampanasLeidas | null; falla: string | null }) {
   const r = useMemo(() => leerResultados(datos), [datos]);
   const [tienda, setTienda] = useState<string | null>(null);
+  const [abierta, setAbierta] = useState<FilaCategoria | null>(null);
   // El «!» con lo que la frase no alcanza a decir, como en Productos y en el Historial (Felipe 2026-10-12).
   const ayuda = (
     <Ayuda titulo="Resultados">
@@ -171,9 +174,20 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
           </Vacio>
         ) : (
           categorias.map((c) => (
-            <div key={c.id} className={`fila-cayla grid gap-x-6 gap-y-1 px-5 py-3 sm:items-baseline ${PLANTILLA}`} role="row">
+            // Toda la fila abre su detalle (qué prendas y de qué colores se vendieron); una categoría sin ventas no tiene qué mostrar.
+            <button
+              key={c.id}
+              type="button"
+              disabled={c.unidades === 0}
+              onClick={() => setAbierta(c)}
+              aria-label={`Ver qué prendas de ${c.nombre} se vendieron`}
+              className={`fila-cayla grid w-full gap-x-6 gap-y-1 px-5 py-3 text-left transition-colors sm:items-baseline enabled:cursor-pointer enabled:hover:bg-hueso ${PLANTILLA}`}
+            >
               <span className={celda("izq")}>
-                <span className="block font-semibold text-tinta">{c.nombre}</span>
+                <span className="flex items-center gap-1.5 font-semibold text-tinta">
+                  {c.nombre}
+                  {c.unidades > 0 && <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />}
+                </span>
                 <span className="block text-xs text-taupe">{c.familia}</span>
               </span>
               <span className={celda("der", "text-tinta")}>{enteroES.format(c.unidades)}</span>
@@ -189,10 +203,12 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
               <span className={celda("der", "text-sm text-tinta/80")} title={c.plan ? `Planificaste ${c.plan.recuperoPct} %` : undefined}>
                 {c.recuperoReal !== null ? `${c.recuperoReal} % del precio` : momento === "en-curso" ? "Al terminar" : "—"}
               </span>
-            </div>
+            </button>
           ))
         )}
       </Tabla>
+
+      {abierta && <DetalleCategoriaResultados r={r} categoria={abierta} tiendaInicial={tienda} onClose={() => setAbierta(null)} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card-cayla p-5">
