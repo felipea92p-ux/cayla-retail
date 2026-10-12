@@ -146,6 +146,14 @@ export function comoVa(r: LecturaResultados, pesos: readonly number[]): ComoVa {
 }
 
 export type Senal = "pedir" | "impulsar" | "bien";
+
+/**
+ * A dónde lleva una señal en Análisis: la pestaña que responde («Se está acabando» o «No se vende») ya buscando la categoría, para que se
+ * vean sus prendas y no toda la tienda (Felipe 2026-10-12). Análisis mira la sede elegida arriba, no toda CAYLA.
+ */
+export function enlaceAnalisis(senal: Exclude<Senal, "bien">, categoria: string): string {
+  return `/inventario/resumen?vista=${senal === "pedir" ? "acaba" : "nose"}&q=${encodeURIComponent(categoria)}`;
+}
 export type SenalCategoria = { id: string; nombre: string; vendidas: number; diferencia: number | null; alcanzaDias: number | null; senal: Senal };
 
 /**

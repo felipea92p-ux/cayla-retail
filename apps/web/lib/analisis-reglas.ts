@@ -162,6 +162,15 @@ export function leerVista(v: string | string[] | undefined | null): VistaAnalisi
   return (VISTAS_ANALISIS as readonly string[]).includes(x ?? "") ? (x as VistaAnalisis) : "hoy";
 }
 
+/**
+ * Lo que llega buscado en la dirección (`?q=`): otra pantalla lleva a Análisis ya filtrado (el Plan de campaña manda la categoría que pide
+ * más o que hay que impulsar, Felipe 2026-10-12). Recortado y con un largo razonable; vacío si no hay.
+ */
+export function leerBusqueda(v: string | string[] | undefined | null): string {
+  const x = Array.isArray(v) ? v[0] : v;
+  return typeof x === "string" ? x.trim().slice(0, 60) : "";
+}
+
 /** Busca sin tildes ni mayúsculas en nombre, color, talla y categoría (el buscador de la cabecera). */
 export function coincideBusqueda(p: Pick<PrendaAnalisis, "nombre" | "color" | "talla" | "categoria">, q: string): boolean {
   const norm = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();

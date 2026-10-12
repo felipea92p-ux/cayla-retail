@@ -23,7 +23,7 @@
       "Desplegable «);»"
     ],
     "components/plan-compra/SenalesCampana.tsx": [
-      "Link «{VISTA[s.senal as \"pedir\" | \"impulsar\"].texto}»"
+      "Link «{`Ver en Análisis las prendas de ${s.nombre}»"
     ]
   }
 }

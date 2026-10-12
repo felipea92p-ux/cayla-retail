@@ -4,14 +4,15 @@ import { Ayuda } from "@/components/Ayuda";
 import { Chip } from "@/components/ui/Chip";
 import { celda } from "@/components/ui/Tabla";
 import { enteroES } from "@/lib/plan-compra-reglas";
-import type { SenalCategoria } from "@/lib/plan-compra-resultados";
+import { enlaceAnalisis, type SenalCategoria } from "@/lib/plan-compra-resultados";
 
 // «Pedir más o impulsar» (ADR-0372, act. 2026-10-12): por categoría y contra el FIN DE ESTA CAMPAÑA. La prenda exacta que se acaba o no se
 // vende, y en qué tienda, ya la dice Análisis (contra Navidad y por tienda): aquí no se repite, se lleva allá (Felipe: «si ya existe, solo
 // dar una forma rápida de ir al módulo que sí lo ve»). Solo las categorías que piden algo; las que van bien no hacen ruido.
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.1fr)]";
-const VISTA = { pedir: { vista: "acaba", texto: "Qué se está acabando" }, impulsar: { vista: "nose", texto: "Qué no se vende" } } as const;
+// El enlace lleva a Análisis ya buscando la categoría (Felipe 2026-10-12: «¿solo eso? ¿no te muestra la categoría?»).
+const VISTA = { pedir: { texto: "Sus prendas que se acaban" }, impulsar: { texto: "Sus prendas que no se venden" } } as const;
 
 export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: SenalCategoria[]; faltan: number; veAnalisis: boolean }) {
   const piden = senales.filter((s) => s.senal !== "bien");
@@ -25,7 +26,7 @@ export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: Senal
           <Ayuda titulo="Pedir más o impulsar">
             <span className="block">«Alcanza para»: lo que queda de la categoría en todas las sedes (Taller incluido), al ritmo de esta campaña.</span>
             <span className="mt-2 block">«Pide más» si se acaba antes de que termine la campaña y no va por debajo del plan. «Impúlsala» si va 20 % o más por debajo del plan y le sobra: vitrina, combo o una rebaja chica.</span>
-            <span className="mt-2 block">La prenda exacta, y en qué tienda, está en Análisis.</span>
+            <span className="mt-2 block">«Sus prendas…» abre Análisis ya buscando esa categoría: ahí ves la prenda exacta. Análisis mira la sede elegida arriba, no toda CAYLA.</span>
           </Ayuda>
         </p>
         {/* Sin nada que pedir, una sola línea: no ocupa lugar que la tabla necesita (Felipe 2026-10-12). */}
@@ -65,7 +66,10 @@ export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: Senal
               <span>{s.senal === "pedir" ? <Chip tono="rojo">Pide más</Chip> : <Chip tono="ambar">Impúlsala</Chip>}</span>
               <span>
                 {veAnalisis && (
-                  <Link href={`/inventario/resumen?vista=${VISTA[s.senal as "pedir" | "impulsar"].vista}`} className="inline-flex items-center gap-1 text-sm text-pizarra underline-offset-2 hover:underline">
+                  <Link
+                    href={enlaceAnalisis(s.senal as "pedir" | "impulsar", s.nombre)}
+                    aria-label={`Ver en Análisis las prendas de ${s.nombre}`}
+                    className="inline-flex items-center gap-1 text-sm text-pizarra underline-offset-2 hover:underline">
                     {VISTA[s.senal as "pedir" | "impulsar"].texto}
                     <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                   </Link>

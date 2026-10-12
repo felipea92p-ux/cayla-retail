@@ -1564,7 +1564,7 @@ export const GUIA_PLAN_RESULTADOS: Guia = {
       ancla: "plan-resultados.senales",
       opcional: true,
       titulo: "Pedir más o impulsar",
-      texto: "Las categorías que se acaban antes del fin de la campaña (pide más) o que van lentas con mucho stock (impúlsalas). Si ves Análisis, el enlace te lleva a la prenda exacta.",
+      texto: "Las categorías que se acaban antes del fin de la campaña (pide más) o que van lentas con mucho stock (impúlsalas). Si ves Análisis, «Sus prendas…» lo abre ya buscando esa categoría, en la sede elegida arriba.",
     },
     {
       id: "buscar",

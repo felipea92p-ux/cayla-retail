@@ -4,6 +4,7 @@ import {
   cierre,
   contraLaCampanaPasada,
   contraLoEsperado,
+  enlaceAnalisis,
   filtrarYOrdenarCategorias,
   parteQuePaso,
   coloresQueMasVendieron,
@@ -273,5 +274,12 @@ describe("el detalle de una categoría: contra lo esperado y contra la campaña 
   });
   it("sin la propuesta no se inventa nada", () => {
     expect(contraLaCampanaPasada(null, "polos", null)).toBeNull();
+  });
+});
+
+describe("las señales llevan a Análisis ya buscando la categoría", () => {
+  it("pide más → «Se está acabando»; impúlsala → «No se vende»; la categoría va codificada", () => {
+    expect(enlaceAnalisis("pedir", "Aretes")).toBe("/inventario/resumen?vista=acaba&q=Aretes");
+    expect(enlaceAnalisis("impulsar", "Ropa interior/Lencería")).toBe("/inventario/resumen?vista=nose&q=Ropa%20interior%2FLencer%C3%ADa");
   });
 });
