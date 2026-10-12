@@ -14,12 +14,12 @@ import {
   barrasSemanas,
   chipDeGrupo,
   dineroDe,
-  dondeHay,
-  grillaDelModelo,
+  fraseDelModelo,
   hechosDe,
-  queSaleMas,
+  lineaOtrasTiendas,
   sedeParaPedir,
   subtituloFicha,
+  tablaDelModelo,
   type TonoFicha,
 } from "@/lib/analisis-ficha";
 import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
@@ -68,9 +68,9 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const chip = chipDeGrupo(grupo, sinSalir);
   const hechos = hechosDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
   const barras = barrasSemanas(p.semanas, datos.hoy);
-  const donde = dondeHay(p, datos.sedes, datos.sede.id);
-  const grilla = grillaDelModelo(p, datos.tallas);
-  const sale = queSaleMas(p, datos.diasDeVentas);
+  const frase = fraseDelModelo(p, datos.diasDeVentas);
+  const tabla = tablaDelModelo(p);
+  const otras = lineaOtrasTiendas(p, datos.sedes, datos.sede.id);
   const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
   const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
@@ -113,105 +113,69 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
             </div>
           </div>
 
+          {/* El modelo en tu tienda (opción B, Felipe 2026-10-10): una frase, una tabla con palabras y totales —los colores que más se
+              venden arriba— y las otras tiendas en una línea. */}
           <div className="h-sec">
-            <h3>Dónde hay</h3>
-            <div className="donde">
-              <div className="dn-cab">
-                <span />
-                <span>Tiene</span>
-                <span>Vendió en 30 días</span>
-              </div>
-              {donde.map((f, j) => (
-                <div key={f.sedeId} className="dn">
-                  <span className="nm">
-                    {f.ciudad}
-                    {f.tuya && <small>tú</small>}
-                  </span>
-                  {/* En la mía, lo que hay en el piso y en el almacén: al pasar el mouse, al enfocar o al tocar. */}
-                  <span className="tq" {...(f.detalle ? { "data-tip": f.detalle, tabIndex: 0, role: "img", "aria-label": `Tiene ${f.tiene}: ${f.detalle}` } : {})}>
-                    <i className="cx" style={{ ["--d" as string]: j, ["--n" as string]: f.ancho }} />
-                    <b>{f.tiene}</b>
-                  </span>
-                  <span className="vd">
-                    {Array.from({ length: f.puntos }, (_, x) => (
-                      <i key={x} className="po" style={{ ["--d" as string]: x }} />
-                    ))}
-                    <span>{f.vendio}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {(sale.tallas.length > 0 || sale.colores.length > 0) && (
-            <div className="h-sec">
-              <h3>Lo que más sale</h3>
-              {[
-                { clave: "tallas", titulo: "Talla", filas: sale.tallas },
-                { clave: "colores", titulo: "Color", filas: sale.colores },
-              ]
-                .filter((l) => l.filas.length > 0)
-                .map((l) => (
-                  <div key={l.clave} className="donde" style={{ marginBottom: 12 }}>
-                    <div className="dn-cab">
-                      <span>{l.titulo}</span>
-                      <span>
-                        Vendiste en {datos.diasDeVentas} {plural(datos.diasDeVentas, "día", "días")}
-                      </span>
-                      <span>Tienes</span>
-                    </div>
-                    {l.filas.map((f, j) => (
-                      <div key={f.nombre} className="dn" tabIndex={0} data-tip={f.tip} aria-label={f.tip}>
-                        <span className="nm">
-                          {f.punto !== null && <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto }} />}
-                          {f.nombre}
-                        </span>
-                        <span className="tq">
-                          <i className="cx" style={{ ["--d" as string]: j, ["--n" as string]: f.ancho }} />
-                          <b>{f.vendio}</b>
-                        </span>
-                        <span>{f.tiene}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-            </div>
-          )}
-
-          {grilla && (
-            <div className="h-sec">
-              <h3>Todo el modelo en tu tienda</h3>
-              <div style={{ overflowX: "auto" }}>
-                <table className="grilla">
-                  <thead>
-                    <tr>
-                      <th />
-                      {grilla.tallas.map((t) => (
-                        <th key={t} className="col" scope="col">
-                          {t}
+            <h3>Talla y color · en tus {datos.diasDeVentas} {plural(datos.diasDeVentas, "día", "días")} de ventas</h3>
+            <p className="m-frase">{frase}</p>
+            {tabla && (
+              <>
+                <div className="m-tabla">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th className="col-color" scope="col">
+                          Color
                         </th>
+                        {tabla.tallas.map((t) => (
+                          <th key={t} scope="col">
+                            {t}
+                          </th>
+                        ))}
+                        <th scope="col">Vendiste</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tabla.filas.map((f) => (
+                        <tr key={f.color}>
+                          <th className="color" scope="row">
+                            <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
+                            {f.color || "Sin color"}
+                          </th>
+                          {f.celdas.map((c) => (
+                            <td key={c.talla} className={c.estado} tabIndex={0} data-tip={c.tip} aria-label={c.tip}>
+                              <b>{c.fuerte}</b>
+                              {c.suave && <span>{c.suave}</span>}
+                            </td>
+                          ))}
+                          <td className="total">{f.vendio}</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grilla.filas.map((f) => (
-                      <tr key={f.color}>
-                        <th className="fil" scope="row">
-                          <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
-                          {f.color}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th className="color" scope="row">
+                          Vendiste
                         </th>
-                        {f.celdas.map((c) => (
-                          <td key={c.talla} className={c.clase || undefined} tabIndex={0} data-tip={c.tip} aria-label={c.tip}>
-                            {c.tiene}
+                        {tabla.vendioPorTalla.map((n, k) => (
+                          <td key={tabla.tallas[k]} className="total">
+                            {n}
                           </td>
                         ))}
+                        <td className="total">{tabla.vendio}</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                    </tfoot>
+                  </table>
+                </div>
+                <div className="m-leyenda">
+                  <span className="pedir">se vendía y no queda</span>
+                  <span className="queda">te queda</span>
+                  <span className="nada">no hay</span>
+                </div>
+              </>
+            )}
+            {otras && <p className="m-otras">{otras}</p>}
+          </div>
 
           <div className="h-sec">
             <h3>Dinero</h3>

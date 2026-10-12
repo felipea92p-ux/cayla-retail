@@ -9,7 +9,10 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
+import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
+import { claveDelPuntoDeVenta } from "@/lib/vender-cambio-de-sede";
 import { almacenDeLaSede, apartadoEnPiso, cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
@@ -57,7 +60,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -92,7 +95,21 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
     supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
+    // La ficha de cada color (ADR-0316; Felipe 2026-10-10): qué transmite y con qué se combina, para «Todo de la prenda». Secundario y
+    // chico (~90 filas): si falla, la hoja no dice nada del color y se vende igual. La lee cualquier sesión (`colores_select`).
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
+    // Las familias fuera de los motores: de ahí salen las bolsas de «Agregar bolsa» (Bolsas de despacho, 2026-10-10). Pocas filas.
+    supabase.from("familias").select("codigo").eq("entra_a_motores", false),
   ]);
+  const coloresConFicha: ColorConFicha[] = (tolerar(resColores, "las fichas de color").datos ?? []).map((c) => ({
+    codigo: c.codigo,
+    nombre: c.nombre,
+    hex: c.hex,
+    familiaColor: c.familia_color ?? "",
+    tipo: c.tipo,
+    descripcion: c.descripcion ?? null,
+    combinaCon: c.combina_con ?? [],
+  }));
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -104,19 +121,27 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   // (ADR-0141). La base lo rechazaría igual (`fn_aplicar_movimiento`); esto evita ofrecerlo.
   const pisoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, cantidadCobrable(c)]));
 
+  // Las familias que quedaron fuera de los motores (bolsas, cajas, empaque): sus prendas son las que ofrece «Agregar bolsa». Si la lectura
+  // falla, ninguna se marca y la caja vende igual (solo falta el botón); nunca tumba la pantalla.
+  const familiasFueraDeMotores = new Set(
+    resFamiliasApagadas.error ? [] : (resFamiliasApagadas.data ?? []).map((f) => f.codigo),
+  );
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
     .map((v) => ({
       varianteId: v.varianteId,
+      productoId: v.productoId,
       sku: v.sku,
       codigo: v.codigo,
       referencia: v.referencia,
       talla: v.talla,
       color: v.color,
       colorHex: v.colorHex ?? null,
+      colorCodigo: v.colorCodigo ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
+      fueraDeMotores: v.categoriaFamilia ? familiasFueraDeMotores.has(v.categoriaFamilia) : false,
       marca: v.marca,
       precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
       precioDeSede: preciosDeEstaSede.has(v.varianteId),
@@ -204,40 +229,46 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const puedeProforma = puede(persona, "facturar");
 
   return (
-    <PuntoDeVenta
-      // Otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
-      key={proformaEnCobro?.id ?? (repeticion ? `repetir-${repetirVentaId}` : "caja")}
-      proforma={proformaEnCobro}
-      avisoProforma={avisoProforma ?? avisoRepeticion}
-      repeticion={repeticion}
-      ubicacionId={persona.ubicacionId}
-      // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
-      // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
-      puedeCerrarCaja={puede(persona, "gestionarCaja")}
-      ubicacionEtiqueta={persona.ubicacionEtiqueta}
-      cajaId={caja?.id ?? null}
-      fondoUltimoCierre={fondoUltimoCierre}
-      cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
-      variantes={variantesParaVenta}
-      listasPrendaLibre={listasPrendaLibre}
-      campanasNoCargaron={campanasNoCargaron}
-      ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
-      metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
-      // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
-      accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
-      puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
-      // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
-      puedeBuscarClienta={modulos.includes("clientas")}
-      club={club}
-      qrDisponible={resQr.data === true}
-      redondeoEfectivoDisponible={resRedondeo.data === true}
-      pedirAOtraSede={
-        (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
-          ? null
-          : { tiendas: sedesParaPedir(ubicaciones, persona.ubicacionId) }
-      }
-      pedidosConCliente={pedidosConCliente}
-      ahoraIso={new Date().toISOString()}
-    />
+    // El ticket es de su sede (Felipe, 2026-10-11): cambiar de sede con el selector no cambia la ruta, y con la misma key
+    // React conservaba el ticket armado en una tienda dentro de la caja de otra. La sede va en la key y `TicketPorSede`
+    // (sin key, sobrevive al cambio) deja lo que estaba armado en la espera de la sede que se deja.
+    <TicketPorSede ubicacionId={persona.ubicacionId}>
+      <PuntoDeVenta
+        // Otra sede, otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
+        key={claveDelPuntoDeVenta({ ubicacionId: persona.ubicacionId, proformaId: proformaEnCobro?.id, repetirVentaId: repeticion ? repetirVentaId : null })}
+        proforma={proformaEnCobro}
+        avisoProforma={avisoProforma ?? avisoRepeticion}
+        repeticion={repeticion}
+        ubicacionId={persona.ubicacionId}
+        // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
+        // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
+        puedeCerrarCaja={puede(persona, "gestionarCaja")}
+        ubicacionEtiqueta={persona.ubicacionEtiqueta}
+        cajaId={caja?.id ?? null}
+        fondoUltimoCierre={fondoUltimoCierre}
+        cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
+        variantes={variantesParaVenta}
+        colores={coloresConFicha}
+        listasPrendaLibre={listasPrendaLibre}
+        campanasNoCargaron={campanasNoCargaron}
+        ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
+        metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
+        // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
+        accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
+        puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
+        // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
+        puedeBuscarClienta={modulos.includes("clientas")}
+        club={club}
+        qrDisponible={resQr.data === true}
+        redondeoEfectivoDisponible={resRedondeo.data === true}
+        pedirAOtraSede={
+          (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
+            ? null
+            : { tiendas: sedesParaPedir(ubicaciones, persona.ubicacionId) }
+        }
+        pedidosConCliente={pedidosConCliente}
+        ahoraIso={new Date().toISOString()}
+      />
+    </TicketPorSede>
   );
 }

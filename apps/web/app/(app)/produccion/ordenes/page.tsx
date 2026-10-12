@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo } from "@/lib/produccion";
 import { OrdenesTablero } from "@/components/OrdenesTablero";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
@@ -10,6 +10,9 @@ import { getDecisionProduccion } from "@/lib/decision-produccion";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { Factory } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { tipoDeParametro } from "@/lib/modelo-nuevo-orden-reglas";
+import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
+import { conPreciosMasBajos, conPreciosMasBajosDeModelos } from "@/lib/produccion-reglas";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -23,7 +26,10 @@ import { Vacio } from "@/components/ui/Vacio";
 // Taller, líder incluido. Un líder que llega desde otra ubicación ve un aviso
 // que le dice qué cambiar; el resto vuelve al inicio. Es visibilidad: el
 // candado real sigue siendo el de cada RPC.
-export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string }> }) {
+//
+// `?nueva=<modelo>&tipo=muestra|produccion` abre «Nueva orden» con ese modelo y ese tipo ya elegidos: es por donde vuelve la persona
+// que creó un modelo nuevo desde la propia orden (ADR-0361, `lib/modelo-nuevo-orden-reglas.ts`).
+export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string; tipo?: string }> }) {
   const sp = await searchParams;
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
@@ -46,12 +52,22 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   }
 
   const esLider = persona.rol === "lider";
+  // Quien edita el catálogo (el líder o un rol con Productos) puede crear el modelo que falta sin salir de la orden; el candado real
+  // es `fn_puede_editar_catalogo()` en la base. Los demás ven a quién pedírselo.
+  const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos] = await Promise.all([
+  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
+    // Dato secundario (tallas y colores de «Modelo nuevo»): si falla, la orden de siempre se abre igual.
+    getVocabularioModeloNuevo(),
+    // Solo el líder ve el margen, y el margen se mide con el precio MÁS BAJO de cualquier tienda (ADR-0370, Felipe 2026-10-11). Dato secundario: si no se lee
+    // (nunca lanza), el margen se mide con el precio de la grilla, como antes.
+    esLider ? getPreciosDeLasTiendas() : Promise.resolve(null),
   ]);
+  const ordenes = preciosTiendas ? conPreciosMasBajos(ordenesBase, preciosTiendas) : ordenesBase;
+  const modelos = preciosTiendas ? conPreciosMasBajosDeModelos(modelosBase, preciosTiendas) : modelosBase;
 
   // F5: solo el líder recibe el consejo de la red (ventas y stock de todas las tiendas, costos de insumos). Es secundario: si falla, la orden se abre igual.
   const decision = esLider
@@ -60,7 +76,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
     </div>
   );
 }

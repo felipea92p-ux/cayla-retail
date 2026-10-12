@@ -2350,6 +2350,7 @@ export type Database = {
           activo: boolean
           codigo: string
           created_at: string
+          entra_a_motores: boolean
           exige_tejido_patron: boolean
           nombre: string
           orden: number
@@ -2358,6 +2359,7 @@ export type Database = {
           activo?: boolean
           codigo: string
           created_at?: string
+          entra_a_motores?: boolean
           exige_tejido_patron?: boolean
           nombre: string
           orden?: number
@@ -2366,6 +2368,7 @@ export type Database = {
           activo?: boolean
           codigo?: string
           created_at?: string
+          entra_a_motores?: boolean
           exige_tejido_patron?: boolean
           nombre?: string
           orden?: number
@@ -5181,6 +5184,24 @@ export type Database = {
         }
         Returns: string
       }
+      abrir_produccion_con_modelo_nuevo: {
+        Args: {
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_costo_avios?: number
+          p_costo_maquila?: number
+          p_costo_tela?: number
+          p_es_muestra?: boolean
+          p_fecha_entrega?: string
+          p_nota?: string
+          p_precio?: number
+          p_referencia: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       actualizar_campana_etiqueta: {
         Args: {
           p_categoria_ids: string[]
@@ -5385,6 +5406,7 @@ export type Database = {
       }
 
       fn_candidatas_de_venta: { Args: { p_ubicacion_id: string }; Returns: { disponible: number; limpia: boolean; prenda_id: string; variante_id: string }[] }
+      fn_categoria_entra_a_motores: { Args: { p_categoria_id: string }; Returns: boolean }
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }

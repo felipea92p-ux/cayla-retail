@@ -171,7 +171,9 @@ const DESHACER_CUADRE = deshacer("20261004200050_cuadre_piso_frescura.sql");
  *  deshace ANTES que el cuadre (el último parche primero), por lo mismo. Cada parche posterior a la 120200 se suma aquí, el más
  *  nuevo primero; si no, deshacer solo el cuadre deja un cuerpo que ninguna guarda anterior reconoce. */
 const DESHACER_VARA = deshacer("20261008120000_frescura_vara_cayla.sql");
-const DESHACER_POSTERIORES = [DESHACER_VARA, DESHACER_CUADRE].join("\n");
+/** Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera las familias apagadas. El parche más nuevo se deshace PRIMERO. */
+const DESHACER_FAMILIAS_APAGADAS = deshacer("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
+const DESHACER_POSTERIORES = [DESHACER_FAMILIAS_APAGADAS, DESHACER_VARA, DESHACER_CUADRE].join("\n");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)

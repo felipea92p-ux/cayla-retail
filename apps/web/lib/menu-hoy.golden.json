@@ -1,5 +1,5 @@
 {
- "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos).",
+ "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso».",
  "capturadoDe": {
   "archivo": "apps/web/components/AppShell.tsx",
   "commit": "e14ef82c",
@@ -90,6 +90,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -260,6 +265,11 @@
         "icono": "frescura"
        },
        {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
+       },
+       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -386,6 +396,7 @@
     "/inventario/conteo": "inventario",
     "/inventario/resumen": "inventario",
     "/inventario/frescura": "inventario",
+    "/inventario/plan-del-piso": "inventario",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -490,6 +501,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        }
       ],
       "insignia": 3
@@ -737,6 +753,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        }
       ]
      },
@@ -934,6 +955,7 @@
     "/inventario/conteo": "inventario",
     "/inventario/resumen": "inventario",
     "/inventario/frescura": "inventario",
+    "/inventario/plan-del-piso": "inventario",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1050,6 +1072,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -1242,6 +1269,11 @@
         "icono": "frescura"
        },
        {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
+       },
+       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -1368,6 +1400,7 @@
     "/inventario/conteo": "inventario",
     "/inventario/resumen": "inventario",
     "/inventario/frescura": "inventario",
+    "/inventario/plan-del-piso": "inventario",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1521,6 +1554,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        }
       ],
       "insignia": 3
@@ -1780,6 +1818,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        }
       ]
      },
@@ -1940,6 +1983,7 @@
     "/inventario/conteo": "inventario",
     "/inventario/resumen": "inventario",
     "/inventario/frescura": "inventario",
+    "/inventario/plan-del-piso": "inventario",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2034,6 +2078,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -2202,6 +2251,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -2330,6 +2384,7 @@
     "/inventario/conteo": "inventario",
     "/inventario/resumen": "inventario",
     "/inventario/frescura": "inventario",
+    "/inventario/plan-del-piso": "inventario",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2434,6 +2489,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        }
       ],
       "insignia": 3
@@ -2681,6 +2741,11 @@
         "etiqueta": "Frescura del piso",
         "href": "/inventario/frescura",
         "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/inventario/plan-del-piso",
+        "icono": "resumen"
        }
       ]
      },
@@ -2878,6 +2943,7 @@
     "/inventario/conteo": "inventario",
     "/inventario/resumen": "inventario",
     "/inventario/frescura": "inventario",
+    "/inventario/plan-del-piso": "inventario",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,

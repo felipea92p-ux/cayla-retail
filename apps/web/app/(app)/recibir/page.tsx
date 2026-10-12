@@ -26,6 +26,8 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getMarcasPorProveedor, getRubrosEnUso } from "@/lib/proveedores";
 import { LlegoMercaderia } from "@/components/LlegoMercaderia";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { claveDeLaRecepcion } from "@/lib/recibir-cambio-de-sede";
 import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
@@ -220,53 +222,59 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       costosDeLotes(verMontos, persona.ubicacionId),
     ]);
     return (
-      <div className="space-y-6">
-        {encabezado}
-        {/* Si lo que llegó es de otra sede de CAYLA, no se recibe aquí: se cuenta en Traslados (ADR-0299). */}
-        <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
-        <LlegoMercaderia
-          ubicacionId={persona.ubicacionId}
-          ubicacionEtiqueta={persona.ubicacionEtiqueta}
-          verMontos={verMontos}
-          veExistencias={veModulo(persona, "existencias")}
-          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
-          rubrosEnUso={rubrosEnUso}
-          puedeAgregarProveedor={puedeAgregarProveedor}
-          facturas={porRecibir.filas.map((c) => ({
-            id: c.id,
-            proveedorId: c.proveedorId,
-            documento: c.documento,
-            fechaEmision: c.fechaEmision,
-            // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
-            pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
-          }))}
-          recientes={recientes.map((r) => ({ proveedorId: r.proveedorId, fecha: r.fecha, unidades: r.unidades, recibidoPor: r.recibidoPor }))}
-          prendas={catalogo
-            .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
-            .map((v) => ({
-              varianteId: v.varianteId,
-              productoId: v.productoId,
-              // El código de la etiqueta (`sku` es NULL en casi todas): es lo que lee la pistola.
-              sku: codigoDeEtiqueta(v),
-              referencia: v.referencia,
-              talla: v.talla,
-              color: v.color,
-              marca: v.marca ?? null,
-              codigosBarras: v.codigosBarras,
-              colorHex: v.colorHex,
-              fotoUrl: v.fotoUrl,
+      // Lo escaneado es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`, sin
+      // cambiar la ruta, y con la misma key React conservaba lo escaneado en una sede y lo recibía en la otra. La sede va en la key
+      // y `TrabajoPorSede` (que no cambia con la sede) guarda lo de la sede que se deja para retomarlo al volver.
+      <TrabajoPorSede key="llegada" ubicacionId={persona.ubicacionId}>
+        <div className="space-y-6">
+          {encabezado}
+          {/* Si lo que llegó es de otra sede de CAYLA, no se recibe aquí: se cuenta en Traslados (ADR-0299). */}
+          <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+          <LlegoMercaderia
+            key={claveDeLaRecepcion(persona.ubicacionId)}
+            ubicacionId={persona.ubicacionId}
+            ubicacionEtiqueta={persona.ubicacionEtiqueta}
+            verMontos={verMontos}
+            veExistencias={veModulo(persona, "existencias")}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
+            rubrosEnUso={rubrosEnUso}
+            puedeAgregarProveedor={puedeAgregarProveedor}
+            facturas={porRecibir.filas.map((c) => ({
+              id: c.id,
+              proveedorId: c.proveedorId,
+              documento: c.documento,
+              fechaEmision: c.fechaEmision,
+              // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
+              pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
             }))}
-        />
-        <section className="space-y-2">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
-            <Link href="/recibir?vista=recibidas" className="btn-cayla btn-enlace btn-chico">
-              Ver todo lo recibido
-            </Link>
-          </div>
-          <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
-        </section>
-      </div>
+            recientes={recientes.map((r) => ({ proveedorId: r.proveedorId, fecha: r.fecha, unidades: r.unidades, recibidoPor: r.recibidoPor }))}
+            prendas={catalogo
+              .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
+              .map((v) => ({
+                varianteId: v.varianteId,
+                productoId: v.productoId,
+                // El código de la etiqueta (`sku` es NULL en casi todas): es lo que lee la pistola.
+                sku: codigoDeEtiqueta(v),
+                referencia: v.referencia,
+                talla: v.talla,
+                color: v.color,
+                marca: v.marca ?? null,
+                codigosBarras: v.codigosBarras,
+                colorHex: v.colorHex,
+                fotoUrl: v.fotoUrl,
+              }))}
+          />
+          <section className="space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
+              <Link href="/recibir?vista=recibidas" className="btn-cayla btn-enlace btn-chico">
+                Ver todo lo recibido
+              </Link>
+            </div>
+            <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
+          </section>
+        </div>
+      </TrabajoPorSede>
     );
   }
 
@@ -310,71 +318,77 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const kpis = { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: verMontos ? valorPorRecibirDeMiTienda(comprasCompletas, lineasCompletas) : (null as number | null) };
 
   return (
-    <div className="space-y-6">
-      {encabezado}
-      {avisoTraslados}
+    // Lo contado es de su sede (Felipe, 2026-10-11): ver «Llegó mercadería» arriba. Aquí la sede vivía además en un `useState` de
+    // `RecepcionEnvio` que nunca se ponía al día, y `recibir_envio` salía con la sede ANTERIOR. El guardián va por encima del «no
+    // hay nada pendiente»: si la sede nueva no tiene facturas, lo guardado de la otra no se pierde con él.
+    <TrabajoPorSede key="factura" ubicacionId={ubicacionMirada}>
+      <div className="space-y-6">
+        {encabezado}
+        {avisoTraslados}
 
-      {compras.length === 0 && !cursor ? (
-        <div className="card-cayla">
-          {hayFiltros ? (
-            <Vacio
-              icono={<FunnelX />}
-              titulo="Ningún comprobante con esos filtros"
-              acciones={<BotonEnlace href="/recibir?vista=factura" peso="fantasma">Limpiar filtros</BotonEnlace>}
-            >
-              Ningún comprobante pendiente de recibir coincide con esos filtros. Si llegó mercadería sin factura,{" "}
-              <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
-            </Vacio>
-          ) : (
-            <Vacio
-              icono={<Receipt />}
-              titulo="No hay nada pendiente de recibir"
-              acciones={esLider ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
-            >
-              No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
-              <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
-            </Vacio>
-          )}
-        </div>
-      ) : (
-        <RecepcionEnvio
-          compras={compras}
-          lineas={lineas}
-          variantes={catalogo
-            .filter((v) => v.activo)
-            .map((v) => ({
-              varianteId: v.varianteId,
-              // El código de la etiqueta (`sku` es NULL en casi todas): es la llave con que el escáner y la sugerencia
-              // de texto de «Recibir» encuentran la prenda (`RecepcionEnvio`: `escanear(sugerencias[0].sku)`); con `""`
-              // escribir «blusa negra» + Enter no encontraba nada.
-              sku: codigoDeEtiqueta(v),
-              talla: v.talla,
-              color: v.color,
-              productoId: v.productoId,
-              referencia: v.referencia,
-              codigosBarras: v.codigosBarras,
-              colorHex: v.colorHex,
-              fotoUrl: v.fotoUrl,
-            }))}
-          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
-          ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
-          ubicacionInicialId={ubicacionMirada}
-          compraInicialId={compra ?? null}
-          esLider={esLider}
-          verMontos={verMontos}
-          comprasConNotaFaltante={comprasConNotaFaltante}
-          veTraslados={veModulo(persona, "traslados")}
-          resumen={
-            <KpisRecibir
-              {...kpis}
-              idMasAtrasada={comprasCompletas.find((c) => c.documento === kpis.documentoMasAtrasada && c.proveedorNombre === kpis.proveedorMasAtrasado)?.id ?? null}
-            />
-          }
-        />
-      )}
+        {compras.length === 0 && !cursor ? (
+          <div className="card-cayla">
+            {hayFiltros ? (
+              <Vacio
+                icono={<FunnelX />}
+                titulo="Ningún comprobante con esos filtros"
+                acciones={<BotonEnlace href="/recibir?vista=factura" peso="fantasma">Limpiar filtros</BotonEnlace>}
+              >
+                Ningún comprobante pendiente de recibir coincide con esos filtros. Si llegó mercadería sin factura,{" "}
+                <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+              </Vacio>
+            ) : (
+              <Vacio
+                icono={<Receipt />}
+                titulo="No hay nada pendiente de recibir"
+                acciones={esLider ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
+              >
+                No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
+                <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+              </Vacio>
+            )}
+          </div>
+        ) : (
+          <RecepcionEnvio
+            key={claveDeLaRecepcion(ubicacionMirada)}
+            compras={compras}
+            lineas={lineas}
+            variantes={catalogo
+              .filter((v) => v.activo)
+              .map((v) => ({
+                varianteId: v.varianteId,
+                // El código de la etiqueta (`sku` es NULL en casi todas): es la llave con que el escáner y la sugerencia
+                // de texto de «Recibir» encuentran la prenda (`RecepcionEnvio`: `escanear(sugerencias[0].sku)`); con `""`
+                // escribir «blusa negra» + Enter no encontraba nada.
+                sku: codigoDeEtiqueta(v),
+                talla: v.talla,
+                color: v.color,
+                productoId: v.productoId,
+                referencia: v.referencia,
+                codigosBarras: v.codigosBarras,
+                colorHex: v.colorHex,
+                fotoUrl: v.fotoUrl,
+              }))}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
+            ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
+            ubicacionInicialId={ubicacionMirada}
+            compraInicialId={compra ?? null}
+            esLider={esLider}
+            verMontos={verMontos}
+            comprasConNotaFaltante={comprasConNotaFaltante}
+            veTraslados={veModulo(persona, "traslados")}
+            resumen={
+              <KpisRecibir
+                {...kpis}
+                idMasAtrasada={comprasCompletas.find((c) => c.documento === kpis.documentoMasAtrasada && c.proveedorNombre === kpis.proveedorMasAtrasado)?.id ?? null}
+              />
+            }
+          />
+        )}
 
-      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={{ ...params, vista: "factura" }} pathname="/recibir" />
-    </div>
+        <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={{ ...params, vista: "factura" }} pathname="/recibir" />
+      </div>
+    </TrabajoPorSede>
   );
 }
 

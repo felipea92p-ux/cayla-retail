@@ -8,7 +8,8 @@ import { esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-es
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
-import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
+import { agruparCatalogo, agruparPorPrenda, filtrarConStock, type GrupoCatalogo } from "@/lib/catalogo-grupos";
+import { categoriasQueCombinan, claveAnotada, fraseCombina, indiceDeColores, sugerirCombina, type AnclaLook, type TarjetaLook } from "@/lib/combinar-reglas";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
@@ -44,6 +45,7 @@ import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePrendaModal";
+import { fichaDelColor, unidadesPorColor, type ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
 import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
@@ -55,10 +57,12 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { AgregarBolsaModal, FilaDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
+import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
-import { useVentasDeHoy, type VentaDeHoy } from "@/components/VentasDeHoy";
+import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
 import {
   ACCION_BAJAR_Y_AGREGAR,
   accionBajarYAgregar,
@@ -109,6 +113,7 @@ import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/Acces
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import {
   avisoCumpleApagado,
@@ -142,7 +147,13 @@ import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJso
  */
 export { ID_CARGO_ESPECIAL };
 
+/** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
+const SIN_COLORES: ColorConFicha[] = [];
+
 export type VarianteBusqueda = PrendaBuscableV2 & {
+  /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
+   *  compara por referencia. */
+  productoId?: string;
   /** Código de etiqueta (`variantes.codigo`) — lo que se le MUESTRA a la colaboradora con
    *  `codigoPrenda`. El escáner no lo necesita aparte: el disparador que lo acuña también
    *  lo registra en `codigos_barras`. */
@@ -151,8 +162,13 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   /** Prefijo y familia de la categoría: dibujan su ícono en la tarjeta sin foto. Ausentes = el ícono de reserva. */
   categoriaPrefijo?: string | null;
   categoriaFamilia?: string | null;
+  /** Su familia está apagada para los motores (`familias.entra_a_motores = false`): bolsas, cajas, empaque. Es lo que ofrece «Agregar bolsa»
+   *  en el ticket (`lib/bolsas-reglas.ts`). Ausente = una prenda normal. */
+  fueraDeMotores?: boolean;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
+  /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
+  colorCodigo?: string | null;
   precio: number;
   /** El precio de arriba es el de ESTA tienda (precio propio, Felipe 2026-10-09): la tarjeta se lo dice a la colaboradora con
    *  «Precio de Trujillo». El cliente no lo ve: para él es el precio. Ausente = el general. */
@@ -208,7 +224,12 @@ export type ItemCarrito = {
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
   /** Solo en una pieza de liquidación (ADR-0375): el código de su etiqueta. Precio final, sin descuentos, venta final. */
   liquidacion?: { codigo: string };
+  /** De dónde salió la línea si no la buscó la colaboradora: la tocó en «Combina bien con» de «Todo de la prenda» (Felipe 2026-10-10).
+   *  Viaja a `registrar_venta` como `origen_sugerencia` (migración 20261010220000); hasta que esté pegada, la base lo ignora. */
+  origen?: OrigenDeLinea;
 };
+
+export type OrigenDeLinea = "combina_bien_con";
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
  *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
@@ -298,6 +319,9 @@ type Props = {
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
   variantes: VarianteBusqueda[];
+  /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): «Todo de la prenda» dice con qué se combina el color que se mira,
+   *  con lo que cuelga en esta sede primero. Vacío (o ausente) = la hoja no dice nada del color, y se vende igual. */
+  colores?: ColorConFicha[];
   listasPrendaLibre: ListasPrendaLibre;
   /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
    *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
@@ -357,7 +381,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -446,6 +470,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // que subiera (ADR-0036, addendum "por sede").
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
+  // El ticket de esta sede, al día, para `TicketPorSede`: si la sede cambia con Vender abierta, este componente se monta de
+  // nuevo (su key lleva la sede) y lo que estaba armado queda en la espera de ESTA sede (Felipe, 2026-10-11).
+  const reportarTicket = useReportarTicket();
+  useEffect(() => {
+    reportarTicket?.(ubicacionId, {
+      etiqueta: ubicacionEtiqueta,
+      ticket: { carrito, nota, clienta, conProforma: proformaActiva !== null },
+    });
+  }, [reportarTicket, ubicacionId, ubicacionEtiqueta, carrito, nota, clienta, proformaActiva]);
   // Una proforma a nombre de una empresa (RUC) se cobra con factura; lo demás, boleta.
   // Ningún comprobante marcado al empezar (hoja de cobro, Felipe 2026-10-02): se elige siempre, y sin elegir no se cobra
   // (`motivoBloqueoCobro`). Una proforma con RUC ya trae la respuesta: la factura de esa empresa.
@@ -462,6 +495,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
+  // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
+  const [bolsasAbiertas, setBolsasAbiertas] = useState(false);
   // Teléfono (2026-09-25): no hay lector, así que el campo de escaneo se vuelve un botón que abre la cámara
   // (`EscanerCamara`). La lupa de al lado cambia a buscar por nombre, y la cámara vuelve a estar a un toque.
   const esTelefono = useConsultaMedia(MQ_TELEFONO);
@@ -516,6 +551,52 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
+  // Las bolsas de esta tienda (una familia fuera de los motores), de la más barata a la más cara. Sin ninguna, la fila no se dibuja.
+  const bolsas = useMemo(() => bolsasDeLaCaja(variantesVisibles), [variantesVisibles]);
+  // La ficha del color que se mira en «Todo de la prenda» (ADR-0316; Felipe 2026-10-10): sus compañeros, con lo que cuelga AQUÍ primero.
+  // Sobre `variantesVisibles` (con el stock en vivo), nunca sobre el catálogo crudo: un color que se acabó hace un minuto ya no se sugiere.
+  const fichaDelColorDe = useMemo(() => {
+    if (colores.length === 0) return () => null;
+    const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
+    const unidadesAqui = unidadesPorColor(variantesVisibles);
+    return (codigo: string | null | undefined) => fichaDelColor(codigo, porCodigo, { unidadesAqui });
+  }, [colores, variantesVisibles]);
+  // «Combina bien con» (Felipe 2026-10-10; `lib/combinar-reglas.ts`): la frase («…un jean o una cartera») y hasta 3 prendas que combinan
+  // con la que se mira, de lo que CUELGA AQUÍ. Una tarjeta por prenda×color sobre las variantes visibles (stock en vivo); el índice de
+  // las fichas se arma una vez por sesión. Es una función del módulo vender (ADR-0306): no toca el ticket ni Cobrar.
+  const indiceColores = useMemo(() => indiceDeColores(colores), [colores]);
+  const tarjetasLook = useMemo<TarjetaLook<GrupoCatalogo<VarianteBusqueda>>[]>(
+    () =>
+      agruparCatalogo(variantesVisibles).map((g) => {
+        const v = g.tallas[0]?.variante;
+        return {
+          productoId: v?.productoId ?? g.referencia,
+          referencia: g.referencia,
+          categoriaPrefijo: v?.categoriaPrefijo ?? null,
+          colorCodigo: v?.colorCodigo ?? null,
+          colorNombre: g.color,
+          colorHex: v?.colorHex ?? null,
+          fotoUrl: g.fotoUrl,
+          tallas: g.tallas.map((t) => ({ varianteId: t.variante.varianteId, talla: t.talla, stockAqui: t.stockAqui })),
+          origen: g,
+        };
+      }),
+    [variantesVisibles]
+  );
+  const combinaDe = useMemo(() => {
+    if (colores.length === 0) return () => ({ frase: null as string | null, sugerencias: [] as ReturnType<typeof sugerirCombina<GrupoCatalogo<VarianteBusqueda>>> });
+    const nombres = new Map(colores.map((c) => [c.codigo, c.nombre]));
+    const productoDe = new Map(variantes.map((v) => [v.varianteId, v.productoId ?? v.referencia]));
+    const prefijoDe = new Map(listasPrendaLibre.categorias.map((c) => [c.id, c.prefijo ?? null]));
+    // Lo que ya está en el ticket no se vuelve a sugerir: por prenda, y por categoría+color en lo anotado como «Prenda sin registrar».
+    const enTicket = new Set(carrito.filter((it) => !it.prendaLibre).map((it) => productoDe.get(it.varianteId) ?? it.referencia));
+    const anotados = new Set(carrito.filter((it) => it.prendaLibre).map((it) => claveAnotada(prefijoDe.get(it.prendaLibre!.categoriaId), it.prendaLibre!.colorCodigo)));
+    const opciones = { enTicket, anotadosEnTicket: anotados, nombreDeColor: (c: string) => nombres.get(c) ?? c, sede: ubicacionEtiqueta };
+    return (ancla: AnclaLook) => ({
+      frase: fraseCombina(categoriasQueCombinan(ancla, tarjetasLook, indiceColores, opciones)),
+      sugerencias: sugerirCombina(ancla, tarjetasLook, indiceColores, opciones),
+    });
+  }, [colores, variantes, listasPrendaLibre.categorias, carrito, tarjetasLook, indiceColores, ubicacionEtiqueta]);
   // El ticket topa con el piso de AHORA (`conPisoAlDia`): cada línea guarda el piso de cuando se agregó, y sin esto
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
@@ -570,7 +651,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -836,7 +917,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  repetiría lo mismo tapándole la ✕.
    *  `confirmar`: lo que entra por el campo de escaneo (lector o teclado) dice «Agregada al ticket», como la cámara del
    *  teléfono; una tarjeta o una fila tocadas no lo piden: ahí la prenda se ve entrar donde se tocó. */
-  function agregar(v: VarianteBusqueda, { silencioso = false, confirmar = false }: { silencioso?: boolean; confirmar?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+  function agregar(
+    v: VarianteBusqueda,
+    { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
+  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
     if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
@@ -889,6 +973,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               razonDescuentoOtro: "",
               argumentoDescuento: "",
               campana: v.campana ?? null,
+              // La marca solo nace con la fila: subir la cantidad de una línea que ya estaba no la convierte en «sugerida».
+              ...(origen ? { origen } : {}),
             }),
           ];
         }
@@ -1584,6 +1670,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
+        // De dónde salió la línea (Felipe 2026-10-10): `registrar_venta` la guarda en `venta_items.origen_sugerencia` cuando la
+        // migración 20261010220100 esté pegada; antes, la ignora. Sin origen la clave ni aparece.
+        origen_sugerencia: it.origen,
       })),
       // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
       // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
@@ -1944,6 +2033,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 onHojaAbierta={setHojaClientaAbierta}
                 clubDeLaClienta={clubDeLaClienta}
               />
+              <FilaDeBolsas bolsas={bolsas} carrito={carrito} bloqueado={bloqueado} onAbrir={() => setBolsasAbiertas(true)} />
             </>
           }
         />
@@ -2177,8 +2267,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ubicacionEtiqueta={ubicacionEtiqueta}
           carrito={carrito}
           onAgregar={agregar}
+          onQuitar={quitar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
+          fichaDelColorDe={fichaDelColorDe}
+          combinaDe={combinaDe}
           pie={(color) => {
             // ADR-0328 act. 17: la talla que aquí no hay y otra tienda tiene se puede pedir y apartar para el cliente.
             const candidatos = pedirAOtraSede
@@ -2258,6 +2351,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           responsable={responsable}
           onConfirmar={() => void registrarBajadas(bajadaPorConfirmar)}
           onClose={() => setBajadaPorConfirmar(null)}
+        />
+      )}
+
+      {bolsasAbiertas && (
+        <AgregarBolsaModal
+          bolsas={bolsas}
+          carrito={carrito}
+          ubicacionEtiqueta={ubicacionEtiqueta}
+          onAgregar={(v) => void agregar(v)}
+          onClose={() => setBolsasAbiertas(false)}
+          alCerrarEnfocar={buscador}
         />
       )}
 

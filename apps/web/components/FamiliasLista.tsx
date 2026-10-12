@@ -8,7 +8,8 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
@@ -34,10 +35,12 @@ export type Familia = {
   nombre: string;
   activo: boolean;
   orden: number;
+  /** false = sus ventas siguen en caja y comprobante, pero no cuentan en Análisis, Frescura ni el plan del piso (bolsas, cajas). */
+  entraAMotores: boolean;
   categoriasActivas: number;
 };
 
-type Borrador = { codigo: string | null; nombre: string };
+type Borrador = { codigo: string | null; nombre: string; entraAMotores: boolean };
 
 export function FamiliasLista({
   familiasIniciales,
@@ -68,7 +71,7 @@ export function FamiliasLista({
       const res = await fetch("/api/productos/familias", {
         method: editando ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: borrador.codigo ?? undefined, nombre: borrador.nombre }),
+        body: JSON.stringify({ codigo: borrador.codigo ?? undefined, nombre: borrador.nombre, entraAMotores: borrador.entraAMotores }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -80,6 +83,7 @@ export function FamiliasLista({
         nombre: datos.familia.nombre,
         activo: datos.familia.activo,
         orden: datos.familia.orden,
+        entraAMotores: datos.familia.entra_a_motores,
         categoriasActivas: editando ? (familias.find((f) => f.codigo === datos.familia.codigo)?.categoriasActivas ?? 0) : 0,
       };
       setFamilias((actual) => [...actual.filter((f) => f.codigo !== guardada.codigo), guardada]);
@@ -115,7 +119,7 @@ export function FamiliasLista({
       {puedeEditar && (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <span />
-          <Boton type="button" peso="primario" onClick={() => setBorrador({ codigo: null, nombre: "" })}>
+          <Boton type="button" peso="primario" onClick={() => setBorrador({ codigo: null, nombre: "", entraAMotores: true })}>
             + Agregar familia
           </Boton>
         </div>
@@ -123,25 +127,35 @@ export function FamiliasLista({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {activas.map((f) => (
-          <div key={f.codigo} className="card-cayla flex items-center justify-between gap-3 p-5">
-            <div>
-              <p className="text-sm font-medium text-tinta">{f.nombre}</p>
-              <p className="mt-0.5 text-[11px] text-tinta/65">
-                {f.categoriasActivas} {f.categoriasActivas === 1 ? "categoría" : "categorías"}
-              </p>
+          <div key={f.codigo} className="card-cayla p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-tinta">{f.nombre}</p>
+                <p className="mt-0.5 text-[11px] text-tinta/65">
+                  {f.categoriasActivas} {f.categoriasActivas === 1 ? "categoría" : "categorías"}
+                </p>
+              </div>
+              {puedeEditar && (
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[10.5px]" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre, entraAMotores: f.entraAMotores })}>
+                    Editar
+                  </Boton>
+                  <Boton
+                    peso="peligro"
+                    cargando={cambiandoCodigo === f.codigo}
+                    onClick={() => setConfirmando(confirmacionCatalogo("desactivar", f.nombre, () => cambiarEstado(f)))}
+                  >
+                    Desactivar
+                  </Boton>
+                </div>
+              )}
             </div>
-            {puedeEditar && (
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <Boton peso="discreto" className="px-2.5 py-1.5 text-[10.5px]" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre })}>
-                  Editar
-                </Boton>
-                <Boton
-                  peso="peligro"
-                  cargando={cambiandoCodigo === f.codigo}
-                  onClick={() => setConfirmando(confirmacionCatalogo("desactivar", f.nombre, () => cambiarEstado(f)))}
-                >
-                  Desactivar
-                </Boton>
+            {/* En su propia fila: junto al nombre se montaba sobre «Desactivar» en una tarjeta angosta. */}
+            {!f.entraAMotores && (
+              <div className="mt-3">
+                <Chip tono="neutro" versalitas={false}>
+                  Fuera de Análisis y del piso
+                </Chip>
               </div>
             )}
           </div>
@@ -214,6 +228,8 @@ function FamiliaModal({
 }) {
   const guia = useGuiaCampos([
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: borrador.nombre.trim() !== "", pendiente: "Escribe el nombre de la familia." },
+    // Opcional: lo normal es que la familia cuente. Solo se apaga para lo que se vende pero no es mercadería (bolsas, cajas).
+    { id: "motores", nombre: "Cuenta en Análisis y plan del piso", requerido: false, hecho: true, pendiente: "" },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -236,6 +252,19 @@ function FamiliaModal({
                 onChange={(e) => onCambio({ ...borrador, nombre: e.target.value })}
                 placeholder="Ej. Hogar y Decoración"
                 autoFocus
+              />
+            </CampoGuiado>
+            <CampoGuiado id="motores" guia={guia}>
+              <Interruptor
+                activo={borrador.entraAMotores}
+                onActivo={(v) => onCambio({ ...borrador, entraAMotores: v })}
+                etiqueta="Cuenta en Análisis, Frescura y el plan del piso"
+                pie={
+                  borrador.entraAMotores
+                    ? "Lo normal: lo que se vende de esta familia se cuenta como demanda y se pide al Taller o a Compras."
+                    : "Sus ventas siguen entrando a caja y al comprobante, pero no cuentan como demanda ni se piden. Úsalo para bolsas, cajas o empaques."
+                }
+                disabled={guardando}
               />
             </CampoGuiado>
           </div>

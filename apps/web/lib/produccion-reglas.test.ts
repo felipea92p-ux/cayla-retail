@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { costoUnitario, parsearLineasPrellenadas, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION } from "./produccion-reglas";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { conPreciosMasBajos, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -14,6 +16,86 @@ describe("semaforoMargen", () => {
   it("sin precio o sin costo no opina", () => {
     expect(semaforoMargen(0, 40)).toBeNull();
     expect(semaforoMargen(100, 0)).toBeNull();
+  });
+});
+
+describe("las palabras del semáforo (/formidable 2026-10-10, cambio 3)", () => {
+  it("«Pierde» no se usa: con un margen de 38 % POSITIVO decía que se perdía dinero; la palabra es «Margen bajo», la misma de Nuevo producto", () => {
+    expect(semaforoMargen(85, 53)?.tono).toBe("pierde");
+    expect(TEXTO_SEMAFORO).toEqual({ gana: "Gana", filo: "Al filo", pierde: "Margen bajo" });
+    expect(LEYENDA_SEMAFORO.pierde).toBe("margen bajo < 40%");
+    expect(LEYENDA_SEMAFORO.gana).toBe("gana ≥ 60%");
+  });
+  it("la hoja de Nueva orden, la tarjeta y el panel leen la MISMA palabra (una sola fuente) y ninguno escribe «Pierde» a mano", () => {
+    const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx"]) {
+      const fuente = leer(ruta);
+      expect(fuente, ruta).not.toMatch(/"Pierde"/);
+      expect(fuente, ruta).not.toMatch(/pierde &lt; 40%/);
+      expect(fuente, ruta).toMatch(/TEXTO_SEMAFORO|LEYENDA_SEMAFORO/);
+    }
+  });
+});
+
+describe("el margen se mide con el precio más bajo de cualquier tienda (ADR-0370, Felipe 2026-10-11)", () => {
+  const nombres = new Map([["tru", "Tienda Trujillo"], ["aqp", "Tienda Arequipa"]]);
+  const precios = (porSede: Record<string, Record<string, number>>) => ({ porSede, nombres });
+  const orden = (extra: Partial<{ precioVenta: number; varianteIdsDelModelo: string[] }> = {}) => ({ precioVenta: 79.9, varianteIdsDelModelo: ["v1", "v2"], ...extra });
+
+  it("precioParaMargen: el de la tienda si hay uno más bajo; si no, el de la grilla", () => {
+    expect(precioParaMargen({ precioVenta: 79.9 })).toBe(79.9);
+    expect(precioParaMargen({ precioVenta: 79.9, precioMasBajo: null })).toBe(79.9);
+    expect(precioParaMargen({ precioVenta: 79.9, precioMasBajo: { precio: 69.9, sede: "Trujillo" } })).toBe(69.9);
+    // Un valor que no es un monto no vacía el margen: se vuelve a la grilla.
+    expect(precioParaMargen({ precioVenta: 79.9, precioMasBajo: { precio: 0, sede: "X" } })).toBe(79.9);
+  });
+
+  it("el mismo costo da otro semáforo con el precio de la tienda más barata (esto es lo que Felipe quiere ver)", () => {
+    // Costo 30: con 79.90 el margen es 62 % (gana); con 69.90 es 57 % (al filo).
+    expect(semaforoMargen(79.9, 30)?.tono).toBe("gana");
+    expect(semaforoMargen(precioParaMargen({ precioVenta: 79.9, precioMasBajo: { precio: 69.9, sede: "Trujillo" } }), 30)?.tono).toBe("filo");
+  });
+
+  it("conPreciosMasBajos: reparte el precio propio más bajo a cada orden, nombra la tienda y deja igual a la que no tiene", () => {
+    const [a, b] = conPreciosMasBajos([orden(), orden({ varianteIdsDelModelo: ["otro"] })], precios({ tru: { v1: 69.9, v2: 69.9 } }));
+    expect(a?.precioMasBajo).toEqual({ precio: 69.9, sede: "Trujillo" });
+    expect(a?.precioVenta).toBe(79.9);
+    expect(b).not.toHaveProperty("precioMasBajo");
+  });
+
+  it("conPreciosMasBajos no muta lo que recibe, y sin tiendas con precio propio no agrega nada", () => {
+    const original = [orden()];
+    const salida = conPreciosMasBajos(original, precios({}));
+    expect(salida[0]).toEqual(original[0]);
+    expect(salida[0]).not.toBe(original[0]);
+    expect(original[0]).not.toHaveProperty("precioMasBajo");
+  });
+
+  it("conPreciosMasBajosDeModelos: el precio de venta del modelo es el mayor de sus tallas activas", () => {
+    const modelo = { productoId: "p1", variantes: [{ varianteId: "v1", precio: 69.9 }, { varianteId: "v2", precio: 79.9 }] };
+    // aqp vende v1 a 59.90 (< 69.90 de la grilla de v1 pero también < 79.90 máximo): es el más bajo.
+    const [m] = conPreciosMasBajosDeModelos([modelo], precios({ aqp: { v1: 59.9 } }));
+    expect(m?.precioMasBajo).toEqual({ precio: 59.9, sede: "Arequipa" });
+    // Un propio por encima del máximo no baja nada.
+    expect(conPreciosMasBajosDeModelos([modelo], precios({ aqp: { v1: 89.9 } }))[0]).not.toHaveProperty("precioMasBajo");
+  });
+
+  it("resumenTablero: el margen promedio usa el precio más bajo de cada orden", () => {
+    const base = { estado: "en_proceso" as const, esMuestra: false, cantidadPlan: 10, fechaEntrega: null, precioVenta: 100, costoUnitario: 40 };
+    expect(resumenTablero([base], "2026-10-11").margenPromedio).toBeCloseTo(0.6, 5);
+    const conTienda = { ...base, precioMasBajo: { precio: 80, sede: "Trujillo" } };
+    expect(resumenTablero([conTienda], "2026-10-11").margenPromedio).toBeCloseTo(0.5, 5);
+    // Mezcla: el promedio es el de ambas.
+    expect(resumenTablero([base, conTienda], "2026-10-11").margenPromedio).toBeCloseTo(0.55, 5);
+  });
+
+  it("nadie vuelve a medir el margen con el precio de la grilla a secas: todo `semaforoMargen(` de una pantalla pasa por `precioParaMargen`", () => {
+    const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "components/OrdenesTablero.tsx", "lib/produccion-reglas.ts"]) {
+      const llamadas = leer(ruta).match(/semaforoMargen\([^)]*\)\)?/g) ?? [];
+      // La definición (`export function semaforoMargen(precioVenta: number, ...)`) no es una llamada.
+      for (const l of llamadas.filter((x) => !x.includes("precioVenta: number"))) expect(l, `${ruta}: ${l}`).toMatch(/precioParaMargen/);
+    }
   });
 });
 

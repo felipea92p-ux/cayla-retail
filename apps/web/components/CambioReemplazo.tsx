@@ -259,7 +259,8 @@ export function CambioReemplazo({
                   color: r.varianteNueva.color,
                   colorHex: r.varianteNueva.colorHex,
                   fotoUrl: r.varianteNueva.fotoUrl,
-                  precio: r.varianteNueva.precio,
+                  // El precio con que se calcula la diferencia (`precioParaCambio`): la misma prenda vale lo de la tienda donde se compró.
+                  precio: r.precioNueva ?? r.varianteNueva.precio,
                 }
               : null
           }

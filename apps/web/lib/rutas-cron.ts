@@ -16,6 +16,8 @@ export const RUTAS_DE_CRON = [
   "/api/club/conservacion",
   // ADR-0208 act. 2026-10-07: la vara de CAYLA de Frescura (una curva por categoría con las tres tiendas), cada madrugada (3:20 de Lima).
   "/api/inventario/frescura-vara-cayla",
+  // ADR-0329 (Plan del piso): la foto del espacio del piso por sede y categoría, los lunes de madrugada (3:00 de Lima).
+  "/api/inventario/espacio-piso",
 ] as const;
 
 /** ¿La petición trae la clave del cron? Sin `CRON_SECRET` configurado no pasa nadie, tampoco «Bearer undefined» ni «Bearer ». */

@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { BarraApilada } from "@/components/ui/BarraApilada";
-import { CLASE_TRAMO_BARRA, NOMBRE_TRAMO_BARRA, TRAMOS_BARRA, segmentosDe, type FilaTablero } from "@/lib/frescura-pantalla";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { segmentosDe, type FilaTablero } from "@/lib/frescura-pantalla";
 
 // El tablero por categoría de Frescura del piso (nivel 1; ADR-0208, act. 2026-10-07, decisión 3 de Felipe): «¿Cómo está el piso?»
 // de un vistazo. Una fila por categoría: su nombre, la barra de sus unidades por estado (los colores A de los chips: verde recién
@@ -32,7 +32,6 @@ export function FrescuraTablero({
   acciones?: ReactNode;
 }) {
   if (filas.length === 0) return null;
-  const conUnidades = TRAMOS_BARRA.filter((t) => filas.some((f) => f.unidades[t] > 0));
   // Las columnas viven en la grilla madre y cada fila las hereda con `subgrid`: si cada fila fuera su propia grilla, la que lleva
   // chip de vara y la que no tendrían columnas de ancho distinto y las barras saldrían de largos distintos (medido el 2026-10-10:
   // 530 px contra 497). Las dos de la derecha son `auto`: miden lo más ancho que haya en TODAS las filas y se achican a cero si
@@ -43,9 +42,9 @@ export function FrescuraTablero({
     : "md:grid-cols-[minmax(150px,1fr)_minmax(200px,2fr)_auto_auto]";
   const tramo = compacto ? "md:col-span-5" : "md:col-span-4";
   return (
-    <section aria-label="Cómo está el piso, por categoría" className="border-b border-sand px-4 pb-3 pt-4 sm:px-5">
+    <section aria-label="El piso, por categoría" className="border-b border-sand px-4 pb-3 pt-4 sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">Cómo está el piso</h2>
+        <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">Por categoría</h2>
         {acciones}
       </div>
       <div className={`mt-2 divide-y divide-sand md:grid md:gap-x-4 ${plantilla}`}>
@@ -58,7 +57,7 @@ export function FrescuraTablero({
             <span aria-hidden className={`flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] leading-snug text-taupe tabular-nums ${compacto ? "shrink-0" : "mt-1"}`}>
               {segmentos.map((s) => (
                 <span key={s.clave} className="flex items-center gap-1" title={s.nombre}>
-                  <span className={`inline-block h-2 w-2 rounded-full ${s.clase}`} />
+                  <MuestraTramo clase={s.clase} />
                   {s.valor}
                 </span>
               ))}
@@ -107,17 +106,8 @@ export function FrescuraTablero({
           );
         })}
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-taupe">
-        <ul aria-label="Qué significa cada color" className="flex flex-wrap gap-x-4 gap-y-1">
-          {conUnidades.map((t) => (
-            <li key={t} className="flex items-center gap-1.5">
-              <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-full ${CLASE_TRAMO_BARRA[t]}`} />
-              {NOMBRE_TRAMO_BARRA[t]}
-            </li>
-          ))}
-        </ul>
-        <span>Toca una categoría para ver solo sus prendas</span>
-      </div>
+      {/* Sin leyenda propia: la tarjeta de la tienda, justo arriba, ya dice qué es cada color con las mismas muestras (Formidable
+          2026-10-10 (c), ley 8; liberaba espacio para que lo por decidir se vea sin bajar). Tampoco la instrucción «Toca una categoría…». */}
     </section>
   );
 }
