@@ -228,3 +228,21 @@ la terminal de ventas en Comprobantes ▸ Series: sin oferta, y «Esta pantalla�
 Pendiente de la tienda (Felipe tomó la recomendación del punto 2): las pantallas sin datos locales (Revisar y Confirmar conteo, Mi
 parte de la factura, Producción con datos, Inicio de Almacén) se verifican después de fusionar, con datos reales, repitiendo su demo
 desde «Demo ▸ Esta pantalla».
+
+## Actualización 2026-10-12 — el foco viaja sin cortes
+
+Felipe notó que el foco, al pasar de un campo a otro, «va entrecortado». Medido cuadro a cuadro en Existencias:
+
+- **Tres motores para lo mismo.** El agujero del velo viajaba en JS, el anillo con transiciones CSS de `left/top` y la tarjeta
+  con otra transición de `transform`. En cada cuadro de un desplazamiento la medida cambiaba, las dos transiciones se
+  reiniciaban y quedaban atrás del agujero, a saltos. Además cada cuadro redibujaba la guía entera en React.
+- **El desplazamiento se cortaba.** Tras `scrollIntoView` suave se esperaban 320 ms fijos; si el navegador seguía desplazando,
+  un respaldo saltaba de golpe al destino.
+- **Arranque brusco.** El suavizado exponencial salía a toda velocidad: el anillo saltaba hasta 98 px en el primer cuadro.
+
+Ahora hay un solo `requestAnimationFrame` (`GuiaInteractiva`) que escribe directo en el DOM el camino del velo, el anillo, la
+onda de llegada y la tarjeta. Cada medida viaja con un resorte de amortiguación crítica (`resorte`, ω = 13: el 95 % en ~0,36 s,
+sin pasarse ni rebotar, ADR-0136), con el tiempo real de cada cuadro. Si la pieza es la misma y se mueve (la página o la hoja
+se desplazan, un modal termina de entrar), el agujero y la tarjeta van pegados a ella; el resorte queda solo para el viaje de
+una pieza a otra. La tarjeta cambia de texto cuando la pieza llegó y quedó quieta (`hastaQueQuieta`: 4 cuadros iguales, tope
+1,2 s), no a los 320 ms. El anillo y la tarjeta ya no tienen transición CSS de posición.
