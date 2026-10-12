@@ -167,6 +167,13 @@ jobs:
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
 
+      # Qué versiones construye Vercel (ADR-0383): el `ignoreCommand` de `apps/web/vercel.json` salta la vista previa de un
+      # merge que solo trae `main` a la rama. Si el filtro se equivocara hacia saltar de más, una rama con código se quedaría
+      # sin compilar en Vercel sin que nadie lo note: por eso sus pruebas corren aquí. Solo usan Node.
+      - name: Qué construye Vercel
+        if: ${{ !cancelled() }}
+        run: node --test scripts/ci/vercel-ignorar.test.mjs
+
       # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
       # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el
       # PR», que decide cuánto corre el job de Postgres. Solo leen archivos; no necesitan node_modules.

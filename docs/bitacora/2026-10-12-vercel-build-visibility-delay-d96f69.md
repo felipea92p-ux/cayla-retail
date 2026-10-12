@@ -1,0 +1,4 @@
+## 2026-10-12 (Vercel deja de construir las vistas previas que solo traen main a la rama)
+Qué hice: medí la fila de Vercel (60 versiones en 99 min, una a la vez, ~25 por hora de capacidad contra 36 que llegaban; 34 eran «traer main a la rama») y agregué un `ignoreCommand` en `apps/web/vercel.json` que salta solo esas vistas previas (`scripts/ci/vercel-ignorar.mjs`, con prueba en el CI). ADR-0383.
+Por qué así: el ruleset exige la rama al día, así que cada fusión a main hacía que ~8 ramas pidieran una vista previa que nadie abre; saltarse esas deja la compilación de cada commit con código y la de producción, y ante cualquier duda el script construye.
+Felipe se lleva: «Queued» no es un error ni algo escondido, es la fila; producción ya pasaba adelante. Claude lee los logs de Vercel con la CLI (`vercel inspect <url> --logs --scope cayla`), porque la conexión de Vercel dentro de Claude responde 403 al pedirlos.
