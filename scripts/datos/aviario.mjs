@@ -175,6 +175,10 @@ export const AVIARIO = [
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0349 (Plan de campaña): cuánto comprar por categoría para una campaña. Nace con dueño; refresco del 2026-10-05.
       "planes_compra", "planes_compra_lineas",
+      // ADR-0372 (Plan de campaña, 2026-10-12): el mínimo de cada tienda en el reparto del plan, y la historia de ventas de antes del ERP
+      // (soles por tienda y día, desde los Excel «Sinatra»; solo la lee `fn_historial_ventas`, que pide el módulo del plan). Refresco del
+      // 2026-10-12.
+      "planes_compra_reparto", "ventas_historicas",
       // Órdenes de compra: el pedido que se le manda a un proveedor (generada o anulada), sus líneas y la versión anterior de cada edición, que
       // nunca se cambia. Están en producción y su migración TODAVÍA NO ESTÁ en el repo (ni en `main` ni en una rama): se encontraron en el
       // refresco del volcado del 2026-10-11 (docs/backlog/2026-10-11-diccionario-precios-tienda.md).
