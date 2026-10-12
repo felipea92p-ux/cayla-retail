@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
+import { clasificarFalloDeSubida, debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -712,6 +712,33 @@ describe("club de clientas: socia, publicidad y WhatsApp de la tienda (ADR-0288 
     expect(traducirError({ message: "", code: "P0001", hint: "celular_con_publicidad" }, "editar la ficha")).toBe(
       "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."
     );
+  });
+});
+
+describe("clasificarFalloDeSubida — ¿esto que falló al subir es un rechazo de verdad?", () => {
+  it("sin red, ni llegó al servidor: «red»", () => {
+    expect(clasificarFalloDeSubida({ message: "TypeError: Failed to fetch" })).toBe("red");
+  });
+
+  it("un 504 sin código de Postgres (se cortó en el camino) es pasajero, NO rechazo: la venta pudo haberse guardado", () => {
+    expect(clasificarFalloDeSubida({ message: "upstream request timeout", code: "" }, 504)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "upstream request timeout" }, 504)).toBe("pasajero");
+  });
+
+  it("un deadlock o un choque de transacciones (con código) es pasajero", () => {
+    expect(clasificarFalloDeSubida({ message: "deadlock detected", code: "40P01" }, 400)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "could not serialize access", code: "40001" }, 409)).toBe("pasajero");
+  });
+
+  it("un error SIN código y con estado 4xx (el servidor no dio veredicto) también se reintenta", () => {
+    expect(clasificarFalloDeSubida({ message: "Bad gateway html" }, 404)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "excepción del cliente" }, null)).toBe("pasajero");
+  });
+
+  it("la base respondió con código y no es «intenta de nuevo»: rechazo definitivo", () => {
+    expect(clasificarFalloDeSubida({ message: "Esta caja ya está cerrada", code: "P0001" }, 400)).toBe("definitivo");
+    expect(clasificarFalloDeSubida({ message: "permission denied", code: "42501" }, 403)).toBe("definitivo");
+    expect(clasificarFalloDeSubida({ message: "Stock insuficiente", code: "P0001" }, 400)).toBe("definitivo");
   });
 });
 

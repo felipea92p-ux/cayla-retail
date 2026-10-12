@@ -1243,6 +1243,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
 
+      # Piezas de liquidación (ADR-0379): una prenda suelta se etiqueta con categoría y precio, se rebaja con una etiqueta nueva (la
+      # vieja deja de valer) y la caja la vende escaneando el código, sin mover stock ni dejar tarea a almacén. Cubre el mínimo de
+      # precio, la etiqueta vieja, la otra sede, la misma pieza dos veces, la venta final y que anular la devuelva. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:piezas-liquidacion
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:piezas-liquidacion
+
       # Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
       # con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
       # mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que

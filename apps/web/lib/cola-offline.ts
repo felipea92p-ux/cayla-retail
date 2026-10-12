@@ -20,6 +20,7 @@
  */
 
 import { claveReferencia } from "./alta-producto";
+import type { TipoFalloSubida } from "./error-escritura";
 import type { Firma } from "./responsable-reglas";
 
 export type OperacionEncolada<P = Record<string, unknown>> = {
@@ -48,7 +49,7 @@ export const MAX_INTENTOS_SERVIDOR = 10;
  * Qué pasa con una operación cuya subida falló. `null` = no se toca (sin red: vuelve a intentarse, sin contar).
  * Pasajero: suma un intento, y al llegar al tope pasa a rechazada con un motivo que lo dice. Definitivo: rechazada.
  */
-export function trasFallo<P>(op: OperacionEncolada<P>, tipo: "red" | "pasajero" | "definitivo", mensaje: string): OperacionEncolada<P> | null {
+export function trasFallo<P>(op: OperacionEncolada<P>, tipo: TipoFalloSubida, mensaje: string): OperacionEncolada<P> | null {
   if (tipo === "red") return null;
   if (tipo === "definitivo") return { ...op, rechazo: mensaje };
   const intentos = (op.intentos ?? 0) + 1;

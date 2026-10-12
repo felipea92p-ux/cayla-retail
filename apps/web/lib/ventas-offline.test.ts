@@ -8,8 +8,11 @@ import {
   pasaElUmbralDeSobra,
   stockComprometido,
   totalEfectivoEncolado,
+  ventasSubidasEntre,
+  ventaTrasFallo,
   type VentaEncolada,
 } from "./ventas-offline";
+import { clasificarFalloDeSubida } from "./error-escritura";
 
 // La aritmética de la cola offline: cuánto compromete, si el overlay se aplica bien
 // sobre el stock que llega del servidor, y el umbral de "al menos 1 de sobra" (ADR-0013
@@ -185,5 +188,67 @@ describe("llevaCanje: la venta con el cumpleaños no va a la cola", () => {
   it("con el vale de aniversario tampoco (tanda 1g)", () => {
     expect(llevaCanje({ p_items: [item], p_canjear_aniversario: true })).toBe(true);
     expect(llevaCanje({ p_items: [item], p_canjear_aniversario: false })).toBe(false);
+  });
+});
+
+// Una pasada de subida, reducida a lo que decide el destino de cada venta (la lógica de `PuntoDeVenta.tsx`): el error
+// que devolvió la base y el estado HTTP → qué queda en la cola. «Pendiente» = sigue con `rechazo: null` y se repite.
+function resultadoDeSubida(v: VentaEncolada, error: { message: string; code?: string | null }, status: number | null): VentaEncolada {
+  return ventaTrasFallo(v, clasificarFalloDeSubida(error, status), "motivo traducido") ?? v;
+}
+
+describe("ventaTrasFallo — un error pasajero del servidor no marca la venta como rechazada", () => {
+  const v = venta({ items: [{ varianteId: "v1", cantidad: 1 }] });
+
+  it("un 504 sin código deja la venta «en cola» (rechazo null) y la pasada siguiente la repite", () => {
+    const tras = resultadoDeSubida(v, { message: "upstream request timeout" }, 504);
+    expect(tras.rechazo).toBeNull();
+    // Sigue siendo lo que la próxima pasada reintenta (`rechazo === null`), con el MISMO token y el MISMO payload.
+    expect(tras.token).toBe(v.token);
+    expect(tras.params).toBe(v.params);
+  });
+
+  it("un deadlock (40P01) y un 5xx con código también la dejan en cola", () => {
+    expect(resultadoDeSubida(v, { message: "deadlock detected", code: "40P01" }, 400).rechazo).toBeNull();
+    expect(resultadoDeSubida(v, { message: "boom", code: "XX000" }, 503).rechazo).toBeNull();
+  });
+
+  it("sin red, no se toca", () => {
+    expect(ventaTrasFallo(v, "red", "x")).toBeNull();
+    expect(resultadoDeSubida(v, { message: "Failed to fetch" }, null).rechazo).toBeNull();
+  });
+
+  it("sin tope: 50 fallos pasajeros seguidos no la rechazan (un «Descartar» invitaría a cobrarla de nuevo a mano)", () => {
+    let actual = v;
+    for (let i = 0; i < 50; i++) actual = resultadoDeSubida(actual, { message: "Bad Gateway" }, 502);
+    expect(actual.rechazo).toBeNull();
+  });
+
+  it("solo cuando la base RESPONDIÓ con un veredicto de negocio queda rechazada, con su motivo", () => {
+    const tras = resultadoDeSubida(v, { message: "Esta caja ya está cerrada", code: "P0001" }, 400);
+    expect(tras.rechazo).toBe("motivo traducido");
+    expect(stockComprometido([tras]).size).toBe(0);
+  });
+});
+
+describe("ventasSubidasEntre — lo que otra pestaña subió", () => {
+  const a = venta({ token: "a", items: [{ varianteId: "v1", cantidad: 2 }] });
+  const b = venta({ token: "b", items: [{ varianteId: "v2", cantidad: 1 }] });
+
+  it("la venta que esperaba y ya no está, subió: se descuenta del stock de esta pantalla", () => {
+    expect(ventasSubidasEntre([a, b], [b]).map((v) => v.token)).toEqual(["a"]);
+  });
+
+  it("una venta nueva que entró a la cola no cuenta como subida", () => {
+    expect(ventasSubidasEntre([a], [a, b])).toEqual([]);
+  });
+
+  it("descartar una rechazada no es una subida: la base nunca la registró", () => {
+    const rechazada = { ...a, rechazo: "Esta caja ya está cerrada" };
+    expect(ventasSubidasEntre([rechazada, b], [b])).toEqual([]);
+  });
+
+  it("una que pasó a rechazada sigue en la cola: no subió", () => {
+    expect(ventasSubidasEntre([a], [{ ...a, rechazo: "x" }])).toEqual([]);
   });
 });
