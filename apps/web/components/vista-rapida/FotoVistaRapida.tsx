@@ -90,6 +90,7 @@ export function FotoVistaRapida({
           ref={botonAmpliar}
           type="button"
           className="vr-ampliar"
+          data-guia="vista-rapida.ampliar"
           onClick={() => onAmpliar!(ampliable)}
           aria-label={`Ver la foto de ${producto.referencia}${ampliable.color ? ` — ${ampliable.color}` : ""} en grande`}
           title="Ver la foto en grande"

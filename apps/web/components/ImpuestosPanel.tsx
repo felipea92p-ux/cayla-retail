@@ -113,13 +113,13 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("ventas")}>
+            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
               {bajando === "ventas" ? "Armando…" : "Registro de ventas"}
             </button>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("compras")}>
+            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
               {bajando === "compras" ? "Armando…" : "Registro de compras"}
             </button>
-            <button type="button" className="btn-cayla btn-primario" disabled={bajando !== null} onClick={() => bajar("paquete")}>
+            <button type="button" className="btn-cayla btn-primario" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
               {bajando === "paquete" ? "Armando…" : "Paquete para el contador"}
             </button>
           </>
@@ -128,7 +128,7 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
-      <section className="fin-cifras">
+      <section className="fin-cifras" data-guia="fin-impuestos.cifras">
         <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
           {foco
             ? `${tasaIgv} % de las ventas del mes, de ${plural(foco.comprobantes, "comprobante emitido", "comprobantes emitidos")}${foco.igvNotasCredito > 0 ? `. Ya resta ${solesRedondo(foco.igvNotasCredito)} de notas de crédito` : ""}`
@@ -169,11 +169,11 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         <ParaRevisar panel={panel} />
       </section>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-impuestos.historial">
         <Herramientas>
           <b className="text-sm font-semibold text-tinta">Últimos 6 meses</b>
           <span className="text-[12.5px] text-taupe">{mesCorto(mesActual)} (*) va a la fecha y todavía puede cambiar. Toca un mes para verlo.</span>
-          <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe">
+          <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe" data-guia="fin-impuestos.otro-mes">
             Otro mes
             <SelectFin
               etiqueta="Mes que se mira"
@@ -204,11 +204,17 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         </div>
       </Superficie>
 
-      <p className="nota-cayla">
+      <p className="nota-cayla" data-guia="fin-impuestos.nota">
         El pago a SUNAT todavía no se registra aquí: llega con Cuentas y dinero, porque sale de una cuenta de CAYLA. Mientras tanto, «sin pago registrado» solo dice que el sistema no lo sabe.
       </p>
     </div>
   );
+}
+
+/** «2026-10» → «2026-09»: el mes que se declara ahora (la pantalla abre en él). */
+function mesAnteriorA(mes: string): string {
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
 }
 
 function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: string; activa: boolean; onAbrir: () => void }) {
@@ -219,6 +225,8 @@ function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: stri
       tabIndex={0}
       aria-current={activa ? "true" : undefined}
       className={activa ? "fin-fila-activa" : undefined}
+      // Guía interactiva (ADR-0389): el mes en curso y el que se declara ahora, para pasar de uno al otro y volver.
+      data-guia={m.mes === mesActual ? "fin-impuestos.mes-en-curso" : m.mes === mesAnteriorA(mesActual) ? "fin-impuestos.mes-a-declarar" : undefined}
       onClick={onAbrir}
       onKeyDown={(ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
@@ -257,7 +265,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
   const titulo = n !== null ? `El límite de ${n.toLocaleString("es-PE")} UIT` : "El límite de ventas";
   if (umbral.umbralSoles === null || !uit) {
     return (
-      <Superficie pad className="anim-sube">
+      <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
         <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos." />
         <Vacio tamano="chico" icono={<Settings2 />} accion={{ texto: "Configúralos en Configuración ▸ Impuestos", href: "/configuracion?tab=impuestos" }}>
           Falta el valor de la UIT o el límite del régimen.
@@ -271,7 +279,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
   const tono = tonoAvance(umbral.avance);
   const provisional = uit.provisional || parametros.umbralUit?.provisional;
   return (
-    <Superficie pad className="anim-sube">
+    <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
       <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos.">
         <Chip tono={tono}>{porcentaje(avance)}</Chip>
       </CabeceraBloque>
@@ -357,7 +365,7 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
     detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/ 1,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
   });
   return (
-    <Superficie pad className="anim-sube">
+    <Superficie pad className="anim-sube" guia="fin-impuestos.revisar">
       <CabeceraBloque titulo="Para revisar antes de declarar" bajada="Lo que puede hacer que pagues de más." />
       <ul className="fin-decidir">
         {puntos.map((p) => (

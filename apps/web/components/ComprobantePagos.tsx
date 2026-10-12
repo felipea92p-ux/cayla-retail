@@ -20,7 +20,7 @@ export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
   const idsNuevosOrdenados = idsNuevos(iniciales, pagos.map((p) => p.id));
 
   return (
-    <section>
+    <section data-guia="factura.pagos">
       <p className="label-cayla mb-1 text-[11px] text-tinta/65">Pagos registrados</p>
       {pagos.length === 0 ? (
         <p className="border-t border-tinta/10 py-2 text-[13px] text-tinta/55">Aún no hay pagos registrados.</p>

@@ -111,11 +111,18 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
         }
       />
 
-      <div className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
-        {unidades.map((x) => {
+      <div data-guia="fin-cierre.matriz" className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
+        {unidades.map((x, i) => {
           const e = estadoTarjeta(x);
           return (
-            <button key={x.clave} type="button" className="fin-unidad" aria-pressed={u?.clave === x.clave} onClick={() => setElegida(x.clave)}>
+            <button
+              key={x.clave}
+              type="button"
+              className="fin-unidad"
+              aria-pressed={u?.clave === x.clave}
+              onClick={() => setElegida(x.clave)}
+              data-guia={i === 0 ? "fin-cierre.primera-unidad" : i === 1 ? "fin-cierre.otra-unidad" : undefined}
+            >
               <span className="fin-unidad-n">{x.nombre}</span>
               <Chip tono={e.tono} className="self-start">
                 {e.texto}
@@ -135,7 +142,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
             </button>
           );
         })}
-        <div className="fin-unidad fin-unidad-cons">
+        <div className="fin-unidad fin-unidad-cons" data-guia="fin-cierre.consolidado">
           <span className="fin-unidad-n">CAYLA entera</span>
           {cons.estado === "cerrado" ? (
             <>
@@ -165,7 +172,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
 
       <section className="fin-dos-col fin-cierre-cols">
         {u ? <Chequeos panel={panel} u={u} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="fin-cierre.rutina">
           <p className="label-cayla text-[11px] text-taupe">La rutina de fin de mes</p>
           <div className="fin-pasos-cierre">
             <div>
@@ -210,7 +217,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
   const historia = historiaDe(panel, u);
   const cerrada = u.estado === "cerrado";
   return (
-    <Superficie pad className="anim-sube">
+    <Superficie pad className="anim-sube" guia="fin-cierre.chequeos">
       <CabeceraBloque titulo={tituloUnidad(panel.mes, u)} bajada={bajadaUnidad(u)} />
       <ul className="fin-chequeos">
         {u.chequeos.map((c, i) => {
@@ -226,7 +233,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
                 <p>{t.detalle}</p>
               </div>
               {href ? (
-                <Link href={href} className="btn-cayla btn-sutil btn-chico">
+                <Link href={href} className="btn-cayla btn-sutil btn-chico" data-guia="fin-cierre.resolver">
                   {etiquetaEnlace(c)}
                 </Link>
               ) : (
@@ -243,7 +250,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
           ))}
         </ul>
       )}
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-cierre.boton">
         {cerrada ? (
           <button type="button" className="btn-cayla btn-secundario" onClick={onReabrir}>
             Reabrir…

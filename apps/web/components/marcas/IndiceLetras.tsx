@@ -9,7 +9,7 @@ import { ALFABETO } from "@/lib/marcas";
  */
 export function IndiceLetras({ presentes, enEstaPagina, onLetra }: { presentes: ReadonlySet<string>; enEstaPagina: ReadonlySet<string>; onLetra: (letra: string) => void }) {
   return (
-    <div role="group" aria-label="Ir a la letra" className="flex items-center gap-0.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div role="group" aria-label="Ir a la letra" data-guia="marcas.letras" className="flex items-center gap-0.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <span className="label-cayla mr-2 whitespace-nowrap text-[11px] text-tinta/65">Ir a</span>
       {ALFABETO.map((letra) => {
         const hay = presentes.has(letra);

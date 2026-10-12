@@ -81,7 +81,20 @@ function EstadoMiembro({ m }: { m: MiembroEquipo }) {
   return null;
 }
 
-function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; elegido: boolean; ahoraIso: string; onTocar: () => void }) {
+function FilaMiembro({
+  m,
+  elegido,
+  ahoraIso,
+  onTocar,
+  guia,
+}: {
+  m: MiembroEquipo;
+  elegido: boolean;
+  ahoraIso: string;
+  onTocar: () => void;
+  /** Ancla de la guía interactiva (ADR-0389): solo la primera persona que no eres tú ni un líder, y la primera terminal. */
+  guia?: string;
+}) {
   const apagado = m.tipo === "persona" ? m.estado !== "activa" : !m.activo;
   return (
     <li>
@@ -89,6 +102,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
         type="button"
         onClick={onTocar}
         aria-current={elegido ? "true" : undefined}
+        data-guia={guia}
         className={`${COLUMNAS} w-full rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ease-cayla ${
           elegido ? "bg-hueso" : "hover:bg-hueso/60"
         }`}
@@ -104,7 +118,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
         )}
         <span className="min-w-0">
           <span className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] font-semibold leading-tight ${apagado ? "text-tinta/60" : "text-tinta"}`}>
-            <span className="truncate">{m.nombre}</span>
+            <span className="truncate" data-guia="colaboradores.nombre">{m.nombre}</span>
             {m.tipo === "persona" && m.esYo && <span className="text-xs font-normal text-tinta/60">(tú)</span>}
             {m.tipo === "persona" && m.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
             {/* Bajo 1024 px el estado va junto al nombre; desde ahí, en su columna. */}
@@ -146,7 +160,7 @@ function EsperanTuOk({
 }) {
   const [preguntando, setPreguntando] = useState<string | null>(null);
   return (
-    <section aria-label="Altas que esperan aprobación" className="rounded-xl bg-ambar/10 px-4 py-3">
+    <section aria-label="Altas que esperan aprobación" className="rounded-xl bg-ambar/10 px-4 py-3" data-guia="colaboradores.esperan-ok">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-ambar-profundo">Esperan tu ok · {pendientes.length}</h2>
         <ComboResponsable control={responsable} compacto deshabilitado={ocupadoId !== null} className="max-w-xs" />
@@ -226,6 +240,10 @@ export function EquipoLista({
   const [texto, setTexto] = useState("");
   const atajos = useMemo(() => atajosEquipo(miembros, ubicaciones, conTerminales), [miembros, ubicaciones, conTerminales]);
   const grupos = useMemo(() => agruparPorSede(miembros, ubicaciones, filtro, texto), [miembros, ubicaciones, filtro, texto]);
+  // La guía interactiva (ADR-0389) abre la ficha de alguien que no eres tú ni un líder (así se ven sus acciones) y la de una terminal.
+  const enOrden = grupos.flatMap((g) => g.miembros);
+  const guiaPersona = enOrden.find((m) => m.tipo === "persona" && !m.esYo && m.nivel !== "lider")?.id;
+  const guiaTerminal = enOrden.find((m) => m.tipo === "terminal")?.id;
   const enTerminales = filtro === "terminales";
 
   return (
@@ -236,19 +254,26 @@ export function EquipoLista({
 
       <div className="card-cayla space-y-4 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Ver" className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+          <div role="group" aria-label="Ver" className="flex min-w-0 flex-1 flex-wrap gap-1.5" data-guia="colaboradores.atajos">
             {atajos.map((a) => (
-              <button key={a.clave} type="button" className="pildora-cayla" aria-pressed={mismoFiltro(filtro, a.filtro)} onClick={() => onFiltro(a.filtro)}>
+              <button
+                key={a.clave}
+                type="button"
+                className="pildora-cayla"
+                aria-pressed={mismoFiltro(filtro, a.filtro)}
+                onClick={() => onFiltro(a.filtro)}
+                data-guia={a.clave === "terminales" ? "colaboradores.atajo-terminales" : a.clave === "todas" ? "colaboradores.atajo-todas" : undefined}
+              >
                 {a.etiqueta} <span className="pildora-cayla__n">{a.n}</span>
               </button>
             ))}
           </div>
           {enTerminales && onNuevaTerminal && (
-            <Boton type="button" peso="primario" onClick={onNuevaTerminal}>
+            <Boton type="button" peso="primario" onClick={onNuevaTerminal} data-guia="colaboradores.nueva-terminal">
               + Nueva terminal
             </Boton>
           )}
-          <Buscador
+          <Buscador guia="colaboradores.buscador"
             valor={texto}
             onCambio={setTexto}
             placeholder="Buscar persona o terminal"
@@ -278,7 +303,7 @@ export function EquipoLista({
           )
 
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-5" data-guia="colaboradores.lista">
             {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). */}
             <div aria-hidden className={`${COLUMNAS} border-b border-sand px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
               <span className="col-span-2">{enTerminales ? "Terminal" : "Persona"}</span>
@@ -305,6 +330,9 @@ export function EquipoLista({
                       elegido={m.id === elegidoId}
                       ahoraIso={ahoraIso}
                       onTocar={() => (m.tipo === "persona" ? onAbrir(m.id) : onAbrirTerminal(m.id))}
+                      guia={
+                        m.id === guiaPersona ? "colaboradores.fila-otra" : m.id === guiaTerminal ? "colaboradores.fila-terminal" : undefined
+                      }
                     />
                   ))}
                 </ul>

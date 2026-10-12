@@ -39,7 +39,9 @@ export default async function RevisarConteoPage({ params }: { params: Promise<{ 
         subtitulo={`Conteo ${c.numero} · ${textoLugar(c)}`}
         volver={<Volver href={`/inventario/conteo/${c.id}`} a={`Conteo ${c.numero}`} />}
       />
-      <PasosConteo actual="revisar" />
+      <div data-guia="conteo.pasos">
+        <PasosConteo actual="revisar" />
+      </div>
       <RevisarConteo key={`${c.id}-${generadoEn}`} conteoId={c.id} filas={filas} generadoEn={generadoEn} />
     </div>
   );

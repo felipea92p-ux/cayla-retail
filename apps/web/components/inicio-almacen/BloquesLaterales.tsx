@@ -77,7 +77,7 @@ export function PulsoAlmacen({
 }) {
   const pctFoto = fotos && fotos.activos > 0 ? Math.round((fotos.conFoto / fotos.activos) * 100) : fotos ? 100 : null;
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 4 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 4 } as CSSProperties} guia="inicio.almacen-cifras">
       <Cabecera titulo="Pulso del almacén" />
       <div className="ia-kp">
         {existencias !== undefined && (
@@ -99,7 +99,7 @@ export function PulsoAlmacen({
 
 export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) {
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 5 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 5 } as CSSProperties} guia="inicio.almacen-camino">
       <Cabecera titulo="En camino" />
       <div className="card-cayla ia-ruta">
         {viajes === null ? (
@@ -154,7 +154,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
   if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay nada que colgar
   const tallas = existencias?.porColgar.tallas ?? 0;
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties} guia="inicio.almacen-colgar">
       <Cabecera titulo="Por colgar" />
       <div className="card-cayla ia-rp">
         {existencias === null ? (
@@ -211,7 +211,7 @@ export type AccesoAlmacen = { href: string; etiqueta: string; icono: ClaveIco; d
 export function AccesosAlmacen({ accesos }: { accesos: AccesoAlmacen[] }) {
   if (accesos.length === 0) return null;
   return (
-    <section className="ia-rv" style={{ "--i": 7 } as CSSProperties}>
+    <section className="ia-rv" style={{ "--i": 7 } as CSSProperties} data-guia="inicio.almacen-accesos">
       <Cabecera titulo="Accesos" />
       <div className="ia-acs">
         {accesos.map((a, j) => (

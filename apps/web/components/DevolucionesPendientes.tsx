@@ -66,7 +66,7 @@ export function DevolucionesPendientes({
     );
   }
   return (
-    <div className="space-y-3">
+    <div data-guia="devoluciones.pendientes" className="space-y-3">
       {pendientes.map((d) => (
         <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
       ))}

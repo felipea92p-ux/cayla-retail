@@ -123,7 +123,7 @@ export function LiquidacionPantalla({
     <div className="space-y-6">
       {/* En celular, las tres cifras van en UNA fila compacta: apiladas empujaban la lista fuera de la primera pantalla (/formidable, H8).
           Las tres filtran la lista, como en escritorio. */}
-      <div className="grid grid-cols-3 gap-2 sm:hidden" role="group" aria-label="Resumen de la liquidación">
+      <div className="grid grid-cols-3 gap-2 sm:hidden" role="group" aria-label="Resumen de la liquidación" data-guia="liquidacion.cifras-chicas">
         {(
           [
             ["disponibles", "A la venta", cifras.disponibles],
@@ -137,7 +137,7 @@ export function LiquidacionPantalla({
           </button>
         ))}
       </div>
-      <div className="hidden gap-3 sm:grid sm:grid-cols-3">
+      <div className="hidden gap-3 sm:grid sm:grid-cols-3" data-guia="liquidacion.cifras">
         <TarjetaCifra
           punto="verde"
           etiqueta="A la venta"
@@ -188,18 +188,19 @@ export function LiquidacionPantalla({
               buscando={buscando}
               icono="barras"
               atajo
+              guia="liquidacion.buscador"
               placeholder="Escanea una etiqueta o busca por categoría o código"
               conteo={q ? `${visibles.length} ${visibles.length === 1 ? "coincide" : "coinciden"}` : undefined}
             />
           </div>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Qué piezas ver">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Qué piezas ver" data-guia="liquidacion.filtros">
             {FILTROS.map((f) => (
               <button key={f.valor} type="button" className="pildora-cayla" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)}>
                 {f.texto} · {conteos[f.valor]}
               </button>
             ))}
           </div>
-          <Boton type="button" peso="primario" onClick={() => setEtiquetando(true)}>
+          <Boton type="button" peso="primario" onClick={() => setEtiquetando(true)} data-guia="liquidacion.etiquetar">
             + Etiquetar una prenda
           </Boton>
         </div>
@@ -227,7 +228,7 @@ export function LiquidacionPantalla({
             </Vacio>
           )
         ) : (
-          <Tabla className="rounded-none border-0 shadow-none">
+          <Tabla className="rounded-none border-0 shadow-none" guia="liquidacion.lista">
             <Encabezado
               plantilla={PLANTILLA}
               columnas={[
@@ -243,6 +244,7 @@ export function LiquidacionPantalla({
                 key={p.id}
                 type="button"
                 onClick={() => setAbierta({ pieza: p, codigoViejo: null })}
+                data-guia="liquidacion.fila"
                 className={`${fila(PLANTILLA)} w-full text-left`}
               >
                 <span className="flex min-w-0 items-center gap-3">
@@ -251,7 +253,7 @@ export function LiquidacionPantalla({
                   </span>
                   {/* Lo que la reconoce arriba y la categoría debajo; sin descripción, la categoría sola (/formidable, H7). */}
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-tinta">{p.descripcion ?? p.categoria}</span>
+                    <span className="block truncate font-medium text-tinta" data-guia="liquidacion.prenda">{p.descripcion ?? p.categoria}</span>
                     {p.descripcion && <span className="block truncate text-[12px] text-taupe">{p.categoria}</span>}
                   </span>
                 </span>
@@ -278,7 +280,7 @@ export function LiquidacionPantalla({
         )}
       </section>
 
-      <div className="nota-cayla space-y-2 text-[13px]">
+      <div className="nota-cayla space-y-2 text-[13px]" data-guia="liquidacion.nota">
         {/* Solo lo que no dice la cabecera (/formidable, ley 8). */}
         <p>
           La caja la cobra escaneando su etiqueta, <b>al precio que dice y sin descuentos</b>. Es venta final: no tiene cambio ni devolución.

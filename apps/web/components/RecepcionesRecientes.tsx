@@ -42,6 +42,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
           <button
             key={r.loteId}
             type="button"
+            data-guia="recibir.reciente"
             onClick={() => setAbierta(r)}
             className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
           >
@@ -86,7 +87,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
           ancho="max-w-lg"
           onClose={() => setAbierta(null)}
         >
-          <div className="mt-4 space-y-4">
+          <div data-guia="recibir.detalle" className="mt-4 space-y-4">
             <Tabla>
               <Encabezado plantilla={PLANTILLA_DETALLE} columnas={[{ titulo: "Prenda" }, { titulo: "Cantidad", alinear: "der" }]} />
               {abierta.detalle.map((l, i) => (

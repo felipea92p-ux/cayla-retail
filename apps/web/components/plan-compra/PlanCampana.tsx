@@ -221,7 +221,7 @@ export function PlanCampana({
               </Boton>
             )}
             {primera && (
-              <Boton peso="primario" className="whitespace-nowrap" onClick={() => setAbierta(primera.c)}>
+              <Boton peso="primario" className="whitespace-nowrap" data-guia="plan.empezar" onClick={() => setAbierta(primera.c)}>
                 <span className="inline-flex items-center gap-2">
                   {totales.conPlan === 0 ? "Empezar por" : "Seguir con"} {primera.c.nombre}
                   <ArrowRight aria-hidden className="h-4 w-4" />
@@ -242,6 +242,7 @@ export function PlanCampana({
       {plan.plan.archivado && (
         <Aviso
           tono="atencion"
+          guia="plan.archivada"
           titulo="Esta campaña está archivada"
           accion={
             esLider && campanas ? (
@@ -266,7 +267,7 @@ export function PlanCampana({
 
       {hechos && hechos.planId === plan.plan.id && (
         // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
+        <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
           <span className="min-w-0 flex-1 basis-72">{fraseDelRecupero(hechos.recupero)}</span>
           {esLider && (
             <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
@@ -315,7 +316,7 @@ export function PlanCampana({
         }
       />
 
-      <p className="nota-cayla">
+      <p className="nota-cayla" data-guia="plan.como">
         Cómo se calcula: con tus tres escenarios, el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente a
         sobrar (lo que pierdes al vender lo que queda más barato). Si lo que sobra se vende casi al mismo precio, conviene cubrir un
         diciembre bueno; si se pierde, conviene quedarse más cerca del flojo. No hay historia de ventas de diciembre en el ERP: estos

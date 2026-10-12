@@ -42,7 +42,7 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
           titulo="Caja"
           subtitulo="Abre la caja para empezar a vender."
           acciones={
-            <BotonEnlace href="/caja/historial">
+            <BotonEnlace href="/caja/historial" data-guia="caja.historial-todas">
               <History className="h-4 w-4" aria-hidden />
               Historial de cierres
             </BotonEnlace>
