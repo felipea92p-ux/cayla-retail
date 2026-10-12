@@ -1,0 +1,35 @@
+{
+  "guia": "produccion.proveedores",
+  "ruta": "/produccion/proveedores",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 23,
+  "controles": {
+    "components/ProveedorProduccionModal.tsx": [
+      "CampoTexto «Nombre o razón social»",
+      "button «{r.ayuda}»",
+      "CampoTexto «RUC»",
+      "CampoTexto «Contacto»",
+      "CampoTexto «Teléfono»",
+      "CampoTexto «Plazo de crédito (días)»",
+      "CampoSelect «Forma de pago»",
+      "CampoTexto «Banco»",
+      "CampoTexto «N.° de cuenta»",
+      "CampoTexto «CCI (transferencia de otro banco)»",
+      "CampoTexto «Celular Yape / Plin»",
+      "button «{ETIQUETA_BILLETERA[b]}»",
+      "CampoTexto «Titular de la cuenta»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/ProveedoresProduccionPanel.tsx": [
+      "Boton «prod-proveedores.nuevo»",
+      "Boton «Agregar el primero»",
+      "button «{r.etiqueta}»",
+      "input «Ver archivados»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Limpiar filtros»",
+      "button «{p.nombre}»"
+    ]
+  }
+}

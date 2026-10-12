@@ -26,7 +26,7 @@ export default async function HistorialProductoPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <div>
+      <div data-guia="historial-pagina.cabecera">
         <Volver href={vueltaAProductos(desde)} a="Productos" className="mb-2" />
         <h1 className="font-display mt-1 text-[34px] leading-tight text-tinta">Historial</h1>
         <p className="mt-1 text-sm text-taupe">

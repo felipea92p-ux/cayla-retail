@@ -4,6 +4,11 @@ name: SQL pegado
 # están en main. Vercel publica main apenas se fusiona: el 2026-09-27 se publicaron 6 cambios sin su SQL. Detalle y
 # límites: encabezado de scripts/migraciones/sql-pegado.mjs.
 #
+# Desde el 2026-10-12 la casilla se COMPRUEBA (ADR-0251): si el PR marcó «SQL pegado en producción», el segundo paso
+# compara producción con lo que el CI vio cambiar a cada migración (scripts/migraciones/sql-en-produccion.sh). Si marcó
+# «se pega después de fusionar», no se mira (lo cubre la revisión diaria). Como este check es obligatorio en `main`, un PR
+# no se fusiona —y Vercel no publica su web— hasta que producción tiene su SQL.
+#
 # Workflow aparte del CI porque tiene que correr también al EDITAR el cuerpo del PR (marcar la casilla), y eso no debe
 # volver a correr las pruebas.
 on:
@@ -17,12 +22,14 @@ concurrency:
 permissions:
   contents: read
   pull-requests: read
+  actions: read # las huellas que deja el CI de este commit (artefacto huellas-del-pr)
 
 jobs:
   sql-pegado:
     name: SQL pegado
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Hasta 20 min esperando que el CI de este commit deje sus huellas (sale apenas su base está arriba, ~3 min).
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,4 +47,18 @@ jobs:
           printf '%s' "$CUERPO" > "$RUNNER_TEMP/cuerpo.md"
       # Las pruebas del detector corren en el CI («Tipos, lint y pruebas»), que tiene el repo completo.
       - name: Revisar
-        run: node scripts/migraciones/sql-pegado.mjs "$RUNNER_TEMP/archivos.json" "$RUNNER_TEMP/cuerpo.md"
+        id: revisar
+        run: node scripts/migraciones/sql-pegado.mjs "$RUNNER_TEMP/archivos.json" "$RUNNER_TEMP/cuerpo.md" "$RUNNER_TEMP/nuevas.txt"
+      # La casilla, comprobada. Corre con el código del PR y el secreto de la deriva: un PR de un fork no recibe secretos y
+      # sale en rojo («falta configurar»), nunca en verde sin mirar. La llave solo lee huellas del catálogo.
+      - name: Comprobar en producción
+        if: ${{ steps.revisar.outputs.verificar == 'si' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          NUEVAS: ${{ runner.temp }}/nuevas.txt
+          URL: ${{ vars.SUPABASE_URL }}
+          ANON: ${{ vars.SUPABASE_ANON_KEY }}
+          LLAVE: ${{ secrets.DERIVA_LLAVE }}
+        run: bash scripts/migraciones/sql-en-produccion.sh

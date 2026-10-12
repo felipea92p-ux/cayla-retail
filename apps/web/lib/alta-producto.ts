@@ -189,6 +189,9 @@ export type EstadoAlta = {
   celdasIncluidas: number;
   precioBase: string;
   costoBase: string;
+  /** La primera celda de la tabla con un precio propio en 0 (o que no es un número), como se lee en pantalla: «Negro en M».
+   *  `null` o ausente = ninguna (`celdaSinPrecio`, lib/tabla-alta-reglas.ts; ADR-0384). */
+  celdaSinPrecio?: string | null;
   /** Paso 4 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
   stockTotal: number;
   /** Celdas con algo que no es un entero de 0 a 9999 (la pantalla no deja escribirlo; la regla no se fía). */
@@ -215,6 +218,12 @@ export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalid
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
  *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
+/** Lo que se dice de una celda de la tabla con el precio en 0 (ADR-0384): cuál es, dónde está y qué hacer. Una sola frase para
+ *  `problemasAlta` y la guía, que tienen que decir lo mismo. */
+export function textoCeldaSinPrecio(celda: string): string {
+  return `${celda} tiene el precio en 0 (tabla, pestaña Precios): pon un precio mayor que 0 o déjala vacía para que tome el de todas.`;
+}
+
 export type Problema = { bloque: "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
 
 /** Lo que falta, en el orden en que la persona lo encuentra en pantalla: así `problemas[0]` es siempre lo próximo que va a
@@ -241,6 +250,7 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.celdasIncluidas === 0) p.push({ bloque: "variantes", texto: "Deja al menos una variante en la tabla." });
   const precio = Number(e.precioBase);
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
+  if (e.celdaSinPrecio) p.push({ bloque: "precio", texto: textoCeldaSinPrecio(e.celdaSinPrecio) });
   const costo = Number(e.costoBase);
   if (e.costoBase.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) p.push({ bloque: "precio", texto: "El costo no puede ser negativo." });
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un

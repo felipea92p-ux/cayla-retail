@@ -14,8 +14,8 @@ export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
   "existencias", "conteos", "traslados", "movimientos", "frescura", "plan_piso",
-  "productos", "atributos", "etiquetas",
-  "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito", "plan_compra",
+  "productos", "atributos", "etiquetas", "liquidacion",
+  "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito", "plan_compra",
   "produccion",
   "analisis", "colaboradores", "roles",
   "configuracion",
@@ -80,6 +80,13 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
+  // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
+  // el líder se lo da después a las terminales de almacén y caja.
+  { clave: "liquidacion", grupo: "Catálogo", nombre: "Liquidación", incluye: "Etiquetar las prendas sueltas que se liquidan sin registrarlas en el catálogo, bajarles el precio con una etiqueta nueva y retirarlas" },
+  // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
+  // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
+  // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
+  { clave: "ordenes_compra", grupo: "Compras", nombre: "Órdenes de compra", incluye: "Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, y descargar su PDF" },
   { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
   { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },

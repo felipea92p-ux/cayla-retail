@@ -11,7 +11,11 @@ import {
   MAX_NOMBRE_MM,
   medidaNombre,
   origenDeParam,
+  papelDeTiraCm,
+  quienesSalen,
+  recorridoDeImpresion,
   textoVarios,
+  tiraConSalientes,
   urlRotulos,
   volverDeRotulos,
   type ModeloRotulo,
@@ -150,5 +154,47 @@ describe("enlaces de ida y vuelta", () => {
     expect(volverDeRotulos(origenDeParam("existencias", null), null)).toEqual({ href: "/inventario", a: "Existencias" });
     expect(volverDeRotulos(origenDeParam("almacen", null), null)).toEqual({ href: "/", a: "Inicio" });
     expect(volverDeRotulos(origenDeParam("cualquiera", null), null)).toEqual({ href: "/", a: "Inicio" });
+  });
+});
+
+describe("la tira de la Brother", () => {
+  it("papelDeTiraCm: 40,1 mm por rótulo, en cm con un decimal", () => {
+    expect(papelDeTiraCm(0)).toBe(0);
+    expect(papelDeTiraCm(1)).toBe(4);
+    expect(papelDeTiraCm(5)).toBe(20.1);
+    expect(papelDeTiraCm(20)).toBe(80.2);
+    expect(papelDeTiraCm(-3)).toBe(0);
+  });
+
+  it("recorridoDeImpresion: ronda el segundo con pocos o con muchos, y nada si no sale ninguno", () => {
+    expect(recorridoDeImpresion(0)).toEqual({ porRotulo: 0, total: 0 });
+    expect(recorridoDeImpresion(1)).toEqual({ porRotulo: 320, total: 440 });
+    for (const n of [1, 2, 3, 5, 8, 13, 20, 40, 100]) {
+      const { porRotulo, total } = recorridoDeImpresion(n);
+      expect(porRotulo).toBeGreaterThanOrEqual(40);
+      expect(porRotulo).toBeLessThanOrEqual(320);
+      expect(total).toBeLessThanOrEqual(n <= 25 ? 1_150 : 4_200);
+    }
+  });
+
+  const r = (clave: string) => ({ clave });
+  const clave = (x: { clave: string }) => x.clave;
+
+  it("quienesSalen: los que ya no están, con su lugar de antes", () => {
+    expect(quienesSalen([r("a"), r("b"), r("c")], [r("a"), r("c")], clave)).toEqual([{ item: r("b"), lugar: 1 }]);
+    expect(quienesSalen([r("a"), r("b")], [r("a"), r("b"), r("c")], clave)).toEqual([]);
+    expect(quienesSalen([r("a"), r("b")], [], clave).map((s) => s.lugar)).toEqual([0, 1]);
+  });
+
+  it("tiraConSalientes: el que sale se dibuja en su lugar, y el orden de los que quedan no cambia", () => {
+    const antes = [r("a"), r("b"), r("c"), r("d")];
+    const ahora = [r("a"), r("d")];
+    const tira = tiraConSalientes(ahora, quienesSalen(antes, ahora, clave));
+    expect(tira.map((t) => `${t.item.clave}${t.sale ? "-" : ""}`)).toEqual(["a", "b-", "c-", "d"]);
+    // «Quitar todas»: la tira entera sale, en su orden.
+    expect(tiraConSalientes([], quienesSalen(antes, [], clave)).map((t) => t.item.clave)).toEqual(["a", "b", "c", "d"]);
+    // Juntar: los sueltos se van desde arriba (en su lugar) y el junto sube a ocupar la tira mientras se pliegan.
+    const junto = [r("a+b")];
+    expect(tiraConSalientes(junto, quienesSalen([r("a"), r("b")], junto, clave)).map((t) => `${t.item.clave}${t.sale ? "-" : ""}`)).toEqual(["a-", "b-", "a+b"]);
   });
 });

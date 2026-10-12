@@ -220,6 +220,11 @@
     .m-tabla td.queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .m-tabla td.nada{color:var(--color-tinta-60);box-shadow:inset 0 0 0 1px var(--color-sand)}
     .m-tabla td.nada b{font-weight:500}
+    /* La alerta de «sin stock» (Felipe 2026-10-12): la fila del color sin stock lo dice junto al nombre, y cada celda agotada lleva su «!». */
+    .m-tabla .m-sin-stock{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+      color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 14%,transparent);border-radius:999px;padding:2px 7px;vertical-align:1px}
+    .m-tabla .m-alerta{display:inline-grid;place-items:center;width:14px;height:14px;margin-right:5px;border-radius:50%;font-size:10px;font-weight:800;line-height:1;
+      color:var(--color-papel);background:var(--color-ambar);vertical-align:1px}
     .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:13px}
     .m-tabla tfoot th.color{color:var(--color-tinta-60)}
     .m-tabla td:focus-visible{outline:2px solid var(--color-pizarra);outline-offset:1px}

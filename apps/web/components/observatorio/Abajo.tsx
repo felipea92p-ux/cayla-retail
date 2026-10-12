@@ -21,7 +21,7 @@ export function TallerTarjeta({ taller, ventana, textoVentana }: { taller: Talle
   const [ref, visto] = useAlVerse<HTMLElement>(0.1);
   const a = useArranque(visto);
   return (
-    <section ref={ref} className={`o-tj o-luz o-revelar ${visto ? "visto" : ""}`} style={{ "--rd": "0ms" } as CSSProperties}>
+    <section ref={ref} className={`o-tj o-luz o-revelar ${visto ? "visto" : ""}`} style={{ "--rd": "0ms" } as CSSProperties} data-guia="inicio.obs-taller">
       <div className="o-tcab">
         <span className="o-lbl">Taller</span>
       </div>
@@ -251,6 +251,7 @@ export function PorRevisar({
     <section
       ref={ref}
       id="o-revisar"
+      data-guia="inicio.obs-revisar"
       className={`o-revelar ${visto ? "visto" : ""}`}
       style={{ "--rd": "90ms" } as CSSProperties}
     >

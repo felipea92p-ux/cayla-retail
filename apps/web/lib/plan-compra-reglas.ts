@@ -20,6 +20,8 @@
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
+import type { PropuestaCategoria } from "./plan-compra-propuesta";
+import type { TiendaReparto } from "./plan-compra-reparto";
 import { compararTallas } from "./tallas";
 
 export const RPC_PLAN = "fn_plan_compra";
@@ -27,6 +29,9 @@ export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
 export const RPC_GUARDAR_TOPE = "guardar_plan_compra_tope";
 export const RPC_PLANES = "fn_planes_compra";
 export const RPC_CREAR_CAMPANA = "crear_plan_compra";
+export const RPC_EDITAR_CAMPANA = "editar_plan_compra";
+export const RPC_QUITAR_CAMPANA = "quitar_plan_compra";
+export const RPC_RESTAURAR_CAMPANA = "restaurar_plan_compra";
 /** Cuántas unidades vendidas «valen» igual que el reparto parejo al proponer la curva. */
 export const K_CURVA = 10;
 
@@ -49,7 +54,8 @@ export type LineaPlan = {
   version: number | null;
 };
 export type LecturaPlan = {
-  plan: { id: string; nombre: string; desde: string; hasta: string };
+  /** `archivado` (B5): la campaña pedida por la URL está archivada (no sale en el selector). */
+  plan: { id: string; nombre: string; desde: string; hasta: string; archivado: boolean };
   hoy: string;
   planes: { id: string; nombre: string }[];
   categorias: CategoriaPlan[];
@@ -147,7 +153,7 @@ export function leerPlan(v: unknown): LecturaPlan | null {
   const hay = (clave: string) => Array.isArray(v[clave]);
   const topeLeido = v.plan.tope_inversion === undefined ? null : numero(v.plan.tope_inversion);
   return {
-    plan: { id, nombre, desde, hasta },
+    plan: { id, nombre, desde, hasta, archivado: v.plan.archivado === true },
     hoy,
     planes: lista(v.planes).flatMap((p) => (texto(p.id) && texto(p.nombre) ? [{ id: p.id as string, nombre: p.nombre as string }] : [])),
     categorias,
@@ -394,6 +400,8 @@ export function borradorDe(
   vendido: ReadonlyMap<string, number> | undefined,
   /** Lo que hay en el catálogo (ADR-0372): sin plan guardado, el precio y el costo arrancan con eso en vez de en blanco. */
   catalogo?: { precio: number; costo: number } | null,
+  /** El % de lo que sobra de la campaña (C5): sin plan guardado, la categoría arranca con él; se puede cambiar. */
+  recuperoDefecto?: number | null,
 ): Borrador {
   const curva = linea && Object.keys(linea.curva).length > 0 ? linea.curva : curvaSugerida(tallas, vendido);
   return {
@@ -402,7 +410,7 @@ export function borradorDe(
     bueno: linea ? String(linea.bueno) : "",
     precio: linea ? linea.precio.toFixed(2) : catalogo ? catalogo.precio.toFixed(2) : "",
     costo: linea ? linea.costo.toFixed(2) : catalogo ? catalogo.costo.toFixed(2) : "",
-    recupero: linea ? String(linea.recuperoPct) : "",
+    recupero: linea ? String(linea.recuperoPct) : recuperoDefecto != null ? String(recuperoDefecto) : "",
     curva: Object.fromEntries(Object.entries(curva).map(([k, v]) => [k, String(v)])),
   };
 }
@@ -461,6 +469,12 @@ export type FilaPlan = {
   sedes: { ubicacion: string; unidades: number }[] | null;
   /** Precio y costo promedio del catálogo, o null si no hay o la base todavía no lo manda. */
   catalogo: { precio: number; costo: number } | null;
+  /** Flojo, normal y bueno que propone el sistema (C4, `lib/plan-compra-propuesta.ts`); null = no vendió; undefined = la base no lo manda. */
+  propuesta?: PropuestaCategoria | null;
+  /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
+  recuperoDefecto?: number | null;
+  /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
+  reparto?: TiendaReparto[];
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -786,11 +800,13 @@ export function segmentosDelTope(filas: readonly FilaPlan[]): SegmentoTope[] {
 // 14. Varias campañas (ADR-0372, B3): el selector y «Nueva campaña»
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Una campaña con plan, para el selector. `conPlan`: cuántas categorías ya tienen su plan. */
-export type CampanaPlan = { id: string; nombre: string; desde: string; hasta: string; etiquetaId: string | null; conPlan: number };
+/** Una campaña con plan, para el selector. `conPlan`: cuántas categorías ya tienen su plan. `archivado` y `conTope` (B5): si salió del selector y
+ *  si tiene un tope fijado (con categorías o con tope, «Quitar» la archiva en vez de borrarla). */
+export type CampanaPlan = { id: string; nombre: string; desde: string; hasta: string; etiquetaId: string | null; conPlan: number; archivado: boolean; conTope: boolean };
 /** Una campaña de Catálogo ▸ Etiquetas (aprobada y con fechas). `planId`: el plan que ya tiene, o null si todavía no. */
 export type EtiquetaCampana = { id: string; nombre: string; desde: string; hasta: string; planId: string | null };
-export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[] };
+/** `edicion` (B5): la base ya sabe editar, quitar y restaurar campañas; si no, la pantalla esconde esas opciones. */
+export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[]; edicion: boolean };
 
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
@@ -802,7 +818,9 @@ export function leerCampanas(v: unknown): CampanasLeidas | null {
     const nombre = texto(p.nombre);
     const desde = fechaIso(p.desde);
     const hasta = fechaIso(p.hasta);
-    return id && nombre && desde && hasta ? [{ id, nombre, desde, hasta, etiquetaId: texto(p.etiqueta_id), conPlan: numero(p.con_plan) }] : [];
+    return id && nombre && desde && hasta
+      ? [{ id, nombre, desde, hasta, etiquetaId: texto(p.etiqueta_id), conPlan: numero(p.con_plan), archivado: p.archivado === true, conTope: p.con_tope === true }]
+      : [];
   });
   const etiquetas = lista(v.etiquetas).flatMap((e): EtiquetaCampana[] => {
     const id = texto(e.id);
@@ -811,7 +829,7 @@ export function leerCampanas(v: unknown): CampanasLeidas | null {
     const hasta = fechaIso(e.hasta);
     return id && nombre && desde && hasta ? [{ id, nombre, desde, hasta, planId: texto(e.plan_id) }] : [];
   });
-  return { planes, etiquetas };
+  return { planes, etiquetas, edicion: lista(v.planes).some((p) => typeof p.archivado === "boolean") };
 }
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
@@ -869,3 +887,91 @@ export const esIdDePlan = (t: string | null | undefined): t is string => typeof 
 
 /** La vista de la tabla vive en la URL (`?vista=paso`): así «Atrás» desde el paso a paso vuelve a la tabla en vez de salir de la pantalla. */
 export const vistaDeLaUrl = (v: string | null | undefined): "tabla" | "guiado" => (v === "paso" ? "guiado" : "tabla");
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 16. Editar, quitar y restaurar una campaña (ADR-0372, B5; Felipe 2026-10-10: «borrar si está vacía, archivar si no»)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Las campañas del selector (las archivadas no salen). */
+export const campanasActivas = (c: CampanasLeidas): CampanaPlan[] => c.planes.filter((p) => !p.archivado);
+/** Las archivadas: se ven y se restauran desde «Campañas archivadas». */
+export const campanasArchivadas = (c: CampanasLeidas): CampanaPlan[] => c.planes.filter((p) => p.archivado);
+
+/** ¿«Quitar» la borra? Solo si está vacía: ninguna categoría armada y sin tope (no hay nada que perder). Si no, se archiva. La base decide igual
+ *  (`quitar_plan_compra`): esto solo pone el nombre correcto al botón y decide si hace falta confirmar. */
+export const quitarBorra = (c: Pick<CampanaPlan, "conPlan" | "conTope">): boolean => c.conPlan === 0 && !c.conTope;
+
+/** Lo que dice el botón «Quitar» y lo que pasa al pulsarlo, en palabras de tienda. */
+export function textoDeQuitar(c: Pick<CampanaPlan, "conPlan" | "conTope">): { boton: string; explica: string } {
+  if (quitarBorra(c)) return { boton: "Borrar campaña", explica: "No tiene ninguna categoría armada ni tope: se borra y no se puede deshacer." };
+  const que = [c.conPlan > 0 ? `${c.conPlan} ${c.conPlan === 1 ? "categoría armada" : "categorías armadas"}` : null, c.conTope ? "su tope" : null].filter(Boolean).join(" y ");
+  return { boton: "Archivar campaña", explica: `Tiene ${que}: se archiva (deja de salir en el selector) y se puede restaurar cuando quieras.` };
+}
+
+export type BorradorEdicion = { nombre: string; desde: string; hasta: string };
+export type CampoEdicion = "nombre" | "desde" | "hasta";
+export const borradorDeEdicion = (c: Pick<CampanaPlan, "nombre" | "desde" | "hasta">): BorradorEdicion => ({ nombre: c.nombre, desde: c.desde, hasta: c.hasta });
+
+/** Lo que impide guardar la edición (vacío = se puede): lo mismo que rechaza `editar_plan_compra`. `otrosNombres`: las demás campañas (la que se
+ *  edita puede quedarse con su nombre). */
+export function problemasDeLaEdicion(b: BorradorEdicion, otrosNombres: readonly string[]): Partial<Record<CampoEdicion, string>> {
+  const p: Partial<Record<CampoEdicion, string>> = {};
+  const nombre = b.nombre.trim();
+  if (!nombre) p.nombre = "Ponle un nombre al plan.";
+  else if (otrosNombres.some((n) => nombreComparable(n) === nombreComparable(nombre))) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  if (!fechaIso(b.desde)) p.desde = "Escribe desde cuándo empieza.";
+  if (!fechaIso(b.hasta)) p.hasta = "Escribe hasta cuándo dura.";
+  else if (fechaIso(b.desde) && b.hasta < b.desde) p.hasta = "La campaña no puede terminar antes de empezar.";
+  return p;
+}
+
+/** ¿Cambió algo? Sin cambios no hay nada que guardar (y salir no pregunta). */
+export const edicionCambio = (b: BorradorEdicion, c: Pick<CampanaPlan, "nombre" | "desde" | "hasta">): boolean =>
+  b.nombre.replace(/\s+/g, " ").trim() !== c.nombre || b.desde !== c.desde || b.hasta !== c.hasta;
+
+/** Los argumentos de `editar_plan_compra`. */
+export const argsEditarCampana = (planId: string, b: BorradorEdicion) => ({ p_plan_id: planId, p_nombre: b.nombre.replace(/\s+/g, " ").trim(), p_desde: b.desde, p_hasta: b.hasta });
+
+/** Qué hizo `quitar_plan_compra`: «borrado» o «archivado» (la base decide: si entre medio alguien armó una categoría, archiva). */
+export function accionDeQuitar(data: unknown): "borrado" | "archivado" | null {
+  return esObjeto(data) && (data.accion === "borrado" || data.accion === "archivado") ? data.accion : null;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 17. La lista de campañas por año y por momento (ADR-0372, C1; Felipe 2026-10-12: «ordenarlas por año para que no sobrecargue»)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Cuánto sigue en el selector una campaña que ya terminó: un año. Ahí se compara lo planificado con lo vendido; una más vieja se mira en el
+ *  Historial, que la ordena por año (sin esto, el selector crece seis campañas por año para siempre). */
+export const DIAS_TERMINADA_EN_SELECTOR = 365;
+
+/** Qué campaña se abre al entrar sin `?plan=`: la que está en curso (si hay dos a la vez, la que termina antes: es la que apura); si no, la
+ *  próxima en empezar; si no, la que terminó más tarde. Nunca una archivada. Antes se abría la de inicio más lejano: con «Día de la Madre
+ *  2027» creada, en pleno diciembre se abría mayo. */
+export function campanaQueAbre(planes: readonly CampanaPlan[], hoy: string): CampanaPlan | null {
+  const activas = planes.filter((p) => !p.archivado);
+  const por = (estado: EstadoCampana) => activas.filter((p) => estadoCampana(hoy, p.desde, p.hasta) === estado);
+  const primera = (l: CampanaPlan[], orden: (a: CampanaPlan, b: CampanaPlan) => number) => [...l].sort(orden)[0] ?? null;
+  return (
+    primera(por("durante"), (a, b) => a.hasta.localeCompare(b.hasta) || a.nombre.localeCompare(b.nombre, "es")) ??
+    primera(por("antes"), (a, b) => a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, "es")) ??
+    primera(por("despues"), (a, b) => b.hasta.localeCompare(a.hasta) || a.nombre.localeCompare(b.nombre, "es"))
+  );
+}
+
+/** Las campañas del selector, en el orden en que se leen y con el título de su grupo: «En curso», «Por venir · 2026», «Por venir · 2027»…
+ *  y «Terminadas» (solo las del último año). Las archivadas no salen (tienen su hoja). */
+export function campanasDelSelector(planes: readonly CampanaPlan[], hoy: string): { campana: CampanaPlan; grupo: string }[] {
+  const activas = planes.filter((p) => !p.archivado);
+  const de = (estado: EstadoCampana) => activas.filter((p) => estadoCampana(hoy, p.desde, p.hasta) === estado);
+  const enCurso = de("durante").sort((a, b) => a.hasta.localeCompare(b.hasta) || a.nombre.localeCompare(b.nombre, "es"));
+  const porVenir = de("antes").sort((a, b) => a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, "es"));
+  const terminadas = de("despues")
+    .filter((p) => diasEntre(p.hasta, hoy) <= DIAS_TERMINADA_EN_SELECTOR)
+    .sort((a, b) => b.hasta.localeCompare(a.hasta) || a.nombre.localeCompare(b.nombre, "es"));
+  return [
+    ...enCurso.map((campana) => ({ campana, grupo: "En curso" })),
+    ...porVenir.map((campana) => ({ campana, grupo: `Por venir · ${campana.desde.slice(0, 4)}` })),
+    ...terminadas.map((campana) => ({ campana, grupo: "Terminadas" })),
+  ];
+}

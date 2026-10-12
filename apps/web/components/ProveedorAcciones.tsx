@@ -37,7 +37,7 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
 
   return (
     <>
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2.5" data-guia="proveedor-ficha.acciones">
         {whatsapp && (
           <BotonAncla href={whatsapp} target="_blank" rel="noreferrer">
             <MessageCircle aria-hidden className="h-3.5 w-3.5" /> WhatsApp
@@ -50,7 +50,7 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
             </span>
           </Boton>
         )}
-        <Boton type="button" onClick={() => setEditando(true)}>
+        <Boton type="button" onClick={() => setEditando(true)} data-guia="proveedor-ficha.editar">
           <span className="inline-flex items-center gap-2">
             <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
           </span>

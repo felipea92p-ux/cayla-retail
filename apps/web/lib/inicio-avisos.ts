@@ -414,7 +414,8 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       nivel: nivelDe(n, "toca"),
       ahora: n ? `Toma la foto de ${n} ${plural(n, "modelo", "modelos")}` : "",
       detalle: n === null ? SIN_LEER : n === 0 ? "Todos los modelos tienen foto." : `${n} ${plural(n, "modelo sin foto", "modelos sin foto")}: sin ella no se reconoce la prenda entre sedes.`,
-      href: "/productos",
+      // Lista filtrada por «Por completar: Sin foto» (`falta=foto`): la misma regla de la cifra, productos sin ninguna fila en `producto_fotos`.
+      href: "/productos?falta=foto",
       ocultable: true,
     });
   }

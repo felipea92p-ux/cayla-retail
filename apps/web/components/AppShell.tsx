@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
@@ -13,6 +13,9 @@ import { veActividad } from "@/lib/actividad-reglas";
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
+import { MotorGuias } from "@/components/guias/MotorGuias";
+import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
+import { BotonDemo } from "@/components/guias/BotonDemo";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
@@ -234,6 +237,8 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
   // Pulso (ADR-0275): «Salud del negocio» de CAYLA Global. No el velocímetro: ese ya es Finanzas ▸ Resumen, en el mismo menú.
   pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
+  // Etiqueta colgante con una flecha que baja: la prenda que se liquida y su precio que se va bajando (ADR-0371).
+  liquidacion: "M3.5 12.5l8-8H20v8.5l-8 8zM15.5 8.5h.01M10 12v5m-2-2l2 2 2-2",
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
   // dueña de un acceso), esta es la clienta que vuelve.
   clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
@@ -758,6 +763,8 @@ const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
+  // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
+  const [demoAbierto, setDemoAbierto] = useState(false);
   // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
   const esLider = persona.rol === "lider";
   const esAparato = !!persona.terminal;
@@ -1070,8 +1077,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           onClose={() => setPerfilAbierto(false)}
           veAdministracion={esLider || !!persona.modulos?.some((m) => m === "colaboradores" || m === "roles")}
           veConfiguracion={!!persona.modulos?.some((m) => m === "configuracion")}
+          onDemo={() => {
+            setPerfilAbierto(false);
+            setDemoAbierto(true);
+          }}
         />
       )}
+      {demoAbierto && <ElegirDemoModal filas={menu.riel} onClose={() => setDemoAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
           y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}
@@ -1157,6 +1169,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
+            {/* «Demo» (ADR-0389): una terminal no tiene «Mi perfil», que es donde una persona repite las guías interactivas. */}
+            {esAparato ? <BotonDemo onClick={() => setDemoAbierto(true)} /> : null}
             {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
                 del aparato, no un módulo ni una pantalla. */}
             <BotonTema />
@@ -1196,6 +1210,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>
       </main>
+
+      {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
+          persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
+      <Suspense fallback={null}>
+        <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} />
+      </Suspense>
     </div>
   );
 }

@@ -19,6 +19,10 @@ import {
   masVendidas,
   cuantasVendidas,
   fraseDelTipo,
+  ordenarAlcance,
+  ORDENES_ALCANCE,
+  ORDEN_ALCANCE_DEFECTO,
+  type OrdenAlcance,
   topsPosibles,
   TOP_DEFECTO,
   type Top,
@@ -59,6 +63,8 @@ export function PestanaPedir() {
   // «Lo que más se vende»: los 5 primeros por defecto; la persona elige ver 10, 15 o 20 (Felipe 2026-10-10). Solo se ofrecen los
   // «Top» que tienen más modelos vendidos que el anterior; si el elegido ya no cabe (otro tipo), se marca el más grande que sí.
   const [top, setTop] = useState<Top>(TOP_DEFECTO);
+  const [orden, setOrden] = useState<OrdenAlcance>(ORDEN_ALCANCE_DEFECTO);
+  const tiposOrdenados = useMemo(() => ordenarAlcance(tipos, orden), [tipos, orden]);
   const vendidos = cuantasVendidas(prendas, categoria);
   const opcionesTop = topsPosibles(vendidos);
   const topMarcado = opcionesTop.includes(top) ? top : opcionesTop[opcionesTop.length - 1];
@@ -105,11 +111,19 @@ export function PestanaPedir() {
         <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
           <div className="b-cab">
             <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
-            <span className="b-nota">
-              {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende <span aria-hidden="true">→</span>
+            {/* Ordenar (Felipe 2026-10-12): lo que más se vende primero (por defecto), o lo que se acaba antes. */}
+            <span className="filtro-a" role="group" aria-label="Ordenar los tipos" data-guia="analisis.pedir-orden">
+              {ORDENES_ALCANCE.map((o) => (
+                <button key={o.clave} type="button" className="pildora" aria-pressed={orden === o.clave} onClick={() => setOrden(o.clave)}>
+                  {o.texto}
+                </button>
+              ))}
             </span>
           </div>
-          <TablaAlcance tipos={tipos} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
+          <p className="b-nota al-nota">
+            {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende <span aria-hidden="true">→</span>
+          </p>
+          <TablaAlcance tipos={tiposOrdenados} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
         </section>
 
         {/* El panel del tipo elegido (o de toda la tienda): siempre a la vista junto a la lista mientras se recorre. */}
@@ -311,7 +325,6 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
     <div className="pt-bloque">
       <div className="pt-cab">
         {titulo}
-        {c.falta ? <ChipEstado est="ate">Falta {c.falta}</ChipEstado> : <ChipEstado est="bien">Parejo</ChipEstado>}
       </div>
       <div className={`cols-t ${c.columnas.length > 5 ? "muchas" : ""}`}>
         {c.columnas.map((t, k) => (

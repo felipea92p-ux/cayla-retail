@@ -39,7 +39,7 @@ export function RepartoPorTienda({
   const titulo = <p className="label-cayla text-[11px] text-tinta/65">Reparto por tienda</p>;
   if (reparto.fallo) {
     return (
-      <section className="space-y-2">
+      <section className="space-y-2" data-guia="factura.reparto">
         {titulo}
         <p className="card-cayla p-5 text-sm text-tinta/65">{reparto.fallo}</p>
       </section>
@@ -81,7 +81,7 @@ export function RepartoPorTienda({
   if (!repartido) {
     const unica = tiendasDelReparto(filas, orden)[0];
     return (
-      <section className="space-y-2">
+      <section className="space-y-2" data-guia="factura.reparto">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {titulo}
           {reasignar()}
@@ -100,7 +100,7 @@ export function RepartoPorTienda({
   const totales = resumenPorTienda(filas, orden);
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-guia="factura.reparto">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         {titulo}
         {reasignar()}

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
+import { clasificarFalloDeSubida, esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
@@ -28,6 +28,7 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinPrecioParaVender,
   totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
@@ -37,7 +38,8 @@ import {
   type PagoAplicado,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
-import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, ventasSubidasEntre, ventaTrasFallo, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal } from "@/components/ui/Modal";
@@ -124,6 +126,7 @@ import {
 } from "@/lib/club-cumple-canje-reglas";
 import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
+import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
 import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
@@ -135,6 +138,7 @@ import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
+import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -221,6 +225,8 @@ export type ItemCarrito = {
   campana?: CampanaLinea | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
+  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta. Precio final, sin descuentos, venta final. */
+  liquidacion?: { codigo: string };
   /** De dónde salió la línea si no la buscó la colaboradora: la tocó en «Combina bien con» de «Todo de la prenda» (Felipe 2026-10-10).
    *  Viaja a `registrar_venta` como `origen_sugerencia` (migración 20261010220000); hasta que esté pegada, la base lo ignora. */
   origen?: OrigenDeLinea;
@@ -451,6 +457,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
+  // Cómo se llama el ticket que está en la caja («Probador 2», «María»): se llena al RETOMAR uno con nombre y vuelve
+  // con él si se lo deja en espera otra vez. Sin esto, el ticket retomado perdía su nombre y la tira lo mostraba como
+  // «Ticket N» (bug 2026-10-12): la cajera ya no sabía de qué clienta era cada uno.
+  const [nombreTicket, setNombreTicket] = useState("");
   // El RESPONSABLE de la venta (ADR-0161; reemplaza la fila «Atendió» del ADR-0163): solo quienes están presentes
   // ahora en la tienda, vacío en cada venta, y sin nadie presente no se cobra. Viaja como `p_asesora_id` y como
   // encabezado `x-responsable` (`firmar`), y es el nombre que sale en el papel del ticket. En el Punto de venta NO se
@@ -682,6 +692,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setActivo(0);
       const v = resolverCodigoV2(codigo, variantesVisibles);
       if (!v) {
+        // ADR-0379: una etiqueta de liquidación no es de ninguna prenda del catálogo; se busca su pieza en la base.
+        const liquidacion = codigoDeLiquidacion(codigo);
+        if (liquidacion) {
+          void agregarPiezaLiquidacion(liquidacion);
+          return;
+        }
         setAviso(`No encontramos «${codigo}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -738,14 +754,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       for (const venta of aReintentar) {
         // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora (ADR-0162),
         // y después la manda sola a SUNAT (D-60), igual que un cobro en línea.
-        const { data: ventaSubida, error } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
+        const { data: ventaSubida, error, status } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
         if (!error) {
           resueltos.set(venta.token, null);
           subidas.push(...venta.items);
           if (ventaSubida) enviarVentaASunat(ventaSubida);
+          continue;
         }
-        else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
-        // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
+        // Solo es rechazo si la base RESPONDIÓ con un veredicto (código de Postgres) que no es «intenta de nuevo». Un corte
+        // de red, un 502/504 del camino, un deadlock o un 5xx dejan la venta en la cola tal cual: pudo haberse guardado, y
+        // marcarla «rechazada» invita a cobrarla otra vez a mano (dos ventas, dos comprobantes, el stock baja dos veces).
+        const siguiente = ventaTrasFallo(venta, clasificarFalloDeSubida(error, status), traducirError(error, "subir la venta guardada sin conexión"));
+        if (siguiente) resueltos.set(venta.token, siguiente);
       }
       if (cancelado || resueltos.size === 0) return;
 
@@ -768,7 +788,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // de lanzar una paralela (ver el comentario de `subidaEnCursoRef`, arriba).
     function intentarSubir(): Promise<void> {
       if (!subidaEnCursoRef.current) {
-        subidaEnCursoRef.current = pasada().finally(() => {
+        // Entre pestañas del mismo navegador sube UNA (`navigator.locks`): la otra se entera por el evento `storage`.
+        subidaEnCursoRef.current = conCandadoDeSubida(claveCola, pasada).then(() => undefined).finally(() => {
           subidaEnCursoRef.current = null;
         });
       }
@@ -783,6 +804,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       window.removeEventListener("online", intentarSubir);
       clearInterval(latido);
     };
+  }, [claveCola]);
+
+  // Otra pestaña del mismo navegador cambió la cola (encoló una venta, o subió las que esperaban): esta pantalla la relee.
+  // Sin esto, con el candado de subida (`conCandadoDeSubida`) la pestaña que no sube se quedaría mostrando como «en cola»
+  // —y descontando del stock— ventas que la otra ya registró. Lo que subió se descuenta igual que en una subida propia.
+  const colaRef = useRef(cola);
+  useEffect(() => {
+    colaRef.current = cola;
+  });
+  useEffect(() => {
+    const alCambiarOtraPestana = (e: StorageEvent) => {
+      if (e.key !== claveCola) return;
+      const nueva = leer<VentaEncolada[]>(claveCola, []);
+      const subidas = ventasSubidasEntre(colaRef.current, nueva).flatMap((v) => v.items);
+      setCola(nueva);
+      if (subidas.length > 0) trasVenderRef.current(subidas);
+    };
+    window.addEventListener("storage", alCambiarOtraPestana);
+    return () => window.removeEventListener("storage", alCambiarOtraPestana);
   }, [claveCola]);
 
   /** Relee de la base lo cobrable AQUÍ de unas prendas (lectura directa de `stock`, la misma de
@@ -911,8 +951,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function agregar(
     v: VarianteBusqueda,
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
-  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | null {
     if (bloqueado) return null;
+    // ADR-0384: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
+    // con la prenda ya entregada). La bolsa de obsequio sí: es de una familia fuera de los motores.
+    if (sinPrecioParaVender(v)) {
+      if (!silencioso) {
+        avisar.error(`${[v.referencia, v.talla].filter(Boolean).join(" · ")} no tiene precio`, {
+          detalle: "No entra al ticket. Pide que le pongan precio en su ficha (Catálogo ▸ Productos) antes de venderla.",
+        });
+      }
+      setAviso(null);
+      setQ("");
+      setActivo(0);
+      buscador.current?.focus();
+      return "sin_precio";
+    }
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
@@ -1102,7 +1156,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  un QR es un código exacto o no es nada. */
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
-    if (!v) return { estado: "no-encontrada", codigo };
+    if (!v) {
+      // ADR-0379: la pieza de liquidación se busca en la base; el aviso de cómo fue sale aparte, al responder.
+      const liquidacion = codigoDeLiquidacion(codigo);
+      if (liquidacion) {
+        void agregarPiezaLiquidacion(liquidacion);
+        return { estado: "agregada", codigo, nombre: "Pieza de liquidación" };
+      }
+      return { estado: "no-encontrada", codigo };
+    }
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
@@ -1128,6 +1190,70 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         duracion: 15_000,
       });
     }
+  }
+
+  /**
+   * Una pieza de liquidación (ADR-0379): la prenda suelta que no está en el catálogo, con su etiqueta LQ. Se lee en la base (su
+   * precio vigente, si sigue a la venta y si es de esta tienda) y entra como una línea de la variante centinela, sin mover stock.
+   * La base vuelve a comprobarlo todo al cobrar; aquí se adelanta para decirlo en el mostrador y no en el cobro.
+   */
+  async function agregarPiezaLiquidacion(codigo: string) {
+    if (bloqueado) return;
+    if (carrito.some((it) => it.liquidacion?.codigo === codigo)) {
+      avisar.aviso("Esa prenda ya está en el ticket", { detalle: "Cada prenda de liquidación es una sola unidad." });
+      return;
+    }
+    const { data, error } = await createClient().rpc("fn_pieza_liquidacion", { p_codigo: codigo });
+    const leida = error ? null : piezaLeidaDeJson(data);
+    if (error) {
+      avisar.error("No se pudo leer la etiqueta", { detalle: "Revisa la conexión y vuelve a escanearla." });
+      return;
+    }
+    if (!leida) {
+      setAviso(`No encontramos la etiqueta «${codigo}».`);
+      return;
+    }
+    if (leida.tipo === "otra_sede" || leida.pieza.ubicacionId !== ubicacionId) {
+      avisar.error("Esa prenda es de otra tienda", { detalle: "Las prendas de liquidación se venden en la tienda que las etiquetó." });
+      return;
+    }
+    const pieza = leida.pieza;
+    if (pieza.estado !== "disponible") {
+      avisar.error(pieza.estado === "vendida" ? "Esa prenda ya se vendió" : "Esa prenda ya no está a la venta");
+      return;
+    }
+    if (!leida.vigente) {
+      avisar.error("Esa etiqueta ya no vale", {
+        detalle: `La prenda cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
+      });
+      return;
+    }
+    capturarFlip();
+    setCarrito((actual) =>
+      actual.some((it) => it.liquidacion?.codigo === codigo)
+        ? actual
+        : [
+            ...actual,
+            {
+              claveLinea: `liq-${codigo}`,
+              varianteId: ID_CARGO_ESPECIAL,
+              // «Liquidación · Blusas»: el nombre de la línea en el ticket y en la boleta.
+              referencia: nombreEnVenta(pieza.categoria, pieza.descripcion),
+              sku: "LIQUIDACION",
+              codigo,
+              cantidad: 1,
+              precioUnitario: pieza.precio,
+              descuentoUnitario: 0,
+              stockAqui: 1,
+              razonDescuento: "",
+              razonDescuentoOtro: "",
+              argumentoDescuento: "",
+              campana: null,
+              liquidacion: { codigo },
+            },
+          ],
+    );
+    setAviso(null);
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1205,7 +1331,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle));
+    // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
+    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)));
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
@@ -1223,6 +1350,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setCarrito([]);
     quitarClienta();
     setNota("");
+    setNombreTicket("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
     responsable.limpiar();
@@ -1246,7 +1374,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, nombre: nombre || undefined, clienta }]);
+    persistirEspera([...enEspera, ticketParaEspera({ carrito, nota, nombre, clienta }, crypto.randomUUID(), new Date().toISOString())]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -1255,7 +1383,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, clienta } : null;
+      carrito.length > 0
+        ? ticketParaEspera({ carrito, nota, nombre: nombreTicket, clienta }, crypto.randomUUID(), new Date().toISOString())
+        : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -1273,6 +1403,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
+    // El nombre viaja con el ticket: si se lo vuelve a dejar en espera, la hoja lo propone y la tira lo sigue
+    // llamando igual.
+    setNombreTicket(ticket.nombre ?? "");
     // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta.
     if (ticket.clienta) elegirClienta(ticket.clienta);
     else quitarClienta();
@@ -1307,6 +1440,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setQ("");
       setActivo(0);
       if (accion.tipo === "no-encontrada") {
+        // ADR-0379: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
+        const liquidacion = codigoDeLiquidacion(accion.texto);
+        if (liquidacion) {
+          void agregarPiezaLiquidacion(liquidacion);
+          return;
+        }
         setAviso(`No encontramos «${accion.texto}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1391,7 +1530,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     : null;
   // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
   const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
-  const motivoBloqueo = motivoBloqueoCobro({
+  // ADR-0379: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
+  const liquidacionConClub =
+    conVentajaDelClub && carrito.some((it) => it.liquidacion)
+      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
+      : null;
+  const motivoBloqueo = liquidacionConClub ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1532,7 +1676,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // propia): se dice, en vez de perderla en silencio.
   function lineasParaLlevar(accion: string) {
     const sinRegistrar = carrito.filter((it) => it.varianteId === ID_CARGO_ESPECIAL).length;
-    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar no se puede ${accion}: sigue en el ticket.`);
+    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar o de liquidación no se puede ${accion}: sigue en el ticket.`);
     return carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL).map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
   }
   function apartarDesdeTicket() {
@@ -1571,7 +1715,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
         // «Prenda sin registrar» (ADR-0179): la base exige estos cuatro para dejarla por regularizar.
-        descripcion_libre: it.prendaLibre?.descripcion,
+        descripcion_libre: it.prendaLibre?.descripcion ?? (it.liquidacion ? it.referencia : undefined),
+        // ADR-0379: la pieza de liquidación viaja con su código; la base la cobra al precio de su etiqueta vigente.
+        pieza_liquidacion_codigo: it.liquidacion?.codigo,
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
@@ -1614,6 +1760,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           setLoading(false);
           const { titulo, detalle } = cumpleDelTicket ? canjeSinConexion(cumpleDelTicket.pct) : valeSinConexion();
           avisar.error(titulo, { detalle });
+          return;
+        }
+        // ADR-0379: una pieza de liquidación tampoco se encola: es UNA prenda y otra caja podría venderla, o rebajarla, mientras tanto.
+        if (carrito.some((it) => it.liquidacion)) {
+          setLoading(false);
+          avisar.error("Sin conexión no se cobra una prenda de liquidación", {
+            detalle: "Es una sola prenda y la base tiene que confirmar que sigue a la venta. Espera a que vuelva el internet, o sácala del ticket y cobra lo demás.",
+          });
           return;
         }
         const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
@@ -1666,6 +1820,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       if (rechazoVale) {
         clubDeLaClienta.apagarValeTrasRechazo(rechazoVale.releer);
         avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoVale.detalle });
+        responsable.despues(error);
+        return;
+      }
+      // ADR-0379: la pieza de liquidación se vendió, se rebajó o se retiró mientras estaba en el ticket.
+      const rechazoLiquidacion = carrito.some((it) => it.liquidacion) ? errorDeLiquidacion(`${error.message} ${error.hint ?? ""}`) : null;
+      if (rechazoLiquidacion) {
+        avisar.error(rechazoLiquidacion.titulo, rechazoLiquidacion.detalle ? { detalle: `${rechazoLiquidacion.detalle} Sácala del ticket y vuelve a escanearla.` } : undefined);
         responsable.despues(error);
         return;
       }
@@ -1986,7 +2147,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   : undefined
               }
             />
-            <span className="ml-auto">
+            <span className="ml-auto" data-guia="vender.hoy">
               <ResumenDeHoy
                 forma="texto"
                 ventas={ventasDeHoy.ventas}
@@ -2112,6 +2273,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         <button
           type="button"
           onClick={() => setHojaTicket(true)}
+          data-guia="vender.barra-ticket"
           aria-haspopup="dialog"
           className="anim-revelar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-2xl bg-tinta py-2.5 pl-3 pr-2.5 text-left text-crema shadow-lg sm:left-[calc(var(--ancho-lateral,0px)+0.75rem)] lg:hidden"
         >
@@ -2144,7 +2306,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
       {esperaAbierta && (
         <DejarEnEsperaModal
-          ocupados={enEspera.map((t) => t.nombre ?? "")}
+          nombreInicial={nombreTicket}
+          // El ticket que está en la caja ocupa su nombre igual que los de la tira: si se retomó «Probador 1», ese
+          // chip no se vuelve a ofrecer (el campo ya lo trae escrito).
+          ocupados={[...enEspera.map((t) => t.nombre ?? ""), nombreTicket]}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
         />

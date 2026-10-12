@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 // Solo en la computadora: en el celular, Exportar vive en la hoja de Filtros (el «⋯» solo ocupaba una fila bajo la frase).
 export function MenuMovimientos({ hrefExportar }: { hrefExportar: string }) {
   return (
-    <div className="hidden sm:block">
+    <div data-guia="movimientos.menu" className="hidden sm:block">
       <MenuAcciones
         etiqueta="Más opciones de Movimientos"
         items={[

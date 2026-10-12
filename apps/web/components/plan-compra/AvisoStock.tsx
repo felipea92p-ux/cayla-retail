@@ -11,7 +11,7 @@ import type { ConfianzaDelStock } from "@/lib/plan-compra-reglas";
 export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDelStock; puedeContar: boolean }) {
   if (confianza.estado === "confiable") {
     return (
-      <p className="flex items-center gap-2 text-sm font-medium text-verde-profundo">
+      <p data-guia="plan.stock" className="flex items-center gap-2 text-sm font-medium text-verde-profundo">
         <CircleCheck aria-hidden className="h-4 w-4 shrink-0" />
         Stock confiable: las tiendas tienen el piso cuadrado y el almacén contado.
       </p>
@@ -19,7 +19,7 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
   }
   if (confianza.estado === "sin-dato") {
     return (
-      <Aviso tono="atencion" titulo="No se pudo verificar el stock">
+      <Aviso guia="plan.stock" tono="atencion" titulo="No se pudo verificar el stock">
         No se pudo comprobar si el «Hay hoy» de las tiendas está completo. Antes de comprar, revisa que el piso y el almacén de cada tienda estén al día.
       </Aviso>
     );
@@ -27,6 +27,7 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
   const sinAlDia = confianza.sedes.filter((s) => !s.alDia);
   return (
     <Aviso
+      guia="plan.stock"
       tono="atencion"
       titulo="El «Hay hoy» está incompleto"
       accion={

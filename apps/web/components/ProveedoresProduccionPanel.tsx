@@ -45,12 +45,12 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
           <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Quién le vende tela, avíos y maquila al Taller. Es un directorio aparte del de Compras.</p>
         </div>
-        <Boton peso="primario" onClick={() => setEditando("nuevo")}>
+        <Boton peso="primario" data-guia="prod-proveedores.nuevo" onClick={() => setEditando("nuevo")}>
           + Nuevo proveedor
         </Boton>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-proveedores.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
           {resumen.archivados > 0 ? `${plural(resumen.archivados, "archivado", "archivados")} aparte` : "ninguno archivado"}
         </TarjetaCifra>
@@ -71,6 +71,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
       {proveedores.length === 0 ? (
         <div className="card-cayla">
           <Vacio
+            guia="prod-proveedores.lista"
             icono={<Truck />}
             titulo="Todavía no hay proveedores del Taller"
             acciones={
@@ -86,7 +87,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap gap-2">
+            <div data-guia="prod-proveedores.rubros" role="group" aria-label="Filtrar por rubro" className="flex flex-wrap gap-2">
               {[{ valor: "todos" as const, etiqueta: "Todos", n: resumen.activos }, ...RUBROS_PRODUCCION.map((r) => ({ valor: r.valor, etiqueta: r.etiqueta, n: resumen.porRubro[r.valor] }))].map((r) => (
                 <button
                   key={r.valor}
@@ -101,9 +102,9 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
                 </button>
               ))}
             </div>
-            <Buscador valor={busqueda} onCambio={setBusqueda} atajo placeholder="Nombre, RUC o contacto" etiqueta="Buscar proveedor" className="ml-auto min-w-56" />
+            <Buscador guia="prod-proveedores.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Nombre, RUC o contacto" etiqueta="Buscar proveedor" className="ml-auto min-w-56" />
             {resumen.archivados > 0 && (
-              <label className="flex items-center gap-2 text-xs text-tinta/70">
+              <label data-guia="prod-proveedores.archivados" className="flex items-center gap-2 text-xs text-tinta/70">
                 <input type="checkbox" checked={verArchivados} onChange={(e) => setVerArchivados(e.target.checked)} />
                 Ver archivados
               </label>
@@ -140,7 +141,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
               )}
             </div>
           ) : (
-            <div className="card-cayla overflow-hidden">
+            <div data-guia="prod-proveedores.lista" className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
                 <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
                 <span className="label-cayla text-right text-[11px] text-tinta/65">Comprado</span>
@@ -157,7 +158,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
                       className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 sm:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto]"
                     >
                       <span className="min-w-0">
-                        <span className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
+                        <span data-guia="prod-proveedores.nombre" className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
                         <span className="block text-xs text-tinta/65">
                           {etiquetaRubro(p.rubro)} · {condicionDePago(p.plazoCreditoDias)}
                           {p.contacto ? ` · ${p.contacto}` : ""}

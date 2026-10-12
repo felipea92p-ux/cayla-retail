@@ -1,0 +1,72 @@
+{
+  "guia": "vender.historial",
+  "ruta": "/vender/historial",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 44,
+  "controles": {
+    "app/(app)/vender/historial/page.tsx": [
+      "Link «Volver al período»",
+      "BotonEnlace «Borrar la búsqueda»",
+      "BotonEnlace «Limpiar filtros»"
+    ],
+    "components/AccionesVentaHistorial.tsx": [
+      "Link «{a.etiqueta}»"
+    ],
+    "components/AvisosHistorial.tsx": [
+      "Link «{a.texto}»"
+    ],
+    "components/ComprasAgrupadas.tsx": [
+      "button «{f.texto}»",
+      "Boton «Buscar en todas las tiendas»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Reintentar»",
+      "Boton «Corregir pago»",
+      "button «Imprimir ticket»",
+      "button «Imprimir»"
+    ],
+    "components/FiltrosHistorialVentas.tsx": [
+      "button «{guia}»",
+      "Pastilla «Hoy»",
+      "Pastilla «{dias}»",
+      "Pastilla «Personalizado»",
+      "Pastilla «{a.etiqueta}»",
+      "button «historial.atajo-elegir»",
+      "a «Exportar»",
+      "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «Todo el historial»",
+      "DesplegablePildora «Tienda»",
+      "DesplegablePildora «Vendedor»",
+      "DesplegablePildora «Pago»",
+      "DesplegablePildora «Estado»",
+      "DesplegablePildora «Comprobante»",
+      "Pastilla «Con datos de prueba»",
+      "button «{`Quitar filtro ${c.texto}»",
+      "button «Limpiar todo»"
+    ],
+    "components/HistorialVentasLista.tsx": [
+      "button «historial.venta-abrir»",
+      "Link «historial.venta-sunat»"
+    ],
+    "components/HistorialVentasPulso.tsx": [
+      "Link «{e.texto}»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «← Volver al inicio»",
+      "Link «Siguiente página →»",
+      "Link «‹»",
+      "Link «{n}»",
+      "Link «›»"
+    ]
+  }
+}

@@ -101,8 +101,17 @@ const HUELLAS: Huella[] = [
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
   },
   {
+    // ADR-0328 (20261004204000, en producción desde el 5-oct): llega con 42501 y este hint; la frase es la misma de la base.
+    // Sin esta huella caía al genérico con «avisa a Felipe. Código: …», y no es un rechazo del combo «Responsable».
+    marca: "regularizar_propia_venta",
+    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
+  },
+  {
+    // Desde 20261004204000 «Perdió la etiqueta» descuenta solo de lo DISPONIBLE (como las cifras de la mesa): las apartadas y las
+    // de Cuarentena no se descuentan, aunque la tienda las tenga.
     marca: "prenda_sin_stock_para_descontar",
-    frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
+    frase:
+      "Esa prenda no tiene unidades libres en esta tienda (las apartadas y las de Cuarentena no cuentan). Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
   },
   {
     // Toda RPC que llama la web tiene EXECUTE para `authenticated`; si Postgres dice «permission denied for
@@ -167,6 +176,13 @@ const HUELLAS: Huella[] = [
     // navegador. El detalle es «referencia (sku)».
     marca: "venta_precio_cambiado",
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
+  },
+  {
+    // 20261012190000_precio_cero_solo_empaque.sql (ADR-0384) — una prenda de mercadería con precio 0 en el catálogo no se vende
+    // (solo la bolsa de obsequio, de Empaque, va en S/ 0). La caja ya no la deja entrar al ticket; esto es la red si llega igual
+    // (una venta sin conexión, una pantalla vieja). El detalle es «referencia (sku)».
+    marca: "venta_sin_precio",
+    frase: (prenda) => `${prenda} no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.`,
   },
   {
     // 20260917100700_movimientos_respetan_restriccion_sede.sql — una etiqueta con
@@ -444,6 +460,18 @@ const HUELLAS: Huella[] = [
     marca: "familias_nombre_unico",
     frase: "Ya existe una familia muy parecida (mayúsculas, tildes o espacios de más no cuentan como distinto).",
   },
+  {
+    // 20261012201000_cambio_sin_precio.sql (ADR-0385) — no se cambia por una prenda sin precio: la diferencia le devolvería al
+    // cliente lo que pagó. Cambios ya lo frena antes (`validarCambio`); esto es la red. El detalle es «referencia (código)».
+    marca: "cambio_sin_precio",
+    frase: (prenda) => `${prenda} no tiene precio en el catálogo: elige otra prenda para el cambio, o pide que le pongan precio en su ficha.`,
+  },
+  {
+    // `separacion_items` exige `precio_unitario > 0` desde que existe Apartados (20260923090000): una prenda en S/ 0 no se
+    // aparta. Antes llegaba el nombre crudo del candado (ADR-0385).
+    marca: "separacion_items_precio_unitario_check",
+    frase: "Una de las prendas no tiene precio en el catálogo: quítala del apartado y pide que le pongan precio en su ficha.",
+  },
 ];
 
 /**
@@ -624,6 +652,25 @@ export function esErrorPasajero(error: ErrorEscritura, status?: number | null): 
   if (!error) return false;
   if (error.code && CODIGOS_PASAJEROS.includes(error.code)) return true;
   return typeof status === "number" && (status >= 500 || status === 429 || status === 408);
+}
+
+/** Qué significa un fallo al SUBIR una operación guardada sin conexión (ver `clasificarFalloDeSubida`). */
+export type TipoFalloSubida = "red" | "pasajero" | "definitivo";
+
+/**
+ * La ÚNICA regla de «¿esto que falló al subir es un rechazo de verdad?», compartida por la cola de ventas
+ * (`PuntoDeVenta.tsx`) y la cola genérica (`useColaOffline.ts`). Solo es `definitivo` cuando la base RESPONDIÓ con un
+ * veredicto (trae código de Postgres) y ese veredicto no es «ahora no, intenta de nuevo». Todo lo demás se reintenta:
+ *  · `red`: ni siquiera llegó al servidor.
+ *  · `pasajero`: respondió con un 5xx/429/408, o con un bloqueo/deadlock (`esErrorPasajero`), o con algo SIN código de
+ *    Postgres (un 502/504 del camino, una excepción del cliente: `esRespuestaIncierta`) — en esos casos la transacción
+ *    pudo confirmarse igual, y marcar la venta «rechazada» invita a cobrarla de nuevo a mano y duplicarla.
+ * Reintentar es seguro porque cada operación viaja con su `p_token` y la base devuelve lo ya guardado (ADR-0063/0210).
+ */
+export function clasificarFalloDeSubida(error: ErrorEscritura, status?: number | null): TipoFalloSubida {
+  if (esFalloDeRed(error)) return "red";
+  if (esErrorPasajero(error, status) || esRespuestaIncierta(error)) return "pasajero";
+  return "definitivo";
 }
 
 /** ¿Guardar esto en la cola en vez de mostrar el error? Sin red, o con el servidor momentáneamente mal. */

@@ -23,7 +23,7 @@ export function VerPorPagar({ ver, unidades, esLider }: { ver: Ver; unidades: Ub
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
   return (
-    <label className="fin-ver">
+    <label className="fin-ver" data-guia="fin-ver.combo">
       <span className="label-cayla text-[11px] text-taupe">Ver</span>
       <SelectFin
         etiqueta="Qué mirar"

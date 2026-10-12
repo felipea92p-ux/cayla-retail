@@ -36,7 +36,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-recibir.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
           punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
           etiqueta="Por recibir"
@@ -56,20 +56,20 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
       {grupos.length === 0 ? (
         <div className="card-cayla">
-          <Vacio icono={<PackageOpen />} titulo="No hay insumos por recibir">
+          <Vacio guia="prod-recibir.lista" icono={<PackageOpen />} titulo="No hay insumos por recibir">
             Cuando el líder registre la factura de un proveedor de tela o avíos, aparecerá aquí para que anotes lo que llegó.
           </Vacio>
         </div>
       ) : abiertos.length === 0 ? (
         <div className="card-cayla">
-          <Vacio icono={<CircleCheck />} titulo="Todo lo facturado ya llegó">
+          <Vacio guia="prod-recibir.lista" icono={<CircleCheck />} titulo="Todo lo facturado ya llegó">
             Lo que se compró ya entró al Taller o se cerró. No hay nada por recibir.
           </Vacio>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul data-guia="prod-recibir.lista" className="space-y-3">
           {abiertos.map((g, i) => (
-            <li key={g.comprobanteId} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
+            <li key={g.comprobanteId} data-guia={i === 0 ? "prod-recibir.factura" : undefined} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-[15px] text-tinta">{g.proveedor}</p>
@@ -79,7 +79,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
                 </div>
                 <div className="flex items-center gap-2">
                   {g.estado === "parcial" && <Chip tono="ambar">Llegó en parte</Chip>}
-                  <Boton peso="primario" onClick={() => setRecibiendo(g)}>
+                  <Boton peso="primario" data-guia="prod-recibir.recibir" onClick={() => setRecibiendo(g)}>
                     Recibir
                   </Boton>
                 </div>
@@ -101,7 +101,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
       )}
 
       {completos.length > 0 && (
-        <details className="card-cayla p-4">
+        <details data-guia="prod-recibir.recibidos" className="card-cayla p-4">
           <summary className="cursor-pointer text-sm text-tinta/80">Ya recibidos ({completos.length})</summary>
           <ul className="mt-2">
             {completos.map((g) => (

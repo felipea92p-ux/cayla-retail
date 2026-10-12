@@ -74,7 +74,7 @@ export function FrescuraPiso({
   const cerrada = puerta === null || !puerta.puedeHablar;
   const paso = pasoDeLaPuerta(puerta, acceso);
   return (
-    <section aria-labelledby="frescura-piso-titulo" className="card-cayla px-4 py-4 sm:px-5">
+    <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="card-cayla px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="frescura-piso-titulo" className="flex items-center gap-2 font-display text-[22px] leading-tight">
           {principal.nombre}

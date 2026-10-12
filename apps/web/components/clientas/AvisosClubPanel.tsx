@@ -223,7 +223,7 @@ export function AvisosClubPanel({
         subtitulo="Los mensajes por mandar a cada miembro del club desde el WhatsApp de esta tienda."
         acciones={
           beneficios ? (
-            <Boton onClick={() => setBeneficiosAbierto(true)} title="El % del cumpleaños, el aniversario y su vale">
+            <Boton onClick={() => setBeneficiosAbierto(true)} title="El % del cumpleaños, el aniversario y su vale" data-guia="avisos.beneficios">
               Beneficios del club
             </Boton>
           ) : undefined
@@ -231,7 +231,7 @@ export function AvisosClubPanel({
       />
 
       {esTienda && !falla && (
-        <div className="anim-sube grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" style={{ "--i": 1 } as CSSProperties}>
+        <div className="anim-sube grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" style={{ "--i": 1 } as CSSProperties} data-guia="avisos.cifras">
           {TIPOS_AVISO.map((t) => (
             <TarjetaCifra key={t} etiqueta={INFO_TIPO_AVISO[t].titulo} valor={cuenta[t]}>
               {INFO_TIPO_AVISO[t].promocional ? "Promoción: máximo 2 al mes por miembro" : "Por mandar · no cuenta para el tope"}
@@ -244,7 +244,7 @@ export function AvisosClubPanel({
       )}
 
       {esTienda && (
-        <p className="nota-cayla anim-sube" style={{ "--i": 2 } as CSSProperties}>
+        <p className="nota-cayla anim-sube" style={{ "--i": 2 } as CSSProperties} data-guia="avisos.whatsapp-web">
           Abre WhatsApp Web con el número de esta tienda antes de enviar.
         </p>
       )}
@@ -253,7 +253,7 @@ export function AvisosClubPanel({
         <Tabla>
           {esTienda && !falla && (
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 p-4">
-              <nav className="flex flex-wrap gap-2" aria-label="Filtrar por tipo de aviso">
+              <nav className="flex flex-wrap gap-2" aria-label="Filtrar por tipo de aviso" data-guia="avisos.filtros">
                 {(["todos", ...TIPOS_AVISO] as const).map((t) => (
                   <button key={t} type="button" className="pildora-cayla" aria-pressed={filtro === t} onClick={() => setFiltro(t)}>
                     {t === "todos" ? "Todos" : INFO_TIPO_AVISO[t].titulo}
@@ -263,14 +263,16 @@ export function AvisosClubPanel({
               </nav>
               {!esPersona && (
                 <CampoGuiado id="responsable" guia={guia} titulo="Quién envía" className="w-full sm:w-72">
-                  <ComboResponsable control={responsable} deshabilitado={ocupado} />
+                  <div data-guia="avisos.responsable">
+                    <ComboResponsable control={responsable} deshabilitado={ocupado} />
+                  </div>
                 </CampoGuiado>
               )}
             </div>
           )}
 
           {!esTienda ? (
-            <Vacio tamano="chico" icono={<Store />} className="py-5">
+            <Vacio guia="avisos.sin-tienda" tamano="chico" icono={<Store />} className="py-5">
               Los avisos los manda cada tienda desde su número de WhatsApp. Elige una tienda en el selector de sede.
             </Vacio>
           ) : falla ? (
@@ -281,18 +283,18 @@ export function AvisosClubPanel({
             </div>
           ) : grupos.length === 0 ? (
             filtro === "todos" ? (
-              <Vacio tamano="chico" icono={<Send />} className="py-5">
+              <Vacio guia="avisos.vacio" tamano="chico" icono={<Send />} className="py-5">
                 Nada por mandar hoy desde esta tienda.
               </Vacio>
             ) : (
-              <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Limpiar filtros", onClick: () => setFiltro("todos") }} className="py-5">
+              <Vacio guia="avisos.vacio" tamano="chico" icono={<FunnelX />} accion={{ texto: "Limpiar filtros", onClick: () => setFiltro("todos") }} className="py-5">
                 Nada de este tipo por mandar.
               </Vacio>
             )
 
           ) : (
             grupos.map((g) => (
-              <section key={g.tipo} aria-label={INFO_TIPO_AVISO[g.tipo].titulo}>
+              <section key={g.tipo} aria-label={INFO_TIPO_AVISO[g.tipo].titulo} data-guia="avisos.grupo">
                 <div className="bg-hueso/40 px-5 py-2.5">
                   <p className="label-cayla text-[11px] text-tinta/70">
                     {INFO_TIPO_AVISO[g.tipo].titulo} <span className="tabular-nums text-tinta/50">· {g.avisos.filter((a) => !envios[a.clave]).length} por mandar</span>
@@ -328,7 +330,7 @@ export function AvisosClubPanel({
         </Tabla>
       </div>
 
-      <p className="nota-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
+      <p className="nota-cayla anim-sube" style={{ "--i": 4 } as CSSProperties} data-guia="avisos.reglas">
         La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por miembro
         (cumpleaños y aniversario no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
         responde <b>BAJA</b>, regístralo con «Pidió BAJA»: deja de recibir mensajes del club desde hoy, en las 3 tiendas.
@@ -398,7 +400,7 @@ function FilaAviso({
     "label-cayla h-8 rounded-md px-2 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <li className="flex gap-4 px-5 py-4 max-sm:flex-col max-sm:gap-3">
+    <li className="flex gap-4 px-5 py-4 max-sm:flex-col max-sm:gap-3" data-guia="avisos.fila">
       <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl max-sm:hidden ${envio ? "bg-verde/15 text-verde" : "bg-hueso text-taupe"}`} aria-hidden>
         <Icono className="h-[18px] w-[18px]" strokeWidth={1.5} />
       </span>
@@ -411,11 +413,11 @@ function FilaAviso({
           </span>
         </div>
         {a.detalle && <p className="mt-0.5 text-xs text-tinta/65">{a.detalle}</p>}
-        <p className="mt-2 whitespace-pre-line break-words rounded-lg border border-sand bg-crema px-3 py-2 text-[13px] leading-snug text-tinta/80">{texto}</p>
+        <p className="mt-2 whitespace-pre-line break-words rounded-lg border border-sand bg-crema px-3 py-2 text-[13px] leading-snug text-tinta/80" data-guia="avisos.texto">{texto}</p>
         {problema && <p className="mt-1.5 text-xs text-ambar-profundo">{problema}</p>}
         {sinAnotar && !envio && <p className="mt-1.5 text-xs text-ambar-profundo">WhatsApp se abrió, pero el envío todavía no quedó anotado.</p>}
       </div>
-      <div className="flex shrink-0 flex-col items-stretch gap-2 max-sm:flex-row max-sm:flex-wrap max-sm:items-center sm:w-44">
+      <div className="flex shrink-0 flex-col items-stretch gap-2 max-sm:flex-row max-sm:flex-wrap max-sm:items-center sm:w-44" data-guia="avisos.acciones">
         {envio ? (
           <>
             <p className="text-xs text-verde sm:pt-2" role="status">

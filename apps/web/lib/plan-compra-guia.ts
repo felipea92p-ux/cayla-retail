@@ -3,7 +3,9 @@
 // La prueba exige que la guía deje confirmar exactamente cuando la base aceptaría.
 
 import type { CampoDeGuia } from "./guia-campos";
-import { problemaDelTope, problemasDeLaCampana, problemasDelBorrador, type BorradorCampana, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
+import { problemaDelRecupero } from "./plan-compra-propuesta";
+import { problemasDeLosMinimos } from "./plan-compra-reparto";
+import { problemaDelTope, problemasDeLaCampana, problemasDeLaEdicion, problemasDelBorrador, type BorradorCampana, type BorradorEdicion, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
 
 export function camposDelPlan(
   b: Borrador,
@@ -44,5 +46,37 @@ export function camposDeLaCampana(b: BorradorCampana, etiquetas: readonly Etique
     campo("desde", "Desde"),
     campo("hasta", "Hasta"),
     { id: "responsable", nombre: "Quién crea la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién crea la campaña." },
+  ];
+}
+
+/** La guía de «Editar campaña» (ADR-0372, B5): nombre, fechas y quién la edita. «Hecho» es lo que `problemasDeLaEdicion` acepta: la regla de la base. */
+export function camposDeLaEdicion(b: BorradorEdicion, otrosNombres: readonly string[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const p = problemasDeLaEdicion(b, otrosNombres);
+  const campo = (id: "nombre" | "desde" | "hasta", nombre: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? "Falta este dato." });
+  return [
+    campo("nombre", "Nombre del plan"),
+    campo("desde", "Desde"),
+    campo("hasta", "Hasta"),
+    { id: "responsable", nombre: "Quién edita la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién edita la campaña." },
+  ];
+}
+
+/** La guía de la hoja del reparto (ADR-0372): los mínimos son opcionales (en blanco = sin mínimo); falta solo lo que la base rechazaría y quién firma. */
+export function camposDelReparto(textos: Readonly<Record<string, string>>, tiendas: readonly { id: string; nombre: string }[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const p = problemasDeLosMinimos(textos);
+  return [
+    // En blanco es opcional; mal escrito bloquea (la base lo rechazaría).
+    ...tiendas.map((t): CampoDeGuia => ({ id: `minimo-${t.id}`, nombre: `Mínimo de ${t.nombre}`, requerido: !!p.porTienda[t.id], hecho: !p.porTienda[t.id] && (textos[t.id] ?? "").trim() !== "", pendiente: p.porTienda[t.id] ?? "Opcional." })),
+    { id: "suma", nombre: "La suma de los mínimos", requerido: true, hecho: p.suma === null, pendiente: p.suma ?? "" },
+    { id: "responsable", nombre: "Quién lo fija", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién lo fija." },
+  ];
+}
+
+/** La guía de la hoja de «Lo que sobra» (ADR-0372, C5): el % y quién lo firma. «Hecho» es lo que `problemaDelRecupero` acepta: la regla de la base. */
+export function camposDelRecupero(texto: string, responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const problema = problemaDelRecupero(texto);
+  return [
+    { id: "recupero", nombre: "Lo que sobra, en % del precio", requerido: true, hecho: problema === null, pendiente: problema ?? "Escribe el %." },
+    { id: "responsable", nombre: "Quién lo fija", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién lo fija." },
   ];
 }

@@ -128,8 +128,18 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
+     },
+     {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
      },
      {
       "grupo": "clientas",
@@ -295,8 +305,18 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
+     },
+     {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
      },
      {
       "grupo": "clientas",
@@ -524,6 +544,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -541,6 +566,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",
@@ -770,6 +800,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -787,6 +822,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",
@@ -1090,6 +1130,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -1279,6 +1324,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -1557,6 +1607,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -1815,6 +1870,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -2076,8 +2136,18 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
+     },
+     {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
      },
      {
       "grupo": "clientas",
@@ -2243,8 +2313,18 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
+     },
+     {
+      "etiqueta": "Compras",
+      "href": "/compras/ordenes",
+      "icono": "ordenes"
      },
      {
       "grupo": "clientas",
@@ -2472,6 +2552,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -2489,6 +2574,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",
@@ -2718,6 +2808,11 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -2735,6 +2830,11 @@
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
        },
        {
         "etiqueta": "Facturas de proveedor",

@@ -14,6 +14,10 @@ import { useResponsable } from "@/lib/useResponsable";
 import { compararTallas } from "@/lib/tallas";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { camposDelPlan } from "@/lib/plan-compra-guia";
+import { Check, Sparkles } from "lucide-react";
+import { Ayuda } from "@/components/Ayuda";
+import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
+import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
   RPC_GUARDAR_LINEA,
   argsGuardar,
@@ -115,7 +119,7 @@ export function FormularioCategoria({
   const router = useRouter();
   const responsable = useResponsable();
   const tallas = useMemo(() => [...categoria.tallas].sort((a, b) => compararTallas(a.valor, b.valor)), [categoria]);
-  const [inicial] = useState(() => ({ b: borradorDe(linea, tallas, vendidoPorTalla, catalogo), nota: linea?.nota ?? "" }));
+  const [inicial] = useState(() => ({ b: borradorDe(linea, tallas, vendidoPorTalla, catalogo, fila.recuperoDefecto), nota: linea?.nota ?? "" }));
   const [b, setB] = useState<Borrador>(inicial.b);
   const [nota, setNota] = useState(inicial.nota);
   const [guardando, setGuardando] = useState(false);
@@ -152,6 +156,14 @@ export function FormularioCategoria({
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
   const loQueSobra = veredictoDeLoQueSobra(b);
 
+  // La propuesta de los tres escenarios (C4) si la base la manda; si no (base vieja), la de antes: solo el normal.
+  const sugerida = fila.propuesta;
+  const porque = sugerida ? explicarPropuesta(sugerida) : null;
+  // «Normal 263: lo que vende…» → «Lo que vende…»: la cifra ya se ve grande en la tarjeta; el «!» dice solo de dónde sale.
+  const sinCifra = (t: string) => {
+    const resto = t.slice(t.indexOf(":") + 1).trim();
+    return resto.charAt(0).toUpperCase() + resto.slice(1);
+  };
   const propuesta = propuestaDeNormal(ventas);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
@@ -185,7 +197,7 @@ export function FormularioCategoria({
     // Todos los títulos de la guía con el mismo alto: el que dice «Sigue aquí» medía 21 px y los demás 24,5, y la caja de abajo subía 3 px cada
     // vez que la luz pasaba al siguiente campo (ADR-0185: nada se mueve bajo el mouse).
     <form onSubmit={guardar} className="space-y-6 [&_[data-campo]>p:first-child]:min-h-6.5">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+      <div data-guia="plan-modal.historia" className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
         <span>
           Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en 90 días
           {ventas30 !== null && (
@@ -199,17 +211,71 @@ export function FormularioCategoria({
           Hoy hay <b className="font-semibold text-tinta">{enteroES.format(stock)}</b>
           {sedes && sedes.length > 0 ? <span className="text-tinta/70">: {sedes.map((x) => `${x.ubicacion} ${enteroES.format(x.unidades)}`).join(" · ")}</span> : " entre tiendas y Taller"}
         </span>
-        <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
-          Proponer el normal desde lo vendido
-        </Boton>
-        <span className="basis-full text-xs text-tinta/65">
-          {propuesta === null
-            ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
-            : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
-        </span>
+        {sugerida !== undefined ? (
+          sugerida === null ? (
+            <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
+          ) : (
+            // C4 (Felipe 2026-10-12): la propuesta a la vista —las tres cifras grandes, cada una con su «!» que dice de dónde salió, como en
+            // Productos— y un botón principal que las pone en las cajas. Una cifra ya puesta lleva su ✓.
+            <div data-guia="plan-modal.propuesta" className="basis-full rounded-xl border border-sand bg-papel p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[13px] font-semibold text-tinta">Lo que propone el sistema</p>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  onClick={() =>
+                    setB((x) => ({ ...x, flojo: sugerida.flojo === null ? x.flojo : String(sugerida.flojo), normal: String(sugerida.normal), bueno: String(sugerida.bueno) }))
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Sparkles aria-hidden className="h-4 w-4" />
+                    Usar estos tres
+                  </span>
+                </Boton>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["flojo", "Flojo", sugerida.flojo, sugerida.flojo === null ? (sugerida.motivoSinFlojo ?? "Escríbelo tú.") : sinCifra(porque!.flojo)],
+                    ["normal", "Normal", sugerida.normal, sinCifra(porque!.normal)],
+                    ["bueno", "Bueno", sugerida.bueno, sinCifra(porque!.bueno)],
+                  ] as const
+                ).map(([clave, nombre, valor, explica]) => {
+                  const puesto = valor !== null && b[clave] === String(valor);
+                  return (
+                    <div key={clave} className={`rounded-lg px-3 py-2 transition-colors duration-300 ease-cayla ${puesto ? "bg-verde/10" : "bg-hueso"}`}>
+                      <p className="flex items-center gap-1.5 text-xs text-taupe">
+                        {nombre}
+                        <Ayuda titulo={`${nombre}: de dónde sale`}>{explica}</Ayuda>
+                      </p>
+                      <p className="flex items-baseline gap-1.5 font-display text-2xl leading-tight text-tinta">
+                        {valor === null ? "—" : enteroES.format(valor)}
+                        {puesto && (
+                          <Check aria-label="Ya está en el plan" className="h-4 w-4 text-verde" />
+                        )}
+                      </p>
+                      {valor === null && <p className="text-[11.5px] text-tinta/65">escríbelo tú</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )
+        ) : (
+          <>
+            <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
+              Proponer el normal desde lo vendido
+            </Boton>
+            <span className="basis-full text-xs text-tinta/65">
+              {propuesta === null
+                ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
+                : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+            </span>
+          </>
+        )}
       </div>
 
-      <fieldset>
+      <fieldset data-guia="plan-modal.escenarios">
         <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en diciembre?</legend>
         <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si el mes va flojo, normal o bueno.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
@@ -225,7 +291,7 @@ export function FormularioCategoria({
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div data-guia="plan-modal.precios" className="grid gap-4 sm:grid-cols-2">
         <CampoGuiado id="precio" guia={guia} titulo="Precio de venta">
           <CampoMonto
             etiqueta={<span className="sr-only">Precio de venta, promedio de la categoría</span>}
@@ -247,7 +313,7 @@ export function FormularioCategoria({
       </div>
 
       <CampoGuiado id="recupero" guia={guia} titulo="Lo que sobre, ¿a qué % del precio lo vendes?">
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+        <div data-guia="plan-modal.recupero" className="flex flex-wrap items-start gap-x-4 gap-y-1">
           <div className="flex w-32 items-center gap-2">
             <div className="min-w-0 flex-1">
               <CampoTexto etiqueta="Lo que sobre, en % del precio" caja inputMode="numeric" value={b.recupero} onChange={(e) => cambiar("recupero")(soloDigitos(e.target.value))} />
@@ -258,10 +324,14 @@ export function FormularioCategoria({
           </div>
           <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
             {loQueSobra ?? "Lo que quede sin vender después de diciembre: a cuánto lo venderías en la liquidación de enero. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
+            {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
+              <span className="mt-1 block text-xs text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
+            )}
           </p>
         </div>
       </CampoGuiado>
 
+      <div data-guia="plan-modal.curva">
       <CampoGuiado id="curva" guia={guia} titulo="Curva de tallas" ayuda={`Suma ${sumaCurva} %`}>
         {tallas.length === 0 ? (
           <p className="text-sm text-tinta/70">Esta categoría no tiene tallas cargadas: se compra el total.</p>
@@ -298,8 +368,9 @@ export function FormularioCategoria({
           </div>
         )}
       </CampoGuiado>
+      </div>
 
-      <div className="rounded-xl bg-hueso px-4 py-3">
+      <div data-guia="plan-modal.porque" className="rounded-xl bg-hueso px-4 py-3">
         {calculo ? (
           <>
             <p className="text-sm text-tinta/80">
@@ -312,6 +383,13 @@ export function FormularioCategoria({
               </div>
             )}
             {tope !== null && <EfectoEnElTope efecto={efectoEnElTope(inversionDeLasDemas, calculo.inversion, tope)} tope={tope} />}
+            {fila.reparto && fila.reparto.length > 1 && (
+              <RepartoTiendas
+                objetivo={calculo.objetivo}
+                tiendas={fila.reparto}
+                taller={(sedes ?? []).filter((s) => !fila.reparto!.some((t) => t.nombre === s.ubicacion)).reduce((a, s) => a + s.unidades, 0)}
+              />
+            )}
           </>
         ) : (
           <p className="text-sm text-tinta/70">Cuando completes los tres diciembres, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
@@ -324,7 +402,7 @@ export function FormularioCategoria({
         <ComboResponsable control={responsable} deshabilitado={guardando} />
       </CampoGuiado>
 
-      <div className={enPantalla ? "space-y-1" : "pie-hoja-fijo"}>
+      <div data-guia="plan-modal.pie" className={enPantalla ? "space-y-1" : "pie-hoja-fijo"}>
         {/* La respuesta, siempre a la vista mientras se escribe (antes quedaba al fondo de la hoja, fuera de la pantalla). */}
         <p className="flex flex-wrap items-baseline gap-x-2 pt-1" aria-live="polite">
           {calculo ? (

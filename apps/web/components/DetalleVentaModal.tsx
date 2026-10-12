@@ -177,7 +177,7 @@ export function DetalleVentaModal({
             })
           : null;
         return (
-          <div className="space-y-4">
+          <div data-guia="historial.detalle" className="space-y-4">
             <div className="card-cayla p-5 text-center">
               <p className="font-display text-3xl text-tinta">
                 {money(d.total)}

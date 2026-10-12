@@ -5406,6 +5406,42 @@ export type Database = {
       }
 
       fn_candidatas_de_venta: { Args: { p_ubicacion_id: string }; Returns: { disponible: number; limpia: boolean; prenda_id: string; variante_id: string }[] }
+      // 20261004203000 (ADR-0328, act. 5; en producción desde el 2026-10-05): las prendas del stock que pueden ser cada venta «sin
+      // registrar» pendiente, con el saldo del libro a la hora de la venta y lo primero que llegó o se ajustó después.
+      fn_candidatas_por_regularizar: {
+        Args: { p_categoria_de?: Json; p_ubicacion_id?: string }
+        Returns: {
+          almacen_libre: number
+          cambio_posterior: string | null
+          cambio_posterior_motivo: string | null
+          color_exacto: boolean
+          color_hex: string | null
+          color_hex_anotado: string | null
+          disponible: number
+          piso_libre: number
+          prenda_id: string
+          primera_entrada: string | null
+          primera_entrada_motivo: string | null
+          saldo_a_la_venta: number | null
+          variante_id: string
+        }[]
+      }
+      // 20261004203000: por venta pendiente, si ninguna prenda que pueda ser ella se cargó en la sede, y la carga de esa sede.
+      fn_por_regularizar_sin_cargar: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          carga_abierta: boolean
+          carga_hasta: string | null
+          carga_hasta_corta: string | null
+          prenda_id: string
+          sin_cargar: boolean
+        }[]
+      }
+      // 20261004203000: ¿la prenda ya entró al sistema en esa sede? null si la cuenta no la opera.
+      fn_prenda_cargada_en_sede: {
+        Args: { p_ubicacion_id: string; p_variante_id: string }
+        Returns: boolean | null
+      }
       fn_categoria_entra_a_motores: { Args: { p_categoria_id: string }; Returns: boolean }
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
@@ -5757,6 +5793,31 @@ export type Database = {
       fn_correcciones_prenda_sin_registrar: {
         Args: { p_ids: string[] }
         Returns: { prenda_id: string; veces: number; ultima_en: string; ultima_por: string | null; antes: Json }[]
+      }
+      // ADR-0379 (20261010195000): las piezas de liquidación.
+      crear_pieza_liquidacion: {
+        Args: { p_ubicacion_id: string; p_categoria_id: string; p_precio: number; p_token?: string; p_descripcion?: string }
+        Returns: Json
+      }
+      cambiar_precio_pieza_liquidacion: {
+        Args: { p_codigo: string; p_precio: number }
+        Returns: Json
+      }
+      retirar_pieza_liquidacion: {
+        Args: { p_codigo: string; p_motivo: string }
+        Returns: Json
+      }
+      guardar_precio_minimo_liquidacion: {
+        Args: { p_minimo: number }
+        Returns: number
+      }
+      fn_pieza_liquidacion: {
+        Args: { p_codigo: string }
+        Returns: Json
+      }
+      fn_piezas_liquidacion: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
       }
       unirse_al_club: {
         Args: {

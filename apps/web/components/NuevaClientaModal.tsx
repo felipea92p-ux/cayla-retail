@@ -104,7 +104,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
         <form onSubmit={onRegistrar} className="space-y-6">
           <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">
             {/* En el celular, tipo y número en UNA fila: con el teclado arriba, el número no queda bajo el pie. */}
-            <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]">
+            <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]" data-guia="clientas.nuevo-documento">
               <CampoTipoDocumento
                 corto
                 tipo={alta.documentoTipo}
@@ -133,10 +133,12 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
             </CampoGuiado>
           )}
           <CampoGuiado id="responsable" guia={guia}>
-            <ComboResponsable control={responsable} deshabilitado={guardando} />
+            <div data-guia="clientas.nuevo-responsable">
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
+            </div>
           </CampoGuiado>
           {/* Pegado al borde de abajo (`pie-hoja-fijo`): con el teclado del celular abierto, «Registrar» sigue a la vista. */}
-          <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
+          <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2" data-guia="clientas.nuevo-registrar">
             <PieGuia guia={guia} listo="Todo listo para registrar." />
             <div className="ml-auto flex gap-3">
               <Boton type="button" onClick={cerrar}>

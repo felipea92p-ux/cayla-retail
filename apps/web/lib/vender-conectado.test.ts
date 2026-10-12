@@ -4,7 +4,7 @@ import { buscarVendiblePrimero, grupoDeResultado } from "./vender-buscador-regla
 import { hrefApartarDesdeTicket, leerPrendasDeUrl, lineasApartables } from "./apartar-desde-ticket";
 import { dniEnmascarado, lineaDeClienta, terminoBuscable } from "./clienta-ticket-reglas";
 import { precioEscribible } from "./prenda-sin-registrar-reglas";
-import { alDiaConElServidor, anchoBarraMeta, conRelectura, haceCuanto, lecturaDelServidor, nombreDeEspera, resumenDeHoy } from "./vender-hoy-reglas";
+import { alDiaConElServidor, anchoBarraMeta, conRelectura, haceCuanto, lecturaDelServidor, nombreDeEspera, resumenDeHoy, SUGERENCIAS_ESPERA, sugerenciasLibresDeEspera, ticketParaEspera } from "./vender-hoy-reglas";
 
 const prenda = (id: string, referencia: string, stockAqui: number, almacenAqui: number | null = 0) => ({
   varianteId: id,
@@ -136,6 +136,70 @@ describe("nombre de un ticket en espera", () => {
     expect(nombreDeEspera(undefined, 0)).toBe("Ticket 1");
   });
 });
+
+describe("un ticket en espera conserva su nombre", () => {
+  const linea = { cantidad: 1, precioUnitario: 120, descuentoUnitario: 0 };
+  const armar = (datos: Parameters<typeof ticketParaEspera<typeof linea, { id: string }>>[0], n: string) =>
+    ticketParaEspera(datos, `id-${n}`, `2026-10-12T1${n}:00:00.000Z`);
+
+  it("guarda el nombre que se escribió, sin espacios de sobra", () => {
+    const t = armar({ carrito: [linea], nota: "lo recoge el sábado", nombre: "  María ", clienta: null }, "0");
+    expect(t.nombre).toBe("María");
+    expect(nombreDeEspera(t.nombre, 1)).toBe("María");
+  });
+
+  it("sin nombre lo deja ausente, no como cadena vacía (así vuelve a ser «Ticket N»)", () => {
+    const t = armar({ carrito: [linea], nota: "", nombre: "   ", clienta: null }, "0");
+    expect(t.nombre).toBeUndefined();
+    expect(nombreDeEspera(t.nombre, 1)).toBe("Ticket 2");
+  });
+
+  // El bug del 2026-10-12: «María» se dejaba en espera, se retomaba, y al dejarla otra vez el intercambio de
+  // `retomar()` armaba el ticket sin `nombre` — la tira la mostraba como «Ticket 2» y la cajera perdía la referencia
+  // de qué clienta era cada ticket.
+  it("sobrevive el viaje completo: se deja, se retoma y se vuelve a dejar", () => {
+    const maria = armar({ carrito: [linea], nota: "", nombre: "María", clienta: { id: "c1" } }, "0");
+    const otra = armar({ carrito: [linea], nota: "", nombre: "Probador 1", clienta: null }, "1");
+    const enEspera = [maria, otra];
+
+    // Se retoma a María: su ticket pasa a la caja con nombre y clienta, y el que estaba en la caja (otra clienta,
+    // con SU nombre) ocupa su lugar en la tira.
+    const retomado = enEspera[0];
+    const deLaCaja = armar({ carrito: [linea, linea], nota: "paga en dos", nombre: "Probador 3", clienta: null }, "2");
+    const traselIntercambio = enEspera.map((t) => (t.id === retomado.id ? deLaCaja : t));
+    expect(traselIntercambio.map((t, i) => nombreDeEspera(t.nombre, i))).toEqual(["Probador 3", "Probador 1"]);
+
+    // Y María, que ahora está en la caja, se deja en espera otra vez: vuelve llamándose María, no «Ticket 3».
+    const deVuelta = armar({ carrito: retomado.carrito, nota: retomado.nota, nombre: retomado.nombre ?? "", clienta: retomado.clienta }, "3");
+    expect(nombreDeEspera(deVuelta.nombre, 2)).toBe("María");
+    expect(deVuelta.clienta).toEqual({ id: "c1" });
+  });
+});
+
+describe("los nombres de un toque de la hoja «Dejar en espera»", () => {
+  it("sin nada ocupado, ofrece los tres probadores", () => {
+    expect(sugerenciasLibresDeEspera([])).toEqual([...SUGERENCIAS_ESPERA]);
+  });
+
+  it("no ofrece el de un ticket que sigue esperando", () => {
+    expect(sugerenciasLibresDeEspera(["Probador 2"])).toEqual(["Probador 1", "Probador 3"]);
+  });
+
+  // El ticket retomado ya no está en la tira, pero esa clienta sigue en ese probador: su chip no tiene nada que
+  // ofrecer (el campo ya trae el nombre escrito). Antes se volvía a ofrecer.
+  it("tampoco ofrece el del ticket que está AHORA en la caja", () => {
+    expect(sugerenciasLibresDeEspera(["María", "Probador 1"])).toEqual(["Probador 2", "Probador 3"]);
+  });
+
+  it("un ticket sin nombre no ocupa ninguno", () => {
+    expect(sugerenciasLibresDeEspera(["", "   ", undefined, null])).toEqual([...SUGERENCIAS_ESPERA]);
+  });
+
+  it("da igual cómo se escribió: mayúsculas y espacios de sobra ocupan igual", () => {
+    expect(sugerenciasLibresDeEspera(["  probador 1 ", "PROBADOR 3"])).toEqual(["Probador 2"]);
+  });
+});
+
 
 
 describe("apartar desde el ticket", () => {
