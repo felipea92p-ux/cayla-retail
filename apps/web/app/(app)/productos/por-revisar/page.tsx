@@ -100,7 +100,7 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
       )}
 
       <p className="nota-cayla" data-guia="por-revisar.nota">
-        Una prenda queda «por revisar» cuando la crea alguien que no edita el catálogo. Mientras tanto se puede contar y vender como cualquier otra.
+        Una prenda queda «por revisar» cuando la crea alguien que no edita el catálogo. Mientras tanto se puede contar como cualquier otra, y vender si tiene precio (sin precio, tampoco se aprueba).
         Rechazar es permanente: la prenda queda descontinuada y no se reactiva (si solo quieres sacarla de venta por ahora, descontínuala en su ficha).
       </p>
     </div>
