@@ -22,6 +22,8 @@ import {
   cuantasVendidas,
   fraseDelTipo,
   ordenarAlcance,
+  ORDEN_ALCANCE_DEFECTO,
+  ORDENES_ALCANCE,
   proximaNavidad,
   rielNavidad,
   rindePorCategoria,
@@ -474,6 +476,11 @@ describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () =>
 
   it("«Más vendido»: lo que más se vende primero; a igual venta, lo que se acaba antes; lo que no se vendió, al final", () => {
     expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
+  });
+
+  it("por defecto, «Más vendido», y es la primera opción", () => {
+    expect(ORDEN_ALCANCE_DEFECTO).toBe("vende");
+    expect(ORDENES_ALCANCE[0].clave).toBe("vende");
   });
 
   it("no cambia la lista que recibe", () => {

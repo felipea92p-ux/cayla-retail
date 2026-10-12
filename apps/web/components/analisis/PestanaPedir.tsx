@@ -21,6 +21,7 @@ import {
   fraseDelTipo,
   ordenarAlcance,
   ORDENES_ALCANCE,
+  ORDEN_ALCANCE_DEFECTO,
   type OrdenAlcance,
   topsPosibles,
   TOP_DEFECTO,
@@ -62,7 +63,7 @@ export function PestanaPedir() {
   // «Lo que más se vende»: los 5 primeros por defecto; la persona elige ver 10, 15 o 20 (Felipe 2026-10-10). Solo se ofrecen los
   // «Top» que tienen más modelos vendidos que el anterior; si el elegido ya no cabe (otro tipo), se marca el más grande que sí.
   const [top, setTop] = useState<Top>(TOP_DEFECTO);
-  const [orden, setOrden] = useState<OrdenAlcance>("acaba");
+  const [orden, setOrden] = useState<OrdenAlcance>(ORDEN_ALCANCE_DEFECTO);
   const tiposOrdenados = useMemo(() => ordenarAlcance(tipos, orden), [tipos, orden]);
   const vendidos = cuantasVendidas(prendas, categoria);
   const opcionesTop = topsPosibles(vendidos);
@@ -110,7 +111,7 @@ export function PestanaPedir() {
         <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
           <div className="b-cab">
             <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
-            {/* Ordenar (Felipe 2026-10-12): lo que se acaba antes, o lo que más se vende primero. */}
+            {/* Ordenar (Felipe 2026-10-12): lo que más se vende primero (por defecto), o lo que se acaba antes. */}
             <span className="filtro-a" role="group" aria-label="Ordenar los tipos">
               {ORDENES_ALCANCE.map((o) => (
                 <button key={o.clave} type="button" className="pildora" aria-pressed={orden === o.clave} onClick={() => setOrden(o.clave)}>

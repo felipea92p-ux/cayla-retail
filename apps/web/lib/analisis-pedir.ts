@@ -169,13 +169,14 @@ export function alcancePorTipo(
 }
 
 /**
- * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que se acaba antes (lo que `alcancePorTipo` ya
- * devuelve); o lo que más se vende primero, a igual venta lo que se acaba antes y después por nombre. Lo que no se vendió va al final.
+ * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que más se vende primero (a igual venta, lo que se
+ * acaba antes; después, por nombre; lo que no se vendió va al final); o lo que se acaba antes (lo que `alcancePorTipo` ya devuelve).
  */
 export type OrdenAlcance = "acaba" | "vende";
+export const ORDEN_ALCANCE_DEFECTO: OrdenAlcance = "vende";
 export const ORDENES_ALCANCE: readonly { clave: OrdenAlcance; texto: string }[] = [
-  { clave: "acaba", texto: "Se acaba antes" },
   { clave: "vende", texto: "Más vendido" },
+  { clave: "acaba", texto: "Se acaba antes" },
 ];
 
 export function ordenarAlcance(tipos: readonly AlcanceTipo[], orden: OrdenAlcance): AlcanceTipo[] {
