@@ -1029,7 +1029,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Confirmación, sin modal; paso 3 en `CambioReemplazo.tsx`, piezas de lectura en
   `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición de la prenda que vuelve:
   vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
-  ventas anuladas; migración 20260919000100).
+  ventas anuladas; migración 20260919000100; y desde el ADR-0385 rechaza una prenda nueva cuyo
+  precio de cambio es 0 —`cambio_sin_precio`, 20261012201000—, que la pantalla adelanta en
+  `validarCambio` con el `precio` de la prenda nueva).
 - `/devoluciones` (ADR-0122, ADR-0232) → `getVentasRecientes` + `lib/devoluciones.ts`
   (`getDevolucionesPendientes`, `getDevolucionesResueltas`, `getEstadisticasDevoluciones`,
   `contarPrendasEnCuarentena`) + `getCajaAbierta` → `DevolucionesPanel.tsx` (avisos de cuarentena →

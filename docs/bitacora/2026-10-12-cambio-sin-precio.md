@@ -1,0 +1,4 @@
+## 2026-10-12 (Un cambio ya no devuelve el dinero por una prenda sin precio)
+Qué hice: Cambios dejó de aceptar como reemplazo una prenda en S/ 0. Antes, cambiar una blusa de S/ 79.90 por una prenda sin precio devolvía los S/ 79.90 al cliente y le entregaba la otra gratis. Ahora la revisión del cambio lo dice («no tiene precio», con qué hacer) y no deja avanzar, y la base lo rechaza aunque una pantalla se lo salte. De paso, Apartados dice en palabras de tienda por qué no aparta una prenda en S/ 0. Migración `20261012201000` (ADR-0385), **sin pegar en producción**.
+Por qué así: un cambio es una prenda por otra; con la nueva en S/ 0 es una devolución completa sin los candados de Devoluciones. Por eso no hay excepción ni para la bolsa de obsequio.
+Felipe se lleva: un OK pendiente para pegar la migración (una sola parte, una función).
