@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
+import { clasificarFalloDeSubida, esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
@@ -37,7 +37,8 @@ import {
   type PagoAplicado,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
-import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, ventasSubidasEntre, ventaTrasFallo, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal } from "@/components/ui/Modal";
@@ -738,14 +739,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       for (const venta of aReintentar) {
         // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora (ADR-0162),
         // y después la manda sola a SUNAT (D-60), igual que un cobro en línea.
-        const { data: ventaSubida, error } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
+        const { data: ventaSubida, error, status } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
         if (!error) {
           resueltos.set(venta.token, null);
           subidas.push(...venta.items);
           if (ventaSubida) enviarVentaASunat(ventaSubida);
+          continue;
         }
-        else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
-        // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
+        // Solo es rechazo si la base RESPONDIÓ con un veredicto (código de Postgres) que no es «intenta de nuevo». Un corte
+        // de red, un 502/504 del camino, un deadlock o un 5xx dejan la venta en la cola tal cual: pudo haberse guardado, y
+        // marcarla «rechazada» invita a cobrarla otra vez a mano (dos ventas, dos comprobantes, el stock baja dos veces).
+        const siguiente = ventaTrasFallo(venta, clasificarFalloDeSubida(error, status), traducirError(error, "subir la venta guardada sin conexión"));
+        if (siguiente) resueltos.set(venta.token, siguiente);
       }
       if (cancelado || resueltos.size === 0) return;
 
@@ -768,7 +773,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // de lanzar una paralela (ver el comentario de `subidaEnCursoRef`, arriba).
     function intentarSubir(): Promise<void> {
       if (!subidaEnCursoRef.current) {
-        subidaEnCursoRef.current = pasada().finally(() => {
+        // Entre pestañas del mismo navegador sube UNA (`navigator.locks`): la otra se entera por el evento `storage`.
+        subidaEnCursoRef.current = conCandadoDeSubida(claveCola, pasada).then(() => undefined).finally(() => {
           subidaEnCursoRef.current = null;
         });
       }
@@ -783,6 +789,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       window.removeEventListener("online", intentarSubir);
       clearInterval(latido);
     };
+  }, [claveCola]);
+
+  // Otra pestaña del mismo navegador cambió la cola (encoló una venta, o subió las que esperaban): esta pantalla la relee.
+  // Sin esto, con el candado de subida (`conCandadoDeSubida`) la pestaña que no sube se quedaría mostrando como «en cola»
+  // —y descontando del stock— ventas que la otra ya registró. Lo que subió se descuenta igual que en una subida propia.
+  const colaRef = useRef(cola);
+  useEffect(() => {
+    colaRef.current = cola;
+  });
+  useEffect(() => {
+    const alCambiarOtraPestana = (e: StorageEvent) => {
+      if (e.key !== claveCola) return;
+      const nueva = leer<VentaEncolada[]>(claveCola, []);
+      const subidas = ventasSubidasEntre(colaRef.current, nueva).flatMap((v) => v.items);
+      setCola(nueva);
+      if (subidas.length > 0) trasVenderRef.current(subidas);
+    };
+    window.addEventListener("storage", alCambiarOtraPestana);
+    return () => window.removeEventListener("storage", alCambiarOtraPestana);
   }, [claveCola]);
 
   /** Relee de la base lo cobrable AQUÍ de unas prendas (lectura directa de `stock`, la misma de
