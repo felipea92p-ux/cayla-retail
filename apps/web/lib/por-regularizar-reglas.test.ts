@@ -1,5 +1,21 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, resueltasDesde, siguienteOrden, tipoDiferencia } from "./por-regularizar-reglas";
+import {
+  NO_SU_PROPIA_VENTA,
+  SIN_UNIDADES_LIBRES,
+  TU_PROPIA_VENTA,
+  cargaParaLaFrase,
+  cifrasPorRegularizar,
+  coincideConBusqueda,
+  estaVencida,
+  motivoPropiaVenta,
+  notaSinUnidades,
+  ordenarVentas,
+  prendaSinCargar,
+  resueltasDesde,
+  siguienteOrden,
+  tipoDiferencia,
+} from "./por-regularizar-reglas";
 
 const ahora = new Date("2026-09-23T15:00:00-05:00");
 
@@ -123,4 +139,100 @@ describe("coincideConBusqueda", () => {
     expect(coincideConBusqueda(f, "urgos")).toBe(false);
   });
   it("encuentra la prenda real de una ya regularizada", () => expect(coincideConBusqueda({ ...f, prendaReal: "Blusa Aurora · BLU-AUR-ROS-M" }, "aurora")).toBe(true));
+});
+
+// ---- Lo que la base va a rechazar, dicho antes del botón (20261004204000; rescatado de #788 en la revisión adversarial de #975) ----
+// La migración promete que «la web dice las MISMAS frases antes del botón (`prendaSinCargar`, lib/por-regularizar-reglas.ts) y las
+// pruebas comparan las dos al carácter». Aquí se arman las frases DESDE el texto de la migración (sus `raise exception` con `%`) y se
+// comparan con las de la web; la prueba SQL (`scripts/pruebas/ventas_sin_registrar.mjs`, R6b, R6f y R6h) compara la base con las mismas.
+const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20261004204000_nadie_regulariza_su_propia_venta.sql", import.meta.url), "utf8");
+const PRUEBA_SQL = readFileSync(new URL("../../../scripts/pruebas/ventas_sin_registrar.mjs", import.meta.url), "utf8");
+
+/** La plantilla de un `raise exception '…'` de la migración que empieza con `inicio`. */
+function plantilla(inicio: string): string {
+  const m = MIGRACION.match(new RegExp(`raise exception '(${inicio.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^']*)'`));
+  if (!m) throw new Error(`la migración ya no tiene «${inicio}…»`);
+  return m[1]!;
+}
+/** Lo que hace `raise exception` con sus `%`: cada uno, el siguiente argumento. */
+const formatear = (p: string, ...args: string[]) => {
+  let i = 0;
+  return p.replace(/%/g, () => args[i++] ?? "");
+};
+const ABIERTA = plantilla("Esta prenda todavía no está cargada en ");
+const CERRADA = plantilla("La carga de % se cerró");
+
+describe("prendaSinCargar — la MISMA frase con que la base rechaza una prenda que nunca entró a la tienda", () => {
+  it("carga abierta sin fecha (AQP y LIM hoy): «primero cárgala», al carácter", () => {
+    expect(prendaSinCargar("Tienda Trujillo", { abierta: true, hastaCorta: null })).toBe(formatear(ABIERTA, "Tienda Trujillo", "Tienda Trujillo", ""));
+    // Y es la misma que la prueba SQL espera de la base (R6b).
+    expect(PRUEBA_SQL).toContain(`"${prendaSinCargar("Tienda Trujillo", { abierta: true, hastaCorta: null })}"`);
+  });
+  it("carga abierta con fecha: dice hasta cuándo", () =>
+    expect(prendaSinCargar("Tienda Trujillo", { abierta: true, hastaCorta: "15-oct" })).toBe(formatear(ABIERTA, "Tienda Trujillo", "Tienda Trujillo", " hasta el 15-oct")));
+  it("carga cerrada: «Encontré prendas», con y sin fecha", () => {
+    expect(prendaSinCargar("Tienda Trujillo", { abierta: false, hastaCorta: "15-oct" })).toBe(formatear(CERRADA, "Tienda Trujillo", " el 15-oct"));
+    expect(prendaSinCargar("Tienda Trujillo", { abierta: false, hastaCorta: null })).toBe(formatear(CERRADA, "Tienda Trujillo", ""));
+  });
+  it("sin saber la carga, la frase que no afirma nada de ella; sin nombre de sede, «esta tienda» (como la base)", () => {
+    expect(prendaSinCargar("Tienda Arequipa")).toBe(
+      "Esta prenda todavía no está cargada en Tienda Arequipa: primero cárgala con su stock inicial (lo que hay hoy en la tienda, sin la vendida) y vuelve a regularizarla.",
+    );
+    expect(prendaSinCargar("", { abierta: true, hastaCorta: null })).toBe(formatear(ABIERTA, "esta tienda", "esta tienda", ""));
+  });
+});
+
+describe("cargaParaLaFrase — la carga leída con fn_carga_inicial_sedes, como la dice la base", () => {
+  it("abierta hasta una fecha, cerrada después de ella, sin fecha abierta, y sin lectura nada", () => {
+    expect(cargaParaLaFrase({ sede: "TRU", hasta: "2026-10-15", hoy: "2026-10-15" })).toEqual({ abierta: true, hastaCorta: "15-oct" });
+    expect(cargaParaLaFrase({ sede: "TRU", hasta: "2026-10-15", hoy: "2026-10-16" })).toEqual({ abierta: false, hastaCorta: "15-oct" });
+    expect(cargaParaLaFrase({ sede: "AQP", hasta: null, hoy: "2026-10-12" })).toEqual({ abierta: true, hastaCorta: null });
+    expect(cargaParaLaFrase(null)).toBeNull();
+  });
+});
+
+describe("notaSinUnidades — la nota en ámbar del puente", () => {
+  const base = { sede: "Tienda Trujillo", carga: { abierta: true, hastaCorta: null } };
+  it("una prenda que nunca entró a la tienda: la frase de la base, NO «elige Llegó nueva» (la base también rechaza esa)", () => {
+    const nota = notaSinUnidades({ ...base, disponible: 0, cargada: false });
+    expect(nota).toBe(prendaSinCargar("Tienda Trujillo", base.carga));
+    expect(nota).not.toContain("Llegó nueva");
+    // Aunque no se hayan podido leer las unidades libres.
+    expect(notaSinUnidades({ ...base, disponible: null, cargada: false })).toBe(nota);
+  });
+  it("sin unidades libres pero cargada (o sin poder saberlo): lo de antes", () => {
+    expect(notaSinUnidades({ ...base, disponible: 0, cargada: true })).toBe(SIN_UNIDADES_LIBRES);
+    expect(notaSinUnidades({ ...base, disponible: 0, cargada: null })).toBe(SIN_UNIDADES_LIBRES);
+  });
+  it("mientras la lectura no vuelve, nada (no dice una cosa para corregirla al instante); con unidades libres, nada", () => {
+    expect(notaSinUnidades({ ...base, disponible: 0, cargada: undefined })).toBeNull();
+    expect(notaSinUnidades({ ...base, disponible: 3, cargada: null })).toBeNull();
+    expect(notaSinUnidades({ ...base, disponible: null, cargada: true })).toBeNull();
+  });
+});
+
+describe("motivoPropiaVenta — nadie regulariza su propia venta, salvo el líder firmando él mismo", () => {
+  const MIC = "micaela";
+  const LUC = "lucia";
+  const ROSA = "rosa";
+  const FEL = "felipe";
+  it("NO_SU_PROPIA_VENTA es, al carácter, la frase de la base", () => {
+    expect(MIGRACION).toContain(`raise exception '${NO_SU_PROPIA_VENTA}'`);
+  });
+  // Los mismos casos que la prueba SQL (C1–C14) le hace a `regularizar_prenda`; una terminal no tiene persona de sesión (`null`).
+  it.each([
+    ["C1 · Micaela, con su cuenta, su propia venta", { vendidoPorId: MIC, responsableId: MIC, personaSesionId: MIC, esLider: false }, TU_PROPIA_VENTA],
+    ["C2 · otra integrante con su cuenta", { vendidoPorId: MIC, responsableId: LUC, personaSesionId: LUC, esLider: false }, null],
+    ["C3 · el líder, su propia venta", { vendidoPorId: FEL, responsableId: FEL, personaSesionId: FEL, esLider: true }, null],
+    ["C4 · terminal, eligiéndose a sí misma", { vendidoPorId: MIC, responsableId: MIC, personaSesionId: null, esLider: false }, NO_SU_PROPIA_VENTA],
+    ["C5 · terminal, con Rosa en el combo", { vendidoPorId: MIC, responsableId: ROSA, personaSesionId: null, esLider: false }, null],
+    ["C7 · con su cuenta, nombrar a Lucía no la vuelve ajena", { vendidoPorId: MIC, responsableId: LUC, personaSesionId: MIC, esLider: false }, TU_PROPIA_VENTA],
+    ["C8 · sin quién la vendió registrado", { vendidoPorId: null, responsableId: MIC, personaSesionId: MIC, esLider: false }, null],
+    ["C12 · cuenta de líder abierta y Micaela (la que vendió) en el combo", { vendidoPorId: MIC, responsableId: MIC, personaSesionId: FEL, esLider: true }, NO_SU_PROPIA_VENTA],
+    ["C13 · el líder que vendió nombra a Lucía", { vendidoPorId: FEL, responsableId: LUC, personaSesionId: FEL, esLider: true }, null],
+    ["C14 · terminal, el nombre del líder que vendió", { vendidoPorId: FEL, responsableId: FEL, personaSesionId: null, esLider: false }, NO_SU_PROPIA_VENTA],
+    ["todavía sin nadie en el combo, venta ajena", { vendidoPorId: MIC, responsableId: null, personaSesionId: LUC, esLider: false }, null],
+  ] as const)("%s", (_, p, esperado) => {
+    expect(motivoPropiaVenta(p)).toBe(esperado);
+  });
 });

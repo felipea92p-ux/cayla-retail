@@ -109,3 +109,14 @@ un veredicto por tarjeta) queda pendiente. **Ninguno toca dinero, stock ni permi
 - **Segunda prueba ciega (otra tarea, otra venta):** completó la tarea al primer intento, 8 pasos, 0 retrocesos, sin errores; el aviso de éxito y el contador lo confirmaron. Dudas que quedan: «Cerradas» frente a «Regularizadas» (heredado) y que la
   primera venta entre elegida sola (confundió un momento cuál estaba activa); se dejó así a propósito: con una sola tarea por venta, ahorra un toque en cada una.
 
+## Actualización 2026-10-12 — «¿Cómo estaba?» sugiere la respuesta del libro
+
+Al elegir la prenda, «¿Cómo estaba?» marca «Sugerida» (sin elegirla) la respuesta que deduce el libro de esa prenda en la tienda de la venta y
+dice su porqué; si se elige la contraria, la misma línea pasa a ámbar y dice qué pasaría. No cambia la disposición de la mesa, ni su guía de foco,
+ni lo que se guarda. Rescatado de #788: ver ADR-0328, «Actualización 2026-10-12».
+
+En la misma revisión, el puente dice antes del botón lo que `regularizar_prenda` va a rechazar, en notas ámbar como la que ya tenía: una
+prenda que nunca entró a la tienda (con la frase de la base, que reemplaza a «elige «Llegó nueva»» justo en ese caso) y la venta propia, bajo
+el «Responsable». Solo avisan; la disposición, la guía y el botón siguen iguales. La hoja del celular también se queda quieta con movimiento
+reducido (antes la regla solo alcanzaba a `.vsr`, y la hoja vive en un portal fuera de ella).
+
