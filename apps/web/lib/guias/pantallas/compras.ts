@@ -1565,7 +1565,7 @@ export const GUIA_PLAN_RESULTADOS: Guia = {
       ancla: "plan-resultados.cifras",
       opcional: true,
       titulo: "¿Cómo va? y cada tienda",
-      texto: "«¿Cómo va?» compara lo vendido con lo que el plan esperaba a hoy («Ver la curva» lo dibuja). Toca una tienda y «¿Cómo va?», «Pedir más» y la tabla pasan a ser de ella, contra su parte del plan; «Toda CAYLA» vuelve a todas.",
+      texto: "«¿Cómo va?» compara lo vendido con lo que el plan esperaba a hoy («Ver la curva» lo dibuja). Arranca en la tienda en la que estás: «¿Cómo va?», «Pedir más» y la tabla son de ella, contra su parte del plan. Toca otra para verla; «Toda CAYLA» vuelve a todas.",
     },
     {
       id: "buscar",
@@ -1667,7 +1667,7 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
       ancla: "plan-historial.tiendas",
       opcional: true,
       titulo: "El año de cada tienda",
-      texto: "Lo que vendió toda CAYLA y cada tienda en todo el año, y cuánto creció contra el anterior. Si el año está en curso, dice «hasta hoy».",
+      texto: "Lo que vendió toda CAYLA y cada tienda en todo el año, y cuánto creció contra el anterior. La tienda en la que estás va primero y marcada. Si el año está en curso, dice «hasta hoy».",
     },
     {
       id: "buscar",

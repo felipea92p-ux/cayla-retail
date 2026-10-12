@@ -13,7 +13,7 @@ import { Tabla, celda } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
-import { enteroES, fechaCortaES, solesES, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { enteroES, fechaCortaES, solesES, tiendaDeLaCabecera, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import {
   cierre,
   coloresQueMasVendieron,
@@ -59,6 +59,7 @@ export function ResultadosCampana({
   anterior = null,
   propuesta = null,
   veAnalisis = false,
+  sedeDeLaCabecera = null,
 }: {
   datos: unknown;
   campanas: CampanasLeidas | null;
@@ -69,6 +70,8 @@ export function ResultadosCampana({
   propuesta?: unknown;
   /** Quien ve Análisis recibe los accesos a la prenda exacta (Se está acabando, No se vende). */
   veAnalisis?: boolean;
+  /** La sede elegida en la cabecera (null en CAYLA Global): si es una de las tiendas, se arranca en ella. */
+  sedeDeLaCabecera?: string | null;
 }) {
   const r = useMemo(() => leerResultados(datos), [datos]);
   // La forma de cada día de la campaña: los soles por día de la misma campaña el año pasado (todas las tiendas); sin historia, parejos.
@@ -80,7 +83,8 @@ export function ResultadosCampana({
     const p = pesosDeLosDias(r.plan.desde, r.plan.hasta, porDia.size > 0 ? porDia : null);
     return { pesos: p, conForma: new Set(p).size > 1 };
   }, [r, anterior]);
-  const [tienda, setTienda] = useState<string | null>(null);
+  // Arranca en la sede en la que estás (Felipe 2026-10-12); «Toda CAYLA» vuelve a todas.
+  const [tienda, setTienda] = useState<string | null>(() => tiendaDeLaCabecera(sedeDeLaCabecera, r?.tiendas ?? []));
   const [abierta, setAbierta] = useState<FilaCategoria | null>(null);
   const [q, setQ] = useState("");
   const [soloAtencion, setSoloAtencion] = useState(false);

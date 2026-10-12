@@ -41,3 +41,5 @@
 - [x] **Años de Historial en UNA fila** (Felipe 2026-10-12, maqueta `docs/maquetas/plan-historial-anios-2026-10/`, opción 2): los que caben, seguidos y con el
   elegido al medio; el resto en «Más años», por década y con buscador (`ventanaDeAnios`, `aniosQueCaben`).
 - [x] **Plan en el celular:** resumen, campaña y Exportar en una fila (la campaña se corta con «…»); filtros en una fila que se desliza; los dos combos lado a lado.
+- [x] **Resultados e Historial arrancan en la sede de la cabecera** (Felipe 2026-10-12): Resultados la elige de entrada; Historial la pone primera y marcada, y su
+  detalle abre en ella. En CAYLA Global o en el Taller, toda CAYLA (`tiendaDeLaCabecera`, `laDeLaCabeceraPrimero`).

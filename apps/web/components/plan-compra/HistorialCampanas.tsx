@@ -15,7 +15,7 @@ import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { Tabla, celda } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
+import { fechaCortaES, laDeLaCabeceraPrimero, tiendaDeLaCabecera, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
   aniosQueCaben,
@@ -127,12 +127,15 @@ export function HistorialCampanas({
   etiquetas,
   planes,
   falla,
+  sedeDeLaCabecera = null,
 }: {
   anio: number;
   historial: unknown;
   etiquetas: EtiquetaHistorial[];
   planes: CampanaPlan[];
   falla: string | null;
+  /** La sede elegida en la cabecera (null en CAYLA Global): su tienda va primero y se marca, y el detalle abre en ella. */
+  sedeDeLaCabecera?: string | null;
 }) {
   const historial: LecturaHistorial | null = useMemo(() => leerHistorial(crudo), [crudo]);
   // La fila abierta: su hoja muestra el día a día y la misma campaña año por año (Felipe 2026-10-12).
@@ -195,7 +198,9 @@ export function HistorialCampanas({
 
   const filas = filasDelAnio(historial, etiquetas, anio);
   const visibles = filtrarYOrdenar(filas, q, orden, historial.hoy);
-  const tiendas = historial.tiendas;
+  // La sede en la que estás, primero y marcada (Felipe 2026-10-12).
+  const miTienda = tiendaDeLaCabecera(sedeDeLaCabecera, historial.tiendas);
+  const tiendas = laDeLaCabeceraPrimero(historial.tiendas, miTienda);
   const columnas = `minmax(0,1.2fr) repeat(${tiendas.length}, minmax(0,1fr))`;
   const anioEnCurso = anio === Number(historial.hoy.slice(0, 4));
 
@@ -223,6 +228,7 @@ export function HistorialCampanas({
             const total = totalDelAnio(historial, t.id, anio);
             return {
               clave: t.id,
+              activa: t.id === miTienda,
               etiqueta: t.nombre,
               valor: total.soles > 0 ? solesSinCentimos(total.soles) : null,
               bajo:
@@ -283,7 +289,8 @@ export function HistorialCampanas({
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
               </span>
             </span>
-            {celdas.map((c) => (
+            {/* En el orden de las columnas (la tienda de la cabecera primero), no en el de la base. */}
+            {tiendas.flatMap((t) => celdas.filter((c) => c.tienda.id === t.id)).map((c) => (
               <span key={c.tienda.id} className="min-w-0">
                 <span className="block text-[11px] text-taupe sm:hidden">{c.tienda.nombre}</span>
                 <Celda c={c} anio={anio} />
@@ -300,6 +307,7 @@ export function HistorialCampanas({
           historial={historial}
           etiquetas={etiquetas}
           anios={aniosConHistoria(historial)}
+          tiendaInicial={miTienda}
           planDeResultados={planes.find((p) => !p.archivado && p.etiquetaId === abierta.clave && p.desde.slice(0, 4) === String(anio))?.id ?? null}
           onClose={() => setAbierta(null)}
         />

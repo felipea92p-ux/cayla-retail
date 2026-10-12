@@ -983,3 +983,17 @@ export function campanasDelSelector(planes: readonly CampanaPlan[], hoy: string)
     ...terminadas.map((campana) => ({ campana, grupo: "Terminadas" })),
   ];
 }
+
+/**
+ * La tienda que la persona tiene elegida en la cabecera, si es una de las que se miran (Felipe 2026-10-12: Resultados e Historial arrancan en
+ * la sede en la que estás). En CAYLA Global, en el Taller o el Almacén, o en una sede que no aparece: null, y se ve toda CAYLA.
+ */
+export function tiendaDeLaCabecera(sede: string | null, tiendas: readonly { id: string }[]): string | null {
+  return sede && tiendas.some((t) => t.id === sede) ? sede : null;
+}
+
+/** Las tiendas con la de la cabecera primero y las demás en su orden (Historial: tu tienda es la primera columna). */
+export function laDeLaCabeceraPrimero<T extends { id: string }>(tiendas: readonly T[], sede: string | null): T[] {
+  const i = sede ? tiendas.findIndex((t) => t.id === sede) : -1;
+  return i <= 0 ? [...tiendas] : [tiendas[i], ...tiendas.filter((_, k) => k !== i)];
+}
