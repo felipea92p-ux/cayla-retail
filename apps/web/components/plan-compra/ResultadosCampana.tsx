@@ -30,7 +30,7 @@ import {
   type FilaCategoria,
 } from "@/lib/plan-compra-resultados";
 import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
-import { ComoVaCampana } from "@/components/plan-compra/ComoVaCampana";
+import { TarjetaComoVa } from "@/components/plan-compra/ComoVaCampana";
 import { SenalesCampana } from "@/components/plan-compra/SenalesCampana";
 import { CierreCampana } from "@/components/plan-compra/CierreCampana";
 
@@ -144,6 +144,10 @@ export function ResultadosCampana({
   const total = r.tiendas.reduce((s, t) => ({ unidades: s.unidades + t.unidades, soles: s.soles + t.soles }), { unidades: 0, soles: 0 });
   const conMultiplicador = r.tiendas.map((t) => ({ t, m: multiplicadorReal(r, t) })).filter((x) => x.m !== null);
   const datosCierre = cierre(r);
+  const enCurso =
+    momento === "en-curso"
+      ? { como: comoVa(r, pesos.pesos), piden: senales(r, pesos.pesos).filter((s) => s.senal !== "bien"), faltan: pesos.pesos.length - Math.min(pesos.pesos.length, dias) }
+      : null;
 
   return (
     <div className="space-y-6">
@@ -154,14 +158,8 @@ export function ResultadosCampana({
       )}
       <PestanasPlan activa="resultados" planId={r.plan.id} />
 
-      {/* Lo que toca según el momento (Felipe 2026-10-12): durante, «¿cómo va?» y qué pedir o impulsar; al terminar, el cierre. Toda CAYLA:
-          las píldoras de tienda de abajo filtran la tabla, no esto. */}
-      {momento === "en-curso" && (
-        <>
-          <ComoVaCampana c={comoVa(r, pesos.pesos)} conForma={pesos.conForma} />
-          {r.stock && <SenalesCampana senales={senales(r, pesos.pesos)} faltan={pesos.pesos.length - Math.min(pesos.pesos.length, dias)} veAnalisis={veAnalisis} />}
-        </>
-      )}
+      {/* Al terminar, el cierre arriba (Felipe 2026-10-12). Durante, «¿cómo va?» es la primera tarjeta de cifras y «Pedir más o impulsar»
+          aparece debajo solo si alguna categoría pide algo. Toda CAYLA: las píldoras de tienda filtran la tabla, no esto. */}
       {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
       {r.tiendas.length > 1 && (
@@ -177,7 +175,8 @@ export function ResultadosCampana({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} />}
         <TarjetaCifra etiqueta="Toda CAYLA" valor={enteroES.format(total.unidades)} unidad="prendas">
           {solesES(total.soles)}
           {momento === "en-curso" ? " · hasta ayer" : ""}
@@ -191,6 +190,8 @@ export function ResultadosCampana({
           );
         })}
       </div>
+
+      {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} />}
 
       <Tabla>
         <div className={`encabezado-tabla-cayla hidden gap-x-6 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
