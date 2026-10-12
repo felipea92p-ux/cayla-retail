@@ -19,7 +19,8 @@ import { Check } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 
 // «Por reintentar» (D-60): lo que Lucode/SUNAT no aceptó al cobrar y espera en la cola. Se reintenta
-// solo (cada cobro y cada apertura de Comprobantes barren la cola, `/api/lucode/reintentar`); acá se ve
+// solo (el trabajo programado cada 5 minutos durante 4 horas, también en producción desde el 2026-10-12; y cada
+// cobro y cada apertura de Comprobantes barren la cola, `/api/lucode/reintentar`); acá se ve
 // cuántas veces se intentó, el último error y hace cuánto espera. «Reintentar ahora» adelanta el barrido
 // para uno. Lo que pasa de una hora se pinta en rojo: el reintento solo no alcanzó y alguien tiene que
 // mirar (Lucode caído mucho rato, credenciales vencidas).

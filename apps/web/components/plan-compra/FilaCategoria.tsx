@@ -1,5 +1,6 @@
 import { celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { fraseDelPedido } from "@/lib/plan-compra-pedido";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { enteroES, esAgotada, fraseDeLoReal, solesES, type EstadoCampana, type FilaPlan } from "@/lib/plan-compra-reglas";
 
@@ -66,6 +67,9 @@ export function FilaCategoria({ f, estado, indice, recienGuardada = false, onAbr
       <span className={celda("der", "tabular-nums font-semibold text-tinta")}>
         <span className="font-normal text-taupe-profundo sm:hidden">Comprar: </span>
         {calculo ? enteroES.format(calculo.comprar) : "—"}
+        {fraseDelPedido(f.pedido, calculo?.comprar ?? null) && (
+          <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo?.comprar ?? null)}</span>
+        )}
       </span>
       <span className={celda("der", "tabular-nums")}>
         <span className="text-taupe-profundo sm:hidden">Inversión: </span>

@@ -38,6 +38,7 @@ import { leerPropuesta } from "@/lib/plan-compra-propuesta";
 import { porcentajes, tiendasParaRepartir } from "@/lib/plan-compra-reparto";
 import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
 import { CeldaComoVa } from "@/components/plan-compra/ComoVaCampana";
+import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { CierreCampana } from "@/components/plan-compra/CierreCampana";
 
 // Plan de campaña ▸ Resultados (ADR-0372, C6 · Felipe 2026-10-12): lo que se vendió de verdad en una campaña, por tienda, familia, categoría,
@@ -213,45 +214,27 @@ export function ResultadosCampana({
       {/* Compacta por defecto, en UNA barra (Felipe 2026-10-12: «como antes había en Plan»): «¿Cómo va?», «Toda CAYLA» y cada tienda, separadas
           por una línea fina. Las tiendas SON el filtro: la elegida se rellena de arena y «Toda CAYLA» vuelve a todas. Se decide por el ancho
           de la barra (consulta de contenedor), no de la ventana: en una barra angosta, de a dos. */}
-      <div data-guia="plan-resultados.cifras" className="card-cayla @container has-[.anim-globo]:relative has-[.anim-globo]:z-30">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 @3xl:flex @3xl:items-stretch @3xl:gap-x-0 @3xl:px-2">
-          {enCurso && (
-            <div className="col-span-2 flex min-w-0 flex-col justify-center gap-0.5 px-1 @3xl:flex-[1.6] @3xl:px-3">
-              <CeldaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} de={tiendaElegida?.nombre ?? null} onPiden={verLasQuePiden} />
-            </div>
-          )}
-          {[
-            { id: null, nombre: "Toda CAYLA", unidades: total.unidades, soles: total.soles, bajo: momento === "en-curso" ? "hasta ayer" : null },
-            ...r.tiendas.map((t) => {
-              const m = multiplicadorReal(r, t);
-              return { id: t.id, nombre: t.nombre, unidades: t.unidades, soles: t.soles, bajo: m !== null ? `${textoMultiplicador(m)} un día normal` : "sin base" };
-            }),
-          ].map((x, k) => {
-            const activa = r.tiendas.length > 1 && tienda === x.id;
-            return (
-              <div key={x.id ?? "toda"} className={`min-w-0 @3xl:flex-1 @3xl:px-1.5 ${k > 0 || enCurso ? "@3xl:border-l @3xl:border-sand" : ""}`}>
-                <button
-                  type="button"
-                  disabled={r.tiendas.length <= 1}
-                  aria-pressed={r.tiendas.length > 1 ? activa : undefined}
-                  onClick={() => setTienda(x.id === null || tienda === x.id ? null : x.id)}
-                  className={`flex h-full w-full min-w-0 flex-col justify-center rounded-xl px-3 py-1.5 text-left transition-colors enabled:cursor-pointer enabled:hover:bg-hueso/70 ${activa ? "bg-hueso" : ""}`}
-                >
-                  <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{x.nombre}</span>
-                  <span className="whitespace-nowrap">
-                    <span className="font-display text-xl leading-tight tabular-nums text-tinta">{enteroES.format(x.unidades)}</span>
-                    <span className="ml-1 text-xs text-taupe">prendas</span>
-                  </span>
-                  <span className="truncate text-xs text-tinta/65">
-                    {solesES(x.soles)}
-                    {x.bajo ? ` · ${x.bajo}` : ""}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <BarraCifras
+        guia="plan-resultados.cifras"
+        primero={
+          enCurso ? <CeldaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} de={tiendaElegida?.nombre ?? null} onPiden={verLasQuePiden} /> : undefined
+        }
+        celdas={[
+          { id: null as string | null, nombre: "Toda CAYLA", unidades: total.unidades, soles: total.soles, bajo: momento === "en-curso" ? "hasta ayer" : null },
+          ...r.tiendas.map((t) => {
+            const m = multiplicadorReal(r, t);
+            return { id: t.id as string | null, nombre: t.nombre, unidades: t.unidades, soles: t.soles, bajo: m !== null ? `${textoMultiplicador(m)} un día normal` : "sin base" };
+          }),
+        ].map((x) => ({
+          clave: x.id ?? "toda",
+          etiqueta: x.nombre,
+          valor: enteroES.format(x.unidades),
+          unidad: "prendas",
+          bajo: `${solesES(x.soles)}${x.bajo ? ` · ${x.bajo}` : ""}`,
+          // Las tiendas SON el filtro: la elegida se rellena de arena y «Toda CAYLA» vuelve a todas.
+          ...(r.tiendas.length > 1 ? { activa: tienda === x.id, onClick: () => setTienda(x.id === null || tienda === x.id ? null : x.id) } : {}),
+        }))}
+      />
 
       <div ref={tablaRef} className="scroll-mt-4">
       <Tabla guia="plan-resultados.tabla">

@@ -240,6 +240,18 @@ export function totalDelAnio(l: LecturaHistorial, tiendaId: string, anio: number
   return { soles, completo, crecimiento: completo && previo.length === 12 && anterior > 0 ? soles / anterior - 1 : null };
 }
 
+/**
+ * El año de toda CAYLA: la suma de las tiendas, y su crecimiento solo si TODAS las que vendieron tienen los dos años completos (si una tienda
+ * abrió este año, sumarla haría «crecer» a CAYLA sin que nadie vendiera más). null = no hay con qué comparar parejo.
+ */
+export function totalDeCayla(l: LecturaHistorial, anio: number): { soles: number; crecimiento: number | null } {
+  const tiendas = l.tiendas.map((t) => totalDelAnio(l, t.id, anio)).filter((t) => t.soles > 0);
+  const soles = tiendas.reduce((s, t) => s + t.soles, 0);
+  if (tiendas.length === 0 || tiendas.some((t) => t.crecimiento === null)) return { soles, crecimiento: null };
+  const anterior = tiendas.reduce((s, t) => s + t.soles / (1 + (t.crecimiento as number)), 0);
+  return { soles, crecimiento: anterior > 0 ? soles / anterior - 1 : null };
+}
+
 /** Los años con historia, del más nuevo al más viejo. */
 export function aniosConHistoria(l: Pick<LecturaHistorial, "meses" | "hoy">): number[] {
   const anios = new Set<number>();

@@ -376,7 +376,8 @@ describe("los colores de lo que cuelga de cada grupo (solo se dibujan: no entran
     const filas: [keyof typeof CAT, string, string, string | null, number][] = [["pol", "NEG", "Negro", "#1a1a1a", 60], ["pol", "EST", "Estampado", null, 15], ["pan", "BEI", "Beige", "#d9c7a5", 40]];
     const con = armarPropuesta(entrada(conColores(filas)));
     const sin = armarPropuesta(entrada(lectura([["pol", 75], ["pan", 40]], [])));
-    const sinColores = ({ colores: _c, ...resto }: (typeof con.enRiel)[number]) => resto;
+    // `colores` y `repartoDeColor` (las familias del detalle) solo se dibujan: ninguna cuenta de la propuesta los usa.
+    const sinColores = (f: (typeof con.enRiel)[number]) => ({ ...f, colores: undefined, repartoDeColor: undefined });
     expect(con.enRiel.map(sinColores)).toEqual(sin.enRiel.map(sinColores));
     expect(con.colgadasEnElRiel).toBe(sin.colgadasEnElRiel);
   });

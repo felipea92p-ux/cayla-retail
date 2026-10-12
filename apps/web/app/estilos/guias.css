@@ -34,8 +34,9 @@
   fill: var(--guia-velo);
 }
 
-/* El recorte ya no oscurece nada: es solo el anillo claro alrededor de la pieza (y su halo), siguiendo al agujero. Se mueve con
-   `left/top` para coincidir con el agujero del velo. Sin pieza, no se ve. */
+/* El recorte ya no oscurece nada: es solo el anillo claro alrededor de la pieza (y su halo), siguiendo al agujero. Su lugar lo
+   escribe cuadro a cuadro el motor de movimiento de `GuiaInteractiva` (transform + tamaño): NO lleva transición propia, que se
+   reiniciaba en cada cuadro de un desplazamiento y lo dejaba atrás del agujero, a saltos. Sin pieza, no se ve. */
 .guia-recorte {
   position: absolute;
   top: 0;
@@ -43,11 +44,7 @@
   border-radius: 14px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-crema) 55%, transparent);
   pointer-events: none;
-  transition:
-    left 420ms var(--ease-cayla),
-    top 420ms var(--ease-cayla),
-    width 420ms var(--ease-cayla),
-    height 420ms var(--ease-cayla);
+  will-change: transform;
 }
 .guia-recorte[data-sin-pieza] {
   box-shadow: none;
@@ -70,9 +67,9 @@
   color: var(--color-tinta);
   padding: 18px 18px 14px;
   box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--color-sombra) 55%, transparent);
-  transition:
-    transform 420ms var(--ease-cayla),
-    opacity 200ms var(--ease-cayla);
+  /* Su lugar también lo mueve el motor (sin transición de transform, por la misma razón que el anillo). */
+  will-change: transform;
+  transition: opacity 200ms var(--ease-cayla);
 }
 .guia-tarjeta[data-ocupada] {
   opacity: 0.86;
