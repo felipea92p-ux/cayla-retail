@@ -964,6 +964,10 @@ export const PRUEBAS = [
   // es de la sede de quien hizo la orden (decisión 46). ROLLBACK siempre.
   "pruebas:ordenes-compra-envios",
 
+  // La compra «Sin comprobante» de una orden (ADR-0362, decisión 50): el cuarto tipo, sin serie ni número (la base le pone SC-000001),
+  // sin IGV, al crédito o al contado, y fuera del Registro de Compras de Impuestos. ROLLBACK siempre.
+  "pruebas:ordenes-compra-sin-comprobante",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

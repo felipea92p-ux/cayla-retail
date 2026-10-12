@@ -379,7 +379,7 @@ export type ComprobanteDeOrden = {
   id: string;
   /** Serie y número, «B001-123». */
   documento: string;
-  /** `boleta`, `nota_venta` o `factura`. */
+  /** `boleta`, `nota_venta`, `factura` o `sin_comprobante` (número interno SC-…, decisión 50). */
   tipo: string;
   /** `credito` o `contado`. */
   condicion: string;

@@ -13,16 +13,31 @@ const id = (sql) => {
   return v;
 };
 
-/** Una consulta preferida y, si la base local es más vieja y no entiende alguna de sus columnas, la simple. */
-const idConRespaldo = (preferida, simple) => {
-  try {
-    return id(preferida);
-  } catch {
-    return id(simple);
+/** Una consulta preferida y, si la base local es más vieja y no entiende alguna de sus tablas o columnas, la que sigue (la última, la
+ *  más simple). */
+const idConRespaldo = (...consultas) => {
+  for (const [i, sql] of consultas.entries()) {
+    try {
+      return id(sql);
+    } catch (e) {
+      if (i === consultas.length - 1) throw e;
+    }
   }
 };
 /** La orden más reciente, «generada» primero: la consulta simple de las pantallas de orden. */
 const SIMPLE_ORDEN = "select id from retail.ordenes_compra order by (estado = 'generada') desc, creada_en desc limit 1";
+/** Un texto SQL dentro de otro, entre comillas simples (para `query_to_xml`, que solo lo lee si llega a correr). */
+const entreComillas = (sql) => `'${sql.replace(/'/g, "''")}'`;
+
+// Fase 3 (envíos): lo que le queda por enviar a una línea pedida es lo pedido o lo facturado (comprobantes vigentes), lo mayor, menos lo
+// que va en envíos no anulados: la misma cuenta que `fn_ordenes_compra_por_enviar`, que desde aquí no se puede llamar (pide el módulo a
+// una sesión). Solo se lee en una base que ya tiene `despachos` (si no, `sinDatos` lo dice antes).
+const QUEDA_POR_ENVIAR =
+  "greatest(i.cantidad, coalesce((select sum(ci.cantidad) from retail.compra_items ci join retail.compras c on c.id = ci.compra_id and c.estado = 'vigente' where ci.orden_compra_item_id = i.id), 0)) - coalesce((select sum(di.cantidad) from retail.despacho_items di join retail.despachos d on d.id = di.despacho_id and d.estado <> 'anulado' where di.orden_compra_item_id = i.id), 0)";
+const CON_ALGO_POR_ENVIAR = `o.estado = 'generada' and exists (select 1 from retail.orden_compra_items i where i.orden_compra_id = o.id and ${QUEDA_POR_ENVIAR} > 0)`;
+const CON_ENVIO_VIVO =
+  "exists (select 1 from retail.despacho_items di join retail.despachos d on d.id = di.despacho_id and d.estado <> 'anulado' join retail.orden_compra_items i on i.id = di.orden_compra_item_id where i.orden_compra_id = o.id)";
+const CON_COMPROBANTE_VIGENTE = "exists (select 1 from retail.compras c where c.orden_compra_id = o.id and c.estado = 'vigente')";
 
 // Sin la tabla de órdenes de compra (o sin una orden), sus pantallas no tienen qué mostrar.
 const SIN_ORDENES =
@@ -33,6 +48,9 @@ const SIN_ORDENES_O_NINGUNA =
 // Registrar el comprobante de una orden pide la función `registrar_comprobante_orden` (fase 2) y una orden generada con «Llega a».
 const SIN_COMPROBANTE_DE_ORDEN =
   "select case when to_regclass('retail.ordenes_compra') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_compra') then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'registrar_comprobante_orden') then 'la base local no tiene registrar_comprobante_orden (migraciones de los comprobantes de orden, fase 2): la pantalla avisa que todavía no está lista' when query_to_xml('select 1 from retail.ordenes_compra where estado = ''generada'' and ubicacion_destino_id is not null limit 1', false, true, '')::text = '' then 'no hay una orden generada con «Llega a» en la base local' end";
+
+// Enviar una orden a una sede pide la función `crear_envio` (fase 3) y una orden generada a la que le quede algo por enviar.
+const SIN_ENVIO_DE_ORDEN = `select case when to_regclass('retail.ordenes_compra') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_compra') then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'crear_envio') then 'la base local no tiene crear_envio (migración 20261012225000, los envíos de la fase 3): la pantalla avisa que todavía no está lista' when query_to_xml(${entreComillas(`select 1 from retail.ordenes_compra o where ${CON_ALGO_POR_ENVIAR} limit 1`)}, false, true, '')::text = '' then 'no hay una orden generada con algo por enviar en la base local' end`;
 
 export const EJEMPLOS = {
   // La factura con más que enseñar: con saldo y mercadería por llegar (así se ven «Cerrar con faltante», «Ir a recibir» y «Registrar pago»).
@@ -51,11 +69,14 @@ export const EJEMPLOS = {
   // de comprobantes y su «Anular»); al editarla, una generada SIN comprobante (con él, solo se ve el aviso de que ya no se edita); y al registrar
   // su comprobante, una generada con «Llega a» y sin papel todavía (todo el formulario precargado). Si la base local es más vieja y no tiene
   // `compras.orden_compra_id`, se cae a la orden generada más reciente.
+  // Fase 3 (envíos): al verla gana la que además tiene un envío vivo (se ven «Enviado», la lista de envíos y su «Anular envío»); una base
+  // sin `despachos` se queda con la consulta de la fase 2.
   "/compras/ordenes/ver/[id]": {
     sinDatos: SIN_ORDENES_O_NINGUNA,
     url: () =>
       `/compras/ordenes/ver/${idConRespaldo(
-        "select o.id from retail.ordenes_compra o order by exists (select 1 from retail.compras c where c.orden_compra_id = o.id and c.estado = 'vigente') desc, (o.estado = 'generada') desc, o.creada_en desc limit 1",
+        `select o.id from retail.ordenes_compra o order by (${CON_COMPROBANTE_VIGENTE})::int + (${CON_ENVIO_VIVO})::int desc, ${CON_COMPROBANTE_VIGENTE} desc, (o.estado = 'generada') desc, o.creada_en desc limit 1`,
+        `select o.id from retail.ordenes_compra o order by ${CON_COMPROBANTE_VIGENTE} desc, (o.estado = 'generada') desc, o.creada_en desc limit 1`,
         SIMPLE_ORDEN,
       )}`,
   },
@@ -73,6 +94,17 @@ export const EJEMPLOS = {
       `/compras/ordenes/comprobante/${idConRespaldo(
         "select o.id from retail.ordenes_compra o where o.estado = 'generada' and o.ubicacion_destino_id is not null order by (not exists (select 1 from retail.compras c where c.orden_compra_id = o.id)) desc, o.creada_en desc limit 1",
         "select o.id from retail.ordenes_compra o where o.estado = 'generada' and o.ubicacion_destino_id is not null order by o.creada_en desc limit 1",
+      )}`,
+  },
+  // Enviar a una sede (fase 3): la que más enseña es una que ya tuvo un envío y todavía tiene algo por enviar (se ven el aviso «Esta orden ya
+  // tuvo envíos» y «ya salieron» en cada línea); después, una «Por repartir» (se elige la sede, con «Todo lo que queda» y «Dejar todas en 0»
+  // si trae varias líneas); si no, la más reciente con algo por enviar.
+  "/compras/ordenes/envio/[id]": {
+    sinDatos: SIN_ENVIO_DE_ORDEN,
+    url: () =>
+      `/compras/ordenes/envio/${idConRespaldo(
+        `select o.id from retail.ordenes_compra o where ${CON_ALGO_POR_ENVIAR} order by ${CON_ENVIO_VIVO} desc, (o.ubicacion_destino_id is null) desc, o.creada_en desc limit 1`,
+        SIMPLE_ORDEN,
       )}`,
   },
   // Resultados e Historial del Plan de campaña leen funciones de las migraciones del 2026-10-12 (campañas y ventas de Sinatra): sin ellas
