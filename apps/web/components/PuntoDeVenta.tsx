@@ -2307,7 +2307,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {esperaAbierta && (
         <DejarEnEsperaModal
           nombreInicial={nombreTicket}
-          ocupados={enEspera.map((t) => t.nombre ?? "")}
+          // El ticket que está en la caja ocupa su nombre igual que los de la tira: si se retomó «Probador 1», ese
+          // chip no se vuelve a ofrecer (el campo ya lo trae escrito).
+          ocupados={[...enEspera.map((t) => t.nombre ?? ""), nombreTicket]}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
         />

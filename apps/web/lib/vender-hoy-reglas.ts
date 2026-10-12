@@ -66,6 +66,23 @@ export function nombreDeEspera(nombre: string | undefined | null, indice: number
 /** Tope del nombre de un ticket en espera: es una etiqueta, no una nota (la nota del ticket ya existe). */
 export const NOMBRE_ESPERA_MAX = 30;
 
+/** Los nombres de un toque que ofrece la hoja «Dejar en espera»: la clienta está esperando y teclear «Probador 2» con
+ *  ella delante es tiempo que no sobra. */
+export const SUGERENCIAS_ESPERA = ["Probador 1", "Probador 2", "Probador 3"] as const;
+
+/**
+ * Las sugerencias que no está usando nadie. «Nadie» incluye al ticket que está AHORA en la caja (`nombreTicket`), no
+ * solo a los que siguen en la tira: si se retomó «Probador 1», ese probador sigue ocupado por la misma clienta y su
+ * chip no tiene nada que ofrecer —el campo ya trae ese nombre escrito, y un Enter lo deja igual— (2026-10-12).
+ *
+ * Compara sin distinguir mayúsculas ni espacios de sobra: un ticket que alguien escribió a mano como «probador 1»
+ * ocupa ese probador igual que uno puesto con el chip.
+ */
+export function sugerenciasLibresDeEspera(ocupados: readonly (string | undefined | null)[]): string[] {
+  const usados = new Set(ocupados.map((n) => (n ?? "").trim().toLowerCase()).filter(Boolean));
+  return SUGERENCIAS_ESPERA.filter((s) => !usados.has(s.toLowerCase()));
+}
+
 /**
  * Arma lo que se guarda de un ticket al dejarlo en espera. Las DOS puertas por las que un ticket entra a la espera
  * («Dejar en espera» y el intercambio de `retomar()`, que manda el ticket de la caja al lugar del que se retoma) pasan
