@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { revisarSqlPegado } from "./sql-pegado.mjs";
+import { hayQueComprobar, revisarSqlPegado } from "./sql-pegado.mjs";
 
 const nueva = { filename: "supabase/migrations/20260929100000_algo.sql", status: "added" };
 const web = { filename: "apps/web/lib/algo.ts", status: "modified" };
@@ -143,4 +143,40 @@ test("la plantilla del formulario tiene las dos casillas que este check busca, s
   assert.equal(revisarSqlPegado([nueva], plantilla.replace("- [ ] **SQL pegado", "- [x] **SQL pegado")).casilla, "pegado");
   assert.equal(revisarSqlPegado([nueva], plantilla.replace("- [ ] **El SQL se pega", "- [x] **El SQL se pega")).casilla, "despues");
   assert.equal(revisarSqlPegado([nueva], plantilla).casilla, null);
+});
+
+test("se mira producción solo si el PR trae migraciones, marcó «SQL pegado» y no tiene otro problema", () => {
+  const pegado = "- [x] **SQL pegado en producción.**";
+  assert.equal(hayQueComprobar(revisarSqlPegado([nueva], pegado)), true);
+  assert.equal(hayQueComprobar(revisarSqlPegado([web], pegado)), false, "sin migraciones no hay nada que mirar");
+  assert.equal(hayQueComprobar(revisarSqlPegado([nueva], "- [x] **El SQL se pega después de fusionar**")), false);
+  assert.equal(hayQueComprobar(revisarSqlPegado([nueva], "")), false, "sin casilla ya está rojo por la casilla");
+  const editada = { filename: "supabase/migrations/20260901000000_vieja.sql", status: "modified" };
+  assert.equal(hayQueComprobar(revisarSqlPegado([nueva, editada], pegado)), false, "rojo por editar: no se mira hasta arreglarlo");
+});
+
+test("el script le dice al workflow si mirar producción y le deja la lista de migraciones nuevas", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sql-pegado-salida-"));
+  writeFileSync(join(dir, "archivos.json"), JSON.stringify([[web, nueva]]));
+  const script = join(dirname(fileURLToPath(import.meta.url)), "sql-pegado.mjs");
+  const correrCon = (cuerpo) => {
+    writeFileSync(join(dir, "cuerpo.md"), cuerpo);
+    writeFileSync(join(dir, "salida.txt"), "");
+    const r = spawnSync(process.execPath, [script, join(dir, "archivos.json"), join(dir, "cuerpo.md"), join(dir, "nuevas.txt")], {
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_OUTPUT: join(dir, "salida.txt") },
+    });
+    return { codigo: r.status, salida: readFileSync(join(dir, "salida.txt"), "utf8"), nuevas: readFileSync(join(dir, "nuevas.txt"), "utf8"), texto: r.stdout };
+  };
+  const pegado = correrCon("- [x] SQL pegado en producción");
+  assert.equal(pegado.codigo, 0);
+  assert.equal(pegado.salida, "verificar=si\n");
+  assert.equal(pegado.nuevas, "supabase/migrations/20260929100000_algo.sql\n");
+  assert.match(pegado.texto, /se comprueba en producción/);
+  const despues = correrCon("- [x] El SQL se pega después de fusionar");
+  assert.equal(despues.salida, "verificar=no\n");
+  assert.match(despues.texto, /no se comprueba en producción/);
+  const sinCasilla = correrCon("");
+  assert.equal(sinCasilla.codigo, 1);
+  assert.equal(sinCasilla.salida, "verificar=no\n");
 });
