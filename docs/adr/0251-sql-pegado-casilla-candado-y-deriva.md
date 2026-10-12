@@ -136,8 +136,8 @@ otra versión). Un PR marcado «pegado» sin estarlo se publicaba igual.
 **DECIDÍ: el check «SQL pegado», cuando el PR marca «SQL pegado en producción», compara con producción lo que deja CADA
 migración del PR.** Tres piezas:
 1. **El CI aparta las migraciones del PR** antes de `supabase start`, levanta la base de main y las aplica una por una
-   —cada una en su sesión y su transacción, como el SQL Editor—, tomando huellas (`deriva.sql`) antes y después de cada
-   una (`scripts/migraciones/huellas-del-pr.mjs`). Sube el artefacto `huellas-del-pr`: por archivo, cada objeto que cambió
+   —cada una en su sesión y su transacción, como el SQL Editor— (las cuatro tandas del ADR-0381; solo la tanda 1 toma
+   huellas con `deriva.sql`, antes y después de cada una: `scripts/migraciones/huellas-del-pr.mjs`). Sube el artefacto `huellas-del-pr`: por archivo, cada objeto que cambió
    y la huella FINAL que tiene que tener en producción (o que no tiene que existir). Sale apenas la base está arriba (~3
    min), sin esperar las pruebas. Después devuelve los archivos a su carpeta: 42 scripts de `scripts/pruebas/` leen el
    archivo de su migración.
@@ -167,6 +167,10 @@ diaria). El detalle, en privado: `sql-en-produccion.mjs <huellas> <produccion> -
   no cambia nada, ni un reemplazo anclado, ni un `revoke`; aplicarlo y mirar el catálogo sí.
 - **Comprobar dentro del job de Postgres.** Un rojo ahí obliga a repetir ~8 min de pruebas solo porque el SQL se pegó
   después de abrir el PR; el check liviano se vuelve a correr en segundos al marcar la casilla.
+
+Lo vigilan `huellas-del-pr.test.mjs` y `sql-en-produccion.test.mjs` (en «Tipos, lint y pruebas», con `gh` y `curl` falsos
+para cada «no pude mirar») y `pnpm pruebas:huellas-del-pr`, que recorre el camino del CI de punta a punta en una base aparte
+del mismo Postgres (en una de las tandas).
 
 **SE ROMPE SI:**
 - **Producción tiene otra versión de algo que el PR toca** (un arreglo que vive solo allá, u otro PR pegado encima): el

@@ -13,10 +13,12 @@
  *   apartar <carpeta>        Mueve a <carpeta> las migraciones que el PR agrega (contra `HEAD^1`: en un PR el checkout es el
  *                            merge sobre main), para que `supabase start` levante solo la base de main. Sin migraciones
  *                            nuevas no crea la carpeta.
- *   aplicar <carpeta> <json> Con la base de main arriba, toma las huellas, aplica cada migración apartada en orden de
- *                            versión —cada una en su propia sesión y transacción, como el SQL Editor de producción—, la
- *                            anota en el historial de Supabase y vuelve a tomar huellas. Escribe <json>: por archivo, cada
- *                            objeto que cambió y la huella que tiene que tener en producción (la del final).
+ *   aplicar <carpeta> [<json>]
+ *                            Con la base de main arriba, aplica cada migración apartada en orden de versión —cada una en
+ *                            su propia sesión y transacción, como el SQL Editor de producción— y la anota en el historial
+ *                            de Supabase. Con <json> (la tanda 1 del CI) toma huellas antes y después de cada una y escribe
+ *                            por archivo cada objeto que cambió y la huella que tiene que tener en producción (la del
+ *                            final). Sin <json> (las otras tandas, que solo necesitan la base) no toma huellas.
  *   devolver <carpeta>       Las vuelve a poner en `supabase/migrations/`: hay pruebas que leen el archivo de su migración
  *                            (42 scripts de `scripts/pruebas/` lo hacen), y sin él fallarían por algo que no es suyo.
  * Lo que asume: el contenedor `supabase_db_cayla-retail` está arriba y `deriva.sql` es la única definición de huella (la
@@ -114,7 +116,7 @@ function apartar(destino) {
 
 function aplicar(carpeta, salida) {
   const archivos = nuevasDelPr(readdirSync(carpeta).map((n) => `${CARPETA}/${n}`)).map((r) => basename(r));
-  let antes = huellasOAviso("de la base de main");
+  let antes = salida ? huellasOAviso("de la base de main") : null;
   const pasos = [];
   for (const archivo of archivos) {
     const sql = readFileSync(join(carpeta, archivo), "utf8");
@@ -130,6 +132,10 @@ function aplicar(carpeta, salida) {
       if (despues) pasos.push({ archivo, despues });
       else antes = null; // Sin el paso intermedio no se sabe qué cambió cada archivo: no se escribe nada a medias.
     }
+  }
+  if (!salida) {
+    console.log(`Aplicadas ${archivos.length} migraciones del PR (sin huellas: no se pidieron).`);
+    return;
   }
   if (!antes) {
     console.log("::warning::Sin huellas del PR: el check «SQL pegado» no podrá comprobar producción en este commit.");
@@ -150,9 +156,9 @@ function devolver(carpeta) {
 function main() {
   const [orden, ...args] = process.argv.slice(2);
   if (orden === "apartar" && args.length === 1) return apartar(args[0]);
-  if (orden === "aplicar" && args.length === 2) return aplicar(args[0], args[1]);
+  if (orden === "aplicar" && (args.length === 1 || args.length === 2)) return aplicar(args[0], args[1]);
   if (orden === "devolver" && args.length === 1) return devolver(args[0]);
-  console.error("Uso: huellas-del-pr.mjs apartar <carpeta> | aplicar <carpeta> <salida.json> | devolver <carpeta>");
+  console.error("Uso: huellas-del-pr.mjs apartar <carpeta> | aplicar <carpeta> [<salida.json>] | devolver <carpeta>");
   process.exit(2);
 }
 

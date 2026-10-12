@@ -4,8 +4,8 @@
 // un Postgres de juguete: HUELLAS_PSQL = el comando que abre psql contra una base VACÍA y desechable, por ejemplo
 //   HUELLAS_PSQL="psql postgresql://localhost:55999/huellas"                                            (en tu máquina)
 //   HUELLAS_PSQL="/usr/bin/docker exec -i supabase_db_cayla-retail psql -U postgres -d huellas_prueba"  (el CI)
-// Sin la variable esas pruebas se saltan; el CI la pone en el job de Postgres. Nunca la apuntes a la base de las pruebas ni
-// a producción: la prueba crea y borra el schema `retail` de esa base.
+// Sin la variable esas pruebas se saltan; en el CI las corre `pnpm pruebas:huellas-del-pr` (scripts/pruebas/huellas_del_pr.mjs)
+// en una base aparte. Nunca la apuntes a la base de las pruebas ni a producción: la prueba crea y borra el schema `retail`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -108,6 +108,8 @@ test("apartar saca solo las migraciones que el PR agrega, y devolver las deja co
 // ── De punta a punta, contra un Postgres de juguete ────────────────────────────────────────────────────────────────
 
 const PSQL = process.env.HUELLAS_PSQL;
+// `pnpm pruebas:huellas-del-pr` pone HUELLAS_EXIGIR: ahí saltarse no es pasar.
+if (process.env.HUELLAS_EXIGIR && !PSQL) throw new Error("HUELLAS_EXIGIR sin HUELLAS_PSQL: las pruebas de punta a punta no correrían.");
 const conPostgres = { skip: PSQL ? false : "sin HUELLAS_PSQL (ver el encabezado)" };
 
 /** Corre SQL en la base de juguete; devuelve las filas sin adornos (`-At`). */
@@ -137,11 +139,12 @@ function preparar() {
        create function retail.viejo() returns int language sql as 'select 1';`);
 }
 
-function aplicar(migraciones) {
+function aplicar(migraciones, { conHuellas = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "huellas-pr-"));
   mkdirSync(join(dir, "pr"));
   for (const [nombre, texto] of Object.entries(migraciones)) writeFileSync(join(dir, "pr", nombre), texto);
-  const r = spawnSync(process.execPath, [join(AQUI, "huellas-del-pr.mjs"), "aplicar", join(dir, "pr"), join(dir, "huellas.json")], {
+  const salida = conHuellas ? [join(dir, "huellas.json")] : [];
+  const r = spawnSync(process.execPath, [join(AQUI, "huellas-del-pr.mjs"), "aplicar", join(dir, "pr"), ...salida], {
     encoding: "utf8",
     env: { ...process.env, PATH: `${dockerFalso()}:${process.env.PATH}` },
   });
@@ -185,4 +188,13 @@ test("cada archivo corre en su propia sesión y transacción, como el SQL Editor
   const r2 = aplicar({ "20990101000000_a_medias.sql": "create function retail.h() returns int language sql as 'select 1'; select 1/0;" });
   assert.notEqual(r2.codigo, 0);
   assert.equal(sql("select count(*) from pg_proc where proname = 'h';").trim(), "0", "nada a medias");
+});
+
+test("sin archivo de salida (tandas 2 a 4 del CI) solo aplica: la base queda igual y no hay huellas", conPostgres, () => {
+  preparar();
+  const r = aplicar({ "20990101000000_crea.sql": "create function retail.f() returns int language sql as 'select 1';" }, { conHuellas: false });
+  assert.equal(r.codigo, 0, r.salida);
+  assert.equal(r.json, null);
+  assert.equal(sql("select count(*) from pg_proc where proname = 'f' and pronamespace = 'retail'::regnamespace;").trim(), "1");
+  assert.equal(sql("select count(*) from supabase_migrations.schema_migrations;").trim(), "1");
 });
