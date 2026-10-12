@@ -149,9 +149,18 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
       </div>
 
       <Tabla>
-        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
-          {["Categoría", "Vendidas", "Soles", tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "Lo que sobró"].map((t) => (
-            <span key={t} className="text-xs font-normal text-taupe" role="columnheader">
+        <div className={`encabezado-tabla-cayla hidden gap-x-6 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
+          {/* Cada título se alinea como su columna (Tabla, «celda»): las cifras y su título a la derecha, el texto a la izquierda. */}
+          {(
+            [
+              ["Categoría", "izq"],
+              ["Vendidas", "der"],
+              ["Soles", "der"],
+              [tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "izq"],
+              ["Lo que sobró", "der"],
+            ] as const
+          ).map(([t, alinear]) => (
+            <span key={t} className={`text-xs font-normal text-taupe ${alinear === "der" ? "text-right" : ""}`} role="columnheader">
               {t}
             </span>
           ))}
@@ -162,7 +171,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
           </Vacio>
         ) : (
           categorias.map((c) => (
-            <div key={c.id} className={`fila-cayla grid gap-x-4 gap-y-1 px-5 py-3 sm:items-baseline ${PLANTILLA}`} role="row">
+            <div key={c.id} className={`fila-cayla grid gap-x-6 gap-y-1 px-5 py-3 sm:items-baseline ${PLANTILLA}`} role="row">
               <span className={celda("izq")}>
                 <span className="block font-semibold text-tinta">{c.nombre}</span>
                 <span className="block text-xs text-taupe">{c.familia}</span>
