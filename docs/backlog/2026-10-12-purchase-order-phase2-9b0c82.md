@@ -3,11 +3,11 @@
 ADR-0362 (decisiones 5–9, 16, 21 y 40–45) y ADR-0387. Lista aprobada por Felipe el 2026-10-12; la fase 1 está fusionada (PR #973).
 
 - [x] 1 · **Las acciones de Compras dejan de ser «solo del líder»** (ADR-0387): Plan de campaña, tienda gestora, costo atípico al
-  recibir, decisiones sobre lo que faltó. Migración `20261012202000` **SIN pegar en producción**.
+  recibir, decisiones sobre lo que faltó. Migración `20261012202000` **EN PRODUCCIÓN** (2026-10-12).
 - [x] 2 · **Qué tiendas se ven y a nombre de quién se paga** (decisiones 41, 44 y 45): quien tiene el módulo ve todas las tiendas y paga a
   nombre de la empresa; Proveedores ve los montos de la empresa; la deuda de una factura es de la tienda que hizo el pedido (Finanzas
-  alineado). Migración `20261012204000` (DOS partes: funciones, y las políticas solas al final) **SIN pegar en producción**; se pega
-  ANTES de desplegar la web. Recibir no cambia (va con la fase 4); `compradores_de_tienda` y lo de «mi parte» quedan sin efecto.
+  alineado). Migración `20261012204000` (DOS partes: funciones, y las políticas solas al final) **EN PRODUCCIÓN** (2026-10-12), antes de
+  desplegar la web. Recibir no cambia (va con la fase 4); `compradores_de_tienda` y lo de «mi parte» quedan sin efecto.
 **Actividades 3 a 8 juntas, el mismo día** (Felipe 2026-10-12): contrato en `docs/compras/ordenes-de-compra-2026-10/contrato-comprobante-de-orden.md`;
 migraciones `20261012205000` (esquema), `20261012210000` (Recibir y lecturas sin prenda) y `20261012211000` (la función del comprobante).
 - [x] 3 · Las líneas por «categoría + marca» se ven bien en todo el ERP; Recibir no las ofrece ni las recibe (llegan por guía, fase 4).
@@ -36,3 +36,7 @@ CampanasArchivadasModal, TopeModal y el texto visible de ResultadosCampana).
 **De las actividades 3 a 8 (para después):** `anular_compra` no rechaza a una terminal sin responsable (ya pasaba); corregir un comprobante
 al CONTADO no se puede anulando (tiene pago) hasta que exista anular un pago; la guía «categoría · marca» de las líneas sin prenda se
 retira cuando la fase 4 cree la prenda desde la guía.
+
+**Producción:** las cinco migraciones de la fase 2 EN PRODUCCIÓN desde el 2026-10-12 (aplicadas por MCP con el OK de Felipe; versiones allá 20261012223737 la 202000, 223856 y 223914 la 204000 en sus dos partes, 224036 la 205000, 224122 la 210000 y 224301 la 211000). Verificado con una consulta de solo lectura: 4 funciones nuevas, el Plan sin
+«líder», 9 políticas, 8 columnas, el papel único entre vigentes y la clave de firma; 0 compras en producción. Pendiente: refrescar el
+volcado y el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`).

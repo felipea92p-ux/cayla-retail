@@ -1,7 +1,6 @@
 # ADR-0387 · Compras: el módulo es la llave (sin «solo el líder»)
 
-- **Fecha:** 2026-10-12 · **Estado:** ACEPTADO (Felipe). Actividades 1 y 2 hechas (sin pegar en producción: va con el cierre de la
-  fase 2).
+- **Fecha:** 2026-10-12 · **Estado:** ACEPTADO (Felipe). Actividades 1 y 2 hechas y EN PRODUCCIÓN (2026-10-12, con el OK de Felipe).
 - **Rama:** `claude/purchase-order-phase2-9b0c82` (fase 2 de ADR-0362, actividades 1 y 2 de 11).
 - **Cambia:** el «módulo y líder» del Plan de campaña (ADR-0372); el «solo el líder confirma un costo atípico» al recibir
   (`20260930122000`, `20260930124000`); la tienda gestora «solo del líder» (ADR-0184). Con la actividad 2, también «Compras por tienda»

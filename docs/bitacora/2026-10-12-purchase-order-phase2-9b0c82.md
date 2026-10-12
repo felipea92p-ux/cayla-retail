@@ -36,3 +36,11 @@
   `pruebas:ordenes-compra-comprobante` 18/18 y `pruebas:compras-lineas-sin-prenda` 20/20 (las dos fallan sin su migración), vitest
   completo y tsc en verde, y en el navegador una integrante registró F001-000777 de la OC-000352. Los 57 reemplazos anclados de la fase
   2 se simularon contra producción (solo lectura): todos entran. **Sin pegar en producción.**
+
+## Compras ▸ fase 2 en producción (2026-10-12)
+
+- **Qué:** las cinco migraciones de la fase 2, EN PRODUCCIÓN desde el 2026-10-12 (aplicadas por MCP con el OK de Felipe; versiones allá 20261012223737 la 202000, 223856 y 223914 la 204000 en sus dos partes, 224036 la 205000, 224122 la 210000 y 224301 la 211000).
+- **Por qué:** Felipe pidió cerrar la fase hoy y dio el OK; la base va ANTES que la web (la web nueva paga sin tienda y llama a la
+  función del comprobante).
+- **Cómo:** antes, los 57 reemplazos anclados simulados contra producción (solo lectura); cada pegada con su validación interna y,
+  al final, una consulta de solo lectura. 0 compras en producción: nada que mover.
