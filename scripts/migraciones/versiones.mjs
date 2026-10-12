@@ -33,6 +33,10 @@
  * Deja en su cabecera «RENOMBRADA el … desde `<nombre viejo>`» (el check «SQL pegado»
  * acepta un renombre que solo toca la cabecera de comentarios, ver `sql-pegado.mjs`).
  *
+ * LAS RESERVAS (ADR-0381, 2026-10-12). Desde ahora el número se reserva al EMPEZAR (`pnpm reservar adr|migracion`,
+ * una etiqueta en el remoto que dice qué rama es la dueña), y este candado también lo mira: un número nuevo de esta rama
+ * que reservó OTRA rama sale en rojo (choca seguro); uno sin reserva solo avisa. Eso sí ve las otras ramas.
+ *
  * USO
  *   pnpm migraciones:versiones               → revisa supabase/migrations/
  *   node scripts/migraciones/versiones.mjs <carpeta>   → otra carpeta (para probarlo)
@@ -40,6 +44,7 @@
 import { readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { revisarLaRama } from "../reservar/reservas.mjs";
 
 // Misma regla que el CLI de Supabase: dígitos, guion bajo, resto, `.sql`. Lo que no
 // calza, el CLI lo ignora, así que aquí tampoco cuenta como versión.
@@ -62,8 +67,14 @@ function main() {
   const nombres = readdirSync(carpeta).sort();
   const repetidas = versionesRepetidas(nombres);
 
+  // Además de «¿se repite aquí?», «¿esta versión nueva es de otra rama?» (ADR-0381). Solo las de 14 dígitos (las de
+  // antes, `0054_…`, no se reservan) y solo con la carpeta de siempre.
+  const deOtraRama = process.argv[2]
+    ? 0
+    : revisarLaRama({ tipo: "migracion", carpeta: "supabase/migrations", patron: /^(\d{14})_.*\.sql$/, cwd: raiz });
   if (repetidas.length === 0) {
     console.log(`✓ ${nombres.length} archivos en ${carpeta}: ninguna versión repetida.`);
+    if (deOtraRama > 0) process.exit(1);
     return;
   }
 
