@@ -16,8 +16,10 @@ const VISTA = { pedir: { vista: "acaba", texto: "Qué se está acabando" }, impu
 export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: SenalCategoria[]; faltan: number; veAnalisis: boolean }) {
   const piden = senales.filter((s) => s.senal !== "bien");
   return (
-    <section className="card-cayla overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
+    // Sin `overflow-hidden` en la tarjeta: recortaba el globo del «!» (Felipe 2026-10-12). Lo que sí debe quedar dentro de las esquinas (las
+    // filas) va en su propia caja recortada, abajo.
+    <section className="card-cayla">
+      <div className={`flex flex-wrap items-center justify-between gap-2 px-5 ${piden.length === 0 ? "py-3" : "py-4"}`}>
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-taupe">
           Pedir más o impulsar
           <Ayuda titulo="Pedir más o impulsar">
@@ -26,14 +28,16 @@ export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: Senal
             <span className="mt-2 block">La prenda exacta, y en qué tienda, está en Análisis.</span>
           </Ayuda>
         </p>
+        {/* Sin nada que pedir, una sola línea: no ocupa lugar que la tabla necesita (Felipe 2026-10-12). */}
+        {piden.length === 0 ? (
+          <span className="min-w-0 flex-1 basis-72 text-sm text-tinta/75">Ninguna categoría pide nada hoy: todas alcanzan y van al ritmo del plan.</span>
+        ) : null}
         <span className="text-xs text-taupe">
           Quedan {faltan} {faltan === 1 ? "día" : "días"} de campaña
         </span>
       </div>
-      {piden.length === 0 ? (
-        <p className="border-t border-sand px-5 py-4 text-sm text-tinta/75">Ninguna categoría pide nada hoy: todas alcanzan y van al ritmo del plan.</p>
-      ) : (
-        <>
+      {piden.length > 0 && (
+        <div className="overflow-hidden rounded-b-2xl">
           <div className={`encabezado-tabla-cayla hidden gap-x-6 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
             {(
               [
@@ -69,7 +73,7 @@ export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: Senal
               </span>
             </div>
           ))}
-        </>
+        </div>
       )}
     </section>
   );

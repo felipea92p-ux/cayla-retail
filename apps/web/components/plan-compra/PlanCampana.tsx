@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronUp } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
@@ -21,6 +21,7 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
+import { ResumenCompactoPlan } from "@/components/plan-compra/ResumenCompactoPlan";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
@@ -99,6 +100,7 @@ export function PlanCampana({
   const [exportando, setExportando] = useState(false);
   const [editandoTope, setEditandoTope] = useState(false);
   const [editandoRecupero, setEditandoRecupero] = useState(false);
+  const [resumenAbierto, setResumenAbierto] = useState(false);
   const [nuevaCampana, setNuevaCampana] = useState(false);
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
@@ -268,6 +270,18 @@ export function PlanCampana({
 
       <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
+      {/* Compacto por defecto (Felipe 2026-10-12): una línea con las cifras y la tabla a la vista; «Ver detalle» abre las tarjetas, la
+          banda de lo que sobra y el simulador. */}
+      {!resumenAbierto ? (
+        <ResumenCompactoPlan
+          totales={totales}
+          estado={momento.estado}
+          tope={plan.tope.valor}
+          recuperoPct={hechos && hechos.planId === plan.plan.id ? hechos.recupero.pct : null}
+          onAbrir={() => setResumenAbierto(true)}
+        />
+      ) : (
+      <>
       {hechos && hechos.planId === plan.plan.id && (
         // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
@@ -285,6 +299,15 @@ export function PlanCampana({
       {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
       {momento.estado === "antes" && vista === "tabla" && (
         <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
+      )}
+
+      <div className="flex justify-end">
+        <button type="button" onClick={() => setResumenAbierto(false)} aria-expanded className="btn-cayla btn-sutil inline-flex items-center gap-1.5">
+          Ocultar detalle
+          <ChevronUp aria-hidden className="h-4 w-4" />
+        </button>
+      </div>
+      </>
       )}
 
       <ListaCategorias
