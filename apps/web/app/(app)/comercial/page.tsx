@@ -30,7 +30,10 @@ export default async function ComercialPage() {
           Lo vendido hoy, esta semana y este mes por tienda, contra su meta, con las horas fuertes y las ventas por
           colaboradora.
         </p>
-        <p className="mt-2 text-sm">
+        <p className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <Link href="/comercial/rentabilidad" className="text-tinta underline underline-offset-4 hover:text-rojo">
+            Rentabilidad: qué deja y qué rota →
+          </Link>
           <Link href="/comercial/calidad" className="text-tinta underline underline-offset-4 hover:text-rojo">
             Calidad: qué se devuelve y por qué →
           </Link>
