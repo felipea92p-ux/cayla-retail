@@ -5,6 +5,7 @@ import {
   crecimiento,
   diasDeLaCampana,
   filasDelAnio,
+  faltaEnElCalendario,
   filtrarYOrdenar,
   rangoDeCampana,
   type OrdenHistorial,
@@ -151,8 +152,23 @@ describe("buscar y ordenar las campañas del año", () => {
   ];
   const filas = filasDelAnio(l, etiquetas, 2025);
   const nombres = (o: OrdenHistorial, q = "") => filtrarYOrdenar(filas, q, o).map((f) => f.campana.nombre);
-  it("por fecha, como siempre", () => {
+  it("por fecha, de enero a diciembre", () => {
     expect(nombres("fecha")).toEqual(["Día de la Madre", "Halloween", "Diciembre", "Navidad"]);
+  });
+  it("la de ahora y las que vienen: arranca por la que está en curso y da la vuelta al año", () => {
+    const ahora = (hoy: string) => filtrarYOrdenar(filas, "", "ahora", hoy).map((f) => f.campana.nombre);
+    // El 12 de octubre: lo próximo es Halloween, después diciembre; Día de la Madre ya pasó y va al final.
+    expect(ahora("2026-10-12")).toEqual(["Halloween", "Diciembre", "Navidad", "Día de la Madre"]);
+    // El 20 de octubre, Halloween está en curso: va primero.
+    expect(ahora("2026-10-20")[0]).toBe("Halloween");
+    // El 15 de diciembre, Diciembre y Navidad están en curso (empatan en 0: por nombre).
+    expect(ahora("2026-12-15")).toEqual(["Diciembre", "Navidad", "Día de la Madre", "Halloween"]);
+  });
+  it("una campaña que cruza el año está en curso a los dos lados del cambio", () => {
+    const c = { desde: "2025-12-20", hasta: "2026-01-06" };
+    expect(faltaEnElCalendario(c, "2026-12-28")).toBe(0);
+    expect(faltaEnElCalendario(c, "2026-01-03")).toBe(0);
+    expect(faltaEnElCalendario(c, "2026-12-10")).toBe(10);
   });
   it("de la A a la Z y al revés", () => {
     expect(nombres("az")).toEqual(["Día de la Madre", "Diciembre", "Halloween", "Navidad"]);

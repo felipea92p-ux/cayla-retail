@@ -4,6 +4,9 @@
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 80,
   "controles": {
+    "components/colaboradores/CajonFicha.tsx": [
+      "button «Cerrar»"
+    ],
     "components/plan-compra/AvisoStock.tsx": [
       "BotonEnlace «Ir a Conteo»"
     ],
@@ -33,9 +36,9 @@
     "components/plan-compra/FormularioCategoria.tsx": [
       "Boton «Usar estos tres»",
       "Boton «Proponer el normal desde lo vendido»",
-      "CampoTexto «Diciembre flojo, prendas»",
-      "CampoTexto «Diciembre normal, prendas»",
-      "CampoTexto «Diciembre bueno, prendas»",
+      "CampoTexto «Flojo, prendas»",
+      "CampoTexto «Normal, prendas»",
+      "CampoTexto «Bueno, prendas»",
       "CampoMonto «{<span className=\"sr-only\">Precio de venta, promedio de la categoría</span>}»",
       "CampoMonto «{<span className=\"sr-only\">Costo por prenda, promedio</span>}»",
       "CampoTexto «Lo que sobre, en % del precio»",
@@ -77,12 +80,12 @@
     "components/plan-compra/PlanCampana.tsx": [
       "Boton «Nueva campaña»",
       "Boton «Ver campañas archivadas»",
+      "Boton «plan.resumen»",
       "Boton «Exportar»",
       "Boton «plan.empezar»",
       "Boton «Restaurar…»",
       "Boton «→() => setEditandoRecupero(true)»",
-      "Boton «→() => setEditandoReparto(true)»",
-      "button «Ocultar detalle»"
+      "Boton «→() => setEditandoReparto(true)»"
     ],
     "components/plan-compra/PlanCategoriaModal.tsx": [
       "Boton «Cancelar»",
@@ -101,9 +104,6 @@
       "ComboResponsable «0 ? \"Todo listo para guardar.\" : \"Sin cambios todavía.\"»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
-    "components/plan-compra/ResumenCompactoPlan.tsx": [
-      "button «plan.detalle»"
     ],
     "components/plan-compra/SelectorCampana.tsx": [
       "Desplegable «);»"

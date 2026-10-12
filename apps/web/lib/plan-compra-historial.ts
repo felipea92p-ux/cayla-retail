@@ -181,9 +181,10 @@ export function filasDelAnio(l: LecturaHistorial, etiquetas: readonly EtiquetaHi
   }));
 }
 
-export type OrdenHistorial = "fecha" | "az" | "za" | "mas" | "menos";
+export type OrdenHistorial = "ahora" | "fecha" | "az" | "za" | "mas" | "menos";
 export const ORDENES_HISTORIAL: { valor: OrdenHistorial; texto: string }[] = [
-  { valor: "fecha", texto: "Por fecha" },
+  { valor: "ahora", texto: "La de ahora y las que vienen" },
+  { valor: "fecha", texto: "Por fecha, de enero a diciembre" },
   { valor: "mas", texto: "Más vendidas primero" },
   { valor: "menos", texto: "Menos vendidas primero" },
   { valor: "az", texto: "Nombre, A a Z" },
@@ -194,8 +195,28 @@ const comparable = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLo
 /** Lo vendido en la campaña sumando las tiendas con dato (para ordenar por «más vendidas»). */
 const solesDeLaFila = (f: FilaHistorial) => f.celdas.reduce((a, c) => a + (c.medida.estado === "medida" ? c.medida.soles : 0), 0);
 
-/** Las filas del año que calzan con lo buscado (sin tildes ni mayúsculas), en el orden pedido (Felipe 2026-10-12). Por fecha es el de siempre. */
-export function filtrarYOrdenar(filas: readonly FilaHistorial[], q: string, orden: OrdenHistorial): FilaHistorial[] {
+/**
+ * Cuánto falta en el calendario para una campaña, mirando solo el día y el mes (las filas de cualquier año caen en el mismo calendario):
+ * 0 si `hoy` cae dentro de ella; si no, los días hasta que empiece, dando la vuelta al año. Así «la de ahora y las que vienen» arranca por
+ * la que está en curso (Aniversario CAYLA en octubre) y sigue con Halloween, Black Friday y Navidad (Felipe 2026-10-12).
+ */
+export function faltaEnElCalendario(c: Pick<CampanaDelAnio, "desde" | "hasta">, hoy: string): number {
+  const md = (iso: string) => iso.slice(5);
+  const h = md(hoy), d = md(c.desde), f = md(c.hasta);
+  // Una campaña que cruza el año (del 20 dic al 6 ene) está en curso si hoy cae a un lado u otro del cambio.
+  const enCurso = d <= f ? d <= h && h <= f : h >= d || h <= f;
+  if (enCurso) return 0;
+  const anio = Number(hoy.slice(0, 4));
+  const inicio = `${anio}-${d}`;
+  const falta = diasEntre(hoy, inicio);
+  return falta > 0 ? falta : diasEntre(hoy, `${anio + 1}-${d}`);
+}
+
+/**
+ * Las filas del año que calzan con lo buscado (sin tildes ni mayúsculas), en el orden pedido (Felipe 2026-10-12). «La de ahora y las que vienen»
+ * (el de entrada) necesita `hoy`; por fecha es el de enero a diciembre.
+ */
+export function filtrarYOrdenar(filas: readonly FilaHistorial[], q: string, orden: OrdenHistorial, hoy?: string): FilaHistorial[] {
   const busca = comparable(q.trim());
   const quedan = busca ? filas.filter((f) => comparable(f.campana.nombre).includes(busca)) : [...filas];
   const porNombre = (a: FilaHistorial, b: FilaHistorial) => a.campana.nombre.localeCompare(b.campana.nombre, "es");
@@ -203,6 +224,7 @@ export function filtrarYOrdenar(filas: readonly FilaHistorial[], q: string, orde
   if (orden === "za") return quedan.sort((a, b) => porNombre(b, a));
   if (orden === "mas") return quedan.sort((a, b) => solesDeLaFila(b) - solesDeLaFila(a) || porNombre(a, b));
   if (orden === "menos") return quedan.sort((a, b) => solesDeLaFila(a) - solesDeLaFila(b) || porNombre(a, b));
+  if (orden === "ahora" && hoy) return quedan.sort((a, b) => faltaEnElCalendario(a.campana, hoy) - faltaEnElCalendario(b.campana, hoy) || porNombre(a, b));
   return quedan;
 }
 

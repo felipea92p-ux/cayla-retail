@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Shirt } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -12,9 +13,11 @@ import {
   coloresQueMasVendieron,
   contraLaCampanaPasada,
   contraLoEsperado,
+  enlaceAnalisis,
   prendasQueMasVendieron,
   type FilaCategoria,
   type LecturaResultados,
+  type SenalCategoria,
 } from "@/lib/plan-compra-resultados";
 
 // El detalle de una categoría en Resultados (ADR-0372, C6 · Felipe 2026-10-12: «al darle clic a una fila, qué prendas y de qué colores se
@@ -33,6 +36,9 @@ export function DetalleCategoriaResultados({
   tiendaInicial,
   pesos,
   propuesta,
+  senal = null,
+  deTienda = null,
+  veAnalisis = false,
   onClose,
 }: {
   r: LecturaResultados;
@@ -42,6 +48,12 @@ export function DetalleCategoriaResultados({
   pesos: readonly number[];
   /** La propuesta del Plan (C4): trae lo vendido en la misma campaña del año anterior; null si no se pudo leer. */
   propuesta: LecturaPropuesta | null;
+  /** Si pide más o pide impulso (lo de «Pedir más o impulsar», que vive en la tabla desde el 2026-10-12); null = va bien o la campaña terminó. */
+  senal?: SenalCategoria | null;
+  /** La tienda elegida en Resultados (la señal es de ella); null = toda CAYLA. */
+  deTienda?: string | null;
+  /** Quien ve Análisis recibe el acceso a la prenda exacta. */
+  veAnalisis?: boolean;
   onClose: () => void;
 }) {
   const [tienda, setTienda] = useState<string | null>(tiendaInicial);
@@ -105,6 +117,23 @@ export function DetalleCategoriaResultados({
                   : `vendió en toda esa campaña (del ${fechaCortaES(pasada.desde)} al ${fechaCortaES(pasada.hasta)}); esta vez van ${enteroES.format(unidades)}, hasta ayer`}
           </TarjetaCifra>
         </div>
+
+        {senal && senal.senal !== "bien" && (
+          // Lo que antes era la fila de «Pedir más o impulsar»: qué hacer y, para la prenda exacta, el acceso a Análisis.
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+            {senal.senal === "pedir" ? <Chip tono="rojo">Pide más</Chip> : <Chip tono="ambar">Impúlsala</Chip>}
+            <span className="min-w-0 flex-1">
+              {senal.senal === "pedir"
+                ? `Lo que queda${deTienda ? ` en ${deTienda}` : ""} alcanza para ${senal.alcanzaDias === null ? "—" : Math.round(senal.alcanzaDias)} ${Math.round(senal.alcanzaDias ?? 0) === 1 ? "día" : "días"}: se acaba antes de que termine la campaña.`
+                : "Va 20 % o más por debajo del plan y le sobra: vitrina, combo o una rebaja chica."}
+            </span>
+            {veAnalisis && (
+              <Link href={enlaceAnalisis(senal.senal, categoria.nombre)} className="btn-cayla btn-enlace">
+                {senal.senal === "pedir" ? "Sus prendas que se acaban →" : "Sus prendas que no se venden →"}
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* La frase contra el plan («entre el normal y el bueno») ya la dice la tarjeta de arriba: aquí solo lo que no dice. */}
         {categoria.agotadaEn.length > 0 && (
