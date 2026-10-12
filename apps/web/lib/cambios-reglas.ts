@@ -243,8 +243,10 @@ export function validarCambio(e: {
   /** Talla y color ya elegidos (los que la prenda tenga). */
   eligioPrenda: boolean;
   /** `apartadoAqui`: lo apartado en ese piso — con `stockAqui` en 0 separa «apartada para un cliente» de «no queda».
-   *  Obligatorio a propósito: opcional, quien armara `nueva` sin él compilaría y el aviso volvería a decir «no queda». */
-  nueva: { descripcion: string; stockAqui: number; apartadoAqui: number; otrasSedes: string | null } | null;
+   *  Obligatorio a propósito: opcional, quien armara `nueva` sin él compilaría y el aviso volvería a decir «no queda».
+   *  `precio`: el de CAMBIO (`precioParaCambio`), el mismo de la diferencia. Obligatorio por lo mismo: sin él, un cambio por una
+   *  prenda en S/ 0 llegaría a la base (ADR-0385). */
+  nueva: { descripcion: string; stockAqui: number; apartadoAqui: number; otrasSedes: string | null; precio: number } | null;
   sede: string;
   diferencia: number;
   metodo: MetodoDiferencia;
@@ -300,6 +302,15 @@ export function validarCambio(e: {
 
   if (!e.eligioPrenda) lista.push({ clave: "stock", estado: "pendiente", titulo: "Falta elegir la talla y el color que se lleva" });
   else if (!e.nueva) lista.push({ clave: "stock", estado: "alerta", titulo: "Esa talla y color no existen en el catálogo" });
+  // ADR-0385: una prenda sin precio no se entrega en un cambio (`registrar_cambio` lo rechaza con `cambio_sin_precio`): la
+  // diferencia le devolvería al cliente lo que pagó. Antes que el stock: sin precio, que haya o no da igual.
+  else if (!(e.nueva.precio > 0))
+    lista.push({
+      clave: "stock",
+      estado: "alerta",
+      titulo: `${e.nueva.descripcion} no tiene precio`,
+      detalle: "Elige otra prenda, o pide que le pongan precio en su ficha (Catálogo ▸ Productos).",
+    });
   else if (e.nueva.stockAqui <= 0) {
     // Apartada para otra clienta no es «no queda»: la prenda está en el piso y no se puede entregar (`textoSinStock`).
     const apartada = sinStockPorApartado(e.nueva);

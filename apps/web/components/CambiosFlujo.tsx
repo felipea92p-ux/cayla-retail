@@ -199,7 +199,13 @@ export function CambiosFlujo({
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
           nueva: r.varianteNueva
-            ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, apartadoAqui: r.varianteNueva.apartadoAqui, otrasSedes: r.otrasSedes }
+            ? {
+                descripcion: r.descripcionNueva,
+                stockAqui: r.varianteNueva.stockAqui,
+                apartadoAqui: r.varianteNueva.apartadoAqui,
+                otrasSedes: r.otrasSedes,
+                precio: r.precioNueva ?? r.varianteNueva.precio,
+              }
             : null,
           sede,
           diferencia: r.diferencia,

@@ -444,6 +444,18 @@ const HUELLAS: Huella[] = [
     marca: "familias_nombre_unico",
     frase: "Ya existe una familia muy parecida (mayúsculas, tildes o espacios de más no cuentan como distinto).",
   },
+  {
+    // 20261012201000_cambio_sin_precio.sql (ADR-0385) — no se cambia por una prenda sin precio: la diferencia le devolvería al
+    // cliente lo que pagó. Cambios ya lo frena antes (`validarCambio`); esto es la red. El detalle es «referencia (código)».
+    marca: "cambio_sin_precio",
+    frase: (prenda) => `${prenda} no tiene precio en el catálogo: elige otra prenda para el cambio, o pide que le pongan precio en su ficha.`,
+  },
+  {
+    // `separacion_items` exige `precio_unitario > 0` desde que existe Apartados (20260923090000): una prenda en S/ 0 no se
+    // aparta. Antes llegaba el nombre crudo del candado (ADR-0385).
+    marca: "separacion_items_precio_unitario_check",
+    frase: "Una de las prendas no tiene precio en el catálogo: quítala del apartado y pide que le pongan precio en su ficha.",
+  },
 ];
 
 /**
