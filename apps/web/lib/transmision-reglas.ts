@@ -169,18 +169,16 @@ export const DIAS_PLAZO_SUNAT = 3;
  *  (`20260924113817_sunat_reintento_por_cron.sql`): cambiar los dos juntos. */
 export const HORAS_REINTENTO_AUTOMATICO = 4;
 
-/** PL-113: por qué el trabajo programado (`GET /api/lucode/reintentar`) NO transmite, o `null` si sí. Sin
- *  `CRON_SECRET` o con otra clave no pasa nadie (401). Fuera del sandbox no transmite: hoy toda venta es de prueba y
- *  ya se fueron 2 boletas a SUNAT REAL por error (2026-09-22). Responde 200 y no un error para que Vercel no lo cuente
- *  como una ejecución fallida. Salir en vivo es decisión de Felipe y es cambiar ESTA regla a propósito, no una
- *  variable que alguien toca sin saber que el cron empieza a declarar solo. */
-export function cronNoTransmite(
+/** PL-113: por qué el trabajo programado (`GET /api/lucode/reintentar`) NO puede correr, o `null` si puede. Sin
+ *  `CRON_SECRET` o con otra clave no pasa nadie (401). Con la clave, transmite en el ambiente que tenga Lucode,
+ *  también en producción: Felipe sacó la regla «solo sandbox» el 2026-10-12 (ADR-0165, «Actualización 2026-10-12»),
+ *  porque con ventas reales la cola quedaba quieta mientras nadie cobrara ni abriera Comprobantes (las boletas
+ *  que Lucode no contestó el 11-oct esperaron ~20 horas). Apagarlo sin publicar: Vercel ▸ Settings ▸ Cron Jobs. */
+export function cronNoAutorizado(
   autorizacion: string | null,
   secreto: string | undefined,
-  entorno: "sandbox" | "produccion",
-): { status: 401 | 200; body: { error: string } | { tomados: 0; omitido: string } } | null {
+): { status: 401; body: { error: string } } | null {
   if (!secreto || autorizacion !== `Bearer ${secreto}`) return { status: 401, body: { error: "No autorizado" } };
-  if (entorno !== "sandbox") return { status: 200, body: { tomados: 0, omitido: "El cron solo transmite al sandbox de Lucode." } };
   return null;
 }
 

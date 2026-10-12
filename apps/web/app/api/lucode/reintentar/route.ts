@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
-import { entornoLucode } from "@/lib/lucode";
 import { transmitirComprobante, type Cliente } from "@/lib/transmitir-comprobante";
 import { consultarComprobante } from "@/lib/consultar-comprobante";
-import { cronNoTransmite } from "@/lib/transmision-reglas";
+import { cronNoAutorizado } from "@/lib/transmision-reglas";
 import { capturarError } from "@/lib/errores";
 
 // Cada comprobante puede tardar hasta 15 s en Lucode (timeout de `lib/lucode.ts`).
@@ -19,20 +18,18 @@ export const maxDuration = 60;
 // que haría Vercel al llegar a `maxDuration`) podría dejar un envío hecho sin guardar.
 const PRESUPUESTO_MS = 30_000;
 
-async function barrer(supabase: Cliente, ubicacionId: string | null, transmitir = true) {
+async function barrer(supabase: Cliente, ubicacionId: string | null) {
   const inicio = Date.now();
   const resultados = [];
-  if (transmitir) {
-    const { data: ids, error } = await supabase.rpc("fn_tomar_comprobantes_para_reintento", {
-      p_ubicacion_id: ubicacionId ?? undefined,
-      p_limite: 3,
-    });
-    if (error) return { error: error.message };
-    for (const id of ids ?? []) {
-      if (Date.now() - inicio > PRESUPUESTO_MS) break;
-      const r = await transmitirComprobante(supabase, { comprobanteId: id });
-      resultados.push({ id, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
-    }
+  const { data: ids, error } = await supabase.rpc("fn_tomar_comprobantes_para_reintento", {
+    p_ubicacion_id: ubicacionId ?? undefined,
+    p_limite: 3,
+  });
+  if (error) return { error: error.message };
+  for (const id of ids ?? []) {
+    if (Date.now() - inicio > PRESUPUESTO_MS) break;
+    const r = await transmitirComprobante(supabase, { comprobanteId: id });
+    resultados.push({ id, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
   }
   // Sin tiempo, la consulta espera a la próxima pasada (no reserva nada que no vaya a preguntar).
   const consultas = Date.now() - inicio > PRESUPUESTO_MS ? { consultados: 0, actualizados: 0 } : await consultarLoQueQuedoEnTramite(supabase, ubicacionId, inicio);
@@ -90,13 +87,11 @@ export async function POST(request: Request) {
 // para que la cola avance aunque nadie tenga una pantalla abierta (una caída de Lucode de noche). Vercel manda
 // `Authorization: Bearer $CRON_SECRET`; sin esa variable, o con otra clave, no pasa nadie. No trae sesión de
 // persona: entra con la llave de servicio, que la base deja tomar la cola de todas las sedes pero solo lo emitido
-// en las últimas 4 horas (`20260924113817`); lo más viejo lo avisa el Inicio del líder (PL-114).
+// en las últimas 4 horas (`20260924113817`); lo más viejo lo avisa el Inicio del líder (PL-114). Transmite en el
+// ambiente que tenga Lucode, también en producción (ADR-0165, «Actualización 2026-10-12»): ver `cronNoAutorizado`.
 export async function GET(request: Request) {
-  // Clave del cron y SOLO sandbox para TRANSMITIR: la regla y su porqué, en `cronNoTransmite`. Preguntar por lo
-  // que quedó en trámite sí corre en producción: solo lee de SUNAT y anota lo que SUNAT ya resolvió.
-  const no = cronNoTransmite(request.headers.get("authorization"), process.env.CRON_SECRET, entornoLucode());
-  if (no && no.status === 401) return Response.json(no.body, { status: no.status });
-  const transmitir = no === null;
+  const no = cronNoAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET);
+  if (no) return Response.json(no.body, { status: no.status });
 
   let supabase: Cliente;
   try {
@@ -106,7 +101,7 @@ export async function GET(request: Request) {
     capturarError("lucode/reintentar (cron): sin llave de servicio", e);
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }
-  const r = await barrer(supabase, null, transmitir);
+  const r = await barrer(supabase, null);
   if ("error" in r) console.error("Cron de SUNAT: no se pudo tomar la cola:", r.error);
   return Response.json(r, { status: "error" in r ? 500 : 200 });
 }
