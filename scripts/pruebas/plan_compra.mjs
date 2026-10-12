@@ -92,7 +92,10 @@ exception when others then
 end;
 $f$;
 
-select id as plan from retail.planes_compra where nombre = 'Diciembre 2026' \\gset
+-- Una campaña PROPIA (1–31 dic 2026), no la sembrada «Diciembre 2026»: desde B5 (20261012120000) un líder edita sus fechas o la quita
+-- desde la web, y en una base local trabajada los casos que leen la hoja fallaban por el dato, no por la función. M1 sí mira la sembrada.
+insert into retail.planes_compra (nombre, desde, hasta) values ('ZZ PC Campaña', date '2026-12-01', date '2026-12-31');
+select id as plan from retail.planes_compra where nombre = 'ZZ PC Campaña' \\gset
 insert into retail.categorias (nombre, familia) values ('PC Polos', 'indumentaria');
 select id as cat from retail.categorias where nombre = 'PC Polos' \\gset
 insert into retail.categoria_tallas (categoria_id, talla_id) select :'cat', t.id from retail.tallas t where t.valor in ('S', 'M', 'L');
@@ -149,7 +152,7 @@ const FIXTURE_PRENDA = `
    with v2 as (insert into retail.ventas (ubicacion_id, estado, created_at) values (:'tienda', 'completada', timestamptz '2026-12-05 12:00-05') returning id)
    insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) select id, :'v', 4, 80, 30 from v2;
    ${como(FELIPE)}
-   select retail.fn_plan_compra() as h \\gset
+   select retail.fn_plan_compra(:'plan') as h \\gset
 `;
 
 // M. MÓDULO ---------------------------------------------------------------------------------------------------------------
@@ -158,19 +161,20 @@ caso(
   `reset role;
    select concat_ws(',', (select grupo || ':' || orden || ':' || delegable || ':' || solo_lider from retail.modulos where clave = 'plan_compra'),
      (select count(*) from retail.rol_modulos where modulo = 'plan_compra'),
-     (select desde || '/' || hasta from retail.planes_compra where nombre = 'Diciembre 2026'));`,
-  "Compras:195:true:false,0,2026-12-01/2026-12-31"
+     -- Que exista, no sus fechas: desde B5 un líder las edita en la web (la siembra es on conflict do nothing y no las repone).
+     (select count(*) from retail.planes_compra where nombre = 'Diciembre 2026'));`,
+  "Compras:195:true:false,0,1"
 );
 
 // P. PUERTAS --------------------------------------------------------------------------------------------------------------
 caso(
   "P1 Felipe lee; Micaela, sin el módulo, recibe 42501 al leer y al guardar",
-  `select (retail.fn_plan_compra() -> 'plan' ->> 'nombre') as nombre \\gset
+  `select (retail.fn_plan_compra() -> 'plan' ->> 'nombre' is not null) as nombre \\gset
    ${como(MICAELA)}
    select :'nombre' || ',' ||
      split_part(pg_temp.intento('select retail.fn_plan_compra()'), '|', 1) || ',' ||
      split_part(pg_temp.guarda('{}'::jsonb), '|', 1);`,
-  "Diciembre 2026,42501,42501"
+  "t,42501,42501"
 );
 caso(
   "P2 nadie lee las tablas directo (RLS sin políticas) ni ejecuta como anon",
@@ -271,7 +275,7 @@ caso(
    select retail.restaurar_plan_compra(:'plan') ->> 'nombre' as restaurada \\gset
    select concat_ws(' / ', :'antes', :'restaurada',
      (select archivado_en is null and archivado_por is null from retail.planes_compra where id = :'plan'));`,
-  "borrado,archivado,archivado / 0 / true / t / true / t / Diciembre 2026 / t"
+  "borrado,archivado,archivado / 0 / true / t / true / t / ZZ PC Campaña / t"
 );
 caso(
   "E3 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie ejecuta como anon",
@@ -331,9 +335,9 @@ caso(
 caso(
   "T1 un líder fija el tope, la hoja lo trae con su autor, y quitarlo lo deja en NULL sin perder quién lo tocó",
   `select retail.guardar_plan_compra_tope(:'plan', 12000.456);
-   select (retail.fn_plan_compra() -> 'plan' ->> 'tope_inversion') as con \\gset
+   select (retail.fn_plan_compra(:'plan') -> 'plan' ->> 'tope_inversion') as con \\gset
    select retail.guardar_plan_compra_tope(:'plan', null);
-   select :'con' || ',' || coalesce((retail.fn_plan_compra() -> 'plan' ->> 'tope_inversion'), 'sin') || ',' ||
+   select :'con' || ',' || coalesce((retail.fn_plan_compra(:'plan') -> 'plan' ->> 'tope_inversion'), 'sin') || ',' ||
      (select (tope_actualizado_por is not null)::text from retail.planes_compra where id = :'plan');`,
   "12000.46,sin,true"
 );
@@ -397,7 +401,7 @@ caso(
      split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', (select id from retail.etiquetas where nombre = 'ZZ Positivo'))), '|', 2),
      split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', (select id from retail.etiquetas where nombre = 'ZZ Sin fechas'))), '|', 2),
      split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L, null, date ''2027-06-01'', date ''2027-05-01'')', :'et')), '|', 2),
-     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L, ''Diciembre 2026'')', :'et')), '|', 2),
+     split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L, ''ZZ PC Campaña'')', :'et')), '|', 2),
      (select retail.crear_plan_compra(:'et') ->> 'id' is not null),
      split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', :'et')), '|', 2));`,
   "Elige una campaña de Catálogo ▸ Etiquetas que esté aprobada y tenga sus fechas. / Elige una campaña de Catálogo ▸ Etiquetas que esté aprobada y tenga sus fechas. / La campaña no puede terminar antes de empezar. / Ya hay un plan con ese nombre: ponle otro. / t / Esa campaña ya tiene su plan: ábrelo desde el selector."

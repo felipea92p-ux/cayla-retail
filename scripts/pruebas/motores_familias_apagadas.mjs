@@ -14,6 +14,7 @@
  *      la bolsa vuelve (el interruptor es en vivo).
  *   D  DEMANDA (`fn_demanda_sede`): `variantes` y `grupos` (anotadas y perdidas) traen el polo y no la bolsa.
  *   M  PLAN (`fn_plan_compra`): `categorias`, `stock`, `stock_sedes`, `curvas`, `vendido`, `vendido_30` y `catalogo` traen el polo y no la bolsa.
+ *      Sobre una campaña propia del caso (1–31 dic 2026), nunca la sembrada: esa se edita y se quita desde la web (B5).
  *   A  ANÁLISIS (`fn_analisis_sede`): `prendas` trae el polo y no la bolsa, y la cifra «rebaja_de_100» solo mira mercadería (la bolsa, a precio de
  *      lista, no la diluye).
  *   F  FRESCURA (`fn_frescura_sede`): `prendas` trae el polo y no la bolsa.
@@ -98,6 +99,10 @@ select id as t_m from retail.tallas where valor = 'M' \\gset
 insert into retail.categoria_tallas (categoria_id, talla_id) values (:'cat_b', :'t_m'), (:'cat_p', :'t_m');
 select codigo as neutro from retail.colores where familia_color = 'neutro' order by codigo limit 1 \\gset
 select set_config('bf.neutro', :'neutro', true) as _4 \\gset
+-- Una campaña PROPIA (1–31 dic 2026), no la sembrada «Diciembre 2026»: desde B5 (20261012120000) un líder edita sus fechas o la
+-- quita, y en una base local trabajada la venta del 5 de diciembre caía fuera y «vendido» salía vacío sin que el motor fallara.
+insert into retail.planes_compra (nombre, desde, hasta) values ('ZZ BF Campaña', date '2026-12-01', date '2026-12-31');
+select id as plan from retail.planes_compra where nombre = 'ZZ BF Campaña' \\gset
 
 -- Una prenda (producto + variante) en la categoría dada.
 create function pg_temp.prenda(p_cat uuid, p_sku text) returns uuid language plpgsql as $$
@@ -236,7 +241,7 @@ caso(
    select pg_temp.vende(:'vp', 4, timestamptz '2026-12-05 12:00-05');
    select pg_temp.anota(:'cat_b', now() - interval '5 days');
    select pg_temp.anota(:'cat_p', now() - interval '5 days');
-   select retail.fn_plan_compra((select id from retail.planes_compra where nombre = 'Diciembre 2026')) as h \\gset
+   select retail.fn_plan_compra(:'plan') as h \\gset
    select concat_ws(' ',
      'cats=' || pg_temp.veces(:'h'::jsonb -> 'categorias', 'id', :'cat_p') || pg_temp.veces(:'h'::jsonb -> 'categorias', 'id', :'cat_b'),
      'stock=' || pg_temp.veces(:'h'::jsonb -> 'stock', 'categoria_id', :'cat_p') || pg_temp.veces(:'h'::jsonb -> 'stock', 'categoria_id', :'cat_b'),
@@ -257,7 +262,7 @@ caso(
    select pg_temp.vende(:'vp', 4, timestamptz '2026-12-05 12:00-05');
    select pg_temp.anota(:'cat_b', now() - interval '5 days');
    select pg_temp.anota(:'cat_p', now() - interval '5 days');
-   select retail.fn_plan_compra((select id from retail.planes_compra where nombre = 'Diciembre 2026')) as h \\gset
+   select retail.fn_plan_compra(:'plan') as h \\gset
    select concat_ws(',',
      (select coalesce(sum((e ->> 'unidades')::int), 0) from jsonb_array_elements(:'h'::jsonb -> 'vendido_30') e where e ->> 'categoria_id' = :'cat_p'),
      (select coalesce(sum((e ->> 'unidades')::int), 0) from jsonb_array_elements(:'h'::jsonb -> 'vendido_30') e where e ->> 'categoria_id' = :'cat_b'),
