@@ -144,6 +144,10 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Siempre queda al menos un líder y un admin activos, y nadie se cambia su propio rol", origen: "ADR-0161 y ADR-0178" },
   { que: "Sin ser líder, solo se dan los módulos que uno mismo ve, y no se editan los del propio rol", origen: "ADR-0178" },
   // Las 6 decisiones (Felipe, 2026-09-22, migración 20260923140000):
+  // OJO con la primera (corregido 2026-10-12, ADR-0161 «Actualización 2026-10-12»; el texto de la lista NO se tocó): la decisión P5 solo
+  // cerró en la base el COSTO y `fn_resumen_variantes.en_red` para quien no es líder. El stock de las otras sedes en Existencias NO es solo
+  // del líder: `fn_existencias` y `fn_stock_por_sede` piden solo `fn_tiene_acceso_retail()` (ADR-0270 y ADR-0289, migración 20261004110000) y
+  // la web llena `enRed` para toda cuenta con Existencias (`lib/inventario-v2.ts`, vía `fn_stock_por_sede_json`), sin preguntar el rol.
   { que: "Ver el costo y el stock de las otras sedes en Existencias (Análisis analiza solo su sede)", origen: "ADR-0161 P5" },
   { que: "Ver lo comprado por el Taller en la ficha de un proveedor", origen: "ADR-0161 P3" },
   { que: "Colaboradores, y Roles y accesos, nunca van en el rol de una terminal: solo se dan a personas", origen: "ADR-0161 P6" },
