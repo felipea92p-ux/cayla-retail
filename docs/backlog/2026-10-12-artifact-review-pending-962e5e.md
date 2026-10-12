@@ -8,8 +8,8 @@
   `pruebas:categorias-candados`.
 - [x] `fn_motor_demanda_preparacion` ignora las familias apagadas (`20261012220000`); caso E1 en `pruebas:motores-familias-apagadas`.
 - [x] Borrada `fn_historial_producto_cambios`, sin uso (`20261012213000`).
-- [ ] **Pegar en producción, con el OK de Felipe:** `20261012213000`, `20261012214000`, `20261012215000` y `20261012220000`. Cada una
-  es una sola parte, sin políticas. Antes de la 215000, correr la consulta de solo lectura de su encabezado (cuántas hijas quedan
-  desalineadas). Después: refrescar el volcado y `docs/datos/generado`.
+- [x] **Pegadas en producción (2026-10-12, Felipe):** `20261012213000`, `20261012214000`, `20261012215000` y `20261012220000`. Antes de
+  pegar, los anclajes coincidían con producción y había 1 subcategoría, 0 desalineadas. Después, la verificación dio todo `true`.
+- [ ] Refrescar el volcado y `docs/datos/generado` (`generado/COMO-REFRESCAR.md`).
 - [ ] **`pruebas:motores-familias-apagadas` M1 y M2 fallan en `main`** (no es de este cambio): en el plan de campaña, `vendido` del
   polo sale 0 dentro de la campaña. Lo más probable es que venga de las migraciones del plan de campaña del 2026-10-12 (161000–164000).
