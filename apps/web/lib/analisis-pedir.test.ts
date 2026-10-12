@@ -17,7 +17,11 @@ import {
   filaRindeDe,
   masVendidas,
   notaRindeVacio,
-  PRENDAS_EN_RANKING,
+  TOP_DEFECTO,
+  topsPosibles,
+  cuantasVendidas,
+  fraseDelTipo,
+  ordenarAlcance,
   proximaNavidad,
   rielNavidad,
   rindePorCategoria,
@@ -271,15 +275,17 @@ describe("curvaDeTallas", () => {
 });
 
 describe("lo que más se vende", () => {
-  it(`las ${PRENDAS_EN_RANKING} que más se venden, sin las que no se vendieron; a igual venta, por nombre`, () => {
+  it(`las ${TOP_DEFECTO} que más se venden por defecto, sin las que no se vendieron; a igual venta, por nombre; y las que pidas`, () => {
     const prendas = [
       ...Array.from({ length: 9 }, (_, k) => prenda({ nombre: `Polo ${String.fromCharCode(73 - k)}`, vendidas30: k + 1 })),
       prenda({ nombre: "Polo Z", vendidas30: 9 }),
       prenda({ nombre: "Polo quieto", vendidas30: 0, piso: 5 }),
     ];
     const tops = masVendidas(prendas, null);
-    expect(tops).toHaveLength(PRENDAS_EN_RANKING);
-    expect(tops.map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6, 5, 4, 3]);
+    expect(tops).toHaveLength(TOP_DEFECTO);
+    expect(tops.map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6]);
+    expect(masVendidas(prendas, null, 10).map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    expect(masVendidas(prendas, null, 20)).toHaveLength(10);
     expect(tops[0]!.nombre).toBe("Polo A");
     expect(tops[1]!.nombre).toBe("Polo Z");
     expect(tops.some((p) => p.nombre === "Polo quieto")).toBe(false);
@@ -430,5 +436,48 @@ describe("Qué pedir por modelo (ADR-0357, decisión 12)", () => {
 
   it("«Lo que más se vende» es un ranking de modelos", () => {
     expect(masVendidas(modelos, null).map((m) => m.nombre)).toEqual(["Polo Ensayo"]);
+  });
+});
+
+describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Felipe 2026-10-10)", () => {
+  it("ofrece Top 5 siempre y los demás solo si hay más modelos vendidos que el anterior", () => {
+    expect(topsPosibles(0)).toEqual([5]);
+    expect(topsPosibles(5)).toEqual([5]);
+    expect(topsPosibles(6)).toEqual([5, 10]);
+    expect(topsPosibles(16)).toEqual([5, 10, 15, 20]);
+  });
+
+  it("cuenta los modelos vendidos del tipo elegido o de toda la tienda", () => {
+    const ps = [prenda({ categoria: "Polos", vendidas30: 2 }), prenda({ categoria: "Polos", vendidas30: 0 }), prenda({ categoria: "Tops", vendidas30: 1 })];
+    expect(cuantasVendidas(ps, null)).toBe(2);
+    expect(cuantasVendidas(ps, "Polos")).toBe(1);
+  });
+
+  it("la frase del tipo: para cuánto alcanza contra Navidad y lo que tienes; sin tipo, lo de toda la tienda", () => {
+    const tops = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, tiene: 92, nunca: 39, dias: 49, pide: true };
+    const polos = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, tiene: 10, nunca: 0, dias: null, pide: false };
+    expect(fraseDelTipo(tops, [], 11)).toBe("Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.");
+    expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
+    expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
+    expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega a Navidad.");
+  });
+});
+
+describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
+  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, tiene: 5, nunca: 0, dias, pide: false });
+  // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
+  const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
+
+  it("por defecto, lo que se acaba antes (el orden que ya trae)", () => {
+    expect(ordenarAlcance(tipos, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Tops", "Bodys", "Shorts"]);
+  });
+
+  it("«Más vendido»: lo que más se vende primero; a igual venta, lo que se acaba antes; lo que no se vendió, al final", () => {
+    expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
+  });
+
+  it("no cambia la lista que recibe", () => {
+    ordenarAlcance(tipos, "vende");
+    expect(tipos[0].categoria).toBe("Capas");
   });
 });

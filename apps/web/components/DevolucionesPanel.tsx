@@ -17,6 +17,8 @@ import { EsqueletoBusqueda, EstadoVacio, SinResultadosVentas, mostrarActividad }
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import type { DevolucionPendiente, DevolucionResuelta } from "@/lib/devoluciones";
 import { estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import type { DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
@@ -92,13 +94,23 @@ export function DevolucionesPanel({
   const pathname = usePathname();
   const ahora = useMemo(() => new Date(), []);
   const [buscando, startTransition] = useTransition();
+  // La devolución a medio armar es de SU sede (Felipe, 2026-10-11), como en Cambios: la página monta el panel con la sede en la key,
+  // y la de otra sede quedó guardada en `TrabajoPorSede`. Al volver se retoma; si el panel se montó por un cambio de sede, no se reabre
+  // desde cero la venta del enlace (`?item=`).
+  const { inicial: guardado, reportar: reportarDevolucion, vieneDeOtraSede } = useTrabajoPorSede<DevolucionArmada>(ubicacionId);
   const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(() => {
+    if (guardado) return { venta: guardado.venta, lineaId: guardado.lineaInicialId };
+    if (vieneDeOtraSede) return null;
     const l = abrirItemId ? lineas.find((x) => x.ventaItemId === abrirItemId) : undefined;
     if (!l) return null;
     // Una prenda que ya no se puede devolver (anulada, ya devuelta…) abre el flujo sin nada
     // marcado: en el paso de las prendas cada una dice por qué sí o por qué no.
     return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaDevolucion(l, ahora).devolvible ? l.ventaItemId : null };
   });
+  // Sin devolución abierta no hay nada armado: una cancelada o terminada no se guarda al cambiar de sede.
+  useEffect(() => {
+    if (!flujo) reportarDevolucion(null);
+  }, [flujo, reportarDevolucion]);
   const [anulando, setAnulando] = useState<LineaVentaReciente | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [vista, setVista] = useState<Vista>("compras");

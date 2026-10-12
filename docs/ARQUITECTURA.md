@@ -612,8 +612,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   guardado; la página pasa `puedeAgregarProveedor` (`puede(persona, "editarCuentasProveedor")`) y los rubros en uso
   (`getRubrosEnUso`, `lib/proveedores.ts`). Quien no tiene el módulo ve a quién pedírselo.
 - **Recibir y el cambio de sede** (ADR-0330 act. 2026-10-11): `recibir/page.tsx` monta `LlegoMercaderia` y `RecepcionEnvio` con
-  `key={claveDeLaRecepcion(<sede>)}` dentro de `components/recibir/ConteoPorSede.tsx` (uno por vista, sin la sede en su key), que
-  guarda lo contado en la sede que se deja y se lo devuelve a la pantalla al volver (`useConteoPorSede`). Lógica pura:
+  `key={claveDeLaRecepcion(<sede>)}` dentro de `components/ui/TrabajoPorSede.tsx` (uno por vista, sin la sede en su key), que
+  guarda lo contado en la sede que se deja y se lo devuelve a la pantalla al volver (`useTrabajoPorSede`). Lógica pura:
   `lib/recibir-cambio-de-sede.ts`. Las dos puertas usan `useSalidaSinGuardar`, que también avisa lo guardado en otra sede.
 - **Ventas sin registrar = `/inventario/por-regularizar`** (ADR-0330, 2026-10-04; antes la pestaña `/recibir?vista=por-regularizar`,
   que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
@@ -1282,6 +1282,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/finanzas/activos`, `/finanzas/patrimonio`, `/finanzas/comparativo` →
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `GastoRapidoModal.tsx` (Caja ▸ Registrar gasto, ADR-0368) → `lib/gasto-rapido-reglas.ts` (conceptos, orden por frecuencia; el orden lo calcula `caja/page.tsx` con `getGastosDeUbicacion`) → `validarGasto` → RPC `registrar_gasto`; su enlace «formulario completo» abre `RegistrarGastoModal`.
+- `IngresoRapidoModal.tsx` (Caja ▸ Registrar ingreso, ADR-0375) → `lib/ingreso-rapido-reglas.ts` (conceptos → motivo de la base, nota con quién/qué sede/qué fue, de qué plata es lo del líder) → RPC `registrar_ingreso_caja` (el ingreso + su contraparte en `movimientos_dinero.caja_ingreso_id`: caja fuerte, por rendir, aporte o el cajón de la otra sede); su enlace «Retiro o depósito» (también en el gasto rápido) abre `MovimientoCajaModal soloSalida`.
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
 - `/vender/comprobantes/**` (se llamó `/vender/facturacion` hasta 2026-09-22, que redirige; ADR-0124,

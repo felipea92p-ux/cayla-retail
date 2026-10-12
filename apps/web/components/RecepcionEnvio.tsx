@@ -14,8 +14,8 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { envioContado, mensajeDeSalida, unidadesDelEnvio } from "@/lib/recibir-cambio-de-sede";
-import { useConteoPorSede } from "@/components/recibir/ConteoPorSede";
+import { avisoConteoGuardado, avisoConteoRetomado, envioContado, mensajeDeSalida, unidadesDelEnvio } from "@/lib/recibir-cambio-de-sede";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { usePistola } from "@/components/ui/usePistola";
 import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
@@ -218,8 +218,8 @@ export function RecepcionEnvio({
   );
 
   // El conteo es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se contó en otra
-  // sede quedó guardado en `ConteoPorSede`. Si se vuelve a una sede con algo contado, se arranca desde ahí.
-  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useConteoPorSede<ConteoDelEnvio>(ubicacionInicialId);
+  // sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo contado, se arranca desde ahí.
+  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useTrabajoPorSede<ConteoDelEnvio>(ubicacionInicialId);
   const inicial = guardado
     ? guardado.seleccionadas.filter((id) => compras.some((c) => c.id === id))
     : compraInicialId && compras.some((c) => c.id === compraInicialId)
@@ -282,7 +282,7 @@ export function RecepcionEnvio({
     !ok && (contado || guardadosEnOtras.length > 0),
     mensajeDeSalida(contado ? "Hay un conteo a medias en este envío y todavía no se recibió. Si sales ahora, se pierde lo contado." : null, guardadosEnOtras)
   );
-  // Lo contado, al día, para `ConteoPorSede`: si la sede cambia, esto queda guardado en ESTA sede.
+  // Lo contado, al día, para `TrabajoPorSede`: si la sede cambia, esto queda guardado en ESTA sede.
   const etiquetaSede = ubicaciones.find((u) => u.id === ubicacionInicialId)?.nombre ?? "esta sede";
   useEffect(() => {
     reportarConteo(
@@ -290,7 +290,9 @@ export function RecepcionEnvio({
         ? {
             etiqueta: etiquetaSede,
             unidades: unidadesDelEnvio({ reparto, extras }),
-            conteo: { seleccionadas, abiertos, reparto, extras, decisiones, numeroGuia, nota, pestana, token },
+            trabajo: { seleccionadas, abiertos, reparto, extras, decisiones, numeroGuia, nota, pestana, token },
+            avisoAlGuardar: avisoConteoGuardado({ etiqueta: etiquetaSede, unidades: unidadesDelEnvio({ reparto, extras }) }),
+            avisoAlVolver: avisoConteoRetomado({ etiqueta: etiquetaSede, unidades: 0 }),
           }
         : null,
     );

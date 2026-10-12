@@ -134,3 +134,31 @@ de separar; los descuentos manuales no entran en esta versión.
 - Una tienda no tiene serie de notas de crédito: la devolución se registra y la nota queda pendiente con aviso.
 - Se mueve físicamente la prenda de piso a almacén: la reserva queda atada a la fila donde se hizo (mismo límite que ADR-0141).
 - Se cambia el correlativo o el plazo a mano en la tabla: no hay pantalla para eso a propósito.
+
+## Actualización 2026-10-11 — al cambiar de sede, el apartado a medio armar queda guardado en SU sede (Felipe)
+
+**El problema.** El selector de sede de la cabecera cambia la sede con `router.refresh()`: la ruta no cambia y React conserva el
+estado de todo componente cliente cuya `key` siga igual. `ApartadosPanel` montaba Apartar con `key={pedido?.id ?? "apartar"}`, igual en
+todas las sedes. Reproducido sobre `main` (página de ensayo con el panel real y un Supabase falso, sin base local): el apartado armado
+en Lima (Ana, 3 prendas, adelanto de S/ 135 en efectivo) se confirmó desde la pantalla de Trujillo, y `separar_prendas` salió con
+**Trujillo**, al precio propio de Trujillo (79.90 en vez de 89.90) y con el efectivo para la caja de Trujillo.
+
+**La decisión (Felipe, entre guardarlo en su sede, descartarlo con aviso o preguntar antes de cambiar):** Trujillo arranca con Apartar
+vacío y lo armado **queda guardado en Lima**, con un aviso («El apartado de Ana Prueba (3 prendas) quedó guardado en Tienda Lima»).
+Al volver, aparece tal cual («Volvió el apartado de Ana Prueba»): las prendas (al precio de esa tienda), los datos del cliente, el
+adelanto, la nota, el paso y el token. Es la misma regla que el ticket de Vender (ADR-0049) y el conteo de Recibir (ADR-0330): el
+cliente sigue en el mostrador de Lima, y volver a escanear y a escribir sus datos es lo que se quiere evitar.
+
+- **Un apartado que viene de un pedido de otra tienda no se guarda**: su pedido sigue en la lista de su sede y se aparta desde ahí;
+  guardado suelto perdería el vínculo y se cobraría como un apartado común (`separar_prendas` en vez de
+  `separar_pedido_para_apartar`). Como la proforma en cobro de Vender.
+- Al cambiar de sede, el panel también suelta el apartado elegido para entregar y el pedido por apartar: son de la sede anterior y no
+  están en las listas de esta.
+- Vive mientras se siga en Apartados (Apartar no tiene «¿Salir sin guardar?», ni antes ni ahora).
+
+**Cómo está hecho.** `vender/apartados/page.tsx` monta el panel dentro de `<TrabajoPorSede key="apartados">`
+(`components/ui/TrabajoPorSede.tsx`), y el panel monta Apartar con `key={claveDelApartado(ubicacionId, pedido?.id)}`. El guardián
+nació en Recibir (`ConteoPorSede`) y en este cambio pasó a `components/ui/` con un nombre neutro: lo usan dos módulos, y cada pantalla
+le manda sus propios avisos. La regla es pura en `lib/apartados-cambio-de-sede.ts`, con su prueba (`apartados-cambio-de-sede.test.ts`,
+que además falla si la página, el panel o Apartar pierden el cableado). Verificado después en el mismo ensayo, en escritorio y a 375 px:
+Trujillo vacío con el aviso; de vuelta en Lima, todo de nuevo, y `separar_prendas` salió con Lima, a 89.90.

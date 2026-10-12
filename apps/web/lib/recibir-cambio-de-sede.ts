@@ -1,5 +1,5 @@
 // El conteo de Recibir es de SU sede (Felipe, 2026-10-11). Puro: sin React ni `window`; lo usan la página de Recibir (la key),
-// `components/recibir/ConteoPorSede.tsx` (lo que se guarda) y las dos pantallas que cuentan, y lo prueba
+// `components/ui/TrabajoPorSede.tsx` (lo que se guarda) y las dos pantallas que cuentan, y lo prueba
 // `recibir-cambio-de-sede.test.ts`.
 //
 // El problema: el selector de sede de la cabecera cambia la sede con `router.refresh()`. La ruta no cambia y React conserva el
