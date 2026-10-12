@@ -18,15 +18,24 @@ ADR-0362, fase 1 aprobada por Felipe el 2026-10-10 en 8 actividades. Diseño y d
   (CR2b, E2b) y en la pantalla; «Llega a» sin ✓ de fábrica y con «Por repartir» explicado; al guardar, la lista muestra la orden marcada;
   la orden abierta sin datos repetidos. Leyes 6,7 → 7,3 (provisional), oficio 8.
 - [ ] 8 · **Cierre:**
-  - [ ] Traer `main` (68 commits atrás al 2026-10-10). La app no lo deja hasta que Felipe confirme el origen del repositorio (Help →
-        Troubleshooting → Review Pinned Git Origins): `main` cambió `.claude/launch.json`, que es protegido. Después: conflictos probables en
-        `guia-de-foco-pantallas.ts` y `ARQUITECTURA.md`; volver a correr las pruebas.
+  - [x] **`main` traído el 2026-10-12** (123 commits, después de que Felipe confirmó el origen del repositorio en la app). 8 choques,
+        todos de «los dos agregaron en el mismo lugar»: `globals.css`, `IconoModulo.tsx`, `menu.test.ts` (Inventario 8 y Compras 7),
+        `modulos.test.ts` («Plan del piso» y «Órdenes de compra»), `ARQUITECTURA.md`, `SESIONES-ACTIVAS.md`, el tablero de `/chaos` y
+        `CampoFecha.tsx`: `main` arregló el mismo día el calendario que se cortaba en una hoja; quedó su versión con la regla de aquí
+        (abre hacia abajo solo si cabe entero: en «Nueva orden» a 1024×768 se abría cortado). `tsc` y eslint limpios; vitest 157 478 bien
+        (una prueba de `main` se pasó de 5 s con la máquina cargada y pasa sola); las 25 migraciones nuevas de `main` aplicadas en el banco
+        y `pruebas:ordenes-compra` 41/41; guardar, abrir y editar una orden probados en el navegador sobre el código unido.
   - [x] **Pegado en producción con el OK de Felipe (2026-10-10)**, en orden, con `apply_migration`: versiones `20261010224526`
         (módulo y tablas), `…224636` (crear), `…224710` (ver y resumen), `…224915` (editar) y `…224946` (anular). Antes se vio que el
         orden 145 del módulo ya lo usaba `liquidacion` y se movió al 148 (`8687a118`). Verificado después: tablas con RLS y sin
         políticas, el módulo sin rol, las 3 claves sin combo, los 2 disparadores, y las 16 funciones con la MISMA huella (md5 de
         `pg_get_functiondef`) que el banco donde pasaron las 40 pruebas.
-  - [ ] Refrescar el diccionario desde el volcado (`pnpm datos:generar:produccion`, `pnpm datos:comparar`).
+  - [x] **Diccionario:** la foto de `main` (2026-10-11 17:30 UTC) ya trae las 3 tablas y las funciones de la fase 1 (la refrescó otra
+        sesión después del pegado). `datos:generar:produccion` sin cambios, `datos:comparar` sin llamadas que producción no acepte,
+        `datos:aviario` y `diccionario-datos` (50/50) bien. Producción tiene 6 grupos más nuevos que la foto (tablas que empiezan con «p»,
+        funciones `edit*`, `quit*`, `rest*`): son de otras sesiones y no se refrescan en este PR.
+  - [x] **Modo oscuro** (`tema:auditar` contra el banco, 7 vistas con los escenarios nuevos `ordenes.*`): 0 hallazgos solo en oscuro;
+        las capturas, miradas. Heredados: la flecha «›» de cada fila (pieza común `cmp-flecha-fila`, 2,5:1 en los dos temas).
   - [ ] Abrir el PR (lo fusiona Felipe), con las casillas de la plantilla (celular, `/chaos`, Formidable).
 - [x] **`/chaos`** sobre crear, editar y anular (2026-10-10, semilla 20261010, 22 ataques en el banco; informe local en el banco): 18
   resistieron (doble clic de mano, red cortada antes y después de guardar, dos pestañas, inyección, permisos sin el módulo…). Quedan 5:
