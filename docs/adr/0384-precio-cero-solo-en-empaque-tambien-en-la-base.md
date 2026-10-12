@@ -1,7 +1,8 @@
 # ADR-0384 — El precio 0 solo vale en Empaque, también en la base
 
-- **Fecha:** 2026-10-12 · **Estado:** construido y verificado en local, **SQL todavía NO en producción** (una migración, una sola parte:
-  `20261012190000_precio_cero_solo_empaque.sql`). La web puede publicarse antes: sin la migración, lo único que no frena es la base.
+- **Fecha:** 2026-10-12 · **Estado:** construido, verificado en local y **SQL EN PRODUCCIÓN desde el 2026-10-12** (una sola parte:
+  `20261012190000_precio_cero_solo_empaque.sql`, pegada con el OK puntual de Felipe tras un ensayo que se deshizo; huellas idénticas a las de
+  la base local probada). La web se publica al fusionar el PR #982.
 - **Numeración:** se escribió como ADR-0380 (ya lo usaba el PR #968), pasó a 0381 (lo reservó el PR #979, el de las reservas de números) y quedó en
   **0384**, reservado con la etiqueta `reserva/adr-0384` antes de publicarse (0382 y 0383 también estaban tomados). El `comment on function` de la migración no lleva número de ADR, a propósito: va a producción.
 - **Pedido:** una revisión marcó, como urgente, que «una prenda con precio S/ 0 se puede aprobar, crear y vender» y pidió el OK de Felipe porque
@@ -84,5 +85,8 @@ sin `alter` ni políticas, ADR-0195); idempotente; sin `select … into` dentro 
 
 ## Pendiente
 
-- **Pegar la migración en producción** (con el OK puntual de Felipe; una sola parte).
-- Después: refrescar el volcado y el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- ~~Pegar la migración en producción~~ **hecho el 2026-10-12**: ensayo con un error a propósito (Postgres deshizo todo y se comprobó), pegado por el
+  conector de Supabase y verificado: las cinco huellas iguales a las del local, cada candado una vez, permisos de la regla (anon no,
+  authenticated sí) y 0 variantes activas en S/ 0 que dejen de venderse.
+- Refrescar el volcado y el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- Cambios con una prenda nueva en S/ 0 (devuelve la diferencia al cliente): tarea aparte, toca dinero.
