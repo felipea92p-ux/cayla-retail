@@ -117,10 +117,12 @@ export function Ayuda({
       </button>
       {abierto && (
         // normal-case + tracking-normal + font-sans: la explicación no debe heredar las
-        // versalitas ni el tracking de una etiqueta `label-cayla` que la contenga.
+        // versalitas ni el tracking de una etiqueta `label-cayla` que la contenga. Tampoco el
+        // `whitespace-nowrap` de un título que no se parte: sin `whitespace-normal`, el texto corría
+        // de largo y se salía del globo (Resultados ▸ «¿Cómo va?», 2026-10-12).
         // Posición y ancho los pone `useLayoutEffect` de arriba (estilo en línea); acá solo el
         // aspecto. `w-64` es el ancho de respaldo si el efecto no llegara a correr.
-        <span ref={globoRef} className="anim-globo absolute left-0 top-7 z-40 block w-64 rounded-lg border border-sand bg-papel p-3.5 text-left font-sans normal-case tracking-normal shadow-md">
+        <span ref={globoRef} className="anim-globo absolute left-0 top-7 z-40 block w-64 whitespace-normal rounded-lg border border-sand bg-papel p-3.5 text-left font-sans normal-case tracking-normal shadow-md">
           {titulo && <span className="label-cayla mb-1 block text-[11px] text-rojo">{titulo}</span>}
           <span className="block text-xs font-normal leading-relaxed text-tinta/80 normal-case tracking-normal">{children}</span>
         </span>

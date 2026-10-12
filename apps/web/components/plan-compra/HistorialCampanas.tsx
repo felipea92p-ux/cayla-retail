@@ -7,6 +7,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
 import { Aviso } from "@/components/ui/Aviso";
+import { Chip } from "@/components/ui/Chip";
 import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -16,6 +17,7 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
+  faltaEnElCalendario,
   filasDelAnio,
   filtrarYOrdenar,
   leerHistorial,
@@ -74,7 +76,8 @@ export function HistorialCampanas({
   // La fila abierta: su hoja muestra el día a día y la misma campaña año por año (Felipe 2026-10-12).
   const [abierta, setAbierta] = useState<CampanaDelAnio | null>(null);
   const [q, setQ] = useState("");
-  const [orden, setOrden] = useState<OrdenHistorial>("fecha");
+  // De entrada, la de ahora y las que vienen (Felipe 2026-10-12): en octubre, Aniversario CAYLA, Halloween, Black Friday, Navidad…
+  const [orden, setOrden] = useState<OrdenHistorial>("ahora");
   const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
   // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
   const ayuda = (
@@ -129,7 +132,7 @@ export function HistorialCampanas({
   }
 
   const filas = filasDelAnio(historial, etiquetas, anio);
-  const visibles = filtrarYOrdenar(filas, q, orden);
+  const visibles = filtrarYOrdenar(filas, q, orden, historial.hoy);
   const tiendas = historial.tiendas;
   const columnas = `minmax(0,1.2fr) repeat(${tiendas.length}, minmax(0,1fr))`;
   const anioEnCurso = anio === Number(historial.hoy.slice(0, 4));
@@ -167,7 +170,7 @@ export function HistorialCampanas({
       </div>
 
       <Tabla guia="plan-historial.tabla">
-        {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. Por fecha es el orden de siempre. */}
+        {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}
         <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
           <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
@@ -202,6 +205,8 @@ export function HistorialCampanas({
               <span className="flex items-center gap-1.5 font-semibold text-tinta">
                 {campana.nombre}
                 <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
+                {/* Dónde estás parado en el calendario: la campaña que cae en estos días (en otro año, «en esta fecha»). */}
+                {faltaEnElCalendario(campana, historial.hoy) === 0 && <Chip tono="verde">{anioEnCurso ? "Ahora" : "En esta fecha"}</Chip>}
               </span>
               <span className="block text-xs text-taupe">
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
