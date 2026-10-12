@@ -43,6 +43,7 @@ import type { AjusteStockFicha, LecturaStockFicha } from "./piezas";
 import { useCargaInicial } from "@/lib/useCargaInicial";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import { sugerirNotaAjuste, type NotaAjuste } from "@/lib/sugerencias-ajuste";
+import { avisoStockDescartado, VISITA_DE_STOCK_INICIAL } from "@/lib/ficha-cambio-de-sede";
 
 // El stock de la matriz de Editar producto (maqueta B, Felipe 2026-10-02): cada «−»/«+» (o el número escrito en la celda) es un
 // ajuste de inventario —el mismo de `AjustarInventarioModal` (ADR-0240, `ajustar_inventario`)— que ESPERA a «Revisar y guardar»
@@ -165,11 +166,40 @@ export function useStockFicha({
   // reintentar sube el número de lectura y el aviso se va solo.
   const [fallaEn, setFallaEn] = useState<number | null>(null);
   const [faltantes, setFaltantes] = useState<ReadonlyMap<string, FaltanteConteo>>(new Map());
-  const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
-  const [motivo, setMotivo] = useState<MotivoAjuste>("conteo_fisico");
-  const [nota, setNota] = useState("");
+  const [ubicado, setUbicado] = useState<"piso" | "almacen">(VISITA_DE_STOCK_INICIAL.ubicado);
+  const [motivo, setMotivo] = useState<MotivoAjuste>(VISITA_DE_STOCK_INICIAL.motivo);
+  const [nota, setNota] = useState(VISITA_DE_STOCK_INICIAL.nota);
   const [pendientes, setPendientes] = useState<Pendientes>({});
   const [nuevas, setNuevas] = useState<Record<string, number>>({});
+
+  // El stock tocado es de SU sede (Felipe, 2026-10-11; el porqué en `lib/ficha-cambio-de-sede.ts`). El selector de la cabecera cambia
+  // de sede con `router.refresh()` y la ficha sigue montada: lo tocado (diferencias por talla) se sumaba al stock de la sede nueva y
+  // se guardaba allí. Se suelta en ESTE MISMO render (patrón «previo + comparación» de React), para que ni un cuadro muestre el stock
+  // nuevo con las diferencias viejas, y la visita vuelve a empezar. El aviso sale después, en un efecto. El resto de la ficha se queda.
+  const [sedeDelStock, setSedeDelStock] = useState({ ubicacionId, etiqueta: ajuste?.sede ?? "", separa: separaPisoAlmacen });
+  const [descartado, setDescartado] = useState<{ texto: string; detalle: string } | null>(null);
+  if (ubicacionId !== sedeDelStock.ubicacionId) {
+    setDescartado(
+      avisoStockDescartado({
+        etiqueta: sedeDelStock.etiqueta || "la sede anterior",
+        cambios: variantes ? cambiosDeStock(variantes, pendientes, lugarDeAjuste(ubicado, sedeDelStock.separa)) : [],
+        nuevasConStock: Object.values(nuevas).filter((n) => n > 0).length,
+      })
+    );
+    setSedeDelStock({ ubicacionId, etiqueta: ajuste?.sede ?? "", separa: separaPisoAlmacen });
+    setPendientes({});
+    setNuevas({});
+    setVariantes(null);
+    setFaltantes(new Map());
+    setFallaEn(null);
+    setMotivo(VISITA_DE_STOCK_INICIAL.motivo);
+    setNota(VISITA_DE_STOCK_INICIAL.nota);
+    setUbicado(VISITA_DE_STOCK_INICIAL.ubicado);
+  }
+  // Cada cambio de sede deja un aviso NUEVO (o `null`): el efecto avisa una vez por cambio, sin tener que limpiarlo.
+  useEffect(() => {
+    if (descartado) avisar.aviso(descartado.texto, { detalle: descartado.detalle, duracion: 7000 });
+  }, [descartado]);
   const responsable = useResponsable(undefined, { recordarEn: productoId ? `ficha-stock:${productoId}` : undefined });
   const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
   // La carga inicial de esta sede (lectura opcional, solo si se puede tocar el stock). Cerrada, lo que nunca estuvo en la tienda
