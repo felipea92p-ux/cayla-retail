@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 78,
+  "total": 80,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -95,9 +95,13 @@
       "button «Reintentar»",
       "Link «Movimientos»"
     ],
+    "components/vista-rapida/FotoVistaRapida.tsx": [
+      "button «vista-rapida.ampliar»"
+    ],
     "components/vista-rapida/MatrizUnidades.tsx": [
       "button «Quitar»",
       "button «Quitar» #2",
+      "SegmentoDeslizante «{`Dónde están las unidades en ${sedeNombre}»",
       "button «{`Elegir la talla ${c.nombre}»",
       "button «{`Elegir todas las tallas de ${fila.nombre}»",
       "button «{`${celda.nombre}»"

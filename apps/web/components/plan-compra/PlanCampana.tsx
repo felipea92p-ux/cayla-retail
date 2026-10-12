@@ -14,12 +14,18 @@ import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaC
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
+import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal";
+import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
+import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
+import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import {
   armarFilas,
+  campanasArchivadas,
   confianzaDelStock,
   fechaLargaES,
   leerPlan,
@@ -56,6 +62,7 @@ export function PlanCampana({
   puedeContar,
   esLider,
   planPedidoNoExiste = false,
+  propuesta: propuestaCruda = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -66,8 +73,11 @@ export function PlanCampana({
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
+  /** Los hechos para proponer flojo, normal y bueno y el % de lo que sobra (C4–C5), crudos; null = sin propuesta. */
+  propuesta?: unknown;
 }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
+  const hechos = useMemo(() => leerPropuesta(propuestaCruda), [propuestaCruda]);
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
@@ -84,13 +94,22 @@ export function PlanCampana({
   const [sinMovAbiertas, setSinMovAbiertas] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [editandoTope, setEditandoTope] = useState(false);
+  const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [nuevaCampana, setNuevaCampana] = useState(false);
+  const [editandoCampana, setEditandoCampana] = useState(false);
+  const [verArchivadas, setVerArchivadas] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
   const salidaPaso = useSalidaSinGuardar(
     vista === "guiado" && pasoSucio,
     "Escribiste parte del plan de esta categoría y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.",
   );
-  const filas = useMemo(() => (plan ? armarFilas(plan) : []), [plan]);
+  // Cada fila lleva lo que propone el sistema (C4) y el % de lo que sobra de la campaña (C5), si la base los manda para ESTA campaña.
+  const filas = useMemo(() => {
+    if (!plan) return [];
+    const base = armarFilas(plan);
+    if (!hechos || hechos.planId !== plan.plan.id) return base;
+    return base.map((f) => ({ ...f, propuesta: proponer(hechos, f.c.id), recuperoDefecto: hechos.recupero.pct }));
+  }, [plan, hechos]);
 
   const recordar = (categoriaId: string, version: number | null) => {
     if (version !== null) setVersiones((v) => ({ ...v, [categoriaId]: Math.max(v[categoriaId] ?? 0, version) }));
@@ -119,30 +138,42 @@ export function PlanCampana({
     });
   };
 
+  const hayArchivadas = !!campanas && campanasArchivadas(campanas).length > 0;
   if (!plan) {
     return (
       <div className="space-y-6">
         <EncabezadoPagina sede="Todas las tiendas" titulo="Plan de campaña" subtitulo="Cuánto comprar de cada categoría para una campaña." />
+        <PestanasPlan activa="plan" />
         {falla ? (
           <Aviso tono="error">{falla}.</Aviso>
         ) : (
           <div className="card-cayla">
             <Vacio
               icono={<CalendarDays />}
-              titulo="Todavía no hay ninguna campaña para planificar"
+              titulo={hayArchivadas ? "No hay campañas activas" : "Todavía no hay ninguna campaña para planificar"}
               acciones={
                 esLider && campanas ? (
-                  <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
-                    Nueva campaña
-                  </Boton>
+                  <>
+                    <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
+                      Nueva campaña
+                    </Boton>
+                    {hayArchivadas && <Boton onClick={() => setVerArchivadas(true)}>Ver campañas archivadas</Boton>}
+                  </>
                 ) : undefined
               }
             >
-              {esLider ? "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría." : "Cuando un líder cree una campaña, aquí se arma cuánto comprar de cada categoría."}
+              {hayArchivadas
+                ? esLider
+                  ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Etiquetas."
+                  : "Las campañas que había están archivadas. Cuando un líder restaure o cree una, aquí se arma cuánto comprar."
+                : esLider
+                  ? "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría."
+                  : "Cuando un líder cree una campaña, aquí se arma cuánto comprar de cada categoría."}
             </Vacio>
           </div>
         )}
         {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+        {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
       </div>
     );
   }
@@ -159,6 +190,7 @@ export function PlanCampana({
     setHechas([]);
   };
   const rango = `del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}`;
+  const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
 
   return (
     <div className="space-y-6">
@@ -172,7 +204,17 @@ export function PlanCampana({
         }
         acciones={
           <>
-            {campanas && <SelectorCampana campanas={campanas} actualId={plan.plan.id} puedeCrear={esLider} onNueva={() => setNuevaCampana(true)} />}
+            {campanas && (
+              <SelectorCampana
+                campanas={campanas}
+                actualId={plan.plan.id}
+                hoy={plan.hoy}
+                puedeCrear={esLider}
+                onNueva={() => setNuevaCampana(true)}
+                onEditar={() => setEditandoCampana(true)}
+                onArchivadas={() => setVerArchivadas(true)}
+              />
+            )}
             {totales.conPlan > 0 && (
               <Boton peso="fantasma" onClick={() => setExportando(true)}>
                 Exportar
@@ -195,6 +237,25 @@ export function PlanCampana({
         }
       />
 
+      <PestanasPlan activa="plan" planId={plan.plan.id} />
+
+      {plan.plan.archivado && (
+        <Aviso
+          tono="atencion"
+          guia="plan.archivada"
+          titulo="Esta campaña está archivada"
+          accion={
+            esLider && campanas ? (
+              <Boton peso="fantasma" onClick={() => setVerArchivadas(true)}>
+                Restaurar…
+              </Boton>
+            ) : undefined
+          }
+        >
+          No sale en el selector. La ves tal como quedó; para volver a usarla, restáurala.
+        </Aviso>
+      )}
+
       {planPedidoNoExiste && (
         <Aviso tono="atencion" titulo="No encontramos esa campaña">
           El enlace pedía una campaña que no existe (puede ser viejo). Te mostramos {plan.plan.nombre}
@@ -203,6 +264,18 @@ export function PlanCampana({
       )}
 
       <AvisoStock confianza={confianza} puedeContar={puedeContar} />
+
+      {hechos && hechos.planId === plan.plan.id && (
+        // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
+        <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
+          <span className="min-w-0 flex-1 basis-72">{fraseDelRecupero(hechos.recupero)}</span>
+          {esLider && (
+            <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
+              {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
+            </Boton>
+          )}
+        </div>
+      )}
 
       <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
 
@@ -254,7 +327,22 @@ export function PlanCampana({
 
       {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
 
+      {editandoCampana && campanaActual && campanas && (
+        <EditarCampanaModal
+          campana={campanaActual}
+          etiqueta={campanas.etiquetas.find((e) => e.id === campanaActual.etiquetaId)}
+          otrosNombres={campanas.planes.filter((c) => c.id !== campanaActual.id).map((c) => c.nombre)}
+          esLaActual
+          onClose={() => setEditandoCampana(false)}
+        />
+      )}
+
+      {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
+
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
+      {editandoRecupero && hechos && (
+        <RecuperoModal planId={plan.plan.id} planNombre={plan.plan.nombre} actual={hechos.recupero.pct} heredado={hechos.recupero.heredado} onClose={() => setEditandoRecupero(false)} />
+      )}
 
       {exportando && <ExportarPlan planNombre={plan.plan.nombre} filas={filas} confianza={confianza} onClose={() => setExportando(false)} />}
 

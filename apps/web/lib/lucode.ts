@@ -60,7 +60,7 @@
 //     lo lee como PENDIENTE, que es la lectura conservadora — nunca da por
 //     anulado lo que no le confirmaron.
 
-import { CODIGO_SUNAT_DOCUMENTO, llevaDocumento, type TipoDocComprobante, type TipoDocIdentificado } from "./documento-comprobante-reglas";
+import { clienteParaLucode, type TipoDocComprobante } from "./documento-comprobante-reglas";
 import { capturarError } from "./errores";
 
 export type EntornoLucode = "sandbox" | "produccion";
@@ -158,11 +158,11 @@ function itemLucode(it: ItemComprobante) {
 }
 
 function payloadDe(c: DatosComprobante): Record<string, unknown> {
-  // Catálogo 06 de SUNAT (`CODIGO_SUNAT_DOCUMENTO`): "1" DNI, "4" carné de
+  // Catálogo 06 de SUNAT (`clienteParaLucode`): "1" DNI, "4" carné de
   // extranjería, "6" RUC, "7" pasaporte. Sin documento reusa "1" con el número
   // placeholder que el propio Lucode documenta para boletas sin identificar al
   // cliente — no es una convención inventada acá.
-  const conDoc = llevaDocumento(c.clienteTipoDoc, c.clienteNumDoc);
+  const cliente = clienteParaLucode(c.clienteTipoDoc, c.clienteNumDoc);
   const base = {
     documento: c.tipo,
     serie: c.serie,
@@ -170,8 +170,8 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
     fecha_de_emision: c.fechaEmision ?? fechaDeLima(),
     moneda: c.moneda,
     tipo_operacion: "0101",
-    cliente_tipo_de_documento: conDoc ? CODIGO_SUNAT_DOCUMENTO[c.clienteTipoDoc as TipoDocIdentificado] : "1",
-    cliente_numero_de_documento: conDoc ? c.clienteNumDoc! : "99999999",
+    cliente_tipo_de_documento: cliente.codigo,
+    cliente_numero_de_documento: cliente.numero,
     cliente_denominacion: c.clienteNombre?.trim() || "CLIENTE VARIOS",
     cliente_direccion: "-",
     items: c.items.map(itemLucode),
@@ -202,6 +202,16 @@ export function entornoLucode(): EntornoLucode {
   return process.env.LUCODE_ENTORNO === "produccion" ? "produccion" : "sandbox";
 }
 
+/** Dónde está Lucode. `LUCODE_URL_LOCAL` apunta a un Lucode FALSO en esta máquina para probar de punta a punta
+ *  (`scripts/pruebas/lucode_falso.mjs`, ADR-0378): solo vale con `next dev` (nunca en un build de producción, que es lo
+ *  que corre en Vercel, también en las vistas previas) y solo hacia `localhost`/`127.0.0.1`. Así ni una variable mal
+ *  puesta en Vercel puede desviar a otro lado un documento tributario. */
+function baseUrl(): string {
+  const local = process.env.LUCODE_URL_LOCAL;
+  if (local && process.env.NODE_ENV === "development" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(local)) return local;
+  return BASE_URL[entornoLucode()];
+}
+
 type LlamadaCruda = { ok: true; json: Record<string, unknown> } | { ok: false; motivo: MotivoErrorLucode; detalle: string };
 
 async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
@@ -215,7 +225,7 @@ async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
     // 15s: transmitir a SUNAT es más lento que consultar un padrón — no se
     // corta tan agresivo como padron.ts (5s), pero tampoco se deja colgado
     // indefinidamente a quien está cerrando una venta.
-    respuesta = await fetch(`${BASE_URL[entornoLucode()]}${ruta}`, {
+    respuesta = await fetch(`${baseUrl()}${ruta}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
@@ -330,6 +340,36 @@ export async function consultarEstadoLucode(tipo: TipoDocumentoLucode, serie: st
   const r = await llamar("/api/v3/status", { documento: tipo, serie, numero });
   if (!r.ok) return r;
   return traducirEstado(r.json);
+}
+
+/** Si una dirección que vino en una respuesta de Lucode es de Lucode: `https` en `apisunat.pe` (así salen las de producción
+ *  y del sandbox: `https://app.apisunat.pe/xml/…`), o el mismo origen que se está usando (el Lucode falso de las pruebas).
+ *  Lo que no lo es no se descarga: el servidor no sale a una dirección que no conoce porque una respuesta la nombró. */
+export function esDireccionDeLucode(url: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if (u.protocol === "https:" && (u.hostname === "apisunat.pe" || u.hostname.endsWith(".apisunat.pe"))) return true;
+  return u.origin === new URL(baseUrl()).origin;
+}
+
+/** Baja el XML firmado de un comprobante (la dirección que devuelve `/api/v3/status`), para comparar lo que Lucode tiene
+ *  con lo nuestro (ADR-0378). Solo lee. 10 s y 2 MB como techo: un XML de boleta pesa unos 8 KB. */
+export async function descargarXmlLucode(url: string): Promise<{ ok: true; xml: string } | { ok: false; detalle: string }> {
+  if (!esDireccionDeLucode(url)) return { ok: false, detalle: "la dirección del XML no es de Lucode" };
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000), cache: "no-store" });
+    if (!r.ok) return { ok: false, detalle: `Lucode respondió ${r.status} al pedir el XML` };
+    const xml = await r.text();
+    if (xml.length > 2_000_000) return { ok: false, detalle: "el XML es demasiado grande" };
+    return { ok: true, xml };
+  } catch (e) {
+    capturarError("lucode: no se pudo bajar el XML", e);
+    return { ok: false, detalle: "Lucode no entregó el XML a tiempo" };
+  }
 }
 
 /** Comunicación de Baja — el camino de SUNAT para anular facturas y notas.

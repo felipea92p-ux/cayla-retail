@@ -21,6 +21,9 @@ import {
   topsPosibles,
   cuantasVendidas,
   fraseDelTipo,
+  ordenarAlcance,
+  ORDEN_ALCANCE_DEFECTO,
+  ORDENES_ALCANCE,
   proximaNavidad,
   rielNavidad,
   rindePorCategoria,
@@ -201,19 +204,37 @@ describe("curvaDeTallas", () => {
     prenda({ categoria: "Polos", talla: "Estándar", vendidas30: 10, piso: 10 }),
   ];
 
-  it("sin tipo elegido: las tallas del sistema que más pesa (letras), con la nota de cuáles", () => {
+  it("sin tipo elegido: la estándar primero y las tallas del sistema que más pesa (letras), con la nota de cuáles", () => {
     const c = curvaDeTallas(tienda, null);
     expect(c).toEqual({
       tipo: "tallas",
       columnas: [
-        { talla: "S", v: 10, t: 40, vend: 1, tiene: 4, pideMas: false },
-        { talla: "M", v: 60, t: 30, vend: 6, tiene: 3, pideMas: true },
-        { talla: "L", v: 30, t: 30, vend: 3, tiene: 3, pideMas: false },
+        { talla: "Estándar", v: 50, t: 50, vend: 10, tiene: 10, pideMas: false },
+        { talla: "S", v: 5, t: 20, vend: 1, tiene: 4, pideMas: false },
+        { talla: "M", v: 30, t: 15, vend: 6, tiene: 3, pideMas: true },
+        { talla: "L", v: 15, t: 15, vend: 3, tiene: 3, pideMas: false },
       ],
-      max: 60,
-      falta: "M",
-      nota: "Modelos con talla S, M y L",
+      max: 50,
+      nota: "Modelos con talla Estándar, S, M y L",
     });
+  });
+
+  it("la estándar es una columna más (Felipe 2026-10-12): Polos casi todo Estándar ya no esconde lo vendido", () => {
+    const polos = [
+      prenda({ categoria: "Polos", talla: "Estándar", vendidas30: 84, piso: 217 }),
+      prenda({ categoria: "Polos", talla: "M", vendidas30: 2, piso: 3 }),
+      prenda({ categoria: "Polos", talla: "L", vendidas30: 0, piso: 3 }),
+      prenda({ categoria: "Polos", talla: "S", vendidas30: 0, piso: 2 }),
+      prenda({ categoria: "Polos", talla: "Única", vendidas30: 1, piso: 0 }),
+    ];
+    const c = curvaDeTallas(polos, "Polos");
+    expect(c.tipo === "tallas" && c.columnas.map((x) => [x.talla, x.vend, x.tiene])).toEqual([
+      ["Estándar", 85, 217],
+      ["S", 0, 2],
+      ["M", 2, 3],
+      ["L", 0, 3],
+    ]);
+    expect(c).not.toHaveProperty("falta");
   });
 
   it("sin tipo elegido y con más números que letras, compara los números", () => {
@@ -242,24 +263,6 @@ describe("curvaDeTallas", () => {
     );
     expect(c.tipo === "tallas" && c.columnas.map((x) => x.talla)).toEqual(["XS", "S", "L", "XL"]);
     expect(c.tipo === "tallas" && c.nota).toBeNull();
-    expect(c.tipo === "tallas" && c.falta).toBeNull();
-  });
-
-  it("si nada falta por 4 o más, «Parejo» (falta null); a igual diferencia, la primera talla", () => {
-    const parejo = curvaDeTallas(
-      [prenda({ categoria: "Bodys", talla: "S", vendidas30: 34, piso: 33 }), prenda({ categoria: "Bodys", talla: "M", vendidas30: 66, piso: 67 })],
-      "Bodys",
-    );
-    expect(parejo.tipo === "tallas" && parejo.falta).toBeNull();
-    const empate = curvaDeTallas(
-      [
-        prenda({ categoria: "Bodys", talla: "S", vendidas30: 30, piso: 20 }),
-        prenda({ categoria: "Bodys", talla: "M", vendidas30: 30, piso: 20 }),
-        prenda({ categoria: "Bodys", talla: "L", vendidas30: 40, piso: 60 }),
-      ],
-      "Bodys",
-    );
-    expect(empate.tipo === "tallas" && empate.falta).toBe("S");
   });
 
   it("un tipo que solo se vende en talla única o estándar no tiene curva", () => {
@@ -459,5 +462,29 @@ describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Fe
     expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
     expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
     expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega a Navidad.");
+  });
+});
+
+describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
+  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, tiene: 5, nunca: 0, dias, pide: false });
+  // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
+  const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
+
+  it("por defecto, lo que se acaba antes (el orden que ya trae)", () => {
+    expect(ordenarAlcance(tipos, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Tops", "Bodys", "Shorts"]);
+  });
+
+  it("«Más vendido»: lo que más se vende primero; a igual venta, lo que se acaba antes; lo que no se vendió, al final", () => {
+    expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
+  });
+
+  it("por defecto, «Más vendido», y es la primera opción", () => {
+    expect(ORDEN_ALCANCE_DEFECTO).toBe("vende");
+    expect(ORDENES_ALCANCE[0].clave).toBe("vende");
+  });
+
+  it("no cambia la lista que recibe", () => {
+    ordenarAlcance(tipos, "vende");
+    expect(tipos[0].categoria).toBe("Capas");
   });
 });

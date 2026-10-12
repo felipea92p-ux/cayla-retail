@@ -1,0 +1,27 @@
+{
+  "guia": "compras.ordenes.nueva",
+  "ruta": "/compras/ordenes/nueva",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 17,
+  "controles": {
+    "components/ordenes-compra/NuevaOrdenCompra.tsx": [
+      "Volver «(sin nombre)»",
+      "ComboBuscable «{etiqueta(\"destino\", \"Llega a\")}»",
+      "CampoSelect «Llega a»",
+      "CampoFecha «Entrega estimada»",
+      "CampoTexto «Nota»",
+      "Boton «orden-form.agregar»",
+      "ComboResponsable «)»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{`Quitar la línea ${numero}»",
+      "ComboBuscable «Marca»",
+      "ComboBuscable «Descripción»",
+      "CampoTexto «{`Descripción de la línea ${numero}»",
+      "CampoTexto «{`Cantidad de la línea ${numero}»",
+      "CampoTexto «{`Precio por unidad de la línea ${numero}»",
+      "CampoTexto «{`Descuento de la línea ${numero}»",
+      "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
+    ]
+  }
+}

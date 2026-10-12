@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/inventario/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 56,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -53,6 +53,7 @@
     ],
     "components/analisis/PestanaPedir.tsx": [
       "Link «Plan de campaña»",
+      "button «{o.texto}»",
       "button «{`Quitar el filtro: ${categoria}»",
       "button «Top»",
       "button «[0][\"familia\"]»",

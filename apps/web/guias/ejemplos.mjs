@@ -13,6 +13,12 @@ const id = (sql) => {
   return v;
 };
 
+// Sin la tabla de órdenes de compra (o sin una orden), sus pantallas no tienen qué mostrar.
+const SIN_ORDENES =
+  "select case when count(*) = 0 then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' end from retail.modulos where clave = 'ordenes_compra'";
+const SIN_ORDENES_O_NINGUNA =
+  "select case when to_regclass('retail.ordenes_compra') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_compra') then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' when query_to_xml('select 1 from retail.ordenes_compra limit 1', false, true, '')::text = '' then 'no hay ninguna orden de compra en la base local' end";
+
 export const EJEMPLOS = {
   // La factura con más que enseñar: con saldo y mercadería por llegar (así se ven «Cerrar con faltante», «Ir a recibir» y «Registrar pago»).
   "/compras/factura/[compraId]": {
@@ -22,6 +28,28 @@ export const EJEMPLOS = {
     // La ve una cuenta que NO es líder y tiene una parte en una factura de otra tienda: ni esa cuenta ni esa factura existen en local.
     sinDatos: "select 'ninguna compra local está repartida entre tiendas y no hay cuenta de prueba que no sea líder con una parte'",
     url: () => `/compras/parte/${id("select id from retail.compras order by created_at desc limit 1")}` },
+  // Órdenes de compra: su módulo y sus tablas nacen en 20261010214500 y las siguientes (2026-10-10); sin ellas la cuenta cae en «Sin
+  // acceso». Una orden «generada» es la que más enseña (con «Editar» y «Anular orden»). No se aplican migraciones por esto.
+  "/compras/ordenes": { sinDatos: SIN_ORDENES },
+  "/compras/ordenes/nueva": { sinDatos: SIN_ORDENES },
+  "/compras/ordenes/ver/[id]": {
+    sinDatos: SIN_ORDENES_O_NINGUNA,
+    url: () => `/compras/ordenes/ver/${id("select id from retail.ordenes_compra order by (estado = 'generada') desc, created_at desc limit 1")}`,
+  },
+  "/compras/ordenes/editar/[id]": {
+    sinDatos: SIN_ORDENES_O_NINGUNA,
+    url: () => `/compras/ordenes/editar/${id("select id from retail.ordenes_compra order by (estado = 'generada') desc, created_at desc limit 1")}`,
+  },
+  // Resultados e Historial del Plan de campaña leen funciones de las migraciones del 2026-10-12 (campañas y ventas de Sinatra): sin ellas
+  // Resultados dice «Todavía no hay campañas» e Historial, que no pudo leer.
+  "/compras/plan/resultados": {
+    sinDatos:
+      "select case when count(*) = 0 then 'la base local no tiene fn_planes_compra ni fn_plan_compra_resultados (migraciones del 2026-10-12): Resultados no tiene campaña que mostrar' end from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_plan_compra_resultados'",
+  },
+  "/compras/plan/historial": {
+    sinDatos:
+      "select case when count(*) = 0 then 'la base local no tiene fn_historial_ventas (migración 20261012160000, ventas de Sinatra): el Historial no se puede leer' end from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_historial_ventas'",
+  },
   "/compras/proveedores/[id]": { url: () => `/compras/proveedores/${id("select id from retail.proveedores order by created_at desc limit 1")}` },
   // Abierto (se cuenta) y, si no hay, uno cerrado (el resultado), antes que uno cancelado: es la cara que más hay que enseñar.
   "/inventario/conteo/[id]": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by (estado = 'abierto') desc, (estado = 'cerrado') desc, created_at desc limit 1")}` },

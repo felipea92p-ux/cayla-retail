@@ -1118,7 +1118,28 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.empezar",
       opcional: true,
       titulo: "Por dónde empezar",
-      texto: "Arriba, la campaña que estás planificando (en el selector la cambias y el líder crea una nueva) y «Exportar» para imprimirlo o bajarlo a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
+      texto: "Cuando ya hay categorías con plan, al lado sale «Exportar», para imprimirlo o bajarlo a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
+    },
+    {
+      id: "selector",
+      ancla: "plan.selector",
+      opcional: true,
+      titulo: "Qué campaña planificas",
+      texto: "Elige la campaña: en curso, por venir o terminadas. Un líder ve al final «+ Nueva campaña», «Editar o quitar esta campaña» (nombre y fechas; si ya tiene algo armado, se archiva en vez de borrarse) y «Campañas archivadas», donde se miran y se restauran.",
+    },
+    {
+      id: "vistas",
+      ancla: "plan.vistas",
+      opcional: true,
+      titulo: "Plan, Resultados e Historial",
+      texto: "Aquí armas el plan. «Resultados» muestra lo que se vendió de verdad en la campaña y «Historial», lo que vendió cada tienda en cada campaña, año por año. Cada una tiene su demo.",
+    },
+    {
+      id: "archivada",
+      ancla: "plan.archivada",
+      opcional: true,
+      titulo: "Una campaña archivada",
+      texto: "Esta campaña se quitó y quedó archivada: la ves tal como quedó, pero no sale en el selector. Un líder la devuelve con «Restaurar…».",
     },
     {
       id: "stock",
@@ -1126,6 +1147,13 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       opcional: true,
       titulo: "¿El stock está al día?",
       texto: "El plan descuenta lo que ya hay. Si una tienda no tiene el piso cuadrado o el almacén contado, aquí te avisa: el plan te pediría comprar de más. Cuéntalo antes de decidir.",
+    },
+    {
+      id: "recupero-cayla",
+      ancla: "plan.recupero",
+      opcional: true,
+      titulo: "Lo que sobra, para toda CAYLA",
+      texto: "A qué % del precio se vende lo que sobra de la campaña, y de dónde sale ese número. Cada categoría nueva arranca con él. Un líder lo fija o lo cambia con el botón de al lado, en una ventana con su responsable.",
     },
     {
       id: "cifras",
@@ -1158,7 +1186,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "plan.categoria" }],
       titulo: "Lo que ya pasó",
-      texto: "Cuánto vendió esta categoría en 90 y en 30 días, y cuánto hay hoy en cada tienda. «Proponer el normal desde lo vendido» llena el diciembre normal por ti.",
+      texto: "Cuánto vendió esta categoría en 90 y en 30 días, y cuánto hay hoy en cada tienda. «Proponer… desde lo vendido» llena los escenarios por ti (los tres, o el normal si no hay más historia) y dice de dónde salió cada número; tú los corriges.",
     },
     {
       id: "escenarios",
@@ -1214,6 +1242,392 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes armar el plan de campaña. Para repasarlo: Mi perfil ▸ Demo ▸ Plan de campaña.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }],
+};
+
+// ---- Órdenes de compra (ADR-0362, fase 1) y las vistas Resultados e Historial del Plan de campaña (ADR-0372) ----
+// Una orden es lo que se le PIDE al proveedor, antes de su factura. La demo no crea, no edita, no imprime ni anula: abrir una orden
+// desde la lista es ir a otra dirección (el piloto no sale de la pantalla), así que la fila se explica y la orden tiene su propia guía.
+
+export const GUIA_ORDENES: Guia = {
+  id: "compras.ordenes",
+  ruta: "/compras/ordenes",
+  titulo: "Órdenes de compra",
+  resumen: "Lo que le pides a cada proveedor: qué, a cuánto y a qué tienda llega.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que le pides al proveedor",
+      texto: "Antes de que llegue la factura, aquí anotas lo que le pides a un proveedor: qué prendas, a cuánto y a qué tienda llegan. Cada orden lleva un número propio (OC-000012) que nunca se repite. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "nueva",
+      ancla: "ordenes.nueva",
+      titulo: "Una orden nueva",
+      texto: "Abre el formulario para pedirle algo a un proveedor: eliges al proveedor, a dónde llega y escribes lo que pides, prenda por prenda. Al guardar, vuelve aquí con la orden marcada como «Recién guardada».",
+    },
+    {
+      id: "cifras",
+      ancla: "ordenes.cifras",
+      opcional: true,
+      titulo: "Cuánto se ha pedido",
+      texto: "Lo pedido a proveedores en todas las sedes, lo que llega a la sede donde trabajas y lo que llega a Lima «por repartir» entre las tiendas. Solo cuentan las órdenes generadas: una anulada no suma. No cambian con los filtros.",
+    },
+    {
+      id: "buscador",
+      ancla: "ordenes.buscador",
+      opcional: true,
+      titulo: "Buscar una orden",
+      texto: "Escribe el número («OC-000012», «oc12» o solo «12») o el nombre del proveedor, sin preocuparte por tildes ni mayúsculas. La lista se filtra mientras escribes. Mira, buscamos un proveedor de la lista.",
+      demostrar: [{ tipo: "escribir", ancla: "ordenes.buscador", texto: { palabraDe: "ordenes.proveedor" } }],
+    },
+    {
+      id: "filtros",
+      ancla: "ordenes.filtros",
+      opcional: true,
+      preparar: [{ tipo: "vaciar", ancla: "ordenes.buscador" }],
+      titulo: "A dónde llega y en qué estado",
+      texto: "Las primeras píldoras dicen a qué tienda llega cada orden (arranca en tu sede) o si llega a Lima para repartir; cada una trae cuántas hay. «Generadas» y «Anuladas» dejan solo las de ese estado; tócala otra vez para ver las dos.",
+    },
+    {
+      id: "lista",
+      ancla: "ordenes.lista",
+      opcional: true,
+      titulo: "Una fila por orden",
+      texto: "El número y cuándo se emitió, el proveedor, a qué tienda llega, la entrega que esperas, cuántas unidades, el total y su estado. Una anulada lleva el total tachado: no cuenta en lo pedido.",
+    },
+    {
+      id: "fila",
+      ancla: "ordenes.fila",
+      opcional: true,
+      titulo: "Abrir una orden",
+      texto: "Toca una fila y la orden se abre en una ventana encima de la lista, sin perder tus filtros: ahí la lees completa, la imprimes o guardas en PDF para el proveedor, la editas o la anulas. Cierras con la ✕ o Escape y vuelves aquí.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes buscar, filtrar y abrir tus órdenes de compra. Si hay muchas, abajo pasas a la página siguiente. Para repasarlo: Mi perfil ▸ Demo ▸ Órdenes de compra.",
+    },
+  ],
+  alSalir: [{ tipo: "vaciar", ancla: "ordenes.buscador" }],
+};
+
+/** Los pasos del formulario de una orden: los mismos en «Nueva» y en «Editar» (es la misma pantalla, `NuevaOrdenCompra`). */
+const PASOS_FORMULARIO_ORDEN = {
+  datos: {
+    id: "datos",
+    ancla: "orden-form.datos",
+    titulo: "Proveedor y a dónde llega",
+    texto: "El proveedor (búscalo por nombre, marca o RUC) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
+  },
+  lineas: {
+    id: "lineas",
+    ancla: "orden-form.lineas",
+    titulo: "Lo que pides",
+    texto: "Una línea por prenda que le pides al proveedor. Arriba ves cuántas líneas y unidades llevas; abajo, el total de la orden.",
+  },
+  linea: {
+    id: "linea",
+    ancla: "orden-form.linea",
+    opcional: true,
+    titulo: "Cada línea",
+    texto: "Categoría y marca, una descripción si ayuda a reconocerla, cuántas y a cuánto cada una. El descuento lo escribes en % o en soles, y al lado ves el otro y el subtotal. La ✕ quita la línea.",
+  },
+  agregar: {
+    id: "agregar",
+    ancla: "orden-form.agregar",
+    titulo: "Otra prenda",
+    texto: "Suma una línea vacía para otra prenda. En la demo no la agregamos.",
+  },
+} as const;
+
+export const GUIA_NUEVA_ORDEN: Guia = {
+  id: "compras.ordenes.nueva",
+  ruta: "/compras/ordenes/nueva",
+  titulo: "Nueva orden de compra",
+  resumen: "Lo que le pides a un proveedor, prenda por prenda.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Pedirle a un proveedor",
+      texto: "Aquí armas lo que le pides a un proveedor. La factura y el envío vienen después: esto es el pedido. Cada campo te dice si está hecho, si sigue o si falta. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "orden-form.cifras",
+      titulo: "Su número y su total",
+      texto: "El número que tendrá la orden (se confirma al guardar) y el total, que se va sumando mientras escribes las líneas.",
+    },
+    PASOS_FORMULARIO_ORDEN.datos,
+    PASOS_FORMULARIO_ORDEN.lineas,
+    PASOS_FORMULARIO_ORDEN.linea,
+    PASOS_FORMULARIO_ORDEN.agregar,
+    {
+      id: "guardar",
+      ancla: "orden-form.guardar",
+      titulo: "Guardar la orden",
+      texto: "Si trabajas desde una terminal, eliges quién hace la orden. Encima de los botones, lo que todavía falta. «Guardar orden» le da su número y vuelves a la lista; «Cancelar» sale sin guardar. En la demo no guardamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes armar una orden de compra. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Nueva orden de compra.",
+    },
+  ],
+};
+
+export const GUIA_ORDEN: Guia = {
+  id: "compras.ordenes.ver.id",
+  ruta: "/compras/ordenes/ver/[id]",
+  titulo: "Una orden de compra",
+  resumen: "Lo que se le pidió a un proveedor, completo, para imprimir, editar o anular.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Una orden por dentro",
+      texto: "Aquí ves todo lo que se le pidió a un proveedor en esta orden: a quién, a dónde llega, cada prenda y el total. Es una demo: no se cambia nada.",
+    },
+    {
+      id: "anulada",
+      ancla: "orden.anulada",
+      opcional: true,
+      titulo: "Una orden anulada",
+      texto: "Si se anuló, lo dice primero: por qué, quién y cuándo. Ya no cuenta en lo pedido y su número no vuelve a usarse.",
+    },
+    {
+      id: "datos",
+      ancla: "orden.datos",
+      titulo: "A quién y a dónde",
+      texto: "El proveedor con su RUC, a qué tienda llega (o si llega a Lima para repartir), cuándo se emitió y cuándo esperas la entrega.",
+    },
+    {
+      id: "lineas",
+      ancla: "orden.lineas",
+      titulo: "Lo que se pidió",
+      texto: "Una fila por prenda: categoría y marca, cuántas, el precio de cada una, el descuento y el subtotal. Abajo, cuántas líneas y unidades, y el total de la orden.",
+    },
+    {
+      id: "pie",
+      ancla: "orden.pie",
+      titulo: "Su estado y quién la hizo",
+      texto: "Si está generada o anulada, quién la creó y cuándo y, si alguien la cambió después, quién fue y cuándo.",
+    },
+    {
+      id: "acciones",
+      ancla: "orden.acciones",
+      titulo: "Lo que haces con ella",
+      texto: "«Imprimir o guardar PDF» saca la orden en papel A4, lista para mandársela al proveedor. Mientras está generada: «Editar» la corrige y «Anular orden» la deja sin efecto, con un motivo; eso no se deshace. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer una orden de compra. Si la abriste desde la lista, la ✕ o Escape te devuelven a ella. Para repasarlo: Mi perfil ▸ Demo ▸ Una orden de compra.",
+    },
+  ],
+};
+
+export const GUIA_EDITAR_ORDEN: Guia = {
+  id: "compras.ordenes.editar.id",
+  ruta: "/compras/ordenes/editar/[id]",
+  titulo: "Editar orden de compra",
+  resumen: "Corregir lo que le pediste a un proveedor, sin cambiar su número.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Corregir una orden",
+      texto: "Es el mismo formulario de una orden nueva, con la orden como está hoy. Corriges lo que haga falta; el número y la fecha de emisión no cambian. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "anulada",
+      ancla: "orden-form.anulada",
+      opcional: true,
+      titulo: "Una anulada no se edita",
+      texto: "Esta orden está anulada y ya no se puede cambiar. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
+    },
+    {
+      id: "cifras",
+      ancla: "orden-form.cifras",
+      opcional: true,
+      titulo: "El total, al día",
+      texto: "El número de la orden está en el título. Aquí, el total, que cambia mientras corriges las líneas.",
+    },
+    { ...PASOS_FORMULARIO_ORDEN.datos, opcional: true },
+    { ...PASOS_FORMULARIO_ORDEN.lineas, opcional: true },
+    PASOS_FORMULARIO_ORDEN.linea,
+    { ...PASOS_FORMULARIO_ORDEN.agregar, opcional: true },
+    {
+      id: "guardar",
+      ancla: "orden-form.guardar",
+      opcional: true,
+      titulo: "Guardar los cambios",
+      texto: "«Guardar cambios» deja la orden corregida y queda escrito quién la cambió y cuándo. Si otra persona la guardó mientras tanto, te avisa y «Recargar» te muestra lo que dice ahora. En la demo no guardamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes corregir una orden de compra. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Editar orden de compra.",
+    },
+  ],
+};
+
+/** Las tres vistas del Plan de campaña (Plan · Resultados · Historial): la misma pieza en las tres pantallas. */
+const VISTAS_DEL_PLAN = (cual: string): PasoGuia => ({
+  id: "vistas",
+  ancla: "plan.vistas",
+  titulo: "Plan, Resultados e Historial",
+  texto: `Estás en ${cual}. «Plan» arma cuánto comprar de cada categoría; «Resultados», lo que se vendió de verdad en una campaña; «Historial», lo que vendió cada tienda en cada campaña, año por año.`,
+});
+
+export const GUIA_PLAN_RESULTADOS: Guia = {
+  id: "compras.plan.resultados",
+  ruta: "/compras/plan/resultados",
+  titulo: "Resultados de la campaña",
+  resumen: "Lo que se vendió de verdad en una campaña: por tienda, prenda y color.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que pasó de verdad",
+      texto: "Aquí ves lo que se vendió en una campaña, tienda por tienda: cuántas prendas, qué se agotó y a cuánto se vendió lo que sobró. Sirve para comparar con lo que planificaste y planificar mejor la próxima. El «!» junto al título explica cada cifra.",
+    },
+    {
+      id: "selector",
+      ancla: "plan.selector",
+      opcional: true,
+      titulo: "Qué campaña mirar",
+      texto: "Elige la campaña: las que están en curso, las que vienen y las que ya terminaron. Arranca en la que está en curso o, si no hay, en la última que terminó.",
+    },
+    VISTAS_DEL_PLAN("Resultados"),
+    {
+      id: "tiendas",
+      ancla: "plan-resultados.tiendas",
+      opcional: true,
+      titulo: "Una tienda o todas",
+      texto: "Toca una tienda y todo lo de abajo se filtra a ella; «Todas» vuelve a CAYLA completa. También puedes tocar la tarjeta de la tienda.",
+    },
+    {
+      id: "cifras",
+      ancla: "plan-resultados.cifras",
+      opcional: true,
+      titulo: "Cuánto vendió cada tienda",
+      texto: "Las prendas y los soles de toda CAYLA y de cada tienda. «×2.0 un día normal» quiere decir que esa tienda vendió por día el doble que en los 60 días de antes de la campaña.",
+    },
+    {
+      id: "tabla",
+      ancla: "plan-resultados.tabla",
+      opcional: true,
+      titulo: "Categoría por categoría",
+      texto: "Cuántas se vendieron y por cuánto, cómo quedó contra tu plan y a qué % del precio se vendió lo que sobró. «Se agotó» marca dónde se acabó antes de terminar: ahí se pudo vender más.",
+    },
+    {
+      id: "prendas",
+      ancla: "plan-resultados.prendas",
+      opcional: true,
+      titulo: "Lo que más se vendió",
+      texto: "Las prendas que más salieron, con su color, cuántas y por cuánto.",
+    },
+    {
+      id: "colores",
+      ancla: "plan-resultados.colores",
+      opcional: true,
+      titulo: "Por color y por familia",
+      texto: "Cuántas se vendieron de cada color y, debajo, de cada familia. Te dice qué colores pedir más la próxima vez.",
+    },
+    {
+      id: "proxima",
+      ancla: "plan-resultados.proxima",
+      opcional: true,
+      titulo: "Para la próxima",
+      texto: "Cuando la campaña termina, lo que deja para la próxima: cuánto vendió cada tienda contra un día normal y a qué % se vendió lo que sobró. El Plan del año que viene usa estos números.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer los resultados de una campaña. Para repasarlo: Mi perfil ▸ Demo ▸ Resultados de la campaña.",
+    },
+  ],
+};
+
+export const GUIA_PLAN_HISTORIAL: Guia = {
+  id: "compras.plan.historial",
+  ruta: "/compras/plan/historial",
+  titulo: "Historial de campañas",
+  resumen: "Lo que vendió cada tienda en cada campaña, un año a la vez.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Campaña por campaña",
+      texto: "Aquí ves lo que vendió cada tienda en cada campaña (Día de la Madre, Navidad…), un año a la vez, y cuánto creció contra el año anterior. Antes del ERP, las cifras salen de los Excel de Finanzas. El «!» junto al título explica cada cifra. Solo se mira: no se guarda nada.",
+    },
+    VISTAS_DEL_PLAN("Historial"),
+    {
+      id: "anios",
+      ancla: "plan-historial.anios",
+      opcional: true,
+      titulo: "Elige el año",
+      texto: "Un año a la vez. Arranca en el último año completo; toca otro para ver sus campañas.",
+    },
+    {
+      id: "tiendas",
+      ancla: "plan-historial.tiendas",
+      opcional: true,
+      titulo: "El año de cada tienda",
+      texto: "Lo que vendió cada tienda en todo el año y cuánto creció contra el anterior. Si el año está en curso, dice «hasta hoy».",
+    },
+    {
+      id: "tabla",
+      ancla: "plan-historial.tabla",
+      opcional: true,
+      titulo: "Una fila por campaña",
+      texto: "Cada campaña con sus fechas y, por tienda, cuánto vendió, cuántas veces lo de un día normal y cuánto creció contra el año anterior. «Sin dato»: la tienda no abría o ese tramo no está en la historia.",
+    },
+    {
+      id: "fila",
+      ancla: "plan-historial.fila",
+      opcional: true,
+      titulo: "El detalle de una campaña",
+      texto: "Toca una campaña y se abre su detalle: el día a día y la misma campaña en cada año (te la abrimos).",
+    },
+    {
+      id: "resumen",
+      ancla: "plan-historial.resumen",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "plan-historial.fila" }],
+      titulo: "Cómo le fue",
+      texto: "Lo que vendió la tienda en esa campaña, su mejor día y su día más flojo. Arriba eliges otra tienda.",
+    },
+    {
+      id: "dias",
+      ancla: "plan-historial.dias",
+      opcional: true,
+      titulo: "Día a día",
+      texto: "Una barra por día; la roja es el mejor. La línea punteada es un día normal (el promedio de los 60 días de antes): lo que sube sobre ella es lo que trajo la campaña.",
+    },
+    {
+      id: "anual",
+      ancla: "plan-historial.anual",
+      opcional: true,
+      titulo: "La misma campaña, año por año",
+      texto: "Cuánto vendió esa campaña cada año, para ver si crece. Abajo, un enlace a sus Resultados, donde se ven prendas y colores (desde que vende el ERP).",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      preparar: [{ tipo: "escape" }],
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer el historial de campañas. Para repasarlo: Mi perfil ▸ Demo ▸ Historial de campañas.",
     },
   ],
   alSalir: [{ tipo: "escape" }],

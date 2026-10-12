@@ -14,6 +14,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { compararTallas } from "@/lib/tallas";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { camposDelPlan } from "@/lib/plan-compra-guia";
+import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
 import {
   RPC_GUARDAR_LINEA,
   argsGuardar,
@@ -115,7 +116,7 @@ export function FormularioCategoria({
   const router = useRouter();
   const responsable = useResponsable();
   const tallas = useMemo(() => [...categoria.tallas].sort((a, b) => compararTallas(a.valor, b.valor)), [categoria]);
-  const [inicial] = useState(() => ({ b: borradorDe(linea, tallas, vendidoPorTalla, catalogo), nota: linea?.nota ?? "" }));
+  const [inicial] = useState(() => ({ b: borradorDe(linea, tallas, vendidoPorTalla, catalogo, fila.recuperoDefecto), nota: linea?.nota ?? "" }));
   const [b, setB] = useState<Borrador>(inicial.b);
   const [nota, setNota] = useState(inicial.nota);
   const [guardando, setGuardando] = useState(false);
@@ -152,6 +153,9 @@ export function FormularioCategoria({
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
   const loQueSobra = veredictoDeLoQueSobra(b);
 
+  // La propuesta de los tres escenarios (C4) si la base la manda; si no (base vieja), la de antes: solo el normal.
+  const sugerida = fila.propuesta;
+  const porque = sugerida ? explicarPropuesta(sugerida) : null;
   const propuesta = propuestaDeNormal(ventas);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
@@ -199,14 +203,42 @@ export function FormularioCategoria({
           Hoy hay <b className="font-semibold text-tinta">{enteroES.format(stock)}</b>
           {sedes && sedes.length > 0 ? <span className="text-tinta/70">: {sedes.map((x) => `${x.ubicacion} ${enteroES.format(x.unidades)}`).join(" · ")}</span> : " entre tiendas y Taller"}
         </span>
-        <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
-          Proponer el normal desde lo vendido
-        </Boton>
-        <span className="basis-full text-xs text-tinta/65">
-          {propuesta === null
-            ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
-            : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
-        </span>
+        {sugerida !== undefined ? (
+          <>
+            {/* C4 (Felipe 2026-10-12): el sistema propone los tres escenarios y dice de dónde salió cada uno; la persona los corrige. */}
+            <Boton
+              type="button"
+              className="ml-auto"
+              disabled={sugerida === null}
+              onClick={() =>
+                sugerida &&
+                setB((x) => ({ ...x, flojo: sugerida.flojo === null ? x.flojo : String(sugerida.flojo), normal: String(sugerida.normal), bueno: String(sugerida.bueno) }))
+              }
+            >
+              Proponer los tres desde lo vendido
+            </Boton>
+            {sugerida === null ? (
+              <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
+            ) : (
+              <ul className="basis-full space-y-0.5 text-xs text-tinta/65">
+                <li>{porque!.flojo}</li>
+                <li>{porque!.normal}</li>
+                <li>{porque!.bueno}</li>
+              </ul>
+            )}
+          </>
+        ) : (
+          <>
+            <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
+              Proponer el normal desde lo vendido
+            </Boton>
+            <span className="basis-full text-xs text-tinta/65">
+              {propuesta === null
+                ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
+                : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+            </span>
+          </>
+        )}
       </div>
 
       <fieldset data-guia="plan-modal.escenarios">
@@ -258,6 +290,9 @@ export function FormularioCategoria({
           </div>
           <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
             {loQueSobra ?? "Lo que quede sin vender después de diciembre: a cuánto lo venderías en la liquidación de enero. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
+            {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
+              <span className="mt-1 block text-xs text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
+            )}
           </p>
         </div>
       </CampoGuiado>

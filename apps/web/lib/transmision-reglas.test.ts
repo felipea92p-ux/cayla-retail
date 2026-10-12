@@ -200,3 +200,33 @@ describe("cronNoTransmite (PL-113: quién puede correr el cron, y solo al sandbo
     expect(cronNoTransmite("Bearer clave", "clave", "sandbox")).toBeNull();
   });
 });
+
+// ADR-0378: «ya fue emitido» no es un rechazo. Las filas que quedaron anotadas como rechazo antes del arreglo (41 en
+// producción el 2026-10-12) se leen bien desde ya, sin esperar a su próxima pasada.
+describe("la cola cuando Lucode ya tiene el número (ADR-0378)", () => {
+  const VIEJA = "rechazado_por_lucode: ERROR: La boleta B005-262 fue emitido anteriormente.";
+
+  it("una fila vieja anotada como rechazo se lee como «ya la tiene», sin el consejo equivocado", () => {
+    expect(errorDeColaLegible(VIEJA)).toBe("Lucode ya la tiene: falta confirmar que es esta venta y traer su estado.");
+    expect(queHacerConElError(VIEJA)).toMatch(/No se vuelve a enviar/);
+    expect(queHacerConElError(VIEJA)).not.toMatch(/Reintentar no lo arregla/);
+  });
+
+  it("la que no se pudo confirmar todavía", () => {
+    const e = "ya_emitido: Lucode ya tiene B005-262, pero no se pudo consultar su estado (Lucode no respondió a tiempo).";
+    expect(errorDeColaLegible(e)).toBe("Lucode ya la tiene: falta confirmar que es esta venta y traer su estado.");
+    expect(queHacerConElError(e)).toMatch(/se confirma sola/);
+  });
+
+  it("el número ocupado dice qué es distinto y a quién avisar", () => {
+    const e = "numero_ocupado: otro total (S/ 89.90 en Lucode, S/ 15.00 aquí), otro cliente";
+    expect(errorDeColaLegible(e)).toBe("Ese número ya lo usa otro documento en Lucode, con otro total (S/ 89.90 en Lucode, S/ 15.00 aquí), otro cliente.");
+    expect(errorDeColaLegible("numero_ocupado")).toBe("Ese número ya lo usa otro documento en Lucode.");
+    expect(queHacerConElError(e)).toMatch(/Reintentar no lo arregla.*líder de equipo/);
+  });
+
+  it("un rechazo de verdad sigue con su detalle y su consejo", () => {
+    expect(errorDeColaLegible("rechazado_por_lucode: El DNI no existe")).toBe("Lucode no aceptó el envío: El DNI no existe");
+    expect(queHacerConElError("rechazado_por_lucode: El DNI no existe")).toMatch(/Reintentar no lo arregla/);
+  });
+});

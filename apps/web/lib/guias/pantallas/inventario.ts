@@ -905,6 +905,13 @@ export const GUIA_ANALISIS: Guia = {
       texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo de prenda, para cuánto alcanza lo que tienes; lo que no llega va en ámbar y conviene pedirlo. Toca un tipo y al lado ves lo que más se vende de él (Top 5, 10…).",
     },
     {
+      id: "pedir-orden",
+      ancla: "analisis.pedir-orden",
+      opcional: true,
+      titulo: "Ordenar los tipos",
+      texto: "«Más vendido» pone arriba lo que más sale; «Se acaba antes», lo que te alcanza para menos días. Úsalo para ver primero lo más urgente de pedir.",
+    },
+    {
       id: "fin",
       ancla: null,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-hoy" }],

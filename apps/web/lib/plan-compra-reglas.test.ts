@@ -31,6 +31,17 @@ import {
   fraseDeLoReal,
   leerCampanas,
   leerMonto,
+  accionDeQuitar,
+  argsEditarCampana,
+  borradorDeEdicion,
+  campanaQueAbre,
+  campanasActivas,
+  campanasDelSelector,
+  campanasArchivadas,
+  edicionCambio,
+  problemasDeLaEdicion,
+  quitarBorra,
+  textoDeQuitar,
   leerNumeroDeMonto,
   lecturaDelCuantil,
   MAX_MONTO_PRENDA,
@@ -62,9 +73,10 @@ import {
   TOP_VENTAS,
   totalesDelPlan,
   type Borrador,
+  type CampanaPlan,
   type TallaPlan,
 } from "./plan-compra-reglas";
-import { camposDeLaCampana, camposDelPlan, camposDelTope } from "./plan-compra-guia";
+import { camposDeLaCampana, camposDeLaEdicion, camposDelPlan, camposDelTope } from "./plan-compra-guia";
 import { sePuedeConfirmar } from "./guia-campos";
 
 const TALLAS: TallaPlan[] = [
@@ -699,7 +711,7 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
     expect(l.etiquetas.map((e) => [e.nombre, e.planId])).toEqual([["Día de la Madre", "p2"], ["Navidad", null]]);
     expect(leerCampanas(null)).toBeNull();
     expect(leerCampanas([])).toBeNull();
-    expect(leerCampanas({})).toEqual({ planes: [], etiquetas: [] });
+    expect(leerCampanas({})).toEqual({ planes: [], etiquetas: [], edicion: false });
   });
   it("el rótulo y el nombre con que nace el plan, como los pone la base", () => {
     expect(rotuloDeCampana({ nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" })).toBe("Diciembre 2026 · 1 dic – 31 dic");
@@ -828,5 +840,110 @@ describe("Formidable y chaos, 2026-10-10: lo que la hoja dice y lo que acepta", 
     expect(vistaDeLaUrl("paso")).toBe("guiado");
     expect(vistaDeLaUrl(null)).toBe("tabla");
     expect(vistaDeLaUrl("otra")).toBe("tabla");
+  });
+});
+
+describe("editar, quitar y restaurar una campaña (ADR-0372, B5: borrar si está vacía, archivar si no)", () => {
+  const leidas = leerCampanas({
+    planes: [
+      { id: "a", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25", etiqueta_id: "e", con_plan: 0, archivado: false, con_tope: false },
+      { id: "b", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31", etiqueta_id: null, con_plan: 3, archivado: false, con_tope: true },
+      { id: "c", nombre: "San Valentín 2026", desde: "2026-01-31", hasta: "2026-02-14", etiqueta_id: "s", con_plan: 2, archivado: true, con_tope: false },
+    ],
+    etiquetas: [],
+  })!;
+
+  it("lee si cada una está archivada y si tiene tope; la base nueva se reconoce por esas claves", () => {
+    expect(leidas.edicion).toBe(true);
+    expect(campanasActivas(leidas).map((c) => c.id)).toEqual(["a", "b"]);
+    expect(campanasArchivadas(leidas).map((c) => c.id)).toEqual(["c"]);
+    // La base de antes (sin B5) no manda `archivado`: nada se archiva y no se ofrece editar.
+    const vieja = leerCampanas({ planes: [{ id: "a", nombre: "X", desde: "2026-12-01", hasta: "2026-12-31", con_plan: 0 }], etiquetas: [] })!;
+    expect(vieja.edicion).toBe(false);
+    expect(campanasActivas(vieja)).toHaveLength(1);
+  });
+
+  it("«Quitar» borra solo si está vacía (sin categorías ni tope); si no, archiva, y lo dice en palabras de tienda", () => {
+    expect(quitarBorra({ conPlan: 0, conTope: false })).toBe(true);
+    expect(quitarBorra({ conPlan: 1, conTope: false })).toBe(false);
+    expect(quitarBorra({ conPlan: 0, conTope: true })).toBe(false);
+    expect(textoDeQuitar({ conPlan: 0, conTope: false }).boton).toBe("Borrar campaña");
+    expect(textoDeQuitar({ conPlan: 0, conTope: false }).explica).toMatch(/no se puede deshacer/);
+    expect(textoDeQuitar({ conPlan: 3, conTope: true })).toEqual({ boton: "Archivar campaña", explica: "Tiene 3 categorías armadas y su tope: se archiva (deja de salir en el selector) y se puede restaurar cuando quieras." });
+    expect(textoDeQuitar({ conPlan: 1, conTope: false }).explica).toMatch(/^Tiene 1 categoría armada:/);
+    expect(accionDeQuitar({ accion: "borrado" })).toBe("borrado");
+    expect(accionDeQuitar({ accion: "archivado" })).toBe("archivado");
+    expect(accionDeQuitar({ accion: "otra" })).toBeNull();
+    expect(accionDeQuitar(null)).toBeNull();
+  });
+
+  it("editar: nombre y fechas con las reglas de la base; la campaña puede quedarse con su nombre", () => {
+    const c = leidas.planes[0];
+    const b = borradorDeEdicion(c);
+    const otros = leidas.planes.filter((x) => x.id !== c.id).map((x) => x.nombre);
+    expect(problemasDeLaEdicion(b, otros)).toEqual({});
+    expect(edicionCambio(b, c)).toBe(false);
+    expect(problemasDeLaEdicion({ ...b, nombre: "diciembre  2026" }, otros).nombre).toMatch(/Ya hay un plan/);
+    expect(problemasDeLaEdicion({ ...b, nombre: "  " }, otros).nombre).toMatch(/Ponle un nombre/);
+    expect(problemasDeLaEdicion({ ...b, hasta: "2026-12-01" }, otros).hasta).toMatch(/antes de empezar/);
+    expect(problemasDeLaEdicion({ ...b, desde: "" }, otros).desde).toMatch(/desde cuándo/);
+    expect(edicionCambio({ ...b, nombre: "Navidad  2026 " }, c)).toBe(false);
+    expect(edicionCambio({ ...b, hasta: "2026-12-26" }, c)).toBe(true);
+    expect(argsEditarCampana("a", { ...b, nombre: " Navidad   Grande " })).toEqual({ p_plan_id: "a", p_nombre: "Navidad Grande", p_desde: "2026-12-11", p_hasta: "2026-12-25" });
+  });
+
+  it("la guía de «Editar campaña» deja guardar exactamente cuando la base aceptaría", () => {
+    const c = leidas.planes[0];
+    const listo = { listo: true, motivo: null };
+    expect(sePuedeConfirmar(camposDeLaEdicion(borradorDeEdicion(c), ["Diciembre 2026"], listo))).toBe(true);
+    expect(sePuedeConfirmar(camposDeLaEdicion({ ...borradorDeEdicion(c), nombre: "Diciembre 2026" }, ["Diciembre 2026"], listo))).toBe(false);
+    expect(sePuedeConfirmar(camposDeLaEdicion(borradorDeEdicion(c), [], { listo: false, motivo: "Elige quién" }))).toBe(false);
+  });
+
+  it("leerPlan dice si la campaña pedida está archivada", () => {
+    const base = { plan: { id: "p", nombre: "x", desde: "2026-12-01", hasta: "2026-12-31" }, hoy: "2026-10-10" };
+    expect(leerPlan(base)!.plan.archivado).toBe(false);
+    expect(leerPlan({ ...base, plan: { ...base.plan, archivado: true } })!.plan.archivado).toBe(true);
+  });
+});
+
+describe("la lista de campañas por año (C1)", () => {
+  const c = (id: string, desde: string, hasta: string, archivado = false): CampanaPlan => ({ id, nombre: id, desde, hasta, etiquetaId: null, conPlan: 0, archivado, conTope: false });
+  const sanValentin = c("San Valentín 2026", "2026-02-01", "2026-02-14");
+  const diciembre = c("Diciembre 2026", "2026-12-01", "2026-12-31");
+  const navidad = c("Navidad 2026", "2026-12-11", "2026-12-25");
+  const madre = c("Día de la Madre 2027", "2027-05-01", "2027-05-10");
+  const vieja = c("Fiestas Patrias 2025", "2025-07-15", "2025-07-28");
+  const todas = [sanValentin, diciembre, navidad, madre, vieja];
+
+  it("en octubre abre la próxima en empezar, no la de inicio más lejano", () => {
+    expect(campanaQueAbre(todas, "2026-10-12")?.id).toBe("Diciembre 2026");
+  });
+  it("en diciembre abre la que está en curso y, si hay dos, la que termina antes", () => {
+    expect(campanaQueAbre(todas, "2026-12-05")?.id).toBe("Diciembre 2026");
+    expect(campanaQueAbre(todas, "2026-12-15")?.id).toBe("Navidad 2026");
+  });
+  it("sin nada en curso ni por venir abre la que terminó más tarde; nunca una archivada", () => {
+    expect(campanaQueAbre([sanValentin, vieja], "2026-10-12")?.id).toBe("San Valentín 2026");
+    expect(campanaQueAbre([c("x", "2026-12-01", "2026-12-31", true), sanValentin], "2026-10-12")?.id).toBe("San Valentín 2026");
+    expect(campanaQueAbre([], "2026-10-12")).toBeNull();
+  });
+  it("agrupa: en curso, por venir por año y terminadas del último año", () => {
+    const l = campanasDelSelector(todas, "2026-12-15");
+    expect(l.map((x) => [x.campana.id, x.grupo])).toEqual([
+      ["Navidad 2026", "En curso"],
+      ["Diciembre 2026", "En curso"],
+      ["Día de la Madre 2027", "Por venir · 2027"],
+      ["San Valentín 2026", "Terminadas"],
+    ]);
+  });
+  it("una terminada hace más de un año sale del selector (va al Historial) y una archivada nunca está", () => {
+    expect(campanasDelSelector(todas, "2026-10-12").map((x) => x.campana.id)).not.toContain("Fiestas Patrias 2025");
+    expect(campanasDelSelector([c("x", "2026-12-01", "2026-12-31", true)], "2026-10-12")).toEqual([]);
+  });
+  it("el día que empieza ya está en curso y el día que termina todavía lo está", () => {
+    expect(campanasDelSelector([diciembre], "2026-12-01")[0].grupo).toBe("En curso");
+    expect(campanasDelSelector([diciembre], "2026-12-31")[0].grupo).toBe("En curso");
+    expect(campanasDelSelector([diciembre], "2027-01-01")[0].grupo).toBe("Terminadas");
   });
 });
