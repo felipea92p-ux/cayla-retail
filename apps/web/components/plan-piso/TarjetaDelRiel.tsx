@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type MouseEvent } from "react";
+import { useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { PorQue } from "@/components/plan-piso/PorQue";
 import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
@@ -51,6 +51,8 @@ type Props = {
   nota: { antes: string; unidad: string; despues: string };
   /** Lo que dice el pie sobre el color de las perchas; `null` si ningún grupo trae colores y todo se dibuja del color del grupo. */
   notaDeColores: string | null;
+  /** «Color de la tienda» (`<ColorDeLaTienda>`, del servidor): va entre «Hoy» y «Cómo quedaría», porque habla de lo que cuelga hoy y esa propuesta no elige colores. */
+  ranuraDeColor?: ReactNode;
 };
 
 const vars = (v: Record<string, string | number>) => v as unknown as CSSProperties;
@@ -69,7 +71,7 @@ function Percha({ clave, fraccion, i, color }: { clave: string; fraccion: number
   );
 }
 
-export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota, notaDeColores }: Props) {
+export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota, notaDeColores, ranuraDeColor }: Props) {
   const [sobre, setSobre] = useState<string | null>(null);
   const [fijo, setFijo] = useState<string | null>(null);
   const sel = fijo ?? sobre;
@@ -150,6 +152,8 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
           ))}
         </ul>
       </div>
+
+      {ranuraDeColor}
 
       <div className="pp-riel" data-riel="prop">
         <div className="pp-rcab">

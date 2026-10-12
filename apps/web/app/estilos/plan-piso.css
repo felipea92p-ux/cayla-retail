@@ -323,6 +323,27 @@
   @container mc (min-width: 560px) { .mc-eje-n:not([data-par]) { display: block; } }
   .mc-nota { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--color-taupe); }
 
+  /* ---------- «Color de la tienda»: la franja de familias de color (ADR-0352, actualización 2026-10-12; maqueta: docs/maquetas/color-de-la-tienda-2026-10/) ----------
+     La franja es la pieza `<BarraApilada>`; aquí solo está lo que ella no trae: la frase, las celdas con el porcentaje de cada familia y las rayas de «Otras». El color de un
+     tramo y de un cuadrito es DATO de la prenda (el que más cuelga de la familia): no cambia con el tema, así que el contorno sube en oscuro para que un color oscuro no se pierda. */
+  .pp-col-lectura { font-size: 15px; line-height: 1.45; color: var(--color-tinta); max-width: 62ch; }
+  /* «Otras» y lo que no tiene color: rayas de la interfaz, nunca un color de prenda */
+  .pp-col-rayas { background: repeating-linear-gradient(135deg, var(--pp-otros) 0 4px, color-mix(in srgb, var(--pp-otros) 55%, var(--color-papel)) 4px 8px); }
+  .pp-col .barra-tramo-color { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 22%, transparent); }
+  :root[data-tema="oscuro"] .pp-col .barra-tramo-color { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 60%, transparent); }
+  .pp-col-celdas { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; list-style: none; }
+  .pp-col-celda {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 96px; padding: 10px 10px 11px;
+    border: 1px solid var(--color-sand); background: var(--color-papel); border-radius: var(--radius-lg); min-width: 0;
+  }
+  .pp-col-n { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+  .pp-col-m { display: block; flex: none; width: 12px; height: 12px; border-radius: 50%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-tinta) 30%, transparent); background: var(--color-sand); }
+  :root[data-tema="oscuro"] .pp-col-m { border-color: color-mix(in srgb, var(--color-tinta) 60%, transparent); }
+  .pp-col-m i { display: block; width: 100%; height: 100%; }
+  .pp-col-pct { font-family: var(--font-serif); font-size: 26px; line-height: 1.05; font-variant-numeric: lining-nums tabular-nums; }
+  .pp-col-nota { font-size: 12.5px; line-height: 1.4; color: var(--color-tinta-60); max-width: 62ch; }
+  @container pp (max-width: 560px) { .pp-col-celdas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
   @media (pointer: coarse) { .pp-chip, .pp-porque { min-height: 44px; } }
 
   @media (prefers-reduced-motion: reduce) {

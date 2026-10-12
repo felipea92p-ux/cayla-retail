@@ -2,6 +2,7 @@ import type { CategoriaMix, GrupoMix } from "./plan-piso-grupos";
 import type { LecturaDelPiso } from "./piso-plan";
 import { codigoDeSede, META_DE_VENTA_FUERA_DEL_RIEL, PARTIDA_DEL_RIEL, SEDES_CON_MOSTRADOR_POR_CONFIRMAR, SEMANAS_DE_VENTA_FUERA_DEL_RIEL, type CodigoSede, type MetaDeVenta } from "./mix-piso-partida";
 import { ordenarColores, sumarColor, type ColorDelGrupo } from "./plan-piso-colores";
+import { armarColorDeLaTienda, type ColorDeLaTienda } from "./plan-piso-familias";
 
 /**
  * La propuesta del mix del piso frente a lo que hay hoy (ADR-0329, «Actualización 2026-10-04»; investigación del 2026-10-05).
@@ -127,6 +128,8 @@ export type PropuestaMix = {
   cuadrado: boolean;
   /** Lo que cuelga o se vendió de categorías que no pertenecen a ningún grupo («Sin grupo»): no entra al reparto, pero se dice. */
   sinGrupo: { colgadas: number; ventasConfirmadas: number; categorias: number };
+  /** De qué familias de color es lo que cuelga en el riel y si se parece a lo que se vende (`lib/plan-piso-familias.ts`); `null` si no cuelga nada. Solo se dibuja: no entra en ninguna cuenta. */
+  colorDeLaTienda: ColorDeLaTienda | null;
 };
 
 /** Reparte `total` prendas según `fracciones` (que suman 1) con el método del resto mayor: la suma sale EXACTA y ninguna difiere de su
@@ -250,6 +253,7 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
   const categoriasSinGrupo = e.categorias.filter((c) => grupoDe(c.categoriaId) === null).length;
 
   const delRiel = e.grupos.filter((g) => g.enRiel);
+  const enElRiel = new Set(delRiel.map((g) => g.clave));
   const fuera = e.grupos.filter((g) => !g.enRiel);
   const colgadasEnElRiel = delRiel.reduce((s, g) => s + (colgadas.get(g.clave) ?? 0), 0);
   const ventasDelRiel = delRiel.reduce((s, g) => s + (confirmadas.get(g.clave) ?? 0), 0);
@@ -336,6 +340,11 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
     ventasDeLaSede,
     cuadrado: e.lectura.cuadradoEn !== null,
     sinGrupo: { colgadas: colgadasSinGrupo, ventasConfirmadas: confirmadasSinGrupo, categorias: categoriasSinGrupo },
+    // «Color de la tienda» cuenta EXACTAMENTE lo que el riel: las tallas y las ventas de los grupos del riel, no las de fuera ni las de una categoría sin grupo.
+    colorDeLaTienda: armarColorDeLaTienda({
+      tallas: e.lectura.tallas.filter((t) => enElRiel.has(grupoDe(t.categoriaId) ?? "")),
+      ventas: e.lectura.ventas.filter((v) => enElRiel.has(grupoDe(v.categoriaId) ?? "")),
+    }),
   };
 }
 
