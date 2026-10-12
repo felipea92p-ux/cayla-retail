@@ -16,17 +16,15 @@
   primera tarjeta de Resultados con la curva a un toque.
 - [x] **Buscar y ordenar** en Historial y Resultados; en Resultados toda fila abre su detalle: contra lo esperado (toda CAYLA) y contra la
   misma campaña del año anterior (por categoría, sale de `fn_plan_compra_propuesta`; sin dato lo dice: Sinatra no tiene categorías).
-- [ ] **POR PEGAR en producción: `20261012164000_plan_compra_reparto_por_tienda.sql`** (tabla nueva, función y reemplazo anclado; ensayada y
-  deshecha en producción el 2026-10-12: los anclajes calzan). Sin ella, el reparto no aparece y «Fijar un mínimo» falla.
+- [x] **`20261012164000_plan_compra_reparto_por_tienda.sql` EN PRODUCCIÓN (2026-10-12)**, verificada como líder.
 - [ ] **Categorías que se rehacen entre campañas**: la comparación con el año anterior es por `categoria_id`; si un líder junta o vuelve a crear
   una, el año siguiente dirá «0» en vez de «sin dato».
-- [ ] **Publicar la web:** fusionar el PR #977.
+- [x] **Publicar la web:** PR #977 fusionado (2026-10-12); lo de después, en su PR de seguimiento.
+- [ ] **Lima: fijar su mínimo** en la primera campaña real, antes de pedir la compra (sin él, el reparto le da casi nada).
 - [x] **Lo rescatado de los referentes** (maqueta `docs/maquetas/plan-campana-ubicacion-2026-10/`): en el Plan, el simulador y «Te quedan S/ X para comprar»;
   en Resultados durante la campaña, «¿Cómo va?» y «Pedir más o impulsar»; al terminar, el cierre con sell-through. Lo que ya hace Análisis (la prenda
   exacta que se acaba o no se vende, qué pedir) no se repite: un acceso, solo para quien ve ese módulo.
-- [ ] **POR PEGAR en producción: `20261012163000_plan_compra_resultados_en_curso_y_cierre.sql`** (reemplazos anclados en `fn_plan_compra_resultados`:
-  `por_dia`, `filas[].rebajadas` y `stock`; ensayada y deshecha en producción el 2026-10-12). Sin ella la web se degrada: «¿Cómo va?» sin
-  curva y sin «Pedir más» ni cierre.
+- [x] **`20261012163000_plan_compra_resultados_en_curso_y_cierre.sql` EN PRODUCCIÓN (2026-10-12)**, verificada como líder.
 - [ ] **Ligar las órdenes de compra al plan** para que «Te quedan» descuente lo ya comprometido (hoy resta solo la inversión planificada).
 - [ ] **/formidable y /chaos** de «Lo que sobra» (la hoja nueva que guarda) y de las pestañas nuevas (solo leen: /chaos no aplica).
 - [ ] **Lima 2026 en Sinatra:** su archivo solo tiene 20 registros de «Ingresos»; si existe un diario de Lima, sumarlo a `FUENTES` del script.
