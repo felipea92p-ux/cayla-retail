@@ -176,6 +176,37 @@ pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y
   con la historia real de Trujillo (2025: S/ 1 649 544, +9 %; Navidad ×2.0, Diciembre ×1.8). **Migraciones `20261012160000` y `20261012161000` EN PRODUCCIÓN
   desde el 2026-10-12** (orden de Felipe; ensayo revertido antes; verificado como líder: las 6 funciones responden, las internas no se exponen y
   anon no lee). Falta la carga de Sinatra (`carga-sinatra.sql`, fuera del repo).
+- **Las tiendas activas salen siempre** (Felipe: «quiero ver Arequipa, Lima y Trujillo, que son mis tiendas activas»): migración
+  `20261012162000` (reemplazos anclados en `fn_historial_ventas` y `fn_plan_compra_resultados`), **en producción desde el 2026-10-12**. Antes solo
+  salían las tiendas con algún dato y Lima desaparecía (no vende aún en el ERP y su Sinatra 2026 no es un diario); ahora sale con «Sin dato» o 0.
+  La historia de Sinatra en producción quedó cargada: 3 085 días de TRU y 816 de AQP (3 901).
 - **El detalle de una fila del Historial** (Felipe: «al darle clic a una fila, los detalles»): `DetalleCampanaHistorial.tsx`, el día a día de la
   campaña contra un día normal (mejor y peor día) y la misma campaña año por año (una lectura chica por año). Sinatra no sabe de prendas: el
   detalle de prendas y colores está en Resultados, y la hoja lleva ahí si la campaña tiene su plan en el ERP.
+
+## Actualización 2026-10-12 (b) — durante y después de la campaña, cuánto le toca a cada tienda, y buscar en las tablas
+
+- **Lo rescatado de los referentes** (WSSI de los compradores de moda; maqueta `docs/maquetas/plan-campana-ubicacion-2026-10/`): en el Plan, el
+  simulador (supuestos que se mueven sin guardar) y «Te quedan S/ X»; en Resultados, «¿Cómo va?» (lo vendido contra lo que el plan esperaba a hoy,
+  con la forma de los días de la misma campaña el año pasado) como **primera tarjeta de cifras**, «Pedir más o impulsar» solo si alguna categoría lo
+  pide, y al terminar el cierre con sell-through (precio lleno · rebaja · sobra). Lo que Análisis ya hace por prenda y tienda no se repite: un acceso,
+  solo para quien ve ese módulo. Migración `20261012163000` (`por_dia`, `filas[].rebajadas`, `stock` en `fn_plan_compra_resultados`).
+- **Cuánto le toca a cada tienda** (Felipe: «de manera global debemos comprar tanto, pero cada sede es única»). Decisiones suyas: se reparte según
+  lo que vendió cada tienda en 90 días (su ritmo por día), se manda todo al inicio, y una tienda que casi no vende (Lima) recibe un mínimo que fija un
+  líder. Regla en `lib/plan-compra-reparto.ts` (redondeo por restos mayores; el mínimo es un piso, no un extra). Migración `20261012164000`:
+  `planes_compra_reparto (plan_id, ubicacion_id, minimo_pct 1–90)` + `guardar_plan_compra_minimo` (solo líder, firmado; la suma de una campaña no
+  pasa de 100 %; solo tiendas activas) + `tiendas_activas` y `minimos` en la propuesta.
+  **DECIDÍ** guardar solo el mínimo y calcular el reparto al leer. **DESCARTÉ** guardar el reparto de cada categoría por tienda (cada venta lo dejaría
+  viejo y habría que recalcularlo en otro lado: dos verdades). **SE ROMPE SI** una tienda abre a mitad de campaña: no tiene 90 días y le toca solo su
+  mínimo hasta que venda.
+- **Compacto por defecto** (Felipe: «para visualizar más rápido la tabla»): el resumen del Plan es una fila de cifras («Toda CAYLA», con su «!» que
+  dice qué tiendas suma) y «Ver detalle» abre lo que sobra, el reparto, las tarjetas y el simulador. La fila se decide por el ancho de la TARJETA
+  (consulta de contenedor), no de la ventana: con el menú abierto, un laptop de 1200 px deja 940 para el resumen.
+- **Buscar y ordenar** en Historial y Resultados (como el Plan). En Resultados **toda fila abre su detalle**, también la que aún no vende: contra lo
+  esperado (siempre toda CAYLA: el plan es de todas) y contra la misma campaña del año anterior, por categoría (sale de la propuesta, que ya lo lee).
+  Sin dato lo dice: antes del ERP, Sinatra solo tiene soles por tienda. La comparación es por `categoria_id`: una categoría rehecha entre campañas
+  diría «0» en vez de «sin dato» (en el backlog).
+- **Verificado:** reglas (resultados 30, historial 23, reparto y propuesta), pruebas SQL `pnpm pruebas:plan-compra-historia` 13/13, guías
+  interactivas recorridas en local (Plan 22 pasos, Resultados 12, Historial 11; la demo no escribió en la base). **Migraciones `20261012163000` y
+  `20261012164000` EN PRODUCCIÓN desde el 2026-10-12** (ensayadas y deshechas antes; las pegó Felipe; verificadas como líder: Aniversario CAYLA 2026
+  trae 11 días, 34 categorías con stock y las tres tiendas activas; la tabla nueva con RLS y sin políticas, no la lee la web).

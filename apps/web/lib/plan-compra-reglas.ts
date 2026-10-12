@@ -21,6 +21,7 @@
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
+import type { TiendaReparto } from "./plan-compra-reparto";
 import { compararTallas } from "./tallas";
 
 export const RPC_PLAN = "fn_plan_compra";
@@ -472,6 +473,8 @@ export type FilaPlan = {
   propuesta?: PropuestaCategoria | null;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
+  /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
+  reparto?: TiendaReparto[];
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
