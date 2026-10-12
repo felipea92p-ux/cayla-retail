@@ -687,10 +687,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (sububicaciones de la sede) a `ProductoForm` → `ContextoFicha`. Es inmediato y aparte de «Revisar y guarda».
 - `/rotulos?productos=…&origen=existencias|almacen` o `&desde=<vista de Productos>` (ADR-0366; sin módulo propio, como
   Etiquetas de precio: la salida de Productos —cabecera, lo marcado y la vista rápida—, Existencias e Inicio de Almacén) → `lib/rotulos.ts` (`getRotulos`: los modelos
-  pedidos con sus colores y tallas activos, y el catálogo activo para el buscador; solo lectura, SIN RPC ni tabla nueva) +
-  `lib/rotulos-reglas.ts` (uno por modelo o todos juntos, tamaño del nombre, enlaces de ida y vuelta) →
-  `components/ImprimirRotulos.tsx` + `components/RotuloAnaquel.tsx` (62 × 40,1 mm acostado, el papel de la etiqueta; nombre
-  —tamaño de `medidaNombre`—, «Marca: …» y tallas; CSS en `app/estilos/rotulo.css`). Imprime con
+  pedidos y el catálogo activo para el buscador, todos con su marca y sus tallas activas —las prendas se suman y se quitan en el
+  navegador, que reescribe la URL sin navegar—; solo lectura, SIN RPC ni tabla nueva) +
+  `lib/rotulos-reglas.ts` (uno por modelo o todos juntos, tamaño del nombre, enlaces de ida y vuelta, papel y recorrido de la tira) →
+  `components/ImprimirRotulos.tsx` (prendas, «Quitar todas» con «Deshacer», cómo salen) + `components/rotulos/TiraBrother.tsx` (la
+  Brother y la tira con las copias; CSS en `app/estilos/rotulos-brother.css`) + `components/RotuloAnaquel.tsx` (62 × 40,1 mm
+  acostado, el papel de la etiqueta; nombre —tamaño de `medidaNombre`—, «Marca: …» y tallas; CSS en `app/estilos/rotulo.css`). Imprime con
   `components/impresion/useImpresionBrother.tsx`, el mismo camino y la misma forma A/B (`cayla.etiquetas.modo`) que Etiquetas de precio.
 - `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?producto=` también desde el éxito de Nuevo producto; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
   pantallas) → `lib/etiquetas-precio.ts` (`getEtiquetasDePrecio`: las `movimientos` de entrada del ingreso por `lote_id` o
