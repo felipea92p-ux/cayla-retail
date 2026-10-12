@@ -558,10 +558,11 @@ begin
   -- ---------- caja: un ingreso, un egreso (retiro), y el cierre de Trujillo ----------
   -- Motivos ajustados al vocabulario cerrado de 20260922235000 (antes texto libre, nunca
   -- validado en la base — el mismo hueco que esa migración cierra): "ingreso" solo admite
-  -- Ajuste de caja (sobrante)/Otro, así que el vuelto de casa entra como "Otro" con nota; el
-  -- retiro para insumos ya tenía un motivo cerrado real ("Compra de insumos").
+  -- Ajuste de caja (sobrante)/Otro, así que el vuelto de casa entra como "Otro" con nota. Las
+  -- bolsas salían como "Compra de insumos", que desde ADR-0375 ya no es una salida (es un gasto):
+  -- quedan como "Otro" con nota, un egreso que Gastos ofrece clasificar.
   perform retail.registrar_movimiento_caja(caja_lima, 'ingreso', 50.00, 'Otro', 'Vuelto adicional traído de casa');
-  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Compra de insumos', 'Bolsas para empaque');
+  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Otro', 'Bolsas para empaque');
   perform retail.cerrar_caja(caja_trujillo, 219.90);
   -- 80 apertura + 149.90 tarjeta (no suma al efectivo) = 80.00 esperado en
   -- efectivo; se cuenta 219.90 a propósito para dejar una diferencia real
