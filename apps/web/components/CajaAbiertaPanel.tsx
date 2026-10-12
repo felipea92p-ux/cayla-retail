@@ -306,7 +306,7 @@ export function CajaAbiertaPanel({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
+                <p className="text-xs text-tinta/50">Toca cualquier fila para ver el detalle</p>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
               <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
