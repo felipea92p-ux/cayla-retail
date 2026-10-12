@@ -296,7 +296,7 @@ describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felip
     expect(fraseDelModelo(modeloDe([v("x", "Rosa", "S", 2)], HOY_FICHA), 11)).toBe("Vendiste 2 en 11 días y no te queda ninguna.");
   });
 
-  it("los colores que más se venden arriba (a igual venta, el que más tienes y luego por nombre); las tallas en orden de tienda", () => {
+  it("los colores que más se venden arriba, quede o no (a igual venta, por nombre); las tallas en orden de tienda", () => {
     const t = tablaDelModelo(m)!;
     expect(t.tallas).toEqual(["S", "M"]);
     expect(t.filas.map((f) => [f.color, f.vendio])).toEqual([
@@ -311,16 +311,23 @@ describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felip
     expect(t.vendio).toBe(10);
   });
 
-  it("cada celda dice con palabras qué pasó: se vendía y no queda, te queda, o no hay", () => {
+  it("cada celda dice con palabras qué pasó: vendido y sin stock, te queda, o no hay; la fila de un color sin stock lo alerta", () => {
     const t = tablaDelModelo(m)!;
     const celda = (color: string, talla: string) => t.filas.find((f) => f.color === color)!.celdas.find((c) => c.talla === talla)!;
-    expect(celda("Blanco", "M")).toMatchObject({ estado: "pedir", fuerte: "2 vendidas", suave: "no queda", tip: "Blanco · M: 2 vendidas, no queda" });
+    expect(celda("Blanco", "M")).toMatchObject({ estado: "pedir", fuerte: "2 vendidas", suave: "sin stock", tip: "Blanco · M: 2 vendidas, sin stock" });
+    expect(t.filas.find((f) => f.color === "Blanco")!.sinStock).toBe(true);
+    expect(t.filas.find((f) => f.color === "Verde agua")!.sinStock).toBe(false);
     expect(celda("Negro", "S")).toMatchObject({ estado: "pedir", fuerte: "1 vendida" });
     expect(celda("Verde agua", "S")).toMatchObject({ estado: "queda", fuerte: "queda 1", suave: "sin ventas" });
     expect(celda("Vino", "M")).toMatchObject({ estado: "nada", fuerte: "no hay", suave: null });
     const vende = tablaDelModelo(modeloDe([v("x", "Rosa", "S", 2, 3), v("y", "Rosa", "M", 0, 0)], HOY_FICHA))!;
     expect(vende.filas[0].celdas[0]).toMatchObject({ estado: "queda", fuerte: "quedan 3", suave: "vendiste 2" });
     expect(vende.filas[0].celdas[1]).toMatchObject({ estado: "nada", fuerte: "no hay" });
+  });
+
+  it("a igual venta no importa si queda: el orden es solo por lo vendido y después por nombre", () => {
+    const t = tablaDelModelo(modeloDe([v("a", "Rosa", "S", 2, 3), v("b", "Azul", "S", 2, 0), v("c", "Azul", "M", 0, 0), v("d", "Rosa", "M", 0, 0)], HOY_FICHA))!;
+    expect(t.filas.map((f) => [f.color, f.sinStock])).toEqual([["Azul", true], ["Rosa", false]]);
   });
 
   it("una sola talla de un solo color no lleva tabla: la frase ya lo dice", () => {
