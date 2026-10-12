@@ -6,19 +6,17 @@ import {
   accionPrincipal,
   barrasSemanas,
   chipDeGrupo,
-  claseCelda,
   detalleLlegada,
   dineroDe,
-  dondeHay,
-  grillaDelModelo,
+  fraseDelModelo,
+  lineaOtrasTiendas,
   hechosDe,
   iniciosDeSemana,
-  PUNTOS_MAX,
-  queSaleMas,
   SEMANAS_FICHA,
   sedeParaPedir,
   solesFicha,
   subtituloFicha,
+  tablaDelModelo,
 } from "./analisis-ficha";
 import { modeloDe } from "./analisis-modelo";
 
@@ -235,110 +233,6 @@ describe("las semanas: las mismas 8 que cuenta la lectura, la última termina ho
   });
 });
 
-describe("dónde hay: la red, mi tienda primero", () => {
-  it("mi tienda dice «tú» y lo que hay en el piso y en el almacén; las demás, lo suyo", () => {
-    const p = prenda({ piso: 2, almacen: 1, vendidas30: 5, otras: [{ sedeId: "s2", stock: 0, vendidas30: 1 }, { sedeId: "s3", stock: 4, vendidas30: 1 }] });
-    const filas = dondeHay(p, SEDES, "s1");
-    expect(filas.map((f) => [f.ciudad, f.tuya, f.tiene, f.vendio])).toEqual([
-      ["Trujillo", true, 3, 5],
-      ["Arequipa", false, 0, 1],
-      ["Lima", false, 4, 1],
-    ]);
-    expect(filas[0].detalle).toBe("2 en el piso · 1 en el almacén");
-    expect(filas.slice(1).every((f) => f.detalle === null)).toBe(true);
-    // La barra de la que más tiene llega a 0,8; las demás, en proporción.
-    expect(filas[0].ancho).toBeCloseTo(0.6);
-    expect(filas[1].ancho).toBe(0);
-    expect(filas[2].ancho).toBeCloseTo(0.8);
-  });
-
-  it("mi tienda va primero aunque la red venga en otro orden; una tienda sin la prenda dice 0", () => {
-    const p = prenda({ piso: 1, otras: [] });
-    const filas = dondeHay(p, [SEDES[1], SEDES[0], SEDES[2]], "s1");
-    expect(filas.map((f) => f.sedeId)).toEqual(["s1", "s2", "s3"]);
-    expect(filas.slice(1).map((f) => [f.tiene, f.vendio])).toEqual([
-      [0, 0],
-      [0, 0],
-    ]);
-  });
-
-  it("los puntos de lo vendido llegan hasta 10 (la cifra dice el resto)", () => {
-    const filas = dondeHay(prenda({ vendidas30: 23 }), SEDES, "s1");
-    expect(filas[0].puntos).toBe(PUNTOS_MAX);
-    expect(filas[0].vendio).toBe(23);
-  });
-});
-
-describe("todo el modelo en mi tienda (talla × color)", () => {
-  it("cómo se pinta cada celda", () => {
-    expect(claseCelda(0, 2)).toBe("falta");
-    expect(claseCelda(0, 0)).toBe("cero");
-    expect(claseCelda(1, 3)).toBe("poco");
-    expect(claseCelda(1, 2)).toBe("");
-    expect(claseCelda(2, 9)).toBe("");
-  });
-
-  const esta = prenda({ varianteId: "a-s", color: "Celeste", colorHex: "#A9CADA", talla: "S", piso: 1, vendidas30: 5 });
-  const modelo = [
-    prenda({ varianteId: "b-m", color: "Azul claro", colorHex: "#80A0D4", talla: "M", piso: 0, vendidas30: 3 }),
-    prenda({ varianteId: "a-l", color: "Celeste", colorHex: "#A9CADA", talla: "L", piso: 2, vendidas30: 1 }),
-    esta,
-    prenda({ varianteId: "a-m", color: "Celeste", colorHex: "#A9CADA", talla: "M", almacen: 3, vendidas30: 2 }),
-    prenda({ varianteId: "b-s", color: "Azul claro", colorHex: "no-es-un-color", talla: "S", piso: 2, vendidas30: 1 }),
-    prenda({ varianteId: "otro", productoId: "p2", color: "Rojo", talla: "XL", piso: 9 }),
-  ];
-
-  it("las tallas en orden de tienda, el color de la prenda primero, y nada de otro modelo", () => {
-    const g = grillaDelModelo(esta, modelo)!;
-    expect(g.tallas).toEqual(["S", "M", "L"]);
-    expect(g.filas.map((f) => f.color)).toEqual(["Celeste", "Azul claro"]);
-    expect(g.filas[0].celdas.map((c) => [c.tiene, c.clase])).toEqual([
-      [1, "poco"],
-      [3, ""],
-      [2, ""],
-    ]);
-    expect(g.filas[1].celdas.map((c) => [c.tiene, c.clase])).toEqual([
-      [2, ""],
-      [0, "falta"],
-      [0, "cero"],
-    ]);
-  });
-
-  it("cada celda dice lo que queda y lo vendido; la que no está en los datos, «no hay»", () => {
-    const g = grillaDelModelo(esta, modelo)!;
-    expect(g.filas[0].celdas[0].tip).toBe("Celeste · S: queda 1 · se vendieron 5");
-    expect(g.filas[0].celdas[1].tip).toBe("Celeste · M: quedan 3 · se vendieron 2");
-    expect(g.filas[1].celdas[1].tip).toBe("Azul claro · M: no queda · se vendieron 3");
-    expect(g.filas[1].celdas[0].tip).toBe("Azul claro · S: quedan 2 · se vendió 1");
-    expect(g.filas[1].celdas[2].tip).toBe("Azul claro · L: no hay");
-  });
-
-  it("el punto de color sale de un hex válido de cualquiera de sus tallas; si ninguno lo es, sin punto", () => {
-    const g = grillaDelModelo(esta, modelo)!;
-    expect(g.filas[0].punto).toBe("#a9cada");
-    expect(g.filas[1].punto).toBe("#80a0d4");
-    const sinHex = grillaDelModelo(prenda({ varianteId: "x", talla: "S" }), [prenda({ varianteId: "y", talla: "M" })])!;
-    expect(sinHex.filas[0].punto).toBeNull();
-  });
-
-  it("con una sola talla y un solo color no hay grilla; con dos colores de talla única, sí", () => {
-    expect(grillaDelModelo(esta, [esta])).toBeNull();
-    expect(grillaDelModelo(esta, [])).toBeNull();
-    const unica = prenda({ varianteId: "u1", color: "Blanco", talla: "Estándar", piso: 9, vendidas30: 7 });
-    const g = grillaDelModelo(unica, [unica, prenda({ varianteId: "u2", color: "Rosa", talla: "Estándar", vendidas30: 4 })])!;
-    expect(g.tallas).toEqual(["Estándar"]);
-    expect(g.filas.map((f) => [f.color, f.celdas[0].clase])).toEqual([
-      ["Blanco", ""],
-      ["Rosa", "falta"],
-    ]);
-  });
-
-  it("dos variantes con la misma talla y el mismo color se suman", () => {
-    const g = grillaDelModelo(esta, [esta, prenda({ varianteId: "a-s2", color: "Celeste", talla: "S", piso: 2, vendidas30: 1 }), prenda({ varianteId: "a-m", talla: "M" })])!;
-    expect(g.filas[0].celdas[0]).toMatchObject({ tiene: 3, vendio: 6 });
-  });
-});
-
 describe("los botones del pie", () => {
   it("se acaba: Comprar (lo mismo que su carril); sin el módulo, sin botón", () => {
     const p = prenda({ vendidas30: 4, origen: "terceros", proveedorId: "prov-1" });
@@ -378,35 +272,70 @@ describe("los botones del pie", () => {
   });
 });
 
-describe("el detalle del modelo (ADR-0357, decisión 12)", () => {
+describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felipe 2026-10-10)", () => {
   const HOY_FICHA = "2026-10-10";
+  // La forma de la captura de Felipe (TRU, 11 días): 6 colores × S y M, 10 vendidas y 1 que queda. Nombres de color inventados.
+  const v = (varianteId: string, color: string, talla: string, vendidas30: number, piso = 0) => prenda({ varianteId, color, talla, vendidas30, piso });
   const m = modeloDe(
     [
-      prenda({ varianteId: "a", color: "Arena", colorHex: "#c2b280", talla: "S", vendidas30: 1, precio: 100 }),
-      prenda({ varianteId: "b", color: "Arena", colorHex: "#c2b280", talla: "M", piso: 1, almacen: 2, precio: 100 }),
-      prenda({ varianteId: "c", color: "Tostado", colorHex: "#8b5a2b", talla: "M", vendidas30: 4, precio: 90 }),
-      prenda({ varianteId: "d", color: "Tostado", colorHex: "#8b5a2b", talla: "L", almacen: 1, precio: 100 }),
+      v("a", "Verde agua", "S", 0, 1),
+      v("b", "Blanco", "S", 1),
+      v("c", "Blanco", "M", 2),
+      v("d", "Chocolate", "S", 1),
+      v("e", "Chocolate", "M", 2),
+      v("f", "Negro", "S", 1),
+      v("g", "Vainilla", "M", 1),
+      v("h", "Vino", "S", 2),
     ],
     HOY_FICHA,
   );
 
-  it("«Lo que más sale»: tallas y colores de lo más vendido a lo menos, con lo que tienes y su barra", () => {
-    const sale = queSaleMas(m, 11);
-    expect(sale.tallas.map((t) => [t.nombre, t.vendio, t.tiene])).toEqual([["M", 4, 3], ["S", 1, 0], ["L", 0, 1]]);
-    expect(sale.tallas[0]).toMatchObject({ ancho: 0.8, tip: "M: vendiste 4 en 11 días · tienes 3" });
-    expect(sale.colores.map((c) => [c.nombre, c.vendio, c.tiene])).toEqual([["Tostado", 4, 1], ["Arena", 1, 3]]);
-    expect(sale.colores[0].punto).not.toBeNull();
-    expect(sale.tallas[0].punto).toBeNull();
+  it("la frase responde: cuánto vendiste en tus días y cuánto te queda", () => {
+    expect(fraseDelModelo(m, 11)).toBe("Vendiste 10 en 11 días y te queda 1.");
+    expect(fraseDelModelo(modeloDe([v("x", "Rosa", "S", 0, 3)], HOY_FICHA), 1)).toBe("No vendiste ninguna en 1 día; te quedan 3.");
+    expect(fraseDelModelo(modeloDe([v("x", "Rosa", "S", 2)], HOY_FICHA), 11)).toBe("Vendiste 2 en 11 días y no te queda ninguna.");
   });
 
-  it("una sola talla o un solo color no se lista (no hay nada que comparar); la talla única tampoco", () => {
-    const uno = modeloDe([prenda({ varianteId: "x", talla: "Única", color: "Arena" }), prenda({ varianteId: "y", talla: "Única", color: "Tostado" })], HOY_FICHA);
-    const sale = queSaleMas(uno, 11);
-    expect(sale.tallas).toEqual([]);
-    expect(sale.colores).toHaveLength(2);
+  it("los colores que más se venden arriba (a igual venta, el que más tienes y luego por nombre); las tallas en orden de tienda", () => {
+    const t = tablaDelModelo(m)!;
+    expect(t.tallas).toEqual(["S", "M"]);
+    expect(t.filas.map((f) => [f.color, f.vendio])).toEqual([
+      ["Blanco", 3],
+      ["Chocolate", 3],
+      ["Vino", 2],
+      ["Negro", 1],
+      ["Vainilla", 1],
+      ["Verde agua", 0],
+    ]);
+    expect(t.vendioPorTalla).toEqual([5, 5]);
+    expect(t.vendio).toBe(10);
+  });
+
+  it("cada celda dice con palabras qué pasó: se vendía y no queda, te queda, o no hay", () => {
+    const t = tablaDelModelo(m)!;
+    const celda = (color: string, talla: string) => t.filas.find((f) => f.color === color)!.celdas.find((c) => c.talla === talla)!;
+    expect(celda("Blanco", "M")).toMatchObject({ estado: "pedir", fuerte: "2 vendidas", suave: "no queda", tip: "Blanco · M: 2 vendidas, no queda" });
+    expect(celda("Negro", "S")).toMatchObject({ estado: "pedir", fuerte: "1 vendida" });
+    expect(celda("Verde agua", "S")).toMatchObject({ estado: "queda", fuerte: "queda 1", suave: "sin ventas" });
+    expect(celda("Vino", "M")).toMatchObject({ estado: "nada", fuerte: "no hay", suave: null });
+    const vende = tablaDelModelo(modeloDe([v("x", "Rosa", "S", 2, 3), v("y", "Rosa", "M", 0, 0)], HOY_FICHA))!;
+    expect(vende.filas[0].celdas[0]).toMatchObject({ estado: "queda", fuerte: "quedan 3", suave: "vendiste 2" });
+    expect(vende.filas[0].celdas[1]).toMatchObject({ estado: "nada", fuerte: "no hay" });
+  });
+
+  it("una sola talla de un solo color no lleva tabla: la frase ya lo dice", () => {
+    expect(tablaDelModelo(modeloDe([v("x", "Rosa", "S", 2, 1)], HOY_FICHA))).toBeNull();
+  });
+
+  it("las otras tiendas en una línea, con sus propios 30 días", () => {
+    expect(lineaOtrasTiendas(m, SEDES, "s1")).toBe("Arequipa y Lima no tienen este modelo.");
+    const conOtras = { otras: [{ sedeId: "s2", stock: 3, vendidas30: 2 }, { sedeId: "s3", stock: 0, vendidas30: 0 }] };
+    expect(lineaOtrasTiendas(conOtras, SEDES, "s1")).toBe("Arequipa tiene 3 (vendió 2 en sus últimos 30 días). Lima no tiene.");
+    expect(lineaOtrasTiendas({ otras: [] }, [SEDES[0]], "s1")).toBeNull();
   });
 
   it("el subtítulo dice sus colores y tallas, y el precio «desde» el menor si varía", () => {
-    expect(subtituloFicha(m)).toBe("2 colores · S, M, L · desde S/ 90");
+    const conPrecios = modeloDe([prenda({ varianteId: "p1", color: "Arena", talla: "S", precio: 100 }), prenda({ varianteId: "p2", color: "Tostado", talla: "M", precio: 90 })], HOY_FICHA);
+    expect(subtituloFicha(conPrecios)).toBe("2 colores · S, M · desde S/ 90");
   });
 });
