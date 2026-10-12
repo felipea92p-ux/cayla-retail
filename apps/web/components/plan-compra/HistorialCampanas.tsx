@@ -1,5 +1,9 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { History } from "lucide-react";
+import { ChevronRight, History } from "lucide-react";
+import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
 import { Aviso } from "@/components/ui/Aviso";
 import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -7,10 +11,12 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Tabla, celda } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { fechaCortaES } from "@/lib/plan-compra-reglas";
+import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
   filasDelAnio,
+  leerHistorial,
+  type CampanaDelAnio,
   textoCrecimiento,
   textoMultiplicador,
   totalDelAnio,
@@ -46,7 +52,22 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   );
 }
 
-export function HistorialCampanas({ anio, historial, etiquetas, falla }: { anio: number; historial: LecturaHistorial | null; etiquetas: EtiquetaHistorial[]; falla: string | null }) {
+export function HistorialCampanas({
+  anio,
+  historial: crudo,
+  etiquetas,
+  planes,
+  falla,
+}: {
+  anio: number;
+  historial: unknown;
+  etiquetas: EtiquetaHistorial[];
+  planes: CampanaPlan[];
+  falla: string | null;
+}) {
+  const historial: LecturaHistorial | null = useMemo(() => leerHistorial(crudo), [crudo]);
+  // La fila abierta: su hoja muestra el día a día y la misma campaña año por año (Felipe 2026-10-12).
+  const [abierta, setAbierta] = useState<CampanaDelAnio | null>(null);
   const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
   // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
   const ayuda = (
@@ -149,9 +170,20 @@ export function HistorialCampanas({ anio, historial, etiquetas, falla }: { anio:
           ))}
         </div>
         {filas.map(({ campana, celdas }) => (
-          <div key={campana.clave} className="fila-cayla grid gap-x-4 gap-y-1 px-5 py-3 sm:items-baseline" role="row" style={{ gridTemplateColumns: columnas }}>
+          // Toda la fila abre su detalle (el día a día y la misma campaña año por año); la flecha dice que se puede tocar.
+          <button
+            key={campana.clave}
+            type="button"
+            onClick={() => setAbierta(campana)}
+            className="fila-cayla grid w-full cursor-pointer gap-x-4 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline"
+            style={{ gridTemplateColumns: columnas }}
+            aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}
+          >
             <span className={celda("izq", "col-span-full sm:col-span-1")}>
-              <span className="block font-semibold text-tinta">{campana.nombre}</span>
+              <span className="flex items-center gap-1.5 font-semibold text-tinta">
+                {campana.nombre}
+                <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
+              </span>
               <span className="block text-xs text-taupe">
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
               </span>
@@ -162,9 +194,21 @@ export function HistorialCampanas({ anio, historial, etiquetas, falla }: { anio:
                 <Celda c={c} anio={anio} />
               </span>
             ))}
-          </div>
+          </button>
         ))}
       </Tabla>
+
+      {abierta && (
+        <DetalleCampanaHistorial
+          campana={abierta}
+          anio={anio}
+          historial={historial}
+          etiquetas={etiquetas}
+          anios={aniosConHistoria(historial)}
+          planDeResultados={planes.find((p) => !p.archivado && p.etiquetaId === abierta.clave && p.desde.slice(0, 4) === String(anio))?.id ?? null}
+          onClose={() => setAbierta(null)}
+        />
+      )}
     </div>
   );
 }

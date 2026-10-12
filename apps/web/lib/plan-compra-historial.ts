@@ -206,6 +206,43 @@ export function rangoDelAnio(anio: number): { desde: string; hasta: string } {
   return { desde: sumarDias(`${anio - 1}-01-01`, -DIAS_BASE - 31), hasta: `${anio}-12-31` };
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// El detalle de una campaña (Felipe 2026-10-12: «al darle clic a una fila, los detalles»). Sinatra no sabe de prendas: el detalle de
+// antes del ERP es el día a día y la misma campaña año por año; el de prendas y colores vive en Resultados (solo desde el ERP).
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type DiaDeCampana = { fecha: string; soles: number };
+export type DetalleDias = {
+  dias: DiaDeCampana[];
+  /** Soles de un día normal: el promedio por día de los 60 días de antes; null si no hay base suficiente. */
+  diaNormal: number | null;
+  mejor: DiaDeCampana | null;
+  /** El día que menos vendió (de los que tuvieron venta: un día cerrado no es «flojo»). */
+  flojo: DiaDeCampana | null;
+};
+
+/** Cada día de la campaña (hasta ayer si sigue), con 0 los días sin venta, y la vara de un día normal. */
+export function diasDeLaCampana(l: Pick<LecturaHistorial, "hoy" | "dias">, t: TiendaHistorial, desde: string, hasta: string): DetalleDias {
+  const fin = hasta >= l.hoy ? sumarDias(l.hoy, -1) : hasta;
+  const delDia = l.dias.get(t.id);
+  const dias: DiaDeCampana[] = [];
+  for (let f = desde; f <= fin; f = sumarDias(f, 1)) dias.push({ fecha: f, soles: delDia?.get(f) ?? 0 });
+  const conVenta = dias.filter((d) => d.soles > 0);
+  const inicio = inicioDeDatos(t);
+  const baseDesde = sumarDias(desde, -DIAS_BASE);
+  const base = inicio && baseDesde >= inicio ? sumaDias(delDia, baseDesde, sumarDias(desde, -1)) : null;
+  const ordenados = [...conVenta].sort((a, b) => b.soles - a.soles || a.fecha.localeCompare(b.fecha));
+  return {
+    dias,
+    diaNormal: base && base.conVenta >= MIN_DIAS_CON_VENTA_BASE ? base.soles / DIAS_BASE : null,
+    mejor: ordenados[0] ?? null,
+    flojo: ordenados.length > 1 ? ordenados[ordenados.length - 1] : null,
+  };
+}
+
+/** El rango que hay que leer para medir una campaña en un año: sus días y los 60 de antes. */
+export const rangoDeCampana = (c: Pick<CampanaDelAnio, "desde" | "hasta">) => ({ desde: sumarDias(c.desde, -DIAS_BASE), hasta: c.hasta });
+
 /** «×1.8» (es-PE: punto decimal, como los soles del ERP). */
 export const textoMultiplicador = (m: number) => `×${m.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
 /** «+12 %» / «−8 %». */

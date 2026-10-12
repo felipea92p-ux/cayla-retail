@@ -1,10 +1,10 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanaPlan, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { hoyEnLima } from "@/lib/resumen-periodo";
 import { RPC_PROPUESTA } from "@/lib/plan-compra-propuesta";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
-import { RPC_HISTORIAL, leerHistorial, rangoDelAnio, type EtiquetaHistorial, type LecturaHistorial } from "@/lib/plan-compra-historial";
+import { RPC_HISTORIAL, rangoDelAnio, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
 export type FamiliaPlan = { codigo: string; nombre: string };
@@ -100,8 +100,11 @@ export async function getResultadosPlan(planId?: string): Promise<{ datos: unkno
  */
 export async function getHistorialPlan(anioPedido?: string): Promise<{
   anio: number;
-  historial: LecturaHistorial | null;
+  /** Lo que devuelve `fn_historial_ventas`, crudo: la pantalla es de cliente y lo lee con `leerHistorial` (los Map no viajan). */
+  historial: unknown;
   etiquetas: EtiquetaHistorial[];
+  /** Las campañas con plan: una fila del Historial que tiene el suyo lleva a sus Resultados. */
+  planes: CampanaPlan[];
   falla: string | null;
 }> {
   const hoy = hoyEnLima(new Date());
@@ -114,10 +117,12 @@ export async function getHistorialPlan(anioPedido?: string): Promise<{
     supabase.rpc(RPC_PLANES as never),
   ]);
   if (planes.error) console.error(`${RPC_PLANES} (historial): ${planes.error.message}`);
-  const etiquetas = (planes.error ? null : leerCampanas(planes.data))?.etiquetas ?? [];
+  const leidas = planes.error ? null : leerCampanas(planes.data);
+  const etiquetas = leidas?.etiquetas ?? [];
+  const conPlan = leidas?.planes ?? [];
   if (historia.error) {
     console.error(`${RPC_HISTORIAL}: ${historia.error.message}`);
-    return { anio, historial: null, etiquetas, falla: "No se pudo leer el historial. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder" };
+    return { anio, historial: null, etiquetas, planes: conPlan, falla: "No se pudo leer el historial. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder" };
   }
-  return { anio, historial: leerHistorial(historia.data), etiquetas, falla: null };
+  return { anio, historial: historia.data, etiquetas, planes: conPlan, falla: null };
 }

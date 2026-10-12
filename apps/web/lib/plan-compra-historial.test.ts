@@ -3,7 +3,9 @@ import {
   aniosConHistoria,
   campanasDelAnio,
   crecimiento,
+  diasDeLaCampana,
   filasDelAnio,
+  rangoDeCampana,
   leerHistorial,
   medir,
   mismaFechaEn,
@@ -135,6 +137,28 @@ describe("crecer contra el año anterior", () => {
     const l = lectura("2026-10-12", [TRU], "2024-01-01", "2025-12-31", (_t, f) => (f.startsWith("2025") ? 2 : 1));
     expect(totalDelAnio(l, "tru", 2025).crecimiento).toBeCloseTo((365 * 2) / 366 - 1);
     expect(totalDelAnio(l, "tru", 2024).crecimiento).toBeNull();
+  });
+});
+
+describe("el detalle de una campaña", () => {
+  // Trujillo vende 1000 por día; en Navidad 2025, 2000, salvo el 24 (5000) y el 25 cerrado.
+  const l = lectura("2026-10-12", [TRU], "2025-09-01", "2025-12-31", (_t, f) =>
+    f === "2025-12-25" ? 0 : f === "2025-12-24" ? 5000 : f >= "2025-12-11" && f <= "2025-12-25" ? 2000 : 1000,
+  );
+  it("cada día de la campaña (el cerrado, en 0), el día normal, el mejor y el más flojo de los que vendieron", () => {
+    const d = diasDeLaCampana(l, TRU, "2025-12-11", "2025-12-25");
+    expect(d.dias).toHaveLength(15);
+    expect(d.dias.at(-1)).toEqual({ fecha: "2025-12-25", soles: 0 });
+    expect(d.diaNormal).toBe(1000);
+    expect(d.mejor).toEqual({ fecha: "2025-12-24", soles: 5000 });
+    expect(d.flojo?.soles).toBe(2000);
+  });
+  it("sin base suficiente no inventa el día normal", () => {
+    const corta = lectura("2026-10-12", [AQP], "2024-02-09", "2024-03-10", () => 500);
+    expect(diasDeLaCampana(corta, AQP, "2024-02-22", "2024-03-08").diaNormal).toBeNull();
+  });
+  it("para medir un año se leen sus días y los 60 de antes", () => {
+    expect(rangoDeCampana({ desde: "2025-12-11", hasta: "2025-12-25" })).toEqual({ desde: "2025-10-12", hasta: "2025-12-25" });
   });
 });
 
