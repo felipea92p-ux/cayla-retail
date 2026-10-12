@@ -791,6 +791,12 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:corregir-prenda-sin-registrar",
 
+  // Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
+  // con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
+  // mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que
+  // «ya estaba registrada» sale de lo disponible y que una prenda sin cargar en la sede no se regulariza. ROLLBACK.
+  "pruebas:ventas-sin-registrar",
+
   // Familias fuera de los motores (bolsas de despacho): `familias.entra_a_motores` nace true para todas las familias que ya
   // existen, `fn_categoria_entra_a_motores` responde por la familia de la categoría (y true ante lo que no sabe), solo un líder
   // cambia la marca y la migración se puede cargar dos veces. Cada caso termina en ROLLBACK.
