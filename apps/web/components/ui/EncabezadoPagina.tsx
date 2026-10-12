@@ -66,7 +66,9 @@ export function EncabezadoPagina({
         : acciones && (
             // Entra un paso después del título, como el resumen de la sede. En el celular la fila se parte y
             // las acciones quedan bajo la frase, a la izquierda, donde estaban antes.
-            <div className="anim-sube flex flex-wrap items-center gap-x-3 gap-y-2.5" style={{ "--i": 1 } as CSSProperties}>
+            // `min-w-0 max-w-full`: en el celular la fila no pasa del ancho de la cabecera (una acción que se estira, como la campaña
+            // del Plan, se corta con «…» en vez de empujar la página hacia la derecha).
+            <div className="anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-2.5" style={{ "--i": 1 } as CSSProperties}>
               {acciones}
             </div>
           )}
