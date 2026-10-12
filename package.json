@@ -13,6 +13,7 @@
     "migraciones:sin-drop-trigger": "node scripts/migraciones/sin-drop-trigger.mjs",
     "migraciones:deriva": "node scripts/migraciones/deriva.mjs",
     "adr:numeros": "node scripts/adr/numeros.mjs",
+    "reservar": "node scripts/reservar/reservar.mjs",
     "focus": "node scripts/focus/escanear.mjs",
     "sugerir": "node scripts/sugerir/escanear.mjs",
     "unificar:censo": "pnpm --filter web unificar:censo",
