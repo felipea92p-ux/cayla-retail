@@ -266,7 +266,10 @@ export function GastoRapidoModal({
           {textos.subtitulo}
         </span>
       }
-      onClose={() => avisoSalida.pedirAccion(onCerrar)}
+      // «¿Salir sin guardar?» se pregunta ANTES de animar la salida (Escape, el velo), y `onClose` ya no pregunta: pasado por
+      // `onClose`, «Seguir editando» tras un Escape dejaba la hoja montada e invisible, y «Cancelar» tenía que soltar la guardia del «atrás».
+      antesDeCerrar={avisoSalida.pedirAccion}
+      onClose={onCerrar}
       bloqueado={guardando}
       ancho="max-w-[560px]"
     >
@@ -481,18 +484,7 @@ export function GastoRapidoModal({
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo={textos.listo} />
             <div className="ml-auto flex gap-3">
-              {/* Ya confirmó «Salir sin guardar»: se suelta el aviso antes de la salida animada, o el `onClose` de la hoja volvería a
-                  preguntar al terminar de cerrarse. */}
-              <Boton
-                type="button"
-                onClick={() =>
-                  avisoSalida.pedirAccion(() => {
-                    avisoSalida.soltar();
-                    cerrar();
-                  })
-                }
-                disabled={guardando}
-              >
+              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
                 Cancelar
               </Boton>
               <Boton
