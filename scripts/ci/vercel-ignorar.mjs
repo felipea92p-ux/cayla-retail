@@ -8,17 +8,20 @@
  * 34 de esas 60 eran «traer main a la rama»: el ruleset `main-protegida` exige la rama al día (strict, ADR-0345), así que
  * cada fusión a `main` hace que cada sesión con PR abierto traiga `main` y suba. Una vista previa por rama, que nadie abre.
  *
- * QUÉ PROMETE. Sale con 0 («no construyas») SOLO si es una vista previa (`VERCEL_ENV=preview`) y el asunto del commit es
- * el de un merge que trae `main` a la rama, como lo escriben git y las sesiones. Todo lo demás sale con 1 y se construye
- * como siempre: producción, un commit con código, un merge de otra rama, un asunto que no reconoce, una variable que
- * falta o un error. Ante la duda construye: si se equivoca, se equivoca hacia gastar dos minutos, nunca hacia saltarse
- * una versión que alguien necesitaba.
+ * QUÉ PROMETE. Sale con 0 («no construyas») SOLO si es una vista previa (`VERCEL_ENV=preview`) y TODO lo que la rama sumó
+ * desde su última versión construida con éxito (`VERCEL_GIT_PREVIOUS_SHA`) son merges que traen `main`, reconocidos por su
+ * asunto. Mirar solo el último commit no alcanza: si una rama sube código y enseguida trae `main`, Vercel cancela la versión
+ * con código que seguía en fila (la reemplaza la más nueva), y el código no se compilaría nunca. Pasó el 2026-10-12 con
+ * «fix(pruebas)» de `claude/purchase-order-redesign-9b0c82`. Todo lo demás sale con 1 y se construye como siempre:
+ * producción, un commit con código en ese tramo, la primera versión de una rama, repetir la misma versión, un `git` que no
+ * encuentra la versión anterior (clon corto, rama reescrita) o cualquier error. Ante la duda construye: si se equivoca, se
+ * equivoca hacia gastar dos minutos, nunca hacia dejar código sin compilar.
  *
- * QUÉ ASUME. Vercel lo corre antes de instalar dependencias (solo usa Node) y entiende 0 = ignorar, 1 = construir. Lo
- * propio de la rama ya se construyó en su commit anterior y `main` se construye en producción; lo que este salto deja
- * sin construir es solo la combinación de los dos. El CI de GitHub sí la prueba: en `pull_request` revisa tipos, lint y
- * pruebas sobre el merge del PR con `main`.
+ * QUÉ ASUME. Vercel lo corre dentro del clon, antes de instalar dependencias (solo usa Node y `git`), y entiende
+ * 0 = ignorar, 1 = construir. Lo que este salto deja sin construir es solo la combinación de la rama con `main`; el CI de
+ * GitHub sí la prueba: en `pull_request` revisa tipos, lint y pruebas sobre el merge del PR con `main`.
  */
+import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 // Los asuntos que traen `main` a la rama. Salen del historial real (`git log --merges --format=%s`, 2026-10-12): 365
@@ -33,27 +36,51 @@ const TRAE_MAIN = [
   /^merge: (.*[\s/'])?main($|[\s'.,;:])/,
 ];
 
-/** `entorno` = VERCEL_ENV (`production` | `preview` | `development`); `mensaje` = VERCEL_GIT_COMMIT_MESSAGE, completo. */
-export function decidir({ entorno, mensaje }) {
+export const traeMain = (asunto) => TRAE_MAIN.some((r) => r.test(asunto.trim()));
+
+/**
+ * `entorno` = VERCEL_ENV (`production` | `preview` | `development`).
+ * `asuntos` = los asuntos de los commits que la rama sumó desde su última versión construida (por primer padre, así que
+ * no incluye lo que trajo cada merge), o `null` si no se pudo saber.
+ */
+export function decidir({ entorno, asuntos }) {
   if (entorno !== "preview") {
     return { construir: true, motivo: `entorno «${entorno || "sin dato"}»: solo se saltan vistas previas` };
   }
-  const asunto = (mensaje ?? "").split("\n")[0].trim();
-  if (!asunto) return { construir: true, motivo: "sin mensaje de commit: ante la duda, se construye" };
-  if (TRAE_MAIN.some((r) => r.test(asunto))) {
-    return {
-      construir: false,
-      motivo: `«${asunto}» solo trae main a la rama: main ya se construye en producción y lo propio de la rama, en su commit anterior`,
-    };
+  if (!asuntos) {
+    return { construir: true, motivo: "no se sabe qué se construyó antes en esta rama: ante la duda, se construye" };
   }
-  return { construir: true, motivo: `«${asunto}» trae cambios propios de la rama` };
+  if (asuntos.length === 0) {
+    return { construir: true, motivo: "es la misma versión que la última construida: alguien pidió repetirla" };
+  }
+  const propio = asuntos.find((a) => !traeMain(a));
+  if (propio !== undefined) return { construir: true, motivo: `«${propio}» trae cambios propios de la rama` };
+  return {
+    construir: false,
+    motivo: `lo que la rama sumó desde su última versión construida solo trae main (${asuntos.length} merge${asuntos.length === 1 ? "" : "s"}): main ya se construye en producción y lo propio de la rama ya está construido`,
+  };
+}
+
+/** Los asuntos por primer padre entre la última versión construida y HEAD, o `null` si no hay versión anterior o git falla. */
+export function asuntosDesde(anterior, cwd = process.cwd()) {
+  if (!anterior) return null;
+  try {
+    const salida = execFileSync("git", ["log", "--first-parent", "--format=%s", `${anterior}..HEAD`], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return salida.split("\n").filter(Boolean);
+  } catch {
+    return null;
+  }
 }
 
 function main() {
   try {
     const { construir, motivo } = decidir({
       entorno: process.env.VERCEL_ENV,
-      mensaje: process.env.VERCEL_GIT_COMMIT_MESSAGE,
+      asuntos: asuntosDesde(process.env.VERCEL_GIT_PREVIOUS_SHA),
     });
     console.log(`${construir ? "Se construye" : "No se construye"}: ${motivo} (ADR-0383)`);
     process.exit(construir ? 1 : 0);

@@ -1,14 +1,15 @@
 // Pruebas de «¿Vercel construye esta versión?» (ADR-0383). `node --test scripts/ci/vercel-ignorar.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { decidir } from "./vercel-ignorar.mjs";
+import { asuntosDesde, decidir, traeMain } from "./vercel-ignorar.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const vistaPrevia = (mensaje) => decidir({ entorno: "preview", mensaje }).construir;
+const SCRIPT = join(RAIZ, "scripts/ci/vercel-ignorar.mjs");
 
 // Asuntos copiados del historial real (`git log --merges --format=%s`, 2026-10-12).
 const TRAEN_MAIN = [
@@ -38,59 +39,113 @@ const TRAEN_ALGO_PROPIO = [
   "fix(menu): el main de la cabecera ya no salta",
 ];
 
-test("vista previa que solo trae main → no se construye", () => {
-  for (const asunto of TRAEN_MAIN) assert.equal(vistaPrevia(asunto), false, asunto);
+test("reconoce los merges que traen main, y nada más", () => {
+  for (const asunto of TRAEN_MAIN) assert.equal(traeMain(asunto), true, asunto);
+  for (const asunto of TRAEN_ALGO_PROPIO) assert.equal(traeMain(asunto), false, asunto);
 });
 
-test("vista previa con algo propio de la rama → se construye", () => {
-  for (const asunto of TRAEN_ALGO_PROPIO) assert.equal(vistaPrevia(asunto), true, asunto);
+const vistaPrevia = (asuntos) => decidir({ entorno: "preview", asuntos }).construir;
+
+test("vista previa: se salta solo si TODO lo sumado desde la última versión construida trae main", () => {
+  assert.equal(vistaPrevia([TRAEN_MAIN[0]]), false);
+  assert.equal(vistaPrevia([TRAEN_MAIN[1], TRAEN_MAIN[0]]), false);
+  // El hueco del 2026-10-12: el commit con código quedó cancelado en la fila y el merge de main lo reemplazó.
+  assert.equal(vistaPrevia([TRAEN_MAIN[0], TRAEN_ALGO_PROPIO[0]]), true);
+  assert.equal(vistaPrevia([TRAEN_ALGO_PROPIO[0]]), true);
 });
 
-test("producción se construye siempre, aunque el asunto sea un merge de main", () => {
-  for (const asunto of TRAEN_MAIN) assert.equal(decidir({ entorno: "production", mensaje: asunto }).construir, true, asunto);
+test("producción se construye siempre, aunque solo traiga main", () => {
+  assert.equal(decidir({ entorno: "production", asuntos: [TRAEN_MAIN[0]] }).construir, true);
 });
 
-test("ante la duda se construye: entorno desconocido o sin dato, mensaje vacío", () => {
-  const merge = TRAEN_MAIN[0];
-  assert.equal(decidir({ entorno: undefined, mensaje: merge }).construir, true);
-  assert.equal(decidir({ entorno: "", mensaje: merge }).construir, true);
-  assert.equal(decidir({ entorno: "development", mensaje: merge }).construir, true);
-  assert.equal(vistaPrevia(undefined), true);
-  assert.equal(vistaPrevia(""), true);
-  assert.equal(vistaPrevia("   \n\n"), true);
+test("ante la duda se construye: entorno sin dato, sin versión anterior, misma versión", () => {
+  assert.equal(decidir({ entorno: undefined, asuntos: [TRAEN_MAIN[0]] }).construir, true);
+  assert.equal(decidir({ entorno: "development", asuntos: [TRAEN_MAIN[0]] }).construir, true);
+  assert.equal(vistaPrevia(null), true);
+  assert.equal(vistaPrevia([]), true);
 });
 
-test("solo cuenta la primera línea del mensaje", () => {
-  // Un merge con conflictos resueltos conserva el asunto de git.
-  assert.equal(vistaPrevia("Merge branch 'main' into claude/x\n\n# Conflicts:\n#\tapps/web/lib/a.ts\n"), false);
-  // Un commit con código que menciona el merge en el cuerpo sigue siendo un commit con código.
-  assert.equal(vistaPrevia("fix(caja): cuadra el fondo\n\nMerge branch 'main' into claude/x"), true);
+// Un repo de verdad con la historia típica de una rama: código, y después dos veces «traer main».
+function repoDePrueba() {
+  const dir = mkdtempSync(join(tmpdir(), "vercel-ignorar-"));
+  const g = (...args) =>
+    execFileSync("git", ["-c", "user.name=Prueba", "-c", "user.email=prueba@cayla.test", "-c", "commit.gpgsign=false", ...args], {
+      cwd: dir,
+      encoding: "utf8",
+    }).trim();
+  const commit = (asunto) => {
+    g("commit", "-q", "--allow-empty", "-m", asunto);
+    return g("rev-parse", "HEAD");
+  };
+  g("init", "-q", "-b", "main");
+  const base = commit("base");
+  g("checkout", "-q", "-b", "claude/x");
+  const codigo = commit("fix(caja): cuadra el fondo");
+  g("checkout", "-q", "main");
+  commit("feat(compras): algo que entró a main");
+  g("checkout", "-q", "claude/x");
+  g("merge", "-q", "--no-ff", "-m", "Merge branch 'main' into claude/x", "main");
+  const merge1 = g("rev-parse", "HEAD");
+  g("checkout", "-q", "main");
+  commit("feat(analisis): otra cosa en main");
+  g("checkout", "-q", "claude/x");
+  g("merge", "-q", "--no-ff", "-m", "Merge remote-tracking branch 'origin/main' into claude/x", "main");
+  const head = g("rev-parse", "HEAD");
+  return { dir, base, codigo, merge1, head };
+}
+
+test("asuntosDesde sigue el primer padre: lo que trajo cada merge de main no cuenta como propio", (t) => {
+  const r = repoDePrueba();
+  t.after(() => rmSync(r.dir, { recursive: true, force: true }));
+  assert.deepEqual(asuntosDesde(r.codigo, r.dir), [
+    "Merge remote-tracking branch 'origin/main' into claude/x",
+    "Merge branch 'main' into claude/x",
+  ]);
+  assert.deepEqual(asuntosDesde(r.base, r.dir), [
+    "Merge remote-tracking branch 'origin/main' into claude/x",
+    "Merge branch 'main' into claude/x",
+    "fix(caja): cuadra el fondo",
+  ]);
+  assert.deepEqual(asuntosDesde(r.head, r.dir), []);
+  assert.equal(asuntosDesde("", r.dir), null);
+  assert.equal(asuntosDesde(undefined, r.dir), null);
+  // Una versión anterior que el clon no tiene (clon corto, rama reescrita): no se sabe.
+  assert.equal(asuntosDesde("0123456789abcdef0123456789abcdef01234567", r.dir), null);
 });
 
 // El contrato con Vercel es el código de salida: 0 = ignorar, 1 = construir.
-function salida(env, cwd = RAIZ) {
-  const r = spawnSync(process.execPath, [join(RAIZ, "scripts/ci/vercel-ignorar.mjs")], {
-    cwd,
-    env: { PATH: process.env.PATH, ...env },
-    encoding: "utf8",
-  });
-  return r.status;
+function salida(cwd, env) {
+  return spawnSync(process.execPath, [SCRIPT], { cwd, env: { PATH: process.env.PATH, ...env }, encoding: "utf8" }).status;
 }
 
-test("código de salida: 0 solo para una vista previa que trae main", () => {
-  assert.equal(salida({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_MESSAGE: TRAEN_MAIN[1] }), 0);
-  assert.equal(salida({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_MESSAGE: TRAEN_ALGO_PROPIO[0] }), 1);
-  assert.equal(salida({ VERCEL_ENV: "production", VERCEL_GIT_COMMIT_MESSAGE: TRAEN_MAIN[1] }), 1);
-  assert.equal(salida({}), 1);
+test("código de salida en un repo de verdad", (t) => {
+  const r = repoDePrueba();
+  t.after(() => rmSync(r.dir, { recursive: true, force: true }));
+  const preview = (anterior) => salida(r.dir, { VERCEL_ENV: "preview", VERCEL_GIT_PREVIOUS_SHA: anterior });
+  assert.equal(preview(r.codigo), 0, "el código ya estaba construido: los dos merges se saltan");
+  assert.equal(preview(r.merge1), 0, "desde el primer merge solo vino otro merge");
+  assert.equal(preview(r.base), 1, "el código nunca se construyó (quedó cancelado en la fila)");
+  assert.equal(preview(r.head), 1, "repetir la misma versión");
+  assert.equal(preview(""), 1, "primera versión de la rama");
+  assert.equal(preview("0123456789abcdef0123456789abcdef01234567"), 1, "versión anterior fuera del clon");
+  assert.equal(salida(r.dir, { VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: r.codigo }), 1, "producción");
+  assert.equal(salida(r.dir, {}), 1, "sin variables de Vercel");
 });
 
-test("apps/web/vercel.json llama a este script y la orden funciona desde apps/web y desde la raíz", () => {
+test("la orden de apps/web/vercel.json encuentra el script desde apps/web y desde la raíz del clon", (t) => {
   const { ignoreCommand } = JSON.parse(readFileSync(join(RAIZ, "apps/web/vercel.json"), "utf8"));
   assert.match(ignoreCommand, /scripts\/ci\/vercel-ignorar\.mjs/);
-  for (const cwd of [join(RAIZ, "apps/web"), RAIZ]) {
-    const correr = (env) =>
-      spawnSync("sh", ["-c", ignoreCommand], { cwd, env: { PATH: process.env.PATH, ...env }, encoding: "utf8" }).status;
-    assert.equal(correr({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_MESSAGE: TRAEN_MAIN[0] }), 0, cwd);
-    assert.equal(correr({ VERCEL_ENV: "production", VERCEL_GIT_COMMIT_MESSAGE: TRAEN_MAIN[0] }), 1, cwd);
+  // Un clon de mentira con el script en su lugar: así se prueba la orden tal cual la corre Vercel.
+  const r = repoDePrueba();
+  t.after(() => rmSync(r.dir, { recursive: true, force: true }));
+  mkdirSync(join(r.dir, "scripts/ci"), { recursive: true });
+  mkdirSync(join(r.dir, "apps/web"), { recursive: true });
+  copyFileSync(SCRIPT, join(r.dir, "scripts/ci/vercel-ignorar.mjs"));
+  for (const cwd of [join(r.dir, "apps/web"), r.dir]) {
+    const correr = (env) => spawnSync("sh", ["-c", ignoreCommand], { cwd, env: { PATH: process.env.PATH, ...env }, encoding: "utf8" });
+    const salta = correr({ VERCEL_ENV: "preview", VERCEL_GIT_PREVIOUS_SHA: r.codigo });
+    assert.equal(salta.status, 0, `${cwd}: ${salta.stdout}${salta.stderr}`);
+    assert.match(salta.stdout, /No se construye: .*\(ADR-0383\)/);
+    assert.equal(correr({ VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: r.codigo }).status, 1, cwd);
   }
 });

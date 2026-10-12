@@ -26,17 +26,27 @@ Producción ya pasaba adelante: el #973 entró a la fila a las 11:08, se saltó 
 ## Decisión
 
 `apps/web/vercel.json` declara un `ignoreCommand` que corre `scripts/ci/vercel-ignorar.mjs`. El script sale con 0 («no construyas»)
-**solo** si es una vista previa (`VERCEL_ENV=preview`) y el asunto del commit es un merge que trae `main` (las formas que escriben
-git y las sesiones, sacadas del historial). Todo lo demás se construye como siempre: producción, un commit con código, ponerse al día
-con la misma rama en el remoto, un merge de otra rama, un asunto que no reconoce, una variable que falta, un error del propio script o
-un `git` que no responde. **Ante la duda construye:** el script solo puede equivocarse hacia gastar dos minutos, nunca hacia saltarse
-una versión que alguien necesitaba.
+**solo** si es una vista previa (`VERCEL_ENV=preview`) y **todo lo que la rama sumó desde su última versión construida con éxito**
+(`VERCEL_GIT_PREVIOUS_SHA`, que Vercel solo entrega a este paso) son merges que traen `main`: los asuntos de esos commits, seguidos por
+primer padre, tienen las formas que escriben git y las sesiones (sacadas del historial). Todo lo demás se construye como siempre:
+producción, un commit con código en ese tramo, la primera versión de una rama, repetir la misma versión, un `git` que no encuentra la
+versión anterior (clon corto, rama reescrita), un error del propio script. **Ante la duda construye:** el script solo puede equivocarse
+hacia gastar dos minutos, nunca hacia dejar código sin compilar.
 
-Repetido sobre las 60 de esa mañana: se saltan las 34 y se construyen 26, ~16 por hora contra ~25 que Vercel alcanza.
+**Por qué no basta con mirar el último commit** (la primera versión de este ADR lo hacía, y se corrigió antes de fusionar). Cuando una
+rama sube un commit con código y enseguida trae `main`, Vercel cancela la versión con código que seguía en fila, porque la reemplaza la
+más nueva de la misma rama. Si la más nueva se salta por ser un merge de `main`, el código no se compila nunca. Pasó esa misma mañana:
+«fix(pruebas): las acciones sin responsable son 35…» de `claude/purchase-order-redesign-9b0c82` quedó cancelada por dos merges de `main`.
+Con la regla de «todo lo sumado desde la última construida», ese tramo trae un commit con código y se construye.
+
+Repetido sobre las 60 de esa mañana, versión por versión: se saltan 30 y se construyen 30 (9 de producción), ~18 por hora contra ~25 que
+Vercel alcanza. Es la cuenta pesimista: no sabemos qué estaba construido antes de las 09:33, así que la primera vista previa de cada rama
+en esa ventana (14) se cuenta como construida.
 
 Sus pruebas (`scripts/ci/vercel-ignorar.test.mjs`) corren en el CI, en el paso «Qué construye Vercel»: los asuntos reales que debe
-saltar, los que debe construir (incluida una rama que se llama `claude/main-menu`), el código de salida que Vercel entiende y que la
-orden de `vercel.json` funcione desde `apps/web` y desde la raíz.
+reconocer y los que no (incluida una rama que se llama `claude/main-menu`), un repo de verdad con la historia típica de una rama
+(código, dos veces «traer main», el código que quedó sin construir), el código de salida que Vercel entiende y la orden de `vercel.json`
+corrida tal cual desde `apps/web` y desde la raíz del clon.
 
 ## Descartado
 
@@ -56,11 +66,12 @@ producción. Producción no se cae, porque Vercel no publica una versión que fa
 Lo que sí atrapa el CI antes de fusionar: en `pull_request`, tipos, lint y pruebas corren sobre el merge del PR con `main`; queda
 afuera solo lo que aparece al compilar (un componente de servidor llamando a uno del navegador, una página que falla al generarse).
 
-También se rompe si una sesión escribe el merge de `main` con un asunto que el script no reconoce: esa vista previa se construye como
-hoy. Es la falla barata, y se corrige sumando la forma a `TRAEN_MAIN` en la prueba y en el script.
+También falla, pero hacia el lado barato, si una sesión escribe el merge de `main` con un asunto que el script no reconoce, o si el clon
+de Vercel no alcanza a la versión anterior: esa vista previa se construye como hoy. Lo primero se corrige sumando la forma a `TRAE_MAIN`
+(script) y a `TRAEN_MAIN` (prueba).
 
 ## Cómo se verifica
 
-Después de fusionar, la primera rama que traiga `main` muestra en Vercel su versión como cancelada, y su log dice «No se construye: …
-solo trae main a la rama … (ADR-0383)». Claude lo lee con la CLI, que sí tiene permiso sobre el equipo `cayla`:
+Después de fusionar, la primera rama que traiga `main` sin haber subido código nuevo muestra en Vercel su versión como cancelada, y su
+log dice «No se construye: lo que la rama sumó desde su última versión construida solo trae main … (ADR-0383)». Claude lo lee con la CLI, que sí tiene permiso sobre el equipo `cayla`:
 `vercel inspect <url> --logs --scope cayla` (la conexión de Vercel dentro de Claude responde 403 al pedir logs).
