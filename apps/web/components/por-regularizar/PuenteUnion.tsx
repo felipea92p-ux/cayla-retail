@@ -1,9 +1,10 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { Box, Tag } from "lucide-react";
 import { anotadoPorCaja, balanzaDe, calceDe, diferenciasDe, disponibleDespues, FORMAS, fraseDeDiferencia, diferenciaDe, visitosDe, type FormaRegularizar, type PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
+import { avisoDeRespuesta, type FormaDeducida } from "@/lib/por-regularizar-deduccion";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { botonPrimario } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -12,6 +13,7 @@ import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { IconoVisto, MosaicoDePrenda, MosaicoDeVenta, soles } from "./piezas";
 import { PorQue } from "./PorQue";
 import { LineaCorregida } from "./LineaCorregida";
+import { estaEscribiendo } from "@/components/alta-producto/useGuiaAlta";
 
 /** Un rótulo pegado a una marca de la regla no se sale de ella: cerca de un borde se alinea hacia adentro. */
 const alinear = (pos: number): "ini" | "fin" | undefined => (pos < 24 ? "ini" : pos > 76 ? "fin" : undefined);
@@ -28,6 +30,7 @@ export function PuenteUnion({
   venta,
   prenda,
   disponible,
+  deducida = null,
   forma,
   onForma,
   responsable,
@@ -42,6 +45,9 @@ export function PuenteUnion({
   prenda: PrendaParaRegularizar | null;
   /** Unidades libres de la prenda en la tienda de la venta; `null` = no se pudo leer. */
   disponible: number | null;
+  /** Lo que dice el libro de esta prenda a la hora de la venta (ADR-0328 act. 5): la respuesta sugerida y su porqué, o `null` si no hay
+   *  nada que decir. Solo SUGIERE: no elige ni cambia qué se puede confirmar. */
+  deducida?: FormaDeducida | null;
   forma: FormaRegularizar | null;
   onForma: (f: FormaRegularizar) => void;
   responsable: ControlResponsable;
@@ -60,6 +66,23 @@ export function PuenteUnion({
   const balanza = prenda ? balanzaDe(venta.precioCobrado, prenda.precio) : null;
   const puedeGuardar = Boolean(prenda && forma && responsable.listo && !guardando && !hecho);
   const sinUnidades = prenda !== null && disponible === 0;
+  // Si la persona elige lo contrario de lo que dice el libro, un aviso en ámbar dice qué pasaría (sin detenerla: puede tener razón).
+  const aviso = avisoDeRespuesta(deducida, forma, venta.sede);
+  // El aviso aparece donde la persona puede no estar mirando (en la hoja del celular, bajo el pie fijo con «Regularizar»): se trae a la
+  // vista una vez, con suavidad, solo si no se ve (`nearest`, con `scroll-margin` para librar el pie). Nunca mientras se teclea.
+  const refDeduce = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!aviso || estaEscribiendo()) return;
+    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    let segundo = 0;
+    const primero = requestAnimationFrame(() => {
+      segundo = requestAnimationFrame(() => refDeduce.current?.scrollIntoView({ block: "nearest", behavior: quieto ? "auto" : "smooth" }));
+    });
+    return () => {
+      cancelAnimationFrame(primero);
+      cancelAnimationFrame(segundo);
+    };
+  }, [aviso]);
 
   return (
     <div className="vsr-pu" data-vsr-puente data-hecho={hecho ? "" : undefined}>
@@ -154,12 +177,24 @@ export function PuenteUnion({
                 <button key={f} type="button" className="vsr-forma" aria-pressed={forma === f} onClick={() => onForma(f)} disabled={guardando || hecho}>
                   {f === "ya_registrada" ? <Tag aria-hidden strokeWidth={1.6} /> : <Box aria-hidden strokeWidth={1.6} />}
                   <span>
-                    <b>{FORMAS[f].titulo}</b>
+                    <b>
+                      {FORMAS[f].titulo}
+                      {/* Marcada, NO elegida: la respuesta la da la persona (contestar mal descuenta dos veces o deja una fantasma). */}
+                      {deducida?.forma === f && <span className="vsr-forma-sug">Sugerida</span>}
+                    </b>
                     <small>{FORMAS[f].detalle}</small>
                   </span>
                 </button>
               ))}
             </div>
+            {/* El porqué de la sugerencia (o de por qué no la hay), con su fecha; si se elige lo contrario, pasa a ámbar y dice qué pasaría. */}
+            {deducida && (
+              <div aria-live="polite">
+                <p ref={refDeduce} key={aviso ? `aviso-${forma}` : "porque"} className="vsr-deduce" data-aviso={aviso ? "" : undefined} role="note">
+                  {aviso ?? deducida.porque}
+                </p>
+              </div>
+            )}
             <div className="mt-1.5 flex flex-wrap items-center">
               <PorQue etiqueta="¿Cuál elijo?" alAbrir={alCrecer}>
                 <p>
