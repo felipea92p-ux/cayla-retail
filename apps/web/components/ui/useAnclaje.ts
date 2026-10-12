@@ -169,7 +169,15 @@ function marcoDelFijo(control: HTMLElement): { x: (vx: number) => number; y: (vy
 
 export type PosicionLista = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
 
-export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto: boolean, alto: number, separacion = 6): PosicionLista | null {
+/** `entero` (el calendario de `CampoFecha`, 2026-10-10): el panel no se desplaza por dentro, así que abre hacia abajo solo si cabe
+ *  ENTERO (o si abajo hay más aire que arriba). Una lista con 160 px a la vista sirve; un calendario cortado a la mitad, no. */
+export function usePosicionLista(
+  control: RefObject<HTMLElement | null>,
+  abierto: boolean,
+  alto: number,
+  separacion = 6,
+  { entero = false }: { entero?: boolean } = {},
+): PosicionLista | null {
   const [pos, setPos] = useState<PosicionLista | null>(null);
 
   useLayoutEffect(() => {
@@ -191,7 +199,7 @@ export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto
       const abajo = piso - r.bottom - separacion - margen;
       const arriba = r.top - techo - separacion - margen;
       // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
-      const haciaAbajo = abajo >= Math.min(alto, 160) || abajo >= arriba;
+      const haciaAbajo = abajo >= (entero ? alto : Math.min(alto, 160)) || abajo >= arriba;
       const maxHeight = haciaAbajo ? Math.min(alto, Math.max(abajo, 120)) : Math.min(alto, arriba);
       const marco = marcoDelFijo(control.current);
       // En reposo: coordenadas de la ventana, tal cual se midieron.
@@ -216,7 +224,7 @@ export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto
     }
     seguir();
     return () => cancelAnimationFrame(cuadro);
-  }, [abierto, control, alto, separacion]);
+  }, [abierto, control, alto, separacion, entero]);
 
   return abierto ? pos : null;
 }
