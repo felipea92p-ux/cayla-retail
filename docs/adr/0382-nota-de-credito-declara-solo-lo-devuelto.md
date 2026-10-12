@@ -1,6 +1,6 @@
 # ADR-0382 — La nota de crédito de una devolución declara solo lo devuelto
 
-- **Fecha:** 2026-10-12 · **Estado:** construido y probado en una copia de la base local con las mismas funciones que producción; **SQL SIN pegar en producción** (es SUNAT: espera el OK de Felipe).
+- **Fecha:** 2026-10-12 · **Estado:** construido y probado en una copia de la base local con las mismas funciones que producción; **SQL EN PRODUCCIÓN desde 2026-10-12** (con OK de Felipe en el chat), verificado por huella.
 - **Pedido:** el pendiente que dejó el ADR-0380 («Lo que este ADR no arregla»). Se vio al revisar si el hallazgo #1 del análisis de Ventas («Cambios y devoluciones con lo que la clienta pagó») estaba cerrado: el punto «lo que se emite a SUNAT también cambia» solo se había corregido en el total.
 - **Sigue a:** ADR-0100 (la devolución emite su nota de crédito sola), ADR-0380 (la nota sale por lo pagado).
 
@@ -60,7 +60,17 @@ llama a `emitir_nota` con un total menor que el comprobante y sin ítems**: repe
 
 ## Producción
 
-**Sin pegar.** Una sola parte: solo el `create or replace` de una función, sin tablas ni políticas; no depende de la web (la web no cambia) y se puede pegar
-antes o después de publicar. Necesita que el ADR-0380 (`20261012120100`) ya esté, y lo está desde el 2026-10-12. Al pegar: comprobar en solo lectura que
-`aprobar_devolucion` tiene una sola firma y que su huella es `94dfe580…`; después, que quedó en `284f3596…`. Antes de la primera devolución parcial real,
-conviene transmitir una nota «07» al sandbox de Lucode.
+**Aplicada el 2026-10-12**, con el OK de Felipe («pega el SQL del #978»). El texto del archivo se mandó tal cual con `execute_sql` (el equivalente al SQL
+Editor), no con `apply_migration`: el 2026-09-19 esa herramienta borró las líneas de puro comentario al transportar, y esta migración lleva comentarios
+dentro de los textos que reemplaza. Antes se comprobó en solo lectura que `execute_sql` los conserva. No queda fila en `supabase_migrations` (como todo lo
+pegado por el SQL Editor).
+
+1. Antes, en solo lectura: una sola firma `aprobar_devolucion(uuid,numeric,text,uuid)`, huella `94dfe580`, permisos `{postgres=X, authenticated=X}`, y 0
+   devoluciones pendientes.
+2. **Ensayo** dentro de un `DO` que termina con `raise exception` (Postgres revierte todo): las mismas 6 sentencias del archivo, byte a byte → huella
+   `284f3596`, una versión, mismos permisos. Se comprobó después que producción seguía en `94dfe580`.
+3. El archivo completo, en una sola parte.
+4. Después, en solo lectura: huella **`284f3596`** (la misma que en la copia de prueba y en el ensayo), una sola versión, mismos permisos, `security definer` y
+   `search_path`; la nota ya pasa los ítems y el comentario viejo no está. `emitir_nota` sin tocar (`196885b8`).
+
+Sigue pendiente: transmitir una nota «07» al sandbox de Lucode antes de la primera devolución parcial real.
