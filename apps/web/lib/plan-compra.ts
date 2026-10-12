@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanaPlan, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { hoyEnLima } from "@/lib/resumen-periodo";
 import { RPC_PROPUESTA } from "@/lib/plan-compra-propuesta";
+import { RPC_PEDIDO } from "@/lib/plan-compra-pedido";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
 import { RPC_HISTORIAL, rangoDelAnio, sumarDias, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
@@ -35,6 +36,8 @@ export async function getPlanCompra(planId?: string): Promise<{
   planPedidoNoExiste: boolean;
   /** Lo que devuelve `fn_plan_compra_propuesta` (C4), crudo; null si no se pudo leer. */
   propuesta: unknown;
+  /** Lo ya pedido en órdenes de compra para esta campaña (`fn_plan_compra_pedido`), crudo; null si no se pudo leer. */
+  pedido: unknown;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -64,13 +67,30 @@ export async function getPlanCompra(planId?: string): Promise<{
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
-  const propuesta = typeof abierto === "string" ? await supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: abierto } as never) : null;
+  // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
+  const [propuesta, ordenes] =
+    typeof abierto === "string"
+      ? await Promise.all([
+          supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: abierto } as never),
+          supabase.rpc(RPC_PEDIDO as never, { p_plan_id: abierto } as never),
+        ])
+      : [null, null];
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
-  return { datos: plan.data, falla: null, familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: propuesta && !propuesta.error ? propuesta.data : null };
+  if (ordenes?.error) console.error(`${RPC_PEDIDO}: ${ordenes.error.message}`);
+  return {
+    datos: plan.data,
+    falla: null,
+    familias: nombres,
+    preparacion,
+    campanas,
+    planPedidoNoExiste,
+    propuesta: propuesta && !propuesta.error ? propuesta.data : null,
+    pedido: ordenes && !ordenes.error ? ordenes.data : null,
+  };
 }
 
 /**

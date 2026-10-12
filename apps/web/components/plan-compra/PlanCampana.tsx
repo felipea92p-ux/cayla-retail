@@ -23,6 +23,8 @@ import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchiv
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
+import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
 import { RepartoModal } from "@/components/plan-compra/RepartoModal";
@@ -33,6 +35,8 @@ import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal"
 import {
   armarFilas,
   avisosDelResumen,
+  enteroES,
+  solesES,
   campanasArchivadas,
   diasEntre,
   confianzaDelStock,
@@ -73,6 +77,7 @@ export function PlanCampana({
   esLider,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
+  pedido: pedidoCrudo = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -87,9 +92,12 @@ export function PlanCampana({
   planPedidoNoExiste?: boolean;
   /** Los hechos para proponer flojo, normal y bueno y el % de lo que sobra (C4–C5), crudos; null = sin propuesta. */
   propuesta?: unknown;
+  /** Lo ya pedido en órdenes de compra para esta campaña, crudo; null = no se pudo leer (no se muestra). */
+  pedido?: unknown;
 }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
   const hechos = useMemo(() => leerPropuesta(propuestaCruda), [propuestaCruda]);
+  const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
@@ -120,7 +128,8 @@ export function PlanCampana({
   // Cada fila lleva lo que propone el sistema (C4) y el % de lo que sobra de la campaña (C5), si la base los manda para ESTA campaña.
   const filas = useMemo(() => {
     if (!plan) return [];
-    const base = armarFilas(plan);
+    // Lo ya pedido en órdenes va en cada fila haya o no propuesta (ADR-0372 act. (e)).
+    const base = armarFilas(plan).map((f) => ({ ...f, pedido: pedido?.porCategoria.get(f.c.id) }));
     if (!hechos || hechos.planId !== plan.plan.id) return base;
     return base.map((f) => ({
       ...f,
@@ -132,7 +141,7 @@ export function PlanCampana({
           ? tiendasParaRepartir(hechos, f.c.id, (nombre) => f.sedes?.find((s) => s.ubicacion === nombre)?.unidades ?? 0)
           : undefined,
     }));
-  }, [plan, hechos]);
+  }, [plan, hechos, pedido]);
 
   const recordar = (categoriaId: string, version: number | null) => {
     if (version !== null) setVersiones((v) => ({ ...v, [categoriaId]: Math.max(v[categoriaId] ?? 0, version) }));
@@ -352,6 +361,36 @@ export function PlanCampana({
           <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
           <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
+
+          {pedido && (
+            // Lo ya pedido en órdenes de compra que llegan dentro de las fechas de la campaña (Felipe 2026-10-12). Se muestra, no se resta de
+            // «Comprar»: las órdenes todavía no saben cuándo llegó la mercadería, y restarlo contaría dos veces lo que ya está en el stock.
+            <section data-guia="plan.pedido" className="space-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">Ya pedido en órdenes de compra</p>
+              {pedido.ordenes.length === 0 ? (
+                <p>Ninguna orden llega entre el {plan.plan.desde.slice(8)}/{plan.plan.desde.slice(5, 7)} y el {plan.plan.hasta.slice(8)}/{plan.plan.hasta.slice(5, 7)}.</p>
+              ) : (
+                <>
+                  <p>
+                    <b className="font-display text-xl text-tinta">{solesES(pedido.total)}</b> · {enteroES.format(pedido.unidades)} prendas en {pedido.ordenes.length}{" "}
+                    {pedido.ordenes.length === 1 ? "orden" : "órdenes"}
+                    {totales.inversion > 0 ? ` (el plan pide ${solesES(totales.inversion)})` : ""}
+                  </p>
+                  <ul className="divide-y divide-sand/80">
+                    {pedido.ordenes.map((o) => (
+                      <li key={o.id} className="flex items-baseline justify-between gap-3 py-1.5">
+                        <Link href={`/compras/ordenes/ver/${o.id}`} className="min-w-0 truncate underline-offset-2 hover:underline">
+                          <b className="font-semibold text-tinta">{numeroDeOrden(o.numero)}</b> · {o.proveedor} · {o.destino}
+                        </Link>
+                        <span className="whitespace-nowrap tabular-nums">{enteroES.format(o.unidades)} · {solesES(o.total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <p className="text-xs text-tinta/65">Cuentan las órdenes que llegan dentro de las fechas de la campaña. No se restan de «Comprar» hasta que la orden sepa que ya llegó.</p>
+            </section>
+          )}
 
           {hechos && hechos.planId === plan.plan.id && (
             // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.

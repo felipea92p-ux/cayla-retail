@@ -1164,6 +1164,13 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Toda CAYLA: cuántas categorías ya tienen plan, cuántas prendas comprar, cuánto cuesta al costo contra el tope y lo vendido. El plan es uno para todas las tiendas. Una cifra que filtra (las que siguen sin plan) filtra la tabla de atrás.",
     },
     {
+      id: "pedido",
+      ancla: "plan.pedido",
+      opcional: true,
+      titulo: "Ya pedido en órdenes de compra",
+      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Se muestran, no se restan de «Comprar»: todavía no sabemos cuándo llegó cada una. En la tabla, cada categoría dice cuántas ya se pidieron.",
+    },
+    {
       id: "recupero-cayla",
       ancla: "plan.recupero",
       opcional: true,
@@ -1231,7 +1238,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan-modal.precios",
       opcional: true,
       titulo: "Precio y costo",
-      texto: "El precio de venta y el costo por prenda, en promedio. Si vienen del catálogo, lo dice debajo: revísalos.",
+      texto: "El precio de venta y el costo por prenda, en promedio. Son supuestos: no cambian el precio de las prendas. Si tu precio se aparta del catálogo, aquí te avisa cuánto.",
     },
     {
       id: "recupero",

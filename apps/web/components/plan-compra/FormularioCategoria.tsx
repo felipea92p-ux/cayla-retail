@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { avisoDelPrecio, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
+import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -36,6 +38,7 @@ import {
   versionParaGuardar,
   type Borrador,
   type FilaPlan,
+  leerNumeroDeMonto,
 } from "@/lib/plan-compra-reglas";
 
 // El formulario de UNA categoría del plan de campaña (ADR-0349): sus tres escenarios, el precio, el costo, a cuánto se vende lo que
@@ -214,6 +217,12 @@ export function FormularioCategoria({
           Hoy hay <b className="font-semibold text-tinta">{enteroES.format(stock)}</b>
           {sedes && sedes.length > 0 ? <span className="text-tinta/70">: {sedes.map((x) => `${x.ubicacion} ${enteroES.format(x.unidades)}`).join(" · ")}</span> : " entre tiendas y Taller"}
         </span>
+        {fila.pedido && fila.pedido.unidades > 0 && (
+          <span>
+            Ya pedidas <b className="font-semibold text-tinta">{enteroES.format(fila.pedido.unidades)}</b>
+            <span className="text-tinta/70"> en {fila.pedido.ordenes.map(numeroDeOrden).join(", ")}</span>
+          </span>
+        )}
         {sugerida !== undefined ? (
           sugerida === null ? (
             <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
@@ -295,6 +304,12 @@ export function FormularioCategoria({
       </fieldset>
 
       <div data-guia="plan-modal.precios" className="grid gap-4 sm:grid-cols-2">
+        {/* El precio del Plan es un SUPUESTO (Felipe 2026-10-12): no cambia el de las prendas; si se aparta del catálogo, se dice. */}
+        {avisoDelPrecio(leerNumeroDeMonto(b.precio), fila.catalogo?.precio ?? null) && (
+          <Aviso tono="atencion" chico className="sm:col-span-2 sm:order-last">
+            {avisoDelPrecio(leerNumeroDeMonto(b.precio), fila.catalogo?.precio ?? null)!.texto}
+          </Aviso>
+        )}
         <CampoGuiado id="precio" guia={guia} titulo="Precio de venta">
           <CampoMonto
             etiqueta={<span className="sr-only">Precio de venta, promedio de la categoría</span>}
