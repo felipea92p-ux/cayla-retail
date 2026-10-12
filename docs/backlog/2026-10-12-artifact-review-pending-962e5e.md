@@ -10,6 +10,7 @@
 - [x] Borrada `fn_historial_producto_cambios`, sin uso (`20261012213000`).
 - [x] **Pegadas en producción (2026-10-12, Felipe):** `20261012213000`, `20261012214000`, `20261012215000` y `20261012220000`. Antes de
   pegar, los anclajes coincidían con producción y había 1 subcategoría, 0 desalineadas. Después, la verificación dio todo `true`.
-- [ ] Refrescar el volcado y `docs/datos/generado` (`generado/COMO-REFRESCAR.md`).
+- [x] Refrescado el volcado y `docs/datos/generado` (2026-10-12, foto de las 21:26 UTC: 183 relaciones, 988 funciones; las 1.271 huellas
+  coinciden con producción). Todo lo nuevo tiene su migración en el repo; `planes_compra_reparto` y `ventas_historicas` ya tienen pájaro.
 - [ ] **`pruebas:motores-familias-apagadas` M1 y M2 fallan en `main`** (no es de este cambio): en el plan de campaña, `vendido` del
   polo sale 0 dentro de la campaña. Lo más probable es que venga de las migraciones del plan de campaña del 2026-10-12 (161000–164000).
