@@ -176,6 +176,10 @@ pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y
   con la historia real de Trujillo (2025: S/ 1 649 544, +9 %; Navidad ×2.0, Diciembre ×1.8). **Migraciones `20261012160000` y `20261012161000` EN PRODUCCIÓN
   desde el 2026-10-12** (orden de Felipe; ensayo revertido antes; verificado como líder: las 6 funciones responden, las internas no se exponen y
   anon no lee). Falta la carga de Sinatra (`carga-sinatra.sql`, fuera del repo).
+- **Las tiendas activas salen siempre** (Felipe: «quiero ver Arequipa, Lima y Trujillo, que son mis tiendas activas»): migración
+  `20261012162000` (reemplazos anclados en `fn_historial_ventas` y `fn_plan_compra_resultados`), **en producción desde el 2026-10-12**. Antes solo
+  salían las tiendas con algún dato y Lima desaparecía (no vende aún en el ERP y su Sinatra 2026 no es un diario); ahora sale con «Sin dato» o 0.
+  La historia de Sinatra en producción quedó cargada: 3 085 días de TRU y 816 de AQP (3 901).
 - **El detalle de una fila del Historial** (Felipe: «al darle clic a una fila, los detalles»): `DetalleCampanaHistorial.tsx`, el día a día de la
   campaña contra un día normal (mejor y peor día) y la misma campaña año por año (una lectura chica por año). Sinatra no sabe de prendas: el
   detalle de prendas y colores está en Resultados, y la hoja lleva ahí si la campaña tiene su plan en el ERP.

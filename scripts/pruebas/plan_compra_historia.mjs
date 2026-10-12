@@ -24,6 +24,7 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const leer = (n) => readFileSync(join(RAIZ, "supabase", "migrations", n), "utf8").replace(/^set lock_timeout.*$/m, "");
 const C2 = leer("20261012160000_ventas_historicas_sinatra.sql");
 const C4 = leer("20261012161000_plan_compra_propuesta_y_resultados.sql");
+const TIENDAS_ACTIVAS = leer("20261012162000_plan_compra_tiendas_activas.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -46,6 +47,8 @@ set local search_path = retail, public, extensions;
 ${C2}
 set local search_path = retail, public, extensions;
 ${C4}
+set local search_path = retail, public, extensions;
+${TIENDAS_ACTIVAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text;
@@ -205,6 +208,22 @@ caso(
      (select round((d->>'soles')::numeric / (d->>'a_precio_lista')::numeric, 2) from jsonb_array_elements(:'r'::jsonb->'despues'->'categorias') d where d->>'c' = :'cat'),
      (select p->>'nombre' from jsonb_array_elements(:'r'::jsonb->'productos') p limit 1));`,
   "4:320.00,4,0.50,Polo PH"
+);
+
+// T. TIENDAS ACTIVAS ------------------------------------------------------------------------------------------------------
+caso(
+  "T1 una tienda activa sin historia ni ventas sale en el Historial y en los Resultados (con 0); una inactiva sin nada, no",
+  `reset role;
+   insert into retail.ubicaciones (nombre, tipo, activo) values ('ZZ Tienda nueva', 'tienda', true), ('ZZ Tienda cerrada', 'tienda', false);
+   ${como(FELIPE)}
+   select retail.fn_historial_ventas(:'hoy'::date - 30, :'hoy'::date) as h \\gset
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select concat_ws(',',
+     (select count(*) from jsonb_array_elements(:'h'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda nueva'),
+     (select count(*) from jsonb_array_elements(:'h'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda cerrada'),
+     (select t->>'unidades' from jsonb_array_elements(:'r'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda nueva'),
+     (select count(*) from jsonb_array_elements(:'r'::jsonb->'tiendas') t where t->>'nombre' = 'ZZ Tienda cerrada'));`,
+  "1,0,0,0"
 );
 
 // M. PUERTAS --------------------------------------------------------------------------------------------------------------
