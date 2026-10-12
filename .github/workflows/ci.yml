@@ -154,7 +154,7 @@ jobs:
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
       - name: Pruebas del check SQL pegado y de la deriva
         if: ${{ !cancelled() }}
-        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs
 
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
@@ -218,6 +218,9 @@ jobs:
       SIN_SERVICIOS: gotrue,kong,mailpit,postgres-meta,postgrest,storage-api,studio
     steps:
       - uses: actions/checkout@v4
+        with:
+          # `HEAD^1` (main) para saber qué migraciones agrega el PR (scripts/migraciones/huellas-del-pr.mjs).
+          fetch-depth: 2
 
       - uses: pnpm/action-setup@v4
 
@@ -237,9 +240,21 @@ jobs:
 
       # En un PR «solo web» este paso no corre, y con él se saltan todas las pruebas de abajo (todas piden
       # `steps.supabase`): la base es la de main, que ya las pasó. Corre en su lugar el paso siguiente.
+      #
+      # En un PR, las migraciones que agrega se apartan antes de levantar la base y se aplican después, una por una, cada
+      # una en su transacción como el SQL Editor: así se sabe qué deja cada una en el catálogo (ADR-0251, act. 2026-10-12).
+      # Esas huellas las compara el check «SQL pegado» con producción cuando el PR dice que su SQL ya está pegado. Una
+      # migración que no se aplica hace fallar este paso, igual que antes hacía fallar `supabase start`. Al final los
+      # archivos vuelven a su carpeta: hay pruebas que leen el de su migración.
       - id: supabase
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
-        run: npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then node scripts/migraciones/huellas-del-pr.mjs apartar "$RUNNER_TEMP/migraciones-del-pr"; fi
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          if [ -d "$RUNNER_TEMP/migraciones-del-pr" ]; then
+            node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" "$RUNNER_TEMP/huellas-del-pr.json"
+            node scripts/migraciones/huellas-del-pr.mjs devolver "$RUNNER_TEMP/migraciones-del-pr"
+          fi
 
       # PR «solo web» (ADR-0259): el mismo Postgres, pero solo las pruebas que leen apps/web (~2 min en vez de ~6). Cuáles
       # son lo deduce el script leyendo cada prueba y lo que importa: una prueba nueva que lea la web entra sola.
@@ -248,6 +263,17 @@ jobs:
         run: |
           npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
           node scripts/ci/pruebas-web.mjs
+
+      # Apenas la base está arriba, para que el check «SQL pegado» no espere las ~5 min de pruebas. Sin migraciones nuevas
+      # (o si no se pudieron tomar huellas) no hay archivo y no se sube nada: el check dirá que no pudo comprobar.
+      - name: Guardar huellas del PR
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.supabase.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: huellas-del-pr
+          path: ${{ runner.temp }}/huellas-del-pr.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
@@ -1717,6 +1743,16 @@ jobs:
       - name: pruebas:huellas-catalogo
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:huellas-catalogo
+
+      # Lo que hace el paso `supabase` con las migraciones de un PR (huellas-del-pr.mjs aplicar), de punta a punta: aplica
+      # migraciones de juguete en una base APARTE del mismo Postgres (la de las pruebas no se toca), cada una en su
+      # transacción, y dice qué dejó cada una. Sin esto, un error en ese camino se vería recién en el próximo PR con SQL.
+      - name: pruebas:huellas-del-pr
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: |
+          docker exec supabase_db_cayla-retail psql -U postgres -q -c 'create database huellas_prueba'
+          HUELLAS_PSQL="$(command -v docker) exec -i supabase_db_cayla-retail psql -U postgres -d huellas_prueba" \
+            node --test scripts/migraciones/huellas-del-pr.test.mjs
 
       - name: Guardar huellas de main
         if: ${{ github.event_name == 'push' && steps.supabase.outcome == 'success' }}
