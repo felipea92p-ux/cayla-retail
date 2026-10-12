@@ -208,6 +208,12 @@ describe("«Qué se cobró» del detalle de un cierre", () => {
     expect(r.medios.some((m) => m.clave === "otro")).toBe(false);
   });
 
+  it("el QR sale con su nombre y no se mezcla con «Otro»", () => {
+    const r = cobrosPorMedio([...pagos, { ventaId: "q1", metodo: "qr", monto: 100 }, { ventaId: "q2", metodo: "qr", monto: 50 }]);
+    expect(r.medios.find((m) => m.clave === "qr")).toMatchObject({ texto: "QR", monto: 150, ventas: 2 });
+    expect(r.medios.some((m) => m.clave === "otro")).toBe(false);
+  });
+
   it("sin pagos no hay medios ni porcentajes que dividan entre cero", () => {
     expect(cobrosPorMedio([])).toEqual({ total: 0, anticipo: 0, medios: [] });
   });
