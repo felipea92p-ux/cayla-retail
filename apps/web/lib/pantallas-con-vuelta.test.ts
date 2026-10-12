@@ -76,8 +76,9 @@ const TIENE_VUELTA = /<Volver\b|←/;
 function tieneVuelta(archivo: string): boolean {
   const texto = readFileSync(archivo, "utf8");
   if (TIENE_VUELTA.test(texto)) return true;
-  // La vuelta puede vivir en el componente que la página dibuja (Etiquetas de precio, el detalle de un conteo).
-  for (const [, nombre] of texto.matchAll(/from "@\/components\/([\w/]+)"/g)) {
+  // La vuelta puede vivir en el componente que la página dibuja (Etiquetas de precio, el detalle de un conteo). Con guion en la
+  // ruta también (`components/ordenes-compra/…`, 2026-10-10): sin él, la prueba no seguía las carpetas con nombre compuesto.
+  for (const [, nombre] of texto.matchAll(/from "@\/components\/([\w/-]+)"/g)) {
     const comp = join(COMPONENTES, `${nombre}.tsx`);
     if (existsSync(comp) && TIENE_VUELTA.test(readFileSync(comp, "utf8"))) return true;
   }
