@@ -12,7 +12,7 @@
  *   · pagar: desde su tienda, hasta su parte; sin tienda o con tienda ajena, no; el líder puede pagar sin tienda y ninguna
  *     tienda queda con deuda fantasma; el candado de esquema no deja pagar más que la parte ni escribiendo directo;
  *   · escribir: anular / registrar sobre la gestora ajena, no; registrar exige gestora propia y con parte; pagar al
- *     registrar exige el módulo Por pagar; la gestora no puede quedarse sin parte; cambiarla es del líder;
+ *     registrar exige el módulo Por pagar; la gestora no puede quedarse sin parte; cambiarla, de quien tiene Facturas de proveedor (ADR-0387; antes, del líder);
  *   · una sola firma por función y nada abierto a anon.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK: los módulos del rol «integrante» y las facturas se crean dentro, así
@@ -288,10 +288,16 @@ select retail.reasignar_reparto_compra(:'item', :'lima', :'trujillo', 12, 'otro'
 set constraints all immediate;`),
   "tiene que conservar parte de la mercadería"
 );
+exito(
+  "cambiar la tienda gestora: quien tiene Facturas de proveedor la cambia sin ser líder (ADR-0387: el módulo es la llave), y Trujillo la ve",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');
+select count(*) from retail.compras where id = :'f1';`),
+  ["1"]
+);
 error(
-  "cambiar la tienda gestora es solo del líder",
-  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');`),
-  "Solo un líder"
+  "sin Facturas de proveedor no se cambia la tienda gestora (el error nombra el módulo)",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');`),
+  "Facturas de proveedor"
 );
 exito(
   "el líder cambia la gestora a Trujillo y desde ese momento Trujillo la ve entera",

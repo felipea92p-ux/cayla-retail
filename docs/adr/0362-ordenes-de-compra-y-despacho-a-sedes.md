@@ -58,6 +58,18 @@
 | 37 | Quién ve las órdenes | Quien tiene el módulo ve las órdenes de **todas las sedes** y las «por repartir»; la lista **arranca filtrada en la sede donde está** y puede pasar a «Todas». Es la 34 aplicada: no sigue la regla de Compras por tienda (ADR-0184) (Felipe 2026-10-10) |
 | 38 | Menú | «Órdenes de compra» entra como **7.ª entrada de Compras, temporal**, con la excepción de tope que ya prevé `menu.test.ts`; se quita cuando Recibir mercadería pase a Inventario (Felipe 2026-10-10) |
 | 39 | Responsable | Crear, editar y anular una orden: **con la cuenta de una persona, firma ella sola, sin combo ni marca de entrada** (la compradora está en Gamarra, lejos del kiosco); **desde una terminal, pide el combo «Responsable»**. Es el mismo trato que «apartar una prenda» y los avisos del club: las claves `orden_compra_*` entran a `acciones_sin_responsable` (Felipe 2026-10-10) |
+| 40 | El módulo es la llave en Compras | **Quien tiene el módulo hace todo lo que hay dentro, sea líder o no, en todo Compras** (Plan de campaña, Proveedores, Órdenes, Facturas, Recibir, Por pagar, Notas de crédito): se quitan los «solo el líder». ADR-0387 (Felipe 2026-10-12) |
+| 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12) |
+| 42 | Comprobante y contado | Registrar el comprobante de una orden y pagarlo al contado (desde una cuenta de la empresa, hasta que existan los fondos de la fase 6) piden **solo el módulo Órdenes de compra** (Felipe 2026-10-12) |
+| 43 | Más de lo pedido | Si el papel del proveedor trae más unidades o una línea que no estaba en la orden, **se acepta y se avisa** (Felipe 2026-10-12) |
+
+**Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
+dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
+se ven bien en todo el ERP · 4 · registrar el comprobante de una orden · 5 · factura con IGV · 6 · al contado, con su pago · 7 · precio
+de venta sugerido · 8 · entregas parciales · 9 · órdenes «Por repartir» · 10 · revisión de calidad · 11 · cierre. Por defecto: la
+factura suelta de hoy sigue igual; la casilla del IGV arranca marcada; corregir un comprobante es anularlo y registrarlo de nuevo; firma
+como la decisión 39; el precio sugerido es opcional; la tienda que gestiona el comprobante es la de «Llega a» (o la de quien lo registra
+si es «Por repartir»).
 
 ## Fuente: el brief de Felipe
 

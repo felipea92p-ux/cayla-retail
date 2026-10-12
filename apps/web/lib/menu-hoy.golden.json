@@ -137,9 +137,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -314,9 +326,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -2145,9 +2169,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -2322,9 +2358,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",

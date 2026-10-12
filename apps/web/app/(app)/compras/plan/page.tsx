@@ -17,7 +17,9 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
       preparacion={preparacion}
       campanas={campanas}
       puedeContar={veModulo(persona, "conteos")}
-      esLider={persona.rol === "lider"}
+      // ADR-0387 (Felipe 2026-10-12): crear, editar, quitar y restaurar una campaña y fijar su tope son de quien tiene el módulo, sea
+      // líder o no (la base ya no pide más). La prop conserva su nombre por ahora: hay un PR abierto sobre PlanCampana (#977).
+      esLider={veModulo(persona, "plan_compra")}
       planPedidoNoExiste={planPedidoNoExiste}
     />
   );
