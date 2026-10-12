@@ -1,9 +1,12 @@
+// Rutas relativas (sin `@/`): lo prueba `resolver-ya-emitido.test.ts` en vitest, que no tiene el alias.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
-import { emitirDocumentoLucode, entornoLucode, fechaDeLima, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
-import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
-import { capturarError } from "@/lib/errores";
-import type { TipoDocComprobante } from "@/lib/documento-comprobante-reglas";
+import { emitirDocumentoLucode, entornoLucode, fechaDeLima, type DatosComprobante, type TipoDocumentoLucode } from "./lucode";
+import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "./transmision-reglas";
+import { capturarError } from "./errores";
+import { esYaEmitido } from "./ya-emitido-reglas";
+import { resolverYaEmitido } from "./resolver-ya-emitido";
+import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 
 // Transmitir UN comprobante a SUNAT por Lucode: la pieza que comparten `/api/lucode/emitir` (el envío
 // al cobrar y «Reintentar ahora») y `/api/lucode/reintentar` (el barrido de la cola, D-60). Solo
@@ -152,6 +155,13 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
   }
 
   const resultado = await emitirDocumentoLucode(datos);
+
+  // «Ese número ya fue emitido» no es un rechazo (ADR-0378): un envío anterior que el ERP dio por perdido (Lucode tardó
+  // más de 15 s) sí llegó. No se reintenta: se le pregunta a Lucode qué tiene, se confirma con su XML que es esta venta
+  // y se guarda lo que dice SUNAT. Sin esto quedaba en la cola para siempre (producción, 9 al 12-oct-2026).
+  if (!resultado.ok && resultado.motivo === "rechazado_por_lucode" && esYaEmitido(resultado.detalle, fila.serie, fila.numero)) {
+    return resolverYaEmitido(supabase, fila, datos, resultado.detalle);
+  }
 
   if (!resultado.ok) {
     // Un problema de red o de credenciales no es un rechazo de SUNAT — no se
