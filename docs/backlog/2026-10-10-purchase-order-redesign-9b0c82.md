@@ -37,9 +37,11 @@ ADR-0362, fase 1 aprobada por Felipe el 2026-10-10 en 8 actividades. Diseño y d
   - [x] G2 · Miles con punto (`74ad1291`, `38512d51`): «1.000» y «1.500» son ambiguos y la línea lo dice a la vista
         («¿«1.000» son 1000? Escribe la cantidad sin punto: 1000.»). Repetido: total S/ 0.00, «Falta: línea 1», 0 llamadas.
   - [x] G3 · Dos clics en el mismo instante (`60fb3268`): candado `enVuelo` (el de la casa) en Nueva/Editar y en «Anular orden»; prueba
-        `ordenes-compra-doble-clic.test.ts`. **Falta repetirlo en el navegador con el panel visible** (oculto, la página no se hidrata).
+        `ordenes-compra-doble-clic.test.ts`. Repetido en el navegador el 2026-10-12: dos clics en el mismo instante en «Guardar orden» →
+        una llamada, una orden, ningún número gastado y la lista con la orden marcada; en «Anular orden» → una llamada, una anulación y una
+        línea de Actividad.
   - [x] G4 · Foco al cerrar «Anular orden» (`f2d7b545`): el botón se recuerda y se pasa en `alCerrarEnfocar`; prueba
-        `ordenes-compra-foco.test.ts`. **Falta repetirlo en el navegador con el panel visible.**
+        `ordenes-compra-foco.test.ts`. Repetido en el navegador el 2026-10-12: con Escape y con «Cancelar», el foco vuelve a «Anular orden».
   - [x] G4 · Carácter nulo (`9a279252`): `textoParaBase` limpia nota, descripciones y motivo. Queda para todo el ERP: `traducirError` sin
         huella para 22P05 (otra tarea).
   - [ ] Anotado, de la base: dos pedidos con el mismo id a la vez gastan un número (`on conflict do nothing` toma el `nextval` antes); y la
