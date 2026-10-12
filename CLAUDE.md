@@ -615,6 +615,16 @@ BACKLOG/BITACORA), es el mapa para orientarse rápido — y su foto del esquema 
 2026-09-04, más vieja que `docs/datos/`; las afirmaciones que el SQL no respalda están
 listadas con archivo y línea en `docs/datos/13-PROMESAS-INCUMPLIDAS.md`.
 
+**Números y PR (regla — ADR-0381, Felipe 2026-10-12):** el número de un ADR o la versión de una migración se **reserva al
+empezar**, no al final: `pnpm reservar adr` / `pnpm reservar migracion` crea una etiqueta `reserva/…` en el remoto con tu rama
+como dueña, y el remoto rechaza la repetida, así que dos sesiones nunca se llevan el mismo número (nunca «el siguiente de
+`ls docs/adr`»). Las reservas no se liberan: un hueco no rompe nada. Los candados del CI ponen en rojo un número nuevo que
+reservó otra rama y avisan del que no tiene reserva. **Todo PR se abre con `/abrir-pr`**: trae main, revisa las reservas,
+compara contra main y contra los PR abiertos (`pnpm abrir-pr:choques`: números, funciones de la base parchadas, archivos de
+registro), corre las pruebas que toca y escribe los choques probables en la descripción. No pidas «Update branch» mientras
+el CI corre: lo cancela. Las pruebas de Postgres corren en 4 tandas paralelas (`scripts/ci/pruebas-postgres.mjs`): una
+prueba nueva va en su lista `PRUEBAS`, no en `ci.yml`.
+
 **Celular obligatorio (PL-105, Felipe 2026-09-23):** todo PR que toque Vender (`/vender`, `/vender/apartados`),
 Cambios (`/cambios`) o Devoluciones (`/devoluciones`) se prueba a **375 px de ancho** (`resize_window` preset `mobile`)
 y lleva captura; lo pide el casillero de `.github/pull_request_template.md`. Caja y Almacén siguen siendo de escritorio.
@@ -654,7 +664,7 @@ sin que nada avisara.
 **Antes de empezar algo grande en este repo**, mirar si alguien más ya lo está
 haciendo: `git status --short` y los archivos tocados en las últimas horas. El
 2026-09-12 dos sesiones escribieron esta misma documentación en paralelo sin saberlo.
-Skills de este repo: `/focus` (recorre las pantallas y los modales en construcción, avisa cuáles no tienen la guía de foco, la implementa cuidando que no apure a quien escribe y la verifica en el navegador; ver «Guía de foco»), `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
+Skills de este repo: `/abrir-pr` (**obligatoria** para abrir un PR, ver «Números y PR»: trae main, revisa reservas, busca los choques que git no marca contra main y los PR abiertos, corre las pruebas que toca y abre el PR con los choques escritos; no fusiona). `/focus` (recorre las pantallas y los modales en construcción, avisa cuáles no tienen la guía de foco, la implementa cuidando que no apure a quien escribe y la verifica en el navegador; ver «Guía de foco»), `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
