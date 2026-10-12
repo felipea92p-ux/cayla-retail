@@ -41,7 +41,7 @@ const MIGRACION_B3 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010
 // ADR-0372 · B4 (ADR-0193 aplicada al plan): la versión de cada línea; `guardar_plan_compra_linea` gana `p_version_esperada` (cambia su firma).
 const MIGRACION_B4 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010200000_plan_compra_version_de_linea.sql"), "utf8");
 // ADR-0372 · B5: editar, quitar (borrar si está vacía, archivar si no) y restaurar una campaña.
-const MIGRACION_B5 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010210000_plan_compra_editar_y_quitar.sql"), "utf8");
+const MIGRACION_B5 = readFileSync(join(RAIZ, "supabase", "migrations", "20261012120000_plan_compra_editar_y_quitar.sql"), "utf8");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";

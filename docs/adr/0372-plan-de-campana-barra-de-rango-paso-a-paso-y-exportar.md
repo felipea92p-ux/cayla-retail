@@ -135,4 +135,5 @@ no**, y que se editen **nombre y fechas**.
   de edición dice antes qué va a pasar: «Borrar campaña» (se confirma: es irreversible) o «Archivar campaña» (sin confirmar; el aviso trae «Deshacer»).
   Una campaña archivada abierta por su enlace se ve tal como quedó, con un aviso y «Restaurar…».
 - **Verificado:** pruebas SQL 23/23 (E1–E4 nuevas); reglas 115; navegador local: borrar una vacía, editar el nombre, archivar una con 5 categorías,
-  «Deshacer», «Campañas archivadas» → «Restaurar», y el vacío «No hay campañas activas». Migración `20261010210000`.
+  «Deshacer», «Campañas archivadas» → «Restaurar», y el vacío «No hay campañas activas». Migración `20261012120000`: `fn_planes_compra` y `fn_plan_compra` se cambian con
+  reemplazos ANCLADOS sobre su definición viva (no se copian), porque `fn_plan_compra` ya tiene el filtro de familias apagadas de `20261010232000`.
