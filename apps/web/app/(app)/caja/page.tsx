@@ -173,6 +173,8 @@ async function CajaConDatos({
         apartados: veModulo(persona, "apartados"),
       }}
       gasto={datosGasto ? { ...datosGasto, esLider: persona.rol === "lider", hoy } : null}
+      // «Registrar ingreso» ▸ «Préstamo de otra sede»: las otras tiendas y el taller activos (el almacén no maneja cajón).
+      sedesIngreso={ubicaciones.filter((u) => u.id !== caja.ubicacionId && u.tipo !== "almacen").map((u) => ({ id: u.id, nombre: u.nombre }))}
     />
   );
 }
