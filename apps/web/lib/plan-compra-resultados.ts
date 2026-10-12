@@ -14,7 +14,8 @@ export const RPC_RESULTADOS = "fn_plan_compra_resultados";
 const DIAS_BASE = 60;
 
 export type TiendaResultado = { id: string; nombre: string; unidades: number; soles: number; baseUnidades: number | null };
-export type FilaVendida = { tienda: string; categoria: string; producto: string | null; color: string | null; unidades: number; soles: number };
+/** `rebajadas`: de esas unidades, las cobradas por debajo de su precio de etiqueta (0 si la base todavía no lo manda). */
+export type FilaVendida = { tienda: string; categoria: string; producto: string | null; color: string | null; unidades: number; soles: number; rebajadas: number };
 export type LecturaResultados = {
   plan: { id: string; nombre: string; desde: string; hasta: string };
   hoy: string;
@@ -28,6 +29,10 @@ export type LecturaResultados = {
   familias: Map<string, string>;
   productos: Map<string, string>;
   colores: Map<string, { nombre: string; hex: string | null }>;
+  /** Unidades vendidas cada día de la campaña (toda CAYLA); vacío si la base todavía no lo manda. */
+  porDia: Map<string, number>;
+  /** categoría → lo que hay hoy y lo que había al cerrar lo medido (todas las sedes, sin Cuarentena); null si la base no lo manda. */
+  stock: Map<string, { hoy: number; cierre: number }> | null;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -62,7 +67,7 @@ export function leerResultados(v: unknown): LecturaResultados | null {
     filas: lista(v.filas).flatMap((f) => {
       const tienda = texto(f.u);
       const categoria = texto(f.c);
-      return tienda && categoria ? [{ tienda, categoria, producto: texto(f.p), color: texto(f.color), unidades: num(f.unidades), soles: num(f.soles) }] : [];
+      return tienda && categoria ? [{ tienda, categoria, producto: texto(f.p), color: texto(f.color), unidades: num(f.unidades), soles: num(f.soles), rebajadas: num(f.rebajadas) }] : [];
     }),
     agotadas: lista(v.agotadas).flatMap((a) => (texto(a.u) && texto(a.c) ? [{ tienda: a.u as string, categoria: a.c as string }] : [])),
     despues: {
@@ -74,7 +79,128 @@ export function leerResultados(v: unknown): LecturaResultados | null {
     familias: new Map(lista(v.familias).flatMap((f) => (texto(f.codigo) && texto(f.nombre) ? [[f.codigo as string, f.nombre as string] as const] : []))),
     productos: new Map(lista(v.productos).flatMap((p) => (texto(p.id) && texto(p.nombre) ? [[p.id as string, p.nombre as string] as const] : []))),
     colores: new Map(lista(v.colores).flatMap((c) => (texto(c.codigo) && texto(c.nombre) ? [[c.codigo as string, { nombre: c.nombre as string, hex: texto(c.hex) }] as const] : []))),
+    porDia: new Map(lista(v.por_dia).flatMap((d) => (fechaIso(d.f) ? [[d.f as string, num(d.u)] as const] : []))),
+    stock: Array.isArray(v.stock)
+      ? new Map(lista(v.stock).flatMap((s) => (texto(s.c) ? [[s.c as string, { hoy: Math.max(0, num(s.hoy)), cierre: Math.max(0, num(s.cierre)) }] as const] : [])))
+      : null,
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Durante la campaña: «¿Cómo va?» y «Pedir más o impulsar» (Felipe 2026-10-12, lo rescatado del WSSI de los compradores de moda)
+// ---------------------------------------------------------------------------------------------------------------------
+
+const sumarDias = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * El peso de cada día de la campaña: cómo se repartió la venta en la misma campaña el año pasado (soles por día de la historia), para
+ * que el plan «a hoy» no sea una línea recta (Navidad vende más al final). Sin historia suficiente (menos de la mitad de los días con
+ * venta), todos los días pesan lo mismo.
+ */
+export function pesosDeLosDias(desde: string, hasta: string, anterior: ReadonlyMap<string, number> | null): number[] {
+  const dias = diasEntre(desde, hasta) + 1;
+  if (!anterior) return Array(dias).fill(1);
+  const pesos = Array.from({ length: dias }, (_, i) => anterior.get(sumarDias(sumarDias(desde, i), -365)) ?? anterior.get(sumarDias(sumarDias(desde, i), -366)) ?? 0);
+  return pesos.filter((p) => p > 0).length >= dias / 2 ? pesos.map((p) => (p > 0 ? p : Math.min(...pesos.filter((x) => x > 0)))) : Array(dias).fill(1);
+}
+
+export type ComoVa = {
+  /** El plan de toda la campaña (suma de los «normal» de las categorías con plan); null si nadie armó el plan. */
+  planTotal: number | null;
+  vendido: number;
+  /** Lo que el plan esperaba a hoy; null sin plan. */
+  esperado: number | null;
+  /** vendido ÷ esperado − 1 (0.08 = +8 %); null sin plan. */
+  diferencia: number | null;
+  /** Dónde termina si sigue así: lo vendido ÷ la parte de la campaña que ya pasó. */
+  proyeccion: number;
+  dias: number;
+  medidos: number;
+  /** Para el gráfico: acumulados por día (el real solo hasta lo medido). */
+  plan: number[] | null;
+  real: number[];
+  proyectado: number[];
+};
+
+/** «¿Cómo va?»: lo vendido contra el plan, a hoy, y la proyección al cierre con la forma de la campaña del año pasado. */
+export function comoVa(r: LecturaResultados, pesos: readonly number[]): ComoVa {
+  const dias = pesos.length;
+  const medidos = Math.min(dias, diasMedidos(r));
+  const total = pesos.reduce((a, p) => a + p, 0);
+  const fraccion = (n: number) => pesos.slice(0, n).reduce((a, p) => a + p, 0) / total;
+  const planTotal = r.lineas.size > 0 ? [...r.lineas.values()].reduce((a, l) => a + l.normal, 0) : null;
+  const real: number[] = [];
+  for (let i = 0; i < medidos; i++) real.push((real.at(-1) ?? 0) + (r.porDia.get(sumarDias(r.plan.desde, i)) ?? 0));
+  const vendido = real.at(-1) ?? 0;
+  const yaPaso = fraccion(medidos);
+  const proyeccion = yaPaso > 0 ? Math.round(vendido / yaPaso) : 0;
+  const esperado = planTotal !== null ? Math.round(planTotal * yaPaso) : null;
+  const plan = planTotal !== null ? pesos.map((_, i) => planTotal * fraccion(i + 1)) : null;
+  const proyectado = pesos.map((_, i) => (i < medidos ? real[i] : vendido + (proyeccion - vendido) * ((fraccion(i + 1) - yaPaso) / Math.max(1e-9, 1 - yaPaso))));
+  return { planTotal, vendido, esperado, diferencia: esperado ? vendido / esperado - 1 : null, proyeccion, dias, medidos, plan, real, proyectado };
+}
+
+export type Senal = "pedir" | "impulsar" | "bien";
+export type SenalCategoria = { id: string; nombre: string; vendidas: number; diferencia: number | null; alcanzaDias: number | null; senal: Senal };
+
+/**
+ * «Pedir más o impulsar», por categoría y contra el FIN DE ESTA CAMPAÑA (Análisis mide la prenda, por tienda y contra Navidad: para la
+ * prenda exacta se lleva allá). Pedir: lo que queda se acaba antes del fin y no va por debajo del plan. Impulsar: va 20 % o más por
+ * debajo del plan y lo que queda alcanza para 1.5 veces lo que falta. Sin plan, solo «pedir» (no hay contra qué decir que va lenta).
+ */
+export function senales(r: LecturaResultados, pesos: readonly number[]): SenalCategoria[] {
+  if (!r.stock) return [];
+  const dias = pesos.length;
+  const medidos = Math.min(dias, diasMedidos(r));
+  const faltan = dias - medidos;
+  const total = pesos.reduce((a, p) => a + p, 0);
+  const yaPaso = pesos.slice(0, medidos).reduce((a, p) => a + p, 0) / total;
+  return porCategoria(r, null)
+    .filter((c) => c.unidades > 0)
+    .map((c): SenalCategoria => {
+      const diferencia = c.plan && c.plan.normal > 0 && yaPaso > 0 ? c.unidades / (c.plan.normal * yaPaso) - 1 : null;
+      const porDia = medidos > 0 ? c.unidades / medidos : 0;
+      const queda = r.stock?.get(c.id)?.hoy ?? 0;
+      const alcanzaDias = porDia > 0 ? queda / porDia : null;
+      const senal: Senal =
+        alcanzaDias !== null && alcanzaDias < faltan && (diferencia === null || diferencia > -0.05) ? "pedir"
+        : diferencia !== null && diferencia <= -0.2 && (alcanzaDias === null || alcanzaDias > faltan * 1.5) ? "impulsar"
+        : "bien";
+      return { id: c.id, nombre: c.nombre, vendidas: c.unidades, diferencia, alcanzaDias, senal };
+    });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Al terminar: el cierre con sell-through (lo que miden los grandes: qué parte se vendió a precio lleno)
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type CierreCategoria = { id: string; nombre: string; lleno: number; rebajadas: number; sobra: number; total: number; pctLleno: number };
+
+/**
+ * Por categoría: lo vendido a precio lleno, lo vendido con rebaja y lo que sobró al cerrar. Sin facturas de compra ligadas al plan, «lo que
+ * había» se mide como vendido + lo que quedó (todas las sedes, sin Cuarentena). null si la base todavía no manda el stock.
+ */
+export function cierre(r: LecturaResultados): { categorias: CierreCategoria[]; pctLleno: number; pctRebaja: number; sobra: number; liquidarPrimero: CierreCategoria | null } | null {
+  if (!r.stock) return null;
+  const categorias = porCategoria(r, null)
+    .filter((c) => c.unidades > 0 || (r.stock?.get(c.id)?.cierre ?? 0) > 0)
+    .map((c): CierreCategoria => {
+      const rebajadas = r.filas.filter((f) => f.categoria === c.id).reduce((a, f) => a + f.rebajadas, 0);
+      const sobra = r.stock?.get(c.id)?.cierre ?? 0;
+      const total = c.unidades + sobra;
+      return { id: c.id, nombre: c.nombre, lleno: c.unidades - rebajadas, rebajadas, sobra, total, pctLleno: total > 0 ? (c.unidades - rebajadas) / total : 0 };
+    })
+    .filter((c) => c.total > 0);
+  const total = categorias.reduce((a, c) => a + c.total, 0);
+  const lleno = categorias.reduce((a, c) => a + c.lleno, 0);
+  const rebaja = categorias.reduce((a, c) => a + c.rebajadas, 0);
+  const sobra = categorias.reduce((a, c) => a + c.sobra, 0);
+  const liquidarPrimero = [...categorias].sort((a, b) => b.sobra - a.sobra || a.nombre.localeCompare(b.nombre, "es"))[0] ?? null;
+  return { categorias, pctLleno: total > 0 ? lleno / total : 0, pctRebaja: total > 0 ? rebaja / total : 0, sobra, liquidarPrimero: liquidarPrimero && liquidarPrimero.sobra > 0 ? liquidarPrimero : null };
 }
 
 const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);

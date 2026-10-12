@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { explicarPropuesta, leerPropuesta, proponer, type LecturaPropuesta, type TiendaPropuesta } from "./plan-compra-propuesta";
+import { explicarPropuesta, leerPropuesta, proponer, simular, type LecturaPropuesta, type TiendaPropuesta } from "./plan-compra-propuesta";
+import { calcular } from "./plan-compra-reglas";
 
 const tienda = (id: string, extra: Partial<TiendaPropuesta> = {}): TiendaPropuesta => ({ id, nombre: id === "tru" ? "Tienda TRU" : "Tienda AQP", dias90: 90, ventanas: 6, previaDisponible: false, multiplicador: null, ...extra });
 const lectura = (tiendas: TiendaPropuesta[], hechos: { tienda: string; u90: number; ventanas?: number[]; previa?: number; agotada?: boolean }[], diasCampana = 30): LecturaPropuesta => ({
@@ -72,6 +73,22 @@ describe("proponer: tiendas, días y bordes", () => {
   it("sin ventas en 90 días no hay de dónde proponer", () => {
     expect(proponer(lectura([tienda("tru")], [{ tienda: "tru", u90: 0 }]), "polos")).toBeNull();
     expect(proponer(lectura([tienda("tru")], []), "otra")).toBeNull();
+  });
+});
+
+describe("el simulador", () => {
+  const linea = { normal: 100, flojo: 60, bueno: 300, precio: 60, costo: 20, recuperoPct: 40, stock: 50 };
+  it("con la cuenta del Plan, un bueno más alto compra más y uno más bajo, menos; sin guardar nada", () => {
+    const tres = simular([linea], 3, null, calcular);
+    const dos = simular([linea], 2, null, calcular);
+    expect(tres.prendas).toBeGreaterThan(dos.prendas);
+    expect(tres.inversion).toBe(tres.prendas * 20);
+  });
+  it("lo que sobra más barato compra menos (pasarse cuesta más)", () => {
+    expect(simular([linea], 3, 10, calcular).prendas).toBeLessThan(simular([linea], 3, 90, calcular).prendas);
+  });
+  it("el bueno nunca queda igual o bajo el normal", () => {
+    expect(simular([linea], 0.5, null, calcular).prendas).toBeGreaterThanOrEqual(0);
   });
 });
 

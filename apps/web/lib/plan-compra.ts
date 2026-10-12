@@ -4,7 +4,7 @@ import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type Ca
 import { hoyEnLima } from "@/lib/resumen-periodo";
 import { RPC_PROPUESTA } from "@/lib/plan-compra-propuesta";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
-import { RPC_HISTORIAL, rangoDelAnio, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
+import { RPC_HISTORIAL, rangoDelAnio, sumarDias, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
 export type FamiliaPlan = { codigo: string; nombre: string };
@@ -77,20 +77,29 @@ export async function getPlanCompra(planId?: string): Promise<{
  * Resultados (ADR-0372, C6): lo vendido en una campaña. Sin campaña válida en la URL, la que está en curso, si no la última terminada, si no la
  * próxima (`campanaParaResultados`). Si la base falla, lo dice.
  */
-export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null }> {
+export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown }> {
   const supabase = await createClient();
   const planes = await supabase.rpc(RPC_PLANES as never);
   if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
   const campanas = planes.error ? null : leerCampanas(planes.data);
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
   const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
-  if (!id) return { datos: null, campanas, falla: null };
-  const r = await supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never);
+  if (!id) return { datos: null, campanas, falla: null, anterior: null };
+  // La misma campaña un año antes (Sinatra o ERP), en paralelo: da la forma de los días para «¿Cómo va?». Es una ayuda: si falla, los
+  // días pesan igual.
+  const fechas = campanas?.planes.find((p) => p.id === id);
+  const [r, anterior] = await Promise.all([
+    supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never),
+    fechas
+      ? supabase.rpc(RPC_HISTORIAL as never, { p_desde: sumarDias(fechas.desde, -366), p_hasta: sumarDias(fechas.hasta, -365) } as never)
+      : Promise.resolve({ data: null, error: null }),
+  ]);
   if (r.error) {
     console.error(`${RPC_RESULTADOS}: ${r.error.message}`);
-    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder" };
+    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", anterior: null };
   }
-  return { datos: r.data, campanas, falla: null };
+  if (anterior.error) console.error(`${RPC_HISTORIAL} (resultados): ${anterior.error.message}`);
+  return { datos: r.data, campanas, falla: null, anterior: anterior.error ? null : anterior.data };
 }
 
 /**

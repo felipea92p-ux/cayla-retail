@@ -20,6 +20,7 @@ import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
+import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
@@ -60,6 +61,7 @@ export function PlanCampana({
   preparacion,
   campanas,
   puedeContar,
+  veAnalisis = false,
   esLider,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
@@ -70,6 +72,8 @@ export function PlanCampana({
   preparacion: LecturaMotor;
   campanas: CampanasLeidas | null;
   puedeContar: boolean;
+  /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
+  veAnalisis?: boolean;
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
@@ -277,6 +281,11 @@ export function PlanCampana({
       )}
 
       <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
+
+      {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
+      {momento.estado === "antes" && vista === "tabla" && (
+        <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
+      )}
 
       <ListaCategorias
         filas={filas}

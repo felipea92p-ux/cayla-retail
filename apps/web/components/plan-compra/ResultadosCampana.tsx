@@ -14,18 +14,25 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { enteroES, fechaCortaES, solesES, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import {
+  cierre,
   coloresQueMasVendieron,
+  comoVa,
   diasMedidos,
   leerResultados,
   momentoDeResultados,
   multiplicadorReal,
+  pesosDeLosDias,
   porCategoria,
   porFamilia,
   prendasQueMasVendieron,
   recuperoRealTotal,
+  senales,
   type FilaCategoria,
 } from "@/lib/plan-compra-resultados";
-import { textoMultiplicador } from "@/lib/plan-compra-historial";
+import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
+import { ComoVaCampana } from "@/components/plan-compra/ComoVaCampana";
+import { SenalesCampana } from "@/components/plan-compra/SenalesCampana";
+import { CierreCampana } from "@/components/plan-compra/CierreCampana";
 
 // Plan de campaña ▸ Resultados (ADR-0372, C6 · Felipe 2026-10-12): lo que se vendió de verdad en una campaña, por tienda, familia, categoría,
 // prenda y color; el multiplicador real de cada tienda; qué se agotó; y a qué % se vendió lo que sobró. Solo lee. Las píldoras de tienda
@@ -33,8 +40,31 @@ import { textoMultiplicador } from "@/lib/plan-compra-historial";
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,0.8fr)]";
 
-export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; campanas: CampanasLeidas | null; falla: string | null }) {
+export function ResultadosCampana({
+  datos,
+  campanas,
+  falla,
+  anterior = null,
+  veAnalisis = false,
+}: {
+  datos: unknown;
+  campanas: CampanasLeidas | null;
+  falla: string | null;
+  /** La misma campaña un año antes (`fn_historial_ventas`, crudo): la forma de los días para «¿Cómo va?». */
+  anterior?: unknown;
+  /** Quien ve Análisis recibe los accesos a la prenda exacta (Se está acabando, No se vende). */
+  veAnalisis?: boolean;
+}) {
   const r = useMemo(() => leerResultados(datos), [datos]);
+  // La forma de cada día de la campaña: los soles por día de la misma campaña el año pasado (todas las tiendas); sin historia, parejos.
+  const pesos = useMemo(() => {
+    if (!r) return { pesos: [] as number[], conForma: false };
+    const h = leerHistorial(anterior);
+    const porDia = new Map<string, number>();
+    for (const dias of h?.dias.values() ?? []) for (const [f, s] of dias) porDia.set(f, (porDia.get(f) ?? 0) + s);
+    const p = pesosDeLosDias(r.plan.desde, r.plan.hasta, porDia.size > 0 ? porDia : null);
+    return { pesos: p, conForma: new Set(p).size > 1 };
+  }, [r, anterior]);
   const [tienda, setTienda] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<FilaCategoria | null>(null);
   // El «!» con lo que la frase no alcanza a decir, como en Productos y en el Historial (Felipe 2026-10-12).
@@ -113,6 +143,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
   const dias = diasMedidos(r);
   const total = r.tiendas.reduce((s, t) => ({ unidades: s.unidades + t.unidades, soles: s.soles + t.soles }), { unidades: 0, soles: 0 });
   const conMultiplicador = r.tiendas.map((t) => ({ t, m: multiplicadorReal(r, t) })).filter((x) => x.m !== null);
+  const datosCierre = cierre(r);
 
   return (
     <div className="space-y-6">
@@ -122,6 +153,16 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
           : `${r.plan.nombre}, ${rango}: lo que se vendió de verdad, tienda por tienda.`,
       )}
       <PestanasPlan activa="resultados" planId={r.plan.id} />
+
+      {/* Lo que toca según el momento (Felipe 2026-10-12): durante, «¿cómo va?» y qué pedir o impulsar; al terminar, el cierre. Toda CAYLA:
+          las píldoras de tienda de abajo filtran la tabla, no esto. */}
+      {momento === "en-curso" && (
+        <>
+          <ComoVaCampana c={comoVa(r, pesos.pesos)} conForma={pesos.conForma} />
+          {r.stock && <SenalesCampana senales={senales(r, pesos.pesos)} faltan={pesos.pesos.length - Math.min(pesos.pesos.length, dias)} veAnalisis={veAnalisis} />}
+        </>
+      )}
+      {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
       {r.tiendas.length > 1 && (
         <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">

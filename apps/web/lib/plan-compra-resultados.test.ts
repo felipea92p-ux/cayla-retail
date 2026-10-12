@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   campanaParaResultados,
+  cierre,
   coloresQueMasVendieron,
+  comoVa,
+  pesosDeLosDias,
+  senales,
   diasMedidos,
   leerResultados,
   momentoDeResultados,
@@ -112,6 +116,73 @@ describe("por categoría, familia, prenda y color", () => {
   it("lo que sobró de toda la campaña: lo cobrado ÷ lo que valía", () => {
     expect(recuperoRealTotal(r)).toBe(50);
     expect(recuperoRealTotal({ ...r, despues: { hasta: null, categorias: [] } })).toBeNull();
+  });
+});
+
+describe("durante la campaña: ¿cómo va? y pedir más o impulsar", () => {
+  // Navidad 2026 (15 días) a la mitad: hoy es el 19 dic, se midió hasta el 18 (8 días).
+  const enCurso = leerResultados({
+    ...CRUDO,
+    hoy: "2026-12-19",
+    medido_hasta: "2026-12-18",
+    por_dia: Array.from({ length: 8 }, (_, i) => ({ f: `2026-12-${String(11 + i).padStart(2, "0")}`, u: 20 })),
+    stock: [
+      { c: "polos", hoy: 30, cierre: 30 },
+      { c: "jeans", hoy: 400, cierre: 400 },
+    ],
+  }) as LecturaResultados;
+  const parejos = Array(15).fill(1);
+  it("compara lo vendido con lo que el plan esperaba a hoy y proyecta el cierre", () => {
+    const c = comoVa(enCurso, parejos);
+    // Plan: polos 250 + casacas 20 = 270; a hoy (8/15) se esperaban 144; vendidas 160 → +11 %; si sigue así, 300.
+    expect([c.planTotal, c.vendido, c.esperado, Math.round(c.diferencia! * 100), c.proyeccion]).toEqual([270, 160, 144, 11, 300]);
+    expect(c.real).toHaveLength(8);
+    expect(c.proyectado.at(-1)).toBeCloseTo(300);
+  });
+  it("con la forma del año pasado, el plan a hoy no es una línea recta", () => {
+    const pesos = pesosDeLosDias("2026-12-11", "2026-12-25", new Map(Array.from({ length: 15 }, (_, i) => [`2025-12-${String(11 + i).padStart(2, "0")}`, i < 8 ? 1 : 3] as const)));
+    expect(pesos[0]).toBe(1);
+    expect(pesos[14]).toBe(3);
+    expect(comoVa(enCurso, pesos).esperado).toBeLessThan(144);
+  });
+  it("sin historia suficiente, todos los días pesan igual", () => {
+    expect(pesosDeLosDias("2026-12-11", "2026-12-25", new Map())).toEqual(parejos);
+    expect(pesosDeLosDias("2026-12-11", "2026-12-25", null)).toEqual(parejos);
+  });
+  it("pide más lo que se acaba antes del fin; con lo que sobra y sin plan, va bien", () => {
+    const s = senales(enCurso, parejos);
+    // Polos: 310 en 8 días (38.75/día), quedan 30 → alcanza < 1 día, faltan 7 → pedir. Jeans: sin plan, alcanza 64 días → bien.
+    expect(s.map((x) => [x.nombre, x.senal])).toEqual([
+      ["Polos", "pedir"],
+      ["Jeans", "bien"],
+    ]);
+  });
+  it("sin el stock de la base no inventa señales", () => {
+    expect(senales({ ...enCurso, stock: null }, parejos)).toEqual([]);
+  });
+});
+
+describe("al terminar: el cierre con sell-through", () => {
+  const terminada = leerResultados({
+    ...CRUDO,
+    filas: CRUDO.filas.map((f) => ({ ...f, rebajadas: f.c === "polos" && f.u === "tru" && f.color === "negro" ? 40 : 0 })),
+    stock: [
+      { c: "polos", hoy: 0, cierre: 0 },
+      { c: "jeans", hoy: 50, cierre: 50 },
+    ],
+  }) as LecturaResultados;
+  it("a precio lleno, con rebaja y lo que sobró; liquidar primero lo que más sobra", () => {
+    const c = cierre(terminada)!;
+    expect(c.categorias.map((x) => [x.nombre, x.lleno, x.rebajadas, x.sobra])).toEqual([
+      ["Polos", 270, 40, 0],
+      ["Jeans", 50, 0, 50],
+    ]);
+    // 320 a precio lleno de 410 que había.
+    expect(Math.round(c.pctLleno * 100)).toBe(78);
+    expect(c.liquidarPrimero?.nombre).toBe("Jeans");
+  });
+  it("sin el stock de la base, no hay cierre", () => {
+    expect(cierre({ ...terminada, stock: null })).toBeNull();
   });
 });
 
