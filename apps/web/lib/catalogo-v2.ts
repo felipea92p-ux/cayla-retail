@@ -1,4 +1,4 @@
-import { contarProductosPorProveedor, filtroDeMarcaOProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
+import { filtroDeMarcaOProveedor } from "@/lib/marcas";
 import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
@@ -31,6 +31,9 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
+  /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
+   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
+  colorCodigo?: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
    *  color todavía no tiene foto. El cliente cae a un tinte del color (o
    *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
@@ -153,6 +156,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
+    colorCodigo: v.color_codigo ?? null,
     // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.
@@ -276,6 +280,13 @@ export function paginaProductosDesdeParams(p: ParamsProductosListado): number {
 export type ProductoListado = {
   productoId: string;
   referencia: string;
+  /** Lo que se escribió en «Descripción» al crear o editar la prenda (corte, largo, detalles). No viene de la RPC: lo pega
+   *  `listarProductos` con una consulta aparte. `null` = no tiene, o no se pudo leer. */
+  descripcion: string | null;
+  /** Nombre del tejido y del patrón de la prenda (`productos.tejido_id` / `patron_id`), pegados por la misma consulta que la
+   *  descripción, para la vista rápida. `null` = sin registrar, o no se pudo leer. */
+  tejido: string | null;
+  patron: string | null;
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
@@ -365,6 +376,9 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       p = {
         productoId: f.producto_id,
         referencia: f.referencia,
+        descripcion: null,
+        tejido: null,
+        patron: null,
         codigo: f.codigo,
         categoriaId: f.categoria_id,
         categoria: f.categoria_nombre,
@@ -404,12 +418,32 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   // tuviera foto (pasó con «Blusa V», 2026-09-26). Se completa con la General de la prenda, nunca con la de otro color
   // — la misma regla de `fotoDeVariante`. Una consulta más, solo si en la página falta alguna foto.
   const sinFoto = [...porProducto.values()].filter((p) => p.variantes.some((v) => v.fotoUrl === null)).map((p) => p.productoId);
+  // La descripción, el tejido y el patrón de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no
+  // los trae y no vale una migración en producción por textos que solo se leen. Una consulta de ≤ 20 filas, a la vez que la de
+  // las fotos. Si falla, la vista rápida se abre igual, sin esos datos.
+  const [{ data: generales }, { data: descripciones }] = await Promise.all([
+    sinFoto.length > 0
+      ? supabase
+          .from("producto_fotos")
+          .select("producto_id, url, orden, es_principal, color_codigo")
+          .in("producto_id", sinFoto)
+          .is("color_codigo", null)
+      : Promise.resolve({ data: null }),
+    porProducto.size > 0
+      ? supabase
+          .from("productos")
+          .select("id, descripcion, tejido:tejidos ( nombre ), patron:patrones ( nombre )")
+          .in("id", [...porProducto.keys()])
+      : Promise.resolve({ data: null }),
+  ]);
+  for (const d of descripciones ?? []) {
+    const p = porProducto.get(d.id);
+    if (!p) continue;
+    p.descripcion = d.descripcion?.trim() || null;
+    p.tejido = d.tejido?.nombre ?? null;
+    p.patron = d.patron?.nombre ?? null;
+  }
   if (sinFoto.length > 0) {
-    const { data: generales } = await supabase
-      .from("producto_fotos")
-      .select("producto_id, url, orden, es_principal, color_codigo")
-      .in("producto_id", sinFoto)
-      .is("color_codigo", null);
     // Si esta consulta falla, la página se dibuja igual con lo que trajo `fn_productos`: la foto es un extra.
     const porId = new Map<string, FotoCruda[]>();
     for (const f of generales ?? []) porId.set(f.producto_id, [...(porId.get(f.producto_id) ?? []), f]);
@@ -426,40 +460,6 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     totalPaginas: Math.max(1, Math.ceil(totalProductos / PRODUCTOS_POR_PAGINA)),
     pagina,
   };
-}
-
-/** "A quién pedirle" (ADR-0109): los productos que hoy cumplen la señal «Pedir a proveedor»,
- *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos_listado`
- *  con la disponibilidad `reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
- *  definición de "hay que reponer".
- *
- *  Recibe LOS MISMOS filtros que el conteo «Pedir a proveedor» del filtro (`getFacetasProductos`), para que
- *  la suma de este bloque sea exactamente ese número: dos cifras distintas para lo mismo en una misma
- *  pantalla es lo que hace que nadie confíe en ninguna.
- *
- *  Es un complemento de la pantalla, no la pantalla: si la consulta falla (p. ej. el SQL de
- *  proveedores todavía no está en producción y `fn_productos` no devuelve `proveedor_id`), el bloque
- *  se omite en vez de tumbar Productos. Trae hasta 300 productos (3 páginas de 100): el catálogo
- *  activo es de decenas, no de miles; si algún día pasara de eso, los números serían un piso. */
-export async function getReposicionPorProveedor(
-  filtros: Omit<FiltrosProductos, "stock" | "orden">
-): Promise<ReposicionProveedor[]> {
-  const supabase = await createClient();
-  const filas: FilaReposicion[] = [];
-  for (let pagina = 1; pagina <= 3; pagina++) {
-    const { data, error } = await supabase.rpc("fn_productos_listado", {
-      ...paramsListado({ ...filtros, stock: undefined }),
-      p_disponibilidad: "reponer",
-      p_pagina: pagina,
-      p_por_pagina: 100,
-    });
-    if (error) return [];
-    const pag = data ?? [];
-    if (pag.length === 0) break;
-    filas.push(...pag);
-    if (Number(pag[0].total_productos) <= pagina * 100) break;
-  }
-  return contarProductosPorProveedor(filas);
 }
 
 /**

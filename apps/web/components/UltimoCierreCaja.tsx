@@ -1,5 +1,6 @@
 import type { CierreCaja } from "@/lib/caja";
 import { cuadra, etiquetaDestino } from "@/lib/caja-cierre-reglas";
+import { estadoCierre, rachaDeCierres } from "@/lib/historial-cierres-reglas";
 
 function money(n: number) {
   return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,7 +22,7 @@ function cuando(iso: string) {
  * contexto de «Antes de abrir, cuenta el cajón». Los cierres anteriores a ADR-0186 no guardaron el fondo: se muestra
  * lo contado y se dice que no quedó registrado cuánto quedó.
  */
-export function UltimoCierreCaja({ cierre }: { cierre: CierreCaja }) {
+export function UltimoCierreCaja({ cierre, recientes = [] }: { cierre: CierreCaja; recientes?: CierreCaja[] }) {
   const diferencia = cierre.montoCierreReal - cierre.montoCierreSistema;
   const cuadro = cuadra(diferencia, 0);
   return (
@@ -77,6 +78,7 @@ export function UltimoCierreCaja({ cierre }: { cierre: CierreCaja }) {
           <Fila etiqueta={<span className="font-semibold text-tinta">Quedó en el cajón</span>} valor={money(cierre.montoFondo)} fuerte />
         )}
       </dl>
+      {recientes.length > 1 && <Racha cierres={recientes} />}
     </section>
   );
 }
@@ -86,6 +88,29 @@ function Fila({ etiqueta, valor, fuerte }: { etiqueta: React.ReactNode; valor: s
     <div className="flex items-start justify-between gap-3 border-t border-tinta/[0.07] py-2">
       <dt className="text-tinta/65">{etiqueta}</dt>
       <dd className={`whitespace-nowrap tabular-nums ${fuerte ? "font-semibold" : ""}`}>{valor}</dd>
+    </div>
+  );
+}
+
+const COLOR_RACHA = { cuadro: "bg-verde", falto: "bg-rojo", sobro: "bg-ambar" } as const;
+const NOMBRE_RACHA = { cuadro: "cuadró", falto: "faltó", sobro: "sobró" } as const;
+
+/**
+ * La racha de la sede (2026-10-08): un cuadrito por cada uno de sus últimos cierres, el más viejo a la izquierda, y
+ * una línea que los cuenta. Solo informa cómo vienen las cajas: al historial se entra por el botón de la cabecera
+ * (Felipe: dos caminos al mismo lugar era redundante).
+ */
+function Racha({ cierres }: { cierres: CierreCaja[] }) {
+  const r = rachaDeCierres(cierres);
+  return (
+    <div className="mt-3 rounded-lg bg-hueso px-3.5 py-3">
+      <ol className="flex gap-1.5" aria-label={`Últimos ${r.total} cierres, del más antiguo al más reciente`}>
+        {[...cierres].reverse().map((c) => {
+          const estado = estadoCierre(c.diferencia);
+          return <li key={c.id} className={`h-3.5 w-3.5 rounded ${COLOR_RACHA[estado]}`} title={`${cuando(c.cerradaEn)}: ${NOMBRE_RACHA[estado]}`} />;
+        })}
+      </ol>
+      <p className="mt-2 text-[12.5px] text-tinta/65">{r.texto}</p>
     </div>
   );
 }

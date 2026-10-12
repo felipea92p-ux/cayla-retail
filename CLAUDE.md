@@ -162,7 +162,9 @@ son respuestas a una acción dentro del contenido (barra que se llena, cifra que
 `--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el giro del botón mientras la base responde y las rayas
 del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c; y, solo en la persiana de «Caja cerrada» de Vender, el
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
-tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322), y todo se apaga con
+tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
+Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
+«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b), salvo los puntos que corren por la cinta del flujo de «Qué hacer hoy» mientras el mouse está encima; y en las **tarjetas de Existencias** la onda lenta (3,2 s) que sale del color elegido, ADR-0344 act. 2026-10-08; y el **aviso de cierre de caja** de la cabecera, con sus ondas continuas desde la hora, su resplandor que deriva y su destello en «sin cerrar», ADR-0359 / ADR-0136 act. 2026-10-06 (c); y en **Ventas sin registrar** la mesa de talones, puente y prendas —hilos que se dibujan, visitos en cascada, balanza que se llena, mitades que se juntan, sello y talón que se pliega—, sin rebote ni bucle, ADR-0360 / ADR-0136 act. 2026-10-07; y en el **gasto rápido de Caja** (y su hermana, **Registrar ingreso**, ADR-0375) la ola del mosaico, la ★ que se dibuja con sus veces que cuentan, la tinta que se derrama desde el clic y el sello de «listo», sin rebote ni bucle, ADR-0368 / ADR-0136 act. 2026-10-09), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -202,12 +204,49 @@ o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA t
 Productos (esta última desde el 2026-09-28, ADR-0254; el resto de Catálogo sigue sin decidir),
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
 nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
-(prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); bajo la frase, solo la vuelta «← Traslados» y
-estados; ADR-0220 y su actualización de la tarde, Felipe 2026-09-26);
+(prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); la vuelta es una flecha a la izquierda de la línea de
+sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
-contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
+contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
+2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
+
+## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
+
+**El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
+(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
+«Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
+`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (fondo `#1a1a18`, texto `#f5f0e8`):
+`bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
+
+Lo que se exige a toda pantalla, modal o pieza nueva o editada:
+1. **Solo tokens: nunca un hex, un `rgb()`/`rgba()` (tampoco dentro de una clase de Tailwind, `shadow-[0_8px_rgba(…)]`), `bg-white` ni
+   `bg-gray-*`.** Lo hace cumplir `lib/tema-colores.test.ts` (definición única: `apps/web/tema/colores-sueltos.mjs`). Una línea legítima
+   se exime con `// tema-fijo: <motivo de 10 caracteres o más>`, y un archivo entero se declara permanente, con su motivo, en
+   `lib/tema-colores-archivos.ts`. Hoy la deuda es **0**: un archivo nuevo no puede nacer con un color suelto.
+2. **Un velo y una sombra de elevación son `--color-sombra`** (`bg-sombra/25 dark:bg-sombra/55`, `shadow-[…color-mix(in_srgb,var(--color-sombra)_35%,transparent)]`),
+   nunca `tinta`: en oscuro `tinta` es crema y el velo ACLARARÍA la pantalla. Una tarjeta de vidrio es `--color-vidrio`; un filo o un anillo
+   que debe invertirse es `tinta`.
+3. **Papel físico y color de dato no se oscurecen.** Lo que se imprime o se ve como saldrá impreso (boleta, ticket, etiqueta, QR, cartel
+   del club) lleva `.papel-fijo` (vuelve a declarar los tokens claros) o, si ya es blanco por sí mismo, `data-papel`. El color de una
+   PRENDA (la baldosa de `MosaicoPrenda`, la muestra de un tejido) es dato: no cambia, lleva `data-color-dato`, y el texto que se
+   escribe encima usa `--color-tinta-fija` / `--color-crema-fija` (idénticos en los dos temas), nunca `tinta`/`crema`. Una pantalla
+   de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
+4. **Un texto tenue (`text-tinta/35` a `/50`, `text-taupe/50` a `/70`) ya sube solo en oscuro** (una regla de `tema.css`, con `:where`
+   para no ganarle a `hover:`); no escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`,
+   `dark:opacity-85` en un conteo junto a un filtro). `dark:` sigue el atributo, no el sistema operativo.
+5. **Un token de color nuevo** va en el `@theme` de `globals.css`, en el bloque oscuro de `tema.css` y en `.papel-fijo` (si es de papel);
+   `lib/tema-tokens.test.ts` falla si no coinciden, mide el contraste de cada texto sobre cada superficie y exige que toda
+   `var(--color-…)` del código exista (Tailwind v4 solo emite un token que ve usado en CSS: el bloque de la paleta es `@theme static`).
+
+**Cómo se verifica (antes de dar una pantalla por terminada):** `pnpm --filter web tema:auditar -- --cuenta <cuentas> --ruta <rutas> --escenarios`
+(`apps/web/tema/`, su README explica todo): entra con cada cuenta de prueba, mide el contraste WCAG real de cada texto, detecta manchas
+claras y velos que aclaran, y separa **lo que falla solo en oscuro** (lo rompió el tema: urgente) de lo heredado del claro. **Solo
+corre contra localhost**, y hay que MIRAR las capturas: no ve todo (una 404 blanca, un visor de cámara sin cámara, un texto negro
+sobre blanco «pasa»). Cada modal, hoja o estado nuevo se agrega como escenario en `tema/escenarios/registro.mjs` (con su `abre`, para
+que un escenario no pase en verde sin haber abierto nada). Y donde la regla de celular lo exige (Vender, Cambios, Devoluciones), a 375 px.
+Los números exactos y el porqué de cada decisión: `docs/adr/0336-modo-oscuro-del-erp.md`.
 
 ## La prenda sin foto (regla — ADR-0333, Felipe 2026-10-04)
 
@@ -217,13 +256,14 @@ isotipo de CAYLA, que es la marca (loader, tickets, etiquetas) y no un hueco. Se
 otro «sin foto». Si la fila no trae la categoría, la miniatura dibuja la percha (no se cae): al cargar una prenda, pide
 `categorias ( nombre, prefijo, familia )`. `lib/sin-foto.test.ts` falla si un archivo fuera de su lista de marca dibuja
 `/cayla-isotipo.png`. Catálogo ▸ Productos, Apartados e Inicio de Almacén ya usan la misma pieza (ADR-0333); Movimientos, Traslados,
-Cambios, Devoluciones, Compras, Resumen y Análisis dibujan la percha porque su cargador aún no trae la categoría.
+Cambios, Devoluciones, Compras y Resumen dibujan la percha porque su cargador aún no trae la categoría.
 
 ## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
 
 **Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
 dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
-(pestañas, tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta) y `app/estilos/finanzas.css`
+(tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta; sus pestañas, desde el 2026-10-06, son la pestaña de vista
+del sistema —el vidrio en mayúsculas—, por decisión de Felipe en `/unificar`, ADR-0358) y `app/estilos/finanzas.css`
 (clases `fin-*`), los modales con `<Modal variante="hoja">`. No se reinventa una tabla ni un campo con medidas sueltas.
 **Antes de dar una pantalla por terminada, se captura al mismo ancho que el spike y se comparan las dos imágenes**: si no
 se parecen, no está terminada. Lo que se aparta del spike a propósito queda escrito en el ADR.
@@ -250,7 +290,7 @@ RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la li
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
 (`SenalBuscando`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
-Análisis tiene su propio estado en URL: allí es `actualizar(cambios, { tipeado: true })` de `useResumenUrl`.
+Análisis (v4, ADR-0357) busca en el navegador, sin URL: lo tipeado filtra las prendas ya leídas, sin loader.
 Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
 ## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)
@@ -411,6 +451,101 @@ Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`
 `docs/adr/0290-sugerencias-que-siguen-lo-que-la-persona-eligio.md`. Para verlo funcionando, con datos reales y tocable:
 `docs/maquetas/sugerir-2026-09/index.html`.
 
+## Formidable: el iPhone llevado al ERP (regla — ADR-0350, Felipe 2026-10-05)
+
+**Una pantalla o un modal se entiende en 5 segundos sin que nadie lo explique: la colaboradora o la encargada saben qué es, qué pasa y qué les
+toca hacer.** Hoy se usa sobre todo desde un Mac mini o un computador con mouse y teclado: **escritorio primero**, tablet y 375 px se adaptan
+(Vender, Cambios y Devoluciones conservan el celular obligatorio, PL-105). Se califica con dos notas separadas de 0 a 10:
+- **9 leyes** (el orden es la prioridad si chocan): 1 sin manual · 2 una pregunta, una respuesta · 3 simplicidad profunda (la complejidad se
+  *traduce a un veredicto*, no se esconde ni se muestra cruda) · 4 lenguaje de tienda («tú», español neutro peruano; cero estadística ni jerga a la
+  vista) · 5 contenido primero (ver antes que leer) · 6 lo difícil a un toque en «¿Por qué?» (nunca solo con hover) · 7 perdonar antes que
+  preguntar (se confirma solo lo irreversible: dinero, stock, comprobantes, borrado) · 8 quitar antes de agregar · 9 de punta a punta (vacíos
+  que dicen qué falta, errores en tres líneas, cero tours, 375 px).
+- **Oficio visual**, que se mide en el navegador y no es gusto: alineación, espaciado en múltiplos de 4, jerarquía, contraste, foco, teclado; controles de
+  24 px mínimo (32 de objetivo) con mouse y 44 con dedo.
+
+**`/formidable` (skill) hace el recorrido:** mide → prueba ciega con un agente sin contexto (y 3 a 5 colaboradoras reales) → califica con evidencia
+**Medido / Observado / Opinión** → propone los **3** cambios de mayor impacto → **espera tu OK** → implementa → entrega antes/después al mismo ancho.
+Puede proponer cambiar reglas de negocio, pero **dinero y precios, stock y movimientos, permisos y roles —y comprobantes/SUNAT— esperan
+siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebote (ADR-0136) y el loader único (ADR-0149); orquesta `/focus`,
+`/sugerir` y `/multi-view-responsive` sin duplicarlas. **Es obligatoria con tablero, todavía sin prueba en el CI:** al terminar una pantalla o un
+modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
+`docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
+
+## Una función, una pieza (regla — ADR-0358, Felipe 2026-10-06)
+
+**Dos piezas que hacen lo mismo se ven igual en todo el ERP.** Si «Cancelar», unas pestañas o una insignia de estado se dibujan distinto en dos
+pantallas, la colaboradora aprende dos veces lo mismo y duda la tercera. **`/unificar` (skill)** recorre el ERP en local con un motor que mide el
+DOM (`apps/web/unificar/`, `pnpm --filter web unificar:censo`), cuenta cuántas formas distintas tiene cada familia (botones por lo que hacen,
+insignias, pestañas, tablas, cifras, campos, combos, iconos, gráficos, avisos, vacíos, títulos, hojas) y le muestra a Felipe una lámina con las
+capturas lado a lado y una **propuesta** nueva en claro y oscuro. **Felipe elige mirando, nunca por una descripción** (la página de `unificar/elegir.mjs`: el 2026-10-06 eligió tres por su texto y, al
+verlas aplicadas, no le gustaron). Lo elegido es la única pieza de esa función desde ese día, en todos los módulos y en las pantallas nuevas.
+
+Al construir o editar una pantalla o un modal: **antes de dibujar una pieza, mira la tabla de abajo (y `docs/unificar/README.md`). Si la familia
+está decidida, se usa su pieza; si no, se usa la forma más usada del último censo y no se inventa otra.** **El movimiento es parte de
+la pieza (Felipe 2026-10-07):** el censo dice qué hace cada una al pasar el mouse, al presionar, con el foco y si late o entra animada, y migrar
+nunca pierde una animación: la pieza elegida se queda con el mejor movimiento de las que reemplaza. Lo hace cumplir
+`lib/unificar.test.ts`: cada decisión trae sus `firmas` (cómo se reconoce la variante dibujada a mano) y su `deuda` (lo que falta migrar, en
+`apps/web/unificar/familias.mjs`), y la prueba falla si un archivo nuevo vuelve a dibujarla a mano o si la deuda no baja. Una línea legítima se
+exime con `// unificar-fijo: <por qué>`. Migrar cambia cómo se ve, **nunca qué hace**, y va módulo por módulo con el OK de Felipe. Lo que existe
+por una decisión (el kit de Finanzas, la vista rápida, los sellos de Movimientos, el Observatorio, la persiana de Caja) no se «corrige»: Felipe
+dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y `.claude/skills/unificar/`.
+
+**Piezas únicas** (una fila por familia decidida; el registro de cada una, en `docs/unificar/<familia>.md`):
+
+| Familia | La pieza | Decidido |
+|---|---|---|
+| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. **También el «Atrás» de un paso a paso** («volver solo es una flecha», Felipe 2026-10-07). Nunca un «←», un «Atrás» ni un «Volver a …» escrito a mano | 2026-10-06 · 2026-10-07 |
+| Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` (el vidrio con la píldora oscura, en mayúsculas) si cambia de sección —también Finanzas—; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (la caja arena de «GRILLA / TABLA») si muestra lo mismo de otra forma. Nunca un `role="tab"` ni una pista a mano | 2026-10-06 |
+| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`), la de Compras tal cual: con `href` lleva su flecha, la que filtra se rellena de arena, `valor={null}` + motivo si no hay dato. Nunca una tarjeta de número a mano | 2026-10-06 |
+| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton peso="primario">` (o `btn-cayla btn-primario`) para la acción y `peso="fantasma"` (`btn-secundario`) para su pareja; si navega, `<BotonEnlace>`; si descarga, `<BotonAncla>` (`components/ui/campos.tsx`). En la cabecera de la pantalla habla en VERSALITAS de 11 px y 40 px (lo pone el lugar, ver «Botones») | 2026-10-07 |
+| Botones (`boton`) — las dos voces | `btn-cayla` + `btn-primario|secundario|sutil|peligro|enlace`, o `<Boton peso=…>` que lo dibuja. **La voz la pone el lugar:** dentro de una cabecera de pantalla (`data-voz="cabecera"`, ya lo traen `EncabezadoPagina` y `CabeceraPantalla`; una cabecera hecha a mano lo declara en su caja) va en VERSALITAS de 11 px y 40 px; en hojas, tarjetas y filas, en letra normal de 13,5 px. Nunca la versalita copiada a mano (`label-cayla` + esquinas + fondo o borde). En el mostrador, los compactos conservan su alto con letra de 12,5 px | 2026-10-07 |
+| Lo peligroso (`accion.eliminar`) | Borrar, anular, desactivar, quitar: `btn-peligro` (o `<Boton peso="peligro">`; en la barra de vidrio, `BotonCompacto variante="fila-alerta"`): rojo desde el principio. Nunca un enlace o un botón sutil teñido de rojo a mano | 2026-10-07 |
+| Cerrar una hoja (`accion.cerrar`) | La × sola, arriba a la derecha: `<Modal conCerrar>` (`ModalRuta` la trae por defecto). Nunca un botón «Cerrar» al pie de una hoja que no guarda nada | 2026-10-07 |
+| Movimiento de un botón | `.mov-boton` (`app/globals.css`), el único, que también tiene todo `btn-cayla` (menos el enlace): sube 2 px con sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha que va adelante avanza 4 px, se encoge al presionar y **una onda nace donde tocaste** (`<OndaBotones>`, montado una vez en `app/layout.tsx`). Ya lo traen `<Boton>`, `BotonCompacto` y `FlujoGuiado`; un botón dibujado a mano lo suma con esa clase, nunca con otra animación. **Un botón negro pasa a rojo profundo al pasar el mouse**, nunca al rojo de marca ni a un gris | 2026-10-07 |
+| Insignias de estado (`estado`) | `<Chip>` (`components/ui/Chip.tsx`). A propósito: los chips con ícono de Análisis y «Líder de equipo» en negro en Colaboradores | 2026-10-07 |
+| Estados vacíos (`vacio`) | `<Vacio icono titulo acciones filtros>` (`components/ui/Vacio.tsx`): el ícono de LO QUE FALTA que se dibuja una vez, título serif, una frase que dice qué hacer y el botón que lo hace; `tamano="chico"` (una línea con su enlace) dentro de una tabla, una hoja o una lista. Al no encontrar: nombra lo buscado (`<SearchX />`), los filtros como píldoras que se quitan, «Borrar la búsqueda». Nunca una frase gris o en cursiva suelta | 2026-10-08 |
+| Avisos y notas (`aviso`) | `<Aviso tono="atencion\|error\|exito\|info" titulo accion chico>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el de error destella una vez y es `role=alert`). La nota que explica sigue siendo `nota-cayla`, que ya trae su «i» (`sin-i` si no corresponde). El error de UN dato va bajo su campo (`<Campo tono="error" pie>`, con su «!»); el de toda la hoja, en `<Aviso tono="error">` sobre los botones. Nunca un párrafo rojo suelto ni un recuadro de tono a mano | 2026-10-08 |
+| Buscadores (`buscador`) | `<Buscador valor onCambio buscando atajo conteo>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» con su hilo SOLO si la espera pasa de 350 ms, y el conteo; `tamano="mostrador"` (Vender, Cambios, Devoluciones, Apartados): la píldora que se despega. Busca MIENTRAS se escribe, nunca esperando un Enter (Felipe 2026-10-08). **Excepción opt-in, solo Catálogo ▸ Marcas (ADR-0373):** `sombra={{ cola, alAceptar }}` (siempre se pasa, con `cola: ""` si no hay nada que completar) pinta en gris lo que falta de la marca más probable; Tab o → la aceptan y Enter la acepta y va a ella. Que otra pantalla la use lo decide Felipe. Nunca un `type="search"` a mano | 2026-10-08 |
+| Barra apilada (`grafico.barra`) | `<BarraApilada segmentos …>` (`components/ui/BarraApilada.tsx`): la píldora con pista de arena y el movimiento de Compras (entra tramo a tramo, se reacomoda al cambiar la cifra, el tramo apuntado se estira y los demás bajan); 12 · 8 · 4 px. Si responde (`respuesta`), cada tramo es un botón (o un enlace con `href`); el color es la clase de token del tramo (`clase`) o `color` para `var(--color-…)`; `decorativa` si el texto de al lado ya lo dice; `total` si se mide contra algo que no es la suma; `viva` si cambia mientras se escribe; `sinEntrada` dentro de una hoja. La leyenda dibuja su cuadrito con `<MuestraTramo>`. Nunca una fila de `<div>` con `flex-grow` a mano | 2026-10-09 |
+
+## Caos: usar mal el sistema a propósito (regla — ADR-0356, Felipe 2026-10-06)
+
+**Toda pantalla o modal que GUARDA se ataca a propósito antes de darse por terminada.** Una colaboradora real hace doble clic en «Cobrar»,
+recarga a mitad de un guardado, abre dos pestañas, pega un monto con coma o pierde el internet justo al pulsar Guardar; hoy nada de eso lo
+prueba nadie de forma sistemática. **Lo grave no es la pantalla caída sino el descuadre que nadie ve** (un stock que ya no cuadra con
+`movimientos`, una venta cuyos pagos no suman, dos comprobantes): es el principio 2 llevado a prueba. **`/chaos` (skill) lo hace:**
+1. **Catálogo fijo + azar con semilla** (`scripts/chaos/catalogo.mjs`, 69 ataques en 8 familias: entradas hostiles, doble clic, navegación
+   torcida, concurrencia entre cuentas, permisos y URL ajena, red y sesión, celular 375 px, teclado). El núcleo corre siempre; el azar
+   descubre lo que no se nos ocurrió; la semilla repite una corrida exacta (`--semilla N`).
+2. **Navegador y base.** Lo que ve la persona (el navegador integrado) y lo que la pantalla esconde (RPC directo en Postgres local, dos
+   sesiones paralelas para la concurrencia).
+3. **Tras cada ataque que escribe se mira la base** (`node scripts/chaos/invariantes.mjs --contra <foto>`, 12 invariantes que cruzan tablas
+   y que la base no impide sola; `--autoprueba` comprueba que el propio detector no esté ciego). Solo cuentan las violaciones NUEVAS.
+4. **Gravedad por evidencia, de peor a menos mala:** 1 estado imposible (inventario, dinero o comprobante que no cuadra) · 2 dato malo en
+   silencio · 3 pantalla caída · 4 error feo pero seguro. Un rechazo claro sin nada escrito no es hallazgo: es el sistema resistiendo.
+5. **Informa, propone y espera tu OK.** Con el OK: primero la **prueba de regresión que falla**, después el arreglo de UNA pantalla, y se
+   repite el mismo ataque con la misma semilla. **Dinero, stock, permisos, RPC, migraciones y SUNAT son siempre de Felipe.**
+
+**Candados:** solo local; todo ataque que escribe pasa por `scripts/flujo-de-negocio/estado.mjs` (foto antes, restaurar después), y como la base
+local es **compartida con otras sesiones** y restaurar deshace también lo ajeno, no se corre si otra sesión escribió hace menos de 10 minutos
+(el 2026-10-06 apareció un movimiento ajeno a mitad de la prueba). Informes y capturas van a `.chaos/` (fuera de git: el repo es público) y
+**un hallazgo de permisos o de seguridad nunca entra a un archivo versionado**. Se ataca el código de tu rama, no el de producción.
+**Qué cuenta como «guarda»:** llama una RPC o un `.insert/.update/.delete`; una pantalla de solo lectura se declara y no se ataca. Con tablero
+y todavía sin prueba en el CI: el avance vive en `docs/chaos/README.md`, y la casilla de `.github/pull_request_template.md` lo pide.
+**La parte pura sí corre en el CI** (`scripts/chaos/*.test.mjs`: la forma del catálogo, la reproducibilidad por semilla y la lógica del
+detector). Detalle y decisiones: `docs/adr/0356-chaos-usar-mal-el-sistema-a-proposito.md` y `.claude/skills/chaos/SKILL.md`.
+
+## Familias fuera de los motores (regla — ADR-0377, Felipe 2026-10-10)
+
+**Lo que se vende pero no es mercadería de piso (bolsas, cajas, empaque) vive en una familia con el interruptor «Cuenta en Análisis, Frescura y el plan del
+piso» APAGADO** (`familias.entra_a_motores`, Catálogo ▸ Familias). **Todo motor de decisión que cuente ventas, stock o anotadas por categoría tiene que preguntar
+`retail.fn_categoria_entra_a_motores(categoria_id)`** (sin dato responde sí): hoy lo hacen el motor del piso, la demanda, el plan de campaña, Análisis y Frescura
+(`pnpm pruebas:motores-familias-apagadas` es su caso por motor; uno nuevo suma el suyo). **Dinero, comprobante, Ventas, Finanzas y Resumen NO preguntan: la bolsa es una
+venta real.** Las bolsas se venden desde el ticket con «+ Agregar bolsa» (`punto-de-venta/BolsaDelTicket.tsx`) y llevan stock como cualquier producto: la base no deja
+vender en cero. Una línea de precio de etiqueta 0 (la bolsa de obsequio) no se declara a SUNAT (`itemsParaLucode`). Un parche a una de esas cinco funciones es un
+reemplazo anclado (`reemplazar_anclado`, formato que las suites de Frescura leen para deshacerlo) y se suma a sus listas `DESHACER_*`.
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
@@ -520,7 +655,7 @@ Skills de este repo: `/focus` (recorre las pantallas y los modales en construcci
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
-resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores). `/multi-view-responsive` (revisa el responsive de escritorio de un módulo, una ruta o `todo`, solo en local: recorre pantallas, pestañas, modales y hojas a siete tamaños de 1024×768 a 1920×1080, mide el DOM y captura cada vista; reporta en el chat hallazgos numerados con severidad y archivo probable. Solo mide y reporta, no toca código, y no cubre celular). `/flujo-de-negocio` (corre un caso de negocio de `docs/flujos/` —venta, cambio y devolución, traslado, caja, inventario— contra el ERP **local** como una persona real, en dos pasadas: una **ciega**, de alguien sin formación técnica que reporta dónde se perdió y por qué, y otra informada que verifica la base; entrega veredicto de negocio, reporte de fricción y una guía interactiva para colaboradores nuevos. Solo local con datos inventados, y solo sobre el espejo de una **foto** de `origin/main` (ERP idéntico y base local con las migraciones de esa foto): `node scripts/flujo-de-negocio/espejo.mjs verificar` decide, no la skill. **Solo Felipe ordena actualizar la foto, con `/actualizar-flujo`** (usa `espejo.mjs actualizar`: muestra el plan, y con su ok respalda, aplica las migraciones pendientes y crea una rama nueva idéntica a `origin/main` con la skill copiada); entre órdenes, lo nuevo de `main` se informa sin bloquear y nadie aplica migraciones por su cuenta. Un caso hecho desde el navegador guarda de verdad en el Postgres local compartido, así que todo caso pasa por `scripts/flujo-de-negocio/estado.mjs` (foto antes, restaurar después, todo o nada; probado con `estado.prueba.mjs`). Los informes y capturas van a `.flujo-de-negocio/` (fuera de git: el repo es público); los arreglos que hace son de una sola pantalla y en commit aparte, y **no toca migraciones, RPC ni permisos**).
+resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores). `/formidable` (**obligatoria**, ver «Formidable»: lleva una pantalla o un modal a «el iPhone llevado al ERP», que se entienda en 5 segundos sin manual. Califica con 9 leyes de comprensión y un eje de oficio visual medido en el navegador, la hace recorrer a un agente ciego, y propone los 3 cambios de mayor impacto; espera tu OK antes de tocar nada y deja el tablero en `docs/formidable/README.md`. Orquesta `/focus`, `/sugerir` y `/multi-view-responsive`; las reglas de dinero, stock, permisos y SUNAT son siempre tuyas). `/chaos` (**obligatoria** en toda pantalla o modal que guarda, ver «Caos»: usa MAL el ERP a propósito en local —un catálogo de 8 familias de abuso más azar con semilla reproducible—, en el navegador y directo en la base, y después de cada ataque que escribe mira las invariantes de la base (stock contra movimientos, venta contra pagos, caja, comprobantes). Entrega un informe rankeado con el estado imposible primero; con tu OK, una prueba de regresión y el arreglo de UNA pantalla. Dinero, stock, permisos, RPC y SUNAT son siempre tuyos; los hallazgos de seguridad no se versionan). `/unificar` (**obligatoria**, ver «Una función, una pieza»: censa en local cuántas formas distintas tiene cada familia de piezas —botones por lo que hacen, insignias, pestañas, tablas, cifras, campos, iconos, gráficos— y dónde vive cada una, se las muestra a Felipe en una lámina con capturas y una propuesta nueva en claro y oscuro, y lo que Felipe elige queda como la única pieza, vigilada por `lib/unificar.test.ts`; con `migrar <familia>` lleva la decisión módulo por módulo, sin cambiar qué hace cada botón). `/multi-view-responsive` (revisa el responsive de escritorio de un módulo, una ruta o `todo`, solo en local: recorre pantallas, pestañas, modales y hojas a siete tamaños de 1024×768 a 1920×1080, mide el DOM y captura cada vista; reporta en el chat hallazgos numerados con severidad y archivo probable. Solo mide y reporta, no toca código, y no cubre celular). `/flujo-de-negocio` (corre un caso de negocio de `docs/flujos/` —venta, cambio y devolución, traslado, caja, inventario— contra el ERP **local** como una persona real, en dos pasadas: una **ciega**, de alguien sin formación técnica que reporta dónde se perdió y por qué, y otra informada que verifica la base; entrega veredicto de negocio, reporte de fricción y una guía interactiva para colaboradores nuevos. Solo local con datos inventados, y solo sobre el espejo de una **foto** de `origin/main` (ERP idéntico y base local con las migraciones de esa foto): `node scripts/flujo-de-negocio/espejo.mjs verificar` decide, no la skill. **Solo Felipe ordena actualizar la foto, con `/actualizar-flujo`** (usa `espejo.mjs actualizar`: muestra el plan, y con su ok respalda, aplica las migraciones pendientes y crea una rama nueva idéntica a `origin/main` con la skill copiada); entre órdenes, lo nuevo de `main` se informa sin bloquear y nadie aplica migraciones por su cuenta. Un caso hecho desde el navegador guarda de verdad en el Postgres local compartido, así que todo caso pasa por `scripts/flujo-de-negocio/estado.mjs` (foto antes, restaurar después, todo o nada; probado con `estado.prueba.mjs`). Los informes y capturas van a `.flujo-de-negocio/` (fuera de git: el repo es público); los arreglos que hace son de una sola pantalla y en commit aparte, y **no toca migraciones, RPC ni permisos**).
 
 ## graphify
 

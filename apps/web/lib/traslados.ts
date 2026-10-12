@@ -4,6 +4,8 @@ import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
 import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
 import type { FirmaVigente } from "@/lib/firma-heredada";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
@@ -55,11 +57,16 @@ export type TrasladoResumen = {
   /** Solo de un anulado (ADR-0239 D-132); `null` en los demás (y en las lecturas que no traen anulados). */
   anuladoEn: string | null;
   motivoAnulacion: string | null;
+  /** Lo contado y guardado de todas las prendas (suma de lo recibido). El pase dice «faltó 1» con esto. */
+  unidadesRecibidas: number;
+  /** Quién envió la caja (el pase dice «Envía Marco A.»). Solo lo trae `getTrasladosDeLaSede`; `null` en las demás lecturas o si
+   *  el nombre no se pudo leer. */
+  creadoPorNombre: string | null;
 };
 
 export type { FotoTraslado };
 
-const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota,
+const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota, creado_por,
   origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
   destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre ),
   transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, color:colores ( hex ), producto:productos ( referencia ) ) ),
@@ -80,6 +87,7 @@ type FilaResumen = {
   confirmado_en: string | null;
   cerrado_en: string | null;
   nota: string | null;
+  creado_por?: string | null;
   origen: { nombre: string } | null;
   destino: { nombre: string } | null;
   transferencia_items:
@@ -102,7 +110,7 @@ type FilaResumen = {
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
-function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = new Map()): TrasladoResumen {
+function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = new Map(), nombres: Map<string, string> = new Map()): TrasladoResumen {
   const items = f.transferencia_items ?? [];
   // Un producto con tres tallas en el mismo traslado se nombra una vez.
   const referencias = Array.from(new Set(items.map((i) => i.variante?.producto?.referencia).filter((r): r is string => !!r)));
@@ -144,7 +152,26 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
     lineasContadas: conteo.contadas,
     anuladoEn: f.anulado_en ?? null,
     motivoAnulacion: f.motivo_anulacion ?? null,
+    unidadesRecibidas: (f.transferencia_recepciones ?? []).reduce((acc, r) => acc + r.cantidad_recibida, 0),
+    creadoPorNombre: f.creado_por ? (nombres.get(f.creado_por) ?? null) : null,
   };
+}
+
+/** Los nombres de quienes enviaron. Decorativo: si la lectura falla, el pase sale sin «Envía…», nunca sin pase. */
+async function leerNombres(supabase: Cliente, ids: string[]): Promise<Map<string, string>> {
+  const unicos = Array.from(new Set(ids));
+  if (unicos.length === 0) return new Map();
+  try {
+    const { data, error } = await supabase.rpc("fn_nombres_personas", { p_ids: unicos });
+    if (error || !data) {
+      console.error("Nombres de quienes enviaron:", error?.message);
+      return new Map();
+    }
+    return new Map((data as { id: string; nombre: string }[]).map((n) => [n.id, n.nombre] as const));
+  } catch (e) {
+    console.error("Nombres de quienes enviaron:", e);
+    return new Map();
+  }
 }
 
 async function filasEnCurso(supabase: Cliente, ubicacionId: string): Promise<FilaResumen[]> {
@@ -234,9 +261,12 @@ export async function getTrasladosDeLaSede(
   const supabase = await createClient();
   const [abiertas, cerradas] = await Promise.all([filasEnCurso(supabase, ubicacionId), filasCerradas(supabase, ubicacionId, limiteCerrados)]);
   const productoIds = [...abiertas, ...cerradas].flatMap((f) => (f.transferencia_items ?? []).map((i) => i.variante?.producto_id).filter((id): id is string => !!id));
-  const fotos = await leerFotosPorProducto(supabase, productoIds);
-  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos)));
-  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos)));
+  const [fotos, nombres] = await Promise.all([
+    leerFotosPorProducto(supabase, productoIds),
+    leerNombres(supabase, [...abiertas, ...cerradas].flatMap((f) => (f.creado_por ? [f.creado_por] : []))),
+  ]);
+  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos, nombres)));
+  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos, nombres)));
   // `cerradosLeidos` cuenta también los vacíos: es lo que dice si la consulta llegó al tope de `limiteCerrados`.
   return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
 }
@@ -316,6 +346,9 @@ type FilaContador = {
  *
  * `transferencia_items!inner`: un traslado sin prendas (las cabeceras vacías de la limpieza de datos,
  * ver `esTrasladoVacio`) no cuenta — si no, la sede destino tendría un «por recibir» de nada.
+ *
+ * Es lo que LLEGA: Conteo («recíbelos primero») y Caja («traslados por recibir») lo usan solo. El número del menú le suma
+ * los pedidos de otras sedes: `getNumeroDelMenuTraslados`.
  */
 export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
@@ -345,6 +378,19 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
   }
 });
 
+/**
+ * El número junto a «Traslados» en el menú y en el aviso «Traslados» del Inicio (ADR-0328 act. 17, Felipe: «"Te piden"
+ * lleva número en el menú desde que llega el pedido»): lo que llega por recibir (`getTrasladosPorAtender`) más lo que
+ * otras sedes le pidieron a esta y todavía no sale (`fn_pedidos_por_atender`). La suma es `numeroDelMenuTraslados`.
+ * «Para enviar» NO suma aquí (decisión del 2026-10-04): es un paso que la sede se debe a sí misma, y lo que lleva más de
+ * 3 días se avisa en su Inicio (`paraEnviarAtrasadas`).
+ * Total como su vecina: nunca lanza. `cache()`: el layout y el Inicio lo piden en el mismo request.
+ */
+export const getNumeroDelMenuTraslados = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
+  const [porRecibir, pedidos] = await Promise.all([getTrasladosPorAtender(ubicacionId, puedeCerrarDiferencia), getPedidosPorAtender(ubicacionId)]);
+  return numeroDelMenuTraslados(porRecibir, pedidos);
+});
+
 export type LineaTraslado = {
   varianteId: string;
   sku: string;
@@ -359,7 +405,7 @@ export type LineaTraslado = {
   diferencia: number | null;
   /** Esa prenda ya entró al stock (ADR-0239 D-129): no se vuelve a contar. */
   ingresado: boolean;
-  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer): ver `ProductoVarianteCelda`. */
+  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer). */
   colorHex: string | null | undefined;
   fotoUrl: string | null;
 };

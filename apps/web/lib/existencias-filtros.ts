@@ -1,3 +1,4 @@
+import type { CoberturaPiso, RitmoReciente } from "./existencias-ritmo";
 import type { PisoDeTalla } from "./piso-plan";
 import { compararTallas } from "./tallas";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
@@ -33,10 +34,20 @@ import { claveDeTarjeta } from "./existencias-tarjetas";
 export const CLAVES_FILTRO = ["q", "cat", "marca", "talla", "color", "familia", "hoy", "condicion", "orden"] as const;
 export type ClaveUrl = (typeof CLAVES_FILTRO)[number];
 
-/** Las dos opciones de «Condición». */
-export const CONDICIONES = ["danadas", "apartadas"] as const;
+/** Las opciones de «Condición»: las dos del inventario (dañadas, apartadas) y, desde 2026-10-05, las dos del ritmo de lo que está en el
+ *  piso (se acaban, sin ventas). Como las otras, una talla puede tener varias a la vez y no excluyen a «Hoy». */
+export const CONDICIONES = ["danadas", "apartadas", "se_acaban", "sin_ventas"] as const;
 export type Condicion = (typeof CONDICIONES)[number];
-export const ROTULO_CONDICION: Record<Condicion, string> = { danadas: "Dañadas / cuarentena", apartadas: "Apartadas" };
+export const ROTULO_CONDICION: Record<Condicion, string> = {
+  danadas: "Dañadas / cuarentena",
+  apartadas: "Apartadas",
+  se_acaban: "Se acaban",
+  sin_ventas: "Sin ventas esta semana",
+};
+
+/** «Se acaban»: lo que hay colgado dura una semana o menos al Ritmo reciente (`coberturaPiso`, solo cuando el ritmo es una tasa
+ *  MEDIDA: con pocas jornadas no se dice una tasa, y por tanto tampoco «se acaba»). */
+export const DIAS_SE_ACABA = 7;
 
 /** Lo que dice la URL, ya validado. `null` o lista vacía = sin elegir. Categoría, marca, talla y color van por su NOMBRE (lo
  *  que la fila trae; el nombre de un color es único en la base): un nombre que esta sede no tiene lo descarta la pantalla,
@@ -160,6 +171,9 @@ export type FilaFiltrable = {
   apartado: number;
   pisoDisponible: number | null;
   almacenDisponible: number | null;
+  /** El ritmo reciente de la talla en el piso (`existencias-ritmo.ts`): para «Se acaban» y «Sin ventas». Ausente o null = no se pudo calcular. */
+  coberturaPiso?: CoberturaPiso | null;
+  ritmoReciente?: RitmoReciente | null;
 };
 
 /** El índice del buscador: nombre, código, códigos de barras, color, talla, marca y categoría, en cualquier orden. */
@@ -194,8 +208,20 @@ export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?
   return true;
 }
 
-function tieneCondicion(f: FilaFiltrable, c: Condicion): boolean {
-  return c === "danadas" ? (f.danado ?? 0) > 0 : f.apartado > 0;
+export function tieneCondicion(f: FilaFiltrable, c: Condicion): boolean {
+  switch (c) {
+    case "danadas":
+      return (f.danado ?? 0) > 0;
+    case "apartadas":
+      return f.apartado > 0;
+    case "se_acaban":
+      // Algo colgado que dura menos de una semana al ritmo medido. Sin ritmo medido (pocas jornadas) no se afirma nada.
+      return (f.pisoDisponible ?? 0) > 0 && f.coberturaPiso?.tipo === "medida" && f.coberturaPiso.dias <= DIAS_SE_ACABA;
+    case "sin_ventas":
+      // Con jornadas suficientes en el piso y NINGUNA venta en la ventana (decisión de Felipe, 2026-09-25: se dice «sin ventas esta semana»,
+      // nunca «nunca vende»). Con pocas jornadas (`insuficiente`) no se dice nada.
+      return (f.pisoDisponible ?? 0) > 0 && f.ritmoReciente?.tipo === "sin_salida";
+  }
 }
 
 /** La lista filtrada: el texto Y las píldoras, todo a la vez, como en Productos (2026-10-03). Antes, si el texto decía una talla

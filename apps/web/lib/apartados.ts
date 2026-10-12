@@ -38,7 +38,8 @@ export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTe
     clienta: f.clienta_nombre,
     contacto: f.clienta_contacto,
     nota: f.nota ?? null,
-    venceEl: f.vence_el,
+    // Null = la reserva de un pedido de otra sede: no vence (ADR-0328 act. 17, decisión del 2026-10-04).
+    venceEl: f.vence_el ?? null,
     creadoEn: f.created_at,
     apartoNombre: f.creado_por_nombre ?? null,
     puedeLiberar: opciones.esTerminal === true || f.puede_liberar,

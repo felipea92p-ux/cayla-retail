@@ -96,21 +96,6 @@ export const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
   nota_venta: "Nota de venta",
 };
 
-export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
-  pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  pendiente_reintento: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
-  rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
-  anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
-  // Mismo tono apagado que "anulado" — ambos son estados cerrados que ya no piden
-  // acción — pero es un color, no una palabra: la etiqueta de abajo es la que dice
-  // la diferencia real (nunca se transmitió, nada que ver con SUNAT).
-  no_emitido: "border-tinta/20 bg-tinta/5 text-tinta/65",
-  // La nota de venta: cerrada desde que nace, no pide ninguna acción ante SUNAT.
-  interna: "border-tinta/20 bg-tinta/5 text-tinta/65",
-};
-
 export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   pendiente: "Pendiente de enviar",
   pendiente_reintento: "En cola: se reintenta solo",

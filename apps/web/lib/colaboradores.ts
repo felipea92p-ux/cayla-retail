@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar, type Tolerado } from "@/lib/resultado";
+import { presentesDeTurno } from "@/lib/equipo-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Las escrituras pasan por las RPC
 // directo desde el componente cliente (`lib/colaboradores-acciones.ts`).
@@ -148,4 +149,18 @@ export async function getDynamicDisponibles(): Promise<DynamicDisponible[]> {
   const supabase = await createClient();
   const res = await supabase.rpc("fn_dynamic_disponibles");
   return exigir(res, "las cuentas de Dynamic disponibles") as unknown as DynamicDisponible[];
+}
+
+/** Quiénes están de turno hoy en cada tienda (asistencia de Dynamic, `fn_asesoras_de_turno`): el punto verde de Equipo.
+ *  Se TOLERA sede por sede: si una no se puede leer (sin permiso para operarla, o Dynamic no responde), esa sede sale sin
+ *  puntos y el resto sigue. Nunca bloquea la pantalla: es una señal, no un dato del que dependa una acción. */
+export async function getDeTurnoHoy(ubicacionIds: readonly string[]): Promise<string[]> {
+  const supabase = await createClient();
+  const porSede = await Promise.all(
+    ubicacionIds.map(async (id) => {
+      const res = await supabase.rpc("fn_asesoras_de_turno", { p_ubicacion_id: id });
+      return res.error ? [] : presentesDeTurno(res.data ?? []);
+    }),
+  );
+  return [...new Set(porSede.flat())];
 }

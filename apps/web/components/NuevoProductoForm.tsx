@@ -15,7 +15,7 @@ import { AtajosTallas, ElegirTallas } from "@/components/alta-producto/ElegirTal
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
-import { AvisoInline, ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
+import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
@@ -23,8 +23,9 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { ParecidasBajoNombre, PieConParecidas, RevisaParecidasDelPaso } from "@/components/alta-producto/ParecidasDelAlta";
 import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
-import { asegurarVisible, estaEscribiendo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
-import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
+import { asegurarVisible, estaEscribiendo, irAlIdCampo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
+import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
+import { PuntosAvance, type PasoConNombre } from "@/components/alta-producto/PuntosAvance";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidasAlta } from "@/lib/useParecidasAlta";
@@ -88,7 +89,10 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
+import { montoDeCelda } from "@/lib/tabla-alta-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
+import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -103,14 +107,15 @@ const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 // casillas de fotos, tabla de variantes, tabla de stock); había tres marcadores de avance a la vez (barra de 5 segmentos,
 // números del acordeón y la caja «Siguiente paso»); y tejido y patrón, que DESCRIBEN la prenda, vivían con sus variantes.
 // Ahora tejido y patrón van con el nombre; la tabla se arma una vez (paso 3) y en el 4 se llena; y el único marcador de
-// avance, además del acordeón, es la lista «Avance» bajo la ficha.
+// avance son los 4 puntos de arriba (`PuntosAvance`, ADR-0260 act. 2026-10-06): reemplazaron a los números del acordeón y a
+// la lista «Avance» de la ficha.
 // TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», a la vista al abrir el paso pero plegables (plegado, la
 // línea dice lo elegido): son opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas
 // conservan su selector con dibujo por concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto
 // o dibujo real (`contexto.imagenes`).
-// Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
-// punteada. A la derecha, la prenda tal como va a quedar y la lista «Avance» (las 4 preguntas, tocables). En celular esa
-// ficha baja a una barra pegada abajo con «Crear».
+// Se dibuja solo el paso abierto (desde el 2026-10-06; antes el terminado se plegaba en una línea con «Cambiar» y el que
+// venía era una línea punteada): a un paso hecho se vuelve tocando su punto, o con «← Atrás» al pie del paso. A la derecha,
+// la prenda tal como va a quedar. En celular esa ficha baja a una barra pegada abajo con «Crear».
 //
 // Diseñado para que equivocarse sea difícil, no para avisar después:
 //   * la categoría se elige con tarjetas (arrastra prefijo, tallas, tejidos) y al elegirla se pasa sola al paso 2;
@@ -134,6 +139,14 @@ const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 //
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
+
+/** El nombre de cada paso bajo su punto de avance: [escritorio, celular] (en 375 px los cuatro tienen que caber). */
+const NOMBRES_PUNTO: Record<NumeroPaso, [string, string]> = {
+  1: ["Categoría", "Categoría"],
+  2: ["Cómo es", "Cómo es"],
+  3: ["Tallas y colores", "Tallas"],
+  4: ["Precio y cantidad", "Precio"],
+};
 
 const TITULOS: Record<NumeroPaso, string> = {
   1: "¿A qué categoría pertenece?",
@@ -206,6 +219,8 @@ export function NuevoProductoForm({
   const [costoTocado, setCostoTocado] = useState(false);
   const [excluidas, setExcluidas] = useState<Set<string>>(new Set());
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
+  // El costo propio de una celda (pestaña «Costos» de la tabla, 2026-10-10); vacía = el costo de arriba.
+  const [overrideCosto, setOverrideCosto] = useState<Record<string, string>>({});
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
   // Las etiquetas creadas AQUÍ (campo «Etiquetas» del paso 2) se suman a las que trajo la página; si la página se relee
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
@@ -250,7 +265,7 @@ export function NuevoProductoForm({
   const fotoActual = fotoFormulario({
     categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
-    overridePrecio, etiquetasElegidas, cantidades, sinStock, lugarCarga,
+    overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
   const [fotoAlAbrir] = useState(fotoActual);
   const salida = useSalidaSinGuardar(
@@ -332,6 +347,7 @@ export function NuevoProductoForm({
     setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
+    setOverrideCosto({});
     setCantidades({});
     // Mientras la persona no haya escrito un costo, el que hay es el sugerido de la categoría ANTERIOR: al cambiar, se
     // reemplaza por el de la nueva o se vacía. Dejarlo sería guardar el costo de una blusa como el de un bolso.
@@ -351,6 +367,7 @@ export function NuevoProductoForm({
     setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
+    setOverrideCosto({});
   }
 
   function alternarColor(codigo: string) {
@@ -477,7 +494,18 @@ export function NuevoProductoForm({
     // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa de la marca al tejido
     // (el tinte se mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o
     // pantalla táctil.
-    if (ahoraCampo && previa.ahora !== ahoraCampo && !estaEscribiendo()) asegurarVisible(ahoraCampo);
+    // Tampoco si la luz VUELVE a un campo porque la persona lo está tocando (`escribiendoEn`): ya está ahí. En el celular, deslizar la
+    // pantalla soltaba «Colores» y el siguiente círculo tocado lo volvía a encender; la guía lo «traía a la vista» y, como la carta es
+    // más alta que la pantalla, la subía al inicio de los colores (Felipe, 2026-10-09).
+    if (ahoraCampo && previa.ahora !== ahoraCampo && ahoraCampo !== escribiendoEn && !estaEscribiendo()) {
+      // Marca y proveedor recién elegidos y el nombre todavía vacío: se lleva a la persona AL nombre, con el cursor listo (Felipe,
+      // 2026-10-09: en el celular la luz pasaba al nombre pero el cursor seguía en «Proveedor»). Es la única pausa que la persona
+      // cierra eligiendo, no escribiendo, así que nadie está tecleando en otro lado.
+      if (previa.ahora === "marca" && ahoraCampo === "nombre" && referencia.trim() === "") irAlIdCampo("nombre", { destello: false, cursor: true });
+      else asegurarVisible(ahoraCampo);
+    }
+    // `referencia` se lee solo cuando cambia el campo de turno: no debe disparar el efecto en cada letra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paso, ahoraCampo, guia]);
 
   function estadoPaso(n: NumeroPaso): "abierto" | "hecho" | "pendiente" {
@@ -532,16 +560,21 @@ export function NuevoProductoForm({
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
-    const costo = costoBase.trim() === "" ? 0 : costoNum;
+    const costoDeTodas = costoBase.trim() === "" ? 0 : costoNum;
     const variantes = celdasIncluidas.map((c) => {
-      const o = overridePrecio[c.clave];
-      const precio = o !== undefined && o !== "" ? Number(o) : precioNum;
+      // Cada celda lleva su precio y su costo propios (pestañas «Precios» y «Costos» de la tabla); vacía = el de todas.
+      const precio = montoDeCelda(overridePrecio[c.clave], precioNum);
+      const costo = montoDeCelda(overrideCosto[c.clave], costoDeTodas);
       // Solo viaja la cantidad de la celda que tiene stock: sin la clave, la base no carga nada (y no inventa un cero).
       const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
       avisar.error("Una de las celdas tiene un precio inválido.");
+      return;
+    }
+    if (variantes.some((v) => !Number.isFinite(v.costo) || v.costo < 0)) {
+      avisar.error("Una de las celdas tiene un costo inválido.");
       return;
     }
     const conStock = stock.total > 0;
@@ -693,6 +726,7 @@ export function NuevoProductoForm({
     setColoresElegidos([]);
     setExcluidas(new Set());
     setOverridePrecio({});
+    setOverrideCosto({});
     // Las cantidades son de ESA prenda: la parecida se cuenta de nuevo. Dónde están (piso o almacén) sí se conserva.
     setCantidades({});
     setSinStock(false);
@@ -726,7 +760,7 @@ export function NuevoProductoForm({
     );
   }
 
-  // ---------- la línea de cada paso plegado (y de la lista «Avance» de la ficha) ----------
+  // ---------- lo contestado en cada paso: sale al dejar el mouse sobre su punto de avance ----------
   const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
   // Lo que dice «Temporada y etiquetas · opcional» plegado: solo lo que se eligió a propósito.
   const resumenMas =
@@ -774,7 +808,11 @@ export function NuevoProductoForm({
     const listo = listoBase && faltan.length === 0 && !revisa;
     // Lo que lee el lector de pantalla cuando «Falta: …» está a la vista: por qué «Crear» espera, o qué hay por revisar.
     const texto = n === 2 ? (parecidos.motivoBloqueo ?? revisa ?? textoBase) : textoBase;
-    const accion =
+    // «← Atrás» (Felipe, 2026-10-06): vuelve al paso anterior sin borrar nada de lo llenado. Va antes de la acción que cierra el paso.
+    const atras = (
+      <Volver onClick={() => irAPaso((n - 1) as NumeroPaso)} deshabilitado={cargando} a="Volver al paso anterior" />
+    );
+    const cierre =
       n < 4 ? (
         <button
           type="button"
@@ -795,6 +833,12 @@ export function NuevoProductoForm({
           {textoCrear}
         </button>
       );
+    const accion = (
+      <>
+        {atras}
+        {cierre}
+      </>
+    );
     const faltanTocables = faltan.length > 0 ? <FaltanDelPaso faltan={faltan} ahora={ahoraCampo} onIr={irACampo} /> : undefined;
     return {
       texto,
@@ -1022,7 +1066,7 @@ export function NuevoProductoForm({
           {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
           <div className="border-t border-sand pt-3.5">
             {tallasCategoria.length > 0 && tallasElegidas.length === 0 ? (
-              <AvisoInline tono="neutro">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</AvisoInline>
+              <Aviso tono="info">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</Aviso>
             ) : (
               <MatrizVariantes
                 celdas={celdas}
@@ -1071,9 +1115,9 @@ export function NuevoProductoForm({
           </div>
           {nivel === "negativo" && (
             <div className="mt-3">
-              <AvisoInline tono="rojo" alerta>
+              <Aviso tono="error">
                 Con este precio pierdes dinero en cada venta.
-              </AvisoInline>
+              </Aviso>
             </div>
           )}
         </FilaAlta>
@@ -1099,15 +1143,18 @@ export function NuevoProductoForm({
               precioBase={precioBase}
               precios={overridePrecio}
               onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
+              costoBase={costoBase}
+              costos={overrideCosto}
+              onCosto={(clave, valor) => setOverrideCosto((prev) => ({ ...prev, [clave]: valor }))}
               destinoEtiqueta={destino.etiqueta}
               cantidadesCerradas={cargaCerrada ? avisoCarga : null}
             />
 
             {cargaCerrada ? (
               // La salida, dicha donde se iba a escribir: el producto se crea sin unidades y lo que haya entra por otra puerta.
-              <AvisoInline tono="neutro">
+              <Aviso tono="info">
                 {avisoCarga} Este producto se crea sin unidades: lo que llegue de un proveedor entra por Recibir.
-              </AvisoInline>
+              </Aviso>
             ) : stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
@@ -1160,9 +1207,9 @@ export function NuevoProductoForm({
     );
   }
 
-  // La lista «Avance» de la ficha: cada pregunta con su resumen (contestada), lo que le falta (abierta) o «—» (todavía no
-  // se llega). Se toca para volver a una; la que no se alcanza no responde.
-  const avance: PasoAvance[] = PASOS_ALTA.map((n) => {
+  // Los puntos de avance (ADR-0260 act. 2026-10-06): cada pregunta con su estado y, al dejar el mouse encima, su resumen (contestada),
+  // lo que le falta (abierta) o «—» (todavía no se llega). Un punto hecho se toca para volver a ese paso; el que no se alcanza no responde.
+  const avance: PasoConNombre[] = PASOS_ALTA.map((n) => {
     const e = estadoPaso(n);
     const abrible = e !== "pendiente" || pasoAbrible(problemas, n);
     const pieN = n === 1 ? null : piePaso(problemas, n, responsableAlta);
@@ -1184,7 +1231,7 @@ export function NuevoProductoForm({
             : abrible
               ? (faltanN ?? (faltaDelPasoProblema(problemas, n) ?? "Por revisar"))
               : "—";
-    return { numero: n, titulo: TITULOS[n], estado: e, texto, abrible };
+    return { numero: n, nombre: NOMBRES_PUNTO[n][0], nombreCorto: NOMBRES_PUNTO[n][1], estado: e, detalle: texto === "—" ? "" : texto, abrible };
   });
 
   return (
@@ -1199,31 +1246,31 @@ export function NuevoProductoForm({
           }}
           className="space-y-4"
         >
-          {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
             <div className="min-w-0 space-y-2.5">
+              {/* Los 4 puntos, pegados arriba mientras se baja por el paso (ADR-0260 act. 2026-10-06). */}
+              <PuntosAvance pasos={avance} onAbrir={(n) => irAPaso(n as NumeroPaso)} />
               <QuienRegistra control={responsable} deshabilitado={cargando} />
               <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
               {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
                   operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
               {!enLinea && (
-                <AvisoInline tono="ambar">
+                <Aviso tono="atencion">
                   <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
                   marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
                   revisar al subir).
-                </AvisoInline>
+                </Aviso>
               )}
               {copiadoDe && (
-                <AvisoInline tono="neutro">
+                <Aviso tono="info">
                   Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
                   temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
-                </AvisoInline>
+                </Aviso>
               )}
-              {PASOS_ALTA.map((n) => (
-                <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
-                  {cuerpo(n)}
-                </PasoAlta>
-              ))}
+              {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
+              <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
+                {cuerpo(paso)}
+              </PasoAlta>
             </div>
 
             <FichaPrevia
@@ -1241,13 +1288,11 @@ export function NuevoProductoForm({
                 colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
                 foto: fotosOrdenadas[0]?.vista ?? null,
                 fotos: fotos.length,
-                avance,
                 siguiente: siguienteDelAlta(problemas, responsableAlta),
                 guia: hilo ? { texto: hilo.campo.pendiente, nombre: hilo.campo.nombre, bloquea: hilo.bloquea, onIr: () => irACampo(hilo.campo) } : null,
               }}
               cargando={cargando}
               onCancelar={() => salida.pedirSalir("/productos")}
-              onAbrirPaso={irAPaso}
               parecidas={parecidos.ficha}
             />
           </div>

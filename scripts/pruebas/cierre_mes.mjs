@@ -13,7 +13,8 @@
  *   · el consolidado exige todas las unidades; su huella es la de las huellas;
  *   · reabrir pide motivo, queda en la historia y reabre el consolidado; volver a cerrar crea la versión 2 sin borrar la 1;
  *   · los chequeos: cajas abiertas, egresos sin clasificar, prendas por regularizar y diario descuadrado BLOQUEAN; gastos
- *     fijos que faltan, bancos sin conciliar y prendas sin costo AVISAN y quedan guardados en el cierre;
+ *     fijos que faltan, bancos sin conciliar, prendas sin costo y ventas «cerradas sin prenda» (ADR-0334: costo desconocido,
+ *     ADR-0337) AVISAN y quedan guardados en el cierre;
  *   · `fn_diario` trae lo congelado aunque el diario vivo cambie, y el chequeo de la huella lo delata;
  *   · el líder o quien tiene el módulo «Cierre de mes» (se delega desde el ADR-0253); nadie lee las tablas directo; lo
  *     congelado no se edita ni se borra.
@@ -343,6 +344,91 @@ ${cambiaA(FELIPE)}
 select 'F4 el líder sí', (select jsonb_typeof(retail.fn_cierre_panel('2025-03-01')) = 'object');
 `;
 
+// ---- G · Ventas «cerradas sin prenda» (ADR-0334): el cierre de mes las AVISA y no las bloquea (ADR-0337) ---------------------------
+// Una venta sin registrar que un líder dio por hecha conserva su línea en «Cargo especial» con costo 0: el ingreso es real, el costo
+// no existe y el margen sale inflado. Mientras estaba PENDIENTE la frenaba `regularizar`; cerrada, no la nombraba nadie.
+const CENTINELA = "22222222-2222-4222-8222-222222222222";
+const CASOS_CERRADAS_SIN_PRENDA = `
+-- Una venta sin registrar: su línea en «Cargo especial» con costo 0 y su fila en la cola de por regularizar.
+create function pg_temp.sin_registrar(p_n text, p_ubic uuid, p_cuando timestamptz, p_precio numeric) returns void language plpgsql as $f$
+begin
+  perform pg_temp.vender(p_n, p_ubic, p_cuando, '${CENTINELA}', p_precio, 0, jsonb_build_array(jsonb_build_object('m', 'efectivo', 'v', p_precio)));
+  insert into retail.prendas_por_regularizar (venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, vendido_en)
+  select pg_temp.k(p_n || 'i'), p_ubic, 'Blusa sin código', (select id from retail.categorias limit 1), (select id from retail.tallas limit 1),
+         (select codigo from retail.colores limit 1), p_precio, p_cuando;
+end $f$;
+select pg_temp.sin_registrar('S5', :'tru', '2025-03-18 12:00-05', 80);
+select pg_temp.sin_registrar('S6', :'tru', '2025-03-19 12:00-05', 70);
+select 'G1 mientras están PENDIENTES no hay aviso: las frena «regularizar» (bloquea y dice 2)',
+  (select pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') is null)
+  and (select (x ->> 'bloquea')::boolean and not (x ->> 'ok')::boolean and (x -> 'datos' ->> 'n')::int = 2 from pg_temp.chequeo(:'tru', 'regularizar') x);
+select 'G1 y «sin costo» tampoco las cuenta (excluye «Cargo especial»)', (select pg_temp.chequeo(:'tru', 'sin_costo') is null);
+
+-- Un líder cierra la cola de TRU (la función real de ADR-0334): las dos pasan a «cerrada sin prenda».
+insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'tru', ${HOY} + 30) on conflict (ubicacion_id) do update set hasta = excluded.hasta;
+select retail.cerrar_cola_arranque(:'tru', now() - interval '1 second', 'no_se_sabe', 'prueba del cierre de mes') as cola \\gset
+select 'G2 cerrada la cola, el chequeo AVISA (no bloquea) y dice cuántas y cuánto: 2 ventas, S/ 150',
+  (select not (x ->> 'ok')::boolean and not (x ->> 'bloquea')::boolean and (x -> 'datos' ->> 'n')::int = 2 and (x -> 'datos' ->> 'monto')::numeric = 150
+     from pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') x);
+select 'G2 «regularizar» ya no bloquea: una cola cerrada no está por regularizar', (select pg_temp.chequeo(:'tru', 'regularizar') is null);
+select 'G2 sigue sin contarse en «sin costo» (cura distinta: a estas no se les puede cargar el costo)', (select pg_temp.chequeo(:'tru', 'sin_costo') is null);
+select 'G2 la unidad queda lista para cerrar y con 1 aviso', (select bloqueantes = 0 and avisos = 1 from retail.fn_cierre_mes_estado('2025-03-01') where ubicacion_id = :'tru');
+select 'G2 es de TRU: Lima (otra sede, mismo mes) no tiene el aviso', (select pg_temp.chequeo(:'lim', 'cerrada_sin_prenda') is null);
+select 'G2 el panel (lo que lee la pantalla) trae el chequeo con su n y su monto',
+  (select exists (select 1 from jsonb_array_elements(retail.fn_cierre_panel('2025-03-01') -> 'unidades') u, jsonb_array_elements(u -> 'chequeos') x
+                   where u ->> 'ubicacion_id' = :'tru' and x ->> 'clave' = 'cerrada_sin_prenda'
+                     and (x -> 'datos' ->> 'n')::int = 2 and (x -> 'datos' ->> 'monto')::numeric = 150));
+
+-- Lo que NO cuenta: un mes distinto, una venta de prueba y una venta anulada después de cerrarse.
+select pg_temp.sin_registrar('S7', :'tru', '2025-04-05 12:00-05', 55);
+select pg_temp.sin_registrar('S8', :'tru', '2025-03-22 12:00-05', 40);
+select pg_temp.sin_registrar('S9', :'tru', '2025-03-23 12:00-05', 30);
+update retail.prendas_por_regularizar set estado = 'cerrada_sin_prenda', cierre_id = :'cola' where venta_item_id in (pg_temp.k('S7i'), pg_temp.k('S8i'), pg_temp.k('S9i'));
+update retail.ventas set es_prueba = true where id = pg_temp.k('S8');
+update retail.ventas set estado = 'anulada', anulado_en = now(), motivo_anulacion = 'la clienta volvió' where id = pg_temp.k('S9');
+select 'G3 la cerrada de ABRIL no entra en el aviso de marzo', (select (x -> 'datos' ->> 'n')::int = 2 from pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') x);
+select 'G3 ni la venta de prueba, ni la anulada (anular una venta cerrada saca su fila de la cola)',
+  (select (x -> 'datos' ->> 'n')::int = 2 and (x -> 'datos' ->> 'monto')::numeric = 150 from pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') x)
+  and (select estado = 'anulada' from retail.prendas_por_regularizar where venta_item_id = pg_temp.k('S9i'));
+
+-- Defensa en profundidad: una venta anulada por una vía que no pasó por el disparador (su fila seguiría «cerrada») tampoco cuenta;
+-- el aviso habla de lo que SÍ está en el ingreso del mes.
+select pg_temp.sin_registrar('S11', :'tru', '2025-03-24 12:00-05', 20);
+update retail.prendas_por_regularizar set estado = 'cerrada_sin_prenda', cierre_id = :'cola' where venta_item_id = pg_temp.k('S11i');
+set local session_replication_role = replica;
+update retail.ventas set estado = 'anulada', anulado_en = now(), motivo_anulacion = 'por fuera' where id = pg_temp.k('S11');
+set local session_replication_role = origin;
+select 'G3 una venta anulada por fuera del disparador (su fila sigue cerrada) tampoco cuenta',
+  (select estado = 'cerrada_sin_prenda' from retail.prendas_por_regularizar where venta_item_id = pg_temp.k('S11i'))
+  and (select (x -> 'datos' ->> 'n')::int = 2 and (x -> 'datos' ->> 'monto')::numeric = 150 from pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') x);
+
+-- El orden en pantalla: sin costo (7) → cerradas sin prenda (8) → diario (9) → huella (10, solo en una unidad cerrada).
+select pg_temp.vender('S10', :'tru', '2025-03-21 12:00-05', :'va', 90, 0, '[{"m":"efectivo","v":90}]');
+select 'G4 el orden: sin costo, luego cerradas sin prenda, luego el diario',
+  (select array_position(c.claves, 'sin_costo') < array_position(c.claves, 'cerrada_sin_prenda') and array_position(c.claves, 'cerrada_sin_prenda') < array_position(c.claves, 'diario')
+     from (select array_agg(t.x ->> 'clave' order by t.i) as claves
+             from retail.fn_cierre_mes_estado('2025-03-01') e, jsonb_array_elements(e.chequeos) with ordinality t(x, i)
+            where e.ubicacion_id = :'tru') c);
+select 'G4 con las dos cosas avisando, la unidad sigue lista (0 que bloqueen, 2 avisos)', (select bloqueantes = 0 and avisos = 2 from retail.fn_cierre_mes_estado('2025-03-01') where ubicacion_id = :'tru');
+
+-- Reabrir una cerrada (una clienta la devolvió): sale del aviso y vuelve a bloquear como pendiente.
+select retail.reabrir_prenda_cerrada(p.id, 'devolucion_o_cambio') from retail.prendas_por_regularizar p where p.venta_item_id = pg_temp.k('S5i');
+select 'G5 reabrir una cerrada baja el aviso a 1 (S/ 70)', (select (x -> 'datos' ->> 'n')::int = 1 and (x -> 'datos' ->> 'monto')::numeric = 70 from pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') x);
+select 'G5 y la reabierta vuelve a BLOQUEAR el cierre (regularizar: 1)', (select (x ->> 'bloquea')::boolean and not (x ->> 'ok')::boolean and (x -> 'datos' ->> 'n')::int = 1 from pg_temp.chequeo(:'tru', 'regularizar') x);
+select 'G5 con una pendiente no se cierra', (select pg_temp.intento(format('select retail.cerrar_periodo(''2025-03-01'', ''ubicacion'', %L)', :'tru')) like '%falta regularizar las prendas vendidas.');
+select retail.cerrar_cola_arranque(:'tru', now() - interval '1 second', 'no_se_sabe', 'otra vez') as cola2 \\gset
+select 'G5 vuelta a cerrar la cola: el aviso vuelve a 2 y nada bloquea', (select (x -> 'datos' ->> 'n')::int = 2 from pg_temp.chequeo(:'tru', 'cerrada_sin_prenda') x) and (select bloqueantes = 0 from retail.fn_cierre_mes_estado('2025-03-01') where ubicacion_id = :'tru');
+
+-- Cerrar el mes CON el aviso: no bloquea, y el mes congelado deja constancia de lo que no sabía.
+select retail.cerrar_periodo('2025-03-01', 'ubicacion', :'tru') as r \\gset
+select 'G6 el mes se cierra con el aviso (no bloquea) y queda guardado en el cierre con su cifra',
+  (select avisos @> '[{"clave":"cerrada_sin_prenda","ok":false,"bloquea":false,"datos":{"n":2}}]' from retail.periodo_cierres where id = (:'r'::jsonb ->> 'cierre_id')::uuid);
+select 'G6 con su monto (S/ 150) y junto al de «sin costo»',
+  (select (a -> 'datos' ->> 'monto')::numeric = 150 from retail.periodo_cierres c, jsonb_array_elements(c.avisos) a where c.id = (:'r'::jsonb ->> 'cierre_id')::uuid and a ->> 'clave' = 'cerrada_sin_prenda')
+  and (select avisos @> '[{"clave":"sin_costo"}]' from retail.periodo_cierres where id = (:'r'::jsonb ->> 'cierre_id')::uuid);
+select 'G6 ya cerrado, el diario de hoy da la misma huella (el aviso no cambia los números)', (select (pg_temp.chequeo(:'tru', 'huella') ->> 'ok')::boolean);
+`;
+
 const BLOQUES = [
   ["A · cerrar TRU y el candado por fecha", CASOS_CIERRE],
   ["B · consolidado, reabrir y volver a cerrar", CASOS_CONSOLIDADO],
@@ -350,6 +436,7 @@ const BLOQUES = [
   ["D · de la empresa y las dos puntas del dinero", CASOS_EMPRESA],
   ["E · fn_diario y la huella", CASOS_DIARIO],
   ["F · el líder o quien tiene el módulo", CASOS_PERMISOS],
+  ["G · ventas cerradas sin prenda: avisan, no bloquean", CASOS_CERRADAS_SIN_PRENDA],
 ];
 for (const [titulo, casosSql] of BLOQUES) {
   verificar(titulo, correr(`${ESCENA}\n${casosSql}`), casosDe(casosSql));

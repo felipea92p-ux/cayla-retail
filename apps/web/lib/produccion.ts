@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerTodas, opcional, type Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
+import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
 // escritura pasa por las RPC de `20260915130000_produccion_del_taller.sql`
@@ -10,7 +11,7 @@ import { compararTallas } from "@/lib/tallas";
 // se muestra es stock que nadie sabe que existe.
 
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
-import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden } from "@/lib/produccion-reglas";
+import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -39,9 +40,13 @@ export type OrdenProduccion = {
   cantidadBuenas: number | null;
   /** Generado por la base: costos ÷ buenas (o ÷ plan mientras no cierre). */
   costoUnitario: number;
-  /** Precio de venta del modelo (el mayor entre sus variantes), para el
-   *  semáforo de margen. 0 si el modelo aún no tiene precio. */
+  /** Precio de venta del modelo (el mayor entre sus variantes), el de la grilla. 0 si el modelo aún no tiene precio. */
   precioVenta: number;
+  /** Las tallas del modelo: con ellas se busca el precio propio más bajo de una tienda (ADR-0370). */
+  varianteIdsDelModelo: string[];
+  /** Solo el líder lo recibe (`conPreciosMasBajos` en la página): el precio propio más bajo que alguna tienda le pone al modelo, si queda bajo la grilla.
+   *  Con él se mide el margen (`precioParaMargen`); `precioVenta` no cambia. */
+  precioMasBajo?: PrecioMasBajo;
   fechaEntrega: string | null;
   nota: string | null;
   inventariadoEn: string | null;
@@ -81,7 +86,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
       .select(
         `id, producto_id, estado, es_muestra, etapas,
          cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
-         producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( precio ) ),
+         producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( id, precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
            variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ) )
@@ -108,6 +113,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     cantidadBuenas: p.cantidad_buenas,
     costoUnitario: Number(costos.get(p.id)?.costo_unitario ?? 0),
     precioVenta: Math.max(0, ...(p.producto?.variantes ?? []).map((v) => Number(v.precio))),
+    varianteIdsDelModelo: (p.producto?.variantes ?? []).map((v) => v.id),
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,
     inventariadoEn: p.inventariado_at,
@@ -137,7 +143,11 @@ export type ModeloProducible = {
   productoId: string;
   referencia: string;
   categoria: string | null;
+  /** Para leer lo que el motor de demanda dice de su categoría (ADR-0347). */
+  categoriaId: string | null;
   variantes: VarianteDeModelo[];
+  /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
+  precioMasBajo?: PrecioMasBajo;
 };
 
 /** Modelos con sus variantes activas, para el formulario de nueva orden. Un
@@ -152,7 +162,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
       supabase
         .from("productos")
         .select(
-          `id, referencia, categoria:categorias ( nombre ),
+          `id, referencia, categoria_id, categoria:categorias ( nombre ),
            variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
         )
         .order("referencia")
@@ -167,6 +177,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
       productoId: p.id,
       referencia: p.referencia,
       categoria: p.categoria?.nombre ?? null,
+      categoriaId: p.categoria_id ?? null,
       variantes: (p.variantes ?? [])
         .filter((v) => v.activo)
         .map((v) => ({
@@ -185,4 +196,28 @@ function compararLineas(a: { color: string | null; talla: string | null }, b: { 
   const porColor = (a.color ?? "").localeCompare(b.color ?? "", "es");
   if (porColor !== 0) return porColor;
   return compararTallas(a.talla ?? "", b.talla ?? "");
+}
+
+/** Categorías (con sus tallas habilitadas), colores y familias que el formulario de «Modelo nuevo» ofrece (ADR-0361). Es un dato SECUNDARIO: si no se lee, la orden
+ *  de siempre sigue abriéndose y solo «Modelo nuevo» avisa que no tiene con qué armarse (principio 9). Son tablas de vocabulario, de lectura abierta a toda sesión. */
+export async function getVocabularioModeloNuevo(): Promise<Tolerado<VocabularioModeloNuevo>> {
+  const fallo = "No se pudieron cargar las tallas y los colores. Lo demás de esta pantalla sí está al día.";
+  const leido = await opcional(
+    (async () => {
+      const supabase = await createClient();
+      const [categorias, colores, familias] = await Promise.all([
+        supabase
+          .from("categorias")
+          .select("id, nombre, prefijo, familia, categoria_padre_id, categoria_tallas ( habitual, talla:tallas ( id, valor, activo ) )")
+          .eq("activo", true)
+          .order("nombre"),
+        supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx").eq("activo", true).order("orden").order("nombre"),
+        supabase.from("familias").select("codigo, nombre").order("nombre"),
+      ]);
+      if (categorias.error || colores.error || familias.error) return null;
+      return armarVocabulario(categorias.data as unknown as FilaCategoria[], colores.data, familias.data);
+    })(),
+    "las tallas y los colores del modelo nuevo",
+  );
+  return leido ? { datos: leido, fallo: null } : { datos: null, fallo };
 }

@@ -80,7 +80,7 @@ export function ApartadosModal({
         }`;
 
   return (
-    <Modal titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} ancho="max-w-2xl">
+    <Modal conCerrar titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} ancho="max-w-2xl">
       {(cerrar) =>
         liberando ? (
           <form onSubmit={liberar} className="mt-2 space-y-4" noValidate>
@@ -121,15 +121,15 @@ export function ApartadosModal({
         ) : apartados.length === 0 ? (
           <div className="mt-2 space-y-4">
             <p className="text-sm text-tinta/65">Cuando apartes una prenda para un cliente, aparece aquí con su fecha límite.</p>
-            <Boton type="button" onClick={cerrar} className="w-full">
-              Cerrar
-            </Boton>
           </div>
         ) : (
           <div className="mt-2 space-y-3">
             <ul className="divide-y divide-tinta/10">
               {apartados.map((a) => {
-                const estado = estadoVencimiento(a.venceEl, hoy);
+                // La reserva de un pedido de otra sede no vence ni lleva al cliente (decisión del 2026-10-04): la sostiene
+                // la tienda que pidió; aquí se ve «Pedido de Tienda Trujillo», sin teléfono que marcar.
+                const dePedido = a.venceEl === null;
+                const estado = a.venceEl === null ? null : estadoVencimiento(a.venceEl, hoy);
                 const detalle = [a.talla, a.color].filter(Boolean).join(" · ");
                 return (
                   <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
@@ -142,17 +142,25 @@ export function ApartadosModal({
                         {a.sku}
                         {detalle ? ` · ${detalle}` : ""}
                       </p>
-                      <p className="mt-1 text-sm text-tinta">
-                        {a.clienta} ·{" "}
-                        <a href={`tel:${a.contacto.replace(/[^\d+]/g, "")}`} className="underline underline-offset-2 hover:text-rojo">
-                          {a.contacto}
-                        </a>
-                      </p>
+                      {dePedido ? (
+                        <p className="mt-1 text-sm text-tinta">{a.clienta}</p>
+                      ) : (
+                        <p className="mt-1 text-sm text-tinta">
+                          {a.clienta} ·{" "}
+                          <a href={`tel:${a.contacto.replace(/[^\d+]/g, "")}`} className="underline underline-offset-2 hover:text-rojo">
+                            {a.contacto}
+                          </a>
+                        </p>
+                      )}
                       {a.nota && <p className="text-xs text-tinta/65">{a.nota}</p>}
                       <p className="text-[11px] text-tinta/45">Apartó {a.apartoNombre ?? "—"}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>
+                      {a.venceEl === null ? (
+                        <Chip tono="pizarra">Para otra sede · no vence</Chip>
+                      ) : (
+                        <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>
+                      )}
                       {a.puedeLiberar && !otraSede && (
                         <button
                           type="button"
@@ -168,9 +176,6 @@ export function ApartadosModal({
               })}
             </ul>
             {otraSede && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
-            <Boton type="button" onClick={cerrar} className="w-full">
-              Cerrar
-            </Boton>
           </div>
         )
       }

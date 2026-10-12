@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { agruparPorOperacion, ETIQUETA_PROCESO, type Movimiento, type OperacionMovimiento } from "./movimientos-reglas";
-import { construirDetalleBajadas, construirDetalleCajon, formaDeOperacion, fraseDeAjuste, fraseDeMovimiento, vistaDeOperacion, type ContextoCajon } from "./movimientos-cajon";
+import { construirDetalleBajadas, construirDetalleCajon, formaDeOperacion, fraseDeAjuste, fraseDeMovimiento, pasosDeOperacion, vistaDeOperacion, type ContextoCajon } from "./movimientos-cajon";
 
 function movimiento(parcial: Partial<Movimiento>): Movimiento {
   return {
@@ -324,17 +324,17 @@ describe("vistaDeOperacion — un movimiento interno se lee con el cajón de las
       ...parcial,
     });
 
-  it("una bajada suelta se llama «Bajada al piso» (en singular), dice cuántas pasaron, y no repite la hora en cada fila", () => {
+  it("una colgada suelta se llama «Colgada en piso» (en singular), dice cuántas pasaron, y no repite la hora en cada fila", () => {
     const v = vistaDeOperacion(operacion([interna()]), CTX_BASE);
     expect(v.tipo).toBe("bajadas");
     if (v.tipo !== "bajadas") return;
-    expect(v.detalle).toMatchObject({ titulo: "Bajada al piso", cuando: "Hoy, a las 10:59", cifra: "3", frase: "prendas pasaron del almacén al piso de venta", mostrarHora: false });
+    expect(v.detalle).toMatchObject({ titulo: "Colgada en piso", cuando: "Hoy, a las 10:59", cifra: "3", frase: "prendas se colgaron en el piso, desde el almacén", mostrarHora: false });
   });
 
-  it("el mismo par al revés es «Retiro del piso» y dice que volvieron al almacén", () => {
+  it("el mismo par al revés es «Guardada en almacén» y dice que se guardaron", () => {
     const v = vistaDeOperacion(operacion([interna({ sububicacion: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" }, sububicacionDestino: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" } })]), CTX_BASE);
     if (v.tipo !== "bajadas") throw new Error("esperaba bajadas");
-    expect(v.detalle).toMatchObject({ titulo: "Retiro del piso", frase: "prendas volvieron del piso al almacén" });
+    expect(v.detalle).toMatchObject({ titulo: "Guardada en almacén", frase: "prendas se guardaron en el almacén, desde el piso" });
     expect(v.detalle.filas[0].sentido).toBeNull();
   });
 
@@ -363,10 +363,10 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
 
   it("dice en una frase qué pasó, cuándo y cuántas, con la más reciente primero", () => {
     const d = construirDetalleBajadas("bajadas-2026-09-28", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2", { cantidad: 2 }), bajada("b3", "10:04", "v1")]), CTX_BASE);
-    expect(d.titulo).toBe("Bajadas al piso");
+    expect(d.titulo).toBe("Colgadas en piso");
     expect(d.cuando).toBe("Hoy, de 10:04 a 10:41");
     expect(d.cifra).toBe("4");
-    expect(d.frase).toBe("prendas pasaron del almacén al piso de venta");
+    expect(d.frase).toBe("prendas se colgaron en el piso, desde el almacén");
     expect(d.mostrarHora).toBe(true);
     expect(d.filas.map((f) => [f.hora, f.cantidad])).toEqual([["10:41", "1 prenda"], ["10:30", "2 prendas"], ["10:04", "1 prenda"]]);
   });
@@ -387,7 +387,7 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
     const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1")]), { ...CTX_BASE, hoyLima: "2026-09-29" });
     expect(d.cuando).toBe("Ayer, a las 10:41");
     expect(d.cifra).toBe("1");
-    expect(d.frase).toBe("prenda pasó del almacén al piso de venta");
+    expect(d.frase).toBe("prenda se colgó en el piso, desde el almacén");
   });
 
   it("si alguna no fue una bajada al piso, la frase y cada fila dicen hacia dónde fue", () => {
@@ -405,5 +405,76 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
     expect(construirDetalleBajadas("b", tres, CTX_BASE).quien).toBe("Carla, Luis y Ana");
     const sistema = ops([bajada("b1", "10:41", "v1", { esSistema: true, usuario: null }), bajada("b2", "10:30", "v2", { esSistema: true, usuario: null })]);
     expect(construirDetalleBajadas("b", sistema, CTX_BASE).quien).toBeNull();
+  });
+});
+
+describe("el cajón dice de qué tipo es, por dónde fue y qué pasó (ADR-0353)", () => {
+  const piso = { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" };
+  const almacen = { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" };
+  const una = (parcial: Partial<Movimiento>) => agruparPorOperacion([movimiento(parcial)])[0];
+
+  it("una venta: tipo venta, ruta Piso → Cliente y tres pasos con la boleta", () => {
+    const op = una({ tipo: "salida", categoria: "salida", motivo: "venta", cantidad: 2, delta: -2, sububicacion: piso, venta: { id: "v", nota: null, comprobante: { tipo: "boleta", numero: "B001-000412", estado: "aceptado" } } });
+    const d = construirDetalleCajon(op, CTX_BASE);
+    expect(d.tipo).toBe("venta");
+    expect(d.ruta).toEqual({ origen: "Piso", destino: "Cliente", motivo: "venta" });
+    expect(d.pasos.map((p) => p.texto)).toEqual(["Se cobró en caja · Boleta B001-000412", "Salió del piso: 2 prendas", "Se entregó al cliente"]);
+    expect(d.pasos.every((p) => p.hecho)).toBe(true);
+  });
+
+  it("una colgada suelta: ruta Almacén → Piso y sus pasos", () => {
+    const op = una({ tipo: "traslado", categoria: "interno", motivo: "movimiento_interno", cantidad: 3, delta: 0, ubicacionDestinoId: "u-lima", sububicacion: almacen, sububicacionDestino: piso });
+    const v = vistaDeOperacion(op, CTX_BASE);
+    if (v.tipo !== "bajadas") throw new Error("esperaba bajadas");
+    expect(v.detalle.tipo).toBe("colgada");
+    expect(v.detalle.ruta).toEqual({ origen: "Almacén", destino: "Piso", motivo: "movimiento_interno" });
+    expect(v.detalle.pasos.map((p) => p.texto)).toEqual(["Estaban en el almacén", "Se colgaron en el piso: 3 prendas", "Ya se pueden vender desde el piso"]);
+  });
+
+  it("una guardada: ruta Piso → Almacén", () => {
+    const op = una({ tipo: "traslado", categoria: "interno", motivo: "movimiento_interno", cantidad: 1, delta: 0, ubicacionDestinoId: "u-lima", sububicacion: piso, sububicacionDestino: almacen });
+    const v = vistaDeOperacion(op, CTX_BASE);
+    if (v.tipo !== "bajadas") throw new Error("esperaba bajadas");
+    expect(v.detalle.tipo).toBe("guardada");
+    expect(v.detalle.ruta).toMatchObject({ origen: "Piso", destino: "Almacén" });
+    expect(v.detalle.pasos[1].texto).toBe("Se guardaron en el almacén: 1 prenda");
+  });
+
+  it("un traslado en camino deja el último paso por hacer; uno cerrado, hecho", () => {
+    const enviado = (estado: string) =>
+      una({ tipo: "salida", categoria: "transferencia", motivo: "traslado_salida", cantidad: 6, delta: -6, ubicacionDestino: "Tienda Lima", transferencia: { id: "t", estado, nota: null, numero: 31 } });
+    const camino = pasosDeOperacion(enviado("en_transito"));
+    expect(camino.map((p) => p.hecho)).toEqual([true, true, false]);
+    expect(camino[2].texto).toMatch(/^Falta que .* las cuente$/);
+    expect(pasosDeOperacion(enviado("cerrada")).map((p) => p.hecho)).toEqual([true, true, true]);
+  });
+
+  it("una llegada dice de dónde vino SOLO si el proceso lo dice: un stock inicial no inventa un origen", () => {
+    const llegada = (motivo: string, parcial: Partial<Movimiento> = {}) => una({ tipo: "entrada", categoria: "entrada", motivo, cantidad: 13, delta: 13, sububicacion: almacen, ...parcial });
+    expect(pasosDeOperacion(llegada("carga_inicial")).map((p) => p.texto)).toEqual(["Ya estaban en la tienda al pasarla al sistema", "Se registraron en la tienda: 13 prendas", "Quedaron en el almacén"]);
+    expect(pasosDeOperacion(llegada("recepcion", { lote: { id: "l", guia: null, nota: null, proveedor: "Textiles Andinos" } }))[0].texto).toBe("Llegaron de Textiles Andinos");
+    expect(pasosDeOperacion(llegada("recepcion"))[0].texto).toBe("Llegaron de un proveedor");
+    expect(pasosDeOperacion(llegada("algo_nuevo")).map((p) => p.texto)).toEqual(["Se registraron en la tienda: 13 prendas", "Quedaron en el almacén"]);
+  });
+
+  it("un conteo dice lo contado y lo que decía el sistema; sin esos datos, no los inventa", () => {
+    const base = { tipo: "ajuste", categoria: "ajuste", motivo: "conteo", cantidad: 1, delta: -1, sububicacion: piso } as const;
+    expect(pasosDeOperacion(una({ ...base, conteo: { id: "c", sistema: 4, contado: 3, numero: 14 } }))[1].texto).toBe("Se contó 3 y el sistema decía 4");
+    expect(pasosDeOperacion(una({ ...base, conteo: { id: "c", sistema: null, contado: null, numero: 14 } }))[1].texto).toBe("Lo contado y el sistema no coincidían");
+  });
+
+  it("un cambio dice la diferencia solo si la hay", () => {
+    const filas = (diferencia: number | null) =>
+      agruparPorOperacion([
+        movimiento({ id: "e", tipo: "entrada", categoria: "entrada", motivo: "cambio", cantidad: 1, delta: 1, cambio: { id: "c", diferencia } }),
+        movimiento({ id: "s", tipo: "salida", categoria: "salida", motivo: "cambio", cantidad: 1, delta: -1, varianteId: "v2", cambio: { id: "c", diferencia } }),
+      ])[0];
+    expect(pasosDeOperacion(filas(0))[2].texto).toBe("Sin diferencia de precio");
+    expect(pasosDeOperacion(filas(15))[2].texto).toBe("Diferencia: S/ 15.00");
+  });
+
+  it("los tipos sin pasos propios (apartado, dañado) no muestran «Qué pasó»", () => {
+    expect(pasosDeOperacion(una({ tipo: "apartado", categoria: "apartado", motivo: "apartado", cantidad: 1, delta: 0 }))).toEqual([]);
+    expect(pasosDeOperacion(una({ tipo: "salida", categoria: "salida", motivo: "cuarentena_donada", cantidad: 1, delta: -1 }))).toEqual([]);
   });
 });

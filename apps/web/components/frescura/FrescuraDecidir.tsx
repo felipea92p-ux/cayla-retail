@@ -10,16 +10,19 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta } from "@/lib/error-escritura";
-import { finDePlazo, origenDelPlazo, plazoDeAccion, type AccionDecision, type TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
-import { avisoDeExito, opcionesDeDecision, textoErrorDecision, textoTrasladoElegible, trasladosDeLaPrenda, type OpcionDeDecision } from "@/lib/frescura-decisiones-pantalla";
+import { origenDelPlazo, plazoDeAccion, type AccionDecision, type TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
+import { opcionesDeDecision, textoErrorDecision, textoTrasladoElegible, trasladosDeLaPrenda, type OpcionDeDecision } from "@/lib/frescura-decisiones-pantalla";
 import { hrefArmarTraslado, hrefExistencias, type AccesoFrescura } from "@/lib/frescura-pantalla";
 import type { FrescuraPrenda, VaraCategoria } from "@/lib/frescura-reglas";
-import { firmar, type Firma } from "@/lib/responsable-reglas";
+import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { useAnotarDecision } from "./useAnotarDecision";
 
 // «Ya decidí» (ADR-0208, paso 4b): la encargada anota qué hizo con una prenda que estaba «Por decidir». Vive DENTRO de la hoja
 // de la prenda: la misma hoja cambia de contenido, no se abre un modal encima. Cuatro toques por prenda: «Ya decidí», la opción,
-// (el responsable, ya elegido si es ella) y «Anotar».
+// (el responsable, ya elegido si es ella) y «Anotar». Desde la actualización 2026-10-07, «La cambié de lugar» también se anota
+// a un toque desde la fila, por el MISMO camino (`useAnotarDecision`): la hoja queda para elegir entre varias opciones, la nota
+// y el responsable cuando no viene elegido.
 //
 // Lo que guarda es solo el HECHO (`retail.anotar_decision_frescura`, de solo agregar); si sirvió, cuándo vuelve y qué se sugiere
 // después lo calcula la lectura. Un mal toque se corrige sin borrar nada: «Deshacer» durante 10 segundos en el aviso, y después
@@ -27,11 +30,6 @@ import { useResponsable } from "@/lib/useResponsable";
 //
 // Guía de foco (ADR-0284): cada campo dice su estado y el que sigue se enciende; «Falta: …» sobre el botón, tocable. Lo requerido
 // es lo mismo que apaga «Anotar»: qué hiciste y (si es «La trasladé») cuál traslado, y quién anota. La nota es opcional.
-
-/** Sin respuesta en 20 s se corta y se trata como respuesta incierta: nunca queda la hoja bloqueada (como «Ajustar inventario»). */
-const TOPE_ESPERA_MS = 20_000;
-/** El «Deshacer» del aviso dura 10 segundos (Norman: el error es del diseño, no de la persona). */
-const DURACION_DESHACER_MS = 10_000;
 
 type Props = {
   prenda: FrescuraPrenda;
@@ -44,25 +42,24 @@ type Props = {
   acceso: AccesoFrescura;
   /** La última línea de la libreta que vio la pantalla (null si estaba vacía): la base la compara al guardar. */
   anteriorId: string | null;
+  /** La opción con que se abre (desde el botón de la fila cuando falta elegir quién anota); sin ella, ninguna marcada. */
+  opcionInicial?: AccionDecision | null;
   /** «No, todavía no»: volver al detalle sin anotar. */
   onVolver: () => void;
   /** Se anotó: cerrar la hoja. */
   onListo: () => void;
 };
 
-export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla, recientes, acceso, anteriorId, onVolver, onListo }: Props) {
+export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla, recientes, acceso, anteriorId, opcionInicial = null, onVolver, onListo }: Props) {
   const router = useRouter();
-  const responsable = useResponsable();
-  const [opcion, setOpcion] = useState<AccionDecision | "sacar" | null>(null);
+  const anotador = useAnotarDecision(sede);
+  const { responsable } = anotador;
+  const [opcion, setOpcion] = useState<AccionDecision | "sacar" | null>(opcionInicial);
   const [trasladoId, setTrasladoId] = useState<string | null>(null);
   const [nota, setNota] = useState("");
   const [notaAbierta, setNotaAbierta] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<{ texto: string; conVer: boolean } | null>(null);
-  // La marca de este toque: el mismo toque enviado dos veces (un corte de red y un reintento) devuelve lo ya guardado. Se
-  // renueva solo cuando la base dijo que NO (nada se guardó); tras una respuesta incierta se conserva.
-  const token = useRef<string>(crypto.randomUUID());
-  const enVuelo = useRef(false);
+  const enviando = anotador.enviando !== null;
+  const error = anotador.error;
 
   const traslados = trasladosDeLaPrenda(recientes, prenda.productoId, prenda.colorCodigo);
   const compromiso = origenDelPlazo(categoria, cayla);
@@ -87,58 +84,19 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
     { id: "responsable", nombre: "Quién anota", requerido: true, hecho: responsable.listo, pendiente: "Elige quién anota." },
   ]);
 
-  const nombreDePrenda = `${prenda.productoNombre}${prenda.colorNombre ? ` ${prenda.colorNombre}` : ""}`;
-
   async function anotar() {
-    if (enVuelo.current || opcion === null || opcion === "sacar" || !responsable.listo) return;
+    if (opcion === null || opcion === "sacar" || !responsable.listo) return;
     if (opcion === "traslade" && trasladoElegido === null) return;
     const accion: AccionDecision = opcion;
-    const firma = responsable.firma();
-    enVuelo.current = true;
-    setEnviando(true);
-    setError(null);
-    const plazo = plazoDeAccion(accion, categoria, cayla);
-    const control = new AbortController();
-    const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
-    const { data, error: errorRpc } = await firmar(
-      createClient()
-        .rpc("anotar_decision_frescura", {
-          p_token: token.current,
-          p_ubicacion_id: sede.id,
-          p_producto_id: prenda.productoId,
-          p_color_codigo: prenda.colorCodigo,
-          p_anterior_id: anteriorId,
-          p_accion: accion,
-          p_plazo_dias: plazo,
-          p_transferencia_id: accion === "traslade" ? trasladoElegido!.id : null,
-          p_nota: nota.trim() || null,
-        })
-        .abortSignal(control.signal),
-      firma,
-    );
-    window.clearTimeout(tope);
-    setEnviando(false);
-    responsable.despues(errorRpc);
-    if (errorRpc) {
-      enVuelo.current = false;
-      const t = textoErrorDecision(errorRpc, sede.nombre);
-      setError({ texto: t.texto, conVer: t.conVer });
-      // La base dijo que no: nada se guardó, la marca queda libre. Si fue una respuesta incierta se conserva.
-      if (t.nuevaMarca && !esRespuestaIncierta(errorRpc)) token.current = crypto.randomUUID();
-      // Con la red caída no se refresca: un refresh sin red borra el mensaje honesto.
-      if (!esFalloDeRed(errorRpc) && errorRpc.hint === "version_cambiada") router.refresh();
-      return;
-    }
-    const r = (data ?? {}) as { id?: string; creado_en?: string };
-    const vence = finDePlazo(r.creado_en ?? new Date().toISOString(), plazo);
-    const aviso = avisoDeExito(accion, nombreDePrenda, vence);
-    avisar.exito(aviso.titulo, {
-      detalle: aviso.detalle,
-      duracion: DURACION_DESHACER_MS,
-      accion: r.id ? { texto: "Deshacer", onClick: () => void deshacer(r.id!, firma, sede.nombre, router.refresh) } : undefined,
+    const listo = await anotador.anotar({
+      prenda,
+      anteriorId,
+      accion,
+      plazoDias: plazoDeAccion(accion, categoria, cayla),
+      transferenciaId: accion === "traslade" ? trasladoElegido!.id : null,
+      nota: nota.trim() || null,
     });
-    router.refresh();
-    onListo();
+    if (listo) onListo();
   }
 
   return (
@@ -213,7 +171,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
         <div role="alert" className="rounded-xl bg-hueso px-3.5 py-3 text-[13.5px] leading-relaxed">
           <p>{error.texto}</p>
           {error.conVer && (
-            <button type="button" className="btn-cayla btn-enlace mt-1 text-[13px]" onClick={() => (setError(null), router.refresh())}>
+            <button type="button" className="btn-cayla btn-enlace mt-1 text-[13px]" onClick={() => (anotador.limpiarError(), router.refresh())}>
               Ver
             </button>
           )}
@@ -261,14 +219,6 @@ function TarjetaOpcion({ o, marcada, onElegir, children }: { o: OpcionDeDecision
       {children}
     </div>
   );
-}
-
-/** «Deshacer» del aviso: agrega una anulación sin nota. Después de esto no hay otro deshacer: quitar lo anotado no se quita. */
-async function deshacer(id: string, firma: Firma | null, sede: string, refrescar: () => void) {
-  const { error } = await firmar(createClient().rpc("anular_decision_frescura", { p_token: crypto.randomUUID(), p_decision_id: id, p_nota: null }), firma);
-  if (error) avisar.error(textoErrorDecision(error, sede).texto);
-  else avisar.exito("Quitado: la prenda vuelve a «Por decidir» si sigue quieta");
-  refrescar();
 }
 
 /** «Quitar lo anotado»: la confirmación en el mismo lugar, con una nota opcional. Agrega una anulación; no borra nada. */

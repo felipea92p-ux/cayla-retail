@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { hrefLista, MAX_TERMINO, type ParamsLista } from "@/lib/clientas-lista-reglas";
+import { Buscador } from "@/components/ui/Buscador";
 
 // El buscador de /clientas (ADR-0288 tanda 1f, como el spike del club: busca al escribir, sin botón «Buscar», y ocupa el
 // ancho de la tarjeta). Lo escrito va a la URL (`?q=`) con una pausa corta y `replace` (así «atrás» no recorre letra por
@@ -36,34 +36,18 @@ export function BuscadorClientas({ params }: { params: ParamsLista }) {
     return () => window.clearTimeout(t);
   }, [texto, params, buscar]);
 
+  // La pieza única (ADR-0358 ronda 5): el «×» y Escape vacían el texto (y no cierran la hoja de alrededor), «Buscando…» sale
+  // solo si la base tarda.
   return (
-    <label className="caja-cayla flex h-10 w-full min-w-0 items-center gap-2 px-3">
-      <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
-      <input
-        type="search"
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        onKeyDown={(e) => {
-          // El Escape de este campo borra lo escrito; si ya está vacío, lo deja pasar (ADR-0136).
-          if (e.key === "Escape" && texto) {
-            e.stopPropagation();
-            setTexto("");
-          }
-        }}
-        enterKeyHint="search"
-        autoComplete="off"
-        spellCheck={false}
-        aria-label="Buscar cliente"
-        placeholder="DNI, celular o nombre…" // sugerir-fijo: dice qué se puede buscar en la libreta; no depende de nada elegido antes
-        title="Busca por documento (DNI, carné o pasaporte), celular, código de miembro (C-0142) o parte del nombre"
-        className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-      />
-      <SenalBuscando activo={buscando} className="shrink-0" />
-      {texto && (
-        <button type="button" onClick={() => setTexto("")} aria-label="Borrar la búsqueda" className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-tinta/55 hover:bg-sand hover:text-rojo">
-          <X className="h-4 w-4" aria-hidden />
-        </button>
-      )}
-    </label>
+    <Buscador
+      valor={texto}
+      onCambio={setTexto}
+      buscando={buscando}
+      enterKeyHint="search"
+      etiqueta="Buscar cliente"
+      placeholder="DNI, celular o nombre…" // sugerir-fijo: dice qué se puede buscar en la libreta; no depende de nada elegido antes
+      title="Busca por documento (DNI, carné o pasaporte), celular, código de miembro (C-0142) o parte del nombre"
+      className="w-full min-w-0"
+    />
   );
 }

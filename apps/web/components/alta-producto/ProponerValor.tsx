@@ -8,6 +8,7 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
 import { sugerirValorNuevo } from "@/lib/sugerencias-alta-producto";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
 
 // "+ Nueva talla / tejido / patrón" sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
@@ -152,7 +153,7 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
           }}
           placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
           disabled={trabajando}
-          className="caja-cayla h-10 min-w-0 flex-1 px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+          className="caja-cayla h-10 min-w-0 flex-1 px-3 text-sm text-tinta placeholder:text-tinta/45"
         />
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
@@ -170,11 +171,8 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
         </button>
       </div>
       <AvisoSinIdentidad firma={firma} enHoja />
-      {error && (
-        <p role="alert" className="text-xs text-rojo-profundo">
-          {error}
-        </p>
-      )}
+      {error && <Aviso tono="error">{error}</Aviso>}
+
     </div>
   );
 }

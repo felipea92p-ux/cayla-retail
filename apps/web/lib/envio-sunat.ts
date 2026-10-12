@@ -12,12 +12,14 @@ export function enviarVentaASunat(ventaId: string): void {
   });
 }
 
-/** Reintenta lo vencido de la cola (`null` = todas las sedes, solo líder). Devuelve cuántos tomó. */
+/** Reintenta lo vencido de la cola y pregunta por lo que quedó esperando a SUNAT (`null` = todas las sedes, solo
+ *  líder). Devuelve cuántos comprobantes cambiaron o se intentaron: si es más de 0, la pantalla se refresca. */
 export async function barrerColaSunat(ubicacionId: string | null): Promise<number> {
   try {
     const r = await fetch("/api/lucode/reintentar", { ...OPCIONES, body: JSON.stringify({ ubicacion_id: ubicacionId }) });
     if (!r.ok) return 0;
-    return ((await r.json()) as { tomados?: number }).tomados ?? 0;
+    const j = (await r.json()) as { tomados?: number; actualizados?: number };
+    return (j.tomados ?? 0) + (j.actualizados ?? 0);
   } catch {
     return 0;
   }

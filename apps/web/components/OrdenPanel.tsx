@@ -27,6 +27,7 @@ import {
   estadoEntrega,
   etapaActual,
   etapasDe,
+  LEYENDA_SEMAFORO,
   matrizDeLineas,
   posicionEnMedidor,
   urlLlevarATiendas,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -143,7 +145,7 @@ export function OrdenPanel({
   return (
     <Dialog.Root open onOpenChange={(a) => !a && pedirSalida()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${saliendo ? "anim-velo-salida" : "anim-velo"}`} />
+        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${saliendo ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
           onEscapeKeyDown={alEscape}
           aria-describedby={undefined}
@@ -305,28 +307,21 @@ export function OrdenPanel({
                       </Chip>
                     )}
                     {orden.precioVenta > 0 && <p className="mt-1.5 text-xs text-tinta/65">precio de venta {soles(orden.precioVenta)}</p>}
+                    {sem?.sede && orden.precioMasBajo && (
+                      <p className="mt-0.5 text-xs text-tinta/65">
+                        el margen usa {soles(orden.precioMasBajo.precio)}, el precio propio de {sem.sede}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {costo.total > 0 && (
                   <>
-                    <div className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                      {costo.partes.map((p, i) =>
-                        p.parte > 0 ? (
-                          <span
-                            key={p.clave}
-                            className={`anim-crece-x block h-full ${COLOR_PARTE[p.clave]}`}
-                            style={{
-                              width: `${p.parte * 100}%`,
-                              ["--i" as string]: i,
-                            }}
-                          />
-                        ) : null,
-                      )}
-                    </div>
+                    {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, las cifras del costo van debajo. */}
+                    <BarraApilada decorativa className="mt-4" alto={12} segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: COLOR_PARTE[p.clave] }))} />
                     <ul className="mt-3 space-y-1.5 text-[13px]">
                       {costo.partes.map((p) => (
                         <li key={p.clave} className="flex items-center gap-2.5">
-                          <span aria-hidden className={`h-2.5 w-2.5 rounded-sm ${COLOR_PARTE[p.clave]}`} />
+                          <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
                           <span className="text-tinta/80">{p.etiqueta}</span>
                           <span className="ml-auto tabular-nums text-tinta/75">{soles(p.valor)}</span>
                         </li>
@@ -351,9 +346,9 @@ export function OrdenPanel({
                       />
                     </div>
                     <div className="mt-2 flex justify-between text-[11px] text-tinta/65">
-                      <span>pierde &lt; 40%</span>
-                      <span>al filo</span>
-                      <span>gana ≥ 60%</span>
+                      <span>{LEYENDA_SEMAFORO.pierde}</span>
+                      <span>{LEYENDA_SEMAFORO.filo}</span>
+                      <span>{LEYENDA_SEMAFORO.gana}</span>
                     </div>
                   </div>
                 )}
@@ -376,7 +371,7 @@ export function OrdenPanel({
                 Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que etiquetarlas y llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <Link href={llevarUrl} className="label-cayla inline-block rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+                <Link href={llevarUrl} className="btn-cayla btn-primario">
                   Llevarlas a las tiendas
                 </Link>
                 {/* ADR-0180: una etiqueta de precio por prenda buena; queda aquí para reimprimir mientras la orden siga cerrada. */}
@@ -392,7 +387,7 @@ export function OrdenPanel({
                 <Boton peso="primario" className="flex-1" onClick={() => setCerrando(true)}>
                   {orden.esMuestra ? "Dar por terminada" : "Cerrar al inventario"}
                 </Boton>
-                <Boton peso="discreto" onClick={onAnular}>
+                <Boton peso="peligro" onClick={onAnular}>
                   Anular
                 </Boton>
               </>

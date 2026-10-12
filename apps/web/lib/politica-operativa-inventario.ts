@@ -11,9 +11,9 @@
    centrales, lo vendido ayer primero, la pausa sin cuadre), y `lib/piso-plan-umbral.test.ts` falla si alguien vuelve a escribir
    un umbral de piso fuera de ese archivo — también aquí.
 
-   NO migres acá un número heredado (`UMBRAL_REPOSICION_PISO=7`, `DIAS_OBJETIVO_PISO=7`, el fallback de 8 unidades del motor de
-   Análisis, etc.) sin que Felipe lo apruebe conscientemente PARA Existencias — esos siguen donde están, afinados para SU propia
-   ventana, no para esta.
+   NO traigas acá un número heredado (`UMBRAL_REPOSICION_PISO=7`, `DIAS_OBJETIVO_PISO=7`, el fallback de 8 unidades del motor de
+   Análisis, etc.) sin que Felipe lo apruebe conscientemente PARA Existencias: estaban afinados para la ventana de Análisis, no
+   para esta, y se borraron con el Análisis de antes de la v4 (2026-10-06).
    ==================================================================== */
 
 export type PoliticaOperativaInventario = {

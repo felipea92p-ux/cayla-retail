@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Minus, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { Check, MessageCircle, Minus, Plus, Printer, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -28,6 +28,7 @@ import {
   estadoVisible,
   formatoCelular,
   mensajeWhatsapp,
+  paraQuienPedido,
   soloDigitos,
   sumarDiasIso,
   textoDevolucion,
@@ -44,6 +45,8 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { CampoSelect } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -94,7 +97,8 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
   const pasos = [
     `Pega la etiqueta «APARTADO · ${a.codigo}» en la prenda.`,
     a.estante ? `Guárdala en el estante ${a.estante} de Apartados, no en el piso.` : "Guárdala en «Apartados» del almacén, no en el piso.",
-    `Envía la boleta por WhatsApp al ${a.celular}.`,
+    // Sin celular (ADR-0367) no hay a dónde enviarla: la boleta impresa es la que se lleva.
+    ...(a.celular ? [`Envía la boleta por WhatsApp al ${a.celular}.`] : ["Entrégale la boleta impresa: no dejó celular."]),
   ];
   const [mes, dia, semana] = [
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { month: "short", timeZone: "UTC" }).replace(".", "").toUpperCase(),
@@ -207,6 +211,50 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
           </div>
           <Botones cerrar={cerrar} principal="Imprimir y entregar" />
           <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * «Reimprimir» (ADR-0367, Felipe 2026-10-09): el ticket de un apartado ya registrado, desde el Historial. Sale con «COPIA»
+ * para que nadie lo confunda con uno nuevo. Un apartado entregado tiene dos: el del anticipo y el final; se elige cuál.
+ * No escribe nada: solo vuelve a dibujar lo que la base ya tiene.
+ */
+export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
+  const a = apartado;
+  const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
+  const [cual, setCual] = useState<"anticipo" | "final">(conFinal ? "final" : "anticipo");
+  const numero = cual === "final" ? a.comprobanteFinal : a.comprobanteAnticipo;
+  useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
+  return (
+    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-sm" conCerrar>
+      {() => (
+        <div className="space-y-4">
+          {conFinal && (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Qué ticket imprimir">
+              <button type="button" aria-pressed={cual === "final"} onClick={() => setCual("final")} className="pildora-cayla">Boleta final</button>
+              <button type="button" aria-pressed={cual === "anticipo"} onClick={() => setCual("anticipo")} className="pildora-cayla">Anticipo</button>
+            </div>
+          )}
+          <div className="card-cayla space-y-1.5 p-4 text-sm">
+            <p className="flex items-baseline justify-between gap-3">
+              <span className="text-tinta">
+                Boleta <span className="font-mono">{numero ?? "—"}</span>
+              </span>
+              <span className="text-[11px] text-tinta/60">{cual === "final" ? "final" : "anticipo"}</span>
+            </p>
+            <p className="text-xs text-tinta/70">
+              {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
+            </p>
+            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(a.creadaEn.slice(0, 10))} · sale marcado como COPIA.</p>
+          </div>
+          <button type="button" autoFocus onClick={() => window.print()} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
+            <Printer className="h-4 w-4" aria-hidden />
+            Imprimir
+          </button>
+          <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />
         </div>
       )}
     </Modal>
@@ -649,7 +697,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
             <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
             <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
           </p>
-          {monto > saldo && <p className="text-xs text-rojo-profundo">El abono no puede pasar lo que falta ({money(saldo)}).</p>}
+          {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
           <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
             <input type="checkbox" checked={esperar} onChange={(e) => setEsperar(e.target.checked)} className="mt-1 accent-tinta" />
             <span>
@@ -760,7 +808,7 @@ export function EditarApartadoModal({
     <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl">
       {(cerrar) => (
         <div className="space-y-4">
-          {sinId && <p className="rounded-xl bg-ambar/10 px-3.5 py-2.5 text-xs text-ambar-profundo">Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</p>}
+          {sinId && <Aviso tono="atencion" chico>Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</Aviso>}
           <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
             {apartado.prendas.map((pr) => {
               const v = porId.get(pr.varianteId);
@@ -821,10 +869,7 @@ export function EditarApartadoModal({
             })}
           </ul>
           <div className="relative">
-            <label className="flex h-11 items-center gap-2.5 rounded-xl border border-sand bg-papel px-3.5 focus-within:border-taupe">
-              <Search className="h-4 w-4 text-tinta/55" aria-hidden />
-              <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Sumar una prenda: nombre, color o código" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-            </label>
+            <Buscador valor={texto} onCambio={setTexto} placeholder="Sumar una prenda: nombre, color o código" />
             {buscados.length > 0 && (
               <ul className="mt-1.5 divide-y divide-sand overflow-hidden rounded-xl border border-sand bg-papel">
                 {buscados.map((p) => (
@@ -844,8 +889,8 @@ export function EditarApartadoModal({
             <p className="flex justify-between"><span className="text-tinta/60">Ya pagó</span><span>−{money(apartado.adelanto)}</span></p>
             <p className="flex justify-between border-t border-sand pt-2 text-base"><span>Saldo al recoger</span><b>{money(Math.max(0, totalNuevo - apartado.adelanto))}</b></p>
           </div>
-          {debajo && !sinPrendas && <p className="text-xs text-rojo-profundo">El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</p>}
-          {sinPrendas && <p className="text-xs text-rojo-profundo">El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</p>}
+          {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
+          {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El anticipo ya emitido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
@@ -958,99 +1003,6 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
   );
 }
 
-/**
- * Pedir a otra sede para apartar (20260927140000; Felipe: «pedir traslado y apartar al llegar»). La otra tienda la envía
- * por traslado y, al cerrarlo aquí, queda guardada sola para la clienta; su adelanto se cobra cuando la recoge.
- */
-export function PedirOtraSedeModal({
-  prenda,
-  tienda,
-  ubicacion,
-  onClose,
-}: {
-  /** Solo lo que el modal usa: así lo abre también Existencias («Dónde más hay», tarea #9), que no tiene la prenda del catálogo. */
-  prenda: Pick<PrendaApartable, "varianteId" | "referencia" | "color" | "talla" | "codigo" | "sku">;
-  tienda: { id: string; nombre: string };
-  ubicacion: UbicacionApartado;
-  onClose: () => void;
-}) {
-  const router = useRouter();
-  const [nombres, setNombres] = useState("");
-  const [apellidos, setApellidos] = useState("");
-  const [celular, setCelular] = useState("");
-  const [nota, setNota] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
-  const responsable = useResponsable(ubicacion, { modo: "atencion" });
-  const cel = soloDigitos(celular);
-  const valido = nombres.trim() !== "" && apellidos.trim() !== "" && /^9\d{8}$/.test(cel);
-
-  async function pedir(cerrar: () => void) {
-    if (!valido || !responsable.listo) return;
-    setEnviando(true);
-    const { error } = await firmar(
-      createClient().rpc("pedir_prenda_para_apartar", {
-        p_ubicacion_id: ubicacion.ubicacionId,
-        p_origen_id: tienda.id,
-        p_variante_id: prenda.varianteId,
-        p_cantidad: 1,
-        p_clienta_nombres: nombres.trim(),
-        p_clienta_apellidos: apellidos.trim(),
-        p_clienta_celular: cel,
-        p_nota: nota.trim() || undefined,
-        p_token: token.current,
-      }),
-      responsable.firma(),
-    );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "pedir la prenda", { confirmarAntesDeRepetir: true }));
-    avisar.exito(`Pedido a ${tienda.nombre}`, { detalle: `${prenda.referencia} para ${nombres.trim()}. Lo verás en «Todos» y te avisará cuando llegue.` });
-    router.refresh();
-    cerrar();
-  }
-
-  return (
-    <Modal titulo={`Pedir a ${tienda.nombre} para apartar`} subtitulo={`${prenda.referencia} · ${detalleVariante(prenda)}`} onClose={onClose} ancho="max-w-md">
-      {(cerrar) => (
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className={campoEtiqueta}>Nombres</span>
-              <input value={nombres} onChange={(e) => setNombres(e.target.value)} className={campoTexto} autoComplete="off" />
-            </label>
-            <label className="block">
-              <span className={campoEtiqueta}>Apellidos</span>
-              <input value={apellidos} onChange={(e) => setApellidos(e.target.value)} className={campoTexto} autoComplete="off" />
-            </label>
-            <label className="block sm:col-span-2">
-              <span className={campoEtiqueta}>Celular · WhatsApp</span>
-              <input value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${campoTexto} font-mono`} />
-              {cel.length > 0 && !/^9\d{8}$/.test(cel) && <span className="mt-0.5 block text-xs text-rojo-profundo">9 dígitos y empieza en 9.</span>}
-            </label>
-            <label className="block sm:col-span-2">
-              <span className={campoEtiqueta}>Nota para {tienda.nombre} (opcional)</span>
-              <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="La quiere para el sábado" className={campoTexto} />
-            </label>
-          </div>
-          <ol className="list-decimal space-y-1 rounded-xl bg-hueso px-8 py-3 text-xs text-tinta/75">
-            <li>{tienda.nombre} la envía por traslado (la ve en su «Todos»).</li>
-            <li>Al cerrar el traslado aquí, queda guardada sola para el cliente 3 días.</li>
-            <li>Cuando venga, se cobra su adelanto y queda apartada.</li>
-          </ol>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button type="button" disabled={!valido || enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => pedir(cerrar)} className={botonPrimario}>
-              {enviando ? "Pidiendo…" : `Pedir a ${tienda.nombre}`}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
 /** La otra tienda envía lo que le pidieron: es el traslado de siempre, con la clienta en la nota. */
 export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedido: PedidoApartado; prenda: PrendaApartable | undefined; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
@@ -1076,7 +1028,7 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
   }
 
   return (
-    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={`Para apartar a ${pedido.nombres} ${pedido.apellidos}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md">
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-4 text-sm">
@@ -1120,7 +1072,7 @@ export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: Pe
     cerrar();
   }
   return (
-    <Modal titulo="¿Cancelar el pedido?" subtitulo={`${pedido.nombres} ${pedido.apellidos} · ${pedido.otraSede}`} onClose={onClose}>
+    <Modal titulo="¿Cancelar el pedido?" subtitulo={paraQuienPedido(pedido)} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <label className="block">

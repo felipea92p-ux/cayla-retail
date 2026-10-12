@@ -28,6 +28,21 @@
  * no cambia; solo desaparece lo escrito después. Es la excepción a «nunca DELETE en movimientos»: vale porque la base es
  * local y de prueba, y por eso este script no acepta otro destino.
  *
+ * LO QUE ROMPÍA LA RESTAURACIÓN: LOS CANDADOS `CHECK ... NOT VALID` (2026-10-07). Un candado creado `NOT VALID` no revisa
+ * las filas que ya existían, pero SÍ revisa toda fila que se inserta —y recargar con COPY inserta—, así que una fila vieja
+ * que lo viola entraba a la base sin problema y no podía volver a entrar: «new row for relation "clientas" violates check
+ * constraint "clientas_documento_formato"», y la restauración (todo o nada) se revertía siempre. No era un dato malo de la
+ * foto: la migración `20260930160000_club_paso1a_venta_ligada_y_documento.sql` deja ese candado `NOT VALID` a propósito
+ * cuando en la base hay fichas viejas que lo violan (aquí, el seed de antes trae una empresa con RUC como «clienta»; nunca
+ * se borra ni se corrige a mano). `session_replication_role = replica` apaga disparadores y llaves foráneas, pero NO los
+ * CHECK, y Postgres no tiene `disable constraint` para ellos. Hoy hay 4 candados así en `retail` (`clientas_documento_formato`,
+ * `venta_items_*` ×2, `comprobantes_transmitido_tiene_entorno`); los otros 3 fallarían igual el día que una fila los viole.
+ * Se resolvió como con los disparadores: SOLO dentro de la transacción, cada CHECK `NOT VALID` se suelta antes de la carga y
+ * se vuelve a poner después con su MISMA definición, su mismo estado `NOT VALID` y su mismo comentario (`add constraint ...
+ * not valid` no recorre la tabla). Un candado VÁLIDO no hace falta tocarlo: ninguna fila puede violarlo. Y la transacción
+ * termina comparando una firma de TODOS los candados del schema (tabla, nombre, tipo, validado, definición) con la de antes
+ * de empezar: si difiere en algo, lanza un error y se revierte. El esquema no cambia.
+ *
  * USO
  *   node scripts/flujo-de-negocio/estado.mjs guardar <nombre> [--reemplazar]
  *   node scripts/flujo-de-negocio/estado.mjs comparar <nombre>
@@ -137,12 +152,40 @@ function restaurar(nombre, confirmado) {
   const apagar = siempre.map(([t, g]) => `alter table ${SCHEMA}."${t}" disable trigger "${g}";`).join("\n");
   const prender = siempre.map(([t, g]) => `alter table ${SCHEMA}."${t}" enable always trigger "${g}";`).join("\n");
   const lista = tablas().map((t) => `${SCHEMA}."${t}"`).join(", ");
+
+  // CHECK `NOT VALID`: no miran lo viejo pero sí lo que se inserta, y COPY inserta. Se sueltan y se vuelven a poner idénticos.
+  // Con `search_path = ''` la definición sale totalmente calificada (el volcado también vacía el search_path al cargar).
+  const noValidos = JSON.parse(psql(`set search_path = '';
+    select coalesce(jsonb_agg(jsonb_build_object('tabla', c.conrelid::regclass::text, 'nombre', c.conname,
+        'def', pg_get_constraintdef(c.oid), 'comentario', obj_description(c.oid, 'pg_constraint')) order by c.conrelid::regclass::text, c.conname), '[]')::text
+      from pg_constraint c where c.connamespace = '${SCHEMA}'::regnamespace and c.contype = 'c' and not c.convalidated
+        and c.conislocal and c.conparentid = 0;`));
+  const lit = (x) => `'${String(x).replace(/'/g, "''")}'`;
+  const id = (x) => `"${String(x).replace(/"/g, '""')}"`;
+  const soltarChecks = noValidos.map((k) => `alter table ${k.tabla} drop constraint ${id(k.nombre)};`).join("\n");
+  // pg_get_constraintdef ya termina en «NOT VALID» para estos: se vuelven a poner sin recorrer la tabla.
+  const ponerChecks = noValidos
+    .map((k) => `alter table ${k.tabla} add constraint ${id(k.nombre)} ${k.def};` +
+      (k.comentario == null ? "" : `\ncomment on constraint ${id(k.nombre)} on ${k.tabla} is ${lit(k.comentario)};`))
+    .join("\n");
+  // Firma de TODOS los candados del schema; se toma antes de tocar nada y se exige igual al final, dentro de la transacción.
+  const firmaCandados = `(select coalesce(md5(string_agg(concat_ws('|', c.conrelid::regclass::text, c.conname, c.contype, c.convalidated, pg_get_constraintdef(c.oid)),
+      E'\\n' order by c.conrelid::regclass::text, c.conname)), '') from pg_constraint c where c.connamespace = '${SCHEMA}'::regnamespace)`;
   const guion = [
+    "set local search_path = '';", // la firma de antes y la de después se leen con el mismo search_path
+    `select ${firmaCandados} as firma_antes \\gset`,
     "set local session_replication_role = replica;", // sin disparadores comunes ni chequeo de FK mientras se recarga
     apagar,
+    soltarChecks,
     `truncate table ${lista};`,
     readFileSync(ruta(nombre, "sql"), "utf8"),
+    ponerChecks,
     prender,
+    `select ${firmaCandados} = :'firma_antes' as candados_iguales \\gset`,
+    "\\if :candados_iguales",
+    "\\else",
+    "do $$ begin raise exception 'Los candados CHECK no quedaron idénticos a como estaban: se revierte todo.'; end $$;",
+    "\\endif",
   ].join("\n");
 
   try {

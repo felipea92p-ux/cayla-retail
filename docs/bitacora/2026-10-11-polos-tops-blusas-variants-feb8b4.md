@@ -1,0 +1,8 @@
+## 2026-10-11 (Plan del piso ▸ Propuesta: las perchas llevan el color real de lo que cuelga, y la ficha dice el nombre completo)
+Qué hice: Felipe dijo que el riel de perchas con un solo color por grupo estaba bien pero quería ver las variantes, y que la ficha «Polos 150» debía decir «Polos, tops y blusas 150». Le pregunté qué eran las «variantes» (colores reales), dónde las quería
+(«Hoy», «Cómo quedaría» y los íconos de fichas y tarjetas) y cómo dibujarlas (una percha, un color). Cada percha ahora toma el color de una variante que de verdad cuelga, en proporción; los colores chicos se juntan en «Otros colores»; el ícono de la ficha y la tarjeta son
+hasta tres prendas superpuestas; la ficha y el rótulo del riel dicen el nombre completo del grupo (el rótulo, si el tramo tiene espacio).
+Por qué así: el dato ya venía en la lectura del piso (`colorHex`), así que no hay migración ni RPC: `lib/plan-piso-colores.ts` (lógica pura, 27 pruebas) reparte los colores con resto mayor y garantiza que un color con media percha tenga la suya. «Cómo quedaría» repite la mezcla
+de hoy y la pantalla lo dice al pie: la propuesta reparte lugares, no elige colores. ADR-0352, actualización 2026-10-11 (c).
+Felipe se lleva: (1) **la ruta real no se vio contra su base** (la local no tiene las tablas del Plan del piso): se probó con los mismos componentes y datos inventados, en claro y oscuro, a escritorio y a 375 px; `tema:auditar` no se corrió y no la probó una colaboradora; (2) un detalle
+de criterio para mirar: las filas de la tabla y la mancuerna siguen del color del grupo (solo cambiaron perchas, fichas y tarjetas), y negro y gris oscuro se parecen a 19 px; (3) nada que pegar en producción; los cambios están sin commit en la rama de este trabajo.

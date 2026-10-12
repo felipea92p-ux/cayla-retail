@@ -39,7 +39,7 @@ export function CabeceraPantalla({
   children?: ReactNode;
 }) {
   return (
-    <header className={`anim-sube flex flex-wrap justify-between gap-x-8 gap-y-4 ${accionesAbajo ? "items-end" : "items-start"}`}>
+    <header data-voz="cabecera" className={`anim-sube flex flex-wrap justify-between gap-x-8 gap-y-4 ${accionesAbajo ? "items-end" : "items-start"}`}>
       {/* Con `accionesAbajo`, el texto cede ancho (base 22rem, hasta 36rem) antes de mandar las acciones a otra línea: así
           «Ver» y un botón largo («+ Registrar movimiento», Finanzas F3) quedan a la derecha, como en el spike. */}
       <div className={`min-w-0 ${accionesAbajo ? "max-w-[36rem] grow basis-[22rem]" : "max-w-2xl"}`}>

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { ConNumero, Control, FotoConMarcas, Renglon, RutaDeClics, Ventana, type Marca } from "@/components/GuiaImpresionVisuales";
 import { MEDIDAS, sistemaDelEquipo, type Sistema } from "@/lib/guia-impresion-reglas";
 import { COMANDO_INSTALAR } from "@/lib/mac-etiquetas";
@@ -344,15 +344,17 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
       {(cerrar) => (
         <>
           <div ref={arriba} className="flex flex-wrap items-center justify-between gap-3">
-            <SegmentoDeslizante
-              etiqueta="Sistema de esta computadora"
-              valor={sistema}
+            {/* Cada sistema tiene su propio camino de pasos: la pestaña de vista del sistema (ADR-0358), no un campo. */}
+            <Pestanas
+              etiquetaAccesible="Sistema de esta computadora"
+              idIndicador="guia-impresion-sistema"
+              activa={sistema}
               onCambio={(c) => {
                 setElegido(c as Sistema);
                 setIndice(0);
                 setActiva(null);
               }}
-              opciones={[
+              items={[
                 { clave: "windows", etiqueta: "Windows" },
                 { clave: "mac", etiqueta: "Mac" },
               ]}

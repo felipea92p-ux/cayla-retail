@@ -37,18 +37,32 @@ import {
   type PrendaLlegada,
 } from "@/lib/llegada-reglas";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { avisoConteoGuardado, avisoConteoRetomado, llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
 import { Desplegable } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
+import { BORRADOR_VACIO, ProveedorModal } from "@/components/ProveedorModal";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 
-export type ProveedorLlegada = { id: string; nombre: string; marcas: string[] };
+export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
 type Lectura = { bueno: boolean; texto: string; varianteId?: string; crear?: boolean };
 type Recibido = { lineas: LineaLlegada[]; unidades: number; loteId: string | null; sinConexion?: boolean };
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11). El token viaja con lo escaneado: es la misma
+ *  llegada, y reintentarla no la duplica. */
+type ConteoDeLaLlegada = {
+  proveedorId: string;
+  numeroGuia: string;
+  lineas: LineaLlegada[];
+  sinFactura: string[];
+  agregados: ProveedorLlegada[];
+  token: string;
+};
 
 const ID_BUSCADOR = "llegada-buscador";
 
@@ -57,11 +71,20 @@ const ID_BUSCADOR = "llegada-buscador";
 // con `recibir_lote` sin cambios: una transacción, token contra el doble clic (ADR-0190) y cola sin conexión (ADR-0210). La
 // factura no se pide aquí: si existe, se recibe contra ella en `RecepcionEnvio`; si no, se une después (fase 2 del ADR).
 // Toda la regla vive en `lib/llegada-reglas.ts` (con su prueba); este archivo solo la dibuja.
+//
+// «¿No está? + Agregar proveedor» (2026-10-10): un proveedor que llega por primera vez no estaba en el directorio y quien
+// recibía no tenía salida —tenía que irse a Compras ▸ Proveedores, perder lo escaneado y volver—. Abre el MISMO formulario de
+// Proveedores (`ProveedorModal`: RUC con consulta a SUNAT, aviso de parecidos, la RPC `registrar_proveedor`) y el proveedor
+// recién guardado queda elegido. Solo a quien tiene el módulo Proveedores (`puedeAgregarProveedor`, lo que la base exige en
+// `fn_puede_gestionar_proveedores`); quien no, ve a quién pedírselo. El formulario va FUERA del <form> de la llegada: un
+// `submit` que sube desde un modal llegaría a su `onSubmit` y recibiría la mercadería (CLAUDE.md, ADR-0128).
 export function LlegoMercaderia({
   ubicacionId,
   ubicacionEtiqueta,
   prendas,
   proveedores,
+  rubrosEnUso,
+  puedeAgregarProveedor,
   facturas,
   recientes,
   verMontos,
@@ -71,6 +94,10 @@ export function LlegoMercaderia({
   ubicacionEtiqueta: string;
   prendas: PrendaLlegada[];
   proveedores: ProveedorLlegada[];
+  /** Los rubros que ya usan los proveedores: los botones del formulario de «Agregar proveedor». */
+  rubrosEnUso: string[];
+  /** La cuenta tiene el módulo Proveedores: puede dar de alta uno desde aquí. */
+  puedeAgregarProveedor: boolean;
   /** Las facturas ya registradas a las que les falta mercadería en esta sede: si el proveedor elegido tiene, se pregunta. */
   facturas: FacturaPendiente[];
   /** Lo que ya entró en esta sede estos días: si el proveedor elegido ya entró hoy, se avisa antes de recibir. */
@@ -80,9 +107,12 @@ export function LlegoMercaderia({
   veExistencias: boolean;
 }) {
   const router = useRouter();
-  const [proveedorId, setProveedorId] = useState("");
-  const [numeroGuia, setNumeroGuia] = useState("");
-  const [lineas, setLineas] = useState<LineaLlegada[]>([]);
+  // Lo escaneado es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se escaneó en
+  // otra sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo escaneado, se arranca desde ahí.
+  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useTrabajoPorSede<ConteoDeLaLlegada>(ubicacionId);
+  const [proveedorId, setProveedorId] = useState(guardado?.proveedorId ?? "");
+  const [numeroGuia, setNumeroGuia] = useState(guardado?.numeroGuia ?? "");
+  const [lineas, setLineas] = useState<LineaLlegada[]>(guardado?.lineas ?? []);
   const [busqueda, setBusqueda] = useState("");
   const [enBuscador, setEnBuscador] = useState(false);
   const [lectura, setLectura] = useState<Lectura | null>(null);
@@ -91,18 +121,26 @@ export function LlegoMercaderia({
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   const [ok, setOk] = useState<Recibido | null>(null);
   // Los proveedores para los que ya se contestó «No, sin factura» (la pregunta no vuelve a insistir con ese proveedor).
-  const [sinFactura, setSinFactura] = useState<string[]>([]);
+  const [sinFactura, setSinFactura] = useState<string[]>(guardado?.sinFactura ?? []);
+  // Los proveedores que se agregaron aquí mismo: salen en el combo y quedan elegidos sin esperar a que la página relea el directorio.
+  const [agregados, setAgregados] = useState<ProveedorLlegada[]>(guardado?.agregados ?? []);
+  const [agregando, setAgregando] = useState(false);
   const buscador = useRef<HTMLInputElement>(null);
   const formulario = useRef<HTMLFormElement>(null);
   // Doble clic (ADR-0190): un token por intento; se renueva solo al guardar bien.
-  const token = useRef<string>(crypto.randomUUID());
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
   // Si fueron a crear una prenda nueva en otra pestaña, al volver se relee el catálogo (la lista de aquí no se pierde).
   const fueACrear = useRef(false);
   const colaOffline = useColaRecibir();
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
 
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
-  const proveedor = proveedores.find((p) => p.id === proveedorId) ?? null;
+  // Cuando la página relee el directorio, el recién agregado ya viene en `proveedores`: no se repite.
+  const directorio = useMemo(() => {
+    const nuevos = agregados.filter((a) => !proveedores.some((p) => p.id === a.id));
+    return nuevos.length === 0 ? proveedores : [...proveedores, ...nuevos].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [proveedores, agregados]);
+  const proveedor = directorio.find((p) => p.id === proveedorId) ?? null;
   const marcas = proveedor?.marcas ?? [];
   const sugerencias = sugerirPrendas(busqueda, prendas, marcas);
   // La lista flota en `fixed` sobre todo (ADR-0185, como los combos): dentro de la tarjeta, el bloque de abajo la tapaba.
@@ -121,6 +159,28 @@ export function LlegoMercaderia({
     facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
+
+  // «¿Salir sin guardar?» (2026-10-11): lo escaneado se perdía en silencio al tocar el menú. Llegó junto con guardar lo de cada
+  // sede: lo guardado en otra sede solo vive mientras se siga en Recibir, así que salir también lo pierde y también pregunta.
+  const contado = llegadaContada({ lineas, numeroGuia });
+  const avisoSalida = useSalidaSinGuardar(
+    !ok && (contado || guardadosEnOtras.length > 0),
+    mensajeDeSalida(contado ? "Hay prendas escaneadas que todavía no se recibieron. Si sales ahora, se pierde lo escaneado." : null, guardadosEnOtras),
+  );
+  // Lo escaneado, al día, para `TrabajoPorSede`: si la sede cambia, queda guardado en ESTA sede.
+  useEffect(() => {
+    reportarConteo(
+      !ok && contado
+        ? {
+            etiqueta: ubicacionEtiqueta,
+            unidades: unidadesDeLaLlegada(lineas),
+            trabajo: { proveedorId, numeroGuia, lineas, sinFactura, agregados, token: token.current },
+            avisoAlGuardar: avisoConteoGuardado({ etiqueta: ubicacionEtiqueta, unidades: unidadesDeLaLlegada(lineas) }),
+            avisoAlVolver: avisoConteoRetomado({ etiqueta: ubicacionEtiqueta, unidades: 0 }),
+          }
+        : null,
+    );
+  }, [reportarConteo, ok, contado, ubicacionEtiqueta, proveedorId, numeroGuia, lineas, sinFactura, agregados]);
 
   useEffect(() => {
     const alVolver = () => {
@@ -144,6 +204,14 @@ export function LlegoMercaderia({
     // Con la pistola en la mano, lo que sigue es leer: el cursor va al buscador. Si ese proveedor tiene facturas pendientes,
     // primero va la pregunta (la luz de la guía la marca) y el cursor espera.
     if (primeraVez && facturasDelProveedor(facturas, id).length === 0) setTimeout(() => buscador.current?.focus(), 0);
+  }
+
+  function alAgregarProveedor(id: string | null, datos?: { nombre: string; ruc: string | null }) {
+    setAgregando(false);
+    router.refresh();
+    if (!id || !datos) return;
+    setAgregados((a) => [...a, { id, nombre: datos.nombre, ruc: datos.ruc, marcas: [] }]);
+    elegirProveedor(id);
   }
 
   function recibirSinFactura() {
@@ -240,7 +308,9 @@ export function LlegoMercaderia({
     token.current = crypto.randomUUID();
     avisar.exito(`${unidades} ${unidades === 1 ? "prenda recibida" : "prendas recibidas"}`, { detalle: `Ya están en el almacén de ${ubicacionEtiqueta}.` });
     setOk({ lineas, unidades, loteId: (loteId as string | null) ?? null });
-    router.refresh();
+    // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?», como en la recepción contra factura: juntos, Next
+    // podía volver a montar la página y se perdía la pantalla de «Recibida» (2026-10-08).
+    void avisoSalida.retirarYa().then(() => router.refresh());
   }
 
   function otraLlegada() {
@@ -289,8 +359,18 @@ export function LlegoMercaderia({
                 marcador="Elige el proveedor"
                 valor={proveedorId}
                 onValor={elegirProveedor}
-                opciones={proveedores.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
+                opciones={directorio.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
               />
+              {puedeAgregarProveedor ? (
+                <p className="mt-1.5 text-xs text-taupe">
+                  ¿No está?{" "}
+                  <button type="button" onClick={() => setAgregando(true)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                    + Agregar proveedor
+                  </button>
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
+              )}
             </CampoGuiado>
             <label className="block">
               <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
@@ -512,6 +592,17 @@ export function LlegoMercaderia({
           </div>
         </form>
       )}
+
+      {agregando && (
+        <ProveedorModal
+          inicial={BORRADOR_VACIO}
+          rubros={rubrosEnUso}
+          existentes={directorio.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, activo: true }))}
+          onClose={() => setAgregando(false)}
+          onGuardado={alAgregarProveedor}
+        />
+      )}
+      {avisoSalida.aviso}
     </div>
   );
 }

@@ -130,7 +130,7 @@ describe("la carta de colores de CAYLA", () => {
 
   it("las filas siguen el espectro: neutros, rosado → morado, y al final lo que no es un matiz", () => {
     expect(FAMILIAS_COLOR.map((f) => f.valor)).toEqual([
-      "neutro", "tierra", "rosado", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "metalico", "estampado",
+      "neutro", "tierra", "rosado", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "metalico",
     ]);
   });
 

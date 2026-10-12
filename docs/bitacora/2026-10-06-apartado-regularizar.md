@@ -1,0 +1,6 @@
+# 2026-10-06 · Regularizar desde el detalle de la venta (Ventas ▸ Historial)
+
+## 2026-10-06 (Una venta de «Prenda sin registrar» se regulariza desde su propio detalle)
+Qué hice: el detalle de una venta en Historial suma la acción **«Regularizar prenda»** (Inventario ▸ Existencias) en «Qué hacer con esta venta», solo si la venta tiene una línea de prenda sin registrar con su fila de la cola todavía `pendiente`. Va primera y destacada; lleva a `/inventario/por-regularizar?ubicacion=<sede>&item=<línea>` y, con una sola prenda pendiente, esa pantalla abre directo su hoja de regularizar. Para saberlo, la lectura del historial trae `prendas_por_regularizar ( estado )` por línea (`itemsPorRegularizar` en `FilaHistorial`).
+Por qué así: desde ADR-0330 «Regularizar» vive en Existencias y costaba encontrarlo; la venta ya dice qué prenda es, así que el camino natural es desde ella. Regularizada, cerrada sin prenda o anulada ya no se ofrece, y sin el módulo Existencias tampoco (no tendría adónde ir). Historial sigue sin cambiar nada: solo lleva (ADR-0230).
+Felipe se lleva: probado en local con una venta inventada (botón visible, lleva a la hoja abierta; datos de prueba borrados). `vitest` de acciones del historial, historial y cola en verde. Sin migración.

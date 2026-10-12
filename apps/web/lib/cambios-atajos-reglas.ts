@@ -23,6 +23,22 @@ export function busquedaDesdeLectura(crudo: string): string {
   return texto;
 }
 
+/**
+ * Lo que abre una LECTURA (la pistola o la cámara) en Cambios y Devoluciones (Felipe 2026-10-09: «sí, ábrelo directo si es
+ * una sola venta»). Si la búsqueda trajo UNA sola compra, se entra directo a ella, con la prenda leída ya marcada si se
+ * puede cambiar o devolver (`puede`); si no se puede, o lo leído era la boleta, se entra sin nada marcado y el paso de las
+ * prendas dice por qué sí o por qué no — igual que al llegar con `?item=`. Con dos compras o ninguna: `null`, la lista se
+ * queda para que la persona elija. Lo tecleado a mano nunca pasa por aquí.
+ */
+export function abrirDesdeLectura<L extends { ventaId: string; ventaItemId: string; coincideConBusqueda: boolean }>(
+  lineas: readonly L[],
+  puede: (linea: L) => boolean,
+): { venta: L[]; lineaId: string | null } | null {
+  if (new Set(lineas.map((l) => l.ventaId)).size !== 1) return null;
+  const leida = lineas.find((l) => l.coincideConBusqueda);
+  return { venta: [...lineas], lineaId: leida && puede(leida) ? leida.ventaItemId : null };
+}
+
 export type SedeConId = { id: string; nombre: string };
 
 /** Una sede donde sí hay la prenda elegida, con su id (para prellenar el traslado) y cuántas hay. */

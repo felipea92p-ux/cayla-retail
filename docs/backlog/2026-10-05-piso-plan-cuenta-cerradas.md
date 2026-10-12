@@ -3,7 +3,7 @@
 Producción el 2026-10-04 (solo lectura): `fn_piso_plan_lectura` con huella `faff73d2a6db4c0692775c1f6d6e284d` (solo cuenta `pendiente`), 0 filas en
 `cierres_cola_arranque`, AQP con 170 anotadas pendientes y TRU con 97; plazo de las tres tiendas hasta el 15-oct.
 
-- [x] **Migración `20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql`** (una parte; `create or replace` + `comment` + permisos; sin `alter`
+- [x] **Migración `20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql`** (una parte; `create or replace` + `comment` + permisos; sin `alter`
   ni políticas). Mismo cuerpo que `20261004213000` salvo los dos filtros (`p.estado in ('pendiente', 'cerrada_sin_prenda')`) y sus comentarios.
   La guarda exige que el cuerpo vivo sea `faff73d2…` o el suyo. Se puede pegar dos veces.
 - [x] **`scripts/pruebas/piso_plan_lectura.mjs`:** A8, A9, A10, A11 (control con el cuerpo viejo) y M4 (la guarda frena un cuerpo desconocido);
@@ -17,7 +17,7 @@ Producción el 2026-10-04 (solo lectura): `fn_piso_plan_lectura` con huella `faf
 - [x] **Regla de orden levantada (2026-10-05):** con la huella `33dfc4b1…` viva, una tienda ya puede cerrar su cola de arranque sin que el motor
   la pierda.
 - [ ] **Nunca volver a pegar `20261004213000`** después de esta (devolvería el filtro viejo sin error). Ese archivo no se puede editar: el aviso
-  vive aquí, en ADR-0334 y en la cabecera de `20261005160000`.
+  vive aquí, en ADR-0334 y en la cabecera de `20261005160100`.
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) para que el diccionario tenga el comentario nuevo de la función.
 - [ ] **Abierto, decisión de Felipe — las bolsas de papel entran como «sin registrar» con una categoría inventada.** Producción el 2026-10-05
   (solo lectura): 27 anotadas pendientes de AQP cobradas a menos de S/ 5 (casi todas S/ 0.50; ~S/ 15 en total), y casi todas dicen «bolsa
@@ -34,3 +34,14 @@ Producción el 2026-10-04 (solo lectura): `fn_piso_plan_lectura` con huella `faf
   stock (en AQP, 3). No prueba que sean la misma prenda (puede ser otro modelo igual), pero si alguna sí estaba cargada, el sistema la tiene con
   1 unidad de más. Un faltante del conteo que calce con una venta de la pestaña «Cerradas» es esa venta, no una pérdida: el cruce automático del
   conteo con las ventas sin registrar (ADR-0328, decisión 9) solo mira las pendientes, así que hay que mirarlo a mano.
+- [x] **Merge de `main` (2026-10-12), tres cosas que git no avisaba:**
+  - **Versión repetida:** `main` ya tenía `20261005160000_movimientos_colgada_y_guardada.sql`. Esta migración pasó a **`20261005160100`** (solo
+    nombre y cabecera; mismo cuerpo, misma huella, mismo orden relativo). Producción no registra por nombre de archivo: no cambia nada allá. La
+    migración `20261005215000_motor_demanda_lectura.sql` de `main` sigue nombrando `20261005160000` para este contrato (líneas 14 y 195); está
+    en `main` y no se edita.
+  - **Parche por ancla encima:** `20261010232000` (bolsas de despacho, familias apagadas) parcha `fn_piso_plan_lectura` sin tocar el filtro
+    `p.estado`. Con esta migración en el repo, la base armada desde cero (528 migraciones + seed) da **la misma huella que producción**
+    (`3b9b7a08568bcc0484b095347bd4bc1a`, consultada en solo lectura): la «deriva conocida» que describe esa cabecera desaparece al fusionar.
+  - **Pruebas:** M1 y M3 ponen antes el cuerpo de `20261004213000` (sobre el de hoy, la guarda se detiene a propósito); M5 nuevo lo comprueba:
+    volver a pegar este archivo sobre la función de hoy no borra el filtro de familias. piso-plan 60/60, motores-familias-apagadas 11/11,
+    cola-arranque 53/53.

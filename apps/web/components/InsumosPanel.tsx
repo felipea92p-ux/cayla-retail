@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Layers } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -19,6 +19,7 @@ import {
   type EstadoInsumo,
 } from "@/lib/insumos-reglas";
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Lo que hay por lote, cuánto dura y qué falta. El saldo es la suma del
 // ledger, nunca un número que alguien edite; por eso el libro de movimientos solo se agrega, no se corrige. Quien no es
@@ -41,7 +42,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
   return (
     <div className="space-y-6">
       {/* Cabecera del spike: el título a la izquierda y las acciones arriba a la derecha. */}
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Insumos</h1>
@@ -64,7 +65,6 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
       {/* ==================== cifras ==================== */}
       <div className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
         <TarjetaCifra
-          compacta
           punto={bajos > 0 ? "ambar" : "verde"}
           etiqueta="Bajo el mínimo"
           className="anim-entra"
@@ -76,29 +76,36 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
         </TarjetaCifra>
         {esLider && (
           <TarjetaCifra
-            compacta
             punto="verde"
             etiqueta="Capital en insumos"
             className="anim-entra"
             style={{ ["--i" as string]: 1 }}
-            vacia={capital === null || insumos.length === 0}
-            valor={capital === null || insumos.length === 0 ? "—" : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
+            valor={capital === null ? null : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
           >
             a costo de cada lote
           </TarjetaCifra>
         )}
-        <TarjetaCifra compacta punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
           {plural(insumos.filter((i) => i.tipo === "tela").length, "tela", "telas")} · {plural(insumos.filter((i) => i.tipo === "avio").length, "avío", "avíos")}
         </TarjetaCifra>
       </div>
 
       {insumos.length === 0 ? (
-        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
-          <p>
-            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda. Sin esto, el costo de tela y avíos de una
-            orden es un número que alguien escribe.
-          </p>
-          {esLider ? <p>Empieza agregando un insumo al catálogo; después ingresa su primer lote.</p> : <p>El líder tiene que cargar el catálogo primero.</p>}
+        <div className="card-cayla">
+          <Vacio
+            icono={<Layers />}
+            titulo="Todavía no hay insumos"
+            acciones={
+              esLider ? (
+                <Boton peso="primario" onClick={() => setNuevo(true)}>
+                  Agregar el primero
+                </Boton>
+              ) : null
+            }
+          >
+            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda.{" "}
+            {esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
+          </Vacio>
         </div>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">

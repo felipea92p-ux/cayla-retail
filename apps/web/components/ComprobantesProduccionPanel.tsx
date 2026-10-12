@@ -1,19 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { FunnelX, Receipt, SearchX } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { Boton, Desplegable } from "@/components/ui/campos";
+import { Boton, BotonEnlace, Desplegable } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComprobanteProduccionDetalle } from "@/components/ComprobanteProduccionDetalle";
 import { ComprobanteProduccionForm } from "@/components/ComprobanteProduccionForm";
 import { estadoVisible, etiquetaTipo, filtrarComprobantes, resumenComprobantes, type ComprobanteProduccion, type FiltroEstado } from "@/lib/comprobantes-produccion-reglas";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
+
+const ETIQUETA_FILTRO: Record<FiltroEstado, string> = { todos: "Todos", por_pagar: "Por pagar", vencidos: "Vencidos", pagados: "Pagados", anulados: "Anulados" };
 
 // Comprobantes de Producción (ADR-0133, F4b; D-H): la factura de quien le vende tela, avíos o maquila al Taller, con su saldo. Solo líder.
 // «Por pagar», «Vencido» y el saldo de cada fila se DERIVAN de los pagos: nunca se digitan. El rojo de la pantalla lo lleva la cifra de
@@ -49,7 +52,7 @@ export function ComprobantesProduccionPanel({
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de insumos</h1>
@@ -62,64 +65,75 @@ export function ComprobantesProduccionPanel({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
-          compacta
           punto={resumen.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          vacia={resumen.porPagar === 0}
-          valor={resumen.porPagar === 0 ? "—" : <CifraQueCuenta valor={resumen.porPagar} formato="soles" alMontar />}
+          valor={resumen.porPagar === 0 ? null : <CifraQueCuenta valor={resumen.porPagar} formato="soles" alMontar />}
         >
           {resumen.conSaldo > 0 ? plural(resumen.conSaldo, "factura con saldo", "facturas con saldo") : "nada pendiente"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={resumen.nVencidos > 0 ? "rojo" : "verde"}
           etiqueta="Vencido"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={resumen.nVencidos === 0}
-          valor={resumen.nVencidos === 0 ? "—" : <CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
+          valor={resumen.nVencidos === 0 ? null : <CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
           detalleTono={resumen.nVencidos > 0 ? "text-rojo-profundo" : "text-verde-profundo"}
         >
           {resumen.nVencidos > 0 ? `${plural(resumen.nVencidos, "factura ya venció", "facturas ya vencieron")}` : "nada vencido"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto="verde"
           etiqueta="Comprado este mes"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          vacia={resumen.nDelMes === 0}
-          valor={resumen.nDelMes === 0 ? "—" : <CifraQueCuenta valor={resumen.delMes} formato="soles" alMontar />}
+          valor={resumen.nDelMes === 0 ? null : <CifraQueCuenta valor={resumen.delMes} formato="soles" alMontar />}
         >
           {resumen.nDelMes > 0 ? `${plural(resumen.nDelMes, "factura", "facturas")}, IGV incluido` : "sin facturas este mes"}
         </TarjetaCifra>
       </div>
 
       {comprobantes.length === 0 ? (
-        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
-          <p>
-            Aquí se registra la factura de cada proveedor del Taller: la tela por metro, los avíos, la maquila. De ella salen cuánto se le debe, cuándo vence y a qué precio
-            subió la tela.
-          </p>
-          {todosLosProveedores.length === 0 ? <p>Primero agrega al proveedor en Proveedores; después registra su factura.</p> : <p>Registra la primera con «Nueva factura».</p>}
+        <div className="card-cayla">
+          <Vacio
+            icono={<Receipt />}
+            titulo="Todavía no hay facturas de insumos"
+            acciones={
+              todosLosProveedores.length === 0 ? (
+                <BotonEnlace href="/produccion/proveedores" peso="primario">
+                  Ir a Proveedores
+                </BotonEnlace>
+              ) : (
+                <Boton peso="primario" onClick={() => setNuevo(true)}>
+                  Registrar la primera
+                </Boton>
+              )
+            }
+          >
+            Aquí va la factura de cada proveedor del Taller: la tela por metro, los avíos, la maquila. De ella salen cuánto se le debe, cuándo vence y a qué precio subió la tela.
+            {todosLosProveedores.length === 0 ? " Primero agrega al proveedor en Proveedores; después registra su factura." : null}
+          </Vacio>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <SegmentoDeslizante
-              etiqueta="Filtrar por estado"
-              valor={estado}
-              onCambio={(c) => setEstado(c as FiltroEstado)}
-              opciones={[
-                { clave: "todos", etiqueta: "Todos", conteo: comprobantes.length },
-                { clave: "por_pagar", etiqueta: "Por pagar", conteo: conteo("por_pagar") },
-                { clave: "vencidos", etiqueta: "Vencidos", conteo: conteo("vencidos") },
-                { clave: "pagados", etiqueta: "Pagados", conteo: conteo("pagados") },
-                { clave: "anulados", etiqueta: "Anulados", conteo: conteo("anulados") },
-              ]}
-            />
+            {/* El estado deja menos comprobantes en la misma lista: la píldora de filtro, igual que en Compras (ADR-0358). */}
+            <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
+              {(
+                [
+                  { clave: "todos", etiqueta: "Todos", conteo: comprobantes.length },
+                  { clave: "por_pagar", etiqueta: "Por pagar", conteo: conteo("por_pagar") },
+                  { clave: "vencidos", etiqueta: "Vencidos", conteo: conteo("vencidos") },
+                  { clave: "pagados", etiqueta: "Pagados", conteo: conteo("pagados") },
+                  { clave: "anulados", etiqueta: "Anulados", conteo: conteo("anulados") },
+                ] as const
+              ).map((o) => (
+                <button key={o.clave} type="button" aria-pressed={estado === o.clave} onClick={() => setEstado(o.clave as FiltroEstado)} className="pildora-cayla">
+                  {o.etiqueta} <span className="pildora-cayla__n">{o.conteo}</span>
+                </button>
+              ))}
+            </div>
             <Desplegable
               valor={proveedorId}
               onValor={(v) => setProveedorId(v)}
@@ -127,15 +141,47 @@ export function ComprobantesProduccionPanel({
               etiquetaAccesible="Filtrar por proveedor"
               forma="caja"
             />
-            <label className="card-cayla ml-auto flex min-w-52 items-center gap-2 px-3 py-1.5">
-              <Search size={15} aria-hidden className="text-tinta/45" />
-              <span className="sr-only">Buscar factura</span>
-              <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Proveedor o F001-123" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45" />
-            </label>
+            <Buscador valor={busqueda} onCambio={setBusqueda} atajo placeholder="Proveedor o F001-123" etiqueta="Buscar factura" className="ml-auto min-w-52" />
           </div>
 
           {visibles.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/70">Ninguna factura coincide con lo que buscas.</p>
+            <div className="card-cayla">
+              {busqueda.trim() ? (
+                <Vacio
+                  icono={<SearchX />}
+                  titulo={`Nada coincide con «${busqueda.trim()}»`}
+                  acciones={
+                    <Boton peso="fantasma" onClick={() => setBusqueda("")}>
+                      Borrar la búsqueda
+                    </Boton>
+                  }
+                >
+                  Se busca por el nombre del proveedor o por el número de la factura (F001-123).
+                </Vacio>
+              ) : (
+                <Vacio
+                  icono={<FunnelX />}
+                  titulo="Ninguna factura con esos filtros"
+                  filtros={[
+                    ...(estado !== "todos" ? [{ texto: ETIQUETA_FILTRO[estado], onQuitar: () => setEstado("todos") }] : []),
+                    ...(proveedorId ? [{ texto: todosLosProveedores.find((p) => p.id === proveedorId)?.nombre ?? "Proveedor", onQuitar: () => setProveedorId("") }] : []),
+                  ]}
+                  acciones={
+                    <Boton
+                      peso="fantasma"
+                      onClick={() => {
+                        setEstado("todos");
+                        setProveedorId("");
+                      }}
+                    >
+                      Limpiar filtros
+                    </Boton>
+                  }
+                >
+                  Quita un filtro o límpialos todos para ver todas las facturas.
+                </Vacio>
+              )}
+            </div>
           ) : (
             <div className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">

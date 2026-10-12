@@ -1,0 +1,161 @@
+/* ====================================================================
+   BASE COMPARTIDA de las 3 maquetas del «Historial» de una prenda (Catálogo ▸ Productos ▸ vista rápida ▸ Historial).
+   Tokens = apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro, ADR-0336): los MISMOS nombres, con
+   tinta y crema intercambiadas. Movimiento del modal = ADR-0136 (velo → hoja que sube 18 px y crece → cascada → salida corta)
+   más la excepción escrita de la vista rápida («Actualización 2026-10-05»: movimiento rico, sin rebote y SIN BUCLE).
+   Lo que NO es parte de la pantalla: la barra punteada de arriba (.spike) y el catálogo de fondo (#fondo).
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;--sombra:#1a1a18;
+  --tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --ease:cubic-bezier(.32,.72,.24,1);--ease-salida:cubic-bezier(.4,0,1,1);
+  --r-md:8px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  --velo:35%;
+}
+:root[data-tema="oscuro"]{
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--sombra:#000000;
+  --tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+  --velo:55%;
+}
+:root{
+  --t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t75:color-mix(in srgb,var(--tinta) 75%,transparent);
+  --t60:color-mix(in srgb,var(--tinta) 60%,transparent);--t55:color-mix(in srgb,var(--tinta) 55%,transparent);
+  --t45:color-mix(in srgb,var(--tinta) 45%,transparent);--t35:color-mix(in srgb,var(--tinta) 35%,transparent);
+  --t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t15:color-mix(in srgb,var(--tinta) 15%,transparent);
+  --t10:color-mix(in srgb,var(--tinta) 10%,transparent);--t07:color-mix(in srgb,var(--tinta) 7%,transparent);
+  --t04:color-mix(in srgb,var(--tinta) 4%,transparent);
+}
+/* En oscuro los tonos tenues suben al piso de legibilidad (ADR-0336, como vista-rapida.css). */
+:root[data-tema="oscuro"]{--t45:color-mix(in srgb,var(--tinta) 58%,transparent);--t35:color-mix(in srgb,var(--tinta) 52%,transparent)}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;overflow:hidden}
+button,input,a{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;text-align:left}
+a{text-decoration:none}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.versal{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- barra de la maqueta (no es parte de la pantalla) ---------- */
+.spike{position:relative;z-index:80;background:var(--crema);padding:8px 14px;border-bottom:1px dashed var(--t25);
+  display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--t60)}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike .grupo{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.spike .grupo>span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--t45);margin-right:2px}
+.spike a.nav,.spike button.op{border:1px solid var(--t25);border-radius:8px;padding:4px 9px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t75);background:var(--papel)}
+.spike a.nav[aria-current=page],.spike button.op[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+/* ---------- escena: marco + fondo del catálogo + velo + hoja ---------- */
+#marco{position:relative;height:calc(100dvh - var(--alto-spike,52px));display:flex;justify-content:center;background:var(--crema)}
+#escena{position:relative;width:100%;height:100%;overflow:hidden;container:escena/inline-size;background:var(--crema)}
+.celular #marco{background:var(--hueso);padding:14px 0;align-items:flex-start}
+.celular #escena{width:375px;height:min(812px,100%);border-radius:34px;box-shadow:0 0 0 8px var(--tinta-fija)}
+
+#fondo{position:absolute;inset:0;padding:22px 28px;pointer-events:none}
+#fondo .fcab{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+#fondo .fcab h2{font-family:'EB Garamond',serif;font-weight:600;font-size:40px;line-height:1.05}
+#fondo .fcab span{font-size:12px;color:var(--taupe)}
+#fondo .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+#fondo .fcard{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);overflow:hidden}
+#fondo .fcard .fm{aspect-ratio:4/5;display:grid;place-items:center;color:var(--crema-fija)}
+#fondo .fcard .fm svg{width:38%;stroke:currentColor;fill:none;stroke-width:1.4;opacity:.85}
+#fondo .fcard .ft{padding:10px 12px 12px}
+#fondo .fcard .ft b{font-family:'EB Garamond',serif;font-weight:600;font-size:15px;display:block;line-height:1.2}
+#fondo .fcard .ft i{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t55);font-weight:600}
+.celular #fondo{padding:16px 14px}
+.celular #fondo .fcab h2{font-size:30px}
+.celular #fondo .fgrid{grid-template-columns:repeat(2,1fr);gap:10px}
+
+.velo{position:absolute;inset:0;z-index:50;background:color-mix(in srgb,var(--sombra) var(--velo),transparent);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;pointer-events:none}
+.capa{position:absolute;inset:0;z-index:51;display:flex;justify-content:center;align-items:flex-start;padding:min(5%,40px) 24px 24px;pointer-events:none}
+.hoja{pointer-events:auto;position:relative;width:100%;max-width:920px;max-height:100%;display:flex;flex-direction:column;
+  background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-2xl);overflow:hidden;
+  box-shadow:0 30px 80px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.cerrar{position:absolute;right:18px;top:18px;z-index:5;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--t25);display:grid;place-items:center;color:var(--tinta);
+  transition:background-color 220ms var(--ease),border-color 220ms var(--ease),transform 220ms var(--ease)}
+.cerrar:hover{background:var(--hueso);border-color:var(--tinta)}
+.cerrar svg{width:18px;height:18px}
+@container escena (max-width:640px){
+  .capa{align-items:flex-end;padding:0}
+  .hoja{border-radius:var(--r-2xl) var(--r-2xl) 0 0;max-height:94%;border-bottom:0}
+  .cerrar{right:12px;top:12px;width:36px;height:36px}
+}
+
+/* Entrada (ADR-0136) */
+@keyframes velo-in{from{opacity:0}to{opacity:1}}
+@keyframes velo-out{from{opacity:1}to{opacity:0}}
+@keyframes hoja-in{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}to{opacity:1;transform:none}}
+@keyframes hoja-in-movil{from{opacity:0;transform:translate3d(0,60px,0)}to{opacity:1;transform:none}}
+@keyframes hoja-out{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+.abierta .velo{opacity:1;animation:velo-in 220ms var(--ease) both;pointer-events:auto}
+.abierta .hoja{animation:hoja-in 420ms var(--ease) backwards}
+.cerrando .velo{animation:velo-out 220ms var(--ease-salida) both}
+.cerrando .hoja{animation:hoja-out 220ms var(--ease-salida) both}
+@container escena (max-width:640px){.abierta .hoja{animation-name:hoja-in-movil;animation-duration:380ms}}
+.cascada>:not([data-sin-cascada]){animation:cascada 500ms var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>:nth-child(1){--k:0}.cascada>:nth-child(2){--k:1}.cascada>:nth-child(3){--k:2}.cascada>:nth-child(4){--k:3}
+.cascada>:nth-child(5){--k:4}.cascada>:nth-child(6){--k:5}.cascada>:nth-child(n+7){--k:6}
+
+/* ---------- las dos páginas de la hoja: vista rápida ↔ historial ----------
+   La hoja NO se cierra para mostrar el historial: «da vuelta la página». Lo de antes sale corto hacia un lado y lo nuevo entra
+   desde el otro; el alto de la hoja acompaña. Volver hace lo inverso. Es una respuesta a una acción (ADR-0136), no decoración. */
+.paginas{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;transition:height 420ms var(--ease)}
+.pagina{display:flex;flex-direction:column;min-height:0;flex:1}
+.pagina[hidden]{display:none}
+@keyframes pag-sale-izq{to{opacity:0;transform:translate3d(-28px,0,0)}}
+@keyframes pag-sale-der{to{opacity:0;transform:translate3d(28px,0,0)}}
+@keyframes pag-entra-der{from{opacity:0;transform:translate3d(36px,0,0)}}
+@keyframes pag-entra-izq{from{opacity:0;transform:translate3d(-36px,0,0)}}
+.pagina.sale-izq{animation:pag-sale-izq 200ms var(--ease-salida) both}
+.pagina.sale-der{animation:pag-sale-der 200ms var(--ease-salida) both}
+.pagina.entra-der{animation:pag-entra-der 420ms var(--ease) backwards}
+.pagina.entra-izq{animation:pag-entra-izq 420ms var(--ease) backwards}
+
+/* ---------- piezas del sistema ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:600;letter-spacing:.02em;line-height:1.35;white-space:nowrap}
+.chip.punto::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.verde{background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 14%,var(--papel));color:var(--pizarra)}
+.chip.neutro{background:var(--hueso);color:var(--t75)}
+.chip.taupe{background:color-mix(in srgb,var(--taupe) 14%,var(--papel));color:var(--taupe)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:0 18px;border-radius:var(--r-lg);
+  font-size:14.5px;font-weight:500;white-space:nowrap;border:1px solid transparent;
+  transition:background-color 220ms var(--ease),color 220ms var(--ease),border-color 220ms var(--ease),transform 220ms var(--ease),box-shadow 220ms var(--ease)}
+.btn svg{width:18px;height:18px}
+.btn.sec{background:var(--papel);border-color:var(--t25);color:var(--tinta)}
+.btn.sec:hover{background:var(--hueso);border-color:var(--t45)}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.pri:hover{background:var(--rojo);color:var(--crema-fija)}
+.btn.sut{color:var(--rojo-p);border-color:var(--t15)}
+.btn.sut:hover{background:color-mix(in srgb,var(--rojo) 8%,transparent)}
+.btn.enlace{min-height:36px;padding:0 10px;border-radius:var(--r-md);color:var(--t75);font-size:13.5px}
+.btn.enlace:hover{background:var(--hueso);color:var(--tinta)}
+.btn:active{transform:translateY(1px)}
+
+/* Avatar de persona (iniciales sobre su tono) y el de «sin firma» (anillo punteado). */
+.av{--av:32px;width:var(--av);height:var(--av);border-radius:50%;display:inline-grid;place-items:center;flex:none;
+  font-size:calc(var(--av)*.36);font-weight:700;letter-spacing:.02em;color:var(--tono);background:color-mix(in srgb,var(--tono) 16%,var(--papel));
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--tono) 45%,transparent)}
+.av.nadie{color:var(--t45);background:transparent;box-shadow:none;border:1.5px dashed var(--t35)}
+
+/* Swatch de color de la prenda: el color es DATO (ADR-0336) y no cambia con el tema. */
+.sw{display:inline-block;width:16px;height:16px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+
+/* Mosaico de la prenda sin foto (ADR-0333): ícono de su categoría sobre el color. */
+.mosaico{position:relative;display:grid;place-items:center;overflow:hidden}
+.mosaico svg{width:34%;max-width:120px;height:auto;stroke:currentColor;fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+
+/* Sin movimiento: lo que pediría prefers-reduced-motion (también forzable desde la barra). */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}
+.quieto *,.quieto *::before,.quieto *::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}

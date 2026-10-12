@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
 import { limpiarTextoAjuste, textoTrasPaso, type ModoAjuste } from "@/lib/ajuste-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 /** Una talla del ajuste, ya dicha en voz de tienda (la arma `AjustarInventarioModal` con las reglas de `lib/ajuste-reglas.ts`). */
 export type FilaDeAjuste = {
@@ -19,7 +20,7 @@ export type FilaDeAjuste = {
 };
 
 // La lista de tallas de «Ajustar» (ADR-0300): la talla en una insignia, dos líneas de texto y un control − 0 +. (Hasta ADR-0317 «Reponer» y «Subir» usaban la misma
-// forma; ahora son una tabla color × talla, `MatrizMover`.) Se distingue en una
+// forma; desde 2026-10-06 se hacen paso a paso en el panel de la talla, `FlujoTalla`.) Se distingue en una
 // cosa: aquí el número puede ser negativo (restar) o «sin contar» (vacío), según el motivo: con «Conteo físico», cuántas hay; con
 // los demás, cuánto se suma o se resta. El valor se guarda tal cual lo escribió la persona (texto): `lineasDeAjuste` decide qué es
 // un ajuste. Los botones y el teclado pasan por `textoTrasPaso` y `limpiarTextoAjuste` (lógica pura, con sus pruebas).
@@ -96,9 +97,9 @@ export function SelectorDeAjuste({
               </span>
             </div>
             {problema && (
-              <p role="alert" className="mt-1.5 pl-12 text-xs text-rojo-profundo">
+              <Aviso tono="error" chico className="ml-12 mt-1.5">
                 {problema}
-              </p>
+              </Aviso>
             )}
             {extra?.(f.varianteId)}
           </li>

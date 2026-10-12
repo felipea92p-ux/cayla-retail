@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -24,6 +25,11 @@ type Props = {
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   /** Escape, el velo y la ✕ no cierran mientras guarda algo sin token: cerrar y reabrir dejaría enviarlo dos veces. */
   bloqueado?: boolean;
+  /** Antes de que Escape, el velo o la ✕ cierren la hoja: recibe el cierre animado y decide si llamarlo. Para preguntar «¿Salir sin
+      guardar?» con la hoja TODAVÍA a la vista (`useSalidaSinGuardar().pedirAccion`): pasado por `onClose`, la pregunta llegaba
+      después de animar la salida y, con «Seguir editando», la hoja quedaba invisible (2026-10-10, Plan de campaña). El `cerrar`
+      que reciben los hijos no pasa por aquí: un botón propio decide por su cuenta. */
+  antesDeCerrar?: (cerrar: () => void) => void;
   /** Al abrir, el foco va a la hoja y no a su primer campo. Para una hoja cuya primera línea hay que LEER antes de elegir:
       un combo (`ComboBuscable`) abre su lista al recibir el foco y, en el celular, la abre hacia arriba tapando esa línea
       («Corregir color», ADR-0263). El foco sigue atrapado en la hoja y Tab entra al primer campo. */
@@ -37,6 +43,14 @@ type Props = {
       «Nuevo producto», 2026-10-02). Solo variante «hoja» (la «papel» ya usa esa esquina para la ✕). Sale de la cascada y se coloca
       con `position: absolute`; el título deja libre el ancho que ocupa (`pr-40`). */
   acciones?: ReactNode;
+  /** La ✕ de cerrar arriba a la derecha, en cualquier variante (la «papel» ya la trae). Hoy: la vista rápida de producto, que se abre
+      también en el celular, donde el velo no siempre se alcanza a tocar. Sale de la cascada (`data-sin-cascada`) para no correr el turno. */
+  conCerrar?: boolean;
+  /** Algo ENCIMA del título, dentro de la cascada: la vuelta a la hoja de atrás cuando un modal pasa de una vista a otra dentro de la misma
+      hoja (hoy, el detalle de un cierre de caja dentro de «Historial de cierres»: flecha + a dónde vuelve, 2026-10-10). */
+  arriba?: ReactNode;
+  /** Título de 26 px (el de las hojas «de ficha»: una prenda, un cliente) en vez de los 18 px de un formulario corto. */
+  tituloGrande?: boolean;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
@@ -60,9 +74,11 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, arriba, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
+  // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
+  const contenedor = useHojaSobreElTeclado<HTMLDivElement>(variante !== "camara");
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
   // que desmonte. Sin esto, un modal que entra suave se iba de un corte seco —
@@ -91,18 +107,29 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
     return () => clearTimeout(temporizador);
   }, [cerrando]);
 
+  // Escape, el velo y la ✕ pasan por `antesDeCerrar` si lo hay (de una ref, como `onClose`: suele llegar como flecha nueva).
+  const antesDeCerrarActual = useRef(antesDeCerrar);
+  useEffect(() => {
+    antesDeCerrarActual.current = antesDeCerrar;
+  }, [antesDeCerrar]);
+  const pedirCierreDesdeFuera = useCallback(() => {
+    const decidir = antesDeCerrarActual.current;
+    if (decidir) decidir(pedirCierre);
+    else pedirCierre();
+  }, [pedirCierre]);
+
   // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
   // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no
   // alcanza). El clic en el velo sigue por `onOpenChange`.
   const alEscape = useEscapeLibre(() => {
-    if (!bloqueado) pedirCierre();
+    if (!bloqueado) pedirCierreDesdeFuera();
   });
 
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
+    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierreDesdeFuera()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 z-50 bg-tinta/35 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
         />
         {/* La posición vive en este contenedor y NO en el panel: una animación
             de entrada usa `transform`, y si la posición también fuera un
@@ -114,19 +141,21 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
             abajo. En celular sigue siendo una hoja pegada abajo. */}
         <div
+          ref={contenedor}
           className={`pointer-events-none fixed inset-0 z-50 flex ${
             variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]"
           }`}
         >
           <Dialog.Content
             ref={hoja}
+            data-variante={variante ?? "normal"}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
-                ? "flex h-dvh flex-col overflow-hidden bg-tinta"
+                ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
-                    `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
-                  : `scroll-cayla max-h-[90vh] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
+                    `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
+                  : `scroll-cayla max-h-[min(90vh,90%)] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
                     // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
                     variante === "papel" || variante === "hoja" ? "bg-papel [--fondo-hoja:var(--color-papel)]" : "bg-crema shadow-xl [--fondo-hoja:var(--color-crema)]"
                   } ${ancho}`
@@ -154,19 +183,21 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                 : undefined
             }
           >
-          {variante === "papel" && (
+          {(variante === "papel" || conCerrar) && (
             <button
               type="button"
-              onClick={pedirCierre}
+              onClick={pedirCierreDesdeFuera}
               disabled={bloqueado}
               aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+              {...(variante === "papel" ? {} : { "data-sin-cascada": true })}
+              className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
             >
               <X aria-hidden className="h-4 w-4" />
             </button>
           )}
+          {arriba}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : tituloGrande ? "text-[26px] leading-[1.1]" : "text-lg"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
@@ -210,6 +241,6 @@ export const campoEtiqueta = "label-cayla text-[11px] text-tinta/70";
 export const campoTexto =
   "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 export const botonCancelar =
-  "label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
+  "btn-cayla btn-secundario flex-1";
 export const botonPrimario =
-  "label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50";
+  "btn-cayla btn-primario flex-1";

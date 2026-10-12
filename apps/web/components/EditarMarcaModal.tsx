@@ -14,6 +14,7 @@ import { camposDeEdicionMarca } from "@/lib/marcas-guia";
 import { firmar } from "@/lib/responsable-reglas";
 import { borradorCambia, problemaEdicionMarca, sePuedeQuitar, sinTildes, type BorradorMarca, type ProveedorOpcion } from "@/lib/marcas";
 import type { MarcaFila } from "@/components/MarcasLista";
+import { Aviso } from "@/components/ui/Aviso";
 
 /**
  * Catálogo ▸ Marcas ▸ Editar (Felipe, 2026-09-25): el nombre y quién la trae en UNA ventana y UN guardado
@@ -172,7 +173,7 @@ export function EditarMarcaModal({
                       value={n.nombre}
                       autoFocus={!n.nombre}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none"
+                      className="caja-cayla h-10 w-full px-3 text-sm text-tinta"
                     />
                     <input
                       aria-label="RUC del proveedor nuevo (opcional)"
@@ -181,7 +182,7 @@ export function EditarMarcaModal({
                       maxLength={11}
                       value={n.ruc}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, ruc: e.target.value.replace(/\D/g, "") } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta outline-none"
+                      className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta"
                     />
                   </div>
                 </li>
@@ -210,11 +211,8 @@ export function EditarMarcaModal({
             )}
           </CampoGuiado>
 
-          {error && (
-            <p role="alert" className="text-xs text-rojo-profundo">
-              {error}
-            </p>
-          )}
+          {error && <Aviso tono="error">{error}</Aviso>}
+
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>

@@ -91,13 +91,6 @@ export function textoMarcaSinResolverDeRetiro(hora: string): string {
   return `Todavía no sabemos si lo que enviaste a las ${hora} se subió. Cuando se resuelva lo de arriba, pulsa «${BOTON_CONFIRMAR_DE_NUEVO}»: si ya se había subido, no se repite.`;
 }
 
-/** El botón: dice cuánto sube apenas hay algo elegido, y tras un corte de red pide confirmar lo mismo de nuevo. */
-export function textoBotonSubir(total: number, congelado: boolean): string {
-  if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;
-  if (total <= 0) return "Subir a almacén";
-  return total === 1 ? "Subir 1 prenda" : `Subir ${total} prendas`;
-}
-
 /** El aviso de éxito de la esquina. */
 export function tituloDeExitoRetiro(unidades: number): string {
   return unidades === 1 ? "1 prenda subida al almacén" : `${unidades} prendas subidas al almacén`;

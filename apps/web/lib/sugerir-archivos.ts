@@ -16,7 +16,7 @@
 // «por ejemplo») se resuelve con `sugerir-fijo`, no agregando el archivo a la deuda.
 
 /** Cuántos archivos siguen con un ejemplo estático sin resolver. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 64;
+export const PENDIENTES_HOY = 59;
 
 /** Rutas relativas a `apps/web/`. */
 export const ARCHIVOS_PENDIENTES: readonly string[] = [
@@ -24,12 +24,10 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "app/(app)/buscar/page.tsx",
   // ---- components/ ----
   "components/AbrirCajaFormV2.tsx",
-  "components/ApartarModal.tsx",
   "components/BuscadorGlobal.tsx",
   "components/BuscadorHistorial.tsx",
   "components/CategoriasLista.tsx",
   "components/ClientaFichaModal.tsx",
-  "components/ColaboradoresModales.tsx",
   "components/ColoresLista.tsx",
   "components/CompraDetallePanel.tsx",
   "components/CompraFormV2.tsx",
@@ -46,12 +44,10 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/GastosFijosYActivos.tsx",
   "components/GastosPanel.tsx",
   "components/InsumoModales.tsx",
-  "components/MarcasLista.tsx",
   "components/MediosDePago.tsx",
   "components/MovimientoCajaModal.tsx",
   "components/MovimientosLista.tsx",
   "components/NotasCreditoPanel.tsx",
-  "components/NuevaOrdenProduccionForm.tsx",
   "components/NuevaProformaModal.tsx",
   "components/PagoPiezas.tsx",
   "components/PatronesLista.tsx",
@@ -75,7 +71,6 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/TejidosLista.tsx",
   "components/TemporadasLista.tsx",
   "components/TerminalesModales.tsx",
-  "components/TrasladoAnularModal.tsx",
   // ---- components/apartados/ ----
   "components/apartados/ApartarVista.tsx",
   "components/apartados/EntregarVista.tsx",

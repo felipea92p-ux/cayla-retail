@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
-  atendioCorto,
+  atendioDelTicket,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoDeCampana,
@@ -12,6 +12,7 @@ import {
   montosSugeridos,
   esDescuentoDeCampana,
   esperaAlCargar,
+  lecturaDelRecibido,
   hayDescuentoManual,
   cobroEnEfectivo,
   motivoBloqueoCobro,
@@ -70,6 +71,17 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
 
   it("con el ticket vacío pide una prenda", () => {
     expect(motivoBloqueoCobro({ ...listo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+  });
+
+  it("un ticket que no cobra nada (solo la bolsa de obsequio) no se cobra, y el motivo lo dice desde el armado (Bolsas de despacho)", () => {
+    const solo = { ...listo, prendas: 1, total: 0, pagos: [] };
+    const motivo = "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+    expect(motivoBloqueoCobro(solo)).toBe(motivo);
+    expect(motivoBloqueoCobro({ ...solo, momento: "armar" })).toBe(motivo);
+    // La caja cerrada y el ticket vacío siguen mandando antes; con la bolsa de obsequio MÁS una compra, nada cambia.
+    expect(motivoBloqueoCobro({ ...solo, cajaAbierta: false })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...solo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 3, total: 59.9, pagos: [{ metodo: "efectivo", monto: 59.9 }] })).toBeNull();
   });
 
   it("mientras se arma la venta no exige método de pago: eso se decide al cobrar", () => {
@@ -811,19 +823,16 @@ const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
 const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
 const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
 
-describe("atendioCorto — el nombre que sale en el papel", () => {
-  it("el primer nombre basta cuando no hay otra igual en la fila", () => {
-    expect(atendioCorto([MARIA, ROSA], "p-maria")).toBe("María");
-  });
-
-  it("dos «María» en la fila se distinguen con la inicial del apellido", () => {
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria")).toBe("María P.");
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria-l")).toBe("María L.");
+describe("atendioDelTicket — el nombre que sale en el papel", () => {
+  it("nombre y apellido, como está en su ficha", () => {
+    expect(atendioDelTicket([MARIA, ROSA], "p-maria")).toBe("María Pérez Soto");
+    expect(atendioDelTicket([MARIA, MARIA_L], "p-maria-l")).toBe("María López Vera");
   });
 
   it("sin elegida o con una que no está en la fila no se inventa nadie", () => {
-    expect(atendioCorto([MARIA, ROSA], null)).toBeNull();
-    expect(atendioCorto([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], null)).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([{ personaId: "p-x", nombre: "  " }], "p-x")).toBeNull();
   });
 });
 
@@ -981,5 +990,33 @@ describe("motivoBloqueoCobro con el redondeo del efectivo", () => {
   it("desde S/ 0.10 de efectivo ya hay moneda: no bloquea", () => {
     expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.1), redondeoEfectivo: true })).toBeNull();
     expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.19), redondeoEfectivo: true })).toBeNull();
+  });
+});
+
+describe("lecturaDelRecibido — vuelto, falta o exacto bajo los billetes (la hoja pinta exacto en verde y falta en rojo)", () => {
+  it("sin recibido no hay lectura: la línea queda invisible", () => {
+    expect(lecturaDelRecibido(undefined, 65, 0)).toBeNull();
+  });
+
+  it("recibido justo: exacto, con el cobro como cifra", () => {
+    expect(lecturaDelRecibido(65, 65, 0)).toEqual({ estado: "exacto", monto: 65 });
+    expect(lecturaDelRecibido(159.9, 159.9, 0)).toEqual({ estado: "exacto", monto: 159.9 });
+  });
+
+  it("recibido de menos: falta, con lo que falta como cifra", () => {
+    expect(lecturaDelRecibido(60, 65, 0)).toEqual({ estado: "falta", monto: 5 });
+    expect(lecturaDelRecibido(0, 65, 0)).toEqual({ estado: "falta", monto: 65 });
+    // sin errores de coma flotante: 0.1 + 0.2 de diferencia no se cuela
+    expect(lecturaDelRecibido(59.7, 59.9, 0)).toEqual({ estado: "falta", monto: 0.2 });
+  });
+
+  it("recibido de más: vuelto, con el vuelto como cifra (neutro, ni verde ni rojo)", () => {
+    expect(lecturaDelRecibido(100, 65, 35)).toEqual({ estado: "vuelto", monto: 35 });
+  });
+
+  it("con el redondeo del efectivo la cuenta es contra lo que se cobra en monedas, no contra la deuda exacta", () => {
+    // deuda S/ 79.88 → se cobran S/ 79.80 en monedas; con 79.80 recibidos es exacto, con 79.70 faltan 0.10
+    expect(lecturaDelRecibido(79.8, 79.8, 0)).toEqual({ estado: "exacto", monto: 79.8 });
+    expect(lecturaDelRecibido(79.7, 79.8, 0)).toEqual({ estado: "falta", monto: 0.1 });
   });
 });

@@ -1,10 +1,13 @@
 "use client";
 
-import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { Children, Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { CircleAlert, Plus, SearchX } from "lucide-react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -53,7 +56,7 @@ export function Hilo({
       {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
           el paso del comprobante); sin definirla es el mismo gris de siempre. */}
       {reposo && (
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,color-mix(in_srgb,var(--color-tinta)_25%,transparent))] transition-colors duration-500" />
       )}
       <span
         aria-hidden
@@ -113,7 +116,17 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
       <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
-        {pie ? <span className="anim-revelar block">{pie}</span> : null}
+        {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
+        {pie ? (
+          tono === "error" ? (
+            <span className="pie-error trazo-dibuja anim-revelar">
+              <CircleAlert aria-hidden />
+              <span>{pie}</span>
+            </span>
+          ) : (
+            <span className="anim-revelar block">{pie}</span>
+          )
+        ) : null}
       </div>
     </div>
   );
@@ -707,7 +720,7 @@ export function Desplegable<T extends string>({
         disabled={deshabilitado}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`flex items-center text-left outline-none transition-colors disabled:cursor-not-allowed ${f.boton} ${
+        className={`flex items-center text-left transition-colors disabled:cursor-not-allowed ${f.boton} ${
           esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""
         }`}
       >
@@ -804,7 +817,11 @@ export function Desplegable<T extends string>({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+              <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{busqueda.trim()}»</b>.
+                </Vacio>
+              </li>
             ) : (
               // Los grupos (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin grupo, las filas sueltas
               // de siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay grupos.
@@ -895,12 +912,43 @@ export function CampoSelect<T extends string>({
    vuelo, que es lo que le dice a quien está en el mostrador que el
    sistema NO se colgó.
    ------------------------------------------------------------------ */
+// Cada peso es una variante de `btn-cayla` (globals.css): el mismo botón que el resto del ERP, con su movimiento y su onda. La VOZ
+// no la decide el peso sino el lugar (ADR-0358, ronda 4, Felipe 2026-10-07: «dos voces»): dentro de una cabecera de pantalla
+// (`data-voz="cabecera"`) habla en versalitas de 11 px; en una hoja o una tarjeta, en letra normal.
 const PESO_BOTON = {
   // Guía oficial (2026-09-22): el hover del primario es rojo PROFUNDO — el rojo de marca no se gasta en un hover.
-  primario: "bg-tinta text-crema hover:bg-rojo-profundo disabled:bg-tinta/30",
-  fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
-  discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
+  primario: "btn-primario",
+  fantasma: "btn-secundario",
+  discreto: "btn-sutil",
+  // Lo que borra, anula o desactiva: rojo desde el principio (ronda 4, la A).
+  peligro: "btn-peligro",
 } as const;
+
+/* El botón del ERP (ADR-0358). Su movimiento es el ÚNICO de los botones (`.btn-cayla` / `.mov-boton` en globals.css): sube con su
+   sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar y una onda
+   nace donde tocaste; mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es
+   `<BotonEnlace>`; con un archivo o un enlace afuera, `<BotonAncla>`. */
+const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) => `btn-cayla ${PESO_BOTON[peso]} ${className}`;
+
+/**
+ * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:
+ * «le falta animación en el +»). El lector de pantalla oye «Registrar gasto», sin el signo. Lo demás del texto va en un solo bloque,
+ * así un `Agregar {año}` no se separa con el espacio de la fila.
+ */
+function conMas(children: ReactNode): ReactNode {
+  const partes = Children.toArray(children);
+  const primero = partes[0];
+  if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
+      <span>
+        {primero.replace(/^\s*\+\s*/, "")}
+        {partes.slice(1)}
+      </span>
+    </span>
+  );
+}
 
 export function Boton({
   peso = "fantasma",
@@ -913,29 +961,8 @@ export function Boton({
   cargando?: boolean;
 }) {
   return (
-    <button
-      {...props}
-      disabled={props.disabled || cargando}
-      className={`label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] outline-none transition-all ease-cayla active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`}
-    >
-      {/* Barrido de luz al pasar el mouse: cruza una vez y no deja nada
-          pintado. Es el único gradiente del sistema, y existe solo como
-          movimiento — un botón que solo cambia de color de golpe es
-          justamente el "seco" que había que sacar.
-          En reposo la barra es INVISIBLE (`opacity-0`), no solo "fuera de
-          cuadro": está inclinada y una inclinación de 12° mete su esquina
-          ~4-5px dentro del botón (mitad del alto × tan 12°), y eso se veía como
-          una esquina rosada en el borde inferior izquierdo de todos los botones
-          aun sin mouse. La animación la enciende (`cayla-brillo` fija
-          `opacity: 1`) y al terminar vuelve a apagarse. */}
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
-        <span
-          className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 opacity-0 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
-            peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
-          }`}
-        />
-      </span>
-      <span className="relative">{children}</span>
+    <button {...props} disabled={props.disabled || cargando} className={claseBoton(peso, className)}>
+      <span className="relative">{conMas(children)}</span>
       {cargando && (
         <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
           <span
@@ -944,5 +971,33 @@ export function Boton({
         </span>
       )}
     </button>
+  );
+}
+
+/** `<Boton>` como un `<a>` de verdad: una descarga (`Link` pediría el archivo por adelantado) o un enlace que sale del ERP (WhatsApp). */
+export function BotonAncla({
+  peso = "fantasma",
+  className = "",
+  children,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { peso?: keyof typeof PESO_BOTON }) {
+  return (
+    <a {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
+      <span className="relative inline-flex items-center gap-2">{conMas(children)}</span>
+    </a>
+  );
+}
+
+/** `<Boton>` para lo que navega: la acción principal de una cabecera («+ Registrar factura», «+ Nueva orden»). Mismo movimiento. */
+export function BotonEnlace({
+  peso = "fantasma",
+  className = "",
+  children,
+  ...props
+}: React.ComponentProps<typeof Link> & { peso?: keyof typeof PESO_BOTON }) {
+  return (
+    <Link {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
+      <span className="relative inline-flex items-center gap-1.5">{conMas(children)}</span>
+    </Link>
   );
 }

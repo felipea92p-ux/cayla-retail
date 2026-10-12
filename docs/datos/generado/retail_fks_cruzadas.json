@@ -55,6 +55,11 @@
   "src_table": "cambios"
  },
  {
+  "conname": "cierres_cola_arranque_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cierres_cola_arranque"
+ },
+ {
   "conname": "clientas_archivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "clientas"
@@ -265,6 +270,11 @@
   "src_table": "cotizaciones_maquila"
  },
  {
+  "conname": "cuadres_piso_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuadres_piso"
+ },
+ {
   "conname": "cuentas_asignadas_asignado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cuentas_asignadas"
@@ -405,6 +415,31 @@
   "src_table": "movimientos_insumo"
  },
  {
+  "conname": "orden_compra_versiones_reemplazada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_compra_versiones"
+ },
+ {
+  "conname": "ordenes_compra_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_compra_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_compra_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "parametros_liquidacion_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "parametros_liquidacion"
+ },
+ {
   "conname": "parametros_tributarios_registrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "parametros_tributarios"
@@ -435,9 +470,69 @@
   "src_table": "periodo_cierres"
  },
  {
+  "conname": "piezas_liquidacion_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "piezas_liquidacion"
+ },
+ {
+  "conname": "piezas_liquidacion_retirada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "piezas_liquidacion"
+ },
+ {
+  "conname": "piezas_liquidacion_etiquetas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "piezas_liquidacion_etiquetas"
+ },
+ {
+  "conname": "planes_compra_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_tope_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_lineas_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_lineas"
+ },
+ {
+  "conname": "precios_sede_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede"
+ },
+ {
+  "conname": "precios_sede_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede"
+ },
+ {
+  "conname": "precios_sede_prenda_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede_prenda"
+ },
+ {
+  "conname": "precios_sede_prenda_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede_prenda"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
+ },
+ {
+  "conname": "prendas_para_enviar_cancelado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_para_enviar"
+ },
+ {
+  "conname": "prendas_para_enviar_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_para_enviar"
  },
  {
   "conname": "prendas_por_regularizar_regularizado_por_fkey",
@@ -448,6 +543,11 @@
   "conname": "prendas_por_regularizar_vendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_por_regularizar_correcciones"
  },
  {
   "conname": "produccion_etapas_historial_hecho_por_fkey",
@@ -540,6 +640,11 @@
   "src_table": "separacion_items_retirados"
  },
  {
+  "conname": "separacion_pedidos_avisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
   "conname": "separacion_pedidos_cancelado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_pedidos"
@@ -551,6 +656,11 @@
  },
  {
   "conname": "separacion_pedidos_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_sigue_en_pie_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_pedidos"
  },
@@ -660,9 +770,19 @@
   "src_table": "transferencias"
  },
  {
+  "conname": "transferencias_recepcion_firmada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "transferencias"
+ },
+ {
   "conname": "ubicaciones_sede_dynamic_id_fkey",
   "ref_table": "public.sedes",
   "src_table": "ubicaciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "venta_pagos_correcciones"
  },
  {
   "conname": "ventas_anulado_por_fkey",

@@ -503,6 +503,22 @@ select :'e1' ~ '^A-[0-9]{2}$', :'e1' <> :'e2', (select estante from retail.separ
   (x) => x === "t|t|t|t");
 
 // ---------------------------------------------------------------------------
+// Historial por fecha (20261010180000): el rango acota lo cerrado; lo que espera algo sale siempre
+// ---------------------------------------------------------------------------
+exito("historial por fecha: lo entregado de hace 40 días queda fuera de los últimos 30; lo abierto igual de viejo, no",
+  `${preparar(FELIPE)}${separar({ como: "s1" })}${separar({ como: "s2" })}${separar({ como: "s3" })}
+select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _v \\gset
+select retail.entregar_separacion(:'s3', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _w \\gset
+update retail.separaciones set created_at = now() - interval '40 days' where id in (:'s1', :'s2');
+select (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29) where id = :'s1'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29) where id = :'s2'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29) where id = :'s3'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29, p_hasta => retail.fn_hoy_lima() - 1) where id = :'s3'),
+       (select count(*) from retail.buscar_separaciones(:'ubic') where id in (:'s1', :'s2', :'s3'));`,
+  // s1 cerrado y viejo: fuera · s2 abierto y viejo: dentro · s3 cerrado hoy: dentro, salvo si el rango termina ayer · sin rango: los tres.
+  (x) => x === "0|1|1|0|3");
+
+// ---------------------------------------------------------------------------
 // Editar (20260927120000): quitar y sumar en una sola transacción
 // ---------------------------------------------------------------------------
 exito("editar: sumar una prenda aparta otra unidad, sube el total y el invariante cuadra",
@@ -604,15 +620,18 @@ const enviarYRecibir = `select retail.enviar_pedido_para_apartar(:'ped', now() +
 select retail.registrar_recepcion_traslado(:'tr', :'v', 1) as _rr \\gset
 select * from retail.confirmar_traslado(:'tr') \\gset
 `;
-exito("otra sede: pedir queda «pedido» y no toca el stock de la otra tienda",
+// ADR-0328 act. 17 (Felipe, 2026-10-04: «allá la apartan»): pedir para un cliente APARTA la prenda en la otra tienda
+// (antes no tocaba su stock y la otra caja la podía vender mientras el pedido esperaba).
+exito("otra sede: pedir queda «pedido» y la aparta en la otra tienda",
   `${preparar(FELIPE)}${conLima}${pedir()}
-select pe.estado, (select sum(cantidad_apartada) from retail.stock where variante_id = :'v' and ubicacion_id = :'lima')
+select pe.estado, (select sum(cantidad_apartada) from retail.stock where variante_id = :'v' and ubicacion_id = :'lima'),
+       (select a.estado from retail.apartados a where a.id = pe.apartado_origen_id)
   from retail.separacion_pedidos pe where pe.id = :'ped';`,
-  (x) => x === "pedido|0");
+  (x) => x === "pedido|1|abierto");
 exito("otra sede: al cerrar el traslado, la prenda queda guardada sola para la clienta en el almacén",
   `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
 select pe.estado, a.estado, a.clienta_nombre, a.sububicacion_id = retail.fn_sububicacion_por_defecto(:'ubic', 'traslado_entrada'),
-       (select count(*) from retail.fn_pedidos_para_apartar(:'ubic') f where f.id = :'ped' and f.direccion = 'pedi' and f.guardada_hasta is not null)
+       (select count(*) from retail.fn_pedidos_con_cliente(:'ubic') f where f.id = :'ped' and f.direccion = 'pedi' and f.guardada_hasta is not null)
   from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_id where pe.id = :'ped';`,
   (x) => x === "llego|abierto|Ana Lozano|t|1");
 exito("otra sede: con el adelanto se suelta la reserva, pasa al piso y queda un apartado de verdad, todo junto",
@@ -634,10 +653,18 @@ exito("otra sede: cancelar lo que ya llegó suelta la reserva",
 select retail.cancelar_pedido_para_apartar(:'ped', 'ya no la quiere') as _c \\gset
 select pe.estado, (select estado from retail.apartados where id = pe.apartado_id) from retail.separacion_pedidos pe where pe.id = :'ped';`,
   (x) => x === "cancelado|liberado");
-error("otra sede: sin el módulo Apartados no se pide",
+// ADR-0328 act. 17: desde Vender («Dónde más hay») pide la asesora que atiende, que no siempre tiene Apartados.
+exito("otra sede: con Vender (sin Apartados) se pide",
   `${preparar(FELIPE)}${conLima}
 set local request.jwt.claim.sub = '${MICAELA}';
-select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene el módulo Apartados");
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222') is not null as pidio \\gset
+select :'pidio';`,
+  (x) => x === "t");
+error("otra sede: sin Vender ni Apartados no se pide",
+  `${preparar(FELIPE)}${conLima}
+delete from retail.rol_modulos where rol_id = '44444444-4444-4444-8444-000000000003';
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene Vender ni Apartados");
 
 // ---------------------------------------------------------------------------
 let ok = 0;

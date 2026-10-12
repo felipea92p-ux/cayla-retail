@@ -2,13 +2,14 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Minus, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias, type EstadoCasilla } from "@/lib/pildora-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -26,7 +27,42 @@ export { TODOS };
 /** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
  *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
  *  consumidor sobre el `<span>` de etiqueta transparente que los empareja). */
-export function BotonFiltros({ abierto, activos, onClick }: { abierto: boolean; activos: number; onClick: () => void }) {
+export function BotonFiltros({
+  abierto,
+  activos,
+  onClick,
+  soloIcono = false,
+}: {
+  abierto: boolean;
+  activos: number;
+  onClick: () => void;
+  /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
+   *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
+  soloIcono?: boolean;
+}) {
+  if (soloIcono) {
+    const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-expanded={abierto}
+        aria-controls="filtros-panel"
+        aria-label={nombre}
+        title={nombre}
+        className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+          abierto || activos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-sand bg-papel text-tinta/65 hover:border-taupe hover:text-tinta"
+        }`}
+      >
+        <SlidersHorizontal aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+        {activos > 0 && (
+          <b aria-hidden className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-tinta px-1 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
+            {activos}
+          </b>
+        )}
+      </button>
+    );
+  }
   return (
     <button
       type="button"
@@ -124,6 +160,7 @@ export function DesplegablePildora({
   opciones,
   valorPorDefecto = TODOS,
   encoger = false,
+  soloIconoEnCelular = false,
   rotuloCantidad,
 }: (UnaOpcion | VariasOpciones) & {
   icono: LucideIcon;
@@ -139,6 +176,9 @@ export function DesplegablePildora({
   /** Que la píldora pueda achicarse y cortar su valor con «…» (fuera de un panel, en una fila angosta: «Ordenar por» a
    *  375 px). En el riel del panel no: ahí cada píldora conserva su ancho y el riel se desliza. */
   encoger?: boolean;
+  /** Bajo `sm`, solo el ícono en un cuadrado de 38 px (con su caja, del alto de «Filtros» en `soloIcono`), con un punto si está puesta: «Ordenar» de
+   *  Productos junto al buscador del celular (2026-10-09). El nombre y el valor siguen en su `aria-label` y vuelven desde `sm`. */
+  soloIconoEnCelular?: boolean;
 }) {
   const id = useId();
   const [abierto, setAbierto] = useState(false);
@@ -262,24 +302,30 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] outline-none transition-colors ${
+        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] transition-colors ${
           puedeQuitar ? "pl-3 pr-1" : "px-3"
-        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
+        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"} ${soloIconoEnCelular ? "max-sm:h-[38px] max-sm:w-[38px] max-sm:justify-center max-sm:px-0" : ""}`}
       >
-        <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
+        <Icono
+          aria-hidden
+          className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"} ${
+            soloIconoEnCelular ? "max-sm:h-4 max-sm:w-4 max-sm:text-tinta/65" : ""
+          }`}
+        />
+        {soloIconoEnCelular && activa && <span aria-hidden className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-tinta sm:hidden" />}
         {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02): antes decía solo «Todas» y la píldora
             se distinguía únicamente por el ícono. El valor no se recorta a ciegas: hasta 16rem y con «…». */}
-        <span className={activa ? "text-tinta/55" : undefined}>
+        <span className={`${activa ? "text-tinta/55" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
           {etiqueta}
           {texto.valor && ":"}
         </span>
         {texto.valor && (
-          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""}`}>
+          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
             {elegida?.icono && <span className="shrink-0">{elegida.icono}</span>}
             <span className="truncate">{texto.valor}</span>
           </span>
         )}
-        {!puedeQuitar && <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />}
+        {!puedeQuitar && <ChevronDown aria-hidden className={`h-3 w-3 shrink-0 text-tinta/35 ${soloIconoEnCelular ? "max-sm:hidden" : ""}`} />}
         <Hilo activo={abierto} reposo={false} />
       </button>
       {puedeQuitar && (
@@ -292,7 +338,7 @@ export function DesplegablePildora({
             else onValor(valorPorDefecto);
           }}
           aria-label={`Quitar filtro ${etiqueta}`}
-          className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 outline-none transition-colors hover:bg-tinta/[0.06] hover:text-rojo focus-visible:ring-2 focus-visible:ring-rojo/40"
+          className={`${soloIconoEnCelular ? "max-sm:hidden" : ""} mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-rojo`}
         >
           <X aria-hidden className="h-3 w-3" />
         </button>
@@ -341,9 +387,17 @@ export function DesplegablePildora({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">
+              <li>
                 {/* Sin opciones (los demás filtros no dejan ninguna) no es lo mismo que «la búsqueda no encontró nada». */}
-                {opciones.length === 0 ? "Con los filtros puestos no queda ninguna para elegir. Quita otro filtro." : `Nada coincide con «${busqueda.trim()}».`}
+                {opciones.length === 0 ? (
+                  <Vacio tamano="chico" alinear="izquierda" icono={<FunnelX />}>
+                    Con los filtros puestos no queda ninguna para elegir. Quita otro filtro.
+                  </Vacio>
+                ) : (
+                  <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                    Nada coincide con <b>«{busqueda.trim()}»</b>.
+                  </Vacio>
+                )}
               </li>
             ) : (
               mostradas.map((o, i) => {

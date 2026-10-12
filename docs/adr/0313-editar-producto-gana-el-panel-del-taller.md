@@ -292,3 +292,31 @@ tacho baja a una segunda línea en vez de empujar la tabla.
 **La columna Color en celular.** Con pocas tallas, a 375 px la columna Color medía su 36 % (110 px) y el lápiz y el tacho dejaban el
 nombre en una letra, aunque el mínimo declarado era 168 px. Debajo de `@lg` las tallas miden su mínimo (80 px) y el color se queda
 con el resto, que el `minWidth` de la tabla ya garantiza ≥ 168 px; desde `@lg` todo sigue igual (medido: 241 / 126 px a 1615).
+
+## Actualización 2026-10-11: al cambiar de sede, el stock tocado se descarta con aviso (Felipe)
+
+**El problema.** El selector de sede de la cabecera cambia la sede con `router.refresh()`: la ruta no cambia y la ficha sigue montada
+con todo su estado. Lo tocado en la matriz son **diferencias** por talla (+2, −1) que esperan a «Revisar y guardar»
+(`useStockFicha`, `pendientes` y `nuevas`). Tras pasar de Lima a Trujillo, la ficha releía el stock de Trujillo pero le seguía
+sumando las diferencias de Lima, y `ajustar_inventario` las aplicaba en Trujillo. Reproducido sobre `main` (página de ensayo con el
+hook real y un Supabase falso, sin base local): S contada de 4 a 6 en Lima apareció como «S 1 → 3» en Trujillo y salió como
+`ajustar_inventario` en Trujillo con +2 «conteo físico». Eran dos prendas fantasma en Trujillo, y el conteo de Lima se perdía.
+
+**La decisión (Felipe, entre descartarlo con aviso, guardarlo en su sede como en Vender y Recibir, o preguntar antes de cambiar):**
+el stock tocado (y el stock inicial puesto en variantes nuevas) **se descarta**, y un aviso dice qué era, como lo escribe la hoja:
+«No se guardó el stock que tocaste en Tienda Lima · S · Negro 4 → 6 y M · Negro 2 → 1. Vuelve a Tienda Lima con el selector de
+arriba y repítelo. El resto de la ficha sigue como lo dejaste.» **El resto de la ficha no es de ninguna sede y se queda**: nombre,
+precio, fotos, variantes nuevas (sin su stock). La visita de stock vuelve a empezar: motivo «Conteo físico», nota vacía, almacén;
+una visita es de una sede (un «Encontré prendas» con la nota de dónde estaban en Lima no viaja a Trujillo).
+
+**Por qué no guardarlo por sede, como Vender y Recibir:** aquí el stock se guarda JUNTO con la ficha, y «Revisar y guardar» cierra la
+pantalla. Guardada la ficha en Trujillo, lo de Lima se perdería igual, o la hoja tendría que guardar en dos sedes con un responsable
+de turno en una sola. Lo que se pierde son pocas celdas, y el aviso las nombra para repetirlas.
+
+**Cómo está hecho.** `useStockFicha` recuerda de qué sede es lo tocado (`sedeDelStock`) y, en el MISMO render en que cambia la sede
+(patrón «previo + comparación» de React), arma el aviso con lo de la sede anterior y suelta pendientes, nuevas, la lectura de
+stock y los faltantes de conteo, y devuelve la visita a `VISITA_DE_STOCK_INICIAL`. Así ni un cuadro muestra el stock nuevo con las
+diferencias viejas. El aviso sale en un efecto (un objeto nuevo por cambio). La regla y el texto son puros en
+`lib/ficha-cambio-de-sede.ts`, con su prueba (`ficha-cambio-de-sede.test.ts`, que además falla si el hook deja de soltar algo de
+eso). Verificado después en el mismo ensayo: Trujillo arrancó con «Cambios: ninguno» y el aviso, y lo tocado allí (+1) salió en
+Trujillo, sin nada de Lima.

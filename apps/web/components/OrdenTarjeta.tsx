@@ -8,21 +8,25 @@ import {
   estadoEntrega,
   etapaActual,
   etapasDe,
+  precioParaMargen,
   semaforoMargen,
+  TEXTO_SEMAFORO,
   type EstadoEntrega,
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 // Una orden en el tablero (ADR-0133, F2): qué es, dónde está, si llega, y —solo para el líder— cuánto cuesta.
 // Es un botón: tocarla abre el panel. Sin animación en bucle (regla de la pantalla: la única es el punto «vivo»
 // del Chip): la etapa actual se ve por su color, no porque parpadee.
 
 const TONO_SEMAFORO = { gana: "bg-verde", filo: "bg-ambar", pierde: "bg-rojo" } as const;
-const TEXTO_SEMAFORO = { gana: "Gana", filo: "Al filo", pierde: "Pierde" } as const;
 
-export function semaforoDeOrden(o: Pick<OrdenProduccion, "precioVenta" | "costoUnitario">) {
-  const s = semaforoMargen(o.precioVenta, o.costoUnitario);
-  return s ? { ...s, clase: TONO_SEMAFORO[s.tono], texto: TEXTO_SEMAFORO[s.tono] } : null;
+/** El semáforo de margen de una orden. El precio con que se mide es el MÁS BAJO de cualquier tienda si alguna vende el modelo más barato que la grilla (`precioParaMargen`,
+ *  ADR-0370): `sede` dice cuál, para que el color no parezca contradecir el «precio de venta». */
+export function semaforoDeOrden(o: Pick<OrdenProduccion, "precioVenta" | "costoUnitario" | "precioMasBajo">) {
+  const s = semaforoMargen(precioParaMargen(o), o.costoUnitario);
+  return s ? { ...s, clase: TONO_SEMAFORO[s.tono], texto: TEXTO_SEMAFORO[s.tono], sede: o.precioMasBajo?.sede ?? null } : null;
 }
 
 /** «Entrega pasada · 3 d», «Entrega hoy», «Entrega en 2 d» o la fecha sin alarma. */
@@ -100,24 +104,21 @@ export function OrdenTarjeta({
           ) : esLider && sem ? (
             <span className="inline-flex items-center gap-1.5 text-tinta/75">
               <span aria-hidden className={`h-2 w-2 rounded-full ${sem.clase}`} />
-              {sem.texto} {Math.round(sem.margen * 100)}%
+              {sem.texto} {Math.round(sem.margen * 100)}%{sem.sede && ` · en ${sem.sede}`}
             </span>
           ) : null}
         </span>
       </div>
 
       {esLider && !sinCosto && (
-        <div className="mt-2.5 flex h-1 gap-px overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-          {costo.partes.map((p, i) =>
-            p.parte > 0 ? (
-              <span
-                key={p.clave}
-                className={`anim-crece-x block h-full ${p.clave === "tela" ? "bg-tinta" : p.clave === "avios" ? "bg-taupe" : "bg-tinta/25"}`}
-                style={{ width: `${p.parte * 100}%`, ["--i" as string]: indice + i }}
-              />
-            ) : null
-          )}
-        </div>
+        // La barra es `<BarraApilada>` (ADR-0358): decorativa (el costo ya está dicho en la tarjeta), un hilo de 4 px que entra con la tarjeta.
+        <BarraApilada
+          decorativa
+          className="mt-2.5"
+          alto={4}
+          retraso={indice}
+          segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: p.clave === "tela" ? "bg-tinta" : p.clave === "avios" ? "bg-taupe" : "bg-tinta/25" }))}
+        />
       )}
     </button>
   );

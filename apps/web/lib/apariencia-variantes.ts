@@ -10,8 +10,8 @@ import { tolerar } from "@/lib/resultado";
 
    Por qué existe: `fn_prioridad_conteo` (la lista «Conviene contar
    primero») devuelve nombre, talla y color como TEXTO — ni la foto ni el
-   hex del color. Para dibujar a la prenda como Existencias
-   (`ProductoVarianteCelda`) hay que ir a buscarlos, y tienen que salir de
+   hex del color. Para dibujar a la prenda como Existencias hay que ir a
+   buscarlos, y tienen que salir de
    la MISMA fuente con la MISMA regla que Existencias: `colores.hex` y la
    foto principal del PRODUCTO (`fotoPrincipal`). No sirve la foto por
    color de `getCatalogo()` (esa es de Vender, donde la clienta elige un

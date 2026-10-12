@@ -174,3 +174,47 @@ SE ROMPE SI: Felipe quiere que pedir también pueda tomar del piso: es un cambio
 4. **WhatsApp:** el aviso usa `ubicaciones.whatsapp_numero`, que nació para el QR del club. ¿Lo lee quien recibe las cajas?
 5. **Avisar a quien recibe un pedido:** un pedido «Te piden» no suma al número del menú ni avisa por WhatsApp (tanda 2, «Hoy te toca»).
 6. Sin construir todavía: tanda 2 completa, tanda 5, la guía de foco del formulario de envío (tarea #8 del análisis).
+
+## Actualización 2026-10-06: la guía impresa con QR (D-3 completa; rama `claude/traslados-guia-impresa`)
+
+Solo web, sin migración. Va encima de la billetera de pases (ADR-0355, PR #841, ya en `main`).
+
+- **Dónde:** `/inventario/traslados/guia/<id>` (`app/(app)/inventario/traslados/guia/[id]/`), fuera del grupo `(billetera)`: es una hoja
+  para imprimir, no un pase. La puerta es la de siempre (`traslados/layout.tsx`, `exigirModulo("traslados")`); no es un módulo nuevo
+  (ADR-0306: es una función de Traslados). Se llega por «Guía» en el reverso del pase que sale (junto a «Avisar por WhatsApp») o tocando el
+  QR del frente («va en la caja»), que la maqueta D dibujaba ahí.
+- **El papel:** `components/traslados-guia/HojaGuia.tsx` + `app/estilos/traslados-guia.css`. Térmica de 80 mm (72 mm útiles, una columna,
+  el QR al final, como el ticket del spike) o A4 (el QR arriba a la derecha, las prendas como tabla). Se elige con dos píldoras y se
+  recuerda por computadora (`localStorage`, como la forma de las etiquetas). Al imprimir, `#guia-traslado-print` va pegado a `<body>` y se
+  oculta todo lo demás (el patrón de la boleta A4 y el cartel del club); la A4 usa la página nombrada `a4`. Es `.papel-fijo`: sale clara
+  aunque la pantalla esté en oscuro (ADR-0336).
+- **El QR** codifica la dirección completa del pase (`urlDelQrDeLaGuia`: `location.origin` + `/inventario/traslados/<id>`), como el
+  enlace del WhatsApp. Quien recibe ve ahí «ábrela y cuéntala».
+
+```
+DECIDÍ:      la guía no trae NI UN campo de cantidad: `GuiaTraslado` no tiene dónde ponerla, y una prueba exige que dos cajas con las
+             mismas prendas y otras cantidades den la MISMA guía (lib/traslados-guia-reglas.test.ts).
+DESCARTÉ:    imprimir la cantidad «para quien arma la caja»: el papel viaja pegado a la caja y lo lee primero quien recibe (D-130).
+SE ROMPE SI: alguien suma un campo de cantidad a `GuiaTraslado`: la prueba de invariancia falla.
+
+DECIDÍ:      la guía no lleva la nota de quien envió.
+DESCARTÉ:    copiarla como en el reverso: es texto libre y puede decir «van 5 blusas»; en el pase de quien recibe la nota se ve recién al
+             terminar de contar, y en un papel pegado a la caja se leería antes.
+SE ROMPE SI: se quiere la nota en el papel (por ejemplo, «frágil»): es una línea en `HojaGuia`, sabiendo que puede filtrar la cifra.
+             Decidido el 2026-10-06: sin la nota. El QR queda en el frente, como la maqueta D.
+
+DECIDÍ:      fechas fijas («6 OCT · 10:40», `fechaDeSello`), nunca «hoy» ni «mañana».
+DESCARTÉ:    los relativos del pase: el papel se lee otro día.
+
+DECIDÍ:      una caja anulada no se imprime (la pantalla dice por qué); una que ya llegó sí, avisando que ya no sirve para contar.
+             El QR del frente solo lo ve quien envía y mientras la caja viaja, también si ya se está contando (`llevaGuia`).
+```
+
+**Verificado** (2026-10-06, base local, caja 294 Trujillo → Lima): pruebas puras (`traslados-guia-reglas.test.ts`, 16; `llevaGuia` en
+`traslados-pases-reglas.test.ts`), suite de `apps/web` en verde; en el navegador desde Lima (sin QR) y desde Trujillo (QR y «Guía»), a
+570 px, 375 px y 1440 px, claro y oscuro, sin desborde ni errores de consola; PDF de la térmica y de la A4 generados por Chromium (una
+página cada uno; desde el modo oscuro salen claros) y **su QR leído con `jsqr` desde la imagen impresa: abre exactamente el pase 294**;
+auditor del tema con tres escenarios nuevos (`traslados.guia`, `traslados.guia-a4`, `traslados.qr-del-pase`): 0 hallazgos.
+
+**Falta probar en la tienda:** imprimir en la térmica real de la caja (el driver con papel «80 mm rollo», como el comprobante) y escanear
+el QR con un celular desde el papel; si el QR sale chico para alguna cámara, se agranda en `traslados-guia.css` (hoy 30 mm en la térmica).

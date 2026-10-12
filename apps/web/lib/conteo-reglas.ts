@@ -767,7 +767,7 @@ const empiezaPalabra = (texto: string, p: string) => texto.split(/[^a-z0-9]+/).s
  * «m»), no cualquier nombre que lleve una «m» adentro como «Emma»; y una sola letra no se busca dentro de los códigos,
  * donde coincidiría con casi todo. Sin texto no filtra nada.
  */
-export function filtrarConteo<T extends PrendaAgrupable>(filas: readonly T[], texto: string): T[] {
+export function filtrarConteo<T extends Pick<PrendaAgrupable, "referencia" | "color" | "sku" | "talla">>(filas: readonly T[], texto: string): T[] {
   const palabras = clave(texto).split(/\s+/).filter(Boolean);
   if (palabras.length === 0) return [...filas];
   return filas.filter((f) => {
@@ -954,7 +954,7 @@ export const ESPERA_GUARDADO_MS = 600;
 /**
  * Cola de guardado en serie. Cada guardado manda el TOTAL de la variante (1, 2, 3…). Si dos salieran en paralelo y la
  * respuesta del «2» llegara después que la del «3», la variante quedaría en 2. En fila, la última en salir es la última
- * en escribirse. La usan Conteo y Traslados (`TrasladoDetallePanel`): no se mueve ni se renombra.
+ * en escribirse. La usan Conteo y Traslados (`components/traslados-pases/useRecepcion.ts`): no se mueve ni se renombra.
  */
 export function crearColaEnSerie() {
   let cola: Promise<unknown> = Promise.resolve();

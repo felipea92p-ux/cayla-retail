@@ -34,7 +34,7 @@
     border-radius: 0.75rem;
     background: var(--color-papel);
     padding: 0.75rem 0.625rem 0.75rem 0.75rem;
-    box-shadow: 0 10px 24px -8px rgb(26 26 24 / 0.18), 0 2px 4px rgb(26 26 24 / 0.06);
+    box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--color-sombra) 18%, transparent), 0 2px 4px color-mix(in srgb, var(--color-sombra) 6%, transparent);
     animation: cayla-aviso-entra 260ms var(--ease-cayla) both;
   }
   .aviso-tarjeta[data-tono="error"] { --c: var(--color-rojo); }
@@ -85,7 +85,7 @@
   /* Cerrar aparece al mirar el aviso: en reposo la tarjeta queda limpia. */
   .aviso-tarjeta:hover .aviso-x,
   .aviso-x:focus-visible { opacity: 1; }
-  .aviso-x:hover { color: var(--color-tinta); background: rgb(26 26 24 / 0.04); }
+  .aviso-x:hover { color: var(--color-tinta); background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
 
   /* ---- Icono: disco + anillo (pista, onda, reloj) + glifo ---- */
   .aviso-ico {
@@ -136,7 +136,7 @@
   .aviso-tarjeta:focus-within .aviso-reloj { animation-play-state: paused, paused; }
 
   /* Proceso: el anillo es un medidor real (--p de 0 a 1) o, sin cifra, un arco que gira. */
-  .aviso-tarjeta[data-tono="proceso"] .aviso-disco { animation: none; fill: rgb(26 26 24 / 0.07); }
+  .aviso-tarjeta[data-tono="proceso"] .aviso-disco { animation: none; fill: color-mix(in srgb, var(--color-tinta) 7%, transparent); }
   .aviso-tarjeta[data-tono="proceso"] .aviso-onda { display: none; }
   .aviso-tarjeta[data-tono="proceso"] .aviso-reloj {
     animation: none;
@@ -246,4 +246,32 @@
   .aviso-tarjeta .aviso-reloj { animation: cayla-aviso-reloj var(--ms) linear forwards !important; }
   .aviso-tarjeta[data-tono="proceso"] .aviso-reloj { animation: none !important; }
   .aviso-tarjeta[data-tono="proceso"]:not([data-prog]) .aviso-anillo { animation: none !important; }
+}
+
+/* ====================================================================
+   Aviso destacado (2026-10-08, components/ui/AvisoDestacado.tsx): la hoja centrada que confirma una bajada al piso.
+   Entra con la cascada de todo <Modal> (ADR-0136); lo suyo son dos respuestas a la acción, sin rebote ni bucle:
+     180  el visto se TRAZA (420 ms, --ease-cayla)
+     0    la barra de abajo se vacía en 4,5 s y, al llegar a cero, cierra la hoja. Con el mouse encima se pausa: se puede
+          leer con calma, como un aviso de la esquina.
+   Movimiento reducido: el visto llega dibujado; la barra sigue corriendo (es el reloj, no adorno).
+   ==================================================================== */
+@layer components {
+  .destacado-trazo {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: cayla-aviso-traza 420ms var(--ease-cayla) 180ms forwards;
+  }
+  .destacado-reloj {
+    transform-origin: left center;
+    animation: cayla-destacado-reloj 4500ms linear forwards;
+  }
+  [role="dialog"]:hover .destacado-reloj { animation-play-state: paused; }
+}
+@keyframes cayla-destacado-reloj {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .destacado-trazo { animation: none; stroke-dashoffset: 0; }
 }

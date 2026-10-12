@@ -4,8 +4,11 @@ import { cantidadTexto } from "@/lib/insumos-reglas";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { PestanasResumenProduccion } from "@/components/PestanasResumenProduccion";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { BotonEnlace } from "@/components/ui/campos";
 import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { CircleCheck } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
@@ -32,61 +35,62 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
 
   return (
     <div className="space-y-6">
-      <PestanasResumenProduccion activa="hoy" />
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
+          (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+      <Pestanas
+        etiquetaAccesible="Miradas del Taller"
+        idIndicador="produccion-miradas"
+        activa="hoy"
+        items={[
+          { clave: "hoy", etiqueta: "Hoy", href: "/produccion", ayuda: "Qué necesita mi decisión" },
+          { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
+        ]}
+      />
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">¿Qué necesita mi decisión hoy?</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que pide acción en el Taller, del más urgente al menos. Cada tarjeta sale de los datos de abajo y desaparece cuando lo resuelves.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/produccion/ordenes" className="label-cayla rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
-            Ver órdenes
-          </Link>
-          <Link href="/produccion/ordenes?nueva=auto" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+          <BotonEnlace href="/produccion/ordenes">Ver órdenes</BotonEnlace>
+          <BotonEnlace href="/produccion/ordenes?nueva=auto" peso="primario">
             + Nueva orden
-          </Link>
+          </BotonEnlace>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaCifra
-          compacta
           punto={cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
           etiqueta="Capital en insumos"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          vacia={cifras.capitalInsumos === null || cifras.capitalInsumos === 0}
-          valor={cifras.capitalInsumos === null || cifras.capitalInsumos === 0 ? "—" : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
+          valor={cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
           detalleTono={cifras.insumosBajoMinimo > 0 ? "text-ambar-profundo" : undefined}
         >
           {cifras.insumosBajoMinimo > 0 ? `${plural(cifras.insumosBajoMinimo, "insumo bajo el mínimo", "insumos bajo el mínimo")}` : "a costo de cada lote"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto="verde"
           etiqueta="Valor en proceso"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={cifras.valorEnProceso === 0}
-          valor={cifras.valorEnProceso === 0 ? "—" : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
+          valor={<CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
         >
           tela y avíos de {plural(cifras.ordenesEnProceso, "orden abierta", "órdenes abiertas")}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar a proveedores"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          vacia={cifras.porPagar === 0}
-          valor={cifras.porPagar === 0 ? "—" : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
+          valor={<CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
           detalleTono={cifras.vencido > 0 ? "text-rojo-profundo" : undefined}
         >
           {cifras.vencido > 0 ? `${soles(cifras.vencido)} ya vencidos` : cifras.porPagar > 0 ? "nada vencido" : "no se debe nada"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
           etiqueta="Entregas por atender"
           className="anim-entra"
@@ -103,8 +107,10 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           <small className="font-sans text-xs text-tinta/65">{decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}</small>
         </h2>
         {decisiones.length === 0 ? (
-          <div className="card-cayla p-5 text-sm text-tinta/75">
-            <b className="font-semibold text-tinta">Todo en orden.</b> Nada pide tu decisión ahora.
+          <div className="card-cayla">
+            <Vacio tamano="chico" icono={<CircleCheck />}>
+              <b className="font-semibold text-tinta">Todo en orden.</b> Nada pide tu decisión ahora.
+            </Vacio>
           </div>
         ) : (
           <ul className="space-y-2.5">
@@ -119,7 +125,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
                 </div>
                 <Link
                   href={d.accion.href}
-                  className="label-cayla col-span-2 rounded-md border border-tinta/25 px-3.5 py-2.5 text-center text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo sm:col-span-1 sm:justify-self-end"
+                  className="btn-cayla btn-secundario col-span-2 text-center sm:col-span-1 sm:justify-self-end"
                 >
                   {d.accion.texto}
                 </Link>

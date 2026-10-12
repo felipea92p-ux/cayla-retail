@@ -316,6 +316,26 @@ corregir y colgar», cualquier integrante con Existencias, tope de 5 por prenda 
 tengo en la mano») · #784 (14, pérdidas; cambia las Mermas de los meses abiertos en Finanzas: Felipe ve la sonda antes de pegar) · #789 (15, Conteo I).
 Ninguno pegado ni fusionado; el orden de pegado sale de la prueba de integración.
 
+**Actualización (2026-10-05): la ola 1 y la 2a están publicadas, salvo #788.** Felipe pegó el SQL de todas (verificado por
+efectos en producción) y se fusionaron en este orden: #792 → #785 → #787 → #784 → #789 → #786 → #799 (17, traslados) → #795 (6,
+capacidad) → #796 (10, dañadas), más #804 (este reparto). Cada una pasó por la regla `strict` de `main` (al día con `main` antes
+de fusionar). Una pantalla de la web no llama a ninguna función que producción no tenga, ni con parámetros que no acepte:
+comprobado con `datos:comparar` y las firmas vivas de las 28 funciones nuevas. Lo que la publicación destapó y quedó resuelto:
+- **Dos migraciones con la misma versión** (`20261004200000`: el cuadre y los activos de #802). Se renombró la de activos a
+  `20261004195000`, solo el nombre: ninguna de las dos estaba en `supabase_migrations.schema_migrations`.
+- **Un estado nuevo de las dañadas («se arregló», #796) que la prueba de pérdidas (#784) tomaba por una salida**: «se arregló»
+  vuelve al almacén por `mover_interno` y `resolver_prenda_danada` no lo acepta, así que la salida `cuarentena_se_arreglo` no
+  puede existir; la prueba lo excluye y un guardián lo vigila.
+- **Una prueba de capacidad (#795) que cuadraba dos veces la misma sede sin nota**, lo que la regla de #792 rechaza.
+- **El build de #796** importaba en un componente de cliente una función que lee `next/headers`.
+
+Lo que sigue abierto: **#788** (5, ventas sin registrar) se rehízo sobre #800 —una sola definición de candidata exacta,
+`fn_candidatas_de_venta`, y el buscador de «Regularizar prenda» por la tienda DE LA VENTA, que Felipe reportó mostrando todo el
+catálogo— y su parte 2 (`20261004204000`) está sin pegar. **El contrato con ADR-0334** (el motor cuenta `pendiente` y
+`cerrada_sin_prenda`) no se cumplió porque #800 entró antes que #787. Lo cerró otra sesión («Motor del piso: contar las ventas
+cerradas sin prenda», PR #806): su SQL ya está en producción (`fn_piso_plan_lectura` cuenta `cerrada_sin_prenda`, verificado en
+vivo el 5-oct), y ese mismo día se cerraron las colas de arranque de AQP (170) y TRU (99); en TRU quedan 2 pendientes.
+
 ### Actividades nuevas
 
 18. **Frescura con estadística:** lo típico contraído, «va lenta» por vendidas contra esperadas, % del piso a tiempo, ventana de 28 días, edad desde la
@@ -331,6 +351,24 @@ dañada» (#796) en vez de ajustar. «Conteo físico» sigue en Ajustar como «C
 Por prenda»). La tabla `retail.motivos_movimiento` es decisión estructural pendiente de Felipe en esa sesión. Aquí queda solo la
 confirmación del líder cuando se quitan más de 5 de una talla o se deja en 0 una que tenía 3 o más.
 
+**Actualización (2026-10-04, madrugada del 5):** esa confirmación tampoco queda aquí. La toma la sesión «Confirmación de
+correcciones grandes de stock» (rama `claude/stock-correction-approval-5a9a71`, ADR propio, tentativamente el 0337), que la
+decidió con Felipe así:
+- **Se mide lo acumulado del día, no cada corrección.** Cuenta lo quitado de esa talla en esa sede durante el día de Lima. Es
+  grande si pasa de 5, o si la talla queda en 0 y ese día se quitaron 3 o más. Con el umbral por corrección, dos correcciones de 4
+  lo esquivaban. Solo cuentan las restas: sumar («Encontré prendas») no pide nada.
+- **No es una clave.** La corrección grande queda pendiente, sin mover el stock, y la aprueba una líder desde su propia sesión: la
+  que eligió quien pide, o cualquier líder de esa sede. Si nadie la aprueba en 24 h, vence sin aplicarse. El lote espera completo
+  (todo o nada). Una líder que corrige desde su propia cuenta (`fn_es_lider()`) pasa directo. No es un módulo nuevo: es una
+  función de Existencias (ADR-0306).
+- **El candado vive en `ajustar_inventario`**, después de `fn_bloquear_en_orden` (dos terminales no leen el acumulado a la vez), y
+  la puerta de atrás se cierra: `registrar_movimiento` deja de poder llamarse desde el navegador (`revoke … from authenticated`;
+  hoy solo la llaman `ajustar_inventario` y `bajar_en_mano`, las dos `security definer`, consultado en producción). Va por ancla
+  sobre el cuerpo vivo, encima de lo que ya le agregaron #784 y #785.
+- **Qué no cuenta ni se frena:** lo que quita un conteo (`cerrar_conteo` escribe `conteo` y `conteo_arranque` por su cuenta) y
+  `error_al_cobrar` no suman al acumulado; el cuadre del piso, Reportar dañada (mueve a cuarentena) y «La tengo en la mano» (solo
+  suma) no pasan por el candado. «Conté y no coincide» (`conteo_fisico`) sí, porque es una corrección a mano.
+
 ## Actualización 2026-10-04 (noche) — la «limpieza de arranque» de la actividad 5 se construyó aparte (ADR-0334)
 
 De la actividad 5 («Ventas sin registrar: categoría sugerida, nadie regulariza su propia venta salvo el líder, y limpieza de arranque con
@@ -342,5 +380,31 @@ faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pe
 Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
 venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
 velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican). Construido en
-`20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql` (ADR-0334, «Actualización 2026-10-05»), pegado en producción el 2026-10-05 antes del
+`20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql` (ADR-0334, «Actualización 2026-10-05»), pegado en producción el 2026-10-05 antes del
 primer cierre de cola.
+
+## Enmienda 2026-10-06 — Análisis: la encargada ve lo mismo que el líder (ADR-0357)
+
+- **Qué cambia:** dentro de Análisis no hay diferencias por rol. Quien tiene el módulo (`fn_puede_analizar`: el líder o un rol con Análisis) ve:
+  - las tres tiendas (act. 2026-10-06, noche: Análisis pasó a ser solo de la tienda elegida y la comparación entre tiendas vive en CAYLA
+    Global; ver ADR-0357, decisión 3);
+  - el dinero: lo que costaron las prendas quietas y lo que más rinde;
+  - **el costo y la ganancia por prenda**, en la ficha;
+  - «Liquidar desde».
+- **Reemplaza, solo para Análisis, dos frases de este ADR:**
+  - «el costo por prenda, solo el líder» (tabla «El norte», fila «Quién ve Análisis y Frescura»);
+  - «el **margen por prenda solo lo ve el líder**, dentro de Análisis» (ronda 4).
+
+  También responde lo que quedó abierto en la ronda 4: en Análisis, la comparación entre tiendas la ven todos.
+- **Lo que no cambia:**
+  - Frescura y las demás pantallas siguen con su regla.
+  - El dinero de Compras sigue siendo de quien lo ve (ADR-0126): «Comprar» a un proveedor de terceros y «Plan de campaña» solo se dibujan para
+    quien ve Compras con su dinero.
+  - El costo no se abre en otras lecturas: `variantes.costo` sigue cerrada y `fn_resumen_variantes` (la que lee Existencias) sigue dándolo solo al
+    líder. Análisis lo recibe por su propia lectura.
+- **En la base:** `20261006213000` da las tres tiendas del motor de demanda a quien puede analizar, y `20261006214000` (`fn_analisis_sede`) le
+  entrega las prendas de cada tienda —ventas, precio y costo— sin pedirle que opere esa sede: es `security definer` y su candado es la puerta de
+  Análisis (`fn_puede_analizar`). Las dos están en producción desde el 2026-10-06.
+- **Por qué:** lo decidió Felipe el 2026-10-06, al aprobar la maqueta de Análisis v4. Es su propia razón de «El norte» (Análisis y Frescura
+  «ayudan a plantear estrategias de equipo sin importar el rango») llevada al dinero: quien decide comprar, mandar o liquidar no decide bien sin
+  ver el costo ni las otras tiendas.

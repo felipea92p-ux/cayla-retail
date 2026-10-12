@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { AVIARIO } from "../../../scripts/datos/aviario.mjs";
@@ -170,9 +170,14 @@ function recorrer(nodos: readonly Nodo[]): Nodo[] {
 const TODOS = recorrer(ARBOL);
 const VIVOS = TODOS.filter((n) => n.estado === "viva");
 
-// Un destino «vivo» es uno con `page.tsx` real bajo `app/(app)`. Contempla las que solo redirigen (`/produccion`).
-const hayPagina = (ruta: string) =>
-  ["tsx", "ts"].some((ext) => existsSync(fileURLToPath(new URL(`../app/(app)${ruta === "/" ? "" : ruta}/page.${ext}`, import.meta.url))));
+// Un destino «vivo» es uno con `page.tsx` real bajo `app/(app)`. Contempla las que solo redirigen (`/produccion`) y las que
+// viven dentro de un grupo de ruta de Next (una carpeta entre paréntesis no es parte de la URL: Traslados en `(billetera)`).
+const hayPagina = (ruta: string): boolean => {
+  const base = fileURLToPath(new URL(`../app/(app)${ruta === "/" ? "" : ruta}`, import.meta.url));
+  if (["tsx", "ts"].some((ext) => existsSync(`${base}/page.${ext}`))) return true;
+  if (!existsSync(base)) return false;
+  return readdirSync(base, { withFileTypes: true }).some((d) => d.isDirectory() && /^\(.+\)$/.test(d.name) && ["tsx", "ts"].some((ext) => existsSync(`${base}/${d.name}/page.${ext}`)));
+};
 
 describe("permisos", () => {
   it("el líder tiene todos los permisos y el integrante ninguno", () => {
@@ -258,7 +263,13 @@ const TOPE_HIJAS = 6;
 // mercadería sin ver Compras (hoy no existe). Se descartó el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba
 // el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
 // Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7 };
+// INVENTARIO, 8 (Felipe, 2026-10-05; ADR-0329, Plan del piso): la cláusula de arriba se cumplió y Felipe eligió SUBIR el tope en
+// vez de regrupar (preguntado con las dos opciones): «Plan del piso» va DIRECTO en Inventario, después de Frescura, para que ni una
+// ni otra queden un clic más adentro. El líder ve 7 (a Existencias, Movimientos, Traslados, Conteo, Análisis y Frescura suma Plan del
+// piso; Recibir mercadería sigue saliendo solo a quien no ve Compras). Llega a 8 únicamente un rol que vea Análisis, Frescura y
+// Plan del piso y reciba mercadería sin ver Compras (hoy no existe). SE ROMPE SI Inventario suma otra pantalla o ese rol aparece:
+// entonces SÍ se regrupa (el subgrupo del piso, Frescura + Plan del piso), y este número no vuelve a subir.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 8 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -399,9 +410,10 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los cinco módulos ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los seis módulos ve las seis pantallas desde una tienda o un almacén, en el orden plan → proveedor → factura → recepción → pago → notas de crédito", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
+        "compras.plan",
         "compras.proveedores",
         "compras.comprobantes",
         "compras.recibir",
@@ -762,5 +774,21 @@ describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre 
     const modulos: ClaveModulo[] = ["existencias"];
     const m = menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
     expect(m.riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+  });
+});
+
+describe("en CAYLA Global, Inventario es solo Frescura del piso y se llama así (ADR-0208, act. 2026-10-10 (b))", () => {
+  const conModulos = (modulos: ClaveModulo[]) =>
+    menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
+
+  it("la fila dice «Frescura del piso» y abre su pantalla, no «Inventario»", () => {
+    const riel = conModulos(["frescura"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/inventario/frescura"]);
+  });
+
+  it("con otra pantalla de Inventario al lado, el grupo sigue llamándose «Inventario»", () => {
+    const riel = conModulos(["frescura", "existencias"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
   });
 });

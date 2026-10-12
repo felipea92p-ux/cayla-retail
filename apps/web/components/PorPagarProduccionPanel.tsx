@@ -10,6 +10,9 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { PagarComprobanteProduccionModal } from "@/components/PagarComprobanteProduccionModal";
 import { diasHasta, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes } from "@/lib/por-pagar-produccion-reglas";
+import { CircleCheck } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -28,7 +31,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
+      <div data-voz="cabecera" className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
         <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita.</p>
@@ -36,44 +39,40 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
-          compacta
           punto={totalPorPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          vacia={totalPorPagar === 0}
-          valor={totalPorPagar === 0 ? "—" : <CifraQueCuenta valor={totalPorPagar} formato="soles" alMontar />}
+          valor={totalPorPagar === 0 ? null : <CifraQueCuenta valor={totalPorPagar} formato="soles" alMontar />}
         >
           {totalPorPagar > 0 ? plural(tramos.reduce((s, t) => s + t.comprobantes.length, 0), "comprobante", "comprobantes") : "no se debe nada"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={vencido ? "rojo" : "verde"}
           etiqueta="Vencido"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={!vencido}
-          valor={!vencido ? "—" : <CifraQueCuenta valor={vencido.monto} formato="soles" alMontar />}
+          valor={!vencido ? null : <CifraQueCuenta valor={vencido.monto} formato="soles" alMontar />}
           detalleTono={vencido ? "text-rojo-profundo" : "text-verde-profundo"}
         >
           {vencido ? plural(n(vencido), "comprobante ya venció", "comprobantes ya vencieron") : "nada vencido"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={semana ? "ambar" : "verde"}
           etiqueta="Vence en 7 días"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          vacia={!semana}
-          valor={!semana ? "—" : <CifraQueCuenta valor={semana.monto} formato="soles" alMontar />}
+          valor={!semana ? null : <CifraQueCuenta valor={semana.monto} formato="soles" alMontar />}
         >
           {semana ? plural(n(semana), "comprobante", "comprobantes") : "nada esta semana"}
         </TarjetaCifra>
       </div>
 
       {tramos.length === 0 ? (
-        <div className="card-cayla space-y-1.5 p-5 text-sm text-tinta/75">
-          <p>El Taller no debe nada ahora. Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.</p>
+        <div className="card-cayla">
+          <Vacio icono={<CircleCheck />} titulo="El Taller no debe nada">
+            Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.
+          </Vacio>
         </div>
       ) : (
         <div className="space-y-5">
@@ -136,17 +135,22 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
               </p>
             </div>
             <div>
-              <div className="flex h-2.5 overflow-hidden rounded-full bg-sand" role="img" aria-label={`Producción ${Math.round((consolidado.parteProduccion ?? 0) * 100)} % de la deuda, Compras el resto`}>
-                <span className="bg-tinta" style={{ width: `${(consolidado.parteProduccion ?? 0) * 100}%` }} />
-                <span className="bg-tinta/30" style={{ width: `${(1 - (consolidado.parteProduccion ?? 0)) * 100}%` }} />
-              </div>
+              {/* La barra es `<BarraApilada>` (ADR-0358): Producción contra Compras, el 100 % de la deuda. */}
+              <BarraApilada
+                alto={8}
+                etiqueta={`Producción ${Math.round((consolidado.parteProduccion ?? 0) * 100)} % de la deuda, Compras el resto`}
+                segmentos={[
+                  { clave: "produccion", nombre: "Producción", valor: consolidado.parteProduccion ?? 0, clase: "bg-tinta", titulo: `Producción: ${Math.round((consolidado.parteProduccion ?? 0) * 100)} %` },
+                  { clave: "compras", nombre: "Compras", valor: 1 - (consolidado.parteProduccion ?? 0), clase: "bg-tinta/30", titulo: `Compras: ${Math.round((1 - (consolidado.parteProduccion ?? 0)) * 100)} %` },
+                ]}
+              />
               <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
                 <span>
-                  <i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-tinta align-middle" />
+                  <MuestraTramo clase="bg-tinta" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Producción {soles(consolidado.porOrigen.produccion.saldo)} · {plural(consolidado.porOrigen.produccion.proveedores, "proveedor", "proveedores")}
                 </span>
                 <span>
-                  <i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-tinta/30 align-middle" />
+                  <MuestraTramo clase="bg-tinta/30" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Compras {soles(consolidado.porOrigen.compras.saldo)} · {plural(consolidado.porOrigen.compras.proveedores, "proveedor", "proveedores")}
                 </span>
               </p>

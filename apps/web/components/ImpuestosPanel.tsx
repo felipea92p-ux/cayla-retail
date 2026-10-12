@@ -30,6 +30,8 @@ import {
   type MesIgv,
   type PanelImpuestos,
 } from "@/lib/impuestos-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Settings2 } from "lucide-react";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -127,26 +129,25 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
       <section className="fin-cifras">
-        <TarjetaCifra compacta etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : "—"} {...entra(1)}>
+        <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
           {foco
             ? `${tasaIgv} % de las ventas del mes, de ${plural(foco.comprobantes, "comprobante emitido", "comprobantes emitidos")}${foco.igvNotasCredito > 0 ? `. Ya resta ${solesRedondo(foco.igvNotasCredito)} de notas de crédito` : ""}`
             : "Sin datos"}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : "—"} {...entra(2)}>
+        <TarjetaCifra etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : null} {...entra(2)}>
           {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}`}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           etiqueta={aFavor ? `Saldo a favor para ${siguiente}` : `IGV a pagar en ${siguiente}`}
           tono={aFavor ? "text-verde" : undefined}
-          valor={foco ? solesRedondo(aFavor ? foco.saldoAFavor : foco.aPagar) : "—"}
+          valor={foco ? solesRedondo(aFavor ? foco.saldoAFavor : foco.aPagar) : null}
           {...entra(3)}
         >
           {aFavor
             ? "Descontaste más IGV del que cobraste: se descuenta el mes siguiente"
             : `Vence según el último dígito de tu RUC${foco && foco.saldoAnterior > 0 ? `. Ya descuenta ${solesRedondo(foco.saldoAnterior)} a favor del mes anterior` : ""}`}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="Pago a cuenta de renta" valor={panel.renta.monto !== null ? solesRedondo(panel.renta.monto) : "—"} {...entra(4)}>
+        <TarjetaCifra etiqueta="Pago a cuenta de renta" valor={panel.renta.monto !== null ? solesRedondo(panel.renta.monto) : null} {...entra(4)}>
           {panel.renta.tasa !== null ? (
             <>
               {porcentaje(panel.renta.tasa, panel.renta.tasa * 100 % 1 === 0 ? 0 : 1)} de la venta neta.{" "}
@@ -258,12 +259,9 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
     return (
       <Superficie pad className="anim-sube">
         <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos." />
-        <p className="fin-nota-bloque">
-          Falta el valor de la UIT o el límite del régimen.{" "}
-          <Link href="/configuracion?tab=impuestos" className="btn-enlace">
-            Configúralos en Configuración ▸ Impuestos
-          </Link>
-        </p>
+        <Vacio tamano="chico" icono={<Settings2 />} accion={{ texto: "Configúralos en Configuración ▸ Impuestos", href: "/configuracion?tab=impuestos" }}>
+          Falta el valor de la UIT o el límite del régimen.
+        </Vacio>
       </Superficie>
     );
   }
@@ -288,7 +286,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         </span>
         <span>{solesRedondo(umbral.umbralSoles)}</span>
       </div>
-      <p className="fin-nota-bloque">
+      <p className="nota-cayla mt-3">
         {p.proyectadoDiciembre > umbral.ventas12m
           ? `La franja rayada es lo proyectado a diciembre (${solesRedondo(p.proyectadoDiciembre)}).`
           : `A diciembre, a este ritmo, los 12 meses quedan en ${solesRedondo(p.proyectadoDiciembre)}.`}{" "}

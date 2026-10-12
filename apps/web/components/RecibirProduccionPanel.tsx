@@ -10,6 +10,8 @@ import { RecibirComprobanteModal } from "@/components/RecibirComprobanteModal";
 import { etiquetaTipo } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { agruparPorComprobante, resumenRecepcion, type ComprobantePorRecibir, type LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
+import { CircleCheck, PackageOpen } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Recibir insumos (ADR-0133, F4d). Los comprobantes de los proveedores con lo que todavía no llegó, del que lleva más tiempo esperando al
 // más nuevo. Solo CANTIDADES: quien recibe en el Taller no ve dinero. Cada línea que llega abre un lote (con el costo de la línea, que la
@@ -26,7 +28,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
+      <div data-voz="cabecera" className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir</h1>
         <p className="mt-1 max-w-xl text-sm text-tinta/65">
@@ -36,7 +38,6 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
-          compacta
           punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
           etiqueta="Por recibir"
           className="anim-entra"
@@ -45,20 +46,26 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
         >
           {resumen.porRecibir > 0 ? plural(resumen.porRecibir, "comprobante espera mercadería", "comprobantes esperan mercadería") : "nada pendiente"}
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="Líneas pendientes" className="anim-entra" style={{ ["--i" as string]: 1 }} valor={<CifraQueCuenta valor={resumen.lineasPendientes} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Líneas pendientes" className="anim-entra" style={{ ["--i" as string]: 1 }} valor={<CifraQueCuenta valor={resumen.lineasPendientes} alMontar />}>
           insumos que aún no llegan
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="A medio recibir" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.parciales} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="A medio recibir" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.parciales} alMontar />}>
           {resumen.parciales > 0 ? "llegaron en parte" : "ninguno a medias"}
         </TarjetaCifra>
       </div>
 
       {grupos.length === 0 ? (
-        <div className="card-cayla space-y-1.5 p-5 text-sm text-tinta/75">
-          <p>No hay comprobantes con insumos para recibir. Cuando el líder registre la factura de un proveedor de tela o avíos, aparecerá aquí.</p>
+        <div className="card-cayla">
+          <Vacio icono={<PackageOpen />} titulo="No hay insumos por recibir">
+            Cuando el líder registre la factura de un proveedor de tela o avíos, aparecerá aquí para que anotes lo que llegó.
+          </Vacio>
         </div>
       ) : abiertos.length === 0 ? (
-        <div className="card-cayla p-5 text-sm text-tinta/75">Todo lo facturado ya llegó o se cerró. No hay nada por recibir.</div>
+        <div className="card-cayla">
+          <Vacio icono={<CircleCheck />} titulo="Todo lo facturado ya llegó">
+            Lo que se compró ya entró al Taller o se cerró. No hay nada por recibir.
+          </Vacio>
+        </div>
       ) : (
         <ul className="space-y-3">
           {abiertos.map((g, i) => (

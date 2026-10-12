@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leerSaldos, textoQuedan, textoQuedaron } from "./movimientos-saldo";
+import { leerSaldos, textoQuedan } from "./movimientos-saldo";
 
 describe("textoQuedan", () => {
   it("dice cuántas quedan en palabras de tienda", () => {
@@ -25,13 +25,5 @@ describe("leerSaldos", () => {
   it("ignora filas raras y respuestas que no son lista", () => {
     expect(leerSaldos([{ movimiento_id: "a" }, { quedan: 2 }, null])).toEqual({});
     expect(leerSaldos(null)).toEqual({});
-  });
-});
-
-describe("textoQuedaron", () => {
-  it("dice el saldo del detalle con el formato de «Hoy en la sede»", () => {
-    expect(textoQuedaron(4)).toBe("4 unidades");
-    expect(textoQuedaron(1)).toBe("1 unidad");
-    expect(textoQuedaron(0)).toBe("No quedó ninguna");
   });
 });

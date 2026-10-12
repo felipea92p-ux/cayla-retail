@@ -80,7 +80,7 @@ export function PorPagarVistaRapida({
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
+        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
           onEscapeKeyDown={alEscape}
           onKeyDown={alFlecha}
@@ -167,7 +167,7 @@ export function PorPagarVistaRapida({
               <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono misTiendas={misTiendas} />
               <Link
                 href={`/compras/factura/${c.id}`}
-                className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
+                className="btn-cayla btn-secundario inline-flex items-center gap-2"
               >
                 Abrir comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
               </Link>

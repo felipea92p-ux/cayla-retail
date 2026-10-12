@@ -4,7 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
-import { ChevronDown, Plus, Printer } from "lucide-react";
+import { ChevronDown, FileText, Plus, Printer } from "lucide-react";
 import type { FotoDePrenda, Proforma } from "@/lib/proformas";
 import { lineasDeLaProforma, numeroDeProforma } from "@/lib/proformas-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
@@ -22,6 +22,7 @@ import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -48,6 +49,7 @@ export function ProformasPanel({
   ubicacionActualId,
   esLider,
   fotos,
+  preciosPorSede = {},
 }: {
   proformas: Proforma[];
   periodo: string;
@@ -61,6 +63,8 @@ export function ProformasPanel({
   esLider: boolean;
   /** Foto y color de cada prenda de estas proformas (`getFotosDeVariantes`). */
   fotos: Record<string, FotoDePrenda>;
+  /** Precio propio de cada tienda (`getPreciosPorSede`): la hoja cotiza al de la tienda elegida. */
+  preciosPorSede?: Record<string, Record<string, number>>;
 }) {
   // «Nueva proforma» vacía (`true`) o como copia de otra (Duplicar / Renovar).
   const [nueva, setNueva] = useState<true | Proforma | null>(null);
@@ -131,7 +135,11 @@ export function ProformasPanel({
         </div>
 
         {proformas.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin proformas {periodo}.</p>
+          <div className="border-t border-tinta/10">
+            <Vacio icono={<FileText />} titulo={`Sin proformas ${periodo}`}>
+              Cambia el mes de arriba para ver otro período.
+            </Vacio>
+          </div>
         ) : proformasOrdenadas.length === 0 ? (
           <SinCoincidencias />
         ) : (
@@ -221,7 +229,7 @@ export function ProformasPanel({
                             <Link
                               href={`/vender?proforma=${p.id}`}
                               aria-label={`Cobrar ${numeroDeProforma(p.numero)} en el Punto de Venta`}
-                              className="inline-flex h-7 items-center rounded-md bg-tinta px-2.5 text-xs font-semibold text-crema outline-none transition-colors duration-200 hover:bg-tinta/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                              className="inline-flex h-7 items-center rounded-md bg-tinta px-2.5 text-xs font-semibold text-crema outline-none transition-colors duration-200 hover:bg-rojo-profundo focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
                             >
                               Cobrar
                             </Link>
@@ -263,6 +271,7 @@ export function ProformasPanel({
           prendas={prendas}
           ubicaciones={tiendas}
           ubicacionActualId={ubicacionActualId}
+          preciosPorSede={preciosPorSede}
           esLider={esLider}
           inicial={nueva === true ? null : nueva}
         />
@@ -270,20 +279,17 @@ export function ProformasPanel({
 
       {/* Ver / imprimir: la hoja A4 a escala y el botón que la manda a la impresora (o a «Guardar como PDF»). */}
       {viendo && (
-        <Modal titulo={numeroDeProforma(viendo.numero)} subtitulo={viendo.cliente_nombre ?? "Cliente varios"} ancho="max-w-3xl" onClose={() => setViendo(null)}>
+        <Modal conCerrar titulo={numeroDeProforma(viendo.numero)} subtitulo={viendo.cliente_nombre ?? "Cliente varios"} ancho="max-w-3xl" onClose={() => setViendo(null)}>
           {(cerrar) => (
             <div className="mt-4 space-y-4">
               <div className="h-[62vh] overflow-auto rounded-[10px] border border-tinta/10 bg-sand/30 p-3" data-sin-cascada>
                 {/* `zoom` (no `scale`): achica también el espacio que ocupa, así la hoja entera cabe sin cortarse. */}
-                <div className="mx-auto w-fit bg-white p-[8mm] shadow-sm" style={{ zoom: 0.68 }}>
+                <div className="papel-fijo mx-auto w-fit bg-white p-[8mm] shadow-sm" style={{ zoom: 0.68 }}>
                   <ProformaA4 proforma={viendo} tienda={nombreTienda(viendo.ubicacion_id)} fotos={fotos} />
                 </div>
               </div>
               <p className="text-xs text-tinta/60">Para enviarla por WhatsApp, elige «Guardar como PDF» en el cuadro de impresión y adjunta el archivo.</p>
               <div className="flex gap-2">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                  Cerrar
-                </Boton>
                 <Boton type="button" peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>
                   <Printer aria-hidden className="h-4 w-4" /> Imprimir o guardar en PDF
                 </Boton>

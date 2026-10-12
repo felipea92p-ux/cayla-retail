@@ -170,7 +170,7 @@ Quedaron fuera por no ser defectos: Enter en la nota (el botón dice el conteo y
 
 El PR #787 (motor del piso) se fusionó **después** de este, pero su migración `20261004213000` ya estaba pegada en producción con el filtro
 viejo (`p.estado = 'pendiente'`, dos veces), y una migración pegada no se edita. Como pide el contrato de arriba, el cambio va en una
-migración nueva: **`20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql`** (rama `claude/piso-plan-cuenta-cerradas`), un
+migración nueva: **`20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql`** (rama `claude/piso-plan-cuenta-cerradas`), un
 `create or replace` de `fn_piso_plan_lectura` idéntico al de `20261004213000` salvo los dos filtros, que pasan a
 `p.estado in ('pendiente', 'cerrada_sin_prenda')` (en `por_atributo` y en `anotadas_recientes`), sus comentarios y el `comment on function`:
 **la anotada cuenta mientras no tenga prenda**. Huella: `faff73d2…` (la viva el 2026-10-04) → `33dfc4b19e7ab14410a14b2cb7bc50c5`.

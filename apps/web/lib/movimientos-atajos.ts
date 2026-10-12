@@ -39,17 +39,6 @@ export type Atajo = {
   principal?: boolean;
 };
 
-const ESTADO_APARTADO: Record<string, string> = {
-  abierta: "Abierto",
-  entregada: "Recogido",
-  liberada: "Liberado",
-  devuelta: "Adelanto devuelto",
-};
-
-export function textoEstadoApartado(estado: string): string {
-  return ESTADO_APARTADO[estado] ?? estado;
-}
-
 /** Lo que entró a la sede y se puede bajar o etiquetar: lo que llegó de afuera (proveedor, Taller, producción, stock
  *  inicial). Una devolución o un cambio también suman, pero la prenda vuelve al piso con su etiqueta: no aplica. */
 function esLlegada(m: Pick<Movimiento, "delta" | "categoria" | "motivo">): boolean {

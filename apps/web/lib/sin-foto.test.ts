@@ -12,7 +12,6 @@ import { categoriaDe } from "./categoria-de-prenda";
 const USOS_DE_MARCA: Readonly<Record<string, string>> = {
   "components/BoletaA4.tsx": "encabezado de la boleta impresa",
   "components/CambioTicket.tsx": "logo del ticket de cambio",
-  "components/ComprobantesListaVacia.tsx": "dibujo de la lista de comprobantes vacía",
   "components/EtiquetaPrecio.tsx": "comentario: el colibrí de la etiqueta va en vector",
   "components/ProformaA4.tsx": "encabezado de la proforma impresa",
   "components/ReciboTermico.tsx": "logo del recibo térmico",

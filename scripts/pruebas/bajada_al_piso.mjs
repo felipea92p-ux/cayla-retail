@@ -727,7 +727,9 @@ caso(
 ${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
 select pg_temp.intento('truncate retail.bajada_piso_items');
 select pg_temp.intento('truncate retail.bajadas_piso cascade');
-select pg_temp.intento('truncate retail.bajada_piso_items, retail.bajadas_piso');
+-- Con la marca de «La tengo en la mano» (bajadas_en_mano, ADR-0328) colgando de bajadas_piso, las dos solas ni llegan al
+-- disparador (la llave lo frena antes): la familia completa sí, y es su disparador el que lo impide.
+select pg_temp.intento('truncate retail.bajada_piso_items, retail.bajadas_piso, retail.bajadas_en_mano');
 select ${CONTADORES} = :'antes';`,
   (l) => l.slice(-4, -1).every((x) => json(x).msg.startsWith(MSG.sinVaciar)) && l.at(-1) === "t"
 );

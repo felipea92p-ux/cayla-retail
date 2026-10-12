@@ -39,8 +39,12 @@ export type NuevoProducto = {
   dia: "hoy" | "ayer";
   /** «hace 2 h» o «ayer, 6:40 p. m.» */
   hace: string;
-  /** El precio de lista más bajo de sus variantes; `null` si ninguna tiene precio. */
+  /** El precio más bajo al que se vende en la SEDE de quien mira: el precio propio de la tienda si lo tiene, si no el de la prenda
+   *  (la regla de `fn_precio_en_sede`, la misma que cobra la caja y sale en la etiqueta). `null` si ninguna talla tiene precio. */
   precio: number | null;
+  /** En esta sede alguna talla se vende a otro precio que el de la prenda: la tarjeta lo dice («Precio de esta tienda»), como
+   *  Existencias. Ausente = el de la prenda. */
+  precioDeSede?: boolean;
   /** Los colores de sus variantes, sin repetir. */
   colores: { nombre: string; hex: string | null }[];
   fotoUrl: string | null;
@@ -153,19 +157,28 @@ export function tonoDeSede(etiqueta: string): 0 | 1 | 2 {
  * @param aqui cuánto hay de cada producto en esta sede (`producto_id` → unidades), o `null` si no se pudo leer.
  * @param origen la sede de registro de cada producto (`fn_producto_origen`) y la sede de quien mira; sin él, o con `porProducto`
  *   en `null` (la función no responde o todavía no está en la base), `sede` llega `null` y la pantalla no muestra sigla.
+ * @param precios los precios propios de las tiendas (`getPreciosPorSede`: sede → variante → precio, solo las excepciones) y la sede
+ *   de quien mira: de ahí sale el precio de la tarjeta (Felipe 2026-10-10: la pantalla de UNA tienda usa el precio de ESA tienda). Se
+ *   recibe el mapa entero y se elige aquí la sede, para que ninguna pantalla pueda pasar por error el de otra tienda. Sin él, o sin
+ *   la sede en el mapa (la lectura falló), el precio de la prenda: lo de siempre.
  */
 export function armarNuevos(
   filas: readonly FilaNuevoCruda[],
   nombres: ReadonlyMap<string, string>,
   aqui: ReadonlyMap<string, number> | null,
   ahoraMs: number,
-  origen?: { porProducto: ReadonlyMap<string, OrigenDeProducto> | null; miUbicacionId: string }
+  origen?: { porProducto: ReadonlyMap<string, OrigenDeProducto> | null; miUbicacionId: string },
+  precios?: { porSede: Readonly<Record<string, Readonly<Record<string, number>>>>; ubicacionId: string }
 ): NuevoProducto[] {
+  const propios = precios?.porSede[precios.ubicacionId];
   return [...filas]
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
     .map((f) => {
       const vars = (f.variantes ?? []).filter((v) => v.activo);
-      const precios = vars.map((v) => Number(v.precio)).filter((p) => Number.isFinite(p) && p > 0);
+      // El mínimo se saca DESPUÉS de aplicar el precio de la sede (un precio propio más alto que el de la prenda también gana).
+      const lista = vars.map((v) => propios?.[v.id] ?? Number(v.precio)).filter((p) => Number.isFinite(p) && p > 0);
+      // «Alguna talla activa está en el mapa», no «la más barata»: `fn_precios_en_sede` omite las que ya valen igual.
+      const conPrecioPropio = vars.some((v) => propios?.[v.id] !== undefined);
       const colores: NuevoProducto["colores"] = [];
       for (const v of vars) {
         if (!v.color) continue;
@@ -179,7 +192,8 @@ export function armarNuevos(
         referencia: f.referencia,
         creadoEn: f.created_at,
         ...etiquetaHace(f.created_at, ahoraMs),
-        precio: precios.length ? Math.min(...precios) : null,
+        precio: lista.length ? Math.min(...lista) : null,
+        ...(conPrecioPropio ? { precioDeSede: true } : {}),
         colores,
         fotoUrl: fotoPrincipal(f.producto_fotos),
         categoria: f.categoria?.nombre ?? null,
@@ -309,7 +323,7 @@ export function siglaSede(nombre: string): string {
 export type AccesoDeAlmacen = {
   href: string;
   etiqueta: string;
-  icono: "stock" | "traslados" | "truck" | "tag" | "conteo" | "scan";
+  icono: "stock" | "traslados" | "truck" | "tag" | "rotulo" | "conteo" | "scan";
   /** El botón oscuro de la fila (Escanear). */
   destacado?: boolean;
 };
@@ -320,12 +334,14 @@ const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/recibir", etiqueta: "Recibir", icono: "truck", modulo: "recibir" },
   // Etiquetas de precio no es de un módulo propio: se llega desde Existencias, así que la ve quien ve Existencias.
   { href: "/etiquetas-de-precio", etiqueta: "Etiquetas", icono: "tag", modulo: "existencias" },
+  // Rótulos de anaquel (ADR-0366): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.
+  { href: "/rotulos?origen=almacen", etiqueta: "Rótulos", icono: "rotulo", modulo: "existencias" },
   { href: "/inventario/conteo", etiqueta: "Conteo", icono: "conteo", modulo: "conteos" },
   // «Buscar» no pide módulo: es la puerta a escanear una prenda.
   { href: "/buscar", etiqueta: "Escanear", icono: "scan", modulo: null, destacado: true },
 ];
 
-/** Los accesos de la cuenta de almacén: hasta seis, SOLO de módulos que ve (ADR-0161), así que ninguno lleva a «Sin acceso». */
+/** Los accesos de la cuenta de almacén: hasta siete, SOLO de módulos que ve (ADR-0161), así que ninguno lleva a «Sin acceso». */
 export function accesosAlmacen(modulos: readonly ClaveModulo[]): AccesoDeAlmacen[] {
   return ACCESOS_ALMACEN.filter((a) => a.modulo === null || modulos.includes(a.modulo)).map((a) => ({ href: a.href, etiqueta: a.etiqueta, icono: a.icono, ...(a.destacado ? { destacado: true } : {}) }));
 }
@@ -432,6 +448,23 @@ export function existenciasDeAlmacen<F extends FilaPrenda>(stock: readonly F[], 
     })),
     hrefBajar: urlBajarAlPiso(p.filas) ?? "/inventario/bajar",
   };
+}
+
+// ── «Colgar en tandas»: escanear un lote con el celular y bajarlo de una vez ─────────────────────────
+
+/** Bajar al piso con la cámara abierta al llegar (solo en un aparato táctil: en el computador manda la pistola). La lista llega
+ *  vacía a propósito: es para el lote que se tiene en la mano (un fardo, una caja), no para la lista del día de «Por colgar». */
+export const HREF_COLGAR_EN_TANDAS = "/inventario/bajar?camara=1";
+
+/**
+ * Adónde lleva «Colgar en tandas» del Inicio de Almacén; `null` si no se ofrece. No se ofrece a quien no ve Existencias
+ * (`undefined`: Bajar al piso vive en ese módulo, ADR-0306, y llevaría a «Sin acceso») ni donde la sede no separa piso y almacén
+ * (no hay nada que bajar). Si la lectura del piso falló (`null`) se ofrece igual: la pantalla de Bajar lee lo suyo y dice la verdad.
+ */
+export function hrefColgarEnTandas(existencias: Existencias | null | undefined): string | null {
+  if (existencias === undefined) return null;
+  if (existencias !== null && existencias.enAlmacen === null) return null;
+  return HREF_COLGAR_EN_TANDAS;
 }
 
 // ── De lo leído a las fuentes de «Te toca» ───────────────────────────────────────────────────────

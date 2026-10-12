@@ -17,6 +17,7 @@ const TRAZOS = {
   stock: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
   traslados: "M5 12h14M13 6l6 6-6 6",
   tag: "M3 12V4h8l10 10-8 8zM7.5 8.5h.01",
+  rotulo: "M12 3v3M12 14v7M8 21h8M4 6h13l3 4-3 4H4z",
   conteo: "M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4",
   scan: "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16",
 } as const;

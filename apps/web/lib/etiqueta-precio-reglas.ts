@@ -265,6 +265,24 @@ export function expandir(etiquetas: EtiquetaPrecio[], cantidades: Record<string,
   return etiquetas.flatMap((e) => Array.from({ length: cantidades[e.varianteId] ?? e.cantidad }, () => e));
 }
 
+/** Las filas de la pantalla, juntas por prenda y en el orden en que llegaron (Felipe, 2026-10-09: diez filas que repetían
+ *  «Blusa Emma» cansaban la vista). Cada grupo dice su nombre UNA vez y debajo van sus colores y tallas. Una prenda que
+ *  reaparece más abajo se suma a su grupo, no abre otro: el orden es el de la primera vez que aparece. */
+export function agruparPorPrenda<T extends { prenda: string }>(filas: T[]): { prenda: string; filas: T[] }[] {
+  const grupos = new Map<string, T[]>();
+  for (const f of filas) {
+    const g = grupos.get(f.prenda);
+    if (g) g.push(f);
+    else grupos.set(f.prenda, [f]);
+  }
+  return [...grupos].map(([prenda, filas]) => ({ prenda, filas }));
+}
+
+/** Cómo se nombra una fila en voz alta (el aviso «Quitaste …», el lector de pantalla): prenda, color y talla, sin huecos. */
+export function nombreDeFila(e: { prenda: string; color: string | null; talla: string | null }): string {
+  return [e.prenda, e.color, e.talla ? `talla ${e.talla}` : null].filter(Boolean).join(" · ");
+}
+
 /** Tope por prenda: 999 etiquetas de una sola talla ya es un error de tipeo, no un envío. */
 export const MAX_POR_PRENDA = 999;
 

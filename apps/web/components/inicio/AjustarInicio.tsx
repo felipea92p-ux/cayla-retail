@@ -75,7 +75,7 @@ export function AjustarInicio({
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-tinta">{a.titulo}</p>
                               {a.ocultable && a.urgenteSi && (
-                                <p className="mt-0.5 text-xs text-rojo-profundo">Sale aunque lo apagues: {a.urgenteSi.toLowerCase()}</p>
+                                <p className="mt-0.5 text-xs text-rojo-profundo">{/* unificar-fijo: dice cuándo un aviso urgente sale igual, no es un error */}Sale aunque lo apagues: {a.urgenteSi.toLowerCase()}</p>
                               )}
                             </div>
                             {a.ocultable ? (

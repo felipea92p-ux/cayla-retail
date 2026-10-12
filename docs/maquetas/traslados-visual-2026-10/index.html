@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+body{background:var(--crema)}
+.pag{max-width:1120px;margin:0 auto;padding:44px 24px 80px}
+.cab-i{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,6vw,60px);line-height:1.04;letter-spacing:-.015em;margin:10px 0 12px;max-width:780px}
+.lede{color:var(--t65);max-width:640px;font-size:15.5px}
+.tema{display:flex;border:1px solid var(--sand);border-radius:9px;overflow:hidden;background:var(--papel);flex:none}
+.tema button{padding:6px 10px;color:var(--t65)}
+.tema button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+
+.idioma{margin-top:34px;padding:22px 22px 18px}
+.idioma h2{font-family:var(--serif);font-weight:400;font-size:24px}
+.idioma p{color:var(--t65);font-size:13px;margin:2px 0 16px}
+.sellos{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.sl{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:12px 6px;border-radius:14px;transition:background .25s}
+.sl:hover{background:var(--c-bg)}
+.sl .sello{--sz:56px}
+.sl b{font-size:12.5px;font-weight:600;line-height:1.2}
+.sl small{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--c)}
+.ciego{display:flex;gap:14px;align-items:center;margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--hueso);font-size:13px;color:var(--t80)}
+.ciego .sello{--sz:40px}
+
+.tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:22px}
+.op-card{display:flex;flex-direction:column;background:var(--papel);border:1px solid var(--sand);border-radius:20px;overflow:hidden;text-decoration:none;transition:border-color .25s var(--ease),transform .35s var(--ease)}
+.op-card:hover{border-color:var(--taupe);transform:translateY(-3px)}
+.op-card .vis{height:200px;background:var(--hueso);position:relative;overflow:hidden;padding:18px}
+.op-card .tx{padding:18px 20px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
+.op-card .letra{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--taupe)}
+.op-card h3{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1}
+.op-card p{font-size:13.5px;color:var(--t65)}
+.op-card .cuesta{font-size:12px;color:var(--t65);margin-top:4px}
+.op-card .cuesta b{color:var(--tinta)}
+.op-card .ver{margin-top:auto;padding-top:10px;display:inline-flex;gap:8px;align-items:center;font-weight:600;font-size:13px}
+.op-card .ver svg{transition:transform .3s var(--ease)}
+.op-card:hover .ver svg{transform:translateX(4px)}
+
+/* Miniaturas (corren una vez) */
+.mA{display:grid;gap:9px;align-content:center}
+.mA div{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;background:var(--papel);border-radius:12px;padding:9px 10px;opacity:0;transform:translateY(10px);animation:sube .6s var(--ease) both}
+.mA div:nth-child(2){animation-delay:.12s}.mA div:nth-child(3){animation-delay:.24s}
+.mA .sello{--sz:30px}
+.mA .via{height:16px;margin:0 10px 0 0}
+.mA .viaje .pt{font-size:10px;padding:1px 7px}
+@keyframes sube{to{opacity:1;transform:none}}
+.mB svg,.mC svg{width:100%;height:100%;overflow:visible}
+.mB .ar{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;animation:dib 1.4s .3s var(--ease) forwards}
+.mB .ar.b{stroke-dasharray:3 5;stroke-dashoffset:0;animation:none;opacity:.5}
+@keyframes dib{to{stroke-dashoffset:var(--h,0)}}
+.mB .ca{offset-rotate:0deg;animation:va 1.6s .3s var(--ease) both}
+@keyframes va{from{offset-distance:0%}to{offset-distance:var(--d)}}
+.mC .br{transform-box:fill-box;transform-origin:left;transform:scaleX(0);animation:crece .9s var(--ease) forwards}
+@keyframes crece{to{transform:none}}
+.mC .ah{transform-box:fill-box;transform-origin:top;transform:scaleY(0);animation:baja .7s .2s var(--ease) forwards}
+@keyframes baja{to{transform:none}}
+
+.ronda{font-family:var(--serif);font-weight:400;font-size:28px;margin:40px 0 0;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.ronda span{font-family:'DM Sans';font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t50)}
+.tres.primera .op-card{opacity:.82}
+.tres.primera .op-card:hover{opacity:1}
+:root{--carton2:color-mix(in srgb,var(--taupe) 34%,var(--hueso))}
+/* miniatura D: tres pases apilados y el de adelante con su sello */
+.mD{display:grid;place-items:center}
+.pase-mini{position:absolute;width:220px;height:132px;border-radius:16px;background:var(--papel);box-shadow:0 14px 28px -18px color-mix(in srgb,var(--sombra) 55%,transparent);overflow:hidden;display:flex;flex-direction:column;animation:sube .7s var(--ease) both}
+.pase-mini.atras{transform:translate(14px,-16px) rotate(4deg);z-index:0;animation:none;opacity:.7}
+.pase-mini.atras2{transform:translate(-16px,-10px) rotate(-5deg);z-index:0;animation:none;opacity:.55}
+.pase-mini:not(.atras):not(.atras2){z-index:1}
+.pm-b{height:30px;background:var(--c-md);color:var(--c);font-size:9.5px;font-weight:800;letter-spacing:.14em;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+.pm-b em{font-style:normal;color:var(--t65)}
+.pm-r{display:flex;align-items:center;gap:8px;padding:12px 14px 4px}
+.pm-r b{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1}
+.pm-r i{flex:1;border-top:2px dashed var(--c-ln);position:relative}
+.pm-f{display:flex;gap:18px;padding:6px 14px;font-size:8.5px;font-weight:800;letter-spacing:.12em;color:var(--t50)}
+.pm-f b{display:block;font-family:var(--serif);font-weight:400;font-size:14px;letter-spacing:0;color:var(--tinta)}
+.pm-f b.t{color:var(--ambar)}
+.pm-sello{position:absolute;right:10px;bottom:8px;border:2.5px double var(--verde);color:var(--verde);font-size:11px;font-weight:800;letter-spacing:.16em;padding:3px 8px;border-radius:7px;transform:rotate(-9deg);animation:sella-i .4s 1.1s cubic-bezier(.2,.8,.25,1) both}
+@keyframes sella-i{from{transform:rotate(-17deg) scale(1.9);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:.9}}
+/* miniatura E: las cajas llegan por la calle */
+.mE svg{width:100%;height:100%}
+.mE .cj{animation:caja-i .9s var(--ease) both;animation-delay:var(--d)}
+@keyframes caja-i{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+/* miniatura F: burbujas que llegan */
+.mF{display:flex;flex-direction:column;gap:8px;justify-content:center;background:color-mix(in srgb,var(--hueso) 70%,var(--papel))}
+.bb{max-width:72%;padding:7px 11px;border-radius:13px 13px 13px 4px;background:var(--papel);font-size:11px;box-shadow:0 1px 1px var(--t06);animation:sube .55s var(--ease) both;animation-delay:var(--d)}
+.bb b{display:block;font-size:11.5px}
+.bb span{color:var(--t65)}
+.bb.yo{align-self:flex-end;background:color-mix(in srgb,var(--verde) 12%,var(--papel));border-radius:13px 13px 4px 13px}
+.bb i{font-style:normal;color:var(--verde);font-weight:700}
+.bb .dos{display:flex;gap:6px;margin-top:4px}
+.bb .dos u{text-decoration:none;font-weight:700;color:var(--taupe);background:var(--hueso);border-radius:7px;padding:2px 8px}
+@media (max-width:900px){.tres{grid-template-columns:1fr}.sellos{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:520px){.sellos{grid-template-columns:repeat(2,minmax(0,1fr))}.pag{padding:28px 16px 60px}.cab-i{flex-direction:column-reverse}}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<main class="pag">
+  <div class="cab-i"><div><div class="hilo">Inventario · Traslados · rediseño</div>
+  <h1>Que se entienda sin explicar: las cajas como ya las conoces.</h1></div>
+  <div class="tema" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button></div></div>
+  <p class="lede">La primera ronda (A, B, C) seguía pidiendo leer. Esta segunda parte de cosas que cualquiera ya sabe usar sin manual —un pase de abordar, la puerta de la tienda, un chat de WhatsApp— y cada una ordena los traslados de una manera distinta. Todo se toca: se cuenta a ciegas, se confirma, se revisa, se anula. Datos inventados: un martes a las 10:40, mirando desde la Tienda TRU (se cambia de sede arriba a la derecha).</p>
+
+  <h2 class="ronda">Segunda ronda <span>6 de octubre, tarde</span></h2>
+  <section class="tres">
+    <a class="op-card" href="d-pases.html">
+      <div class="vis mD"><div class="pase-mini s-atraso"><span class="pm-b">ATRASADO <em>Nº 32</em></span><span class="pm-r"><b>Taller</b><i></i><b>TRU</b></span><span class="pm-f"><span>SALIÓ<b>ayer 16:00</b></span><span>LLEGA<b class="t">hoy 09:30</b></span></span><span class="pm-sello">RECIBIDO</span></div><div class="pase-mini atras s-llega"></div><div class="pase-mini atras2 s-sale"></div></div>
+      <div class="tx"><span class="letra">Opción D</span><h3>Pases</h3><p>Cada caja es un pase de abordar, como en la billetera del celular: Taller → TRU en grande (las letras giran como en un aeropuerto), cuándo salió, cuándo llega y un solo botón. El pase se da vuelta para contar a ciegas y, al confirmar, le cae el sello «RECIBIDO». Un anillo cuenta lo que llevas hecho hoy.</p>
+        <span class="cuesta"><b>Cuesta medio:</b> una vista nueva (billetera + pase); los datos son los de la lista de hoy.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="e-puerta.html">
+      <div class="vis mE">
+        <svg viewBox="0 0 300 165" aria-hidden="true">
+          <rect x="0" y="118" width="300" height="47" fill="color-mix(in srgb,var(--sand) 70%,var(--hueso))"/>
+          <path d="M110 140V52h80v88" fill="var(--papel)" stroke="var(--t35)" stroke-width="1.4"/>
+          <path d="M104 52h92v12c-6 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-17 0z" fill="color-mix(in srgb,var(--taupe) 30%,var(--papel))" stroke="var(--t35)"/>
+          <rect x="152" y="78" width="28" height="62" fill="color-mix(in srgb,var(--hueso) 75%,var(--sombra))"/>
+          <g class="cj" style="--d:.1s"><path d="M20 112l18-8 18 8v18l-18 8-18-8z" fill="var(--carton2)"/><path d="M20 112l18 8 18-8M38 120v18" stroke="color-mix(in srgb,var(--sombra) 25%,transparent)" fill="none"/></g>
+          <g class="cj" style="--d:.3s"><path d="M120 128l18-8 18 8v18l-18 8-18-8z" fill="var(--carton2)"/><path d="M120 128l18 8 18-8M138 136v18" stroke="color-mix(in srgb,var(--sombra) 25%,transparent)" fill="none"/><rect x="124" y="134" width="11" height="7" fill="var(--papel)"/></g>
+          <g class="cj" style="--d:.5s"><path d="M236 112l18-8 18 8v18l-18 8-18-8z" fill="var(--carton2)"/><path d="M236 112l18 8 18-8M254 120v18" stroke="color-mix(in srgb,var(--sombra) 25%,transparent)" fill="none"/></g>
+          <path d="M70 95h22M84 89l8 6-8 6" stroke="var(--t35)" fill="none" stroke-width="1.6" stroke-linecap="round"/><path d="M206 95h22M220 89l8 6-8 6" stroke="var(--t35)" fill="none" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="tx"><span class="letra">Opción E</span><h3>La puerta</h3><p>Tu tienda dibujada, con las cajas de verdad en 3D: a la izquierda las que vienen por el camino (más cerca, llegan antes), en la puerta las que ya deberían estar, a la derecha las que salen. Tocas una caja: va a la mesa y se abre. Sacas y tocas cada prenda para contarla; al terminar, arrastras la caja al almacén o al piso.</p>
+        <span class="cuesta"><b>Cuesta alto:</b> la escena y la caja 3D son piezas nuevas; contar tocando prendas es un cambio de interacción.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="f-conversaciones.html">
+      <div class="vis mF">
+        <div class="bb el" style="--d:.1s"><b>Te envié la caja Nº 32</b><span>Taller ── <svg class="ic" style="width:13px;height:13px;vertical-align:-2px;color:var(--oliva)" viewBox="0 0 24 24"><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></svg> ─ TRU</span></div>
+        <div class="bb yo" style="--d:.45s"><b>Llegó completa la Nº 32</b><span>8 de 8 prendas <i>✓✓</i></span></div>
+        <div class="bb el" style="--d:.8s"><b>¿Me envías esta prenda?</b><span class="dos"><u>No la tengo</u><u>Enviar</u></span></div>
+      </div>
+      <div class="tx"><span class="letra">Opción F</span><h3>Conversaciones</h3><p>Se lee como WhatsApp, que es como las tiendas ya se coordinan: un chat por sede, cada caja es un mensaje con su camión, y los vistos dicen si llegó (✓ salió, ✓✓ la están contando, ✓✓ verde completa). Los pedidos llegan como mensajes con «Enviar» y «No la tengo». Se cuenta en una hoja que sube dentro del chat.</p>
+        <span class="cuesta"><b>Cuesta medio:</b> una lista de chats y una conversación; los mensajes salen de lo que la base ya guarda.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+  </section>
+
+  <section class="tarjeta idioma">
+    <h2>El idioma: lo que te toca, con su color y su movimiento</h2>
+    <p>No es el estado interno («en_transito»): es lo que le toca hacer a quien mira. Pasa el mouse por cada uno; el ícono se mueve una vez y se queda quieto.</p>
+    <div class="sellos" id="sellos"></div>
+    <div class="ciego"><span class="sello s-contando" id="ciega"></span><span><b>Quien recibe cuenta a ciegas</b> (ADR-0239, D-130): mientras la caja viene hacia tu sede, la pantalla dice <em>qué</em> prendas trae pero nunca <em>cuántas</em>. Lo enviado aparece recién al apretar «Terminé de contar». Las tres opciones lo respetan.</span></div>
+  </section>
+
+  <h2 class="ronda">Primera ronda <span>no convenció: «poco visual, mucho texto»</span></h2>
+  <section class="tres primera">
+    <a class="op-card" href="a-ruta.html">
+      <div class="vis mA" id="mA"></div>
+      <div class="tx"><span class="letra">Opción A</span><h3>Ruta</h3><p>La hermana directa de Movimientos. Arriba, «Hoy te toca»: una tarjeta por cosa que hacer, con un verbo. Debajo, cada traslado es una tarjeta con su sello y el camión en su punto del viaje. A la derecha, los estados que cuentan y filtran. Lo terminado se junta en un mazo que se abre en abanico.</p>
+        <span class="cuesta"><b>Cuesta poco:</b> mismos datos y la misma lista; cambian la fila, los filtros y el cajón.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="b-mapa.html">
+      <div class="vis mB">
+        <svg viewBox="0 0 300 165" aria-hidden="true">
+          <path d="M8 0 C 30 40, 60 90, 120 120 S 230 160, 300 162" fill="none" stroke="color-mix(in srgb,var(--pizarra) 35%,var(--sand))" stroke-width="1.2"/>
+          <path class="ar b" d="M70 28 Q 120 40 140 104" stroke="var(--oliva)"/><path class="ar" pathLength="100" d="M70 28 Q 120 40 140 104" stroke="var(--oliva)" style="--h:40"/>
+          <path class="ar b" d="M210 82 Q 150 30 70 28" stroke="var(--oliva)"/><path class="ar" pathLength="100" d="M210 82 Q 150 30 70 28" stroke="var(--oliva)" style="--h:12"/>
+          <path class="ar b" d="M70 28 Q 200 70 250 140" stroke="var(--t80)"/><path class="ar" pathLength="100" d="M70 28 Q 200 70 250 140" stroke="var(--t80)" style="--h:82"/>
+          <circle cx="70" cy="28" r="11" fill="var(--tinta)"/><circle cx="140" cy="104" r="9" fill="var(--papel)" stroke="var(--sand)" stroke-width="1.5"/><circle cx="210" cy="82" r="9" fill="var(--papel)" stroke="var(--sand)" stroke-width="1.5"/><circle cx="250" cy="140" r="9" fill="var(--papel)" stroke="var(--sand)" stroke-width="1.5"/>
+          <circle class="ca" r="6" fill="var(--oliva)" stroke="var(--papel)" stroke-width="2" style="offset-path:path('M70 28 Q 120 40 140 104');--d:60%"/>
+          <circle class="ca" r="6" fill="var(--ambar)" stroke="var(--papel)" stroke-width="2" style="offset-path:path('M210 82 Q 150 30 70 28');--d:88%"/>
+          <circle class="ca" r="6" fill="var(--tinta)" stroke="var(--papel)" stroke-width="2" style="offset-path:path('M70 28 Q 200 70 250 140');--d:18%"/>
+        </svg>
+      </div>
+      <div class="tx"><span class="letra">Opción B</span><h3>Mapa</h3><p>Las cuatro sedes sobre la costa, de Trujillo a Arequipa, y cada caja como un camión en su arco. Tocar una sede es verla como esa sede. Un reloj adelanta el tiempo para ver qué llega hoy, mañana o el jueves.</p>
+        <span class="cuesta"><b>Cuesta medio:</b> un mapa SVG nuevo; los datos son los mismos que ya lee la lista (origen, destino, salida y hora estimada).</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="c-horizonte.html">
+      <div class="vis mC">
+        <svg viewBox="0 0 300 165" aria-hidden="true">
+          <g fill="color-mix(in srgb,var(--sand) 60%,transparent)"><rect x="40" y="0" width="30" height="165"/><rect x="120" y="0" width="30" height="165"/><rect x="200" y="0" width="30" height="165"/><rect x="280" y="0" width="30" height="165"/></g>
+          <rect class="br" x="10" y="30" width="110" height="7" rx="3.5" fill="var(--verde)"/>
+          <rect class="br" x="80" y="58" width="96" height="7" rx="3.5" fill="var(--oliva)" style="animation-delay:.12s"/>
+          <rect class="br" x="176" y="58" width="22" height="7" rx="3.5" fill="none" stroke="var(--ambar)" stroke-width="1.5" style="animation-delay:.5s"/>
+          <rect class="br" x="150" y="86" width="48" height="7" rx="3.5" fill="var(--oliva)" style="animation-delay:.2s"/>
+          <rect class="br" x="198" y="86" width="80" height="7" rx="3.5" fill="none" stroke="var(--oliva)" stroke-width="1.4" stroke-dasharray="4 3" style="animation-delay:.6s"/>
+          <rect class="br" x="60" y="124" width="138" height="7" rx="3.5" fill="var(--t80)" style="animation-delay:.28s"/>
+          <rect class="br" x="198" y="124" width="60" height="7" rx="3.5" fill="none" stroke="var(--t35)" stroke-width="1.4" stroke-dasharray="4 3" style="animation-delay:.7s"/>
+          <rect class="ah" x="197" y="8" width="2" height="150" fill="var(--tinta)"/>
+          <rect x="176" y="2" width="44" height="14" rx="7" fill="var(--tinta)"/><text x="198" y="12" font-size="8" font-weight="700" text-anchor="middle" fill="var(--crema)" font-family="DM Sans" letter-spacing=".08em">AHORA</text>
+        </svg>
+      </div>
+      <div class="tx"><span class="letra">Opción C</span><h3>Horizonte</h3><p>Los traslados sobre una línea de tiempo, como un tablero de trenes: una raya dice «Ahora», arriba lo que llega y abajo lo que sale. Cada caja es una barra de cuándo salió a cuándo llega; lo atrasado se ve rayado más allá de su hora.</p>
+        <span class="cuesta"><b>Cuesta medio:</b> una vista de tiempo nueva; pide la semana completa de traslados de la sede (hoy la lista ya los trae).</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+  </section>
+
+  <p class="nota-op" style="margin-top:22px">Todo es tocable y lo que haces se guarda mientras la pestaña esté abierta; «Volver a empezar» deja los datos como estaban. <code>?sinmov</code> las muestra sin animaciones. Detalle y decisiones: <code>README.md</code>.</p>
+</main>
+<script>
+(function(){
+  const sit = [['llega','Viene hacia ti','oliva'],['sale','Enviado','tinta'],['contando','Contando','pizarra'],['revisar','Falta revisar','ámbar'],['cerrado','Recibido completo','verde'],['dif','Cerrado con diferencia','taupe · punteado'],['anulado','Anulado','neutro']];
+  const cont = document.getElementById('sellos');
+  cont.innerHTML = sit.map(([id, n, c]) => `<div class="sl s-${id}" data-go-hover><span class="sello">${M.glifo(id)}</span><b>${n}</b><small>${c}</small></div>`).join('');
+  document.getElementById('ciega').innerHTML = M.glifo('ciega');
+  setTimeout(() => M.$$('.sello').forEach(s => s.classList.add('go')), 250);
+  /* miniatura A: tres traslados reales de los datos */
+  const tr = [32, 33, 31].map(M.porNumero);
+  document.getElementById('mA').innerHTML = tr.map(t => { const s = M.situacion(t, 'tru'); return `<div class="s-${s === 'llega' && M.atrasado(t) ? 'atraso' : s}"><span class="sello">${M.glifo(s)}</span>${M.viaje(t, 'tru')}</div>`; }).join('');
+  setTimeout(() => M.$$('#mA .viaje,#mA .sello').forEach(v => v.classList.add('go')), 450);
+  /* tema */
+  const btns = M.$$('.tema button');
+  const poner = t => { if (t === 'oscuro') document.documentElement.dataset.tema = 'oscuro'; else delete document.documentElement.dataset.tema; btns.forEach(b => b.setAttribute('aria-pressed', b.dataset.tema === t)); try { localStorage.setItem('cayla-tema-maqueta', t); } catch (e) {} };
+  let t0 = 'claro'; try { t0 = localStorage.getItem('cayla-tema-maqueta') || 'claro'; } catch (e) {}
+  poner(t0); btns.forEach(b => b.onclick = () => poner(b.dataset.tema));
+})();
+</script>
+</body>
+</html>

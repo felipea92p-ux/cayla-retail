@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { Buscador } from "@/components/ui/Buscador";
 
 // El buscador de Ventas ▸ Historial (ADR-0230): un solo campo para encontrar la venta de una clienta que vuelve —por el
 // número del comprobante (B004-31), su DNI o RUC, su nombre, la prenda o el código de la etiqueta—. El nº de operación de
@@ -47,52 +47,20 @@ export function BuscadorHistorial({ valor }: { valor: string }) {
     return () => window.clearTimeout(t);
   }, [texto, params, pathname, buscar]);
 
-  useEffect(() => {
-    function alTeclear(e: KeyboardEvent) {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      const destino = e.target as HTMLElement | null;
-      if (destino?.closest("input, textarea, select, [contenteditable='true'], [role='dialog']")) return;
-      e.preventDefault();
-      campo.current?.focus();
-    }
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, []);
 
+  // La pieza única de buscar (ADR-0358, ronda 5): filtra mientras se escribe; «Buscando…» solo si la base tarda.
   return (
-    <label className="group flex h-12 items-center gap-2.5 rounded-2xl border-[1.5px] border-transparent bg-hueso px-4 transition-colors focus-within:border-taupe focus-within:bg-papel">
-      <Search className="h-4 w-4 shrink-0 text-tinta/55" aria-hidden />
-      <input
-        ref={campo}
-        type="search"
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        onKeyDown={(e) => {
-          // El Escape de este campo borra lo escrito; si ya está vacío, lo deja pasar (regla de ADR-0136).
-          if (e.key === "Escape" && texto) {
-            e.stopPropagation();
-            setTexto("");
-          }
-        }}
-        enterKeyHint="search"
-        autoComplete="off"
-        spellCheck={false}
-        aria-label="Buscar una venta"
-        // Corto para que quepa a 375 px; el código de etiqueta también se busca (lo dice el título).
-        placeholder="Boleta, DNI, cliente o prenda"
-        title="Busca por comprobante, DNI o RUC, cliente, prenda o código de etiqueta"
-        className="min-w-0 flex-1 bg-transparent text-[15px] text-tinta outline-none placeholder:text-tinta/50 [&::-webkit-search-cancel-button]:hidden"
-      />
-      <SenalBuscando activo={buscando} className="shrink-0" />
-      {texto ? (
-        <button type="button" onClick={() => setTexto("")} aria-label="Borrar la búsqueda" className="grid h-8 w-8 place-items-center rounded-full text-tinta/55 hover:bg-sand hover:text-rojo">
-          <X className="h-4 w-4" aria-hidden />
-        </button>
-      ) : (
-        <kbd aria-hidden className="hidden rounded border border-sand bg-papel px-1.5 text-[11px] text-tinta/55 sm:inline">
-          /
-        </kbd>
-      )}
-    </label>
+    <Buscador
+      ref={campo}
+      valor={texto}
+      onCambio={setTexto}
+      buscando={buscando}
+      atajo
+      enterKeyHint="search"
+      etiqueta="Buscar una venta"
+      // Corto para que quepa a 375 px; el código de etiqueta también se busca (lo dice el título).
+      placeholder="Boleta, DNI, cliente o prenda"
+      title="Busca por comprobante, DNI o RUC, cliente, prenda o código de etiqueta"
+    />
   );
 }

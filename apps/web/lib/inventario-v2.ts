@@ -2,8 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
-import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
+import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { precioEnLaSede } from "@/lib/precio-sede-reglas";
+import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -32,6 +35,11 @@ export type FilaStock = {
    *  (Estampado, Multicolor, Animal print) — la pantalla los dibuja distinto. */
   colorHex: string | null;
   referencia: string;
+  /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
+   *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
+  precio?: number | null;
+  /** El precio de arriba es el de ESTA sede (precio propio, Felipe 2026-10-09): la tarjeta dice «Precio de esta tienda». */
+  precioDeSede?: boolean;
   categoria: string | null;
   /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
    *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
@@ -91,7 +99,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       `variante_id, cantidad, cantidad_apartada,
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
-         sku, codigo, talla:tallas ( valor ),
+         sku, codigo, precio, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
          producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
@@ -122,7 +130,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
               `variante_id, cantidad,
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
-                 sku, codigo, talla:tallas ( valor ),
+                 sku, codigo, precio, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
                  producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
@@ -139,6 +147,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       : exigir(conColumna, "el inventario de esta ubicación");
 
   const cantidades = sumarCantidades(filas);
+  // El precio de ESTA sede (precio propio, Felipe 2026-10-09). Si no se puede leer, el general: nunca se cae por esto.
+  const propios = (await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {};
   const porVariante = new Map<string, Omit<FilaStock, keyof Cantidades>>();
   for (const f of filas) {
     if (porVariante.has(f.variante_id)) continue;
@@ -155,6 +165,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
+      precio: propios[f.variante_id] ?? f.variante?.precio ?? null,
+      ...(propios[f.variante_id] !== undefined ? { precioDeSede: true } : {}),
     });
   }
   const separaPisoAlmacen = [...cantidades.values()].some((c) => c.piso !== null);
@@ -218,7 +230,7 @@ export type FilaExistencias = FilaStock & {
    *  todavía no llegaron (`en_transito`; un traslado con diferencia ya entró al stock, ADR-0239). */
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
-  enRed: SedeConStock[];
+  enRed: SedeConStockId[];
   /** Ritmo reciente (7 días, ledger único — `existencias-ritmo.ts`, 2026-09-25). Solo tiendas;
    *  ausente o null = no se pudo calcular (falló la RPC; ver `coberturaFallo` en el panel). */
   ritmoReciente?: RitmoReciente | null;
@@ -238,6 +250,9 @@ export type FilaExistencias = FilaStock & {
   /** `productos.estado` («activo»/«descontinuado»), para la ventana «Eliminar» (ADR-0252). Lo pone la página con
    *  `conEstadoProducto`, de la misma lectura que la marca. Ausente o null = no se pudo leer. */
   estadoProducto?: string | null;
+  /** `productos.descripcion`, para la cabecera del panel de la talla. La pone la página con `conDescripcion`, de la misma lectura
+   *  que la marca. Ausente o null = no tiene, o no se pudo leer. */
+  descripcion?: string | null;
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
@@ -388,32 +403,59 @@ export type PrendaDanada = {
   referencia: string;
   cantidad: number;
   creadoEn: string;
-  /** Precio de catálogo (`variantes.precio`) — solo un punto de partida para
-   *  que el líder no escriba el precio de liquidación desde cero; el precio
-   *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
-   *  piso ni lo valida contra este número. */
+  /** El precio al que esta tienda vende la prenda (su precio propio, si lo tiene; si no, el de la prenda: `fn_precio_en_sede`) —
+   *  solo un punto de partida para que el líder no escriba el precio de liquidación desde cero; el precio final es el que él
+   *  decide, `liquidar_prenda_danada` no aplica ningún piso ni lo valida contra este número. La liquidación se cobra en la caja
+   *  de esta misma tienda, así que el punto de partida es el de su caja (Felipe 2026-10-10). */
   precioReferencia: number;
+  /** De dónde llegó (ADR-0328 act. 10): reportada en la tienda, una devolución o un cambio (`origenDeDanada`). */
+  origen: OrigenDanada;
+  /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
+  motivoReporte: string | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
   // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
-  const filas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase
-        .from("prendas_danadas")
-        .select(
-          `id, cantidad, created_at,
-           variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
-        )
-        .eq("ubicacion_id", ubicacionId)
-        .eq("estado", "en_cuarentena")
-        .order("created_at")
-        .order("id")
-        .range(desde, hasta)
-    ),
-    "las prendas dañadas pendientes"
+  const conMotivo = await leerTodas((desde, hasta) =>
+    supabase
+      .from("prendas_danadas")
+      .select(
+        `id, cantidad, created_at, motivo_reporte, cambio_id,
+         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+      )
+      .eq("ubicacion_id", ubicacionId)
+      .eq("estado", "en_cuarentena")
+      .order("created_at")
+      .order("id")
+      .range(desde, hasta)
   );
+  // TEMPORAL — mientras `20261005140000_danadas_reportar_y_se_arreglo.sql` no esté pegada en producción: esta lectura va en el
+  // `Promise.all` de /inventario y `exigir` lanza, así que una web publicada antes que el SQL tumbaría Existencias ENTERA, no solo
+  // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
+  // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón
+  // que `getStockPorUbicacion` con `cantidad_apartada`. Retirar el reintento cuando la migración esté aplicada.
+  const filas =
+    conMotivo.error?.code === COLUMNA_INEXISTENTE
+      ? exigir(
+          await leerTodas((desde, hasta) =>
+            supabase
+              .from("prendas_danadas")
+              .select(
+                `id, cantidad, created_at, cambio_id,
+                 variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+              )
+              .eq("ubicacion_id", ubicacionId)
+              .eq("estado", "en_cuarentena")
+              .order("created_at")
+              .order("id")
+              .range(desde, hasta)
+          ),
+          "las prendas dañadas pendientes"
+        ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
+      : exigir(conMotivo, "las prendas dañadas pendientes");
+  // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
+  const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -423,6 +465,8 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     referencia: f.variante?.producto?.referencia ?? "",
     cantidad: f.cantidad,
     creadoEn: f.created_at,
-    precioReferencia: f.variante?.precio ?? 0,
+    precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
+    origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
+    motivoReporte: f.motivo_reporte,
   }));
 }

@@ -20,7 +20,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { usePistola } from "@/components/ui/usePistola";
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { BUFER_VACIO, alBufer, teclaDeLaPistola, type BuferDePistola } from "@/lib/bajada-reglas";
 import {
@@ -73,6 +73,7 @@ import {
 } from "@/lib/cuadre-piso-reglas";
 import { CifrasCuadre, AntesDespues, ListasCuadre } from "./RevisarCuadre";
 import { ResultadoCuadre } from "./ResultadoCuadre";
+import { Aviso } from "@/components/ui/Aviso";
 
 /*
  * «Cuadrar el piso» (ADR-0328, decisión técnica 4). Tres pasos y el resultado:
@@ -250,7 +251,7 @@ export function CuadrarPisoForm({
   // localStorage solo existe en el navegador: el borrador se lee al montar, una sola vez. Uno ENVIADO vuelve congelado: lo único que
   // se ofrece es comprobarlo, nunca empezar otro encima.
   const alMontar = useEffectEvent(() => {
-    desfase.current = desfaseConServidor(ahoraServidor, Date.now());
+    desfase.current = desfaseConServidor(ahoraServidor, new Date().getTime()); // no `Date.now()`: react-hooks/purity lo marca aunque esto corre al montar, no en el render
     if (borradorLeido.current) return;
     borradorLeido.current = true;
     const b = leerBorradorCuadre(leerTexto(clave), new Date());
@@ -300,15 +301,16 @@ export function CuadrarPisoForm({
     return () => window.removeEventListener("keydown", alTeclear, true);
   }, []);
 
-  // La pistola escribe donde esté el foco: si quedó en un botón, el código se perdería y el Enter activaría ese botón.
-  useEffect(() => {
-    if (paso !== "escanear" || congelada || resultado) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (teclaSueltaVaAlEscaner(e, document.activeElement)) escaner.current?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [paso, congelada, resultado]);
+  // La pistola, la misma pieza de Vender (`usePistola`): si el foco quedó en un botón, la primera tecla vuelve al escáner; lo
+  // leído es un código exacto que no se pega a lo que había escrito, y se lee aunque la pistola no mande Enter.
+  usePistola(escaner, {
+    activa: paso === "escanear" && !congelada && !resultado,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      if (escaner.current) escaner.current.value = "";
+      leer(codigo);
+    },
+  });
 
   function volverAlEscaner() {
     escaner.current?.focus({ preventScroll: true });
@@ -636,15 +638,11 @@ export function CuadrarPisoForm({
       )}
 
       {incierto && (
-        <div role="status" className="anim-revelar rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-          {textoDeEnvioIncierto(incierto)}
-        </div>
+        <Aviso tono="atencion">{textoDeEnvioIncierto(incierto)}</Aviso>
       )}
 
       {error && error.tipo !== "red" && (
-        <div role="alert" className="anim-revelar rounded-xl border border-l-2 border-rojo/40 border-l-rojo bg-rojo/[0.06] px-4 py-3 text-sm text-tinta">
-          {error.mensaje}
-        </div>
+        <Aviso tono="error">{error.mensaje}</Aviso>
       )}
 
       {paso === "escanear" && (
@@ -652,7 +650,7 @@ export function CuadrarPisoForm({
           {/* Antes de la primera lectura, lo que hay que cuidar; ya escaneando, una línea (en el celular, el campo tiene que verse sin
               bajar la pantalla). */}
           {datos.lineas.length === 0 && datos.pendientes.length === 0 ? (
-            <ul className="nota-cayla list-disc space-y-1 pl-8 text-sm">
+            <ul className="nota-cayla sin-i list-disc space-y-1 pl-8 text-sm">
               <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
               <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
               <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
@@ -795,7 +793,7 @@ export function CuadrarPisoForm({
                             e.preventDefault();
                             volverAlEscaner();
                           }}
-                          className="caja-cayla h-11 w-14 text-center text-base tabular-nums text-tinta outline-none disabled:opacity-60"
+                          className="caja-cayla h-11 w-14 text-center text-base tabular-nums text-tinta disabled:opacity-60"
                         />
                         <button
                           type="button"

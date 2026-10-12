@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { AlertTriangle, ArrowLeft, Check, Clock } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { Volver } from "@/components/ui/Volver";
 import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 
@@ -69,15 +70,8 @@ export function EncabezadoFlujo({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          disabled={deshabilitado}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-tinta/75 transition-colors duration-200 hover:bg-papel hover:text-tinta disabled:opacity-50"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          {volverA}
-        </button>
+        {/* La salida del flujo es la vuelta de siempre (ADR-0358): cierra el estado, por eso va en su forma de botón. */}
+        <Volver onClick={onVolver} deshabilitado={deshabilitado} a={volverA} />
         <p className="text-sm text-tinta/70" aria-live="polite">
           Paso {actual} de {pasos.length} · <span className="font-semibold text-tinta">{pasos[actual - 1]}</span>
         </p>
@@ -104,7 +98,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
       <span
         aria-hidden
         className="absolute top-[17px] h-0.5 rounded-full"
-        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, rgba(164,120,101,0.5) 0 6px, transparent 6px 11px)" }}
+        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-taupe) 50%, transparent) 0 6px, transparent 6px 11px)" }}
       />
       <span
         aria-hidden
@@ -112,7 +106,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
         style={{ left: `${inicio}%`, width: `${avance}%` }}
       />
       <span aria-hidden className="pointer-events-none absolute top-3 h-3 transition-[width] duration-700" style={{ left: `${inicio}%`, width: `${avance}%` }}>
-        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,#fff,rgba(255,255,255,0)_70%)]" />
+        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,var(--color-crema-fija),transparent_70%)]" />
       </span>
       {pasos.map((nombre, i) => {
         const n = i + 1;
@@ -132,9 +126,9 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
                 style={hecho ? { animationDelay: `${i * 260 + 500}ms` } : undefined}
                 className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ${
                   hecho
-                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80"
+                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80" // unificar-fijo: el círculo de un paso hecho, no un botón principal
                     : esActual
-                      ? "bg-papel text-tinta shadow-[0_0_0_8px_rgba(26,26,24,0.06)] ring-2 ring-tinta"
+                      ? "bg-papel text-tinta shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-tinta)_6%,transparent)] ring-2 ring-tinta"
                       : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
                 }`}
               >
@@ -268,7 +262,7 @@ export function BotonPrincipal({ onClick, children, disabled = false, monto }: {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>
@@ -281,7 +275,7 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      className="mov-boton label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
     >
       {children}
     </button>
@@ -295,30 +289,10 @@ export function BotonRojo({ onClick, children, disabled = false, monto }: { onCl
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
+      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>
   );
 }
 
-/** El aviso de que la base rechazó la operación. Recibe el foco (por su `refAviso`) para
- *  que se lea y se oiga sin buscarlo. `traducirError` abre con "No se pudo …" cuando no
- *  reconoce el error; con un mensaje de la base ("Stock insuficiente…") hay que decir además
- *  que no se guardó nada. */
-export function AvisoDeError({ error, refAviso, queNoSeHizo }: { error: string; refAviso: RefObject<HTMLDivElement | null>; queNoSeHizo: string }) {
-  return (
-    <div
-      ref={refAviso}
-      tabIndex={-1}
-      role="alert"
-      className="anim-revelar flex gap-3 rounded-xl border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-sm text-rojo-profundo outline-none"
-    >
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <p>
-        {!error.startsWith("No se pudo") && <span className="font-semibold">{queNoSeHizo} </span>}
-        {error}
-      </p>
-    </div>
-  );
-}

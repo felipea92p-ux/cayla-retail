@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
-import { CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -52,6 +52,9 @@ import {
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
+import { ArrowLeftRight, Landmark, Store } from "lucide-react";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-dinero.js`): cabecera con «Ver» y «+ Registrar movimiento» → pestañas (una ruta cada una) → el cuerpo de la
@@ -133,9 +136,9 @@ export function PantallaDinero({
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
               )}
-              <button type="button" className="btn-cayla btn-primario" onClick={() => setModal("deposito")}>
+              <Boton type="button" peso="primario" onClick={() => setModal("deposito")}>
                 + Registrar movimiento
-              </button>
+              </Boton>
             </>
           }
         />
@@ -207,9 +210,11 @@ export function CuentasPanel({
       )}
 
       {grupos.length === 0 ? (
-        <GuiaVacia sobre="Todavía no hay cuentas" titulo="Agrega los bancos de CAYLA">
-          Los cajones y las cajas fuertes nacen con cada tienda. Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
-        </GuiaVacia>
+        <Superficie>
+          <Vacio icono={<Landmark />} titulo="Todavía no hay cuentas: agrega los bancos de CAYLA">
+            Los cajones y las cajas fuertes nacen con cada tienda. Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
+          </Vacio>
+        </Superficie>
       ) : (
         grupos.map((g, i) => (
           <section key={g.clave} {...entra(i + 1)}>
@@ -358,7 +363,9 @@ export function CuentasPanel({
           <span className="text-[12.5px] text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
         </Herramientas>
         {movimientos.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">Sin movimientos todavía. Un depósito del cajón o un abono de tarjeta se registra con «+ Registrar movimiento».</p>
+          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+            Sin movimientos todavía. Un depósito del cajón o un abono de tarjeta se registra con «+ Registrar movimiento».
+          </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla">
@@ -445,7 +452,9 @@ export function EfectivoPanel({ filas, cierres, hoy }: { filas: EfectivoFila[]; 
           </div>
         </Herramientas>
         {filas.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">No hay tiendas que mirar.</p>
+          <Vacio tamano="chico" icono={<Store />}>
+            No hay tiendas que mirar.
+          </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla">
@@ -562,9 +571,11 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
 
   if (!actual) {
     return (
-      <GuiaVacia sobre="Conciliación" titulo="No hay bancos que conciliar">
-        Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros. Cada viernes se anota lo que dice el banco y el sistema dice si coincide.
-      </GuiaVacia>
+      <Superficie>
+        <Vacio icono={<Landmark />} titulo="No hay bancos que conciliar">
+          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros. Cada viernes se anota lo que dice el banco y el sistema dice si coincide.
+        </Vacio>
+      </Superficie>
     );
   }
   const r = resumenConciliacion(actual.lineas);
@@ -645,7 +656,9 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
           </div>
         </Herramientas>
         {actual.lineas.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">Nada entró ni salió de esta cuenta {periodo}.</p>
+          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+            Nada entró ni salió de esta cuenta {periodo}.
+          </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla">
@@ -1051,7 +1064,7 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
     );
   }
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={TEXTO_MOVIMIENTO[m.tipo]}
       subtitulo={[fechaCorta(m.fecha, true), m.referencia].filter(Boolean).join(" · ")}
@@ -1075,9 +1088,6 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
             Anular…
           </button>
         )}
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
       </div>
     </Modal>
   );

@@ -27,7 +27,7 @@ export function CapsulaColor({ fondo, compacta = false, className = "" }: { fond
       // que alto cierra en semicírculo a cada lado — la forma de una
       // etiqueta de tela, no de un punto. Borde tenue para que Blanco y
       // Crudo se vean sobre crema; el brillo interior le da volumen.
-      className={`h-3.5 ${compacta ? "w-[18px]" : "w-7"} shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] ${className}`}
+      className={`h-3.5 ${compacta ? "w-[18px]" : "w-7"} shrink-0 rounded-full border border-tinta/20 dark:border-tinta/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] ${className}`}
       style={{ background: fondo ?? VARIOS_COLORES }}
     />
   );

@@ -33,6 +33,50 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("ADR-0328 act. 17: un pedido entre sedes con 48 h sin respuesta es urgente para el líder y sale aunque lo oculte", () => {
+    const [a] = avisosInicio({ pedidosSinRespuesta: { tePiden: 1, pediste: 1, detalle: "Tienda Lima te pidió hace 50 h y nadie respondió.", ahora: "Responde 1 pedido de otra sede" } });
+    expect(a).toMatchObject({ clave: "pedidosSede", cantidad: 2, nivel: "urgente", href: "/inventario/traslados", ahora: "Responde 1 pedido de otra sede" });
+    expect(avisosVisibles([a!], { pedidosSede: false }, true).activos[0]!.forzado).toBe(true);
+    expect(avisosInicio({ pedidosSinRespuesta: { tePiden: 0, pediste: 0, detalle: "Ningún pedido…", ahora: "" } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ pedidosSinRespuesta: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("decisión del 2026-10-04: la tienda que pidió para un cliente se entera de lo que llegó y de lo que no va a llegar, y va a Vender", () => {
+    const [a] = avisosInicio({ pedidosCliente: { llegaron: 1, noLlegaron: 2, sigueEnPie: 0, primero: "Ana Lozano" } });
+    expect(a).toMatchObject({ clave: "pedidosCliente", cantidad: 3, nivel: "toca", href: "/vender", ahora: "Avisa a 3 clientes cómo terminó su pedido" });
+    expect(a!.detalle).toBe("2 no van a llegar · 1 llegó · Ana Lozano: avísales por WhatsApp desde Vender.");
+    expect(avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 1, sigueEnPie: 0, primero: "Ana Lozano" } })[0]!.detalle).toBe("1 no va a llegar · Ana Lozano: avísale por WhatsApp desde Vender.");
+    expect(avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, sigueEnPie: 0, primero: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ pedidosCliente: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("decisión del 2026-10-04: a los 7 días el Inicio pregunta si el pedido sigue en pie (la reserva allá no vence sola)", () => {
+    const [a] = avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, sigueEnPie: 2, primero: "Ana Lozano" } });
+    expect(a).toMatchObject({ cantidad: 2, nivel: "toca", ahora: "Confirma si 2 pedidos siguen en pie" });
+    expect(a!.detalle).toBe("2 llevan 7 días o más: ¿sigue en pie? · Ana Lozano: pregúntale al cliente y responde en Vender.");
+    const [b] = avisosInicio({ pedidosCliente: { llegaron: 1, noLlegaron: 0, sigueEnPie: 1, primero: "Ana Lozano" } });
+    expect(b).toMatchObject({ cantidad: 2, ahora: "Avisa a 1 cliente cómo terminó su pedido" });
+    expect(b!.detalle).toBe("1 llegó · 1 lleva 7 días o más: ¿sigue en pie? · Ana Lozano: avísale por WhatsApp desde Vender.");
+  });
+
+  it("la reserva de un pedido de otra sede (sin fecha) no cuenta como apartado que vence", () => {
+    expect(resumirApartados([{ venceEl: null, clienta: "Pedido de Tienda Trujillo" }, { venceEl: "2026-10-01", clienta: "Rosa" }], "2026-10-05")).toEqual({ vencidos: 1, hoy: 0, manana: 0, primeraClienta: "Rosa" });
+    expect(resumirApartados([{ venceEl: null, clienta: "Pedido de Tienda Trujillo" }], "2026-10-05")).toEqual({ vencidos: 0, hoy: 0, manana: 0, primeraClienta: null });
+  });
+
+  it("decisión del 2026-10-04: lo que lleva más de 3 días «para enviar» se avisa en el Inicio de la sede", () => {
+    const [a] = avisosInicio({ paraEnviar: { prendas: 3, destinos: ["Tienda Arequipa", "Tienda Lima"], dias: 6 } });
+    expect(a).toMatchObject({ clave: "paraEnviar", grupo: "Inventario", cantidad: 3, nivel: "toca", href: "/inventario/traslados", ahora: "Envía 3 prendas que esperan en el almacén" });
+    expect(a!.detalle).toBe("3 prendas subidas para Tienda Arequipa y Tienda Lima llevan hasta 6 días en tu almacén: arma el envío.");
+    expect(avisosInicio({ paraEnviar: { prendas: 1, destinos: ["Tienda Lima"], dias: 3 } })[0]!.detalle).toBe("1 prenda subida para Tienda Lima lleva más de 3 días en tu almacén: arma el envío.");
+    expect(avisosInicio({ paraEnviar: { prendas: 0, destinos: [], dias: 0 } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ paraEnviar: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("el número de Traslados dice que suma lo que llega y lo que te piden", () => {
+    expect(avisosInicio({ traslados: 3 })[0]!.detalle).toBe("3 esperan a tu sede: recibir lo que llegó o enviar lo que te piden.");
+  });
+
   it("pérdidas que se repiten (ADR-0328 act. 14): por hacer, ocultable, con la frase y el enlace de la regla; sin leer no es «al día»", () => {
     const href = "/inventario/movimientos?vista=perdidas&p=30&variante=x";
     const [a] = avisosInicio({ perdidas: { cantidad: 1, detalle: "Polo Básico · M · Negro perdió 2 prendas en 2 días distintos.", href } });

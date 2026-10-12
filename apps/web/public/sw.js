@@ -11,6 +11,9 @@
  *   · Todo lo demás (la base, las RPC, Storage, las lecturas RSC): pasa directo. El SW nunca responde por la base: una
  *     escritura sin red la guarda la cola del módulo (`lib/cola-offline.ts`), no esto.
  *
+ * Modo oscuro (ADR-0336, 2026-10-05): `sin-conexion.html` aprendió el tema oscuro. Cambiar los bytes de ESTE archivo basta para que cada
+ * equipo vuelva a pedirla (la instalación la trae con `cache: "reload"`); NO se sube VERSION, que borraría las copias de Vender.
+ *
  * La lista de pantallas repite `PANTALLAS_SIN_CONEXION` de `lib/sin-conexion-reglas.ts` (este archivo no puede
  * importarlo); `sin-conexion-reglas.test.ts` falla si se separan. Cambiar la lógica de este archivo = subir VERSION.
  */

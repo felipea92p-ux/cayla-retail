@@ -2,6 +2,7 @@ import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { getPreciosDeLasTiendas, getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { apartadoEnPiso } from "@/lib/vender-stock-local";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -10,6 +11,8 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
 import { exigir } from "@/lib/resultado";
 import { CambiosPanel } from "@/components/CambiosPanel";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { claveDeCambios } from "@/lib/cambios-cambio-de-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
@@ -28,7 +31,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // Mismas lecturas de stock que Vender (vender/page.tsx): el piso de ESTA ubicación
   // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
   // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
-  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja] = await Promise.all([
+  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja, preciosSede] = await Promise.all([
     getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     getCatalogo(),
     getDisponibleEnSede(persona.ubicacionId),
@@ -37,7 +40,20 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     getEstadisticasCambios(persona.ubicacionId),
     esLider ? getTallasQueNoCalzan() : Promise.resolve([]),
     getCajaAbierta(persona.ubicacionId),
+    // Precios propios de las tiendas (Felipe 2026-10-09; 2026-10-10): otra prenda se cobra al de ESTA tienda; otra talla o color de
+    // la misma, al de la tienda donde se compró (`fn_precio_para_cambio`).
+    getPreciosDeLasTiendas(),
   ]);
+  // Una venta de una tienda que ya cerró puede conservar su precio propio y la base lo usa (`fn_precio_para_cambio`): se leen también
+  // los de las tiendas de las ventas listadas que no están entre las abiertas.
+  const sinLeer = [...new Set(lineas.map((l) => l.ubicacionVentaId).filter((id): id is string => !!id && !(id in preciosSede.porSede)))];
+  const porSede = sinLeer.length > 0 ? { ...preciosSede.porSede, ...(await getPreciosPorSede(sinLeer)) } : preciosSede.porSede;
+  const preciosAqui = porSede[persona.ubicacionId] ?? {};
+  const preciosPorTiendaDe = (varianteId: string) => {
+    const out: Record<string, number> = {};
+    for (const [sede, precios] of Object.entries(porSede)) if (precios[varianteId] !== undefined) out[sede] = precios[varianteId];
+    return out;
+  };
   // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra
   // clienta no se ofrece (ADR-0141).
   const stockAquiPorVariante = new Map([...stock].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
@@ -61,36 +77,45 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
         />
       </EncabezadoPagina>
 
-      <CambiosPanel
-        lineas={lineas}
-        busqueda={q?.trim() ?? ""}
-        todasLasSedes={todasLasSedes}
-        puedeVerTodas={esLider}
-        sede={persona.ubicacionEtiqueta}
-        ubicacionId={persona.ubicacionId}
-        colaboradora={persona.nombre}
-        cajaAbierta={caja !== null}
-        tallasQueNoCalzan={tallasQueNoCalzan}
-        abrirItemId={item}
-        sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
-        catalogo={catalogo
-          .filter((v) => v.activo)
-          .map((v) => ({
-            varianteId: v.varianteId,
-            productoId: v.productoId,
-            sku: v.sku,
-            codigo: v.codigo,
-            referencia: v.referencia,
-            talla: v.talla,
-            color: v.color,
-            colorHex: v.colorHex,
-            fotoUrl: v.fotoUrl,
-            precio: v.precio,
-            stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
-            apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
-            stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
-          }))}
-      />
+      {/* El cambio a medio armar es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`,
+          sin cambiar la ruta. El panel lleva la sede en su key y `TrabajoPorSede`, que no cambia con la sede, guarda el cambio de la que
+          se deja para retomarlo al volver. */}
+      <TrabajoPorSede key="cambios" ubicacionId={persona.ubicacionId}>
+        <CambiosPanel
+          key={claveDeCambios(persona.ubicacionId)}
+          lineas={lineas}
+          busqueda={q?.trim() ?? ""}
+          todasLasSedes={todasLasSedes}
+          puedeVerTodas={esLider}
+          sede={persona.ubicacionEtiqueta}
+          ubicacionId={persona.ubicacionId}
+          colaboradora={persona.nombre}
+          cajaAbierta={caja !== null}
+          tallasQueNoCalzan={tallasQueNoCalzan}
+          abrirItemId={item}
+          sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
+          catalogo={catalogo
+            .filter((v) => v.activo)
+            .map((v) => ({
+              varianteId: v.varianteId,
+              productoId: v.productoId,
+              sku: v.sku,
+              codigo: v.codigo,
+              referencia: v.referencia,
+              talla: v.talla,
+              color: v.color,
+              colorHex: v.colorHex,
+              fotoUrl: v.fotoUrl,
+              precio: preciosAqui[v.varianteId] ?? v.precio,
+              precioPrenda: v.precio,
+              preciosPorTienda: preciosPorTiendaDe(v.varianteId),
+              stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
+              apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
+              stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
+              codigosBarras: v.codigosBarras,
+            }))}
+        />
+      </TrabajoPorSede>
     </div>
   );
 }

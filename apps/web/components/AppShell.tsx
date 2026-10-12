@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { BotonActividad } from "@/components/actividad/BotonActividad";
+import { BotonTema } from "@/components/ui/BotonTema";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
@@ -61,6 +62,10 @@ import { useConsultaMedia } from "@/lib/useConsultaMedia";
 // de un grupo expandido se despliegan por `grid-template-rows` (`.lateral-hijos`, globals.css)
 // en vez de montarse con `anim-revelar`. El ancho lo comparten aside, cabecera, <main> y las
 // barras fijas por UN token: plegar solo cambia `--spacing-lateral` en `[data-lateral]`.
+// Solo el lateral se anima (su ancho, 300 ms); la cabecera, el <main> y las barras fijas saltan a su lugar en el
+// primer cuadro (2026-10-10). Animar el margen del <main> obligaba al navegador a recalcular la pantalla entera
+// ~19 veces: en el Punto de venta (todo el ancho, grilla por `@container`) eran ~70 ms con 64 prendas contra ~21 ms
+// sin animarlo, y la grilla cambiaba de 3 a 4 columnas a mitad del movimiento. Ese era el tirón al plegar.
 //
 // v3.7 (2026-09-25, pedido de Felipe): se retira el "+ Nuevo" global —el botón del lateral de
 // escritorio y el "+" central del celular— entero: el menú (`MenuNuevo`), el botón y las 6 acciones
@@ -113,8 +118,8 @@ type Props = {
   /** Solo se usa si `persona.puedeCambiarUbicacion` — un integrante nunca ve
    *  el selector, así que no hace falta traerle la lista completa. */
   ubicaciones: { id: string; nombre: string }[];
-  /** Traslados que esperan una acción de quien mira (`getTrasladosPorAtender`). `null` = no se pudo
-   *  calcular: el menú sale igual, sin número. */
+  /** Traslados que esperan una acción de quien mira y pedidos de otras sedes que esperan a esta («Te piden», ADR-0328
+   *  act. 17): `getNumeroDelMenuTraslados`. `null` = no se pudo calcular: el menú sale igual, sin número. */
   trasladosPorAtender?: number | null;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
@@ -747,8 +752,8 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
 // efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
 // «/etiquetas-de-precio» (Felipe 2026-10-03): la vista previa de las etiquetas va a la derecha de la tabla, a tamaño real; con el tope no
-// cabían lado a lado y quedaba al final, sin verse a la primera.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores", "/etiquetas-de-precio"];
+// cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0366): dos rótulos de 100 mm a tamaño real, lado a lado.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
@@ -934,7 +939,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         aria-hidden
         data-abierto={movilAbierto}
         onClick={() => cerrarMovil()}
-        className={`velo-cajon fixed inset-0 z-40 bg-tinta/25 backdrop-blur-[2px] sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
+        className={`velo-cajon fixed inset-0 z-40 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
       />
 
       {/* ==================== Lateral (escritorio) / cajón (celular) ==================== */}
@@ -1097,7 +1102,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
           No es decoración, es la única forma de que se note que hay más página
           arriba en vez de que el texto se corte contra una banda opaca. */}
-      <header className="ease-cayla fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral sm:transition-[left] sm:duration-300">
+      <header data-cabecera-app className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
         <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
           {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
           <button
@@ -1152,6 +1157,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
+            {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
+                del aparato, no un módulo ni una pantalla. */}
+            <BotonTema />
             {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
               <UbicacionSwitcher
                 ubicaciones={ubicaciones}
@@ -1183,7 +1191,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           cifras— se apretaban en la columna de lectura (pedido de Felipe,
           2026-09-14). El resto de la app sigue centrado en la columna
           angosta de siempre. */}
-      <main className="ease-cayla px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24 sm:transition-[margin-left] sm:duration-300">
+      <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
         {/* `has-[[data-ancho-completo]]`: una pantalla que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>

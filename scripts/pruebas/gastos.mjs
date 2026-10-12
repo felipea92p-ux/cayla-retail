@@ -275,7 +275,7 @@ select count(*) from retail.fn_categorias_gasto();`);
   esperar("no se le cuelga una nota de crédito de mercadería a un gasto", r.ok && Number(nc) === 0, r);
   esperar("nadie lee `gastos` directo (ni el líder)", r.ok && gastosDirecto.includes("permission denied"), r);
   esperar("nadie lee `categorias_gasto` directo", r.ok && catDirecto.includes("permission denied"), r);
-  esperar("las 10 categorías se leen por su función", r.ok && Number(categorias) === 10, r);
+  esperar("las 11 categorías se leen por su función", r.ok && Number(categorias) === 11, r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");

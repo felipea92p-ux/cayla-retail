@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, Ban, BookmarkCheck, FileText, RefreshCw, RotateCcw, ShoppingBag, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, Ban, BookmarkCheck, FileText, PackageCheck, RefreshCw, RotateCcw, ShoppingBag, UserRound, type LucideIcon } from "lucide-react";
 import { accionesDeVenta, recorridoDeVenta, type ClaveAccion, type ContextoAcciones, type PasoRecorrido } from "@/lib/historial-acciones-reglas";
 import type { FilaHistorial } from "@/lib/ventas-historial-reglas";
 
@@ -15,6 +15,7 @@ export type ContextoAccionesSerializable = Omit<ContextoAcciones, "modulos"> & {
 
 const ICONO: Record<ClaveAccion, LucideIcon> = {
   reintentar: RefreshCw,
+  regularizar: PackageCheck,
   cambiar: ArrowLeftRight,
   devolver: RotateCcw,
   clienta: UserRound,
@@ -75,7 +76,7 @@ export function AccionesVenta({ fila, contexto }: { fila: FilaHistorial; context
             >
               <Icono className="h-4 w-4" aria-hidden />
               {a.etiqueta}
-              <span className={`text-[11.5px] font-normal leading-tight ${a.destacada ? "text-crema/65" : "text-tinta/55"}`}>{a.detalle}</span>
+              <span className={`text-[11.5px] font-normal leading-tight ${a.destacada ? "text-crema/65 dark:text-crema/75" : "text-tinta/55"}`}>{a.detalle}</span>
             </Link>
           );
         })}

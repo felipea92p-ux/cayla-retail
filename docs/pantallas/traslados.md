@@ -1,5 +1,8 @@
 # Pantalla — Traslados (`/inventario/traslados`, `/inventario/mover`, `/inventario/traslados/[id]`)
 
+> **VENCIDO (2026-10-06):** la pantalla se rehízo como billetera de pases (ADR-0355): `TrasladosPanel`, `TrasladoDetallePanel` y las
+> ventanas de confirmar, cerrar y anular ya no existen. Lo que sigue es la foto del 2026-10-03; para analizar la de hoy, `/pantalla` de nuevo.
+
 > Modo: **completo** · Fecha: 2026-10-03 · Rol/sede: la captura es de Tienda TRU, sábado 17:54, con un rol que ve Inventario,
 > Catálogo y Compras. La lista está en su estado vacío. Datos: **real**: consultas de solo lectura a producción (`cayla-dynamic`,
 > schema `retail`) que Claude corrió con el MCP en esta sesión, sin escribir nada.

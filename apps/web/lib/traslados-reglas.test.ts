@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  accionDeTraslado,
   consultaDeParametros,
   etiquetaDePrenda,
   MAX_PRENDAS_EN_MENSAJE,
@@ -9,29 +8,21 @@ import {
   urlNuevoTrasladoDesdeMover,
   volverDeNuevoTraslado,
   esTrasladoVacio,
-  estadoTraslado,
   separarVacios,
   coincideBusqueda,
-  coincideDireccion,
-  coincideFiltro,
   contarRequierenAccion,
   conteoDelTraslado,
   debioLlegar,
   diaHora,
   diaMes,
-  direccionTraslado,
   diasDeDiferencia,
   enTexto,
   esTerminado,
   estaAtrasado,
   haceTexto,
   horaLima,
-  masUrgente,
   ordenarTraslados,
-  otraSedeDe,
   requiereAccion,
-  resumenPrendas,
-  resumirTraslados,
   situacionTraslado,
   textoLlegada,
   type ContextoTraslados,
@@ -158,107 +149,6 @@ describe("situacionTraslado", () => {
   });
 });
 
-describe("coincideFiltro", () => {
-  it("«Con diferencia» incluye el que me toca revisar; «Acción hoy» también", () => {
-    expect(coincideFiltro("requiere_revision", "con_diferencia")).toBe(true);
-    expect(coincideFiltro("requiere_revision", "accion")).toBe(true);
-    expect(coincideFiltro("con_diferencia", "accion")).toBe(false);
-    // «Abiertos» = todo lo que no terminó, pida acción o no.
-    expect(coincideFiltro("en_camino_saliente", "abiertos")).toBe(true);
-    expect(coincideFiltro("con_diferencia", "abiertos")).toBe(true);
-    expect(coincideFiltro("cerrado", "abiertos")).toBe(false);
-  });
-
-  it("«Con diferencia» también muestra los ya cerrados con diferencia: la pérdida no desaparece al cerrarse", () => {
-    expect(coincideFiltro("cerrado_con_diferencia", "con_diferencia")).toBe(true);
-    expect(coincideFiltro("cerrado", "con_diferencia")).toBe(false);
-    expect(coincideFiltro("anulado", "con_diferencia")).toBe(false);
-  });
-
-  it("«Enviados en camino» es solo lo que salió de mi sede; lo que viene hacia mí es «por recibir»", () => {
-    expect(coincideFiltro("en_camino_saliente", "en_camino")).toBe(true);
-    expect(coincideFiltro("requiere_recepcion", "en_camino")).toBe(false);
-  });
-
-  it("«Por recibir» (atajo de la tarjeta) filtra SOLO recepciones: la tarjeta cuenta solo recepciones", () => {
-    expect(coincideFiltro("requiere_recepcion", "por_recibir")).toBe(true);
-    expect(coincideFiltro("requiere_revision", "por_recibir")).toBe(false);
-    expect(coincideFiltro("anulado", "por_recibir")).toBe(false);
-  });
-
-  it("todos deja pasar todo; cerrados junta cerrado, cerrado con diferencia y anulado", () => {
-    expect(coincideFiltro("cerrado", "todos")).toBe(true);
-    for (const s of ["cerrado", "cerrado_con_diferencia", "anulado"] as SituacionTraslado[]) {
-      expect(coincideFiltro(s, "cerrados"), s).toBe(true);
-      expect(coincideFiltro(s, "abiertos"), s).toBe(false);
-    }
-    expect(coincideFiltro("requiere_recepcion", "cerrados")).toBe(false);
-  });
-});
-
-describe("resumirTraslados", () => {
-  it("la pantalla de referencia: 2 por recibir (1 atrasado), 0 diferencias, 43 prendas en tránsito", () => {
-    const r = resumirTraslados([t2, t3, t1], comoEncargadoTru);
-    expect(r.porRecibir).toBe(2);
-    expect(r.porRecibirAtrasados).toBe(1); // el 2; el 3 llega mañana
-    expect(r.conDiferencia).toBe(0);
-    expect(r.unidadesEnTransito).toBe(43); // 28 + 15; el cerrado no cuenta
-    expect(r.enCamino).toBe(2);
-    expect(r.abiertos).toBe(2);
-    expect(r.requierenAccion).toBe(2);
-    expect(r.porFiltro).toEqual({ todos: 3, abiertos: 2, accion: 2, en_camino: 0, con_diferencia: 0, cerrados: 1, por_recibir: 2 });
-  });
-
-  it("los salientes suman a «Enviados en camino» y a las prendas en tránsito, nunca a «Por recibir»", () => {
-    const saliente = traslado({ id: "s", numero: 4, unidadesEnviadas: 7, ubicacionOrigenId: TRU, ubicacionDestinoId: AQP, fechaEstimadaLlegada: "2026-09-19T21:15:00.000Z" });
-    const r = resumirTraslados([t2, t3, saliente], comoEncargadoTru);
-    expect(r.porRecibir).toBe(2);
-    expect(r.salientesEnCamino).toBe(1);
-    expect(r.porFiltro.en_camino).toBe(1); // la tarjeta y su filtro dicen lo mismo
-    expect(r.unidadesEnTransito).toBe(50);
-    expect(r.enCamino).toBe(3);
-  });
-
-  it("una diferencia pendiente es abierta y, si soy líder, acción; sus prendas ya NO están en tránsito (lo que coincidió entró)", () => {
-    const dif = traslado({ id: "d", numero: 5, unidadesEnviadas: 12, estado: "recibido_con_diferencia", confirmadoEn: "2026-09-18T18:10:00.000Z" });
-    const lider = resumirTraslados([dif], comoEncargadoTru);
-    expect(lider).toMatchObject({ conDiferencia: 1, porRevisar: 1, requierenAccion: 1, unidadesEnTransito: 0, abiertos: 1, diferenciasCerradas: 0 });
-    const colaborador = resumirTraslados([dif], comoColaboradorTru);
-    expect(colaborador).toMatchObject({ conDiferencia: 1, porRevisar: 0, requierenAccion: 0 });
-  });
-
-  it("«Con diferencia» cuenta también los cerrados con diferencia, y la tarjeta cuenta lo mismo que su filtro", () => {
-    const cerradoMal = traslado({ id: "c", numero: 6, estado: "cerrada", cerradoConDiferencia: true });
-    const cerradoBien = traslado({ id: "b", numero: 7, estado: "cerrada" });
-    const pendiente = traslado({ id: "d", numero: 5, estado: "recibido_con_diferencia" });
-    const r = resumirTraslados([cerradoMal, cerradoBien, pendiente], comoEncargadoTru);
-    expect(r).toMatchObject({ conDiferencia: 2, diferenciasCerradas: 1, porRevisar: 1, abiertos: 1 });
-    expect(r.porFiltro.con_diferencia).toBe(r.conDiferencia);
-    expect(r.porFiltro.cerrados).toBe(2);
-  });
-
-  it("un anulado cuenta como cerrado: ni por recibir, ni en tránsito, ni abierto", () => {
-    const anulado = traslado({ id: "a", numero: 8, unidadesEnviadas: 9, estado: "anulada" });
-    const r = resumirTraslados([anulado], comoEncargadoTru);
-    expect(r).toMatchObject({ porRecibir: 0, unidadesEnTransito: 0, enCamino: 0, abiertos: 0, requierenAccion: 0, conDiferencia: 0 });
-    expect(r.porFiltro).toMatchObject({ cerrados: 1, abiertos: 0, por_recibir: 0, en_camino: 0 });
-  });
-
-  it("un líder con SOLO una diferencia pendiente: «Por recibir» es 0 y su filtro devuelve 0 filas (coincide con la tarjeta); «Acción hoy» sí la cuenta", () => {
-    const dif = traslado({ id: "d", numero: 5, estado: "recibido_con_diferencia", confirmadoEn: "2026-09-18T18:10:00.000Z" });
-    const r = resumirTraslados([dif], comoEncargadoTru);
-    expect(r.porRecibir).toBe(0);
-    expect(r.porFiltro.por_recibir).toBe(0);
-    expect(r.porFiltro.accion).toBe(1);
-  });
-
-  it("sin traslados todo es cero", () => {
-    const r = resumirTraslados([], comoEncargadoTru);
-    expect(r.requierenAccion + r.abiertos + r.unidadesEnTransito).toBe(0);
-    expect(r.porFiltro.todos).toBe(0);
-  });
-});
-
 describe("contarRequierenAccion (el contador del menú)", () => {
   it("cuenta lo que me toca, llegue cuando llegue — no todos los traslados que existen", () => {
     expect(contarRequierenAccion([t2, t3, t1], comoEncargadoTru)).toBe(2);
@@ -273,59 +163,12 @@ describe("contarRequierenAccion (el contador del menú)", () => {
     expect(contarRequierenAccion([saliente, t1, traslado({ estado: "anulada" })], comoEncargadoTru)).toBe(0);
   });
 
-  it("coincide siempre con `requierenAccion` de la pantalla (una sola regla)", () => {
+  it("coincide siempre con lo que le toca a quien mira, pase por pase (una sola regla: `requiereAccion`)", () => {
     const dif = traslado({ id: "d", numero: 5, estado: "recibido_con_diferencia" });
     const lista = [t2, t3, t1, dif];
-    expect(contarRequierenAccion(lista, comoEncargadoTru)).toBe(resumirTraslados(lista, comoEncargadoTru).requierenAccion);
-    expect(contarRequierenAccion(lista, comoColaboradorTru)).toBe(resumirTraslados(lista, comoColaboradorTru).requierenAccion);
-  });
-});
-
-describe("masUrgente", () => {
-  it("elige el que lleva más tiempo esperando", () => {
-    const viejo = traslado({ id: "v", numero: 9, creadoEn: "2026-09-15T15:00:00.000Z", fechaEstimadaLlegada: "2026-09-16T15:00:00.000Z" });
-    expect(masUrgente([t2, viejo], comoEncargadoTru)?.id).toBe("v");
-    expect(masUrgente([viejo, t2], comoEncargadoTru)?.id).toBe("v");
-  });
-
-  it("cuenta la ESPERA, no la antigüedad del envío: salió hace más pero debió llegar hace menos", () => {
-    // A salió el 15/9 pero su hora estimada era HOY 04:00 (lleva ~9 h esperando).
-    const a = traslado({ id: "A", numero: 7, creadoEn: "2026-09-15T13:00:00.000Z", fechaEstimadaLlegada: "2026-09-18T09:00:00.000Z" });
-    // B salió el 16/9 y debió llegar el 16/9 20:00 (lleva ~1 día y medio esperando): es el más urgente.
-    const b = traslado({ id: "B", numero: 8, creadoEn: "2026-09-16T13:00:00.000Z", fechaEstimadaLlegada: "2026-09-17T01:00:00.000Z" });
-    expect(masUrgente([a, b], comoEncargadoTru)?.id).toBe("B");
-    expect(masUrgente([b, a], comoEncargadoTru)?.id).toBe("B");
-    expect(ordenarTraslados([a, b], comoEncargadoTru).map((t) => t.id)).toEqual(["B", "A"]);
-  });
-
-  it("igual con diferencias: manda cuándo se recibió, no cuándo salió el envío", () => {
-    const d1 = traslado({ id: "D1", numero: 5, estado: "recibido_con_diferencia", creadoEn: "2026-09-10T15:00:00.000Z", confirmadoEn: "2026-09-18T12:00:00.000Z" });
-    const d2 = traslado({ id: "D2", numero: 6, estado: "recibido_con_diferencia", creadoEn: "2026-09-16T15:00:00.000Z", confirmadoEn: "2026-09-16T21:00:00.000Z" });
-    expect(ordenarTraslados([d1, d2], comoColaboradorTru).map((t) => t.id)).toEqual(["D2", "D1"]); // grupo «con diferencia» ajena
-    expect(masUrgente([d1, d2], comoEncargadoTru)?.id).toBe("D2"); // el líder: las dos le tocan
-  });
-
-  it("ignora lo que no me toca, y devuelve null si no hay nada", () => {
-    const saliente = traslado({ ubicacionOrigenId: TRU, ubicacionDestinoId: AQP });
-    expect(masUrgente([saliente, t1], comoEncargadoTru)).toBeNull();
-    expect(masUrgente([], comoEncargadoTru)).toBeNull();
-  });
-
-  it("lo que todavía viaja va detrás de lo atrasado, aunque haya salido antes", () => {
-    const salioAntesLlegaManana = traslado({ id: "m", numero: 3, creadoEn: "2026-09-10T15:00:00.000Z", fechaEstimadaLlegada: "2026-09-19T21:15:00.000Z" });
-    expect(masUrgente([salioAntesLlegaManana, t2], comoEncargadoTru)?.id).toBe("t2");
-    expect(masUrgente([salioAntesLlegaManana], comoEncargadoTru)?.id).toBe("m");
-  });
-
-  it("una recepción y una revisión compiten por antigüedad, no por tipo", () => {
-    const dif = traslado({ id: "d", numero: 5, estado: "recibido_con_diferencia", confirmadoEn: "2026-09-15T18:00:00.000Z", creadoEn: "2026-09-14T18:00:00.000Z" });
-    expect(masUrgente([t2, dif], comoEncargadoTru)?.id).toBe("d"); // esperando desde el 15/9 vs. el 2, desde hoy 12:12
-  });
-
-  it("a igual antigüedad gana el número más bajo (resultado estable)", () => {
-    const a = traslado({ id: "a", numero: 7 });
-    const b = traslado({ id: "b", numero: 6 });
-    expect(masUrgente([a, b], comoEncargadoTru)?.id).toBe("b");
+    for (const c of [comoEncargadoTru, comoColaboradorTru]) {
+      expect(contarRequierenAccion(lista, c)).toBe(lista.filter((t) => requiereAccion(situacionTraslado(t, c))).length);
+    }
   });
 });
 
@@ -416,27 +259,6 @@ describe("textoLlegada", () => {
   it("sin hora estimada no inventa una", () => {
     const sin = traslado({ fechaEstimadaLlegada: null });
     expect(textoLlegada(sin, "requiere_recepcion", AHORA)).toEqual({ principal: "Sin hora estimada", secundario: "Enviado ayer 12:12", tono: "urgente" });
-  });
-});
-
-describe("resumenPrendas, direccionTraslado, accionDeTraslado", () => {
-  it("resumenPrendas: primera prenda + cuántas más", () => {
-    expect(resumenPrendas(["Blusa Camila", "Falda Isabella", "Vestido Sofía"])).toBe("Blusa Camila + 2 más");
-    expect(resumenPrendas(["Blusa Camila"])).toBe("Blusa Camila");
-    expect(resumenPrendas([])).toBe("Sin prendas");
-  });
-
-  it("direccionTraslado: hacia mi sede o desde mi sede", () => {
-    expect(direccionTraslado(t2, TRU)).toBe("entrante");
-    expect(direccionTraslado(t1, TRU)).toBe("saliente");
-  });
-
-  it("«Recibir» y «Revisar» llevan el botón fuerte; el resto, «Ver detalle»", () => {
-    expect(accionDeTraslado("requiere_recepcion")).toEqual({ texto: "Recibir", principal: true });
-    expect(accionDeTraslado("requiere_revision")).toEqual({ texto: "Revisar", principal: true });
-    for (const s of ["en_camino_saliente", "con_diferencia", "cerrado", "cerrado_con_diferencia", "anulado"] as SituacionTraslado[]) {
-      expect(accionDeTraslado(s), s).toEqual({ texto: "Ver detalle", principal: false });
-    }
   });
 });
 
@@ -536,25 +358,15 @@ describe("ordenarTraslados", () => {
   });
 });
 
-describe("horaLima, coincideDireccion, otraSedeDe", () => {
+describe("horaLima", () => {
   it("horaLima escribe la hora de Lima en 24 h", () => {
     expect(horaLima(AHORA)).toBe("13:28");
     expect(horaLima("2026-09-19T05:05:00.000Z")).toBe("00:05");
   });
 
-  it("coincideDireccion filtra lo que llega o lo que sale de mi sede", () => {
-    expect(coincideDireccion(t2, TRU, "entrante")).toBe(true);
-    expect(coincideDireccion(t2, TRU, "saliente")).toBe(false);
-    expect(coincideDireccion(t1, TRU, "saliente")).toBe(true);
-    expect(coincideDireccion(t1, TRU, "todas")).toBe(true);
-  });
 
-  it("otraSedeDe devuelve el extremo que no es mi sede", () => {
-    const entrante = { ...t2, ubicacionOrigenNombre: "Taller", ubicacionDestinoNombre: "Tienda Trujillo" };
-    const saliente = { ...t1, ubicacionOrigenNombre: "Tienda Trujillo", ubicacionDestinoNombre: "Tienda Arequipa" };
-    expect(otraSedeDe(entrante, TRU)).toEqual({ id: TALLER, nombre: "Taller" });
-    expect(otraSedeDe(saliente, TRU)).toEqual({ id: AQP, nombre: "Tienda Arequipa" });
-  });
+
+
 });
 
 // ===========================================================================
@@ -577,33 +389,6 @@ describe("traslados vacíos", () => {
     const { conPrendas, vacios } = separarVacios(ts);
     expect(conPrendas.map((t) => t.numero)).toEqual([5, 6]);
     expect(vacios).toBe(2);
-  });
-});
-
-describe("estadoTraslado", () => {
-  it("dice lo que le toca a quien mira, con el tono de la guía", () => {
-    expect(estadoTraslado("requiere_recepcion")).toEqual({ texto: "Por recibir", tono: "rojo" });
-    expect(estadoTraslado("requiere_revision")).toEqual({ texto: "Por revisar", tono: "ambar" });
-    expect(estadoTraslado("con_diferencia")).toEqual({ texto: "Con diferencia", tono: "ambar" });
-    expect(estadoTraslado("en_camino_saliente")).toEqual({ texto: "En camino", tono: "pizarra" });
-  });
-
-  it("un cerrado que tuvo diferencia no se pinta de verde, venga como situación o como dato aparte", () => {
-    expect(estadoTraslado("cerrado")).toEqual({ texto: "Cerrado", tono: "verde" });
-    expect(estadoTraslado("cerrado", true)).toEqual({ texto: "Cerrado con diferencia", tono: "neutro" });
-    expect(estadoTraslado("cerrado_con_diferencia")).toEqual({ texto: "Cerrado con diferencia", tono: "neutro" });
-  });
-
-  it("un anulado va apagado (tachado), como toda anulación del ERP", () => {
-    expect(estadoTraslado("anulado")).toEqual({ texto: "Anulado", tono: "apagado" });
-  });
-
-  it("un estado, un nombre: nadie dice «Completado» ni «Por confirmar»", () => {
-    const todas: SituacionTraslado[] = ["requiere_recepcion", "requiere_revision", "en_camino_saliente", "con_diferencia", "cerrado", "cerrado_con_diferencia", "anulado"];
-    const textos = todas.map((s) => estadoTraslado(s).texto);
-    expect(textos).not.toContain("Completado");
-    expect(textos).not.toContain("Por confirmar");
-    expect(new Set(textos).size).toBe(todas.length);
   });
 });
 

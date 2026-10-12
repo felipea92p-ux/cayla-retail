@@ -1,0 +1,487 @@
+<!-- Propuesta de /unificar · familia «cifra» (Tarjetas de cifra, ADR-0358) · FINAL de la ronda 1 (2026-10-06, juez).
+     Fragmento: la lámina lo envuelve con el CSS real del ERP, en claro y en oscuro. Solo tokens, las dos fuentes, var(--ease-cayla) y
+     clases que existen en el app.css servido (card-cayla, label-cayla, nota-cayla, sr-only, cmp-reparto, cmp-reparto-rojo,
+     cmp-reparto-ambar, btn-cayla, btn-enlace, btn-secundario, btn-primario, caja-cayla, pildora-cayla, encabezado-tabla-cayla, fila-cayla,
+     font-display y las utilidades del Chip). Lo propio lleva el prefijo prop-.
+
+     La idea en una línea: es la TarjetaCifra de siempre (la B, 113 usos en 30 archivos), con la misma cara, y una marca para cada cosa
+     que hace una cifra. Si solo informa, no lleva nada. Si te lleva a otro lado, lleva una flecha. Si filtra la lista, lo dice con
+     palabras y queda marcada. La G (TarjetaIndicador y la tarjeta del Inicio), la C (TarjetaCifraAnalisis) y las copias a mano pasan a
+     esta pieza. Lo que un ADR decidió no se toca.
+
+     Base: el ángulo «sistema». Ganó porque cada marca sale de una pieza que ya existe: el encima de btn-secundario, el tono del Chip,
+     btn-enlace, la elegida de la D y el anillo de ADR-0351. Además alinea la cifra con la tabla de abajo y no deja que el número se
+     desborde. Injertos de los otros dos ángulos, cada uno con su razón.
+
+     Qué toma y de dónde:
+     · De la B (TarjetaCifra; ADR-0101, 0111, 0169), todo el cuerpo: card-cayla (papel, filo sand, radio 16, sin sombra porque va
+       pegada al fondo). El nombre va en label-cayla de 11 px, 700, taupe, con su punto de 6 px. El número va en serif 600 de 28 px.
+       El contexto va en 12 px taupe, con detalleTono. Abajo, la barra fina del reparto. Es la de referencia y la más usada.
+     · Relleno: 16 px arriba y abajo (el compacta de la B, 91 de 113 usos: la franja no crece) y 20 px a los lados (la E). Con 20 px,
+       el nombre de la primera cifra cae en la misma vertical que los títulos de la Tabla de abajo (TABLA usa px-5, Tabla.tsx:52). Hoy
+       compacta los corre 4 px. Bajo 640 px de pantalla el relleno vuelve a 16. La opción compacta deja de existir.
+     · De la H (ResumenSede), los números lining y tabulares (font-variant-numeric: lining-nums tabular-nums). Un «308» se dibuja igual
+       en la cabecera y en el cuerpo.
+     · Del ángulo «sistema», que el número no se parta (de la C, whitespace-nowrap) y que baje de 28 a 22 px cuando SU tarjeta es tan
+       angosta que un monto de miles no cabría (container query: la tarjeta es el contenedor). Mide la tarjeta y no la pantalla, porque una
+       franja de 4 en un laptop de 1024 y una de 2 en el celular piden lo mismo. Solo dos tamaños, 28 y 22, sin pasos intermedios. Corrijo
+       la medida: lo rendericé con Playwright, las fuentes servidas y la lámina, y «S/ 42,586.80» a 28 px mide 144 px, no 164. Por eso el
+       salto va a los 148 px de contenido y no a los 180: así una franja de 3 en escritorio no se achica sin necesidad.
+     · De la D, la unidad («facturas», «traslados») en taupe. La de la B va en tinta al 55 %, y a 14 px da 3,83:1, que no llega a AA.
+       En taupe da 5,58:1 en claro y 6,96:1 en oscuro. Lo calculé componiendo el alfa en sRGB, como el navegador.
+     · De la C, el «A → B» de Comparar (prop nueva `antes`): A chica en taupe, una flecha apagada y B grande, con «Período A / B» para el
+       lector de pantalla. También de la C, el pie pegado abajo (margin-top: auto, prop nueva `pie`, que también recibe el `pie` de la G):
+       en una fila de cuatro, la última línea queda a la misma altura. El delta («↑ 48%», «▲ 12% vs. martes pasado») NO es otra prop
+       (ley 8). Va como primera línea del contexto, con detalleTono, en verde-profundo, ámbar-profundo o taupe. Nunca en rojo: el rojo
+       es el acento y hay como máximo 2 por pantalla (ADR-0169).
+     · De la G, el (!) de <Ayuda> pegado al nombre (prop nueva `ayuda`, la <Ayuda> de siempre). Con eso la G migra a la pieza, como
+       ya decidió ADR-0111:119-120. Reemplaza el title de la C, que solo aparece con el mouse encima y nunca con el dedo (ley 6 de
+       ADR-0350). `sparkline` y `comparativo` no se suman: grep da 0 llamadas con «sparkline=» o «comparativo=».
+     · Encima, solo en lo que se toca: es el de btn-secundario, filo taupe al 40 % y fondo sand al 50 % (app.css, .btn-secundario:hover).
+       Una cifra que se toca reacciona como un botón secundario. Lo que no se toca no reacciona.
+     · Elegida (la que filtra), la marca de la D (ADR-0245, la .gr.on del spike): contorno de tinta (borde más anillo interior de 1 px)
+       sobre hueso. Hoy activa (sand/40) y encima (sand/30) dan 1,02:1 entre sí: no se distinguen. Va con contorno y no con relleno,
+       porque el único relleno de tinta de la pantalla es el botón principal. Sobre hueso, el texto rojo pasa a rojo-profundo, como hace
+       el Chip: rojo sobre hueso da 4,23:1 y rojo-profundo 6,62:1.
+     · De Traslados (TrasladosResumen.tsx:30-31), el texto de la que filtra: «Toca para filtrar» y «Filtrando · toca para quitar». Ahora
+       lo pone la pieza al pie. Se lee sin color, y por eso la que filtra no lleva flecha: la flecha dice «te lleva a otro lado».
+     · Del ángulo «continuidad», la flecha de «lleva» la pone la pieza, no cada pantalla. Va a la derecha de la última línea del contexto
+       (una fila flex alineada abajo), así nunca queda sola en un renglón. Lo medí en la lámina: con un espacio duro antes del dibujo, Chrome
+       la bajaba igual al renglón siguiente, porque un svg en línea abre un corte. Hoy los 15 usos que se tocan traen contexto, así que
+       siempre hay dónde ponerla, y los tipos lo exigirán. Los «→» escritos a mano (compras/page.tsx:146, 150, 172;
+       NotasCreditoPanel.tsx:264) se borran. El (!) también queda pegado a la última palabra del nombre: etiqueta es texto, y la pieza
+       puede envolverla.
+     · Del ángulo «continuidad», aria-pressed solo en la que filtra. Comprobado en TarjetaCifra.tsx: `activa = false` por defecto y
+       `aria-pressed={activa}`, y React escribe aria-pressed="false" cuando el valor es false. Hoy 4 de 7 cifras con onClick (Gastos,
+       Notas de crédito, Activos y «La más atrasada») se anuncian como un interruptor apagado aunque no filtren. La clasificación había
+       rechazado esta objeción: se equivocaba. Queda así: informa = <div>, lleva = <a> o <button> sin aria-pressed, filtra =
+       <button aria-pressed>.
+     · Del ángulo «continuidad», valor={null} = sin dato. De la persona, el motivo pasa a ser obligatorio (los tipos lo exigen, ley 9).
+       Una sola forma: borde punteado, sin fondo, «—» en tinta al 65 % con «Sin dato» para el lector, y la razón debajo. Un cero es un
+       dato y se ve normal. Elegí 65 y no 45 ni 55 por cálculo: el «—» en tinta/45 da 2,86:1, en tinta/55 da 3,76:1 y en tinta/65 da
+       5,14:1 sobre crema (oscuro: 4,09, 5,45 y 7,11). Como el número baja a 22 px en 600, ya no cuenta como letra grande y necesita 4,5:1.
+     · De la persona, «No se pudo leer» queda separado de «todavía no hay» (principio 9 de CLAUDE.md: se degrada con gracia). Lleva borde
+       entero, el mismo «—» y una frase en tinta que dice qué pasó y qué hacer. Es el caso real de la Caja del Inicio (page.tsx:280-281).
+     · La acción al pie (`accion`) es btn-enlace de 13,5 px con 24 px de alto, en vez del enlace label-cayla de 11 px, que mide 16 px de
+       alto (ADR-0350 pide 24). Una cifra que se toca entera no lleva adentro ni (!) ni acción: un control dentro de otro no es HTML válido.
+     · La flecha es la ArrowRight de lucide de 14 px y no el carácter «→». La razón es la misma que en accion.volver: el subconjunto latin
+       de DM Sans que sirve el ERP declara U+2191 y U+2193 pero NO U+2192, así que «→» lo dibuja la fuente del aparato.
+     · El foco es el anillo único de ADR-0351 (2 px de tinta a 2 px). La pieza no escribe nada, y aquí se dibuja con .prop-foco.
+     · No hay movimiento propio. El encima cambia color y filo en 200 ms con --ease-cayla, y la flecha no se corre: así quedó también en
+       accion.volver (ley 8, ningún btn-cayla se mueve). Con prefers-reduced-motion no hay transición. La barra del reparto se llena una
+       vez, como hoy.
+
+     Qué se va: la receta G (nombre en tinta/65 sin negrita, número de 24 a 30 px; en el Inicio es la MISMA clase que el título «Tu día»);
+     TarjetaIndicador (components/), con sparkline, comparativo y normalizarSparkline; ui/TarjetaIndicador y ui/TarjetaSenal (sin
+     importadores); TarjetaCifraAnalisis y su title; la Tarjeta de TarjetasInicio (Etiqueta se queda); las copias a mano (Proyección del
+     mes, TarjetaAvance, «A tu favor con proveedores», Evolución del costo, detalle del proveedor, Saldo a favor, parte de compra, Cifra de
+     TrasladoDetallePanel y de ResumenStockOverlay); compacta, fila e icono; activa en sand/40; el aria-pressed="false" de lo que no filtra;
+     la unidad en tinta/55; el «—» en tinta/45; el enlace de 11 px; los «→» a mano; las cuatro formas de la cifra sin dato; y el alza-cayla
+     en las 6 cifras de Recibir que no se tocan (KpisRecibir.tsx:46-74, recibir/page.tsx:128-151): se levantan y echan sombra sin llevar a
+     ningún lado.
+
+     Opt-in que esta propuesta deja fuera, aunque los decidió alguien (lo decide Felipe): `viva` (alza y barrido de luz al pasar el mouse,
+     ADR-0136, 2026-09-19), `acentoTrazo` y `puntoPulsa` (Por pagar, 2026-09-19), `acento` (el filete rojo, ADR-0105) y `vivo` (el punto
+     que late en bucle; CLAUDE.md solo exceptúa el del chip «Vencida»). Hacen que 3 cifras reaccionen distinto de las demás, y el filete
+     gasta un rojo que ya gastan el punto y el contexto.
+
+     Lo que NO es esta pieza y no se toca (decidido a propósito): F, el vidrio de Facturación (ADR-0124); H, I y J, ResumenSede en la
+     cabecera (ADR-0123, 0220, 0331 §4); P, el efectivo en el cajón (ADR-0226 D1, ADR-0319); Q, «Ventas hechas» (ADR-0319); D, los grupos
+     de «Qué hacer» (ADR-0245, de donde sale la elegida); L, .fin-cuenta (ADR-0195); TiposMovimiento (ADR-0353 §4); el Observatorio
+     (ADR-0322); el Kpi de Almacén (ADR-0292); .vr-gran (ADR-0136); el panel de la talla (ADR-0344 §12); la píldora «Hoy» de Vender
+     (ADR-0221 §2). Los falsos positivos A, K, M, N y O son filas y titulares.
+
+     Para Felipe, antes de migrar (cambian lo que la persona entiende, no solo cómo se ve):
+     1. «Piden algo hoy» (AnalisisQueHacer.tsx:49-65) dice 25 y, al tocarla, filtra solo «Se agotaron», que vale 0. No migra hasta decidir
+        qué cuenta: o cuenta solo las agotadas, o el toque abre los tres grupos.
+     2. «La más atrasada» de Recibir (KpisRecibir.tsx:79-81) no informa ni lleva: marca un comprobante. Propongo que esa acción pase a un
+        btn-enlace con verbo. Mientras tanto, la pieza la dibuja como «lleva», con flecha y sin aria-pressed.
+     3. «Caja: Abierta» del Inicio es un estado y no un número. Propongo dibujarla como Chip. «Sin meta» en el lugar del número pasa a «—»
+        con su motivo, y eso es un cambio de texto.
+     4. La G cambia de cara en Comercial, Calidad e Inicio. ADR-0111 solo lo decidió en Compras.
+     5. Que el (!) responda en 24 px es una línea en components/Ayuda.tsx, de la familia «ayuda» (14 importadores). -->
+<style>
+  .prop-bloque { margin-bottom: 32px; }
+  .prop-etq { display: block; max-width: 46rem; margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--color-taupe); }
+  .prop-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px; align-items: stretch; }
+  .prop-rejilla-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prop-rejilla-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .prop-estado { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .prop-estado > .prop-cifra { flex: 1; }
+  .prop-estado > small { font-size: 11px; line-height: 1.4; color: var(--color-taupe); }
+
+  /* ===== La pieza: card-cayla + esto ===== */
+  .prop-cifra {
+    box-sizing: border-box; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+    min-width: 0; width: 100%; margin: 0; padding: 16px 20px; text-align: left; text-decoration: none;
+    font: 400 12px/16px var(--font-dm-sans); color: var(--color-tinta);
+    container-type: inline-size;
+    transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+  }
+  button.prop-cifra, a.prop-cifra { cursor: pointer; }
+  /* El nombre: label-cayla (versalitas, .13em) a 11 px en 700 y taupe; 20 px de alto para que el (!) no lo empuje. */
+  .prop-cifra .prop-nombre { display: block; min-height: 20px; margin: 0; font-size: 11px; line-height: 20px; font-weight: 700; color: var(--color-taupe); }
+  .prop-punto { display: inline-block; position: relative; top: -1px; width: 6px; height: 6px; margin-right: 7px; border-radius: 999px; vertical-align: middle; }
+  .prop-punto-neutro { background: color-mix(in oklab, var(--color-tinta) 25%, transparent); }
+  .prop-punto-ambar { background: var(--color-ambar); }
+  .prop-punto-verde { background: var(--color-verde); }
+  .prop-punto-rojo { background: var(--color-rojo); }
+  /* El (!) de <Ayuda>: el mismo círculo de 20 px; el ::after le da 24 px para tocarlo (ADR-0350). */
+  .prop-ayuda {
+    position: relative; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+    margin: -2px 0 0 4px; padding: 0; vertical-align: middle; border-radius: 999px; cursor: pointer;
+    border: 1px solid color-mix(in oklab, var(--color-tinta) 30%, transparent); background: transparent;
+    color: color-mix(in oklab, var(--color-tinta) 65%, transparent); font: 600 11px/1 var(--font-dm-sans); letter-spacing: 0; text-transform: none;
+  }
+  .prop-ayuda::after { content: ""; position: absolute; inset: -2px; border-radius: 999px; }
+
+  /* El número: 28 px; baja a 22 solo si el contenido de la tarjeta mide menos de 148 px («S/ 42,586.80» a 28 px mide 144). */
+  .prop-valor { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; margin: 4px 0 0; }
+  .prop-num {
+    font-family: var(--font-eb-garamond); font-weight: 600; font-size: 28px; line-height: 1.25; letter-spacing: -0.005em;
+    font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; color: var(--color-tinta);
+  }
+  @container (max-width: 147px) { .prop-num { font-size: 22px; } .prop-antes { font-size: 15px; } }
+  .prop-num-ambar { color: var(--color-ambar-profundo); }
+  .prop-num-rojo { color: var(--color-rojo-profundo); }
+  .prop-unidad { font-size: 14px; line-height: 1.4; white-space: nowrap; color: var(--color-taupe); }
+  .prop-antes {
+    display: inline-flex; align-items: baseline; gap: 6px; font-family: var(--font-eb-garamond); font-weight: 600; font-size: 17px; line-height: 1.25;
+    font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; color: var(--color-taupe);
+  }
+  .prop-antes svg { width: 13px; height: 13px; align-self: center; color: color-mix(in oklab, var(--color-tinta) 45%, transparent); }
+
+  /* El contexto: 12 px taupe; el delta es su primera línea, con tono. */
+  .prop-ctx { display: block; margin: 4px 0 0; font-size: 12px; line-height: 16px; color: var(--color-taupe); }
+  .prop-ctx + .prop-ctx { margin-top: 2px; }
+  .prop-ctx-rojo { color: var(--color-rojo); }
+  .prop-ctx-ambar { color: var(--color-ambar-profundo); }
+  .prop-ctx-verde { color: var(--color-verde-profundo); }
+  /* La flecha de «lleva»: la pone la pieza a la derecha de la última línea del contexto (fila flex, abajo), nunca sola en un renglón.
+     Medido: con un espacio duro antes del svg, Chrome la bajaba igual al renglón siguiente. Siempre en tinta. */
+  .prop-ctx-lleva { display: flex; align-items: flex-end; gap: 4px; }
+  .prop-ctx-lleva > span { min-width: 0; }
+  .prop-flecha { flex: none; width: 14px; height: 14px; margin-bottom: 1px; color: var(--color-tinta); }
+  /* El (!) va pegado a la última palabra del nombre (etiqueta es texto: la pieza puede envolverla). */
+  .prop-junto { white-space: nowrap; }
+
+  /* El pie, pegado abajo: el texto de la que filtra, la acción de una vacía o la última línea de la C y la G. */
+  .prop-pie { display: block; margin-top: auto; padding-top: 8px; font-size: 12px; line-height: 16px; color: var(--color-taupe); }
+  .prop-accion { min-height: 24px; justify-content: flex-start; gap: 4px; }
+  .prop-accion svg { width: 14px; height: 14px; }
+
+  /* Lleva y filtra: el encima de btn-secundario. Lo que no se toca no reacciona. */
+  a.prop-cifra:hover, button.prop-cifra:hover, .prop-cifra.prop-encima {
+    border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent);
+    background: color-mix(in oklab, var(--color-sand) 50%, var(--color-papel));
+  }
+  .prop-cifra.prop-foco { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+  /* Elegida (filtra): la marca de la D, ADR-0245. */
+  button.prop-cifra[aria-pressed="true"], button.prop-cifra[aria-pressed="true"]:hover {
+    border-color: var(--color-tinta); background: var(--color-hueso); box-shadow: inset 0 0 0 1px var(--color-tinta);
+  }
+  .prop-cifra[aria-pressed="true"] .prop-ctx-rojo { color: var(--color-rojo-profundo); }
+  .prop-cifra[aria-pressed="true"] .prop-pie { color: var(--color-tinta); font-weight: 600; }
+
+  /* Sin dato todavía (valor null): punteado, sin fondo, «—» en tinta/65. No se pudo leer: borde entero y la frase en tinta. */
+  .prop-cifra.prop-vacia { border-style: dashed; background: transparent; }
+  .prop-vacia .prop-num, .prop-fallo .prop-num { color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .prop-fallo .prop-ctx { color: var(--color-tinta); }
+
+  @media (max-width: 639px) { .prop-cifra { padding: 16px; } }
+  .prop-angosto .prop-cifra { padding: 16px; }
+  @media (prefers-reduced-motion: reduce) { .prop-cifra { transition: none; } }
+
+  /* ===== Marcos de contexto (no son la propuesta) ===== */
+  .prop-pagina { box-sizing: border-box; padding: 20px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-crema); }
+  .prop-pagina > * + * { margin-top: 16px; }
+  .prop-cabeza { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
+  .prop-h1 { margin: 4px 0 0; font-size: 24px; line-height: 1.2; color: var(--color-tinta); }
+  .prop-frase { margin: 4px 0 0; max-width: 30rem; font-size: 14px; line-height: 1.5; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .prop-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+  .prop-herr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 20px; }
+  .prop-campo { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; font-size: 13px; color: var(--color-taupe); }
+  .prop-campo-ancho { flex: 1 1 200px; }
+  .prop-campo svg { flex: none; width: 14px; height: 14px; }
+  .prop-tabla { overflow: hidden; }
+  .prop-tabla > * + * { border-top: 1px solid var(--color-sand); }
+  .prop-fila { display: grid; grid-template-columns: 44px minmax(0, 1fr) 104px 104px 88px; column-gap: 16px; align-items: center; padding: 12px 20px; font-size: 13px; color: var(--color-tinta); }
+  .prop-fila.encabezado-tabla-cayla { padding: 8px 20px; color: var(--color-taupe); }
+  .prop-der { text-align: right; font-variant-numeric: tabular-nums; }
+  .prop-tenue { color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .prop-seccion { margin: 0 0 10px; font-size: 11px; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .prop-chip-lugar { display: flex; align-items: center; min-height: 35px; margin-top: 4px; }
+  .prop-celular { box-sizing: border-box; width: 100%; max-width: 375px; padding: 20px 16px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-crema); }
+  .prop-angosto { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .prop-ancha { grid-column: span 2; }
+</style>
+
+<!-- ===================== 1. Estados ===================== -->
+<div class="prop-bloque">
+  <span class="prop-etq">Estados de la pieza: una cara, y una marca para cada cosa que hace. La que solo informa no lleva nada. La que lleva tiene una flecha. La que filtra lo dice con palabras y, puesta, queda con contorno de tinta. La que no tiene dato va punteada y dice por qué. No tiene «deshabilitado» ni «cargando»: si no lleva a ningún lado se dibuja como la que informa, y mientras carga manda el loader único (ADR-0149).</span>
+  <div class="prop-rejilla">
+    <div class="prop-estado">
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre">Compras de octubre</p>
+        <p class="prop-valor"><span class="prop-num">S/ 0.00</span></p>
+        <p class="prop-ctx">Septiembre completo: S/&nbsp;2,480.00</p>
+      </div>
+      <small>Informa · un &lt;div&gt;: no reacciona al mouse</small>
+    </div>
+    <div class="prop-estado">
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-ambar" aria-hidden="true"></span>Atrasadas</p>
+        <p class="prop-valor"><span class="prop-num prop-num-ambar">2</span></p>
+        <p class="prop-ctx prop-ctx-ambar">Esperadas antes de hoy · recibir o reclamar</p>
+      </div>
+      <small>Pide algo · punto y tono del Chip, sin filete, sin latido y sin alza</small>
+    </div>
+    <div class="prop-estado">
+      <a href="#" class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-ambar" aria-hidden="true"></span>Por pagar</p>
+        <p class="prop-valor"><span class="prop-num">S/ 42,586.80</span></p>
+        <p class="prop-ctx prop-ctx-rojo prop-ctx-lleva"><span>1 vencida · S/&nbsp;5,133.60</span><svg class="prop-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></p>
+        <span class="cmp-reparto" aria-hidden="true"><i class="cmp-reparto-rojo" style="--p: .12"></i></span>
+      </a>
+      <small>Lleva · un &lt;a&gt;; la flecha la pone la pieza</small>
+    </div>
+    <div class="prop-estado">
+      <a href="#" class="card-cayla prop-cifra prop-encima">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-ambar" aria-hidden="true"></span>Por pagar</p>
+        <p class="prop-valor"><span class="prop-num">S/ 42,586.80</span></p>
+        <p class="prop-ctx prop-ctx-rojo prop-ctx-lleva"><span>1 vencida · S/&nbsp;5,133.60</span><svg class="prop-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></p>
+        <span class="cmp-reparto" aria-hidden="true"><i class="cmp-reparto-rojo" style="--p: .12"></i></span>
+      </a>
+      <small>Lleva · encima: filo taupe y fondo sand, el mismo de btn-secundario</small>
+    </div>
+    <div class="prop-estado">
+      <a href="#" class="card-cayla prop-cifra prop-foco">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-ambar" aria-hidden="true"></span>Por recibir</p>
+        <p class="prop-valor"><span class="prop-num">2</span><span class="prop-unidad">facturas</span></p>
+        <p class="prop-ctx prop-ctx-ambar prop-ctx-lleva"><span>2 atrasadas · S/&nbsp;1,180.00 por&nbsp;llegar</span><svg class="prop-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></p>
+      </a>
+      <small>Lleva · foco de teclado: el anillo único de ADR-0351</small>
+    </div>
+    <div class="prop-estado">
+      <button type="button" class="card-cayla prop-cifra" aria-pressed="false">
+        <span class="label-cayla prop-nombre">Enviados en camino</span>
+        <span class="prop-valor"><span class="prop-num">2</span><span class="prop-unidad">traslados</span></span>
+        <span class="prop-ctx">Salieron de tu sede; los recibe la otra</span>
+        <span class="prop-pie">Toca para filtrar</span>
+      </button>
+      <small>Filtra · &lt;button aria-pressed&gt; apagada; sin flecha, lo dice con palabras</small>
+    </div>
+    <div class="prop-estado">
+      <button type="button" class="card-cayla prop-cifra" aria-pressed="true">
+        <span class="label-cayla prop-nombre">Enviados en camino</span>
+        <span class="prop-valor"><span class="prop-num">2</span><span class="prop-unidad">traslados</span></span>
+        <span class="prop-ctx">Salieron de tu sede; los recibe la otra</span>
+        <span class="prop-pie">Filtrando · toca para quitar</span>
+      </button>
+      <small>Filtra · puesta: contorno de tinta sobre hueso (la marca de la D)</small>
+    </div>
+    <div class="prop-estado">
+      <button type="button" class="card-cayla prop-cifra prop-foco" aria-pressed="false">
+        <span class="label-cayla prop-nombre">Con diferencia</span>
+        <span class="prop-valor"><span class="prop-num prop-num-ambar">3</span><span class="prop-unidad">casos</span></span>
+        <span class="prop-ctx">1 requiere tu revisión · 2 ya cerrados</span>
+        <span class="prop-pie">Toca para filtrar</span>
+      </button>
+      <small>Filtra · foco de teclado</small>
+    </div>
+    <div class="prop-estado">
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-junto">Vendido<button type="button" class="prop-ayuda" aria-label="Qué es Vendido">!</button></span></p>
+        <p class="prop-valor"><span class="prop-antes"><span class="sr-only">Período A: </span>S/ 412<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span><span class="prop-num"><span class="sr-only">Período B: </span>S/ 559</span></p>
+        <p class="prop-ctx prop-ctx-verde">↑ 36%</p>
+        <span class="prop-pie">6 unidades en 30 días</span>
+      </div>
+      <small>Compara A → B, con su (!) que se toca (de la C y de la G)</small>
+    </div>
+    <div class="prop-estado">
+      <div class="card-cayla prop-cifra prop-vacia">
+        <p class="label-cayla prop-nombre">Ticket promedio</p>
+        <p class="prop-valor"><span class="prop-num"><span aria-hidden="true">—</span><span class="sr-only">Sin dato</span></span></p>
+        <p class="prop-ctx">Sin ventas todavía</p>
+      </div>
+      <small>Sin dato · valor null y su motivo (hoy, en Rendimiento, sin punteado)</small>
+    </div>
+    <div class="prop-estado">
+      <div class="card-cayla prop-cifra prop-vacia">
+        <p class="label-cayla prop-nombre">Meta de la sede</p>
+        <p class="prop-valor"><span class="prop-num"><span aria-hidden="true">—</span><span class="sr-only">Sin dato</span></span></p>
+        <p class="prop-ctx">Falta cargarla para Tienda Lima. Sin ella no hay qué repartir.</p>
+        <span class="prop-pie"><a href="#" class="btn-cayla btn-enlace prop-accion">Cargarla en Configuración<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></span>
+      </div>
+      <small>Sin dato, con el siguiente paso · btn-enlace de 24 px (hoy dice «Sin meta»)</small>
+    </div>
+    <div class="prop-estado">
+      <div class="card-cayla prop-cifra prop-fallo">
+        <p class="label-cayla prop-nombre">Caja</p>
+        <p class="prop-valor"><span class="prop-num"><span aria-hidden="true">—</span><span class="sr-only">No se pudo leer</span></span></p>
+        <p class="prop-ctx">No se pudo leer la caja. Recarga la página para intentarlo de nuevo.</p>
+      </div>
+      <small>No se pudo leer · borde entero: no falta un dato, falló la lectura</small>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 2. Compras, con su tabla ===================== -->
+<div class="prop-bloque">
+  <span class="prop-etq">Compras ▸ Facturas de proveedor, en el orden de ADR-0169: cabecera, cifras, filtros y tabla en UNA tarjeta, y la nota. Aquí van de a dos por fila, porque la lámina es angosta; en el ERP van cuatro. «Por pagar» y «Emisión» caen en la misma vertical (los dos a 20 px del borde). Las dos primeras llevan y las dos últimas informan: se ve antes de tocar.</span>
+  <div class="prop-pagina">
+    <div class="prop-cabeza">
+      <div>
+        <p class="label-cayla text-[11px] text-tinta/65">Compras</p>
+        <div class="font-display prop-h1">Facturas de proveedor</div>
+        <p class="prop-frase">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
+      </div>
+      <div class="prop-botones">
+        <a href="#" class="btn-cayla btn-secundario">Exportar mes</a>
+        <a href="#" class="btn-cayla btn-primario">+ Registrar factura</a>
+      </div>
+    </div>
+    <div class="prop-rejilla prop-rejilla-2">
+      <a href="#" class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-ambar" aria-hidden="true"></span>Por pagar</p>
+        <p class="prop-valor"><span class="prop-num">S/ 42,586.80</span></p>
+        <p class="prop-ctx prop-ctx-rojo prop-ctx-lleva"><span>1 vencida · S/&nbsp;5,133.60</span><svg class="prop-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></p>
+        <span class="cmp-reparto" aria-hidden="true"><i class="cmp-reparto-rojo" style="--p: .12"></i></span>
+      </a>
+      <a href="#" class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-ambar" aria-hidden="true"></span>Por recibir</p>
+        <p class="prop-valor"><span class="prop-num">2</span><span class="prop-unidad">facturas</span></p>
+        <p class="prop-ctx prop-ctx-ambar prop-ctx-lleva"><span>2 atrasadas · S/&nbsp;1,180.00 por&nbsp;llegar</span><svg class="prop-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></p>
+        <span class="cmp-reparto" aria-hidden="true"><i class="cmp-reparto-ambar" style="--p: 1"></i></span>
+      </a>
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre">Compras de octubre</p>
+        <p class="prop-valor"><span class="prop-num">S/ 0.00</span></p>
+        <p class="prop-ctx">Septiembre completo: S/&nbsp;2,480.00</p>
+      </div>
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-punto prop-punto-verde" aria-hidden="true"></span>IGV del mes</p>
+        <p class="prop-valor"><span class="prop-num">S/ 0.00</span></p>
+        <p class="prop-ctx">Crédito fiscal · solo facturas</p>
+      </div>
+    </div>
+    <div class="card-cayla prop-tabla">
+      <div class="prop-herr">
+        <span class="caja-cayla prop-campo prop-campo-ancho">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Número de documento o proveedor
+        </span>
+        <button type="button" class="pildora-cayla" aria-pressed="false">Vencidas</button>
+      </div>
+      <div class="prop-fila encabezado-tabla-cayla"><span>Emisión</span><span>Proveedor</span><span>N.° documento</span><span>Pago</span><span class="prop-der">Total</span></div>
+      <div class="prop-fila fila-cayla">
+        <span class="prop-tenue">02/10</span><span>Textiles Andina SAC</span><span class="prop-tenue">F001-000482</span>
+        <span><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-[''] whitespace-nowrap rounded-full bg-ambar/15 text-ambar">Pago parcial</span></span>
+        <span class="prop-der">S/ 5,133.60</span>
+      </div>
+      <div class="prop-fila fila-cayla">
+        <span class="prop-tenue">29/09</span><span>Confecciones del Sur EIRL</span><span class="prop-tenue">E001-118</span>
+        <span><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-[''] whitespace-nowrap rounded-full bg-verde/15 text-verde">Pagada</span></span>
+        <span class="prop-der">S/ 1,180.00</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 3. Inicio (G → pieza) ===================== -->
+<div class="prop-bloque">
+  <span class="prop-etq">El Inicio, que ven todas las integrantes. Hoy es la receta G: el nombre de la cifra tiene la misma clase que «Tu día», el título de la sección, y no se distinguen. Con la pieza, el título queda en tinta/65 y el nombre en taupe con negrita, y el número pasa de 24/30 px a 28. «Caja» dice un estado y no un número: aquí va como Chip (pregunta para Felipe). Si la lectura falla, se ve como en Estados.</span>
+  <div class="prop-pagina">
+    <div>
+      <p class="label-cayla prop-seccion">Tu día</p>
+      <div class="prop-rejilla prop-rejilla-3">
+        <div class="card-cayla prop-cifra">
+          <p class="label-cayla prop-nombre">Tus ventas</p>
+          <p class="prop-valor"><span class="prop-num">S/ 694.30</span></p>
+          <p class="prop-ctx">4 ventas</p>
+        </div>
+        <div class="card-cayla prop-cifra">
+          <p class="label-cayla prop-nombre">Tu ticket</p>
+          <p class="prop-valor"><span class="prop-num">S/ 173.58</span></p>
+          <p class="prop-ctx">4 ventas</p>
+        </div>
+        <div class="card-cayla prop-cifra">
+          <p class="label-cayla prop-nombre">Caja</p>
+          <div class="prop-chip-lugar"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-[''] whitespace-nowrap rounded-full bg-verde/15 text-verde">Abierta</span></div>
+          <p class="prop-ctx">Puedes vender</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label-cayla prop-seccion">Hoy en la sede (lo ve el líder)</p>
+      <div class="prop-rejilla prop-rejilla-3">
+        <div class="card-cayla prop-cifra">
+          <p class="label-cayla prop-nombre">Ventas</p>
+          <p class="prop-valor"><span class="prop-num">S/ 1,240.00</span></p>
+          <p class="prop-ctx prop-ctx-verde">▲ 12% vs. martes pasado</p>
+        </div>
+        <div class="card-cayla prop-cifra">
+          <p class="label-cayla prop-nombre">Valor medio</p>
+          <p class="prop-valor"><span class="prop-num">S/ 155.00</span></p>
+          <p class="prop-ctx">8 ventas</p>
+        </div>
+        <div class="card-cayla prop-cifra prop-vacia">
+          <p class="label-cayla prop-nombre">Meta del día</p>
+          <p class="prop-valor"><span class="prop-num"><span aria-hidden="true">—</span><span class="sr-only">Sin dato</span></span></p>
+          <p class="prop-ctx">Esta sede no tiene meta diaria configurada</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 4. Análisis (C → pieza) ===================== -->
+<div class="prop-bloque">
+  <span class="prop-etq">Inventario ▸ Análisis. Hoy es la C: la explicación es un title que solo aparece con el mouse encima. Con la pieza es el (!), que también se abre con el dedo. El cambio («2.ª mitad ↑ 18%») es la primera línea del contexto, en verde-profundo o ámbar-profundo, nunca en rojo, y la última línea queda pegada abajo. «Piden algo hoy» no está: no migra hasta que se decida qué cuenta.</span>
+  <div class="prop-pagina">
+    <div class="prop-rejilla prop-rejilla-3">
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre"><span class="prop-junto">Vendido<button type="button" class="prop-ayuda" aria-label="Qué es Vendido">!</button></span></p>
+        <p class="prop-valor"><span class="prop-num">S/ 559</span></p>
+        <p class="prop-ctx prop-ctx-verde">2.ª mitad ↑ 18%</p>
+        <span class="prop-pie">6 unidades en 30 días</span>
+      </div>
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre">Vendió de lo <span class="prop-junto">colgado<button type="button" class="prop-ayuda" aria-label="Qué es Vendió de lo colgado">!</button></span></p>
+        <p class="prop-valor"><span class="prop-num">50%</span></p>
+        <span class="prop-pie">6 de 12 u. que estuvieron en el piso</span>
+      </div>
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre">Quieto sin <span class="prop-junto">vender<button type="button" class="prop-ayuda" aria-label="Qué es Quieto sin vender">!</button></span></p>
+        <p class="prop-valor"><span class="prop-num">S/ 0</span></p>
+        <span class="prop-pie">0 unidades a costo, estancadas</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 5. Inicio a 375 px ===================== -->
+<div class="prop-bloque">
+  <span class="prop-etq">El Inicio a 375 px, como lo arma hoy page.tsx: la primera a todo lo ancho y las otras dos lado a lado. El relleno baja a 16. El número se queda en 28 donde cabe, y en media pantalla baja a 22 sin partirse.</span>
+  <div class="prop-celular">
+    <div class="prop-angosto">
+      <div class="card-cayla prop-cifra prop-ancha">
+        <p class="label-cayla prop-nombre">Tus ventas</p>
+        <p class="prop-valor"><span class="prop-num">S/ 694.30</span></p>
+        <p class="prop-ctx">4 ventas</p>
+      </div>
+      <div class="card-cayla prop-cifra">
+        <p class="label-cayla prop-nombre">Tu ticket</p>
+        <p class="prop-valor"><span class="prop-num">S/ 173.58</span></p>
+        <p class="prop-ctx">4 ventas</p>
+      </div>
+      <div class="card-cayla prop-cifra prop-fallo">
+        <p class="label-cayla prop-nombre">Caja</p>
+        <p class="prop-valor"><span class="prop-num"><span aria-hidden="true">—</span><span class="sr-only">No se pudo leer</span></span></p>
+        <p class="prop-ctx">No se pudo leer la caja. Recarga la página.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="nota-cayla"><b>Se quedan como están, porque un ADR las decidió:</b> las cifras de la cabecera (ResumenSede: «308 Guardadas en el almacén», «17 En camino hacia aquí»), el efectivo en el cajón y «Ventas hechas» de Caja, el vidrio de Facturación, los grupos de «Qué hacer» de Análisis (de ahí sale la marca de elegida) y las cuentas de Finanzas. En el mostrador (Vender, Caja, Cambios y Devoluciones) no cambia nada.</p>

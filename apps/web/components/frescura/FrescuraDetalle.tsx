@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
-import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import type { TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
+import type { AccionDecision, TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
 import type { BloqueDeDecision } from "@/lib/frescura-decisiones-pantalla";
 import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type AccesoFrescura, type DetalleVista, type ReglaVista } from "@/lib/frescura-pantalla";
 import type { FrescuraPrenda, Tramo, VaraCategoria } from "@/lib/frescura-reglas";
@@ -29,26 +31,52 @@ const ZONA: Record<Tramo | "nada", string> = {
 
 const TRASLADO: Record<"inicio" | "medio" | "fin", string> = { inicio: "translate-x-0", medio: "-translate-x-1/2", fin: "-translate-x-full" };
 
+/**
+ * ¿Cabe el nombre dentro de su zona? Con el ancho REAL de la regla (en el celular la hoja va a lo ancho: ~330 px; en escritorio, ~520): cada
+ * letra de 12 px ocupa ~7 px más el relleno. Lo que no cabe no se corta («Vige…», la ciega no supo leerlo, Formidable 2026-10-10 (c)): va
+ * debajo de la regla, con su muestra. Mientras no se midió, se supone el escritorio.
+ */
+const cabeElNombre = (nombre: string, anchoPct: number, reglaPx: number): boolean => (anchoPct / 100) * reglaPx >= nombre.length * 7 + 12;
+
+/** El ancho de un elemento, al día con su tamaño (null hasta medirlo). */
+function useAncho<T extends HTMLElement>(): [RefObject<T | null>, number | null] {
+  const ref = useRef<T | null>(null);
+  const [ancho, setAncho] = useState<number | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => setAncho(el.getBoundingClientRect().width || null);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, ancho];
+}
+
 function Regla({ regla }: { regla: ReglaVista }) {
   const alinearElla = regla.ella.pos < 8 ? "inicio" : regla.ella.pos > 92 ? "fin" : "medio";
+  const [refRegla, reglaPx] = useAncho<HTMLDivElement>();
+  const px = reglaPx ?? 520;
+  const sinLugar = regla.zonas.filter((z) => !cabeElNombre(z.nombre, z.ancho, px));
   return (
     <div className="relative mt-3.5 pt-7" role="img" aria-label={`Dónde cae entre las demás de su categoría: ${regla.ella.texto}`}>
       <span
-        className={`absolute top-0 flex flex-col text-[11.5px] font-semibold ${TRASLADO[alinearElla]} ${alinearElla === "medio" ? "items-center" : alinearElla === "fin" ? "items-end" : "items-start"}`}
+        className={`absolute top-0 flex flex-col text-[12px] font-semibold ${TRASLADO[alinearElla]} ${alinearElla === "medio" ? "items-center" : alinearElla === "fin" ? "items-end" : "items-start"}`}
         style={{ left: `${regla.ella.pos}%` } as CSSProperties}
       >
         <span className="whitespace-nowrap">{regla.ella.texto}</span>
         <span aria-hidden className="mt-0.5 h-6 w-0.5 rounded-sm bg-tinta" />
       </span>
-      <div className="flex h-6 overflow-hidden rounded-md shadow-[inset_0_0_0_1px_var(--color-taupe)]">
+      <div ref={refRegla} className="flex h-6 overflow-hidden rounded-md shadow-[inset_0_0_0_1px_var(--color-taupe)]">
         {regla.zonas.map((z, i) => (
           <span
             key={`${z.clave}-${i}`}
             title={z.nombre}
-            className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[11px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
+            className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[12px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
             style={{ width: `${z.ancho}%` }}
           >
-            <span className="truncate">{z.nombre}</span>
+            {cabeElNombre(z.nombre, z.ancho, px) && <span className="truncate">{z.nombre}</span>}
           </span>
         ))}
       </div>
@@ -56,7 +84,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
         {regla.marcas.map((m, i) => (
           <span
             key={i}
-            className={`absolute top-1.5 whitespace-nowrap text-center text-[11px] leading-tight text-taupe ${TRASLADO[m.alinear]}`}
+            className={`absolute top-1.5 whitespace-nowrap text-center text-[12px] leading-tight text-taupe ${TRASLADO[m.alinear]}`}
             style={{ left: `${m.pos}%` }}
           >
             {m.arriba}
@@ -69,6 +97,16 @@ function Regla({ regla }: { regla: ReglaVista }) {
           </span>
         ))}
       </div>
+      {sinLugar.length > 0 && (
+        <ul aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-taupe">
+          {sinLugar.map((z, i) => (
+            <li key={`${z.clave}-${i}`} className="flex items-center gap-1.5">
+              <MuestraTramo clase={ZONA[z.clave]} />
+              {z.nombre}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -113,7 +151,7 @@ function BarraDias({ dia, de }: { dia: number; de: number }) {
 function Bloque({ titulo, children, primero = false }: { titulo?: string; children: ReactNode; primero?: boolean }) {
   return (
     <div className={primero ? "pb-4" : "border-t border-sand py-4"}>
-      {titulo && <span className="label-cayla mb-2 block text-[11px] text-taupe">{titulo}</span>}
+      {titulo && <span className="label-cayla mb-2 block text-[12px] text-taupe">{titulo}</span>}
       {children}
     </div>
   );
@@ -125,6 +163,8 @@ export function FrescuraDetalle({
   volverA,
   onClose,
   decision,
+  modoInicial = "detalle",
+  opcionInicial = null,
 }: {
   detalle: DetalleVista;
   sede: string;
@@ -132,25 +172,31 @@ export function FrescuraDetalle({
   volverA?: RefObject<HTMLElement | null>;
   onClose: () => void;
   decision: ContextoDecision;
+  /** Con qué se abre: el detalle, o directo «Ya decidí» (el botón «Decidir» de la fila, act. 2026-10-07). */
+  modoInicial?: "detalle" | "decidir";
+  /** La opción ya marcada al abrir en «decidir» (el botón de la fila que no pudo anotar a un toque). */
+  opcionInicial?: AccionDecision | null;
 }) {
   // La MISMA hoja cambia de contenido (ADR-0136: no se abre un modal encima): el detalle, «Ya decidí» o «Quitar lo anotado».
   // El modo pedido vale SOLO para la última línea que se vio al pedirlo: si la lectura se refresca y esa línea cambió (otra
   // persona anotó, o se anotó aquí), se vuelve al detalle sin un efecto que lo corrija después de pintar.
-  const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: "detalle", para: decision.anteriorId });
-  const modo = pedido.para === decision.anteriorId ? pedido.modo : "detalle";
-  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
+  const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: modoInicial, para: decision.anteriorId });
+  const router = useRouter();
   const puedeDecidir = decision.lecturaOk && decision.prenda.pisoHoy > 0;
+  // «Ya decidí» solo si se puede (la libreta leída y algo en el piso), venga de su botón o pedido por la fila al abrir.
+  const modo = pedido.para !== decision.anteriorId || (pedido.modo === "decidir" && !puedeDecidir) ? "detalle" : pedido.modo;
+  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
   const { bloque } = decision;
   const temporada =
     detalle.temporada?.tipo === "pasada" ? (
       <>
-        <Chip tono="ambar" className="!px-2 !text-[11.5px] !leading-[18px]">
+        <Chip tono="ambar" className="!px-2 !text-[12.5px] !leading-[18px]">
           Temporada pasada
         </Chip>{" "}
         <span className="text-[12.5px]">{detalle.temporada.texto}</span>
       </>
     ) : detalle.temporada?.tipo === "sin" ? (
-      <Chip tono="neutro" className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
         ¿De qué temporada es? Complétala
       </Chip>
     ) : detalle.temporada?.tipo === "tiene" ? (
@@ -158,7 +204,7 @@ export function FrescuraDetalle({
     ) : null;
 
   return (
-    <Modal
+    <Modal conCerrar
       titulo={modo === "decidir" ? `¿Qué hiciste con ${detalle.titulo}?` : detalle.titulo}
       subtitulo={
         <>
@@ -182,6 +228,7 @@ export function FrescuraDetalle({
           recientes={decision.recientes}
           acceso={decision.acceso}
           anteriorId={decision.anteriorId}
+          opcionInicial={opcionInicial}
           onVolver={() => setModo("detalle")}
           onListo={cerrar}
         />
@@ -230,7 +277,7 @@ export function FrescuraDetalle({
                 {bloque.resultado && (
                   <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-[13.5px] leading-relaxed">
                     {bloque.resultado.chip && (
-                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-[11.5px] !leading-[18px]">
+                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-[12px] !leading-[18px]">
                         {bloque.resultado.chip.texto}
                       </Chip>
                     )}
@@ -252,9 +299,10 @@ export function FrescuraDetalle({
                     Anotar otra decisión
                   </button>
                 )}
+                {/* «Anotar lo que hice» en los dos casos (Formidable 2026-10-09: «Ya decidí» se leía como una afirmación, no como un botón). */}
                 {puedeDecidir && bloque.estado !== "vigente" && (
                   <button type="button" className={decision.prenda.porDecidir ? "btn-cayla btn-primario" : "btn-cayla btn-sutil"} onClick={() => setModo("decidir")}>
-                    {decision.prenda.porDecidir ? "Ya decidí" : "Anotar lo que hice"}
+                    Anotar lo que hice
                   </button>
                 )}
                 {bloque.estado === "vigente" && decision.vigenteId && decision.lecturaOk && (
@@ -262,12 +310,19 @@ export function FrescuraDetalle({
                     Quitar lo anotado
                   </button>
                 )}
-                {!decision.lecturaOk && <span className="text-[12.5px] text-taupe">No se pudo leer lo ya decidido: por ahora no se puede anotar. Vuelve a intentar en un momento.</span>}
+                {!decision.lecturaOk && (
+                  <span className="text-[12.5px] text-taupe">
+                    No se pudo leer lo ya decidido: por ahora no se puede anotar.{" "}
+                    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => router.refresh()}>
+                      Volver a intentar
+                    </button>
+                  </span>
+                )}
               </div>
             )}
             {bloque.historial.length > 0 && (
               <div className="mt-4 border-t border-sand pt-3">
-                <span className="label-cayla mb-2 block text-[11px] text-taupe">Lo que se decidió antes</span>
+                <span className="label-cayla mb-2 block text-[12px] text-taupe">Lo que se decidió antes</span>
                 <ul className="space-y-1.5 text-[13px] leading-snug">
                   {bloque.historial.map((h) => (
                     <li key={h.id}>
@@ -345,7 +400,7 @@ export function FrescuraDetalle({
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Ya decidí».</p>
+                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Anotar lo que hice».</p>
               </>
             ) : (
               <p className="text-sm">{detalle.sinAcciones}</p>
@@ -363,11 +418,6 @@ export function FrescuraDetalle({
             </dl>
           </Bloque>
 
-          <div className="flex justify-end border-t border-sand pt-4">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
-              Cerrar
-            </button>
-          </div>
         </>
       )}
     </Modal>

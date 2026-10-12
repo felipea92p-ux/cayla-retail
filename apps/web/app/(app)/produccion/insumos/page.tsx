@@ -6,6 +6,8 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { InsumosPanel } from "@/components/InsumosPanel";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
+import { Factory } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos, con su saldo por lote. Mismo acceso que Órdenes (`puedeVerProduccion`):
 // solo parado en el Taller, líder incluido. Quien no es líder ve cantidades, no dinero: los costos se recortan en
@@ -22,9 +24,11 @@ export default async function InsumosPage() {
     return (
       <div className="space-y-6">
         <h1 className="font-display text-2xl text-tinta">Insumos</h1>
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay una ubicación de tipo Taller activa. Insumos necesita una para saber dónde están la tela y los avíos.
-        </p>
+        <div className="card-cayla">
+          <Vacio icono={<Factory />} titulo="No hay un Taller activo">
+            Insumos necesita una ubicación de tipo Taller para saber dónde están la tela y los avíos. Pídele al líder que active el Taller.
+          </Vacio>
+        </div>
       </div>
     );
   }

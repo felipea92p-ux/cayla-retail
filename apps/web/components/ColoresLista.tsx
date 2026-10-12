@@ -31,6 +31,7 @@ import {
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
+import { Aviso } from "@/components/ui/Aviso";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -96,8 +97,7 @@ function ordenar(lista: Color[]) {
 // (2026-09-18): con 34+ colores, un número global deja un color nuevo
 // "colgando" al final en vez de junto a sus parecidos, y la última fila
 // queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
-// propia fila — la de "Estampado" con 3 colores se ve completa, no como el
-// resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
+// propia fila, no el resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
 // viene dado por `ordenar()` (escala: gama y de claro a oscuro); cada gama es su propia grilla, así cada fila es una escala
 // pura y la claridad nunca «sube» a mitad de una fila (ADR-0314).
 function gruposPorFamilia(lista: Color[]) {
@@ -113,7 +113,7 @@ function gruposPorFamilia(lista: Color[]) {
 // color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
 // jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
 function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "#e8e0d0", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "var(--color-sand)", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
@@ -174,10 +174,11 @@ function AvisoParecido({
   const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
   const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
   return (
-    <p role="status" className="rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
+    <Aviso tono="atencion" chico>
       Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
       dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
-    </p>
+    </Aviso>
+
   );
 }
 
@@ -694,7 +695,7 @@ function ColorEditarModal({
 }) {
   const [nombre, setNombre] = useState(color.nombre);
   const [familiaColor, setFamiliaColor] = useState<FamiliaColor>((color.familiaColor as FamiliaColor) ?? "neutro");
-  const [hex, setHex] = useState(color.hex ?? "#c9b79c");
+  const [hex, setHex] = useState(color.hex ?? "#c9b79c"); // tema-fijo: valor inicial del selector de color (un input type=color exige un hex): es un dato
   const [hexAbierto, setHexAbierto] = useState(false);
   const [notas, setNotas] = useState(color.notas ?? "");
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");

@@ -1,0 +1,283 @@
+/* ==================================================================
+   Etiquetas de precio · la PANTALLA (no el papel: ese es `.etiqueta-precio`, en globals.css). Felipe, 2026-10-09: un tacho al
+   lado de la cantidad que saca la fila entera, menos cosas a la vista y movimiento en todo lo que responde a un toque.
+   Componente: components/ImprimirEtiquetasPrecio.tsx.
+
+   Movimiento (ADR-0136): todo con `--ease-cayla`, entre 200 y 500 ms, sin rebote y sin bucle; cada animación responde a algo
+   —la pantalla que llega, un número que cambia, una fila que se va o vuelve—. Con «reducir movimiento», nada se mueve.
+   Solo tokens (ADR-0336): el rojo, la arena y la tinta se invierten solos en oscuro.
+   ================================================================== */
+@layer components {
+  /* --- Llegar: las filas y las etiquetas de la vista previa entran en cascada, una vez (`--i` lo pone la pantalla solo al
+     montar; una fila que vuelve con «Deshacer» entra sola, sin esperar). --- */
+  .etq-entra {
+    animation: etq-entrar 420ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  @keyframes etq-entrar {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  /* --- Irse: la fila se pliega hacia arriba (la rejilla de 1fr a 0fr: no hace falta saber su alto) mientras se corre a la
+     derecha y se apaga, con un tinte rojo apenas visible. 320 ms (SALIDA_MS en el componente); después se quita de verdad. --- */
+  .etq-fila {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 320ms var(--ease-cayla);
+  }
+  .etq-fila-dentro {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .etq-fila[data-saliendo] {
+    grid-template-rows: 0fr;
+    pointer-events: none;
+    animation: etq-salir 320ms var(--ease-cayla) forwards;
+  }
+  @keyframes etq-salir {
+    0% {
+      opacity: 1;
+      transform: none;
+      background-color: transparent;
+    }
+    35% {
+      background-color: color-mix(in oklab, var(--color-rojo) 9%, transparent);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(18px);
+      background-color: color-mix(in oklab, var(--color-rojo) 4%, transparent);
+    }
+  }
+
+  /* Una fila en 0 sigue en la lista pero no se imprime: se apaga todo menos el control que la puede volver a subir. */
+  .etq-fila[data-cero] [role="row"] > :not(:last-child) {
+    opacity: 0.42;
+  }
+  .etq-fila [role="row"] > * {
+    transition: opacity 240ms var(--ease-cayla);
+  }
+
+  /* La franja del color se ensancha un poco bajo el mouse: dice «esta es la fila» sin pintar nada más. */
+  .etq-franja {
+    transition: width 220ms var(--ease-cayla);
+  }
+  .etq-fila:hover .etq-franja {
+    width: 8px;
+  }
+
+  /* El nombre del modelo sobre sus filas (con dos modelos o más). */
+  .etq-cabeza {
+    border-top: 1px solid var(--color-sand);
+  }
+  .etq-grupo:first-of-type .etq-cabeza {
+    border-top: 0;
+  }
+
+  /* La talla: una caja chica, como en el papel. */
+  .etq-talla {
+    display: inline-grid;
+    place-items: center;
+    min-width: 2rem;
+    height: 1.75rem;
+    padding-inline: 0.5rem;
+    border: 1px solid var(--color-sand);
+    border-radius: 0.375rem;
+    background: var(--color-papel);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+
+  /* --- El paso − n +: el mismo del ticket de Vender (LineaDelTicket), a 36 px de alto. --- */
+  .etq-paso {
+    display: inline-flex;
+    align-items: center;
+    height: 2.25rem;
+    border: 1px solid var(--color-sand);
+    border-radius: 0.5rem;
+    background: var(--color-crema);
+    transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+  }
+  .etq-paso:focus-within {
+    border-color: var(--color-rojo);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-rojo) 14%, transparent);
+  }
+  .etq-paso > button {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 100%;
+    border-radius: 0.45rem;
+    color: var(--color-tinta);
+    transition: background-color 150ms, transform 150ms var(--ease-cayla), color 150ms;
+  }
+  .etq-paso > button:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+  }
+  .etq-paso > button:active:not(:disabled) {
+    transform: scale(0.86);
+  }
+  .etq-paso > button:disabled {
+    color: color-mix(in oklab, var(--color-tinta) 28%, transparent);
+  }
+  .etq-paso > button > svg {
+    width: 14px;
+    height: 14px;
+  }
+  .etq-paso > input {
+    width: 2.75rem;
+    background: transparent;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-tinta);
+    outline: none;
+    appearance: textfield;
+  }
+  .etq-paso > input::-webkit-inner-spin-button,
+  .etq-paso > input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
+  /* --- El tacho: rojo desde el principio (accion.eliminar, ADR-0358). Bajo el mouse la tapa se ladea; al presionar se encoge. --- */
+  .etq-tacho {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid color-mix(in oklab, var(--color-rojo-profundo) 25%, transparent);
+    border-radius: 0.5rem;
+    background: var(--color-papel);
+    color: var(--color-rojo-profundo);
+    transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), transform 150ms var(--ease-cayla);
+  }
+  .etq-tacho > svg {
+    width: 16px;
+    height: 16px;
+    transform-origin: 70% 30%;
+    transition: transform 260ms var(--ease-cayla);
+  }
+  .etq-tacho:hover {
+    border-color: var(--color-rojo-profundo);
+    background: color-mix(in oklab, var(--color-rojo-profundo) 8%, var(--color-papel));
+  }
+  .etq-tacho:hover > svg {
+    transform: rotate(-14deg) translateY(-1px);
+  }
+  .etq-tacho:active {
+    transform: scale(0.9);
+  }
+  .etq-tacho-chico {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-color: transparent;
+    background: transparent;
+  }
+  .etq-tacho-chico > svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* «de 15»: aparece cuando el número ya no es el de la tienda, en un lugar que estaba reservado (ADR-0185). */
+  .etq-volver-a {
+    min-width: 2.75rem;
+    text-align: right;
+    opacity: 0;
+    transform: translateX(6px);
+    pointer-events: none;
+    transition: opacity 220ms var(--ease-cayla), transform 220ms var(--ease-cayla), color 150ms;
+  }
+  .etq-volver-a[data-visible] {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+
+  /* Un número que cambia entra desde abajo si subió y desde arriba si bajó. */
+  .etq-salta {
+    display: inline-block;
+  }
+  .etq-salta[data-dir="sube"] {
+    animation: etq-desde-abajo 240ms var(--ease-cayla);
+  }
+  .etq-salta[data-dir="baja"] {
+    animation: etq-desde-arriba 240ms var(--ease-cayla);
+  }
+  @keyframes etq-desde-abajo {
+    from {
+      opacity: 0;
+      transform: translateY(55%);
+    }
+  }
+  @keyframes etq-desde-arriba {
+    from {
+      opacity: 0;
+      transform: translateY(-55%);
+    }
+  }
+
+  /* --- La vista previa: cada etiqueta llega como un papel que se asienta y se va encogiéndose con su fila. --- */
+  .etq-tarjeta {
+    animation: etq-tarjeta-entra 400ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  .etq-tarjeta > div {
+    transition: transform 260ms var(--ease-cayla), box-shadow 260ms var(--ease-cayla);
+  }
+  .etq-tarjeta:hover > div {
+    transform: translateY(-3px) rotate(-0.6deg);
+    box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  }
+  .etq-tarjeta[data-saliendo] {
+    animation: etq-tarjeta-sale 300ms var(--ease-cayla) forwards;
+  }
+  @keyframes etq-tarjeta-entra {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+  }
+  @keyframes etq-tarjeta-sale {
+    to {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+  }
+
+  /* «Quitaste N · Volver a ponerlas» al pie: llega deslizándose, sin empujar. */
+  .etq-reponer {
+    animation: etq-entrar 300ms var(--ease-cayla) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .etq-entra,
+    .etq-tarjeta,
+    .etq-tarjeta[data-saliendo],
+    .etq-fila[data-saliendo],
+    .etq-salta[data-dir],
+    .etq-reponer {
+      animation: none;
+    }
+    .etq-fila,
+    .etq-franja,
+    .etq-tacho,
+    .etq-tacho > svg,
+    .etq-volver-a,
+    .etq-tarjeta > div,
+    .etq-paso > button {
+      transition: none;
+    }
+    .etq-tacho:hover > svg,
+    .etq-tarjeta:hover > div {
+      transform: none;
+    }
+  }
+}

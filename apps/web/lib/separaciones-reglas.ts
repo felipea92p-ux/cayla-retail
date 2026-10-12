@@ -6,6 +6,7 @@
 import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
+import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -193,8 +194,10 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   const e: Partial<Record<CampoApartado, string>> = {};
   if (!f.nombres.trim()) e.nombres = "Escribe los nombres.";
   if (!f.apellidos.trim()) e.apellidos = "Escribe los apellidos.";
-  // Un celular peruano tiene 9 dígitos y empieza en 9: un fijo o un número a medias no recibe el aviso ni el Yape.
-  if (!esCelularPeru(f.celular)) e.celular = "9 dígitos y empieza en 9: por aquí se le avisa y se le devuelve.";
+  // El celular es opcional (ADR-0367, Felipe 2026-10-09): hay clientes que no lo dan. El que se escribe sí tiene que ser
+  // un celular peruano (9 dígitos que empiezan en 9): un fijo o un número a medias no recibe el aviso ni el Yape.
+  const celular = soloDigitos(f.celular);
+  if (celular && !esCelularPeru(celular)) e.celular = "9 dígitos y empieza en 9 (o déjalo vacío).";
   const dni = soloDigitos(f.dni);
   if (dni && dni.length !== 8) e.dni = "El DNI tiene 8 dígitos.";
   if (!dni && f.comprobante === "boleta" && total > TOPE_BOLETA_SIN_DNI) e.dni = `Pasa de S/${TOPE_BOLETA_SIN_DNI}: la boleta lleva DNI.`;
@@ -212,7 +215,9 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
     const num = soloDigitos(f.devolucionNumero);
+    // Vacío = su celular. Sin celular no hay a dónde devolverle: el número va aparte (la base lo exige igual).
     if (num && !esCelularPeru(num)) e.devolucion = "El número tiene 9 dígitos y empieza en 9 (vacío = su celular).";
+    else if (!num && !celular) e.devolucion = `Sin celular, escribe su número de ${f.devolucionMedio === "plin" ? "Plin" : "Yape"} para devolverle.`;
   }
   if (!f.acepta) e.acepta = "Falta que el cliente acepte las condiciones.";
   return e;
@@ -337,7 +342,8 @@ export function colaPorAvisar(
   hoy: string,
 ): { porAvisar: Apartado[]; avisadasHoy: Apartado[] } {
   const toca = apartados
-    .filter((a) => a.estado === "abierta" && ["porvencer", "vencida"].includes(estadoVisible(a, hoy).clave))
+    // Sin celular (ADR-0367) no hay a quién escribirle: no entra a la cola de WhatsApp.
+    .filter((a) => a.estado === "abierta" && a.celular !== "" && ["porvencer", "vencida"].includes(estadoVisible(a, hoy).clave))
     .sort((x, y) => x.venceEl.localeCompare(y.venceEl) || x.codigo.localeCompare(y.codigo));
   return {
     porAvisar: toca.filter((a) => !avisadaHoy(avisos[a.id], hoy)),
@@ -460,8 +466,14 @@ export type PedidoApartado = {
   guardadaHasta: string | null;
   trasladoNumero: number | null;
   canceladoMotivo: string | null;
+  /** ADR-0328 act. 17: dónde quedó apartada la prenda en la sede que la envía (null si el pedido ya no espera). Decide si
+   *  esa sede ve «Enviar» o primero «Subir al almacén» (`envioConCliente`, la misma regla que Traslados). */
+  reservaEn: ReservaEnOrigen | null;
 };
 
+const RESERVAS_ORIGEN: readonly ReservaEnOrigen[] = ["almacen", "piso", "sin_lugar", "sin_reserva"];
+
+/** Una fila de `fn_pedidos_con_cliente` (desde ADR-0328 act. 17; antes `fn_pedidos_para_apartar`, que decía «clienta_»). */
 export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
   return {
     id: String(f.id),
@@ -469,19 +481,31 @@ export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
     otraSede: String(f.otra_sede ?? ""),
     varianteId: String(f.variante_id),
     cantidad: Number(f.cantidad ?? 1),
-    nombres: String(f.clienta_nombres ?? ""),
-    apellidos: String(f.clienta_apellidos ?? ""),
-    celular: String(f.clienta_celular ?? ""),
+    nombres: String(f.cliente_nombres ?? f.clienta_nombres ?? ""),
+    apellidos: String(f.cliente_apellidos ?? f.clienta_apellidos ?? ""),
+    celular: String(f.cliente_celular ?? f.clienta_celular ?? ""),
     nota: (f.nota as string | null) ?? null,
     estado: f.estado as EstadoPedido,
     creadoEn: String(f.created_at),
     guardadaHasta: (f.guardada_hasta as string | null) ?? null,
     trasladoNumero: f.traslado_numero == null ? null : Number(f.traslado_numero),
     canceladoMotivo: (f.cancelado_motivo as string | null) ?? null,
+    reservaEn: RESERVAS_ORIGEN.includes(f.reserva_en as ReservaEnOrigen) ? (f.reserva_en as ReservaEnOrigen) : null,
   };
 }
 
 /** Lo que dice el chip de un pedido, según de qué lado se mira. */
+/**
+ * Para quién es un pedido a otra tienda, dicho desde el lado que mira. La tienda que pidió conoce al cliente («Para Ana
+ * Lozano»); la que tiene la prenda no (decisión del 2026-10-04, privacidad: la base ni le manda el nombre), así que para ella
+ * es «Pedido de Tienda Trujillo para un cliente».
+ */
+export function paraQuienPedido(p: Pick<PedidoApartado, "direccion" | "otraSede" | "nombres" | "apellidos">): string {
+  const nombre = `${p.nombres} ${p.apellidos}`.trim();
+  if (p.direccion === "pedi") return nombre ? `Para ${nombre}` : "Para un cliente";
+  return `Pedido de ${p.otraSede} para un cliente`;
+}
+
 export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion" | "otraSede">): string {
   if (p.estado === "pedido") return p.direccion === "pedi" ? `Pedido a ${p.otraSede}` : `${p.otraSede} lo pide`;
   if (p.estado === "en_camino") return p.direccion === "pedi" ? `En camino desde ${p.otraSede}` : `Enviado a ${p.otraSede}`;

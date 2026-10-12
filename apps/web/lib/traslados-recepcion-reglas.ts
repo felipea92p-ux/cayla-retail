@@ -9,10 +9,9 @@
 //  · Quien envió (o un líder) puede anular mientras nadie haya empezado a contar (D-132).
 //
 // Quién puede qué y cuándo entra el stock lo deciden las funciones de la base; esto solo decide qué se dibuja y
-// con qué palabras. Las fechas humanas («hoy 12:12») se reusan de `traslados-reglas.ts`.
+// con qué palabras.
 
 import { MAX_VARIANTES_EN_URL, lineasEnUrl } from "./existencias-prendas";
-import { debioLlegar, diaHora, enTexto, haceTexto } from "./traslados-reglas";
 
 // ---------------------------------------------------------------------------------------------------------------
 // 1. Las prendas del traslado y lo contado
@@ -159,25 +158,6 @@ export function textoPorContar(n: number): string {
   return n === 1 ? "Falta 1 prenda por contar" : `Faltan ${n} prendas por contar`;
 }
 
-/** La insignia de cada prenda en la comparación (después de «Terminé de contar» o con el traslado ya recibido). */
-export function insigniaComparacion(l: LineaLeida, { recontable }: { recontable: boolean }): { texto: string; tono: "verde" | "rojo" | "ambar" | "neutro" | "pizarra" } {
-  switch (l.comparacion) {
-    case "ya_en_stock":
-      return { texto: "Ya en stock", tono: "verde" };
-    case "coincide":
-      return { texto: "Coincide", tono: "verde" };
-    case "sin_contar":
-      return { texto: "Sin contar", tono: "neutro" };
-    case "faltan":
-    case "sobran": {
-      // Mientras se puede volver a contar, la insignia dice qué hacer; después, solo qué pasó.
-      if (recontable) return { texto: "Vuelve a contarla", tono: l.comparacion === "faltan" ? "rojo" : "ambar" };
-      const n = Math.abs(l.diferencia ?? 0);
-      return l.comparacion === "faltan" ? { texto: n === 1 ? "Falta 1" : `Faltan ${n}`, tono: "rojo" } : { texto: n === 1 ? "Sobra 1" : `Sobran ${n}`, tono: "ambar" };
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------------------------------------------
 // 2. El guardado línea por línea
 // ---------------------------------------------------------------------------------------------------------------
@@ -289,28 +269,6 @@ export function lugarTexto(destino: DestinoRecepcion, sede: string): string {
   if (destino === "piso_venta") return `al piso de venta de ${sede}`;
   if (destino === "almacen_tienda") return `al almacén de ${sede}`;
   return `al stock de ${sede}`;
-}
-
-/** Lo que se lee en el modal antes de confirmar. */
-export function resumenAntesDeConfirmar(
-  lectura: Pick<LecturaConteo, "coinciden" | "unidadesQueCoinciden" | "conDiferencia" | "lineas">,
-  { destino, sede }: { destino: DestinoRecepcion; sede: string },
-): { entran: string; esperan: string | null; detalleEsperan: string[] } {
-  const n = lectura.unidadesQueCoinciden;
-  const entran =
-    n === 0
-      ? "Ninguna prenda coincide con lo enviado: nada entra al stock todavía."
-      : `${n === 1 ? "Entra" : "Entran"} ${prendas(n)} que ${n === 1 ? "coincide" : "coinciden"} ${lugarTexto(destino, sede)}.`;
-  const m = lectura.conDiferencia.length;
-  if (m === 0) return { entran, esperan: null, detalleEsperan: [] };
-  const resto = n === 0 ? "" : destino === "piso_venta" ? "; las demás ya se pueden vender" : "; las demás ya entran al stock";
-  const esperan = `${m === 1 ? "1 prenda con diferencia espera" : `${m} prendas con diferencia esperan`} a un líder${resto}.`;
-  const detalleEsperan = lectura.conDiferencia.map((l) => {
-    const leida = lectura.lineas.get(l.varianteId);
-    const contado = leida?.valor ?? 0;
-    return l.cantidadEnviada === null ? `${nombrePrenda(l)}: no venía en el envío, contaste ${contado}` : `${nombrePrenda(l)}: enviaron ${l.cantidadEnviada}, contaste ${contado}`;
-  });
-  return { entran, esperan, detalleEsperan };
 }
 
 /** El aviso de éxito después de confirmar: lo que pasó de verdad (`unidades_ingresadas`) y dónde quedó. */
@@ -428,104 +386,6 @@ export function consecuenciaAnular(unidades: number, origenNombre: string, desti
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 7. El recorrido del detalle: salió → en camino → recibido → cerrado (o salió → anulado)
-// ---------------------------------------------------------------------------------------------------------------
-
-export type EstadoPaso = "hecho" | "actual" | "urgente" | "alerta" | "pendiente" | "anulado";
-
-export type PasoRecorrido = {
-  clave: "salio" | "camino" | "recibido" | "cerrado" | "anulado";
-  titulo: string;
-  lineas: string[];
-  estado: EstadoPaso;
-};
-
-export type TrasladoParaRecorrido = {
-  estado: string;
-  ubicacionOrigenNombre: string;
-  ubicacionDestinoNombre: string;
-  fechaEstimadaLlegada: string | null;
-  creadoEn: string;
-  /** Desde ADR-0239 lo marca SOLO «Confirmar recepción» (contar una casilla ya no lo toca). */
-  confirmadoEn: string | null;
-  cerradoEn: string | null;
-  anuladoEn: string | null;
-  creadoPorNombre: string;
-  confirmadoPorNombre: string | null;
-  cerradoPorNombre: string | null;
-  anuladoPorNombre: string | null;
-};
-
-export function recorridoRecepcion(
-  t: TrasladoParaRecorrido,
-  ctx: { esDestino: boolean; meTocaCerrar: boolean; contadas: number; enviadas: number; huboDiferencia: boolean; ahoraIso: string },
-): PasoRecorrido[] {
-  const { ahoraIso } = ctx;
-  const eta = t.fechaEstimadaLlegada;
-  const enTransito = t.estado === "en_transito";
-  // «completada» es el modelo anterior (antes del 16-sep): el traslado entraba al instante, sin tramo en camino.
-  const instantaneo = t.estado === "completada";
-  const conDiferencia = t.estado === "recibido_con_diferencia" || ctx.huboDiferencia;
-
-  const salio: PasoRecorrido = {
-    clave: "salio",
-    titulo: `Salió de ${t.ubicacionOrigenNombre}`,
-    lineas: [diaHora(t.creadoEn, ahoraIso), `Envió ${t.creadoPorNombre}`],
-    estado: "hecho",
-  };
-
-  // Anulado es un final: después no hay «en camino» ni «recibido» que mostrar.
-  if (t.estado === "anulada") {
-    const lineas = [t.anuladoEn ? diaHora(t.anuladoEn, ahoraIso) : "—"];
-    if (t.anuladoPorNombre) lineas.push(`Anuló ${t.anuladoPorNombre}`);
-    lineas.push(`Las prendas volvieron a ${t.ubicacionOrigenNombre}`);
-    return [salio, { clave: "anulado", titulo: "Envío anulado", lineas, estado: "anulado" }];
-  }
-
-  let camino: PasoRecorrido;
-  if (enTransito) {
-    const atrasado = debioLlegar(eta, ahoraIso);
-    // Rojo solo para quien tiene la caja por recibir; para quien la mandó, es un dato.
-    const estado: EstadoPaso = atrasado && ctx.esDestino ? "urgente" : "actual";
-    camino = !eta
-      ? { clave: "camino", titulo: "En camino", lineas: ["Sin hora estimada"], estado }
-      : atrasado
-        ? { clave: "camino", titulo: "En camino", lineas: [`Se esperaba ${diaHora(eta, ahoraIso)}`, haceTexto(eta, ahoraIso)], estado }
-        : { clave: "camino", titulo: "En camino", lineas: [`Llega ${diaHora(eta, ahoraIso)}`, enTexto(eta, ahoraIso)], estado };
-  } else {
-    camino = { clave: "camino", titulo: "En camino", lineas: [instantaneo ? "Traslado al instante (modelo anterior)" : eta ? `Estimado ${diaHora(eta, ahoraIso)}` : "Sin hora estimada"], estado: "hecho" };
-  }
-
-  const tituloRecibido = `Recibido en ${t.ubicacionDestinoNombre}`;
-  let recibido: PasoRecorrido;
-  if (enTransito) {
-    recibido =
-      ctx.contadas > 0
-        ? { clave: "recibido", titulo: tituloRecibido, lineas: [`Contando: ${ctx.contadas} de ${prendas(ctx.enviadas)}`], estado: "actual" }
-        : { clave: "recibido", titulo: tituloRecibido, lineas: [ctx.esDestino ? "Cuéntalo apenas llegue" : `Lo cuenta ${t.ubicacionDestinoNombre}`], estado: "pendiente" };
-  } else {
-    const cuando = t.confirmadoEn ?? t.cerradoEn ?? t.creadoEn;
-    const lineas = [diaHora(cuando, ahoraIso)];
-    if (t.confirmadoPorNombre) lineas.push(`Confirmó ${t.confirmadoPorNombre}`);
-    if (conDiferencia) lineas.push("Con diferencia");
-    recibido = { clave: "recibido", titulo: tituloRecibido, lineas, estado: conDiferencia ? "alerta" : "hecho" };
-  }
-
-  let cerrado: PasoRecorrido;
-  if (t.estado === "recibido_con_diferencia") {
-    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas: ["Lo que coincidió ya está en stock", ctx.meTocaCerrar ? "Te toca cerrar la diferencia" : "La diferencia espera a un líder"], estado: "actual" };
-  } else if (enTransito) {
-    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas: ["Se cierra solo si todo coincide"], estado: "pendiente" };
-  } else {
-    const lineas = [diaHora(t.cerradoEn ?? t.confirmadoEn ?? t.creadoEn, ahoraIso)];
-    lineas.push(t.cerradoPorNombre ? `Cerró ${t.cerradoPorNombre}` : "Stock actualizado");
-    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas, estado: "hecho" };
-  }
-
-  return [salio, camino, recibido, cerrado];
-}
-
-// ---------------------------------------------------------------------------------------------------------------
 // 7. Lo siguiente: después de recibir (ADR-0242 D-6.1, 2026-10-03)
 // ---------------------------------------------------------------------------------------------------------------
 //
@@ -571,6 +431,9 @@ export function loSiguienteDeLaRecepcion(p: {
   veExistencias: boolean;
   sede: string;
   bajables?: ReadonlySet<string>;
+  /** Cuántas de las que entraron se venden aquí a otro precio que en la tienda que envió (precio propio, Felipe 2026-10-09):
+   *  su etiqueta dice otro precio. Con alguna, imprimir manda y la frase lo dice primero. */
+  conOtroPrecio?: number;
 }): LoSiguiente | null {
   if (!p.esDestino || p.lugarRecibido === null || p.ultimoIngresoIso === null) return null;
   const dias = (new Date(p.ahoraIso).getTime() - new Date(p.ultimoIngresoIso).getTime()) / 86_400_000;
@@ -593,24 +456,34 @@ export function loSiguienteDeLaRecepcion(p: {
         : { clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar", principal: true },
     );
   }
+  const otroPrecio = p.conOtroPrecio ?? 0;
   if (enLista) {
-    acciones.push({
+    const etiquetas: AccionLoSiguiente = {
       clave: "etiquetas",
-      texto: "Imprimir etiquetas",
+      texto: otroPrecio > 0 ? "Imprimir etiquetas con el precio de aquí" : "Imprimir etiquetas",
       href: `/etiquetas-de-precio?unidades=${lineasEnUrl(entradas)}&traslado=${p.trasladoId}`,
-      principal: acciones.length === 0,
-    });
+      principal: acciones.length === 0 || otroPrecio > 0,
+    };
+    // Con otro precio aquí, cambiar la etiqueta va primero: colgada con el precio de origen, la caja cobraría otro.
+    if (otroPrecio > 0) {
+      for (const a of acciones) a.principal = false;
+      acciones.unshift(etiquetas);
+    } else acciones.push(etiquetas);
   }
   if (acciones.length === 0) return null;
 
   const yaSalioDelAlmacen = p.lugarRecibido === "almacen_tienda" && p.bajables !== undefined && porBajar.length === 0;
+  const dondeQuedo =
+    p.lugarRecibido === "piso_venta"
+      ? `Lo que llegó ya está en el piso de ${p.sede}.`
+      : yaSalioDelAlmacen
+        ? `Lo que llegó ya salió del almacén de ${p.sede}.`
+        : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que bajarlo al piso.`;
   return {
     intro:
-      p.lugarRecibido === "piso_venta"
-        ? `Lo que llegó ya está en el piso de ${p.sede}.`
-        : yaSalioDelAlmacen
-          ? `Lo que llegó ya salió del almacén de ${p.sede}.`
-          : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que bajarlo al piso.`,
+      otroPrecio > 0 && enLista
+        ? `${otroPrecio === 1 ? "1 prenda se vende" : `${otroPrecio} prendas se venden`} aquí a otro precio: cámbia${otroPrecio === 1 ? "le" : "les"} la etiqueta antes de colgar${otroPrecio === 1 ? "la" : "las"}. ${dondeQuedo}`
+        : dondeQuedo,
     acciones,
   };
 }

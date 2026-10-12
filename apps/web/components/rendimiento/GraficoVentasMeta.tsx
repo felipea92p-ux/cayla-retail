@@ -96,20 +96,31 @@ export function GraficoVentasMeta({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="label-cayla text-[11px] font-bold text-taupe">{titulo}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <SegmentoDeslizante
-            etiqueta="Período del gráfico"
-            valor={modo}
-            onCambio={(k) => {
-              setTip(null);
-              setModo(k as "semana" | "mes");
-            }}
-            opciones={[
-              { clave: "semana", etiqueta: "Semana" },
-              { clave: "mes", etiqueta: "Mes" },
-            ]}
-          />
+          {/* Semana o Mes es el período (píldora); Acumulado o Por día, el mismo mes de otra forma (segmento de modo). ADR-0358. */}
+          <div role="group" aria-label="Período del gráfico" className="flex flex-wrap items-center gap-2">
+            {(
+              [
+                ["semana", "Semana"],
+                ["mes", "Mes"],
+              ] as const
+            ).map(([clave, texto]) => (
+              <button
+                key={clave}
+                type="button"
+                aria-pressed={modo === clave}
+                onClick={() => {
+                  setTip(null);
+                  setModo(clave);
+                }}
+                className="pildora-cayla"
+              >
+                {texto}
+              </button>
+            ))}
+          </div>
           {esMes && (
             <SegmentoDeslizante
+              forma="modo"
               etiqueta="Cómo ver el mes"
               valor={sub}
               onCambio={(k) => {

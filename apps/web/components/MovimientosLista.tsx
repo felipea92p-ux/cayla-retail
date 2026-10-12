@@ -4,9 +4,9 @@ import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
 import { CajonMovimiento } from "@/components/CajonMovimiento";
-import { DIA_ETIQUETA, DIA_TITULO } from "@/components/ui/lista-actividad";
+import { EncabezadoDia } from "@/components/movimientos/EncabezadoDia";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
-import { construirDetalleBajadas, vistaDeOperacion, type ContextoCajon, type VistaCajon } from "@/lib/movimientos-cajon";
+import { vistaDeOperacion, type ContextoCajon, type VistaCajon } from "@/lib/movimientos-cajon";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { etiquetaDia, plegarBajadas, type ItemLista, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
@@ -56,9 +56,6 @@ export function MovimientosLista({
   const params = useSearchParams();
   const pathname = usePathname();
   const [abiertoId, setAbiertoId] = useState<string | null>(() => params.get("mov"));
-  // Las bajadas plegadas de un día abren su propio contenido en el MISMO cajón (clave `bajadas-<fecha>`): no tienen id de
-  // movimiento ni van en la URL (no son un movimiento que se mande por WhatsApp: la agrupación depende de los filtros).
-  const [bajadasAbiertas, setBajadasAbiertas] = useState<string | null>(null);
   const [venta, setVenta] = useState<Movimiento | null>(null);
   // La operación abierta se reconstruye a partir de UN id de sus filas (`abiertoId`, la misma URL `?mov=` de
   // siempre): así una fila suelta y una operación de muchas prendas comparten el mismo estado, sin uno nuevo — abrir
@@ -77,18 +74,11 @@ export function MovimientosLista({
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }
   function abrir(m: Movimiento) {
-    setBajadasAbiertas(null);
     setAbiertoId(m.id);
     sincronizarUrl(m.id);
   }
-  function abrirBajadas(clave: string) {
-    setAbiertoId(null);
-    sincronizarUrl(null);
-    setBajadasAbiertas(clave);
-  }
   function cerrar() {
     setAbiertoId(null);
-    setBajadasAbiertas(null);
     sincronizarUrl(null);
   }
 
@@ -128,13 +118,8 @@ export function MovimientosLista({
     else dias.push({ fecha: op.fecha, operaciones: [op] });
   }
   const itemsPorDia = dias.map((dia) => ({ ...dia, items: plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op })) }));
-  // Lo que muestra el cajón: la operación abierta, o las bajadas plegadas de un día (si siguen plegadas con estos filtros).
-  const grupoBajadas = bajadasAbiertas ? itemsPorDia.flatMap((d) => d.items).find((i) => i.tipo === "bajadas" && i.clave === bajadasAbiertas) : undefined;
-  const vistaCajon: VistaCajon | null = operacionAbierta
-    ? vistaDeOperacion(operacionAbierta, ctxCajon)
-    : grupoBajadas?.tipo === "bajadas"
-      ? { tipo: "bajadas", detalle: construirDetalleBajadas(grupoBajadas.clave, grupoBajadas.operaciones, ctxCajon) }
-      : null;
+  // Lo que muestra el cajón: la operación abierta (una colgada suelta, o una de las de un mazo abierto en abanico).
+  const vistaCajon: VistaCajon | null = operacionAbierta ? vistaDeOperacion(operacionAbierta, ctxCajon) : null;
 
   return (
     <>
@@ -156,16 +141,14 @@ export function MovimientosLista({
       <div className="px-4 pb-2 sm:px-5">
         {itemsPorDia.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
-            {/* Solo el día, sin «N movimientos» (2026-10-03): esa cifra contaba la página cargada (50 filas), no el día —
-                en TRU decía «14» con unas 90 operaciones a esa hora—. Cuánto pasó en el día lo dicen las tarjetas con
-                el período «Hoy», que sí lo cuentan en la base. */}
-            <h3 className={DIA_TITULO}>
-              <span className={DIA_ETIQUETA}>{etiquetaDia(dia.fecha, hoyLima)}</span>
-            </h3>
+            {/* El día y su franja de operaciones, SIN «N movimientos» (2026-10-03): esa cifra contaba la página cargada (50 filas),
+                no el día —en TRU decía «14» con unas 90 operaciones a esa hora—. Cuánto pasó en el día lo dicen los botones de
+                la derecha con el período «Hoy», que sí lo cuentan en la base. */}
+            <EncabezadoDia fecha={dia.fecha} hoyLima={hoyLima} operaciones={dia.operaciones} />
             <ul className="divide-y divide-sand">
               {dia.items.map((item) =>
                 item.tipo === "bajadas" ? (
-                  <FilaBajadas key={item.clave} operaciones={item.operaciones} prendas={prendas} abierta={bajadasAbiertas === item.clave} onAbrir={() => abrirBajadas(item.clave)} />
+                  <FilaBajadas key={item.clave} operaciones={item.operaciones} prendas={prendas} ctx={ctx} />
                 ) : item.op.filas.length === 1 ? (
                   <FilaMovimiento key={item.op.clave} m={item.op.filas[0]} prenda={prendas[item.op.filas[0].varianteId]} ctx={ctx} />
                 ) : (

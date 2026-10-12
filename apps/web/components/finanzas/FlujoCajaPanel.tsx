@@ -31,6 +31,7 @@ import {
   type Parte,
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Finanzas ▸ Reportes ▸ Flujo de caja (ADR-0195 F6), dibujado como el spike aprobado (`vistaFlujo`, «¿Por qué vendí bien y
 // no hay plata?»): a la izquierda lo que ya pasó (lo que entró por medio, lo que salió por concepto, y semana a semana); a
@@ -210,19 +211,16 @@ function LoQuePaso({ real }: { real: FlujoReal }) {
       </div>
 
       {Math.round(real.descuadre * 100) !== 0 && (
-        <p className="fin-nota-bloque">
-          <Chip tono="rojo" versalitas={false}>
-            No cuadra
-          </Chip>{" "}
+        <Aviso tono="error" titulo="No cuadra" className="mt-3">
           Hay {soles(Math.abs(real.descuadre))} que las cuentas no explican. Avísale al equipo: el flujo no inventa la diferencia.
-        </p>
+        </Aviso>
       )}
       {sinCuenta && (
-        <p className="fin-nota-bloque">
+        <p className="nota-cayla mt-3">
           <b>No suma aquí</b> lo que todavía no dice de qué cuenta salió o a cuál entró (igual que en Cuentas y dinero): {sinCuenta}.
         </p>
       )}
-      <p className="fin-nota-bloque">
+      <p className="nota-cayla mt-3">
         {real.planillaVisible
           ? planilla > 0
             ? `La planilla la paga Dynamic y todavía no baja de ningún banco aquí: en este período, ${soles(planilla)}.`
@@ -314,7 +312,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </table>
       </div>
       {sinMeta.length > 0 && (
-        <p className="fin-nota-bloque">
+        <p className="nota-cayla mt-3">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
           espera lo que cobró en promedio esos mismos días de la semana en las últimas 8 semanas. Ponle meta en{" "}
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2 hover:text-rojo">
@@ -323,8 +321,8 @@ function LoQueViene({ p }: { p: Proyeccion }) {
           .
         </p>
       )}
-      {!p.planillaVisible && <p className="fin-nota-bloque">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
-      <p className="fin-nota-bloque">
+      {!p.planillaVisible && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
+      <p className="nota-cayla mt-3">
         El mínimo de caja y los avisos se cambian en{" "}
         <Link href="/configuracion?tab=caja" className="underline underline-offset-2 hover:text-rojo">
           Configuración ▸ Caja y avisos

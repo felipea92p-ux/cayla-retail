@@ -30,7 +30,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // mismo día si esa persona sigue de turno (`fn_firma_heredada`) y, si no, pide el nombre una vez (la pantalla muestra el combo).
   traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado (firma quien firmó la recepción hoy, si sigue de turno; si no, se pregunta una vez)",
   conteo_cerrar: "Cerrar el conteo y aplicar las diferencias (firma quien lo abrió hoy, si sigue de turno; si no, se pregunta una vez)",
-  regularizar_prenda: "Regularizar una prenda por regularizar",
+  // `regularizar_prenda` salió el 2026-10-06 (20261006200000): regularizar vuelve a pedir «Responsable», para que la venta sin registrar
+  // quede a nombre de la colaboradora que la identificó y no de la terminal de la tienda.
   cola_arranque_cerrar: "Cerrar la cola de arranque de ventas sin registrar de una tienda",
   cola_arranque_reabrir: "Reabrir una venta sin registrar que se cerró sin prenda",
   cola_arranque_identificar: "Identificar con sugerencias las ventas sin registrar de una tienda (varias a la vez)",
@@ -44,7 +45,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   alta_producto_marca: "Crear una marca dentro del alta de producto",
   alta_producto_muestra: "Elegir la muestra de un valor dentro del alta de producto",
   alta_producto_valor: "Proponer otro valor de atributo dentro del alta de producto",
-  producto_confirmar_cambios: "Confirmar los cambios de la ficha de un producto",
+  // `producto_confirmar_cambios` salió el 2026-10-06 (ADR-0354, 20261006180100): Editar producto vuelve a pedir «Responsable»,
+  // porque el historial de la prenda tiene que decir quién cambió cada cosa.
   producto_revisar_alta: "Aprobar o rechazar una prenda dada de alta al vuelo en un conteo",
   color_rechazar: "Rechazar un color propuesto",
   talla_aprobar: "Aprobar una talla propuesta",

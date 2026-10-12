@@ -4,7 +4,6 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { nombresCortos } from "./nombre-integrante";
 import { efectivoACobrar, redondeoDelEfectivo, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
 import { motivoNoCobrable } from "./vender-stock-local";
 
@@ -126,6 +125,18 @@ export function vueltoDe(pago: PagoAplicado, redondear = false): number {
   // Con el redondeo del efectivo (ADR-0311) lo que se cobra son las monedas: el vuelto sale de eso, no de la deuda exacta.
   const cobra = redondear ? efectivoACobrar(pago.monto) : pago.monto;
   return Math.max(0, redondear2(pago.recibido - cobra));
+}
+
+/** Lo que dice la hoja de cobro bajo los billetes frente a lo que se cobra en efectivo (Felipe 2026-10-05): **vuelto** si lo recibido pasa,
+ *  **falta** si no llega y **exacto** si es justo; `null` mientras no se haya dicho cuánto paga (la línea queda invisible, reservando su
+ *  alto). `monto` es la cifra que se muestra: el vuelto, lo que falta o el cobro exacto. La hoja pinta **exacto en verde** y **falta en
+ *  rojo**; el vuelto queda neutro (es información, no un aviso). `vuelto` es el de `vueltoDe` con el mismo redondeo que `aCobrar`. */
+export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto"; monto: number };
+export function lecturaDelRecibido(recibido: number | undefined, aCobrar: number, vuelto: number): LecturaDelRecibido | null {
+  if (recibido === undefined) return null;
+  if (vuelto > 0) return { estado: "vuelto", monto: vuelto };
+  if (recibido < aCobrar) return { estado: "falta", monto: redondear2(aCobrar - recibido) };
+  return { estado: "exacto", monto: aCobrar };
 }
 
 /** Cambia el monto de un medio y reparte «el resto»:
@@ -250,6 +261,9 @@ export function motivoBloqueoCobro(v: {
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
+  // Un ticket que no cobra nada (solo la bolsa de obsequio, a S/ 0.00) no se puede cobrar ni emitir: la base rechaza una venta en S/ 0
+  // entera. Se dice aquí, con la causa, en vez de dejar «Elige cómo pagó el cliente» para un total que no tiene qué pagar.
+  if (v.total <= 0) return "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
@@ -491,11 +505,11 @@ export function pasoDelDescuento(e: {
 /** Una persona que se puede nombrar en el ticket (`PersonaDeTurno` calza con esta forma). */
 export type Vendedora = { personaId: string; nombre: string };
 
-/** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
- *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */
-export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
+/** El nombre que sale en el papel: nombre y apellido, como está en su ficha (Felipe 2026-10-09: con solo el primer nombre no se
+ *  sabía quién atendió). `null` si no hay a quién nombrar. */
+export function atendioDelTicket(vendedoras: readonly Vendedora[], id: string | null): string | null {
   const v = vendedoras.find((x) => x.personaId === id);
-  return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+  return v?.nombre.trim() || null;
 }
 
 // ---- «Agotada» o «apartada para un cliente» ------------------------------------------------------------------------

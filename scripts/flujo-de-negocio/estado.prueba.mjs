@@ -12,9 +12,16 @@
  *   2. Una venta confirmada cambia tablas, y `comparar` las nombra (incluido el libro inmutable `movimientos`).
  *   3. Sin `--si`, restaurar solo muestra: no cambia nada.
  *   4. Con `--si`, la base vuelve EXACTAMENTE a la foto (mismas huellas, no solo mismo número de filas).
- *   5. Las guardas de `movimientos` siguen siendo `ENABLE ALWAYS` y siguen bloqueando DELETE y TRUNCATE.
+ *   5. Las guardas de `movimientos` siguen siendo `ENABLE ALWAYS` y siguen bloqueando DELETE y TRUNCATE. Se exige que el
+ *      rechazo sea EL DE LA GUARDA (su mensaje), no el de otra cosa: un `truncate` suelto lo frena la llave foránea de
+ *      `devolucion_items` antes de llegar a la guarda y pasaría en verde aunque la guarda estuviera apagada; por eso va con
+ *      CASCADE (incluye a quienes lo referencian) y se comprueba, con la guarda apagada dentro de un ROLLBACK, que ese mismo
+ *      TRUNCATE sí pasaría (el detector no está ciego).
  *   6. Una restauración que falla a la mitad se REVIERTE por completo: la base queda como estaba antes de intentarla.
  *   7. Una foto de otra migración se rechaza.
+ *   8. Los candados CHECK `NOT VALID` (que COPY revisa aunque lo viejo no) no rompen la carga, y quedan EXACTAMENTE como
+ *      estaban —nombre, `NOT VALID`, definición—, tanto tras restaurar como tras una restauración que falla a la mitad
+ *      (donde ya estaban soltados y la transacción debe devolverlos). Ver el encabezado de `estado.mjs`.
  *
  * USO   node scripts/flujo-de-negocio/estado.prueba.mjs      (necesita el Postgres local con las migraciones de main)
  */
@@ -78,12 +85,24 @@ set constraints all immediate;
 commit;
 `;
 
+/** Todos los CHECK del schema con su estado de validación: lo que la restauración suelta y vuelve a poner. */
+const candados = () => psql(`select c.conrelid::regclass||'.'||c.conname||'|'||c.convalidated||'|'||pg_get_constraintdef(c.oid)
+  from pg_constraint c where c.connamespace='retail'::regnamespace and c.contype='c' order by 1;`);
+const noValidos = () => psql(`select count(*) from pg_constraint where connamespace='retail'::regnamespace and contype='c' and not convalidated;`);
+/** Filas que HOY violan el candado NOT VALID de clientas: entraron antes del candado y COPY no las dejaba volver. */
+const filasQueViolan = () => psql(`select count(*) from retail.clientas where not (documento_numero is null
+  or (documento_tipo='dni' and documento_numero ~ '^[0-9]{8}$')
+  or (documento_tipo in ('carne_extranjeria','pasaporte') and documento_numero ~ '^[A-Z0-9]{6,12}$'));`);
+
 const siempre = () => psql(`select count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
   where n.nspname='retail' and not t.tgisinternal and t.tgenabled='A';`);
 
+/** Corre `sql` dentro de una transacción que SIEMPRE se revierte; devuelve la línea ERROR (o null si se permitió). */
 function intentaProhibido(sql) {
-  try { psql(`begin;\n${sql}\nrollback;`); return null; } catch (e) { return String(e.stderr ?? e.message).split("\n").find((l) => l.includes("ERROR")) ?? "error"; }
+  try { psql(`begin;\nset local client_min_messages = warning;\n${sql}\nrollback;`); return null; } catch (e) { return String(e.stderr ?? e.message).split("\n").find((l) => l.includes("ERROR")) ?? "error"; }
 }
+/** El mensaje que dan las guardas de `movimientos` (fn_historial_es_inmutable y fn_historial_sin_truncate). */
+const ES_LA_GUARDA = /historial de movimientos no se (edita|vac)/;
 
 try {
   // 0. Punto de partida: si ya hay diferencia con la última foto real, no se prueba sobre una base sucia.
@@ -94,6 +113,9 @@ try {
   esperar("Guardar una foto", estado("guardar", FOTO, "--reemplazar").status === 0);
   esperar("1. Sin tocar nada, comparar dice «idéntico»", estado("comparar", FOTO).status === 0);
   const siempreAntes = siempre();
+  const candadosAntes = candados();
+  const violan = Number(filasQueViolan());
+  console.log(`  (la base tiene ${noValidos()} candado(s) CHECK NOT VALID y ${violan} fila(s) de clientas que violan clientas_documento_formato${violan ? "" : ": el caso real NO está cubierto en esta base"})`);
 
   // 2. Una venta real y confirmada
   try { psql(VENTA_CONFIRMADA); } catch (e) { esperar("2. Registrar una venta real (escenario de actividad.mjs)", false, String(e.stderr ?? e.message).split("\n").slice(0, 4).join(" | ")); throw e; }
@@ -114,6 +136,9 @@ try {
   esperar("6. Una restauración que falla a la mitad sale con error", mala.status === 1, mala.stdout + mala.stderr);
   esperar("6. …y se REVIERTE por completo: la base queda como antes de intentarla", huella() === trasVenta, "las huellas cambiaron: la restauración fallida dejó la base a medias");
 
+  esperar("8. …y los candados CHECK quedaron como estaban aunque la restauración fallara con ellos ya soltados", candados() === candadosAntes,
+    "la transacción fallida no devolvió los candados");
+
   // 7. Una foto de otra migración se rechaza
   const meta = JSON.parse(readFileSync(join(DIR, `${ROTA}.json`), "utf8"));
   meta.ultima_migracion = "20200101000000";
@@ -126,13 +151,23 @@ try {
   esperar("4. Con --si, la restauración termina con éxito", r.status === 0 && /idéntica a la foto/.test(r.stdout), r.stdout + r.stderr);
   esperar("4. La base quedó EXACTAMENTE como en la foto (mismas huellas, tabla por tabla)", huella() === alInicio2, `difieren: ${cualesDifieren(alInicio2, huella())}`);
   esperar("4. `comparar` confirma «idéntico»", estado("comparar", FOTO).status === 0);
+  esperar("8. Los candados CHECK (incluidos los NOT VALID) quedaron idénticos tras restaurar", candados() === candadosAntes,
+    "las definiciones o su estado «validado» cambiaron");
+  esperar("8. …y las filas viejas que violan un NOT VALID volvieron intactas", Number(filasQueViolan()) === violan, `antes ${violan}, ahora ${filasQueViolan()}`);
 
   // 5. Las guardas del libro inmutable siguen en pie
   esperar("5. Los disparadores ENABLE ALWAYS siguen siendo los mismos", siempre() === siempreAntes, `antes ${siempreAntes}, ahora ${siempre()}`);
   const del = intentaProhibido("delete from retail.movimientos;");
-  esperar("5. `movimientos` sigue bloqueando DELETE", del !== null, "el DELETE se permitió: la guarda quedó apagada");
-  const trunc = intentaProhibido("truncate retail.movimientos;");
-  esperar("5. `movimientos` sigue bloqueando TRUNCATE", trunc !== null, "el TRUNCATE se permitió: la guarda quedó apagada");
+  esperar("5. `movimientos` sigue bloqueando DELETE (con el mensaje de su guarda)", ES_LA_GUARDA.test(del ?? ""), `respuesta: ${del ?? "se permitió: la guarda quedó apagada"}`);
+  const trunc = intentaProhibido("truncate retail.movimientos cascade;");
+  esperar("5. `movimientos` sigue bloqueando TRUNCATE (con el mensaje de su guarda, no el de una llave foránea)", ES_LA_GUARDA.test(trunc ?? ""), `respuesta: ${trunc ?? "se permitió: la guarda quedó apagada"}`);
+  // CASCADE alcanza también a otros libros con su propia guarda anti-TRUNCATE (costo_historial…): se apagan todas, dentro del ROLLBACK.
+  const ciego = intentaProhibido(`do $$ declare g record; begin
+      for g in select c.oid::regclass as t, tg.tgname from pg_trigger tg join pg_class c on c.oid = tg.tgrelid
+               where tg.tgfoid = 'retail.fn_historial_sin_truncate'::regproc and not tg.tgisinternal
+      loop execute format('alter table %s disable trigger %I', g.t, g.tgname); end loop; end $$;
+    truncate retail.movimientos cascade;`);
+  esperar("5. Autoprueba: con la guarda apagada, ese mismo TRUNCATE SÍ pasaría (el chequeo no está ciego)", ciego === null, `con la guarda apagada seguía fallando: ${ciego}`);
 } catch (e) {
   esperar("La prueba terminó sin excepciones", false, String(e.message).split("\n")[0]);
 } finally {

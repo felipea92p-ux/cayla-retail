@@ -1,7 +1,7 @@
 ## 2026-10-05 (El motor del piso cuenta las ventas cerradas sin prenda — contrato ADR-0334 × ADR-0328 act. 7)
 Qué hice: el motor del piso (PR #787) quedó fusionado y pegado contando las ventas «sin registrar» solo mientras están pendientes; el cierre
 de arranque de ADR-0334 (PR #800) las pasa a «cerrada sin prenda», y desde ese momento el motor dejaba de verlas. Una migración nueva
-(`20261005160000`) reemplaza `fn_piso_plan_lectura` con el mismo cuerpo y un solo cambio: la anotada cuenta mientras no tenga prenda (pendiente
+(`20261005160100`) reemplaza `fn_piso_plan_lectura` con el mismo cuerpo y un solo cambio: la anotada cuenta mientras no tenga prenda (pendiente
 o cerrada sin prenda), en la señal para el Taller y en el reloj de hoy y ayer. La guarda se niega a pisar la función si alguien la cambió a mano
 en producción. `pnpm pruebas:piso-plan` suma A8–A11 (con las funciones reales de cerrar, reabrir y regularizar) y M4: 59/59 en un Postgres
 desechable armado como el CI (458 migraciones + seed), y la mutación (volver a «solo pendiente») pone A8, A9 y A10 en rojo. `pruebas:cola-arranque`

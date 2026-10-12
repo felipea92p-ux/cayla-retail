@@ -9,7 +9,6 @@ import {
   PARAMETROS_RPC_RETIRO,
   respuestaResuelveLaMarcaDeRetiro,
   RPC_RETIRO,
-  textoBotonSubir,
   textoMarcaSinResolverDeRetiro,
   textoDelBloqueSubir,
   TEXTOS_BLOQUE_SUBIR,
@@ -17,7 +16,7 @@ import {
 } from "./retiro-reglas";
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { RETIRO_NO_ES_BAJA } from "./inventario-reglas";
-import { lineasDeMover, sePuedeSubirTalla, tallasParaReponer, textoFilaSinAlcance } from "./reponer-prenda-reglas";
+import { lineasDeMover, tallasParaReponer, textoFilaSinAlcance } from "./reponer-prenda-reglas";
 
 // La migración es la fuente: si cambia el nombre o los parámetros de la RPC, la pantalla se entera aquí y no en producción.
 const MIGRACION = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261001150000_retirar_del_piso.sql"), "utf8").replace(/--[^\n]*/g, "");
@@ -100,10 +99,6 @@ describe("las tallas que se pueden subir y las líneas que viajan", () => {
     { varianteId: "l", talla: "L", pisoDisponible: 2, almacenDisponible: 1 },
   ]);
 
-  it("se sube lo que hay LIBRE en el piso; la M, que solo tiene en el almacén, no", () => {
-    expect(tallas.map(sePuedeSubirTalla)).toEqual([true, false, true]);
-  });
-
   it("las líneas se recortan al piso (no al almacén) y la S y la L viajan JUNTAS", () => {
     expect(lineasDeMover(tallas, { s: 9, l: 1, m: 2 }, "subir")).toEqual([
       { varianteId: "s", cantidad: 4 },
@@ -121,13 +116,6 @@ describe("las tallas que se pueden subir y las líneas que viajan", () => {
 });
 
 describe("los textos", () => {
-  it("el botón dice cuánto sube; tras un corte de red pide confirmar lo mismo de nuevo", () => {
-    expect(textoBotonSubir(0, false)).toBe("Subir a almacén");
-    expect(textoBotonSubir(1, false)).toBe("Subir 1 prenda");
-    expect(textoBotonSubir(4, false)).toBe("Subir 4 prendas");
-    expect(textoBotonSubir(4, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
-  });
-
   it("un reenvío en duda dice la hora del primer envío y que no se repite", () => {
     const t = textoMarcaSinResolverDeRetiro("10:32");
     expect(t).toContain("10:32");

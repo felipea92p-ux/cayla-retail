@@ -71,7 +71,7 @@ export function cambiosDeAtajo(a: Atajo, activo: boolean): Record<string, string
 // Acciones sobre una venta
 // ---------------------------------------------------------------------------
 
-export type ClaveAccion = "reintentar" | "cambiar" | "devolver" | "clienta" | "apartado" | "volver" | "comprobante" | "anular";
+export type ClaveAccion = "reintentar" | "regularizar" | "cambiar" | "devolver" | "clienta" | "apartado" | "volver" | "comprobante" | "anular";
 
 export type AccionVenta = {
   clave: ClaveAccion;
@@ -96,7 +96,7 @@ export type ContextoAcciones = {
   hoy: string;
 };
 
-type VentaParaAcciones = Pick<FilaHistorial, "id" | "fecha" | "ubicacionId" | "ventaItemIds" | "comprobante" | "anulada" | "clienta" | "apartado" | "conAnticipo">;
+type VentaParaAcciones = Pick<FilaHistorial, "id" | "fecha" | "ubicacionId" | "ventaItemIds" | "itemsPorRegularizar" | "comprobante" | "anulada" | "clienta" | "apartado" | "conAnticipo">;
 
 const qs = (p: Record<string, string | undefined>) => {
   const u = new URLSearchParams();
@@ -131,9 +131,21 @@ export function accionesDeVenta(v: VentaParaAcciones, ctx: ContextoAcciones): Ac
       destacada: true,
     });
   }
+  // Una prenda vendida sin registrar que sigue pendiente: Regularizar vive en Existencias, y desde aquí se llega directo (con una sola
+  // prenda por regularizar, a su hoja abierta). Es lo que hay que hacer con esta venta, así que va por delante de cambiar.
+  const regularizar = !v.anulada && v.itemsPorRegularizar.length > 0 && ve("existencias");
+  if (regularizar) {
+    acciones.push({
+      clave: "regularizar",
+      etiqueta: "Regularizar prenda",
+      detalle: "Inventario ▸ Existencias",
+      href: `/inventario/por-regularizar?${qs({ ubicacion: v.ubicacionId, item: v.itemsPorRegularizar.length === 1 ? v.itemsPorRegularizar[0] : undefined })}`,
+      destacada: !(porEnviar && ctx.puedeFacturar),
+    });
+  }
   if (!v.anulada && v.ventaItemIds.length > 0) {
     const params = paramsDePosventa(v, ctx);
-    if (ve("cambios")) acciones.push({ clave: "cambiar", etiqueta: "Cambiar prenda", detalle: "Posventa ▸ Cambios", href: `/cambios?${params}`, destacada: !porEnviar || !ctx.puedeFacturar });
+    if (ve("cambios")) acciones.push({ clave: "cambiar", etiqueta: "Cambiar prenda", detalle: "Posventa ▸ Cambios", href: `/cambios?${params}`, destacada: (!porEnviar || !ctx.puedeFacturar) && !regularizar });
     if (ve("devoluciones")) acciones.push({ clave: "devolver", etiqueta: "Devolver", detalle: "Posventa ▸ Devoluciones", href: `/devoluciones?${params}` });
   }
   if (v.clienta) acciones.push({ clave: "clienta", etiqueta: "Ficha del cliente", detalle: "Sus datos y compras", href: `/clientas?${qs({ q: v.clienta })}` });

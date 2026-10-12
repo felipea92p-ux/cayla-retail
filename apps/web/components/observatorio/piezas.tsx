@@ -278,7 +278,7 @@ export function Segmento<T extends string>({
         <button
           key={v}
           type="button"
-          role="tab"
+          role="tab" // unificar-fijo: Segmento del Observatorio, ADR-0322
           aria-selected={v === valor}
           className={v === valor ? "on" : ""}
           onClick={() => onValor(v)}

@@ -40,12 +40,64 @@ export function parejaYaExiste(marca: MarcaDelFormulario | null, proveedor: Prov
   return Boolean(marca?.existe && proveedor?.tipo === "existente" && marca.proveedores.includes(proveedor.nombre));
 }
 
+/** ¿Lo escrito quiere decir «no hay» en vez de un nombre? «sin proveedor», «Sin marca», «ninguno», «s/m», «-», «N/A»…
+ *  (2026-10-09: alguien registró la marca «SIN PROVEEDOR» y el proveedor «-» para salir del paso, y una prenda quedó con
+ *  esa pareja de relleno). La forma correcta de decir «no sé de quién es» es dejar el campo VACÍO (ADR-0283), así que el
+ *  buscador ofrece «Dejar sin marca» y el formulario de registro no acepta estos nombres. Error humano previsible, no
+ *  malicia: la lista es corta y de frases, no una adivinanza (una marca de verdad no se llama «ninguno»). */
+export function pideDejarVacio(texto: string): boolean {
+  const crudo = texto.trim().toLowerCase();
+  if (crudo === "") return false;
+  // Solo signos o una equis: «-», «--», «.», «?», «x», «xx», «s/n» va abajo.
+  if (/^[-_.?*/\\x\s]+$/.test(crudo)) return true;
+  const t = crudo
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  return (
+    /^sin( (marca|proveedor|prov|nombre|nada|datos?|definir|registro))*( ni (marca|proveedor))?$/.test(t) ||
+    /^s ?[mpn]$/.test(t) ||
+    /^(ningun[oa]?|ninguna marca|ningun proveedor|nada|no tiene|no se|no hay|n ?a|vacio|por definir|desconocid[oa])$/.test(t)
+  );
+}
+
+/** Qué vacía «Dejar sin …» (2026-10-09, Felipe: «que al hacer clic deje todo vacío»): el campo donde se escribió y, si lo
+ *  escrito nombra al otro («sin proveedor» en el campo Marca, «sin marca ni proveedor»), también ese. Lo ya guardado al editar
+ *  no se vacía (`problemaAlEditar`: la base no lo deja): queda en `bloqueado` para que la pantalla lo diga. `null` si lo
+ *  escrito no pide dejar vacío. */
+export type VaciarCampos = { marca: boolean; proveedor: boolean; bloqueado: ("marca" | "proveedor")[]; texto: string; detalle: string };
+
+export function queVaciar(texto: string, campo: "marca" | "proveedor", guardado?: ParejaElegida): VaciarCampos | null {
+  if (!pideDejarVacio(texto)) return null;
+  const t = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]+/g, " ");
+  const otro = campo === "marca" ? "proveedor" : "marca";
+  // «proveedor», «prov» o «s/p» nombran al proveedor; «marca» o «s/m», a la marca.
+  const nombraOtro = (otro === "proveedor" ? /prov|\bs p\b/ : /marca|\bs m\b/).test(t);
+  const pedidos: ("marca" | "proveedor")[] = nombraOtro ? ["marca", "proveedor"] : [campo];
+  const bloqueado = pedidos.filter((c) => (c === "marca" ? guardado?.marcaId : guardado?.proveedorId));
+  const vaciar = pedidos.filter((c) => !bloqueado.includes(c));
+  const nombre = (cs: readonly string[]) => (cs.length === 2 ? "marca ni proveedor" : cs[0]);
+  return {
+    marca: vaciar.includes("marca"),
+    proveedor: vaciar.includes("proveedor"),
+    bloqueado,
+    texto: vaciar.length > 0 ? `Dejar sin ${nombre(vaciar)}` : `No se puede dejar sin ${nombre(bloqueado)}`,
+    detalle:
+      bloqueado.length === 0
+        ? vaciar.length === 2 ? "quedan vacíos y los completas después" : "queda vacío y lo completas después"
+        : vaciar.length === 0
+          ? bloqueado.length === 2 ? "ya tenía los dos: busca los correctos" : bloqueado[0] === "marca" ? "ya tenía marca: busca la correcta" : "ya tenía proveedor: busca el correcto"
+          : bloqueado[0] === "marca" ? "la marca ya estaba guardada y se queda" : "el proveedor ya estaba guardado y se queda",
+  };
+}
+
 /** «Registrar y elegir» se habilita con marca y proveedor válidos, sin la pareja repetida y sin preguntas pendientes
  *  («¿no será una marca/un proveedor que ya existe?»: la pregunta está a la vista, justo arriba del botón). */
 export function registroListo(marca: MarcaDelFormulario | null, proveedor: ProveedorDelFormulario, preguntasPendientes = 0): boolean {
-  if (!marca || marca.nombre.trim() === "") return false;
+  if (!marca || marca.nombre.trim() === "" || pideDejarVacio(marca.nombre)) return false;
   if (!proveedor) return false;
-  if (proveedor.tipo === "nuevo" && proveedor.razonSocial.trim() === "") return false;
+  if (proveedor.tipo === "nuevo" && (proveedor.razonSocial.trim() === "" || pideDejarVacio(proveedor.razonSocial))) return false;
   if (parejaYaExiste(marca, proveedor)) return false;
   return preguntasPendientes === 0;
 }
@@ -59,7 +111,7 @@ export function registroListo(marca: MarcaDelFormulario | null, proveedor: Prove
 //
 // CONTRATO
 //   PROMETE: dada la pareja que hay hoy y lo que la persona toca, la pareja que queda (sin contradicciones), qué se soltó y
-//            qué se puso solo; y las opciones de cada campo, recortadas por el otro.
+//            qué se puso solo; y las opciones de cada campo, con las compatibles con el otro primero.
 //   ASUME:   `vinculos` es TODA la tabla de parejas registradas (`marca_proveedores`); «» significa «todavía nada».
 //   NO HACE: no habla con la base ni decide si se puede vaciar un valor ya guardado (eso es `problemaAlEditar`).
 
@@ -119,7 +171,16 @@ function resumirNombres(nombres: readonly string[], max: number): string {
   return `${nombres.slice(0, max).join(", ")} +${nombres.length - max}`;
 }
 
-/** Las opciones del campo Marca. Con proveedor elegido, solo las marcas que él trae. `detalle` dice quién la trae (y por él se
+/** Las compatibles con lo elegido en el otro campo arriba (A-Z) y después TODAS las demás (A-Z). Nunca se esconde una opción
+ *  (2026-10-09): al editar, marca y proveedor ya guardados no se pueden quitar (`problemaAlEditar`), y si cada lista solo
+ *  ofrecía lo compatible con el otro campo, una prenda guardada con la pareja «SIN PROVEEDOR» · «-» no podía pasar a ninguna
+ *  otra: cada campo encerraba al otro. Elegir una incompatible ya está resuelto en `alElegirMarca`/`alElegirProveedor`
+ *  (suelta el otro campo, lo pone solo si queda uno y la pantalla lo dice en una línea). */
+function primeroLasCompatibles<T extends { nombre: string }>(xs: readonly T[], compatible: (x: T) => boolean): T[] {
+  return [...ordenarPorNombre(xs.filter(compatible)), ...ordenarPorNombre(xs.filter((x) => !compatible(x)))];
+}
+
+/** Las opciones del campo Marca. Con proveedor elegido, primero las marcas que él trae. `detalle` dice quién la trae (y por él se
  *  encuentra la marca tipeando el proveedor). `conservar` mantiene una marca ya guardada que hoy no viene en las listas activas. */
 export function opcionesDeMarca(
   marcas: readonly MarcaOpcion[],
@@ -129,9 +190,9 @@ export function opcionesDeMarca(
   conservar?: MarcaOpcion | null
 ): { valor: string; texto: string; detalle?: string }[] {
   const provPor = new Map(proveedores.map((p) => [p.id, p.nombre]));
-  const lista = marcas.filter((m) => !proveedorId || carga(vinculos, m.id, proveedorId));
+  const lista = [...marcas];
   if (conservar && conservar.id && !lista.some((m) => m.id === conservar.id)) lista.push(conservar);
-  return ordenarPorNombre(lista).map((m) => {
+  return primeroLasCompatibles(lista, (m) => !proveedorId || carga(vinculos, m.id, proveedorId)).map((m) => {
     const quienes = vinculos.filter((v) => v.marcaId === m.id).map((v) => provPor.get(v.proveedorId)).filter((n): n is string => Boolean(n));
     return { valor: m.id, texto: m.nombre, detalle: quienes.length ? `la trae ${resumirNombres(quienes, 2)}` : undefined };
   });
@@ -146,9 +207,9 @@ export function opcionesDeProveedor(
   conservar?: ProveedorOpcion | null
 ): { valor: string; texto: string; detalle?: string }[] {
   const marcaPor = new Map(marcas.map((m) => [m.id, m.nombre]));
-  const lista = proveedores.filter((p) => !marcaId || carga(vinculos, marcaId, p.id));
+  const lista = [...proveedores];
   if (conservar && conservar.id && !lista.some((p) => p.id === conservar.id)) lista.push(conservar);
-  return ordenarPorNombre(lista).map((p) => {
+  return primeroLasCompatibles(lista, (p) => !marcaId || carga(vinculos, marcaId, p.id)).map((p) => {
     const cuales = vinculos.filter((v) => v.proveedorId === p.id).map((v) => marcaPor.get(v.marcaId)).filter((n): n is string => Boolean(n));
     return { valor: p.id, texto: p.nombre, detalle: cuales.length ? `trae ${resumirNombres(cuales, 3)}` : undefined };
   });

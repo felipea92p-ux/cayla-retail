@@ -10,11 +10,13 @@ const TODO: EntradaPermisos = {
   veTraslados: true,
   esTienda: true,
   editaCatalogo: true,
+  tieneCuarentena: true,
 };
 
 describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mismo que la base (ADR-0240)", () => {
   it("con todo, en su tienda, se ofrece todo", () => {
     expect(permisosDelDetalle(TODO)).toEqual({
+      reportarDanada: true,
       reponerYRetirar: true,
       apartar: true,
       ajustar: true,
@@ -40,6 +42,7 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
 
   it("mirando OTRA sede no se ofrece nada que escriba ni nada que trabaje sobre la sede activa", () => {
     expect(permisosDelDetalle({ ...TODO, enSedeActiva: false })).toEqual({
+      reportarDanada: false,
       reponerYRetirar: false,
       apartar: false,
       ajustar: false,
@@ -68,6 +71,18 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     expect(permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false }).eliminar).toBe(true);
     // Mirando otra sede, tampoco: borra el producto en todas, pero firma con el Responsable de la sede activa.
     expect(permisosDelDetalle({ ...TODO, enSedeActiva: false }).eliminar).toBe(false);
+  });
+
+  it("Reportar dañada (ADR-0328 act. 10): quien ve Existencias, en su sede, donde hay piso, almacén y cuarentena", () => {
+    // Es una función de Existencias (ADR-0306), no del líder: lo que se decide con la dañada sí es del líder, en Dañadas.
+    expect(permisosDelDetalle(TODO).reportarDanada).toBe(true);
+    expect(permisosDelDetalle({ ...TODO, puedeAjustar: false, veApartados: false, veTraslados: false, editaCatalogo: false }).reportarDanada).toBe(true);
+    // Sin Existencias en su sede (`puedeBajarAlPiso` ya lo dice), mirando otra sede, en el Taller o sin cuarentena: no.
+    expect(permisosDelDetalle({ ...TODO, puedeBajarAlPiso: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, enSedeActiva: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, tieneCuarentena: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, tieneCuarentena: false }).reponerYRetirar).toBe(true);
   });
 
   it("cada módulo apaga solo lo suyo", () => {

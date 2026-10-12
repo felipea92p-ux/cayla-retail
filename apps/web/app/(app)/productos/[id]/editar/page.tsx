@@ -10,6 +10,9 @@ import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
+import { Chip } from "@/components/ui/Chip";
+import { precioUnico } from "@/lib/precio-sede-reglas";
+
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
@@ -29,7 +32,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -37,21 +40,27 @@ export default async function EditarProductoPage({
     ),
     // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
     exigir(
-      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos").eq("activo", true).order("orden").order("nombre"),
+      // Y con Pantone y su ficha (ADR-0316): «Agregar colores» reutiliza la carta del alta y su pie dice lo mismo que allá.
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden").order("nombre"),
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
     supabase.from("etiquetas").select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
-    supabase.from("familias").select("codigo, exige_tejido_patron"),
+    supabase.from("familias").select("codigo, exige_tejido_patron, entra_a_motores"),
     getImagenesMuestra(),
     // ADR-0263: unidades y ventas por variante. Tolerante: si falla, la ficha sigue sin la columna de stock y la base
     // decide sola quién corrige una variante vendida. Si la función NO EXISTE, la base tampoco sabe corregir (es el mismo
     // SQL): ver `puedeCorregir`, abajo.
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
+    // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
+    supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
-  const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
+  const filasFamilias = exigir(familias, "las familias del catálogo");
+  const exigen = new Set(filasFamilias.filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
+  // Las familias fuera de los motores (Empaque, ADR-0377) admiten precio 0: la bolsa de obsequio (Felipe 2026-10-10).
+  const admitenPrecioCero = new Set(filasFamilias.filter((f) => f.entra_a_motores === false).map((f) => f.codigo));
   // Vigencia se filtra acá, no en la consulta: la etiqueta de campaña
   // (Halloween, CyberWow...) deja de OFRECERSE fuera de su ventana, pero
   // nunca se retira sola de una variante que ya la tenía — eso sería
@@ -92,6 +101,14 @@ export default async function EditarProductoPage({
       }
     : null;
 
+  // Precio por tienda: quien edita Productos lo pone en SU tienda; el líder, en cualquiera (la base vuelve a exigirlo:
+  // `poner_precio_sede`). El precio de la prenda es uno solo si todas sus tallas activas valen igual (si no, null: «según la talla»,
+  // y ningún monto es «igual al de la prenda», que es lo que la base rechaza). La ficha muestra TODAS las tiendas (`todas`).
+  const tiendas = resTiendas.data ?? [];
+  const tiendasPrecio = esLider ? tiendas : tiendas.filter((t) => t.id === persona.ubicacionId);
+  const preciosActivos = (producto.variantes ?? []).filter((v) => v.activo).map((v) => Number(v.precio)).filter((n) => n > 0);
+  const precioPrenda = precioUnico(preciosActivos);
+
   return (
     <div className="space-y-6">
       <div>
@@ -99,12 +116,37 @@ export default async function EditarProductoPage({
         <h1 className="font-display mt-1 text-2xl text-tinta">
           {producto.referencia}
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
+          {/* ADR-0371: una insignia, no un aviso con botones (Felipe quitó el aviso el 2026-10-02: «no me sirve»). Se aprueba o se rechaza
+              desde Productos ▸ Por revisar; aquí solo se dice qué es. */}
+          {producto.estadoAlta === "pendiente" && (
+            <span className="ml-3 inline-block align-middle font-sans text-base" title="Alguien la propuso sin editar el catálogo. Quien edita el catálogo la aprueba o la rechaza en Productos ▸ Por revisar.">
+              <Chip tono="ambar" versalitas={false}>
+                Pendiente de revisión
+              </Chip>
+            </span>
+          )}
         </h1>
       </div>
 
       <ProductoForm
-        categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
-        colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", tipo: c.tipo, sinonimos: c.sinonimos ?? [] }))}
+        categorias={categorias.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          prefijo: c.prefijo,
+          exigeTejidoPatron: c.familia !== null && exigen.has(c.familia),
+          admitePrecioCero: c.familia !== null && admitenPrecioCero.has(c.familia),
+        }))}
+        colores={colores.map((c) => ({
+          codigo: c.codigo,
+          nombre: c.nombre,
+          hex: c.hex,
+          familiaColor: c.familia_color ?? "",
+          tipo: c.tipo,
+          sinonimos: c.sinonimos ?? [],
+          pantoneTcx: c.pantone_tcx ?? null,
+          descripcion: c.descripcion ?? null,
+          combinaCon: c.combina_con ?? [],
+        }))}
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
@@ -114,6 +156,13 @@ export default async function EditarProductoPage({
         puedeCorregir={puedeCorregir}
         ajusteStock={ajusteStock}
         lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
+        preciosSede={{
+          tiendas: tiendasPrecio,
+          todas: tiendas,
+          general: precioPrenda,
+          ubicacionId: persona.ubicacionId,
+          sede: persona.ubicacionEtiqueta,
+        }}
         producto={producto}
         volverA={volverA}
       />

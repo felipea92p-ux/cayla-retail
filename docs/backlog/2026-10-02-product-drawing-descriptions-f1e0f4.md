@@ -8,4 +8,4 @@
 - [ ] **Curar el vocabulario de tejidos:** «Tela» (3 camisas/blusas) no dice de qué es; «Hilo» y «Hilo de algodón» se solapan; «lana» y «franela» están en minúscula; «pruebaTEJIDO» es un dato de prueba (desactivado). Ninguna ayuda arregla un nombre que no informa.
 - [x] ~~La ayuda no aparece en Atributos ▸ Tejidos~~ — hecho el 2026-10-02, rama `claude/tejido-descripcion-en-detalle`: el detalle del tejido tiene «Sobre este tejido» (qué es, ideal para, cuidado), visible para todo el que lo abre.
 - [ ] La ayuda no aparece todavía en Editar producto (combo de tejido) ni donde la integrante atiende (Vender, Existencias, la ficha de la prenda), que es donde más falta le hace al explicarle la tela al cliente; el patrón no tiene ayuda (su dibujo ya lo dice).
-- [ ] Código muerto: `components/alta-producto/ElegirTejido.tsx` (el alta usa `ElegirMuestra`); nadie lo importa.
+- [x] Código muerto: `components/alta-producto/ElegirTejido.tsx` (el alta usa `ElegirMuestra`); nadie lo importa. **Borrado el 2026-10-06** con `fueraDeLaCategoria` (`lib/alta-producto.ts`), que solo usaba él.

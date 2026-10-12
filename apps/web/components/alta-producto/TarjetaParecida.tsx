@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
@@ -37,6 +38,7 @@ type Props = {
 };
 
 export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada = false, onRevisada, onDeshacer, onEsElMismo }: Props) {
+  const [verFrase, setVerFrase] = useState(false);
   if (revisada && !t.exacto) {
     return (
       <div className="parecidas-revisada" data-id={t.id}>
@@ -107,60 +109,84 @@ export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada =
             </p>
           )}
 
-          {t.chips.length > 0 && (
-            <div className="parecidas-tags">
-              {t.chips.map((c) => (
-                <Chip key={c} tono="neutro" versalitas={false} className="parecidas-chip">
-                  {c}
-                </Chip>
-              ))}
-            </div>
-          )}
-
-          <div className="parecidas-dato">
-            {t.coloresVisibles.length > 0 && (
-              <span className="parecidas-colores">
-                {t.coloresVisibles.map((c) => (
-                  // Un color sin hex (Estampado, Multicolor, Animal print) es de VARIOS colores: se dibuja en rueda de tonos, no vacío.
-                  <i key={c.nombre} aria-hidden className="parecidas-capsula" data-varios={c.varios ? "" : undefined} style={c.varios ? undefined : { background: c.hex }} />
-                ))}
-                <span className="parecidas-nombres">{t.textoColores}</span>
-              </span>
-            )}
-            {t.tallas && <span className={`parecidas-k ${t.coloresVisibles.length > 0 ? "parecidas-sepa" : ""}`}>{t.tallas}</span>}
-          </div>
-
-          <div className="parecidas-dato">
-            {t.disponibleSedes ? (
+          {/* Los datos en filas con título (Felipe, 2026-10-06, opción 2 de la maqueta): se leen alineados y cada uno dice qué es. */}
+          <dl className="parecidas-datos">
+            {(t.tejido || t.patron) && (
               <>
-                <span className="parecidas-k" title={TEXTO.tituloDisponibles}>
-                  {TEXTO.disponibles}
-                </span>
-                <span className="parecidas-stock">
-                  {t.disponibleSedes.map((s, i) => (
-                    <span key={s.sede}>
-                      {i > 0 && <span className="parecidas-sep">· </span>}
-                      {s.cantidad > 0 ? (
-                        <span>
-                          {s.sede} <b>{s.cantidad}</b>
-                        </span>
-                      ) : (
-                        <span className="parecidas-cero">
-                          {s.sede} {s.cantidad}
-                        </span>
-                      )}
+                <dt>Tela</dt>
+                <dd>{[t.tejido, t.patron].filter(Boolean).join(" · ")}</dd>
+              </>
+            )}
+            {t.temporada && (
+              <>
+                <dt>Temporada</dt>
+                <dd>{t.temporada}</dd>
+              </>
+            )}
+            {t.coloresVisibles.length > 0 && (
+              <>
+                <dt>Colores</dt>
+                <dd>
+                  {/* Solo los círculos: el nombre sale al pasar el mouse o al tocarlo (foco). El lector de pantalla lee la lista entera. */}
+                  <span className="sr-only">{t.textoColores}</span>
+                  {t.coloresVisibles.map((c) => (
+                    <span
+                      key={c.nombre}
+                      aria-hidden
+                      data-nombre={c.nombre}
+                      className="parecidas-punto"
+                      data-varios={c.varios ? "" : undefined}
+                      style={c.varios ? undefined : { background: c.hex }}
+                    />
+                  ))}
+                  {t.masColores > 0 && <span className="parecidas-mas-colores" title={t.textoColores}>+{t.masColores}</span>}
+                </dd>
+              </>
+            )}
+            {t.listaTallas.length > 0 && (
+              <>
+                <dt>Tallas</dt>
+                <dd>
+                  {t.listaTallas.map((x) => (
+                    <span key={x} className="parecidas-talla">
+                      {x}
                     </span>
                   ))}
-                </span>
+                </dd>
               </>
-            ) : (
-              // Sin lectura o sin stock en ninguna sede: se dice tal cual, sin inventar ceros.
-              <span className="parecidas-k">{t.disponible}</span>
             )}
-          </div>
+            <dt title={TEXTO.tituloDisponibles}>Hay</dt>
+            <dd>
+              {t.disponibleSedes && t.disponibleSedes.some((s) => s.cantidad > 0) ? (
+                <>
+                  {t.disponibleSedes
+                    .filter((s) => s.cantidad > 0)
+                    .map((s) => (
+                      <span key={s.sede} className="parecidas-hay">
+                        {s.sede} <b>{s.cantidad}</b>
+                      </span>
+                    ))}
+                  {t.disponibleSedes.some((s) => s.cantidad === 0) && (
+                    <span className="parecidas-cero">
+                      {t.disponibleSedes
+                        .filter((s) => s.cantidad === 0)
+                        .map((s) => `${s.sede} 0`)
+                        .join(" · ")}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="parecidas-cero">{t.disponible}</span>
+              )}
+            </dd>
+          </dl>
 
           {t.cargada && (
             <p className="parecidas-cargada" title={TEXTO.tituloCargada}>
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5 shrink-0">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
               {t.cargada}
             </p>
           )}
@@ -174,14 +200,21 @@ export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada =
             aria-label={FRASE.esElMismoAria(t.nombre)}
             onClick={() => onEsElMismo?.(t.id)}
           >
-            {TEXTO.esElMismoDiseno}
+            {TEXTO.esElMismoDiseno} →
           </Link>
           {t.puedeDescartar && (
             <button type="button" className="btn-enlace parecidas-enlace" onClick={() => onRevisada(t.id)} aria-label={FRASE.noEsOtroAria(t.nombre)}>
               {TEXTO.noEsOtroDiseno}
             </button>
           )}
-          <p className="parecidas-linea">{t.frase}</p>
+          {/* Lo que pasa al abrirla, a un toque (no solo con el mouse): antes era un párrafo fijo bajo los botones de cada prenda. */}
+          <button type="button" className="parecidas-que-pasa" aria-expanded={verFrase} onClick={() => setVerFrase((v) => !v)}>
+            <span aria-hidden className="parecidas-q">
+              ?
+            </span>
+            Qué pasa al abrirla
+          </button>
+          {verFrase && <p className="parecidas-linea">{t.frase}</p>}
         </div>
       </div>
     </article>

@@ -7,7 +7,9 @@
  * ausente o mal escrito devuelve `null` y quien dibuja cae al tono de la familia, como antes.
  *
  * El hex es DATO de la prenda, no color de la interfaz: la regla de «solo tokens» (ADR-0169) habla de la paleta del ERP.
- * El trazo, en cambio, sí es de la paleta (`--color-tinta` / `--color-crema`).
+ * El trazo, en cambio, sí es de la paleta, pero de los tokens FIJOS (`--color-tinta-fija` / `--color-crema-fija`, ADR-0336): el color
+ * de la prenda no cambia con el tema, así que el texto que se lee sobre él tampoco puede intercambiarse. Con `--color-tinta` y
+ * `--color-crema` (que en oscuro se invierten) una prenda negra mostraba su nombre en el mismo negro.
  */
 export type EstiloMosaicoColor = { fondo: string; trazo: string; filo: boolean };
 
@@ -33,5 +35,5 @@ export function estiloMosaicoColor(hex: string | null | undefined): EstiloMosaic
   if (!hex || !HEX.test(hex.trim())) return null;
   const fondo = hex.trim().toLowerCase();
   const l = luminancia(fondo);
-  return { fondo, trazo: l > CORTE_LUMINANCIA ? "var(--color-tinta)" : "var(--color-crema)", filo: l > CORTE_FILO };
+  return { fondo, trazo: l > CORTE_LUMINANCIA ? "var(--color-tinta-fija)" : "var(--color-crema-fija)", filo: l > CORTE_FILO };
 }

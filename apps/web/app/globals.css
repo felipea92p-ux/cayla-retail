@@ -9,23 +9,60 @@
 @import "./estilos/finanzas.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/alta-parecidas.css";
+@import "./estilos/lista-compra.css";
+@import "./estilos/puntos-avance.css";
 @import "./estilos/inicio-almacen.css";
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
+@import "./estilos/rotulo.css";
+/* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
+@import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/vista-rapida.css";
+@import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
+@import "./estilos/movimientos-sellos.css";
+/* Ventas sin registrar: la mesa de talones, puente y prendas (ADR-0360, maqueta A2). */
+@import "./estilos/ventas-sin-registrar.css";
+/* Pestaña de vista, píldora de filtro y segmento de modo: una pieza por función (ADR-0358, «Pestañas y segmentos»). */
+@import "./estilos/pestanas-y-segmentos.css";
+@import "./estilos/traslados-pases.css";
+@import "./estilos/traslados-guia.css";
+@import "./estilos/marcas.css";
+@import "./estilos/analisis.css";
+@import "./estilos/gasto-rapido.css";
+@import "./estilos/analisis-hoy.css";
+@import "./estilos/analisis-acaba.css";
+@import "./estilos/analisis-quieta.css";
+@import "./estilos/analisis-piso.css";
+@import "./estilos/analisis-pedir.css";
+@import "./estilos/analisis-ficha.css";
+@import "./estilos/vacio-aviso-buscador.css";
+@import "./estilos/barra-apilada.css";
+/* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
+@import "./estilos/plan-piso.css";
+/* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
+@import "./estilos/tema.css";
+
+/* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
+   pone el botón del tema. Sin esto, un Windows o un iPhone en oscuro activaría las clases `dark:` de los componentes shadcn
+   (badge, toggle) con la interfaz en claro. `:where` deja la especificidad en cero, como la variante original. */
+@custom-variant dark (&:where([data-tema="oscuro"], [data-tema="oscuro"] *));
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
    "Tres colores. No más, nunca más. La profundidad viene de la
    tipografía y el espacio." — brandbook CAYLA
    ================================================================== */
-@theme {
+/* `static`: Tailwind v4 solo emite los tokens que alguna utilidad o regla CSS usa. Un token que se usa SOLO desde TSX (`style={{ color:
+   "var(--color-tinta-fija)" }}`) no se emitía: la variable no existía en ejecución y el texto caía al color heredado (ADR-0336: una prenda
+   clara mostraba texto claro). Con `static` todos los de la paleta existen siempre. */
+@theme static {
   /* Paleta primaria — los tres únicos colores de identidad */
   --color-rojo: #b8412d;        /* Acento sagrado. Nunca decoración. Máx. 2 por pantalla. */
   --color-crema: #f5f0e8;       /* Fondo dominante. Nunca blanco puro. */
@@ -44,6 +81,16 @@
                                    se había subido a #fbf6ec porque este «se leía como blanco puro»; el
                                    2026-09-22 Felipe eligió la paleta oficial completa, este incluido. */
   --color-hueso: #eae1d2;       /* Superficie HUNDIDA: inputs en caja y la zebra de las tablas. */
+  /* Modo oscuro (ADR-0336): dos colores que no eran tokens y por eso no cambiaban de tema. `sombra` es el color de TODA sombra
+     (tinta en claro, negro en oscuro: la tinta no se ve sobre la tinta); `vidrio` es el relleno de una tarjeta de vidrio
+     (blanco en claro, un gris cálido en oscuro). */
+  --color-sombra: #1a1a18;
+  --color-vidrio: #ffffff;
+  /* La tinta y la crema FIJAS: iguales en claro y en oscuro. Para lo que se dibuja sobre un color de DATO —la prenda, una muestra, un
+     tinte—: ese color no cambia con el tema, así que el texto que se lee sobre él tampoco puede intercambiarse. `--color-tinta` y
+     `--color-crema` sí se intercambian (ADR-0336); con ellos, una prenda negra mostraba su nombre en el mismo negro. */
+  --color-tinta-fija: #1a1a18;
+  --color-crema-fija: #f5f0e8;
   --color-pizarra: #4c5d6e;     /* Estado informativo — programado, en revisión, en camino. No es semáforo. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
@@ -52,6 +99,9 @@
      4.21:1 — los dos reprobaban AA (mínimo 4.5). Ahora dan 4.72 y 4.99. Mismo
      lugar en el semáforo, solo con cuerpo suficiente para leerse. */
   --color-verde: #48603f;       /* Va bien / hecho — oficial 2026-09-22 (antes #556e49, 4.99:1); más oscuro, sube el contraste */
+  /* Oliva (Felipe, 2026-10-05, ADR-0353): OTRA tonalidad del verde para la «Llegada» en Movimientos, al lado de la «Venta» en verde.
+     No es un color nuevo: es el verde oficial con un toque de ámbar (34 %), así sale de la paleta y la sigue si la paleta cambia. */
+  --color-oliva: color-mix(in srgb, var(--color-verde) 66%, var(--color-ambar));
   --color-ambar: #74501a;       /* Al filo / en proceso — oficial 2026-09-22 (antes #8c631f, 4.72:1); más oscuro, sube el contraste */
 
   /* Marcas de GRÁFICO con polaridad (Análisis de inventario, 2026-09-22): aceleró · estable · desaceleró.
@@ -165,11 +215,16 @@
      exactamente el "sharp" que Felipe pidió sacar. Son sombras de tinta, no
      negras, y muy abiertas — sugieren aire, no relieve. Superficies pegadas al
      fondo (tarjetas, tablas, celdas) siguen SIN sombra. */
-  --shadow-sm: 0 1px 2px rgb(26 26 24 / 0.05);
-  --shadow: 0 2px 8px -2px rgb(26 26 24 / 0.07);
-  --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
-  --shadow-lg: 0 18px 44px -14px rgb(26 26 24 / 0.16);
-  --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--color-sombra) 5%, transparent);
+  --shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-sombra) 7%, transparent);
+  --shadow-md: 0 8px 24px -8px color-mix(in srgb, var(--color-sombra) 11%, transparent);
+  --shadow-lg: 0 18px 44px -14px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+  --shadow-xl: 0 30px 64px -22px color-mix(in srgb, var(--color-sombra) 20%, transparent);
+
+  /* Los reflejos del vidrio llevan alfa propia por tema: un filo blanco al 95 % que en claro es un destello fino, en oscuro
+     sería un tubo de neón. `estilos/tema.css` los redefine. */
+  --brillo-superior: rgb(255 255 255 / 0.95);   /* el filo claro del borde de arriba de una tarjeta de vidrio */
+  --luz-especular: rgb(255 255 255 / 0.85);     /* el resplandor que sigue al cursor sobre una tarjeta de vidrio */
 }
 
 /* Lateral plegado (2026-09-19). UNA sola fuente de verdad, la misma de `--spacing-lateral`: el
@@ -189,7 +244,7 @@
    todo apunta a un --color-* que ya existía.
 
    `primary` es tinta, no rojo — calca a `<Boton peso="primario">`
-   (bg-tinta, hover:bg-rojo). Si `primary` fuera rojo, cada componente
+   (bg-tinta, hover:bg-rojo-profundo). Si `primary` fuera rojo, cada componente
    nuevo pintaría rojo por defecto y se rompería "acento sagrado, máx.
    2 por pantalla" apenas se junten dos en una pantalla.
    `accent` (hover neutral de menús/listas) es sand, igual que el
@@ -203,7 +258,8 @@
    con el hilo de foco.
    No se define `--radius`: `rounded-sm/md/lg/xl` de Tailwind ya
    resuelven solos contra `--radius-sm/md/lg/xl` de arriba.
-   Sin modo oscuro: el brandbook es una sola paleta, no dos.
+   Modo oscuro (ADR-0336, 2026-10-05; revierte el «sin modo oscuro» de ADR-0116): estos alias apuntan a los tokens de
+   arriba, así que se oscurecen solos cuando `estilos/tema.css` redefine `crema`, `tinta`… bajo `[data-tema="oscuro"]`.
    ================================================================== */
 @theme {
   --color-background: var(--color-crema);
@@ -249,6 +305,25 @@ body {
   }
 }
 
+/* Foco de teclado — UN solo anillo para todo el ERP (ADR-0351, Felipe 2026-10-05).
+   Hasta hoy el foco salía de tres maneras: el anillo AZUL por defecto del navegador (fuera de paleta, distinto en cada
+   navegador), anillos en rojo con 30–60 % de opacidad (1,5 a 2,5:1 contra crema) y controles con `outline-none` que solo
+   cambiaban un borde. WCAG 2.2 pide ≥ 3:1 (1.4.11) y visible siempre (2.4.7); 2 px es el tamaño de 2.4.13.
+   Tinta, y no rojo: el rojo es el acento «sagrado» (máx. 2 por pantalla, ADR-0169) y el foco aparece en cada Tab.
+   Tinta sobre crema 15,4:1, papel 16,4:1, hueso 13,4:1, sand 13,3:1. La regla va en `base` (especificidad mínima): un control
+   con su propio `outline-*` la sigue pisando; el que solo quiere ESTE anillo no escribe nada. Detalle y medidas: ADR-0351. */
+@layer base {
+  :root {
+    --foco-color: var(--color-tinta);
+    --foco-ancho: 2px;
+    --foco-separacion: 2px;
+  }
+  :focus-visible {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: var(--foco-separacion);
+  }
+}
+
 /* ==================================================================
    Clases de componente propias — TODAS viven en `@layer components`
    (2026-09-18).
@@ -285,8 +360,8 @@ body {
     background: var(--color-papel);
     border: 1px solid color-mix(in srgb, var(--color-tinta) 22%, transparent);
     box-shadow:
-      0 20px 46px -16px rgb(26 26 24 / 0.32),
-      0 3px 8px -3px rgb(26 26 24 / 0.16);
+      0 20px 46px -16px color-mix(in srgb, var(--color-sombra) 32%, transparent),
+      0 3px 8px -3px color-mix(in srgb, var(--color-sombra) 16%, transparent);
   }
 
   /* La opción activa de una lista (con el mouse o con las flechas): un terracota muy tenue. Era arena/hueso, casi del tono del
@@ -435,8 +510,13 @@ body {
     border-radius: var(--radius-md);
     transition: border-color 150ms;
   }
-  .caja-cayla:focus-within {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  /* Foco de la caja (ADR-0351). Un campo de texto con el cursor adentro enciende la caja entera (`:has`), no el `<input>`
+     transparente de dentro; una caja que es su propio control (combo, input con la clase) se enciende por el anillo
+     común de `base`. Por ADR-0105 vive en `components`: una utilidad le gana, así que NINGÚN control con `caja-cayla`
+     escribe `outline-none` (lo vigila `lib/foco-comun.test.ts`). */
+  .caja-cayla:has(:focus-visible) {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: var(--foco-separacion);
   }
 
   /* La nota al pie de una pantalla («Registro transparente: …»): explica una regla del negocio,
@@ -468,6 +548,12 @@ body {
   }
   .fila-cayla:hover {
     background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  }
+  /* Foco de una fila clicable (ADR-0351): el anillo va HACIA ADENTRO (offset negativo). Hacia afuera la tarjeta de la tabla
+     (`overflow-hidden`) lo recortaba en los costados y la fila de arriba y la de abajo lo tapaban. */
+  .fila-cayla:focus-visible {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: calc(var(--foco-ancho) * -1);
   }
 }
 
@@ -881,9 +967,12 @@ body {
     display: block;
     width: 72mm;
     box-sizing: border-box;
-    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba y abajo lo
-       justo (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. */
-    padding: 2mm 4mm 6mm;
+    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba lo justo
+       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo 18 mm (antes 6,
+       Felipe 2026-10-09): la cuchilla de la térmica está más arriba que el cabezal, y con 6 mm el
+       corte caía sobre el pie y el QR salía partido. Este blanco es lo que el papel avanza hasta
+       la cuchilla después de la última línea. */
+    padding: 2mm 4mm 18mm;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -1088,6 +1177,28 @@ body {
   --ease-salida: cubic-bezier(0.4, 0, 1, 1);      /* salidas: arranca lento y se va */
 }
 
+/* La onda del color elegido en una tarjeta de Existencias (Felipe, 2026-10-07: «ondas no muy bruscas», siempre y muy lento). Excepción
+   aprobada a ADR-0136 (bucle): un aro que crece y se apaga cada 3,2 s. Quieto con prefers-reduced-motion (la clase no anima ahí). */
+@keyframes cayla-onda-color {
+  0% { transform: scale(1); opacity: 0.5; }
+  75%, 100% { transform: scale(2.3); opacity: 0; }
+}
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Solo ::before: el ::after del punto es su área para tocar (más grande que el círculo). */
+    .onda-color::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 9999px;
+      border: 1.5px solid var(--color-tinta);
+      opacity: 0;
+      pointer-events: none;
+      animation: cayla-onda-color 3.2s var(--ease-cayla) infinite;
+    }
+  }
+}
+
 @keyframes cayla-velo {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1217,6 +1328,12 @@ html[data-buscando] [data-resultados] {
 
 /* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
         gradiente del sistema y dura 600ms; no queda nada pintado. ---- */
+/* La onda de un clic en un botón: nace en el punto tocado y se apaga (ronda 4 de /unificar). */
+@keyframes cayla-onda {
+  from { opacity: 1; scale: 0; }
+  to { opacity: 0; scale: 1; }
+}
+
 @keyframes cayla-brillo {
   from { opacity: 1; transform: translate3d(-120%, 0, 0) skewX(-12deg); }
   to { opacity: 1; transform: translate3d(320%, 0, 0) skewX(-12deg); }
@@ -1280,17 +1397,62 @@ html[data-buscando] [data-resultados] {
   /* El tilde de un check que se traza (solo el último trazo del ícono: el círculo queda). */
   .check-trazo path:last-child { stroke-dasharray: 24; animation: cayla-trazo 550ms var(--ease-cayla) backwards; animation-delay: var(--d, 700ms); }
   .anillo-progreso .rg { transition: stroke-dasharray 900ms var(--ease-cayla); animation: cayla-anillo 1.3s var(--ease-cayla) 300ms backwards; }
-  /* Un destello de luz cruza el botón al pasar el mouse, y su flecha se adelanta. Es el
-     mismo barrido de `cayla-brillo` de arriba, ahora también para los botones oscuros. */
-  .boton-brillo { position: relative; overflow: hidden; }
-  .boton-brillo::after {
-    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+  /* El MOVIMIENTO ÚNICO de un botón (ADR-0358, ronda 3: Felipe eligió la D tocándola, 2026-10-07). Lo usan `<Boton>`,
+     `<BotonEnlace>`, `<BotonAncla>`, la barra de vidrio de Comprobantes (`BotonCompacto`) y los botones de los pasos de
+     Cambios y Devoluciones (`FlujoGuiado`); antes eran tres movimientos distintos.
+     · Al pasar el mouse: sube 2 px con su sombra, cruza una luz (650 ms, una vez) y el ícono responde: el «+» da un
+       cuarto de vuelta y la flecha que va adelante se adelanta 4 px (lo que Felipe quería de la C).
+     · Al presionar: se encoge un 3 % y baja; la mano siente que lo presionó.
+     · Al hacer clic (ronda 4, Felipe 2026-10-07: «más animaciones para que sea más interactivo cuando haces clic»): una
+       onda nace donde tocaste y se apaga (450 ms). La pone `<OndaBotones>` (montado una vez en `app/layout.tsx`).
+     Lo tienen también todos los `btn-cayla` (menos `btn-enlace`, que es texto): un botón del ERP se mueve igual, venga de
+     donde venga. Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) {
+    position: relative;
+    overflow: hidden;
+    transition:
+      translate 260ms var(--ease-cayla),
+      scale 120ms var(--ease-cayla),
+      box-shadow 260ms var(--ease-cayla),
+      background-color 200ms var(--ease-cayla),
+      border-color 200ms var(--ease-cayla),
+      color 200ms var(--ease-cayla);
   }
-  .boton-brillo:hover:not(:disabled)::after { animation: cayla-brillo 800ms var(--ease-cayla); }
-  .boton-brillo svg:last-child { transition: transform 300ms var(--ease-cayla); }
-  .boton-brillo:hover:not(:disabled) svg:last-child { transform: translateX(4px); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, color-mix(in srgb, currentColor 26%, transparent), transparent);
+    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+    opacity: 0;
+  }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
+    content: ""; position: absolute; pointer-events: none; border-radius: 999px;
+    left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
+    translate: -50% -50%;
+    background: color-mix(in srgb, currentColor 24%, transparent);
+    opacity: 0;
+  }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))[data-onda]::before { animation: cayla-onda 450ms var(--ease-cayla); }
+
+  /* LAS DOS VOCES (ADR-0358, ronda 4: Felipe eligió la B, 2026-10-07). Dentro de la cabecera de una pantalla
+     (`data-voz="cabecera"`: EncabezadoPagina, CabeceraPantalla y las cabeceras propias de Compras y Producción) los botones
+     hablan en VERSALITAS de 11 px y 40 px, como la acción principal; en todo lo demás —hojas, tarjetas, filas— en letra
+     normal de 13,5 px, que se lee como una frase. La pieza es la misma (`btn-cayla`, o `<Boton>`, que la dibuja): la voz la
+     pone el lugar, no cada pantalla. */
+  [data-voz="cabecera"] :is(.btn-cayla:not(.btn-enlace)) {
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 0.75rem 1rem;
+  }
 }
 
 @layer components {
@@ -1474,34 +1636,43 @@ html[data-buscando] [data-resultados] {
   }
 }
 
-/* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
-        Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
-        El barrido y la aguja llevan la MISMA curva y duración a propósito: la
-        aguja marca hasta dónde llegó el barrido. `--dona-c` (la circunferencia)
-        viene del componente, para que el CSS no repita el número. Filas y barras
-        usan `backwards` y no `both`: una vez dentro, su opacidad tiene que poder
-        cambiar con el hover, y un relleno `forwards` la dejaría fija. ---- */
-@keyframes dona-barrer {
-  from { stroke-dashoffset: var(--dona-c); }
-  to { stroke-dashoffset: 0; }
+/* ---- HOJA CON EL TECLADO ARRIBA (2026-10-08) — `useHojaSobreElTeclado` (components/ui/) ----
+   Con el teclado del celular abierto, el contenedor de `<Modal>` lleva `data-teclado` y `--teclado` (lo que el teclado tapa,
+   en px), empieza en el borde de arriba de lo visible y llega al fondo de la pantalla, detrás del teclado. La hoja sigue pegada
+   abajo y crece hasta llenarlo, y reserva abajo, con relleno, lo tapado: lo último se alcanza desplazando, el campo enfocado se deja a la vista
+   (`scroll-padding-bottom`) y el pie fijo se apoya sobre el teclado (sticky se mide desde el borde de adentro del relleno).
+   No se pega la hoja al borde de abajo de lo visible: Brave en Android reporta el alto visible ~56 px corto y la hoja quedaba
+   flotando con el velo asomando entre ella y el teclado. Así, un alto mal reportado solo agranda un relleno que no se ve.
+   Fuera de capa a propósito: le gana a `max-h-*` y `h-*` de Tailwind, que viven en la capa `utilities`. ---- */
+@media (max-width: 639.98px) {
+  [data-teclado] > .cascada-modal {
+    max-height: 100%;
+    padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
+    scroll-padding-bottom: calc(var(--teclado, 0px) + 1rem);
+  }
+  /* Bajo el pie fijo no asoma nada: si el navegador reportó corto lo visible, entre el pie y el teclado quedaría a la vista
+     el contenido que pasa por detrás. Este paño del color de la hoja lo tapa (detrás del teclado no se ve). */
+  [data-teclado] .pie-hoja-fijo::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--teclado, 0px);
+    background: var(--fondo-hoja, var(--color-papel));
+    pointer-events: none;
+  }
+  /* El ticket no tiene relleno propio y su alto es fijo: su panel de adentro scrollea y se acorta solo. */
+  [data-teclado] > .cascada-modal[data-variante="ticket"] {
+    height: 100%;
+    padding-bottom: var(--teclado, 0px);
+  }
 }
-@keyframes dona-gira { to { transform: rotate(360deg); } }
-@keyframes dona-apaga { to { opacity: 0; } }
-@keyframes dona-barra { from { transform: scaleX(0); } }
-
-@layer components {
-  .anim-dona-barrido { animation: dona-barrer 1300ms var(--ease-cayla) both; }
-  .anim-dona-mano {
-    transform-origin: 100px 100px;
-    animation: dona-gira 1300ms var(--ease-cayla) both, dona-apaga 350ms linear 1000ms both;
+@media (min-width: 640px) {
+  [data-teclado] {
+    padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
   }
-  .anim-dona-fila {
-    animation: cayla-revelar 420ms var(--ease-cayla) backwards;
-    animation-delay: calc(260ms + var(--i, 0) * 110ms);
-  }
-  .anim-dona-barra {
-    animation: dona-barra 900ms var(--ease-cayla) backwards;
-    animation-delay: calc(380ms + var(--i, 0) * 110ms);
+  [data-teclado] > .cascada-modal {
+    max-height: 100%;
   }
 }
 
@@ -1581,8 +1752,8 @@ html[data-buscando] [data-resultados] {
   }
 
   .vidrio-cayla {
-    background: rgb(255 255 255 / var(--vidrio-alfa, 0.58));
-    border: 1px solid rgb(26 26 24 / var(--vidrio-borde, 0.12));
+    background: color-mix(in srgb, var(--color-vidrio) calc(var(--vidrio-alfa, 0.58) * 100%), transparent);
+    border: 1px solid color-mix(in srgb, var(--color-tinta) calc(var(--vidrio-borde, 0.12) * 100%), transparent);
     -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px));
     backdrop-filter: blur(var(--vidrio-blur, 18px));
   }
@@ -1627,7 +1798,7 @@ html[data-buscando] [data-resultados] {
     transform: translateX(var(--pildora-x, 0px));
     border-radius: 10px;
     background: var(--color-tinta);
-    box-shadow: 0 8px 18px -10px rgb(26 26 24 / 0.75);
+    box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
     opacity: 0;
     pointer-events: none;
   }
@@ -1668,17 +1839,8 @@ html[data-buscando] [data-resultados] {
   initial-value: #a47865;
 }
 
-@keyframes kpi-trazo {
-  from { stroke-dashoffset: 1; }
-}
 @keyframes kpi-crece {
   from { transform: scaleY(0); }
-}
-@keyframes kpi-crece-x {
-  from { transform: scaleX(0); }
-}
-@keyframes kpi-llena {
-  from { width: 0; }
 }
 
 @layer components {
@@ -1702,8 +1864,8 @@ html[data-buscando] [data-resultados] {
     border-radius: 16px;
     border: 1px solid var(--color-sand);
     border-left: 3px solid var(--kc);
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.72), rgb(251 248 242 / 0.42));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-papel) 42%, transparent));
+    box-shadow: inset 0 1px 0 var(--brillo-superior);
     -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
     backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
     transition: box-shadow 260ms var(--ease-cayla);
@@ -1726,7 +1888,7 @@ html[data-buscando] [data-resultados] {
     pointer-events: none;
     opacity: 0;
     transition: opacity 350ms;
-    background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.85), transparent 68%);
+    background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), var(--luz-especular), transparent 68%);
   }
   /* El contenido por encima del tinte y de la luz. Sin `z-index` la luz (`::after`, la última en el
      árbol) se pintaba ENCIMA del texto y lo lavaba justo cuando el cursor pasaba por la tarjeta. */
@@ -1744,115 +1906,24 @@ html[data-buscando] [data-resultados] {
       transform: translateY(-2px);
     }
     .kpi-vidrio-envoltura:hover .kpi-vidrio {
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), var(--shadow-md);
+      box-shadow: inset 0 1px 0 var(--brillo-superior), var(--shadow-md);
     }
     .kpi-vidrio:hover::after {
       opacity: 1;
     }
   }
 
-  /* Visualizaciones (todas `aria-hidden`: el dato ya está dicho con palabras en la tarjeta). */
-  .kpi-viz {
-    position: relative;
-    height: 36px;
-    margin-top: 10px;
-  }
-  .kpi-spark {
-    display: block;
-    width: 100%;
-    height: 36px;
-    overflow: visible;
-  }
-  .kpi-spark path {
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  .kpi-spark__antes {
-    stroke: rgb(26 26 24 / 0.35);
-    stroke-width: 1.3;
-    stroke-dasharray: 0.03 0.05;
-  }
-  .kpi-spark__hoy {
-    stroke: rgb(26 26 24 / 0.85);
-    stroke-width: 1.8;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 0;
-  }
-  .kpi-spark__fin {
-    position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--color-tinta);
-    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.85);
-  }
-  .kpi-eje::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 12px;
-    height: 1px;
-    background: rgb(26 26 24 / 0.55);
-    opacity: 0.5;
-  }
-  .kpi-eje i {
-    position: absolute;
-    bottom: 8px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--color-tinta);
-    transform: translateX(-50%);
-    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.85);
-  }
-  .kpi-eje em {
-    position: absolute;
-    bottom: -2px;
-    font: 500 11px/1 var(--font-sans);
-    font-style: normal;
-    color: rgb(26 26 24 / 0.55);
-  }
-  .kpi-progreso {
-    height: 6px;
-    margin-top: 14px;
-    overflow: hidden;
-    border-radius: 99px;
-    background: rgb(26 26 24 / 0.1);
-  }
-  .kpi-progreso b {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--color-verde);
-    transition: width 700ms var(--ease-cayla);
-  }
   /* Gráficos de las tarjetas de Comprobantes (2026-09-26, spike `docs/maquetas/comprobantes-conectado-2026-09/`).
      SOLO tokens CAYLA: tinta = lo principal, taupe = lo secundario, grafico-neutro = lo que no suma,
      grafico-alza (verde) = hecho o vale, grafico-baja (ámbar) = falta o está al filo, sand = el fondo vacío.
      El rojo no entra en ningún gráfico: es el acento sagrado (máx. 2 por pantalla, ADR-0169). */
-  .kpi-apilada {
-    display: flex;
-    gap: 2px;
-    height: 8px;
-    margin-top: 12px;
-    overflow: hidden;
-    border-radius: 99px;
-    background: var(--color-sand);
-  }
-  .kpi-apilada i {
-    display: block;
-    min-width: 0;
-    transform-origin: left;
-  }
   .kpi-leyenda {
     display: flex;
     flex-wrap: wrap;
     gap: 2px 10px;
     margin-top: 6px;
     font-size: 11px;
-    color: rgb(26 26 24 / 0.65);
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
   .kpi-leyenda span {
     display: inline-flex;
@@ -1904,7 +1975,7 @@ html[data-buscando] [data-resultados] {
     justify-content: space-between;
     margin-top: 3px;
     font-size: 10px;
-    color: rgb(26 26 24 / 0.5);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
   }
   .kpi-puntos {
     display: flex;
@@ -1927,47 +1998,12 @@ html[data-buscando] [data-resultados] {
   .g-alza { background: var(--color-grafico-alza); }
   .g-baja { background: var(--color-grafico-baja); }
   @media (prefers-reduced-motion: no-preference) {
-    .kpi-apilada i { animation: kpi-crece-x 600ms var(--ease-cayla) 200ms backwards; }
     .kpi-tramos i { animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards; }
   }
   .kpi-progreso__texto {
     margin-top: 6px;
     font-size: 13px;
-    color: rgb(26 26 24 / 0.65);
-  }
-  .kpi-barras {
-    display: flex;
-    align-items: flex-end;
-    /* En porcentaje: con 16 barras y un hueco fijo de 7 px, en una tarjeta angosta cada barra quedaba en una raya. */
-    gap: 3%;
-  }
-  .kpi-barras i {
-    flex: 1;
-    background: rgb(26 26 24 / 0.78);
-    border-radius: 3px 3px 0 0;
-    transform-origin: bottom;
-  }
-  .kpi-barras u {
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 1px dashed rgb(26 26 24 / 0.55);
-    text-decoration: none;
-  }
-
-  /* El primer pintado: el trazo se dibuja, la barra se llena y las barras del ticket crecen
-     (menos de 1 s; excepción aprobada a «nada se anima solo al entrar», ADR-0011). Con
-     movimiento reducido ni siquiera existen: se ve el resultado, no el viaje. */
-  @media (prefers-reduced-motion: no-preference) {
-    .kpi-spark__hoy {
-      animation: kpi-trazo 800ms var(--ease-cayla) 200ms backwards;
-    }
-    .kpi-progreso b {
-      animation: kpi-llena 600ms var(--ease-cayla) 200ms backwards;
-    }
-    .kpi-barras i {
-      animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards;
-    }
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
 }
 
@@ -2000,7 +2036,7 @@ html[data-buscando] [data-resultados] {
     height: 14px;
     flex: none;
     border-radius: 50%;
-    border: 1.5px solid rgb(26 26 24 / 0.24);
+    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 24%, transparent);
     background: transparent;
     transition:
       background-color 450ms var(--ease-cayla),
@@ -2033,11 +2069,11 @@ html[data-buscando] [data-resultados] {
   }
   /* Aceptado en el entorno de pruebas: SUNAT no lo vio. Punteado y sin relleno, jamás verde. */
   .hilo-n--prueba {
-    border-color: rgb(26 26 24 / 0.4);
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
     border-style: dashed;
   }
   .hilo-n--apagado {
-    border-color: rgb(26 26 24 / 0.25);
+    border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent);
   }
   .hilo-n svg {
     position: absolute;
@@ -2045,7 +2081,7 @@ html[data-buscando] [data-resultados] {
     width: calc(100% - 2px);
     height: calc(100% - 2px);
     fill: none;
-    stroke: #fff;
+    stroke: var(--color-crema);
     stroke-width: 1.8;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -2068,7 +2104,7 @@ html[data-buscando] [data-resultados] {
     flex: none;
     overflow: hidden;
     border-radius: 2px;
-    background: rgb(26 26 24 / 0.24);
+    background: color-mix(in srgb, var(--color-tinta) 24%, transparent);
   }
   .hilo-l::after {
     content: "";
@@ -2086,10 +2122,10 @@ html[data-buscando] [data-resultados] {
     transform: scaleX(1);
   }
   .hilo-l--prueba {
-    background: rgb(26 26 24 / 0.4);
+    background: color-mix(in srgb, var(--color-tinta) 40%, transparent);
   }
   .hilo-l--apagado {
-    background: rgb(26 26 24 / 0.15);
+    background: color-mix(in srgb, var(--color-tinta) 15%, transparent);
   }
   /* Mientras se transmite: un destello ámbar recorre el tramo hacia SUNAT. */
   .hilo-l--trabaja::after {
@@ -2284,9 +2320,6 @@ html[data-buscando] [data-resultados] {
     .anim-velo-salida {
       animation-duration: 1ms;
     }
-    .anim-dona-barrido,
-    .anim-dona-fila,
-    .anim-dona-barra,
     .anim-ritmo-linea,
     .anim-ritmo-punto,
     .anim-vivo-destello,
@@ -2312,7 +2345,6 @@ html[data-buscando] [data-resultados] {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .anim-dona-mano { display: none; }
     .anim-rueda,
     .anim-caja-check path {
       animation-duration: 1ms;
@@ -2340,7 +2372,12 @@ html[data-buscando] [data-resultados] {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .boton-brillo:hover:not(:disabled)::after { animation: none; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after,
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before { animation: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================
@@ -2540,8 +2577,58 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
   }
   .hoja-cobro {
-    box-shadow: -30px 0 60px -40px color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    /* Contenedor de TAMAÑO con nombre: los bloques `@container cobro (max-height…)` de abajo compactan la hoja según SU alto (el
+       del catálogo menos sus márgenes), no el de la ventana — ese alto cambia con la cabecera de la página, el zoom y el
+       navegador, y la ventana no lo sabe. Su alto sale de `inset-y-3`, nunca del contenido, así que la contención es segura. */
+    container: cobro / size;
+    box-shadow: -30px 0 60px -40px color-mix(in srgb, var(--color-sombra) 35%, transparent);
     animation: hoja-cobro-entra 520ms var(--ease-cayla) both;
+  }
+
+  /* El esqueleto de la hoja (escritorio): cabecera y botón FIJOS, y entre los dos un cuerpo con los pasos que solo scrollea si
+     ni compactada cabe. Desde el 2026-10-05 la hoja entera ya no scrollea: en un laptop de ~650 px de alto «Confirmar cobro»
+     quedaba bajo el pliegue y había que bajar para cobrar. Estos tamaños viven aquí (no como utilidades en el JSX) para que
+     el bloque compacto de abajo pueda cambiarlos. */
+  .hoja-cobro-raiz { gap: 0.5rem; padding: 0.75rem 1.5rem 1rem; }
+  .hoja-cobro-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-bottom: 0.75rem; }
+  .hoja-cobro-total { font-size: 3rem; }
+  /* El cuerpo ensancha 0.75rem a cada lado para que el tinte del paso («Sigue aquí», margen negativo) no quede recortado. */
+  .hoja-cobro-cuerpo {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+  }
+  .hoja-cobro-cuerpo > .hoja-cobro-paso { flex: none; }
+  .hoja-cobro-pie { padding-top: 0.5rem; }
+  .hoja-cobro-confirmar { gap: 0.75rem; height: 3.5rem; padding-inline: 1.5rem; }
+  .hoja-cobro-confirmar-monto { font-size: 1.875rem; }
+  .hoja-cobro-confirmar-rotulo { font-size: 0.875rem; }
+
+  .hoja-cobro-cabeza-paso { margin-bottom: 0.75rem; }
+  .hoja-cobro-numero { width: 1.75rem; height: 1.75rem; font-size: 0.75rem; }
+  .hoja-cobro-pago { gap: 1rem; }
+  .hoja-cobro-medios { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.625rem; }
+  .hoja-cobro-pista { padding-top: 0.25rem; font-size: 15px; line-height: 1.625; }
+  .hoja-cobro-nota { margin-bottom: 0.625rem; padding: 0.5rem 0.75rem; font-size: 13px; line-height: 1.375; }
+  .hoja-cobro-pregunta { margin-bottom: 0.625rem; font-size: 13px; }
+  .hoja-cobro-billetes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .hoja-cobro-vuelto { margin-top: 1rem; }
+  .hoja-cobro-vuelto-monto { font-size: 2.25rem; white-space: nowrap; }
+  .hoja-cobro-doc { margin-top: 0.75rem; }
+  /* Con sitio al lado, los medios a la izquierda y lo que el medio pide (billetes, vuelto, pista) a la derecha. */
+  @container (min-width: 32.5rem) {
+    .hoja-cobro-pago { grid-template-columns: minmax(0, 25rem) minmax(13rem, 1fr); }
+  }
+  @container (min-width: 40rem) {
+    .hoja-cobro-vuelto-monto { font-size: 3rem; }
+    /* Lo exacto lleva ✓ y el monto («✓ S/149.90», en verde): a 3 rem no cabría junto a la etiqueta en la columna de los billetes. */
+    .hoja-cobro-vuelto-monto.es-exacto { font-size: 2.25rem; }
   }
 
   /* Cada paso; el que sigue se enciende (guía de foco, ADR-0284): un tinte terracota suave y su borde. */
@@ -2586,7 +2673,13 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   .hoja-cobro-medio:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
   /* El cuadrado es su propio contenedor: el nombre cabe entero aunque la hoja sea angosta (menú lateral abierto). */
   .hoja-cobro-medio { container-type: inline-size; }
-  .hoja-cobro-nombre { font-size: min(13px, 9cqi); letter-spacing: min(0.08em, 0.6cqi); white-space: nowrap; }
+  .hoja-cobro-nombre { font-size: max(9px, min(13px, 9cqi)); letter-spacing: min(0.08em, 0.6cqi); white-space: nowrap; }
+  /* Ficha de menos de 6 rem (una tablet a 1024 px con el menú abierto: 85 px): «Transferencia» pasa a «Transf.» en vez de achicarse a 7 px. */
+  .hoja-cobro-nombre-corto { display: none; }
+  @container (max-width: 6rem) {
+    .hoja-cobro-nombre-largo { display: none; }
+    .hoja-cobro-nombre-corto { display: inline; }
+  }
   .hoja-cobro-icono { display: block; width: 52%; height: 52%; color: var(--cd); transition: color 300ms, width 350ms var(--ease-cayla), height 350ms var(--ease-cayla); }
   .hoja-cobro-icono svg { stroke-width: 1.25; }
   .hoja-cobro-medio.es-elegido { background: var(--cd); border-color: var(--cd); color: var(--color-crema); }
@@ -2686,6 +2779,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   }
   .hoja-cobro-comprobante:hover:not(:disabled) { border-style: solid; border-color: var(--color-tinta); }
   .hoja-cobro-comprobante.es-elegido { border-style: solid; border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
+  .hoja-cobro-comprobante-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
   .hoja-cobro-comprobante-icono { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 0.5rem; background: var(--color-hueso); }
   .hoja-cobro-comprobante.es-elegido > .hoja-cobro-comprobante-icono { background: color-mix(in srgb, var(--color-crema) 14%, transparent); }
 
@@ -2714,6 +2808,134 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   @container (max-width: 44rem) {
     .hoja-cobro-comprobante-icono { display: none; }
     .hoja-cobro-comprobante { justify-content: center; padding-inline: 0.5rem; }
+  }
+  /* Muy angosta (menos de 24 rem útiles: una tablet a 1024 px con el menú abierto): el nombre pasa a dos líneas en vez de cortarse
+     con «…» («Nota de venta» salía «NOTA …»), y «Confirmar cobro» pierde el ✓ y aprieta sus márgenes para que su rótulo
+     quepa entero junto al monto. */
+  @container (max-width: 24rem) {
+    .hoja-cobro-comprobante-nombre { white-space: normal; text-align: center; font-size: 11px; line-height: 1.15; letter-spacing: 0.06em; }
+  }
+
+  /* ------------------------------------------------------------------
+     La hoja se adapta sola según su ALTO (Felipe 2026-10-05: «el botón de cobrar sale recortado, tengo que hacer scroll, que
+     se ajuste a cualquier resolución»). Y, al verlo en su monitor: «quiero el diseño anterior en dos filas de 3 donde se veían más
+     grandes, simplemente quería que sea responsive». Por eso la FORMA no cambia nunca: los medios siguen en dos filas de tres
+     fichas, y en la hoja ancha los billetes siguen a su lado. Lo único que cambia con el alto es el TAMAÑO:
+       · de 52 rem de alto para arriba (~832 px): el diseño de siempre, sin tocar (fichas cuadradas de 126 px);
+       · bajo 52 rem: espacios más justos (cabecera, pasos, botón, comprobante) y las fichas valen lo que sobra, entre 4,25 rem y
+         su tamaño de siempre — con un monitor de ~820 px de alto siguen siendo del tamaño de siempre —; en la hoja ANCHA los
+         billetes pasan a 3 por fila para no alargar el paso;
+       · hoja ANGOSTA (a una columna, los billetes caen debajo): fichas bajas de 3,25 a 7 rem, los billetes en UNA línea con el
+         vuelto junto a «¿Con cuánto paga?» y el documento del cliente en 2 × 2;
+       · bajo 40 rem, sin la cabecera «Total / Volver».
+     Nunca se pasa a una fila de seis (una versión de esta misma tarde lo hizo y dejó los íconos chicos y la hoja medio vacía):
+     `lib/hoja-de-cobro-ajuste.test.ts` lo impide. Si ni así caben (pago en dos medios, o hoja angosta y baja con el documento del
+     cliente), scrollea el cuerpo y el botón sigue a la vista.
+     ------------------------------------------------------------------ */
+  @container cobro (max-height: 52rem) {
+    .hoja-cobro-raiz { padding: 0.5rem 1.25rem 0.75rem; gap: 0.25rem; }
+    .hoja-cobro-cabeza { padding-bottom: 0.4rem; }
+    .hoja-cobro-total { font-size: 2rem; }
+    .hoja-cobro-cuerpo { gap: 0.25rem; }
+    .hoja-cobro-paso { padding-block: 0.3rem; }
+    .hoja-cobro-cabeza-paso { margin-bottom: 0.4rem; }
+    .hoja-cobro-numero { width: 1.5rem; height: 1.5rem; }
+    .hoja-cobro-pie { padding-top: 0.35rem; }
+    .hoja-cobro-confirmar { height: 3rem; padding-inline: 1.25rem; }
+    .hoja-cobro-confirmar-monto { font-size: 1.625rem; }
+    .hoja-cobro-pago { gap: 0.75rem; }
+    .hoja-cobro-medios { gap: 0.5rem; }
+    .hoja-cobro-medio::before { height: 4px; }
+    .hoja-cobro-marca { top: 0.4rem; right: 0.4rem; width: 1.2rem; height: 1.2rem; }
+    .hoja-cobro-resto { top: 0.45rem; left: 0.5rem; }
+    /* Con dos medios cada ficha lleva su monto: necesita más alto o no cabe el cuadro de texto (la altura de la ficha, abajo). */
+    .hoja-cobro-medio.con-monto { padding-top: 0.5rem; gap: 0.15rem; }
+    .hoja-cobro-medio.con-monto .hoja-cobro-icono { width: auto; height: 30%; aspect-ratio: 1 / 1; }
+    .hoja-cobro-monto { height: 1.85rem; margin-bottom: 0.3rem; }
+    .hoja-cobro-nota { margin-bottom: 0.4rem; padding: 0.3rem 0.6rem; font-size: 12px; line-height: 1.3; }
+    .hoja-cobro-pista { padding-top: 0; font-size: 13px; line-height: 1.3; }
+    .hoja-cobro-comprobante { height: 2.5rem; }
+    .hoja-cobro-comprobante-icono { width: 1.75rem; height: 1.75rem; }
+    .hoja-cobro-doc { margin-top: 0.4rem; }
+    /* HOJA ANCHA (dos columnas: medios a la izquierda, billetes a la derecha, como siempre). La ficha se estira con lo que sobra:
+       28,5 rem es lo que ocupa todo lo demás en el peor caso corriente (efectivo + comprobante + documento), así que desde ~45 rem
+       de alto la ficha vale su tamaño de siempre y solo por debajo se achica, hasta 4,25 rem (los billetes en 3 por fila no
+       alargan el paso más allá de eso). */
+    @container (min-width: 32.5rem) {
+      .hoja-cobro-medio { aspect-ratio: auto; height: clamp(4.25rem, calc((100cqh - 28.5rem) / 2), 7.9rem); }
+      .hoja-cobro-medios.con-montos .hoja-cobro-medio { height: max(5.75rem, clamp(4.25rem, calc((100cqh - 28.5rem) / 2), 7.9rem)); }
+      .hoja-cobro-billetes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+      .hoja-cobro-billete { height: 2.5rem; padding-inline: 0.25rem; font-size: 1.3rem; border-radius: 0.7rem; }
+      .hoja-cobro-pregunta { margin-bottom: 0.4rem; }
+      .hoja-cobro-vuelto { margin-top: 0.5rem; }
+      .hoja-cobro-vuelto-monto { font-size: 2rem; }
+    }
+  }
+
+  /* HOJA ANGOSTA (una columna: los medios arriba y, debajo, lo que el medio pide). A una columna, el diseño de siempre pide ~1150 px con
+     efectivo (los billetes caen debajo de las fichas en tres filas), así que aquí la disposición ajustada rige hasta 80 rem de alto
+     — casi siempre — y las fichas siguen siendo las dos filas de tres, hasta CUADRADAS (9,4 rem) cuando hay alto de sobra. */
+  @container cobro (max-height: 80rem) {
+    @container (max-width: 32.49rem) {
+      .hoja-cobro-pago { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+      .hoja-cobro-medios { gap: 0.4rem; }
+      /* 39,5 rem es lo que ocupa todo lo demás en el peor caso corriente: ahí las fichas valen su mínimo y, con más alto, se estiran. */
+      .hoja-cobro-medio { aspect-ratio: auto; height: clamp(3rem, calc((100cqh - 39.5rem) / 2), 9.4rem); gap: 0.2rem; }
+      .hoja-cobro-medios.con-montos .hoja-cobro-medio { height: max(5.75rem, clamp(3rem, calc((100cqh - 39.5rem) / 2), 9.4rem)); }
+      .hoja-cobro-comprobante { height: 2.25rem; }
+      .hoja-cobro-medio::before { height: 4px; }
+      .hoja-cobro-icono { width: auto; height: 50%; aspect-ratio: 1 / 1; }
+      .hoja-cobro-marca { top: 0.4rem; right: 0.4rem; width: 1.2rem; height: 1.2rem; }
+      .hoja-cobro-resto { top: 0.45rem; left: 0.5rem; }
+      .hoja-cobro-medio.con-monto { padding-top: 0.5rem; gap: 0.15rem; }
+      .hoja-cobro-medio.con-monto .hoja-cobro-icono { height: 30%; }
+      .hoja-cobro-monto { height: 1.85rem; margin-bottom: 0.3rem; }
+      .hoja-cobro-pista { padding-top: 0; font-size: 13px; line-height: 1.3; }
+      .hoja-cobro-pista br { display: none; }
+      .hoja-cobro-nota { margin-bottom: 0; padding: 0.3rem 0.6rem; font-size: 12px; line-height: 1.3; }
+      /* Efectivo: la pregunta y el vuelto en una línea, los billetes en la siguiente (`dense` sube el vuelto al hueco de la derecha). */
+      .hoja-cobro-efectivo {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-auto-flow: row dense;
+        align-items: end;
+        column-gap: 0.75rem;
+        row-gap: 0.3rem;
+      }
+      .hoja-cobro-efectivo > * { grid-column: 1 / -1; }
+      .hoja-cobro-efectivo > .hoja-cobro-pregunta { grid-column: 1; margin: 0; }
+      .hoja-cobro-efectivo > .hoja-cobro-vuelto { grid-column: 2; margin: 0; gap: 0.6rem; }
+      .hoja-cobro-vuelto-monto { font-size: 1.75rem; }
+      .hoja-cobro-billetes { grid-template-columns: repeat(auto-fit, minmax(4.25rem, 1fr)); gap: 0.4rem; }
+      .hoja-cobro-billete { height: 2.25rem; padding-inline: 0.25rem; font-size: 1.3rem; border-radius: 0.7rem; }
+    }
+    /* Hoja de 17,5 a 34 rem (desde 34 rem ya van en una fila, más arriba): los campos del documento en 2×2 — tipo | número,
+       nombre | celular — y no uno bajo otro (eran ~340 px). Los envoltorios (`space-y-*` de `DocumentoDelComprobante` y de
+       `ConsultaDocumento`, y la caja del celular) se «aplanan» con `display: contents` para que cada campo sea una celda de la
+       misma grilla; la tarjeta del padrón ocupa el lugar del nombre. No toca esos componentes (como la regla de 34 rem). */
+    @container (17.5rem <= width < 34rem) {
+      .hoja-cobro-doc > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 0.75rem; align-items: start; }
+      .hoja-cobro-doc > fieldset > div,
+      .hoja-cobro-doc > fieldset > .space-y-2 > .space-y-1 { display: contents; }
+      .hoja-cobro-doc > fieldset > div > *,
+      .hoja-cobro-doc > fieldset > .space-y-2 > .space-y-1 > * { margin-block: 0; }
+      .hoja-cobro-doc > fieldset > p { grid-column: 1 / -1; margin: 0; }
+    }
+  }
+
+  /* Bajo 40 rem (un laptop de ~800 px de alto de ventana o menos) la cabecera «Total / Volver» se esconde: repite el total del ticket y
+     del botón, y «Volver» ya está en «← Ticket», en Esc y en el velo. Son ~47 px que valen más para los pasos. */
+  @container cobro (max-height: 40rem) {
+    .hoja-cobro-cabeza { display: none; }
+  }
+  /* «Confirmar cobro» en una hoja muy angosta (menos de 24 rem útiles): sin el ✓ y con márgenes justos, su rótulo cabe entero
+     junto al monto. Va DESPUÉS del bloque compacto: ese también fija el padding del botón y, antes, ganaría. */
+  @container (max-width: 24rem) {
+    .hoja-cobro-confirmar { gap: 0.5rem; padding-inline: 1rem; }
+    .hoja-cobro-confirmar > svg { display: none; }
+    .hoja-cobro-confirmar-monto { font-size: 1.375rem; }
+    .hoja-cobro-confirmar-rotulo { font-size: 0.75rem; letter-spacing: 0.08em; }
+    .hoja-cobro-pregunta { font-size: 11.5px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

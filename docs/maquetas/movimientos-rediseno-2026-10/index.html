@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movimientos · tres maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+body{background:var(--crema)}
+.pag{max-width:1120px;margin:0 auto;padding:44px 24px 80px}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,6vw,60px);line-height:1.04;letter-spacing:-.015em;margin:10px 0 12px;max-width:760px}
+.lede{color:var(--t65);max-width:640px;font-size:15.5px}
+
+/* El idioma común */
+.idioma{margin-top:36px;padding:22px 22px 18px}
+.idioma h2{font-family:var(--serif);font-weight:400;font-size:24px}
+.idioma p{color:var(--t65);font-size:13px;margin:2px 0 16px}
+.sellos{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.sl{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:12px 6px;border-radius:14px;transition:background .25s}
+.sl:hover{background:var(--c-bg)}
+.sl .sello{--sz:56px}
+.sl b{font-size:12.5px;font-weight:600;line-height:1.2}
+.sl small{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--c)}
+
+/* Las tres tarjetas */
+.tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:22px}
+.op-card{display:flex;flex-direction:column;background:var(--papel);border:1px solid var(--sand);border-radius:20px;overflow:hidden;text-decoration:none;transition:border-color .25s var(--ease),transform .35s var(--ease)}
+.op-card:hover{border-color:var(--taupe);transform:translateY(-3px)}
+.op-card .vis{height:190px;background:var(--hueso);position:relative;overflow:hidden;padding:18px}
+.op-card .tx{padding:18px 20px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
+.op-card .letra{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--taupe)}
+.op-card h3{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1}
+.op-card p{font-size:13.5px;color:var(--t65)}
+.op-card .ver{margin-top:auto;padding-top:10px;display:inline-flex;gap:8px;align-items:center;font-weight:600;font-size:13px}
+.op-card .ver svg{transition:transform .3s var(--ease)}
+.op-card:hover .ver svg{transform:translateX(4px)}
+.nota-pie{margin-top:22px}
+
+/* Miniaturas */
+.mA{display:grid;gap:8px}
+.mA div{display:flex;align-items:center;gap:10px;background:var(--papel);border-radius:12px;padding:8px 10px;border-left:4px solid var(--c);opacity:0;transform:translateY(10px);animation:subeA .6s var(--ease) both}
+.mA div:nth-child(2){animation-delay:.12s}.mA div:nth-child(3){animation-delay:.24s}
+@keyframes subeA{to{opacity:1;transform:none}}
+.mA .sello{--sz:30px}
+.mA i{display:block;height:7px;border-radius:4px;background:var(--sand)}
+.mA .ln{flex:1;display:grid;gap:5px}
+.mA .r{height:2px;background:var(--c);border-radius:2px;width:60%;transform-origin:left;animation:llenaA 1.1s .5s var(--ease) both}
+@keyframes llenaA{from{transform:scaleX(0)}to{transform:none}}
+.mB{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;height:100%}
+.mB .col{border-radius:12px;background:color-mix(in srgb,var(--lc) 7%,transparent);border:1px dashed color-mix(in srgb,var(--lc) 25%,transparent);display:grid;align-content:start;gap:8px;padding:8px}
+.mB .col>div{border-radius:9px;background:var(--papel);border:1.5px solid var(--c-ln);height:26px;opacity:0;animation:subeA .6s var(--ease) both}
+.mB .col>div:nth-child(2){animation-delay:.2s}.mB .col>div:nth-child(3){animation-delay:.4s}
+.mB .col>div:before{content:"";display:block;width:6px;height:100%;background:var(--c);border-radius:9px 0 0 9px}
+.mC svg{width:100%;height:100%}
+.mC .tk{animation:vaC 2.6s var(--ease) 2 both}
+@keyframes vaC{0%{transform:translateX(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateX(var(--dx));opacity:0}}
+@media (max-width:900px){
+  .tres{grid-template-columns:1fr}
+  .sellos{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (max-width:520px){
+  .sellos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pag{padding:28px 16px 60px}
+}
+@media (prefers-reduced-motion:reduce){.mC .tk{animation:none;opacity:1}}
+</style>
+</head>
+<body>
+<main class="pag">
+  <div class="hilo">Inventario · Movimientos · rediseño</div>
+  <h1>Que se note, de un vistazo, si fue una venta, una colgada en piso o una guardada en almacén.</h1>
+  <p class="lede">Hoy las tres cosas se leen casi igual: una fila gris con un número. Aquí las tres maquetas parten del mismo idioma —cada tipo con su color, su ícono que se mueve y su camino de dónde a dónde— y lo llevan a tres pantallas distintas. Los datos son inventados (un lunes en la Tienda TRU).</p>
+
+  <section class="tarjeta idioma">
+    <h2>El idioma común: un tipo, un color, un movimiento</h2>
+    <p>Pasa el mouse por cada uno. El ícono se anima una vez; nunca queda dando vueltas.</p>
+    <div class="sellos" id="sellos"></div>
+  </section>
+
+  <section class="tres">
+    <a class="op-card" href="a-ruta.html">
+      <div class="vis mA">
+        <div class="t-venta"><span class="sello suave"><span id="mini-v"></span></span><span class="ln"><i style="width:70%"></i><i class="r"></i></span></div>
+        <div class="t-colgada"><span class="sello suave"><span id="mini-c"></span></span><span class="ln"><i style="width:55%"></i><i class="r"></i></span></div>
+        <div class="t-subida"><span class="sello suave"><span id="mini-s"></span></span><span class="ln"><i style="width:62%"></i><i class="r"></i></span></div>
+      </div>
+      <div class="tx"><span class="letra">Opción A</span><h3>Ruta</h3><p>La lista de siempre, pero cada fila trae su sello de color y un trayecto «Almacén → Piso» con una prenda que viaja. Arriba, siete botones grandes que cuentan y filtran. Las colgadas del día se juntan en un mazo que se abre en abanico.</p><span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="b-carriles.html">
+      <div class="vis mB">
+        <div class="col" style="--lc:var(--taupe)"><div class="t-venta"></div><div class="t-traslado"></div></div>
+        <div class="col" style="--lc:var(--pizarra)"><div class="t-colgada"></div><div class="t-subida"></div><div class="t-colgada"></div></div>
+        <div class="col" style="--lc:var(--verde-2)"><div class="t-llegada"></div><div class="t-devolucion"></div></div>
+      </div>
+      <div class="tx"><span class="letra">Opción B</span><h3>Tres carriles</h3><p>El día corre por un hilo de horas y cada movimiento cuelga del carril que le toca: salió de la tienda, se movió dentro o entró. Se reconoce por la posición antes de leer una palabra.</p><span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="c-plano.html">
+      <div class="vis mC">
+        <svg viewBox="0 0 300 150" aria-hidden="true">
+          <rect x="70" y="12" width="150" height="126" rx="16" fill="none" stroke="var(--t35)" stroke-dasharray="3 5"/>
+          <rect x="82" y="30" width="52" height="90" rx="10" fill="var(--papel)" stroke="var(--sand)" stroke-width="1.5"/>
+          <rect x="156" y="30" width="52" height="90" rx="10" fill="var(--papel)" stroke="var(--sand)" stroke-width="1.5"/>
+          <rect x="4" y="52" width="52" height="46" rx="10" fill="none" stroke="var(--t35)" stroke-dasharray="4 4"/>
+          <rect x="244" y="52" width="52" height="46" rx="10" fill="none" stroke="var(--t35)" stroke-dasharray="4 4"/>
+          <path d="M136,52 H154" stroke="var(--ambar)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M154,98 H136" stroke="var(--pizarra)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M210,52 H242" stroke="var(--verde)" stroke-width="7" stroke-linecap="round"/>
+          <path d="M58,75 H80" stroke="var(--verde-2)" stroke-width="8" stroke-linecap="round"/>
+          <circle class="tk" cx="136" cy="52" r="6" fill="var(--ambar)" style="--dx:16px"/>
+          <circle class="tk" cx="210" cy="52" r="6" fill="var(--verde)" style="--dx:30px;animation-delay:.9s"/>
+          <circle class="tk" cx="58" cy="75" r="6" fill="var(--verde-2)" style="--dx:20px;animation-delay:1.5s"/>
+        </svg>
+      </div>
+      <div class="tx"><span class="letra">Opción C</span><h3>Plano vivo</h3><p>La tienda dibujada como un plano: Almacén, Piso, la puerta del cliente. Cada movimiento es una prenda que viaja por su camino, y se puede reproducir el día hora por hora con el deslizador.</p><span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+  </section>
+  <p class="nota-pie"><b>Para decidir:</b> A es la más barata de construir y la más parecida a lo de hoy; B cambia cómo se lee la lista; C es una pantalla nueva que convive con la lista. Las tres usan los datos que <code>fn_movimientos</code> ya devuelve. Cada una tiene su versión de celular (botón «Celular» arriba).</p>
+</main>
+<script src="comun.js"></script>
+<script>
+const orden = [['venta','Venta','Sale de la tienda'],['colgada','Colgada en piso','Almacén → Piso'],['subida','Guardada en almacén','Piso → Almacén'],['llegada','Llegada','Entra a la tienda'],['traslado','Traslado enviado','Sale a otra sede'],['devolucion','Cambio y devolución','Vuelve del cliente'],['ajuste','Ajuste a mano','Corrige el stock']];
+const cont = document.getElementById('sellos');
+orden.forEach(([id, n, f], i) => {
+  const d = M.el('div', 'sl t-' + id, `<span class="sello" data-go>${M.glifo(id)}</span><b>${n}</b><small>${f}</small>`);
+  d.dataset.goHover = 1; cont.append(d);
+  setTimeout(() => M.$('.sello', d).classList.add('go'), 300 + i * 160);
+});
+[['mini-v','venta'],['mini-c','colgada'],['mini-s','subida']].forEach(([i, g], k) => { const e = document.getElementById(i); e.outerHTML = M.glifo(g); });
+document.querySelectorAll('.mA .sello .gl').forEach((g, k) => setTimeout(() => g.parentElement.classList.add('go'), 400 + k * 200));
+</script>
+</body>
+</html>

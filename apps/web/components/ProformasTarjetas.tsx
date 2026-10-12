@@ -3,7 +3,7 @@ import { HORAS_PROFORMA_POR_VENCER } from "@cayla-retail/shared";
 import type { ResumenProformas } from "@/lib/facturacion-reglas";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaKpiVidrio } from "@/components/ui/TarjetaKpiVidrio";
-import { BarraApilada, Puntos } from "@/components/ComprobantesGraficos";
+import { BarraConLeyenda, Puntos } from "@/components/ComprobantesGraficos";
 import { soles } from "@/lib/compras-reglas";
 
 // Las cuatro tarjetas de arriba de Proformas (ADR-0124): el mismo vidrio que las del Resumen y de
@@ -37,7 +37,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
         contexto={resumen.vigentes === 0 ? "Nada cotizado en pie." : "Lo que suman las vigentes, sin contar las vencidas."}
       >
         {resumen.monto > 0 && (
-          <BarraApilada
+          <BarraConLeyenda
             partes={[
               { valor: resumen.monto - montoPorVencer, clase: "g-alza", texto: "Vigente", mostrar: soles(resumen.monto - montoPorVencer) },
               { valor: montoPorVencer, clase: "g-baja", texto: "Por vencer", mostrar: soles(montoPorVencer) },

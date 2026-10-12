@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ProveedorGasto } from "@/components/RegistrarGastoModal";
-import { CabeceraBloque, CampoFin, GuiaVacia, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -33,6 +33,9 @@ import {
   type GastoFijoMes,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
+import { CalendarClock, Laptop } from "lucide-react";
 
 // Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
 // dibujadas como el spike (docs/maquetas/finanzas-2026-09/, `vistaFijos`, `tablaActivos`, `cfgFijos`).
@@ -86,17 +89,21 @@ export function FijosDelMes({
   if (fijos.length === 0 && sugeridos.length === 0) {
     return (
       <>
-        <GuiaVacia sobre="Fijos del mes" titulo="Todavía no hay gastos fijos">
-          El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
-          {puedeConfigurar && (
-            <>
-              {" "}
-              <Link href="/configuracion?tab=fijos" className="btn-enlace">
-                Agregar el primero
-              </Link>
-            </>
-          )}
-        </GuiaVacia>
+        <Superficie>
+          <Vacio
+            icono={<CalendarClock />}
+            titulo="Todavía no hay gastos fijos"
+            acciones={
+              puedeConfigurar ? (
+                <BotonEnlace href="/configuracion?tab=fijos" peso="primario">
+                  Agregar el primero
+                </BotonEnlace>
+              ) : null
+            }
+          >
+            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
+          </Vacio>
+        </Superficie>
         <NotaFijos />
       </>
     );
@@ -260,12 +267,14 @@ export function TablaGastosFijos({
     <>
       <Superficie className="anim-sube">
         <TituloDeTarjeta titulo="Gastos que se repiten" bajada="El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.">
-          <button type="button" className="btn-cayla btn-primario btn-chico" onClick={() => setEditar({})}>
+          <Boton type="button" peso="primario" onClick={() => setEditar({})}>
             + Agregar fijo
-          </button>
+          </Boton>
         </TituloDeTarjeta>
         {fijos.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">Todavía no hay gastos fijos. El alquiler, la luz o el contador: agrégalos una vez.</p>
+          <Vacio tamano="chico" icono={<CalendarClock />}>
+            Todavía no hay gastos fijos. El alquiler, la luz o el contador: agrégalos una vez.
+          </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla">
@@ -501,10 +510,8 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
       {porSede.map((s, i) => (
         <TarjetaCifra
           key={s.ubicacionId}
-          compacta
-          vacia={s.activos === 0}
           etiqueta={s.nombre}
-          valor={s.activos ? solesRedondo(s.valorHoy) : "—"}
+          valor={s.activos ? solesRedondo(s.valorHoy) : null}
           unidad={s.activos ? "vale hoy" : undefined}
           onClick={s.activos ? () => onVer(s.ubicacionId) : undefined}
           {...entra(i + 1)}
@@ -512,7 +519,9 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
           {s.activos ? detalle(s) : "Sin activos cargados"}
         </TarjetaCifra>
       ))}
-      <TarjetaCifra compacta activa etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
+      {/* Antes llevaba `activa` (fondo sand/40) solo para resaltar el total; ese fondo era la marca de «elegida» y desde
+          ADR-0358 se reserva para la cifra que filtra. */}
+      <TarjetaCifra etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
         {detalle(total)}
       </TarjetaCifra>
     </section>
@@ -524,9 +533,11 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
   if (activos.length === 0) {
     return (
       <>
-        <GuiaVacia sobre="Activos fijos" titulo="Sin activos fijos registrados">
-          Un mostrador, una laptop, una máquina del Taller: regístralos con «+ Registrar activo» y el sistema los deprecia cada mes.
-        </GuiaVacia>
+        <Superficie>
+          <Vacio icono={<Laptop />} titulo="Sin activos fijos registrados">
+            Un mostrador, una laptop, una máquina del Taller: regístralos con «+ Registrar activo» y el sistema los deprecia cada mes.
+          </Vacio>
+        </Superficie>
         <NotaActivos />
       </>
     );
@@ -685,7 +696,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
   }
 
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -727,9 +738,6 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
             Dar de baja…
           </button>
         )}
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
       </div>
     </Modal>
   );

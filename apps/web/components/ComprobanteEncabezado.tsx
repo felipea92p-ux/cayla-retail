@@ -30,7 +30,7 @@ export function ComprobanteEncabezado({
       </div>
       <div className="flex flex-wrap items-center justify-end gap-3">
         {anulada ? (
-          <p className="text-sm text-rojo">{anulada}</p>
+          <p className="text-sm text-rojo">{/* unificar-fijo: es el estado «Anulada», no un error */}{anulada}</p>
         ) : (
           <p className="flex flex-wrap gap-1.5">
             {chips.map((c) => (

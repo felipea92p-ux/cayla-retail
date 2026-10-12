@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { VarianteCatalogo } from "./catalogo-v2";
-import { coloresDe, tallasDe, ordenarVariantes, rangoSoles, margenDe, textoMargen, UMBRAL_MARGEN_BAJO, variantesQueSeVenden } from "./productos-vista";
+import { colorPrincipal, coloresDe, tallasDe, ordenarVariantes, rangoSoles, margenDe, textoMargen, UMBRAL_MARGEN_BAJO, variantesQueSeVenden } from "./productos-vista";
 
 function v(parcial: Partial<VarianteCatalogo>): VarianteCatalogo {
   return {
@@ -33,6 +33,22 @@ describe("coloresDe", () => {
       { nombre: "Negro", hex: "#111111", fotoUrl: "negro.jpg" },
       { nombre: "Camel", hex: "#8A8A8A", fotoUrl: null },
     ]);
+  });
+
+  it("una talla sin foto no le quita la foto al color: vale la primera que la tenga", () => {
+    const [c] = coloresDe([v({ color: "Negro", talla: "S", fotoUrl: null }), v({ color: "Negro", talla: "M", fotoUrl: "negro.jpg" })]);
+    expect(c.fotoUrl).toBe("negro.jpg");
+  });
+});
+
+describe("colorPrincipal", () => {
+  it("abre en el primer color con foto, aunque no sea el primero de la lista", () => {
+    const cs = coloresDe([v({ color: "Camel" }), v({ color: "Negro", fotoUrl: "negro.jpg" }), v({ color: "Vino", fotoUrl: "vino.jpg" })]);
+    expect(colorPrincipal(cs)?.nombre).toBe("Negro");
+  });
+  it("si ningún color tiene foto, el primero", () => {
+    expect(colorPrincipal(coloresDe([v({ color: "Camel" }), v({ color: "Negro" })]))?.nombre).toBe("Camel");
+    expect(colorPrincipal([])).toBeUndefined();
   });
 });
 

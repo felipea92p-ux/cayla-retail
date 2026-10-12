@@ -7,6 +7,8 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { volverDeNuevoTraslado } from "@/lib/traslados-reglas";
+import { Store } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Nuevo traslado» (Fase UI 1.1, 2026-09-12). Vive dentro de Traslados desde el 2026-10-03 (ADR-0242 D-4): antes colgaba
 // de `/inventario/mover`, el menú marcaba Existencias y la persona creía haber salido de Traslados. `/inventario/mover`
@@ -79,19 +81,21 @@ export default async function MoverMercaderiaPage({
   return (
     <div className="space-y-6">
       {/* «Nuevo traslado», como el botón que trae hasta acá y como «Traslado 12» en el detalle (hallazgo 16): antes
-          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados va bajo la frase (ADR-0220). */}
+          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados es la flecha junto a la sede (ADR-0220, act. 2026-10-06). */}
       <EncabezadoPagina
         sede={origen.nombre}
         titulo="Nuevo traslado"
         subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
         // La vuelta dice adónde va: a Existencias si vino de ahí (`?desde=existencias`), a Traslados si no.
-        pie={<Volver forma="boton" {...volverDeNuevoTraslado(params.desde, veModulo(persona, "existencias"))} />}
+        volver={<Volver {...volverDeNuevoTraslado(params.desde, veModulo(persona, "existencias"))} />}
       />
 
       {destinos.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay otra sede registrada todavía: un traslado necesita al menos dos.
-        </p>
+        <div className="card-cayla">
+          <Vacio icono={<Store />} titulo="No hay otra sede todavía">
+            Un traslado necesita al menos dos sedes registradas.
+          </Vacio>
+        </div>
       ) : (
         <MoverMercaderiaFormV2
           origenId={origen.id}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { AvisoInline } from "@/components/alta-producto/piezas";
+import { Aviso } from "@/components/ui/Aviso";
 import { TextoConPartes } from "@/components/alta-producto/AlertaParecidas";
 import { TarjetaParecida } from "@/components/alta-producto/TarjetaParecida";
 import { Modal } from "@/components/ui/Modal";
@@ -178,9 +178,9 @@ function CuerpoHoja({ tactil, resultado, marca, categoria, alcance, revisadas, f
         <div className="parecidas-avisos">
           {vista.avisos.map((a, i) =>
             a.forma === "neutro" ? (
-              <AvisoInline key={i} tono="neutro">
+              <Aviso key={i} tono="info">
                 <TextoConPartes texto={a.texto} partes={a.partes} />
-              </AvisoInline>
+              </Aviso>
             ) : (
               <p key={i} className="parecidas-gris">
                 <TextoConPartes texto={a.texto} partes={a.partes} />

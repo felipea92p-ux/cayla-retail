@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ScanLine } from "lucide-react";
+import { FunnelX, ScanLine } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { Chip } from "@/components/ui/Chip";
@@ -18,7 +18,9 @@ import {
 import type { VarianteCatalogo } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
-import { busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
+import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import type { CambioArmado } from "@/lib/cambios-cambio-de-sede";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -85,13 +87,24 @@ export function CambiosPanel({
   const pathname = usePathname();
   const ahora = useMemo(() => new Date(), []);
   const [buscando, startTransition] = useTransition();
+  // El cambio a medio armar es de SU sede (Felipe, 2026-10-11): la página monta el panel con la sede en la key, y el de otra sede quedó
+  // guardado en `TrabajoPorSede`. Al volver a una sede con un cambio guardado, se retoma; si el panel se montó por un cambio de sede,
+  // no se reabre desde cero la venta del enlace (`?item=`): esa ya es de la sede que se dejó, o se busca de nuevo aquí.
+  const { inicial: guardado, reportar: reportarCambio, vieneDeOtraSede } = useTrabajoPorSede<CambioArmado>(ubicacionId);
   const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(() => {
+    if (guardado) return { venta: guardado.venta, lineaId: guardado.lineaInicialId };
+    if (vieneDeOtraSede) return null;
     const l = abrirItemId ? lineas.find((x) => x.ventaItemId === abrirItemId) : undefined;
     if (!l) return null;
     // Una prenda que ya no se puede cambiar (fuera de plazo, ya devuelta…) abre el flujo en
     // el paso de elegir prenda, donde cada una dice por qué sí o por qué no.
     return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaVendida(l, ahora).cambiable ? l.ventaItemId : null };
   });
+  // Sin cambio abierto no hay nada armado: un cambio cancelado o terminado no se guarda al cambiar de sede (el flujo, que es quien
+  // reporta, se desmonta sin decirlo).
+  useEffect(() => {
+    if (!flujo) reportarCambio(null);
+  }, [flujo, reportarCambio]);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [camara, setCamara] = useState(false);
   const campoBusqueda = useRef<HTMLInputElement>(null);
@@ -108,11 +121,31 @@ export function CambiosPanel({
 
   useAtajoBusqueda(campoBusqueda, !flujo);
 
+  // Una lectura (pistola o cámara) que trae UNA sola compra la abre directo (`abrirDesdeLectura`, Felipe 2026-10-09). La
+  // búsqueda va por la URL: se recuerda qué se leyó y, cuando llegan sus resultados, se decide.
+  const lecturaPendiente = useRef<string | null>(null);
+  useEffect(() => {
+    if (lecturaPendiente.current === null || lecturaPendiente.current !== busqueda) return;
+    lecturaPendiente.current = null;
+    const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaVendida(l, ahora).cambiable);
+    if (!abrir) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
+    setFlujo(abrir);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [lineas, busqueda, ahora]);
+
   function navegar(parametros: URLSearchParams | null) {
     startTransition(() => router.push(parametros ? `${pathname}?${parametros}` : pathname));
   }
 
-  function buscar(texto: string, todas: boolean) {
+  function buscar(texto: string, todas: boolean, leida = false) {
+    if (leida) lecturaPendiente.current = texto;
+    // La misma búsqueda que ya está en pantalla no vuelve a navegar: se decide con lo que ya hay.
+    if (leida && texto === busqueda) {
+      lecturaPendiente.current = null;
+      const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaVendida(l, ahora).cambiable);
+      if (abrir) return setFlujo(abrir);
+    }
     const parametros = new URLSearchParams({ q: texto });
     if (todas) parametros.set("todas", "1");
     navegar(parametros);
@@ -173,7 +206,7 @@ export function CambiosPanel({
   /** Lo leído con la cámara se busca como si se hubiera escrito: la etiqueta tal cual, la boleta por su QR de SUNAT. */
   function alLeerCodigo(codigo: string) {
     setCamara(false);
-    buscar(busquedaDesdeLectura(codigo), todasLasSedes);
+    buscar(busquedaDesdeLectura(codigo), todasLasSedes, true);
   }
 
   return (
@@ -195,6 +228,7 @@ export function CambiosPanel({
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
           onCamara={() => setCamara(true)}
+          pistola={!camara}
           extra={
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
             <span className="flex items-center gap-2 text-sm text-tinta/70">
@@ -250,6 +284,7 @@ export function CambiosPanel({
             <CambiosVentas lineas={lineasVisibles} ahora={ahora} resumen onIniciar={iniciar} />
           ) : (
             <EstadoVacio
+              icono={filtro === "todas" ? undefined : <FunnelX />}
               titulo={
                 filtro === "todas"
                   ? `No hay ventas de los últimos 15 días en ${sede}.`

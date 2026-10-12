@@ -23,8 +23,7 @@ export type RitmoRecientePorVariante = {
 };
 
 /**
- * Dato SECUNDARIO de Existencias (mismo criterio que `getCoberturaPorVariante`, hoy en
- * `resumen-inventario.ts`): si falla, la pantalla sigue viva con «N/D» y un aviso, en vez de
+ * Dato SECUNDARIO de Existencias: si falla, la pantalla sigue viva con «N/D» y un aviso, en vez de
  * tumbar el inventario que la encargada usa en el mostrador.
  */
 export async function getRitmoRecientePorVariante(

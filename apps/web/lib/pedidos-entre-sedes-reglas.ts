@@ -2,6 +2,9 @@
 // La base guarda una fila por prenda con un `grupo_id` común; `fn_pedidos_entre_sedes` ya los devuelve agrupados.
 // Aquí se decide lo que la pantalla muestra: qué va en «Te piden» y en «Pediste», qué dice cada estado, qué botones ve
 // cada lado y cómo se arma lo que se manda a la base. Sin React ni Supabase: se prueba en `pedidos-entre-sedes-reglas.test.ts`.
+// Desde ADR-0328 act. 17 la misma lista lleva también los pedidos PARA UN CLIENTE (`cliente`, ver `pedidos-con-cliente-reglas.ts`).
+
+import type { ClientePedido } from "./pedidos-con-cliente-reglas";
 
 export type EstadoPedidoEntreSedes = "pedido" | "en_camino" | "recibido" | "cancelado";
 export type DireccionPedido = "pedi" | "me_piden";
@@ -34,6 +37,9 @@ export type PedidoEntreSedes = {
   trasladoNumero: number | null;
   canceladoMotivo: string | null;
   lineas: LineaPedidoEntreSedes[];
+  /** ADR-0328 act. 17: el pedido es para un cliente que espera (una prenda, apartada en la sede que la envía). Sin cliente =
+   *  reposición. `grupoId` es entonces el id del pedido. */
+  cliente?: ClientePedido | null;
 };
 
 const ESTADOS: readonly EstadoPedidoEntreSedes[] = ["pedido", "en_camino", "recibido", "cancelado"];
@@ -90,25 +96,6 @@ export function textoPrendas(n: number): string {
 /** La sede que envía ya no tiene libre lo que se pidió de esa prenda (se vendió o se apartó después del pedido). */
 export function faltaEnOrigen(l: Pick<LineaPedidoEntreSedes, "cantidad" | "disponibleEnOrigen" | "estado">): boolean {
   return l.estado === "pedido" && l.disponibleEnOrigen < l.cantidad;
-}
-
-/**
- * Las dos listas de la tarjeta:
- *  · «Te piden»: lo que otra sede me pidió y todavía no sale (es trabajo por hacer HOY).
- *  · «Pediste»: lo que yo pedí, en cualquier estado (abierto o cerrado hace menos de 7 días, lo filtra la base).
- * Lo que me pidieron y ya salió no se repite aquí: ya está en la lista de traslados, en camino.
- */
-export function separarPedidos(pedidos: PedidoEntreSedes[]): { tePiden: PedidoEntreSedes[]; pediste: PedidoEntreSedes[] } {
-  return {
-    tePiden: pedidos.filter((p) => p.direccion === "me_piden" && p.estado === "pedido"),
-    pediste: pedidos.filter((p) => p.direccion === "pedi"),
-  };
-}
-
-/** La tarjeta solo se dibuja si hay algo que mostrar (nunca una tarjeta vacía). */
-export function hayPedidosQueMostrar(pedidos: PedidoEntreSedes[]): boolean {
-  const { tePiden, pediste } = separarPedidos(pedidos);
-  return tePiden.length + pediste.length > 0;
 }
 
 export type TonoEstadoPedido = "ambar" | "pizarra" | "verde" | "apagado";

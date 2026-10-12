@@ -220,3 +220,120 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Por qué se admiten:** cada uno dice algo que cambia («esta tienda está operando», «esto viene en camino», «esto no espera»); se
   apagan solos cuando la señal deja de ser cierta. Nada más del Observatorio se repite.
 - **Dónde vive:** `apps/web/app/estilos/observatorio.css`; con `prefers-reduced-motion`, los tres se detienen.
+
+## Actualización 2026-10-05 — la vista rápida de producto: la única hoja con movimiento rico
+
+- **Qué:** Felipe pidió «todas las animaciones posibles» para la vista rápida de producto (Catálogo ▸ Productos ▸ Grilla, maqueta A «Matriz»,
+  `docs/maquetas/catalogo-modal-producto-2026-10/`). Es la **única hoja del ERP** con movimiento más allá de la cascada de esta regla, y es una
+  decisión suya, no un descuido: una prenda es lo más visual que tiene el sistema y es lo que más se abre en el piso.
+- **Qué se permite, y solo en esa hoja:** el título que se barre de izquierda a derecha; los datos que suben en cascada; la foto que «se asienta»
+  con un destello que la cruza una vez; las celdas de la matriz en **ola diagonal** (cada una a su hora, con su barra que se llena y su cifra que
+  cuenta justo cuando aparece); la foto que cruza y se asienta al cambiar de color; la **cruz** (al pasar el mouse por una celda se alumbra su fila
+  y su columna y el resto baja); el check y la onda al elegir; el texto del botón de etiquetas y el de la cabecera que cambian deslizándose; el
+  paralaje de ±6 px de la foto y un brillo tibio que sigue al puntero sobre la matriz (estos dos solo con mouse).
+- **Lo que NO cambia (los límites son los de siempre):** `--ease-cayla`; **nada con rebote; nada en bucle** (medido: 0 animaciones infinitas);
+  ninguna dura más de ~1,3 s en total (la ola de 45 celdas es la más larga); colores solo con tokens; y con `prefers-reduced-motion` todo se apaga
+  (los efectos que siguen al puntero ni siquiera se montan: `hayPunteroFino()`). Las opacidades y transformaciones usan `backwards`, no `both`,
+  para que el hover pueda mover después lo que la entrada movió. El destello de la foto tiene su estado de reposo FUERA de la foto: con
+  `backwards`, lo que no es el reposo reaparece al terminar (un destello cuyo reposo es «visible» se queda pegado).
+- **Por qué no se generaliza:** otra hoja que quiera lo mismo lo pide con Felipe y se agrega aquí con su alcance. La regla de arriba sigue
+  siendo la de todos los demás modales.
+- **Dónde vive:** `apps/web/app/estilos/vista-rapida.css` (clases `vr-*` y sus `@keyframes`, en `@layer components`) y
+  `components/vista-rapida/` (`VistaRapidaProducto`, `MatrizUnidades`, `FotoVistaRapida`, `movimiento.ts`). Lo único que toca el sistema de modales
+  es `<Modal conCerrar tituloGrande>` (dos opciones nuevas y opcionales: la ✕ visible y un título de 26 px), que no mueve a ningún otro.
+
+## Actualización 2026-10-05 (b) — Movimientos: el sello de cada tipo y su trayecto
+
+- **Qué:** en Movimientos (ADR-0353) cada fila lleva el sello de su tipo, cuyo ícono se mueve **una vez** al entrar a la vista y otra al pasar el mouse por la
+  fila (la bolsa sube, la caja levanta su tapa, el paquete cae, el camión llega…), y un trayecto «Piso → Cliente» con una prenda que viaja de un punto al otro.
+  El **perchero de la colgada se mece** (un péndulo que se asienta, como el cartel de ADR-0301). También cuentan los números de los botones de tipo y se llenan
+  sus barras, las franjas del día suben y las capas del mazo se abren en abanico.
+- **Por qué se admite:** Felipe pidió que se distinguiera «de un vistazo» una venta, una colgada y una guardada, y el movimiento es parte de cómo se reconoce cada una. Es
+  una decisión suya, no un descuido.
+- **Los límites son los de siempre:** `--ease-cayla`, **nada en bucle, nada con rebote**, colores solo de la paleta, y con `prefers-reduced-motion` todo se apaga.
+  Corre al **verse**, así que filtrar una lista nueva vuelve a mover sus sellos (la regla de «buscar o filtrar no re-anima toda la tabla» no se cumple aquí a
+  propósito: cada fila nueva es una fila que aparece).
+- **Dónde vive:** `apps/web/app/estilos/movimientos-sellos.css` (clases `mv-*`) y `components/movimientos/`. No se generaliza.
+
+## Actualización 2026-10-06 — Nuevo producto: el punto del paso abierto late
+
+- **Qué:** en los puntos de avance de Nuevo producto (ADR-0260, act. 2026-10-06) el punto del paso donde está la persona **late todo
+  el tiempo**: su centro respira (1,8 s) y de él salen dos ondas suaves alternadas (2,4 s). Al llegar a un paso, su punto crece desde
+  chico (500 ms); el ✓ de un paso terminado se dibuja una vez y la línea verde corre al punto siguiente (700 ms).
+- **Por qué se admite el bucle:** Felipe lo pidió así («todo el tiempo late») después de ver la versión quieta: el latido dice dónde está
+  la persona, no decora. Es la misma clase de señal que el punto que late en el chip «Vencida».
+- **Los límites:** `--ease-cayla`, nada con rebote, solo tokens (`verde`, `crema`, `sand`, `tinta`), y con `prefers-reduced-motion`
+  el latido, las ondas y las entradas se apagan (el punto queda verde y quieto).
+- **Dónde vive:** `apps/web/app/estilos/puntos-avance.css` (clases `puntos-*`). No se generaliza: otra pantalla que quiera un paso que
+  late lo pide con Felipe y se agrega aquí.
+
+## Actualización 2026-10-06 (b) — Análisis: los gráficos se arman una vez al entrar a la pestaña
+
+- **Qué:** en Análisis (ADR-0357), al entrar a una pestaña:
+  - las piezas suben en cascada (`.entra`: 380 ms, 55 ms entre una y otra, hasta la octava);
+  - las barras crecen desde su base (`.cx`, `.cxd`, `.cy`: 700 ms);
+  - las perchas y los puntos asoman (`.po`: 520 ms);
+  - los arcos de los anillos se dibujan (`.arco`: 900 ms);
+  - las cintas del flujo «Qué hacer hoy» se tienden, primero las que llegan a la tienda y después las que salen (650 ms cada una);
+  - las cifras cuentan desde 0 (700 ms).
+
+  Además, al llegar desde Hoy a un grupo de un carril, ese grupo destella una vez (1,1 s), y el subrayado de las pestañas se desliza (260 ms).
+- **Una sola vez:** la pantalla pone `.anim` al entrar a la pestaña y la quita a los 2 s. Buscar, filtrar o mover «Liquidar desde» no vuelve a
+  animar. La ficha de la prenda y la hoja «Datos confiables» son `<Modal>`: entran con la cascada de esta regla, y sus gráficos se arman una vez
+  al abrirse.
+- **Por qué se admite:** Felipe aprobó la maqueta con su movimiento (2026-10-06). Un gráfico que se arma se lee (la barra crece hasta su valor), y
+  una sola vez no distrae. Es una decisión suya, no un descuido.
+- **Los límites son los de siempre:** `--ease-cayla`, nada en bucle, nada con rebote, ninguna pieza dura más de 1,2 s, solo tokens y
+  `@layer components`. Con `prefers-reduced-motion` nada se mueve y las cifras aparecen en su valor. Lo vigila `lib/analisis-movimiento.test.ts`
+  sobre todas las hojas `app/estilos/analisis*.css`.
+- **Dónde vive:** `apps/web/app/estilos/analisis.css` (sus `@keyframes an-*`) y las hojas de cada pestaña (`analisis-hoy.css`,
+  `analisis-acaba.css`, `analisis-quieta.css`, `analisis-pedir.css`, `analisis-ficha.css`). Las cifras que cuentan, en
+  `components/analisis/AnalisisPantalla.tsx` (`data-cuenta`). No se generaliza: otra pantalla que quiera lo mismo lo pide con Felipe y se agrega
+  aquí.
+- **Los puntos del flujo (Felipe, 2026-10-06, después de verlo):** al pasar el mouse (o el foco) por un camino de «Qué hacer hoy», corren puntos
+  del color del camino por su cinta: de la Compra hacia «Tu tienda», y de «Tu tienda» hacia la otra tienda o hacia «Liquidar», para que se lea
+  hacia dónde van las prendas. Es la **única pieza de Análisis que se repite**, y solo mientras el mouse o el foco está encima: al salir, los
+  puntos se van. Velocidad pareja (1,6 s por cruce, sin curva: es un flujo, no una entrada), de 3 a 6 puntos según el grosor, en dos carriles
+  fuera de la pastilla «N prendas». Con `prefers-reduced-motion` no se dibujan. Vive en `PuntosCinta` (`components/analisis/PestanaHoy.tsx`,
+  con `<animateMotion>` de SVG) y la geometría en `ejeCinta` / `carrilesDeCinta` / `puntosDeCinta` (`lib/analisis-hoy.ts`); lo vigila
+  `lib/analisis-movimiento.test.ts` (ningún otro `repeatCount="indefinite"` en Análisis).
+
+## Actualización 2026-10-06 (c) — el aviso de cierre de caja (Marcador): dos bucles decorativos que Felipe eligió
+
+- **Qué:** el aviso de cierre de caja de la cabecera (ADR-0359, antes la «Isla» de ADR-0305) repite tres cosas mientras está a la
+  vista: unas **ondas** que salen sin parar desde la hora de cierre (la misma onda de cuando sube de nivel; es una señal: «ya es la hora»),
+  un **resplandor** que deriva lento hacia los lados (8 s) y un **destello** que cruza la cápsula cada 6 s solo en «sin cerrar».
+  Se suman al punto que late de siempre.
+- **Por qué se admiten:** Felipe vio la maqueta con ambos y la eligió («Completo»); el resplandor además es parte de lo que pidió que
+  fuera más notorio en rojo. A diferencia de las otras excepciones, son de ambiente y no señales: si se prefiere el modo «Sobrio», se
+  quitan sin perder información (el color del nivel, las paletas y la pestaña dicen lo mismo).
+- **Los límites:** `--ease-cayla`, sin rebote, solo tokens, y con `prefers-reduced-motion` se detienen. En celular el resplandor es corto y suave.
+- **Dónde vive:** `apps/web/app/estilos/recordatorio-cierre.css` (`.rcc-aurora`, `.rcc-caps::before`).
+
+## Actualización 2026-10-07 — la mesa de Ventas sin registrar (ADR-0360): movimiento rico, elegido por Felipe
+
+- **Qué:** en `/inventario/por-regularizar` (maqueta A2 «Puente») el talón elegido se adelanta y su hilo se dibuja hasta el puente; la cuerda se traza y
+  los tres visitos (prenda, talla, color) entran en cascada; la balanza de precio se llena; las tarjetas de prendas suben una a una y se levantan
+  al pasar el mouse; y al guardar las dos mitades del puente se juntan, cae el sello «Regularizada» y el talón se pliega.
+- **Por qué se admite:** Felipe pidió «muchas animaciones» para esta pantalla y eligió la maqueta con su movimiento (2026-10-07). Cada efecto
+  responde a algo que la persona hizo (elegir, pasar el mouse, guardar): ninguno es decorativo ni corre solo.
+- **Los límites son los de siempre:** `--ease-cayla`, nada con rebote, **nada en bucle** (salvo el punto de «Vencida», que late tres veces como el
+  del chip), cada efecto una vez, solo tokens y `@layer components`. Con `prefers-reduced-motion` todo queda quieto y los trazos aparecen ya dibujados.
+- **Dónde vive:** `apps/web/app/estilos/ventas-sin-registrar.css` (sus `@keyframes vsr-*`) y los hilos en `components/por-regularizar/HilosMesa.tsx`
+  (SVG medido en el DOM). No se generaliza: otra pantalla que quiera lo mismo lo pide con Felipe y se agrega aquí. La hoja del celular es un
+  `<Modal>` y entra con la cascada de esta regla.
+
+
+## Actualización 2026-10-09 — el gasto rápido de Caja (ADR-0368): movimiento rico, pedido por Felipe
+
+- **Qué:** en `components/GastoRapidoModal.tsx` (Caja ▸ Registrar gasto) el mosaico entra en ola (cada baldosa 34 ms después de la anterior);
+  la ★ de lo más frecuente llega girando y se rellena, y sus «12 veces» cuentan desde cero; al tocar una baldosa la tinta se derrama desde el
+  punto del clic y su ícono se vuelve a trazar; la línea «Va a …» sube cada vez que cambia; «Otro» y «¿Te dieron factura o boleta?» se abren
+  midiendo su alto; los montos de siempre entran en cascada; la cifra del botón «Registrar S/ 0.80» sube al cambiar; y al guardar se dibuja un
+  sello (aro y check) con el monto, DESPUÉS del loader (ADR-0149), antes de cerrarse.
+- **Por qué se admite:** Felipe pidió «full animaciones para que sea sofisticado» (2026-10-09). Cada efecto responde a algo que la persona hizo o
+  a la entrada de la hoja; ninguno corre solo.
+- **Los límites son los de siempre:** `--ease-cayla`, sin rebote, **nada en bucle**, solo tokens y `@layer components`. Con
+  `prefers-reduced-motion` todo queda quieto, los trazos aparecen dibujados y las veces llegan de una.
+- **Dónde vive:** `apps/web/app/estilos/gasto-rapido.css` (sus `@keyframes gr-*`) y la cuenta de las veces en `useCuenta` del mismo componente.
+  No se generaliza.

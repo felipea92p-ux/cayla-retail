@@ -1,5 +1,5 @@
 import { Ayuda } from "@/components/Ayuda";
-import { TarjetaIndicador } from "@/components/TarjetaIndicador";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { VentasPorHoraChart } from "@/components/CajaGraficos";
 import { soles } from "@/lib/compras-reglas";
 import type { ColaboradoraComercial, PanelComercial, SedeComercial } from "@/lib/comercial";
@@ -60,7 +60,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
           Todas las tiendas
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Ventas de hoy"
             ayuda={
               <Ayuda titulo="Qué cuenta como venta">
@@ -77,7 +77,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
               </>
             }
           />
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Ventas de la semana"
             valor={soles(total.ventasSemana)}
             pie={
@@ -87,7 +87,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
               </>
             }
           />
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Ventas del mes"
             ayuda={
               <Ayuda titulo="Ritmo del mes">
@@ -98,16 +98,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
               </Ayuda>
             }
             valor={soles(total.ventasMes)}
-            critico={total.ritmo.estado === "bajo"}
-            alerta={
-              total.ritmo.estado === "sin_meta" && total.ritmo.proyeccion === null
-                ? "Ninguna tienda tiene meta diaria configurada."
-                : total.ritmo.ritmo !== null
-                  ? `${textoEstado(total.ritmo.estado)}: ${detalleRitmo(total.ritmo)}${
-                      total.tiendasConMeta < total.tiendas ? ` (${total.tiendasConMeta} de ${total.tiendas} tiendas con meta)` : ""
-                    }.`
-                  : textoEstado(total.ritmo.estado) + "."
-            }
+            tono={total.ritmo.estado === "bajo" ? "text-rojo" : undefined}
             pie={
               <>
                 {total.ticketsMes} {total.ticketsMes === 1 ? "ticket" : "tickets"}
@@ -115,12 +106,23 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
                 {total.devueltoMes > 0 && <span className="block">Devuelto en el mes: {soles(total.devueltoMes)}</span>}
               </>
             }
-          />
-          <TarjetaIndicador
+          >
+            {total.ritmo.estado === "sin_meta" && total.ritmo.proyeccion === null
+              ? "Ninguna tienda tiene meta diaria configurada."
+              : total.ritmo.ritmo !== null
+                ? `${textoEstado(total.ritmo.estado)}: ${detalleRitmo(total.ritmo)}${
+                    total.tiendasConMeta < total.tiendas ? ` (${total.tiendasConMeta} de ${total.tiendas} tiendas con meta)` : ""
+                  }.`
+                : textoEstado(total.ritmo.estado) + "."}
+          </TarjetaCifra>
+          {/* Sin ventas en el mes no hay ticket: «sin dato», y la línea de abajo pasa a ser su motivo. */}
+          <TarjetaCifra
             etiqueta="Ticket promedio del mes"
-            valor={ticketMes === null ? "—" : soles(ticketMes)}
-            pie={upt === null ? "Aún no hay ventas este mes." : `${num1(upt)} unidades por ticket`}
-          />
+            valor={ticketMes === null ? null : soles(ticketMes)}
+            pie={ticketMes === null ? undefined : upt === null ? "Aún no hay ventas este mes." : `${num1(upt)} unidades por ticket`}
+          >
+            {ticketMes === null ? (upt === null ? "Aún no hay ventas este mes." : `${num1(upt)} unidades por ticket`) : undefined}
+          </TarjetaCifra>
         </div>
       </section>
 
@@ -231,11 +233,10 @@ function TarjetaSede({ sede }: { sede: SedeComercial }) {
       : `${textoEstado(sede.ritmo.estado)}.`;
 
   return (
-    <TarjetaIndicador
+    <TarjetaCifra
       etiqueta={`${sede.nombre} · hoy`}
       valor={soles(sede.ventasHoy)}
-      critico={bajo}
-      alerta={alerta}
+      tono={bajo ? "text-rojo" : undefined}
       pie={
         <dl className="mt-1 space-y-0.5 tabular-nums">
           <Fila k="Tickets de hoy" v={`${sede.ticketsHoy} · ${sede.unidadesHoy} u.`} />
@@ -249,7 +250,9 @@ function TarjetaSede({ sede }: { sede: SedeComercial }) {
           {sede.devueltoMes > 0 && <Fila k="Devuelto en el mes" v={soles(sede.devueltoMes)} />}
         </dl>
       }
-    />
+    >
+      {alerta}
+    </TarjetaCifra>
   );
 }
 

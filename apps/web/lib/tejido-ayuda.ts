@@ -236,6 +236,64 @@ const POR_FAMILIA: Readonly<Record<FamiliaTejido, AyudaTejido>> = {
     "blusas, vestidos y faldas fluidas.",
     "agua fría y sin escurrir (mojada es frágil); plancha tibia.",
   ),
+  // Los materiales de las bolsas (2026-10-11, ADR-0377). Conocimiento general, no la ficha técnica de un proveedor.
+  papel_kraft: ficha(
+    "Papel natural de fibra larga, café o blanco: resistente, reciclable y de aire artesanal.",
+    "bolsas ecológicas de compras y de despacho, con asas de cordón o de cinta.",
+    "teme la humedad y el exceso de peso; se reutiliza y se recicla.",
+  ),
+  papel_couche: ficha(
+    "Papel de superficie lisa, mate o brillante, que muestra el logo y los colores con nitidez. Suele ir plastificado para ganar firmeza.",
+    "bolsas de boutique con logo a todo color.",
+    "el roce lo marca y la humedad lo ablanda; guárdalo plano y seco.",
+  ),
+  papel_opalina: ficha(
+    "Papel grueso, liso y opaco (como la cartulina maule). Mantiene su forma rígida y se ve sobrio y fino.",
+    "bolsas para prendas delicadas, regalos y ocasiones especiales.",
+    "guárdala plana y seca; los dobleces se marcan y no se quitan.",
+  ),
+  tnt: ficha(
+    "Tela no tejida, por lo general de polipropileno: liviana, resistente y reutilizable. Parece tela, pero no tiene hilos cruzados.",
+    "bolsas ecoamigables que la clienta guarda y vuelve a usar.",
+    "límpiala con un paño húmedo; el calor fuerte la deforma, no la planches.",
+  ),
+  organza: ficha(
+    "Tela fina, translúcida y algo rígida, de trama abierta: deja ver lo que lleva y da un toque de regalo.",
+    "bolsitas de cordón para joyería, bisutería y cosméticos.",
+    "se arruga y se deshilacha: a mano y plancha baja por el revés.",
+  ),
+  // Los que producción tenía sin ficha (2026-10-11).
+  encaje: ficha(
+    "Tela calada con dibujos de flores u hojas, de trama abierta y aspecto delicado: deja ver la piel o el forro.",
+    "blusas, tops, capas, detalles y prendas de fiesta.",
+    "a mano con agua fría y jabón suave, sin retorcer; secar tendido.",
+  ),
+  gamuza: ficha(
+    "Tela de acabado afelpado muy corto, suave y mate, parecida al cuero ante. Se marca con el roce y atrae pelusa.",
+    "pantalones, vestidos, faldas y chaquetas con aspecto de ante.",
+    "agua fría y del revés; sin secadora ni plancha caliente, que le quitan el pelo suave.",
+  ),
+  mesh: ficha(
+    "Tela de malla fina, de tejido abierto y elástico: transparente, liviana y muy ventilada.",
+    "blusas, tops, polos, faldas y capas ligeras, casi siempre con forro o una prenda debajo.",
+    "a mano o ciclo delicado, en bolsa de malla: se engancha y se rompe con facilidad; secar tendida.",
+  ),
+  // «Catania» es un nombre comercial cuya fibra NO está confirmada y cambia según el proveedor: se dice, en vez de describir otra tela.
+  catania: {
+    queEs: "Nombre comercial de una tela: su fibra exacta no está confirmada y puede cambiar según el proveedor.",
+    datos: [
+      { etiqueta: "Ojo", texto: "confirma la composición con la etiqueta del proveedor y, si la conoces, elige el tejido específico (Poliéster, Viscosa…)." },
+      { etiqueta: "Cuidado", texto: "el de la etiqueta del proveedor." },
+    ],
+  },
+  plastico: {
+    queEs: "Polietileno: una película liviana, impermeable y económica que protege del agua y del polvo.",
+    datos: [
+      { etiqueta: "Ideal para", texto: "bolsas de despacho y de compras de uso rápido." },
+      { etiqueta: "Ojo", texto: "una bolsa de plástico puede llevar el impuesto ICBPER: consúltalo con contabilidad." },
+      { etiqueta: "Cuidado", texto: "se rasga con el peso y el filo; no la expongas al calor." },
+    ],
+  },
 };
 
 /** La ayuda del tejido por su nombre, o `null` si el nombre no se reconoce (la tarjeta queda sin tooltip). */

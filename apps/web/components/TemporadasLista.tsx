@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { FunnelX, SearchX, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -60,6 +60,8 @@ import {
   type RevisionFecha,
   type VistaTemporadas,
 } from "@/lib/temporadas-pantalla";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * La pestaña «Temporadas» de Productos ▸ Atributos (ADR-0246). A diferencia de las otras cinco, la lista es CERRADA
@@ -155,16 +157,16 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
   const desfase = 0;
   return (
     <div className="space-y-6">
-      <Vuelta enLista={vista === "lista"} onLista={() => elegir("lista")} />
-
-      <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
-        {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
-        {dibujada === "completar" && (
-          <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
-        )}
-        {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
-        {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
-      </div>
+      <VueltaALaLista.Provider value={() => elegir("lista")}>
+        <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
+          {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
+          {dibujada === "completar" && (
+            <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
+          )}
+          {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
+          {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
+        </div>
+      </VueltaALaLista.Provider>
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
@@ -172,35 +174,13 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
 }
 
 /**
- * Dos pantallas saltan directo a una vista de esta pestaña: «Completar» del aviso de Productos (a «Por completar») y el
- * enlace de Categorías (a «Por categoría»). Su vuelta va arriba, y solo con su `desde=`: Atributos está en el menú, y quien
- * entra por el lateral no vino de ninguna de las dos. Dentro de una vista de trabajo, además, «← Las nueve temporadas»
- * regresa a la grilla (sin ir al servidor: las cuatro vistas ya están cargadas).
+ * La única vuelta de la pestaña: de una vista de trabajo («Por completar», «Por categoría», «Calendario») a la grilla de
+ * «Las nueve temporadas», sin ir al servidor (las cuatro vistas ya están cargadas). Va DENTRO del título de la vista, a la
+ * izquierda de su nombre, no suelta encima. «Completar» de Productos y el enlace de Categorías entran directo a una vista
+ * (`?vista=`), pero ya no ponen su propia flecha de salida: Atributos está en el menú y una segunda flecha igual a esta
+ * no decía cuál era cuál (Felipe 2026-10-07).
  */
-const VUELTAS = {
-  productos: { href: "/productos", a: "Productos" },
-  categorias: { href: "/productos/categorias", a: "Categorías" },
-} as const;
-
-function Vuelta({ enLista, onLista }: { enLista: boolean; onLista: () => void }) {
-  const desde = useSearchParams().get("desde");
-  const afuera = desde === "productos" || desde === "categorias" ? VUELTAS[desde] : null;
-  if (!afuera && enLista) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-      {afuera && <Volver {...afuera} />}
-      {!enLista && (
-        <button
-          type="button"
-          onClick={onLista}
-          className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-tinta/65 transition-[color,transform] duration-300 hover:-translate-x-0.5 hover:text-rojo"
-        >
-          <span aria-hidden>←</span> Las nueve temporadas
-        </button>
-      )}
-    </div>
-  );
-}
+const VueltaALaLista = createContext<(() => void) | null>(null);
 
 // ---- La franja de trabajo -----------------------------------------------------------------------------------------------
 
@@ -260,10 +240,14 @@ function Atajo({ accion, punto, onClick, children }: { accion: string; punto: st
 
 function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; bajada: ReactNode; children?: ReactNode; desfase: number }) {
   const { className, style } = entra(desfase);
+  const alLista = useContext(VueltaALaLista);
   return (
-    <div className={`flex flex-wrap items-end justify-between gap-3 ${className}`} style={style}>
-      <div className="space-y-1">
-        <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+    <div className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-3 ${className}`} style={style}>
+      <div className="min-w-0 space-y-1">
+        <div className="flex items-center gap-3">
+          {alLista && <Volver onClick={alLista} a="Las nueve temporadas" />}
+          <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+        </div>
         <p className="max-w-3xl text-sm text-taupe">{bajada}</p>
       </div>
       {children}
@@ -405,9 +389,9 @@ function VistaCalendario({
             {!esLider && " Pídele al líder que lo agregue."}
           </span>
           {esLider && (
-            <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setAgregando(true)}>
+            <Boton type="button" onClick={() => setAgregando(true)}>
               Agregar {anioHoy + 1}
-            </button>
+            </Boton>
           )}
         </div>
       )}
@@ -814,11 +798,17 @@ function VistaCategorias({
         )}
       </TituloVista>
       {datos.categorias.length === 0 ? (
-        <p className="nota-cayla">No hay categorías activas.</p>
+        <Vacio tamano="chico" icono={<Shirt />}>
+          No hay categorías activas.
+        </Vacio>
       ) : (
         <Tabla {...entra(desfase + 1)}>
           <Encabezado columnas={COLUMNAS_CAT} plantilla={PLANTILLA_CAT} />
-          {visibles.length === 0 && <p className={TABLA.vacio}>Ninguna categoría activa tiene prendas todavía.</p>}
+          {visibles.length === 0 && (
+            <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Ver todas", onClick: () => setFiltro("todas") }}>
+              Ninguna categoría activa tiene prendas todavía.
+            </Vacio>
+          )}
           {visibles.map((c, i) => {
             const valor = valorDe(c);
             // Cambiar el filtro no re-anima las filas que ya estaban: React conserva su DOM y la animación no se repite.
@@ -1032,18 +1022,13 @@ function VistaPorCompletar({
       )}
 
       <div className="anim-entra flex flex-wrap items-center gap-2" style={entra(desfase + 2).style}>
-        <div className="caja-cayla relative flex h-10 min-w-[12rem] flex-1 items-center">
-          <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-          <input
-            type="text"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Nombre, código, categoría, marca o color…"
-            aria-label="Buscar entre las prendas sin temporada"
-            autoComplete="off"
-            className="h-full w-full rounded-lg bg-transparent pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-taupe"
-          />
-        </div>
+        <Buscador
+          valor={texto}
+          onCambio={setTexto}
+          placeholder="Nombre, código, categoría, marca o color…"
+          etiqueta="Buscar entre las prendas sin temporada"
+          className="min-w-[12rem] flex-1"
+        />
         {puedeEditar && (
           <button type="button" className="btn-cayla btn-enlace text-sm" onClick={alternarTodas} disabled={visibles.length === 0}>
             {todasVisiblesMarcadas ? "Desmarcar todas" : texto ? "Marcar las que se ven" : "Marcar todas"}
@@ -1051,7 +1036,11 @@ function VistaPorCompletar({
         )}
       </div>
 
-      {visibles.length === 0 && <p className="nota-cayla">Ninguna prenda sin temporada coincide con «{texto}».</p>}
+      {visibles.length === 0 && (
+        <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setTexto("") }}>
+          Ninguna prenda sin temporada coincide con «{texto}».
+        </Vacio>
+      )}
 
       <div className="flex flex-col">
         {grupos.map((g, i) => (

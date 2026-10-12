@@ -3,6 +3,8 @@
 // PROMETE: dado el instante actual, la hora de cierre de la tienda (`ubicaciones.hora_cierre`, hora de Lima) y cuándo se
 //   abrió la caja que sigue abierta, dice en qué nivel está el recordatorio y cuántos minutos pasaron de la hora:
 //     0 nada (todavía no es hora) · 1 en hora (0–29 min) · 2 sigue abierta (30–59) · 3 sin cerrar (60 o más).
+//   Desde el 2026-10-06 (ADR-0359) el aviso de la barra empieza 15 min ANTES: `estadoAviso` lo cuenta como nivel 1 con
+//   `previo: true`. `estadoRecordatorio` sigue siendo el de siempre —el botón «Cerrar caja» de Caja (ADR-0318) cuelga de él—.
 //   Y los textos que se leen en la píldora y en la tarjeta. Sin React, sin red, sin `Intl` (servidor y navegador dicen lo
 //   mismo), para probarlo con `recordatorio-cierre-reglas.test.ts`.
 // ASUME: que Lima va cinco horas detrás de UTC todo el año (sin horario de verano), como `diaYHoraLima`.
@@ -11,6 +13,11 @@
 /** Minutos que suben de nivel: a los 30 «sigue abierta», a la hora «sin cerrar». */
 export const MINUTOS_NIVEL_2 = 30;
 export const MINUTOS_NIVEL_3 = 60;
+
+/** Minutos antes de la hora de cierre en que el aviso de la barra ya aparece (Felipe 2026-10-06: 7:30 p. m. para cerrar a las 7:45). */
+export const MINUTOS_PREAVISO = 15;
+/** Cada cuántos minutos, desde la hora de cierre y hasta que se cierre la caja, la pestaña se despliega sola. */
+export const MINUTOS_ENTRE_DESPLIEGUES = 5;
 
 export type NivelRecordatorio = 0 | 1 | 2 | 3;
 
@@ -67,6 +74,33 @@ export function estadoRecordatorio({ ahora, abiertaEn, horaCierre }: { ahora: Da
   return { nivel: nivelPorMinutos(minutos), minutos };
 }
 
+export type EstadoAviso = EstadoRecordatorio & {
+  /** Todavía no es la hora de cierre: faltan `-minutos`. Solo ocurre en el nivel 1. */
+  previo: boolean;
+};
+
+/**
+ * Lo que pinta el aviso de la barra: lo mismo que `estadoRecordatorio` pero con el preaviso de 15 min. Antes de la hora (de
+ * −15 a −1 min) es el nivel 1 con `previo`; a la hora y después, idéntico. El botón de Caja NO usa esta: sigue diciendo
+ * «todavía no es hora» hasta la hora.
+ */
+export function estadoAviso(entrada: { ahora: Date; abiertaEn: string; horaCierre: string | null }): EstadoAviso {
+  const e = estadoRecordatorio(entrada);
+  if (e.nivel === 0 && entrada.horaCierre && instanteDeCierre(entrada.abiertaEn, entrada.horaCierre) !== null && e.minutos >= -MINUTOS_PREAVISO) {
+    return { nivel: 1, minutos: e.minutos, previo: true };
+  }
+  return { ...e, previo: false };
+}
+
+/**
+ * ¿Toca desplegar la pestaña? Desde la hora de cierre, cada 5 minutos redondos (a las 7:45, 7:50, 7:55…) y hasta que se cierre
+ * la caja. Devuelve el número de despliegue (0 a la hora, 1 a los 5 min…) o −1 mientras todavía no es hora: la pestaña sube
+ * cuando ese número crece, nunca por estar «activo».
+ */
+export function cicloDeDespliegue(minutos: number): number {
+  return minutos < 0 ? -1 : Math.floor(minutos / MINUTOS_ENTRE_DESPLIEGUES);
+}
+
 export function nivelPorMinutos(minutos: number): NivelRecordatorio {
   if (minutos < 0) return 0;
   if (minutos < MINUTOS_NIVEL_2) return 1;
@@ -93,18 +127,22 @@ export function textoCorto(minutos: number): string {
   return minutos < 1 ? "ahora" : duracion(minutos);
 }
 
-/** Lo que dice la píldora como verbo: a la hora se cierra; pasada la hora, ya es «sin cerrar». */
-export function rotuloPildora(nivel: NivelRecordatorio): string {
+/** Lo que dice la píldora como verbo: antes de la hora «Cierra en», a la hora se cierra; pasada la hora, ya es «sin cerrar». */
+export function rotuloPildora(nivel: NivelRecordatorio, previo = false): string {
+  if (previo) return "Cierra en";
   return nivel === 3 ? "Caja sin cerrar" : "Cerrar caja";
 }
 
-export function tituloTarjeta(nivel: NivelRecordatorio): string {
+export function tituloTarjeta(nivel: NivelRecordatorio, previo = false): string {
+  if (previo) return "Se acerca la hora de cierre";
   return nivel === 3 ? "Caja sin cerrar" : nivel === 2 ? "La caja sigue abierta" : "Es hora de cerrar caja";
 }
 
 /** La frase bajo el título. `sede` es el nombre corto que se lee en pantalla («Arequipa»). */
-export function bajadaTarjeta(nivel: NivelRecordatorio, sede: string, horaCierre: string): string {
+export function bajadaTarjeta(nivel: NivelRecordatorio, sede: string, horaCierre: string, previo = false): string {
   const h = hora12(horaCierre);
+  // «p. m.» ya termina en punto: no se le suma otro.
+  if (previo) return `${sede} cierra a las ${h} Ve contando el cajón.`;
   if (nivel === 3) return `Desde las ${h} Ciérrala antes de irte.`;
   if (nivel === 2) return `Pasó la hora de cierre (${h}).`;
   // «p. m.» ya termina en punto: no se le suma otro.

@@ -6,6 +6,7 @@
 import type { OpcionCombo } from "@/components/ui/ComboBuscable";
 import type { LineaVentaReciente } from "./ventas-v2";
 import { condicionForzada, unidadesDisponibles, varianteLegible, type CondicionCambio, type MetodoDiferencia, type MotivoCambio } from "./cambios-reglas";
+import { resolverCodigoV2 } from "./buscar-prenda-v2";
 import { compararTallas } from "./tallas";
 import { textoOtrasSedes, type SedeConStock } from "./stock-por-sede";
 import { sinStockPorApartado, textoSinStock } from "./vender-reglas";
@@ -20,13 +21,20 @@ export type VarianteCatalogo = {
   color: string | null;
   colorHex: string | null;
   fotoUrl: string | null;
+  /** El precio en ESTA tienda (su precio propio, si tiene; si no, el de la prenda). */
   precio: number;
+  /** El precio de la prenda (`variantes.precio`) y los precios propios de cada tienda (ubicación → precio): con ellos, un cambio de
+   *  talla o color de la misma prenda se cobra al precio de la tienda donde se compró (Felipe 2026-10-10). Sin ellos, `precio`. */
+  precioPrenda?: number;
+  preciosPorTienda?: Readonly<Record<string, number>>;
   /** Piso de ESTA sede: lo único que `registrar_cambio` deja entregar. */
   stockAqui: number;
   /** Lo apartado para clientas en ese mismo piso: con `stockAqui` en 0, es «apartada para un cliente» y no «no queda». */
   apartadoAqui: number;
   /** Dónde más hay — «no queda L aquí, pero hay 2 en Trujillo». */
   stockOtrasSedes: SedeConStock[];
+  /** Los códigos de etiqueta y de fábrica: lo que lee la pistola o la cámara para elegir la prenda sin buscarla. */
+  codigosBarras: string[];
 };
 
 /** Lo que la colaboradora va eligiendo en el paso "Reemplazo". Nada viene elegido a
@@ -66,13 +74,38 @@ export function agruparCatalogo(catalogo: readonly VarianteCatalogo[]): Map<stri
 }
 
 /** La que compró va primero y siempre (aunque hoy no quede ninguna aquí: así se ve
- *  dónde más hay); de las demás, solo las que tienen algo que entregar en esta sede. */
-export function opcionesDePrenda(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>): OpcionCombo<string>[] {
+ *  dónde más hay); de las demás, solo las que tienen algo que entregar en esta sede, y la ELEGIDA aunque no tenga
+ *  (`elegidoId`): una prenda escaneada sin stock aquí tiene que verse en el campo, con su aviso de dónde más hay. */
+export function opcionesDePrenda(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>, elegidoId?: string): OpcionCombo<string>[] {
   const otras = [...porProducto.entries()]
-    .filter(([id, vs]) => id !== linea.productoId && vs.some((v) => v.stockAqui > 0))
+    .filter(([id, vs]) => id !== linea.productoId && (id === elegidoId || vs.some((v) => v.stockAqui > 0)))
     .map(([id, vs]) => ({ valor: id, texto: vs[0]!.referencia, detalle: `desde S/ ${Math.min(...vs.map((v) => v.precio)).toFixed(2)}` }))
     .sort((a, b) => a.texto.localeCompare(b.texto, "es"));
   return [{ valor: linea.productoId, texto: linea.referencia, detalle: "la que compró" }, ...otras];
+}
+
+/** Lo que hace una LECTURA (pistola o cámara) en el paso «Reemplazo» (Felipe 2026-10-09: «que se escanee y se seleccione
+ *  automáticamente»): la etiqueta dice la prenda exacta, así que deja elegidas la prenda, la talla y el color de una vez.
+ *  Mismo reconocimiento que Vender (`resolverCodigoV2`: código de etiqueta o de fábrica, exacto o nada). No decide si se
+ *  puede entregar: si no queda en el piso, el paso lo dice igual que si se hubiera elegido a mano (`avisoSinStock`). */
+export type LecturaReemplazo =
+  | { tipo: "elegida"; cambio: Pick<Seleccion, "productoId" | "talla" | "color">; variante: VarianteCatalogo }
+  | { tipo: "no-encontrada"; codigo: string };
+
+export function seleccionDesdeLectura(codigo: string, catalogo: readonly VarianteCatalogo[]): LecturaReemplazo {
+  const v = resolverCodigoV2(codigo, catalogo.slice());
+  if (!v) return { tipo: "no-encontrada", codigo: codigo.trim() };
+  return { tipo: "elegida", cambio: { productoId: v.productoId, talla: v.talla, color: v.color }, variante: v };
+}
+
+/**
+ * Lo mismo que `fn_precio_para_cambio` en la base (Felipe 2026-10-10, «vale lo que pagó»): la MISMA prenda en otra talla o color se
+ * cobra al precio de la tienda donde se compró —comprada en TRU a 69.90 y cambiada de talla en Lima (79.90), no se cobran S/ 10—; otra
+ * prenda es una venta nueva aquí: al precio de esta tienda.
+ */
+export function precioParaCambio(linea: Pick<LineaVentaReciente, "productoId" | "ubicacionVentaId">, v: VarianteCatalogo): number {
+  if (v.productoId !== linea.productoId || !linea.ubicacionVentaId) return v.precio;
+  return v.preciosPorTienda?.[linea.ubicacionVentaId] ?? v.precioPrenda ?? v.precio;
 }
 
 /** Todo lo que se deriva de la selección, calculado UNA vez: el formulario, la
@@ -133,8 +166,10 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
         : textoApartada
           ? `${descripcionNueva} está ${textoApartada}: no se entrega desde aquí. ${otrasSedes ? `Hay ${otrasSedes}.` : "No hay en otra sede."}`
           : `No queda ${descripcionNueva} aquí${otrasSedes ? ` — hay ${otrasSedes}.` : ", ni en otra sede."}`,
+    /** El precio al que se lleva la prenda nueva (`precioParaCambio`): el que se muestra y el de la diferencia. */
+    precioNueva: varianteNueva ? precioParaCambio(linea, varianteNueva) : null,
     // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira).
-    diferencia: varianteNueva ? (varianteNueva.precio - linea.precioUnitario) * s.cantidad : 0,
+    diferencia: varianteNueva ? (precioParaCambio(linea, varianteNueva) - linea.precioUnitario) * s.cantidad : 0,
     condicionFija,
     condicion: condicionFija ?? s.condicionElegida,
   };

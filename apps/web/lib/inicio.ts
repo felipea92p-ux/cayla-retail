@@ -10,6 +10,10 @@ import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import { getAvisoPerdidas } from "@/lib/perdidas";
 import type { ClaveModulo } from "@/lib/modulos";
+import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
+import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
+import { ahoraSinRespuesta, leAvisaSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
+import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -116,12 +120,12 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 }
 
 export async function getFuentesAvisos(
-  cuenta: { ubicacionId: string; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas">
+  cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -144,8 +148,25 @@ export async function getFuentesAvisos(
       : undefined,
     // ADR-0328 act. 14: «se repite», solo del líder y con el módulo de la pestaña a la que lleva (Movimientos).
     cuenta.esLider && ve("movimientos") ? tolerarLectura("las pérdidas que se repiten", () => getAvisoPerdidas(ubicacionId)) : undefined,
+    // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar),
+    // cada uno en el Inicio de SU sede (decisión del 2026-10-04: «los que tienen esa sede»; un líder parado en otra no lo
+    // recibe por ella). El Admin los ve todos en el Observatorio.
+    leAvisaSinRespuesta(cuenta, ubicacionId)
+      ? getPedidosPorAtender(ubicacionId).then((filas) => {
+          if (filas === null) return null;
+          const ahoraIso = new Date().toISOString();
+          const s = pedidosSinRespuesta(filas, ahoraIso);
+          return { tePiden: s.tePiden.length, pediste: s.pediste.length, detalle: textoSinRespuesta(s, ahoraIso), ahora: ahoraSinRespuesta(s) };
+        })
+      : undefined,
+    // ADR-0328 act. 17 (decisión del 2026-10-04): lo que la tienda pidió para un cliente y hay que avisarle (llegó o no va a
+    // llegar) y por qué pedidos hay que preguntar si siguen en pie (7 días). Para quien ve Vender: el aviso lleva a su franja.
+    ve("vender") ? leerPedidosConCliente(ubicacionId).then((p) => (p === null ? null : resumenParaElInicio(p, new Date().toISOString()))) : undefined,
+    // ADR-0328 act. 17 (decisión del 2026-10-04): lo subido «para enviar» que lleva más de 3 días, en el Inicio de esa sede
+    // (para quien ve Traslados, donde está la lista y «Armar el envío»). No suma al número del menú.
+    ve("traslados") ? leerParaEnviar(ubicacionId).then((f) => (f === null ? null : paraEnviarAtrasadas(f, new Date().toISOString()))) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

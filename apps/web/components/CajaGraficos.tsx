@@ -14,7 +14,9 @@ const LABEL_GRUPO: Record<Grupo, string> = { efectivo: "Efectivo", tarjeta: "Tar
 const COLOR_GRUPO: Record<Grupo, string> = {
   efectivo: "var(--color-metodo-efectivo)",
   tarjeta: "var(--color-metodo-tarjeta)",
-  digital: "var(--color-metodo-digital)",
+  // El grupo «digital» (Yape / Plin / QR / Transferencia) usa el token de Yape, como la dona de Caja. Antes decía `--color-metodo-digital`, un token
+  // que NUNCA existió: la línea y el cuadrito de la leyenda salían sin color. Lo destapó la prueba de tokens del modo oscuro (ADR-0336).
+  digital: "var(--color-metodo-yape)",
 };
 
 /**

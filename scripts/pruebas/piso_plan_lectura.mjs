@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pruebas de la lectura del motor del piso (ADR-0328, actividad 7) — `retail.fn_piso_plan_lectura(p_ubicacion_id)`,
- * migraciones `20261004213000_piso_plan_lectura.sql` (la lectura) y `20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql`
+ * migraciones `20261004213000_piso_plan_lectura.sql` (la lectura) y `20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql`
  * (el contrato con ADR-0334: la anotada cuenta mientras no tenga prenda, también si se cerró sin prenda). CAYLA V2.
  *
  * LO QUE VIGILA. La lectura junta, en UN jsonb, lo que el motor puro de la web (`apps/web/lib/piso-plan.ts`) necesita de una sede:
@@ -43,7 +43,7 @@
  *   V   TALLAS DE LA BASE = la lista que recorre `apps/web/lib/piso-plan.test.ts` (TALLAS_DE_LA_BASE): si una migración o el seed
  *       agregan una talla, esta prueba pide sumarla allí, y así la regla de talla central la clasifica antes de que llegue a
  *       una tienda.
- *   M   LA MIGRACIÓN QUE SE PEGA (20261005160000): se puede pegar dos veces; su guarda se detiene si la puerta todavía no conoce
+ *   M   LA MIGRACIÓN QUE SE PEGA (20261005160100): se puede pegar dos veces; su guarda se detiene si la puerta todavía no conoce
  *       a las terminales, y también si el cuerpo vivo no es el de 20261004213000 ni el suyo (un cambio hecho a mano en la
  *       función viva, que su `create or replace` borraría en silencio); y la huella (md5) que su cabecera manda verificar en
  *       producción es la del cuerpo.
@@ -66,7 +66,7 @@ const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
 // La que se pega: cuenta las anotadas pendientes Y las cerradas sin prenda (ADR-0334). Es la que vigilan M1–M4.
-const MIGRACION = leerMigracion("20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql");
+const MIGRACION = leerMigracion("20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql");
 // La de antes (PR #787, en producción desde el 2026-10-04): solo las pendientes. El control de A11 y el «parche a mano» de M4.
 const MIGRACION_ANTERIOR = leerMigracion("20261004213000_piso_plan_lectura.sql");
 const HUELLA_ANTERIOR = "faff73d2a6db4c0692775c1f6d6e284d";
@@ -832,7 +832,8 @@ caso(
 
 caso(
   "M1 se puede pegar dos veces: el cuerpo no cambia",
-  `${MIGRACION}\nselect md5(prosrc) as m1 from pg_proc where oid = ${OID} \\gset\n${MIGRACION}\n` +
+  // Primero el cuerpo que este archivo reemplaza (20261004213000): sobre el de hoy, con parches posteriores, su guarda se detiene (M5).
+  `${MIGRACION_ANTERIOR}\n${MIGRACION}\nselect md5(prosrc) as m1 from pg_proc where oid = ${OID} \\gset\n${MIGRACION}\n` +
     `select (md5(prosrc) = :'m1')::text from pg_proc where oid = ${OID};`,
   "true"
 );
@@ -850,10 +851,22 @@ caso(
   const md5Cabecera = MIGRACION.match(/→ `([0-9a-f]{32})` \(el cuerpo de este archivo/)?.[1] ?? "(sin md5 en la cabecera)";
   caso(
     "M3 la huella que la cabecera manda verificar en producción es la del cuerpo de la función (si cambia el cuerpo, cambia la cabecera)",
-    `select md5(prosrc) from pg_proc where oid = ${OID};`,
+    // Se carga ANTES la migración: la huella es la del cuerpo de ESTE archivo, no la de lo que cualquier migración posterior le haya parchado
+    // (20261010232000 le suma el filtro de familias apagadas y, sin esto, este caso se ponía en rojo con cada parche nuevo). Y antes de ella,
+    // el cuerpo que reemplaza (20261004213000): sobre uno parchado, su guarda se detiene a propósito (M5).
+    `${MIGRACION_ANTERIOR}\n${MIGRACION}\nselect md5(prosrc) from pg_proc where oid = ${OID};`,
     md5Cabecera
   );
 }
+caso(
+  "M5 sobre la función de HOY (con los parches posteriores, como el filtro de familias apagadas de 20261010232000), volver a pegar este archivo se detiene sin tocarla: no borra lo que otra migración le agregó",
+  `select md5(prosrc) as m0 from pg_proc where oid = ${OID} \\gset
+   select pg_temp.intento($migracion$${MIGRACION}$migracion$) as intento \\gset
+   select concat_ws(',', :'m0' not in ('${HUELLA_ANTERIOR}', '${MIGRACION.match(/→ `([0-9a-f]{32})` \(el cuerpo de este archivo/)?.[1]}'),
+     :'intento' like 'P0001|retail.fn_piso_plan_lectura no es la de 20261004213000 ni la de este archivo%',
+     (select md5(prosrc) = :'m0' from pg_proc where oid = ${OID}));`,
+  "t,t,t"
+);
 caso(
   "M4 la guarda se detiene si el cuerpo vivo no es el de 20261004213000 ni el de este archivo (un cambio hecho a mano, que el create or replace borraría), sin tocar la función",
   `${MIGRACION_ANTERIOR.split("c_dias constant integer := 14;").join("c_dias constant integer := 14;  -- cambio hecho a mano en la base viva")}

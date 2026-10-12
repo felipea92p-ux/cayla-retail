@@ -1,0 +1,737 @@
+"use client";
+
+import Link from "next/link";
+import { createContext, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
+import { useAnalisis } from "@/components/analisis/contexto";
+import { Icono } from "@/components/analisis/iconos";
+import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
+import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
+import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
+import { hrefReponerPiso } from "@/lib/analisis-acciones";
+import { diasQueQuedan, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
+import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
+import { alcancePorTipo, diasANavidad, textoAlcance, textoRitmo, tipoCorto, type AlcanceTipo } from "@/lib/analisis-pedir";
+import {
+  caminosDeHoy,
+  carrilesDeCinta,
+  cintaFlujo,
+  columnasFlujo,
+  ejeCinta,
+  estadoQuieta,
+  estadosDelFlujo,
+  etiquetaFlujo,
+  FLUJO,
+  geometriaFlujo,
+  listaTip,
+  paraReponerPiso,
+  pastillaFlujo,
+  puntosDeCinta,
+  px,
+  quietasHoy,
+  seAcabanHoy,
+  SEGUNDOS_PUNTO,
+  textoDiasQueQuedan,
+  textoPastilla,
+  titulosFlujo,
+  todosLosCaminos,
+  type BandaFlujo,
+  type CaminoHoy,
+  type CaminosHoy,
+} from "@/lib/analisis-hoy";
+import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
+
+// Análisis v4 (ADR-0357): la pestaña «Hoy», como la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden una
+// pregunta cada una (tocar una lleva a su pestaña; tocar una prenda abre su ficha) y «Qué hacer hoy», el flujo de prendas que entran
+// y salen de la tienda, de alto fijo, que bajo 760 px se vuelve una lista. Todo es de la tienda elegida arriba: la comparación de las
+// tres tiendas vive en CAYLA Global (decisión 3, act. 2026-10-06). Las cuentas viven en `lib/analisis-hoy.ts`; aquí solo se dibuja.
+//
+// Lo que filtra el buscador: las prendas (las listas y los caminos). Las cifras de la tienda (lo que se vende por categoría) son de
+// toda la tienda.
+
+const ids = (prendas: readonly Pick<PrendaAnalisis, "varianteId">[]): string => prendas.map((p) => p.varianteId).join(" ");
+
+const AYUDA_FLUJO =
+  "Lo que se acaba aparece para comprar. Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada modelo ves cuánto vende cada tienda y decides si pedirlo. El número es cuántos modelos son.";
+
+export function PestanaHoy() {
+  const { datos, prendas, q, liquidarDesde, diasDeVentas } = useAnalisis();
+  const buscando = q.trim() !== "";
+  const acaba = seAcabanHoy(prendas, liquidarDesde);
+  const quietas = quietasHoy(prendas, liquidarDesde);
+  // «¿Qué no ha salido al piso?»: sin saberlo (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
+  const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
+  const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : "bien";
+  // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (B2, Felipe 2026-10-07).
+  const hastaNavidad = diasANavidad(datos.hoy);
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso);
+  const noLlegan = alcance.filter((t) => t.pide);
+  const vendioAlgo = alcance.some((t) => t.vendidas > 0);
+
+  return (
+    <>
+      <div className="instrumentos">
+        <Instrumento i={0} vista="acaba" pregunta="¿Qué se acaba?" est={acaba.length ? "urg" : buscando ? null : "bien"}>
+          <ListaAcaba prendas={acaba} />
+        </Instrumento>
+        <Instrumento i={1} vista="nose" pregunta="¿Qué no se mueve?" est={quietas.length ? "ate" : buscando ? null : "bien"}>
+          <ListaQuietas prendas={quietas} />
+        </Instrumento>
+        <Instrumento i={2} vista="piso" pregunta="¿Qué no ha salido al piso?" est={estPiso}>
+          <ListaPiso prendas={sinSalir} />
+        </Instrumento>
+        <Instrumento i={3} vista="pedir" pregunta="¿Qué pedir?" est={noLlegan.length > 0 ? "ate" : vendioAlgo ? "bien" : "info"}>
+          <div className="i-per">
+            <Icono nombre="reloj" />
+            {textoRitmo(diasDeVentas)}
+          </div>
+          <div className="i-vis">{noLlegan.length > 0 && <MiniAlcance tipos={noLlegan.slice(0, 3)} hastaNavidad={hastaNavidad} />}</div>
+          <div className="i-num">
+            {!vendioAlgo ? (
+              <>
+                <b className="palabras">Sin ventas</b>
+                <span>en {diasDeVentas} {plural(diasDeVentas, "día", "días")}</span>
+              </>
+            ) : noLlegan.length === 0 ? (
+              <>
+                <b className="palabras">Todo llega</b>
+                <span>a Navidad</span>
+              </>
+            ) : (
+              <>
+                <b className="palabras">
+                  {noLlegan.length === 1 ? (
+                    tipoCorto(noLlegan[0]!.categoria)
+                  ) : (
+                    <>
+                      {tipoCorto(noLlegan[0]!.categoria)} y<br />
+                      {tipoCorto(noLlegan[1]!.categoria)}
+                    </>
+                  )}
+                </b>
+                <span>
+                  {noLlegan.length > 2 ? (
+                    <>
+                      y {noLlegan.length - 2} {plural(noLlegan.length - 2, "tipo más", "tipos más")}
+                      <br />
+                    </>
+                  ) : null}
+                  no {plural(noLlegan.length, "llega", "llegan")} a Navidad
+                </span>
+              </>
+            )}
+          </div>
+        </Instrumento>
+      </div>
+      <QueHacer />
+    </>
+  );
+}
+
+// ───────────────────────── Las cuatro tarjetas ─────────────────────────
+
+/** Una tarjeta-pregunta: toda la tarjeta lleva a su pestaña (`irA`). Sin estado (`est` null), no lleva insignia. */
+function Instrumento({ i, vista, pregunta, est, children }: { i: number; vista: VistaAnalisis; pregunta: string; est: Estado | null; children: ReactNode }) {
+  const { irA } = useAnalisis();
+  return (
+    <article className="tarjeta inst entra" style={{ ["--i" as string]: i }} role="button" tabIndex={0} onClick={() => irA(vista)}>
+      <div className="i-top">
+        <span className="i-q">{pregunta}</span>
+        {est && <ChipEstado est={est} />}
+      </div>
+      {children}
+    </article>
+  );
+}
+
+/** Una prenda de las listas cortas: abre su ficha y NO la pestaña de la tarjeta (para el clic). */
+function FilaCinco({ prenda, children }: { prenda: PrendaAnalisis; children: ReactNode }) {
+  const { abrirFicha } = useAnalisis();
+  return (
+    <div
+      className="l5"
+      role="button"
+      tabIndex={0}
+      data-ps={prenda.varianteId}
+      data-tip={nombreLargo(prenda)}
+      onClick={(e) => {
+        e.stopPropagation();
+        abrirFicha(prenda.varianteId);
+      }}
+    >
+      <TilePrenda prenda={prenda} tamano={26} />
+      <span className="nm">
+        <NombreCorto prenda={prenda} />
+      </span>
+      {children}
+    </div>
+  );
+}
+
+const VerTodas = ({ n }: { n: number }) => (
+  <div className="ver5">
+    {n === 1 ? "Ver el modelo" : `Ver los ${n} modelos`} <Icono nombre="sigue" />
+  </div>
+);
+
+/** «¿Qué se acaba?»: las 5 más urgentes con su plazo; con 7 o con 700 mide lo mismo. */
+function ListaAcaba({ prendas }: { prendas: PrendaAnalisis[] }) {
+  const { q } = useAnalisis();
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : "Nada se está acabando."}</p>;
+  return (
+    <>
+      <div className="lista5">
+        {prendas.slice(0, PRENDAS_EN_LISTA).map((p) => {
+          const d = textoDiasQueQuedan(diasQueQuedan(p) ?? 0);
+          return (
+            <FilaCinco key={p.varianteId} prenda={p}>
+              <span className="es" style={{ ["--c" as string]: COLOR_ESTADO[d.est] }}>
+                <Icono nombre={d.agotada ? "agotado" : "reloj"} />
+                {d.texto}
+              </span>
+            </FilaCinco>
+          );
+        })}
+      </div>
+      <VerTodas n={prendas.length} />
+    </>
+  );
+}
+
+/** «¿Qué no se mueve?»: las 5 que más esperan, con sus días (en rojo desde los 3 meses). */
+function ListaQuietas({ prendas }: { prendas: PrendaAnalisis[] }) {
+  const { q, liquidarDesde } = useAnalisis();
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : `Nada lleva ${liquidarDesde} días sin venderse.`}</p>;
+  return (
+    <>
+      <div className="lista5">
+        {prendas.slice(0, PRENDAS_EN_LISTA).map((p) => {
+          const dias = p.diasSinVender ?? 0;
+          const est = estadoQuieta(dias);
+          return (
+            <FilaCinco key={p.varianteId} prenda={p}>
+              <span className="es dias" style={{ ["--c" as string]: COLOR_ESTADO[est] }}>
+                <Icono nombre={est} />
+                <b>{dias}</b> días
+              </span>
+            </FilaCinco>
+          );
+        })}
+      </div>
+      <VerTodas n={prendas.length} />
+    </>
+  );
+}
+
+/**
+ * «¿Qué no ha salido al piso?»: las 5 que más días llevan guardadas sin haberse colgado nunca (Felipe, 2026-10-07, en lugar de
+ * «¿Se vende lo que llega?», que contaba como llegado lo que nadie había visto). Sin saber cuándo salió al piso cada prenda (la
+ * base sin 20261007120000), lo dice y no inventa una lista.
+ */
+function ListaPiso({ prendas }: { prendas: PrendaAnalisis[] }) {
+  const { q, datos } = useAnalisis();
+  if (!datos.sabePiso) return <p className="b-nota">Todavía no lo puedo saber.</p>;
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : "Todo salió al piso."}</p>;
+  return (
+    <>
+      <div className="lista5">
+        {prendas.slice(0, PRENDAS_EN_LISTA).map((p) => {
+          const dias = diasEnAlmacen(p, datos.hoy);
+          return (
+            <FilaCinco key={p.varianteId} prenda={p}>
+              <span className="es dias" style={{ ["--c" as string]: COLOR_ESTADO.ate }}>
+                <Icono nombre="caja" />
+                {dias === null ? (
+                  "—"
+                ) : (
+                  <>
+                    <b>{dias}</b> {plural(dias, "día", "días")}
+                  </>
+                )}
+              </span>
+            </FilaCinco>
+          );
+        })}
+      </div>
+      <VerTodas n={prendas.length} />
+    </>
+  );
+}
+
+/**
+ * «¿Qué pedir?»: los tipos que no llegan a Navidad (hasta 3, del que menos dura), con para cuánto te alcanzan y la línea de Navidad.
+ * El eje deja Navidad cerca del final (al 87 %), así se ve que las barras se quedan cortas.
+ */
+function MiniAlcance({ tipos, hastaNavidad }: { tipos: AlcanceTipo[]; hastaNavidad: number }) {
+  const fin = Math.max(1, hastaNavidad / 0.87);
+  return (
+    <div className="mini-al">
+      {tipos.map((t, k) => (
+        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcance(t.dias).toLowerCase()} · vendiste ${t.vendidas}, tienes ${t.tiene}`}>
+          <span className="n">{tipoCorto(t.categoria)}</span>
+          <span className="p">
+            <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, (t.dias ?? 0) / fin) }} />
+          </span>
+          <span className="v">{textoAlcance(t.dias)}</span>
+        </div>
+      ))}
+      <span className="navidad" style={{ ["--n" as string]: Math.min(1, hastaNavidad / fin) }}>
+        <span>Navidad</span>
+      </span>
+    </div>
+  );
+}
+
+// ───────────────────────── Qué hacer hoy ─────────────────────────
+
+/** El tooltip de un camino: su verbo y cuántas, y una línea por prenda con su color (las primeras 8; el resto, contado). */
+function ListaTip({ titulo, prendas }: { titulo: string; prendas: readonly PrendaAnalisis[] }) {
+  const { mostradas, resto } = listaTip(prendas);
+  return (
+    <>
+      <b>{titulo}</b>
+      <span className="tl">
+        {mostradas.map((p) => (
+          <span key={p.varianteId}>
+            <i style={{ ["--prenda" as string]: p.colorHex ?? "var(--color-grafico-neutro)" }} data-color-dato />
+            {nombreLargo(p)}
+          </span>
+        ))}
+        {resto > 0 && <span>y {resto} más</span>}
+      </span>
+    </>
+  );
+}
+
+const tituloTip = (c: CaminoHoy): string => `${c.verbo} · ${c.prendas.length} ${plural(c.prendas.length, "modelo", "modelos")}`;
+
+/**
+ * El tooltip dentro de una pieza del dibujo (una cinta, una pastilla). En SVG un `<span>` no puede ir suelto (el navegador lo saca
+ * del dibujo al leer la página): va en un `foreignObject` oculto, con la misma clase que `TipRico`, y el tooltip de la pantalla lo
+ * copia igual.
+ */
+function TipSvg({ children }: { children: ReactNode }) {
+  return (
+    <foreignObject className="tip-rico" width={0} height={0} display="none">
+      {children}
+    </foreignObject>
+  );
+}
+
+type AlIr = (camino: CaminoHoy, el: Element) => void;
+
+/** Enter o espacio sobre una pieza del dibujo que se toca como botón (un `<g>` no tiene `click()`: no sirve el de la pantalla). */
+const teclaSvg = (accion: (el: Element) => void) => (e: KeyboardEvent<SVGGElement>) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  accion(e.currentTarget);
+};
+
+function QueHacer() {
+  const { prendas, q, liquidarDesde, irA, datos } = useAnalisis();
+  const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes);
+  const hay = todosLosCaminos(caminos).length > 0;
+  const buscando = q.trim() !== "";
+  const reponer = paraReponerPiso(prendas);
+
+  // Tocar un camino lleva a su grupo en el carril. Antes, suelta el resaltado y el tooltip: la pieza tocada desaparece al cambiar
+  // de pestaña y ya no avisaría que el mouse salió de ella.
+  const alIr: AlIr = (camino, el) => {
+    el.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    irA(camino.vista, { foco: camino.grupo });
+  };
+
+  return (
+    <section className="tarjeta bloque entra" style={{ ["--i" as string]: 5 }} aria-label="Qué hacer hoy">
+      <div className="b-cab">
+        <h3 className="b-tit">Qué hacer hoy</h3>
+        {hay ? (
+          <span className="b-nota">
+            {estadosDelFlujo(caminos).map((e) => (
+              <ChipEstado key={e} est={e} />
+            ))}
+            <span className="sep-v" />
+            Toca un camino para ver sus modelos
+            <Ayuda texto={AYUDA_FLUJO} />
+          </span>
+        ) : (
+          !buscando && (
+            <span className="b-nota">
+              <ChipEstado est="bien" />
+            </span>
+          )
+        )}
+      </div>
+      {hay ? (
+        <div className="fl-env">
+          <FlujoSvg caminos={caminos} alIr={alIr} />
+          <FlujoLista caminos={caminos} alIr={alIr} />
+        </div>
+      ) : (
+        <p className={`hoy-nada${buscando ? "" : " bien"}`}>
+          <Icono nombre={buscando ? "lupa" : "check"} />
+          {buscando ? "Nada urgente con esta búsqueda." : reponer.length ? "Nada que comprar, mandar ni liquidar." : "Hoy no hay nada urgente."}
+        </p>
+      )}
+      <ReponerPiso lista={reponer} />
+    </section>
+  );
+}
+
+/** El flujo: a la izquierda lo que llega (Compra), al centro tu tienda, a la derecha lo que sale (Manda) o se rebaja (Liquidar). */
+/**
+ * Cintas finas (A1, Felipe 2026-10-07): cada cinta aparece de a poco —casi transparente donde nace y más marcada al llegar a tu tienda
+ * (o al revés, al salir)—, con un punto chico en su extremo en vez de la barra, y «Tu tienda» es una tarjeta clara. Los degradados van
+ * uno por lado y por estado; sus `id` llevan el de este dibujo para no chocar con otro en la misma página.
+ */
+const IdDegradado = createContext("fl");
+const idDegradado = (base: string, lado: "izq" | "der", est: Estado) => `${base}-${lado}-${est}`;
+const ESTADOS_DEL_FLUJO: Estado[] = ["urg", "ate"];
+
+function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
+  const { datos } = useAnalisis();
+  const { izq, der } = columnasFlujo(caminos);
+  const g = geometriaFlujo(izq, der);
+  const titulos = titulosFlujo(caminos);
+  const { W, H, LX, NW, CX0, CX1, RX } = FLUJO;
+  const medio = (CX0 + CX1) / 2;
+  const encima = useCaminoEncima();
+  const base = `fl${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const activoIzq = g.izq.find((b) => b.camino.clave === encima.clave);
+  const activoDer = g.der.find((b) => b.camino.clave === encima.clave);
+  return (
+    <IdDegradado.Provider value={base}>
+    <svg className="fl-svg" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Qué hacer hoy: qué modelos te llegan y cuáles salen de tu tienda">
+      <defs>
+        {ESTADOS_DEL_FLUJO.map((est) => (
+          <linearGradient key={`izq-${est}`} id={idDegradado(base, "izq", est)} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.05 }} />
+            <stop offset="1" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.26 }} />
+          </linearGradient>
+        ))}
+        {ESTADOS_DEL_FLUJO.map((est) => (
+          <linearGradient key={`der-${est}`} id={idDegradado(base, "der", est)} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.26 }} />
+            <stop offset="1" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.07 }} />
+          </linearGradient>
+        ))}
+      </defs>
+      {titulos.izq && (
+        <text className="fl-cab" x={LX + NW} y={14} textAnchor="end">
+          {titulos.izq}
+        </text>
+      )}
+      {titulos.der && (
+        <text className="fl-cab" x={RX} y={14}>
+          {titulos.der}
+        </text>
+      )}
+      {g.franjaIzq && <Franja franja={g.franjaIzq} lado="izq" />}
+      {g.franjaDer && <Franja franja={g.franjaDer} lado="der" />}
+      {g.izq.map((b, i) => (
+        <Cinta key={b.camino.clave} banda={b} i={i} lado="izq" alIr={alIr} encima={encima} />
+      ))}
+      {g.der.map((b, i) => (
+        <Cinta key={b.camino.clave} banda={b} i={i} lado="der" alIr={alIr} encima={encima} />
+      ))}
+      {/* Los puntos van entre las cintas y los nodos: entran a «Tu tienda» por debajo y salen de ella. */}
+      {activoIzq && <PuntosCinta key={`pt-${activoIzq.camino.clave}`} banda={activoIzq} lado="izq" />}
+      {activoDer && <PuntosCinta key={`pt-${activoDer.camino.clave}`} banda={activoDer} lado="der" />}
+      {/* Un punto chico en el extremo de cada cinta (antes, una barra del alto de la cinta). */}
+      {[...g.izq.map((b) => ({ b, x: LX + NW, o: 0.45 })), ...g.der.map((b) => ({ b, x: RX, o: 0.6 }))].map(({ b, x, o }) => (
+        <circle key={`nodo-${b.camino.clave}`} cx={x} cy={px(b.cy)} r={4} fill={COLOR_ESTADO[b.camino.est]} fillOpacity={o} />
+      ))}
+      <rect className="fl-tienda" x={CX0} y={px(g.centro.y)} width={CX1 - CX0} height={px(g.centro.alto)} rx={20} />
+      <text className="fl-centro" x={medio} y={px(g.centro.y + g.centro.alto / 2 + 2)} textAnchor="middle">
+        Tu tienda
+      </text>
+      <text className="fl-sub" x={medio} y={px(g.centro.y + g.centro.alto / 2 + 20)} textAnchor="middle">
+        {datos.sede.ciudad}
+      </text>
+      {g.izq.map((b) => (
+        <Pastilla key={`p-${b.camino.clave}`} banda={b} lado="izq" alIr={alIr} encima={encima} />
+      ))}
+      {g.der.map((b) => (
+        <Pastilla key={`p-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} encima={encima} />
+      ))}
+      {g.izq.map((b) => (
+        <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="izq" alIr={alIr} encima={encima} />
+      ))}
+      {g.der.map((b) => (
+        <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} encima={encima} />
+      ))}
+    </svg>
+    </IdDegradado.Provider>
+  );
+}
+
+/** Qué camino tiene el mouse o el foco encima, y cómo se avisa. */
+type CaminoEncima = { clave: string | null; entra: (clave: string) => void; sale: () => void };
+
+/**
+ * El camino que tiene el mouse (o el foco) encima. Salir espera un momento antes de soltarlo: al pasar de la cinta a su pastilla o a
+ * su etiqueta (que están encima de la cinta) llega un «sale» y enseguida un «entra», y los puntos no deben reiniciarse.
+ */
+function useCaminoEncima(): CaminoEncima {
+  const [clave, setClave] = useState<string | null>(null);
+  const espera = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (espera.current !== null) window.clearTimeout(espera.current);
+  }, []);
+  const entra = (c: string) => {
+    if (espera.current !== null) window.clearTimeout(espera.current);
+    espera.current = null;
+    setClave(c);
+  };
+  const sale = () => {
+    if (espera.current !== null) window.clearTimeout(espera.current);
+    espera.current = window.setTimeout(() => setClave(null), 90);
+  };
+  return { clave, entra, sale };
+}
+
+const MOVIMIENTO_REDUCIDO = "(prefers-reduced-motion: reduce)";
+const suscribirMovimiento = (avisar: () => void) => {
+  const m = window.matchMedia(MOVIMIENTO_REDUCIDO);
+  m.addEventListener("change", avisar);
+  return () => m.removeEventListener("change", avisar);
+};
+/** Si la persona pidió «reducir movimiento» (en el servidor, no se sabe: sin puntos). */
+const useMovimientoReducido = (): boolean =>
+  useSyncExternalStore(suscribirMovimiento, () => window.matchMedia(MOVIMIENTO_REDUCIDO).matches, () => true);
+
+/**
+ * Los puntos que corren por la cinta del camino que está bajo el mouse (Felipe, 2026-10-06): de la Compra hacia tu tienda, y de tu
+ * tienda hacia la otra tienda o hacia «Liquidar», para que se lea hacia dónde van las prendas. Corren SOLO mientras el mouse o el foco
+ * está encima (es la única pieza de Análisis que se repite; excepción escrita en ADR-0136, act. 2026-10-06 (b)) y con «reducir
+ * movimiento» no se dibujan. Van espaciados por igual: cada uno arranca un tramo después del anterior.
+ */
+function PuntosCinta({ banda: b, lado }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der" }) {
+  const reducido = useMovimientoReducido();
+  if (reducido) return null;
+  const { LX, NW, CX0, CX1, RX } = FLUJO;
+  const { n, r } = puntosDeCinta(b.y1 - b.y0);
+  const carriles = carrilesDeCinta(b.y1 - b.y0, r);
+  const eje = (d: number) => (lado === "izq" ? ejeCinta(LX + NW, b.y0, b.y1, CX0, b.c0, b.c1, d) : ejeCinta(CX1, b.c0, b.c1, RX, b.y0, b.y1, d));
+  const color = COLOR_ESTADO[b.camino.est];
+  return (
+    <g className="fl-puntos" aria-hidden pointerEvents="none">
+      {Array.from({ length: n }, (_, k) => (
+        <circle key={k} r={r} fill={color} fillOpacity={0.75} stroke="var(--color-papel)" strokeWidth={1}>
+          <animateMotion
+            dur={`${SEGUNDOS_PUNTO}s`}
+            begin={`-${((k * SEGUNDOS_PUNTO) / n).toFixed(2)}s`}
+            repeatCount="indefinite"
+            path={eje(carriles[k % carriles.length]!)}
+          />
+        </circle>
+      ))}
+    </g>
+  );
+}
+
+/** El fondo de «Se quedan en tu tienda», de su título al último camino de la columna. */
+function Franja({ franja, lado }: { franja: { texto: string; y: number; alto: number }; lado: "izq" | "der" }) {
+  const { W, LX, NW, RX } = FLUJO;
+  return (
+    <>
+      <rect
+        x={lado === "izq" ? 0 : RX - 14}
+        y={px(franja.y)}
+        width={lado === "izq" ? LX + NW + 14 : W - RX + 14}
+        height={px(franja.alto)}
+        rx={10}
+        fill="var(--color-hueso)"
+        fillOpacity={0.75}
+      />
+      <text className="fl-cab" x={lado === "izq" ? LX + NW : RX} y={px(franja.y + 18)} textAnchor={lado === "izq" ? "end" : "start"}>
+        {franja.texto}
+      </text>
+    </>
+  );
+}
+
+/** La cinta de un camino, entre su nodo y tu tienda. Se toca con el mouse; con el teclado, su pastilla y su etiqueta. */
+function Cinta({ banda: b, i, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; i: number; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
+  const { LX, NW, CX0, CX1, RX } = FLUJO;
+  const base = useContext(IdDegradado);
+  const c = b.camino;
+  const d = lado === "izq" ? cintaFlujo(LX + NW, b.y0, b.y1, CX0, b.c0, b.c1) : cintaFlujo(CX1, b.c0, b.c1, RX, b.y0, b.y1);
+  const est = ESTADOS_DEL_FLUJO.includes(c.est) ? c.est : "ate";
+  return (
+    <g onClick={(e) => alIr(c, e.currentTarget)} onMouseEnter={() => encima.entra(c.clave)} onMouseLeave={encima.sale}>
+      <path
+        className={`fl-cinta${lado === "der" ? " der" : ""}${c.primero ? " primera" : ""}`}
+        style={{ ["--d" as string]: i }}
+        d={d}
+        fill={`url(#${idDegradado(base, lado, est)})`}
+        data-ps={ids(c.prendas)}
+      />
+      <TipSvg>
+        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+      </TipSvg>
+    </g>
+  );
+}
+
+/** «5 prendas»: una etiqueta clara con el color de su camino (A1; antes, la del camino por donde empezar iba negra). */
+function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
+  const c = b.camino;
+  const texto = textoPastilla(c);
+  const p = pastillaFlujo(texto, b.cy, lado);
+  const ir = (el: Element) => alIr(c, el);
+  return (
+    <g
+      className="fl-past"
+      data-ps={ids(c.prendas)}
+      role="button"
+      tabIndex={0}
+      aria-label={`${c.verbo}: ${texto}`}
+      onClick={(e) => ir(e.currentTarget)}
+      onKeyDown={teclaSvg(ir)}
+      onMouseEnter={() => encima.entra(c.clave)}
+      onMouseLeave={encima.sale}
+      onFocus={() => encima.entra(c.clave)}
+      onBlur={encima.sale}
+    >
+      <rect x={p.x} y={px(p.y)} width={p.w} height={p.h} rx={10} fill="var(--color-papel)" stroke={COLOR_ESTADO[c.est]} strokeOpacity={0.3} strokeWidth={1} />
+      <text className="fl-num" x={px(p.x + p.w / 2)} y={px(p.y + 14)} textAnchor="middle" style={{ fill: COLOR_ESTADO[c.est] }}>
+        {texto}
+      </text>
+      <TipSvg>
+        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+      </TipSvg>
+    </g>
+  );
+}
+
+/**
+ * El verbo del camino, sus tres primeras prendas (y «+N») y por qué. Vive en un `foreignObject`: nada de adentro debe crear su propia
+ * capa (position, overflow que no es visible, transform, opacity), porque Safari la pinta fuera de lugar (ver `analisis-hoy.css`).
+ * Por eso la marca de sus prendas (`data-ps`) va en un `<g>` que lo envuelve: al pasar el mouse por otro camino, el atenuado
+ * (opacity) lo pinta el SVG, en su sitio. En el `div`, Safari dibujaba la etiqueta atenuada sin la escala del dibujo, encima de
+ * «Tu tienda» (Felipe, 2026-10-07); en el mismo `foreignObject`, no la dibujaba.
+ */
+function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
+  const c = b.camino;
+  const e = etiquetaFlujo(b.cy, lado);
+  return (
+    <g data-ps={ids(c.prendas)}>
+      <foreignObject x={e.x} y={px(e.y)} width={e.w} height={e.h}>
+        <div
+          className={`fl-et ${lado}`}
+          role="button"
+          tabIndex={0}
+          onClick={(ev) => alIr(c, ev.currentTarget)}
+          onMouseEnter={() => encima.entra(c.clave)}
+          onMouseLeave={encima.sale}
+          onFocus={() => encima.entra(c.clave)}
+          onBlur={encima.sale}
+        >
+          <span className="fl-l1">
+            <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
+              <Icono nombre={c.est} />
+            </span>
+            <b>{c.verbo}</b>
+            {c.prendas.slice(0, 3).map((p) => (
+              <TilePrenda key={p.varianteId} prenda={p} tamano={17} />
+            ))}
+            {c.prendas.length > 3 && <span className="mas3">+{c.prendas.length - 3}</span>}
+          </span>
+          <span className="fl-l2">{c.motivo}</span>
+          <TipRico>
+            <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+          </TipRico>
+        </div>
+      </foreignObject>
+    </g>
+  );
+}
+
+/** Bajo 760 px de ancho el flujo no cabe: los mismos caminos, en lista. */
+function FlujoLista({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
+  const llegan = caminos.compra ? [caminos.compra] : [];
+  const salen = [...caminos.manda, ...caminos.reb];
+  return (
+    <div className="fl-lista">
+      {llegan.length > 0 && (
+        <>
+          <span className="fl-gr">Llegan a tu tienda</span>
+          {llegan.map((c) => (
+            <FilaCamino key={c.clave} camino={c} alIr={alIr} />
+          ))}
+        </>
+      )}
+      {salen.length > 0 && (
+        <>
+          <span className="fl-gr">Salen o se rebajan</span>
+          {salen.map((c) => (
+            <FilaCamino key={c.clave} camino={c} alIr={alIr} />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+function FilaCamino({ camino: c, alIr }: { camino: CaminoHoy; alIr: AlIr }) {
+  return (
+    <button type="button" className="fl-item" data-ps={ids(c.prendas)} onClick={(e) => alIr(c, e.currentTarget)}>
+      <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
+        <Icono nombre={c.est} />
+      </span>
+      <span>
+        <b>{c.verbo}</b>
+        <small>{c.motivo}</small>
+        <span className="pts">
+          {c.prendas.slice(0, 6).map((p) => (
+            <i key={p.varianteId} style={{ ["--prenda" as string]: p.colorHex ?? "var(--color-grafico-neutro)" }} data-color-dato />
+          ))}
+        </span>
+      </span>
+      <span className="pil">
+        <b>{c.prendas.length}</b>
+      </span>
+      <TipRico>
+        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+      </TipRico>
+    </button>
+  );
+}
+
+/**
+ * «Repón el piso»: lo que se vende y no tiene nada colgado, pero sí en el almacén. Lleva a bajarlas (Existencias ▸ Reponer a piso)
+ * si la cuenta ve Existencias; si no, solo lo dice. Sin prendas así, no se dibuja.
+ */
+function ReponerPiso({ lista }: { lista: ModeloAnalisis[] }) {
+  const { acceso } = useAnalisis();
+  if (lista.length === 0) return null;
+  const n = lista.length;
+  // Cada modelo se baja con sus tallas guardadas; la URL lleva hasta MAX_VARIANTES_EN_URL de ellas (las de lo que más se vende).
+  const href = hrefReponerPiso(variantesDe(lista).filter((v) => v.almacen > 0).slice(0, MAX_VARIANTES_EN_URL), acceso);
+  const contenido = (
+    <>
+      <span className="ic">
+        <Icono nombre="piso" />
+      </span>
+      <b>Repón el piso</b>
+      <span>
+        {n} {plural(n, "modelo", "modelos")} · hay en tu almacén
+      </span>
+      {href && (
+        <span className="ir">
+          Reponer <Icono nombre="sigue" />
+        </span>
+      )}
+      <TipRico>
+        <ListaTip titulo={`Repón el piso · ${n} ${plural(n, "modelo", "modelos")}`} prendas={lista} />
+      </TipRico>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="fl-pie">
+      {contenido}
+    </Link>
+  ) : (
+    <div className="fl-pie fija">{contenido}</div>
+  );
+}

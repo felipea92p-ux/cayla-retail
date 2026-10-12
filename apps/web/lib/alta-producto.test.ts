@@ -9,7 +9,6 @@ import {
   desbloqueos,
   estadoSubidaSinConexion,
   faltaDelPaso,
-  fueraDeLaCategoria,
   fraseStockCreado,
   leerCantidad,
   limpiarCantidad,
@@ -365,28 +364,6 @@ describe("repartirFamilias — qué familias se ven de entrada y cuáles van tra
       const r = repartirFamilias(entrada);
       expect(codigos([...r.aLaVista, ...r.masFamilias]).sort()).toEqual(codigos(entrada).sort());
     }
-  });
-});
-
-describe("fueraDeLaCategoria — qué tejidos muestra «Ver más» en el paso 3", () => {
-  const catalogo = ["Algodón", "Denim", "Drill", "Licra", "Lino", "Seda"].map((texto) => ({ id: texto.toLowerCase(), texto }));
-  const jeans = [{ id: "denim" }, { id: "drill" }, { id: "licra" }];
-
-  it("muestra los del catálogo que la categoría todavía no ofrece, en el orden del catálogo", () => {
-    expect(fueraDeLaCategoria(catalogo, jeans).map((t) => t.texto)).toEqual(["Algodón", "Lino", "Seda"]);
-  });
-
-  it("si la categoría ya ofrece todo, no hay nada tras «Ver más» (no se pinta el botón)", () => {
-    expect(fueraDeLaCategoria(catalogo, catalogo)).toEqual([]);
-  });
-
-  it("una categoría que todavía no ofrece ninguno los muestra todos", () => {
-    expect(fueraDeLaCategoria(catalogo, [])).toEqual(catalogo);
-  });
-
-  it("INVARIANTE: nunca repite uno de la categoría, así que el tejido elegido jamás queda escondido tras «Ver menos»", () => {
-    const fuera = new Set(fueraDeLaCategoria(catalogo, jeans).map((t) => t.id));
-    for (const t of jeans) expect(fuera.has(t.id)).toBe(false);
   });
 });
 

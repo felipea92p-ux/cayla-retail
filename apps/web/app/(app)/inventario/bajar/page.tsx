@@ -1,5 +1,5 @@
 import { Volver } from "@/components/ui/Volver";
-import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { exigirModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { aPrendasBajables, lineasIniciales } from "@/lib/bajada-reglas";
@@ -14,7 +14,8 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 // `?lineas=<variante>:<cantidad>,…` (ADR-0237): lo marcado en Existencias llega ya en la lista, con el mismo formato que
 // «Mover mercadería». Solo entra lo que esta tienda puede bajar, y llega «por escanear» (en 0): se baja lo que se lea al
 // colgarlo, no lo que se marcó (ADR-0237, actualización 2026-09-26).
-export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string }> }) {
+// `?camara=1` («Colgar en tandas» del Inicio de Almacén, 2026-10-09): en un celular la cámara se abre al llegar.
+export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string; camara?: string }> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("existencias");
   const sede = persona.ubicacionEtiqueta;
@@ -29,11 +30,9 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
         sede={sede}
         titulo="Bajar prendas al piso"
         subtitulo="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
-        // La vuelta común (`Volver`), un botón de la cabecera como «← Traslados» y «← Conteo» en sus detalles. Solo si puede entrar a
-        // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
-        pie={
-          veModulo(persona, "existencias") && <Volver forma="boton" href="/inventario" a="Existencias" />
-        }
+        // La vuelta común (`Volver`), la flecha junto a la sede, como en Traslados y Conteo (ADR-0220, act. 2026-10-06). Siempre: el layout de
+        // esta ruta ya exige el módulo «existencias», así que quien llega aquí puede volver a Existencias (Felipe 2026-10-07).
+        volver={<Volver href="/inventario" a="Existencias" />}
       />
 
       {separaPisoYAlmacen ? (
@@ -44,6 +43,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
           sede={sede}
           prendas={prendas}
           iniciales={lineasIniciales(parsearLineasPrellenadas(params.lineas), prendas)}
+          abrirCamara={params.camara === "1"}
         />
       ) : (
         <p className="nota-cayla">{sede} todavía no separa piso y almacén, así que aquí no hay nada que bajar.</p>

@@ -28,6 +28,7 @@
 >   «nuevas pendientes»; si se retira la talla entera, `problema_reposicion` lo lee como falta de reposición. La marca de
 >   «retirada de la venta» que Felipe decidirá en el bloque 3 tiene que apagar también estas lecturas (ADR-0208,
 >   «Actualización 2026-09-25 — revisión del bloque 2»). Por decisión de ese PR, la lógica de Análisis no se tocó.
+>   *(2026-10-06: esas lecturas ya no existen; `resumen-lectura.ts` se borró con el Análisis de antes de la v4.)*
 > - **Regla para la pantalla de Frescura (bloque 3):** se construye encima del dominio de Inventario que ya existe
 >   —el libro de `fn_ledger_puntos`, la venta de `fn_es_venta_de_stock` y las cohortes FIFO de
 >   `apps/web/lib/inventario-exposicion.ts` (ADR-0199 de main, 0200 y 0202)—, no con una reconstrucción propia del

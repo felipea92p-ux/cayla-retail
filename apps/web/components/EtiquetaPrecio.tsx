@@ -26,7 +26,7 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
   // ¿La campaña que rebaja el precio ya sale en la fila de etiquetas? Entonces no se repite su nombre en el bloque de abajo.
   const campanaEnFila = campanaSaleEnLaFila(e);
   return (
-    <article className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
+    <article data-papel className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
       <header className="etq-cab">
         {/* El colibrí en vector (calcado de /cayla-isotipo.png, 223 × 150): el PNG de 223 px, ennegrecido con filtro,
             salía serruchado en la Brother (Felipe, 2026-09-25). En vector la térmica lo dibuja nítido a su resolución.

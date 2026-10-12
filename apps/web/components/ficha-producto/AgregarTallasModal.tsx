@@ -12,11 +12,13 @@ import {
   NACEN_EN_CERO_CARGABLES,
   NACEN_SIN_UNIDADES,
   nombreVariante,
+  precioValido,
   precioYCostoPorDefecto,
   type FilaFicha,
   type Identidad,
 } from "@/lib/variantes-ficha-reglas";
 import { MatrizNuevas, MontosNuevas, PieModal, type ContextoFicha } from "./piezas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // «Llegó una talla nueva»: las tallas habilitadas en la categoría que la prenda todavía no vende, en su orden (S, M, L…
 // y no alfabético). Cada talla elegida nace en cada color que la prenda ya vende (si están todas desactivadas, en los que
@@ -32,6 +34,7 @@ export function AgregarTallasModal({
   etiquetasTexto,
   onConfirmar,
   onClose,
+  admitePrecioCero = false,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
@@ -41,6 +44,8 @@ export function AgregarTallasModal({
   etiquetasTexto: string | null;
   onConfirmar: (r: { combos: Identidad[]; precio: string; costo: string }) => void;
   onClose: () => void;
+  /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): las nuevas pueden nacer a S/ 0.00 (la bolsa de obsequio). */
+  admitePrecioCero?: boolean;
 }) {
   const n = ctx.nombres;
   const ejes = ejesDeLaPrenda(filas, n);
@@ -65,7 +70,7 @@ export function AgregarTallasModal({
   const clasificadas = clasificarCombinaciones(filas, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = Number(precio) > 0;
+  const precioOk = precio.trim() !== "" && precioValido(Number(precio), admitePrecioCero);
   const colores = coloresDeLaPrenda.map((c) => ctx.colores.find((x) => x.codigo === c) ?? { codigo: c, nombre: n.color(c), hex: null, familiaColor: null });
 
   return (
@@ -132,7 +137,11 @@ export function AgregarTallasModal({
                 </p>
               )}
               {nacen > 0 && <MontosNuevas precio={precio} costo={costo} onPrecio={setPrecio} onCosto={setCosto} veCosto={ctx.veCosto} />}
-              {nacen > 0 && !precioOk && <p className="text-[12.5px] text-rojo-profundo">Pon el precio de venta de las nuevas.</p>}
+              {nacen > 0 && !precioOk && (
+                <Aviso tono="error" chico>
+                  Pon el precio de venta de las nuevas.
+                </Aviso>
+              )}
               {nacen > 0 && etiquetasTexto && (
                 <p className="text-[12.5px] text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
               )}

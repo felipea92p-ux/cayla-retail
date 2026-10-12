@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aFila,
+  itemsPorRegularizar,
   agruparPorDia,
   diaDeLima,
   elegirComprobante,
@@ -427,6 +428,20 @@ describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
   it("una línea sin variante no rompe", () => {
     expect(piezasDeVenta([item({ variante: null })])).toEqual([{ referencia: "Prenda", detalle: "", cantidad: 1, fotoUrl: null, colorHex: null }]);
   });
+
+  it("con dos fotos del mismo color gana la principal, no la de menor orden (Blusa Alba Rayas, 2026-10-09)", () => {
+    const variante = {
+      ...conFotos("VIN"),
+      producto: {
+        referencia: "Blusa Alba Rayas",
+        producto_fotos: [
+          { url: "https://x/vieja.jpg", color_codigo: "VIN", orden: 0, es_principal: false },
+          { url: "https://x/nueva.jpg", color_codigo: "VIN", orden: 1, es_principal: true },
+        ],
+      },
+    };
+    expect(piezasDeVenta([item({ variante })])[0].fotoUrl).toBe("https://x/nueva.jpg");
+  });
 });
 
 describe("títulos de una venta", () => {
@@ -605,6 +620,19 @@ describe("posventa y apartado en la fila (ADR-0230)", () => {
       new Map()
     );
     expect(f).toMatchObject({ ventaItemIds: ["vi1", "vi2"], conAnticipo: true, operaciones: ["01234567"], apartado: { codigo: "AP-0012" }, pagos: "Anticipo + Yape" });
+  });
+
+  it("itemsPorRegularizar: solo las líneas cuya fila de la cola sigue pendiente (objeto o lista)", () => {
+    const items = [
+      item({ id: "a", por_regularizar: { estado: "pendiente" } }),
+      item({ id: "b", por_regularizar: { estado: "regularizada" } }),
+      item({ id: "c", por_regularizar: [{ estado: "pendiente" }] }),
+      item({ id: "d", por_regularizar: { estado: "cerrada_sin_prenda" } }),
+      item({ id: "e", por_regularizar: null }),
+      item({ id: "f" }),
+    ];
+    expect(itemsPorRegularizar(items)).toEqual(["a", "c"]);
+    expect(aFila(venta({ venta_items: items }), new Map()).itemsPorRegularizar).toEqual(["a", "c"]);
   });
 
   it("sin datos de posventa (lecturas viejas) la fila no inventa nada", () => {

@@ -60,7 +60,7 @@ async function dependencias(firma: Firma | null | undefined): Promise<Dependenci
 }
 
 // Sin `revalidatePath` a propósito: la pantalla refresca la lista cuando se cierra el paso de la clave
-// (`TerminalesPanel`), para que la tabla no salte detrás de la clave mientras se la lee.
+// (`ColaboradoresPanel`), para que la tabla no salte detrás de la clave mientras se la lee.
 // `firma`: la del combo «Responsable» de la pantalla (`responsable.firma()`, ADR-0161 act. d).
 export async function crearTerminal(entrada: EntradaTerminal, firma: Firma | null): Promise<ResultadoClave> {
   return crearTerminalCon(await dependencias(firma), entrada);

@@ -1,0 +1,467 @@
+// Análisis v4 (ADR-0357): la pestaña «Qué pedir», sin React. La cuenta para Navidad y su riel, la mariposa «Lo que se vende y lo
+// que tienes» por tipo de prenda, la curva de tallas, el ranking de lo que más se vende y «Lo que más rinde» (cuánto se ganó por
+// cada S/ 1 de ropa, por tipo). Todo sale de lo que el servidor ya leyó: aquí no nace ninguna regla de negocio, solo cómo se
+// cuenta y se dibuja lo de la maqueta aprobada por Felipe (2026-10-06). La lectura de «Lo que más rinde» vive en
+// `analisis-rinde.ts` (servidor); la cuenta, aquí, para poder probarla.
+
+import type { PrendaAnalisis } from "./analisis-tipos";
+import { esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
+import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
+import { diasEntreFechas } from "./fechas-lima";
+
+/* ───────── Tipo de prenda ───────── */
+
+/** El tipo de una prenda sin categoría: también se cuenta, para que las partes de las tallas sumen las 100. */
+export const SIN_CATEGORIA = "Sin categoría";
+
+/** El tipo de prenda con el que se agrupa y se filtra (la categoría del catálogo). */
+export const categoriaDe = (p: Pick<PrendaAnalisis, "categoria">): string => p.categoria?.trim() || SIN_CATEGORIA;
+
+/** Desde cuántos puntos de diferencia (de cada 100) un tipo o una talla «pide más» o «sobra» (la maqueta). */
+export const DIFERENCIA_QUE_SE_NOTA = 4;
+
+/** «De cada 100», sin decimales; 0 si no hay de dónde sacar la cuenta. */
+const de100 = (parte: number, total: number): number => (total > 0 ? Math.round((parte / total) * 100) : 0);
+
+/* ───────── Campaña: cuánto falta para Navidad ───────── */
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+
+/** El próximo 25 de diciembre desde `hoy` (YYYY-MM-DD): el de este año, o el del siguiente si ya pasó. El mismo día cuenta como hoy. */
+export function proximaNavidad(hoy: string): string {
+  const anio = Number(hoy.slice(0, 4));
+  return hoy.slice(5, 10) > "12-25" ? `${anio + 1}-12-25` : `${anio}-12-25`;
+}
+
+/**
+ * La cuenta regresiva de la tarjeta: semanas enteras mientras falte una o más («11 semanas para Navidad»), días en la última
+ * («3 días para Navidad») y, el mismo día, sin número («Hoy es Navidad»: `valor` null).
+ */
+export function cuentaNavidad(hoy: string): { valor: number | null; texto: string } {
+  const dias = diasEntreFechas(hoy, proximaNavidad(hoy));
+  if (dias <= 0) return { valor: null, texto: "es Navidad" };
+  if (dias < 7) return { valor: dias, texto: plural(dias, "día para Navidad", "días para Navidad") };
+  const semanas = Math.floor(dias / 7);
+  return { valor: semanas, texto: plural(semanas, "semana para Navidad", "semanas para Navidad") };
+}
+
+export type MarcaRiel = { clave: string; texto: string; pct: number };
+
+/** El riel de la tarjeta: del 1 del mes de hoy al último día de diciembre, con hoy, cada mes del medio y Navidad en % del tramo. */
+export type RielNavidad = {
+  hoyPct: number;
+  navidadPct: number;
+  /** Los meses rotulados, cada uno en la mitad de su tramo. Con muchos meses, abreviados y uno sí, uno no (diciembre siempre). */
+  meses: MarcaRiel[];
+  /** Hoy y Navidad tan juntos que sus rótulos se pisarían: «Hoy» queda solo como punto (la cuenta ya lo dice). */
+  juntos: boolean;
+  /** Para leerlo sin verlo: «Hoy 6 de octubre, Navidad 25 de diciembre». */
+  etiqueta: string;
+};
+
+/** Debajo de esta distancia (en % del riel) los rótulos «Hoy» y «Navidad» se tocan. */
+const RIEL_JUNTOS = 12;
+
+const ultimoDiaDelMes = (anio: number, mes: number): number => new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+const iso = (anio: number, mes: number, dia: number): string => `${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+const redondear1 = (x: number): number => Math.round(x * 10) / 10;
+
+export function rielNavidad(hoy: string): RielNavidad {
+  const navidad = proximaNavidad(hoy);
+  const anioHoy = Number(hoy.slice(0, 4));
+  const mesHoy = Number(hoy.slice(5, 7));
+  const anioNavidad = Number(navidad.slice(0, 4));
+  const inicio = iso(anioHoy, mesHoy, 1);
+  const fin = iso(anioNavidad, 12, 31);
+  const total = Math.max(1, diasEntreFechas(inicio, fin));
+  const pct = (fecha: string) => redondear1((diasEntreFechas(inicio, fecha) / total) * 100);
+
+  const tramos: { anio: number; mes: number; centro: number }[] = [];
+  let anio = anioHoy;
+  let mes = mesHoy;
+  while (anio < anioNavidad || (anio === anioNavidad && mes <= 12)) {
+    const desde = diasEntreFechas(inicio, iso(anio, mes, 1));
+    const hasta = diasEntreFechas(inicio, iso(anio, mes, ultimoDiaDelMes(anio, mes)));
+    tramos.push({ anio, mes, centro: redondear1(((desde + hasta) / 2 / total) * 100) });
+    if (mes === 12) {
+      mes = 1;
+      anio++;
+    } else mes++;
+  }
+  // Hasta 4 meses caben con su nombre; hasta 7, abreviados; más (después de Navidad, todo el año), uno sí y uno no.
+  const cortos = tramos.length > 4;
+  const salteados = tramos.length > 7;
+  const meses = tramos
+    .filter((_, k) => !salteados || (tramos.length - 1 - k) % 2 === 0)
+    .map((t) => ({ clave: `${t.anio}-${t.mes}`, texto: (cortos ? MESES_CORTOS : MESES)[t.mes - 1]!, pct: t.centro }));
+
+  const hoyPct = pct(hoy);
+  const navidadPct = pct(navidad);
+  const fechaLarga = (f: string) => `${Number(f.slice(8, 10))} de ${MESES[Number(f.slice(5, 7)) - 1]}`;
+  return {
+    hoyPct,
+    navidadPct,
+    meses,
+    juntos: navidadPct - hoyPct < RIEL_JUNTOS,
+    etiqueta: `Hoy ${fechaLarga(hoy)}, Navidad ${fechaLarga(navidad)}`,
+  };
+}
+
+/* ───────── «¿Para cuánto te alcanza?»: por tipo de prenda, contra Navidad (Felipe, 2026-10-07, B2) ───────── */
+
+/** Desde cuántos días lo que tienes se dice «Más de 6 meses» (y donde termina el eje de la pestaña, si Navidad cabe antes). */
+export const DIAS_ALCANZA_MAX = 182;
+
+/** Los días que faltan para la próxima Navidad (el mismo día, 0): la meta contra la que se mide lo que tienes. */
+export const diasANavidad = (hoy: string): number => Math.max(0, diasEntreFechas(hoy, proximaNavidad(hoy)));
+
+export type AlcanceTipo = {
+  categoria: string;
+  prefijo: string | null;
+  familia: string | null;
+  /** Lo que se vendió del tipo en los días de ventas de la tienda. */
+  vendidas: number;
+  /** Lo que tienes del tipo hoy (libre, piso + almacén). */
+  tiene: number;
+  /** De lo que tienes, cuántas unidades nunca salieron al piso; null si la base todavía no lo sabe. */
+  nunca: number | null;
+  /** Para cuántos días te alcanza al ritmo de los días de ventas (0 = ya no hay); null si no se vendió: no tiene ritmo. */
+  dias: number | null;
+  /** No llega a Navidad: pídelo. */
+  pide: boolean;
+};
+
+/**
+ * Por tipo de prenda, para cuánto te alcanza lo que tienes al ritmo de lo vendido en los días de ventas de la tienda (hasta 30):
+ * lo que tienes entre lo que vendes por día. Pide lo que no llega a Navidad. Del que menos dura al que más; lo que no se vendió, al
+ * final (sin ritmo no se sabe para cuánto alcanza). Reemplaza a la mariposa «de cada 100» (Felipe, 2026-10-07: «no sé si es de los
+ * últimos 30 días o desde siempre»): habla en semanas y dice de qué días. Con los MODELOS (ADR-0357, decisión 12), «nunca salió»
+ * cuenta solo lo del modelo del que nada se colgó: la talla guardada de un modelo colgado ya está presentada.
+ */
+export function alcancePorTipo(
+  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso">[],
+  diasDeVentas: number,
+  hastaNavidad: number,
+  sabePiso: boolean,
+): AlcanceTipo[] {
+  const ventana = Math.min(30, Math.max(1, Math.round(diasDeVentas)));
+  const porTipo = new Map<string, AlcanceTipo>();
+  for (const p of prendas) {
+    const vend = Math.max(0, p.vendidas30);
+    const tiene = Math.max(0, totalEnTienda(p));
+    if (vend === 0 && tiene === 0) continue;
+    const c = categoriaDe(p);
+    const a =
+      porTipo.get(c) ??
+      { categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, tiene: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false };
+    a.vendidas += vend;
+    a.tiene += tiene;
+    if (a.nunca !== null && nuncaSalio(p)) a.nunca += p.almacen;
+    porTipo.set(c, a);
+  }
+  return [...porTipo.values()]
+    .map((a) => {
+      const dias = a.vendidas > 0 ? a.tiene / (a.vendidas / ventana) : null;
+      return { ...a, dias, pide: dias !== null && dias < hastaNavidad };
+    })
+    .sort((a, b) => (a.dias ?? Infinity) - (b.dias ?? Infinity) || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/**
+ * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que se acaba antes (lo que `alcancePorTipo` ya
+ * devuelve); o lo que más se vende primero, a igual venta lo que se acaba antes y después por nombre. Lo que no se vendió va al final.
+ */
+export type OrdenAlcance = "acaba" | "vende";
+export const ORDENES_ALCANCE: readonly { clave: OrdenAlcance; texto: string }[] = [
+  { clave: "acaba", texto: "Se acaba antes" },
+  { clave: "vende", texto: "Más vendido" },
+];
+
+export function ordenarAlcance(tipos: readonly AlcanceTipo[], orden: OrdenAlcance): AlcanceTipo[] {
+  if (orden === "acaba") return [...tipos];
+  return [...tipos].sort(
+    (a, b) => b.vendidas - a.vendidas || (a.dias ?? Infinity) - (b.dias ?? Infinity) || a.categoria.localeCompare(b.categoria, "es"),
+  );
+}
+
+/** «Ya no hay», «3 días», «4 semanas», «Más de 6 meses» o «No se vendió»: para cuánto te alcanza, como se dice en tienda. */
+export function textoAlcance(dias: number | null): string {
+  if (dias === null) return "No se vendió";
+  if (dias <= 0) return "Ya no hay";
+  if (dias < 7) {
+    const d = Math.max(1, Math.round(dias));
+    return `${d} ${plural(d, "día", "días")}`;
+  }
+  if (dias >= DIAS_ALCANZA_MAX) return "Más de 6 meses";
+  const s = Math.round(dias / 7);
+  return `${s} ${plural(s, "semana", "semanas")}`;
+}
+
+/** El nombre corto de un tipo para un lugar chico: lo de antes de « y » («Gorros y Sombreros» → «Gorros»). */
+export const tipoCorto = (categoria: string): string => categoria.split(" y ")[0] ?? categoria;
+
+/** Dónde termina el eje de «¿Para cuánto te alcanza?»: 6 meses, o más si Navidad queda más lejos (para que su línea se vea). */
+export const finEjeAlcance = (hastaNavidad: number): number => Math.max(DIAS_ALCANZA_MAX, Math.ceil(hastaNavidad * 1.15));
+
+/** «Al ritmo de los últimos 8 días»: de qué días habla todo lo de «Qué pedir». */
+export const textoRitmo = (diasDeVentas: number): string => `Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
+
+/* ───────── «Las tallas que se llevan» ───────── */
+
+export type ColumnaTalla = {
+  talla: string;
+  /** La parte de lo vendido (del tipo elegido, o de todo) que es de esta talla, de 0 a 100: el alto de su barra (no se muestra). */
+  v: number;
+  /** La parte de lo que tengo que es de esta talla, de 0 a 100: el alto de su barra (no se muestra). */
+  t: number;
+  /** Las unidades: vendidas en los días de ventas de la tienda y las que tengo hoy. Es lo que se lee sobre cada barra. */
+  vend: number;
+  tiene: number;
+  pideMas: boolean;
+};
+
+export type CurvaTallas =
+  /** Todo lo de ese tipo se vende en talla única o estándar: no hay tallas que comparar. */
+  | { tipo: "unica" }
+  /** Hay tallas, pero ni ventas ni prendas que comparar (o no hay nada). */
+  | { tipo: "vacia" }
+  | {
+      tipo: "tallas";
+      columnas: ColumnaTalla[];
+      /** La columna más alta: las demás se miden contra ella. */
+      max: number;
+      /** La talla que más se vende por encima de lo que se tiene, si se nota («Falta M»); null = parejo. */
+      falta: string | null;
+      /** Sin tipo elegido: qué tallas se compararon («Modelos con talla S, M y L»). */
+      nota: string | null;
+    };
+
+/** «S, M y L». */
+function enLista(xs: readonly string[]): string {
+  if (xs.length <= 1) return xs[0] ?? "";
+  return `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
+}
+
+const conTalla = (talla: string): boolean => !esTallaUnica(talla) && tipoDeTalla(talla) !== "unica";
+
+/**
+ * La curva de tallas: por talla, qué parte de lo vendido en 30 días y qué parte de lo que tengo. Con un tipo elegido, todas
+ * sus tallas; sin tipo, solo las del sistema que más pesa en la tienda (letras S·M·L o números 26·28…: mezclarlos no se lee) y
+ * una nota que lo dice. La talla única y la estándar no se comparan.
+ */
+export function curvaDeTallas(
+  prendas: readonly Pick<PrendaAnalisis, "categoria" | "talla" | "vendidas30" | "piso" | "almacen">[],
+  categoria: string | null,
+): CurvaTallas {
+  const delTipo = categoria === null ? prendas : prendas.filter((p) => categoriaDe(p) === categoria);
+  const conMovimiento = delTipo.filter((p) => p.vendidas30 > 0 || totalEnTienda(p) > 0);
+  if (conMovimiento.length === 0) return { tipo: "vacia" };
+  let consideradas = conMovimiento.filter((p) => conTalla(p.talla));
+  if (consideradas.length === 0) return { tipo: "unica" };
+
+  if (categoria === null) {
+    const peso = new Map<TipoTalla, number>();
+    for (const p of consideradas) peso.set(tipoDeTalla(p.talla), (peso.get(tipoDeTalla(p.talla)) ?? 0) + p.vendidas30 + totalEnTienda(p));
+    const orden: TipoTalla[] = ["letras", "numeracion", "otras"];
+    const sistema = orden.reduce((mejor, x) => ((peso.get(x) ?? 0) > (peso.get(mejor) ?? 0) ? x : mejor), orden[0]!);
+    consideradas = consideradas.filter((p) => tipoDeTalla(p.talla) === sistema);
+  }
+
+  const porTalla = new Map<string, { vend: number; tiene: number }>();
+  for (const p of consideradas) {
+    const k = p.talla.trim();
+    const a = porTalla.get(k) ?? { vend: 0, tiene: 0 };
+    a.vend += Math.max(0, p.vendidas30);
+    a.tiene += Math.max(0, totalEnTienda(p));
+    porTalla.set(k, a);
+  }
+  const totalV = [...porTalla.values()].reduce((s, a) => s + a.vend, 0);
+  const totalT = [...porTalla.values()].reduce((s, a) => s + a.tiene, 0);
+  const columnas = [...porTalla.entries()]
+    .sort(([a], [b]) => compararTallas(a, b))
+    .map(([talla, a]) => {
+      const v = de100(a.vend, totalV);
+      const t = de100(a.tiene, totalT);
+      return { talla, v, t, vend: a.vend, tiene: a.tiene, pideMas: v - t >= DIFERENCIA_QUE_SE_NOTA };
+    });
+
+  // La que más se vende por encima de lo que hay; a igual diferencia, la primera en el orden de la tienda.
+  const peor = columnas.reduce((a, c) => (c.v - c.t > a.v - a.t ? c : a), columnas[0]!);
+  return {
+    tipo: "tallas",
+    columnas,
+    max: Math.max(1, ...columnas.flatMap((c) => [c.v, c.t])),
+    falta: peor.v - peor.t >= DIFERENCIA_QUE_SE_NOTA ? peor.talla : null,
+    nota: categoria === null ? `Modelos con talla ${enLista(columnas.map((c) => c.talla))}` : null,
+  };
+}
+
+/* ───────── «Lo que más se vende» ───────── */
+
+/**
+ * Cuántos modelos muestra «Lo que más se vende»: los 5 primeros por defecto, y la persona elige ver 10, 15 o 20 (Felipe 2026-10-10,
+ * opción A de «Qué pedir»).
+ */
+export const TOPS = [5, 10, 15, 20] as const;
+export type Top = (typeof TOPS)[number];
+export const TOP_DEFECTO: Top = 5;
+/** Lo que ocupa la barra más larga del ranking (deja lugar a su cifra). */
+export const LARGO_RANKING = 0.82;
+
+/** Las que más se venden en mis días de ventas (hasta 30; del tipo elegido, si hay), de la que más a la que menos. */
+export function masVendidas<T extends Pick<PrendaAnalisis, "categoria" | "vendidas30" | "nombre" | "color" | "talla">>(
+  prendas: readonly T[],
+  categoria: string | null,
+  cuantos: number = TOP_DEFECTO,
+): T[] {
+  return prendas
+    .filter((p) => p.vendidas30 > 0 && (categoria === null || categoriaDe(p) === categoria))
+    .sort(
+      (a, b) =>
+        b.vendidas30 - a.vendidas30 ||
+        a.nombre.localeCompare(b.nombre, "es") ||
+        a.color.localeCompare(b.color, "es") ||
+        compararTallas(a.talla, b.talla),
+    )
+    .slice(0, Math.max(1, Math.round(cuantos)));
+}
+
+/** Cuántos modelos se vendieron (del tipo elegido, si hay): para saber qué «Top» ofrecer y decir «de 23». */
+export const cuantasVendidas = (prendas: readonly Pick<PrendaAnalisis, "categoria" | "vendidas30">[], categoria: string | null): number =>
+  prendas.filter((p) => p.vendidas30 > 0 && (categoria === null || categoriaDe(p) === categoria)).length;
+
+/** Los «Top» que tiene sentido ofrecer: el 5 siempre; los demás, solo si hay más modelos vendidos que el anterior. */
+export function topsPosibles(vendidos: number): Top[] {
+  return TOPS.filter((t, k) => k === 0 || vendidos > TOPS[k - 1]);
+}
+
+/**
+ * La frase del panel de un tipo (opción A): para cuánto te alcanza contra Navidad y lo que tienes, o, sin tipo elegido, lo de toda la
+ * tienda. Ejemplos inventados: «Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.»
+ */
+export function fraseDelTipo(t: AlcanceTipo | null, todos: readonly AlcanceTipo[], diasDeVentas: number): string {
+  const enDias = `${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
+  if (!t) {
+    const vendidas = todos.reduce((s, x) => s + x.vendidas, 0);
+    const tiene = todos.reduce((s, x) => s + x.tiene, 0);
+    const pide = todos.filter((x) => x.pide).length;
+    const base = `Vendiste ${vendidas} en ${enDias} y tienes ${tiene}.`;
+    return pide > 0 ? `${base} ${pide} ${plural(pide, "tipo no llega", "tipos no llegan")} a Navidad.` : base;
+  }
+  const alcance =
+    t.dias === null
+      ? `No se vendió en ${enDias}.`
+      : t.dias <= 0
+        ? "Ya no te queda: no llega a Navidad."
+        : `Te alcanza para ${textoAlcance(t.dias).toLowerCase()}: ${t.pide ? "no llega" : "llega"} a Navidad.`;
+  const nunca = t.nunca ? ` · ${t.nunca} nunca ${plural(t.nunca, "salió", "salieron")} al piso` : "";
+  return `${alcance} Tienes ${t.tiene}${nunca}.`;
+}
+
+/** La venta más alta de la tienda: el ranking se mide contra ella, aunque haya un filtro (así un tipo no parece vender más). */
+export const ventaMaxima = (prendas: readonly Pick<PrendaAnalisis, "vendidas30">[]): number => Math.max(1, ...prendas.map((p) => p.vendidas30));
+
+/** Lo que queda de una prenda del ranking: agotada (rojo), 1 o 2 (ámbar) o más (verde). */
+export function estadoQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen">): { est: "urg" | "ate" | "bien"; texto: string } {
+  const n = totalEnTienda(p);
+  if (n <= 0) return { est: "urg", texto: "Agotada" };
+  return { est: n <= 2 ? "ate" : "bien", texto: plural(n, "Queda 1", `Quedan ${n}`) };
+}
+
+/* ───────── «Lo que más rinde»: cuánto se ganó por cada S/ 1 de ropa, por tipo ───────── */
+
+/** La ventana de «Lo que más rinde». */
+export const DIAS_RINDE = 90;
+/** Debajo de esto, «Rinde poco: compra menos» (la maqueta). */
+export const RINDE_POCO = 0.5;
+/** La escala mínima del gráfico (la maqueta: de S/ 0 a S/ 1.40). */
+const ESCALA_RINDE_MIN = 1.4;
+
+/** La frase de `fallas` cuando no se pudo leer (la nota de la tarjeta la reconoce). */
+export const FALLA_RINDE = "No se pudo leer lo que más rinde";
+
+/** Una fila de `fn_resumen_comparacion` (período A = los últimos 90 días), con lo que «Lo que más rinde» usa. */
+export type FilaRinde = {
+  categoria: string | null;
+  /** Costo de cada una hoy (sin IGV); null o 0 = no se sabe. */
+  costo: number | null;
+  /** Venta neta del período (precio con IGV − descuento, menos devoluciones). */
+  importe: number;
+  /** Costo de lo vendido y de lo devuelto, con el costo de cada venta. */
+  costoVentas: number;
+  costoDevoluciones: number;
+  /** Unidades movidas sin costo guardado en su venta. */
+  udsSinCosto: number;
+  /** Unidades que hubo en la tienda, en promedio, a lo largo del período. */
+  totalPromedio: number;
+  /** Unidades que había el primer día del período. */
+  stockInicio: number;
+};
+
+const numero = (x: unknown): number => {
+  const n = typeof x === "number" ? x : typeof x === "string" && x.trim() !== "" ? Number(x) : NaN;
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Una fila cruda de `fn_resumen_comparacion_json` → lo que usa «Lo que más rinde». Lo que falta o no es número cuenta 0. */
+export function filaRindeDe(cruda: unknown): FilaRinde {
+  const r = (cruda && typeof cruda === "object" ? cruda : {}) as Record<string, unknown>;
+  const costo = numero(r.costo);
+  return {
+    categoria: typeof r.categoria_nombre === "string" ? r.categoria_nombre : null,
+    costo: costo > 0 ? costo : null,
+    importe: numero(r.a_importe),
+    costoVentas: numero(r.a_costo_ventas),
+    costoDevoluciones: numero(r.a_costo_devoluciones),
+    udsSinCosto: numero(r.a_uds_sin_costo),
+    totalPromedio: numero(r.a_total_promedio),
+    stockInicio: numero(r.a_stock_inicio),
+  };
+}
+
+/**
+ * Por tipo de prenda: lo que se ganó en el período (venta neta sin IGV − costo de lo vendido) por cada S/ 1 que hubo en ropa
+ * de ese tipo, en promedio, al costo. Solo cuentan las prendas con costo (sin él no se sabe cuánto hay ni cuánto se ganó); a lo
+ * vendido sin costo guardado se le pone el costo de hoy. Un tipo entra solo si ya tenía ropa el primer día del período: con
+ * menos de 90 días la cuenta saldría inflada («Todavía no hay 90 días»). De la que más rinde a la que menos. La tasa del IGV
+ * (0.18) la pasa quien llama: el precio de venta la incluye y el costo no.
+ */
+export function rindePorCategoria(filas: readonly FilaRinde[], tasaIgv: number): { categoria: string; porSol: number }[] {
+  const porTipo = new Map<string, { ganancia: number; valor: number; inicio: number }>();
+  for (const f of filas) {
+    if (f.costo === null) continue;
+    const c = f.categoria?.trim() || SIN_CATEGORIA;
+    const a = porTipo.get(c) ?? { ganancia: 0, valor: 0, inicio: 0 };
+    const costoVendido = f.costoVentas - f.costoDevoluciones + f.udsSinCosto * f.costo;
+    a.ganancia += f.importe / (1 + tasaIgv) - costoVendido;
+    a.valor += f.costo * Math.max(0, f.totalPromedio);
+    a.inicio += Math.max(0, f.stockInicio);
+    porTipo.set(c, a);
+  }
+  return [...porTipo.entries()]
+    .filter(([, a]) => a.inicio > 0 && a.valor > 0)
+    .map(([categoria, a]) => ({ categoria, porSol: Math.round((a.ganancia / a.valor) * 100) / 100 }))
+    .sort((a, b) => b.porSol - a.porSol || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/** Hasta dónde llega el gráfico: S/ 1.40 como la maqueta, o una décima más que el que más rinde. */
+export function escalaRinde(rinde: readonly { porSol: number }[]): number {
+  const mayor = Math.max(0, ...rinde.map((r) => r.porSol));
+  return Math.max(ESCALA_RINDE_MIN, (Math.ceil(mayor * 10 - 1e-9) + 1) / 10);
+}
+
+/** «S/ 1.30» (con signo menos si se perdió). */
+export const solesRinde = (n: number): string => `S/ ${n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}`;
+
+/** El tooltip de cada fila: «Por cada S/ 1 que tienes en Polos, ganaste S/ 1.10 en 90 días». */
+export function tipRinde(r: { categoria: string; porSol: number }): string {
+  return r.porSol < 0
+    ? `Por cada S/ 1 que tienes en ${r.categoria}, perdiste ${solesRinde(-r.porSol)} en ${DIAS_RINDE} días`
+    : `Por cada S/ 1 que tienes en ${r.categoria}, ganaste ${solesRinde(r.porSol)} en ${DIAS_RINDE} días`;
+}
+
+/** Qué dice la tarjeta cuando no hay nada que mostrar: si no se pudo leer, eso; si no, que todavía no alcanza. */
+export function notaRindeVacio(fallas: readonly string[]): string {
+  return fallas.includes(FALLA_RINDE) ? "No se pudo leer ahora." : `Todavía no hay ${DIAS_RINDE} días de ventas con su costo para medirlo.`;
+}

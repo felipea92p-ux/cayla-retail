@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { useRecordatorioEtiquetas } from "@/components/ficha-producto/RecordatorioEtiquetas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { categoriaDe } from "@/components/ui/PrendaCelda";
@@ -63,6 +64,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useCargaInicial } from "@/lib/useCargaInicial";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import { sugerirNotaAjuste } from "@/lib/sugerencias-ajuste";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Guarda con `retail.ajustar_inventario` (ADR-0240): UNA llamada, todo o nada y con la marca del intento. Por dentro usa
 // las funciones de siempre (`registrar_movimiento` para cada ajuste, `cargar_stock_inicial` para lo nuevo): no existe una
@@ -111,7 +113,7 @@ export function leerVariantesParaAjuste(productoId: string, ubicacionId: string,
   return sinLoader ? consulta.setHeader("x-espera", "no") : consulta;
 }
 
-// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPrendaModal`).
+// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que los pasos del panel de la talla, `FlujoTalla`).
 const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
@@ -417,6 +419,7 @@ export function AjustarInventarioModal({
       return;
     }
     const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, enlazados: hallazgos.enlaces.size, ya_registrado: false };
+    sonarConfirmacion();
     avisar.exito(textoExitoAjuste(r), { detalle: referencia });
     // Subir una cantidad es una prenda más sin etiquetar; se junta en el recordatorio del módulo (no se avisa aquí
     // mismo, para no interrumpir con un aviso por cada ajuste — ver RecordatorioEtiquetas.tsx).
@@ -561,9 +564,7 @@ export function AjustarInventarioModal({
           </CampoGuiado>
 
           {error && (
-            <p role="alert" className="text-sm text-rojo-profundo">
-              {error}
-            </p>
+            <Aviso tono="error">{error}</Aviso>
           )}
 
           {!cargando && variantes.length > 0 && <PieGuia guia={guia} listo="Todo listo para ajustar." />}

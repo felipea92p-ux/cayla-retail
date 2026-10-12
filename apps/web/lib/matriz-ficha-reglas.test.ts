@@ -230,6 +230,8 @@ describe("textos", () => {
     expect(rangoDePrecios([69, 89, 79])).toBe("S/ 69–89");
     expect(rangoDePrecios([69.9, 69.9])).toBe("S/ 69.90");
     expect(resumenVariantes([fila("CRU", "s"), fila("NEG", "s", { precio: "89" }), fila("NEG", "m", { activo: false })])).toBe("2 variantes activas · S/ 69–89");
+    // La tienda de quien edita con precio propio: se dice junto al de la prenda.
+    expect(resumenVariantes([fila("CRU", "s", { precio: "79.90" })], { sede: "TRU", precio: 69.9 })).toBe("1 variante activa · S/ 79.90 · S/ 69.90 en TRU");
   });
 });
 
@@ -403,6 +405,19 @@ describe("lineasParaImprimir", () => {
     );
     expect(r.map((l) => `${l.color} ${l.talla} ×${l.unidades} ${l.precio}`)).toEqual(["CRU S ×1 69", "CRU M ×3 140", "NEG S ×2 null", "Lila Única ×1 null"]);
     expect(r[1].etiquetaIds).toEqual(["et-nuevo"]);
+  });
+  it("con precio propio de esta tienda, la línea sale con ese precio (ADR-0370); las demás, con el de la ficha", () => {
+    const filas = [fila("CRU", "m", { precio: "140" }), fila("CRU", "s", { precio: "140" })];
+    const r = lineasParaImprimir(
+      [
+        { varianteId: "CRU-m", color: "CRU", talla: "M", unidades: 1 },
+        { varianteId: "CRU-s", color: "CRU", talla: "S", unidades: 1 },
+      ],
+      filas,
+      n,
+      { "CRU-m": 155 },
+    );
+    expect(r.map((l) => `${l.talla} ${l.precio}`)).toEqual(["S 140", "M 155"]);
   });
 });
 

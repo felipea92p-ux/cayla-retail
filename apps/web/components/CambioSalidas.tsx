@@ -124,7 +124,7 @@ export function CambioSalidas({
       <AnotarNoHabia
         ubicacionId={ubicacionId}
         descripcion={descripcionDePrenda(referencia, color)}
-        tallas={talla ? [talla] : []}
+        tallas={talla ? [{ talla, varianteId }] : []}
         clientaId={null}
         responsable={responsable}
       />

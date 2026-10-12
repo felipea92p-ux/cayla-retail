@@ -84,6 +84,15 @@ select id, 'Almacén de tienda', 'almacen_tienda' from retail.ubicaciones where 
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select id, 'Cuarentena', 'cuarentena' from retail.ubicaciones where tipo = 'tienda';
 
+-- Capacidad del piso (20261005103000_capacidad_del_piso_por_sede.sql, ADR-0329): la migración la siembra por nombre, pero en
+-- una base nueva corre ANTES que este seed y no encuentra tiendas. Los mismos números: Trujillo 20 m² × 30 = 600, contada;
+-- Lima (el stand) 6 m² × 30 = 180, provisional. Así Existencias muestra «de 600» y «de 180 (provisional)» en local.
+insert into retail.capacidad_piso (ubicacion_id, m2_sala, densidad, contada_el)
+select id, 20, 30, date '2026-09-30' from retail.ubicaciones where nombre = 'Tienda Trujillo'
+union all
+select id, 6, 30, null from retail.ubicaciones where nombre = 'Tienda Lima'
+on conflict (ubicacion_id) do nothing;
+
 -- Series de boleta/factura por tienda — sin esto, `registrar_venta` revienta la
 -- venta ENTERA en cuanto se pide un comprobante ("No hay una serie registrada
 -- para boleta en esta ubicación"), porque emite el comprobante en la misma
@@ -549,10 +558,11 @@ begin
   -- ---------- caja: un ingreso, un egreso (retiro), y el cierre de Trujillo ----------
   -- Motivos ajustados al vocabulario cerrado de 20260922235000 (antes texto libre, nunca
   -- validado en la base — el mismo hueco que esa migración cierra): "ingreso" solo admite
-  -- Ajuste de caja (sobrante)/Otro, así que el vuelto de casa entra como "Otro" con nota; el
-  -- retiro para insumos ya tenía un motivo cerrado real ("Compra de insumos").
+  -- Ajuste de caja (sobrante)/Otro, así que el vuelto de casa entra como "Otro" con nota. Las
+  -- bolsas salían como "Compra de insumos", que desde ADR-0375 ya no es una salida (es un gasto):
+  -- quedan como "Otro" con nota, un egreso que Gastos ofrece clasificar.
   perform retail.registrar_movimiento_caja(caja_lima, 'ingreso', 50.00, 'Otro', 'Vuelto adicional traído de casa');
-  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Compra de insumos', 'Bolsas para empaque');
+  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Otro', 'Bolsas para empaque');
   perform retail.cerrar_caja(caja_trujillo, 219.90);
   -- 80 apertura + 149.90 tarjeta (no suma al efectivo) = 80.00 esperado en
   -- efectivo; se cuenta 219.90 a propósito para dejar una diferencia real

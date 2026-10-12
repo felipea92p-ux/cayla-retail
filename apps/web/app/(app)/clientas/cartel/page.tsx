@@ -28,7 +28,7 @@ export default async function CartelClubPage() {
       textos={beneficios.textos}
       fallaTextos={beneficios.falla}
       fuente={garamondItalica.variable}
-      volver={<Volver href="/clientas" a="Clientes" forma="boton" />}
+      volver={<Volver href="/clientas" a="Clientes" />}
     />
   );
 }

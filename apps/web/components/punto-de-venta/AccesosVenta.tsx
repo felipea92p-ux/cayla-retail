@@ -80,7 +80,7 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
         onClick={onApartar}
         disabled={deshabilitado}
         title={`Lleva ${prendas === 1 ? "la prenda" : `las ${prendas} prendas`} del ticket a Apartados`}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-[12.5px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo active:translate-y-px disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-[12.5px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
       >
         <Bookmark className="h-4 w-4" aria-hidden />
         Apartar

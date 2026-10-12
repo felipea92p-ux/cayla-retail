@@ -1,8 +1,9 @@
 "use client";
 
+import { Buscador } from "@/components/ui/Buscador";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { FileText, Search, Send, X } from "lucide-react";
+import { FileText, Send } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
@@ -52,31 +53,8 @@ export function CajaDeBusqueda() {
   const { texto, setTexto } = useFacturacionBusqueda();
   const pista = PISTA_DE_BUSQUEDA[pestanaDeRuta(usePathname())];
 
-  return (
-    <label className="vidrio-cayla flex h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[13px] text-tinta transition-shadow duration-200 focus-within:outline focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rojo/60 sm:ml-auto sm:w-64">
-      <Search aria-hidden strokeWidth={1.75} className="h-[15px] w-[15px] shrink-0 text-tinta/65" />
-      <input
-        type="search"
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        placeholder={pista}
-        aria-label="Buscar en esta vista"
-        autoComplete="off"
-        spellCheck={false}
-        className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-tinta/60 [&::-webkit-search-cancel-button]:hidden"
-      />
-      {texto && (
-        <button
-          type="button"
-          onClick={() => setTexto("")}
-          aria-label="Borrar la búsqueda"
-          className="-mr-1 grid h-6 w-6 shrink-0 place-items-center rounded-md text-tinta/65 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
-        >
-          <X aria-hidden strokeWidth={1.75} className="h-[14px] w-[14px]" />
-        </button>
-      )}
-    </label>
-  );
+  // La pieza única de buscar (ADR-0358, ronda 5); filtra en el navegador, así que nunca dice «Buscando…».
+  return <Buscador valor={texto} onCambio={setTexto} placeholder={pista} etiqueta="Buscar en esta vista" className="w-full sm:ml-auto sm:w-64" />;
 }
 
 /** Las dos cifras de la cabecera. Cada una es `null` si su lectura falló (`opcional` en el layout): sin dato no se

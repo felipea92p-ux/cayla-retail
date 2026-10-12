@@ -29,7 +29,7 @@ const PUNTO: Record<TonoTareaHoy | "verde", string> = {
   verde: "bg-verde ring-verde/20",
 };
 
-function Boton({ accion }: { accion: AccionTarea }) {
+function Boton({ accion, alElegir }: { accion: AccionTarea; alElegir?: () => void }) {
   const clase = "btn-cayla btn-secundario btn-chico shrink-0 gap-1.5 whitespace-nowrap";
   const contenido = (
     <>
@@ -38,11 +38,18 @@ function Boton({ accion }: { accion: AccionTarea }) {
     </>
   );
   return accion.href ? (
-    <Link href={accion.href} className={clase}>
+    <Link href={accion.href} onClick={alElegir} className={clase}>
       {contenido}
     </Link>
   ) : (
-    <button type="button" onClick={accion.onClick} className={clase}>
+    <button
+      type="button"
+      onClick={() => {
+        alElegir?.();
+        accion.onClick?.();
+      }}
+      className={clase}
+    >
       {contenido}
     </button>
   );
@@ -53,6 +60,7 @@ export function ParaHoy({
   acciones,
   verCuales,
   extra,
+  alElegir,
 }: {
   tareas: readonly TareaHoy[];
   /** El botón de cada tarea. Sin acción, la fila solo informa (quien mira no tiene el módulo que la resuelve). */
@@ -61,6 +69,8 @@ export function ParaHoy({
   verCuales?: Partial<Record<TipoTareaHoy, () => void>>;
   /** A la derecha del título: los accesos que no son tareas (el resumen por categoría, las apartadas). */
   extra?: ReactNode;
+  /** Se llama al tocar cualquier botón de una tarea (la ventana «Pendientes» se cierra con él). */
+  alElegir?: () => void;
 }) {
   const [todas, setTodas] = useState(false);
   const [abiertoMovil, setAbiertoMovil] = useState(false);
@@ -130,7 +140,13 @@ export function ParaHoy({
                     {alVer && (
                       <>
                         {" "}
-                        <button type="button" onClick={alVer} className="font-medium text-tinta underline decoration-tinta/30 underline-offset-[3px] hover:decoration-tinta">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            alElegir?.();
+                            alVer();
+                          }}
+                          className="font-medium text-tinta underline decoration-tinta/30 underline-offset-[3px] hover:decoration-tinta">
                           Ver cuáles
                         </button>
                       </>
@@ -139,7 +155,7 @@ export function ParaHoy({
                 </div>
                 {accion && (
                   <div className="max-sm:col-start-2">
-                    <Boton accion={accion} />
+                    <Boton accion={accion} alElegir={alElegir} />
                   </div>
                 )}
               </li>

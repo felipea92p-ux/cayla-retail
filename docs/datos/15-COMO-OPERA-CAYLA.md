@@ -287,6 +287,11 @@ atemporal. *Criterio de Felipe.*
 > 8 semanas de ventas reales: al 2026-09-25 hay 4, y un umbral sin historial sería una suposición. La consecuencia de
 > diseño de arriba sigue siendo el destino. *El texto de arriba se conserva como quedó el 2026-09-12.*
 
+> **Actualización (2026-10-06):** `resumen-lectura.ts` se borró junto con el Análisis de antes de la v4. En Análisis v4
+> lo quieto desde un mes va a «Vigílalas» y desde «Liquidar desde» a enviar o liquidar; «Liquidar desde» es uno solo para
+> todas las categorías (`retail.parametros_analisis`, 60 días de fábrica, ADR-0357). El umbral por categoría sigue siendo
+> el destino.
+
 **R-21 · Lo que no rota se le busca salida.** Se baja de precio, se manda a otra sede, o
 se remata. **Solo se guarda si es básico y atemporal.** *Dato duro.*
 

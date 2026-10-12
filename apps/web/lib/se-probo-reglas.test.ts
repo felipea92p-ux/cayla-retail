@@ -123,6 +123,17 @@ describe("argsRegistrarPedido", () => {
     });
   });
 
+  it("con la prenda exacta (ADR-0348): manda la variante, y una vacía no se manda", () => {
+    expect(argsRegistrarPedido({ ubicacionId: U, motivo: "no_habia_talla", descripcion: "Blusa Carlita · Blanco", talla: "M", varianteId: "v-1" })).toEqual({
+      p_ubicacion_id: U,
+      p_motivo: "no_habia_talla",
+      p_descripcion_libre: "Blusa Carlita · Blanco",
+      p_talla: "M",
+      p_variante_id: "v-1",
+    });
+    expect(argsRegistrarPedido({ ubicacionId: U, motivo: "no_habia_talla", descripcion: "X", varianteId: "  " })).not.toHaveProperty("p_variante_id");
+  });
+
   it("«se la probó» con razón y clienta", () => {
     expect(
       argsRegistrarPedido({

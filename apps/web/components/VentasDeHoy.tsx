@@ -1,62 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { nombresCortos } from "@/lib/nombre-integrante";
+import type { VentaDeHoy } from "@/lib/useVentasDeHoy";
+import { ShoppingBag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 
-/** Fila de `fn_ventas_del_dia` (0011_venta_con_comprobante.sql), con solo lo que la lista pinta. */
-export type VentaDeHoy = {
-  venta_id: string;
-  hora: string;
-  vendedor: string;
-  comprobante_texto: string | null;
-  metodos_pago: string | null;
-  nota: string | null;
-  total: number;
-};
-
-const MENSAJE_FALLO = "No se pudo cargar las ventas de hoy. Lo demás de esta pantalla sí está al día.";
-
-/**
- * Las ventas de hoy de ESTA sede: arranca con lo que leyó el servidor y se relee cada vez que sube `version` (tras cada
- * venta, o cuando sube la cola sin conexión — ADR-0192). La usa el Punto de venta para la píldora «Hoy» de su cabecera
- * y para la lista que esa píldora abre (spike 2026-09-26): los dos leen lo MISMO, una sola vez.
- */
-export function useVentasDeHoy(ubicacionId: string, inicial: VentaDeHoy[], falloInicial: string | null, version: number) {
-  const [ventas, setVentas] = useState(inicial);
-  const [fallo, setFallo] = useState(falloInicial);
-
-  useEffect(() => {
-    // Versión 0 = lo que trajo el servidor, ya está en pantalla. `fn_` es lectura: el loader global no se muestra.
-    if (version === 0) return;
-    let vigente = true;
-    createClient()
-      .rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId })
-      .then(({ data, error }) => {
-        if (!vigente) return;
-        // Si la relectura falla se conserva la lista anterior con el aviso: la venta ya quedó bien en la base.
-        if (error) setFallo(MENSAJE_FALLO);
-        else {
-          setFallo(null);
-          setVentas(data ?? []);
-        }
-      });
-    return () => {
-      vigente = false;
-    };
-  }, [version, ubicacionId]);
-
-  return { ventas, fallo };
-}
-
-/** La lista de ventas de hoy (solo pinta: los datos salen de `useVentasDeHoy`). */
-export function VentasDeHoyLista({ ventas, fallo, ubicacionEtiqueta }: { ventas: VentaDeHoy[]; fallo: string | null; ubicacionEtiqueta: string }) {
+/** La lista de ventas de hoy (solo pinta: los datos salen de `useVentasDeHoy`, `lib/useVentasDeHoy.ts`). */
+export function VentasDeHoyLista({ ventas, fallo, ubicacionEtiqueta }: { ventas: readonly VentaDeHoy[]; fallo: string | null; ubicacionEtiqueta: string }) {
   if (fallo && ventas.length === 0) {
-    return <p className="card-cayla border-rojo/30 px-4 py-4 text-center text-xs text-rojo-profundo">{fallo}</p>;
+    return <Aviso tono="error">{fallo}</Aviso>;
   }
 
   if (ventas.length === 0) {
-    return <p className="font-display card-cayla py-6 text-center text-sm text-tinta/60 italic">Aún no hay ventas hoy en {ubicacionEtiqueta}.</p>;
+    return (
+      <div className="card-cayla">
+        <Vacio tamano="chico" icono={<ShoppingBag />}>
+          Aún no hay ventas hoy en {ubicacionEtiqueta}.
+        </Vacio>
+      </div>
+    );
   }
 
   // Cada venta lleva la firma de la integrante que la hizo (primer nombre; inicial del
@@ -66,7 +29,13 @@ export function VentasDeHoyLista({ ventas, fallo, ubicacionEtiqueta }: { ventas:
 
   return (
     <div className="card-cayla divide-y divide-sand !p-0">
-      {fallo && <p className="px-4 py-2 text-center text-xs text-rojo-profundo">{fallo}</p>}
+      {fallo && (
+        <div className="p-2">
+          <Aviso tono="error" chico>
+            {fallo}
+          </Aviso>
+        </div>
+      )}
       {/* `anim-revelar` sin `key` extra: React reutiliza el nodo de cada venta que repite
           `key={v.venta_id}` al releer (no vuelve a animarse), y monta uno nuevo —y por lo
           tanto SÍ anima— solo para la venta que se acaba de registrar. */}

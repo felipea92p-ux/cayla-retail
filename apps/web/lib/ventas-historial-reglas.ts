@@ -10,6 +10,7 @@ import {
   type PeriodoMovimientos,
 } from "./movimientos-reglas";
 import { NOMBRE_METODO, textoNumeroRecibo } from "./recibo-reglas";
+import { fotoDeVariante } from "./producto-fotos-reglas";
 
 // Historial de ventas (Ventas ▸ Historial, ADR-0147): reglas puras — lo que decide qué se
 // pide, qué se muestra y qué se suma. Sin Supabase ni React: las importan la página, los
@@ -180,10 +181,16 @@ export type ItemCrudo = {
     color_codigo?: string | null;
     talla: { valor: string } | null;
     color: { nombre: string; hex?: string | null } | null;
-    producto: { referencia: string; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
+    producto: {
+      referencia: string;
+      producto_fotos?: { url: string; color_codigo: string | null; orden?: number; es_principal?: boolean }[] | null;
+    } | null;
   } | null;
   /** Los cambios hechos sobre esta línea (`cambios.venta_item_id`). */
   cambios?: { created_at: string }[] | null;
+  /** La fila de la cola «Por regularizar» de esta línea (`prendas_por_regularizar.venta_item_id`, única): solo la tiene una prenda
+   *  vendida como «Prenda sin registrar» (ADR-0179). PostgREST la entrega como objeto (la FK es única); se acepta también lista. */
+  por_regularizar?: { estado: string } | { estado: string }[] | null;
 };
 
 export type VentaCruda = {
@@ -235,7 +242,13 @@ export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
       referencia: v?.producto?.referencia ?? "Prenda",
       detalle: [v?.talla?.valor, v?.color?.nombre].filter(Boolean).join(" · "),
       cantidad: i.cantidad,
-      fotoUrl: v?.color_codigo ? (v.producto?.producto_fotos?.find((f) => f.color_codigo === v.color_codigo)?.url ?? null) : null,
+      // La principal antes que el orden (`fotoDeVariante`): con dos fotos del mismo color, la que se marcó, no la más vieja.
+      fotoUrl: v?.color_codigo
+        ? fotoDeVariante(
+            (v.producto?.producto_fotos ?? []).map((f) => ({ url: f.url, color_codigo: f.color_codigo, orden: f.orden ?? 0, es_principal: f.es_principal ?? false })),
+            v.color_codigo
+          )
+        : null,
       colorHex: v?.color?.hex ?? null,
     };
     const igual = piezas.find((p) => p.referencia === pieza.referencia && p.detalle === pieza.detalle);
@@ -327,6 +340,8 @@ export type FilaHistorial = {
   posventa: MarcaPosventa[];
   /** El apartado que terminó en esta venta (ADR-0196), o null. */
   apartado: { codigo: string; creadoEn: string } | null;
+  /** Las líneas vendidas como «Prenda sin registrar» que siguen pendientes de regularizar (`prendas_por_regularizar.estado = 'pendiente'`). */
+  itemsPorRegularizar: string[];
   /** Se cobró con el anticipo de un apartado (aunque sea un apartado viejo, sin código). */
   conAnticipo: boolean;
   /** Los nº de operación anotados al cobrar (Yape, Plin, transferencia). */
@@ -358,6 +373,15 @@ function nombreDeQuienVendio(v: VentaCruda, nombres: ReadonlyMap<string, string>
   return id ? (nombres.get(id) ?? null) : null;
 }
 
+/** Las líneas de la venta que son una prenda sin registrar todavía pendiente de regularizar. Una ya regularizada pasó a su prenda real, y
+ *  una cerrada sin prenda o de una venta anulada ya no tiene nada que hacer: ninguna cuenta. */
+export function itemsPorRegularizar(items: Pick<ItemCrudo, "id" | "por_regularizar">[]): string[] {
+  return items.flatMap((i) => {
+    const filas = Array.isArray(i.por_regularizar) ? i.por_regularizar : i.por_regularizar ? [i.por_regularizar] : [];
+    return i.id && filas.some((f) => f.estado === "pendiente") ? [i.id] : [];
+  });
+}
+
 export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): FilaHistorial {
   const instante = new Date(v.created_at);
   return {
@@ -380,6 +404,7 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     esPrueba: v.es_prueba === true,
     anuladaEn: v.anulado_en ?? null,
     ventaItemIds: v.venta_items.map((i) => i.id).filter((id): id is string => !!id),
+    itemsPorRegularizar: itemsPorRegularizar(v.venta_items),
     posventa: posventaDeVenta(v),
     apartado: v.separaciones?.[0] ? { codigo: v.separaciones[0].codigo, creadoEn: v.separaciones[0].created_at } : null,
     conAnticipo: v.venta_pagos.some((p) => p.metodo === "anticipo"),

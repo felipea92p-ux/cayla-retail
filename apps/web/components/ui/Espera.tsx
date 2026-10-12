@@ -118,7 +118,8 @@ const sinEspera = new Map<string, number>();
 
 /**
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
- * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta.
+ * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Única otra excepción (Felipe, 2026-10-08): el refresco que sigue a
+ * bajar al piso o subir al almacén desde el panel de Existencias (`PanelTalla`), que ya confirma con el aviso destacado y no debe tapar la lista.
  */
 export function navegacionSinEspera(href: string) {
   sinEspera.set(claveNavegacion(new URL(href, window.location.href)), Date.now() + MS_ANUNCIO);
@@ -314,7 +315,7 @@ export function EsperaGlobal() {
       }`}
     >
       <div
-        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_rgba(80,50,20,0.5)] ring-1 ring-tinta/[0.07] ${
+        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] ${
           saliendo ? "anim-modal-sale" : "anim-modal-entra"
         }`}
       >

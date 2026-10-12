@@ -20,23 +20,21 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export type VarianteBotonCompacto = "primario" | "vidrio" | "fila" | "fila-alerta";
 
-// Dos detalles de Tailwind 4 que no se ven a simple vista (ambos comprobados en el CSS compilado):
-// - `outline-none` fija `--tw-outline-style: none` y `focus-visible:outline*` lo lee: sin
-//   `focus-visible:outline-solid` el anillo de foco (`outline-rojo/60`) nunca se dibuja.
-// - `hover:-translate-y-px` usa la propiedad `translate`, no `transform`: por eso la transición
-//   lista `translate`; con `transform` el alzado de 1 px saltaría en seco mientras la sombra sí entra suave.
+// Un detalle de Tailwind 4 que no se ve a simple vista (comprobado en el CSS compilado):
+// - El foco de teclado NO se escribe acá: lo pone el anillo común (`:focus-visible` de `globals.css`, ADR-0351).
+//   Antes había un `outline-rojo/60` (2,5:1 contra crema, bajo el 3:1 de WCAG 1.4.11).
+// - El movimiento (subir con sombra, la luz, encogerse al presionar, el «+» y la flecha) es el ÚNICO del ERP: `.mov-boton`
+//   (globals.css; ADR-0358, ronda 3, Felipe 2026-10-07). Antes este botón solo subía 1 px con sombra.
 const BASE =
-  "relative inline-flex shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap font-medium outline-none " +
-  "transition-[translate,box-shadow,background-color,border-color,color] duration-200 ease-cayla " +
-  "focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
+  "mov-boton inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:h-[15px] [&>svg]:w-[15px] [&>svg]:shrink-0";
 
 // `enabled:hover:` y no `hover:`: `hover:` no excluye `:disabled`, así que un botón deshabilitado o
 // `cargando` seguiría levantándose o rellenándose bajo el puntero (y en `fila-alerta` el relleno rojo
 // taparía el hilo de carga, que también es rojo).
 const VARIANTE: Record<VarianteBotonCompacto, string> = {
-  primario: "h-9 rounded-[10px] bg-tinta px-3.5 text-[13px] text-crema enabled:hover:-translate-y-px enabled:hover:shadow",
-  vidrio: "vidrio-cayla h-9 rounded-[10px] px-3.5 text-[13px] text-tinta enabled:hover:-translate-y-px enabled:hover:shadow",
+  primario: "h-9 rounded-[10px] bg-tinta px-3.5 text-[13px] text-crema enabled:hover:bg-rojo-profundo",
+  vidrio: "vidrio-cayla h-9 rounded-[10px] px-3.5 text-[13px] text-tinta",
   fila: "h-[30px] rounded-[8px] border border-tinta/28 px-3 text-[12.5px] text-tinta enabled:hover:bg-tinta enabled:hover:text-crema",
   "fila-alerta":
     "h-[30px] rounded-[8px] border border-rojo-profundo px-3 text-[12.5px] text-rojo-profundo enabled:hover:border-rojo enabled:hover:bg-rojo enabled:hover:text-crema",

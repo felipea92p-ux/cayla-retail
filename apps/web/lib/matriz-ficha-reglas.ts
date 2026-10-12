@@ -225,12 +225,15 @@ export function tonoDeBarra(unidades: number): "cero" | "bajo" | "normal" {
   return unidades <= 0 ? "cero" : unidades <= 3 ? "bajo" : "normal";
 }
 
-/** «9 variantes activas · S/ 69–89»: lo que dice la cabecera de «Variantes y precios» plegada o abierta. */
-export function resumenVariantes(filas: readonly FilaFicha[]): string {
+/** «9 variantes activas · S/ 69–89»: lo que dice la cabecera de «Variantes y precios» plegada o abierta. Si la tienda de quien edita
+ *  tiene precio propio, lo agrega: «9 variantes activas · S/ 79.90 · S/ 69.90 en TRU» (Felipe 2026-10-10: en TRU, la cabecera decía
+ *  79.90 y la caja cobraba 69.90). */
+export function resumenVariantes(filas: readonly FilaFicha[], aqui?: { sede: string; precio: number } | null): string {
   const activas = filas.filter((f) => f.activo);
   const precios = activas.map((f) => Number(f.precio)).filter((p) => p > 0);
   const partes = [`${activas.length} ${activas.length === 1 ? "variante activa" : "variantes activas"}`];
   if (precios.length > 0) partes.push(rangoDePrecios(precios));
+  if (aqui) partes.push(`${rangoDePrecios([aqui.precio])} en ${aqui.sede}`);
   return partes.join(" · ");
 }
 
@@ -402,12 +405,18 @@ export type LineaParaImprimir = {
 /** Lo que entró en el guardado (las `Subida`s del stock), con lo que la ficha sabe de cada variante: su color, su talla, su precio
  *  y sus etiquetas. En el orden de la tabla: por color como aparecen, y por talla en curva. Una variante que la ficha no conoce
  *  (no debería pasar) sale con lo que trae la subida. */
-export function lineasParaImprimir(subidas: readonly Subida[], filas: readonly FilaFicha[], n: NombresFicha): LineaParaImprimir[] {
+export function lineasParaImprimir(
+  subidas: readonly Subida[],
+  filas: readonly FilaFicha[],
+  n: NombresFicha,
+  /** Precio propio de ESTA tienda por variante (ADR-0370): la etiqueta que se imprime aquí sale con él, y la vista previa también. */
+  preciosAqui: Readonly<Record<string, number>> = {},
+): LineaParaImprimir[] {
   const lineas = subidas
     .filter((s) => s.unidades > 0)
     .map((s) => {
       const f = filas.find((x) => x.id === s.varianteId);
-      const precio = f ? Number(f.precio) : NaN;
+      const precio = preciosAqui[s.varianteId] ?? (f ? Number(f.precio) : NaN);
       return {
         varianteId: s.varianteId,
         colorCodigo: f ? f.colorCodigo : null,

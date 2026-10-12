@@ -84,3 +84,8 @@ La convivencia de las dos cabeceras se resolvió al revés de lo que decía «Co
 `CabeceraPantalla`; Felipe eligió la de Ventas (`EncabezadoPagina`) y **Inventario pasó a ella** (ADR-0220). El punto 4
 («el orden oficial de una pantalla» empieza con `CabeceraPantalla`) queda para Finanzas, que la usa como su spike
 aprobado (ADR-0195). Lo demás de esta guía (tokens, botones, chips, tablas, notas) sigue igual.
+
+
+## Actualización 2026-10-05 — el modo oscuro entró (ADR-0336)
+
+**Se cumplió la reserva del nombre `[data-tema="oscuro"]`:** el modo oscuro que Felipe dejó «para después» entró el 2026-10-05, con los tokens de este ADR redefinidos bajo ese atributo en `app/estilos/tema.css` y con `tinta` y `crema` intercambiados (`docs/adr/0336-modo-oscuro-del-erp.md`). Lo de «sin modo oscuro por ahora» ya no rige. Los valores de la paleta CLARA de este ADR no cambiaron.

@@ -35,12 +35,12 @@ describe("agruparStockPorSede — cuánto hay aquí y dónde más", () => {
       ubicaciones,
       LIMA,
     );
-    expect(m.get("v1")).toEqual({ aqui: 3, otrasSedes: [{ sede: "Trujillo", cantidad: 2 }] });
+    expect(m.get("v1")).toEqual({ aqui: 3, otrasSedes: [{ sede: "Trujillo", cantidad: 2, ubicacionId: TRU }] });
   });
 
   it("sin fila en esta sede, aquí hay cero — y las otras igual cuentan", () => {
     const m = agruparStockPorSede([{ variante_id: "v1", ubicacion_id: TRU, cantidad: 5 }], ubicaciones, LIMA);
-    expect(m.get("v1")).toEqual({ aqui: 0, otrasSedes: [{ sede: "Trujillo", cantidad: 5 }] });
+    expect(m.get("v1")).toEqual({ aqui: 0, otrasSedes: [{ sede: "Trujillo", cantidad: 5, ubicacionId: TRU }] });
   });
 
   it("las otras sedes van de más a menos stock, y una con cero no aparece", () => {
@@ -54,8 +54,8 @@ describe("agruparStockPorSede — cuánto hay aquí y dónde más", () => {
       LIMA,
     );
     expect(m.get("v1")?.otrasSedes).toEqual([
-      { sede: "Taller", cantidad: 15 },
-      { sede: "Trujillo", cantidad: 2 },
+      { sede: "Taller", cantidad: 15, ubicacionId: TALLER },
+      { sede: "Trujillo", cantidad: 2, ubicacionId: TRU },
     ]);
   });
 
@@ -75,7 +75,7 @@ describe("agruparStockPorSede — cuánto hay aquí y dónde más", () => {
       ],
       "lima",
     );
-    expect(r.get("v1")).toEqual({ aqui: 7, otrasSedes: [{ sede: "Trujillo", cantidad: 4 }] });
+    expect(r.get("v1")).toEqual({ aqui: 7, otrasSedes: [{ sede: "Trujillo", cantidad: 4, ubicacionId: "tru" }] });
   });
 
   it("una fila de una ubicación que no está en la lista (inactiva) se ignora del todo", () => {

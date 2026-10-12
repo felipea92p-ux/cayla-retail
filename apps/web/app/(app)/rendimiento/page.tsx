@@ -1,11 +1,13 @@
 import { Ayuda } from "@/components/Ayuda";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
-import { celda, Encabezado, fila, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
+import { celda, Encabezado, fila, Tabla, type Columna } from "@/components/ui/Tabla";
 import { TiendasRendimiento } from "@/components/rendimiento/TiendasRendimiento";
 import { exigirModulo } from "@/lib/persona-actual";
 import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimiento";
 import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
+import { Receipt, Store } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Rendimiento (ADR-0219, ADR-0325). Arriba, el PANEL de la meta de la tienda (`PanelRendimiento`, en el
 // navegador): cifras, cómo va cada persona contra su meta —que la líder de la sede o el Admin pueden cambiar—,
@@ -61,13 +63,14 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
       />
 
       {sedes.length === 0 && (
-        <div className="card-cayla p-5">
-          <p className={TABLA.vacio}>
+        <div className="card-cayla">
+          <Vacio icono={<Store />}>
             No hay una tienda que mirar desde esta cuenta: Rendimiento es de quien lleva una tienda o
             del Admin. Si crees que deberías verla, pídele a tu líder que revise tu sede en Colaboradores
             ▸ Roles y accesos.
-          </p>
+          </Vacio>
         </div>
+
       )}
 
       {elegida && (
@@ -112,7 +115,11 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
           </h3>
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
-            {porHora.length === 0 && <p className={TABLA.vacio}>Nadie vendió este mes.</p>}
+            {porHora.length === 0 && (
+              <Vacio tamano="chico" icono={<Receipt />} className="py-5">
+                Nadie vendió este mes.
+              </Vacio>
+            )}
             {porHora.map((f) => (
               <div key={f.personaId} className={fila(PLANTILLA)} role="row">
                 <span className={celda()}>
@@ -149,7 +156,11 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
           </h3>
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
-            {porVentas.length === 0 && <p className={TABLA.vacio}>Nadie vendió este mes.</p>}
+            {porVentas.length === 0 && (
+              <Vacio tamano="chico" icono={<Receipt />} className="py-5">
+                Nadie vendió este mes.
+              </Vacio>
+            )}
             {porVentas.map((f) => (
               <div key={f.personaId} className={fila(PLANTILLA)} role="row">
                 <span className={celda()}>

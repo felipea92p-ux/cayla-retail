@@ -90,6 +90,8 @@ export type MotivoConRazon = { motivo: "no_habia_talla" } | { motivo: "se_probo_
 export type DatosPedidoNoAtendido = MotivoConRazon & {
   ubicacionId: string;
   productoId?: string | null;
+  /** La prenda exacta (producto, talla y color), cuando se anota desde el catálogo (ADR-0348). */
+  varianteId?: string | null;
   descripcion?: string | null;
   talla?: string | null;
   clientaId?: string | null;
@@ -104,6 +106,7 @@ export type ArgsRegistrarPedido = {
   p_clienta_id?: string;
   p_motivo: MotivoPedido;
   p_razon?: RazonSeProbo;
+  p_variante_id?: string;
 };
 
 const oVacio = (texto: string | null | undefined): string | undefined => {
@@ -127,6 +130,8 @@ export function argsRegistrarPedido(d: DatosPedidoNoAtendido): ArgsRegistrarPedi
   const clientaId = oVacio(d.clientaId);
   if (clientaId) args.p_clienta_id = clientaId;
   if (d.motivo === "se_probo_no_llevo" && d.razon) args.p_razon = d.razon;
+  const varianteId = oVacio(d.varianteId);
+  if (varianteId) args.p_variante_id = varianteId;
   return args;
 }
 

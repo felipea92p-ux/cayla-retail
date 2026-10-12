@@ -131,3 +131,67 @@ Todo lo de arriba, sin migración. Lo que se ajustó en el camino:
 Cada actividad, en el navegador local con la base local: recibir 3 prendas de un proveedor en TRU sube 3 en el almacén con su
 movimiento de entrada; con una factura de prueba la puerta la ofrece y sin factura no; el enlace viejo de Por regularizar llega a
 Existencias; `pnpm test` en verde.
+
+## Actualización 2026-10-11 — al cambiar de sede, lo contado queda guardado en SU sede (Felipe)
+
+**El problema.** El selector de sede de la cabecera cambia la sede con `router.refresh()`: la ruta no cambia y React conserva el
+estado de todo componente cliente cuya `key` siga igual. Las dos puertas de Recibir se montaban sin la sede en la key:
+
+- **Contra factura** (`RecepcionEnvio`): la sede vivía además en un `useState(ubicacionInicialId)` que nunca se ponía al día. Tras
+  pasar de Lima a Trujillo, «Entra al almacén de» quedaba en blanco (buscaba Lima en una lista que solo tenía Trujillo), el
+  responsable se elegía entre la gente de Lima, y `recibir_envio` salía con `p_ubicacion_id` de **Lima** junto con las facturas
+  marcadas, las cantidades, lo que llegó fuera de comprobante, las decisiones sobre lo que faltó, la guía y la nota. La base no
+  podía notarlo: Lima tenía su parte de la factura pendiente, así que para ella era una recepción válida en Lima aunque la
+  pantalla dijera Trujillo. Lo contado en una puerta entraba al almacén de otra.
+- **«Llegó mercadería»** (`LlegoMercaderia`): lo escaneado en Lima seguía en pantalla en Trujillo y `recibir_lote` lo recibía en
+  **Trujillo**.
+
+**La decisión (Felipe, entre guardarlo, preguntar antes de cambiar o vaciarlo con aviso):** la sede nueva arranca vacía y lo que
+estaba contado **queda guardado en su sede**: al volver con el selector, está tal como se dejó. Un aviso lo dice al irse («Lo
+contado en Tienda Lima quedó guardado») y otro al volver («Volvió lo que contaste en Tienda Lima»). Mismo criterio que el ticket
+de Vender (ADR-0049, act. 2026-10-11): perder 40 cajas contadas por un clic en el selector es peor que guardarlas.
+
+- **Qué se guarda:** contra factura, las facturas marcadas (las que sigan pendientes al volver), cuáles estaban abiertas, las
+  cantidades, lo de fuera de comprobante, las decisiones sobre lo que faltó, la guía, la nota, la pestaña y el token; en «Llegó
+  mercadería», el proveedor, la guía, lo escaneado (con su costo), los proveedores ya contestados «sin factura», los agregados
+  ahí mismo y el token. **El token viaja con el conteo**: es el mismo envío, y reintentarlo no lo duplica. No se guardan la
+  pantalla de «recibido» ni el resumen previo abierto.
+- **Cuándo cuenta como «algo contado»:** la misma regla que ya usaba «¿Salir sin guardar?» (cantidades, fuera de comprobante,
+  decisiones, guía o nota; marcar facturas no, porque se rehace en un toque). En «Llegó mercadería», lo escaneado o la guía;
+  elegir el proveedor solo, no.
+- **Vive mientras se siga en Recibir.** Salir de la pantalla lo pierde, así que «¿Salir sin guardar?» ahora pregunta también por
+  lo guardado en otra sede y lo nombra («También se pierde lo que dejaste contado en Tienda Lima (12 unidades)»). **«Llegó
+  mercadería» no tenía esa guardia** (lo escaneado se perdía en silencio al tocar el menú): la suma con este cambio, que es lo que
+  se le prometió a Felipe al elegir. Elegir «Toda la empresa» en el selector saca de Recibir (lleva al tablero) y lo pierde sin
+  preguntar, como en Vender.
+- **«¿Salir sin guardar?» compara contra la recepción VACÍA** y no contra la del montaje (antes, `useState(fotoConteo)`): una
+  recepción recuperada al volver a su sede también se protege.
+
+**Cómo está hecho.** `recibir/page.tsx` monta cada puerta con `key={claveDeLaRecepcion(<sede>)}` dentro de
+`<TrabajoPorSede key="llegada"|"factura" ubicacionId>` (`components/ui/TrabajoPorSede.tsx`), que NO cambia de key con la sede y
+por eso sobrevive al cambio. Cada pantalla le reporta su conteo en un efecto (`useTrabajoPorSede`) y lo lee al montarse; cuando la
+sede cambia, el guardián guarda el de la anterior. Guarda uno por sede y no uno solo: los efectos del hijo nuevo corren antes que
+el del padre, y el conteo vacío de la sede nueva pisaría el de la que se deja. En la vista contra factura el guardián va por
+encima del «No hay nada pendiente de recibir»: si la sede nueva no tiene facturas, la recepción no se dibuja y lo guardado de la
+otra no se pierde con ella. La key del guardián es la vista: lo guardado en una puerta no aparece en la otra. La regla es pura en
+`lib/recibir-cambio-de-sede.ts`, con su prueba (`recibir-cambio-de-sede.test.ts`, que además falla si la página vuelve a montar
+una puerta sin la sede en la key o sin su guardián).
+
+**Descartado:** preguntar antes de cambiar de sede (tocaba el selector de la cabecera, que está en todo el ERP, y es un paso más
+cada vez); vaciar con aviso (un clic equivocado borra un conteo largo sin vuelta atrás). **No se tocó la base, y no hace falta:**
+el chequeo temprano de `recibir_envio` (`if not v_es_lider and exists (…)`) se salta para el líder, pero cada línea pasa después por
+`recibir_compras`, cuyo tope por tienda (ADR-0139, `20260919172000_reparto_compra_por_tienda.sql`) vale para todos: rechaza una
+línea sin reparto en esa sede y lo que exceda su parte (consultado en producción el 2026-10-11, solo lectura). Lo que el bug dejaba
+pasar era una recepción dentro de la parte de OTRA sede con la pantalla mostrando la nueva: un error de pantalla, que ya no ocurre.
+
+**Cómo se verificó (2026-10-11, sin base local: Docker se desinstaló a mitad de la sesión).** Una página de ensayo fuera del repo
+montó las dos puertas reales con datos inventados (una factura repartida, 5 para Lima y 3 para Trujillo), la sede en una cookie y
+un selector con el mismo mecanismo que el de la cabecera (acción de servidor + `router.refresh()`); un Supabase falso en el puerto
+de la API anotaba cada llamada. **Antes, sobre `main`:** contadas 2 en Lima y cambiado a Trujillo, la pantalla de Trujillo mostró
+«Entra al almacén de» en blanco con las 2 y la guía de Lima, y `recibir_envio` salió con `p_ubicacion_id` y `x-ubicacion` de **Lima**
+(«Ya suman al stock de , de un proveedor»); en «Llegó mercadería», 3 prendas escaneadas en Lima se recibieron con `recibir_lote` en
+**Trujillo**. **Después, con el arreglo:** Trujillo arrancó vacía con el aviso de lo guardado, lo recibido allí salió con Trujillo,
+al volver a Lima apareció todo (factura marcada, 2 contadas, guía y «Entra al almacén de Tienda Lima») y salió con Lima; lo mismo
+en «Llegó mercadería». «Atrás» con Lima guardada y Trujillo vacía abrió «¿Salir sin guardar?» nombrando «Tienda Lima (2
+unidades)», y «Llegó mercadería» pregunta antes de perder lo escaneado. La pantalla de «recibido» sigue a la vista después del
+refresco en las dos puertas.

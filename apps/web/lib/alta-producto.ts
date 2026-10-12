@@ -117,6 +117,9 @@ export type ColorAlta = {
   tipo?: string | null;
   sinonimos?: readonly string[];
   pantoneTcx?: string | null;
+  /** La ficha del color (ADR-0316): qué transmite y con qué se combina (códigos). Ausentes = la pantalla no la pidió o el color no la tiene. */
+  descripcion?: string | null;
+  combinaCon?: readonly string[];
 };
 
 // El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,
@@ -159,16 +162,6 @@ export function repartirFamilias<T extends { codigo: string }>(familias: T[]): {
   const aLaVista = familias.filter((f) => FAMILIAS_A_LA_VISTA.includes(f.codigo));
   if (aLaVista.length === 0) return { aLaVista: familias, masFamilias: [] };
   return { aLaVista, masFamilias: familias.filter((f) => !FAMILIAS_A_LA_VISTA.includes(f.codigo)) };
-}
-
-/** Lo que el «Ver más» de un eje (hoy, Tejido) muestra: los valores aprobados del catálogo que la categoría todavía NO ofrece, en el
- *  orden del catálogo. Jeans ofrece 3 tejidos de 22 (2026-09-28): sin esto, usar Lino en un jean exigía saber que Lino existe y
- *  escribirlo letra por letra en «+ Nuevo tejido».
- *  Nunca repite uno que la categoría ya ofrece, así que el elegido (que la base exige que sea de la categoría) jamás queda escondido
- *  tras «Ver menos». Vacío si la categoría ya ofrece todo: ahí no se pinta el botón. */
-export function fueraDeLaCategoria<T extends { id: string }>(universo: T[], deLaCategoria: { id: string }[]): T[] {
-  const ofrecidos = new Set(deLaCategoria.map((v) => v.id));
-  return universo.filter((v) => !ofrecidos.has(v.id));
 }
 
 // ---------------------------------------------------------------------------

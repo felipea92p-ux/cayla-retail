@@ -9,6 +9,7 @@ import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoTexto, Desplegable } from "@/components/ui/campos";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
@@ -24,8 +25,8 @@ import type { StockFicha } from "./useStockFicha";
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas, la caja − N + por celda (que también
 // se escribe) y la fila «Total» fija abajo. Quien cargó la prenda en el alta reconoce la tabla al volver a editarla.
 //
-// Lo que Editar tiene y el alta no, sigue aquí: las pestañas «Unidades de hoy · Precios · Costos · Etiquetas» (el costo solo si la
-// cuenta lo ve; con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
+// Lo que Editar tiene y el alta no, sigue aquí: la pestaña «Etiquetas» (Precios y Costos por celda también los tiene el alta desde el
+// 2026-10-10; aquí el costo sale solo si la cuenta lo ve, con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
 // en ámbar punteado, el color que se toca para verlo en el panel, y la talla que faltó en un conteo (su «+» abre el ajuste de
 // siempre, ADR-0291).
 //
@@ -233,21 +234,15 @@ export function MatrizStockFicha({
 
   return (
     <div className="scroll-mt-20 space-y-2" ref={raiz}>
-      <div role="group" aria-label="Qué se escribe en la tabla" className="flex w-full rounded-[9px] border border-sand bg-crema p-[3px] @lg:inline-flex @lg:w-auto">
-        {pestanas.map(([v, t]) => (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={vista === v}
-            onClick={() => cambiarVista(v)}
-            className={`flex-auto whitespace-nowrap rounded-[7px] px-1.5 py-1.5 text-[12.5px] font-medium transition-colors @lg:flex-none @lg:px-3 ${
-              vista === v ? "bg-papel text-tinta ring-1 ring-sand" : "text-tinta/60 hover:text-tinta"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
+      <SegmentoDeslizante
+        forma="modo"
+        etiqueta="Qué se escribe en la tabla"
+        valor={vista}
+        onCambio={(v) => cambiarVista(v as VistaMatriz)}
+        opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t }))}
+        className="w-full @lg:w-auto [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
+      />
 
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">
@@ -371,7 +366,7 @@ export function MatrizStockFicha({
                     scope="row"
                     className={`sticky left-0 z-[1] relative overflow-hidden border-r border-t border-sand py-1.5 pl-3 pr-1.5 text-left text-[12.5px] font-semibold text-tinta @lg:py-2 @lg:pl-3.5 @lg:pr-2 @lg:text-[13.5px] ${fondoFila}`}
                   >
-                    <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]" style={{ background: franja }} />
+                    <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_color-mix(in_srgb,var(--color-tinta)_18%,transparent)]" style={{ background: franja }} />
                     <span className="flex items-center justify-between gap-1.5">
                     <button
                       type="button"

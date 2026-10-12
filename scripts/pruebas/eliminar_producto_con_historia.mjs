@@ -493,7 +493,20 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
   const LAS_BORRA = ["conteo_items", "bajada_piso_items", "cuadre_piso_items", "apartados", "movimientos_internos_intentos"];
   // Frenan: devoluciones y cambios (vienen de una venta), traslados entre sedes, prendas dañadas, envíos de proveedor, costos.
   const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial"];
-  const conocidas = [...LAS_BORRA, ...FRENAN].map((t) => `'retail.${t}'`).join(", ");
+  // Se van solas, en cascada, cuando la función borra su movimiento: una marca que solo une filas que ya se borran (la
+  // corrección «en la mano» con su bajada, ADR-0328). No se respaldan: restaurar una purga devuelve la corrección y la
+  // bajada, sin la marca que las unía.
+  const EN_CASCADA = ["bajadas_en_mano"];
+  const conocidas = [...LAS_BORRA, ...FRENAN, ...EN_CASCADA].map((t) => `'retail.${t}'`).join(", ");
+  const cascada = correr(`select coalesce(string_agg(c.conrelid::regclass::text, ', '), 'NINGUNA')
+    from pg_constraint c
+   where c.contype = 'f' and c.confrelid = 'retail.movimientos'::regclass and c.confdeltype <> 'c'
+     and c.conrelid::regclass::text in (${EN_CASCADA.map((t) => `'retail.${t}'`).join(", ")});`);
+  esperar(
+    `las que se van en cascada de verdad tienen «on delete cascade» hacia movimientos${cascada.ok && cascada.salida !== "NINGUNA" ? ` — SIN CASCADA: ${cascada.salida}` : ""}`,
+    cascada.ok && cascada.salida === "NINGUNA",
+    cascada
+  );
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c
    where c.contype = 'f' and c.confrelid = 'retail.movimientos'::regclass

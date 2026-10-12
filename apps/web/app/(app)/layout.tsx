@@ -2,10 +2,11 @@ import { cookies } from "next/headers";
 import { COOKIE_LATERAL, COOKIE_LATERAL_PLEGADO } from "@/lib/lateral-cookie";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getTrasladosPorAtender } from "@/lib/traslados";
+import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
+import { PreciosEnVivo } from "@/components/PreciosEnVivo";
 import { SinConexion } from "@/components/SinConexion";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
@@ -24,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const recibeRecordatorio = recibeRecordatorioCierre(persona);
   const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
-    getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
+    getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")),
     recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
   ]);
 
@@ -68,6 +69,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
+        {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}
+        <PreciosEnVivo />
         {/* «Es hora de cerrar caja» (ADR-0305): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}
         {recibeRecordatorio && <RecordatorioCierreCaja inicial={recordatorioCierre} />}
       </SedeActivaProveedor>

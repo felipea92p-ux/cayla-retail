@@ -520,7 +520,7 @@
 .lqe-ranura {
   position: relative;
   z-index: 1;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--color-sombra) 35%, transparent);
 }
 .lqe-etiqueta {
   animation: lqe-sale 380ms var(--ease-cayla) both;

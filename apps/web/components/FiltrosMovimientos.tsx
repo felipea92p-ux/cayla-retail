@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Camera, Search, SlidersHorizontal, X } from "lucide-react";
+import { Camera, SlidersHorizontal, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { Buscador } from "@/components/ui/Buscador";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import {
-  CATEGORIAS,
+  CATEGORIAS_FILTRO,
   FILTROS_SUBUBICACION,
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
@@ -16,18 +17,21 @@ import {
   categoriaDeProceso,
   etiquetaProceso,
   filtroDePalabra,
+  type CategoriaFiltro,
   type PeriodoMovimientos,
   type ResumenTienda,
   type TokenSububicacion,
 } from "@/lib/movimientos-reglas";
+import { grupoPorId } from "@/lib/movimientos-tipos";
 
 // Filtros de Movimientos. Viven en la URL (?q=…&cat=…&proc=…&sub=…&rango=…), igual que en
 // Compras: la página es un Server Component que filtra en Postgres, el enlace se puede
 // compartir («mirá lo que pasó con esta blusa»), y "atrás" vuelve al filtro anterior.
 // Cambiar un filtro borra el cursor de paginado.
 //
-// Las cifras de las píldoras son OPERACIONES (lo que se guardó de una sola vez, ADR-0234): lo mismo que se ve al tocar
-// cada una, porque la lista también agrupa por operación. Un traslado que llega cuenta en «Entradas» y en «Traslados».
+// El TIPO (venta, colgada en piso, llegada…) ya no se elige aquí: son los siete botones de la columna de la derecha
+// (`TiposMovimiento`, ADR-0353), que además traen su cifra. Aquí quedan la búsqueda, el período, la zona y, debajo de un
+// tipo elegido, sus procesos.
 //
 // El buscador entiende el nombre de un proceso (ADR-0234): «venta», «traslado», «ajuste»… no buscan prendas —ninguna se
 // llama así—, así que se vuelven el filtro de ese tipo y el campo se vacía. «Traslado 24» sigue siendo una búsqueda.
@@ -35,8 +39,7 @@ import {
 // Orden (rediseño 2026-09-22, elegido por Felipe en la demo de
 // docs/maquetas/movimientos-rediseno-2026-09/): dos filas, como la guía oficial.
 //   1. Búsqueda (prendas Y procesos: «Traslado 24», «Boleta B001-000184») + período.
-//   2. Tipo, con cuántos movimientos hay de cada uno; a la derecha, la sububicación en un
-//      control segmentado chico (piso / almacén / cuarentena).
+//   2. La zona (piso / almacén / cuarentena) en un control segmentado chico.
 //   Debajo, solo si hay un tipo elegido: sus procesos («Ajustes» → Conteo · Merma · …).
 // Antes el proceso era un select nativo de 19 opciones escondido en «Más filtros»: los
 // procesos ya pertenecen a un tipo, y la pantalla usa esa jerarquía en vez de aplanarla.
@@ -81,16 +84,15 @@ function Pastilla({
       disabled={!activa && cuenta === 0}
       className={
         sutil
-          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo ${
+          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
               activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
             }`
-          : "pildora-cayla shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo disabled:cursor-default disabled:opacity-40"
+          : // La píldora de filtro del sistema (ADR-0358): el foco es el anillo común y el conteo, del color del texto.
+            "pildora-cayla shrink-0 disabled:cursor-default disabled:opacity-40"
       }
     >
       {children}
-      {cuenta !== undefined && (
-        <span className={`text-[11px] font-medium tabular-nums ${activa ? "text-crema/70" : "text-taupe/80"}`}>{cuenta.toLocaleString("es-PE")}</span>
-      )}
+      {cuenta !== undefined && <span className="pildora-cayla__n">{cuenta.toLocaleString("es-PE")}</span>}
       {activa && quitable && <X aria-label="quitar" strokeWidth={1.75} className="-mr-1 h-3.5 w-3.5 opacity-70" />}
     </button>
   );
@@ -135,7 +137,7 @@ export function FiltrosMovimientos({
 
   const proc = params.get("proc") || null;
   // Un enlace con solo `?proc=conteo` (el de Conteo) aprieta igual «Ajustes»: el tipo se deduce.
-  const cat = CATEGORIAS.find((c) => c === params.get("cat")) ?? categoriaDeProceso(proc);
+  const cat: CategoriaFiltro | null = CATEGORIAS_FILTRO.find((c) => c === params.get("cat")) ?? categoriaDeProceso(proc);
   // «Personalizado» se abre con un toque aunque todavía no haya fechas en la URL.
   const [personalizadoAbierto, setPersonalizadoAbierto] = useState(false);
   const enPersonalizado = periodo === "personalizado" || periodo === "todo";
@@ -199,8 +201,8 @@ export function FiltrosMovimientos({
     { valor: "hoy", texto: "Hoy" },
     ...PERIODOS_RAPIDOS.map((d) => ({ valor: d, texto: `${d} días` })),
   ];
-  // Tocar el tipo que ya está elegido lo suelta (vuelve a «Todos»): la × de la píldora.
-  const elegirTipo = (valor: string) => aplicar(cat === valor ? { cat: "", proc: "" } : { cat: valor, proc: "" });
+  // El nombre del tipo elegido, como lo dice su botón («Colgadas en piso»); los enlaces viejos (`?cat=entrada`) conservan el suyo.
+  const nombreTipo = (c: CategoriaFiltro) => grupoPorId(c)?.nombre ?? FILTROS_TIPO.find((f) => f.valor === c)?.etiqueta ?? c;
   // La fila de procesos solo si hay entre qué elegir (ADR-0241): «Todos · Venta» con solo ventas no filtraba nada.
   const hayProcesos = procesosDelTipo.length >= 2 || (!!proc && procesosDelTipo.length >= 1);
 
@@ -251,23 +253,11 @@ export function FiltrosMovimientos({
     </div>
   );
 
-  const tipos = (
-    <div role="group" aria-label="Tipo" className={`${FILA_DESLIZA} min-w-0 sm:flex-1`}>
-      <Pastilla activa={cat === null && !procesoSuelto} onClick={() => aplicar({ cat: "", proc: "" })} cuenta={resumen?.todos.operaciones}>
-        Todos
-      </Pastilla>
-      {FILTROS_TIPO.map((f) => (
-        <Pastilla key={f.valor} activa={cat === f.valor} quitable onClick={() => elegirTipo(f.valor)} cuenta={resumen?.[f.valor].operaciones}>
-          {f.etiqueta}
-        </Pastilla>
-      ))}
-      {/* Un proceso que vive en dos tipos (cambio) llegado sin `?cat=`: su propia píldora, que se suelta con la ×. */}
-      {procesoSuelto && proc && (
-        <Pastilla activa quitable onClick={() => aplicar({ proc: "" })}>
-          {etiquetaProceso(proc)}
-        </Pastilla>
-      )}
-    </div>
+  // Un proceso que vive en dos tipos (cambio) llegado sin `?cat=`: su propia píldora, que se suelta con la ×.
+  const procesoSueltoPildora = procesoSuelto && proc && (
+    <Pastilla activa quitable onClick={() => aplicar({ proc: "" })}>
+      {etiquetaProceso(proc)}
+    </Pastilla>
   );
 
   const zona = subDisponibles.length > 0 && (
@@ -277,29 +267,19 @@ export function FiltrosMovimientos({
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Zona
       </span>
-      <div role="group" aria-label="Zona de la tienda" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg bg-hueso p-[3px]">
-        {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => {
-          const activa = sub === f.token;
-          return (
-            <button
-              key={f.token ?? "todo"}
-              type="button"
-              aria-pressed={activa}
-              onClick={() => aplicar({ sub: f.token ?? "" })}
-              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
-                activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
-              }`}
-            >
-              {f.etiqueta}
-            </button>
-          );
-        })}
+      {/* Deja menos movimientos (filtro de un valor): la píldora del sistema, no la pista hueso de la demo (ADR-0358). */}
+      <div role="group" aria-label="Zona de la tienda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
+        {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => (
+          <button key={f.token ?? "todo"} type="button" aria-pressed={sub === f.token} onClick={() => aplicar({ sub: f.token ?? "" })} className="pildora-cayla shrink-0">
+            {f.etiqueta}
+          </button>
+        ))}
       </div>
     </div>
   );
 
   const procesos = cat && hayProcesos && (
-    <div role="group" aria-label={`Proceso dentro de ${FILTROS_TIPO.find((f) => f.valor === cat)?.etiqueta ?? cat}`} className="anim-revelar flex items-center gap-2 border-l-2 border-sand pl-3">
+    <div role="group" aria-label={`Proceso dentro de ${nombreTipo(cat)}`} className="anim-revelar flex items-center gap-2 border-l-2 border-sand pl-3">
       <span aria-hidden className="label-cayla shrink-0 text-[10px] font-bold text-taupe">
         Proceso
       </span>
@@ -322,35 +302,15 @@ export function FiltrosMovimientos({
       {/* Búsqueda. En el celular queda FIJA arriba al bajar (ADR-0241), con la cámara para leer una etiqueta y el botón
           de los filtros: lo que se hace con el pulgar sin volver a subir. La cabecera del ERP es `fixed` (≈58 px). */}
       <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
-        {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: al desaparecer la X el
-            foco se perdía; ahora vuelve al campo (mismo criterio que Traslados). */}
-        <div className="caja-cayla relative flex h-11 min-w-0 flex-1 items-center sm:h-10">
-          <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-          <input
-            ref={entrada}
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Prenda, código, barras o referencia…"
-            aria-label="Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)"
-            autoComplete="off"
-            className="h-full w-full rounded-lg bg-transparent pl-9 pr-9 text-base text-tinta outline-none placeholder:text-taupe sm:text-sm"
-          />
-          <SenalBuscando activo={buscando} className="absolute right-10 bg-hueso pl-2" />
-          {busqueda && (
-            <button
-              type="button"
-              onClick={() => {
-                setBusqueda("");
-                entrada.current?.focus();
-              }}
-              aria-label="Limpiar búsqueda"
-              className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-md text-taupe hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
-            >
-              <X aria-hidden strokeWidth={1.5} className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        <Buscador
+          ref={entrada}
+          valor={busqueda}
+          onCambio={setBusqueda}
+          buscando={buscando}
+          placeholder="Prenda, código, barras o referencia…"
+          etiqueta="Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)"
+          className="min-w-0 flex-1"
+        />
         <button
           type="button"
           onClick={() => setCamara(true)}
@@ -380,7 +340,7 @@ export function FiltrosMovimientos({
         ))}
         {cat && (
           <Pastilla activa quitable onClick={() => aplicar({ cat: "", proc: "" })}>
-            {FILTROS_TIPO.find((f) => f.valor === cat)?.etiqueta}
+            {nombreTipo(cat)}
           </Pastilla>
         )}
       </div>
@@ -389,7 +349,7 @@ export function FiltrosMovimientos({
       <div className="hidden space-y-3 px-4 pb-4 pt-3 sm:block">
         {fechas}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-          {tipos}
+          {procesoSueltoPildora}
           {zona}
           {hayFiltros && (
             <button type="button" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
@@ -409,11 +369,13 @@ export function FiltrosMovimientos({
                 <div className="flex flex-wrap gap-1.5 [&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{periodos}</div>
                 {fechas}
               </section>
-              <section className="space-y-2">
-                <p className="label-cayla text-[10.5px] text-taupe">Qué pasó</p>
-                <div className="[&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{tipos}</div>
-                {procesos}
-              </section>
+              {(procesos || procesoSueltoPildora) && (
+                <section className="space-y-2">
+                  <p className="label-cayla text-[10.5px] text-taupe">Qué pasó</p>
+                  <div className="[&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{procesoSueltoPildora}</div>
+                  {procesos}
+                </section>
+              )}
               {zona && <section className="space-y-2">{zona}</section>}
               {hrefExportar && (
                 <a href={hrefExportar} download className="btn-cayla btn-enlace text-[13px]">

@@ -6,6 +6,9 @@ import type { Familia } from "@cayla-retail/shared";
 import type { CategoriaAlta, FamiliaAlta } from "@/lib/alta-producto-datos";
 import { repartirFamilias } from "@/lib/alta-producto";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
+import { SearchX } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El primer paso: ¿QUÉ producto es? Dos toques (familia → categoría) o una
 // búsqueda que salta directo. Decidido con Felipe (2026-09-18): tarjetas por
@@ -140,21 +143,23 @@ export function ArbolCategoria({
   return (
     <div className="@container space-y-4">
       <div>
-        <label htmlFor="buscar-categoria" className="sr-only">
-          Buscar una categoría
-        </label>
-        <input
+        <Buscador
           id="buscar-categoria"
-          type="search"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          valor={busqueda}
+          onCambio={setBusqueda}
           placeholder="Busca: botines, vestidos, relojes…"
-          autoComplete="off"
-          className="w-full rounded-md border border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/50 focus:border-tinta/50"
+          etiqueta="Buscar una categoría"
         />
         {q && (
           <ul className="mt-2 divide-y divide-tinta/10 rounded-md border border-tinta/15">
-            {resultados.length === 0 && <li className="px-3 py-2 text-sm text-tinta/60">Nada se llama así. Prueba con las familias de abajo.</li>}
+            {resultados.length === 0 && (
+              <li className="px-3 py-2">
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setBusqueda("") }}>
+                  Nada se llama así. Prueba con las familias de abajo.
+                </Vacio>
+              </li>
+            )}
+
             {resultados.map((c) => (
               <li key={c.id}>
                 <button
@@ -203,7 +208,7 @@ export function ArbolCategoria({
       </div>
 
       {familiaAbierta && (
-        <div id="categorias-de-la-familia" className="scroll-mb-28">
+        <div id="categorias-de-la-familia" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
           <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
             Categoría
             <EtiquetaAhora />

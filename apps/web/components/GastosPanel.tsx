@@ -12,7 +12,7 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, ResumenActivosPorSede, TablaActivos } from "@/components/GastosFijosYActivos";
-import { Buscador, CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { Buscador, CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -45,6 +45,9 @@ import {
   type UbicacionGastos,
   type Ver,
 } from "@/lib/gastos-reglas";
+import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check, FunnelX, Receipt, SearchX } from "lucide-react";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
 // cabecera con «Ver» y la acción principal → cuatro cifras → pestañas → la tarjeta de la tabla con sus filtros → nota.
@@ -152,13 +155,13 @@ export function GastosPanel({
               <Chip versalitas={false}>{nombreCorto}</Chip>
             )}
             {pestana === "activos" ? (
-              <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({ clase: "activo" })}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })}>
                 + Registrar activo
-              </button>
+              </Boton>
             ) : (
-              <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({})}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({})}>
                 + Registrar gasto
-              </button>
+              </Boton>
             )}
           </>
         }
@@ -171,20 +174,21 @@ export function GastosPanel({
       ))}
 
       <section className="fin-cifras">
-        <TarjetaCifra compacta etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : "—"} {...entra(1)}>
+        {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
+        <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igv) : "—"} {...entra(2)}>
+        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igv) : null} noSePudoLeer={!panel} {...entra(2)}>
           {panel ? `Solo de facturas. ${panel.boletas} ${panel.boletas === 1 ? "boleta" : "boletas"} sin IGV descontable.` : ""}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : "—"} {...entra(3)}>
+        <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(3)}>
           {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           etiqueta="Egresos de caja sin clasificar"
           tono={panel?.egresosSinClasificar ? "text-ambar" : undefined}
-          valor={panel ? String(panel.egresosSinClasificar) : "—"}
+          valor={panel ? String(panel.egresosSinClasificar) : null}
+          noSePudoLeer={!panel}
           onClick={() => setPestana("egresos")}
           {...entra(4)}
         >
@@ -232,9 +236,11 @@ export function GastosPanel({
       {pestana === "egresos" && (
         <>
           {egresos.length === 0 ? (
-            <GuiaVacia sobre="Todo en orden" titulo="No hay egresos de caja por clasificar">
-              Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.
-            </GuiaVacia>
+            <Superficie>
+              <Vacio icono={<Check />} titulo="Todo en orden: no hay egresos de caja por clasificar">
+                Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.
+              </Vacio>
+            </Superficie>
           ) : (
             <Superficie className="anim-sube">
               <div className="fin-tabla-wrap">
@@ -363,9 +369,25 @@ function TablaGastos({
           <SelectFin etiqueta="Mes" valor={mes} onValor={onMes} opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: mayuscula(textoMes(m)) }))} />
         </Herramientas>
         {visibles.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">
-            {gastos.length === 0 ? `Sin gastos en ${textoMes(mes)}. Registra la luz, el alquiler o un mototaxi con «+ Registrar gasto».` : "Ningún gasto calza con esa búsqueda."}
-          </p>
+          gastos.length === 0 ? (
+            <Vacio tamano="chico" icono={<Receipt />}>
+              Sin gastos en {textoMes(mes)}. Registra la luz, el alquiler o un mototaxi con «+ Registrar gasto».
+            </Vacio>
+          ) : (
+            <Vacio
+              tamano="chico"
+              icono={busqueda.trim() ? <SearchX /> : <FunnelX />}
+              accion={{
+                texto: busqueda.trim() && !categoria ? "Borrar la búsqueda" : "Limpiar filtros",
+                onClick: () => {
+                  setBusqueda("");
+                  setCategoria("");
+                },
+              }}
+            >
+              Ningún gasto calza con esa búsqueda.
+            </Vacio>
+          )
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla">
@@ -491,7 +513,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
   }
 
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -524,9 +546,6 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
             Anular…
           </button>
         )}
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
       </div>
     </Modal>
   );

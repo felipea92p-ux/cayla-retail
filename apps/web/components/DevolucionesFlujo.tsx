@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -14,7 +14,6 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
 import { ImpactoVista } from "@/components/CambioResumen";
 import {
-  AvisoDeError,
   BotonPrincipal,
   BotonRojo,
   BotonSecundario,
@@ -46,6 +45,10 @@ import {
 } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -108,19 +111,39 @@ export function DevolucionesFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // La devolución a medio armar es de SU sede (Felipe, 2026-10-11): si se vuelve a una sede con una guardada, se sigue en el mismo paso
+  // (el panel ya retomó la venta).
+  const { inicial: guardado, reportar: reportarDevolucion } = useTrabajoPorSede<DevolucionArmada>(ubicacionId);
   // Quién solicita la devolución (ADR-0161). Aprobarla sigue siendo solo del líder (ADR-0160), con su propia sesión.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
-  const [paso, setPaso] = useState<Paso>(2);
-  const [elegidas, setElegidas] = useState<Record<string, ItemElegido>>(() => (lineaInicialId ? { [lineaInicialId]: itemInicial() } : {}));
-  const [motivo, setMotivo] = useState<MotivoDevolucion | null>(null);
-  const [detalle, setDetalle] = useState("");
+  const [paso, setPaso] = useState<Paso>(guardado?.paso ?? 2);
+  const [elegidas, setElegidas] = useState<Record<string, ItemElegido>>(() =>
+    guardado ? guardado.elegidas : lineaInicialId ? { [lineaInicialId]: itemInicial() } : {},
+  );
+  const [motivo, setMotivo] = useState<MotivoDevolucion | null>(guardado?.motivo ?? null);
+  const [detalle, setDetalle] = useState(guardado?.detalle ?? "");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
   // Doble clic: el estado `enviando` tarda un render en apagar el botón; el ref es inmediato.
   const enviandoAhora = useRef(false);
+
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, la devolución queda guardada en ESTA sede. Registrada, ya no hay nada
+  // que guardar.
+  useEffect(() => {
+    reportarDevolucion(
+      paso !== "exito"
+        ? {
+            etiqueta: sede,
+            unidades: Object.values(elegidas).reduce((a, i) => a + i.cantidad, 0),
+            trabajo: { venta, lineaInicialId, paso, elegidas, motivo, detalle },
+            ...avisosDeLaDevolucion({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
+          }
+        : null,
+    );
+  }, [reportarDevolucion, paso, sede, elegidas, motivo, detalle, venta, lineaInicialId, compra.clienta, compra.comprobante]);
 
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -354,10 +377,7 @@ export function DevolucionesFlujo({
           </div>
 
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={onCerrar}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Otra venta
-            </BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrendas}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -418,10 +438,7 @@ export function DevolucionesFlujo({
             <PanelValidaciones validaciones={validaciones} impacto={impacto.inventario.length > 0 ? impacto : null} />
           </div>
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={retroceder}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar la devolución
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -486,13 +503,16 @@ export function DevolucionesFlujo({
 
           <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
 
-          {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró la devolución." />}
+          {error && (
+            // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
+            // «No se pudo …» cuando no reconoce el error; con un mensaje de la base hay que decir además que no se guardó nada.
+            <Aviso tono="error" ref={errorRef} enfocable titulo={error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
+              {error}
+            </Aviso>
+          )}
 
           <PieDelPaso aviso={null}>
-            <BotonSecundario onClick={retroceder} disabled={enviando}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
@@ -526,7 +546,7 @@ export function DevolucionesFlujo({
           <div className="mt-9 flex flex-wrap justify-center gap-2">
             {esLider ? <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal> : null}
             {esLider ? <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario> : <BotonPrincipal onClick={onNuevo}>Nueva devolución</BotonPrincipal>}
-            <BotonSecundario onClick={onCerrar}>Volver a la actividad</BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a la actividad" className="self-center" />
           </div>
         </div>
       )}

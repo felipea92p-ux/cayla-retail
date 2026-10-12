@@ -23,6 +23,7 @@ import {
   mensajeDeConsulta,
   nacimientoIso,
   nombreAMedias,
+  nombresYApellidos,
   problemasRegistro,
   respuestaDeRegistro,
   textoLegal,
@@ -189,6 +190,21 @@ describe("los textos aprobados de la página (docs/club/texto-legal-registro-v2.
     expect(enlaceLegal("privacidad", TIENDA)).toBe(`/club/privacidad?t=${TIENDA}`);
     expect(enlaceLegal("terminos", null)).toBe("/club/terminos");
     expect(enlaceLegal("terminos", "x")).toBe("/club/terminos");
+  });
+});
+
+describe("el nombre del padrón en las cajas Nombres y Apellidos (Apartados, ADR-0367)", () => {
+  it("SUNAT público trae los apellidos primero", () => {
+    expect(nombresYApellidos("PEREZ SALAS LUCIA MARIA", "apellidos_primero")).toEqual({ nombres: "Lucia Maria", apellidos: "Perez Salas" });
+    expect(nombresYApellidos("DE LA CRUZ PEREZ ÑUSTA", "apellidos_primero")).toEqual({ nombres: "Ñusta", apellidos: "de la Cruz Perez" });
+  });
+  it("el proveedor de pago trae los nombres primero", () => {
+    expect(nombresYApellidos("MARIA DEL CARMEN PEREZ SALAS", "nombres_primero")).toEqual({ nombres: "Maria del Carmen", apellidos: "Perez Salas" });
+  });
+  it("con coma manda la coma; sin nombre, null", () => {
+    expect(nombresYApellidos("PÉREZ SALAS, LUCÍA", "nombres_primero")).toEqual({ nombres: "Lucía", apellidos: "Pérez Salas" });
+    expect(nombresYApellidos("   ", "apellidos_primero")).toBeNull();
+    expect(nombresYApellidos(null, "apellidos_primero")).toBeNull();
   });
 });
 

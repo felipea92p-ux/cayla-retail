@@ -3,6 +3,7 @@ import { exigir } from "@/lib/resultado";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { diaLima, inicioDeDiaLima, inicioDeMesLima } from "@/lib/panel-serie";
 import { valorPagado } from "@/lib/devoluciones-reglas";
+import { fotoDeVariante } from "@/lib/producto-fotos-reglas";
 
 // Devoluciones: el backend (crear_devolucion, aprobar_devolucion, rechazar_devolucion) ya
 // existía y sigue probado intacto — este archivo solo trae lecturas.
@@ -66,7 +67,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
         `devolucion_id, cantidad, condicion,
          venta_item:venta_items ( precio_unitario, descuento_unitario,
            variante:variantes ( sku, codigo, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
-             producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ) )`
+             producto:productos ( referencia, producto_fotos ( url, color_codigo, orden, es_principal ) ) ) )`
       )
       .in("devolucion_id", ids),
     supabase
@@ -103,7 +104,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
           talla: v?.talla?.valor ?? null,
           color: v?.color?.nombre ?? null,
           colorHex: v?.color?.hex ?? null,
-          fotoUrl: v?.producto?.producto_fotos.find((p) => p.color_codigo === v.color_codigo)?.url ?? null,
+          fotoUrl: fotoDeVariante(v?.producto?.producto_fotos ?? [], v?.color_codigo ?? null),
           sku: v?.sku ?? "",
           codigo: v?.codigo ?? null,
           cantidad: i.cantidad,

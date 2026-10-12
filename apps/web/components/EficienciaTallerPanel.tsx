@@ -5,11 +5,11 @@ import Link from "next/link";
 import { soles } from "@/lib/compras-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { PestanasResumenProduccion } from "@/components/PestanasResumenProduccion";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { repartoDelGasto, variacion, type EficienciaPeriodo, type PartePlata } from "@/lib/eficiencia-reglas";
 import type { EstadoPlanilla } from "@/lib/eficiencia";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 // Eficiencia del Taller (ADR-0133, F7; D-31 y D-33). «Cuánto cuesta de verdad cada prenda que sale del Taller»: materiales de lo que cerró + conversión (la
 // planilla de Dynamic y los gastos generales, repartidos entre las prendas buenas). El período es el de la planilla (29 al 28). Sin planilla visible NO se
@@ -36,7 +36,17 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
   return (
     <div className="space-y-6">
-      <PestanasResumenProduccion activa="eficiencia" />
+      {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
+          (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+      <Pestanas
+        etiquetaAccesible="Miradas del Taller"
+        idIndicador="produccion-miradas"
+        activa="eficiencia"
+        items={[
+          { clave: "hoy", etiqueta: "Hoy", href: "/produccion", ayuda: "Qué necesita mi decisión" },
+          { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
+        ]}
+      />
       <div className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Eficiencia del Taller</h1>
@@ -57,53 +67,52 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
       )}
 
       {periodos.length > 1 && (
-        <SegmentoDeslizante etiqueta="Período" valor={clave} onCambio={setClave} opciones={periodos.map((p) => ({ clave: p.ventana.clave, etiqueta: p.ventana.etiqueta }))} />
+        // El período es un filtro de un valor: la píldora del sistema (ADR-0358).
+        <div role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
+          {periodos.map((p) => (
+            <button key={p.ventana.clave} type="button" aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
+              {p.ventana.etiqueta}
+            </button>
+          ))}
+        </div>
       )}
 
       {actual && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Prendas buenas"
               className="anim-entra"
               style={{ ["--i" as string]: 0 }}
-              vacia={actual.prendasBuenas === 0}
-              valor={actual.prendasBuenas === 0 ? "—" : <CifraQueCuenta valor={actual.prendasBuenas} alMontar />}
+              valor={actual.prendasBuenas === 0 ? null : <CifraQueCuenta valor={actual.prendasBuenas} alMontar />}
             >
               {actual.ordenesCerradas === 0 ? "ninguna orden cerrada en el período" : `${plural(actual.ordenesCerradas, "orden cerrada", "órdenes cerradas")}${actual.calidad !== null ? ` · ${pct(actual.calidad)} salió buena` : ""}`}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Costo por prenda"
               className="anim-entra"
               style={{ ["--i" as string]: 1 }}
-              vacia={actual.costoPorPrenda === null}
-              valor={actual.costoPorPrenda === null ? "—" : <CifraQueCuenta valor={actual.costoPorPrenda} formato="soles" alMontar />}
+              valor={actual.costoPorPrenda === null ? null : <CifraQueCuenta valor={actual.costoPorPrenda} formato="soles" alMontar />}
             >
               {actual.costoPorPrenda === null ? (actual.prendasBuenas === 0 ? "sin prendas no hay costo por prenda" : "falta la planilla para el costo completo") : <Variacion actual={actual.costoPorPrenda} anterior={anterior?.costoPorPrenda ?? null} />}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Materiales por prenda"
               className="anim-entra"
               style={{ ["--i" as string]: 2 }}
-              vacia={actual.materialesPorPrenda === null}
-              valor={actual.materialesPorPrenda === null ? "—" : <CifraQueCuenta valor={actual.materialesPorPrenda} formato="soles" alMontar />}
+              valor={actual.materialesPorPrenda === null ? null : <CifraQueCuenta valor={actual.materialesPorPrenda} formato="soles" alMontar />}
             >
               {actual.materialesPorPrenda === null ? "sin prendas cerradas" : <Variacion actual={actual.materialesPorPrenda} anterior={anterior?.materialesPorPrenda ?? null} />}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Conversión por prenda"
               className="anim-entra"
               style={{ ["--i" as string]: 3 }}
-              vacia={actual.conversionPorPrenda === null}
-              valor={actual.conversionPorPrenda === null ? "—" : <CifraQueCuenta valor={actual.conversionPorPrenda} formato="soles" alMontar />}
+              valor={actual.conversionPorPrenda === null ? null : <CifraQueCuenta valor={actual.conversionPorPrenda} formato="soles" alMontar />}
             >
               {actual.conversionPorPrenda === null ? "planilla y gastos ÷ prendas buenas" : <Variacion actual={actual.conversionPorPrenda} anterior={anterior?.conversionPorPrenda ?? null} />}
             </TarjetaCifra>
@@ -118,16 +127,13 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
               <p className="text-sm text-tinta/70">No hay gasto del Taller registrado en este período.</p>
             ) : (
               <>
-                <div className="flex h-3 overflow-hidden rounded-full bg-sand" role="img" aria-label="Reparto del gasto del Taller">
-                  {reparto.map((p) => (
-                    <span key={p.clave} className={COLOR_PARTE[p.clave]} style={{ width: `${p.parte * 100}%` }} />
-                  ))}
-                </div>
+                {/* La barra es `<BarraApilada>` (ADR-0358): cada parte del gasto, con el mismo color que su fila de abajo. */}
+                <BarraApilada alto={12} etiqueta="Reparto del gasto del Taller" formato={soles} segmentos={reparto.map((p) => ({ clave: p.clave, nombre: p.etiqueta, valor: p.monto, clase: COLOR_PARTE[p.clave] }))} />
                 <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
                   {reparto.map((p) => (
                     <li key={p.clave} className="flex items-baseline justify-between gap-3 text-[13px]">
                       <span className="flex items-center gap-2 text-tinta/80">
-                        <i aria-hidden className={`inline-block h-2 w-2 rounded-full ${COLOR_PARTE[p.clave]}`} />
+                        <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2 w-2 rounded-full" />
                         {p.etiqueta}
                       </span>
                       <span className="tabular-nums text-tinta">

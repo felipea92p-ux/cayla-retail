@@ -13,8 +13,12 @@
 // por sede a cualquiera con acceso a retail sin ampliar esa policy.
 
 export type FilaStock = { variante_id: string; ubicacion_id: string; cantidad: number };
+/** `sede` es el nombre CORTO (`nombreCortoSede`: «Trujillo»): sirve para mostrar, no para cruzar con otra lista de sedes. */
 export type SedeConStock = { sede: string; cantidad: number };
-export type StockDeVariante = { aqui: number; otrasSedes: SedeConStock[] };
+/** La misma, con el id de la sede: para cruzarla con otra lista de sedes se usa `ubicacionId`, nunca el nombre. «Trujillo» ≠
+ *  «Tienda Trujillo» dejó «Pedir a otra sede» apagado en Existencias con 4 en Trujillo (2026-10-07). */
+export type SedeConStockId = SedeConStock & { ubicacionId: string };
+export type StockDeVariante = { aqui: number; otrasSedes: SedeConStockId[] };
 
 /** «Tienda Trujillo» → «Trujillo»; «Taller» se queda. Sin códigos inventados: V2 no
  *  tiene `codigo` en `ubicaciones`, y el nombre ya es legible. */
@@ -43,9 +47,9 @@ export function agruparStockPorSede(
     // otra tienda, piso más almacén.
     if (f.ubicacion_id === ubicacionActualId) s.aqui += f.cantidad;
     else {
-      const otra = s.otrasSedes.find((o) => o.sede === nombre);
+      const otra = s.otrasSedes.find((o) => o.ubicacionId === f.ubicacion_id);
       if (otra) otra.cantidad += f.cantidad;
-      else s.otrasSedes.push({ sede: nombre, cantidad: f.cantidad });
+      else s.otrasSedes.push({ sede: nombre, cantidad: f.cantidad, ubicacionId: f.ubicacion_id });
     }
   }
   // Una sede que suma cero no se nombra; de más a menos: lo primero que se lee es donde más hay.
@@ -56,8 +60,13 @@ export function agruparStockPorSede(
   return porVariante;
 }
 
+/** Cuánto tiene una sede (por id) en la red de una prenda; 0 si no aparece. */
+export function cantidadEnSede(enRed: readonly Pick<SedeConStockId, "ubicacionId" | "cantidad">[] | undefined, ubicacionId: string): number {
+  return (enRed ?? []).find((r) => r.ubicacionId === ubicacionId)?.cantidad ?? 0;
+}
+
 /** «15 en Taller · 2 en Trujillo», o null si no hay en ninguna otra sede. */
-export function textoOtrasSedes(otras: SedeConStock[]): string | null {
+export function textoOtrasSedes(otras: readonly SedeConStock[]): string | null {
   if (otras.length === 0) return null;
   return otras.map((o) => `${o.cantidad} en ${o.sede}`).join(" · ");
 }
@@ -82,7 +91,7 @@ export type ResumenRed = {
  *  Trujillo») con su propio formato, y las dos pantallas no tienen por qué
  *  leer igual. Null si no hay en ninguna otra sede (mismo criterio que
  *  `textoOtrasSedes`: nunca "0 sedes", directo nada que mostrar). */
-export function resumenRed(otras: SedeConStock[]): ResumenRed | null {
+export function resumenRed(otras: readonly SedeConStock[]): ResumenRed | null {
   if (otras.length === 0) return null;
   const total = otras.reduce((acc, o) => acc + o.cantidad, 0);
   return {

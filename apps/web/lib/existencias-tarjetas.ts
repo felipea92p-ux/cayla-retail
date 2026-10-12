@@ -52,7 +52,8 @@ export type OrdenPrendas = "relevancia" | "nombre" | "mas-piso" | "menos-piso" |
 export function opcionesOrden(separa: boolean): { valor: OrdenPrendas; texto: string }[] {
   return separa
     ? [
-        { valor: "relevancia", texto: "Más relevantes" },
+        // «Prioridad»: lo que falta en el piso y más se vende, primero (la lista del día del motor). Es el nombre que la persona ya vio.
+        { valor: "relevancia", texto: "Prioridad" },
         { valor: "nombre", texto: "Nombre (A–Z)" },
         { valor: "mas-piso", texto: "Más en el piso" },
         { valor: "menos-piso", texto: "Menos en el piso" },

@@ -16,6 +16,7 @@ import type { OrdenProduccion } from "@/lib/produccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Insumos de una orden (ADR-0133, F3): qué tela y qué avíos se descontaron de qué lote, y el formulario para descontar más.
 // Descontar reemplaza el «costo de tela / avíos» que se tecleó al abrir la orden por lo que de verdad salió del estante
@@ -239,7 +240,11 @@ export function OrdenInsumos({
                         Devolver todo
                       </button>
                     </label>
-                    {qDev > 0 && previsionDev && !previsionDev.ok && <p className="rounded-lg bg-rojo/[0.07] px-3 py-2 text-[13px] text-rojo-profundo">{previsionDev.motivo}</p>}
+                    {qDev > 0 && previsionDev && !previsionDev.ok && (
+                      <Aviso tono="error" chico>
+                        {previsionDev.motivo}
+                      </Aviso>
+                    )}
                     {previsionDev?.ok && (
                       <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-[13px]">
                         <div className="flex items-baseline justify-between gap-3 px-3 py-2.5">
@@ -314,7 +319,7 @@ export function OrdenInsumos({
                       className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-tinta/15"
                     >
                       {i.nombre}
-                      <small className="ml-1.5 opacity-70">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
+                      <small className="ml-1.5 opacity-70 dark:opacity-85">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
                     </button>
                   );
                 })}
@@ -336,7 +341,9 @@ export function OrdenInsumos({
                   </label>
 
                   {q > 0 && prevision && !prevision.ok && (
-                    <p className="rounded-lg bg-rojo/[0.07] px-3 py-2.5 text-[13px] text-rojo-profundo">{prevision.motivo}</p>
+                    <Aviso tono="error" chico>
+                      {prevision.motivo}
+                    </Aviso>
                   )}
                   {prevision?.ok && (
                     <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-[13px]">

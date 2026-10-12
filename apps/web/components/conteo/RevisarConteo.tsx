@@ -18,6 +18,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    Revisar conteo · lo que no coincide, antes de tocar las existencias
@@ -330,9 +331,9 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                   </div>
                   {nota && <p className="mt-2 text-[11px] leading-[15px] text-taupe">{nota}</p>}
                   {error && (
-                    <p role="alert" className="mt-2 text-xs text-rojo-profundo">
+                    <Aviso tono="error" chico className="mt-2">
                       {error}
-                    </p>
+                    </Aviso>
                   )}
                 </li>
               );

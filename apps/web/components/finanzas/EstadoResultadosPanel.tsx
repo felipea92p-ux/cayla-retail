@@ -29,6 +29,7 @@ import {
   type FilaER,
   type LineaDiario,
 } from "@/lib/resultados-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
@@ -330,7 +331,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
   const o = lineas ? origenDeCifra(lineas, k.cuentas, claveUnidad(c)) : null;
   const fuentes = fuentesDe(k.clave);
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -353,7 +354,11 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           }))}
         />
       )}
-      {error && <p className="mt-3 text-sm text-rojo-profundo">No se pudieron leer las líneas: {error}</p>}
+      {error && (
+        <Aviso tono="error" chico className="mt-3">
+          No se pudieron leer las líneas: {error}
+        </Aviso>
+      )}
       {!o && !error && (
         <ul className="fin-lista mt-3" aria-hidden>
           {[0, 1, 2].map((i) => (
@@ -378,11 +383,6 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       <p className="mt-3 text-[12.5px] text-taupe">
         Cada cifra es la suma de líneas del diario, y cada línea sabe de qué fila salió. Nada se tipea aquí.
       </p>
-      <div className="fin-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
-      </div>
     </Modal>
   );
 }

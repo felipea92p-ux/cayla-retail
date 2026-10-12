@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { atajosDeMovimiento, atajosDeOperacion, hrefBajarAlPiso, hrefEtiquetas, textoEstadoApartado, type AccesosAtajos } from "./movimientos-atajos";
+import { atajosDeMovimiento, atajosDeOperacion, hrefBajarAlPiso, hrefEtiquetas, type AccesosAtajos } from "./movimientos-atajos";
 import type { Movimiento } from "./movimientos-reglas";
 
 // Los atajos de Movimientos (ADR-0241): llevan a la pantalla que ya hace el trabajo, solo si quien mira ve ese módulo.
@@ -124,10 +124,5 @@ describe("enlaces", () => {
     expect(hrefEtiquetas([])).toBeNull();
     expect(hrefBajarAlPiso(Array.from({ length: 101 }, (_, i) => `v${i}`))).toBeNull();
     expect(hrefEtiquetas(["a", "a", "b"])).toBe("/etiquetas-de-precio?variantes=a,b");
-  });
-
-  it("el estado del apartado en palabras de tienda", () => {
-    expect(textoEstadoApartado("abierta")).toBe("Abierto");
-    expect(textoEstadoApartado("entregada")).toBe("Recogido");
   });
 });

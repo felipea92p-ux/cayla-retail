@@ -1,6 +1,7 @@
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
+import { precioPropioMasBajo } from "./precio-sede-reglas";
 
 // Reglas puras de Producción: sin Supabase, sin `next/headers`, para que las
 // importen tanto la página (servidor) como los formularios (cliente) — mismo
@@ -35,6 +36,18 @@ export const UMBRAL_FILO = 0.4;
 
 export type Semaforo = { tono: "gana" | "filo" | "pierde"; margen: number };
 
+/** Las palabras del semáforo, UNA sola vez (la hoja de Nueva orden, la tarjeta y el panel). El tono `pierde` se mostraba como «Pierde» junto a un margen de 38 %
+ *  POSITIVO y se leía como pérdida de dinero (/formidable 2026-10-10, el ciego no lo entendió hasta abrir el panel): significa «el margen no alcanza para costura,
+ *  taller y utilidad». Se llama «Margen bajo», como en Nuevo producto. El nombre del tono y los umbrales NO cambian: son una regla de precios. */
+export const TEXTO_SEMAFORO: Record<Semaforo["tono"], string> = { gana: "Gana", filo: "Al filo", pierde: "Margen bajo" };
+
+/** La leyenda del medidor del panel, con los mismos umbrales que `semaforoMargen`. */
+export const LEYENDA_SEMAFORO = {
+  pierde: `margen bajo < ${Math.round(UMBRAL_FILO * 100)}%`,
+  filo: "al filo",
+  gana: `gana ≥ ${Math.round(UMBRAL_GANA * 100)}%`,
+} as const;
+
 /** null cuando no hay con qué comparar (modelo sin precio o costo en cero). */
 export function semaforoMargen(precioVenta: number, costoUnitario: number): Semaforo | null {
   if (precioVenta <= 0 || costoUnitario <= 0) return null;
@@ -42,6 +55,41 @@ export function semaforoMargen(precioVenta: number, costoUnitario: number): Sema
   if (margen >= UMBRAL_GANA) return { tono: "gana", margen };
   if (margen >= UMBRAL_FILO) return { tono: "filo", margen };
   return { tono: "pierde", margen };
+}
+
+/** El precio propio más bajo que alguna tienda le pone al modelo, si queda bajo el de la grilla (ADR-0370). `sede` ya viene en corto y, si hay un empate, junta
+ *  las tiendas («Trujillo y Arequipa»). */
+export type PrecioMasBajo = { precio: number; sede: string };
+
+/** Con qué precio se mide el margen de una orden. Felipe (2026-10-11): «el más bajo de cualquier tienda», la vara prudente: si ahí todavía gana, gana en todas.
+ *  Sin una tienda más barata que la grilla (o si no se pudo leer), el precio de venta del modelo de siempre. `precioVenta` no cambia: es el de la grilla. */
+export function precioParaMargen(o: { precioVenta: number; precioMasBajo?: PrecioMasBajo | null }): number {
+  return o.precioMasBajo && o.precioMasBajo.precio > 0 ? o.precioMasBajo.precio : o.precioVenta;
+}
+
+type PreciosDeLasTiendas = { porSede: Readonly<Record<string, Readonly<Record<string, number>>>>; nombres: ReadonlyMap<string, string> };
+
+/** A cada orden, el precio propio más bajo de su modelo entre las tiendas (si lo hay). Puro: la página lee los precios una vez (`getPreciosDeLasTiendas`) y esto
+ *  solo los reparte. Una orden sin una tienda más barata queda sin `precioMasBajo` (se mide con el precio de la grilla). */
+export function conPreciosMasBajos<T extends { precioVenta: number; varianteIdsDelModelo: readonly string[] }>(
+  ordenes: readonly T[],
+  precios: PreciosDeLasTiendas,
+): (T & { precioMasBajo?: PrecioMasBajo })[] {
+  return ordenes.map((o) => {
+    const bajo = precioPropioMasBajo(o.precioVenta, o.varianteIdsDelModelo, precios.porSede, precios.nombres);
+    return bajo ? { ...o, precioMasBajo: bajo } : { ...o };
+  });
+}
+
+/** Lo mismo para la lista de modelos de «Nueva orden»: su precio de venta es el mayor de sus tallas activas. */
+export function conPreciosMasBajosDeModelos<T extends { variantes: readonly { varianteId: string; precio: number }[] }>(
+  modelos: readonly T[],
+  precios: PreciosDeLasTiendas,
+): (T & { precioMasBajo?: PrecioMasBajo })[] {
+  return modelos.map((m) => {
+    const bajo = precioPropioMasBajo(Math.max(0, ...m.variantes.map((v) => v.precio)), m.variantes.map((v) => v.varianteId), precios.porSede, precios.nombres);
+    return bajo ? { ...m, precioMasBajo: bajo } : { ...m };
+  });
 }
 
 /** Costo por prenda como lo calcula la base (`producciones.costo_unitario`):
@@ -200,6 +248,7 @@ type OrdenParaResumen = {
   cantidadPlan: number;
   fechaEntrega: string | null;
   precioVenta: number;
+  precioMasBajo?: PrecioMasBajo | null;
   costoUnitario: number;
 };
 export type ResumenTablero = { enCurso: number; prendas: number; vencidas: number; pronto: number; margenPromedio: number | null };
@@ -215,7 +264,7 @@ export function resumenTablero(ordenes: OrdenParaResumen[], hoy: string): Resume
     const e = estadoEntrega(o.fechaEntrega, hoy);
     if (e.tipo === "vencida") vencidas += 1;
     if (e.tipo === "pronto") pronto += 1;
-    const s = semaforoMargen(o.precioVenta, o.costoUnitario);
+    const s = semaforoMargen(precioParaMargen(o), o.costoUnitario);
     if (s) margenes.push(s.margen);
   }
   return {

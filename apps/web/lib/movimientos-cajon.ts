@@ -24,6 +24,9 @@ import {
   nombreCortoSububicacion,
   partesOrigenDestino,
   referenciaMovimiento,
+  textoComprobante,
+  ETIQUETA_COLGADA,
+  ETIQUETA_GUARDADA,
   resumirBajadas,
   resumirOperacion,
   type Movimiento,
@@ -31,6 +34,7 @@ import {
   type ReferenciaMovimiento,
 } from "./movimientos-reglas";
 import type { ApartadoDeMovimiento } from "./movimientos-atajos";
+import { tipoDeOperacion, type TipoVisual } from "./movimientos-tipos";
 
 export type FormaCajon = "grupo" | "individual" | "cambio" | "interno" | "ajuste";
 
@@ -72,9 +76,22 @@ export type ConsultarLink = {
   onClick?: "abrir_venta";
 };
 
+/** El camino del movimiento, para el trayecto del cajón («Piso → Cliente», «Almacén → Piso»). `destino` null: un solo lugar
+ *  (un ajuste, un conteo). Los mismos textos que dice la fila de la lista. */
+export type RutaCajon = { origen: string; destino: string | null; motivo: string | null };
+
+/** Un paso de «Qué pasó»: lo que se sabe que ocurrió, en palabras de tienda. `hecho: false`: todavía falta (un traslado en
+ *  camino: la otra sede aún no lo cuenta). Solo se dice lo que el registro respalda: nada de «revisada y aprobada» si la
+ *  base no lo guarda. */
+export type PasoCajon = { texto: string; hecho: boolean };
+
 export type DetalleCajon = {
   forma: FormaCajon;
   clave: string;
+  /** El tipo que se ve (ADR-0353): decide el sello, su color y el trayecto. */
+  tipo: TipoVisual;
+  ruta: RutaCajon | null;
+  pasos: PasoCajon[];
   titulo: string; // el nombre del movimiento, sin «Entrada ·» / «Salida ·»: «Venta», «Traslado recibido»
   /** «Hoy, a las 10:59» · «Lunes 28 de septiembre, a las 10:59». */
   cuando: string;
@@ -251,6 +268,87 @@ function masInformacion(op: OperacionMovimiento, ctx: ContextoCajon): ConsultarL
 }
 
 // ---------------------------------------------------------------------------
+// «Qué pasó»: tres pasos por tipo, solo con lo que el registro respalda (ADR-0353).
+// ---------------------------------------------------------------------------
+
+/** El lugar de una fila para decir «en el piso», «en el almacén», o el nombre de otra sububicación; «la tienda» si no trae. */
+function enLugar(m: Pick<Movimiento, "sububicacion">): string {
+  return lugarEnFrase(m) ?? "la tienda";
+}
+
+/** «del piso», «del almacén», «de la tienda», «de Cuarentena»: el lugar con su contracción («de el» no existe en castellano). */
+function delLugar(m: Pick<Movimiento, "sububicacion">): string {
+  const l = enLugar(m);
+  return l.startsWith("el ") ? `del ${l.slice(3)}` : `de ${l}`;
+}
+
+/** «al piso», «al almacén», «a la tienda». */
+function alLugar(m: Pick<Movimiento, "sububicacion">): string {
+  const l = enLugar(m);
+  return l.startsWith("el ") ? `al ${l.slice(3)}` : `a ${l}`;
+}
+
+/** Los pasos de «Qué pasó» de una operación. Cada texto sale de un dato de la fila (el lugar, el documento, lo contado, la
+ *  diferencia del cambio, el estado del traslado); si el dato no llega, ese paso se omite o se dice más corto — nunca se
+ *  inventa («revisada y aprobada» no está en el registro). Un tipo sin pasos propios (apartado, dañado…) no los muestra. */
+export function pasosDeOperacion(op: OperacionMovimiento): PasoCajon[] {
+  const primera = op.filas[0];
+  const tipo = tipoDeOperacion(op.filas);
+  const r = resumirOperacion(op);
+  const u = op.filas.reduce((s, m) => s + Math.abs(m.cantidad), 0);
+  const prendas = cuantasPrendas(u);
+  const hecho = (texto: string): PasoCajon => ({ texto, hecho: true });
+  switch (tipo) {
+    case "venta": {
+      const doc = primera.venta?.comprobante ? ` · ${textoComprobante(primera.venta.comprobante)}` : "";
+      return [hecho(`Se cobró en caja${doc}`), hecho(`Salió ${delLugar(primera)}: ${prendas}`), hecho("Se entregó al cliente")];
+    }
+    case "colgada":
+      return [hecho("Estaban en el almacén"), hecho(`Se colgaron en el piso: ${prendas}`), hecho("Ya se pueden vender desde el piso")];
+    case "guardada":
+      return [hecho("Estaban en el piso"), hecho(`Se guardaron en el almacén: ${prendas}`), hecho("Siguen en la tienda, ya no a la vista")];
+    case "llegada": {
+      // De dónde vinieron lo dice el proceso: sin ese dato (un stock inicial, una carga) no se inventa un origen.
+      const m = primera.motivo;
+      const proveedor = primera.lote?.proveedor;
+      if (m === "traslado_anulado") return [hecho("Se anuló el envío"), hecho(`Volvieron a la tienda: ${prendas}`), hecho(`Quedaron en ${enLugar(primera)}`)];
+      const primero =
+        m === "recepcion" ? `Llegaron ${proveedor ? `de ${proveedor}` : "de un proveedor"}`
+        : m === "produccion" ? "Salieron de Producción"
+        : m === "traslado_entrada" ? `Salieron de ${r.origen}`
+        : m === "carga_inicial" ? "Ya estaban en la tienda al pasarla al sistema"
+        : null;
+      return [...(primero ? [hecho(primero)] : []), hecho(`Se registraron en la tienda: ${prendas}`), hecho(`Quedaron en ${enLugar(primera)}`)];
+    }
+    case "traslado": {
+      const hacia = r.destino ?? "otra sede";
+      const enCamino = primera.transferencia?.estado === "en_transito";
+      return [hecho(`Salieron de ${r.origen}`), hecho(`Se enviaron a ${hacia}: ${prendas}`), { texto: enCamino ? `Falta que ${hacia} las cuente` : `${hacia} ya las contó`, hecho: !enCamino }];
+    }
+    case "devolucion": {
+      const anulada = primera.motivo === "anulacion_venta";
+      return [hecho(anulada ? "Se anuló la venta" : "Un cliente devolvió la prenda"), hecho(`Volvieron ${alLugar(primera)}: ${prendas}`), hecho("Otra vez a la venta")];
+    }
+    case "cambio": {
+      const dif = primera.cambio?.diferencia ?? null;
+      return [hecho(`El cliente devolvió ${cuantasPrendas(r.entran)}`), hecho(`Se llevó ${cuantasPrendas(r.salen)}`), hecho(dif !== null && dif !== 0 ? `Diferencia: S/ ${dif.toFixed(2)}` : "Sin diferencia de precio")];
+    }
+    case "conteo": {
+      const c = primera.conteo;
+      return [
+        hecho(`Se contó ${enLugar(primera)}`),
+        hecho(c && c.sistema !== null && c.contado !== null ? `Se contó ${c.contado} y el sistema decía ${c.sistema}` : "Lo contado y el sistema no coincidían"),
+        hecho("Se corrigió el stock"),
+      ];
+    }
+    case "ajuste":
+      return [hecho("Había una diferencia entre el sistema y lo que hay"), hecho(`Se corrigió a mano en ${enLugar(primera)}`), hecho(primera.nota ? "Quedó con su nota, sin documento" : "Quedó sin documento ni nota")];
+    default:
+      return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
 // El cajón de una operación.
 // ---------------------------------------------------------------------------
 
@@ -263,6 +361,9 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
   const base = {
     forma,
     clave: op.clave,
+    tipo: tipoDeOperacion(op.filas),
+    ruta: { origen: r.origen, destino: r.destino, motivo: primera.motivo },
+    pasos: pasosDeOperacion(op),
     cuando: cuandoDe(op, ctx),
     donde: dondeDe(op.filas),
     quien: quienes(op.filas),
@@ -334,7 +435,7 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
   };
 }
 
-/** Qué dibuja el cajón para una operación: una interna (bajada, retiro) se lee con el cajón de las bajadas; cualquier
+/** Qué dibuja el cajón para una operación: una interna (colgada, guardada) se lee con el cajón de las bajadas; cualquier
  *  otra, con el suyo. */
 export function vistaDeOperacion(op: OperacionMovimiento, ctx: ContextoCajon): VistaCajon {
   return formaDeOperacion(op) === "interno"
@@ -343,8 +444,8 @@ export function vistaDeOperacion(op: OperacionMovimiento, ctx: ContextoCajon): V
 }
 
 // ---------------------------------------------------------------------------
-// El cajón de «Bajadas al piso» del día: la fila plegada de la lista (`plegarBajadas`) ya no se despliega hacia abajo,
-// abre este cajón. También es el de UN movimiento interno suelto (una bajada o un retiro). Es de CONSULTA como los
+// El cajón de las «Colgadas en piso» del día: la fila plegada de la lista (`plegarBajadas`) ya no se despliega hacia abajo,
+// abre este cajón. También es el de UN movimiento interno suelto (una colgada o una guardada). Es de CONSULTA como los
 // demás y se lee de corrido, sin saber de stock: qué pasó (una frase), cuándo, quién, y la lista de prendas.
 // ---------------------------------------------------------------------------
 
@@ -364,7 +465,10 @@ export type FilaBajada = {
 
 export type DetalleBajadas = {
   clave: string;
-  titulo: string; // «Bajadas al piso» · «Bajada al piso» · «Retiro del piso» · «Movido dentro de la sede»: el nombre de la fila
+  tipo: TipoVisual;
+  ruta: RutaCajon | null;
+  pasos: PasoCajon[];
+  titulo: string; // «Colgadas en piso» · «Colgada en piso» · «Guardada en almacén» · «Movido dentro de la sede»: el nombre de la fila
   /** «Hoy, de 10:04 a 11:29» · «Ayer, a las 18:35». */
   cuando: string;
   /** El número grande y la frase que lo sigue: «10» + «prendas pasaron del almacén al piso de venta». */
@@ -386,21 +490,27 @@ export function construirDetalleBajadas(clave: string, operaciones: readonly Ope
   const filas = operaciones.flatMap((op) => op.filas.map((m) => ({ op, m })));
   const etiquetas = new Set(filas.map(({ m }) => etiquetaConDireccion(m)));
   const sentido = etiquetas.size === 1 ? [...etiquetas][0] : null;
-  const bajada = sentido === "Bajada al piso";
-  const retiro = sentido === "Retiro del piso";
+  const colgada = sentido === ETIQUETA_COLGADA;
+  const guardada = sentido === ETIQUETA_GUARDADA;
   const dia = etiquetaDia(operaciones[0].fecha, ctx.hoyLima);
   const horas = new Set(operaciones.map((op) => op.hora));
   const una = r.unidades === 1;
+  const primeraFila = operaciones[0].filas[0];
+  const pasos = operaciones.length === 1 ? pasosDeOperacion(operaciones[0]) : [];
   return {
     clave,
-    // Una sola operación se llama por su nombre en singular («Bajada al piso»); varias, como la fila plegada.
+    tipo: tipoDeOperacion(operaciones[0].filas),
+    // El trayecto solo si todas van del mismo lugar al mismo lugar (colgadas o guardadas); mezcladas no tienen UNO.
+    ruta: colgada || guardada ? { origen: partesOrigenDestino(primeraFila).origen, destino: partesOrigenDestino(primeraFila).destino, motivo: primeraFila.motivo } : null,
+    pasos,
+    // Una sola operación se llama por su nombre en singular («Colgada en piso»); varias, como la fila plegada.
     titulo: operaciones.length === 1 ? etiquetaMovimiento(operaciones[0].filas[0]) : r.etiqueta,
     cuando: r.desde === r.hasta ? `${dia}, a las ${r.hasta}` : `${dia}, de ${r.desde} a ${r.hasta}`,
     cifra: `${r.unidades}`,
-    frase: bajada
-      ? `${una ? "prenda pasó" : "prendas pasaron"} del almacén al piso de venta`
-      : retiro
-        ? `${una ? "prenda volvió" : "prendas volvieron"} del piso al almacén`
+    frase: colgada
+      ? `${una ? "prenda se colgó" : "prendas se colgaron"} en el piso, desde el almacén`
+      : guardada
+        ? `${una ? "prenda se guardó" : "prendas se guardaron"} en el almacén, desde el piso`
         : `${una ? "prenda cambió" : "prendas cambiaron"} de lugar dentro de la tienda`,
     quien: quienes(filas.map(({ m }) => m)),
     nota: "El stock total de la tienda no cambia: solo cambiaron de lugar.",
@@ -412,7 +522,7 @@ export function construirDetalleBajadas(clave: string, operaciones: readonly Ope
       variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
       fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
       cantidad: cuantasPrendas(Math.abs(m.cantidad)),
-      sentido: bajada || retiro ? null : `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`,
+      sentido: colgada || guardada ? null : `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`,
     })),
   };
 }

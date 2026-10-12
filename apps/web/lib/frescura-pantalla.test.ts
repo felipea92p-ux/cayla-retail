@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FILTROS_ESTADO,
-  FRASE_ENCABEZADO,
   FRASE_SIN_ELLA,
   NOMBRE_TRAMO,
+  llevaTexto,
   SIN_FILTROS,
   TONO_TRAMO,
   cifrasVista,
@@ -14,13 +14,14 @@ import {
   detalleVista,
   diasDe,
   enLaTabla,
+  TRAMOS_BARRA,
   estadoVista,
   fechaCorta,
   filaVista,
   filtrosDeUrl,
+  fraseEncabezado,
   grupoVista,
   hayFiltros,
-  muchasSinTemporada,
   nombreMes,
   pasaEstado,
   pasaFiltros,
@@ -35,6 +36,18 @@ import {
   textoRegistro,
   textoSugerencia,
   trozosRicos,
+  vistaDeEntrada,
+  accionDeFila,
+  textoRespaldoCayla,
+  textoSinTemporada,
+  segmentosDe,
+  tableroVista,
+  tramoBarraDe,
+  varaTablero,
+  mayoriaAproximada,
+  esAproximada,
+  resumenPie,
+  textoConsecuenciaFila,
   type AccesoFrescura,
   type ContextoFrescura,
   type NombresDeTemporadas,
@@ -50,6 +63,7 @@ import {
   type FrescuraSede,
   type VaraCategoria,
 } from "./frescura-reglas";
+import { pisoPorFamilia, respuestaDelPiso } from "./frescura-piso";
 
 // Frescura del piso, paso 4 (ADR-0208): lo que DICE la pantalla. Las reglas (qué estado tiene cada prenda) las prueban
 // `frescura-reglas.test.ts` y `frescura-contrato.test.ts`; aquí se prueba que la pantalla diga lo que Felipe eligió en la
@@ -64,6 +78,8 @@ const TODO: AccesoFrescura = { existencias: true, historial: true, traslados: tr
 function vara(categoriaId: string, p: Partial<VaraCategoria> = {}): VaraCategoria {
   return {
     categoriaId,
+    respaldo: null,
+    delMes: null,
     categoriaNombre: "Blusas",
     ventanaDias: 60,
     cortes: { p50: 18 * DIA, p75: 34 * DIA, p90: 52 * DIA },
@@ -122,14 +138,16 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     categoriaId: "blu",
     categoriaNombre: "Blusas",
     tallas: [
-      { varianteId: "v-s", talla: "S", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0 },
-      { varianteId: "v-m", talla: "M", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0 },
+      { varianteId: "v-s", talla: "S", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [{ segundos: 61 * DIA, unidades: 1, edadDesconocida: false }] },
+      { varianteId: "v-m", talla: "M", pisoHoy: 1, almacenHoy: 2, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [{ segundos: 61 * DIA, unidades: 1, edadDesconocida: false }] },
     ],
     pisoHoy: 2,
     almacenHoy: 4,
     apartadasHoy: 0,
     apartadasPisoHoy: 0,
     reloj: { segundos: 61 * DIA, alMenos: false },
+    // Sin decir otra cosa, lo que cuelga lleva lo mismo que su modelo (una sola tanda, sin reponer).
+    relojUnidad: p.relojUnidad ?? p.reloj ?? { segundos: 61 * DIA, alMenos: false },
     primeraExhibicion: "2026-07-29T15:00:00.000Z",
     ultimaLlegada: "2026-07-24T15:00:00.000Z",
     ultimaLlegadaCayla: "2026-07-24T15:00:00.000Z",
@@ -140,6 +158,8 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     rapidez: { indice: 23, vendidas: 1, esperadas: 4.3, referencia: 36 },
     ventasRecientes: 0,
     categoriaSinElla: { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 36 },
+    juzgadaContra: "sede",
+    varaDelMes: false,
     estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias: ["cambiar_lugar", "trasladar"] },
     // Quieta y sin nada anotado: «Por decidir» (paso 4b: el campo lo decide `aplicarDecisiones`).
     porDecidir: true,
@@ -158,7 +178,13 @@ const CTX_LIDER = { ...CTX_REAL, cayla: new Map(SEDE.categorias.map((c) => [c.ca
 
 /** Todo lo que la pantalla puede escribir de la sede real: filas, cabeceras y hojas de detalle. */
 function todoElTexto(c: ContextoFrescura): string {
-  const partes: string[] = [FRASE_ENCABEZADO, FRASE_SIN_ELLA];
+  const piso = pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0] ?? null;
+  const partes: string[] = [
+    fraseEncabezado(null),
+    fraseEncabezado(respuestaDelPiso(piso, { puedeHablar: true, aviso: "" })),
+    fraseEncabezado(respuestaDelPiso(piso, { puedeHablar: false, aviso: "" })),
+    FRASE_SIN_ELLA,
+  ];
   for (const p of SEDE.prendas) {
     partes.push(JSON.stringify(filaVista(p, c)), JSON.stringify(detalleVista(p, c)));
   }
@@ -171,8 +197,8 @@ function todoElTexto(c: ContextoFrescura): string {
 }
 
 describe("colores A (Felipe, 2026-09-28): ninguna fila en rojo", () => {
-  it("Nueva verde, Vigente neutro, Envejecida ámbar, Crítica contorno de tinta", () => {
-    expect(TONO_TRAMO).toEqual({ nueva: "verde", vigente: "neutro", envejecida: "ambar", critica: "tinta" });
+  it("Fresca verde, Vigente neutro, Envejeciendo ámbar (Envejecida y Crítica son el mismo estado desde act. 2026-10-10 (b))", () => {
+    expect(TONO_TRAMO).toEqual({ nueva: "verde", vigente: "neutro", envejecida: "ambar", critica: "ambar" });
   });
 
   it("en la sede real, ningún estado de fila, chip de rapidez ni de nivel es rojo", () => {
@@ -182,26 +208,26 @@ describe("colores A (Felipe, 2026-09-28): ninguna fila en rojo", () => {
     }
   });
 
-  it("la Crítica es `tinta` también cuando es «al menos» (y no lleva «quizá más»: no hay nada después)", () => {
+  it("la Crítica es «Envejeciendo», en ámbar, también cuando es «al menos» (y no lleva nada debajo: no hay nada después)", () => {
     const e = estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: true } }));
-    expect(e).toMatchObject({ texto: "Crítica", tono: "tinta" });
-    expect(e.debajo).not.toContain("quizá más");
+    expect(e).toMatchObject({ texto: "Envejeciendo", tono: "ambar" });
+    expect(e.debajo).toEqual([]);
   });
 
-  it("«quizá más» y «con pocos datos» (las demás sin ella vendieron menos de 10) van debajo del chip", () => {
+  it("«aproximado» (las demás sin ella vendieron menos de 10) va debajo del chip; el «o más» lo dice la línea de días, no el chip", () => {
     const pocas = { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 7 };
     const e = estadoVista(prenda({ categoriaSinElla: pocas, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: true } }));
-    expect(e).toMatchObject({ texto: "Vigente", tono: "neutro", debajo: ["quizá más", "con pocos datos"] });
+    expect(e).toMatchObject({ texto: "Vigente", tono: "neutro", debajo: ["aproximado"] });
   });
 
   it("los estados especiales dicen su porqué (frases C) en pizarra, la que no cuadra apagada y con ícono, la apartada en neutro", () => {
-    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_ventas_sede" } }))).toMatchObject({ texto: "Aún no hay ventas que sirvan de medida", tono: "pizarra" });
-    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_vara" } }))).toMatchObject({ texto: "Todavía no se sabe cuánto tardan", tono: "pizarra" });
-    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_edad_conocida" } }))).toMatchObject({ texto: "Parece nueva, pero no se sabe cuándo llegó", tono: "pizarra" });
+    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_ventas_sede" } }))).toMatchObject({ texto: "Aún no se sabe", tono: "pizarra" });
+    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_vara" } }))).toMatchObject({ texto: "Aún no se sabe", tono: "pizarra" });
+    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_edad_conocida" } }))).toMatchObject({ texto: "No se sabe cuándo llegó", tono: "pizarra" });
     expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: true } }))).toMatchObject({ texto: "Clásico, espera su estación", tono: "pizarra" });
-    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "dudosa" } }))).toMatchObject({ texto: "Sus números no cuadran", tono: "apagado", icono: true });
+    expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "dudosa" } }))).toMatchObject({ texto: "Su stock no cuadra", tono: "apagado", icono: true });
     const apartada = prenda({ pisoHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } });
-    expect(estadoVista(apartada)).toMatchObject({ texto: "Apartada para clientes", tono: "neutro", previo: "iba en Vigente · 3 apartadas" });
+    expect(estadoVista(apartada)).toMatchObject({ texto: "Apartada para clientes", tono: "neutro", previo: "iba como «Vigente» · 3 apartadas" });
   });
 });
 
@@ -250,13 +276,13 @@ describe("dónde está cada prenda: la tabla es lo colgado (o apartado desde el 
     const delAlmacen = prenda({ pisoHoy: 0, almacenHoy: 2, apartadasHoy: 1, apartadasPisoHoy: 0, estado: iba });
     expect(presenciaDe(delAlmacen)).toBe("guardada");
     expect(enLaTabla(delAlmacen)).toBe(false);
-    expect(pieVista([delAlmacen]).guardadas).toEqual(["Blusa Wayra Negro (3, 1 apartada), iba en Vigente"]);
+    expect(pieVista([delAlmacen]).guardadas).toEqual(["Blusa Wayra Negro (3, 1 apartada), iba como «Vigente»"]);
     // Sin nada libre en el almacén y 1 apartada ahí: guardada, no agotada.
     expect(presenciaDe(prenda({ pisoHoy: 0, almacenHoy: 0, apartadasHoy: 1, apartadasPisoHoy: 0 }))).toBe("guardada");
     // 1 apartada del piso y 2 libres en el almacén: apartada, y lo que se dice es lo del PISO (1), no el total.
     const delPiso = prenda({ pisoHoy: 0, almacenHoy: 2, apartadasHoy: 3, apartadasPisoHoy: 1, estado: iba });
     expect(presenciaDe(delPiso)).toBe("apartada");
-    expect(estadoVista(delPiso).previo).toBe("iba en Vigente · 1 apartada");
+    expect(estadoVista(delPiso).previo).toBe("iba como «Vigente» · 1 apartada");
     expect(detalleVista(delPiso, ctx()).porque).toContain("está apartado para clientes (1)");
   });
 
@@ -270,31 +296,60 @@ describe("dónde está cada prenda: la tabla es lo colgado (o apartado desde el 
   it("el pie dice en qué iba la guardada y cuántas se agotaron", () => {
     const guardada = prenda({ pisoHoy: 0, almacenHoy: 4, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false } });
     const agotada = prenda({ clave: "x|y", pisoHoy: 0, almacenHoy: 0 });
-    expect(pieVista([guardada, agotada])).toEqual({ guardadas: ["Blusa Wayra Negro (4), iba en Crítica"], nuncaColgadas: [], agotadas: 1 });
+    expect(pieVista([guardada, agotada])).toEqual({ guardadas: ["Blusa Wayra Negro (4), iba como «Envejeciendo»"], nuncaColgadas: [], agotadas: 1 });
   });
 
-  it("sin temporada: el aviso único sale solo con MÁS de la mitad sin temporada", () => {
+  it("sin temporada: UNA línea en «¿Cómo se lee esto?» con cuántas son (act. 2026-10-07; antes un cartel y un chip por fila); null si todas la tienen", () => {
     const sin = (n: number, total: number) =>
       Array.from({ length: total }, (_, i) => prenda({ clave: `p${i}`, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "nueva", alMenos: false, sinTemporada: i < n } }));
-    expect(muchasSinTemporada(sin(2, 4))).toBe(false);
-    expect(muchasSinTemporada(sin(3, 4))).toBe(true);
-    expect(muchasSinTemporada([])).toBe(false);
+    expect(textoSinTemporada(sin(3, 4))).toBe("3 de 4 prendas no tienen temporada: se miden igual, pero nunca van a avisar que pasó su estación.");
+    expect(textoSinTemporada(sin(1, 1))).toBe("1 de 1 prenda no tiene temporada: se miden igual, pero nunca van a avisar que pasó su estación.");
+    // El sujeto es «1», no «4 prendas».
+    expect(textoSinTemporada(sin(1, 4))).toBe("1 de 4 prendas no tiene temporada: se miden igual, pero nunca van a avisar que pasó su estación.");
+    expect(textoSinTemporada(sin(0, 4))).toBeNull();
+    expect(textoSinTemporada([])).toBeNull();
+  });
+
+  it("la vara de CAYLA en «¿Cómo se lee esto?»: de cuándo es, o por qué no hay", () => {
+    expect(textoRespaldoCayla({ calculadaEn: "2026-10-08T08:20:00Z", fallo: null })).toBe(
+      "La vara de CAYLA es del 8 oct: se calcula cada madrugada con las tres tiendas juntas y respalda a las categorías que aquí no llegan a 10 ventas.",
+    );
+    expect(textoRespaldoCayla({ calculadaEn: null, fallo: null })).toBe("Todavía no hay una vara de CAYLA calculada: cada categoría se juzga con lo vendido en esta tienda.");
+    expect(textoRespaldoCayla({ calculadaEn: null, fallo: "No se pudo leer la vara de CAYLA: se juzga contra la tienda." })).toBe("No se pudo leer la vara de CAYLA: se juzga contra la tienda.");
+  });
+
+  it("por categoría: si se juzga contra CAYLA, y si no, por qué", () => {
+    const base = vara("blu");
+    const respaldo = { ...base, respaldo: undefined, ventanaDias: 120, vendidas: 30, unidades: 40, nivel: "solido" as const, calculadaEn: AHORA, enUso: true };
+    const con = (v: Partial<VaraCategoria>) => grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", v)]]) })).respaldo;
+    expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo })).toBe("Se juzga contra lo que vende CAYLA: 30 ventas de los últimos 120 días en las tres tiendas; aquí, 3 ventas.");
+    expect(con({ vendidas: 0, nivel: null, respaldo })).toBe("Se juzga contra lo que vende CAYLA: 30 ventas de los últimos 120 días en las tres tiendas; aquí, ninguna venta todavía.");
+    expect(con({ vendidas: 12, nivel: "aceptable", respaldo: { ...respaldo, enUso: false } })).toBe("Aquí ya hay 12 ventas: se juzga sola; la vara de CAYLA (30 ventas) queda de apoyo.");
+    expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo: { ...respaldo, vendidas: 5, nivel: "pocos_datos", enUso: false } })).toBe("La vara de CAYLA tampoco alcanza (5 ventas): se juzga con lo de aquí, que es aproximado.");
+    // CAYLA alcanza y aquí no, pero nada se juzgó contra ella (puros clásicos, o prendas que no cuadran).
+    expect(con({ vendidas: 0, nivel: null, respaldo: { ...respaldo, enUso: false } })).toBe("Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (30 ventas) queda de apoyo.");
+    expect(con({ respaldo: null })).toBeNull();
   });
 });
 
 describe("la rapidez: UNA escala para la fila y el detalle, con el corte en 100", () => {
-  const conIndice = (indice: number, p: Partial<FrescuraPrenda> = {}) => prenda({ rapidez: { indice, vendidas: 5, esperadas: 4.8, referencia: 32 }, ventasRecientes: 2, ...p });
+  // Las ventas coinciden con el índice: 40 esperadas, y vendidas = índice × 40 ÷ 100.
+  const conIndice = (indice: number, p: Partial<FrescuraPrenda> = {}) =>
+    prenda({ rapidez: { indice, vendidas: (indice * 40) / 100, esperadas: 40, referencia: 32 }, ventasRecientes: 2, ...p });
   it.each([
     [59, "muy_lenta", "Mucho más lenta que las demás"],
     [60, "lenta", "Más lenta que las demás"],
-    [99, "lenta", "Más lenta que las demás"],
+    [75, "lenta", "Más lenta que las demás"],
+    // 99 de cada 100 con 40 esperadas es estar a la par: la diferencia puede ser azar (act. 2026-10-10 (b)), no «más lenta».
+    [99, "poca_evidencia", "Todavía no alcanza para decir si es lenta"],
     [100, "ritmo", "Como las demás"],
     [119, "ritmo", "Como las demás"],
     [120, "rapida", "Más rápida que las demás"],
   ])("índice %i → %s («%s»)", (indice, clave, texto) => {
     const p = conIndice(indice);
     expect(claveRapidez(p)).toBe(clave);
-    expect(rapidezVista(p)).toMatchObject({ texto, detalle: "vendió 5, se esperaban 4.8" });
+    expect(rapidezVista(p)).toMatchObject({ texto });
+    expect(rapidezVista(p).detalle).toContain("se esperaban 40");
   });
 
   it("con 100 o más y 30 días en el piso sin vender, dejó de venderse (la definición de estaQuieta)", () => {
@@ -321,6 +376,19 @@ describe("la rapidez: UNA escala para la fila y el detalle, con el corte en 100"
     expect(rapidezVista(conIndice(80, { rapidez: { indice: 80, vendidas: 2, esperadas: 2.5, referencia: 12 } })).nivel).toBe("aceptable");
     expect(rapidezVista(conIndice(80, { rapidez: { indice: 80, vendidas: 2, esperadas: 2.5, referencia: 25 } })).nivel).toBe("solido");
   });
+
+  it("con poca evidencia el índice no decide (act. 2026-10-10 (b)): ni la fila ni la hoja dicen «más lenta», y «revisa sus ventas» no se contradice", () => {
+    // El caso de la captura de TRU: 0 vendidas con 1 esperada, 4 días colgada.
+    const poca = conIndice(0, { rapidez: { indice: 0, vendidas: 0, esperadas: 1, referencia: 3 }, ventasRecientes: 0, reloj: { segundos: 4 * DIA, alMenos: false } });
+    expect(claveRapidez(poca)).toBe("poca_evidencia");
+    expect(rapidezVista(poca)).toMatchObject({ texto: "Todavía no alcanza para decir si es lenta", detalle: "vendió 0, se esperaba 1" });
+    expect(detalleVista(poca, ctx()).rapidez).toContain("no se puede decir que sea lenta");
+    expect(detalleVista(poca, ctx()).rapidez).not.toContain("más lento");
+    expect(textoSugerencia("revisar_ventas", poca, ctx())).toBe("Parece lenta, pero hay pocas ventas para decirlo: mira sus ventas");
+    // Con 2 esperadas todavía no (vender 0 o 1 de 2 pasa por azar el 41 %); con 3 y ninguna vendida, sí.
+    expect(claveRapidez(conIndice(0, { rapidez: { indice: 0, vendidas: 0, esperadas: 2, referencia: 6 } }))).toBe("poca_evidencia");
+    expect(claveRapidez(conIndice(0, { rapidez: { indice: 0, vendidas: 0, esperadas: 3, referencia: 6 } }))).toBe("muy_lenta");
+  });
 });
 
 describe("frases C: cada sugerencia trae su causa", () => {
@@ -338,6 +406,21 @@ describe("frases C: cada sugerencia trae su causa", () => {
     expect(textoSugerencia("cambiar_lugar", temporada, c)).toBe("Pasó su estación: pruébala 7 días en otro lugar");
     expect(textoSugerencia("cambiar_lugar", dejo, c)).toBe("Ya no se vende: pruébala 7 días en otro lugar");
     expect(textoSugerencia("cambiar_lugar", prenda(), c)).toBe("No se mueve: pruébala 7 días en otro lugar");
+  });
+
+  it("«trasladar» dice de dónde son las ventas con que se comparó: de aquí, o de las tres tiendas si se juzgó contra CAYLA (act. 2026-10-07)", () => {
+    const traslado = (juzgadaContra: "sede" | "cayla") =>
+      detalleVista(
+        prenda({
+          juzgadaContra,
+          almacenHoy: 3,
+          rapidez: { indice: 40, vendidas: 1, esperadas: 2.5, referencia: 29 },
+          estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias: ["trasladar"] },
+        }),
+        c,
+      ).acciones[0]!.texto;
+    expect(traslado("sede")).toContain("29 ventas de las demás aquí");
+    expect(traslado("cayla")).toContain("29 ventas de las demás en las tres tiendas");
   });
 
   it("las otras cuatro, con sus datos", () => {
@@ -366,15 +449,19 @@ describe("los filtros viven en la URL", () => {
     };
     expect(leer("")).toEqual(SIN_FILTROS);
     expect(leer("estado=inventado&pordecidir=si")).toEqual(SIN_FILTROS);
-    expect(leer("cat=blu&estado=critica&pordecidir=1&q=wayra")).toEqual({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: "wayra" });
+    expect(leer("cat=blu&estado=envejeciendo&pordecidir=1&q=wayra")).toEqual({ cat: "blu", estado: "envejeciendo", porDecidir: true, decididas: false, q: "wayra", todas: false });
+    // Un enlace de antes (Envejecida y Crítica eran dos estados) cae en Envejeciendo.
+    expect(leer("estado=critica").estado).toBe("envejeciendo");
+    expect(leer("estado=envejecida").estado).toBe("envejeciendo");
     expect(consultaDe(SIN_FILTROS, null)).toBe("");
-    expect(consultaDe({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: " wayra " }, "prod-1|NEG")).toBe("cat=blu&estado=critica&pordecidir=1&q=wayra&prenda=prod-1%7CNEG");
+    expect(consultaDe({ cat: "blu", estado: "envejeciendo", porDecidir: true, decididas: false, q: " wayra ", todas: false }, "prod-1|NEG")).toBe("cat=blu&estado=envejeciendo&pordecidir=1&q=wayra&prenda=prod-1%7CNEG");
     expect(hayFiltros(SIN_FILTROS)).toBe(false);
     expect(hayFiltros({ ...SIN_FILTROS, q: "x" })).toBe(true);
   });
 
-  it("Estado: 11 opciones (con buscador, ADR-0209); las «al menos» cuentan en su edad; «Temporada» se cruza con las demás", () => {
-    expect(FILTROS_ESTADO).toHaveLength(11);
+  it("Estado: 10 opciones (con buscador, ADR-0209); las «al menos» cuentan en su edad; «Temporada» se cruza con las demás", () => {
+    expect(FILTROS_ESTADO).toHaveLength(10);
+    for (const tramo of ["envejecida", "critica"] as const) expect(pasaEstado(prenda({ estado: { ...ESTADO_BASE, tipo: "semaforo", tramo, alMenos: false } }), "envejeciendo")).toBe(true);
     const alMenos = prenda({ estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: true, temporadaPasada: true } });
     expect(pasaEstado(alMenos, "vigente")).toBe(true);
     expect(pasaEstado(alMenos, "temporada_pasada")).toBe(true);
@@ -399,15 +486,10 @@ describe("los filtros viven en la URL", () => {
 });
 
 describe("la cabecera de cada categoría", () => {
-  it("con la curva completa: la mitad, 3 de cada 4, casi todas; la escala y la base", () => {
+  it("con la curva completa: la mitad, 3 de cada 4, casi todas, y la base (sin escala propia: vive en la hoja de cada prenda)", () => {
     const g = grupoVista("blu", "Blusas", ctx());
     expect(g.comparacion).toBe("A los 18 días ya se vendió la mitad de las prendas de Blusas en Tienda Trujillo; a los 34, 3 de cada 4; a los 52, casi todas.");
-    expect(g.escala).toEqual([
-      { nombre: "Nueva", rango: "antes de 18 d" },
-      { nombre: "Vigente", rango: "18–34 d" },
-      { nombre: "Envejecida", rango: "34–52 d" },
-      { nombre: "Crítica", rango: "más de 52 d" },
-    ]);
+    expect("escala" in g).toBe(false);
     expect(g.base).toBe("con 37 ventas de los últimos 60 días");
     expect(g.cayla).toBeNull(); // quien no es líder no ve la referencia de CAYLA
   });
@@ -456,9 +538,9 @@ describe("el registro al colgar (solo el líder) y «Las N tiendas»", () => {
 });
 
 describe("la regla del detalle: dónde cae entre las demás (el único rojo de la pantalla es su zona Crítica)", () => {
-  it("cuatro zonas con su nombre, anchos que suman 100, las marcas de la mitad, 3 de 4 y 9 de 10", () => {
+  it("tres zonas con su nombre, anchos que suman 100, las marcas de la mitad, 3 de 4 y 9 de 10", () => {
     const r = reglaVista(prenda())!;
-    expect(r.zonas.map((z) => z.nombre)).toEqual(["Nueva", "Vigente", "Envejecida", "Crítica"]);
+    expect(r.zonas.map((z) => z.nombre)).toEqual(["Fresca", "Vigente", "Envejeciendo"]);
     expect(r.zonas.reduce((s, z) => s + z.ancho, 0)).toBeCloseTo(100, 6);
     expect(r.marcas.map((m) => m.abajo)).toEqual(["", "la mitad", "3 de 4", "9 de 10"]);
     expect(r.marcas.map((m) => m.arriba)).toEqual(["0", "18 d", "33 d", "51 d"]);
@@ -466,9 +548,11 @@ describe("la regla del detalle: dónde cae entre las demás (el único rojo de l
     expect(r.ella.pos).toBeGreaterThan(r.marcas[3]!.pos);
   });
 
-  it("sin el 9 de 10: la última zona es «no se sabe» (no Crítica) y la marca es lo más largo visto", () => {
+  it("sin el 9 de 10: Envejeciendo llega hasta el final (es una sola zona) y la marca es lo más largo visto; sin 3 de 4, lo que sigue no se sabe", () => {
     const r = reglaVista(prenda({ categoriaSinElla: { cortes: { p50: 22 * DIA, p75: 41 * DIA, p90: null }, tMax: 57 * DIA, vendidas: 12 }, reloj: { segundos: 63 * DIA, alMenos: true } }))!;
-    expect(r.zonas.map((z) => z.clave)).toEqual(["nueva", "vigente", "envejecida", "nada"]);
+    expect(r.zonas.map((z) => z.clave)).toEqual(["nueva", "vigente", "envejecida"]);
+    const sin75 = reglaVista(prenda({ categoriaSinElla: { cortes: { p50: 22 * DIA, p75: null, p90: null }, tMax: 57 * DIA, vendidas: 12 } }))!;
+    expect(sin75.zonas.map((z) => z.clave)).toEqual(["nueva", "vigente", "nada"]);
     expect(r.marcas.at(-1)).toMatchObject({ arriba: "57 d", abajo: "lo más largo visto" });
     expect(r.ella.texto).toBe("63 d quizá más");
   });
@@ -502,21 +586,28 @@ describe("la hoja de detalle", () => {
 
   it("el porqué de una Crítica: los días de las demás SIN ella (D5) y los días que no cuentan", () => {
     const d = detalleVista(prenda({ primeraExhibicion: "2026-07-01T15:00:00.000Z" }), ctx());
-    expect(d.porque).toContain("Lleva **61 días**: pasó los 51 en que ya se vendieron 9 de cada 10 de las demás de Tienda Trujillo.");
+    // Envejeciendo empieza en la marca de 3 de cada 4: el porqué cita esa línea y, después, la de 9 de cada 10 (Formidable 2026-10-10 (c)).
+    expect(d.porque).toContain("Lleva **61 días**: pasó los 33 en que ya se vendieron 3 de cada 4 de las demás; a los 51 ya iban 9 de cada 10.");
     expect(d.porque).toContain("De los 89 días desde que se colgó por primera vez, 28 estuvo sin nada libre en el piso");
-    expect(d.sinContarla).toBe("Sin contarla, las demás: la mitad se vende antes de 18 días, 3 de cada 4 antes de 33, 9 de cada 10 antes de 51 (la cabecera de Blusas, con todas: 18, 34, 52).");
+    expect(d.sinContarla).toBe("Sin contarla, las demás: la mitad se vende antes de 18 días, 3 de cada 4 antes de 33, 9 de cada 10 antes de 51 (contándola a ella: 18, 34, 52).");
+  });
+
+  it("«contándola a ella» sale de la MISMA vara que «sin contarla»: con la vara del mes en uso, sus números y no los de hoy (revisión adversaria)", () => {
+    const delMes = { ...vara("blu", { cortes: { p50: 9 * DIA, p75: 12 * DIA, p90: 20 * DIA } }), corte: "2026-10-01T05:00:00Z", enUso: true };
+    const d = detalleVista(prenda({ primeraExhibicion: "2026-07-01T15:00:00.000Z" }), ctx({ categorias: new Map([["blu", vara("blu", { delMes })]]) }));
+    expect(d.sinContarla).toMatch(/\(contándola a ella: 9, 12, 20\)\.$/);
   });
 
   it("«al menos»: la causa que la pantalla puede saber (llegó sin fecha, o se colgó antes de lo que mira)", () => {
     const sinFecha = detalleVista(prenda({ reloj: { segundos: 56 * DIA, alMenos: true }, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: true } }), ctx());
     expect(sinFecha.porque).toContain("Lo primero que se colgó llegó sin fecha");
-    expect(sinFecha.porque).toContain("Por eso es «Vigente quizá más» y nunca «Nueva».");
+    expect(sinFecha.porque).toContain("Por eso es «Vigente, o más» y nunca «Fresca».");
     const antes = detalleVista(
       prenda({ primeraExhibicion: "2026-04-01T15:00:00Z", reloj: { segundos: 90 * DIA, alMenos: true }, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: true } }),
       ctx(),
     );
     expect(antes.porque).toContain("Se colgó por primera vez antes del 31 may, más atrás de lo que mira esta pantalla (120 días)");
-    expect(antes.porque).toContain("Aunque lleve más, ya es Crítica.");
+    expect(antes.porque).toContain("Aunque lleve más, ya es «Envejeciendo».");
   });
 
   it("la referencia de CAYLA en los datos de apoyo, solo para el líder", () => {
@@ -611,9 +702,34 @@ describe("corrección del paso 4 · el redondeo de los días no choca en la mism
       }
     }
   });
-  it("la escala junta dos cortes que caen en el mismo día: «Vigente 18 d», nunca «18–18 d»", () => {
-    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { cortes: { p50: 17.6 * DIA, p75: 18.3 * DIA, p90: 52 * DIA } })]]) }));
-    expect(g.escala.map((e) => `${e.nombre} ${e.rango}`)).toEqual(["Nueva antes de 18 d", "Vigente 18 d", "Envejecida 18–52 d", "Crítica más de 52 d"]);
+  it("con la vara del mes en uso, la comparación es la de esa vara (la que juzgó) y dice si la categoría se puso más lenta", () => {
+    const delMes = { ...vara("blu", { cortes: { p50: 9 * DIA, p75: 12 * DIA, p90: 20 * DIA }, vendidas: 24 }), corte: "2026-10-01T05:00:00Z", enUso: true };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { cortes: { p50: 15 * DIA, p75: 24 * DIA, p90: 40 * DIA }, delMes })]]) }));
+    // La misma escala de las prendas (9 / 12 / 20), no la de hoy (15 / 24 / 40): la encargada vio dos y no supo cuál era (Formidable 2026-10-10 (c)).
+    expect(g.comparacion).toBe("A los 9 días ya se vendió la mitad de las prendas de Blusas en Tienda Trujillo; a los 12, 3 de cada 4; a los 20, casi todas.");
+    expect(g.mes).toBe("Su vara de este mes quedó fija el día 1: la mitad se vendía antes de 9 días; con lo de hoy, antes de 15 (se puso más lenta).");
+  });
+
+  it("si la juzga CAYLA, la línea del mes calla: la de CAYLA ya dice contra qué se juzga (no se contradicen; revisión adversaria)", () => {
+    const delMes = { ...vara("blu", { vendidas: 3 }), corte: "2026-10-01T05:00:00Z", enUso: false };
+    const respaldo = { ...vara("blu", { vendidas: 30 }), calculadaEn: "2026-10-09T08:20:00Z", enUso: true };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { vendidas: 3, delMes, respaldo })]]) }));
+    expect(g.mes).toBeNull();
+    expect(g.respaldo).toMatch(/^Se juzga contra lo que vende CAYLA/);
+    expect(g.comparacion).toMatch(/en las tres tiendas juntas/);
+  });
+
+  it("con la vara del mes, sus ventas son «de los 90 días antes del día 1», no «de los últimos»", () => {
+    const delMes = { ...vara("blu", { ventanaDias: 90, vendidas: 24 }), corte: "2026-10-01T05:00:00Z", enUso: true };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { delMes })]]) }));
+    expect(g.base).toBe("con 24 ventas de los 90 días antes del día 1");
+  });
+
+  it("si la vara del mes todavía no llega a sus ventas, lo dice una vez: aprende su ritmo", () => {
+    const delMes = { ...vara("blu", { vendidas: 4 }), corte: "2026-10-01T05:00:00Z", enUso: false };
+    const g = grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", { delMes })]]) }));
+    expect(g.mes).toBe("Todavía aprende su ritmo: este mes se juzga con lo vendido hasta hoy.");
+    expect(grupoVista("blu", "Blusas", ctx()).mes).toBeNull();
   });
 });
 
@@ -659,12 +775,12 @@ describe("corrección del paso 4 · «sin contarla» solo cuando hay algo que co
   });
 });
 
-describe("corrección del paso 4 · «con pocos datos» se mide con las demás SIN ella (D5)", () => {
+describe("corrección del paso 4 · «aproximado» se mide con las demás SIN ella (D5)", () => {
   const semaforo = { ...ESTADO_BASE, tipo: "semaforo" as const, tramo: "critica" as const, alMenos: false };
   it("categoría sólida (21) hecha de 14 ventas suyas: la comparación sale de 7, y lo dice debajo del chip, en el porqué y en la caja", () => {
     const c = ctx({ categorias: new Map([["blu", vara("blu", { vendidas: 21, nivel: "solido" })]]) });
     const p = prenda({ categoriaSinElla: { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 7 }, estado: semaforo });
-    expect(estadoVista(p).debajo).toContain("con pocos datos");
+    expect(estadoVista(p).debajo).toContain("aproximado");
     const d = detalleVista(p, c);
     expect(d.porque).toContain("La comparación sale de solo 7 ventas de las demás");
     expect(d.confianzaSinElla).toEqual({ texto: "Salen de 7 ventas de las demás en Tienda Trujillo:", nivel: "pocos_datos" });
@@ -752,7 +868,261 @@ describe("corrección del paso 4 · filtros", () => {
     expect(panel.match(/filtrosDeUrl\(/g)).toHaveLength(1);
     // Y la categoría que no está en la tabla se normaliza a «todas» contra las opciones del combo.
     expect(panel).toMatch(/opcionesCategoria\.some\(\(o\) => o\.valor === pedidos\.cat\)/);
-    // El ámbar de «por decidir» solo con algo por decidir (el contrato de ResumenSede).
-    expect(panel).toMatch(/alerta: cifras\.porDecidir > 0/);
+    // «Por decidir» NO es una cifra aparte de la cabecera: lo dice la frase de arriba y lo filtra la píldora (una sola vez, ADR-0350).
+    expect(panel).not.toMatch(/etiqueta: "por decidir"/);
   });
 });
+
+describe("Formidable (ADR-0350) · una fila, una prenda, una frase", () => {
+  const sem = (tramo: "nueva" | "vigente" | "envejecida" | "critica", alMenos = false) => ({ ...ESTADO_BASE, tipo: "semaforo" as const, tramo, alMenos });
+
+  it("los estados se llaman con las palabras de Felipe, en la fila, el filtro y la escala (una sola lista; act. 2026-10-10 (b))", () => {
+    expect(NOMBRE_TRAMO).toEqual({ nueva: "Fresca", vigente: "Vigente", envejecida: "Envejeciendo", critica: "Envejeciendo" });
+    const filtros = FILTROS_ESTADO.filter((f) => ["nueva", "vigente", "envejeciendo"].includes(f.valor)).map((f) => f.texto);
+    expect(filtros).toEqual(["Fresca", "Vigente", "Envejeciendo"]);
+    for (const tramo of ["nueva", "vigente", "envejecida", "critica"] as const) expect(estadoVista(prenda({ estado: sem(tramo) })).texto).toBe(NOMBRE_TRAMO[tramo]);
+  });
+
+  it("la línea de días dice «Lleva N días», con «o más» cuando no se sabe desde cuándo está", () => {
+    expect(llevaTexto(prenda({ reloj: { segundos: 6 * DIA, alMenos: false } }), false)).toBe("Lleva 6 días");
+    expect(llevaTexto(prenda({ reloj: { segundos: 1 * DIA, alMenos: false } }), false)).toBe("Lleva 1 día");
+    expect(llevaTexto(prenda({ reloj: { segundos: 6 * DIA, alMenos: true } }), false)).toBe("Lleva 6 días o más");
+  });
+
+  it("la apartada dice que está en pausa y la que no cuadra no dice días (no los tiene)", () => {
+    expect(llevaTexto(prenda({ reloj: { segundos: 6 * DIA, alMenos: false } }), true)).toBe("En pausa: está apartada");
+    expect(llevaTexto(prenda({ estado: { ...ESTADO_BASE, tipo: "dudosa" } }), false)).toBeNull();
+  });
+
+  it("sin nada que hacer, la fila dice «Déjala así»; la apartada y la que no cuadra, lo suyo", () => {
+    expect(filaVista(prenda({ estado: sem("vigente") }), ctx()).nada).toBe("Déjala así");
+    expect(filaVista(prenda({ pisoHoy: 0, apartadasHoy: 2, apartadasPisoHoy: 2, estado: sem("vigente") }), ctx()).nada).toBe("Nada: tiene dueño");
+    expect(filaVista(prenda({ estado: { ...ESTADO_BASE, tipo: "dudosa" } }), ctx()).nada).toBe("Revisa su stock primero");
+  });
+});
+
+describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", () => {
+  it("la frase bajo el título es la PREGUNTA de Felipe y su respuesta de hoy (ADR-0208, act. 2026-10-10 (b))", () => {
+    expect(fraseEncabezado(null)).toBe("¿Tu piso está fresco?");
+    expect(fraseEncabezado({ pregunta: "¿Tu piso está fresco?", respuesta: "58 de cada 100 unidades colgadas están frescas.", afirma: true, tendencia: null, antes: null })).toBe(
+      "¿Tu piso está fresco? **58 de cada 100 unidades colgadas están frescas.**",
+    );
+    // Sin la puerta (la tienda no registra lo que vende), la respuesta es un «todavía no», nunca un porcentaje.
+    expect(fraseEncabezado(respuestaDelPiso(pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0] ?? null, null))).toBe(
+      "¿Tu piso está fresco? **Todavía no se puede saber.**",
+    );
+  });
+
+  it("de entrada, lo por decidir va PRIMERO; cualquier filtro o «Ver todas» suelta el resto", () => {
+    const entrada = vistaDeEntrada(SIN_FILTROS, 5);
+    expect(entrada.primeroLoDecidible).toBe(true);
+    expect(entrada.efectivos).toEqual({ ...SIN_FILTROS, porDecidir: true });
+    // Sin nada por decidir se ve todo: no hay nada que poner primero.
+    expect(vistaDeEntrada(SIN_FILTROS, 0)).toEqual({ primeroLoDecidible: false, efectivos: SIN_FILTROS });
+    // La persona pidió todas, buscó, filtró por categoría o por estado: se respeta lo que pidió.
+    for (const pedido of [{ todas: true }, { q: "blusa" }, { cat: "blu" }, { estado: "envejeciendo" as const }, { decididas: true }]) {
+      const f = { ...SIN_FILTROS, ...pedido };
+      expect(vistaDeEntrada(f, 5), JSON.stringify(pedido)).toEqual({ primeroLoDecidible: false, efectivos: f });
+    }
+  });
+
+  it("«todas» viaja en la URL: un enlace abre lo mismo, y «todas» solo no cuenta como filtro", () => {
+    const f = filtrosDeUrl((k) => (k === "todas" ? "1" : null));
+    expect(f).toEqual({ ...SIN_FILTROS, todas: true });
+    expect(consultaDe(f, null)).toBe("todas=1");
+    expect(hayFiltros(f)).toBe(false);
+    expect(filtrosDeUrl(() => null).todas).toBe(false);
+  });
+});
+
+describe("Formidable (ADR-0350) · lo aproximado se dice UNA vez cuando es la regla, y se marca cuando es la excepción", () => {
+  const pocas = { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 4 };
+  const firmes = { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 40 };
+  const conPocas = (clave: string) => prenda({ clave, categoriaSinElla: pocas, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } });
+  const conFirmes = (clave: string) => prenda({ clave, categoriaSinElla: firmes, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } });
+
+  it("una prenda es aproximada si se comparó con menos de 10 ventas, o si todavía no hay con qué comparar", () => {
+    expect(esAproximada(conPocas("a"))).toBe(true);
+    expect(esAproximada(conFirmes("a"))).toBe(false);
+    expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_ventas_sede" } }))).toBe(true);
+    expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_vara" } }))).toBe(true);
+    expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false } }))).toBe(false);
+  });
+
+  it("con MÁS de la mitad aproximada, lo aproximado es la regla (se dice una vez en la tarjeta); con la mitad o menos, la excepción", () => {
+    expect(mayoriaAproximada([conPocas("a"), conPocas("b"), conFirmes("c")])).toBe(true);
+    expect(mayoriaAproximada([conPocas("a"), conFirmes("b")])).toBe(false);
+    expect(mayoriaAproximada([conFirmes("a"), conFirmes("b")])).toBe(false);
+    expect(mayoriaAproximada([])).toBe(false);
+  });
+});
+
+describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () => {
+  const sem = (tramo: "nueva" | "vigente" | "envejecida" | "critica", quieta = false) => ({ ...ESTADO_BASE, tipo: "semaforo" as const, tramo, alMenos: false, quieta, sugerencias: [] });
+
+  /** Una prenda con `n` unidades colgadas hace `dias` días (una talla, una tanda), coherente con lo que cuenta la barra. */
+  const colgada = (n: number, dias: number, o: Partial<FrescuraPrenda>) =>
+    prenda({
+      ...o,
+      pisoHoy: n,
+      reloj: { segundos: dias * DIA, alMenos: false },
+      relojUnidad: { segundos: dias * DIA, alMenos: false },
+      tallas: [{ varianteId: `${o.clave ?? "prod-1"}-m`, talla: "M", pisoHoy: n, almacenHoy: 0, apartadasHoy: o.apartadasHoy ?? 0, apartadasPisoHoy: o.apartadasPisoHoy ?? 0, colgadas: n > 0 ? [{ segundos: dias * DIA, unidades: n, edadDesconocida: false }] : [] }],
+    });
+
+  it("una fila por categoría: unidades colgadas por tramo, prendas, por decidir y la vara; primero lo que más se queda", () => {
+    const c = ctx({ categorias: new Map([["blu", vara("blu")], ["cap", vara("cap", { categoriaNombre: "Capas", nivel: "pocos_datos", vendidas: 3 })]]) });
+    // Sus cortes sin ella: P50 18 días, P75 33, P90 51.
+    const filas = tableroVista(
+      [
+        colgada(4, 10, { categoriaId: "blu", categoriaNombre: "Blusas", estado: sem("nueva"), porDecidir: false }),
+        colgada(2, 60, { clave: "b2", categoriaId: "blu", categoriaNombre: "Blusas", estado: sem("critica", true), porDecidir: true }),
+        // Sin nada colgado: no suma unidades ni prendas (una apartada entera sigue en la tabla, pero no en la barra).
+        colgada(0, 20, { clave: "b3", categoriaId: "blu", categoriaNombre: "Blusas", estado: sem("vigente"), porDecidir: false }),
+        // Una categoría con todo apartado (nada colgado) no tiene fila: el tablero cuenta lo que cuelga.
+        colgada(0, 20, { clave: "a1", categoriaId: "apa", categoriaNombre: "Apartadas", apartadasHoy: 1, apartadasPisoHoy: 1, estado: sem("vigente"), porDecidir: false }),
+        colgada(3, 40, { clave: "c1", categoriaId: "cap", categoriaNombre: "Capas", estado: sem("envejecida", true), porDecidir: true }),
+        colgada(1, 40, { clave: "c2", categoriaId: "cap", categoriaNombre: "Capas", estado: { ...ESTADO_BASE, tipo: "sin_vara" }, categoriaSinElla: null, porDecidir: false }),
+        colgada(2, 40, { clave: "c3", categoriaId: "cap", categoriaNombre: "Capas", estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false }, categoriaSinElla: null, porDecidir: false }),
+      ],
+      c,
+    );
+    // Capas: 3 unidades que se quedan; Blusas: 2.
+    expect(filas.map((f) => f.nombre)).toEqual(["Capas", "Blusas"]);
+    expect(filas[1]).toMatchObject({
+      categoriaId: "blu",
+      total: 6,
+      prendas: 2,
+      porDecidir: 1,
+      viejas: 2,
+      unidades: { fresca: 4, vigente: 0, envejeciendo: 2, sin_saber: 0, clasico: 0 },
+      // Vara sólida: no se dice (la regla se calla, la excepción se marca; Felipe 2026-10-09).
+      vara: null,
+    });
+    expect(filas[0]).toMatchObject({ total: 6, prendas: 3, porDecidir: 1, viejas: 3, unidades: { envejeciendo: 3, sin_saber: 1, clasico: 2 }, vara: { texto: "Pocas ventas: aproximado", tono: "ambar" } });
+    // Los segmentos de la barra: solo los tramos con unidades, en el orden de la barra y con las palabras de la tienda.
+    expect(segmentosDe(filas[1]).map((s) => [s.clave, s.valor])).toEqual([
+      ["fresca", 4],
+      ["envejeciendo", 2],
+    ]);
+    expect(segmentosDe(filas[0]).map((s) => s.nombre)).toEqual(["Envejeciendo", "Aún no se sabe", "Clásico"]);
+    expect(tableroVista([], c)).toEqual([]);
+  });
+
+  it("cuenta unidad por unidad: un modelo con una unidad vieja y dos repuestas ayer pinta 1 Envejeciendo y 2 Vigentes", () => {
+    const c = ctx();
+    const repuesto = prenda({
+      pisoHoy: 3,
+      reloj: { segundos: 70 * DIA, alMenos: false },
+      relojUnidad: { segundos: 40 * DIA, alMenos: false },
+      tallas: [{ varianteId: "v-m", talla: "M", pisoHoy: 3, almacenHoy: 0, apartadasHoy: 0, apartadasPisoHoy: 0, colgadas: [{ segundos: 40 * DIA, unidades: 1, edadDesconocida: false }, { segundos: 1 * DIA, unidades: 2, edadDesconocida: false }] }],
+      estado: sem("envejecida"),
+    });
+    expect(tableroVista([repuesto], c)[0].unidades).toMatchObject({ envejeciendo: 1, vigente: 2 });
+  });
+
+  it("con la salida real de la base, las categorías suman exactamente la barra de la tienda", () => {
+    const filas = tableroVista(SEDE.prendas.filter(enLaTabla), CTX_REAL);
+    const tienda = pisoPorFamilia(SEDE.prendas, { familiaDe: () => null, familias: [] })[0];
+    for (const t of TRAMOS_BARRA) expect(filas.reduce((s, f) => s + f.unidades[t], 0)).toBe(tienda.unidades[t]);
+    expect(filas.reduce((s, f) => s + f.total, 0)).toBe(SEDE.cifras.unidadesEnPiso);
+  });
+
+  it("la vara, solo cuando es la excepción (Felipe 2026-10-09): contra CAYLA, pocas ventas o ninguna; sólida o aceptable, nada", () => {
+    const base = vara("x");
+    const respaldo = { ...base, respaldo: undefined, vendidas: 30, unidades: 40, nivel: "solido" as const, calculadaEn: AHORA, enUso: true };
+    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo }))).toEqual({ texto: "Comparada con las 3 tiendas", tono: "pizarra" });
+    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo: { ...respaldo, enUso: false } }))).toEqual({ texto: "Pocas ventas: aproximado", tono: "ambar" });
+    expect(varaTablero(vara("x", { nivel: "solido" }))).toBeNull();
+    expect(varaTablero(vara("x", { nivel: "aceptable" }))).toBeNull();
+    // «Sin ventas aún», nunca tachado: el tablero pasa `tachado={false}` (el tono apagado tacha por defecto, y eso se lee como negación).
+    expect(varaTablero(vara("x", { nivel: null }))).toEqual({ texto: "Sin ventas aún", tono: "apagado" });
+    expect(varaTablero(undefined)).toEqual({ texto: "Sin ventas aún", tono: "apagado" });
+  });
+
+  it("la consecuencia del botón de la fila se dice antes de tocarlo, con el plazo que se va a anotar", () => {
+    expect(textoConsecuenciaFila("cambie_lugar", 7)).toBe("Cuando la hayas movido, toca el botón: la miro 7 días y te digo si sirvió.");
+    expect(textoConsecuenciaFila("hasta_agotar", 9)).toBe("Si la dejas colgada, toca el botón: no te la vuelvo a preguntar en 9 días.");
+    expect(textoConsecuenciaFila("hasta_agotar", 1)).toBe("Si la dejas colgada, toca el botón: no te la vuelvo a preguntar en 1 día.");
+    expect(textoConsecuenciaFila("rebaje", 9)).toBe("Toca el botón cuando lo hayas hecho: queda anotado a tu nombre.");
+  });
+
+  it("el pie en cifras: cuántas guardadas, cuántas nunca colgadas y cuántas agotadas, con la concordancia; sin nada, null", () => {
+    expect(resumenPie({ guardadas: ["a (1)", "b (2)"], nuncaColgadas: ["c (18)"], agotadas: 1 })).toEqual({
+      guardadas: "2 prendas guardadas en el almacén después de colgarse: no cuentan días mientras estén guardadas.",
+      nuncaColgadas: "1 prenda solo en el almacén, nunca colgada: no se mide hasta que se cuelgue.",
+      agotadas: "1 prenda se agotó en lo que mira esta pantalla: ya no está en la tienda.",
+    });
+    expect(resumenPie({ guardadas: ["a (1)"], nuncaColgadas: ["c", "d"], agotadas: 2 })).toEqual({
+      guardadas: "1 prenda guardada en el almacén después de colgarse: no cuenta días mientras esté guardada.",
+      nuncaColgadas: "2 prendas solo en el almacén, nunca colgadas: no se miden hasta que se cuelguen.",
+      agotadas: "2 prendas se agotaron en lo que mira esta pantalla: ya no están en la tienda.",
+    });
+    expect(resumenPie({ guardadas: [], nuncaColgadas: [], agotadas: 0 })).toEqual({ guardadas: null, nuncaColgadas: null, agotadas: null });
+  });
+
+  it("accionDeFila: la primera sugerencia es un botón con su verbo; anota, enlaza o abre la hoja; sin piso o con decisión vigente, nada", () => {
+    const con = (sugerencias: Sugerencia[], extra: Partial<FrescuraPrenda> = {}) =>
+      prenda({ pisoHoy: 2, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias }, ...extra });
+    const c = ctx();
+    expect(accionDeFila(con(["cambiar_lugar", "trasladar"]), c, false)).toEqual({ tipo: "anotar", verbo: "La cambié de lugar", accion: "cambie_lugar" });
+    expect(accionDeFila(con(["dejar_hasta_agotar"]), c, false)).toEqual({ tipo: "anotar", verbo: "La dejo hasta agotar", accion: "hasta_agotar" });
+    expect(accionDeFila(con(["trasladar"], { almacenHoy: 3 }), c, false)).toMatchObject({ tipo: "enlace", verbo: "Armar traslado", href: expect.stringContaining("/inventario/mover?lineas=") });
+    expect(accionDeFila(con(["retirar"]), c, false)).toMatchObject({ tipo: "enlace", verbo: "Retirar del piso", href: expect.stringContaining("/inventario?variante=") });
+    expect(accionDeFila(con(["guardar_hasta_su_estacion"]), c, false)).toMatchObject({ tipo: "enlace", verbo: "Guardar en el almacén" });
+    expect(accionDeFila(con(["revisar_ventas"]), c, false)).toMatchObject({ tipo: "enlace", verbo: "Ver sus ventas", href: expect.stringContaining("/vender/historial?q=") });
+    expect(accionDeFila(con(["sigue_vendiendo"]), c, false)).toEqual({ tipo: "hoja", verbo: "Decidir", modo: "decidir", opcion: "hasta_agotar" });
+    expect(accionDeFila(con(["rebaja_chica"]), c, false)).toEqual({ tipo: "hoja", verbo: "Decidir", modo: "decidir", opcion: "rebaje" });
+    // Sin la pantalla que lo hace, la hoja (nunca un enlace que termine en «Sin acceso»); «Ver por qué» abre el detalle, no «Ya decidí».
+    const sinNada = ctx({ acceso: { existencias: false, historial: false, traslados: false, conteos: false, atributos: false } });
+    const porque = { tipo: "hoja", verbo: "Ver por qué", modo: "detalle", opcion: null };
+    expect(accionDeFila(con(["trasladar"], { almacenHoy: 3 }), sinNada, false)).toEqual({ tipo: "hoja", verbo: "Decidir", modo: "decidir", opcion: null });
+    expect(accionDeFila(con(["retirar"]), sinNada, false)).toEqual({ tipo: "hoja", verbo: "Decidir", modo: "decidir", opcion: null });
+    expect(accionDeFila(con(["revisar_ventas"]), sinNada, false)).toEqual(porque);
+    // Sin la libreta leída (`fn_frescura_decisiones` falló) no se anota ni se abre «Ya decidí»: solo el porqué; los enlaces siguen.
+    expect(accionDeFila(con(["cambiar_lugar"]), c, false, false)).toEqual(porque);
+    expect(accionDeFila(con(["sigue_vendiendo"]), c, false, false)).toEqual(porque);
+    expect(accionDeFila(con(["trasladar"], { almacenHoy: 3 }), sinNada, false, false)).toEqual(porque);
+    expect(accionDeFila(con(["revisar_ventas"]), c, false, false)).toMatchObject({ tipo: "enlace", verbo: "Ver sus ventas" });
+    // Nada que hacer: sin sugerencias, sin nada en el piso, o con una decisión vigente (la fila ya dice qué se decidió).
+    expect(accionDeFila(con([]), c, false)).toBeNull();
+    expect(accionDeFila(con(["cambiar_lugar"], { pisoHoy: 0 }), c, false)).toBeNull();
+    expect(accionDeFila(con(["cambiar_lugar"]), c, true)).toBeNull();
+  });
+
+  it("tramoBarraDe: el semáforo manda, en las palabras de la tienda; el clásico va aparte; lo demás, «aún no se sabe»", () => {
+    expect(tramoBarraDe(prenda({ estado: sem("nueva") }))).toBe("fresca");
+    expect(tramoBarraDe(prenda({ estado: sem("vigente") }))).toBe("vigente");
+    expect(tramoBarraDe(prenda({ estado: sem("envejecida") }))).toBe("envejeciendo");
+    expect(tramoBarraDe(prenda({ estado: sem("critica") }))).toBe("envejeciendo");
+    expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: true } }))).toBe("clasico");
+    for (const tipo of ["sin_vara", "sin_ventas_sede", "sin_edad_conocida", "dudosa"] as const) {
+      expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo } }))).toBe("sin_saber");
+    }
+  });
+});
+
+describe("el reloj que decide (act. 2026-10-10 (b)): Fresca por el modelo; lo demás, por lo que cuelga", () => {
+  const repuesto = prenda({
+    reloj: { segundos: 40 * DIA, alMenos: false },
+    relojUnidad: { segundos: 2 * DIA, alMenos: false },
+    estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false },
+  });
+
+  it("la fila dice los días de lo que cuelga, no los 40 del modelo", () => {
+    expect(llevaTexto(repuesto, false)).toBe("Lleva 2 días");
+    expect(filaVista(repuesto, ctx()).dias).toBe(2);
+  });
+
+  it("el porqué lo explica: lo más viejo que cuelga, y que su modelo ya no es Fresco", () => {
+    const d = detalleVista(repuesto, ctx());
+    expect(d.porque).toContain("Lo más viejo que cuelga lleva **2 días**");
+    expect(d.porque).toContain("Su modelo lleva 40 días en el piso: ya no es Fresca");
+  });
+
+  it("una Fresca dice los días de su modelo", () => {
+    const fresca = prenda({ reloj: { segundos: 5 * DIA, alMenos: false }, relojUnidad: { segundos: 1 * DIA, alMenos: false }, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "nueva", alMenos: false } });
+    expect(llevaTexto(fresca, false)).toBe("Lleva 5 días");
+  });
+});
+

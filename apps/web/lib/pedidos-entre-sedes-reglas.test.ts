@@ -12,14 +12,12 @@ import {
   estadoVisiblePedido,
   etiquetaLinea,
   faltaEnOrigen,
-  hayPedidosQueMostrar,
   lineasParaRpc,
   llegadaIso,
   motivoCancelacion,
   motivoNoSePuedePedir,
   opcionesLlegada,
   pedidoEntreSedesDeFila,
-  separarPedidos,
   textoPrendas,
   totalPrendas,
   type PedidoEntreSedes,
@@ -103,26 +101,6 @@ describe("textos", () => {
   it("motivoCancelacion según quién cancela", () => {
     expect(motivoCancelacion("me_piden")).toBe("No la tengo");
     expect(motivoCancelacion("pedi")).toBe("Ya no la necesito");
-  });
-});
-
-describe("separarPedidos y hayPedidosQueMostrar", () => {
-  it("«Te piden» solo lo que me pidieron y no salió; «Pediste» todo lo mío", () => {
-    const lista = [
-      pedido({ grupoId: "a" }),
-      pedido({ grupoId: "b", estado: "en_camino" }),
-      pedido({ grupoId: "c", direccion: "pedi" }),
-      pedido({ grupoId: "d", direccion: "pedi", estado: "cancelado" }),
-    ];
-    const { tePiden, pediste } = separarPedidos(lista);
-    expect(tePiden.map((p) => p.grupoId)).toEqual(["a"]);
-    expect(pediste.map((p) => p.grupoId)).toEqual(["c", "d"]);
-  });
-
-  it("sin nada que mostrar, no hay tarjeta", () => {
-    expect(hayPedidosQueMostrar([])).toBe(false);
-    expect(hayPedidosQueMostrar([pedido({ estado: "recibido" })])).toBe(false);
-    expect(hayPedidosQueMostrar([pedido()])).toBe(true);
   });
 });
 

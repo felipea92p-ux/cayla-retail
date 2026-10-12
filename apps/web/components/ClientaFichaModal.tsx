@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
-import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
@@ -36,6 +36,8 @@ import {
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
+import { ShoppingBag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
@@ -380,12 +382,13 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               </div>
 
               <div className="flex items-end justify-between gap-3 border-b border-sand">
-                <TabsSubrayado
-                  etiqueta="Qué ver de este cliente"
-                  valor={vistaActual}
+                {/* Club o Actividad son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0358). La línea la pone la fila. */}
+                <Pestanas
+                  etiquetaAccesible="Qué ver de este cliente"
+                  idIndicador="ficha-cliente-vista"
+                  activa={vistaActual}
                   onCambio={(clave) => setVista(clave as Vista)}
-                  clasePestana="pb-2.5 text-sm"
-                  className="-mb-px"
+                  className="-mb-px border-b-0"
                   items={[
                     ...(conClub ? [{ clave: "club", etiqueta: "Club" }] : []),
                     { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad > 0 ? totalActividad : undefined },
@@ -476,9 +479,10 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                   )}
 
                   {totalActividad === 0 ? (
-                    <p className="rounded-xl border border-dashed border-sand px-4 py-6 text-center text-sm text-tinta/55">
+                    <Vacio tamano="chico" icono={<ShoppingBag />}>
                       Todavía no tiene compras, cambios, devoluciones ni apartados.
-                    </p>
+                    </Vacio>
+
                   ) : (
                     <>
                       <SeccionActividad titulo="Compras" total={ficha.compras.length}>

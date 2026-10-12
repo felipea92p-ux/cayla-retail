@@ -85,6 +85,7 @@ function prenda(p: Partial<FrescuraPrenda> & { clave: string }): FrescuraPrenda 
     apartadasHoy: 0,
     apartadasPisoHoy: 0,
     reloj: { segundos: 60 * DIA, alMenos: false },
+    relojUnidad: { segundos: 60 * DIA, alMenos: false },
     primeraExhibicion: lima("2026-07-01T12:00:00"),
     ultimaLlegada: lima("2026-07-01T12:00:00"),
     ultimaLlegadaCayla: lima("2026-07-01T12:00:00"),
@@ -95,6 +96,8 @@ function prenda(p: Partial<FrescuraPrenda> & { clave: string }): FrescuraPrenda 
     rapidez: null,
     ventasRecientes: 0,
     categoriaSinElla: null,
+    juzgadaContra: "sede",
+    varaDelMes: false,
     estado: ESTADO_QUIETA,
     porDecidir: ESTADO_QUIETA.quieta,
     decision: null,
@@ -115,6 +118,7 @@ function sedeCon(prendas: FrescuraPrenda[]): FrescuraSede {
     ahora: AHORA,
     categorias: [],
     prendas,
+    ritmoPorCategoria: [],
     cifras: { unidadesEnPiso: 0, edadDelPisoDias: null, edadDelPisoAlMenos: false, unidadesNuevas: 0, unidadesConTramo: 0, pctNuevas: null, porDecidir: 0, decididas: 0 },
     decisiones: { estado: "sin_lectura", aviso: "" },
   };
@@ -797,7 +801,8 @@ describe("la pantalla llama a las funciones SQL con sus nombres exactos", () => 
   const raiz = join(__dirname, "..");
   const sql = readFileSync(join(raiz, "../../supabase/migrations/20261001100100_frescura_decisiones_funciones.sql"), "utf8");
   const tipos = readFileSync(join(raiz, "../../packages/database/src/types.ts"), "utf8");
-  const componentes = ["FrescuraDecidir.tsx"].map((f) => readFileSync(join(raiz, "components/frescura", f), "utf8")).join("\n");
+  // Desde la act. 2026-10-07 la llamada vive en el hook `useAnotarDecision.ts` (lo usan la hoja y la fila); «Quitar» sigue en la hoja.
+  const componentes = ["FrescuraDecidir.tsx", "useAnotarDecision.ts"].map((f) => readFileSync(join(raiz, "components/frescura", f), "utf8")).join("\n");
 
   /** Los argumentos de la firma SQL: los obligatorios y los que tienen valor por defecto. */
   function firma(fn: string) {

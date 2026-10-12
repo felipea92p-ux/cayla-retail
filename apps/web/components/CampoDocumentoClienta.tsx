@@ -18,9 +18,18 @@ const OPCIONES_TIPO = TIPOS_DOCUMENTO_CLIENTA.map((t) => ({ valor: t.valor, text
 /** El id de la caja del número: el mismo que usa `ConsultaDocumento`, para `avisar.error(…, { enfocar })`. */
 export const ID_NUMERO_DOCUMENTO = "documento-numero";
 
-/** El combo. Quien lo usa, al cambiar de tipo, pasa el número por `ajustarNumeroAlTipo` (no lo vacía). */
-export function CampoTipoDocumento({ tipo, onTipo }: { tipo: TipoDocumentoClienta; onTipo: (tipo: TipoDocumentoClienta) => void }) {
-  return <CampoSelect etiqueta="Tipo de documento" valor={tipo} onValor={onTipo} opciones={OPCIONES_TIPO} />;
+/** El combo. Quien lo usa, al cambiar de tipo, pasa el número por `ajustarNumeroAlTipo` (no lo vacía).
+ *  `corto`: en el celular va al lado del número (no encima), y su título se acorta a «Tipo» para caber en la columna angosta. */
+export function CampoTipoDocumento({ tipo, onTipo, corto = false }: { tipo: TipoDocumentoClienta; onTipo: (tipo: TipoDocumentoClienta) => void; corto?: boolean }) {
+  const etiqueta = corto ? (
+    <>
+      <span className="sm:hidden">Tipo</span>
+      <span className="max-sm:hidden">Tipo de documento</span>
+    </>
+  ) : (
+    "Tipo de documento"
+  );
+  return <CampoSelect etiqueta={etiqueta} valor={tipo} onValor={onTipo} opciones={OPCIONES_TIPO} />;
 }
 
 /** La caja del número: solo deja tipear lo que el tipo admite y, si el número está a medias o mal, lo dice debajo. */

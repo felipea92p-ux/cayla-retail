@@ -1,23 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
   acotarCantidad,
-  columnasDeTallas,
-  coloresConAlgo,
   coloresParaMover,
   detalleDeLoMovido,
   leerCantidadTecleada,
   lineasDeMover,
   lineasDeMoverModelo,
-  sePuedeBajarTalla,
   tallasParaReponer,
-  textoBotonReponer,
   textoFilaSinAlcance,
   topeDeTalla,
-  totalAReponer,
-  totalesDeMatriz,
-  tallaDelColor,
 } from "./reponer-prenda-reglas";
-import { argumentosDeBajada, BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
+import { argumentosDeBajada } from "./bajada-reglas";
 
 // El caso de la captura de Felipe (2026-10-01): Body Bonita · Beige en TRU, con la S y la M por colgar (0 en el piso).
 const S = { varianteId: "bonita-beige-s", talla: "S", pisoDisponible: 0, almacenDisponible: 1 };
@@ -28,7 +21,7 @@ describe("tallasParaReponer: la ventana ve TODAS las tallas, no una", () => {
   it("lista la S y la M (antes solo aparecía la S) y también la que no tiene nada atrás", () => {
     const t = tallasParaReponer([S, M, L]);
     expect(t.map((x) => x.talla)).toEqual(["S", "M", "L"]);
-    expect(t.map(sePuedeBajarTalla)).toEqual([true, true, false]);
+    expect(t.map((x) => x.almacen)).toEqual([1, 2, 0]);
   });
 
   it("no inventa cifras: un nulo (tienda que no separa piso y almacén) es 0, y una talla sin nombre es «Única»", () => {
@@ -39,7 +32,7 @@ describe("tallasParaReponer: la ventana ve TODAS las tallas, no una", () => {
   it("una cifra negativa (stock y libro que no cuadran) nunca ofrece bajar", () => {
     const [t] = tallasParaReponer([{ varianteId: "x", talla: "S", pisoDisponible: -2, almacenDisponible: -1 }]);
     expect(t.piso).toBe(0);
-    expect(sePuedeBajarTalla(t)).toBe(false);
+    expect(t.almacen).toBe(0);
   });
 });
 
@@ -70,7 +63,7 @@ describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
       { varianteId: S.varianteId, cantidad: 1 },
       { varianteId: M.varianteId, cantidad: 2 },
     ]);
-    expect(totalAReponer(lineas)).toBe(3);
+    expect(lineas.reduce((n, l) => n + l.cantidad, 0)).toBe(3);
     const args = argumentosDeBajada("tru", lineas, "marca");
     expect(args.p_items).toHaveLength(2);
     expect(args.p_token).toBe("marca");
@@ -91,12 +84,6 @@ describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
 });
 
 describe("los textos", () => {
-  it("el botón dice cuánto baja; tras un corte de red pide confirmar lo mismo de nuevo", () => {
-    expect(textoBotonReponer(0, false)).toBe("Bajar al piso");
-    expect(textoBotonReponer(1, false)).toBe("Bajar 1 prenda");
-    expect(textoBotonReponer(3, false)).toBe("Bajar 3 prendas");
-    expect(textoBotonReponer(3, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
-  });
 
 
 
@@ -129,52 +116,28 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
     expect(c.nombre).toBe("Sin color");
   });
 
-  it("las columnas son las tallas de todos los colores, sin repetir y en curva", () => {
-    expect(columnasDeTallas(colores)).toEqual(["S", "M", "L", "XL"]);
-  });
 
-  it("una talla que solo tiene un color igual sale en la curva, aunque entre antes en la lista", () => {
-    const raro = coloresParaMover([
-      { referencia: "X", color: "A", colorHex: null, tallas: [fila("a-m", "M", 0, 1), fila("a-l", "L", 0, 1)] },
-      { referencia: "X", color: "B", colorHex: null, tallas: [fila("b-xs", "XS", 0, 1), fila("b-m", "M", 0, 1)] },
-    ]);
-    expect(columnasDeTallas(raro)).toEqual(["XS", "M", "L"]);
-  });
 
-  it("la celda de un color en una talla que no tiene es undefined (se dibuja vacía, no se inventa)", () => {
-    expect(tallaDelColor(colores[1], "XL")).toBeUndefined();
-    expect(tallaDelColor(colores[1], "M")?.varianteId).toBe("bl-m");
-  });
 
   it("el tope depende del rumbo: el almacén al bajar, el piso al subir", () => {
-    const m = tallaDelColor(colores[0], "M")!; // piso 1, almacén 8
+    const m = colores[0].tallas.find((t) => t.talla === "M")!; // piso 1, almacén 8
     expect(topeDeTalla(m, "bajar")).toBe(8);
     expect(topeDeTalla(m, "subir")).toBe(1);
   });
 
-  it("arranca en cero: sin elegir nada, ningún total ni ninguna línea (ADR-0231)", () => {
-    const t = totalesDeMatriz(colores, {}, "bajar");
-    expect(t.total).toBe(0);
-    expect(Object.values(t.porColor)).toEqual([0, 0, 0]);
-    expect(coloresConAlgo(colores, t)).toBe(0);
+  it("arranca en cero: sin elegir nada, ninguna línea (ADR-0231)", () => {
     expect(lineasDeMoverModelo(colores, {}, "bajar")).toEqual([]);
   });
 
-  it("suma por color, por talla y en general, y la misma cuenta manda las líneas que viajan a la base", () => {
+  it("las líneas de todos los colores viajan juntas, en el orden de la tabla", () => {
     const cantidades = { "az-s": 2, "az-m": 3, "bl-s": 2, "ne-s": 3, "ne-l": 2 };
-    const t = totalesDeMatriz(colores, cantidades, "bajar");
-    expect(t.porColor).toEqual({ [colores[0].clave]: 5, [colores[1].clave]: 2, [colores[2].clave]: 5 });
-    expect(t.porTalla).toEqual({ S: 7, M: 3, L: 2, XL: 0 });
-    expect(t.total).toBe(12);
-    expect(coloresConAlgo(colores, t)).toBe(3);
     const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
-    expect(totalAReponer(lineas)).toBe(t.total);
+    expect(lineas.map((l) => l.varianteId)).toEqual(["az-s", "az-m", "bl-s", "ne-s", "ne-l"]);
+    expect(lineas.reduce((n, l) => n + l.cantidad, 0)).toBe(12);
   });
 
-  it("lo que pasa del tope se recorta igual en los totales y en las líneas (lo que se ve es lo que se envía)", () => {
+  it("lo que pasa del tope se recorta en las líneas (lo que se ve es lo que se envía)", () => {
     const cantidades = { "az-xl": 9, "bl-m": 99 }; // az-xl: almacén 1 · bl-m: almacén 7
-    const t = totalesDeMatriz(colores, cantidades, "bajar");
-    expect(t.total).toBe(8);
     expect(lineasDeMoverModelo(colores, cantidades, "bajar")).toEqual([
       { varianteId: "az-xl", cantidad: 1 },
       { varianteId: "bl-m", cantidad: 7 },
@@ -182,8 +145,8 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
   });
 
   it("al SUBIR cuenta contra el piso: la celda que no tiene nada libre en el piso no suma", () => {
-    const t = totalesDeMatriz(colores, { "az-s": 4, "az-m": 4 }, "subir"); // az-s: piso 0 · az-m: piso 1
-    expect(t.total).toBe(1);
+    const lineas = lineasDeMoverModelo(colores, { "az-s": 4, "az-m": 4 }, "subir"); // az-s: piso 0 · az-m: piso 1
+    expect(lineas).toEqual([{ varianteId: "az-m", cantidad: 1 }]);
   });
 
   it("el aviso dice qué se movió: «S 1 · M 2» con un color, y con el nombre del color cuando son varios", () => {
@@ -194,5 +157,47 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
     ];
     expect(detalleDeLoMovido(colores, lineas)).toBe("Azul S 2, M 3 · Blanco S 2");
     expect(detalleDeLoMovido([colores[0]], lineas)).toBe("S 2 · M 3");
+  });
+});
+
+// ── La ventana de colgar dice qué falta y llena con un toque (2026-10-05) ───────────────────────────────────
+import { cantidadesDeLoQueFalta, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
+
+const POR_COLGAR = { requisito: 1, accion: "por_colgar" as const };
+const MANTENER = { requisito: 1, accion: "mantener" as const };
+const talla = (id: string, t: string, piso: number, alm: number, plan: typeof POR_COLGAR | typeof MANTENER, extra: object = {}) => ({
+  varianteId: id,
+  talla: t,
+  pisoDisponible: piso,
+  almacenDisponible: alm,
+  planPiso: plan,
+  ...extra,
+});
+const MODELO: PrendaParaReponer[] = [
+  { referencia: "Adelle", color: "Azul marino", colorHex: null, tallas: [talla("a26", "26", 0, 2, POR_COLGAR), talla("a28", "28", 0, 3, POR_COLGAR), talla("a30", "30", 2, 2, MANTENER)] },
+  { referencia: "Adelle", color: "Celeste", colorHex: null, tallas: [talla("c28", "28", 0, 0, POR_COLGAR), talla("c30", "30", 1, 4, MANTENER)] },
+];
+
+describe("lo que falta en el piso", () => {
+  it("son las tallas que el motor pide y tienen algo libre atrás: no las que ya cuelgan ni las que no tienen con qué", () => {
+    expect([...tallasQueFaltan(MODELO)].sort()).toEqual(["a26", "a28"]);
+  });
+
+  it("la frase nombra el color cuando hay varios, y es null si no falta nada", () => {
+    expect(fraseDeLoQueFalta(MODELO)).toBe("Faltan en el piso: Azul marino 26, 28.");
+    expect(fraseDeLoQueFalta([MODELO[0]])).toBe("Faltan en el piso: 26, 28.");
+    expect(fraseDeLoQueFalta([MODELO[1]])).toBeNull();
+  });
+
+  it("«Lo que falta en el piso» pone UNA de cada talla que falta", () => {
+    expect(cantidadesDeLoQueFalta(MODELO)).toEqual({ a26: 1, a28: 1 });
+  });
+
+  it("los atajos nunca pasan de lo libre: lo que arman cabe en las líneas que viajan a la base", () => {
+    const colores = coloresParaMover(MODELO);
+    for (const cantidades of [cantidadesDeLoQueFalta(MODELO)]) {
+      const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
+      expect(lineas.reduce((n, l) => n + l.cantidad, 0)).toBe(Object.values(cantidades).reduce((a, b) => a + b, 0));
+    }
   });
 });

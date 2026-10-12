@@ -4,7 +4,7 @@ import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona
 import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Receipt } from "lucide-react";
 import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
 import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
@@ -18,6 +18,7 @@ import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 import { Volver } from "@/components/ui/Volver";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -81,7 +82,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     <div className="space-y-6">
       <div className="anim-entra">
         <Volver href="/compras/proveedores" a="Proveedores" />
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div data-voz="cabecera" className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 items-start gap-4">
             <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
               {proveedor.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
@@ -120,14 +121,18 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       <section className="space-y-3">
         <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
         {!conCompras ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay comprobantes registrados de este proveedor.</p>
+          <div className="card-cayla">
+            <Vacio icono={<Receipt />} titulo="Todavía no hay comprobantes de este proveedor">
+              Cuando registres su primera factura, aquí verás cuánto le compraste, cuánto le debes y cómo le fue a su mercadería.
+            </Vacio>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 2 }} punto="neutro" etiqueta="Total facturado" valor={<CifraQueCuenta valor={m.facturado_12m} formato="soles" alMontar />}>
+            <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 2 }} punto="neutro" etiqueta="Total facturado" valor={<CifraQueCuenta valor={m.facturado_12m} formato="soles" alMontar />}>
               {plural(m.facturas_vigentes, "comprobante vigente", "comprobantes vigentes")}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta className="anim-entra" style={{ ["--i" as string]: 3 }}
+              className="anim-entra" style={{ ["--i" as string]: 3 }}
               punto={m.saldo > 0 ? "ambar" : "verde"}
               detalleTono={m.facturas_vencidas > 0 ? "text-rojo" : undefined}
               etiqueta="Saldo pendiente"
@@ -137,7 +142,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               {m.facturas_vencidas > 0 ? `Vencido: ${soles(m.monto_vencido)} (${plural(m.facturas_vencidas, "comprobante", "comprobantes")})` : "Nada vencido"}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta className="anim-entra" style={{ ["--i" as string]: 4 }}
+              className="anim-entra" style={{ ["--i" as string]: 4 }}
               punto={m.facturas_atrasadas > 0 ? "ambar" : "verde"}
               tono={m.facturas_atrasadas > 0 ? "text-ambar-profundo" : undefined}
               detalleTono={m.facturas_atrasadas > 0 ? "text-ambar-profundo" : undefined}
@@ -145,24 +150,24 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               valor={<CifraQueCuenta valor={m.facturas_atrasadas} alMontar />}
               href={m.facturas_atrasadas > 0 ? `/compras/recibir?prov=${id}` : undefined}
             >
-              {m.facturas_atrasadas > 0 ? `de ${plural(m.facturas_vigentes, "comprobante", "comprobantes")} · ver cuáles →` : "Nada atrasado"}
+              {m.facturas_atrasadas > 0 ? `de ${plural(m.facturas_vigentes, "comprobante", "comprobantes")} · ver cuáles` : "Nada atrasado"}
             </TarjetaCifra>
-            <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 5 }} punto="neutro" etiqueta="Entregado completo" valor={m.entregado_completo_pct != null ? <CifraQueCuenta valor={m.entregado_completo_pct} formato="porcentaje" alMontar /> : "—"}>
+            <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 5 }} punto="neutro" etiqueta="Entregado completo" valor={m.entregado_completo_pct != null ? <CifraQueCuenta valor={m.entregado_completo_pct} formato="porcentaje" alMontar /> : null}>
               {m.facturas_recibidas_completas} de {plural(m.facturas_vigentes, "comprobante", "comprobantes")}
               {m.facturas_recibidas_completas === 1 ? " llegó completo" : " llegaron completos"}
             </TarjetaCifra>
             {m.dias_entrega_promedio != null ? (
-              <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 6 }} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={m.dias_entrega_promedio} formato="dias" alMontar />}>
+              <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 6 }} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={m.dias_entrega_promedio} formato="dias" alMontar />}>
                 emisión → llegada · <b className="font-semibold">basado en {plural(m.dias_entrega_muestra, "comprobante", "comprobantes")}</b>
               </TarjetaCifra>
             ) : (
-              <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 7 }} vacia etiqueta="Tiempo de entrega" valor="—">
+              <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 7 }} etiqueta="Tiempo de entrega" valor={null}>
                 Aparece con la primera recepción
               </TarjetaCifra>
             )}
             {m.dias_pago_real_promedio != null ? (
               <TarjetaCifra
-                compacta className="anim-entra" style={{ ["--i" as string]: 8 }}
+                className="anim-entra" style={{ ["--i" as string]: 8 }}
                 punto={pagoDemoraMas ? "ambar" : "verde"}
                 detalleTono={pagoDemoraMas ? "text-ambar-profundo" : undefined}
                 etiqueta="Plazo de pago real"
@@ -173,7 +178,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                 {pactado != null && <PistaPlazo real={m.dias_pago_real_promedio} pactado={pactado} />}
               </TarjetaCifra>
             ) : (
-              <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 9 }} vacia etiqueta="Plazo de pago real" valor="—">
+              <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 9 }} etiqueta="Plazo de pago real" valor={null}>
                 {pactado != null ? `Pactado: ${pactado} días. ` : ""}Se calcula con 2 o más comprobantes pagados
               </TarjetaCifra>
             )}
@@ -220,33 +225,28 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {/* Dos negocios, nunca sumados: devoluciones/dañados e insumos del Taller van aparte de las prendas terminadas. */}
       <div className="grid gap-3 lg:grid-cols-2">
-        <div style={{ ["--i" as string]: 13 }} className={`anim-entra card-cayla p-5 ${devoluciones.unidades === 0 ? "border-dashed bg-transparent" : ""}`}>
-          <p className="label-cayla text-[11px] text-tinta/65">Devoluciones y dañados a este proveedor</p>
-          <p className={`font-display mt-1.5 text-[26px] leading-tight tabular-nums ${devoluciones.unidades === 0 ? "text-tinta/45" : "text-tinta"}`}>{plural(devoluciones.unidades, "unidad", "unidades")}</p>
-          <p className="mt-1 text-xs text-tinta/65">
-            {devoluciones.unidades === 0
-              ? "Se llena cuando una prenda se devuelve al proveedor desde cuarentena, con su nota de crédito."
-              : `Devueltas desde cuarentena${devoluciones.ultima ? ` · la última el ${fechaCorta(devoluciones.ultima)}` : ""}.`}
-          </p>
-        </div>
-        {insumos && (
-        <div style={{ ["--i" as string]: 14 }} className={`anim-entra card-cayla p-5 ${insumos.lotes === 0 ? "border-dashed bg-transparent" : ""}`}>
-          <p className="label-cayla text-[11px] text-tinta/65">Insumos del Taller</p>
-          {insumos.lotes === 0 ? (
-            <>
-              <p className="font-display mt-1.5 text-[26px] leading-tight text-tinta/45">Sin lotes todavía</p>
-              <p className="mt-1 text-xs text-tinta/65">Cuando se reciba tela o avíos de este proveedor aparecerán acá, separados de las prendas terminadas.</p>
-            </>
+        {/* Las dos con la pieza única de cifra (TarjetaCifra, ADR-0358): cero devoluciones es un dato; sin lotes, «sin dato». */}
+        <TarjetaCifra
+          className="anim-entra"
+          style={{ ["--i" as string]: 13 }}
+          etiqueta="Devoluciones y dañados a este proveedor"
+          valor={devoluciones.unidades.toLocaleString("es-PE")}
+          unidad={devoluciones.unidades === 1 ? "unidad" : "unidades"}
+        >
+          {devoluciones.unidades === 0
+            ? "Se llena cuando una prenda se devuelve al proveedor desde cuarentena, con su nota de crédito."
+            : `Devueltas desde cuarentena${devoluciones.ultima ? ` · la última el ${fechaCorta(devoluciones.ultima)}` : ""}.`}
+        </TarjetaCifra>
+        {insumos &&
+          (insumos.lotes === 0 ? (
+            <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 14 }} etiqueta="Insumos del Taller" valor={null}>
+              Cuando se reciba tela o avíos de este proveedor aparecerán acá, separados de las prendas terminadas.
+            </TarjetaCifra>
           ) : (
-            <>
-              <p className="font-display mt-1.5 text-[26px] leading-tight tabular-nums text-tinta">{soles(insumos.total_comprado)}</p>
-              <p className="mt-1 text-xs text-tinta/65">
-                {plural(insumos.lotes, "lote", "lotes")} · última entrega el {fechaCorta(insumos.ultima_entrega)}
-              </p>
-            </>
-          )}
-        </div>
-        )}
+            <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 14 }} etiqueta="Insumos del Taller" valor={soles(insumos.total_comprado)}>
+              {plural(insumos.lotes, "lote", "lotes")} · última entrega el {fechaCorta(insumos.ultima_entrega)}
+            </TarjetaCifra>
+          ))}
       </div>
     </div>
   );

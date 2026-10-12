@@ -62,3 +62,15 @@ dispara escribiendo en un campo, con un modificador, ni con un diálogo o «Nuev
 Con sesión de líder: botón de la cabecera o `[` pliega y expande (panel +196 px); recargar conserva el estado sin
 parpadeo; plegado, pasar el mouse por Inventario abre el cajón con la ruta activa marcada, Escape devuelve el foco;
 un colaborador ve las mismas mecánicas con menos filas; en celular el lateral y el botón no existen.
+
+## Actualización 2026-10-10 — solo se anima el lateral
+
+Al plegar el menú en el Punto de venta se notaba un tirón. Causa medida en local (1440 px, catálogo con 64 prendas):
+el `<main>` animaba su `margin-left` y la cabecera, las barras fijas y la isla del cierre de caja animaban su `left`
+durante 300 ms, así que el navegador recalculaba la pantalla entera en cada cuadro (~19 veces). En Vender, que va a
+todo el ancho y cuya grilla cambia de columnas por `@container`, eso sumaba ~70 ms de recálculo por plegado, y la
+grilla saltaba de 3 a 4 columnas a mitad del movimiento. Ahora **solo el `<aside>` anima su ancho**; el resto salta a
+su lugar en el primer cuadro y el contenido se recalcula una vez (~24 ms en la misma prueba). Por la curva de
+`--ease-cayla`, a mitad de la expansión el lateral ya va a 17 px de su borde final, así que el hueco casi no se ve.
+Archivos: `AppShell.tsx` (cabecera y `<main>`), `ui/BarraFija.tsx`, `ApartadosPanel.tsx`, `apartados/piezas.tsx`,
+`PestanasComprobantesMovil.tsx` y `estilos/recordatorio-cierre.css`. **Una barra fija nueva no anima su `left`.**

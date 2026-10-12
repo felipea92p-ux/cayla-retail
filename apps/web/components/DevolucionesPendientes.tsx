@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Clock, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Clock, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -21,6 +21,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -56,10 +58,11 @@ export function DevolucionesPendientes({
   // solo la lista, o una nota si no hay ninguna (la pestaña se ve igual, vacía o no).
   if (pendientes.length === 0) {
     return (
-      <p className="nota-cayla flex items-start gap-2.5">
-        <Check className="mt-0.5 h-4 w-4 shrink-0 text-verde" aria-hidden />
-        <span>No hay devoluciones esperando. Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.</span>
-      </p>
+      <div className="card-cayla">
+        <Vacio icono={<Check />} titulo="No hay devoluciones esperando">
+          Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.
+        </Vacio>
+      </div>
     );
   }
   return (
@@ -345,22 +348,19 @@ function PanelResolver({
           )}
 
           {revision.bloqueo && (
-            <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="alert">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="atencion" chico>
               {revision.bloqueo}
-            </p>
+            </Aviso>
           )}
           {revision.aviso && (
-            <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="status">
-              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="info" chico>
               {revision.aviso}
-            </p>
+            </Aviso>
           )}
           {error && (
-            <p className="flex items-start gap-1.5 text-sm text-rojo-profundo" role="alert">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="error" chico>
               {error}
-            </p>
+            </Aviso>
           )}
 
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
@@ -393,10 +393,9 @@ function PanelResolver({
             />
           </div>
           {error && (
-            <p className="flex items-start gap-1.5 text-sm text-rojo-profundo" role="alert">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="error" chico>
               {error}
-            </p>
+            </Aviso>
           )}
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
           <div className="flex flex-wrap items-center justify-end gap-2">
