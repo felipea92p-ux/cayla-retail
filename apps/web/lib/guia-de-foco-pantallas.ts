@@ -247,6 +247,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/FiltrosMovimientos.tsx": PENDIENTE, // 3 controles
   "components/GastosFijosYActivos.tsx": PENDIENTE, // 17 controles
   "components/GastosPanel.tsx": PENDIENTE, // 13 controles
+  "components/HistorialCierresModal.tsx": { estado: "no-aplica", motivo: "Hoja de solo lectura (Felipe 2026-10-12): los cierres de un mes como tickets, con su gráfico. Lo único que se toca es el mes (SelectorMes) y el filtro Todos / Faltó / Sobró, que cambian lo que se ve al instante; no hay nada que completar ni pasos que seguir." },
   "components/InsumoModales.tsx": PENDIENTE, // 18 controles
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
@@ -263,6 +264,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
+  "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
   "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles

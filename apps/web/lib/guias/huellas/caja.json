@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 104,
+  "total": 105,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -79,7 +79,7 @@
       "button «Imprimir»"
     ],
     "components/FilaMovimientoCaja.tsx": [
-      "button «{`Ver el detalle de la venta de ${money(e.monto)}»"
+      "button «{`Ver el detalle de ${e.titulo}»"
     ],
     "components/GastoRapidoModal.tsx": [
       "button «{frecuente ? `${nombre}»",
@@ -97,13 +97,16 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/GraficoCierresDelMes.tsx": [
+      "button «{`${titulo}»"
+    ],
     "components/HistorialCierresModal.tsx": [
       "Volver «Historial de cierres»",
       "button «Historial de cierres»",
-      "button «Todos»",
-      "button «caja.historial-con-diferencia»",
-      "button «{`Ver el detalle del cierre del ${dia}»",
-      "Link «Ver todas las sedes →»"
+      "button «Reintentar»",
+      "button «{f.valor === \"falto\" ? \"caja.historial-falto\" : undefined}»",
+      "Link «Ver todas las sedes →»",
+      "button «{`Ver el detalle del cierre del ${dia}»"
     ],
     "components/IngresoRapidoModal.tsx": [
       "button «{o.texto}»",

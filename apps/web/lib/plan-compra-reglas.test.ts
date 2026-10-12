@@ -66,6 +66,7 @@ import {
   problemasDeLaCampana,
   problemasDelBorrador,
   propuestaDeNormal,
+  avisosDelResumen,
   repartir,
   rotuloDeCampana,
   segmentosDelTope,
@@ -123,7 +124,7 @@ describe("calcular", () => {
     expect(c.objetivo).toBe(Math.ceil(cuantilTriangular(80, 120, 180, 0.6)));
     expect(c.comprar).toBe(c.objetivo - 30);
     expect(c.inversion).toBeCloseTo(c.comprar * 40);
-    expect(porQue(c)).toContain("cerca del diciembre normal");
+    expect(porQue(c)).toContain("cerca del normal");
     expect(porQue(c)).not.toMatch(/de cada 100/);
   });
   it("si sobrar no cuesta, el porqué lo dice en palabras (no «100 de cada 100»)", () => {
@@ -233,7 +234,7 @@ describe("borrador, args y lo real", () => {
     expect(estadoCampana("2026-12-15", "2026-12-01", "2026-12-31")).toBe("durante");
     expect(estadoCampana("2027-01-02", "2026-12-01", "2026-12-31")).toBe("despues");
     expect(fraseDeLoReal(140, { flojo: 80, normal: 120, bueno: 180 })).toBe("Se vendieron 140: entre el normal y el bueno.");
-    expect(fraseDeLoReal(200, { flojo: 80, normal: 120, bueno: 180 })).toBe("Se vendieron 200: más que el diciembre bueno.");
+    expect(fraseDeLoReal(200, { flojo: 80, normal: 120, bueno: 180 })).toBe("Se vendieron 200: más que el bueno.");
   });
 });
 
@@ -418,15 +419,16 @@ describe("la barra de rango", () => {
 });
 
 describe("propuestaDeNormal y siguienteSinPlan", () => {
-  it("un diciembre normal es el triple de un mes normal: con 90 días vendidos, lo mismo que se vendió en esos 90 días", () => {
-    expect(propuestaDeNormal(90)).toBe(90);
-    expect(propuestaDeNormal(38)).toBe(38);
-    expect(propuestaDeNormal(5)).toBe(5);
+  it("el normal es lo que se vende por día en 90 días, llevado a los días de ESTA campaña (no «diciembre triplica un mes»)", () => {
+    expect(propuestaDeNormal(90, 31)).toBe(31);
+    expect(propuestaDeNormal(171, 15)).toBe(29);
+    expect(propuestaDeNormal(90, 90)).toBe(90);
+    expect(propuestaDeNormal(90, 0)).toBeNull();
   });
   it("sin ventas no hay qué proponer (ni con datos raros)", () => {
-    expect(propuestaDeNormal(0)).toBeNull();
-    expect(propuestaDeNormal(-3)).toBeNull();
-    expect(propuestaDeNormal(Number.NaN)).toBeNull();
+    expect(propuestaDeNormal(0, 31)).toBeNull();
+    expect(propuestaDeNormal(-3, 31)).toBeNull();
+    expect(propuestaDeNormal(Number.NaN, 31)).toBeNull();
   });
 
   const filas = () =>
@@ -785,18 +787,18 @@ describe("Formidable y chaos, 2026-10-10: lo que la hoja dice y lo que acepta", 
       const l = lecturaDelCuantil(q);
       expect(`${l.costo} ${l.compra}`, String(q)).not.toMatch(/de cada|cuantil|%/);
     }
-    expect(lecturaDelCuantil(0.99).compra).toMatch(/diciembre bueno/);
-    expect(lecturaDelCuantil(0.3).compra).toMatch(/diciembre flojo/);
-    expect(lecturaDelCuantil(0.5).compra).toMatch(/diciembre normal/);
+    expect(lecturaDelCuantil(0.99).compra).toMatch(/el bueno/);
+    expect(lecturaDelCuantil(0.3).compra).toMatch(/el flojo/);
+    expect(lecturaDelCuantil(0.5).compra).toMatch(/el normal/);
   });
 
   it("«Lo que sobra» dice lo que produce, con el margen de CAYLA (Vestidos: 143,23 / 55,33)", () => {
     const vestidos = { precio: "143.23", costo: "55.33" };
-    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "60" })).toMatch(/^Con 60 %, .*cubrir hasta un diciembre bueno\.$/);
-    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "39" })).toMatch(/cubrir hasta un diciembre bueno/);
-    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "0" })).toMatch(/un poco por encima del diciembre normal/);
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "60" })).toMatch(/^Con 60 %, .*cubrir hasta el bueno\.$/);
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "39" })).toMatch(/cubrir hasta el bueno/);
+    expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "0" })).toMatch(/un poco por encima del normal/);
     // Margen chico y sobrar caro: hacia el flojo.
-    expect(veredictoDeLoQueSobra({ precio: "100", costo: "80", recupero: "0" })).toMatch(/diciembre flojo/);
+    expect(veredictoDeLoQueSobra({ precio: "100", costo: "80", recupero: "0" })).toMatch(/el flojo/);
     // Falta un dato o el costo no es menor que el precio: no dice nada (no adivina).
     expect(veredictoDeLoQueSobra({ ...vestidos, recupero: "" })).toBeNull();
     expect(veredictoDeLoQueSobra({ precio: "50", costo: "50", recupero: "20" })).toBeNull();
@@ -945,5 +947,18 @@ describe("la lista de campañas por año (C1)", () => {
     expect(campanasDelSelector([diciembre], "2026-12-01")[0].grupo).toBe("En curso");
     expect(campanasDelSelector([diciembre], "2026-12-31")[0].grupo).toBe("En curso");
     expect(campanasDelSelector([diciembre], "2027-01-01")[0].grupo).toBe("Terminadas");
+  });
+});
+
+describe("el número del botón «Resumen y avisos»", () => {
+  const sede = (nombre: string, alDia: boolean) => ({ nombre, alDia, falta: alDia ? "" : "piso sin cuadrar" });
+  it("cuántas tiendas no tienen su stock al día", () => {
+    expect(avisosDelResumen({ estado: "incompleto", sedes: [sede("AQP", false), sede("LIM", false), sede("TRU", true)] as never })).toBe(2);
+  });
+  it("todo al día: sin número", () => {
+    expect(avisosDelResumen({ estado: "confiable", sedes: [sede("TRU", true)] as never })).toBe(0);
+  });
+  it("si no se pudo comprobar, uno: no se dice «todo bien» por un error", () => {
+    expect(avisosDelResumen({ estado: "sin-dato", sedes: [] })).toBe(1);
   });
 });

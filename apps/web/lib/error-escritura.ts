@@ -178,6 +178,13 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
   },
   {
+    // 20261012190000_precio_cero_solo_empaque.sql (ADR-0384) — una prenda de mercadería con precio 0 en el catálogo no se vende
+    // (solo la bolsa de obsequio, de Empaque, va en S/ 0). La caja ya no la deja entrar al ticket; esto es la red si llega igual
+    // (una venta sin conexión, una pantalla vieja). El detalle es «referencia (sku)».
+    marca: "venta_sin_precio",
+    frase: (prenda) => `${prenda} no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.`,
+  },
+  {
     // 20260917100700_movimientos_respetan_restriccion_sede.sql — una etiqueta con
     // `sedes_permitidas` (ADR-0095) restringe en qué sede se puede VENDER una variante. El
     // detalle es «referencia (sku)», mismo formato que venta_precio_cambiado.
@@ -452,6 +459,18 @@ const HUELLAS: Huella[] = [
     // fn_clave_texto, aunque el texto no calce byte a byte.
     marca: "familias_nombre_unico",
     frase: "Ya existe una familia muy parecida (mayúsculas, tildes o espacios de más no cuentan como distinto).",
+  },
+  {
+    // 20261012201000_cambio_sin_precio.sql (ADR-0385) — no se cambia por una prenda sin precio: la diferencia le devolvería al
+    // cliente lo que pagó. Cambios ya lo frena antes (`validarCambio`); esto es la red. El detalle es «referencia (código)».
+    marca: "cambio_sin_precio",
+    frase: (prenda) => `${prenda} no tiene precio en el catálogo: elige otra prenda para el cambio, o pide que le pongan precio en su ficha.`,
+  },
+  {
+    // `separacion_items` exige `precio_unitario > 0` desde que existe Apartados (20260923090000): una prenda en S/ 0 no se
+    // aparta. Antes llegaba el nombre crudo del candado (ADR-0385).
+    marca: "separacion_items_precio_unitario_check",
+    frase: "Una de las prendas no tiene precio en el catálogo: quítala del apartado y pide que le pongan precio en su ficha.",
   },
 ];
 

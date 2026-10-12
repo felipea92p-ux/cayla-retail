@@ -1741,7 +1741,14 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       ancla: "plan-piso.riel-hoy",
       opcional: true,
       titulo: "El riel de hoy",
-      texto: "Cada percha dibujada es un grupo de prendas, con el color de lo que cuelga. Abajo, una ficha por grupo con cuántas tiene: tócala y el riel te muestra dónde está ese grupo.",
+      texto: "Cada percha dibujada es un grupo de prendas, con el color de lo que cuelga. Abajo, una ficha por grupo con cuántas tiene: tócala y el riel te muestra dónde está ese grupo y de qué colores es.",
+    },
+    {
+      id: "color-de-la-tienda",
+      ancla: "plan-piso.color-de-la-tienda",
+      opcional: true,
+      titulo: "El color de tu tienda",
+      texto: "De qué familias de color (neutros, tierras, rosados…) es lo que cuelga, para ver si la tienda está equilibrada. Si una familia vende mucho más o menos de lo que ocupa, lo dice: «Le falta lugar» o «Cuelga de más». Toca una familia y ves cada color.",
     },
     {
       id: "riel-propuesta",

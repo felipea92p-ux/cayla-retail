@@ -210,6 +210,24 @@ describe("los bordes de red y el fallback", () => {
 // acá se arma la frase. Si el nombre cambia en la migración y no acá, la colaboradora vuelve
 // a leer `venta_precio_cambiado` crudo en el mostrador.
 
+describe("un cambio o un apartado con una prenda sin precio (ADR-0385) se dice en palabras de tienda", () => {
+  it("cambio_sin_precio nombra la prenda y dice qué hacer", () => {
+    const salida = traducirError(
+      { message: "cambio_sin_precio", details: "Vestido Sofía (VES-0001-NEG-M)", hint: "La prenda que se lleva no tiene precio en el catálogo…", code: "P0001" },
+      "registrar el cambio"
+    );
+    expect(salida).toBe("Vestido Sofía (VES-0001-NEG-M) no tiene precio en el catálogo: elige otra prenda para el cambio, o pide que le pongan precio en su ficha.");
+  });
+
+  it("el candado de precio de un apartado ya no llega crudo", () => {
+    const salida = traducirError(
+      { message: 'new row for relation "separacion_items" violates check constraint "separacion_items_precio_unitario_check"', code: "23514" },
+      "apartar"
+    );
+    expect(salida).toBe("Una de las prendas no tiene precio en el catálogo: quítala del apartado y pide que le pongan precio en su ficha.");
+  });
+});
+
 describe("traduce los candados de la venta con el dato que trae el detalle", () => {
   it("precio cambiado: nombra la prenda y dice qué hacer", () => {
     const salida = traducirError(
@@ -217,6 +235,14 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
       "registrar la venta"
     );
     expect(salida).toBe("El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve a agregarla.");
+  });
+
+  it("sin precio (ADR-0384): nombra la prenda y dice qué hacer, no `venta_sin_precio` crudo", () => {
+    const salida = traducirError(
+      { message: "venta_sin_precio", details: "Blusa Emma (BLU-EMMA-BEI-S)", hint: "La prenda no tiene precio en el catálogo: ponle precio en su ficha antes de venderla.", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.");
   });
 
   it("variante restringida a otra sede en la venta: nombra la prenda, no el código crudo", () => {

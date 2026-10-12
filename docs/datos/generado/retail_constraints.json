@@ -4475,8 +4475,28 @@
   "tabla": "retail.piezas_liquidacion_etiquetas"
  },
  {
+  "conname": "planes_compra_archivado_con_autor",
+  "definicion": "CHECK (((archivado_en IS NULL) = (archivado_por IS NULL)))",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_archivado_por_fkey",
+  "definicion": "FOREIGN KEY (archivado_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra"
+ },
+ {
   "conname": "planes_compra_creado_por_fkey",
   "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_editado_con_autor",
+  "definicion": "CHECK (((editado_en IS NULL) = (editado_por IS NULL)))",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_editado_por_fkey",
+  "definicion": "FOREIGN KEY (editado_por) REFERENCES personas(id)",
   "tabla": "retail.planes_compra"
  },
  {
@@ -4502,6 +4522,21 @@
  {
   "conname": "planes_compra_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_recupero_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (recupero_actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_recupero_con_autor",
+  "definicion": "CHECK (((recupero_defecto_pct IS NULL) OR ((recupero_actualizado_por IS NOT NULL) AND (recupero_actualizado_en IS NOT NULL))))",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_recupero_defecto_pct_check",
+  "definicion": "CHECK (((recupero_defecto_pct IS NULL) OR ((recupero_defecto_pct >= 0) AND (recupero_defecto_pct <= 100))))",
   "tabla": "retail.planes_compra"
  },
  {
@@ -4583,6 +4618,31 @@
   "conname": "planes_compra_lineas_una_por_categoria",
   "definicion": "UNIQUE (plan_id, categoria_id)",
   "tabla": "retail.planes_compra_lineas"
+ },
+ {
+  "conname": "planes_compra_reparto_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra_reparto"
+ },
+ {
+  "conname": "planes_compra_reparto_minimo_pct_check",
+  "definicion": "CHECK (((minimo_pct IS NULL) OR ((minimo_pct >= 1) AND (minimo_pct <= 90))))",
+  "tabla": "retail.planes_compra_reparto"
+ },
+ {
+  "conname": "planes_compra_reparto_pkey",
+  "definicion": "PRIMARY KEY (plan_id, ubicacion_id)",
+  "tabla": "retail.planes_compra_reparto"
+ },
+ {
+  "conname": "planes_compra_reparto_plan_id_fkey",
+  "definicion": "FOREIGN KEY (plan_id) REFERENCES retail.planes_compra(id)",
+  "tabla": "retail.planes_compra_reparto"
+ },
+ {
+  "conname": "planes_compra_reparto_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.planes_compra_reparto"
  },
  {
   "conname": "precios_sede_archivado_por_fkey",
@@ -6978,5 +7038,25 @@
   "conname": "ventas_usuario_id_fkey",
   "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
   "tabla": "retail.ventas"
+ },
+ {
+  "conname": "ventas_historicas_fuente_check",
+  "definicion": "CHECK ((btrim(fuente) <> ''::text))",
+  "tabla": "retail.ventas_historicas"
+ },
+ {
+  "conname": "ventas_historicas_pkey",
+  "definicion": "PRIMARY KEY (ubicacion_id, fecha)",
+  "tabla": "retail.ventas_historicas"
+ },
+ {
+  "conname": "ventas_historicas_soles_check",
+  "definicion": "CHECK ((soles >= (0)::numeric))",
+  "tabla": "retail.ventas_historicas"
+ },
+ {
+  "conname": "ventas_historicas_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.ventas_historicas"
  }
 ]

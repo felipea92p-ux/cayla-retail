@@ -9,6 +9,7 @@ import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimiento
 import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
 import { HistorialCierresModal } from "@/components/HistorialCierresModal";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
+import { DetalleMovimientoCajaModal } from "@/components/DetalleMovimientoCajaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
 import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
@@ -36,6 +37,7 @@ import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, Cierre
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
@@ -160,8 +162,11 @@ export function CajaAbiertaPanel({
   // La vista de «Cierres anteriores» decide el ancho de su tarjeta: tabla y gráfico piden todo el ancho.
   const [modoCierres, setModoCierres] = useState<ModoCierres | null>(null);
   const alCambiarModo = useCallback((m: ModoCierres) => setModoCierres(m), []);
-  // La venta cuyo detalle está abierto. Aparte de `modal`: se apila sobre «Ver todo».
+  // La fila cuyo detalle está abierto (una venta o un movimiento del cajón). Aparte de `modal`: se apila sobre «Ver todo».
   const [ventaAbiertaId, setVentaAbiertaId] = useState<string | null>(null);
+  const [movimientoAbiertoId, setMovimientoAbiertoId] = useState<string | null>(null);
+  // Una sola puerta para toda la lista: la venta abre su detalle, la entrada o la salida del cajón abre el suyo.
+  const abrirFila = useCallback((e: EventoCaja) => (e.icono === "venta" ? setVentaAbiertaId(e.id) : setMovimientoAbiertoId(e.id)), []);
   // Cola de ventas offline de ESTA sede (ADR-0092): ver nota original en este
   // archivo — no existe `localStorage` en el servidor, se lee tras montar.
   const [cola, setCola] = useState<VentaEncolada[]>([]);
@@ -240,15 +245,19 @@ export function CajaAbiertaPanel({
     ...movimientos.map((m) => {
       // Hora de Lima, no la del navegador: las ventas de la misma lista ya llegan en hora de Lima.
       const horaLima = diaYHoraLima(m.creadoEn).hora;
+      // Un gasto se llama por lo que se pagó, nunca «Otro» (el motivo que le pone la base, que tiene vocabulario
+      // cerrado): su categoría va junto a quién lo registró, en la línea de abajo.
+      const fila = filaDeMovimiento(m);
       return {
         id: m.id,
         minutos: minutosDeHora(horaLima),
         horaTexto: horaLima,
         icono: m.tipo,
-        titulo: m.motivo,
-        meta: m.registradoPorNombre ?? "—",
+        titulo: fila.titulo,
+        meta: [fila.detalle, m.registradoPorNombre].filter(Boolean).join(" · ") || "—",
         monto: m.tipo === "egreso" ? -m.monto : m.monto,
         color: m.tipo === "egreso" ? "var(--color-rojo)" : "var(--color-verde)",
+        esGasto: fila.esGasto,
       };
     }),
   ].sort((a, b) => b.minutos - a.minutos);
@@ -258,6 +267,8 @@ export function CajaAbiertaPanel({
   // Una venta de pago mixto sale en cada uno de sus medios: si la lista filtrada trae alguna, se avisa para que no parezca un doble conteo.
   const hayMixtas = filtroMov.metodo !== null && filtrados.some((e) => (e.metodos?.length ?? 0) > 1);
   const eventos = filtrados.slice(0, LIMITE_TARJETA);
+  // Si el movimiento abierto se fue de la lista (otra sesión lo movió, cambió el turno), la hoja se cierra sola.
+  const movimientoAbierto = movimientos.find((m) => m.id === movimientoAbiertoId) ?? null;
   const cierresUbicacion = cierresRecientes.filter((c) => c.ubicacionId === caja.ubicacionId);
   const cierresAncho = modoCierres === "tabla" || modoCierres === "grafico";
   const abrirGasto = gasto ? () => setModal("gasto") : null;
@@ -295,7 +306,7 @@ export function CajaAbiertaPanel({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
+                <p className="text-xs text-tinta/50">Toca cualquier fila para ver el detalle</p>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
               <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
@@ -350,7 +361,7 @@ export function CajaAbiertaPanel({
             ) : (
               <div className={`mt-1.5 divide-y divide-sand ${cierresAncho ? "@[900px]:columns-2 @[900px]:gap-x-10" : ""}`}>
                 {eventos.map((e) => (
-                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrirVenta={setVentaAbiertaId} />
+                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrir={abrirFila} />
                 ))}
               </div>
             )}
@@ -539,13 +550,13 @@ export function CajaAbiertaPanel({
           onCerrar={() => setModal(null)}
         />
       )}
-      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
+      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionId={caja.ubicacionId} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={filtrados}
           idsNuevos={idsNuevos}
           ubicacionNombre={ubicacionNombre}
-          onAbrirVenta={setVentaAbiertaId}
+          onAbrir={abrirFila}
           onClose={() => setModal(null)}
         />
       )}
@@ -556,6 +567,9 @@ export function CajaAbiertaPanel({
           ubicacionNombre={ubicacionNombre}
           onClose={() => setVentaAbiertaId(null)}
         />
+      )}
+      {movimientoAbierto && (
+        <DetalleMovimientoCajaModal movimiento={movimientoAbierto} ubicacionNombre={ubicacionNombre} onClose={() => setMovimientoAbiertoId(null)} />
       )}
     </div>
   );

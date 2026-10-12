@@ -1,0 +1,13 @@
+## 🎨 «Color de la tienda» en Plan del piso (2026-10-12, ADR-0352 act. 2026-10-12) — solo web, sin migración; rama `claude/color-family-percentages-9fb75c`
+
+- [x] La regla, pura y con prueba: `lib/plan-piso-familias.ts` (63 pruebas) — 6 familias más relevantes por el mayor entre lo que cuelga y lo que vende + «Otras», marca solo con evidencia, desglose por color. `armarPropuesta` la alimenta con lo mismo que el riel.
+- [x] La franja (`ColorDeLaTienda.tsx`), el detalle de un grupo al señalarlo (`DetalleDelGrupo.tsx`, mouse / Tab en la ficha / toque) y el desglose por color (`DesgloseDeColor.tsx`). Verificado en el navegador con una página de ensayo temporal y datos inventados (claro, oscuro, 375 px, AQP, Cuadrado).
+- [x] Maqueta aprobada por Felipe el 2026-10-12: `docs/maquetas/color-de-la-tienda-2026-10/`. Decidió: Neutro con un gris fijo, el aviso «N colores a mirar» se queda.
+- [ ] **Sin probar: la ruta real contra su base.** No hay base local (Docker desinstalado) y el volcado no trae las tablas del Plan del piso. Al publicar, mirar `/inventario/plan-del-piso` en TRU y AQP: que las cifras de la franja cuadren con «Hoy» y que el desglose traiga los colores.
+- [ ] **No se corrió `tema:auditar`** ni se agregó el escenario del desglose abierto a `apps/web/tema/escenarios/registro.mjs` (necesita sesión y base local).
+- [ ] **No se corrió `/formidable`** sobre la pantalla con la franja (tablero: `docs/formidable/README.md`, fila «Plan del piso ▸ Propuesta», sin recalificar). Falta la prueba ciega y alguna colaboradora real: ¿se entiende «Le falta lugar» y «Cuelga y no sale» sin explicación?
+- [ ] **Criterios que son de Felipe, no datos:** 30 ventas mínimas, residuo ≥ 2, 3 prendas de diferencia y varianza mínima 2 (constantes de `lib/plan-piso-familias.ts`). Con la primera semana de uso real, mirar si marca poco o demasiado.
+- [ ] **Por color solo cuentan las ventas confirmadas.** En AQP (169 de 170 anotadas) el desglose por color no opina hasta que se registren. Sumar las anotadas por color exigiría una función nueva en producción (de Felipe: esquema de producción, en partes).
+- [ ] La lectura del piso solo trae las variantes con fila de existencias en la sede (incluye las de todo cero): un color sin ninguna fila no aparece en el desglose aunque se haya vendido.
+- [ ] Segunda vuelta posible (no pedida): una meta por familia que fije el líder por temporada (tabla y pantalla nuevas, con migración).
+- [ ] Limpieza aparte (tarea ya abierta): `BloqueDelRiel.detalleDeColores` y `textoDeColores` quedaron sin lector al reemplazar el `title` (`lib/plan-piso-percha.ts:88`, `lib/plan-piso-colores.ts:131`).

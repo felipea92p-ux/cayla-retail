@@ -12,8 +12,10 @@ const MS_SALIDA = 240;
  * El cajón al costado de Equipo, igual al de Existencias (sin velo; la lista sigue viva y tocar otra fila le cambia el
  * contenido). Lo usan la ficha de una persona y la de una terminal. Quien lo usa pone su título y su bajada con `Dialog.Title` y `Dialog.Description`.
  * `clave`: al pasar de una fila a otra el contenido se re-asienta; el cajón no se cierra ni se vuelve a abrir.
+ * `conVelo`: oscurece lo de atrás y se cierra al tocar afuera, como el de Por pagar (el «Resumen y avisos» del Plan de campaña, Felipe 2026-10-12:
+ * «que se note la diferencia, como en otras pantallas»). Sin él, el de siempre.
  */
-export function CajonFicha({ clave, onCerrar, children }: { clave: string; onCerrar: () => void; children: ReactNode }) {
+export function CajonFicha({ clave, onCerrar, children, conVelo = false }: { clave: string; onCerrar: () => void; children: ReactNode; conVelo?: boolean }) {
   const [cerrando, setCerrando] = useState(false);
   const pedirCierre = useCallback(() => setCerrando(true), []);
   useEffect(() => {
@@ -26,11 +28,12 @@ export function CajonFicha({ clave, onCerrar, children }: { clave: string; onCer
   const alEscape = useEscapeLibre(pedirCierre);
 
   return (
-    <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
+    <Dialog.Root open modal={conVelo} onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
+        {conVelo && <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />}
         <Dialog.Content
           onEscapeKeyDown={alEscape}
-          onInteractOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => !conVelo && e.preventDefault()}
           onOpenAutoFocus={(e) => e.preventDefault()}
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[27rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
         >

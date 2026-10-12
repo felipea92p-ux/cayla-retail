@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorDia, agruparPorMes, bloqueFecha, cobrosPorMedio, cuadreDelTurno, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
+import { agruparPorDia, bloqueFecha, cascadaEfectivo, cobrosPorMedio, diaDelTurno, diasDelGrafico, duracionTurno, escalaDiferencia, estadoCierre, etiquetaHora, filtrarCierres, franjaHora, limitesDelMes, mesDeLima, mesesDelSelector, nombreDelMes, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado, topeDelGrafico } from "./historial-cierres-reglas";
 
 function cierre(p: Partial<CierreCaja>): CierreCaja {
   return {
@@ -20,17 +20,84 @@ describe("historial de cierres", () => {
 
   it("resumirCierres cuenta y suma solo lo que no cuadró", () => {
     const r = resumirCierres([cierre({}), cierre({ diferencia: -5 }), cierre({ diferencia: 2.2 })]);
-    expect(r).toEqual({ total: 3, cuadraron: 1, conDiferencia: 2, diferenciaNeta: -2.8 });
-    expect(resumirCierres([])).toEqual({ total: 0, cuadraron: 0, conDiferencia: 0, diferenciaNeta: 0 });
+    expect(r).toEqual({
+      total: 3, cuadraron: 1, conDiferencia: 2, diferenciaNeta: -2.8,
+      faltaron: { veces: 1, monto: 5 }, sobraron: { veces: 1, monto: 2.2 },
+    });
+    expect(resumirCierres([])).toEqual({
+      total: 0, cuadraron: 0, conDiferencia: 0, diferenciaNeta: 0,
+      faltaron: { veces: 0, monto: 0 }, sobraron: { veces: 0, monto: 0 },
+    });
   });
 
-  it("agruparPorMes usa la hora de Lima (la noche del 30 no salta de mes) y conserva el orden", () => {
-    const g = agruparPorMes([
-      cierre({ id: "a", cerradaEn: "2026-10-01T03:00:00Z" }), // 30/09 22:00 en Lima
-      cierre({ id: "b", cerradaEn: "2026-10-03T15:00:00Z" }),
-    ]);
-    expect(g.map((x) => x.etiqueta)).toEqual(["Setiembre 2026", "Octubre 2026"]);
-    expect(g[0].cierres[0].id).toBe("a");
+  it("resumirCierres: los sellos suman en positivo y cuadran con la neta (los 11 de TRU del 2026-10-12)", () => {
+    const difs = [-0.2, 0, 2, -114.6, -5.6, 0, 0, 31.4, -511.4, 0, 0];
+    const r = resumirCierres(difs.map((diferencia) => cierre({ diferencia })));
+    expect(r.cuadraron).toBe(5);
+    expect(r.faltaron).toEqual({ veces: 4, monto: 631.8 });
+    expect(r.sobraron).toEqual({ veces: 2, monto: 33.4 });
+    expect(r.diferenciaNeta).toBe(-598.4);
+    expect(r.cuadraron + r.faltaron.veces + r.sobraron.veces).toBe(r.total);
+  });
+
+  it("limitesDelMes: el mes de Lima, con el salto de año", () => {
+    expect(limitesDelMes({ anio: 2026, mes: 10 })).toEqual({ desde: "2026-10-01T00:00:00-05:00", hasta: "2026-11-01T00:00:00-05:00" });
+    expect(limitesDelMes({ anio: 2026, mes: 12 }).hasta).toBe("2027-01-01T00:00:00-05:00");
+    // la noche del 31 a las 22:00 en Lima ya es 1.º en UTC, pero es del mes que termina
+    expect(mesDeLima("2026-11-01T03:00:00Z")).toEqual({ anio: 2026, mes: 10 });
+  });
+
+  it("mesesDelSelector: los doce meses, bloqueados los que todavía no llegan", () => {
+    const actual = { anio: 2026, mes: 10 };
+    const m = mesesDelSelector(2026, actual);
+    expect(m).toHaveLength(12);
+    expect(m.filter((x) => x.bloqueado).map((x) => x.mes)).toEqual([11, 12]);
+    expect(m[9]).toEqual({ mes: 10, nombre: "Octubre", bloqueado: false });
+    expect(mesesDelSelector(2025, actual).some((x) => x.bloqueado)).toBe(false);
+    expect(mesesDelSelector(2027, actual).every((x) => x.bloqueado)).toBe(true);
+  });
+
+  it("diasDelGrafico: octubre de TRU (cierres por día, la caja que quedó abierta, hoy y lo que falta)", () => {
+    const L = (s: string) => new Date(`${s}:00-05:00`).toISOString();
+    const c = (id: string, ab: string, ce: string) => cierre({ id, abiertaEn: L(ab), cerradaEn: L(ce) });
+    const lista = [
+      c("d11", "2026-10-11T09:07", "2026-10-11T17:42"),
+      c("d4b", "2026-10-04T11:32", "2026-10-04T16:55"),
+      c("d4a", "2026-10-02T10:48", "2026-10-04T11:32"), // abierta el 2 y el 3
+      c("d1b", "2026-10-01T10:39", "2026-10-01T19:43"),
+      c("d1a", "2026-09-30T10:50", "2026-10-01T10:38"), // se abrió en setiembre
+    ];
+    const dias = diasDelGrafico(lista, { anio: 2026, mes: 10 }, { anio: 2026, mes: 10, dia: 12 });
+    expect(dias).toHaveLength(31);
+    expect(dias[0].cierres.map((x) => x.id)).toEqual(["d1a", "d1b"]); // del más antiguo al más nuevo
+    expect(dias[1].tipo).toBe("abierta");
+    expect(dias[2].tipo).toBe("abierta");
+    expect(dias[3].cierres.map((x) => x.id)).toEqual(["d4a", "d4b"]);
+    expect(dias[4].tipo).toBe("vacio");
+    expect(dias[11].tipo).toBe("hoy");
+    expect(dias[12].tipo).toBe("futuro");
+    // setiembre: la caja abierta el 30 marca la noche del 30, y no aparece ningún cierre (se cerró en octubre)
+    const sep = diasDelGrafico(lista, { anio: 2026, mes: 9 }, { anio: 2026, mes: 10, dia: 12 });
+    expect(sep).toHaveLength(30);
+    expect(sep[29].tipo).toBe("abierta");
+    expect(sep.every((d) => d.cierres.length === 0)).toBe(true);
+    expect(sep.some((d) => d.tipo === "hoy" || d.tipo === "futuro")).toBe(false);
+  });
+
+  it("topeDelGrafico: redondea a S/ 500 hacia arriba, con un piso de 500", () => {
+    expect(topeDelGrafico([{ montoCierreReal: 1550, montoCierreSistema: 2061.4 }])).toBe(2500);
+    expect(topeDelGrafico([{ montoCierreReal: 45.9, montoCierreSistema: 45.9 }])).toBe(500);
+    expect(topeDelGrafico([])).toBe(500);
+    expect(nombreDelMes({ anio: 2026, mes: 10 })).toBe("Octubre 2026");
+  });
+
+  it("filtrarCierres: todos, solo faltó o solo sobró, sin cambiar el orden", () => {
+    const lista = [cierre({ id: "a", diferencia: -1 }), cierre({ id: "b" }), cierre({ id: "c", diferencia: 3 }), cierre({ id: "d", diferencia: -0.5 })];
+    expect(filtrarCierres(lista, "todos").map((c) => c.id)).toEqual(["a", "b", "c", "d"]);
+    expect(filtrarCierres(lista, "falto").map((c) => c.id)).toEqual(["a", "d"]);
+    expect(filtrarCierres(lista, "sobro").map((c) => c.id)).toEqual(["c"]);
+    // menos de un céntimo es «cuadró»: no entra en ninguno de los dos
+    expect(filtrarCierres([cierre({ diferencia: -0.004 })], "falto")).toEqual([]);
   });
 
   it("bloqueFecha da el día de Lima", () => {
@@ -41,12 +108,6 @@ describe("historial de cierres", () => {
     expect(duracionTurno("2026-10-05T13:37:00Z", "2026-10-06T02:12:00Z")).toBe("12 h 35 min");
     expect(duracionTurno("2026-10-05T13:00:00Z", "2026-10-05T13:45:00Z")).toBe("45 min");
     expect(duracionTurno("2026-10-06T13:00:00Z", "2026-10-05T13:45:00Z")).toBe("");
-  });
-
-  it("cuadreDelTurno: apertura + movió = esperado, siempre", () => {
-    const c = cuadreDelTurno({ montoApertura: 317, montoCierreSistema: 1204.5 });
-    expect(c.apertura + c.movio).toBeCloseTo(c.esperado, 2);
-    expect(c.movio).toBe(887.5);
   });
 
   it("rutaDelEfectivo: sin fondo registrado no hay ruta; con fondo reparte la barra al 100 %", () => {
@@ -153,5 +214,71 @@ describe("«Qué se cobró» del detalle de un cierre", () => {
 
   it("un método que no se conoce cae en «Otro»", () => {
     expect(cobrosPorMedio([{ ventaId: "z", metodo: "cripto", monto: 10 }]).medios[0]).toMatchObject({ clave: "otro", monto: 10, ventas: 1, pct: 100 });
+  });
+});
+
+describe("detalle de un cierre: «La línea del día»", () => {
+  it("escalaDiferencia: cuadró al centro; el rango crece con la diferencia y nunca se sale de la escala", () => {
+    expect(escalaDiferencia(0)).toEqual({ rango: 20, pos: 50 });
+    expect(escalaDiferencia(0.004)).toEqual({ rango: 20, pos: 50 });
+    expect(escalaDiferencia(2)).toEqual({ rango: 20, pos: 55 });
+    expect(escalaDiferencia(-5.6)).toEqual({ rango: 20, pos: 36 });
+    expect(escalaDiferencia(-114.6)).toMatchObject({ rango: 200 });
+    expect(escalaDiferencia(-511.4)).toMatchObject({ rango: 1000 });
+    expect(escalaDiferencia(-999999)).toEqual({ rango: 5000, pos: 3 });
+    expect(escalaDiferencia(999999).pos).toBe(97);
+  });
+
+  it("etiquetaHora y franjaHora hablan en horas de tienda", () => {
+    expect([0, 8, 12, 13, 23, 24].map(etiquetaHora)).toEqual(["12 a. m.", "8 a. m.", "12 p. m.", "1 p. m.", "11 p. m.", "12 a. m."]);
+    expect(franjaHora(13)).toBe("1 – 2 p. m.");
+    expect(franjaHora(11)).toBe("11 a. m. – 12 p. m.");
+    expect(franjaHora(23)).toBe("11 p. m. – 12 a. m.");
+  });
+
+  // 2026-10-09 en Lima (UTC−5): 08:02 abre, 19:50 cierra.
+  const base = { abiertaEn: "2026-10-09T13:02:00Z", cerradaEn: "2026-10-10T00:50:00Z" };
+  const venta = (hora: string, total: number, unidades = 1, anulada = false) => ({ tipo: "venta" as const, hora, total, unidades, anulada });
+
+  it("diaDelTurno: una barra por hora del turno, la hora fuerte y las cifras sin contar lo anulado", () => {
+    const d = diaDelTurno(base, [
+      venta("2026-10-09T14:00:00Z", 100, 2), // 09:00
+      venta("2026-10-09T18:30:00Z", 250, 3), // 13:30 → hora fuerte
+      venta("2026-10-09T18:50:00Z", 50, 1), // 13:50
+      venta("2026-10-09T19:10:00Z", 999, 9, true), // anulada
+    ]);
+    expect(d.horas.map((h) => h.hora)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+    expect(d.horas.find((h) => h.pico)).toMatchObject({ hora: 13, total: 300 });
+    expect(d.horas.filter((h) => h.pico)).toHaveLength(1);
+    expect(d).toMatchObject({ ventas: 3, anuladas: 1, prendas: 6, vendido: 400, promedio: 133.33, horaFuerte: "1 – 2 p. m." });
+    expect(d.horas.reduce((a, h) => a + h.total, 0)).toBe(400);
+  });
+
+  it("diaDelTurno: sin ventas no hay hora fuerte ni promedio, y las marcas caen dentro de la línea", () => {
+    const d = diaDelTurno(base, [
+      { tipo: "movimiento", hora: "2026-10-09T14:41:00Z", direccion: "egreso" },
+      { tipo: "movimiento", hora: "2026-10-09T15:00:00Z", direccion: "ingreso" },
+      { tipo: "devolucion", hora: "2026-10-09T16:05:00Z" },
+      { tipo: "cambio", hora: "2026-10-09T17:02:00Z" },
+    ]);
+    expect(d).toMatchObject({ ventas: 0, promedio: null, horaFuerte: null, vendido: 0 });
+    expect(d.marcas.map((m) => m.tipo)).toEqual(["apertura", "cierre", "sale", "entra", "sale", "cambio"]);
+    expect(d.marcas.every((m) => m.pos >= 0 && m.pos <= 1)).toBe(true);
+    expect(d.marcas[0].pos).toBeCloseTo(2 / 60 / 12, 3);
+  });
+
+  it("diaDelTurno: un turno que pasa la medianoche no se rompe", () => {
+    const d = diaDelTurno({ abiertaEn: "2026-10-10T01:00:00Z", cerradaEn: "2026-10-10T06:30:00Z" }, [venta("2026-10-10T05:30:00Z", 80)]); // 20:00 → 01:30
+    expect(d.horas.map((h) => h.hora)).toEqual([20, 21, 22, 23, 0, 1]);
+    expect(d.horas.find((h) => h.pico)).toMatchObject({ hora: 0, total: 80 });
+  });
+
+  it("cascadaEfectivo: apertura + vendido + otros = esperado, siempre", () => {
+    const c = { montoApertura: 277.2, montoCierreSistema: 967.6, montoCierreReal: 969.6 };
+    const r = cascadaEfectivo(c, 712.1);
+    expect(r).toEqual({ apertura: 277.2, vendido: 712.1, otros: -21.7, esperado: 967.6, contado: 969.6, diferencia: 2 });
+    expect(r.apertura + r.vendido + r.otros).toBeCloseTo(r.esperado, 2);
+    expect(cascadaEfectivo(c, 690.4).otros).toBe(0);
+    expect(cascadaEfectivo(c, 600).otros).toBe(90.4); // entró plata que no fue venta (ingresos, cambios)
   });
 });

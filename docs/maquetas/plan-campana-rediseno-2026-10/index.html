@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de campaña · 5 rediseños</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+  /* Spike (Felipe 2026-10-12): «la información está bien, pero no veo la tabla principal; veo otras cosas que sí me parecen útiles pero no sabría
+     dónde más tenerlas». Cinco formas de que la tabla salga primero sin perder nada. Paleta oficial «CAYLA Dynamic» (ADR-0169): ningún hex suelto
+     fuera de esta lista. Las cifras son de ejemplo: lo que se elige es la FORMA. */
+  :root{color-scheme:light;
+    --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;
+    --verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+    --t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 65%,transparent);--t35:color-mix(in srgb,var(--tinta) 35%,transparent);
+    --sombra:color-mix(in srgb,var(--tinta) 22%,transparent);
+    --ease:cubic-bezier(.32,.72,.24,1);--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding:12px 16px 64px}
+  button,input{font:inherit;color:inherit}button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--rojo);outline-offset:2px}[hidden]{display:none!important}
+  p{margin:0}h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0;line-height:1.1}
+  .etq{font:600 11px/1.3 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin:0}
+  .muted{color:var(--t65)}.chico{font-size:12.5px}
+
+  /* ---------- Mando de la maqueta (no es parte del ERP) ---------- */
+  .mando{position:sticky;top:8px;z-index:50;max-width:1440px;margin:0 auto 12px;padding:10px 14px;border:1px dashed var(--taupe);border-radius:12px;background:color-mix(in srgb,var(--papel) 94%,transparent);backdrop-filter:blur(6px);display:grid;gap:8px}
+  @media (max-width:1100px){.mando{position:static}}
+  .fila-m{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;font:500 12.5px var(--sans);color:var(--taupe);padding:6px 12px;border-radius:999px}
+  .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  .medida{display:inline-flex;gap:14px;align-items:baseline;font-size:13px;color:var(--t80)}
+  .medida b{font:600 20px/1 var(--serif);color:var(--tinta)}
+  .medida .bien{color:var(--verde)}.medida .mal{color:var(--rojo-p)}
+  .explica{max-width:1440px;margin:0 auto 12px;display:grid;gap:12px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+  @media (max-width:900px){.explica{grid-template-columns:1fr}}
+  .caja-m{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px 16px}
+  .caja-m h2{font-size:22px}
+  .gp{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:8px;font-size:13px}
+  .gp dt{font-weight:600}.gp dd{margin:0;color:var(--t80)}
+  .donde{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:3px;font-size:12.5px;color:var(--t80)}
+  .donde b{color:var(--tinta);font-weight:600}
+
+  /* ---------- La pantalla (un laptop, escalada para caber) ---------- */
+  #escena{max-width:1440px;margin:0 auto;position:relative}
+  #pantalla{width:1440px;position:relative;transform-origin:top left;border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--crema);box-shadow:0 10px 40px var(--sombra)}
+  #pantalla::after{content:"Aquí termina la pantalla";position:absolute;right:14px;bottom:8px;font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--rojo-p);background:var(--papel);padding:3px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--rojo) 40%,transparent);z-index:40;pointer-events:none}
+  #pantalla::before{content:"";position:absolute;left:0;right:0;bottom:0;border-bottom:3px dashed var(--rojo);z-index:40;pointer-events:none}
+  .marco{display:grid;grid-template-columns:64px minmax(0,1fr);height:100%}
+  .riel{background:var(--papel);border-right:1px solid var(--sand);display:flex;flex-direction:column;align-items:center;gap:22px;padding-top:24px}
+  .riel i{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--t35)}
+  .riel i.on{border-color:var(--tinta);background:var(--hueso)}
+  .scroll{overflow:auto;height:100%;position:relative}
+  .barra-sup{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;border-bottom:1px solid var(--sand);background:var(--crema)}
+  .buscar{display:inline-flex;gap:8px;align-items:center;background:var(--hueso);border-radius:999px;padding:8px 18px;color:var(--t65);font-size:13px}
+  .sede-sel{border:1px solid var(--sand);border-radius:10px;padding:8px 12px;font:600 11px var(--sans);letter-spacing:.14em;background:var(--papel)}
+  .lienzo{padding:28px 40px 48px;display:grid;gap:18px}
+
+  /* ---------- Piezas del ERP ---------- */
+  .sede{display:flex;align-items:center;gap:10px;font:600 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--taupe)}
+  .sede::before{content:"";width:36px;height:1px;background:var(--taupe)}
+  .h1{font:600 46px/1.05 var(--serif);margin-top:8px}
+  .h1c{font:600 32px/1.05 var(--serif)}
+  .frase{color:var(--t80);max-width:560px;margin-top:6px}
+  .ayuda{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;border:1.5px solid var(--t35);font:700 11px var(--sans);color:var(--t65);vertical-align:middle;margin-left:4px;background:transparent;padding:0}
+  .pastilla{border:1px solid var(--sand);border-radius:8px;padding:10px 14px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;background:var(--papel);white-space:nowrap}
+  .tabs{display:inline-flex;gap:4px;border:1px solid var(--sand);border-radius:14px;padding:5px;background:var(--papel)}
+  .tabs span{padding:9px 16px;border-radius:10px;font:600 12px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+  .tabs span.on{background:var(--tinta);color:var(--crema)}
+  .tabs.chicas span{padding:7px 12px;font-size:11px}
+  .dia{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde);border-radius:999px;padding:4px 12px;font:600 13px var(--sans)}
+  .dia::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+  .dia span{font-weight:400;color:var(--t65)}
+  .aviso{border:1px solid color-mix(in srgb,var(--ambar) 30%,var(--sand));border-left:4px solid var(--ambar);border-radius:12px;background:color-mix(in srgb,var(--ambar) 5%,var(--papel));padding:14px 18px;display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+  .aviso b{color:var(--ambar)}
+  .aviso .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font:500 12.5px var(--sans);white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+  .c-ambar{background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar)}
+  .c-verde{background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde)}
+  .c-gris{background:var(--hueso);color:var(--t65)}
+  .c-rojo{background:color-mix(in srgb,var(--rojo) 12%,var(--papel));color:var(--rojo-p)}
+  .btn{border:1px solid var(--t35);background:var(--papel);border-radius:10px;padding:8px 14px;font:500 13px var(--sans);white-space:nowrap}
+  .btn.prim{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .btn.sutil{border-color:var(--sand)}
+  .card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+  .resumen{display:flex;align-items:stretch;padding:10px 6px}
+  .resumen > div{padding:2px 16px;display:flex;flex-direction:column;justify-content:center}
+  .resumen > div + div{border-left:1px solid var(--sand)}
+  .resumen .k{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  .resumen .v{font:600 20px/1.15 var(--serif)}
+  .resumen .s{font-size:12px;color:var(--t65)}
+  .herr{padding:16px 22px;display:grid;gap:12px}
+  .caja-busca{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:12px;padding:10px 14px;color:var(--t65);font-size:14px;width:460px;max-width:100%}
+  .caja-busca kbd{margin-left:auto;border:1px solid var(--t35);border-radius:6px;padding:0 6px;font-size:11px}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{border:1px solid var(--sand);border-radius:999px;padding:6px 14px;background:var(--papel);font:500 13px var(--sans);color:var(--taupe)}
+  .pill b{font-weight:500;margin-left:4px;color:var(--t65)}
+  .pill[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pill[aria-pressed="true"] b{color:var(--crema)}
+  .combo{display:inline-flex;justify-content:space-between;align-items:center;gap:20px;background:var(--hueso);border-radius:10px;padding:9px 14px;font-size:14px;min-width:200px}
+  .combo::after{content:"⌄";color:var(--t65)}
+  .modo{display:inline-flex;background:var(--hueso);border-radius:10px;padding:3px}
+  .modo span{padding:7px 14px;border-radius:8px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+  .modo span.on{background:var(--papel);color:var(--tinta)}
+  .leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--taupe)}
+  .leyenda i{display:inline-block;width:16px;height:6px;border-radius:9px;vertical-align:middle;margin-right:4px}
+  table{width:100%;border-collapse:collapse}
+  th{font:400 13px var(--sans);color:var(--taupe);text-align:left;padding:10px 14px;background:var(--hueso);white-space:nowrap}
+  th small{display:block;font-size:11px;color:var(--t65)}
+  th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td{padding:12px 14px;border-top:1px solid var(--sand);vertical-align:middle}
+  tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--hueso) 35%,var(--papel))}
+  .cat b{font:600 19px/1.1 var(--serif)}
+  .cat small{display:block;color:var(--t65);font-size:12.5px}
+  .rank{display:inline-flex;align-items:center;gap:4px;background:color-mix(in srgb,var(--verde) 12%,var(--papel));color:var(--verde);border-radius:999px;padding:1px 8px;font:600 12px var(--serif);margin-right:8px}
+  .vbar{position:relative;height:10px;border-radius:999px;background:var(--sand);width:220px;display:flex;overflow:hidden}
+  .vbar span{height:100%}
+  .vbar-w{position:relative;width:220px}
+  .vbar-w .tick{position:absolute;top:-3px;width:2px;height:16px;background:var(--tinta)}
+  .vbar-w .rombo{position:absolute;top:-1px;width:10px;height:10px;background:var(--pizarra);transform:rotate(45deg) translateX(-50%)}
+  .vbar-w small{display:block;margin-top:5px;font-size:11.5px;color:var(--t65)}
+  .tot td{background:color-mix(in srgb,var(--tinta) 6%,var(--papel))!important;font-weight:600;border-top:none}
+  .tot .k{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  .punto-aviso{display:inline-block;width:7px;height:7px;border-radius:999px;background:var(--ambar);margin-right:6px;vertical-align:middle}
+  .resaltada{box-shadow:inset 3px 0 0 var(--rojo)}
+
+  /* B · panel lateral */
+  .dos{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+  .rielcito{position:sticky;top:16px;display:grid;gap:10px}
+  details.sec{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:0 14px}
+  details.sec summary{list-style:none;cursor:pointer;padding:12px 0;display:flex;justify-content:space-between;align-items:center;font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  details.sec summary::-webkit-details-marker{display:none}
+  details.sec summary::after{content:"+";font:500 16px var(--sans);color:var(--t65)}
+  details.sec[open] summary::after{content:"–"}
+  details.sec .cuerpo{padding:0 0 14px;font-size:13px;color:var(--t80);display:grid;gap:8px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--sand);padding-top:6px}
+  .kv b{font:600 17px var(--serif);color:var(--tinta)}
+
+  /* C · barra que se queda */
+  .pegada{position:sticky;top:0;z-index:5;background:var(--papel);border-bottom:1px solid var(--sand);border-radius:16px 16px 0 0}
+  .pegada .mini{display:flex;gap:16px;align-items:baseline;font-size:12.5px;color:var(--t65);white-space:nowrap}
+  .pegada .mini b{font:600 17px var(--serif);color:var(--tinta)}
+  thead.peg th{position:sticky;top:69px;z-index:4}
+  .menu{position:absolute;z-index:8;background:var(--papel);border:1px solid var(--sand);border-radius:12px;box-shadow:0 10px 30px var(--sombra);padding:6px;display:grid;min-width:220px}
+  .menu button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:8px;display:flex;justify-content:space-between}
+  .menu button:hover{background:var(--hueso)}
+  .icono-aviso{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font:600 12px var(--sans);background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar);border:0}
+
+  /* D · cajón */
+  .cajon{position:absolute;top:0;right:0;bottom:0;width:420px;background:var(--papel);border-left:1px solid var(--sand);box-shadow:-20px 0 40px var(--sombra);z-index:30;transform:translateX(105%);transition:transform .35s var(--ease);display:flex;flex-direction:column}
+  .cajon.abierto{transform:none}
+  .cajon header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--sand)}
+  .cajon .cuerpo{overflow:auto;padding:16px 22px;display:grid;gap:14px;align-content:start}
+  .velo{position:absolute;inset:0;background:color-mix(in srgb,var(--tinta) 18%,transparent);z-index:29;opacity:0;pointer-events:none;transition:opacity .3s var(--ease)}
+  .velo.on{opacity:1;pointer-events:auto}
+  .cerrar{width:34px;height:34px;border-radius:999px;border:1px solid var(--sand);background:var(--papel)}
+  .contador{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:999px;background:var(--rojo);color:var(--crema);font:700 11px var(--sans);margin-left:6px;padding:0 6px}
+
+  /* E · totales en la tabla y facetas */
+  .facetas{display:grid;grid-template-columns:230px minmax(0,1fr);gap:0}
+  .faceta-col{border-right:1px solid var(--sand);padding:16px;display:grid;gap:16px;align-content:start}
+  .faceta-col .grupo{display:grid;gap:2px}
+  .faceta-col button{border:0;background:transparent;text-align:left;padding:6px 10px;border-radius:8px;display:flex;justify-content:space-between;font-size:13.5px;color:var(--t80)}
+  .faceta-col button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  .franja{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--sand);font-size:13px;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 6%,var(--papel))}
+  .franja a{margin-left:auto;color:var(--tinta)}
+
+  .pop{position:absolute;z-index:8;width:340px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;box-shadow:0 10px 30px var(--sombra);padding:12px 14px;font-size:13px;color:var(--t80)}
+
+  .comparar{max-width:1440px;margin:16px auto 0}
+  .comparar table th{background:var(--hueso)}
+  .comparar td{background:var(--papel)!important;font-size:13px}
+  .comparar tr.on td{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--tinta) 5%,transparent)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="mando">
+  <div class="fila-m">
+    <span class="etq">Spike · Plan de campaña · que la tabla salga primero</span>
+    <div class="seg" id="pantallas" role="group" aria-label="Pantalla">
+      <button data-p="plan" aria-pressed="true">Plan</button>
+      <button data-p="resultados">Resultados · «Pedir más o impulsar»</button>
+    </div>
+    <div class="seg" id="opciones" role="group" aria-label="Opción"></div>
+  </div>
+  <div class="fila-m">
+    <span class="muted chico">Alto de la pantalla</span>
+    <div class="seg" id="altos" role="group" aria-label="Alto de pantalla">
+      <button data-h="768">Laptop chico · 768</button>
+      <button data-h="900" aria-pressed="true">Mac mini / laptop · 900</button>
+      <button data-h="1080">Monitor · 1080</button>
+    </div>
+    <span class="medida" aria-live="polite">Primera fila de la tabla a <b id="mPx">–</b> px · Se ven <b id="mFilas">–</b> categorías sin bajar</span>
+  </div>
+</div>
+
+<div class="explica">
+  <div class="caja-m">
+    <h2 id="eTitulo"></h2>
+    <p class="chico muted" id="eIdea" style="margin-top:4px"></p>
+    <dl class="gp"><dt>Ganas</dt><dd id="eGanas"></dd><dt>Pagas</dt><dd id="ePagas"></dd></dl>
+  </div>
+  <div class="caja-m">
+    <p class="etq">Dónde queda cada cosa</p>
+    <ul class="donde" id="eDonde"></ul>
+  </div>
+</div>
+
+<div id="escena"><div id="pantalla"><div class="marco">
+  <nav class="riel" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i></nav>
+  <div class="scroll" id="scroll">
+    <div class="barra-sup"><span class="buscar">⌕ Buscar… <kbd style="border:1px solid var(--t35);border-radius:6px;padding:0 6px;font-size:11px">Ctrl K</kbd></span><span style="display:flex;gap:18px;align-items:center"><span class="etq">Actividad</span><span class="sede-sel">TIENDA TRU ⌄</span></span></div>
+    <div id="vista"></div>
+  </div>
+</div>
+<div class="velo" id="velo"></div>
+<aside class="cajon" id="cajon" aria-label="Resumen y avisos"></aside>
+</div></div>
+
+<div class="comparar card" style="overflow:hidden">
+  <table><thead><tr><th>Opción</th><th class="n">Primera fila de la tabla</th><th class="n">Categorías sin bajar</th><th>Lo demás (avisos, cifras, lo que sobra, reparto, simulador)</th><th>Cambia el ERP</th></tr></thead><tbody id="tComparar"></tbody></table>
+</div>
+
+<script>
+/* ---------------------------------------------------------------- datos de ejemplo (la forma es lo que se elige) */
+const FILAS = [
+  { cat: "Polos", fam: "Indumentaria", v90: 171, hay: 229, plan: [130, 190, 280], comprar: 21, inv: 336, vend: 168 },
+  { cat: "Camisas y Blusas", fam: "Indumentaria", v90: 153, hay: 269, plan: null, vend: 149 },
+  { cat: "Vestidos", fam: "Indumentaria", v90: 132, hay: 96, plan: [90, 140, 210], comprar: 74, inv: 1850, vend: 121 },
+  { cat: "Pantalones", fam: "Indumentaria", v90: 104, hay: 188, plan: null, vend: 97 },
+  { cat: "Casacas", fam: "Indumentaria", v90: 71, hay: 35, plan: [40, 70, 120], comprar: 55, inv: 2475, vend: 64, agot: true },
+  { cat: "Faldas", fam: "Indumentaria", v90: 63, hay: 74, plan: null, vend: 58 },
+  { cat: "Aretes", fam: "Accesorios", v90: 48, hay: 0, plan: null, vend: 29, agot: true },
+  { cat: "Collares", fam: "Accesorios", v90: 33, hay: 12, plan: null, vend: 19 },
+  { cat: "Lentes de sol", fam: "Accesorios", v90: 28, hay: 0, plan: null, vend: 16, agot: true },
+  { cat: "Pulseras", fam: "Accesorios", v90: 26, hay: 3, plan: null, vend: 16 },
+  { cat: "Gorros y Sombreros", fam: "Accesorios", v90: 22, hay: 9, plan: null, vend: 15 },
+  { cat: "Chompas", fam: "Indumentaria", v90: 19, hay: 41, plan: null, vend: 7 },
+  { cat: "Capas", fam: "Indumentaria", v90: 17, hay: 6, plan: null, vend: 15, agot: true },
+  { cat: "Corsets", fam: "Indumentaria", v90: 14, hay: 11, plan: null, vend: 10 },
+];
+const ent = (n) => n.toLocaleString("es-PE");
+const sol = (n) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const tot = (filas) => ({
+  conPlan: filas.filter((f) => f.plan).length, total: 45,
+  comprar: filas.reduce((a, f) => a + (f.comprar ?? 0), 0), inv: filas.reduce((a, f) => a + (f.inv ?? 0), 0),
+  hay: filas.reduce((a, f) => a + f.hay, 0), vend: 876,
+});
+
+/* ---------------------------------------------------------------- estado */
+let opcion = "hoy", alto = 900, filtro = "todas", familia = "todas";
+const visibles = () => FILAS.filter((f) => (filtro === "todas" || (filtro === "sin" && !f.plan) || (filtro === "con" && f.plan) || (filtro === "mas" && f.v90 >= 60) || (filtro === "agot" && f.agot)) && (familia === "todas" || f.fam === familia));
+const cuenta = (k) => FILAS.filter((f) => k === "todas" || (k === "sin" && !f.plan) || (k === "con" && f.plan) || (k === "mas" && f.v90 >= 60) || (k === "agot" && f.agot)).length;
+const FILTROS = [["todas", "Todas"], ["sin", "Sin plan"], ["con", "Con plan"], ["mas", "Las que más venden"], ["agot", "Se agotaron"]];
+
+/* ---------------------------------------------------------------- piezas */
+const cabecera = () => `
+  <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start">
+    <div><p class="sede">Todas las tiendas · lunes, 12 de octubre · 15:50</p><p class="h1">Plan de campaña</p>
+      <p class="frase">Aniversario CAYLA 2026, del 1 de octubre al 21 de octubre: lo que planificaste y, al lado, lo que se vendió de verdad.</p>
+      <p style="margin-top:12px"><span class="dia">Día 12 de 21 <span>· lo que se vendió hasta hoy va al lado</span></span></p></div>
+    <span class="pastilla" style="margin-top:70px">Aniversario CAYLA 2026 · 1 oct – 21 oct ⌄</span>
+  </div>
+  <div class="tabs"><span class="on">Plan</span><span>Resultados</span><span>Historial</span></div>`;
+
+/** Una sola línea: título, campaña, día, pestañas y (si se pasa) lo de la derecha. */
+const cabeceraCompacta = (derecha = "") => `
+  <div style="display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between">
+    <div style="display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center">
+      <p class="h1c">Plan de campaña <button class="ayuda" data-pop="frase" aria-label="Qué es esta pantalla">!</button></p>
+      <span class="pastilla">Aniversario CAYLA 2026 · 1 oct – 21 oct ⌄</span>
+      <span class="dia">Día 12 de 21</span>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">${derecha}<div class="tabs chicas"><span class="on">Plan</span><span>Resultados</span><span>Historial</span></div></div>
+  </div>`;
+
+const avisoCompleto = () => `
+  <div class="aviso"><div><p><b>⚠ El «Hay hoy» está incompleto</b></p>
+    <p class="chico" style="color:var(--t80)">Tienda AQP y Tienda LIM y Tienda TRU no tienen su stock al día, así que el plan te pediría <b style="color:var(--tinta)">comprar de más</b>. Cuéntalo antes de decidir.</p>
+    <div class="chips"><span class="chip c-ambar">Tienda AQP · piso sin cuadrar y almacén sin contar</span><span class="chip c-ambar">Tienda LIM · piso sin cuadrar y almacén sin contar</span><span class="chip c-ambar">Tienda TRU · piso sin cuadrar</span></div></div>
+    <button class="btn">Ir a Conteo</button></div>`;
+
+const resumenBarra = (extra = "") => {
+  const t = tot(FILAS);
+  return `<div class="card resumen">
+    <div><span style="display:flex;gap:6px;align-items:center"><b class="etq" style="color:var(--tinta)">Toda CAYLA</b><span class="ayuda">!</span></span><span class="s">todas las tiendas</span></div>
+    <div><span class="k">Con plan</span><span class="v">${t.conPlan} de ${t.total}</span><span class="s">categorías</span></div>
+    <div><span class="k">A comprar</span><span class="v">${ent(t.comprar)}</span><span class="s">prendas</span></div>
+    <div><span class="k">Inversión</span><span class="v">${sol(t.inv)}</span><span class="s">al costo</span></div>
+    <div><span class="k">Vendido</span><span class="v">${ent(t.vend)}</span><span class="s">en la campaña</span></div>
+    <div style="margin-left:auto;border:0;flex-direction:row;gap:10px;align-items:center">${extra}<button class="btn sutil">Ver detalle ⌄</button></div>
+  </div>`;
+};
+
+const pills = () => `<div class="pills">${FILTROS.map(([k, t]) => `<button class="pill" data-filtro="${k}" aria-pressed="${filtro === k}">${t}<b>${cuenta(k)}</b></button>`).join("")}</div>`;
+const combos = () => `<span class="combo" data-fam>${familia === "todas" ? "Todas las familias" : familia}</span><span class="combo">Las que más venden</span>`;
+const modo = () => `<span class="modo"><span class="on">Tabla</span><span>Paso a paso</span></span>`;
+const leyenda = () => `<div class="leyenda">Cómo leer la barra: <span><i style="background:var(--verde)"></i>Ya hay</span><span><i style="background:var(--tinta)"></i>Comprar</span><span><i style="background:var(--sand)"></i>Del flojo al bueno</span><span>| Normal</span><span>◆ Lo que se vendió</span></div>`;
+const leyendaBoton = () => `<button class="btn sutil" data-pop="leyenda" style="padding:6px 12px;font-size:12.5px">Cómo leer la barra ?</button>`;
+
+const herramientasHoy = () => `<div class="herr">
+  <div style="display:flex;justify-content:space-between;gap:12px"><span class="caja-busca">⌕ Buscar una categoría <kbd>/</kbd></span>${modo()}</div>
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">${pills()}<span style="display:flex;gap:10px">${combos()}</span></div>
+  ${leyenda()}</div>`;
+
+/** Una sola fila de herramientas: buscar, filtros, familia, orden, vista y la leyenda a un toque. */
+const herramientasUnaLinea = () => `<div class="herr" style="padding:14px 18px">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="caja-busca" style="width:300px">⌕ Buscar una categoría <kbd>/</kbd></span>${pills()}
+  <span style="margin-left:auto;display:flex;gap:10px;align-items:center">${leyendaBoton()}${modo()}</span></div></div>`;
+
+const barraVenta = (f) => {
+  if (!f.plan) return `<span class="chip c-gris">Sin plan</span> <button class="btn" style="margin-left:8px">Armar plan</button>`;
+  const [flojo, normal, bueno] = f.plan, max = bueno * 1.1;
+  const w = (n) => `${Math.max(0, Math.min(100, (n / max) * 100))}%`;
+  return `<div class="vbar-w"><div class="vbar"><span style="width:${w(Math.min(f.hay, bueno))};background:var(--verde)"></span><span style="width:${w(f.comprar)};background:var(--tinta)"></span></div>
+    <span class="tick" style="left:${w(normal)}"></span><span class="rombo" style="left:${w(f.vend)}"></span><small>${flojo} · ${normal} · ${bueno}</small></div>`;
+};
+
+/** La tabla principal. `totales`: la fila «Toda CAYLA» arriba; `avisoEnCelda`: el punto ámbar en «Hay hoy»; `stickyHead`: el encabezado se queda. */
+const tabla = ({ totales = false, avisoEnCelda = false, stickyHead = false, compacta = false } = {}) => {
+  const filas = visibles(), t = tot(filas);
+  return `<table><thead class="${stickyHead ? "peg" : ""}"><tr><th>Categoría</th><th>Venta esperada <small>flojo · normal · bueno</small></th><th class="n">Hay hoy <small>tiendas y Taller</small></th><th class="n">Comprar</th><th class="n">Inversión <small>al costo</small></th><th>Vendido hasta hoy</th></tr></thead><tbody>
+  ${totales ? `<tr class="tot"><td><span class="k">Toda CAYLA</span> <span class="ayuda">!</span><small style="display:block;font-weight:400;color:var(--t65)">${t.conPlan} de 45 con plan</small></td><td class="chico">Lo que sobra se vende al <b>5 %</b> · <button class="btn sutil" style="padding:3px 10px;font-size:12px">Reparto por tienda</button></td><td class="n">${avisoEnCelda ? '<span class="punto-aviso"></span>' : ""}${ent(t.hay)}</td><td class="n">${ent(t.comprar)}</td><td class="n">${sol(t.inv)}<small style="display:block;font-weight:400;color:var(--t65)">quedan S/ 21,339</small></td><td>${ent(t.vend)} en la campaña</td></tr>` : ""}
+  ${filas.map((f, i) => `<tr class="tr-dato${f.agot && filtro === "agot" ? " resaltada" : ""}"><td class="cat"><span class="rank">N.º ${FILAS.indexOf(f) + 1}</span><b>${f.cat}</b><small>Vendiste ${f.v90} en 90 días${f.agot ? ' · <span style="color:var(--ambar)">se agotó</span>' : ""}</small></td>
+    <td>${barraVenta(f)}</td><td class="n">${avisoEnCelda && i < 3 ? '<span class="punto-aviso" title="Stock sin cuadrar en alguna tienda"></span>' : ""}${ent(f.hay)}</td><td class="n">${f.plan ? ent(f.comprar) : "—"}</td><td class="n">${f.plan ? sol(f.inv) : "—"}</td><td>Se vendieron ${f.vend}.</td></tr>`).join("")}
+  ${filas.length === 0 ? `<tr><td colspan="6" class="muted">Ninguna categoría con ese filtro.</td></tr>` : ""}
+  </tbody></table>`;
+};
+
+/* Lo que no es la tabla, en piezas chicas: para el panel, el cajón y el detalle. */
+const extras = {
+  aviso: () => `<div class="cuerpo"><p><b style="color:var(--ambar)">El «Hay hoy» está incompleto.</b> AQP, LIM y TRU no tienen su stock al día: el plan te pediría comprar de más.</p><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="chip c-ambar">AQP · piso y almacén</span><span class="chip c-ambar">LIM · piso y almacén</span><span class="chip c-ambar">TRU · piso</span></div><button class="btn" style="justify-self:start">Ir a Conteo</button></div>`,
+  cifras: () => { const t = tot(FILAS); return `<div class="cuerpo"><div class="kv"><span>Con plan</span><b>${t.conPlan} de 45</b></div><div class="kv"><span>A comprar</span><b>${ent(t.comprar)} prendas</b></div><div class="kv"><span>Inversión al costo</span><b>${sol(t.inv)}</b></div><div class="kv"><span>Te quedan del tope</span><b>S/ 21,339.00</b></div><div class="kv"><span>Vendido en la campaña</span><b>${ent(t.vend)}</b></div></div>`; },
+  sobra: () => `<div class="cuerpo"><p>Lo que sobra se vende al <b>5 %</b> del precio: con eso arranca cada categoría nueva.</p><button class="btn" style="justify-self:start">Cambiar el %</button></div>`,
+  reparto: () => `<div class="cuerpo"><p>Se reparte según lo que vende cada tienda en 90 días; Lima, con su mínimo.</p><div class="kv"><span>Trujillo</span><b>64 %</b></div><div class="kv"><span>Arequipa</span><b>26 %</b></div><div class="kv"><span>Lima (mínimo)</span><b>10 %</b></div><button class="btn" style="justify-self:start">Fijar un mínimo</button></div>`,
+  simulador: () => `<div class="cuerpo"><p>¿Y si se vende distinto? Mueve los supuestos sin guardar.</p><label class="chico">Un mes bueno vende <b id="simX">×3.0</b><input type="range" min="15" max="35" value="30" data-sim style="width:100%;accent-color:var(--tinta)"></label><p class="chico muted" id="simV">Comprarías 150 prendas: dentro del tope.</p></div>`,
+};
+const seccion = (titulo, cuerpo, abierta = false) => `<details class="sec"${abierta ? " open" : ""}><summary>${titulo}</summary>${cuerpo}</details>`;
+
+/* ---------------------------------------------------------------- las 6 vistas */
+const OPCIONES = {
+  hoy: {
+    titulo: "Hoy, como está",
+    idea: "Cabecera grande, el aviso de stock, el resumen y, dentro de la tarjeta de la tabla, buscador, cinco píldoras, dos combos y la leyenda. Todo útil, pero apilado encima de la tabla.",
+    ganas: "Todo a la vista sin tocar nada.", pagas: "La primera categoría aparece casi al pie de la pantalla: para ver la tabla hay que bajar siempre.",
+    donde: [["Aviso de stock", "banda grande arriba"], ["Toda CAYLA", "barra de cifras"], ["Lo que sobra, reparto, simulador", "«Ver detalle»"], ["Filtros", "tres filas dentro de la tarjeta"], ["Leyenda", "una línea fija"]],
+    cambia: "—",
+    html: () => `<div class="lienzo">${cabecera()}${avisoCompleto()}${resumenBarra()}<div class="card" style="overflow:hidden">${herramientasHoy()}${tabla()}</div></div>`,
+  },
+  A: {
+    titulo: "A · Una línea arriba",
+    idea: "Título, campaña, día y pestañas en UNA fila. El aviso de stock se vuelve un chip dentro del resumen (se abre al tocarlo). Buscador, píldoras y vista en una sola fila; la leyenda, a un toque.",
+    ganas: "El cambio más chico: nada se va de la pantalla, solo se aprieta. La tabla sube unos 400 px.",
+    pagas: "La cabecera deja de ser la del resto del ERP (EncabezadoPagina, ADR-0220): habría que decidir si todas las pantallas de trabajo usan la versión corta. El aviso de stock pesa menos visualmente.",
+    donde: [["Aviso de stock", "chip ámbar en el resumen → se despliega"], ["Toda CAYLA", "la misma barra"], ["Lo que sobra, reparto, simulador", "«Ver detalle»"], ["Filtros", "una fila con el buscador"], ["Leyenda", "botón «Cómo leer la barra ?»"]],
+    cambia: "Cabecera corta (decisión del ERP) + 2 piezas de la pantalla",
+    html: () => `<div class="lienzo" style="gap:14px">${cabeceraCompacta()}<div id="avisoA" hidden>${avisoCompleto()}</div>${resumenBarra('<button class="icono-aviso" data-toggle="avisoA">⚠ 3 tiendas sin stock al día</button>')}<div class="card" style="overflow:hidden">${herramientasUnaLinea()}${tabla()}</div></div>`,
+  },
+  B: {
+    titulo: "B · Panel al costado",
+    idea: "La tabla ocupa la izquierda desde arriba; a la derecha, un panel fijo con secciones que se abren: Toda CAYLA, el aviso de stock, lo que sobra, el reparto y el simulador. Como el inspector de Figma o el panel de Shopify.",
+    ganas: "Tabla y contexto a la vez, sin bajar ni abrir nada; el panel se queda quieto mientras recorres la tabla.",
+    pagas: "La tabla pierde ~350 px de ancho: «Venta esperada» y las cifras se aprietan; en un laptop de 1280 px el panel tendría que esconderse. Es el cambio más grande de forma.",
+    donde: [["Aviso de stock", "primera sección del panel"], ["Toda CAYLA", "sección «Toda CAYLA» del panel"], ["Lo que sobra, reparto, simulador", "secciones del panel"], ["Filtros", "una fila con el buscador"], ["Leyenda", "botón a un toque"]],
+    cambia: "Layout nuevo de 2 columnas (solo esta pantalla)",
+    html: () => `<div class="lienzo" style="gap:14px">${cabeceraCompacta()}<div class="dos"><div class="card" style="overflow:hidden">${herramientasUnaLinea()}${tabla()}</div>
+      <aside class="rielcito">${seccion('<span>⚠ Stock sin cuadrar · 3</span>', extras.aviso(), true)}${seccion("Toda CAYLA", extras.cifras(), true)}${seccion("Lo que sobra", extras.sobra())}${seccion("Reparto por tienda", extras.reparto())}${seccion("¿Y si se vende distinto?", extras.simulador())}</aside></div></div>`,
+  },
+  C: {
+    titulo: "C · Barra que se queda",
+    idea: "Cabecera corta y, arriba de la tabla, UNA barra que se queda pegada al bajar: buscador, «Mostrar: Todas (45) ⌄», las cifras clave en chico y el ⚠ del stock. El encabezado de la tabla también se queda.",
+    ganas: "Las cifras y los filtros no se pierden nunca, aunque bajes hasta la categoría 40. La tabla empieza casi arriba.",
+    pagas: "Las cinco píldoras pasan a un desplegable (un toque más para cambiar de filtro). Lo que sobra, el reparto y el simulador siguen en «Ver detalle» (más abajo).",
+    donde: [["Aviso de stock", "⚠ en la barra → globo"], ["Toda CAYLA", "cifras chicas en la barra"], ["Lo que sobra, reparto, simulador", "«Detalle» en la barra"], ["Filtros", "desplegable «Mostrar»"], ["Leyenda", "botón a un toque"]],
+    cambia: "Barra fija (pieza nueva) + filtro en desplegable",
+    html: () => { const t = tot(FILAS); return `<div class="lienzo" style="gap:14px">${cabeceraCompacta()}<div class="card" style="overflow:visible">
+      <div class="pegada"><div class="herr" style="padding:12px 18px;grid-template-columns:auto auto 1fr auto;align-items:center;display:grid;gap:12px">
+        <span class="caja-busca" style="width:220px">⌕ Buscar <kbd>/</kbd></span>
+        <span style="position:relative"><button class="combo" data-menu="filtroC" style="min-width:210px;border:0">Mostrar: ${FILTROS.find((x) => x[0] === filtro)[1]} (${cuenta(filtro)})</button></span>
+        <span class="mini" style="justify-self:center"><span>Con plan <b>${t.conPlan}/45</b></span><span>A comprar <b>${ent(t.comprar)}</b></span><span>Inversión <b>${sol(t.inv)}</b></span><span>Vendido <b>${ent(t.vend)}</b></span></span>
+        <span style="display:flex;gap:8px;align-items:center"><button class="icono-aviso" data-pop="stock">⚠ 3</button><button class="ayuda" data-pop="leyenda" aria-label="Cómo leer la barra">?</button><button class="btn sutil">Detalle ⌄</button>${modo()}</span>
+      </div></div>${tabla({ stickyHead: true })}</div></div>`; },
+  },
+  D: {
+    titulo: "D · Cajón de resumen",
+    idea: "La pantalla es la tabla. Todo lo demás vive en un cajón que sale de la derecha con un botón «Resumen y avisos» (con su número rojo si hay algo que mirar): stock, Toda CAYLA, lo que sobra, reparto y simulador.",
+    ganas: "La tabla más limpia de las cinco; el cajón tiene espacio para crecer sin empujar nada.",
+    pagas: "Lo que no se ve se olvida: el aviso de stock queda a un toque (el número rojo lo recuerda). Un cajón más en el ERP: tiene que seguir la regla de modales (ADR-0136).",
+    donde: [["Aviso de stock", "cajón + número rojo en el botón"], ["Toda CAYLA", "cajón"], ["Lo que sobra, reparto, simulador", "cajón"], ["Filtros", "una fila con el buscador"], ["Leyenda", "botón a un toque"]],
+    cambia: "Cajón nuevo (pieza «hoja» del sistema)",
+    html: () => `<div class="lienzo" style="gap:14px">${cabeceraCompacta('<button class="btn prim" data-cajon>Resumen y avisos<span class="contador">3</span></button>')}<div class="card" style="overflow:hidden">${herramientasUnaLinea()}${tabla()}</div></div>`,
+    cajon: () => `<header><h3 style="font-size:24px">Resumen y avisos</h3><button class="cerrar" data-cerrar aria-label="Cerrar">×</button></header><div class="cuerpo">
+      ${seccion('<span>⚠ Stock sin cuadrar · 3</span>', extras.aviso(), true)}${seccion("Toda CAYLA", extras.cifras(), true)}${seccion("Lo que sobra", extras.sobra())}${seccion("Reparto por tienda", extras.reparto())}${seccion("¿Y si se vende distinto?", extras.simulador())}</div>`,
+  },
+  E: {
+    titulo: "E · Totales en la tabla",
+    idea: "Como una planilla: los filtros pasan a una columna a la izquierda (estado y familia, con sus conteos) y «Toda CAYLA» es la PRIMERA fila de la tabla, con sus totales bajo cada columna. El aviso de stock es una franja de una línea y un punto ámbar en «Hay hoy».",
+    ganas: "Cada cifra está bajo su columna: «A comprar» total sobre la columna «Comprar». Los filtros no ocupan alto, ocupan costado.",
+    pagas: "La tabla pierde ~230 px de ancho por la columna de filtros. Lo que sobra y el reparto quedan en la fila de totales (chico); el simulador va a «Detalle».",
+    donde: [["Aviso de stock", "franja de una línea + punto ámbar en «Hay hoy»"], ["Toda CAYLA", "primera fila de la tabla"], ["Lo que sobra, reparto", "dentro de la fila de totales"], ["Simulador", "«Detalle»"], ["Filtros", "columna a la izquierda"]],
+    cambia: "Fila de totales + columna de filtros (solo esta pantalla)",
+    html: () => `<div class="lienzo" style="gap:14px">${cabeceraCompacta('<button class="btn sutil">Detalle ⌄</button>')}<div class="card facetas" style="overflow:hidden">
+      <div class="faceta-col"><span class="caja-busca" style="width:auto;padding:8px 12px;font-size:13px">⌕ Buscar <kbd>/</kbd></span>
+        <div class="grupo"><p class="etq" style="margin-bottom:4px">Mostrar</p>${FILTROS.map(([k, t]) => `<button data-filtro="${k}" aria-pressed="${filtro === k}"><span>${t}</span><span>${cuenta(k)}</span></button>`).join("")}</div>
+        <div class="grupo"><p class="etq" style="margin-bottom:4px">Familia</p>${["todas", "Indumentaria", "Accesorios"].map((f) => `<button data-familia="${f}" aria-pressed="${familia === f}"><span>${f === "todas" ? "Todas" : f}</span><span>${f === "todas" ? FILAS.length : FILAS.filter((x) => x.fam === f).length}</span></button>`).join("")}</div>
+        <div class="grupo"><p class="etq" style="margin-bottom:4px">Orden</p><span class="combo" style="min-width:0;font-size:13px">Las que más venden</span></div>
+        ${leyendaBoton()}
+      </div>
+      <div style="min-width:0"><div class="franja"><span class="punto-aviso"></span>El «Hay hoy» está incompleto: AQP, LIM y TRU sin su stock al día. <a href="#">Ir a Conteo →</a></div>${tabla({ totales: true, avisoEnCelda: true })}</div>
+    </div></div>`,
+  },
+};
+
+/* ---------------------------------------------------------------- Resultados: dónde va «Pedir más o impulsar» (Felipe 2026-10-12: «quizás esta
+   tabla mantenerla compacta o relacionarla con otro módulo que vea el inventario, el producto, lo que hay y no») */
+const SENALES = [
+  ["Aretes", 23, 0], ["Capas", 14, 1], ["Pulseras", 11, 0], ["Corsets", 10, 4], ["Relojes", 10, 0], ["Lentes de sol", 8, 0], ["Collares", 7, 2],
+  ["Gorros y Sombreros", 15, 6], ["Chompas", 6, 0], ["Abrigos", 5, 0], ["Cinturones", 4, 0], ["Ropa interior/Lencería", 4, 0], ["Maquillaje", 3, 0],
+].map(([cat, vend, dias]) => ({ cat, vend, dias }));
+const VENDIDAS_R = [["Polos", 168], ["Camisas y Blusas", 149], ["Vestidos", 121], ["Pantalones", 97], ["Casacas", 64], ["Faldas", 58], ["Aretes", 23], ["Gorros y Sombreros", 15], ["Capas", 14], ["Pulseras", 11], ["Corsets", 10], ["Relojes", 10]];
+const senalDe = (cat) => SENALES.find((x) => x.cat === cat);
+const urgentes = () => [...SENALES].sort((a, b) => a.dias - b.dias || b.vend - a.vend);
+let soloAtencion = false, senalesAbiertas = false;
+
+const cabeceraR = () => `
+  <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start">
+    <div><p class="sede">Todas las tiendas · lunes, 12 de octubre · 15:56</p><p class="h1">Plan de campaña</p>
+      <p class="frase">Aniversario CAYLA 2026, del 1 oct al 21 oct: lo vendido hasta ayer (11 días). <span class="ayuda">!</span></p></div>
+    <span class="pastilla" style="margin-top:40px">Aniversario CAYLA 2026 · 1 oct – 21 oct ⌄</span>
+  </div>
+  <div class="tabs"><span>Plan</span><span class="on">Resultados</span><span>Historial</span></div>`;
+const tarjetasR = (pie = "13 categorías piden atención ↓") => `<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px">
+  <div class="card" style="padding:16px 18px"><p class="etq">¿Cómo va Tienda TRU? <span class="ayuda">!</span></p><p style="font:600 30px var(--serif);margin-top:6px">1,046</p><p class="chico muted">prendas si sigue así (sin plan con qué comparar)</p>${pie ? `<p class="chico" style="color:var(--ambar);margin-top:6px">${pie}</p>` : ""}<p class="chico" style="margin-top:6px;text-decoration:underline">Ver la curva →</p></div>
+  ${[["Toda CAYLA", "861", "S/ 46,626.41 · hasta ayer"], ["Tienda AQP", "266", "S/ 14,836.99 · sin base"], ["Tienda LIM", "0", "S/ 0.00 · sin base"], ["Tienda TRU", "595", "S/ 31,789.42 · sin base"]].map(([e, v, t], i) => `<div class="card" style="padding:16px 18px${i === 3 ? ";background:var(--hueso)" : ""}"><p class="etq">${e}</p><p style="font:600 30px var(--serif);margin-top:6px">${v} <span style="font:400 16px var(--sans);color:var(--taupe)">prendas</span></p><p class="chico muted">${t}</p></div>`).join("")}
+</div>`;
+const filaSenal = (x) => `<tr><td><b>${x.cat}</b></td><td class="n">${x.vend}</td><td class="n">Sin plan</td><td class="n">${x.dias} ${x.dias === 1 ? "día" : "días"}</td><td><span class="chip c-rojo">Pide más</span></td><td><a href="#" style="color:var(--pizarra)">Sus prendas que se acaban →</a></td></tr>`;
+const tablaSenales = (filas) => `<table><thead><tr><th>Categoría</th><th class="n">Vendidas</th><th class="n">Contra el plan a hoy</th><th class="n">Alcanza para</th><th>Qué hacer</th><th>La prenda exacta</th></tr></thead><tbody>${filas.map(filaSenal).join("")}</tbody></table>`;
+const cabSenales = () => `<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px"><p class="etq" style="color:var(--taupe)">Pedir más o impulsar · Tienda TRU <span class="ayuda">!</span></p><span class="chico muted">Quedan 10 días de campaña</span></div>`;
+/** La tabla de categorías de Resultados (la principal). `conSenal`: las columnas «Qué hacer» y «Alcanza para» y la píldora «Piden atención». */
+const tablaCategoriasR = ({ conSenal = false } = {}) => {
+  const filas = VENDIDAS_R.filter(([c]) => !conSenal || !soloAtencion || senalDe(c));
+  return `<div class="herr" style="padding:14px 18px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="caja-busca" style="width:340px">⌕ Buscar una categoría o familia <kbd>/</kbd></span>
+    ${conSenal ? `<button class="pill" data-atencion="no" aria-pressed="${!soloAtencion}">Todas<b>${VENDIDAS_R.length}</b></button><button class="pill" data-atencion="si" aria-pressed="${soloAtencion}">Piden atención<b>13</b></button>` : ""}
+    <span class="combo" style="margin-left:auto">Más vendidas primero</span></div></div>
+  <table><thead><tr><th>Categoría</th><th class="n">Vendidas</th><th class="n">Soles</th><th>Contra su parte del plan</th>${conSenal ? '<th>Qué hacer</th><th class="n">Alcanza para</th>' : ""}<th class="n">Lo que sobró</th></tr></thead><tbody>
+  ${filas.map(([c, v]) => { const x = senalDe(c); return `<tr class="tr-dato"><td class="cat"><b>${c}</b><small>${["Aretes", "Pulseras", "Relojes"].includes(c) ? "Accesorios" : "Indumentaria"}</small></td><td class="n">${v}</td><td class="n">${sol(v * 54)}</td><td class="chico">—</td>${conSenal ? `<td>${x ? '<span class="chip c-rojo">Pide más</span> <a href="#" class="chico" style="color:var(--pizarra)">sus prendas →</a>' : '<span class="chip c-verde">Va bien</span>'}</td><td class="n">${x ? `${x.dias} ${x.dias === 1 ? "día" : "días"}` : "toda la campaña"}</td>` : ""}<td class="n">Al terminar</td></tr>`; }).join("")}
+  </tbody></table>`;
+};
+
+const OPCIONES_R = {
+  hoy: {
+    titulo: "Hoy, como está",
+    idea: "«Pedir más o impulsar» es una segunda tabla completa (13 filas) entre las tarjetas y la tabla de categorías.",
+    ganas: "Lo urgente se ve primero.", pagas: "La tabla de categorías (la principal de Resultados) queda abajo del todo, y son dos tablas que listan las mismas categorías.",
+    donde: [["Pedir más o impulsar", "tabla completa arriba"], ["La prenda exacta", "enlace por fila a Análisis"]],
+    cambia: "—",
+    html: () => `<div class="lienzo">${cabeceraR()}${tarjetasR()}<div class="card" style="overflow:hidden">${cabSenales()}${tablaSenales(SENALES)}</div><div class="card" style="overflow:hidden">${tablaCategoriasR()}</div></div>`,
+  },
+  R1: {
+    titulo: "R1 · Compacta: las 3 más urgentes",
+    idea: "La misma tabla, pero solo las 3 que se acaban antes y una línea «Ver las 13 ⌄» que la despliega. Ordenadas por «Alcanza para»: lo que se acaba primero, arriba.",
+    ganas: "Lo urgente sigue arriba, en una cuarta parte del alto. El cambio más chico.",
+    pagas: "Siguen siendo dos tablas de categorías; para ver la cuarta urgente hay que desplegar.",
+    donde: [["Pedir más o impulsar", "3 filas + «Ver las 13»"], ["La prenda exacta", "enlace por fila a Análisis"]],
+    cambia: "Solo esa pieza (SenalesCampana)",
+    html: () => `<div class="lienzo">${cabeceraR()}${tarjetasR()}<div class="card" style="overflow:hidden">${cabSenales()}${tablaSenales(senalesAbiertas ? urgentes() : urgentes().slice(0, 3))}<button class="btn sutil" data-senales style="margin:10px 22px 14px">${senalesAbiertas ? "Ver solo las 3 más urgentes ⌃" : "Ver las 13 que piden atención ⌄"}</button></div><div class="card" style="overflow:hidden">${tablaCategoriasR()}</div></div>`,
+  },
+  R2: {
+    titulo: "R2 · Dentro de la tabla de categorías",
+    idea: "Una sola tabla: la de categorías suma «Qué hacer» (Pide más / Impúlsala / Va bien) y «Alcanza para», y una píldora «Piden atención 13» que deja solo esas. La tarjeta «¿Cómo va?» lleva a esa píldora.",
+    ganas: "Una tabla en vez de dos (la misma categoría ya no aparece en dos lugares); la principal sube a la mitad de la pantalla.",
+    pagas: "La tabla gana dos columnas (más ancha). Lo urgente ya no salta a la vista solo: se llega con la píldora o desde «¿Cómo va?».",
+    donde: [["Pedir más o impulsar", "columnas «Qué hacer» y «Alcanza para» + píldora «Piden atención»"], ["La prenda exacta", "«sus prendas →» en la fila"]],
+    cambia: "Se quita SenalesCampana; la tabla suma 2 columnas y 1 filtro",
+    html: () => `<div class="lienzo">${cabeceraR()}${tarjetasR('<button class="btn sutil" data-atencion="si" style="padding:2px 8px;font-size:12px">13 categorías piden atención ↓</button>')}<div class="card" style="overflow:hidden">${tablaCategoriasR({ conSenal: true })}</div></div>`,
+  },
+  R3: {
+    titulo: "R3 · Un resumen que lleva a Inventario",
+    idea: "En Resultados queda una línea: «13 piden más · 0 piden impulso», las 3 más urgentes como chips y un botón que abre Inventario ▸ Análisis «Se está acabando» con esas categorías. Ahí ya se ve la prenda, talla, color, cuánto hay en cada tienda, y se puede pedir a otra tienda.",
+    ganas: "Resultados queda para mirar la campaña; qué reponer vive donde ya se hace, con prenda y stock por tienda. Nada se repite.",
+    pagas: "Un salto de pantalla para actuar. Análisis mira la sede elegida arriba, no toda CAYLA; y hoy su enlace acepta una sola categoría (habría que enseñarle varias).",
+    donde: [["Pedir más o impulsar", "una línea con 3 chips"], ["La prenda exacta, lo que hay y no", "Inventario ▸ Análisis «Se está acabando»"]],
+    cambia: "Se quita la tabla; Análisis aceptaría varias categorías en el enlace",
+    html: () => `<div class="lienzo">${cabeceraR()}${tarjetasR("")}
+      <div class="card" style="padding:14px 22px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center"><p class="etq" style="color:var(--taupe)">Pedir más o impulsar · Tienda TRU</p><span><b style="font:600 22px var(--serif)">13</b> <span class="chico muted">piden más</span> · <b style="font:600 22px var(--serif)">0</b> <span class="chico muted">piden impulso</span></span>
+      <span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${urgentes().slice(0, 3).map((x) => `<span class="chip c-rojo">${x.cat} · ${x.dias} días</span>`).join("")}<span class="chico muted">y 10 más</span></span>
+      <button class="btn prim" style="margin-left:auto">Ver qué reponer en Inventario →</button></div>
+      <div class="card" style="overflow:hidden">${tablaCategoriasR()}</div></div>`,
+  },
+};
+
+/* ---------------------------------------------------------------- pintar, medir y comparar */
+let pantallaSel = "plan";
+const grupo = () => (pantallaSel === "plan" ? OPCIONES : OPCIONES_R);
+function botonesOpciones() {
+  document.querySelector("#opciones").innerHTML = Object.entries(grupo()).map(([k, o]) => `<button data-o="${k}" aria-pressed="${k === opcion}">${k === "hoy" ? "Hoy" : o.titulo}</button>`).join("");
+}
+const $ = (s) => document.querySelector(s);
+const pantalla = $("#pantalla"), escena = $("#escena"), scroll = $("#scroll"), vista = $("#vista"), cajon = $("#cajon"), velo = $("#velo");
+const medidas = {};
+
+function pintar() {
+  const o = grupo()[opcion];
+  vista.innerHTML = o.html();
+  cajon.innerHTML = o.cajon ? o.cajon() : "";
+  cerrarCajon();
+  $("#eTitulo").textContent = o.titulo; $("#eIdea").textContent = o.idea; $("#eGanas").textContent = o.ganas; $("#ePagas").textContent = o.pagas;
+  $("#eDonde").innerHTML = o.donde.map(([a, b]) => `<li><b>${a}</b> → ${b}</li>`).join("");
+  botonesOpciones();
+  medir(opcion, true);
+}
+function escalar() {
+  const s = Math.min(1, escena.clientWidth / 1440);
+  pantalla.style.height = `${alto}px`;
+  pantalla.style.transform = `scale(${s})`;
+  escena.style.height = `${alto * s}px`;
+}
+/** Dónde queda la primera fila y cuántas filas enteras caben, con la vista arriba del todo (sin bajar). */
+function medir(clave, mostrar) {
+  scroll.scrollTop = 0;
+  const base = scroll.getBoundingClientRect().top, s = Math.min(1, escena.clientWidth / 1440);
+  const filas = [...vista.querySelectorAll(".tr-dato")];
+  const px = filas.length ? Math.round((filas[0].getBoundingClientRect().top - base) / s) : null;
+  const caben = filas.filter((f) => (f.getBoundingClientRect().bottom - base) / s <= alto).length;
+  medidas[clave] = { px, caben };
+  if (mostrar) {
+    $("#mPx").textContent = px ?? "–"; $("#mPx").className = px !== null && px < alto * 0.5 ? "bien" : "mal";
+    $("#mFilas").textContent = caben; $("#mFilas").className = caben >= 5 ? "bien" : "mal";
+  }
+}
+function comparar() {
+  const actual = opcion;
+  for (const k of Object.keys(grupo())) { opcion = k; vista.innerHTML = grupo()[k].html(); medir(k, false); }
+  opcion = actual;
+  $("#tComparar").innerHTML = Object.entries(grupo()).map(([k, o]) => `<tr data-o="${k}" class="${k === opcion ? "on" : ""}" style="cursor:pointer"><td><b>${o.titulo}</b></td><td class="n">${medidas[k].px} px</td><td class="n">${medidas[k].caben}</td><td>${o.donde.map((d) => d[1]).slice(0, 3).join(" · ")}</td><td>${o.cambia}</td></tr>`).join("");
+  pintar();
+}
+
+function abrirCajon() { cajon.classList.add("abierto"); velo.classList.add("on"); }
+function cerrarCajon() { cajon.classList.remove("abierto"); velo.classList.remove("on"); }
+function quitarFlotantes() { document.querySelectorAll(".pop,.menu").forEach((n) => n.remove()); }
+function flotante(ancla, html, clase = "pop") {
+  quitarFlotantes();
+  const r = ancla.getBoundingClientRect(), p = pantalla.getBoundingClientRect(), s = Math.min(1, escena.clientWidth / 1440);
+  const n = document.createElement("div"); n.className = clase; n.innerHTML = html;
+  n.style.left = `${Math.min((r.left - p.left) / s, 1440 - 360)}px`; n.style.top = `${(r.bottom - p.top) / s + 8}px`;
+  pantalla.appendChild(n);
+  return n;
+}
+const POPS = {
+  leyenda: `<p class="etq" style="margin-bottom:6px">Cómo leer la barra</p><p><span style="color:var(--verde)">■</span> Ya hay · <b>■</b> Comprar · <span style="color:var(--t35)">■</span> del flojo al bueno · | normal · <span style="color:var(--pizarra)">◆</span> lo que se vendió.</p>`,
+  stock: `<p><b style="color:var(--ambar)">El «Hay hoy» está incompleto.</b> AQP, LIM y TRU no tienen su stock al día: el plan te pediría comprar de más.</p><button class="btn" style="margin-top:8px">Ir a Conteo</button>`,
+  frase: `<p>Aniversario CAYLA 2026, del 1 al 21 de octubre: lo que planificaste y, al lado, lo que se vendió de verdad.</p>`,
+};
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("button,[data-o],[data-fam]");
+  if (!el) { if (!e.target.closest(".pop,.menu")) quitarFlotantes(); return; }
+  if (el.closest("#pantallas") && el.dataset.p) { pantallaSel = el.dataset.p; opcion = "hoy"; document.querySelectorAll("#pantallas button").forEach((b) => b.setAttribute("aria-pressed", String(b === el))); comparar(); return; }
+  if (el.hasAttribute("data-senales")) { senalesAbiertas = !senalesAbiertas; vista.innerHTML = grupo()[opcion].html(); return; }
+  if (el.dataset.atencion) { soloAtencion = el.dataset.atencion === "si"; vista.innerHTML = grupo()[opcion].html(); return; }
+  if (el.closest("#opciones") && el.dataset.o) { opcion = el.dataset.o; filtro = "todas"; familia = "todas"; pintar(); marcarComparar(); return; }
+  if (el.closest("#tComparar") && el.dataset.o) { opcion = el.dataset.o; pintar(); marcarComparar(); return; }
+  if (el.closest("#altos")) { alto = Number(el.dataset.h); document.querySelectorAll("#altos button").forEach((b) => b.setAttribute("aria-pressed", String(b === el))); escalar(); comparar(); return; }
+  if (el.dataset.filtro) { filtro = el.dataset.filtro; quitarFlotantes(); vista.innerHTML = grupo()[opcion].html(); return; }
+  if (el.dataset.familia) { familia = el.dataset.familia; vista.innerHTML = grupo()[opcion].html(); return; }
+  if (el.dataset.toggle) { const t = document.getElementById(el.dataset.toggle); t.hidden = !t.hidden; return; }
+  if (el.dataset.pop) { flotante(el, POPS[el.dataset.pop]); return; }
+  if (el.dataset.menu) { flotante(el, FILTROS.map(([k, t]) => `<button data-filtro="${k}"><span>${t}</span><span class="muted">${cuenta(k)}</span></button>`).join(""), "menu"); return; }
+  if (el.hasAttribute("data-cajon")) { abrirCajon(); return; }
+  if (el.hasAttribute("data-cerrar")) { cerrarCajon(); return; }
+});
+velo.addEventListener("click", cerrarCajon);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { cerrarCajon(); quitarFlotantes(); } });
+document.addEventListener("input", (e) => {
+  if (!e.target.matches("[data-sim]")) return;
+  const m = Number(e.target.value) / 10, compra = Math.round(150 * (m / 3));
+  const x = cajon.querySelector("#simX") ?? document.querySelector("#simX"), v = cajon.querySelector("#simV") ?? document.querySelector("#simV");
+  if (x) x.textContent = `×${m.toFixed(1)}`;
+  if (v) v.textContent = `Comprarías ${compra} prendas: ${compra * 34 > 25000 ? "te pasas del tope" : "dentro del tope"}.`;
+});
+function marcarComparar() { document.querySelectorAll("#tComparar tr").forEach((tr) => tr.classList.toggle("on", tr.dataset.o === opcion)); }
+window.addEventListener("resize", () => { escalar(); medir(opcion, true); });
+
+escalar();
+(document.fonts?.ready ?? Promise.resolve()).then(() => { escalar(); comparar(); });
+</script>
+</body>
+</html>
