@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261012120000_cambios_y_devoluciones_con_lo_que_pago.sql — CAYLA V2 (Felipe, 2026-10-12; ADR-0378, sigue a 20261011110000)
+-- 20261012120100_cambios_y_devoluciones_con_lo_que_pago.sql — CAYLA V2 (Felipe, 2026-10-12; ADR-0378, sigue a 20261011110000)
 --
 -- EL PROBLEMA. Una clienta compra una polera de S/ 100 con campaña del 20 % y paga S/ 80 (`venta_items`: precio_unitario 100,
 -- descuento_unitario 20). Tres funciones seguían contando con el precio de LISTA, no con lo que pagó:

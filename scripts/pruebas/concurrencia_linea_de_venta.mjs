@@ -168,7 +168,7 @@ rollback;`);
   } else {
     const items = `jsonb_build_array(jsonb_build_object('venta_item_id', '${linea.item}', 'cantidad', 1, 'condicion', 'vendible'))`;
     // Con método de pago: la línea elegida puede traer descuento (o un precio que ya cambió) y entonces el cambio tiene diferencia
-    // (se mide contra lo que pagó, 20261012120000). Esta suite mide el candado de la línea, no el precio: con 'tarjeta' (que no
+    // (se mide contra lo que pagó, 20261012120100). Esta suite mide el candado de la línea, no el precio: con 'tarjeta' (que no
     // toca el cajón) la diferencia, sea la que sea, no la detiene antes de llegar al candado.
     const cambio = `select retail.registrar_cambio('${linea.item}', '${linea.ubic}', '${linea.variante}', 1, 'tarjeta', gen_random_uuid(), 'talla_chica', 'vendible')`;
     const devolucion = `select retail.crear_devolucion('${linea.venta}', '${linea.ubic}', ${items}, 'prueba de concurrencia', 'talla')`;

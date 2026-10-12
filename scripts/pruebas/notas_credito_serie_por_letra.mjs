@@ -112,7 +112,7 @@ select retail.emitir_comprobante(:'ubic', 'factura', 84.75, 15.25, 100.00, null,
 -- SUNAT solo admite notas sobre lo que ya aceptó (fn_valida_nota_referencia_aceptada)
 select retail.actualizar_transmision_comprobante(:'bol', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _ab \\gset
 select retail.actualizar_transmision_comprobante(:'fac', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _af \\gset
--- Las dos notas de la boleta suman justo lo que cobró (90 + 10 = 100): desde 20261012120000 una nota que pasara de eso se rechaza.
+-- Las dos notas de la boleta suman justo lo que cobró (90 + 10 = 100): desde 20261012120100 una nota que pasara de eso se rechaza.
 select retail.emitir_nota(:'bol', 'nota_credito', '07', 76.27, 13.73, 90.00) as nota_b \\gset
 select retail.emitir_nota(:'fac', 'nota_credito', '06', 84.75, 15.25, 100.00) as nota_f \\gset
 select retail.emitir_nota(:'bol', 'nota_credito', '07', 8.47, 1.53, 10.00) as nota_b2 \\gset

@@ -492,7 +492,7 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
-// 20261012120000 (ADR-0378): la diferencia se mide contra lo que la clienta PAGÓ (precio − descuento), no contra el precio de
+// 20261012120100 (ADR-0378): la diferencia se mide contra lo que la clienta PAGÓ (precio − descuento), no contra el precio de
 // lista. Ejemplo de Felipe: polera de lista S/ X con S/ 20 de campaña. Antes, cambiarla por otra de la misma lista daba «diferencia
 // 0» y la tienda regalaba los S/ 20; cambiarla por una más barata devolvía de más.
 // ---------------------------------------------------------------------------
