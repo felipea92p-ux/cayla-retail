@@ -187,3 +187,6 @@ migración nueva: **`20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql`** 
   pendientes y TRU con 97. Y `20261004213000` no se vuelve a pegar nunca después de esta: devolvería el filtro viejo sin error.
 - **Pegada en producción por Felipe el 2026-10-05, antes del primer cierre** (verificada en solo lectura: huella `33dfc4b1…`, los dos filtros, el
   comentario y los permisos; 0 cierres). La regla de orden queda levantada: cualquier tienda ya puede cerrar su cola.
+- **2026-10-12:** renombrada a `20261005160100` (choque de versión con `20261005160000_movimientos_colgada_y_guardada`) y reescrita como
+  reemplazos anclados de sus cuatro tramos, porque `20261010232000` (bolsas de despacho) parcha la misma función y el CI aplica las migraciones
+  de un PR después de las de main. Mismo efecto que lo pegado; en cualquier orden la función queda con la huella de producción (`3b9b7a08…`).

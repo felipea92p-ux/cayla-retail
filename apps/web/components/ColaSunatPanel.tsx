@@ -129,7 +129,8 @@ export function ColaSunatPanel({
                 </p>
                 <p className="text-[13px] text-tinta/65">{nombreDe(f.ubicacion_id)}</p>
               </div>
-              <div className="min-w-0 flex-1">
+              {/* En el celular, el estado y el error bajan a su propia línea a todo el ancho: al lado del número quedaban cortados. */}
+              <div className="min-w-0 flex-1 max-sm:basis-full">
                 <div className="flex flex-wrap gap-1.5">
                   {f.estado === "rechazado" ? (
                     <Chip tono="rojo">SUNAT lo rechazó</Chip>

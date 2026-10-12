@@ -37,6 +37,7 @@
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
 import type { TipoDocComprobante } from "./documento-comprobante-reglas";
+import type { TipoFalloSubida } from "./error-escritura";
 import type { Firma } from "./responsable-reglas";
 
 export type ItemVentaEncolada = { varianteId: string; cantidad: number };
@@ -62,6 +63,8 @@ export type ItemRegistrarVenta = {
   categoria_id?: string;
   talla_id?: string;
   color_codigo?: string;
+  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta vigente. */
+  pieza_liquidacion_codigo?: string;
 };
 
 /** El payload completo de `registrar_venta` (18 parámetros desde la tanda 1g; la caja manda los 14 de abajo: `p_cliente_id`
@@ -216,4 +219,30 @@ export function firmaDeVentaEncolada(venta: Pick<VentaEncolada, "ubicacionId" | 
   const responsableId = venta.params.p_asesora_id;
   if (!responsableId) return null;
   return { responsableId, ubicacionId: venta.ubicacionId, momento: venta.creadoEn };
+}
+
+/**
+ * Qué queda en la cola cuando subir una venta falló. `null` = no se toca: sigue en la cola con `rechazo: null` y la
+ * próxima pasada (latido de 30 s, evento `online`) la repite tal cual, con el mismo token. Solo un fallo `definitivo`
+ * —la base respondió con código de Postgres y no es «intenta de nuevo»— la deja rechazada, esperando «Descartar».
+ *
+ * POR QUÉ LO PASAJERO NO SE RECHAZA (cobro a mano duplicado). Vuelve la red y el servidor responde 504 o un deadlock: la
+ * venta pudo haberse guardado igual. Si aquí se marcara «rechazada», la cajera la descartaría y la cobraría de nuevo a
+ * mano: dos ventas, dos comprobantes y el stock baja dos veces. Sin tope de intentos a propósito (Felipe, 2026-10-12):
+ * un «Descartar» que aparezca por un fallo del camino es justo lo que invita a duplicar; la venta sigue contada como
+ * pendiente en la cabecera, así que no se esconde.
+ */
+export function ventaTrasFallo(venta: VentaEncolada, tipo: TipoFalloSubida, mensaje: string): VentaEncolada | null {
+  return tipo === "definitivo" ? { ...venta, rechazo: mensaje } : null;
+}
+
+/**
+ * Las ventas que SUBIERON entre dos fotos de la cola: esperaban (sin rechazo) y ya no están. Lo usa una pestaña de
+ * Vender cuando OTRA pestaña del mismo navegador subió la cola (evento `storage`): sus prendas ya salieron de `stock`
+ * y esta pantalla tiene que descontarlas como si las hubiera subido ella. Un descarte no cuenta (lo descartado estaba
+ * rechazado: la base no lo registró).
+ */
+export function ventasSubidasEntre(previa: readonly VentaEncolada[], actual: readonly VentaEncolada[]): VentaEncolada[] {
+  const siguen = new Set(actual.map((v) => v.token));
+  return previa.filter((v) => v.rechazo === null && !siguen.has(v.token));
 }

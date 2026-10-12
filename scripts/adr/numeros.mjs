@@ -28,6 +28,10 @@
  * número libre, con `git mv`, y actualiza sus referencias: `git grep 'ADR-<número>'`, sin
  * tocar las que son del otro ADR con ese número.
  *
+ * LAS RESERVAS (ADR-0381, 2026-10-12). Desde ahora el número se reserva al EMPEZAR (`pnpm reservar adr|migracion`,
+ * una etiqueta en el remoto que dice qué rama es la dueña), y este candado también lo mira: un número nuevo de esta rama
+ * que reservó OTRA rama sale en rojo (choca seguro); uno sin reserva solo avisa. Eso sí ve las otras ramas.
+ *
  * USO
  *   pnpm adr:numeros                        → revisa docs/adr/
  *   node scripts/adr/numeros.mjs <carpeta>  → otra carpeta (para probarlo)
@@ -35,6 +39,7 @@
 import { readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { revisarLaRama } from "../reservar/reservas.mjs";
 
 // `0102-emitir-comprobante.md` → número `0102`. Lo que no calza (un README, una plantilla)
 // no es un ADR numerado.
@@ -77,8 +82,11 @@ function main() {
   if (sobra.length > 0) {
     console.log(`ℹ LEGADO de sobra (ya no está repetido; borra su línea en scripts/adr/numeros.mjs): ${sobra.join(", ")}`);
   }
+  // Además de «¿se repite aquí?», «¿este número nuevo es de otra rama?» (ADR-0381). Solo con la carpeta de siempre.
+  const deOtraRama = process.argv[2] ? 0 : revisarLaRama({ tipo: "adr", carpeta: "docs/adr", patron: PATRON, cwd: raiz });
   if (repetidos.length === 0) {
     console.log(`✓ ${nombres.length} archivos en ${carpeta}: ningún número de ADR repetido fuera del legado.`);
+    if (deOtraRama > 0) process.exit(1);
     return;
   }
 

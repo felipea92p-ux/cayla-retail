@@ -259,7 +259,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       corto: "fotos",
       porTienda: null,
       edad: n ? 4 : null,
-      href: "/productos",
+      href: "/productos?falta=foto",
       detalle: null,
     });
   }

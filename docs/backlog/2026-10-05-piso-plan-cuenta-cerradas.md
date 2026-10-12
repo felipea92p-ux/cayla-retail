@@ -45,3 +45,14 @@ Producción el 2026-10-04 (solo lectura): `fn_piso_plan_lectura` con huella `faf
   - **Pruebas:** M1 y M3 ponen antes el cuerpo de `20261004213000` (sobre el de hoy, la guarda se detiene a propósito); M5 nuevo lo comprueba:
     volver a pegar este archivo sobre la función de hoy no borra el filtro de familias. piso-plan 60/60, motores-familias-apagadas 11/11,
     cola-arranque 53/53.
+- [x] **Segundo merge de `main` (2026-10-12, tarde): la migración pasó a reemplazos ANCLADOS.** `main` trajo el CI por tandas, que aplica las
+  migraciones de un PR DESPUÉS de las de main (`scripts/migraciones/huellas-del-pr.mjs`). En ese orden, el `create or replace` completo caía sobre
+  la función con el filtro de familias de `20261010232000`: su guarda la frenaba (y si no, lo borraba), y el CI no habría corrido. Ahora la
+  migración cambia solo sus cuatro tramos (los dos filtros `p.estado` y sus dos comentarios), con el ayudante `pg_temp.reemplazar` de main:
+  - sobre el cuerpo de `20261004213000` deja `33dfc4b1…` (lo que se pegó el 2026-10-05: el efecto es el mismo, letra por letra);
+  - en el orden del CI nuevo (main primero: `a7d5aeed…`) y en el orden por versión, la función termina en `3b9b7a08…` = producción;
+  - re-pegarla sobre producción no cambia nada, y un cambio en otro lugar de la función se conserva en vez de borrarse.
+  - Pruebas: M2 vuelve a vigilar la guarda de `20261004213000`; M4 (se conserva lo de otro lugar), M5 (sobre la de hoy no cambia nada), M6 (se
+    detiene si alguien tocó justo un filtro) y M7 (el orden con `20261010232000` no importa). piso-plan 62/62, motores-familias-apagadas 11/11,
+    cola-arranque 53/53, en los dos órdenes.
+  - El comentario del paso en el CI se mudó de `ci.yml` a `scripts/ci/pruebas-postgres.mjs` (la lista de pruebas de las tandas).

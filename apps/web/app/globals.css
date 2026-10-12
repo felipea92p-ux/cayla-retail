@@ -33,6 +33,8 @@
 @import "./estilos/pestanas-y-segmentos.css";
 @import "./estilos/traslados-pases.css";
 @import "./estilos/traslados-guia.css";
+/* La orden de compra en papel (ADR-0362, actividad 6): A4 para imprimir o guardar en PDF. */
+@import "./estilos/orden-compra-papel.css";
 @import "./estilos/marcas.css";
 @import "./estilos/analisis.css";
 @import "./estilos/gasto-rapido.css";
@@ -44,6 +46,7 @@
 @import "./estilos/analisis-ficha.css";
 @import "./estilos/vacio-aviso-buscador.css";
 @import "./estilos/barra-apilada.css";
+@import "./estilos/liquidacion.css";
 /* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
 @import "./estilos/plan-piso.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */

@@ -1,7 +1,8 @@
 // Las pruebas que vuelven a pegar una migración VIEJA de `registrar_venta` (el redondeo, 20261003130000) o que comparan su huella
 // exacta con la que esa migración prometió, corren sobre una base donde después se aplicaron parches a la función: el precio por
 // sede (20261010100200, ADR-0370), que cambió una línea, y el origen de la línea sugerida (20261010220100, «Combina bien con»), que
-// sumó una columna al insert de `venta_items`. El candado de huella de la migración vieja los rechaza, y está bien que lo haga.
+// sumó una columna al insert de `venta_items`; entre los dos, las piezas de liquidación (20261010195000, ADR-0379) le hicieron dos
+// reemplazos anclados. El candado de huella de la migración vieja los rechaza, y está bien que lo haga.
 //
 // Para probar la migración vieja sobre SU punto de partida, este texto devuelve la función a como estaba antes de esos parches
 // (se deshacen del más nuevo al más viejo). SOLO va dentro de una transacción que se deshace, o seguido de `REHACER_POSTERIORES`
@@ -36,6 +37,28 @@ begin
 end $deshacer$;
 `;
 
+/** Los dos reemplazos de liquidación (9a y 9b de 20261010195000), leídos del archivo para no copiarlos: [viejo, nuevo] en el orden en
+ *  que se aplican. Se deshacen del último al primero; si la base no los tiene, `replace` no cambia nada. */
+const LIQUIDACION = readFileSync("supabase/migrations/20261010195000_piezas_de_liquidacion.sql", "utf8");
+const REEMPLAZOS_LIQUIDACION = [...LIQUIDACION.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+if (REEMPLAZOS_LIQUIDACION.length !== 2) throw new Error("registrar-venta-antes-de-precio-sede: no encontré los dos reemplazos de liquidación");
+export const DESHACER_LIQUIDACION = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+${[...REEMPLAZOS_LIQUIDACION]
+  .reverse()
+  .map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`)
+  .join("\n")}
+end $deshacer$;
+`;
+/** Rehace SOLO los dos reemplazos (no la migración entera: volvería a crear la `crear_pieza_liquidacion` de tres parámetros junto a la
+ *  de cinco). Es re-ejecutable: `pg_temp.reemplazar` no hace nada si el texto nuevo ya está. */
+export const REHACER_LIQUIDACION = LIQUIDACION.slice(
+  LIQUIDACION.indexOf("create or replace function pg_temp.reemplazar"),
+  LIQUIDACION.indexOf("-- ---------- 10."),
+);
+
 /** Inverso de 20261010100200 (precio por sede): la venta vuelve a comparar contra `variantes.precio`. */
 export const DESHACER_PRECIO_SEDE = `do $deshacer$
 declare
@@ -51,6 +74,6 @@ export const REHACER_PRECIO_SEDE = readFileSync("supabase/migrations/20261010100
 export const REHACER_ORIGEN_SUGERENCIA = readFileSync("supabase/migrations/20261010220100_venta_items_origen_sugerencia_parte2.sql", "utf8");
 
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_ORIGEN_SUGERENCIA}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}`;

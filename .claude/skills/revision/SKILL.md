@@ -86,7 +86,7 @@ Cada uno lleva su pregunta madre y dónde mirar. Los ejemplos son **patrones a b
 5. *Concurrencia e idempotencia:* la última unidad vendida en dos sedes (`for update`, UNIQUE parcial), doble clic (tokens `p_token`), y si `scripts/pruebas/concurrencia_*.mjs` prueba carreras reales con COMMIT.
 6. *Migraciones:* prefijo `retail.` o `set search_path`, `create or replace trigger` (nunca `drop trigger`), políticas en partes separadas de los `alter` de tablas en uso (CLAUDE.md, «Políticas y deadlocks»), parches vivos que se pierden al recrear.
 7. *Volumen:* estima filas a 3 años en las tablas calientes (`movimientos`, `stock`, `actividad`, ventas) con `pg_stat_user_tables` y `pg_total_relation_size`; índices que faltan para las `fn_*` de listado. Con número, no con opinión.
-8. *Pruebas:* qué funciones que tocan dinero no tienen prueba en `scripts/pruebas/`, y qué pruebas de `package.json` no están cableadas en `.github/workflows/ci.yml`.
+8. *Pruebas:* qué funciones que tocan dinero no tienen prueba en `scripts/pruebas/`, y qué pruebas de `package.json` no están cableadas en el CI (`PRUEBAS` de `scripts/ci/pruebas-postgres.mjs`, ADR-0381).
 
 **C · Cierre y pendientes** — *«¿lo que llamamos terminado lo usa la sede sola, conectado y verificado?»* (aquí vive lo que Felipe llama «pendientes»)
 1. *Fusionado sin pegar:* migraciones nuevas en `origin/main` (`git log origin/main -- supabase/migrations`) cuyo efecto no está en producción, y PR fusionados a `main` cuya web ya pide una columna o función que la base no tiene.

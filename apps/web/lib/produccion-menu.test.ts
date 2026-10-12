@@ -39,9 +39,9 @@ describe("puedeVerProduccion", () => {
 });
 
 describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se muestra — Felipe, 2026-09-21)", () => {
-  it("el líder ve las seis pantallas de Compras desde una tienda o un almacén, en el orden plan → proveedor → factura → recepción → pago → notas", () => {
+  it("el líder ve las siete pantallas de Compras desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → recepción → pago → notas", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"]);
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "proveedores", "ordenesCompra", "comprobantes", "recibir", "porPagar", "notasCredito"]);
     }
   });
 

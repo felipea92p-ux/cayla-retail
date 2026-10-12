@@ -618,8 +618,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `lib/recibir-cambio-de-sede.ts`. Las dos puertas usan `useSalidaSinGuardar`, que también avisa lo guardado en otra sede.
 - **Ventas sin registrar = `/inventario/por-regularizar`** (ADR-0330, 2026-10-04; antes la pestaña `/recibir?vista=por-regularizar`,
   que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
-  `lib/por-regularizar.ts` + `lib/por-regularizar-stock.ts` (`fn_existencias` por tienda) + `PorRegularizarLista.tsx` → la mesa **talones · puente · prendas** (ADR-0360, 2026-10-07; maqueta A2 «Puente»): `components/por-regularizar/` (`MesaRegularizar`, `TalonVenta`, `PuenteUnion`, `PanelPrendas`, `TarjetaCandidata`, `HilosMesa`, `FranjaAvance`), lógica pura en `lib/por-regularizar-mesa.ts`, estilos en `app/estilos/ventas-sin-registrar.css`; el modal «Regularizar» ya no existe (es el puente) → RPC `regularizar_prenda` (sin cambios; detalle en «Recibir mercadería»,
-  más abajo). Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
+  `lib/por-regularizar.ts` + `lib/por-regularizar-stock.ts` (`fn_existencias` por tienda) + `PorRegularizarLista.tsx` → la mesa **talones · puente · prendas** (ADR-0360, 2026-10-07; maqueta A2 «Puente»): `components/por-regularizar/` (`MesaRegularizar`, `TalonVenta`, `PuenteUnion`, `PanelPrendas`, `TarjetaCandidata`, `HilosMesa`, `FranjaAvance`), lógica pura en `lib/por-regularizar-mesa.ts`, estilos en `app/estilos/ventas-sin-registrar.css`; el modal «Regularizar» ya no existe (es el puente) → RPC `regularizar_prenda` (detalle en «Recibir mercadería»,
+  más abajo). **«¿Cómo estaba?» sugerido por el libro (ADR-0328 act. 5, rescatado de #788 el 2026-10-12):** `lib/por-regularizar-libro.ts` (`getLibroPorVenta`, nunca lanza) → RPC de lectura `fn_candidatas_por_regularizar` (saldo de cada prenda a la hora de la venta y lo primero que llegó o se ajustó después) → lógica pura `lib/por-regularizar-deduccion.ts` (`deducirForma`, `avisoDeRespuesta`) → `MesaRegularizar` → `PuenteUnion` marca «Sugerida» (sin elegirla) y avisa en ámbar si se elige la contraria. **Lo que `regularizar_prenda` va a rechazar, dicho antes del botón (revisión de #975):** una prenda sin unidades libres pregunta desde el navegador si entró alguna vez a la tienda (`components/por-regularizar/usePrendaSinCargar.ts` → RPC de lectura `fn_prenda_cargada_en_sede` + `fn_carga_inicial_sedes`, `x-espera: no`) y, si no, la nota dice la misma frase que la base (`prendaSinCargar`/`notaSinUnidades` en `lib/por-regularizar-reglas.ts`); y bajo el «Responsable», que nadie regulariza su propia venta (`motivoPropiaVenta`, con `FilaPorRegularizar.vendidoPorId`). Solo avisan: el botón y la guía de foco no cambian. Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
   con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí. **Corregir lo anotado (ADR-0369, 2026-10-09):** «Corregir lo anotado» en el puente (`PuenteUnion`) y en `ResumenResuelta` (cerradas) → `CorregirPrendaSinRegistrarModal` (la hoja de Vender, `PrendaSinRegistrarModal` en modo `corregir`; listas de `lib/prenda-sin-registrar-listas.ts`, reglas en `lib/corregir-prenda-sin-registrar-reglas.ts`) → RPC `corregir_prenda_sin_registrar`; la línea «Corregido por …» sale de `fn_correcciones_prenda_sin_registrar` (leída en `getPorRegularizar`). **Desde el detalle de una venta (2026-10-06):** Ventas ▸ Historial ofrece «Regularizar prenda» (`accionesDeVenta`, clave `regularizar`) si la línea tiene su fila de la cola `pendiente` (`FilaHistorial.itemsPorRegularizar`, embebida desde `venta_items`) y lleva a `/inventario/por-regularizar?ubicacion=&item=`, que abre la hoja de esa prenda (`PorRegularizarLista`, prop `abrirItemId`). **Cierre de arranque (ADR-0334, 2026-10-04):**
   un líder da por hechas, en bloque y dentro del plazo de su tienda, las ventas que ya no se pueden identificar → botón en la lista →
   `CerrarColaArranqueModal.tsx` (reglas puras en `lib/cola-arranque-reglas.ts`; plazos por `getPlazosColaArranque`) → RPC `cerrar_cola_arranque`
@@ -801,6 +801,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`filtrarColores`, `filtrarPorNombre`, `usoDe`) y, para Temporadas, `lib/temporadas-pantalla.ts` (`estacionesDe`,
   `grupoDeTemporada`, `tonoDeTemporada`; dibujo en `MuestraTemporada`, molde `MuestraIcono` de `MuestraEtiqueta`).
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
+- `/productos/liquidacion` (Catálogo ▸ Liquidación, módulo `liquidacion`, ADR-0379) → `page.tsx` lee `fn_piezas_liquidacion` y
+  `categorias` → `LiquidacionPantalla.tsx` (cifras, buscador que lee una etiqueta LQ con `fn_pieza_liquidacion`, lista) +
+  `EtiquetarPiezaModal.tsx` (`crear_pieza_liquidacion`) + `PiezaLiquidacionModal.tsx` (`cambiar_precio_pieza_liquidacion`,
+  `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
+  `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
+  (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -971,7 +977,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   listas de `categorias`/`tallas`/`colores` que carga `vender/page.tsx`) agrega una línea de la variante centinela
   `ID_CARGO_ESPECIAL` con `descripcion_libre`/`categoria_id`/`talla_id`/`color_codigo` en su ítem de `p_items`;
   `registrar_venta` la exige completa y en cantidad 1, **no mueve stock** por ella y la deja en
-  `prendas_por_regularizar` (estado `pendiente`). El comprobante electrónico la nombra con `descripcion_libre`
+  `prendas_por_regularizar` (estado `pendiente`). Si lo escrito nombra otra categoría que la elegida («Jean…» con Pantalones), el
+  modal la sugiere bajo la descripción sin aplicarla (`lib/sugerir-categoria-sin-registrar.ts`, ADR-0328 decisión 6; también al
+  corregir lo anotado). El comprobante electrónico la nombra con `descripcion_libre`
   (`itemsParaLucode`). `anular_venta` salta la línea pendiente; un trigger en `ventas` pasa la fila a `anulada`, y
   otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
@@ -1195,9 +1203,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   **«Por regularizar» / Ventas sin registrar** (ADR-0179; desde ADR-0330 en `/inventario/por-regularizar`, ver Inventario V2) → `lib/por-regularizar.ts` (lectura de
   `prendas_por_regularizar` + `fn_nombres_personas`; el líder ve todas sus sedes) + `lib/por-regularizar-reglas.ts`
   (vencida a los `DIAS_PARA_VENCER` = 2 días, tipo de diferencia, cifras del mes) → `PorRegularizarLista.tsx` → RPC
-  `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 (piso, si no almacén);
+  `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 de lo DISPONIBLE (ni Cuarentena ni apartadas; piso, si no almacén);
   `llego_nueva` = entrada `ingreso_regularizado` + salida; la salida lleva motivo `venta` y el `venta_item_id`, la
-  línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. `contarVencidas` alimenta la
+  línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. Desde `20261004204000` (ADR-0328, en
+  producción desde el 2026-10-05; en el repo desde el rescate de #788): pide quién firma (`responsable_requerido`), nadie
+  regulariza su propia venta salvo el líder firmando él mismo (`regularizar_propia_venta`) y una prenda sin ningún movimiento en
+  la sede no se regulariza (`fn_exigir_prenda_cargada_en_sede`, con la salida que siga abierta: cargarla o «Encontré prendas»).
+  `contarVencidas` alimenta la
   cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):
@@ -1312,7 +1324,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   dos rutas usan `lib/transmitir-comprobante.ts` (guardas de `lib/transmision-reglas.ts`, ítems de la venta
   con `itemsParaLucode`) → `lib/lucode.ts` (el tipo de documento sale del catálogo 06 de
   `lib/documento-comprobante-reglas.ts`, la misma tabla del QR, el papel y el registro de ventas) → `actualizar_transmision_comprobante`, o
-  `fn_marcar_reintento_transmision` si Lucode no responde. `/api/lucode/reintentar` toma lo vencido con
+  `fn_marcar_reintento_transmision` si Lucode no responde. Si Lucode contesta que el número «fue emitido anteriormente»,
+  `lib/resolver-ya-emitido.ts` (reglas en `lib/ya-emitido-reglas.ts`, ADR-0378) pregunta su estado, baja el XML firmado,
+  lo compara con el comprobante y solo entonces guarda lo que dice SUNAT; si es otro documento, queda en la cola como
+  «número ocupado». Comprobantes, al abrirse, barre en varias pasadas (`vaciarColaSunat`). `/api/lucode/reintentar` toma lo vencido con
   `fn_tomar_comprobantes_para_reintento` (reserva de 5 min, `for update skip locked`), y en la misma pasada
   pregunta por lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— con
   `fn_tomar_comprobantes_para_consultar` → `lib/consultar-comprobante.ts` (reglas en `lib/consulta-sunat-reglas.ts`)
@@ -1434,7 +1449,33 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     confianza del stock y lista de compra) + `lib/plan-compra-guia.ts`. Pantalla: `components/plan-compra/PlanCampana.tsx` arma
     `AvisoStock`, `CifrasPlan` y `ListaCategorias` (con `FilaCategoria` y `BarraRango`); la hoja de una categoría es
     `PlanCategoriaModal.tsx` y el paso a paso `PasoAPaso.tsx`, los dos con `FormularioCategoria.tsx` (`guardar_plan_compra_linea`);
-    `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`).
+    `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`). B5 (act. c): `EditarCampanaModal.tsx` → `editar_plan_compra` y `quitar_plan_compra` (vacía se borra, con algo se archiva); `CampanasArchivadasModal.tsx` → `restaurar_plan_compra`; `fn_planes_compra` dice `archivado` y `con_tope`, y `fn_plan_compra` no abre por defecto una archivada. C1–C6 (act. 2026-10-12): sin `?plan=` se abre la campaña que toca hoy (`campanaQueAbre`); pestañas `PestanasPlan.tsx` (Plan · Resultados · Historial); la propuesta de flojo/normal/bueno sale de `fn_plan_compra_propuesta` + `lib/plan-compra-propuesta.ts` (`FormularioCategoria` «Proponer los tres»); `RecuperoModal.tsx` → `guardar_plan_compra_recupero` (lo que sobra de CAYLA, solo líder).
+  - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
+  - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
+  - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
+    ve las de todas las sedes) → `lib/ordenes-compra.ts` (`fn_ordenes_compra`, `fn_ordenes_compra_resumen`, `getDestinosOrden`) +
+    `lib/ordenes-compra-reglas.ts` (número `OC-000001`, destino, estados, lectura defensiva; filtros en la URL `?destino=&estado=&q=&cursor=`
+    que arrancan en la sede donde se trabaja, píldoras, vacío, página de 50 pidiendo 51) + `components/ordenes-compra/BuscadorOrdenes.tsx`
+    (número o proveedor, sin loader) + `PaginacionCursor`. Cabecera `EncabezadoPagina`; cifras que no cambian con los filtros (total,
+    la sede donde se trabaja, por repartir); columnas por el ancho de la tabla (`@container`). 7.ª entrada temporal de Compras hasta que
+    Recibir pase a Inventario (la sesión de Recepción; ver ADR-0362, «Contrato con»).
+  - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
+    sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
+    «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
+    reescritura `beforeFiles`). Con la orden «generada», `components/ordenes-compra/AccionesOrden.tsx` en el pie de la ventana y en la
+    cabecera de la página: «Anular orden» (hoja con el motivo → `lib/ordenes-compra-acciones.ts:anularOrdenCompra`, `anular_orden_compra`,
+    firma `orden_compra_anular`, versión esperada), «Imprimir o guardar PDF» y «Editar» (`BotonEditarOrden.tsx`). El papel A4
+    (`HojaOrdenCompra.tsx` + `app/estilos/orden-compra-papel.css`, `#orden-compra-print` pegado a <body>) lleva quién emite
+    (`getEmpresaParaOrden`, `configuracion_empresa`) y el documento se llama como la orden (`useTituloDeImpresion`: «OC-000129.pdf»).
+  - `/compras/ordenes/editar/[id]` («Editar OC-000129», actividad 4) → `lib/ordenes-compra.ts:getDatosEditarOrden` (lo de «Nueva orden»
+    más la orden, con lo inactivo que ya tenía sumado a las listas) + `NuevaOrdenCompra` con `editar` (montado con `key` = versión) →
+    `lib/ordenes-compra-acciones.ts:editarOrdenCompra` (`editar_orden_compra`, firma `orden_compra_editar`, versión esperada: PT409 si otra
+    persona guardó antes) + `lib/orden-compra-alta.ts` (`borradorDeDetalle`, `argsEditarOrden`). Lo de antes queda en
+    `orden_compra_versiones`; crear y editar anotan en Actividad (módulo `ordenes_compra`, sin montos).
+  - `/compras/ordenes/nueva` («Nueva orden de compra») → `lib/ordenes-compra.ts:getDatosNuevaOrden` (proveedores, marcas, vínculos,
+    categorías, destinos y `fn_ordenes_compra_siguiente`) + `components/ordenes-compra/NuevaOrdenCompra.tsx` →
+    `lib/ordenes-compra-acciones.ts:crearOrdenCompra` (`crear_orden_compra`, firma `orden_compra_crear`: persona sin combo, terminal
+    con combo) + `lib/orden-compra-alta.ts` (números como se tipean, cálculo de línea en céntimos, guía de foco, argumentos).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 
