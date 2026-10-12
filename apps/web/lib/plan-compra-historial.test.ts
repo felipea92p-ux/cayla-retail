@@ -5,7 +5,9 @@ import {
   crecimiento,
   diasDeLaCampana,
   filasDelAnio,
+  filtrarYOrdenar,
   rangoDeCampana,
+  type OrdenHistorial,
   leerHistorial,
   medir,
   mismaFechaEn,
@@ -137,6 +139,32 @@ describe("crecer contra el año anterior", () => {
     const l = lectura("2026-10-12", [TRU], "2024-01-01", "2025-12-31", (_t, f) => (f.startsWith("2025") ? 2 : 1));
     expect(totalDelAnio(l, "tru", 2025).crecimiento).toBeCloseTo((365 * 2) / 366 - 1);
     expect(totalDelAnio(l, "tru", 2024).crecimiento).toBeNull();
+  });
+});
+
+describe("buscar y ordenar las campañas del año", () => {
+  const l = lectura("2026-10-12", [TRU], "2024-11-01", "2025-12-31", (_t, f) => (f.slice(5) >= "12-11" && f.slice(5) <= "12-25" ? 3000 : 1000));
+  const etiquetas = [
+    { id: "nav", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25" },
+    { id: "hal", nombre: "Halloween", desde: "2026-10-17", hasta: "2026-10-31" },
+    { id: "dia", nombre: "Día de la Madre", desde: "2026-04-26", hasta: "2026-05-10" },
+  ];
+  const filas = filasDelAnio(l, etiquetas, 2025);
+  const nombres = (o: OrdenHistorial, q = "") => filtrarYOrdenar(filas, q, o).map((f) => f.campana.nombre);
+  it("por fecha, como siempre", () => {
+    expect(nombres("fecha")).toEqual(["Día de la Madre", "Halloween", "Diciembre", "Navidad"]);
+  });
+  it("de la A a la Z y al revés", () => {
+    expect(nombres("az")).toEqual(["Día de la Madre", "Diciembre", "Halloween", "Navidad"]);
+    expect(nombres("za")).toEqual(["Navidad", "Halloween", "Diciembre", "Día de la Madre"]);
+  });
+  it("las más vendidas primero (Diciembre, 31 días con Navidad adentro) y al revés", () => {
+    expect(nombres("mas")[0]).toBe("Diciembre");
+    expect(nombres("menos").at(-1)).toBe("Diciembre");
+  });
+  it("busca sin tildes ni mayúsculas", () => {
+    expect(nombres("fecha", "dia")).toEqual(["Día de la Madre"]);
+    expect(nombres("fecha", "NAV")).toEqual(["Navidad"]);
   });
 });
 

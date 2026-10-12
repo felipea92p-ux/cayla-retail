@@ -77,7 +77,8 @@ export function CifrasPlan({
           ? "Solo las categorías con plan"
           : excede > 0
             ? `Te pasas ${solesES(excede)} del tope de ${solesES(tope.valor)}`
-            : `${Math.round((totales.inversion / tope.valor) * 100)} % del tope de ${solesES(tope.valor)}`}
+            : // El «open-to-buy» de los grandes, en palabras de tienda: cuánta plata queda para comprar (Felipe 2026-10-12).
+              `Te quedan ${solesES(Math.round((tope.valor - totales.inversion) * 100) / 100)} para comprar, de ${solesES(tope.valor)}`}
       </TarjetaCifra>
       {verReal ? (
         <TarjetaCifra etiqueta="Vendido en la campaña" valor={enteroES.format(totales.vendido)}>

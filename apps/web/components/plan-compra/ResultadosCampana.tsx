@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChartColumn } from "lucide-react";
+import { ChartColumn, ChevronRight, SearchX } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { Desplegable } from "@/components/ui/campos";
+import { DetalleCategoriaResultados } from "@/components/plan-compra/DetalleCategoriaResultados";
 import { Aviso } from "@/components/ui/Aviso";
 import { Ayuda } from "@/components/Ayuda";
 import { Chip } from "@/components/ui/Chip";
@@ -13,17 +16,29 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { enteroES, fechaCortaES, solesES, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import {
+  cierre,
   coloresQueMasVendieron,
+  comoVa,
   diasMedidos,
+  filtrarYOrdenarCategorias,
   leerResultados,
   momentoDeResultados,
   multiplicadorReal,
+  pesosDeLosDias,
   porCategoria,
   porFamilia,
   prendasQueMasVendieron,
   recuperoRealTotal,
+  senales,
+  ORDENES_RESULTADOS,
+  type FilaCategoria,
+  type OrdenResultados,
 } from "@/lib/plan-compra-resultados";
-import { textoMultiplicador } from "@/lib/plan-compra-historial";
+import { leerPropuesta } from "@/lib/plan-compra-propuesta";
+import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
+import { TarjetaComoVa } from "@/components/plan-compra/ComoVaCampana";
+import { SenalesCampana } from "@/components/plan-compra/SenalesCampana";
+import { CierreCampana } from "@/components/plan-compra/CierreCampana";
 
 // Plan de campaña ▸ Resultados (ADR-0372, C6 · Felipe 2026-10-12): lo que se vendió de verdad en una campaña, por tienda, familia, categoría,
 // prenda y color; el multiplicador real de cada tienda; qué se agotó; y a qué % se vendió lo que sobró. Solo lee. Las píldoras de tienda
@@ -31,9 +46,39 @@ import { textoMultiplicador } from "@/lib/plan-compra-historial";
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,0.8fr)]";
 
-export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; campanas: CampanasLeidas | null; falla: string | null }) {
+export function ResultadosCampana({
+  datos,
+  campanas,
+  falla,
+  anterior = null,
+  propuesta = null,
+  veAnalisis = false,
+}: {
+  datos: unknown;
+  campanas: CampanasLeidas | null;
+  falla: string | null;
+  /** La misma campaña un año antes (`fn_historial_ventas`, crudo): la forma de los días para «¿Cómo va?». */
+  anterior?: unknown;
+  /** La propuesta del Plan (`fn_plan_compra_propuesta`, crudo): lo vendido por categoría en la misma campaña el año anterior. */
+  propuesta?: unknown;
+  /** Quien ve Análisis recibe los accesos a la prenda exacta (Se está acabando, No se vende). */
+  veAnalisis?: boolean;
+}) {
   const r = useMemo(() => leerResultados(datos), [datos]);
+  // La forma de cada día de la campaña: los soles por día de la misma campaña el año pasado (todas las tiendas); sin historia, parejos.
+  const pesos = useMemo(() => {
+    if (!r) return { pesos: [] as number[], conForma: false };
+    const h = leerHistorial(anterior);
+    const porDia = new Map<string, number>();
+    for (const dias of h?.dias.values() ?? []) for (const [f, s] of dias) porDia.set(f, (porDia.get(f) ?? 0) + s);
+    const p = pesosDeLosDias(r.plan.desde, r.plan.hasta, porDia.size > 0 ? porDia : null);
+    return { pesos: p, conForma: new Set(p).size > 1 };
+  }, [r, anterior]);
   const [tienda, setTienda] = useState<string | null>(null);
+  const [abierta, setAbierta] = useState<FilaCategoria | null>(null);
+  const [q, setQ] = useState("");
+  const [orden, setOrden] = useState<OrdenResultados>("mas");
+  const lecturaPropuesta = useMemo(() => leerPropuesta(propuesta), [propuesta]);
   // El «!» con lo que la frase no alcanza a decir, como en Productos y en el Historial (Felipe 2026-10-12).
   const ayuda = (
     <Ayuda titulo="Resultados">
@@ -102,7 +147,8 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
     );
   }
 
-  const categorias = porCategoria(r, tienda);
+  const todasLasCategorias = porCategoria(r, tienda);
+  const categorias = filtrarYOrdenarCategorias(todasLasCategorias, q, orden);
   const familias = porFamilia(r, tienda);
   const prendas = prendasQueMasVendieron(r, tienda);
   const colores = coloresQueMasVendieron(r, tienda);
@@ -110,6 +156,11 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
   const dias = diasMedidos(r);
   const total = r.tiendas.reduce((s, t) => ({ unidades: s.unidades + t.unidades, soles: s.soles + t.soles }), { unidades: 0, soles: 0 });
   const conMultiplicador = r.tiendas.map((t) => ({ t, m: multiplicadorReal(r, t) })).filter((x) => x.m !== null);
+  const datosCierre = cierre(r);
+  const enCurso =
+    momento === "en-curso"
+      ? { como: comoVa(r, pesos.pesos), piden: senales(r, pesos.pesos).filter((s) => s.senal !== "bien"), faltan: pesos.pesos.length - Math.min(pesos.pesos.length, dias) }
+      : null;
 
   return (
     <div className="space-y-6">
@@ -119,6 +170,10 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
           : `${r.plan.nombre}, ${rango}: lo que se vendió de verdad, tienda por tienda.`,
       )}
       <PestanasPlan activa="resultados" planId={r.plan.id} />
+
+      {/* Al terminar, el cierre arriba (Felipe 2026-10-12). Durante, «¿cómo va?» es la primera tarjeta de cifras y «Pedir más o impulsar»
+          aparece debajo solo si alguna categoría pide algo. Toda CAYLA: las píldoras de tienda filtran la tabla, no esto. */}
+      {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
       {r.tiendas.length > 1 && (
         <div role="group" aria-label="Tienda" data-guia="plan-resultados.tiendas" className="flex flex-wrap gap-2">
@@ -133,7 +188,8 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
         </div>
       )}
 
-      <div data-guia="plan-resultados.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-guia="plan-resultados.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} />}
         <TarjetaCifra etiqueta="Toda CAYLA" valor={enteroES.format(total.unidades)} unidad="prendas">
           {solesES(total.soles)}
           {momento === "en-curso" ? " · hasta ayer" : ""}
@@ -148,23 +204,55 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
         })}
       </div>
 
+      {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} />}
+
       <Tabla guia="plan-resultados.tabla">
-        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
-          {["Categoría", "Vendidas", "Soles", tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "Lo que sobró"].map((t) => (
-            <span key={t} className="text-xs font-normal text-taupe" role="columnheader">
+        {/* Buscar y ordenar (Felipe 2026-10-12): como en el Historial, en la misma tarjeta que la tabla. «Más vendidas» es el de siempre. */}
+        <div data-guia="plan-resultados.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
+          <Buscador valor={q} onCambio={setQ} placeholder="Buscar una categoría o familia" etiqueta="Buscar una categoría o familia" atajo conteo={q ? `${categorias.length} de ${todasLasCategorias.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
+          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenResultados)} opciones={ORDENES_RESULTADOS} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+        </div>
+        <div className={`encabezado-tabla-cayla hidden gap-x-6 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
+          {/* Cada título se alinea como su columna (Tabla, «celda»): las cifras y su título a la derecha, el texto a la izquierda. */}
+          {(
+            [
+              ["Categoría", "izq"],
+              ["Vendidas", "der"],
+              ["Soles", "der"],
+              [tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "izq"],
+              ["Lo que sobró", "der"],
+            ] as const
+          ).map(([t, alinear]) => (
+            <span key={t} className={`text-xs font-normal text-taupe ${alinear === "der" ? "text-right" : ""}`} role="columnheader">
               {t}
             </span>
           ))}
         </div>
-        {categorias.length === 0 ? (
+        {todasLasCategorias.length === 0 ? (
           <Vacio tamano="chico" icono={<ChartColumn />} titulo="Sin ventas todavía">
             En estas fechas no se vendió ninguna categoría{tienda ? " en esta tienda" : ""}.
           </Vacio>
+        ) : categorias.length === 0 ? (
+          <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna categoría se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
+            Prueba con otra palabra o borra la búsqueda.
+          </Vacio>
         ) : (
           categorias.map((c) => (
-            <div key={c.id} className={`fila-cayla grid gap-x-4 gap-y-1 px-5 py-3 sm:items-baseline ${PLANTILLA}`} role="row">
+            // Toda la fila abre su detalle: contra lo esperado, contra la campaña pasada y qué prendas y colores se vendieron. También una
+            // categoría que todavía no vende: su detalle dice cuánto se esperaba (Felipe 2026-10-12).
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setAbierta(c)}
+              data-guia="plan-resultados.fila"
+              aria-label={`Ver el detalle de ${c.nombre}`}
+              className={`fila-cayla grid w-full cursor-pointer gap-x-6 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline ${PLANTILLA}`}
+            >
               <span className={celda("izq")}>
-                <span className="block font-semibold text-tinta">{c.nombre}</span>
+                <span className="flex items-center gap-1.5 font-semibold text-tinta">
+                  {c.nombre}
+                  <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
+                </span>
                 <span className="block text-xs text-taupe">{c.familia}</span>
               </span>
               <span className={celda("der", "text-tinta")}>{enteroES.format(c.unidades)}</span>
@@ -180,10 +268,14 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
               <span className={celda("der", "text-sm text-tinta/80")} title={c.plan ? `Planificaste ${c.plan.recuperoPct} %` : undefined}>
                 {c.recuperoReal !== null ? `${c.recuperoReal} % del precio` : momento === "en-curso" ? "Al terminar" : "—"}
               </span>
-            </div>
+            </button>
           ))
         )}
       </Tabla>
+
+      {abierta && (
+        <DetalleCategoriaResultados r={r} categoria={abierta} tiendaInicial={tienda} pesos={pesos.pesos} propuesta={lecturaPropuesta} onClose={() => setAbierta(null)} />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section data-guia="plan-resultados.prendas" className="card-cayla p-5">

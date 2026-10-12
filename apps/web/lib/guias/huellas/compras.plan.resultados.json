@@ -2,17 +2,30 @@
   "guia": "compras.plan.resultados",
   "ruta": "/compras/plan/resultados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 4,
+  "total": 11,
   "controles": {
+    "components/plan-compra/CierreCampana.tsx": [
+      "Link «Qué no se vende, en Análisis»"
+    ],
+    "components/plan-compra/DetalleCategoriaResultados.tsx": [
+      "button «Todas»",
+      "button «{t.nombre}»"
+    ],
     "components/plan-compra/PestanasPlan.tsx": [
       "Pestanas «);»"
     ],
     "components/plan-compra/ResultadosCampana.tsx": [
       "button «Todas»",
-      "button «{t.nombre}»"
+      "button «{t.nombre}»",
+      "Desplegable «(sin nombre)»",
+      "button «Borrar la búsqueda»",
+      "button «plan-resultados.fila»"
     ],
     "components/plan-compra/SelectorCampana.tsx": [
       "Desplegable «);»"
+    ],
+    "components/plan-compra/SenalesCampana.tsx": [
+      "Link «{VISTA[s.senal as \"pedir\" | \"impulsar\"].texto}»"
     ]
   }
 }

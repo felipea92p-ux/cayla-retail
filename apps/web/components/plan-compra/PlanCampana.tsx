@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronUp } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
@@ -20,6 +20,10 @@ import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
+import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
+import { ResumenCompactoPlan } from "@/components/plan-compra/ResumenCompactoPlan";
+import { RepartoModal } from "@/components/plan-compra/RepartoModal";
+import { fraseDeLosMinimos } from "@/lib/plan-compra-reparto";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
@@ -60,6 +64,7 @@ export function PlanCampana({
   preparacion,
   campanas,
   puedeContar,
+  veAnalisis = false,
   esLider,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
@@ -70,6 +75,8 @@ export function PlanCampana({
   preparacion: LecturaMotor;
   campanas: CampanasLeidas | null;
   puedeContar: boolean;
+  /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
+  veAnalisis?: boolean;
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
@@ -95,6 +102,8 @@ export function PlanCampana({
   const [exportando, setExportando] = useState(false);
   const [editandoTope, setEditandoTope] = useState(false);
   const [editandoRecupero, setEditandoRecupero] = useState(false);
+  const [resumenAbierto, setResumenAbierto] = useState(false);
+  const [editandoReparto, setEditandoReparto] = useState(false);
   const [nuevaCampana, setNuevaCampana] = useState(false);
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
@@ -108,7 +117,23 @@ export function PlanCampana({
     if (!plan) return [];
     const base = armarFilas(plan);
     if (!hechos || hechos.planId !== plan.plan.id) return base;
-    return base.map((f) => ({ ...f, propuesta: proponer(hechos, f.c.id), recuperoDefecto: hechos.recupero.pct }));
+    return base.map((f) => ({
+      ...f,
+      propuesta: proponer(hechos, f.c.id),
+      recuperoDefecto: hechos.recupero.pct,
+      // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
+      reparto:
+        hechos.tiendasActivas.length > 0
+          ? hechos.tiendasActivas.map((t) => ({
+              id: t.id,
+              nombre: t.nombre,
+              u90: hechos.categorias.get(f.c.id)?.find((h) => h.tienda === t.id)?.u90 ?? 0,
+              dias90: hechos.tiendas.find((x) => x.id === t.id)?.dias90 ?? 0,
+              stock: f.sedes?.find((s) => s.ubicacion === t.nombre)?.unidades ?? 0,
+              minimo: hechos.minimos.get(t.id) ?? null,
+            }))
+          : undefined,
+    }));
   }, [plan, hechos]);
 
   const recordar = (categoriaId: string, version: number | null) => {
@@ -265,6 +290,19 @@ export function PlanCampana({
 
       <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
+      {/* Compacto por defecto (Felipe 2026-10-12): una línea con las cifras y la tabla a la vista; «Ver detalle» abre las tarjetas, la
+          banda de lo que sobra y el simulador. */}
+      {!resumenAbierto ? (
+        <ResumenCompactoPlan
+          totales={totales}
+          estado={momento.estado}
+          tope={plan.tope.valor}
+          recuperoPct={hechos && hechos.planId === plan.plan.id ? hechos.recupero.pct : null}
+          sedes={[...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"))}
+          onAbrir={() => setResumenAbierto(true)}
+        />
+      ) : (
+      <>
       {hechos && hechos.planId === plan.plan.id && (
         // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
         <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
@@ -277,7 +315,37 @@ export function PlanCampana({
         </div>
       )}
 
+      {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
+        // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; un líder fija el mínimo de la que vende poco (Lima).
+        <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
+          <span className="min-w-0 flex-1 basis-72">
+            Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
+            {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
+            detalle, en la hoja de cada categoría.
+          </span>
+          {esLider && (
+            <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
+              {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
+            </Boton>
+          )}
+        </div>
+      )}
+
       <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
+
+      {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
+      {momento.estado === "antes" && vista === "tabla" && (
+        <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
+      )}
+
+      <div className="flex justify-end">
+        <button type="button" onClick={() => setResumenAbierto(false)} aria-expanded className="btn-cayla btn-sutil inline-flex items-center gap-1.5">
+          Ocultar detalle
+          <ChevronUp aria-hidden className="h-4 w-4" />
+        </button>
+      </div>
+      </>
+      )}
 
       <ListaCategorias
         filas={filas}
@@ -340,6 +408,9 @@ export function PlanCampana({
       {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
 
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
+      {editandoReparto && hechos && (
+        <RepartoModal planId={plan.plan.id} planNombre={plan.plan.nombre} tiendas={hechos.tiendasActivas} minimos={hechos.minimos} onClose={() => setEditandoReparto(false)} />
+      )}
       {editandoRecupero && hechos && (
         <RecuperoModal planId={plan.plan.id} planNombre={plan.plan.nombre} actual={hechos.recupero.pct} heredado={hechos.recupero.heredado} onClose={() => setEditandoRecupero(false)} />
       )}
