@@ -1,5 +1,6 @@
 "use client";
 
+import { Buscador } from "@/components/ui/Buscador";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { PrendaCatalogo } from "@/lib/catalogo-grupos";
@@ -12,6 +13,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
+import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -38,9 +40,9 @@ type Props = {
   resultados: VarianteBusqueda[];
   activo: number;
   aviso: string | null;
-  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. `cuando` es la hora de la
-   *  tecla (`timeStamp` del evento): con ella el padre distingue a la pistola de una persona (`lib/lectura-pistola.ts`). */
-  onEscribir: (valor: string, cuando: number) => void;
+  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. La pistola la distingue
+   *  `usePistola` escuchando el campo, no esta prop. */
+  onEscribir: (valor: string) => void;
   /** El botón ×: solo borra el texto (no toca activo ni aviso — así era). */
   onLimpiarBusqueda: () => void;
   onTeclado: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -83,15 +85,8 @@ type Props = {
   // Ventas de hoy (vive dentro del <section>, bajo la grilla)
 };
 
-/** Mismo chip para las categorías y para el filtro de stock: uno "prendido" se ve igual
- *  sea cual sea su tipo, así la encargada de sede lee la fila entera de un vistazo.
- *  `rounded-md`: mismo radio que la "pastilla" del selector de ubicación
- *  (`campos.tsx`, `FORMA_DESPLEGABLE.pastilla`) — un chip de filtro es la misma
- *  familia de control que ese selector, no una tarjeta. */
-const chip = (prendido: boolean) =>
-  `label-cayla h-8 shrink-0 rounded-md border px-3 text-[11px] transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] active:translate-y-px ${
-    prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
-  }`;
+/* Las categorías del catálogo son un filtro: la píldora del sistema (`pildora-cayla`, ADR-0358 «pestanas»: filtrar = píldora),
+   con `aria-pressed` para la elegida. Antes era un chip propio en versalitas. */
 
 /** Un código QR de línea (brandbook: íconos solo de trazo): tres marcas de esquina y el punteado del centro. */
 function IconoQr({ className }: { className?: string }) {
@@ -216,56 +211,35 @@ export function PuntoDeVentaCatalogo({
               data-guia="vender.escanear"
               onClick={onAbrirCamara}
               disabled={bloqueado}
-              className="label-cayla flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-tinta px-3 text-[11px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px"
+              className="btn-cayla btn-primario flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap"
             >
               <IconoQr className="h-5 w-5 shrink-0" />
               Escanear QR
             </button>
           ) : (
           <div className="relative z-20 min-w-0 flex-1 max-sm:static">
-            <label data-guia="vender.buscador" className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-              {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                className="h-5 w-5 shrink-0 text-tinta/45 transition-colors group-focus-within:text-rojo"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-              >
-                <path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" />
-              </svg>
-              <input
-                id="venta-buscar"
-                ref={buscadorRef}
-                // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
-                autoFocus
-                disabled={bloqueado}
-                value={q}
-                onChange={(e) => onEscribir(e.target.value, e.timeStamp)}
-                onKeyDown={onTeclado}
-                placeholder="Escanea la etiqueta o busca la prenda"
-                aria-label="Escanea la etiqueta o busca la prenda"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={resultados.length > 0}
-                aria-controls="venta-resultados"
-                aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/45"
-              />
-              {q && (
-                <button
-                  type="button"
-                  aria-label="Limpiar búsqueda"
-                  onClick={() => onLimpiarBusqueda()}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40"
-                >
-                  ×
-                </button>
-              )}
-            </label>
+            {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega, con el código de barras que se enciende
+                en rojo («acá se escanea» sin una palabra más). Filtra mientras se escribe. */}
+            <Buscador guia="vender.buscador"
+              tamano="mostrador"
+              icono="barras"
+              id="venta-buscar"
+              ref={buscadorRef}
+              // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
+              autoFocus
+              disabled={bloqueado}
+              valor={q}
+              onCambio={(v) => onEscribir(v)}
+              onBorrar={() => onLimpiarBusqueda()}
+              onKeyDown={onTeclado}
+              placeholder="Escanea la etiqueta o busca la prenda"
+              etiqueta="Escanea la etiqueta o busca la prenda"
+              role="combobox"
+              aria-expanded={resultados.length > 0}
+              aria-controls="venta-resultados"
+              aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
+              aria-autocomplete="list"
+            />
             {q && (
               <ul
                 id="venta-resultados"
@@ -319,10 +293,16 @@ export function PuntoDeVentaCatalogo({
                             {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                             {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
                             {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
-                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">{money(v.precio)}</span>
+                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">
+                              {money(v.precio)}
+                              {v.precioDeSede && <span className="ml-1 text-[10.5px] text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                            </span>
                           </span>
                         </span>
-                        <span className="hidden shrink-0 text-right text-sm font-semibold tabular-nums text-tinta @[26rem]:block">{money(v.precio)}</span>
+                        <span className="hidden shrink-0 text-right @[26rem]:block">
+                          <span className="block text-sm font-semibold tabular-nums text-tinta">{money(v.precio)}</span>
+                          {v.precioDeSede && <span className="block whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                        </span>
                       </button>
                     </li>
                     );
@@ -364,7 +344,7 @@ export function PuntoDeVentaCatalogo({
             // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
             // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
             // En tinta (Felipe, 2026-10-01): es la vía de captura que la colaboradora busca cuando la prenda no tiene etiqueta.
-            className="label-cayla w-[6.75rem] shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] leading-snug text-crema @md:w-auto @md:leading-normal transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
+            className="btn-cayla btn-primario w-[6.75rem] shrink-0 whitespace-normal px-3 text-center leading-snug @md:w-auto"
           >
             Prenda sin registrar
           </button>
@@ -385,7 +365,7 @@ export function PuntoDeVentaCatalogo({
           data-guia="vender.ver-catalogo"
           aria-expanded={catalogoAbierto}
           aria-controls="venta-catalogo-filtros venta-catalogo-grilla"
-          className="label-cayla mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-sand bg-papel text-[11px] font-semibold text-tinta transition-colors duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 active:translate-y-px sm:hidden"
+          className="btn-cayla btn-secundario mt-3 flex h-11 w-full items-center justify-center gap-2 sm:hidden"
         >
           {catalogoAbierto ? "Ocultar catálogo" : "Ver catálogo"}
           <span aria-hidden className={`inline-block transition-transform duration-300 ease-[var(--ease-cayla)] ${catalogoAbierto ? "rotate-180" : ""}`}>
@@ -448,7 +428,8 @@ export function PuntoDeVentaCatalogo({
                 type="button"
                 onClick={() => onCategoria(c)}
                 disabled={bloqueado}
-                className={`anim-entra ${chip(categoria === c)}`}
+                aria-pressed={categoria === c}
+                className="anim-entra pildora-cayla shrink-0"
                 style={{ "--i": Math.min(i, 10) } as CSSProperties}
               >
                 {c}
@@ -483,6 +464,7 @@ export function PuntoDeVentaCatalogo({
                 pulsoTope={topeTarjeta?.clave === p.clave ? topeTarjeta.pulso : null}
                 onAgregar={onAgregar}
                 onAbrir={onAbrirPrenda}
+                etiquetaPrecioSede={etiquetaPrecioDeSede(ubicacionEtiqueta)}
               />
             ))}
           </div>

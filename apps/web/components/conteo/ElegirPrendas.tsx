@@ -16,6 +16,7 @@ import {
   type PrendaDelLugar,
 } from "@/lib/conteo-por-prenda";
 import type { EstadoDePrendas } from "@/lib/usePrendasParaContar";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    ElegirPrendas · «Por prenda» dentro de «¿Qué vas a contar?» (Abrir un conteo, 2026-10-01)
@@ -222,9 +223,9 @@ export function ElegirPrendas({
           )}
 
           {sobraron > 0 && (
-            <p role="status" className="text-[13px] text-rojo-profundo">
+            <Aviso tono="error" chico>
               Un conteo por prenda admite hasta {MAX_PRENDAS_POR_CONTEO} prendas: {sobraron === 1 ? "1 no entró" : `${sobraron} no entraron`}. Para más, cuenta una categoría o todo el lugar.
-            </p>
+            </Aviso>
           )}
 
           {quitadasPorLugar > 0 && (

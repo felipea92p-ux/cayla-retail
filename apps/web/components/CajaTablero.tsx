@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowLeftRight,
-  ArrowUpDown,
+  ArrowDownToLine,
   Bookmark,
   Check,
   CornerUpLeft,
@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   TriangleAlert,
+  Wallet,
 } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -42,6 +43,8 @@ import {
 } from "@/lib/caja-tablero-reglas";
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
+import { Vacio } from "@/components/ui/Vacio";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const soles0 = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
@@ -104,11 +107,14 @@ export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo:
         <p className="mt-4 text-xs text-tinta/50">Sin ventas todavía.</p>
       ) : (
         <>
-          <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-hueso" aria-hidden>
-            {c.metodos.map((m) => (
-              <span key={m.clave} className="h-full transition-[width] duration-500 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${(m.monto / c.total) * 100}%`, background: COLOR_METODO[m.clave] }} />
-            ))}
-          </div>
+          {/* La barra es `<BarraApilada>` (ADR-0358): un tramo por método, con su token de color; decorativa, la leyenda de abajo ya dice los montos. */}
+          <BarraApilada
+            decorativa
+            className="mt-4"
+            alto={8}
+            total={c.total}
+            segmentos={c.metodos.map((m) => ({ clave: m.clave, nombre: m.texto, valor: m.monto, color: COLOR_METODO[m.clave] }))}
+          />
           <p className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-tinta/65 tabular-nums">
             {c.metodos.map((m) => (
               <span key={m.clave} className="inline-flex items-center gap-1.5">
@@ -170,18 +176,18 @@ function tarjetaAcceso(a: Acceso) {
 export function AccesosCajaEscritorio({
   accesos,
   onGasto,
-  onMovimiento,
+  onIngreso,
   apartadosPorCobrar,
 }: {
   accesos: AccesosCaja;
   onGasto: (() => void) | null;
-  onMovimiento: () => void;
+  onIngreso: () => void;
   apartadosPorCobrar: number;
 }) {
   const lista: Acceso[] = [];
   if (accesos.vender) lista.push({ clave: "vender", icono: <ShoppingCart size={17} aria-hidden />, titulo: "Cobrar", detalle: "Abre el Punto de venta", href: "/vender", principal: true });
   if (onGasto) lista.push({ clave: "gasto", icono: <Receipt size={17} aria-hidden />, titulo: "Registrar gasto", detalle: "Sale del cajón y va a Finanzas", onClick: onGasto });
-  lista.push({ clave: "movimiento", icono: <ArrowUpDown size={17} aria-hidden />, titulo: "Depósito o retiro", detalle: "Banco, líder o sencillo", onClick: onMovimiento });
+  lista.push({ clave: "ingreso", icono: <ArrowDownToLine size={17} aria-hidden />, titulo: "Registrar ingreso", detalle: "Sencillo, líder u otra sede", onClick: onIngreso });
   if (accesos.cambios || accesos.devoluciones)
     lista.push({ clave: "posventa", icono: <ArrowLeftRight size={17} aria-hidden />, titulo: "Cambio o devolución", detalle: "Si devuelves plata, sale de aquí", href: accesos.cambios ? "/cambios" : "/devoluciones" });
   if (accesos.apartados)
@@ -195,7 +201,7 @@ export function AccesosCajaEscritorio({
 }
 
 /** Los accesos del celular, con el formato de «Accesos» del Inicio (ícono sobre la palabra). Lo que ya está en la
- *  barra fija (Vender, Gasto, Mover, Cerrar) no se repite. */
+ *  barra fija (Vender, Gasto, Ingreso, Cerrar) no se repite. */
 export function AccesosCajaMovil({ accesos, apartadosPorCobrar }: { accesos: AccesosCaja; apartadosPorCobrar: number }) {
   const lista: { clave: string; icono: ReactNode; texto: string; href: string; n?: number }[] = [];
   if (accesos.apartados) lista.push({ clave: "apartados", icono: <Bookmark size={19} aria-hidden />, texto: "Apartados", href: "/vender/apartados", n: apartadosPorCobrar });
@@ -225,12 +231,12 @@ export function AccesosCajaMovil({ accesos, apartadosPorCobrar }: { accesos: Acc
 export function BarraCajaMovil({
   vender,
   onGasto,
-  onMovimiento,
+  onIngreso,
   onCerrar,
 }: {
   vender: boolean;
   onGasto: (() => void) | null;
-  onMovimiento: () => void;
+  onIngreso: () => void;
   onCerrar: (() => void) | null;
 }) {
   const cuadrado = "flex h-14 w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-sand bg-papel text-[10px] font-semibold text-tinta/80 active:scale-[0.97]";
@@ -247,9 +253,9 @@ export function BarraCajaMovil({
           Gasto
         </button>
       )}
-      <button type="button" onClick={onMovimiento} className={`${cuadrado} ${vender ? "" : "flex-1"}`} aria-label="Depósito o retiro">
-        <ArrowUpDown size={18} aria-hidden />
-        Mover
+      <button type="button" onClick={onIngreso} className={`${cuadrado} ${vender ? "" : "flex-1"}`} aria-label="Registrar ingreso">
+        <ArrowDownToLine size={18} aria-hidden />
+        Ingreso
       </button>
       {onCerrar && (
         // ADR-0318: «Cerrar» es el único cuadrado en rojo de acento: lo que hay que hacer al terminar el turno.
@@ -582,7 +588,9 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
 
       <div key={modo} className="anim-sube">
         {recientes.length === 0 ? (
-          <p className="py-6 text-center text-xs text-tinta/50">Todavía no hay cierres en esta sede.</p>
+          <Vacio tamano="chico" icono={<Wallet />}>
+            Todavía no hay cierres en esta sede.
+          </Vacio>
         ) : modo === "ultimo" ? (
           <VistaUltimo cierres={recientes} />
         ) : modo === "semaforo" ? (

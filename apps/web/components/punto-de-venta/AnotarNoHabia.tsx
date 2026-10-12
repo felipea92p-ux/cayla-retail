@@ -71,7 +71,7 @@ export function AnotarNoHabia({
           type="button"
           onClick={anotar}
           disabled={estado !== "listo" || !responsable.listo || (tallas.length > 1 && !talla)}
-          className="label-cayla ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-tinta/25 bg-papel px-2.5 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-60"
+          className="btn-cayla btn-secundario ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
         >
           {estado === "anotado" ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
           {estado === "guardando" ? "Anotando…" : estado === "anotado" ? "Anotado" : "Anotar que no había"}

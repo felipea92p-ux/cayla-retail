@@ -99,8 +99,9 @@ export const GUIA_PROD_ORDENES: Guia = {
     {
       id: "tablero",
       ancla: "prod-ordenes.tablero",
+      opcional: true,
       titulo: "El tablero por etapa",
-      texto: "Cuatro columnas: por cortar, en confección, en acabados y listas para cerrar. Cada orden está en la columna de su etapa y, al marcar una etapa hecha, pasa a la siguiente. Si no hay ninguna abierta, aquí te lo dice.",
+      texto: "Cuatro columnas: por cortar, en confección, en acabados y listas para cerrar. Cada orden está en la columna de su etapa y, al marcar una etapa hecha, pasa a la siguiente. Sin ninguna abierta, el tablero no aparece y un aviso te lo dice.",
     },
     {
       id: "tarjeta",
@@ -144,8 +145,15 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "«Producción» fabrica el lote y, al cerrar, entra al stock del Taller. «Muestra» es para desarrollar un modelo: patrón y prototipo, sin stock.",
     },
     {
+      id: "modo",
+      ancla: "prod-orden-nueva.modo",
+      titulo: "¿Ya existe o es nuevo?",
+      texto: "«Ya existe» toma un modelo del catálogo. «Modelo nuevo» lo crea aquí mismo: su nombre, categoría, tallas, colores y precio, y entra al catálogo recién al abrir la orden.",
+    },
+    {
       id: "modelo",
       ancla: "prod-orden-nueva.modelo",
+      opcional: true,
       titulo: "Qué modelo",
       texto: "Elige el modelo del catálogo que se va a fabricar. Al cambiarlo, la tabla de tallas y colores de abajo se arma con las suyas.",
     },
@@ -153,8 +161,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "matriz",
       ancla: "prod-orden-nueva.matriz",
       titulo: "Cuántas por talla y color",
-      texto: "Escribe cuántas prendas de cada talla en cada color (te escribimos 12 en la primera casilla). El número gris es lo que sugiere la red; una raya es una talla que ese color no tiene. Si falta una talla o un color, se agrega en Productos, no aquí.",
-      demostrar: [{ tipo: "escribir", ancla: "prod-orden-nueva.matriz", texto: "12" }],
+      texto: "Escribe cuántas prendas de cada talla en cada color. El número gris es lo que sugiere la red; una raya es una talla que ese color no tiene. Si falta una talla o un color, se agrega en Productos, no aquí.",
     },
     {
       id: "red",
@@ -196,14 +203,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "costos",
       ancla: "prod-orden-nueva.costos",
       titulo: "Lo que va a costar",
-      texto: "El costo estimado de toda la corrida, no por prenda: la tela, los avíos (botones, cierres, etiquetas, hilo) y la maquila que se manda afuera. Te escribimos 240 en tela de ejemplo. Al cerrar la orden se corrige con el costo real.",
-      demostrar: [{ tipo: "escribir", ancla: "prod-orden-nueva.costos", texto: "240" }],
+      texto: "El costo estimado de toda la corrida, no por prenda: la tela, los avíos (botones, cierres, etiquetas, hilo) y la maquila que se manda afuera. Los tres son opcionales. Al cerrar la orden se corrige con el costo real.",
     },
     {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
       titulo: "Costo por prenda",
-      texto: "Se calcula solo: con las 12 prendas y los S/ 240 del ejemplo, cada prenda sale a S/ 20. Si el modelo tiene precio, también ves a cuánto se vende y el margen que queda.",
+      texto: "Se calcula solo: el costo de la corrida entre las prendas. Por ejemplo, 12 prendas con S/ 240 de costo salen a S/ 20 cada una. Si el modelo tiene precio, también ves a cuánto se vende y el margen que queda.",
     },
     {
       id: "entrega",

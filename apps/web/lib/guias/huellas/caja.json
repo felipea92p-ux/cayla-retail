@@ -2,10 +2,10 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 68,
+  "total": 104,
   "controles": {
     "app/(app)/caja/page.tsx": [
-      "Link «Historial de cierres →»"
+      "BotonEnlace «caja.historial-todas»"
     ],
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -20,7 +20,7 @@
     ],
     "components/CajaAbiertaPanel.tsx": [
       "Boton «caja.gasto»",
-      "Boton «caja.deposito»",
+      "Boton «caja.ingreso»",
       "Boton «caja.historial»",
       "button «{texto}»",
       "button «{METODO_RITMO[clave].texto}»",
@@ -32,7 +32,7 @@
       "Link «(sin nombre)»",
       "Link «Vender»",
       "button «Registrar gasto»",
-      "button «Depósito o retiro»",
+      "button «Registrar ingreso»",
       "button «Cerrar caja»",
       "button «{on ? <Check size={13}»",
       "button «Volver a lo predeterminado»",
@@ -60,20 +60,64 @@
       "Volver «→() => setPaso(\"contar\")»",
       "button «{responsable.motivo ?? invalido ?? undefined}»"
     ],
+    "components/CierreCajaDetalle.tsx": [
+      "button «caja-historial.ver»",
+      "button «{texto}»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/DetalleVentaModal.tsx": [
-      "button «Cerrar»",
       "button «Reintentar»",
+      "Boton «Corregir pago»",
       "button «Imprimir ticket»",
       "button «Imprimir»"
     ],
     "components/FilaMovimientoCaja.tsx": [
       "button «{`Ver el detalle de la venta de ${money(e.monto)}»"
     ],
+    "components/GastoRapidoModal.tsx": [
+      "button «{frecuente ? `${nombre}»",
+      "CampoTexto «Qué fue»",
+      "CampoSelect «¿A qué se parece?»",
+      "input «Monto en soles»",
+      "button «{soles(m)}»",
+      "CampoTexto «Nota»",
+      "button «¿Te dieron factura o boleta?»",
+      "CampoSelect «Proveedor»",
+      "CampoTexto «Serie y número»",
+      "button «Usa el formulario completo»",
+      "button «Retiro o depósito»",
+      "ComboResponsable «avisoSalida»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/HistorialCierresModal.tsx": [
+      "Volver «Historial de cierres»",
+      "button «Historial de cierres»",
       "button «Todos»",
       "button «caja.historial-con-diferencia»",
       "button «{`Ver el detalle del cierre del ${dia}»",
       "Link «Ver todas las sedes →»"
+    ],
+    "components/IngresoRapidoModal.tsx": [
+      "button «{o.texto}»",
+      "CampoTexto «¿Quién la trajo?»",
+      "CampoSelect «¿Qué sede la presta?»",
+      "CampoTexto «Qué fue»",
+      "input «Monto en soles»",
+      "CampoTexto «Nota»",
+      "Link «Apartados»",
+      "Link «Vender»",
+      "button «Retiro o depósito»",
+      "ComboResponsable «avisoSalida»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/MovimientoCajaModal.tsx": [
       "button «{TEXTO_TIPO[t]}»",

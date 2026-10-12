@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero",
   "ruta": "/finanzas/dinero",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 24,
+  "total": 22,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
@@ -22,15 +22,13 @@
       "button «Cancelar»",
       "button «{guardando ? \"Registrando…\" : \"Registrar\"}»",
       "button «Anular…»",
-      "button «Cerrar»",
       "ComboResponsable «Volver»",
       "button «Volver»",
       "button «{guardando ? \"Anulando…\" : accion}»"
     ],
     "components/finanzas/PagosSinCuenta.tsx": [
       "button «{guardando === p.clave ? \"Guardando…\" : \"Guardar\"}»",
-      "ComboResponsable «Cerrar»",
-      "button «Cerrar»"
+      "ComboResponsable «);»"
     ]
   }
 }

@@ -431,6 +431,9 @@ export function loSiguienteDeLaRecepcion(p: {
   veExistencias: boolean;
   sede: string;
   bajables?: ReadonlySet<string>;
+  /** Cuántas de las que entraron se venden aquí a otro precio que en la tienda que envió (precio propio, Felipe 2026-10-09):
+   *  su etiqueta dice otro precio. Con alguna, imprimir manda y la frase lo dice primero. */
+  conOtroPrecio?: number;
 }): LoSiguiente | null {
   if (!p.esDestino || p.lugarRecibido === null || p.ultimoIngresoIso === null) return null;
   const dias = (new Date(p.ahoraIso).getTime() - new Date(p.ultimoIngresoIso).getTime()) / 86_400_000;
@@ -453,24 +456,34 @@ export function loSiguienteDeLaRecepcion(p: {
         : { clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar", principal: true },
     );
   }
+  const otroPrecio = p.conOtroPrecio ?? 0;
   if (enLista) {
-    acciones.push({
+    const etiquetas: AccionLoSiguiente = {
       clave: "etiquetas",
-      texto: "Imprimir etiquetas",
+      texto: otroPrecio > 0 ? "Imprimir etiquetas con el precio de aquí" : "Imprimir etiquetas",
       href: `/etiquetas-de-precio?unidades=${lineasEnUrl(entradas)}&traslado=${p.trasladoId}`,
-      principal: acciones.length === 0,
-    });
+      principal: acciones.length === 0 || otroPrecio > 0,
+    };
+    // Con otro precio aquí, cambiar la etiqueta va primero: colgada con el precio de origen, la caja cobraría otro.
+    if (otroPrecio > 0) {
+      for (const a of acciones) a.principal = false;
+      acciones.unshift(etiquetas);
+    } else acciones.push(etiquetas);
   }
   if (acciones.length === 0) return null;
 
   const yaSalioDelAlmacen = p.lugarRecibido === "almacen_tienda" && p.bajables !== undefined && porBajar.length === 0;
+  const dondeQuedo =
+    p.lugarRecibido === "piso_venta"
+      ? `Lo que llegó ya está en el piso de ${p.sede}.`
+      : yaSalioDelAlmacen
+        ? `Lo que llegó ya salió del almacén de ${p.sede}.`
+        : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que bajarlo al piso.`;
   return {
     intro:
-      p.lugarRecibido === "piso_venta"
-        ? `Lo que llegó ya está en el piso de ${p.sede}.`
-        : yaSalioDelAlmacen
-          ? `Lo que llegó ya salió del almacén de ${p.sede}.`
-          : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que bajarlo al piso.`,
+      otroPrecio > 0 && enLista
+        ? `${otroPrecio === 1 ? "1 prenda se vende" : `${otroPrecio} prendas se venden`} aquí a otro precio: cámbia${otroPrecio === 1 ? "le" : "les"} la etiqueta antes de colgar${otroPrecio === 1 ? "la" : "las"}. ${dondeQuedo}`
+        : dondeQuedo,
     acciones,
   };
 }

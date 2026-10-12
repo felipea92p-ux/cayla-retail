@@ -149,15 +149,15 @@ export function NotaCreditoVistaRapida({
                   type="button"
                   disabled={f.bloqueada}
                   onClick={() => onRegistrar(f.compraId)}
-                  className="mov-boton label-cayla rounded-md bg-tinta px-3 py-3 text-[11px] text-crema hover:bg-rojo-profundo disabled:pointer-events-none disabled:opacity-40"
+                  className="btn-cayla btn-primario"
                 >
                   {f.bloqueada ? "Aún no se puede" : "Registrar nota"}
                 </button>
               ) : null}
-              <button type="button" onClick={() => onDetalle(f.id)} className="label-cayla rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo">
+              <button type="button" onClick={() => onDetalle(f.id)} className="btn-cayla btn-secundario">
                 Ver detalle
               </button>
-              <Link href={`/compras/factura/${f.compraId}`} className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo">
+              <Link href={`/compras/factura/${f.compraId}`} className="btn-cayla btn-secundario inline-flex items-center gap-2">
                 Comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
               </Link>
               <span className="ml-auto flex items-center gap-1.5 text-xs tabular-nums text-tinta/55">

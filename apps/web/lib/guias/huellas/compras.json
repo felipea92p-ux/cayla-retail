@@ -2,7 +2,7 @@
   "guia": "compras",
   "ruta": "/compras",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 58,
+  "total": 55,
   "controles": {
     "app/(app)/compras/page.tsx": [
       "BotonAncla «compras.exportar»",
@@ -31,12 +31,9 @@
     ],
     "components/ComprobantesListaVacia.tsx": [
       "BotonEnlace «Limpiar filtros»",
-      "Link «Registrar el primero →»"
+      "BotonEnlace «Registrar el primero»"
     ],
     "components/FiltrosCompras.tsx": [
-      "input «Buscar por proveedor o número de documento»",
-      "button «Borrar la búsqueda»",
-      "CampoTexto «Número de documento o proveedor»",
       "BotonFiltros «, accionesDespues, ].map( (contr»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Pago»",

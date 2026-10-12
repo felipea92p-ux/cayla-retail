@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
-  atendioCorto,
+  atendioDelTicket,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoDeCampana,
@@ -71,6 +71,17 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
 
   it("con el ticket vacío pide una prenda", () => {
     expect(motivoBloqueoCobro({ ...listo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+  });
+
+  it("un ticket que no cobra nada (solo la bolsa de obsequio) no se cobra, y el motivo lo dice desde el armado (Bolsas de despacho)", () => {
+    const solo = { ...listo, prendas: 1, total: 0, pagos: [] };
+    const motivo = "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+    expect(motivoBloqueoCobro(solo)).toBe(motivo);
+    expect(motivoBloqueoCobro({ ...solo, momento: "armar" })).toBe(motivo);
+    // La caja cerrada y el ticket vacío siguen mandando antes; con la bolsa de obsequio MÁS una compra, nada cambia.
+    expect(motivoBloqueoCobro({ ...solo, cajaAbierta: false })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...solo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 3, total: 59.9, pagos: [{ metodo: "efectivo", monto: 59.9 }] })).toBeNull();
   });
 
   it("mientras se arma la venta no exige método de pago: eso se decide al cobrar", () => {
@@ -812,19 +823,16 @@ const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
 const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
 const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
 
-describe("atendioCorto — el nombre que sale en el papel", () => {
-  it("el primer nombre basta cuando no hay otra igual en la fila", () => {
-    expect(atendioCorto([MARIA, ROSA], "p-maria")).toBe("María");
-  });
-
-  it("dos «María» en la fila se distinguen con la inicial del apellido", () => {
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria")).toBe("María P.");
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria-l")).toBe("María L.");
+describe("atendioDelTicket — el nombre que sale en el papel", () => {
+  it("nombre y apellido, como está en su ficha", () => {
+    expect(atendioDelTicket([MARIA, ROSA], "p-maria")).toBe("María Pérez Soto");
+    expect(atendioDelTicket([MARIA, MARIA_L], "p-maria-l")).toBe("María López Vera");
   });
 
   it("sin elegida o con una que no está en la fila no se inventa nadie", () => {
-    expect(atendioCorto([MARIA, ROSA], null)).toBeNull();
-    expect(atendioCorto([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], null)).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([{ personaId: "p-x", nombre: "  " }], "p-x")).toBeNull();
   });
 });
 

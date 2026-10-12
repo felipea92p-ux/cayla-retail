@@ -1,0 +1,4 @@
+## Editar producto: el stock tocado es de su sede (2026-10-11, ADR-0313 act. 2026-10-11)
+- [x] **El stock tocado en la ficha ya no pasa a la sede nueva** (punto 2 de `docs/backlog/2026-10-11-distracted-knuth-8feca0.md`): se descarta con aviso. Siguen, una por una y con su pregunta a Felipe: Apartados, Cambios, Devoluciones y Nuevo traslado (los graves), y después los medios y leves de esa lista.
+- [ ] **Correr `/chaos` en Editar producto (stock de la matriz)** cuando vuelva a haber base local (Docker se desinstaló el 2026-10-11). Ataque que importa: cambiar de sede con «Revisar y guardar» ya en curso (el guardado que estaba en el aire es de la sede anterior y su respuesta llega con la ficha ya en la nueva).
+- [ ] **El modal «Ajustar inventario»** que la ficha abre para una talla que faltó en un conteo guarda al confirmar con la sede con que se abrió; no se revisó si sobrevive abierto a un cambio de sede (`AjustarInventarioModal`, `ubicacionId` por prop).

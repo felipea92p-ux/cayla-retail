@@ -563,6 +563,28 @@ function CambioVista({ cambio: c, total }: { cambio: Cambio; total: number }) {
           </span>
         </div>
       );
+    case "tienda": {
+      // Precio propio de una tienda (Felipe 2026-10-09): como un precio, con la tienda nombrada y por qué.
+      const dif = c.antes !== null && c.despues !== null ? c.despues - c.antes : null;
+      const signo = dif !== null && dif < 0 ? "−" : "+";
+      return (
+        <div className="hp-cam hp-precio">
+          <span className="hp-campo">Precio en {c.tienda}</span>
+          <span className="hp-antes tabular-nums">{soles(c.antes)}</span>
+          <Flecha />
+          <Precio antes={c.antes} despues={c.despues} />
+          {dif !== null && dif !== 0 && (
+            <span className="hp-delta">
+              {signo}
+              {soles(Math.abs(dif))}
+            </span>
+          )}
+          <span className="hp-alcance">
+            {c.propio ? (c.motivo ? `«${c.motivo}»` : "precio propio de esta tienda") : "vuelve al precio general"}
+          </span>
+        </div>
+      );
+    }
     case "codigo":
       return (
         <div className="hp-cam">

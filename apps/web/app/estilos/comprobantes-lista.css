@@ -12,7 +12,6 @@
      · .cmp-fila      fila de la tabla: entra escalonada, barrita de acento y flecha al pasar el mouse.
      · .cmp-mini      barra de 3 px con el avance real de recepción / pago.
      · .cmp-punto-vivo el punto que late en el chip «Vencida» (única animación en bucle de la lista).
-     · .cmp-flota     el isotipo del estado vacío, una sola vez.
      · .cmp-sk        esqueleto brillante de la carga (loading.tsx).
    `backwards` en todas las entradas: al terminar no retienen `transform`, que pisaría el reacomodo
    (FLIP, Web Animations) y el hover. ---- */
@@ -23,12 +22,6 @@
 @keyframes cmp-latido {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 45%, transparent); }
   70%, 100% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-rojo) 0%, transparent); }
-}
-/* Una sola vez: sube desde abajo, alcanza el punto alto, se asienta. Termina quieto y visible. */
-@keyframes cmp-flota {
-  0% { opacity: 0; transform: translate3d(0, 10px, 0) rotate(0deg); }
-  45% { opacity: 0.55; transform: translate3d(0, -7px, 0) rotate(-3deg); }
-  100% { opacity: 0.55; transform: none; }
 }
 @keyframes cmp-brilla {
   to { background-position: -200% 0; }
@@ -167,9 +160,6 @@
     animation: cmp-latido 2s var(--ease-cayla) infinite;
   }
 
-  /* ---------- Estado vacío ---------- */
-  .cmp-flota { opacity: 0.55; animation: cmp-flota 2400ms var(--ease-cayla) backwards; }
-
   /* ---------- Esqueleto de carga ---------- */
   .cmp-sk {
     border-radius: 6px;
@@ -184,8 +174,7 @@
     /* El resultado sin el viaje: entradas y llenados a un instante, lo que se repite se detiene. */
     .cmp-fila,
     .cmp-reparto > i,
-    .cmp-mini > i,
-    .cmp-flota {
+    .cmp-mini > i {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }

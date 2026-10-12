@@ -2,10 +2,12 @@
   "guia": "vender.historial",
   "ruta": "/vender/historial",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 44,
   "controles": {
     "app/(app)/vender/historial/page.tsx": [
-      "Link «Volver al período»"
+      "Link «Volver al período»",
+      "BotonEnlace «Borrar la búsqueda»",
+      "BotonEnlace «Limpiar filtros»"
     ],
     "components/AccionesVentaHistorial.tsx": [
       "Link «{a.etiqueta}»"
@@ -13,17 +15,21 @@
     "components/AvisosHistorial.tsx": [
       "Link «{a.texto}»"
     ],
-    "components/BuscadorHistorial.tsx": [
-      "input «Buscar una venta»",
-      "button «Borrar la búsqueda»"
-    ],
     "components/ComprasAgrupadas.tsx": [
       "button «{f.texto}»",
-      "button «Buscar en todas las tiendas»"
+      "Boton «Buscar en todas las tiendas»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/DetalleVentaModal.tsx": [
-      "button «Cerrar»",
       "button «Reintentar»",
+      "Boton «Corregir pago»",
       "button «Imprimir ticket»",
       "button «Imprimir»"
     ],

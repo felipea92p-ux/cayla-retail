@@ -9,6 +9,8 @@ import { encontrarPorTipo, getSububicaciones, type Sububicacion } from "@/lib/su
 import { loSiguienteDeLaRecepcion, type DestinoRecepcion } from "@/lib/traslados-recepcion-reglas";
 import { datosDeDetalle, getCodigosDeSede, vistaConCodigos } from "@/lib/traslados-billetera";
 import { PaseTraslado } from "@/components/traslados-pases/PaseTraslado";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { avisoEtiquetasDeTraslado, prendasConOtroPrecio } from "@/lib/precio-sede-reglas";
 import { ReversoPase } from "@/components/traslados-pases/ReversoPase";
 
 /** Los lugares de la sede destino. Solo sirven para preguntar «¿piso de venta o almacén?» y decir dónde quedó lo recibido: si la
@@ -46,7 +48,11 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
     getWhatsappDeSedes(),
   ]);
   if (!traslado) notFound();
-  const sububicaciones = await sububicacionesDe(traslado.ubicacionDestinoId);
+  const [sububicaciones, preciosSede] = await Promise.all([
+    sububicacionesDe(traslado.ubicacionDestinoId),
+    // Precio propio de cada tienda (Felipe 2026-10-09): una prenda que vale distinto en destino llega con la etiqueta de origen.
+    getPreciosPorSede([traslado.ubicacionOrigenId, traslado.ubicacionDestinoId]),
+  ]);
   const ahoraIso = new Date().toISOString();
   const esDestino = persona.ubicacionId === traslado.ubicacionDestinoId;
   const esOrigen = persona.ubicacionId === traslado.ubicacionOrigenId;
@@ -60,6 +66,15 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
   const opcionesDestino = tienePiso ? (["piso_venta", "almacen_tienda"] as const).filter((tipo) => encontrarPorTipo(sububicaciones, tipo) !== null) : [];
   const tipoRecibido = sububicaciones.find((s) => s.id === traslado.sububicacionDestinoId)?.tipo;
   const lugarRecibido: DestinoRecepcion = tipoRecibido === "piso_venta" || tipoRecibido === "almacen_tienda" ? tipoRecibido : null;
+  const generales = new Map(catalogo.map((v) => [v.varianteId, v.precio]));
+  const conOtroPrecio = new Set(
+    prendasConOtroPrecio(
+      traslado.lineas.map((l) => l.varianteId),
+      generales,
+      preciosSede[traslado.ubicacionOrigenId],
+      preciosSede[traslado.ubicacionDestinoId],
+    ),
+  );
   const entradaDeLoSiguiente = {
     esDestino,
     lugarRecibido,
@@ -69,6 +84,7 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
     ahoraIso,
     veExistencias: veModulo(persona, "existencias"),
     sede: traslado.ubicacionDestinoNombre,
+    conOtroPrecio: traslado.lineas.filter((l) => l.ingresado && (l.cantidadRecibida ?? 0) > 0 && conOtroPrecio.has(l.varianteId)).length,
   };
   let loSiguiente = loSiguienteDeLaRecepcion(entradaDeLoSiguiente);
   if (loSiguiente?.acciones.some((a) => a.clave === "bajar")) {
@@ -98,6 +114,12 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
         />
       }
       siguiente={loSiguiente}
+      // Antes de recibir (y para quien envía): qué prendas llegan con una etiqueta que allá no vale. Después de recibir lo dice «Lo siguiente».
+      avisoPrecio={
+        loSiguiente
+          ? null
+          : avisoEtiquetasDeTraslado(conOtroPrecio.size, traslado.ubicacionOrigenNombre, traslado.ubicacionDestinoNombre, esDestino ? "destino" : esOrigen ? "origen" : "otro")
+      }
     />
   );
 }

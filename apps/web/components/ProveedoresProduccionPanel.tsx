@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { FunnelX, SearchX, Truck } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -19,6 +19,8 @@ import {
   type ProveedorProduccion,
   type RubroProduccion,
 } from "@/lib/proveedores-produccion-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Proveedores de Producción (ADR-0133, F4a; D-H): quienes le venden tela, avíos y maquila al Taller. Directorio aparte del de
 // Compras. Solo se muestra lo que la base ya sabe de cada uno —lotes recibidos, total comprado, última entrega—; el saldo y el
@@ -37,7 +39,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
@@ -67,12 +69,20 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
       </div>
 
       {proveedores.length === 0 ? (
-        <div data-guia="prod-proveedores.lista" className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
-          <p>
-            Aquí van quienes le venden al Taller: la tela por metro, los avíos, la maquila. Cada lote de insumo se registra con su proveedor, y de ahí salen cuánto se
-            le compra, cuándo entrega y a qué precio.
-          </p>
-          <p>Empieza agregando al primero.</p>
+        <div className="card-cayla">
+          <Vacio
+            guia="prod-proveedores.lista"
+            icono={<Truck />}
+            titulo="Todavía no hay proveedores del Taller"
+            acciones={
+              <Boton peso="primario" onClick={() => setEditando("nuevo")}>
+                Agregar el primero
+              </Boton>
+            }
+          >
+            Aquí van quienes le venden al Taller: la tela por metro, los avíos, la maquila. De cada lote que entregan salen cuánto se le compra, cuándo entrega y a qué
+            precio.
+          </Vacio>
         </div>
       ) : (
         <div className="space-y-3">
@@ -92,17 +102,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
                 </button>
               ))}
             </div>
-            <label data-guia="prod-proveedores.buscador" className="card-cayla ml-auto flex min-w-56 items-center gap-2 px-3 py-1.5">
-              <Search size={15} aria-hidden className="text-tinta/45" />
-              <span className="sr-only">Buscar proveedor</span>
-              <input
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Nombre, RUC o contacto"
-                className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-              />
-            </label>
+            <Buscador guia="prod-proveedores.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Nombre, RUC o contacto" etiqueta="Buscar proveedor" className="ml-auto min-w-56" />
             {resumen.archivados > 0 && (
               <label data-guia="prod-proveedores.archivados" className="flex items-center gap-2 text-xs text-tinta/70">
                 <input type="checkbox" checked={verArchivados} onChange={(e) => setVerArchivados(e.target.checked)} />
@@ -112,7 +112,34 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
           </div>
 
           {visibles.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/70">Ningún proveedor coincide con lo que buscas.</p>
+            <div className="card-cayla">
+              {busqueda.trim() ? (
+                <Vacio
+                  icono={<SearchX />}
+                  titulo={`Ningún proveedor coincide con «${busqueda.trim()}»`}
+                  acciones={
+                    <Boton peso="fantasma" onClick={() => setBusqueda("")}>
+                      Borrar la búsqueda
+                    </Boton>
+                  }
+                >
+                  Se busca por nombre, RUC o contacto.
+                </Vacio>
+              ) : (
+                <Vacio
+                  icono={<FunnelX />}
+                  titulo="Ningún proveedor con esos filtros"
+                  filtros={rubro !== "todos" ? [{ texto: etiquetaRubro(rubro), onQuitar: () => setRubro("todos") }] : undefined}
+                  acciones={
+                    <Boton peso="fantasma" onClick={() => setRubro("todos")}>
+                      Limpiar filtros
+                    </Boton>
+                  }
+                >
+                  Quita el filtro para ver a todos los proveedores del Taller.
+                </Vacio>
+              )}
+            </div>
           ) : (
             <div data-guia="prod-proveedores.lista" className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">

@@ -27,12 +27,28 @@ export function celdaColgarVarias(t: Talla, faltan: ReadonlySet<string>): CeldaC
   return piso > 0 ? { tipo: "sinAlmacen", piso } : { tipo: "acabo" };
 }
 
-/** «Llenar todas con N»: N en cada celda editable, recortado a lo que hay en su almacén. Vacío = todas en 0. */
-export function llenarTodasCon(tallas: readonly Talla[], n: number | null): Record<string, number> {
+/* «Subir varias» (2026-10-08, Felipe: «Subir a almacén debería ser de todas, como Colgar en el piso»): la MISMA tabla, al revés. Se
+   edita la celda con algo libre colgado (de 0 a lo que hay en el piso); sin nada colgado dice cuántas hay en almacén, y sin nada libre
+   en la sede, «Se acabó». No se llena sola (ADR-0231: la cifra la pone quien tiene la prenda en la mano). */
+export type CeldaSubir =
+  | { tipo: "editable"; piso: number; almacen: number }
+  | { tipo: "sinPiso"; almacen: number }
+  | { tipo: "acabo" };
+
+export function celdaSubirVarias(t: Talla): CeldaSubir {
+  const piso = Math.max(0, t.pisoDisponible ?? 0);
+  const almacen = Math.max(0, t.almacenDisponible ?? 0);
+  if (piso > 0) return { tipo: "editable", piso, almacen };
+  return almacen > 0 ? { tipo: "sinPiso", almacen } : { tipo: "acabo" };
+}
+
+/** «Llenar todas con N»: N en cada celda editable, recortado a lo que hay donde salen (el almacén al colgar, el piso al subir).
+ *  Vacío = todas en 0. */
+export function llenarTodasCon(tallas: readonly Talla[], n: number | null, rumbo: "bajar" | "subir" = "bajar"): Record<string, number> {
   const cant: Record<string, number> = {};
   for (const t of tallas) {
-    const alm = Math.max(0, t.almacenDisponible ?? 0);
-    if (alm > 0) cant[t.varianteId] = n === null ? 0 : Math.min(alm, Math.max(0, n));
+    const hay = Math.max(0, (rumbo === "subir" ? t.pisoDisponible : t.almacenDisponible) ?? 0);
+    if (hay > 0) cant[t.varianteId] = n === null ? 0 : Math.min(hay, Math.max(0, n));
   }
   return cant;
 }

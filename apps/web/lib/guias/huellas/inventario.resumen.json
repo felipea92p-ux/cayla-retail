@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/inventario/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 55,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -18,7 +18,6 @@
       "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/analisis/AnalisisPantalla.tsx": [
-      "input «Busca una prenda»",
       "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",
       "Pestanas «(sin nombre)»"
     ],
@@ -38,8 +37,7 @@
     "components/analisis/HojaLiquidarDesde.tsx": [
       "ComboResponsable «)»",
       "button «{responsable.motivo ?? undefined}»",
-      "button «Cancelar»",
-      "button «Cerrar»"
+      "button «Cancelar»"
     ],
     "components/analisis/PestanaAcaba.tsx": [
       "Link «Comprar todas»",
@@ -56,8 +54,9 @@
     "components/analisis/PestanaPedir.tsx": [
       "Link «Plan de campaña»",
       "button «{`Quitar el filtro: ${categoria}»",
-      "button «Quitar filtro ✕»",
-      "button «[0][\"familia\"]»"
+      "button «Top»",
+      "button «[0][\"familia\"]»",
+      "button «↓»"
     ],
     "components/analisis/PestanaPiso.tsx": [
       "Link «{`Bájalas al piso: ${cuantas}»",

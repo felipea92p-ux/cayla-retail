@@ -23,7 +23,7 @@ import { problemasReporte, type CampoReporte } from "./danadas-reglas";
 import { NOTA_MINIMA_ENCONTRE } from "./ajuste-reglas";
 import { cantidadEnSede, type SedeConStockId } from "./stock-por-sede";
 
-export type TipoFlujo = "colgar" | "colgarVarias" | "subir" | "enviar" | "pedir" | "ajustar" | "danada";
+export type TipoFlujo = "colgar" | "colgarVarias" | "subir" | "subirVarias" | "enviar" | "pedir" | "ajustar" | "danada";
 
 export type PasoFlujo = "cantidad" | "varias" | "destino" | "hacia" | "para" | "origen" | "cliente" | "lugar" | "cambio" | "motivo" | "quetiene" | "quien";
 
@@ -60,6 +60,8 @@ export type ContextoFlujo = {
   separa: boolean;
   /** «Colgar varias»: lo libre en el almacén de cada talla del modelo, para topar. */
   almacenPorTalla?: Record<string, number>;
+  /** «Subir varias»: lo libre colgado en el piso de cada talla del modelo, para topar. */
+  pisoPorTalla?: Record<string, number>;
   /** A dónde se puede subir «para enviar» / enviar (otras sedes). Vacío: Subir no pregunta destino. */
   destinos: readonly { id: string; nombre: string }[];
   /** A quién se le puede pedir esta talla y cuánto tiene cada una. */
@@ -73,6 +75,7 @@ export const NOMBRE_FLUJO: Record<TipoFlujo, string> = {
   colgar: "Colgar en el piso",
   colgarVarias: "Colgar varias",
   subir: "Subir a almacén",
+  subirVarias: "Subir a almacén",
   enviar: "Enviar a otra sede",
   pedir: "Pedir a otra sede",
   ajustar: "Ajustar stock",
@@ -118,6 +121,8 @@ export function pasosDe(tipo: TipoFlujo, d: DatosFlujo, c: Pick<ContextoFlujo, "
       return ["varias", "quien"];
     case "subir":
       return c.destinos.length > 0 ? ["cantidad", "destino", "quien"] : ["cantidad", "quien"];
+    case "subirVarias":
+      return c.destinos.length > 0 ? ["varias", "destino", "quien"] : ["varias", "quien"];
     case "enviar":
       // Sin «Quién»: lo pide «Nuevo traslado», que es donde se firma la salida.
       return ["cantidad", "hacia"];
@@ -220,8 +225,11 @@ export function pasoCompleto(paso: PasoFlujo, tipo: TipoFlujo, d: DatosFlujo, c:
       const n = d.n ?? 0;
       return n > 0 && n <= maxCantidad(tipo, d, c);
     }
-    case "varias":
-      return Object.entries(d.cant ?? {}).some(([v, n]) => n > 0 && n <= (c.almacenPorTalla?.[v] ?? 0)) && Object.entries(d.cant ?? {}).every(([v, n]) => n <= (c.almacenPorTalla?.[v] ?? 0));
+    case "varias": {
+      // El tope de cada celda es lo libre de donde salen: el almacén al colgar, el piso al subir.
+      const tope = tipo === "subirVarias" ? c.pisoPorTalla : c.almacenPorTalla;
+      return Object.entries(d.cant ?? {}).some(([v, n]) => n > 0 && n <= (tope?.[v] ?? 0)) && Object.entries(d.cant ?? {}).every(([v, n]) => n <= (tope?.[v] ?? 0));
+    }
     case "destino":
       return d.destino === "queda" || (d.destino === "enviar" && Boolean(d.sedeId));
     case "hacia":
@@ -289,6 +297,11 @@ export function verboFinal(tipo: TipoFlujo, d: DatosFlujo, sedeNombre?: string |
     }
     case "subir":
       return d.destino === "enviar" ? `Subir ${n || ""} para enviar`.replace("  ", " ") : `Subir ${n || ""} a almacén`.replace("  ", " ");
+    case "subirVarias": {
+      const t = totalVarias(d);
+      const cuanto = t > 0 ? ` ${unidades(t)}` : "";
+      return d.destino === "enviar" ? `Subir${cuanto} para enviar` : `Subir${cuanto} a almacén`;
+    }
     case "enviar":
       return sedeNombre ? `Armar el traslado a ${sedeNombre}` : "Armar el traslado";
     case "pedir":
@@ -320,6 +333,12 @@ export function resumenDeFlujo(
         .filter(([, x]) => x > 0)
         .map(([v, x]) => [nombres.tallas?.(v) ?? "Talla", `× ${x}`]);
       return [...filas, ["Total al piso", unidades(totalVarias(d))]];
+    }
+    case "subirVarias": {
+      const filas: [string, string][] = Object.entries(d.cant ?? {})
+        .filter(([, x]) => x > 0)
+        .map(([v, x]) => [nombres.tallas?.(v) ?? "Talla", `× ${x}`]);
+      return [...filas, ["Total al almacén", unidades(totalVarias(d))], ["Destino", d.destino === "enviar" ? `Para enviar a ${sede(d.sedeId)}` : "Se queda aquí"]];
     }
     case "subir":
       return [
@@ -375,6 +394,8 @@ export function textoHecho(tipo: TipoFlujo, d: DatosFlujo, sede?: string | null)
       return `Colgado · ${unidades(totalVarias(d))} al piso en una sola operación`;
     case "subir":
       return d.destino === "enviar" ? `Subida al almacén · queda por enviar a ${sede ?? "la otra sede"}` : `Subida al almacén · ${unidades(n)}`;
+    case "subirVarias":
+      return d.destino === "enviar" ? `Subida al almacén · ${unidades(totalVarias(d))} quedan por enviar a ${sede ?? "la otra sede"}` : `Subida al almacén · ${unidades(totalVarias(d))} en una sola operación`;
     case "enviar":
       return `Traslado a ${sede ?? "la otra sede"} listo para armar`;
     case "pedir":

@@ -26,8 +26,8 @@ import {
 // en `pedir_prenda_para_apartar` (una transacción: pedido + reserva allá, o nada).
 //
 // Guía de foco (ADR-0284): cada campo dice si está hecho, cuál sigue y qué falta. «Falta» = lo que apaga el botón y la base
-// rechazaría: la talla y la tienda (si hay más de una), nombres, apellidos, un celular de 9 dígitos que empieza en 9, y quién
-// atiende. La nota es opcional.
+// rechazaría: la talla y la tienda (si hay más de una), nombres, apellidos, un celular a medias, y quién atiende. El celular
+// (ADR-0367) y la nota son opcionales.
 
 /** El cliente que ya está en pantalla: el de la ficha (un solo `nombre`, se parte con `partirNombre`) o, si ya viene
  *  separado (el formulario de Apartados), `nombres` y `apellidos` tal cual. */
@@ -83,7 +83,8 @@ export function PedirYApartarModal({
     ...(candidato && candidato.tiendas.length > 1 ? [{ id: "tienda", nombre: "Tienda", requerido: true, hecho: !falta.tienda, pendiente: "Elige a qué tienda se la pides." }] : []),
     { id: "nombres", nombre: "Nombres", requerido: true, hecho: !falta.nombres, pendiente: "Anota sus nombres." },
     { id: "apellidos", nombre: "Apellidos", requerido: true, hecho: !falta.apellidos, pendiente: "Anota sus apellidos." },
-    { id: "celular", nombre: "Celular", requerido: true, hecho: !falta.celular, pendiente: "Su celular: 9 dígitos, empieza en 9." },
+    // Opcional (ADR-0367): sin celular, cuando llegue se le avisa de otra forma.
+    { id: "celular", nombre: "Celular", requerido: false, hecho: celular.trim() !== "" && !falta.celular, pendiente: "Su celular, si lo da: 9 dígitos, empieza en 9." },
     { id: "nota", nombre: "Nota", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
     { id: "responsable", nombre: "Quién atiende", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién atiende." },
   ]);
@@ -99,7 +100,7 @@ export function PedirYApartarModal({
         p_cantidad: 1,
         p_clienta_nombres: nombres.trim(),
         p_clienta_apellidos: apellidos.trim(),
-        p_clienta_celular: soloDigitos(celular),
+        p_clienta_celular: soloDigitos(celular), // vacío = sin celular: la base lo guarda null (ADR-0367)
         p_nota: nota.trim() || undefined,
         p_token: tokenDe(huellaDelPedido({ ...datos, nota })),
       }),
@@ -174,7 +175,7 @@ export function PedirYApartarModal({
           </div>
           <CampoGuiado id="celular" guia={guia}>
             <label className="block">
-              <span className={campoEtiqueta}>{guia.etiqueta("celular", "Celular · WhatsApp")}</span>
+              <span className={campoEtiqueta}>{guia.etiqueta("celular", "Celular · WhatsApp (opcional)")}</span>
               <input
                 value={celular}
                 onChange={(e) => setCelular(e.target.value)}

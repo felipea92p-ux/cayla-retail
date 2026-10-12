@@ -39,12 +39,19 @@ export const AVIARIO = [
       "roles", "modulos", "rol_modulos", "roles_historial", "terminales",
       // ADR-0253: lo que se le quitó al rol Líder de equipo (el resto lo ve). Refresco del 2026-09-28.
       "lider_modulos_ocultos",
+      // Qué guías de uso ya se le ofrecieron a cada cuenta y cuáles completó (`quien`, `guia`, `ofrecida_en`, `completada_en`;
+      // la leen `fn_guias_vistas` y `marcar_guia_vista`). Es una preferencia por cuenta, como `lider_modulos_ocultos`. Nació
+      // en otra rama y ya está en producción; su migración no está en este repo al 2026-10-09. Refresco del 2026-10-09.
+      "guias_vistas",
       // Las acciones que Felipe soltó del combo «Responsable» (ADR-0162): es qué firma cada cuenta, o sea identidad y acceso.
       // Refresco del volcado del 2026-10-02.
       "acciones_sin_responsable"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
-      "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
+      // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
+      "precios_sede_prenda",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -86,6 +93,9 @@ export const AVIARIO = [
       "cuadres_piso", "cuadre_piso_items",
       // Cuántas prendas caben en el piso de cada sede (ADR-0329, 20261005103000). Es del piso, como el cuadre. Refresco del 2026-10-05.
       "capacidad_piso",
+      // Plan del piso (20261006110000): la foto diaria de cuánto espacio ocupa cada categoría en el piso de cada sede. Es del piso, como su
+      // capacidad. Asignada en el refresco del volcado del 2026-10-11.
+      "espacio_piso",
       // Plan del piso (ADR-0329, commit 1532264f): los grupos del mix y a qué grupo va cada categoría. Es del piso, como su
       // capacidad. Asignadas en el refresco del volcado del 2026-10-06 (ADR-0354), al aparecer en producción.
       "grupos_mix", "categoria_grupo_mix",
@@ -98,12 +108,18 @@ export const AVIARIO = [
       // Frescura del piso (ADR-0208, paso 4b): la libreta de «Ya decidí» por prenda y sede. Vive en Inventario ▸ Frescura y
       // responde por lo que pasa con la ropa en el piso. Refresco del volcado del 2026-10-02.
       "frescura_decisiones",
+      // La vara de CAYLA de Frescura (ADR-0208, act. 2026-10-07; 20261008120000): la curva de cada categoría con las tres tiendas,
+      // calculada por el cron y leída como respaldo. Es del piso, como la libreta. Nace con dueño; hasta que se pegue y se refresque
+      // el volcado, el aviario la avisa como «no en el volcado».
+      "frescura_vara_cayla",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },
   { n: "07", pajaro: "Colibrí", modulo: "Ventas y caja",
     tablas: [
       "ventas", "venta_items", "venta_pagos", "venta_anulacion_items", "cajas", "caja_movimientos",
+      // ADR-0365: la corrección del medio de pago de una venta con la caja abierta (20261009120000). Refresco del 2026-10-09.
+      "venta_pagos_correcciones",
       // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
       "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
       // ADR-0249: qué ficha de clienta se unió a cuál (unir fichas repetidas). Refresco del 2026-09-28.
@@ -113,7 +129,7 @@ export const AVIARIO = [
       "pedidos_no_atendidos",
       // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
       // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
-      "caja_traslados", "prendas_por_regularizar",
+      "caja_traslados", "prendas_por_regularizar", "prendas_por_regularizar_correcciones",
       // El cierre de arranque de esas ventas sin registrar (ADR-0334): el registro de cada cierre y el plazo por tienda. Mismo pájaro
       // que la cola que cierran: nacen de la misma venta. Entran al volcado cuando se pegue la migración 20261005100000.
       "cierres_cola_arranque", "cola_arranque_plazo",
@@ -137,6 +153,10 @@ export const AVIARIO = [
       // una persona queda como fila (solo se agregan; ADR-0325). Está en producción desde el 2026-09-29 (la parte 1 de `20260930050200`).
       // Refresco del 2026-10-02.
       "metas_persona_ajustes",
+      // Piezas de liquidación (rama claude/liquidacion-prendas-unicas-55bbee, PR #940): prendas sueltas que se etiquetan, se rebajan y se
+      // venden sin entrar al catálogo, y el precio mínimo con que se aceptan. Se venden por `venta_items`, así que son de quien responde por
+      // la venta. Ya están en producción (la migración se pegó antes de fusionar); asignadas en el refresco del volcado del 2026-10-11.
+      "piezas_liquidacion", "piezas_liquidacion_etiquetas", "parametros_liquidacion",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -146,11 +166,19 @@ export const AVIARIO = [
       // Respaldo de las boletas B002 que se renumeraron a la serie 04 de AQP (ADR-0310,
       // `pegar-en-produccion-aqp-serie-04-lima-serie-05-2026-10-02.sql`): la serie, el número y lo que SUNAT respondió
       // ANTES, para poder rehacerlo. Solo se lee a mano. Refresco del 2026-10-03.
-      "respaldo_b002_renumeradas_20261002"] },
+      "respaldo_b002_renumeradas_20261002",
+      // Respaldo de las boletas B001 y facturas F001 que se renumeraron a la serie 05 de TRU y la 06 de Lima
+      // (`pegar-en-produccion-tru-serie-05-lima-serie-06-2026-10-07.sql`): serie, número y respuesta de SUNAT de ANTES, para
+      // poder rehacerlo. Solo se lee a mano. Refresco del 2026-10-09.
+      "respaldo_b001_f001_renumeradas_20261007"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0349 (Plan de campaña): cuánto comprar por categoría para una campaña. Nace con dueño; refresco del 2026-10-05.
       "planes_compra", "planes_compra_lineas",
+      // Órdenes de compra: el pedido que se le manda a un proveedor (generada o anulada), sus líneas y la versión anterior de cada edición, que
+      // nunca se cambia. Están en producción y su migración TODAVÍA NO ESTÁ en el repo (ni en `main` ni en una rama): se encontraron en el
+      // refresco del volcado del 2026-10-11 (docs/backlog/2026-10-11-diccionario-precios-tienda.md).
+      "ordenes_compra", "orden_compra_items", "orden_compra_versiones",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
       // Asignadas en el refresco del volcado del 2026-09-23.
       "compra_parte_por_tienda", "compradores_de_tienda",

@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSPropertie
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
+import { Check, ChevronRight, Info, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -14,9 +14,10 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { fotoFormulario } from "@/lib/salida-sin-guardar";
+import { avisoConteoGuardado, avisoConteoRetomado, envioContado, mensajeDeSalida, unidadesDelEnvio } from "@/lib/recibir-cambio-de-sede";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { usePistola } from "@/components/ui/usePistola";
 import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
@@ -72,6 +73,8 @@ import {
   type PedidoEnvio,
   type Reparto,
 } from "@/lib/envio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -119,6 +122,20 @@ type Proveedor = { id: string; nombre: string };
 type Pestana = "prendas" | "fuera" | "notas";
 type FiltroLista = "todas" | "atrasadas" | "proximas";
 
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11): el conteo y lo que se escribió, no la
+ *  pantalla de «recibido» ni el resumen abierto. El token viaja con él: es el mismo envío, y reintentarlo no lo duplica. */
+type ConteoDelEnvio = {
+  seleccionadas: string[];
+  abiertos: Record<string, boolean>;
+  reparto: Reparto;
+  extras: ExtraEnvio[];
+  decisiones: Record<string, Decision | undefined>;
+  numeroGuia: string;
+  nota: string;
+  pestana: Pestana;
+  token: string;
+};
+
 // Prenda · SKU · Pendiente · Llegó · Dif. · Estado
 // El diseño de la tabla lo decide el ANCHO DEL PANEL (`@container` en la columna derecha), no el de la ventana: con el menú
 // lateral abierto una ventana de 1440 px deja al panel en ~700 px, y ahí la tabla de 6 columnas aprieta el nombre (ADR-0128).
@@ -134,9 +151,6 @@ const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
 };
 
 const FRASES_NOTA = ["Caja abierta al llegar", "Faltan bultos", "Etiquetas dañadas", "Llegó mojado", "Guía sin sello"];
-
-const CASILLA_TEXTO =
-  "h-10 w-full rounded-lg border border-tinta/15 bg-transparent px-3 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-rojo";
 
 export function RecepcionEnvio({
   compras,
@@ -203,17 +217,24 @@ export function RecepcionEnvio({
     [compras, lineas, enCola, ahora],
   );
 
-  const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
+  // El conteo es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se contó en otra
+  // sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo contado, se arranca desde ahí.
+  const { inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras } = useTrabajoPorSede<ConteoDelEnvio>(ubicacionInicialId);
+  const inicial = guardado
+    ? guardado.seleccionadas.filter((id) => compras.some((c) => c.id === id))
+    : compraInicialId && compras.some((c) => c.id === compraInicialId)
+      ? [compraInicialId]
+      : [];
   const [seleccionadas, setSeleccionadas] = useState<string[]>(inicial);
-  const [abiertos, setAbiertos] = useState<Record<string, boolean>>(() => Object.fromEntries(inicial.map((id) => [id, true])));
+  const [abiertos, setAbiertos] = useState<Record<string, boolean>>(() => guardado?.abiertos ?? Object.fromEntries(inicial.map((id) => [id, true])));
   // Las cantidades arrancan VACÍAS (D1): sin valor = sin contar.
-  const [reparto, setReparto] = useState<Reparto>({});
-  const [extras, setExtras] = useState<ExtraEnvio[]>([]);
-  const [pestana, setPestana] = useState<Pestana>("prendas");
+  const [reparto, setReparto] = useState<Reparto>(guardado?.reparto ?? {});
+  const [extras, setExtras] = useState<ExtraEnvio[]>(guardado?.extras ?? []);
+  const [pestana, setPestana] = useState<Pestana>(guardado?.pestana ?? "prendas");
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroLista>("todas");
-  const [numeroGuia, setNumeroGuia] = useState("");
-  const [nota, setNota] = useState("");
+  const [numeroGuia, setNumeroGuia] = useState(guardado?.numeroGuia ?? "");
+  const [nota, setNota] = useState(guardado?.nota ?? "");
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
   const [escaneo, setEscaneo] = useState("");
   const [ultimaLectura, setUltimaLectura] = useState<{
@@ -243,23 +264,39 @@ export function RecepcionEnvio({
   // resumen previo sigue abierto mientras tanto. Se borra al volver, al armar otro pedido y al registrar.
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   // Un token por envío: reintentar (un doble toque, una red lenta) no duplica el stock. Se renueva al terminar.
-  const [token, setToken] = useState(() => crypto.randomUUID());
+  const [token, setToken] = useState(() => guardado?.token ?? crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<Resultado | null>(null);
   const [quitarPendiente, setQuitarPendiente] = useState<CompraResumen | null>(null);
   // Qué se hace con lo que faltó, por línea (solo líder): ausente = todavía sin decidir (bloquea el confirmar).
-  const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>({});
+  const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>(guardado?.decisiones ?? {});
 
   // «¿Salir sin guardar?» (2026-09-28). El conteo de un envío (caja por caja, a veces de un cargamento grande) vive solo
   // en esta pantalla: tocar el menú o «atrás» a mitad lo perdía entero. Cuenta lo que la persona contó o escribió; qué
   // comprobantes marcó no (se vuelven a marcar en un toque). Con el envío ya recibido («Envío recibido») no hay nada que
-  // perder, y «Recibir otro» deja la pantalla como al abrir: la guardia se retira sola.
-  const fotoConteo = fotoFormulario({ reparto, extras, decisiones, numeroGuia, nota });
-  const [fotoConteoAlAbrir] = useState(fotoConteo);
+  // perder, y «Recibir otro» deja la pantalla como al abrir: la guardia se retira sola. Se compara contra la recepción VACÍA:
+  // una recuperada al volver a su sede también se protege. Y lo que quedó guardado en otra sede (2026-10-11) solo vive mientras
+  // se siga en Recibir: salir también lo pierde, así que también pregunta.
+  const contado = envioContado({ reparto, extras, decisiones, numeroGuia, nota });
   const avisoSalida = useSalidaSinGuardar(
-    !ok && fotoConteo !== fotoConteoAlAbrir,
-    "Hay un conteo a medias en este envío y todavía no se recibió. Si sales ahora, se pierde lo contado."
+    !ok && (contado || guardadosEnOtras.length > 0),
+    mensajeDeSalida(contado ? "Hay un conteo a medias en este envío y todavía no se recibió. Si sales ahora, se pierde lo contado." : null, guardadosEnOtras)
   );
+  // Lo contado, al día, para `TrabajoPorSede`: si la sede cambia, esto queda guardado en ESTA sede.
+  const etiquetaSede = ubicaciones.find((u) => u.id === ubicacionInicialId)?.nombre ?? "esta sede";
+  useEffect(() => {
+    reportarConteo(
+      !ok && contado
+        ? {
+            etiqueta: etiquetaSede,
+            unidades: unidadesDelEnvio({ reparto, extras }),
+            trabajo: { seleccionadas, abiertos, reparto, extras, decisiones, numeroGuia, nota, pestana, token },
+            avisoAlGuardar: avisoConteoGuardado({ etiqueta: etiquetaSede, unidades: unidadesDelEnvio({ reparto, extras }) }),
+            avisoAlVolver: avisoConteoRetomado({ etiqueta: etiquetaSede, unidades: 0 }),
+          }
+        : null,
+    );
+  }, [reportarConteo, ok, contado, etiquetaSede, seleccionadas, abiertos, reparto, extras, decisiones, numeroGuia, nota, pestana, token]);
   // La fila cuya decisión se está corrigiendo, y la fila cuyo campo tiene el foco (el editor no se abre mientras se teclea).
   const [editando, setEditando] = useState<string | null>(null);
   const [enfocada, setEnfocada] = useState<string | null>(null);
@@ -345,15 +382,17 @@ export function RecepcionEnvio({
   }, [menuAgregar]);
   const tieneCantidades = (compraId: string) => lineas.some((l) => l.compraId === compraId && (reparto[l.id] || decisiones[l.id]));
 
-  // El escáner es un teclado: si el foco quedó en un botón, lo escaneado se perdería (y el Enter activaría el botón).
-  useEffect(() => {
-    if (!hayEnvio || ok || quitarPendiente) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (teclaSueltaVaAlEscaner(e, document.activeElement)) escaneoRef.current?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [hayEnvio, ok, quitarPendiente]);
+  // La pistola, la misma pieza de Vender (`usePistola`): si el foco quedó en un botón, la primera tecla vuelve al escáner (lo
+  // escaneado no se pierde ni el Enter activa el botón); lo leído es un código exacto —nunca la primera sugerencia—, no se
+  // pega a lo que había escrito y se lee aunque la pistola no mande Enter.
+  usePistola(escaneoRef, {
+    activa: hayEnvio && !ok && !quitarPendiente,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      setEscaneo("");
+      escanear(codigo);
+    },
+  });
 
   function irAlPanel() {
     // En celular la lista y el panel se apilan: al marcar, bajar al panel para que se vea que pasó algo.
@@ -740,7 +779,9 @@ export function RecepcionEnvio({
     );
     setPedidoListo(null);
     setOk(resultado);
-    router.refresh();
+    // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?» (`retirarYa`): juntos, Next podía volver a montar
+    // la página o recargarla entera y se perdía «Envío recibido» (2026-10-08).
+    void avisoSalida.retirarYa().then(() => router.refresh());
   }
 
   function nuevoEnvio() {
@@ -887,7 +928,9 @@ export function RecepcionEnvio({
           </span>
         </div>
         {opciones.length === 0 ? (
-          <p className="text-xs text-rojo">Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.</p>
+          <Aviso tono="error" chico>
+            Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.
+          </Aviso>
         ) : (
           <CurvaVariantes referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
         )}
@@ -933,28 +976,17 @@ export function RecepcionEnvio({
           <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla lg:grid-rows-[1fr] ${hayEnvio && listaPlegada ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} inert={hayEnvio && listaPlegada}>
           <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-3">
-            <div className="relative mt-3">
-              <input
-                id="recibir-buscar"
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-                placeholder="Documento o proveedor"
-                autoComplete="off"
-                aria-label="Buscar entre los comprobantes pendientes"
-                className={`peer ${CASILLA_TEXTO} pr-9 [&::-webkit-search-cancel-button]:appearance-none`}
-              />
-              {busqueda ? (
-                <button type="button" onClick={() => setBusqueda("")} aria-label="Limpiar la búsqueda" className="absolute right-2.5 top-1/2 grid -translate-y-1/2 place-items-center rounded-full p-0.5 text-tinta/55 hover:text-rojo">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <kbd aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity peer-focus:opacity-0">
-                  /
-                </kbd>
-              )}
-            </div>
+            {/* El «/» lo escucha la pantalla (lleva aquí o, con un envío armado, al escáner): el buscador solo muestra la tecla. */}
+            <Buscador
+              id="recibir-buscar"
+              valor={busqueda}
+              onCambio={setBusqueda}
+              onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+              atajo="visible"
+              placeholder="Documento o proveedor"
+              etiqueta="Buscar entre los comprobantes pendientes"
+              className="mt-3"
+            />
           </div>
           {/* Dejan menos comprobantes en la misma lista: la píldora de filtro del sistema (ADR-0358), no la pestaña subrayada.
               Lo atrasado conserva su cuenta en ámbar mientras no está elegido: pide algo. */}
@@ -1057,7 +1089,7 @@ export function RecepcionEnvio({
                   Marca a la izquierda los comprobantes que vienen en el envío. Si trae mercadería de varios proveedores, márcalos todos.
                 </p>
                 {nAtrasadas > 0 && (
-                  <button type="button" onClick={marcarAtrasadas} className="label-cayla mt-1 rounded-md border border-tinta/25 px-3.5 py-2 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                  <button type="button" onClick={marcarAtrasadas} className="btn-cayla btn-secundario mt-1">
                     Marcar lo atrasado ({nAtrasadas})
                   </button>
                 )}
@@ -1199,14 +1231,13 @@ export function RecepcionEnvio({
                   />
                     <div className="ml-auto flex w-full items-center gap-2 py-2.5 sm:w-96">
                       <div className="relative flex-1">
-                        <ScanBarcode aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-tinta/45" />
                         {/* la cinta verde cruza el campo cada vez que la pistola lee: «entró» */}
                         {destello && <span key={destello.n} aria-hidden className="anim-cinta pointer-events-none absolute inset-y-0 left-0 w-1/4 rounded-lg bg-verde/15" />}
-                        <input
+                        <Buscador
                           ref={escaneoRef}
-                          type="text"
-                          value={escaneo}
-                          onChange={(e) => setEscaneo(e.target.value)}
+                          valor={escaneo}
+                          onCambio={setEscaneo}
+                          icono="barras"
                           onFocus={() => setVerSugerencias(true)}
                           onBlur={() => setVerSugerencias(false)}
                           onKeyDown={(e) => {
@@ -1217,10 +1248,8 @@ export function RecepcionEnvio({
                             const exacto = variantes.some((v) => clave(v.sku) === kEsc || v.codigosBarras.some((c) => clave(c) === kEsc));
                             escanear(!exacto && sugerencias[0]?.sku ? sugerencias[0].sku : escaneo);
                           }}
-                          placeholder="Escanea la etiqueta o busca por código…"
-                          aria-label="Escanear una prenda: suma 1 al comprobante que la trae"
-                          autoComplete="off"
-                          className={`${CASILLA_TEXTO} pl-10`}
+                          placeholder="Escanea la etiqueta o busca por código…" // unificar-fijo: ya es el Buscador, con el ícono de barras
+                          etiqueta="Escanear una prenda: suma 1 al comprobante que la trae"
                         />
                         {verSugerencias && sugerencias.length > 0 && (
                           <div role="listbox" aria-label="Prendas que coinciden" className="anim-revelar absolute inset-x-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-xl border border-sand bg-papel">
@@ -1342,7 +1371,7 @@ export function RecepcionEnvio({
                                   )}
                                 </>
                               ) : (
-                                <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: true }))} className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                                <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: true }))} className="btn-cayla btn-secundario">
                                   Contar
                                 </button>
                               )}
@@ -1548,7 +1577,7 @@ export function RecepcionEnvio({
             className="anim-barra"
             medidor={
               // contado (verde) · faltante (ámbar) · lo que falta contar (arena): cuánto falta, de un vistazo
-              <div aria-hidden className="flex h-[3px] bg-sand">
+              <div aria-hidden /* unificar-fijo: franja de 3 px pegada al borde de la barra fija, un medidor sin extremos; otro diseño a propósito (docs/unificar/grafico.barra.md) */ className="flex h-[3px] bg-sand">
                 <span className="bg-verde transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100)}%` }} />
                 <span className="bg-ambar transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100 - Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100), (totales.faltantes / Math.max(1, totales.esperadas)) * 100)}%` }} />
               </div>
@@ -1675,10 +1704,10 @@ export function RecepcionEnvio({
                 Tienes cantidades anotadas en <b className="font-semibold">{quitarPendiente.documento}</b>. Si lo quitas se descartan. No se registró nada todavía.
               </p>
               <div className="flex gap-3">
-                <button type="button" onClick={cerrar} className="label-cayla flex-1 rounded-md border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                <button type="button" onClick={cerrar} className="btn-cayla btn-secundario flex-1">
                   Seguir aquí
                 </button>
-                <button type="button" onClick={() => quitar(quitarPendiente.id)} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
+                <button type="button" onClick={() => quitar(quitarPendiente.id)} className="btn-cayla btn-primario flex-1">
                   Quitar y descartar
                 </button>
               </div>

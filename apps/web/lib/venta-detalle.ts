@@ -11,7 +11,7 @@ export async function leerVentaDetalle(supabase: Cliente, ventaId: string, ctx: 
     supabase
       .from("ventas")
       .select(
-        `id, created_at,
+        `id, created_at, estado, caja:cajas ( estado ),
          venta_items ( cantidad, precio_unitario, descuento_unitario,
            variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ),
          venta_pagos ( metodo, monto, recibido )`
@@ -28,6 +28,8 @@ export async function leerVentaDetalle(supabase: Cliente, ventaId: string, ctx: 
   if (comprobante.error) throw new Error(comprobante.error.message);
   if (!venta.data) throw new Error("La venta no existe o no tienes permiso para verla.");
 
+  const estadoCaja = (venta.data as unknown as { caja: { estado: string } | null }).caja?.estado ?? null;
+
   // El tipado de las relaciones embebidas de PostgREST es ancho (objeto o arreglo); la forma
   // real está fijada por el `select` de arriba, así que se afirma aquí, en un solo lugar.
   const filas: FilasVenta = {
@@ -36,6 +38,9 @@ export async function leerVentaDetalle(supabase: Cliente, ventaId: string, ctx: 
     items: venta.data.venta_items as unknown as FilasVenta["items"],
     pagos: venta.data.venta_pagos as unknown as FilasVenta["pagos"],
     comprobante: (comprobante.data as unknown as FilasVenta["comprobante"]) ?? null,
+    anulada: venta.data.estado === "anulada",
+    // Sin caja (o sin permiso para leerla) queda `null`: la hoja no ofrece corregir el pago.
+    cajaAbierta: estadoCaja === null ? null : estadoCaja === "abierta",
   };
   return armarDetalleVenta(filas, ctx);
 }

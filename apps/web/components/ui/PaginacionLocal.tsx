@@ -10,10 +10,13 @@ export function PaginacionLocal({
   pagina,
   totalPaginas,
   onPagina,
+  grande = false,
 }: {
   pagina: number;
   totalPaginas: number;
   onPagina: (pagina: number) => void;
+  /** Objetivos de 36 px (Marcas, 2026-10-10): una lista que se recorre a menudo con el mouse. Las demás siguen como estaban. */
+  grande?: boolean;
 }) {
   if (totalPaginas <= 1) return null;
 
@@ -23,7 +26,7 @@ export function PaginacionLocal({
       onClick={() => onPagina(destino)}
       disabled={deshabilitada}
       aria-label={etiqueta}
-      className={`label-cayla px-1.5 py-1 text-[11px] ${deshabilitada ? "text-tinta/30" : "hover:text-rojo"}`}
+      className={`label-cayla ${grande ? "h-9 min-w-9 rounded-[10px] text-[13px]" : "px-1.5 py-1 text-[11px]"} ${deshabilitada ? "text-tinta/30" : "hover:text-rojo"}`}
     >
       {texto}
     </button>
@@ -43,7 +46,7 @@ export function PaginacionLocal({
             type="button"
             onClick={() => onPagina(n)}
             aria-current={n === pagina ? "page" : undefined}
-            className={`label-cayla min-w-[1.5rem] rounded-md px-1.5 py-1 text-center text-[11px] ${
+            className={`label-cayla text-center ${grande ? "h-9 min-w-9 rounded-[10px] text-[13px] tabular-nums" : "min-w-[1.5rem] rounded-md px-1.5 py-1 text-[11px]"} ${
               n === pagina ? "bg-tinta text-crema" : "text-tinta/75 hover:text-rojo"
             }`}
           >

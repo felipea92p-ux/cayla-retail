@@ -2,18 +2,26 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 70,
+  "total": 78,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
       "SegmentoEnlaces «(sin nombre)»",
+      "BotonEnlace «productos.rotulos»",
       "BotonEnlace «productos.nuevo»",
+      "Link «Revisar»",
       "Link «Completar»"
+    ],
+    "components/CambiarEstadoProductosHoja.tsx": [
+      "ComboResponsable «{textos.nota}»",
+      "button «Volver»",
+      "button «{responsable.motivo ?? undefined}»"
     ],
     "components/EliminarProductoModal.tsx": [
       "ComboResponsable «(sin nombre)»",
       "Boton «{puede ? \"Cancelar\" : \"Cerrar\"}»",
       "Link «Editar»",
+      "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/EnlaceEtiquetas.tsx": [
@@ -22,9 +30,9 @@
     "components/FiltrosProductos.tsx": [
       "button «{`Quitar filtro ${c.texto}»",
       "button «Limpiar todo»",
+      "DesplegablePildora «Ordenar por»",
       "button «Limpiar filtros»",
       "button «Copiar enlace de esta lista»",
-      "DesplegablePildora «Ordenar por»",
       "DesplegablePildora «Categoría»",
       "DesplegablePildora «Talla»",
       "DesplegablePildora «Color»",
@@ -34,8 +42,8 @@
       "DesplegablePildora «Estado»",
       "DesplegablePildora «Temporada»",
       "DesplegablePildora «Por completar»",
-      "CampoTexto «{etiquetaBuscar}»",
       "BotonFiltros «→alTocarFiltros»",
+      "BotonFiltros «→alTocarFiltros» #2",
       "button «Limpiar»",
       "button «Ver»",
       "button «{textoTramo(t)}»",
@@ -53,9 +61,11 @@
       "button «Ver todos los colores»"
     ],
     "components/ProductosGrilla.tsx": [
+      "BotonEnlace «Limpiar filtros»",
       "button «{`Vista rápida de ${producto.referencia}»"
     ],
     "components/ProductosTabla.tsx": [
+      "BotonEnlace «Limpiar filtros»",
       "input «{etiqueta}»",
       "button «productos.tabla-abrir»",
       "Link «{`Editar ${referencia}»",
@@ -67,13 +77,11 @@
       "button «Eliminar»",
       "button «Descontinuar»",
       "button «Reactivar»",
-      "button «Quitar la marca»",
-      "ComboResponsable «(sin nombre)»",
-      "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Link «Rótulo»",
+      "button «Quitar la marca»"
     ],
     "components/SelectorTamanoGrilla.tsx": [
-      "SegmentoDeslizante «Tamaño»"
+      "SegmentoDeslizante «Tamaño de las tarjetas»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "Link «Imprimir etiquetas»",
@@ -95,7 +103,9 @@
       "button «{`${celda.nombre}»"
     ],
     "components/vista-rapida/VistaRapidaProducto.tsx": [
+      "button «→onCambiarEstado»",
       "Link «Editar»",
+      "Link «Rótulo»",
       "button «vista-rapida.historial»",
       "Link «Ver en Existencias»",
       "button «Eliminar»"

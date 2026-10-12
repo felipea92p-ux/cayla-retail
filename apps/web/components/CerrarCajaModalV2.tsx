@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -25,6 +24,7 @@ import {
 } from "@/lib/caja-cierre-reglas";
 import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 function money(n: number) {
   return (n < 0 ? "-S/ " : "S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -224,19 +224,18 @@ export function CerrarCajaModalV2({
   }
 
   const avisoOffline = efectivoEncolado > 0 && (
-    <div className="space-y-1.5 rounded-lg border border-ambar/30 bg-ambar/10 px-3 py-2.5 text-xs text-ambar-profundo">
-      <p className="flex items-center gap-2">
-        <CloudOff className="h-4 w-4 shrink-0" aria-hidden />
+    <Aviso tono="atencion">
+      <p>
         Hay {money(efectivoEncolado)} en ventas offline que todavía no subieron al sistema — no están incluidas en lo
         que espera el sistema.
       </p>
       {bloqueaCierre && (
-        <p className="pl-6 text-tinta/70">
+        <p className="mt-1.5 text-tinta/70">
           Tu sede tiene conexión: espera unos segundos a que esas ventas suban solas (reintentan cada 30&nbsp;s) antes
           de cerrar caja.
         </p>
       )}
-    </div>
+    </Aviso>
   );
 
   const barraPasos = (n: 1 | 2) => (
@@ -531,12 +530,10 @@ export function CerrarCajaModalV2({
             <span className={`font-display text-2xl tabular-nums ${fondo < 0 ? "text-rojo" : dejaMenos ? "text-ambar-profundo" : "text-tinta"}`}>{money(fondo)}</span>
           </div>
           {pideConfirmar && dejaMenos && fondoPedido && (
-            <div role="alert" data-sin-cascada className="space-y-2 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-3 text-sm">
-              <p className="font-semibold text-ambar-profundo">
-                Vas a dejar {money(fondo)} y hoy se pide {money(fondoPedido.monto)}.
-              </p>
-              <p className="text-xs text-tinta/70">El próximo turno puede quedarse sin sencillo. Si cierras igual, queda anotado en el cierre.</p>
-              <div className="flex flex-wrap gap-2 pt-1">
+            <div data-sin-cascada>
+              <Aviso tono="atencion" titulo={<>Vas a dejar {money(fondo)} y hoy se pide {money(fondoPedido.monto)}.</>}>
+              <p>El próximo turno puede quedarse sin sencillo. Si cierras igual, queda anotado en el cierre.</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 <button
                   type="button"
                   className={botonCancelar}
@@ -551,12 +548,13 @@ export function CerrarCajaModalV2({
                   Cerrar igual
                 </button>
               </div>
+              </Aviso>
             </div>
           )}
           {invalido && trasladoTexto.trim() !== "" && (
-            <p role="alert" className="rounded-lg bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
+            <Aviso tono="atencion" chico>
               {invalido}
-            </p>
+            </Aviso>
           )}
           {avisoOffline}
           <ComboResponsable control={responsable} deshabilitado={loading} />

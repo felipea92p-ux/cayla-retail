@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { CircleCheck, TriangleAlert } from "lucide-react";
+import { CircleCheck, FunnelX, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
@@ -16,6 +16,8 @@ import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 import { ComparativaCaja } from "@/components/CajaComparativa";
 import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
+import { GastoRapidoModal } from "@/components/GastoRapidoModal";
+import { IngresoRapidoModal } from "@/components/IngresoRapidoModal";
 import {
   AccesosCajaEscritorio,
   AccesosCajaMovil,
@@ -37,10 +39,12 @@ import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia
 import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
+import type { ConceptoOrdenado } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -98,6 +102,7 @@ export function CajaAbiertaPanel({
   contexto,
   accesos,
   gasto = null,
+  sedesIngreso = [],
   abrirCierre = false,
   comparativa = null,
 }: {
@@ -131,13 +136,17 @@ export function CajaAbiertaPanel({
     proveedores: { id: string; nombre: string; ruc: string | null }[];
     esLider: boolean;
     hoy: string;
+    /** Los conceptos del gasto rápido, ordenados por lo que más se gasta en esta sede (`ordenarPorFrecuencia`). */
+    frecuencia: { conceptos: ConceptoOrdenado[]; vecesOtro: number };
   } | null;
+  /** Las otras sedes activas (tiendas y taller), para «Préstamo de otra sede» en «Registrar ingreso». */
+  sedesIngreso?: { id: string; nombre: string }[];
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
+  const [modal, setModal] = useState<"movimiento" | "ingreso" | "cerrar" | "todos" | "gasto" | "gastoCompleto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
   // El recordatorio de cierre (ADR-0305) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
   // El `?cerrar=1` se borra de la barra al llegar: recargar la página no debe volver a abrir el cierre.
   useEffect(() => {
@@ -262,9 +271,10 @@ export function CajaAbiertaPanel({
           Registrar gasto
         </Boton>
       )}
+      {/* «Depósito o retiro» se fue de aquí (Felipe 2026-10-10): sacar plata que no es gasto se abre desde las hojas de gasto e ingreso. */}
       {comparativa && (
-        <Boton type="button" data-guia="caja.deposito" onClick={() => setModal("movimiento")}>
-          Depósito o retiro
+        <Boton type="button" data-guia="caja.ingreso" onClick={() => setModal("ingreso")}>
+          Registrar ingreso
         </Boton>
       )}
       <Boton type="button" data-guia="caja.historial" onClick={() => setModal("cierres")}>
@@ -328,7 +338,15 @@ export function CajaAbiertaPanel({
             )}
             {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
             {eventos.length === 0 ? (
-              <p className="py-6 text-center text-xs text-tinta/50">{todosLosEventos.length === 0 ? "Todavía no hay movimientos." : "Nada con este filtro."}</p>
+              todosLosEventos.length === 0 ? (
+                <Vacio tamano="chico" icono={<Receipt />}>
+                  Todavía no hay movimientos.
+                </Vacio>
+              ) : (
+                <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Limpiar filtros", onClick: () => setFiltroMov(FILTRO_MOV_INICIAL) }}>
+                  Nada con este filtro.
+                </Vacio>
+              )
             ) : (
               <div className={`mt-1.5 divide-y divide-sand ${cierresAncho ? "@[900px]:columns-2 @[900px]:gap-x-10" : ""}`}>
                 {eventos.map((e) => (
@@ -464,7 +482,7 @@ export function CajaAbiertaPanel({
 
         {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
         <div data-guia="caja.accesos" className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
-          <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
+          <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <AccesosCajaMovil accesos={accesos} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <TarjetasElegibles contexto={contexto} ubicacionId={caja.ubicacionId} />
         </div>
@@ -481,11 +499,35 @@ export function CajaAbiertaPanel({
       {/* Escritorio: la barra de cierre se queda a la vista (en el celular, el «Cerrar» de la barra de abajo). */}
       <BarraCierreCaja estado={estadoCierre} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
+      <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "ingreso" && (
+        <IngresoRapidoModal
+          caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
+          ubicacionNombre={ubicacionNombre}
+          esLider={personaRol === "lider"}
+          sedes={sedesIngreso}
+          accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
+          onCerrar={() => setModal(null)}
+          onRetiro={() => setModal("movimiento")}
+        />
+      )}
       {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
       {modal === "gasto" && gasto && (
+        <GastoRapidoModal
+          caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
+          ubicacionNombre={ubicacionNombre}
+          conceptos={gasto.frecuencia.conceptos}
+          categorias={gasto.categorias}
+          proveedores={gasto.proveedores}
+          hoy={gasto.hoy}
+          onCerrar={() => setModal(null)}
+          onFormularioCompleto={() => setModal("gastoCompleto")}
+          onRetiro={() => setModal("movimiento")}
+        />
+      )}
+      {modal === "gastoCompleto" && gasto && (
         <RegistrarGastoModal
           categorias={gasto.categorias}
           ubicaciones={gasto.ubicaciones}
@@ -666,7 +708,9 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
       {!r || !ahora ? (
         <div className="min-h-[190px]" />
       ) : r.cantidad === 0 ? (
-        <p className="m-auto py-6 text-center text-xs text-tinta/50">Sin ventas registradas todavía hoy.</p>
+        <Vacio tamano="chico" icono={<ShoppingBag />} className="m-auto">
+          Sin ventas registradas todavía hoy.
+        </Vacio>
       ) : (
         <>
           <p className="sr-only">

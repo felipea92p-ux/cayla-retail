@@ -45,7 +45,7 @@ export function EncabezadoPagina({
   const derechaOcupada = Boolean(children);
   const bajoLaFrase = derechaOcupada && acciones ? <>{pie}{acciones}</> : pie;
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
+    <header data-voz="cabecera" className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
       <div className="anim-sube min-w-0">
         <div className="flex items-center gap-3">
           {volver}

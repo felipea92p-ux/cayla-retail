@@ -5,13 +5,14 @@ import { useMemo } from "react";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
-import { ChipEstado, COLOR_ESTADO, nombreLargo, TipRico } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import { nombreLargo, TipRico } from "@/components/analisis/piezas";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { diasQueQuedan, otraSedeQueLaTiene, plural, porLlegar } from "@/lib/analisis-reglas";
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
 import {
   cuentasFiltroAcaba,
   EJE_ACABA,
+  faltanDelModelo,
   FILTROS_ACABA,
   LINEA_SEMANA,
   lineasPorLlegar,
@@ -27,6 +28,9 @@ import {
   type FiltroAcaba,
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo,
 // «Cómpralas»: todo lo que se acaba se compra por defecto (decisión 7); si otra tienda la tiene, se dice cuántas tiene y se
@@ -90,7 +94,7 @@ function Filtros({ filtro, cuentas, onFiltro }: { filtro: FiltroAcaba; cuentas: 
 }
 
 /** Cuántos días le quedan: rayada si se agotó; si no, una barra de 0 a 2 semanas, con la semana punteada. */
-function Pista({ p }: { p: PrendaAnalisis }) {
+function Pista({ p }: { p: ModeloAnalisis }) {
   const pista = pistaAcaba(diasQueQuedan(p));
   return (
     <span className="pista">
@@ -114,14 +118,20 @@ function Pista({ p }: { p: PrendaAnalisis }) {
 }
 
 /** «Por llegar 13» (con de dónde y cuándo, al pasar el mouse), y «AQP tiene 3» o a quién se compra. */
-function Pildoras({ p }: { p: PrendaAnalisis }) {
+function Pildoras({ p }: { p: ModeloAnalisis }) {
   const { datos, sedeDe } = useAnalisis();
   const llega = porLlegar(p);
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra ? sedeDe(otra.sedeId) : undefined;
   const proveedor = textoProveedor(p.origen);
+  const faltan = faltanDelModelo(p);
   return (
     <>
+      {faltan && (
+        <span className="pil" data-tip={faltan.todas.length > 1 ? `Ya no hay: ${faltan.todas.join(", ")}` : undefined}>
+          {faltan.texto}
+        </span>
+      )}
       {llega > 0 && (
         <span className="pil llega">
           <Icono nombre="llega" />
@@ -149,7 +159,7 @@ function Pildoras({ p }: { p: PrendaAnalisis }) {
 }
 
 /** «Comprar» (Compras o Producción, según de dónde viene) y, si otra tienda la tiene, «o pedir a Arequipa». */
-function Accion({ p }: { p: PrendaAnalisis }) {
+function Accion({ p }: { p: ModeloAnalisis }) {
   const { acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(p, acceso);
   const otra = otraSedeQueLaTiene(p.otras);
@@ -173,17 +183,19 @@ function Accion({ p }: { p: PrendaAnalisis }) {
 /** Sin carril: nada se acaba (en positivo), o no se pudieron leer las prendas. */
 function SinCarril({ tipo }: { tipo: VacioAcaba }) {
   const texto = TEXTO_VACIO_ACABA[tipo];
-  const est = tipo === "nada" ? "bien" : "nd";
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
+  // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
   return (
-    <section className="tarjeta vacio-vista entra" style={{ ["--i" as string]: 0 }}>
-      <span className="acaba-ic" style={{ ["--c" as string]: COLOR_ESTADO[est] }}>
-        <Icono nombre={tipo === "nada" ? "check" : "nd"} />
-      </span>
-      <div>
-        {tipo === "nada" ? <ChipEstado est="bien" /> : <ChipEstado est="nd">Sin datos</ChipEstado>}
-        <h2>{texto.titulo}</h2>
-        <p>{texto.linea}</p>
-      </div>
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      <Vacio icono={<Check />} titulo={texto.titulo}>
+        {texto.linea}
+      </Vacio>
     </section>
   );
 }

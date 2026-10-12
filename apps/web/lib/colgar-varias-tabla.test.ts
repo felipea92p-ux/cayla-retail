@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { celdaColgarVarias, llenarTodasCon, totalesColgar } from "./colgar-varias-tabla";
+import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "./colgar-varias-tabla";
 
 const t = (id: string, talla: string, piso: number, almacen: number) => ({ varianteId: id, talla, pisoDisponible: piso, almacenDisponible: almacen });
 
@@ -32,5 +32,18 @@ describe("totalesColgar", () => {
       { clave: "rojo", tallas: [t("c", "S", 1, 1)] },
     ];
     expect(totalesColgar(colores, { a: 2, b: 1, c: 1 })).toEqual({ porColor: { verde: 3, rojo: 1 }, porTalla: { S: 3, M: 1 }, total: 4, tallas: 3 });
+  });
+});
+
+describe("celdaSubirVarias (Subir varias, 2026-10-08)", () => {
+  it("con algo colgado se edita; sin nada colgado dice el almacén; sin nada libre, «se acabó»", () => {
+    expect(celdaSubirVarias(t("a", "S", 2, 1))).toEqual({ tipo: "editable", piso: 2, almacen: 1 });
+    expect(celdaSubirVarias(t("b", "M", 0, 3))).toEqual({ tipo: "sinPiso", almacen: 3 });
+    expect(celdaSubirVarias(t("c", "L", 0, 0))).toEqual({ tipo: "acabo" });
+  });
+  it("«Llenar todas con» al subir topa en lo colgado", () => {
+    const tallas = [t("a", "S", 0, 3), t("b", "M", 1, 1), t("c", "L", 4, 0)];
+    expect(llenarTodasCon(tallas, 2, "subir")).toEqual({ b: 1, c: 2 });
+    expect(llenarTodasCon(tallas, Number.MAX_SAFE_INTEGER, "subir")).toEqual({ b: 1, c: 4 });
   });
 });

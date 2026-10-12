@@ -30,10 +30,11 @@
       "button «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)»",
       "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
+      "button «{responsable.motivo ?? undefined}» #2",
       "a «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)» #2",
-      "button «{responsable.motivo ?? undefined}» #2",
-      "button «{responsable.motivo ?? undefined}» #3"
+      "button «{responsable.motivo ?? undefined}» #3",
+      "button «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -52,7 +53,6 @@
       "Link «{`Imprimir la guía de la caja Nº ${numero}»"
     ],
     "components/traslados-pases/Billetera.tsx": [
-      "input «Busca una caja por número, sede o prenda»",
       "Pestanas «(sin nombre)»"
     ],
     "components/traslados-pases/MiniPase.tsx": [

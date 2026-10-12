@@ -33,6 +33,8 @@ import {
   type UnidadBalance,
 } from "@/lib/balance-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
+import { CalendarX, Flag, Scale, Store } from "lucide-react";
 
 // Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0198), dibujado como el spike aprobado (`vista-reportes.js` →
 // `vistaBalance`): cabecera «¿Cuánto vale CAYLA?» → la tarjeta «Antes de dibujarlo, el sistema lo comprueba» con cada
@@ -234,28 +236,27 @@ function VistaCayla({
         ) : sit.tipo === "no_cuadra" ? (
           <GuiaNoCuadra bloqueos={sit.bloqueos} onArranque={onArranque} />
         ) : sit.tipo === "antes_del_arranque" ? (
-          <div className="fin-guia">
-            <p className="label-cayla text-[11px] text-taupe">Antes del arranque</p>
-            <h2>No hay Balance antes del día en que CAYLA empezó a usar el sistema</h2>
-            <p>
+          <Superficie>
+            <Vacio icono={<CalendarX />} titulo="No hay Balance antes del día en que CAYLA empezó a usar el sistema">
               El punto de partida es el {sit.arranque ? tituloCorte(sit.arranque, hoy).replace(/^Al /, "") : "día de arranque"}. Elige una fecha desde ahí.
-            </p>
-          </div>
+            </Vacio>
+          </Superficie>
         ) : (
-          <div className="fin-guia">
-            <p className="label-cayla text-[11px] text-rojo">Falta el punto de partida</p>
-            <h2>Registra lo que CAYLA tenía el día que empezó a usar el sistema</h2>
-            <p>
+          <Superficie>
+            <Vacio
+              icono={<Flag />}
+              titulo="Falta el punto de partida: registra lo que CAYLA tenía el día que empezó a usar el sistema"
+              acciones={
+                <Boton type="button" peso="primario" onClick={onArranque}>
+                  Registrar saldos de arranque
+                </Boton>
+              }
+            >
               El sistema ya sabe lo que hay en cada cajón, la mercadería, los muebles y lo que se debe a cada proveedor. Lo que no sabe lo
               pones tú, una sola vez, con el contador: lo que había en el banco, lo que se le debía a SUNAT, lo que le prestaste a CAYLA,
               el capital y las utilidades acumuladas hasta ese día.
-            </p>
-            <div className="fin-botones mt-5 justify-start">
-              <Boton type="button" peso="primario" onClick={onArranque}>
-                Registrar saldos de arranque
-              </Boton>
-            </div>
-          </div>
+            </Vacio>
+          </Superficie>
         )}
       </div>
 
@@ -407,10 +408,8 @@ function GuiaNoCuadra({ bloqueos, onArranque }: { bloqueos: Chequeo[]; onArranqu
   const m = motivoNoCuadra(bloqueos);
   const dif = bloqueos[0]?.diferencia;
   return (
-    <div className="fin-guia">
-      <p className="label-cayla text-[11px] text-rojo">No cuadra</p>
-      <h2>El Balance no se muestra hasta resolver la diferencia</h2>
-      <p>
+    <Superficie>
+      <Vacio icono={<Scale />} titulo="No cuadra: el Balance no se muestra hasta resolver la diferencia">
         {m.texto}
         {dif != null && bloqueos[0]?.clave !== "diario" && (
           <>
@@ -419,9 +418,9 @@ function GuiaNoCuadra({ bloqueos, onArranque }: { bloqueos: Chequeo[]; onArranqu
           </>
         )}
         {m.otros > 0 && ` Y ${m.otros === 1 ? "una cosa más" : `${m.otros} cosas más`} que no cuadra${m.otros === 1 ? "" : "n"} (arriba).`}
-      </p>
+      </Vacio>
       {m.causa && (
-        <div className="fin-franja">
+        <div className="fin-franja mx-5 mb-5">
           <span>
             <b>{m.causa.clave === "sin_explicar" ? "Todavía sin causa:" : "Causa probable:"}</b> {minuscula(causaCorta(m.causa.texto))}, por{" "}
             {solesBalance(Math.abs(m.causa.monto))}.
@@ -429,7 +428,7 @@ function GuiaNoCuadra({ bloqueos, onArranque }: { bloqueos: Chequeo[]; onArranqu
           <EnlaceCausa enlace={m.enlace} onArranque={onArranque} />
         </div>
       )}
-    </div>
+    </Superficie>
   );
 }
 
@@ -529,11 +528,11 @@ function VistaTienda({
 }) {
   if (!unidad) {
     return (
-      <div className="fin-guia">
-        <p className="label-cayla text-[11px] text-taupe">Sin datos</p>
-        <h2>No hay una tienda que mostrar</h2>
-        <p>Lo que es de una tienda se ve desde su sede. Si trabajas en una, elígela arriba.</p>
-      </div>
+      <Superficie>
+        <Vacio icono={<Store />} titulo="No hay una tienda que mostrar">
+          Lo que es de una tienda se ve desde su sede. Si trabajas en una, elígela arriba.
+        </Vacio>
+      </Superficie>
     );
   }
   const mes = nombreMes(unidad.desde);

@@ -1,25 +1,32 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import Link from "next/link";
+import type { MouseEvent } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import type { AparienciaPrenda, CategoriaVisual } from "@/lib/frescura";
+import type { AccionDecision } from "@/lib/frescura-decisiones-reglas";
 import type { FilaDeDecision } from "@/lib/frescura-decisiones-pantalla";
-import { APROXIMADO, type FilaVista } from "@/lib/frescura-pantalla";
+import { APROXIMADO, type AccionFila, type FilaVista } from "@/lib/frescura-pantalla";
 import { EstadoChip, ICONO_SUGERENCIA } from "./piezas";
+import type { ErrorAnotar } from "./useAnotarDecision";
 
 // Una prenda (modelo+color) de Frescura del piso: la fila de la tabla en la computadora y la tarjeta en el celular. Una fila =
 // una prenda = una frase (Formidable, ADR-0350): la prenda con su miniatura (la foto o, sin foto, el ícono de su categoría sobre
 // su color, ADR-0333), UNA palabra de estado en lenguaje de tienda con los días que lleva, y UNA frase de qué hacer. Todo lo demás
-// —las tallas, la rapidez, lo vendido, el porqué— vive en la hoja de detalle, a un toque. Toda la fila abre esa hoja: no tiene
-// controles adentro, así que tocar cualquier parte es la misma acción (y Enter o Espacio con el teclado).
+// —las tallas, la rapidez, lo vendido, el porqué— vive en la hoja de detalle, a un toque.
+//
+// Desde la actualización 2026-10-07 la fila también EJECUTA (`accionDeFila`): la primera sugerencia es un botón con su verbo.
+// «La cambié de lugar» anota a un toque por el mismo camino que la hoja (con «Deshacer» 10 s); «Armar traslado», «Retirar del
+// piso» y «Ver sus ventas» abren la pantalla que lo hace con la prenda cargada; «Decidir» abre la hoja cuando hay que elegir entre
+// opciones. El nombre de la prenda es un botón que abre la hoja (el porqué); con el mouse, toda la fila la abre también, salvo sus
+// propios botones.
 
 /** Las columnas de la tabla, UNA vez: el encabezado de cada categoría y cada fila usan esta misma plantilla. */
-export const PLANTILLA_FRESCURA = "md:grid-cols-[minmax(230px,1.5fr)_minmax(150px,0.85fr)_minmax(230px,1.6fr)_76px]";
+export const PLANTILLA_FRESCURA = "md:grid-cols-[minmax(230px,1.5fr)_minmax(150px,0.85fr)_minmax(220px,1.5fr)_minmax(170px,auto)]";
 
 /** Por debajo de este ancho la tabla se desliza dentro de su tarjeta, como `Tabla` (nunca la página entera). */
-export const ANCHO_MINIMO_TABLA = "md:min-w-[760px]";
+export const ANCHO_MINIMO_TABLA = "md:min-w-[840px]";
 
 /**
  * Lo que se decidió (paso 4b): con una decisión vigente reemplaza a las preguntas («Decidida · se cambió de lugar · se revisa el
@@ -54,29 +61,34 @@ function QueHacer({ fila, decision }: { fila: FilaVista; decision: FilaDeDecisio
   );
 }
 
-function Prenda({ fila, muchasSinTemporada, apariencia, categoria }: { fila: FilaVista; muchasSinTemporada: boolean; apariencia: AparienciaPrenda | null; categoria: CategoriaVisual | null }) {
+function Prenda({ fila, apariencia, categoria, onAbrir }: { fila: FilaVista; apariencia: AparienciaPrenda | null; categoria: CategoriaVisual | null; onAbrir: () => void }) {
   const meta = [fila.color, fila.temporada].filter(Boolean).join(" · ");
   return (
     <div className="flex min-w-0 items-start gap-3">
       <MiniaturaPrenda fotoUrl={apariencia?.fotoUrl ?? null} colorHex={apariencia?.colorHex ?? null} tamano="xl" prefijo={categoria?.prefijo} familia={categoria?.familia} />
       <div className="min-w-0">
-        <div data-guia="frescura.prenda-nombre" className="text-[15px] font-semibold leading-tight">{fila.nombre}</div>
+        {/* El nombre es el botón que abre la hoja: el porqué, las tallas y la libreta (también con el teclado). */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAbrir();
+          }}
+          aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
+          data-guia="frescura.prenda-nombre"
+          // `min-h-7`: un blanco de 24 px o más con el mouse (medía 19; oficio visual, Formidable 2026-10-09).
+          className="block min-h-7 py-0.5 text-left text-[15px] font-semibold leading-tight hover:underline focus-visible:underline"
+        >
+          {fila.nombre}
+        </button>
         {meta && <div className="text-[13px] leading-snug text-taupe">{meta}</div>}
-        {(fila.temporadaPasada || (fila.sinTemporada && !muchasSinTemporada)) && (
+        {/* «¿De qué temporada es?» ya no va en la fila (act. 2026-10-07): es una tarea de Catálogo y vive en «¿Cómo se lee esto?». */}
+        {fila.temporadaPasada && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            {fila.temporadaPasada && (
-              <>
-                <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
-                  Temporada pasada
-                </Chip>
-                <span className="text-[12px] leading-snug text-taupe">{fila.temporadaPasada}</span>
-              </>
-            )}
-            {fila.sinTemporada && !muchasSinTemporada && (
-              <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
-                ¿De qué temporada es? Complétala
-              </Chip>
-            )}
+            <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
+              Temporada pasada
+            </Chip>
+            <span className="text-[12px] leading-snug text-taupe">{fila.temporadaPasada}</span>
           </div>
         )}
       </div>
@@ -96,12 +108,93 @@ function Estado({ fila, marcarAproximado }: { fila: FilaVista; marcarAproximado:
   );
 }
 
-/** Lo que dice que la fila se toca: una flecha; en las que esperan una decisión, «Decidir». No es un botón aparte (toda la fila lo es). */
-function Abrir({ fila }: { fila: FilaVista }) {
+/**
+ * El botón de la fila: su verbo, y lo que hace. `anotar` deja la decisión anotada a un toque (y «Deshacer» en el aviso);
+ * `enlace` abre la pantalla que hace la cosa; `hoja` abre la hoja (a «Ya decidí» con la opción marcada, o al detalle). «¿Por qué?»
+ * abre siempre el detalle. Si anotar falló, el error se dice AQUÍ, junto al botón que se tocó, no arriba de la tabla.
+ */
+function Accion({
+  accion,
+  consecuencia,
+  enviando,
+  error,
+  onAnotar,
+  onDecidir,
+  onAbrir,
+  onLimpiarError,
+}: {
+  accion: AccionFila | null;
+  /** Lo que pasa al tocar el botón que anota, dicho antes (`textoConsecuenciaFila`); null si el botón no anota. */
+  consecuencia: string | null;
+  enviando: boolean;
+  error: ErrorAnotar | null;
+  onAnotar: (accion: AccionDecision, verbo: string) => void;
+  onDecidir: (modo: "detalle" | "decidir", opcion: AccionDecision | null) => void;
+  onAbrir: () => void;
+  onLimpiarError: () => void;
+}) {
+  const detener = (e: MouseEvent) => e.stopPropagation();
   return (
-    <span aria-hidden className={`flex items-center justify-end gap-0.5 text-[13px] ${fila.porDecidir ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
-      {fila.porDecidir && "Decidir"}
-      <ChevronRight strokeWidth={1.8} className="h-4 w-4" />
+    <span data-guia="frescura.accion" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:justify-end">
+      {accion?.tipo === "anotar" && (
+        <button
+          type="button"
+          className="btn-cayla btn-primario btn-chico"
+          disabled={enviando}
+          onClick={(e) => {
+            detener(e);
+            onAnotar(accion.accion, accion.verbo);
+          }}
+        >
+          {enviando ? "Anotando…" : accion.verbo}
+        </button>
+      )}
+      {accion?.tipo === "enlace" && (
+        <Link href={accion.href} className="btn-cayla btn-secundario btn-chico" onClick={detener}>
+          {accion.verbo}
+        </Link>
+      )}
+      {accion?.tipo === "hoja" && (
+        <button
+          type="button"
+          className="btn-cayla btn-secundario btn-chico"
+          onClick={(e) => {
+            detener(e);
+            onDecidir(accion.modo, accion.opcion);
+          }}
+        >
+          {accion.verbo}
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]"
+        onClick={(e) => {
+          detener(e);
+          onAbrir();
+        }}
+      >
+        ¿Por qué?
+      </button>
+      {/* La consecuencia ANTES de tocar (Formidable 2026-10-09): el botón afirma un hecho; esta línea dice cuándo tocarlo y qué pasa. */}
+      {consecuencia && accion?.tipo === "anotar" && !error && (
+        <span className="basis-full text-[12.5px] leading-snug text-taupe md:text-right">{consecuencia}</span>
+      )}
+      {error && (
+        <span role="alert" className="basis-full text-[12.5px] leading-snug text-tinta/80 md:text-right">
+          {error.texto}{" "}
+          <button
+            type="button"
+            className="btn-cayla btn-enlace text-[12.5px]"
+            onClick={(e) => {
+              detener(e);
+              onLimpiarError();
+            }}
+          >
+            {error.conVer ? "Ver" : "Entendido"}
+          </button>
+        </span>
+      )}
     </span>
   );
 }
@@ -111,55 +204,60 @@ const FILETE = "before:pointer-events-none before:absolute before:bottom-3 befor
 
 export function FrescuraFila({
   fila,
-  muchasSinTemporada,
   onAbrir,
   decision,
   marcarAproximado,
   apariencia,
   categoria,
+  accion,
+  consecuencia,
+  enviando,
+  error,
+  onAnotar,
+  onDecidir,
+  onLimpiarError,
 }: {
   fila: FilaVista;
-  muchasSinTemporada: boolean;
   onAbrir: () => void;
   decision: FilaDeDecision | null;
   /** «Aproximado» bajo el estado: solo si no hay un aviso único arriba (la regla se dice una vez, la excepción se marca). */
   marcarAproximado: boolean;
   apariencia: AparienciaPrenda | null;
   categoria: CategoriaVisual | null;
+  /** El botón de la fila (`accionDeFila`), o null si no hay nada que hacer. */
+  accion: AccionFila | null;
+  /** Lo que pasa al tocar el botón que anota, dicho antes de tocarlo; null si el botón no anota. */
+  consecuencia: string | null;
+  /** Se está anotando ESTA prenda. */
+  enviando: boolean;
+  /** Falló anotar ESTA prenda: se dice junto a su botón. */
+  error: ErrorAnotar | null;
+  onAnotar: (accion: AccionDecision, verbo: string) => void;
+  onDecidir: (modo: "detalle" | "decidir", opcion: AccionDecision | null) => void;
+  onLimpiarError: () => void;
 }) {
-  const alTeclado = (e: KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onAbrir();
-    }
-  };
   return (
     <div
-      role="button"
-      tabIndex={0}
       onClick={onAbrir}
-      onKeyDown={alTeclado}
-      aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
-      data-guia="frescura.fila"
+      tabIndex={-1}
       data-prenda={fila.clave}
-      className={`fila-cayla relative cursor-pointer border-t border-sand focus-visible:bg-crema/60 ${fila.porDecidir ? FILETE : ""}`}
+      data-guia="frescura.fila"
+      className={`fila-cayla relative cursor-pointer border-t border-sand ${fila.porDecidir ? FILETE : ""}`}
     >
       {/* Computadora: una fila de la tabla. */}
       <div className={`hidden items-center gap-x-4 px-5 py-3.5 md:grid ${PLANTILLA_FRESCURA}`}>
-        <Prenda fila={fila} muchasSinTemporada={muchasSinTemporada} apariencia={apariencia} categoria={categoria} />
+        <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
-        <Abrir fila={fila} />
+        <Accion accion={accion} consecuencia={consecuencia} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
       </div>
 
       {/* Celular: una tarjeta con lo mismo, apilado. */}
       <div className="flex flex-col gap-2.5 px-4 py-3.5 md:hidden">
-        <div className="flex items-start justify-between gap-3">
-          <Prenda fila={fila} muchasSinTemporada={muchasSinTemporada} apariencia={apariencia} categoria={categoria} />
-          <Abrir fila={fila} />
-        </div>
+        <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
+        <Accion accion={accion} consecuencia={consecuencia} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
       </div>
     </div>
   );

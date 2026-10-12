@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowRight, Banknote, PackageSearch, ScanLine, Search } from "lucide-react";
+import { ArrowRight, Banknote, FunnelX, PackageSearch, ScanLine, Search } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
+import { abrirDesdeLectura } from "@/lib/cambios-atajos-reglas";
 import { DevolucionesVentas } from "@/components/DevolucionesVentas";
 import { DevolucionesFlujo } from "@/components/DevolucionesFlujo";
 import { DevolucionesPendientes } from "@/components/DevolucionesPendientes";
@@ -16,6 +17,8 @@ import { EsqueletoBusqueda, EstadoVacio, SinResultadosVentas, mostrarActividad }
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import type { DevolucionPendiente, DevolucionResuelta } from "@/lib/devoluciones";
 import { estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import type { DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
@@ -91,13 +94,23 @@ export function DevolucionesPanel({
   const pathname = usePathname();
   const ahora = useMemo(() => new Date(), []);
   const [buscando, startTransition] = useTransition();
+  // La devolución a medio armar es de SU sede (Felipe, 2026-10-11), como en Cambios: la página monta el panel con la sede en la key,
+  // y la de otra sede quedó guardada en `TrabajoPorSede`. Al volver se retoma; si el panel se montó por un cambio de sede, no se reabre
+  // desde cero la venta del enlace (`?item=`).
+  const { inicial: guardado, reportar: reportarDevolucion, vieneDeOtraSede } = useTrabajoPorSede<DevolucionArmada>(ubicacionId);
   const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(() => {
+    if (guardado) return { venta: guardado.venta, lineaId: guardado.lineaInicialId };
+    if (vieneDeOtraSede) return null;
     const l = abrirItemId ? lineas.find((x) => x.ventaItemId === abrirItemId) : undefined;
     if (!l) return null;
     // Una prenda que ya no se puede devolver (anulada, ya devuelta…) abre el flujo sin nada
     // marcado: en el paso de las prendas cada una dice por qué sí o por qué no.
     return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaDevolucion(l, ahora).devolvible ? l.ventaItemId : null };
   });
+  // Sin devolución abierta no hay nada armado: una cancelada o terminada no se guarda al cambiar de sede.
+  useEffect(() => {
+    if (!flujo) reportarDevolucion(null);
+  }, [flujo, reportarDevolucion]);
   const [anulando, setAnulando] = useState<LineaVentaReciente | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [vista, setVista] = useState<Vista>("compras");
@@ -144,11 +157,31 @@ export function DevolucionesPanel({
 
   useAtajoBusqueda(campoBusqueda, !flujo && !anulando);
 
+  // Una lectura (pistola o cámara) que trae UNA sola compra la abre directo (`abrirDesdeLectura`, Felipe 2026-10-09). La
+  // búsqueda va por la URL: se recuerda qué se leyó y, cuando llegan sus resultados, se decide.
+  const lecturaPendiente = useRef<string | null>(null);
+  useEffect(() => {
+    if (lecturaPendiente.current === null || lecturaPendiente.current !== busqueda) return;
+    lecturaPendiente.current = null;
+    const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaDevolucion(l, ahora).devolvible);
+    if (!abrir) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
+    setFlujo(abrir);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [lineas, busqueda, ahora]);
+
   function navegar(parametros: URLSearchParams | null) {
     startTransition(() => router.push(parametros ? `${pathname}?${parametros}` : pathname));
   }
 
-  function buscar(texto: string, todas: boolean) {
+  function buscar(texto: string, todas: boolean, leida = false) {
+    if (leida) lecturaPendiente.current = texto;
+    // La misma búsqueda que ya está en pantalla no vuelve a navegar: se decide con lo que ya hay.
+    if (leida && texto === busqueda) {
+      lecturaPendiente.current = null;
+      const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaDevolucion(l, ahora).devolvible);
+      if (abrir) return setFlujo(abrir);
+    }
     const parametros = new URLSearchParams({ q: texto });
     if (todas) parametros.set("todas", "1");
     navegar(parametros);
@@ -212,7 +245,6 @@ export function DevolucionesPanel({
     <DevolucionesVentas
       lineas={ls}
       ahora={ahora}
-      esLider={esLider}
       resumen={resumen}
       onIniciar={iniciar}
       onAnular={setAnulando}
@@ -262,6 +294,7 @@ export function DevolucionesPanel({
           onBuscar={buscar}
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
+          pistola={!anulando}
         />
 
         {busqueda &&
@@ -332,6 +365,7 @@ export function DevolucionesPanel({
                 lista(lineasVisibles, true)
               ) : (
                 <EstadoVacio
+                  icono={filtro === "todas" ? undefined : <FunnelX />}
                   titulo={
                     filtro === "todas"
                       ? `No hay ventas de los últimos 15 días en ${sede}.`

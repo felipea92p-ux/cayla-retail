@@ -24,10 +24,11 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/ProformaA4.tsx": { cuenta: 22, motivo: PAPEL_A4 },
   "components/ProformasPanel.tsx": { cuenta: 1, motivo: "El papel blanco de la vista previa de la proforma A4 (ver ProformaA4)." },
   "components/EtiquetaPrecio.tsx": { cuenta: 1, motivo: "Etiqueta de precio que se imprime en la térmica: solo negro sobre blanco." },
+  "app/estilos/rotulo.css": { cuenta: 4, motivo: "Rótulo de anaquel que se imprime en la térmica (ADR-0366): #000/#fff a propósito, la térmica no imprime otro color." },
   "components/IconoEtiquetaPapel.tsx": { cuenta: 2, motivo: "Dibujo del papel de la etiqueta (negro y blanco literales): representa el papel, no la pantalla." },
 
   // ---------- Permanentes: color de DATO o ilustración ----------
-  "components/MuestraTejido.tsx": { cuenta: 98, motivo: "Ilustra tejidos: el color de cada hilo ES el dato que se dibuja, no la interfaz." },
+  "components/MuestraTejido.tsx": { cuenta: 138, motivo: "Ilustra tejidos: el color de cada hilo ES el dato que se dibuja, no la interfaz." },
   "lib/dibujo-generado.ts": { cuenta: 30, motivo: "Dibujo generado de una prenda: los colores son el dato." },
   "components/MuestraEtiqueta.tsx": { cuenta: 11, motivo: "Ilustra una etiqueta de la prenda: sus colores son el dato." },
   "components/MuestraPatron.tsx": { cuenta: 5, motivo: "Ilustra un patrón de tela: sus colores son el dato." },

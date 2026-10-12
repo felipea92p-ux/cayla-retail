@@ -4,8 +4,9 @@ import { Chip } from "@/components/ui/Chip";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Banknote, ChevronRight } from "lucide-react";
+import { Banknote, ChevronRight, FunnelX } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Tabla } from "@/components/ui/Tabla";
@@ -20,6 +21,7 @@ import { diaMes } from "@/lib/fechas-lima";
 import { detalleSeleccion, etiquetaVence, partirCoincidencia, plazoConsumido, TITULO_TRAMO, tramoDe, type ClaveTramo } from "@/lib/por-pagar-reglas";
 import { useContar } from "@/lib/useContar";
 import { useFlip } from "@/lib/useFlip";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Lista de Por pagar (maqueta 02 y celular de la 11). UNA tabla partida en tramos de urgencia
 // —Vencidas, Vencen esta semana, Más adelante— o, si se prefiere, agrupada por proveedor (para
@@ -329,12 +331,17 @@ export function PorPagarLista({
           ))}
         </div>
         {bloques.length === 0 && (
-          <div className="anim-revelar px-5 py-10 text-center">
-            <p className="font-display text-[19px] italic text-tinta/65">Ninguno de los comprobantes de esta página coincide.</p>
-            <button type="button" onClick={quitarFiltro} className="mt-2 text-sm text-rojo hover:underline">
-              Quitar el filtro
-            </button>
-          </div>
+          <Vacio
+            icono={<FunnelX />}
+            titulo="Ninguno de los comprobantes de esta página coincide"
+            acciones={
+              <Boton peso="fantasma" onClick={quitarFiltro}>
+                Quitar el filtro
+              </Boton>
+            }
+          >
+            Quita el filtro para volver a ver todos los de esta página.
+          </Vacio>
         )}
         {bloques.map((b) => (
           <Fragment key={b.clave}>
@@ -482,11 +489,8 @@ function MezclaSeleccion({ filas, ahora }: { filas: CompraResumen[]; ahora: Date
   const COLOR: Record<ClaveTramo, string> = { vencidas: "bg-rojo", semana: "bg-ambar", despues: "bg-tinta/25" };
   return (
     <span className="flex min-w-[9.5rem] max-w-[14.5rem] flex-1 flex-col gap-[5px]">
-      <span aria-hidden className="flex h-[5px] gap-0.5">
-        {(["vencidas", "semana", "despues"] as const).map((k) => (
-          <i key={k} className={`block h-full min-w-0 basis-0 rounded-sm transition-[flex-grow] duration-500 ease-cayla ${COLOR[k]}`} style={{ flexGrow: suma[k] }} />
-        ))}
-      </span>
+      {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, el texto de abajo ya dice lo mismo. */}
+      <BarraApilada decorativa viva alto={4} segmentos={(["vencidas", "semana", "despues"] as const).map((k) => ({ clave: k, nombre: TITULO_TRAMO[k], valor: suma[k], clase: COLOR[k] }))} />
       <small className="text-xs leading-tight text-tinta/65">{detalleSeleccion(filas, soles, ahora)}</small>
     </span>
   );

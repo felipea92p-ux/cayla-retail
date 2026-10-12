@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
 import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { hrefOrdenDesdeAlta, textoAbrirOrden, tipoDeParametro, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 
 export type { SubidaSinConexion };
 
@@ -19,6 +22,10 @@ export type { SubidaSinConexion };
 // imprimir sus etiquetas de precio ahora, con la prenda en la mano (ADR-0180, «Actualización 2026-09-29»). Se abre en
 // OTRA pestaña a propósito: «Crear otro parecido» vive solo en el estado de esta pantalla, y volver de una pestaña
 // que la reemplaza dejaba el formulario en blanco.
+//
+// Si la persona llegó desde una orden de producción (`?desde=produccion`, ADR-0361), la salida principal es otra: seguir con esa orden. El modelo
+// que acaba de nacer vuelve elegido, con su matriz de tallas y colores lista, y con el tipo (producción o muestra) que ya había escogido.
+// Las fotos pasan a ser la segunda salida: sin foto el modelo igual se produce.
 //
 // Las fotos elegidas en el alta ya se subieron al llegar aquí (NuevoProductoForm, después de crear el producto). Esta
 // pantalla dice cuántas quedaron, cuál no subió y qué colores siguen sin foto; para agregar o cambiar, lleva a la
@@ -53,6 +60,14 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
   const sinConexion = creado.id === null;
   const enEspera = creado.fotosEnEspera ?? 0;
   const etiquetas = etiquetasDelAlta(creado);
+
+  // ¿El alta empezó en una orden de producción? Todo viaja en la URL; sin conexión no hay id todavía, así que no hay a dónde volver aún.
+  const params = useSearchParams();
+  const desdeOrden = vieneDeProduccion(params.get("desde"));
+  const tipoOrden = tipoDeParametro(params.get("tipo"));
+  const abrirOrden = desdeOrden && creado.id ? { href: hrefOrdenDesdeAlta(creado.id, tipoOrden), ...textoAbrirOrden(tipoOrden) } : null;
+  // Una sola salida principal por pantalla: si la orden es la principal, las fotos bajan a secundaria.
+  const fotosPrincipal = !completas && !abrirOrden;
 
   // Lleva el foco al mensaje: quien usa lector de pantalla o teclado se entera de que se guardó.
   useEffect(() => {
@@ -94,18 +109,24 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
             {!sinConexion ? `Se creó ${creado.nombre}` : subida === "descartada" ? `${creado.nombre} se descartó` : `${creado.nombre} quedó guardado sin conexión`}
           </h2>
           {sinConexion && subida === "esperando" && (
-            <p className="mt-1 text-sm text-ambar-profundo">
+            <Aviso tono="atencion" chico className="mt-1">
               Pendiente de código: lo recibe cuando vuelva el internet y sube solo. Hasta entonces no se puede etiquetar ni vender. No cierres esta pestaña.
-            </p>
+            </Aviso>
           )}
           {sinConexion && subida === "subio" && (
-            <p className="mt-1 text-sm text-verde-profundo">Ya subió y tiene su código: búscalo en Productos o abre su ficha desde el aviso.</p>
+            <Aviso tono="exito" chico className="mt-1">
+              Ya subió y tiene su código: búscalo en Productos o abre su ficha desde el aviso.
+            </Aviso>
           )}
           {sinConexion && subida === "rechazada" && (
-            <p className="mt-1 text-sm text-rojo-profundo">La base no lo aceptó al subir: el motivo está arriba, en el aviso rojo de este formulario.</p>
+            <Aviso tono="error" chico className="mt-1">
+              La base no lo aceptó al subir: el motivo está arriba, en el aviso rojo de este formulario.
+            </Aviso>
           )}
           {sinConexion && subida === "descartada" && (
-            <p className="mt-1 text-sm text-rojo-profundo">No se creó el producto ni su stock. Si todavía lo necesitas, créalo de nuevo.</p>
+            <Aviso tono="error" chico className="mt-1">
+              No se creó el producto ni su stock. Si todavía lo necesitas, créalo de nuevo.
+            </Aviso>
           )}
           <p className="mt-1 text-sm text-tinta/70">
             {creado.categoria} · {creado.variantes} variante{creado.variantes === 1 ? "" : "s"}
@@ -144,6 +165,27 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         </div>
       </div>
 
+      {abrirOrden && subida !== "descartada" && (
+        <div className="card-cayla flex flex-wrap items-center justify-between gap-4 border-tinta/40 p-5">
+          <div className="max-w-xl space-y-1">
+            <p className="label-cayla text-[11px] text-tinta/70">Venías de una orden de producción</p>
+            <h3 className="text-base font-medium text-tinta">{abrirOrden.titulo}</h3>
+            <p className="text-sm text-tinta/70">
+              {creado.nombre} ya está en el catálogo con sus {creado.variantes} variante{creado.variantes === 1 ? "" : "s"}. La orden se abre con este modelo elegido y su
+              matriz de tallas y colores lista: solo falta decir cuántas de cada una.
+            </p>
+          </div>
+          <Link href={abrirOrden.href} className="btn-cayla btn-primario">
+            {abrirOrden.boton}
+          </Link>
+        </div>
+      )}
+      {desdeOrden && !creado.id && subida !== "descartada" && (
+        <Aviso tono="atencion">
+          Venías de una orden de producción: cuando {creado.nombre} suba y tenga su código, ábrela desde Producción ▸ Órdenes con este modelo.
+        </Aviso>
+      )}
+
       <div className={`grid gap-4 ${etiquetas ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
         {/* La salida principal: las fotos (lo que falte de ellas). Un alta descartada no tiene ficha ni fotos que agregar. */}
         {subida !== "descartada" && (
@@ -159,9 +201,10 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                 {creado.fotos.subidas > 0 ? `${creado.fotos.subidas} foto${creado.fotos.subidas === 1 ? "" : "s"} guardada${creado.fotos.subidas === 1 ? "" : "s"}` : "Las fotos"}
               </h3>
               {creado.fotos.fallidas.length > 0 && (
-                <p role="alert" className="text-sm text-rojo-profundo">
+                <Aviso tono="error">
                   {creado.fotos.fallidas.length === 1 ? "Una foto no se guardó" : `${creado.fotos.fallidas.length} fotos no se guardaron`}: {creado.fotos.fallidas.join(" · ")}. El producto sí se creó; agrégala desde el producto.
-                </p>
+                </Aviso>
+
               )}
               <p className="text-sm text-tinta/70">
                 {completas
@@ -182,7 +225,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
               )}
             </div>
             {creado.id ? (
-              <Link href={`/productos/${creado.id}/editar#fotos`} className={`btn-cayla ${completas ? "btn-secundario" : "btn-primario"}`}>
+              <Link href={`/productos/${creado.id}/editar#fotos`} className={`btn-cayla ${fotosPrincipal ? "btn-primario" : "btn-secundario"}`}>
                 {completas ? "Ver las fotos" : "Agregar fotos"}
               </Link>
             ) : (
@@ -218,7 +261,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           <button
             type="button"
             onClick={onOtroParecido}
-            className="label-cayla rounded-md border border-tinta/30 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            className="btn-cayla btn-secundario"
           >
             Crear otro parecido
           </button>
@@ -232,7 +275,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           </div>
           <Link
             href="/productos"
-            className="label-cayla rounded-md border border-tinta/30 px-3 py-2.5 text-center text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            className="btn-cayla btn-secundario text-center"
           >
             Ir a productos
           </Link>

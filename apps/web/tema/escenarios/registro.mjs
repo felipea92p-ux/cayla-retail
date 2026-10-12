@@ -375,6 +375,36 @@ ESCENARIOS.push(
     },
   },
   {
+    // La ficha del color que se mira, abierta (ADR-0316; Felipe 2026-10-10): «Combina bien con» y la frase tras «¿Por qué?».
+    id: "vender.ver-opciones-porque",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    abre: "[role=dialog]",
+    nombre: "Vender · «Todo de la prenda» con el «¿Por qué?» del color abierto",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver todos los colores y ta/ }).first().click();
+      await esperar(pagina, 1100);
+      await pagina.getByRole("button", { name: /^¿Por qué\?$/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
+  {
+    // La tarjeta sugerida que SE QUEDA al entrar al ticket (Formidable 2026-10-10, cambio 1): chip «1 en el ticket · 1 aquí», visto y «Quitar».
+    id: "vender.ver-opciones-en-ticket",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    abre: "[role=dialog]",
+    nombre: "Vender · «Todo de la prenda» con la prenda sugerida ya en el ticket",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver todos los colores y ta/ }).first().click();
+      await esperar(pagina, 1100);
+      await pagina.getByRole("button", { name: /Ver tallas/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 500);
+      await pagina.locator('[role=dialog] [aria-label^="Prendas que combinan"] button[aria-label*=" aquí"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+  {
     id: "vender.sin-registrar",
     ruta: "/vender",
     cuentas: VENDEDORAS,
@@ -609,6 +639,20 @@ const nuevoHasta = (paso) => async (pagina) => {
 };
 ESCENARIOS.push(
   { id: "productos.vista-rapida", ruta: "/productos", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Productos · la vista rápida de una prenda", async preparar(pagina) { await pagina.locator(".card-cayla button").first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
+  {
+    // La ficha del color de la foto, abierta (ADR-0316; Felipe 2026-10-10): «Combina bien con» bajo la foto y la frase tras «¿Por qué?».
+    id: "productos.vista-rapida-porque",
+    ruta: "/productos",
+    cuentas: CATALOGO,
+    abre: "[role=dialog]",
+    nombre: "Productos · la vista rápida con el «¿Por qué?» del color abierto",
+    async preparar(pagina) {
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+      await pagina.getByRole("button", { name: /^¿Por qué\?$/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
   // ADR-0354: «Historial» da vuelta la página dentro de la misma hoja; `abre` exige el hilo, no solo la ventana.
   {
     id: "productos.vista-rapida-historial",
@@ -659,9 +703,27 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
     },
   },
+  // ADR-0371 · «Por revisar»: las dos hojas (Aprobar, y Rechazar con y sin bloqueo). La del rechazo sin bloqueo necesita una prenda sin stock ni
+  // orden en proceso; si no hay ninguna en la base local, abre la bloqueada (también es una hoja que auditar) y `abre` sigue exigiendo la ventana.
+  { id: "por-revisar.aprobar", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · la hoja «Aprobar»", async preparar(pagina) { await pagina.getByRole("button", { name: /^Aprobar$/ }).first().click({ timeout: 8000 }); await esperar(pagina, 1300); } },
+  { id: "por-revisar.rechazar-bloqueado", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · «Rechazar» con stock o una orden en proceso (la hoja que explica qué lo frena)", async preparar(pagina) { const fila = pagina.locator("ul[data-resultados] > li").filter({ hasText: /en stock|en proceso/ }).first(); await fila.getByRole("button", { name: /^Rechazar$/ }).click({ timeout: 8000 }); await esperar(pagina, 1300); } },
+  { id: "por-revisar.rechazar", ruta: "/productos/por-revisar", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Por revisar · «Rechazar» de una prenda sin nada colgado (la advertencia de que es permanente)", async preparar(pagina) { const limpias = pagina.locator("ul[data-resultados] > li").filter({ hasNotText: /en stock|en proceso/ }); const fila = (await limpias.count()) > 0 ? limpias.first() : pagina.locator("ul[data-resultados] > li").first(); await fila.getByRole("button", { name: /^Rechazar$/ }).click({ timeout: 8000 }); await esperar(pagina, 1300); } },
   { id: "nuevo.familia", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 1: las categorías de una familia", preparar: nuevoHasta("familia") },
   { id: "nuevo.como-es", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 2: cómo es (marca, nombre, tejido, patrón)", preparar: nuevoHasta("como-es") },
   { id: "nuevo.tallas", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 3: tallas y colores", preparar: nuevoHasta("tallas") },
+  {
+    // El pie de la carta con un color señalado (ADR-0316; Felipe 2026-10-10): su nombre, Pantone y, debajo, «Combina bien con» con los
+    // círculos de sus compañeros y la primera frase de la ficha. Un escenario sin color señalado auditaría el pie vacío.
+    id: "nuevo.tallas-color",
+    ruta: "/productos/nuevo",
+    cuentas: CATALOGO,
+    nombre: "Nuevo producto · paso 3 con un color señalado en la carta (su ficha al pie)",
+    async preparar(pagina) {
+      await nuevoHasta("tallas")(pagina);
+      await pagina.getByRole("button", { name: /^Beige$/ }).first().hover({ timeout: 8000 });
+      await esperar(pagina, 700);
+    },
+  },
   { id: "nuevo.precio", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 4: precio y unidades", preparar: nuevoHasta("precio") },
   { id: "producto.editar", ruta: "/productos/[id]/editar", cuentas: ["admin", "terminal-administrativa"], abre: "text=VES-0001", nombre: "Editar producto · la ficha de una prenda", preparar: productoPorCodigo("VES-0001", "editar") },
   { id: "producto.historial", ruta: "/productos/[id]/historial", cuentas: ["admin"], abre: "h1", nombre: "Historial de una prenda", preparar: productoPorCodigo("VES-0001", "historial") },
@@ -672,6 +734,32 @@ ESCENARIOS.push(
   { id: "atributos.campana", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Configurar campaña»", preparar: clicRol("button", /Configurar campaña/i) },
   { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
   { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },
+  // ADR-0373: los estados que no se ven al cargar. El resumen cerrado es lo de siempre; abierto trae las cuatro tarjetas de cifra.
+  { id: "marcas.resumen", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "#resumen-marcas[data-abierto]", nombre: "Marcas · «Resumen» abierto (las cuatro cifras)", preparar: clicRol("button", /^Resumen/i) },
+  { id: "marcas.menu-mas", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=menu]", nombre: "Marcas · el menú «Más» (Desactivar y Eliminar, con su motivo si no se puede)", preparar: clicRol("button", /Más acciones/i) },
+  {
+    id: "marcas.sombra",
+    ruta: "/productos/marcas",
+    cuentas: CATALOGO,
+    abre: ".buscador-sombra",
+    nombre: "Marcas · el buscador con la sombra que completa la marca",
+    async preparar(pagina) {
+      // Una marca que el seed trae (CAYLA): con «cay» la sombra completa «la». Hace falta el cursor adentro (la sombra solo se ve así).
+      await pagina.getByPlaceholder(/Busca una marca/i).first().fill("cay");
+      await esperar(pagina, 700);
+    },
+  },
+  {
+    id: "marcas.parecidas",
+    ruta: "/productos/marcas",
+    cuentas: CATALOGO,
+    abre: ".aviso-linea",
+    nombre: "Marcas · una errata de una letra muestra las parecidas con su aviso",
+    async preparar(pagina) {
+      await pagina.getByPlaceholder(/Busca una marca/i).first().fill("cayka");
+      await esperar(pagina, 800);
+    },
+  },
   { id: "familias.agregar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Agregar familia»", preparar: clicRol("button", /Agregar familia/i) },
   { id: "familias.editar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Editar» una familia", preparar: clicRol("button", /^Editar/i) },
 );
@@ -838,6 +926,20 @@ ESCENARIOS.push(
   { id: "cuadrar.camara", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]", nombre: "Cuadrar el piso (celular) · la cámara", preparar: clicRol("button", /Escanear con la cámara/i) },
   { id: "frescura.categoria", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
   { id: "frescura.estado", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
+  // ADR-0208 (act. 2026-10-07): el tablero por categoría; una fila tocada queda «elegida» (arena) y filtra la lista.
+  { id: "frescura.tablero", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[aria-pressed=true]", nombre: "Frescura · una categoría del tablero elegida", preparar: clicRol("button", /^Camisas y Blusas/i) },
+  // ADR-0208 (Formidable 2026-10-10 (c)): el «¿Por qué?» de «Aún no se sabe», con su lista flotando sobre la tarjeta de la tienda.
+  {
+    id: "frescura.porque-no-se-sabe",
+    ruta: "/inventario/frescura",
+    cuentas: ["admin"],
+    abre: 'section[aria-labelledby="frescura-piso-titulo"] [aria-expanded="true"]',
+    nombre: "Frescura · el porqué de «Aún no se sabe»",
+    preparar: async (pagina) => {
+      await pagina.locator('section[aria-labelledby="frescura-piso-titulo"] button', { hasText: "¿Por qué?" }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
   { id: "regularizar.vendio", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Por regularizar · la lista «Quién vendió»", preparar: clicRol("combobox", /Quién vendió/i) },
   { id: "regularizar.todas", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, nombre: "Por regularizar · «Todas»", preparar: clicRol("button", /^Todas/i) },
   // ADR-0360: la mesa «Puente». Con una prenda y «cómo estaba» elegidos se ven el puente entero, la balanza, la guía y los hilos; en el

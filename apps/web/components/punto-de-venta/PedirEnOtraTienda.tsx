@@ -19,7 +19,7 @@ export function PedirEnOtraTienda({ candidatos, onPedir }: { candidatos: readonl
         type="button"
         onClick={onPedir}
         // Claro, como «Anotar que no había»: el botón oscuro de la ventana es «Listo» (un solo principal por vista).
-        className="label-cayla ml-auto inline-flex h-8 shrink-0 items-center rounded-md border border-tinta/25 bg-crema px-2.5 text-[10.5px] text-tinta transition-colors hover:border-tinta"
+        className="btn-cayla btn-secundario ml-auto inline-flex h-8 shrink-0 items-center px-2.5 text-[12.5px]"
       >
         Pedir y apartar para este cliente
       </button>

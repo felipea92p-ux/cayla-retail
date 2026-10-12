@@ -2,7 +2,7 @@
   "guia": "clientas.avisos",
   "ruta": "/clientas/avisos",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 17,
+  "total": 16,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -20,7 +20,6 @@
       "button «{motivoResponsable ?? \"Respondió BAJA a un mensaje del club\"}»"
     ],
     "components/clientas/BeneficiosClubModal.tsx": [
-      "Boton «Cerrar»",
       "input «{i === ANIOS_ESCALA - 1 ? `Vale del año ${i + 1}»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",

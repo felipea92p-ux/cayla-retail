@@ -2,10 +2,10 @@
   "guia": "clientas",
   "ruta": "/clientas",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 48,
+  "total": 46,
   "controles": {
     "components/CampoDocumentoClienta.tsx": [
-      "CampoSelect «Tipo de documento»",
+      "CampoSelect «{etiqueta}»",
       "CampoTexto «{<> {etiqueta}»"
     ],
     "components/ClientaFichaModal.tsx": [
@@ -47,13 +47,9 @@
     ],
     "components/NuevaClientaModal.tsx": [
       "CampoTexto «Nombre completo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
-    "components/clientas/BuscadorClientas.tsx": [
-      "input «Buscar cliente»",
-      "button «Borrar la búsqueda»"
     ],
     "components/clientas/PreferenciasClienta.tsx": [
       "button «{o.valor}»",

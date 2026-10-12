@@ -2,7 +2,7 @@
   "guia": "productos.marcas",
   "ruta": "/productos/marcas",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 36,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -23,15 +23,10 @@
       "button «Cancelar»"
     ],
     "components/MarcasLista.tsx": [
-      "input «Buscar marca o proveedor»",
-      "button «Borrar búsqueda»",
       "Boton «marcas.nueva»",
-      "Boton «Quitar búsqueda»",
-      "button «marcas.editar»",
-      "button «Desactivar»",
-      "button «Eliminar»",
-      "button «Reactivar»",
-      "button «Eliminar» #2"
+      "button «marcas.desactivadas»",
+      "button «marcas.resumen»",
+      "Boton «Borrar la búsqueda»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «);»",
@@ -49,13 +44,19 @@
       "button «Cancelar»",
       "button «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
-    "components/alta-producto/piezas.tsx": [
-      "button «→onClick»",
-      "button «›»"
-    ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/marcas/FiltrosMarcas.tsx": [
+      "button «→() => onFiltro(f)»"
+    ],
+    "components/marcas/IndiceLetras.tsx": [
+      "button «{letra === \"#\" ? \"Ir a las marcas que empiezan con un número\" : `Ir a la ${letra}»"
+    ],
+    "components/marcas/TarjetaMarca.tsx": [
+      "button «Reactivar»",
+      "button «marcas.editar»"
     ]
   }
 }

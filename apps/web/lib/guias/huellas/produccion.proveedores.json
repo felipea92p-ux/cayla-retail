@@ -2,7 +2,7 @@
   "guia": "produccion.proveedores",
   "ruta": "/produccion/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 23,
   "controles": {
     "components/ProveedorProduccionModal.tsx": [
       "CampoTexto «Nombre o razón social»",
@@ -24,9 +24,11 @@
     ],
     "components/ProveedoresProduccionPanel.tsx": [
       "Boton «prod-proveedores.nuevo»",
+      "Boton «Agregar el primero»",
       "button «{r.etiqueta}»",
-      "input «Nombre, RUC o contacto»",
       "input «Ver archivados»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Limpiar filtros»",
       "button «{p.nombre}»"
     ]
   }

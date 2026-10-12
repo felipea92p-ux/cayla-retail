@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 167,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -12,7 +12,7 @@
       "button «→onElegir»"
     ],
     "components/CampoDocumentoClienta.tsx": [
-      "CampoSelect «Tipo de documento»",
+      "CampoSelect «{etiqueta}»",
       "CampoTexto «{<> {etiqueta}»"
     ],
     "components/CerrarCajaModalV2.tsx": [
@@ -48,16 +48,17 @@
       "button «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)»",
       "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
+      "button «{responsable.motivo ?? undefined}» #2",
       "a «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)» #2",
-      "button «{responsable.motivo ?? undefined}» #2",
-      "button «{responsable.motivo ?? undefined}» #3"
+      "button «{responsable.motivo ?? undefined}» #3",
+      "button «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirYApartarModal.tsx": [
       "button «{c.talla}»",
       "button «{t.corto}»",
       "input «{guia.etiqueta(\"apellidos\", \"Apellidos\")}»",
-      "input «{guia.etiqueta(\"celular\", \"Celular · WhatsApp\")}»",
+      "input «{guia.etiqueta(\"celular\", \"Celular · WhatsApp (opcional)\")}»",
       "input «9 dígitos»",
       "input «{tienda ? tienda.corto : \"La otra tienda\"}»",
       "ComboResponsable «Mejor no»",
@@ -71,6 +72,7 @@
       "CampoTexto «Descripción corta»",
       "button «Usar «»",
       "input «Precio cobrado en soles»",
+      "ComboResponsable «)»",
       "button «{guia.frase ?? undefined}»"
     ],
     "components/PuntoDeVenta.tsx": [
@@ -81,8 +83,6 @@
     ],
     "components/PuntoDeVentaCatalogo.tsx": [
       "button «vender.escanear»",
-      "input «Escanea la etiqueta o busca la prenda»",
-      "button «Limpiar búsqueda»",
       "button «→() => onAgregar(v)»",
       "button «{modoCamara ? \"vender.buscar-por-nombre\" : \"vender.camara\"}»",
       "button «vender.sin-registrar»",
@@ -144,6 +144,10 @@
       "button «{t}»",
       "ComboResponsable «(sin nombre)»"
     ],
+    "components/punto-de-venta/BolsaDelTicket.tsx": [
+      "Boton «+ Agregar bolsa»",
+      "button «{`Agregar ${nombreDeBolsa(b)}»"
+    ],
     "components/punto-de-venta/CajaCerrada.tsx": [
       "button «vender.abrir-caja»"
     ],
@@ -155,7 +159,6 @@
       "button «Agregar cliente»",
       "button «{boton.texto}»",
       "button «{revisando ? \"Revisando…\" : \"Actualizar\"}»",
-      "input «Documento, celular o nombre»",
       "Boton «Registrarlo»",
       "Boton «Seguir sin cliente»",
       "button «{l.titulo}»",
@@ -197,7 +200,11 @@
       "button «→() => setFijo(c.clave)»",
       "Casilla «))»",
       "button «Listo»",
-      "button «{bajable ? `Agregar ${nombre}»"
+      "button «{t.referencia}»",
+      "button «{porQueDe === clave ? \"Cerrar\" : \"¿Por qué?\"}»",
+      "Casilla «))» #2",
+      "button «{bajable ? `Agregar ${nombre}»",
+      "button «{`Quitar ${nombre}»"
     ],
     "components/punto-de-venta/PedidosParaClientes.tsx": [
       "button «{llego ? \"Avisar por WhatsApp\" : \"Avisar que no llegó\"}»",

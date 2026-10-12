@@ -36,14 +36,8 @@
     .pil .cod{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--color-taupe)}
     .ayuda{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--color-taupe);background:transparent;
       font:600 11px/1 var(--font-sans);color:var(--color-taupe);padding:0;flex:none}
-    .buscar{display:flex;align-items:center;gap:8px;background:var(--color-hueso);border-radius:10px;padding:8px 12px;width:240px;color:var(--color-tinta-60)}
-    .buscar svg{width:16px;height:16px;flex:none}
-    .buscar input{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--color-tinta);outline:none;width:100%;min-width:0}
-    .buscar input::placeholder{color:color-mix(in srgb,var(--color-tinta) 55%,transparent)}
-    .buscar:focus-within{outline:2px solid var(--color-tinta);outline-offset:1px}
     .sello{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-tinta-60);border:1px dashed var(--color-taupe);border-radius:999px;padding:3px 10px}
     .sello i{font-style:normal;font-size:10px}
-    @container analisis (max-width:760px){ .buscar{width:auto} }
     /* ───────── Pestañas ───────── */
     .tabs-fila{display:flex;align-items:center;gap:12px;margin-top:20px}
     @container analisis (max-width:620px){ .tabs-fila{flex-direction:column;align-items:stretch;gap:8px} .tabs-fila > .chip{align-self:flex-start;order:-1} }
@@ -186,8 +180,6 @@
     .pil.puede{color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 11%,transparent)}
     .pil.puede svg{width:12px;height:12px}
     .pil.puede .cod{color:var(--color-pizarra)}
-    /* «El modelo ya está en el piso» («Nunca salió al piso»): informa, como «puede pedir». */
-    .pil.modelo{color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 11%,transparent)}
     .pista{grid-area:pista;position:relative;height:20px;border-radius:6px;background:var(--color-hueso)}
     .pista .linea{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1.5px dashed color-mix(in srgb,var(--color-tinta) 45%,transparent)}
     .pista .barra{position:absolute;left:0;top:4px;bottom:4px;border-radius:4px;width:calc(var(--n) * 100%);background:var(--c)}
@@ -211,17 +203,34 @@
       .c-mas{margin-left:68px}
     }
     .umbral{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--color-tinta-60);flex-wrap:wrap}
-    .grilla{border-collapse:separate;border-spacing:3px;font-size:12.5px;font-variant-numeric:tabular-nums}
-    .grilla th{font-weight:500;color:var(--color-tinta-60);font-size:11.5px;padding:0 2px}
-    .grilla th.col{min-width:34px}
-    .grilla th.fil{text-align:left;white-space:nowrap;padding-right:6px}
-    .grilla th.fil .pt{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--prenda);margin-right:5px;vertical-align:-1px;
+    /* El modelo en tu tienda (opción B, Felipe 2026-10-10): la frase, la tabla talla × color con palabras y totales, la leyenda y las
+       otras tiendas. Lo agotado va en ámbar (una tarea, no un error: sin rojo); lo que queda, en verde; lo que no hay, solo el filo. */
+    .m-frase{font:500 19px/1.25 var(--font-serif);margin:0 0 12px;text-wrap:balance}
+    .m-tabla{overflow-x:auto}
+    .m-tabla table{border-collapse:separate;border-spacing:4px;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+    .m-tabla thead th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-taupe);text-align:center;padding:0 0 2px}
+    .m-tabla thead th.col-color{text-align:left}
+    .m-tabla th.color{text-align:left;white-space:nowrap;font-size:13px;font-weight:600;padding-right:6px}
+    .m-tabla th.color .pt{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--prenda);margin-right:6px;vertical-align:-1px;
       box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 18%,transparent)}
-    .grilla td{width:34px;height:30px;text-align:center;border-radius:6px;background:var(--color-hueso);font-weight:600}
-    .grilla td.cero{background:transparent;color:color-mix(in srgb,var(--color-tinta) 40%,transparent);font-weight:500;box-shadow:inset 0 0 0 1px var(--color-sand)}
-    .grilla td.falta{color:var(--color-rojo-profundo);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-rojo-profundo) 16%,transparent) 0 4px,transparent 4px 8px);
-      box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--color-rojo-profundo) 55%,transparent)}
-    .grilla td.poco{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 14%,transparent)}
+    .m-tabla td{border-radius:8px;padding:6px 8px;text-align:center;line-height:1.25;min-width:82px}
+    .m-tabla td b{display:block;font-size:13px;font-weight:600}
+    .m-tabla td span{display:block;font-size:11.5px}
+    .m-tabla td.pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
+    .m-tabla td.queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
+    .m-tabla td.nada{color:var(--color-tinta-60);box-shadow:inset 0 0 0 1px var(--color-sand)}
+    .m-tabla td.nada b{font-weight:500}
+    .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:13px}
+    .m-tabla tfoot th.color{color:var(--color-tinta-60)}
+    .m-tabla td:focus-visible{outline:2px solid var(--color-pizarra);outline-offset:1px}
+    .m-leyenda{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 9px}
+    .m-leyenda span::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+    .m-leyenda .pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
+    .m-leyenda .queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
+    .m-leyenda .nada{color:var(--color-tinta-60);background:var(--color-hueso)}
+    .m-leyenda .nada::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+    .m-otras{margin:12px 0 0;font-size:13px;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:10px;padding:10px 12px}
     .mu-falta{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-rojo-profundo) 16%,transparent) 0 3px,transparent 3px 6px);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--color-rojo-profundo) 55%,transparent)}
     .mu-poco{background:color-mix(in srgb,var(--color-ambar) 18%,transparent)}
     .mu-hay{background:var(--color-hueso)}
@@ -313,10 +322,6 @@
     .sabe{padding:14px 16px}
     .sabe h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
     .sabe .nota{font-size:12px;color:var(--color-tinta-60);margin-top:8px}
-    .vacio-vista{padding:30px 28px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px 28px;align-items:center}
-    .vacio-vista h2{font:500 26px/1.2 var(--font-serif);margin:6px 0}
-    .vacio-vista p{margin:0 0 10px;color:var(--color-tinta-60);max-width:52ch}
-    @container analisis (max-width:600px){ .vacio-vista{grid-template-columns:minmax(0,1fr)} }
     .h-cab{display:flex;gap:14px;align-items:center;margin:4px 0 14px;padding-right:44px}
     .h-cab h2{font:500 28px/1.1 var(--font-serif);margin:0 0 4px}
     .h-cab .meta{font-size:13px;color:var(--color-tinta-60)}
@@ -329,17 +334,6 @@
     .hecho small{font-size:11.5px;color:var(--color-tinta-60)}
     .h-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--color-sand)}
     .h-nota{font-size:12.5px;color:var(--color-tinta-60);margin-top:10px}
-    .donde{display:flex;flex-direction:column;gap:8px}
-    .dn,.dn-cab{display:grid;grid-template-columns:86px minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:center}
-    .dn{font-size:12.5px}
-    .dn-cab{font-size:11px;font-weight:600;color:var(--color-tinta-60)}
-    .dn .nm{font-weight:600}
-    .dn .nm small{display:block;font-weight:500;color:var(--color-tinta-60);font-size:11px}
-    .dn .tq{display:flex;align-items:center;gap:6px}
-    .dn .tq i{display:block;height:12px;border-radius:0 4px 4px 0;background:var(--color-grafico-neutro);width:calc(var(--n) * 100%);min-width:2px}
-    .dn .vd{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
-    .dn .vd i{width:8px;height:8px;border-radius:50%;background:var(--color-tinta);display:block}
-    .dn .vd span{margin-left:4px;color:var(--color-tinta-60)}
     .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:13.5px}
     .dl dt{color:var(--color-tinta-60)} .dl dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 
@@ -359,10 +353,6 @@
     .nh-f span:last-child{color:var(--color-tinta-60);white-space:nowrap}
     .modelos-barra{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden}
     .modelos-barra i{display:block}
-    /* «Ver con los datos de hoy» (ADR-0357, decisión 2): el aviso fijo bajo las pestañas, mientras la tienda no cumple. */
-    .aviso-datos{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;font-size:13px;
-      color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 9%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-ambar) 28%,transparent)}
-    .aviso-datos .aviso-texto{flex:1;min-width:220px}
     .c-fila:focus-visible,.l5:focus-visible,.inst:focus-visible,.rank-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
   }
 }

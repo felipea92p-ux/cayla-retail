@@ -114,6 +114,12 @@ describe("erroresDelApartado", () => {
     const total = totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }]);
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: total, recibido: 84.91 }] }), total).pago).toBeUndefined();
   });
+  it("el celular es opcional (ADR-0367); sin él, el número de Yape o Plin va aparte", () => {
+    expect(erroresDelApartado(formulario({ celular: "", devolucionNumero: "987111222" }), 179)).toEqual({});
+    expect(erroresDelApartado(formulario({ celular: "", devolucionNumero: "" }), 179).devolucion).toMatch(/Sin celular.*Yape/);
+    expect(erroresDelApartado(formulario({ celular: "", devolucionMedio: "plin" }), 179).devolucion).toMatch(/Plin/);
+    expect(erroresDelApartado(formulario({ celular: "", devolucionMedio: "transferencia", devolucionCci: "00219300123456789012" }), 179)).toEqual({});
+  });
   it("devolución: transferencia pide CCI de 20; Yape vacío usa el celular", () => {
     expect(erroresDelApartado(formulario({ devolucionMedio: "transferencia" }), 179).devolucion).toMatch(/CCI/);
     expect(erroresDelApartado(formulario({ devolucionMedio: "transferencia", devolucionCci: "002-193-00123456789012" }), 179).devolucion).toBeUndefined();

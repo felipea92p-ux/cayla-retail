@@ -60,7 +60,10 @@ export type Cambio =
   | { k: "etiqueta"; nombre: string; puesta: boolean; variantes: VarianteRef[] }
   | { k: "foto"; agregadas: string[]; quitadas: number }
   | { k: "activo"; activadas: VarianteRef[]; desactivadas: VarianteRef[] }
-  | { k: "codigo"; variantes: number };
+  | { k: "codigo"; variantes: number }
+  /** Precio propio de una tienda (Felipe 2026-10-09): `propio` = después del cambio la tienda tiene su precio; si no, volvió al
+   *  general. `antesPropio` = ya tenía uno (entonces se CAMBIÓ). */
+  | { k: "tienda"; tienda: string; antes: number | null; despues: number | null; propio: boolean; antesPropio: boolean; motivo: string | null; variantes: number };
 
 export type Evento = {
   id: string;
@@ -183,6 +186,7 @@ export function cambiosDe(filas: readonly FilaHistorial[]): Cambio[] {
     else if (c === "foto") meter("foto", f);
     else if (c === "activo") meter("activo", f);
     else if (c === "codigo") meter("codigo", f);
+    else if (c === "precio_sede") meter(`tienda|${f.valor_anterior}|${f.valor_nuevo}`, f);
     else meter(`texto|${c}`, f);
   }
   for (const clave of orden) {
@@ -219,6 +223,20 @@ export function cambiosDe(filas: readonly FilaHistorial[]): Cambio[] {
       out.push({ k: "activo", activadas: g.filter((x) => x.valor_nuevo === "true").map(ref), desactivadas: g.filter((x) => x.valor_nuevo === "false").map(ref) });
     } else if (tipo === "codigo") {
       out.push({ k: "codigo", variantes: g.length });
+    } else if (tipo === "tienda") {
+      type V = { tienda?: string; precio?: number | string | null; propio?: boolean; motivo?: string };
+      const a = parseJson<V>(f.valor_anterior) ?? {};
+      const d = parseJson<V>(f.valor_nuevo) ?? {};
+      out.push({
+        k: "tienda",
+        tienda: d.tienda ?? a.tienda ?? "una tienda",
+        antes: a.precio === undefined || a.precio === null ? null : Number(a.precio),
+        despues: d.precio === undefined || d.precio === null ? null : Number(d.precio),
+        propio: d.propio === true,
+        antesPropio: a.propio === true,
+        motivo: d.motivo ?? null,
+        variantes: g.length,
+      });
     } else {
       const campo = f.campo;
       const etiqueta = campo.startsWith("temporada:") ? `Temporada de ${f.campo_color ?? campo.slice(10)}` : (CAMPOS_TEXTO[campo]?.campo ?? campo);
@@ -250,7 +268,7 @@ function cambioAlta(f: FilaHistorial): Cambio {
 export function familiaDe(cambios: readonly Cambio[]): Familia {
   const ks = new Set(cambios.map((c) => c.k));
   if (ks.has("alta")) return "alta";
-  if (ks.has("precio") || ks.has("costo")) return "precio";
+  if (ks.has("precio") || ks.has("costo") || ks.has("tienda")) return "precio";
   if (ks.has("variantes+") || ks.has("color~") || ks.has("talla~") || ks.has("activo") || ks.has("codigo")) return "variantes";
   if (ks.has("etiqueta")) return "etiquetas";
   if (ks.has("texto")) return "ficha";
@@ -275,6 +293,7 @@ function corto(c: Cambio, n = 1): string {
     case "foto": return "fotos";
     case "activo": return "variantes activas";
     case "codigo": return "códigos";
+    case "tienda": return n > 1 ? "el precio de varias tiendas" : `el precio de ${c.tienda}`;
     default: return "";
   }
 }
@@ -323,6 +342,14 @@ export function tituloDe(cambios: readonly Cambio[]): string {
         return `${c.activadas.length ? "activó" : "desactivó"} ${n === 1 ? "una variante" : `${n} variantes`}`;
       }
       case "codigo": return "recalculó códigos";
+      case "tienda": {
+        if (cambios.length > 1) {
+          const tiendas = new Set(cambios.map((x) => (x.k === "tienda" ? x.tienda : "")));
+          return tiendas.size === 1 ? `cambió el precio de ${c.tienda}` : "cambió el precio de varias tiendas";
+        }
+        if (!c.propio) return `quitó el precio propio de ${c.tienda}`;
+        return c.antesPropio ? `cambió el precio de ${c.tienda}` : `puso precio propio en ${c.tienda}`;
+      }
     }
   }
   return `editó ${enumerar(cortos(cambios))}`;

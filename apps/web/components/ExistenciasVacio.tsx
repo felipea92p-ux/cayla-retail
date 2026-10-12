@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { X } from "lucide-react";
+import { FunnelX, SearchX } from "lucide-react";
+import { Vacio } from "./ui/Vacio";
 // Ruta relativa a propósito: la prueba de render de este componente (`existencias-vacio.test.ts`) corre en vitest, que no resuelve `@/`
 // para valores (los tipos se borran y no importan).
 import { textoSinStock, type ClaveFiltro, type ExplicacionVacio } from "../lib/existencias-vacio";
@@ -15,7 +16,7 @@ import { textoSinStock, type ClaveFiltro, type ExplicacionVacio } from "../lib/e
    existe en el catálogo pero esta sede no lo tiene, lo dice aparte y sin protagonismo.
 
    Presentacional: no busca nada ni conoce Supabase. Todo llega calculado en `explicacion`
-   (`lib/existencias-vacio.ts`). Sin animación propia: es un aviso de estado (`role="status"`), no un modal.
+   (`lib/existencias-vacio.ts`). Se dibuja con la pieza única <Vacio> (ADR-0358, ronda 5), con su entrada en cascada.
    ==================================================================== */
 
 // En productos, como el «N productos» de la barra: el número de cada sugerencia es lo que trae al usarla.
@@ -46,101 +47,91 @@ export function ExistenciasVacio({
   // El botón dice lo que de verdad limpia: «Limpiar búsqueda y filtros» ante quien solo tiene filtros sería mentira a medias.
   const etiquetaLimpiar = hayTexto && filtros.length === 0 ? "Limpiar la búsqueda" : !hayTexto && filtros.length > 0 ? "Quitar todos los filtros" : "Limpiar búsqueda y filtros";
 
+  // La pieza única del vacío (ADR-0358, ronda 5): lo buscado en el título, los filtros como píldoras que se quitan con un toque,
+  // «¿Quisiste decir…?» en la frase y lo que lo deshace en las acciones. Lo que la sede no ha recibido va debajo, en su nota.
+  const seLeyo = comoSeLeyo.some((termino) => termino.tipo !== "texto");
   return (
-    <div role="status" className="border-t border-sand p-5 text-sm">
-      <p className="font-display text-lg leading-snug text-tinta">{titulo}</p>
-
-      {/* Solo aporta cuando algo se leyó como color o talla («negro», «m»): con una sola palabra de texto era ruido («poloo» texto). */}
-      {comoSeLeyo.some((termino) => termino.tipo !== "texto") && (
-        <p className="mt-1 text-xs text-taupe">
-          Se leyó así:{" "}
-          {comoSeLeyo.map((termino, i) => (
-            <span key={`${termino.texto}-${i}`}>
-              {i > 0 && " · "}
-              <span className="font-medium text-tinta">«{termino.texto}»</span>
-              {termino.tipo !== "texto" && ` (${termino.tipo})`}
-            </span>
-          ))}
-        </p>
-      )}
-
-      {filtros.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-taupe">Filtros activos:</span>
-          {filtros.map((filtro) => (
-            <button
-              key={filtro.clave}
-              type="button"
-              className="pildora-cayla"
-              aria-label={`Quitar el filtro ${filtro.etiqueta}: ${filtro.valor}`}
-              onClick={() => onQuitarFiltro(filtro.clave)}
-            >
-              {filtro.etiqueta}: {filtro.valor}
-              <X aria-hidden className="h-3.5 w-3.5" />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {sinStock.length > 0 && (
-        <div className="nota-cayla mt-4">
-          <p>{textoSinStock(sede)}</p>
-          <ul className="mt-1.5 space-y-1">
-            {sinStock.map((producto) => (
-              <li key={producto.id}>
-                <span className="text-tinta">{producto.referencia}</span>
-                {producto.marca ? ` · marca ${producto.marca}` : producto.categoria ? ` · categoría ${producto.categoria}` : ""}
-                {hrefCatalogo && (
-                  <>
-                    {" · "}
-                    <Link href={hrefCatalogo(producto.referencia)} prefetch={false} className="btn-enlace text-xs" aria-label={`Ver «${producto.referencia}» en Productos`}>
-                      Ver en Productos
-                    </Link>
-                  </>
-                )}
-              </li>
+    <div className="border-t border-sand">
+      <Vacio
+        icono={hayTexto ? <SearchX /> : <FunnelX />}
+        titulo={titulo}
+        detalle={
+          sinStock.length > 0 ? (
+            <div className="nota-cayla">
+              <p>{textoSinStock(sede)}</p>
+              <ul className="mt-1.5 space-y-1">
+                {sinStock.map((producto) => (
+                  <li key={producto.id}>
+                    <span className="text-tinta">{producto.referencia}</span>
+                    {producto.marca ? ` · marca ${producto.marca}` : producto.categoria ? ` · categoría ${producto.categoria}` : ""}
+                    {hrefCatalogo && (
+                      <>
+                        {" · "}
+                        <Link href={hrefCatalogo(producto.referencia)} prefetch={false} className="btn-enlace text-xs" aria-label={`Ver «${producto.referencia}» en Productos`}>
+                          Ver en Productos
+                        </Link>
+                      </>
+                    )}
+                  </li>
+                ))}
+                {faltan > 0 && <li>y {faltan.toLocaleString("es-PE")} más</li>}
+              </ul>
+            </div>
+          ) : null
+        }
+        filtros={filtros.map((filtro) => ({ texto: `${filtro.etiqueta}: ${filtro.valor}`, onQuitar: () => onQuitarFiltro(filtro.clave) }))}
+        acciones={
+          <>
+            {relajaciones.length > 0 && <span className="self-center text-sm text-taupe">Prueba con:</span>}
+            {relajaciones.map((relajacion) => (
+              <button
+                type="button"
+                key={relajacion.texto}
+                className="btn-cayla btn-secundario whitespace-normal text-left"
+                onClick={() => (relajacion.accion.tipo === "termino" ? onQuitarTermino(relajacion.accion.consulta) : onQuitarFiltro(relajacion.accion.clave))}
+              >
+                {relajacion.texto} · {prendas(relajacion.prendas)}
+              </button>
             ))}
-            {faltan > 0 && <li>y {faltan.toLocaleString("es-PE")} más</li>}
-          </ul>
-        </div>
-      )}
-
-      {relajaciones.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-taupe">Prueba con:</span>
-          {relajaciones.map((relajacion) => (
-            <button
-              key={relajacion.texto}
-              type="button"
-              className="btn-cayla btn-secundario btn-chico whitespace-normal text-left"
-              onClick={() => (relajacion.accion.tipo === "termino" ? onQuitarTermino(relajacion.accion.consulta) : onQuitarFiltro(relajacion.accion.clave))}
-            >
-              {relajacion.texto} · {prendas(relajacion.prendas)}
+            {/* Botones con la clase de la pieza (no <Boton>): este archivo se prueba sin el alias «@/» que usa campos.tsx. */}
+            <button type="button" className="btn-cayla btn-secundario" onClick={onLimpiarTodo}>
+              {etiquetaLimpiar}
             </button>
-          ))}
-        </div>
-      )}
+          </>
+        }
+      >
+        {/* Solo aporta cuando algo se leyó como color o talla («negro», «m»): con una sola palabra de texto era ruido. */}
+        {seLeyo && (
+          <>
+            Se leyó así:{" "}
+            {comoSeLeyo.map((termino, i) => (
+              <span key={`${termino.texto}-${i}`}>
+                {i > 0 && " · "}
+                <b>«{termino.texto}»</b>
+                {termino.tipo !== "texto" && ` (${termino.tipo})`}
+              </span>
+            ))}
+            .{" "}
+          </>
+        )}
+        {filtros.length > 0 && "Filtros activos: quita uno tocándolo. "}
+        {quisisteDecir && (
+          <>
+            ¿Quisiste decir{" "}
+            <button
+              type="button"
+              className="btn-enlace"
+              aria-label={`Buscar «${quisisteDecir.consulta}» en lugar de «${quisisteDecir.escrito}»`}
+              onClick={() => onQuitarTermino(quisisteDecir.consulta)}
+            >
+              «{quisisteDecir.sugerido}»
+            </button>
+            ?{" "}
+          </>
+        )}
+      </Vacio>
 
-      {quisisteDecir && (
-        <p className="mt-4 text-taupe">
-          ¿Quisiste decir{" "}
-          <button
-            type="button"
-            className="btn-enlace"
-            aria-label={`Buscar «${quisisteDecir.consulta}» en lugar de «${quisisteDecir.escrito}»`}
-            onClick={() => onQuitarTermino(quisisteDecir.consulta)}
-          >
-            «{quisisteDecir.sugerido}»
-          </button>
-          ?
-        </p>
-      )}
 
-      <div className="mt-4">
-        <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={onLimpiarTodo}>
-          {etiquetaLimpiar}
-        </button>
-      </div>
     </div>
   );
 }

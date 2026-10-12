@@ -2,7 +2,7 @@
   "guia": "devoluciones",
   "ruta": "/devoluciones",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 54,
+  "total": 58,
   "controles": {
     "components/AnularVentaForm.tsx": [
       "button «Listo»",
@@ -13,8 +13,6 @@
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/BuscadorVentas.tsx": [
-      "input «Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda»",
-      "button «Limpiar la búsqueda»",
       "button «Buscar»",
       "button «posventa.escanear»",
       "button «posventa.sin-comprobante»",
@@ -22,11 +20,19 @@
     ],
     "components/ComprasAgrupadas.tsx": [
       "button «{f.texto}»",
-      "button «Buscar en todas las tiendas»"
+      "Boton «Buscar en todas las tiendas»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/DetalleVentaModal.tsx": [
-      "button «Cerrar»",
       "button «Reintentar»",
+      "Boton «Corregir pago»",
       "button «Imprimir ticket»",
       "button «Imprimir»"
     ],
@@ -38,7 +44,7 @@
       "button «{m.etiqueta}»",
       "input «¿En qué estado vuelve cada prenda?»",
       "Volver «Revisar la devolución»",
-      "ComboResponsable «{error && <AvisoDeError error={error}»",
+      "ComboResponsable «(sin nombre)»",
       "Volver «Cancelar»",
       "Volver «)»",
       "button «{o.titulo}»",

@@ -15,12 +15,21 @@
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 export LC_ALL=C
 
-VERSION=1
+# 2 (2026-10-09): acepta `?medida=` para los rótulos de anaquel (62 × 100 mm). Una pantalla que la necesita pide la 2.
+VERSION=2
 DIR="${CAYLA_ETIQUETAS_DIR:-$HOME/Library/Application Support/CAYLA/etiquetas}"
 LP="${CAYLA_LP:-lp}"
 MAX_BYTES=2097152
 # Medida del corte: ancho del rollo × largo de cada etiqueta (ADR-0180). `CAYLA_MEDIA` solo la pisan las pruebas.
 MEDIA="${CAYLA_MEDIA:-Custom.62x40.1mm}"
+# Las otras medidas que una pantalla puede pedir con `POST /imprimir?medida=…`: SOLO estas, escritas aquí (nunca se pasa a
+# `lp` un texto que venga de la petición). 62x100mm = el rótulo de anaquel (ADR-0366).
+medida_permitida() {
+  case "$1" in
+    62x40.1mm | 62x100mm) return 0 ;;
+  esac
+  return 1
+}
 
 CR=$(printf '\r')
 
@@ -79,6 +88,8 @@ LINEA=${LINEA%"$CR"}
 METODO=${LINEA%% *}
 RESTO=${LINEA#* }
 RUTA=${RESTO%% *}
+CONSULTA=""
+case "$RUTA" in *\?*) CONSULTA=${RUTA#*\?} RUTA=${RUTA%%\?*} ;; esac
 
 LARGO=0
 ORIGEN=""
@@ -118,6 +129,21 @@ case "$METODO $RUTA" in
       responder "403 Forbidden" '{"ok":false,"error":"origen no permitido"}'
       exit 0
     fi
+    case "$CONSULTA" in
+      '') ;;
+      medida=*)
+        PEDIDA=${CONSULTA#medida=}
+        if ! medida_permitida "$PEDIDA"; then
+          responder "400 Bad Request" '{"ok":false,"error":"esa medida de papel no existe"}'
+          exit 0
+        fi
+        MEDIA="Custom.$PEDIDA"
+        ;;
+      *)
+        responder "400 Bad Request" '{"ok":false,"error":"la pantalla pidio algo que el ayudante no conoce"}'
+        exit 0
+        ;;
+    esac
     if [ "$LARGO" -le 0 ] || [ "$LARGO" -gt "$MAX_BYTES" ]; then
       responder "413 Payload Too Large" '{"ok":false,"error":"las etiquetas no llegaron completas"}'
       exit 0

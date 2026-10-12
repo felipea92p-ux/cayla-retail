@@ -13,6 +13,10 @@
  *   `demo` (opcional) es HTML que se dibuja VIVO con el CSS del ERP (`css`): botones que Felipe puede pasar con el mouse y presionar
  *   para sentir su movimiento; tocarlos no elige la opción. `claseHtml` (opcional) va en el <html> para que carguen las fuentes del ERP.
  *   `movimiento` dice lo que la foto no muestra: qué hace la opción al pasar el mouse, al presionar y mientras trabaja (Felipe 2026-10-07).
+ *   `estilos` (lista de hojas) y `guion` (un .js) se cargan después del CSS del ERP: las demos vivas de una ronda los comparten, y un
+ *   «Repetir» de la demo vuelve a correr sus animaciones de entrada (ronda 5). La barra trae «Ver en oscuro»: cambia `data-tema` del
+ *   <html>, así las demos y la página se ven con los tokens del modo oscuro del ERP (ADR-0336).
+ *   `fotosAlFinal: true` pone las fotos después de la demo y del movimiento (cuando la demo viva es lo principal).
  *   `vista` es un recorte para la tarjeta (la foto completa se abre con «Ver grande»); `ancha` hace que la tarjeta ocupe dos columnas.
  */
 
@@ -24,17 +28,19 @@ const ruta = resolve(process.argv[2] ?? "");
 const spec = JSON.parse(readFileSync(ruta, "utf8"));
 const TIPO = { hoy: "Existe hoy", aplicada: "Lo aplicado ahora", propuesta: "Propuesta dibujada" };
 
+const fotos = (o) => `<span class="op-fotos">${o.imagenes
+    .map((im) => `<span class="op-foto"><img src="${esc(im.vista ?? im.src)}" alt="${esc(o.nombre)}${im.pie ? ` en ${esc(im.pie)}` : ""}"></span><span class="op-pie">${im.pie ? esc(im.pie) : ""}<button type="button" class="op-ver" data-grande="${esc(im.src)}">Ver grande</button></span>`)
+    .join("")}</span>`;
 const tarjeta = (f, g, o) => `<label class="op op-${esc(o.tipo)}${o.ancha ? " op-ancha" : ""}" data-op="${esc(o.id)}">
   <input type="radio" name="${esc(f.id)}::${esc(g.id)}" value="${esc(o.id)}" data-nombre="${esc(o.nombre)}">
   <span class="op-cabeza"><span class="op-tipo">${esc(TIPO[o.tipo] ?? o.tipo)}</span><span class="op-marca" aria-hidden="true">Elegida</span></span>
-  <span class="op-fotos">${o.imagenes
-    .map((im) => `<span class="op-foto"><img src="${esc(im.vista ?? im.src)}" alt="${esc(o.nombre)}${im.pie ? ` en ${esc(im.pie)}` : ""}"></span><span class="op-pie">${im.pie ? esc(im.pie) : ""}<button type="button" class="op-ver" data-grande="${esc(im.src)}">Ver grande</button></span>`)
-    .join("")}</span>
+  ${spec.fotosAlFinal ? "" : fotos(o)}
   <span class="op-nombre">${esc(o.nombre)}</span>
   <span class="op-detalle">${esc(o.detalle)}</span>
   ${o.demo ? `<span class="op-demo" onclick="event.preventDefault()"><span class="op-demo-et">Pruébalo: pasa el mouse y presiona</span><span class="op-demo-fila">${o.demo}</span></span>` : ""}
   ${o.movimiento ? `<span class="op-mov"><b>Movimiento:</b> ${esc(o.movimiento)}</span>` : ""}
   ${o.donde ? `<span class="op-donde">${esc(o.donde)}</span>` : ""}
+  ${spec.fotosAlFinal && o.imagenes.length ? `<span class="op-fotos-et">En las pantallas reales</span>${fotos(o)}` : ""}
   ${o.decidida ? `<span class="op-decidida">${esc(o.decidida)}</span>` : ""}
 </label>`;
 
@@ -58,8 +64,9 @@ const html = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Unificar · elige tú</title>
 ${spec.css ? `<link rel="stylesheet" href="${esc(spec.css)}">` : ""}
+${(spec.estilos ?? []).map((h) => `<link rel="stylesheet" href="${esc(h)}">`).join("")}
 <style>
-:root { color-scheme: light; }
+:root { color-scheme: light; } :root[data-tema="oscuro"] { color-scheme: dark; }
 body { margin: 0; background: var(--color-crema, #f5f0e8); color: var(--color-tinta, #1a1a18); font-family: var(--font-dm-sans), system-ui, sans-serif; font-size: 15px; line-height: 1.5; }
 main { max-width: 1480px; margin: 0 auto; padding: 28px 20px 140px; }
 h1 { font-family: var(--font-eb-garamond), Georgia, serif; font-weight: 500; font-size: 44px; line-height: 1.05; margin: 6px 0 10px; }
@@ -78,9 +85,9 @@ legend { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; pa
 .op { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; border: 2px solid var(--color-sand, #e8e0d0); background: var(--color-papel, #fbf8f2); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .op:hover { border-color: var(--color-taupe, #805c4c); }
 .op-ancha { grid-column: span 2; } @media (max-width: 760px) { .op-ancha { grid-column: auto; } }
-.op input { position: absolute; opacity: 0; pointer-events: none; }
-.op:has(input:focus-visible) { outline: 2px solid var(--color-tinta, #1a1a18); outline-offset: 3px; }
-.op:has(input:checked) { border-color: var(--color-tinta, #1a1a18); box-shadow: inset 0 0 0 1px var(--color-tinta, #1a1a18); }
+.op > input { position: absolute; opacity: 0; pointer-events: none; }
+.op:has(> input:focus-visible) { outline: 2px solid var(--color-tinta, #1a1a18); outline-offset: 3px; }
+.op:has(> input:checked) { border-color: var(--color-tinta, #1a1a18); box-shadow: inset 0 0 0 1px var(--color-tinta, #1a1a18); }
 .op-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .op-demo { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: var(--color-crema, #f5f0e8); cursor: default; }
 .op-demo-et { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe, #805c4c); font-weight: 600; }
@@ -89,7 +96,8 @@ legend { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; pa
 .op-tipo { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe, #805c4c); font-weight: 600; }
 .op-aplicada .op-tipo { color: var(--color-pizarra, #4c5d6e); } .op-propuesta .op-tipo { color: var(--color-verde, #48603f); }
 .op-marca { display: none; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--color-tinta, #1a1a18); color: var(--color-crema, #f5f0e8); }
-.op:has(input:checked) .op-marca { display: inline-block; }
+.op:has(> input:checked) .op-marca { display: inline-block; }
+.op-fotos-et { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe, #805c4c); font-weight: 600; margin-top: 4px; }
 .op-fotos { display: flex; flex-direction: column; gap: 6px; }
 .op-foto { display: block; padding: 8px; border-radius: 10px; background: var(--color-hueso, #eae1d2); max-height: 300px; overflow: hidden; }
 .op-foto img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
@@ -103,6 +111,7 @@ legend { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; pa
 .barra-in { max-width: 1480px; margin: 0 auto; padding: 12px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .barra-cuenta { font-weight: 600; } .barra-resumen { flex: 1; min-width: 240px; font-size: 13px; color: var(--color-taupe, #805c4c); }
 .barra button { font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 10px; border: 0; background: var(--color-tinta, #1a1a18); color: var(--color-crema, #f5f0e8); cursor: pointer; }
+.barra button.sec { background: transparent; color: var(--color-tinta, #1a1a18); box-shadow: inset 0 0 0 1px var(--color-sand, #e8e0d0); }
 .barra button.copiado { background: var(--color-verde, #48603f); }
 .grande { position: fixed; inset: 0; z-index: 10; display: none; align-items: flex-start; justify-content: center; overflow: auto; padding: 24px; background: color-mix(in srgb, var(--color-sombra, #000) 70%, transparent); cursor: zoom-out; }
 .grande.abierta { display: flex; } .grande img { max-width: min(1400px, 100%); height: auto; background: var(--color-papel, #fbf8f2); border-radius: 8px; }
@@ -120,6 +129,7 @@ legend { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; pa
 <div class="barra"><div class="barra-in">
   <span class="barra-cuenta" id="cuenta">Elegiste 0 de ${totalGrupos}</span>
   <span class="barra-resumen" id="resumen">Toca una tarjeta en cada pregunta. «Ver grande» abre la foto completa.</span>
+  <button type="button" id="tema" class="sec">Ver en oscuro</button>
   <button type="button" id="copiar">Copiar mi elección</button>
 </div></div>
 <div class="grande" id="grande" role="dialog" aria-label="Foto en grande"><img alt=""></div>
@@ -167,6 +177,11 @@ document.addEventListener("click", (ev) => {
   if (ev.target.closest("#grande")) grande.classList.remove("abierta");
 });
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") grande.classList.remove("abierta"); });
+document.getElementById("tema").addEventListener("click", (ev) => {
+  const raiz = document.documentElement, oscuro = raiz.dataset.tema !== "oscuro";
+  raiz.dataset.tema = oscuro ? "oscuro" : "claro";
+  ev.target.textContent = oscuro ? "Ver en claro" : "Ver en oscuro";
+});
 document.getElementById("copiar").addEventListener("click", async (ev) => {
   const t = texto(leer());
   try { await navigator.clipboard.writeText(t); } catch { prompt("Copia este texto y pégalo en el chat:", t); }
@@ -174,6 +189,7 @@ document.getElementById("copiar").addEventListener("click", async (ev) => {
   setTimeout(() => { ev.target.textContent = "Copiar mi elección"; ev.target.classList.remove("copiado"); }, 3000);
 });
 </script>
+${spec.guion ? `<script src="${esc(spec.guion)}"></script>` : ""}
 </body>
 </html>`;
 const salida = join(dirname(ruta), "elegir.html");

@@ -404,6 +404,11 @@
   "relkind": "r",
   "rls": true
  },
+ "espacio_piso": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "etiqueta_categorias": {
   "forzado": false,
   "relkind": "r",
@@ -420,6 +425,11 @@
   "rls": true
  },
  "frescura_decisiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "frescura_vara_cayla": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -445,6 +455,11 @@
   "rls": true
  },
  "grupos_mix": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "guias_vistas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -524,7 +539,32 @@
   "relkind": "r",
   "rls": true
  },
+ "orden_compra_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_compra_versiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ordenes_compra": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "parametros_analisis": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "parametros_finanzas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "parametros_liquidacion": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -554,6 +594,16 @@
   "relkind": "r",
   "rls": true
  },
+ "piezas_liquidacion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "piezas_liquidacion_etiquetas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planes_compra": {
   "forzado": false,
   "relkind": "r",
@@ -568,6 +618,16 @@
   "forzado": false,
   "relkind": "v",
   "rls": false
+ },
+ "precios_sede": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "precios_sede_prenda": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
  },
  "prendas_danadas": {
   "forzado": false,
@@ -585,6 +645,11 @@
   "rls": true
  },
  "prendas_por_regularizar": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_por_regularizar_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -645,6 +710,11 @@
   "rls": true
  },
  "proveedores_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "respaldo_b001_f001_renumeradas_20261007": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -820,6 +890,11 @@
   "rls": true
  },
  "venta_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "venta_pagos_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true

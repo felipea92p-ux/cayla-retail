@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
 import { limpiarTextoAjuste, textoTrasPaso, type ModoAjuste } from "@/lib/ajuste-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 /** Una talla del ajuste, ya dicha en voz de tienda (la arma `AjustarInventarioModal` con las reglas de `lib/ajuste-reglas.ts`). */
 export type FilaDeAjuste = {
@@ -96,9 +97,9 @@ export function SelectorDeAjuste({
               </span>
             </div>
             {problema && (
-              <p role="alert" className="mt-1.5 pl-12 text-xs text-rojo-profundo">
+              <Aviso tono="error" chico className="ml-12 mt-1.5">
                 {problema}
-              </p>
+              </Aviso>
             )}
             {extra?.(f.varianteId)}
           </li>

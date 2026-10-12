@@ -11,6 +11,7 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -181,7 +182,7 @@ export function AnularVentaForm({
             />
           </div>
 
-          {error && <p className="text-sm text-rojo">{error}</p>}
+          {error && <Aviso tono="error">{error}</Aviso>}
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-2 pt-1">

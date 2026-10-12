@@ -6,9 +6,9 @@
 import type { EdadInventario, PrendaAnalisis } from "./analisis-tipos";
 import { DIAS_EJE_QUIETAS, DIAS_TRES_MESES, GRUPOS_CARRIL_QUIETAS, grupoDe, ordenQuietas, plural, prendasDe, sedeQueMasVende, totalEnTienda } from "./analisis-reglas";
 
-/** Las cifras grandes de arriba: cuántas prendas están quietas y cuánta plata hay en ellas. */
+/** Las cifras grandes de arriba: cuántos modelos están quietos y cuánta plata hay en ellos. */
 export type CifrasQuietas = {
-  /** Prendas (una talla de un color) en «Mándalas» y «Liquidar». */
+  /** Las filas de «Mándalas» y «Liquidar»: desde la decisión 12 de ADR-0357, MODELOS (cada uno con todas sus tallas y colores). */
   prendas: number;
   /** Lo libre de esas prendas en la tienda. */
   unidades: number;
@@ -21,14 +21,20 @@ export type CifrasQuietas = {
   sinPrecio: number;
 };
 
-/** Las cifras de las prendas quietas. Sin quietas, todo es 0: no hay nada que costar. */
-export function cifrasQuietas(quietas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "costo" | "precio">[]): CifrasQuietas {
+type ConDinero = Pick<PrendaAnalisis, "piso" | "almacen" | "costo" | "precio">;
+
+/**
+ * Las cifras de lo quieto. Sin quietas, todo es 0: no hay nada que costar. El dinero se suma talla por talla (`variantes` de cada
+ * modelo): cada una con su costo y su precio, nunca el promedio del modelo; «sin costo» y «sin precio» cuentan esas tallas.
+ */
+export function cifrasQuietas(quietas: readonly (ConDinero & { variantes?: readonly ConDinero[] })[]): CifrasQuietas {
   let unidades = 0;
   let costo = 0;
   let precioVenta = 0;
   let conCosto = 0;
   let conPrecio = 0;
-  for (const p of quietas) {
+  const tallas = quietas.flatMap((q) => q.variantes ?? [q]);
+  for (const p of tallas) {
     const u = totalEnTienda(p);
     unidades += u;
     if (p.costo !== null) {
@@ -46,8 +52,8 @@ export function cifrasQuietas(quietas: readonly Pick<PrendaAnalisis, "piso" | "a
     unidades,
     costo: conCosto > 0 || vacio ? costo : null,
     precioVenta: conPrecio > 0 || vacio ? precioVenta : null,
-    sinCosto: quietas.length - conCosto,
-    sinPrecio: quietas.length - conPrecio,
+    sinCosto: tallas.length - conCosto,
+    sinPrecio: tallas.length - conPrecio,
   };
 }
 
@@ -171,6 +177,6 @@ export function vacioQuietas(prendas: readonly PrendaAnalisis[], liquidarDesde: 
 
 /** El título y la línea de cada vacío («sin-datos» dice lo mismo que en «Se está acabando»). */
 export const TEXTO_VACIO_QUIETAS: Record<VacioQuietas, { titulo: string; linea: string }> = {
-  "todo-se-mueve": { titulo: "Todo se mueve", linea: "Ninguna prenda lleva más de un mes sin venderse." },
+  "todo-se-mueve": { titulo: "Todo se mueve", linea: "Ningún modelo lleva más de un mes sin venderse." },
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
 };

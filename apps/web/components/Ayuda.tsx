@@ -9,7 +9,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 function limitesVisibles(el: HTMLElement) {
   let left = 0;
   let top = 0;
-  let right = window.innerWidth;
+  // El ancho del documento y no `window.innerWidth`: en el celular, si algo se sale por la derecha, el navegador agranda la
+  // ventana «visible» y el globo se colocaba contra ese borde nuevo, que queda fuera de la pantalla (2026-10-09, el «!» junto
+  // al título de Productos). `clientWidth` sigue siendo el ancho real de la pantalla.
+  let right = document.documentElement.clientWidth || window.innerWidth;
   let bottom = window.innerHeight;
   for (let p = el.parentElement; p; p = p.parentElement) {
     const e = getComputedStyle(p);

@@ -7,6 +7,8 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { CircleCheck } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
@@ -45,7 +47,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
         ]}
       />
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">¿Qué necesita mi decisión hoy?</h1>
@@ -106,8 +108,10 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           <small className="font-sans text-xs text-tinta/65">{decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}</small>
         </h2>
         {decisiones.length === 0 ? (
-          <div className="card-cayla p-5 text-sm text-tinta/75">
-            <b className="font-semibold text-tinta">Todo en orden.</b> Nada pide tu decisión ahora.
+          <div className="card-cayla">
+            <Vacio tamano="chico" icono={<CircleCheck />}>
+              <b className="font-semibold text-tinta">Todo en orden.</b> Nada pide tu decisión ahora.
+            </Vacio>
           </div>
         ) : (
           <ul className="space-y-2.5">
@@ -122,7 +126,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
                 </div>
                 <Link
                   href={d.accion.href}
-                  className="label-cayla col-span-2 rounded-md border border-tinta/25 px-3.5 py-2.5 text-center text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo sm:col-span-1 sm:justify-self-end"
+                  className="btn-cayla btn-secundario col-span-2 text-center sm:col-span-1 sm:justify-self-end"
                 >
                   {d.accion.texto}
                 </Link>

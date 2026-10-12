@@ -31,7 +31,8 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   {
     archivo: "components/PuntoDeVenta.tsx",
     cable: "las variantes de la caja pasan por `conApartadoAjustado` (con el almacén y el stock ya ajustados)",
-    patron: /conStockAjustado\(\s*conApartadoAjustado\(\s*conAlmacenAjustado\(\s*variantes\s*,\s*ajustesAlmacen\s*\)\s*,\s*ajustesApartado\s*\)\s*,\s*ajustesStock\s*\)/,
+    // La base puede ser `variantes` tal cual o con el precio al día (`conPreciosAlDia`, 2026-10-08).
+    patron: /conStockAjustado\(\s*conApartadoAjustado\(\s*conAlmacenAjustado\(\s*(?:variantes|conPreciosAlDia\(\s*variantes\s*,\s*preciosAlDia\s*\))\s*,\s*ajustesAlmacen\s*\)\s*,\s*ajustesApartado\s*\)\s*,\s*ajustesStock\s*,?\s*\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",

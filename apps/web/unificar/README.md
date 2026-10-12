@@ -54,6 +54,10 @@ Para verla en el navegador integrado: `preview_start` «unificar-laminas» y abr
 
 ## Si algo da raro
 
+- **«Executable doesn't exist … ms-playwright»** No está el Chromium que Playwright descarga (~170 MB, `pnpm exec playwright install chromium`).
+  Sin bajarlo, el motor usa el Chrome ya instalado en la máquina: `NAVEGADOR_CANAL=chrome pnpm --filter web unificar:censo -- …` (vale también
+  para `unificar:fotos` y `tema:auditar`). Sin la variable, todo sigue igual que antes.
+
 - **«El servidor es de otra worktree»** Con varias worktrees levantadas, el 3010 suele ser de otra: levanta el tuyo y pásalo con `--base-url`
   (`--otra-obra` mide aquel a sabiendas).
 - **«No entró …»** La cuenta no existe en la base local: `pnpm --filter web tema:cuentas`.

@@ -12,6 +12,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import type { Firma } from "@/lib/responsable-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Crear una terminal y cambiarle la clave desde Colaboradores ▸ Terminales (Felipe, 2026-09-22). Los dos terminan en el
 // mismo segundo paso: el correo y la clave, UNA sola vez. Solo un líder llega aquí (la página exige el permiso y la
@@ -61,7 +62,12 @@ function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave
           Listo
         </Boton>
       </div>
-      {copiado === "no" && <p className="text-xs text-rojo">No se pudo copiar: selecciónala y cópiala a mano.</p>}
+      {copiado === "no" && (
+        <Aviso tono="error" chico>
+          No se pudo copiar: selecciónala y cópiala a mano.
+        </Aviso>
+      )}
+
     </div>
   );
 }
@@ -171,11 +177,7 @@ export function NuevaTerminalModal({
             pie="Decide qué módulos ve. Se cambia cuando quieras con «Cambiar rol»."
           />
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          {error && (
-            <p role="alert" className="text-sm text-rojo">
-              {error}
-            </p>
-          )}
+          {error && <Aviso tono="error">{error}</Aviso>}
           <div className="flex gap-2 pt-1">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
@@ -251,11 +253,7 @@ export function CambiarClaveModal({
             {terminal.activo ? "" : " Está desactivada: reactívala para poder usarla."}
           </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          {error && (
-            <p role="alert" className="text-sm text-rojo">
-              {error}
-            </p>
-          )}
+          {error && <Aviso tono="error">{error}</Aviso>}
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar

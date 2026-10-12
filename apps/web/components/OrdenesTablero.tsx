@@ -14,8 +14,12 @@ import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales"
 import { OrdenTarjeta, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { useFlipCajas } from "@/lib/useFlipCajas";
 import { COLUMNAS_TABLERO, etapaActual, resumenTablero } from "@/lib/produccion-reglas";
+import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
+import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
+import { Scissors, Shirt } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Órdenes de producción del Taller (ADR-0133, F2): un tablero por etapa en vez de una lista plana. La etapa donde
 // está la orden ES su columna; al marcarla hecha la tarjeta viaja a la siguiente. Las muestras (otras tres
@@ -33,6 +37,9 @@ export function OrdenesTablero({
   decision,
   ordenInicialId = null,
   nuevaInicial = null,
+  tipoInicial = "produccion",
+  puedeEditarCatalogo = false,
+  vocabulario = null,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
@@ -46,6 +53,12 @@ export function OrdenesTablero({
   /** Enlaces del Resumen (F6): `?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
   ordenInicialId?: string | null;
   nuevaInicial?: string | null;
+  /** `?tipo=muestra` (ADR-0361): el tipo con que se abre «Nueva orden» al volver de crear un modelo nuevo. */
+  tipoInicial?: TipoOrden;
+  /** Quien edita el catálogo puede crear el modelo que falta desde aquí (`fn_puede_editar_catalogo`, ADR-0361). */
+  puedeEditarCatalogo?: boolean;
+  /** Tallas, colores y categorías para «Modelo nuevo» dentro de la orden (ADR-0361). */
+  vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
@@ -71,21 +84,31 @@ export function OrdenesTablero({
   return (
     <div className="space-y-6">
       {/* Cabecera del spike: el título a la izquierda y la acción principal arriba a la derecha. */}
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Dónde está cada corrida, cuánto lleva costando y si llega a tiempo.</p>
         </div>
-        <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)} disabled={modelos.length === 0}>
+        <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)}>
           + Nueva orden
         </Boton>
       </div>
 
       {modelos.length === 0 && (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay modelos con variantes activas en el catálogo. Crea el modelo y sus tallas en Productos antes de abrir una orden.
-        </p>
+        <div className="card-cayla">
+          <Vacio
+            icono={<Shirt />}
+            titulo="Todavía no hay modelos"
+            acciones={
+              <Boton peso="primario" onClick={() => setNuevaAbierta(true)}>
+                + Crear el primer modelo
+              </Boton>
+            }
+          >
+            Créalo aquí mismo: un modelo nuevo se abre ya con su orden de producción.
+          </Vacio>
+        </div>
       )}
 
       {/* ==================== cifras ==================== */}
@@ -111,14 +134,28 @@ export function OrdenesTablero({
             style={{ ["--i" as string]: 2 }}
             valor={resumen.margenPromedio === null ? null : <CifraQueCuenta valor={resumen.margenPromedio * 100} formato="porcentaje" alMontar />}
           >
-            {resumen.margenPromedio === null ? "sin precio o costo todavía" : "sobre el precio de venta"}
+            {resumen.margenPromedio === null ? "sin precio o costo todavía" : "sobre el precio de venta más bajo"}
           </TarjetaCifra>
         )}
       </div>
 
       {/* ==================== tablero ==================== */}
       {produccion.length === 0 && muestras.length === 0 ? (
-        <p data-guia="prod-ordenes.tablero" className="card-cayla p-5 text-sm text-tinta/75">Todo lo abierto ya se cerró. Abre una orden para empezar una corrida.</p>
+        <div className="card-cayla">
+          <Vacio
+            icono={<Scissors />}
+            titulo="Ninguna orden abierta"
+            acciones={
+              modelos.length > 0 ? (
+                <Boton peso="primario" onClick={() => setNuevaAbierta(true)}>
+                  Abrir una orden
+                </Boton>
+              ) : null
+            }
+          >
+            Todo lo abierto ya se cerró. Abre una orden para empezar una corrida.
+          </Vacio>
+        </div>
       ) : (
         <div ref={refTablero} data-guia="prod-ordenes.tablero" className="relative grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-3.5 overflow-x-auto pb-2 min-[1240px]:grid-flow-row min-[1240px]:auto-cols-auto min-[1240px]:grid-cols-4 min-[1240px]:overflow-visible">
           {COLUMNAS_TABLERO.map((col) => {
@@ -190,6 +227,7 @@ export function OrdenesTablero({
                       {esLider && (
                         <span className="ml-auto inline-flex items-center gap-2 tabular-nums text-tinta">
                           {soles(o.costoUnitario)}
+                          {sem?.sede && <span className="text-xs text-tinta/65">en {sem.sede}</span>}
                           {sem && <span aria-hidden className={`h-2 w-2 rounded-full ${sem.clase}`} />}
                         </span>
                       )}
@@ -232,7 +270,18 @@ export function OrdenesTablero({
           onRevertir={() => setRevirtiendo(abierta)}
         />
       )}
-      {nuevaAbierta && <NuevaOrdenProduccionForm tallerId={tallerId} modelos={modelos} decision={decision} productoInicialId={nuevaInicial} onClose={() => setNuevaAbierta(false)} />}
+      {nuevaAbierta && (
+        <NuevaOrdenProduccionForm
+          tallerId={tallerId}
+          modelos={modelos}
+          decision={decision}
+          productoInicialId={nuevaInicial}
+          tipoInicial={tipoInicial}
+          puedeEditarCatalogo={puedeEditarCatalogo}
+          vocabulario={vocabulario}
+          onClose={() => setNuevaAbierta(false)}
+        />
+      )}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}
       {revirtiendo && <RevertirOrdenModal orden={revirtiendo} onClose={() => setRevirtiendo(null)} />}
     </div>

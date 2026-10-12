@@ -428,6 +428,20 @@ describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
   it("una línea sin variante no rompe", () => {
     expect(piezasDeVenta([item({ variante: null })])).toEqual([{ referencia: "Prenda", detalle: "", cantidad: 1, fotoUrl: null, colorHex: null }]);
   });
+
+  it("con dos fotos del mismo color gana la principal, no la de menor orden (Blusa Alba Rayas, 2026-10-09)", () => {
+    const variante = {
+      ...conFotos("VIN"),
+      producto: {
+        referencia: "Blusa Alba Rayas",
+        producto_fotos: [
+          { url: "https://x/vieja.jpg", color_codigo: "VIN", orden: 0, es_principal: false },
+          { url: "https://x/nueva.jpg", color_codigo: "VIN", orden: 1, es_principal: true },
+        ],
+      },
+    };
+    expect(piezasDeVenta([item({ variante })])[0].fotoUrl).toBe("https://x/nueva.jpg");
+  });
 });
 
 describe("títulos de una venta", () => {

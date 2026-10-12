@@ -55,13 +55,13 @@ export default function ErrorDeSeccion({
                 reset();
               })
             }
-            className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo-profundo"
+            className="btn-cayla btn-primario"
           >
             Reintentar
           </button>
           <Link
             href="/"
-            className="label-cayla rounded-md border border-tinta/25 px-5 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            className="btn-cayla btn-secundario"
           >
             Volver al inicio
           </Link>

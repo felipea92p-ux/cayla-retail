@@ -10,10 +10,14 @@
 @import "./estilos/alta-guia.css";
 @import "./estilos/guias.css";
 @import "./estilos/alta-parecidas.css";
+@import "./estilos/lista-compra.css";
 @import "./estilos/puntos-avance.css";
 @import "./estilos/inicio-almacen.css";
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
+@import "./estilos/rotulo.css";
+/* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
+@import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
@@ -30,13 +34,19 @@
 @import "./estilos/pestanas-y-segmentos.css";
 @import "./estilos/traslados-pases.css";
 @import "./estilos/traslados-guia.css";
+@import "./estilos/marcas.css";
 @import "./estilos/analisis.css";
+@import "./estilos/gasto-rapido.css";
 @import "./estilos/analisis-hoy.css";
 @import "./estilos/analisis-acaba.css";
 @import "./estilos/analisis-quieta.css";
 @import "./estilos/analisis-piso.css";
 @import "./estilos/analisis-pedir.css";
 @import "./estilos/analisis-ficha.css";
+@import "./estilos/vacio-aviso-buscador.css";
+@import "./estilos/barra-apilada.css";
+/* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
+@import "./estilos/plan-piso.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -958,9 +968,12 @@ body {
     display: block;
     width: 72mm;
     box-sizing: border-box;
-    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba y abajo lo
-       justo (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. */
-    padding: 2mm 4mm 6mm;
+    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba lo justo
+       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo 18 mm (antes 6,
+       Felipe 2026-10-09): la cuchilla de la térmica está más arriba que el cabezal, y con 6 mm el
+       corte caía sobre el pie y el QR salía partido. Este blanco es lo que el papel avanza hasta
+       la cuchilla después de la última línea. */
+    padding: 2mm 4mm 18mm;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -1165,6 +1178,28 @@ body {
   --ease-salida: cubic-bezier(0.4, 0, 1, 1);      /* salidas: arranca lento y se va */
 }
 
+/* La onda del color elegido en una tarjeta de Existencias (Felipe, 2026-10-07: «ondas no muy bruscas», siempre y muy lento). Excepción
+   aprobada a ADR-0136 (bucle): un aro que crece y se apaga cada 3,2 s. Quieto con prefers-reduced-motion (la clase no anima ahí). */
+@keyframes cayla-onda-color {
+  0% { transform: scale(1); opacity: 0.5; }
+  75%, 100% { transform: scale(2.3); opacity: 0; }
+}
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Solo ::before: el ::after del punto es su área para tocar (más grande que el círculo). */
+    .onda-color::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 9999px;
+      border: 1.5px solid var(--color-tinta);
+      opacity: 0;
+      pointer-events: none;
+      animation: cayla-onda-color 3.2s var(--ease-cayla) infinite;
+    }
+  }
+}
+
 @keyframes cayla-velo {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1294,6 +1329,12 @@ html[data-buscando] [data-resultados] {
 
 /* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
         gradiente del sistema y dura 600ms; no queda nada pintado. ---- */
+/* La onda de un clic en un botón: nace en el punto tocado y se apaga (ronda 4 de /unificar). */
+@keyframes cayla-onda {
+  from { opacity: 1; scale: 0; }
+  to { opacity: 0; scale: 1; }
+}
+
 @keyframes cayla-brillo {
   from { opacity: 1; transform: translate3d(-120%, 0, 0) skewX(-12deg); }
   to { opacity: 1; transform: translate3d(320%, 0, 0) skewX(-12deg); }
@@ -1363,8 +1404,11 @@ html[data-buscando] [data-resultados] {
      · Al pasar el mouse: sube 2 px con su sombra, cruza una luz (650 ms, una vez) y el ícono responde: el «+» da un
        cuarto de vuelta y la flecha que va adelante se adelanta 4 px (lo que Felipe quería de la C).
      · Al presionar: se encoge un 3 % y baja; la mano siente que lo presionó.
-     Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
-  .mov-boton {
+     · Al hacer clic (ronda 4, Felipe 2026-10-07: «más animaciones para que sea más interactivo cuando haces clic»): una
+       onda nace donde tocaste y se apaga (450 ms). La pone `<OndaBotones>` (montado una vez en `app/layout.tsx`).
+     Lo tienen también todos los `btn-cayla` (menos `btn-enlace`, que es texto): un botón del ERP se mueve igual, venga de
+     donde venga. Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) {
     position: relative;
     overflow: hidden;
     transition:
@@ -1375,20 +1419,41 @@ html[data-buscando] [data-resultados] {
       border-color 200ms var(--ease-cayla),
       color 200ms var(--ease-cayla);
   }
-  .mov-boton::after {
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after {
     content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
     background: linear-gradient(100deg, transparent, color-mix(in srgb, currentColor 26%, transparent), transparent);
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
     opacity: 0;
   }
-  .mov-boton:hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
-  .mov-boton:hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
-  .mov-boton:active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
-  .mov-boton :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
-  .mov-boton:hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
-  .mov-boton :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
-  .mov-boton:hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
-  .mov-boton:hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
+    content: ""; position: absolute; pointer-events: none; border-radius: 999px;
+    left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
+    translate: -50% -50%;
+    background: color-mix(in srgb, currentColor 24%, transparent);
+    opacity: 0;
+  }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))[data-onda]::before { animation: cayla-onda 450ms var(--ease-cayla); }
+
+  /* LAS DOS VOCES (ADR-0358, ronda 4: Felipe eligió la B, 2026-10-07). Dentro de la cabecera de una pantalla
+     (`data-voz="cabecera"`: EncabezadoPagina, CabeceraPantalla y las cabeceras propias de Compras y Producción) los botones
+     hablan en VERSALITAS de 11 px y 40 px, como la acción principal; en todo lo demás —hojas, tarjetas, filas— en letra
+     normal de 13,5 px, que se lee como una frase. La pieza es la misma (`btn-cayla`, o `<Boton>`, que la dibuja): la voz la
+     pone el lugar, no cada pantalla. */
+  [data-voz="cabecera"] :is(.btn-cayla:not(.btn-enlace)) {
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 0.75rem 1rem;
+  }
 }
 
 @layer components {
@@ -1572,6 +1637,46 @@ html[data-buscando] [data-resultados] {
   }
 }
 
+/* ---- HOJA CON EL TECLADO ARRIBA (2026-10-08) — `useHojaSobreElTeclado` (components/ui/) ----
+   Con el teclado del celular abierto, el contenedor de `<Modal>` lleva `data-teclado` y `--teclado` (lo que el teclado tapa,
+   en px), empieza en el borde de arriba de lo visible y llega al fondo de la pantalla, detrás del teclado. La hoja sigue pegada
+   abajo y crece hasta llenarlo, y reserva abajo, con relleno, lo tapado: lo último se alcanza desplazando, el campo enfocado se deja a la vista
+   (`scroll-padding-bottom`) y el pie fijo se apoya sobre el teclado (sticky se mide desde el borde de adentro del relleno).
+   No se pega la hoja al borde de abajo de lo visible: Brave en Android reporta el alto visible ~56 px corto y la hoja quedaba
+   flotando con el velo asomando entre ella y el teclado. Así, un alto mal reportado solo agranda un relleno que no se ve.
+   Fuera de capa a propósito: le gana a `max-h-*` y `h-*` de Tailwind, que viven en la capa `utilities`. ---- */
+@media (max-width: 639.98px) {
+  [data-teclado] > .cascada-modal {
+    max-height: 100%;
+    padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
+    scroll-padding-bottom: calc(var(--teclado, 0px) + 1rem);
+  }
+  /* Bajo el pie fijo no asoma nada: si el navegador reportó corto lo visible, entre el pie y el teclado quedaría a la vista
+     el contenido que pasa por detrás. Este paño del color de la hoja lo tapa (detrás del teclado no se ve). */
+  [data-teclado] .pie-hoja-fijo::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--teclado, 0px);
+    background: var(--fondo-hoja, var(--color-papel));
+    pointer-events: none;
+  }
+  /* El ticket no tiene relleno propio y su alto es fijo: su panel de adentro scrollea y se acorta solo. */
+  [data-teclado] > .cascada-modal[data-variante="ticket"] {
+    height: 100%;
+    padding-bottom: var(--teclado, 0px);
+  }
+}
+@media (min-width: 640px) {
+  [data-teclado] {
+    padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
+  }
+  [data-teclado] > .cascada-modal {
+    max-height: 100%;
+  }
+}
+
 /* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
         tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
         el dígito rueda cuando cambia y las ondas de
@@ -1738,9 +1843,6 @@ html[data-buscando] [data-resultados] {
 @keyframes kpi-crece {
   from { transform: scaleY(0); }
 }
-@keyframes kpi-crece-x {
-  from { transform: scaleX(0); }
-}
 
 @layer components {
   .kpi-vidrio-envoltura {
@@ -1816,20 +1918,6 @@ html[data-buscando] [data-resultados] {
      SOLO tokens CAYLA: tinta = lo principal, taupe = lo secundario, grafico-neutro = lo que no suma,
      grafico-alza (verde) = hecho o vale, grafico-baja (ámbar) = falta o está al filo, sand = el fondo vacío.
      El rojo no entra en ningún gráfico: es el acento sagrado (máx. 2 por pantalla, ADR-0169). */
-  .kpi-apilada {
-    display: flex;
-    gap: 2px;
-    height: 8px;
-    margin-top: 12px;
-    overflow: hidden;
-    border-radius: 99px;
-    background: var(--color-sand);
-  }
-  .kpi-apilada i {
-    display: block;
-    min-width: 0;
-    transform-origin: left;
-  }
   .kpi-leyenda {
     display: flex;
     flex-wrap: wrap;
@@ -1911,7 +1999,6 @@ html[data-buscando] [data-resultados] {
   .g-alza { background: var(--color-grafico-alza); }
   .g-baja { background: var(--color-grafico-baja); }
   @media (prefers-reduced-motion: no-preference) {
-    .kpi-apilada i { animation: kpi-crece-x 600ms var(--ease-cayla) 200ms backwards; }
     .kpi-tramos i { animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards; }
   }
   .kpi-progreso__texto {
@@ -2286,9 +2373,12 @@ html[data-buscando] [data-resultados] {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .mov-boton::after { animation: none !important; }
-    .mov-boton, .mov-boton:hover, .mov-boton:active { translate: none !important; scale: none !important; }
-    .mov-boton :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after,
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before { animation: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================

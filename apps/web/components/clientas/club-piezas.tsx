@@ -13,6 +13,7 @@ import {
   problemaCumple,
   type CumpleEscrito,
 } from "@/lib/club-cumple-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Las piezas del club que comparten las hojas que lo tocan (ADR-0288 tanda 1b). Desde la tanda 1g (G-2) el alta pide solo el
 // documento y ella se une desde el cartel, así que hoy las usa «Editar» de la ficha de /clientas. Una sola versión, dibujada
@@ -143,7 +144,12 @@ export function CamposCumpleanos({
           onChange={(e) => onCumple({ ...cumple, anio: ajustarAnio(e.target.value) })}
         />
       </div>
-      {problema && <p className="mt-1 text-xs text-rojo-profundo">{problema}</p>}
+      {problema && (
+        <Aviso tono="error" chico className="mt-1">
+          {problema}
+        </Aviso>
+      )}
+
       {mostrarOmitir && (
         <p className="mt-1.5 text-xs text-tinta/60">
           <button

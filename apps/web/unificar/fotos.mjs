@@ -256,7 +256,7 @@ async function fotografiar(ctx, r, ancho, alto, archivo) {
   }
 }
 
-const navegador = await chromium.launch({ headless: true });
+const navegador = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
 for (const [ancho, alto, sufijo, cuales] of [
   [1440, 900, "", pedidas],
   [375, 812, ".375", pedidas.filter((r) => r.celular)],

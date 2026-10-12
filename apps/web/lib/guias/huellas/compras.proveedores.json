@@ -38,16 +38,14 @@
       "button «Proveedor siguiente»",
       "Link «Abrir ficha completa →»"
     ],
-    "components/ProveedoresIndicadores.tsx": [
-      "button «{`${t.nombre}»"
-    ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",
-      "input «{hayMarcas ? \"Nombre, marca, RUC o contacto\" : \"Nombre, RUC o contacto\"}»",
-      "button «Limpiar búsqueda»",
       "button «{o.etiqueta}»",
       "button «proveedores.sin-pago»",
-      "button «Registrarlo →»",
+      "Boton «Registrar el primero»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Registrarlo»",
+      "Boton «Limpiar filtros»",
       "Link «{`${p.nombre}»",
       "button «proveedores.nombre»",
       "Link «{soles(saldo)}»",

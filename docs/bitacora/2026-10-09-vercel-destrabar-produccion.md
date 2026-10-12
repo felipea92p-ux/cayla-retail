@@ -1,0 +1,4 @@
+## 2026-10-09 (Producción vuelve a publicarse: fuera el `ignoreCommand` de Vercel)
+Qué hice: quité `"ignoreCommand": "[ \"$VERCEL_ENV\" != production ]"` de `apps/web/vercel.json` (lo agregó #896 a las 12:55). Desde entonces Vercel canceló TODOS los builds de `main` con «Canceled by Ignored Build Step» —#896, #897, #900, #898, #899 y #901—, aunque `vercel inspect` dice `target production`: en ese paso `VERCEL_ENV` no llega como `production` y la regla saltaba también producción.
+Por qué así: Felipe eligió la vía segura y comprobable (quitar la regla) frente a activar «Automatically expose System Environment Variables», que no estaba comprobado. El SQL de #899 (`corregir_pagos_venta`) ya estaba en producción, así que publicar lo atascado no deja pantallas pidiendo funciones que falten.
+Felipe se lleva: vuelven los builds de preview de cada rama (la cola que #896 quería evitar). Si se quiere saltarlos de nuevo, probar la regla con un deploy real antes de fusionarla.

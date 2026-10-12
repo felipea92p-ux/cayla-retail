@@ -2,7 +2,7 @@
   "guia": "inventario.por-regularizar",
   "ruta": "/inventario/por-regularizar",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 31,
+  "total": 37,
   "controles": {
     "app/(app)/inventario/por-regularizar/page.tsx": [
       "Volver «(sin nombre)»"
@@ -15,11 +15,19 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/PorRegularizarLista.tsx": [
-      "input «Buscar prenda, color, talla, quién vendió o precio»",
-      "button «Borrar la búsqueda»",
       "button «{f.texto}»",
       "button «(sin nombre)»",
       "Desplegable «(sin nombre)»"
+    ],
+    "components/PrendaSinRegistrarModal.tsx": [
+      "button «{t.valor}»",
+      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «(sin nombre)» #2",
+      "CampoTexto «Descripción corta»",
+      "button «Usar «»",
+      "input «Precio cobrado en soles»",
+      "ComboResponsable «)»",
+      "button «{guia.frase ?? undefined}»"
     ],
     "components/ReabrirPrendaModal.tsx": [
       "button «{m.titulo}»",
@@ -38,19 +46,19 @@
       "button «{vencidas}»"
     ],
     "components/por-regularizar/PanelPrendas.tsx": [
-      "input «Nombre, color, talla o código»",
-      "button «Borrar la búsqueda»",
       "Link «Dala de alta»"
     ],
     "components/por-regularizar/PorQue.tsx": [
       "button «{etiqueta}»"
     ],
     "components/por-regularizar/PuenteUnion.tsx": [
+      "button «Corregir lo anotado»",
       "button «{f === \"ya_registrada\" ? <Tag aria-hidden strokeWidth={1.6}»",
       "ComboResponsable «(sin nombre)»",
       "button «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/por-regularizar/ResumenResuelta.tsx": [
+      "button «Corregir lo anotado»",
       "button «Reabrir»"
     ],
     "components/por-regularizar/TalonVenta.tsx": [

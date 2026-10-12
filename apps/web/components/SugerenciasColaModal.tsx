@@ -12,6 +12,7 @@ import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect } from "@/components/ui/campos";
+import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const textoDiferencia = (d: number) => (d === 0 ? "Se cobró el precio oficial" : d < 0 ? `Se cobró ${soles(-d)} menos` : `Se cobró ${soles(d)} más`);
@@ -32,13 +33,16 @@ type Respuesta = { clave: string; parejas: ParejaSugerida[] | null };
  */
 export function SugerenciasColaModal({
   filas,
-  prendas,
+  prendas: prendasCatalogo,
+  preciosPorSede = {},
   sedes,
   inicial,
   onClose,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaDelCatalogo[];
+  /** Precio propio de cada tienda: las sugerencias comparan con el precio de la tienda elegida. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   sedes: { ubicacionId: string; sede: string; pendientes: number }[];
   inicial: string | null;
   onClose: () => void;
@@ -47,6 +51,7 @@ export function SugerenciasColaModal({
   const varias = sedes.length > 1;
   const [ubicacionId, setUbicacionId] = useState(sedes.length === 1 ? sedes[0].ubicacionId : (sedes.find((s) => s.ubicacionId === inicial)?.ubicacionId ?? ""));
   const [reintento, setReintento] = useState(0);
+  const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.id), [prendasCatalogo, preciosPorSede, ubicacionId]);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
   // Lo que el líder ELIGIÓ: nada viene marcado de fábrica. «marcadas» se deriva de esto y de lo que hay ahora (una sugerencia que ya no
   // está, porque se recargó la lista, no cuenta aunque su id siga aquí).

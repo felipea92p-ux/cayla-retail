@@ -125,7 +125,7 @@ if (typeof args.lamina === "string") {
   const familiasLamina = censo.familias.filter((f) => quiereFamiliaDe(lista(args.familia))(f.id)).map((f) => ({ ...f, ...(familiaPorId(f.id) ?? {}), subgrupos: f.subgrupos }));
   const lam = escribirLamina(dir, { ...censo, familias: familiasLamina }, { propuestasDir: join(REPO, "docs", "unificar", "propuestas"), foco: censo.foco });
   if (!args["sin-comparativas"]) {
-    const nav = await chromium.launch({ headless: true });
+    const nav = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
     await fotografiarLamina(nav, lam, familiasLamina, dir);
     await nav.close();
   }
@@ -226,7 +226,7 @@ async function capturar(pagina, inst, destino) {
  * Lo que de verdad pasa al pasar el mouse sobre una pieza (Felipe 2026-10-07): qué cambia y qué animación corre. Solo MUEVE el
  * mouse —nunca hace clic ni presiona—, así que no guarda nada. Es la prueba de lo que la huella leyó en el CSS.
  */
-const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra)/;
+const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra|grafico\.barra)/;
 async function medirEncima(pagina, uid) {
   const caja = await pagina.evaluate((u) => window.__unificarEnfocar(u), uid);
   if (!caja) return null;
@@ -243,7 +243,17 @@ async function medirEncima(pagina, uid) {
   antes.valores.forEach((fila, i) => fila.forEach((v, j) => despues.valores[i] && despues.valores[i][j] !== v && cambia.add(antes.nombres[j])));
   const corre = [...new Set([...(durante?.animaciones ?? []), ...despues.animaciones])].filter((a) => !/en bucle$/.test(a) || !antes.animaciones.includes(a));
   if (!cambia.size && !corre.length) return "al pasar el mouse no cambia nada";
-  return [cambia.size ? `cambia ${[...cambia].join(", ")}` : null, corre.length ? `corre ${corre.slice(0, 3).join(", ")}` : null].filter(Boolean).join(" · ");
+  // Primero lo que se anima (la luz que cruza, una vuelta), después las transiciones juntas: antes se cortaba en las tres primeras y
+  // la luz, que llega última, no salía.
+  const animaciones = [...new Set(corre.filter((a) => !a.startsWith("transición de ")).map((a) => a.replace(/ \(::after\)$/, "")))];
+  const transiciones = [...new Set(corre.filter((a) => a.startsWith("transición de ")).map((a) => a.replace(/^transición de (.+?) \d+ ms$/, "$1")))];
+  return [
+    cambia.size ? `cambia ${[...cambia].join(", ")}` : null,
+    animaciones.length ? `corre ${animaciones.join(", ")}` : null,
+    transiciones.length ? `transición de ${transiciones.join(", ")}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 async function visitar(ctx, cuenta, visita) {
@@ -320,7 +330,7 @@ async function visitar(ctx, cuenta, visita) {
   return res;
 }
 
-const navegador = await chromium.launch({ headless: true });
+const navegador = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
 let visitasHechas = 0;
 try {
   for (const cuenta of cuentas) {

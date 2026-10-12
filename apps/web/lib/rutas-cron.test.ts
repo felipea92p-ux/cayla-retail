@@ -49,13 +49,17 @@ describe("vercel.json y las rutas del cron dicen lo mismo", () => {
     }
   });
 
-  it("la conservación del club corre una vez al día, de madrugada en Lima (UTC−5)", () => {
-    const conservacion = crons.find((c) => c.path === "/api/club/conservacion");
-    const [minuto, hora, ...resto] = (conservacion?.schedule ?? "").split(" ");
-    expect(resto).toEqual(["*", "*", "*"]);
-    expect(Number(minuto)).toBeGreaterThanOrEqual(0);
-    const horaLima = (Number(hora) + 24 - 5) % 24;
-    expect(horaLima).toBeGreaterThanOrEqual(1);
-    expect(horaLima).toBeLessThanOrEqual(5);
+  it("los crons diarios (la conservación del club y la vara de CAYLA) corren de madrugada en Lima (UTC−5)", () => {
+    // Vercel evalúa el horario en UTC. Un cron nuevo que corra de día (tiendas abiertas, la foto a mitad de jornada) falla aquí.
+    // Diario = un minuto y una hora fijos (el reintento de Lucode, cada 5 minutos, no es una foto y no entra).
+    const diarios = crons.filter((c) => /^\d+ \d+ \* \* \*$/.test(c.schedule));
+    expect(diarios.map((c) => c.path).sort()).toEqual(["/api/club/conservacion", "/api/inventario/frescura-vara-cayla"]);
+    for (const c of diarios) {
+      const [minuto, hora] = c.schedule.split(" ");
+      expect(Number(minuto), c.path).toBeGreaterThanOrEqual(0);
+      const horaLima = (Number(hora) + 24 - 5) % 24;
+      expect(horaLima, c.path).toBeGreaterThanOrEqual(1);
+      expect(horaLima, c.path).toBeLessThanOrEqual(5);
+    }
   });
 });

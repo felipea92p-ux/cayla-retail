@@ -53,7 +53,7 @@ export type { DatosPagoProveedor, ResultadoPago };
 type Modo = "vencida" | "mano";
 
 // Botones del pie sin `flex-1` (los de `Modal` se estiran; acá conviven con una nota a la izquierda).
-const BTN_CANCELAR = "label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
+const BTN_CANCELAR = "btn-cayla btn-secundario";
 
 export function PagoJuntosModal({
   proveedorId,

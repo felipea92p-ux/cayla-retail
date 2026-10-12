@@ -25,8 +25,8 @@ import type { StockFicha } from "./useStockFicha";
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas, la caja − N + por celda (que también
 // se escribe) y la fila «Total» fija abajo. Quien cargó la prenda en el alta reconoce la tabla al volver a editarla.
 //
-// Lo que Editar tiene y el alta no, sigue aquí: las pestañas «Unidades de hoy · Precios · Costos · Etiquetas» (el costo solo si la
-// cuenta lo ve; con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
+// Lo que Editar tiene y el alta no, sigue aquí: la pestaña «Etiquetas» (Precios y Costos por celda también los tiene el alta desde el
+// 2026-10-10; aquí el costo sale solo si la cuenta lo ve, con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
 // en ámbar punteado, el color que se toca para verlo en el panel, y la talla que faltó en un conteo (su «+» abre el ajuste de
 // siempre, ADR-0291).
 //

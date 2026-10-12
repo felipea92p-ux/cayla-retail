@@ -2,12 +2,8 @@
   "guia": "vender.comprobantes.series",
   "ruta": "/vender/comprobantes/series",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 20,
+  "total": 18,
   "controles": {
-    "components/FacturacionCabecera.tsx": [
-      "input «Buscar en esta vista»",
-      "button «Borrar la búsqueda»"
-    ],
     "components/FacturacionPestanas.tsx": [
       "Pestanas «);»"
     ],
@@ -33,7 +29,7 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/SinCoincidencias.tsx": [
-      "BotonCompacto «Borrar la búsqueda»"
+      "Boton «Borrar la búsqueda»"
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"

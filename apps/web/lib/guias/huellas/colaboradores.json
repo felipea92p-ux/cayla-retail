@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 82,
+  "total": 80,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «Cancelar»",
@@ -47,8 +47,7 @@
       "button «Archivados (»",
       "button «{r.nombre}»",
       "button «{rol.nombre}»",
-      "SegmentoDeslizante «Dónde está parado»",
-      "input «Buscar cuenta»"
+      "SegmentoDeslizante «Dónde está parado»"
     ],
     "components/TerminalesModales.tsx": [
       "Boton «{copiado === \"si\" ? \"Copiado\" : \"Copiar\"}»",
@@ -56,10 +55,10 @@
       "CampoSelect «Tienda»",
       "CampoTexto «Nombre»",
       "CampoSelect «Rol»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{error && <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "ComboResponsable «(sin nombre)» #2",
+      "ComboResponsable «{error && <Aviso tono=\"error\">{error}» #2",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
@@ -74,7 +73,6 @@
       "button «Cerrar»"
     ],
     "components/colaboradores/DarAccesoModal.tsx": [
-      "input «Buscar por nombre o correo»",
       "button «{d.nombre}»",
       "button «{u.nombre}»",
       "button «{r.nombre}»",
@@ -91,7 +89,7 @@
       "button «No»",
       "button «{a.etiqueta}»",
       "Boton «colaboradores.nueva-terminal»",
-      "input «Buscar persona o terminal por nombre, correo o rol»"
+      "Boton «Borrar la búsqueda»"
     ],
     "components/colaboradores/FichaColaborador.tsx": [
       "button «{texto}»",

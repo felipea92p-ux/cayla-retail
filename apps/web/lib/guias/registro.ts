@@ -32,6 +32,7 @@ import {
   GUIA_MOVIMIENTOS,
   GUIA_NUEVO_TRASLADO,
   GUIA_PEDIDOS_NO_ATENDIDOS,
+  GUIA_PLAN_DEL_PISO,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
   GUIA_TRASLADO,
@@ -45,7 +46,9 @@ import {
   GUIA_HISTORIAL_PRENDA,
   GUIA_MARCAS,
   GUIA_NUEVO_PRODUCTO,
+  GUIA_POR_REVISAR,
   GUIA_PRODUCTOS,
+  GUIA_ROTULOS,
 } from "./pantallas/catalogo";
 import { GUIA_FACTURA, GUIA_FACTURAS, GUIA_MI_PARTE, GUIA_NOTAS_CREDITO, GUIA_NUEVA_FACTURA, GUIA_PLAN_CAMPANA, GUIA_POR_PAGAR, GUIA_PROVEEDOR, GUIA_PROVEEDORES } from "./pantallas/compras";
 import {
@@ -112,6 +115,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_BAJAR_AL_PISO,
   GUIA_CUADRAR_PISO,
   GUIA_FRESCURA,
+  GUIA_PLAN_DEL_PISO,
   GUIA_MOVIMIENTOS,
   GUIA_POR_REGULARIZAR,
   GUIA_ANALISIS,
@@ -132,6 +136,8 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FAMILIAS,
   GUIA_MARCAS,
   GUIA_NUEVO_PRODUCTO,
+  GUIA_POR_REVISAR,
+  GUIA_ROTULOS,
   GUIA_FACTURAS,
   GUIA_FACTURA,
   GUIA_POR_PAGAR,
@@ -250,6 +256,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/frescura": { estado: "aplicada", guia: GUIA_FRESCURA.id },
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a Traslados ▸ Nuevo con lo que traía la dirección vieja. La guía es la de Nuevo traslado." },
   "/inventario/movimientos": { estado: "aplicada", guia: GUIA_MOVIMIENTOS.id },
+  "/inventario/plan-del-piso": { estado: "aplicada", guia: GUIA_PLAN_DEL_PISO.id },
   "/inventario/por-regularizar": { estado: "aplicada", guia: GUIA_POR_REGULARIZAR.id },
   "/inventario/resumen": { estado: "aplicada", guia: GUIA_ANALISIS.id },
   "/inventario/traslados/(billetera)": { estado: "aplicada", guia: GUIA_TRASLADOS.id },
@@ -281,10 +288,13 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/familias": { estado: "aplicada", guia: GUIA_FAMILIAS.id },
   "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
   "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
+  "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   // ---- rendimiento ----
   "/rendimiento": { estado: "aplicada", guia: GUIA_RENDIMIENTO.id },
+  // ---- rotulos ----
+  "/rotulos": { estado: "aplicada", guia: GUIA_ROTULOS.id },
   // ---- sin-acceso ----
   "/sin-acceso": { estado: "no-aplica", motivo: "Un mensaje de una línea («no tienes acceso a esta pantalla»): no hay nada que enseñar." },
   // ---- vender ----

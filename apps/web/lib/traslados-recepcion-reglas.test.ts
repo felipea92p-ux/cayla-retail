@@ -256,6 +256,18 @@ describe("Lo siguiente: después de recibir (ADR-0242 D-6.1)", () => {
     ]);
   });
 
+  it("con prendas a otro precio aquí (precio propio): cambiar la etiqueta va primero y la frase lo dice", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, conOtroPrecio: 2 })!;
+    expect(r.intro).toBe(
+      "2 prendas se venden aquí a otro precio: cámbiales la etiqueta antes de colgarlas. Lo que llegó quedó en el almacén de Tienda Lima. Para venderlo, hay que bajarlo al piso.",
+    );
+    expect(r.acciones.map((a) => [a.clave, a.principal])).toEqual([
+      ["etiquetas", true],
+      ["bajar", false],
+    ]);
+    expect(r.acciones[0]!.texto).toBe("Imprimir etiquetas con el precio de aquí");
+  });
+
   it("si quedó en el piso: solo etiquetas (no hay nada que bajar)", () => {
     const r = loSiguienteDeLaRecepcion({ ...base, lugarRecibido: "piso_venta" })!;
     expect(r.intro).toBe("Lo que llegó ya está en el piso de Tienda Lima.");

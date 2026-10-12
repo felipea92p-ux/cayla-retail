@@ -2,10 +2,11 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 87,
+  "total": 83,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
-      "Link «Limpiar filtros»"
+      "BotonEnlace «Limpiar filtros»",
+      "BotonEnlace «Limpiar filtros» #2"
     ],
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -26,13 +27,9 @@
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/DeudaPorVencimiento.tsx": [
-      "button «{`${TITULO[f.k]}»",
       "button «{TITULO[f.k]}»"
     ],
     "components/FiltrosCompras.tsx": [
-      "input «Buscar por proveedor o número de documento»",
-      "button «Borrar la búsqueda»",
-      "CampoTexto «Número de documento o proveedor»",
       "BotonFiltros «, accionesDespues, ].map( (contr»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Pago»",
@@ -85,13 +82,12 @@
       "button «Completar con el último medio»"
     ],
     "components/PorPagarControles.tsx": [
-      "Link «{`${texto}»",
       "SegmentoDeslizante «Cómo agrupar la deuda»",
       "button «Solo vencidas»"
     ],
     "components/PorPagarLista.tsx": [
       "button «{`Quitar filtro ${filtroLocal.etiqueta}»",
-      "button «Quitar el filtro»",
+      "Boton «Quitar el filtro»",
       "button «Marcar todo»",
       "button «Limpiar»",
       "Boton «Pagar juntos»",

@@ -12,6 +12,7 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { agruparTallas, alternar, curvaCambiada, faltanDeLaCategoria, porOfrecer, textoCurva, unirSinRepetir } from "@/lib/muestras-alta-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
 
 // La fila «Tallas» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -284,11 +285,8 @@ function HojaTallas({
             <AvisoSinIdentidad firma={firma} enHoja />
           </div>
         )}
-        {error && (
-          <p role="alert" className="text-xs text-rojo-profundo">
-            {error}
-          </p>
-        )}
+        {error && <Aviso tono="error">{error}</Aviso>}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[12.5px] tabular-nums text-taupe">
             {marcadas.length} {marcadas.length === 1 ? "talla elegida" : "tallas elegidas"}

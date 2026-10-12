@@ -13,3 +13,5 @@
 - [x] Ofertas solo en las entradas del menú; «Demo ▸ Esta pantalla» para las internas (Felipe 2026-10-09).
 - [ ] **Tras fusionar, en la tienda:** abrir un conteo real y repetir las demos de Revisar y Confirmar conteo; Mi parte de la factura con una compra repartida; Producción con datos; Inicio de Almacén (Felipe 2026-10-09).
 - [ ] Refrescar el diccionario de datos con `retail.guias_vistas` (`datos:generar:produccion` tras refrescar el volcado).
+- [x] Fusión con `main` (2026-10-12, 412 commits ajenos): 99 anclas repuestas sobre el marcado nuevo; Frescura, Marcas, Plan de campaña e Historial de cierres reescritas; guías nuevas de Plan del piso, Productos por revisar y Rótulos. Recorredor: 76 ✓, 6 ⚠ sin datos locales, 0 rotas.
+- [ ] **Recorrer con la base local al día** (faltan migraciones del 2026-10-06 al 10-11): Plan del piso, Editar producto, Familias.

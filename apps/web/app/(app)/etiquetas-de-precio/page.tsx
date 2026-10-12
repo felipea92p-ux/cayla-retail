@@ -44,9 +44,9 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const [traslado] = idsDeParam(params.traslado);
 
   const origen: OrigenEtiquetas | null = produccion
-    ? { tipo: "produccion", id: produccion }
+    ? { tipo: "produccion", id: produccion, ubicacionId: persona.ubicacionId }
     : lotes.length > 0
-      ? { tipo: "lotes", ids: lotes }
+      ? { tipo: "lotes", ids: lotes, ubicacionId: persona.ubicacionId }
       : campana
         ? { tipo: "campana", id: campana, ubicacionId: persona.ubicacionId }
         : producto

@@ -49,8 +49,8 @@
 }
 
 /* ---- La tarjeta del resumen: bajo la ficha ---- */
-/* La receta de tonos (borde al 40 %, fondo al 6 %, tinta) es la de `AvisoInline` (`piezas.tsx`), a propósito repetida aquí: es una tarjeta propia de la maqueta, y
-   `AvisoInline` no tiene el tono pizarra (informativa). Si algún día `AvisoInline` lo trae, esta tarjeta puede usarlo. */
+/* La receta de tonos (borde al 40 %, fondo al 6 %, tinta) era la de la vieja `AvisoInline`, repetida aquí a propósito: es una tarjeta
+   propia de la maqueta de parecidas, no un aviso (ADR-0358 ronda 5: los avisos son `<Aviso>`). */
 .parecidas-alerta {
   --tono: var(--color-pizarra);
   position: relative;

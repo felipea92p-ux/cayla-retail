@@ -132,7 +132,15 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "clic", ancla: "vender.prenda-abrir" }],
       titulo: "Todos los colores y tallas",
-      texto: "Un color por fila, con cada talla y cuántas hay en el piso o en el almacén. Tocar una talla la agrega al ticket y la ventana sigue abierta, por si lleva otra. Si aquí no hay, te dice qué otra tienda la tiene.",
+      texto: "Un color por fila, con cada talla y cuántas hay en el piso o en el almacén. Tocar una talla la agrega al ticket y la ventana sigue abierta, por si lleva otra; «Quitar» la saca. Si aquí no hay, te dice qué otra tienda la tiene.",
+    },
+    {
+      id: "combina",
+      ancla: "vender.combina",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Combina bien con",
+      texto: "Ideas para completar el look: prendas de otra categoría que van con este color y hay aquí. Toca un color para ver hasta tres, y una talla para sumarla al ticket. «¿Por qué?» te dice en una frase por qué combinan.",
     },
     {
       id: "prenda-pie",
@@ -158,6 +166,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       titulo: "El cliente",
       texto: "Busca al cliente por su nombre, DNI o celular. Si es miembro del club, aquí ves su cumpleaños y sus beneficios, y la venta le suma a su historial.",
+    },
+    {
+      id: "bolsas",
+      ancla: "vender.bolsas",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Las bolsas",
+      texto: "«Agregar bolsa» abre las bolsas de la tienda (papel chica o grande, TNT, de regalo): toca una y entra al ticket con su precio, como cualquier prenda. Aquí ves cuántas lleva.",
     },
     {
       id: "ticket-pie",
@@ -284,7 +300,14 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "apartados.pestana-todos" }],
       titulo: "Todos los apartados",
-      texto: "«Necesitan algo» junta los que vencen pronto, los vencidos y los que esperan que se les devuelva el adelanto. El buscador encuentra cualquiera por nombre, DNI, celular o número.",
+      texto: "«Necesitan algo» junta los que vencen pronto, los vencidos y los que esperan que se les devuelva el adelanto; «Por recoger», los abiertos; «Cerrados», los ya entregados o liberados. El buscador encuentra cualquiera por nombre, DNI, celular o número, y «Qué ver» elige qué datos muestra cada uno.",
+    },
+    {
+      id: "periodo",
+      ancla: "apartados.periodo",
+      opcional: true,
+      titulo: "De qué fechas",
+      texto: "Los cerrados se muestran por período: hoy, 7, 30 o 90 días, o tus propias fechas, y «Todo el historial» los trae todos. Los que siguen abiertos se ven siempre.",
     },
     {
       id: "cifras",
@@ -298,7 +321,7 @@ export const GUIA_APARTADOS: Guia = {
       ancla: "apartados.lista",
       opcional: true,
       titulo: "La lista",
-      texto: "Cada apartado con su cliente, sus prendas y su plazo. Si vence y el cliente no vuelve, la prenda regresa al stock sola y aquí te avisa que falta devolverle el adelanto.",
+      texto: "Cada apartado con su cliente, sus prendas y su plazo. Si vence y el cliente no vuelve, la prenda regresa al stock sola y aquí te avisa que falta devolverle el adelanto. La impresora vuelve a imprimir su ticket.",
     },
     {
       id: "pedidos",
@@ -420,7 +443,7 @@ export const GUIA_HISTORIAL: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "historial.venta-abrir" }],
       titulo: "El detalle",
-      texto: "El comprobante y su estado en SUNAT, las prendas, cómo se pagó y quién atendió. Desde aquí se reimprime, se vuelve a vender lo mismo o se ve el cambio o la devolución que tuvo.",
+      texto: "El comprobante y su estado en SUNAT, las prendas, cómo se pagó y quién atendió. Desde aquí se reimprime, se vuelve a vender lo mismo o se ve el cambio o la devolución que tuvo. Si se anotó mal cómo pagó, «Corregir pago» lo arregla mientras su caja siga abierta.",
     },
     {
       id: "pulso",

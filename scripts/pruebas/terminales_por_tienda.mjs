@@ -314,8 +314,9 @@ const PUERTAS = [
   // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve.
   { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Etiquetar prendas necesita el módulo Etiquetas/, pasan: [] },
   { nombre: "actualizar_variantes_etiquetas (P4: también con Productos o Categorías y atributos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Cambiar las etiquetas de una prenda necesita el módulo Productos/, pasan: ["admin", "micaela"] },
+  // Anular una venta (20261009182413, Felipe 2026-10-09): quien ve Devoluciones. La terminal administrativa no lo ve.
+  { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Para anular una venta necesitas el módulo Devoluciones/, pasan: ["ventas", "micaela"] },
   // Lo que NO se abrió y cuyo candado va primero: solo el líder.
-  { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Solo un líder puede anular una venta/, pasan: [] },
   { nombre: "registrar_serie_comprobante", previo: "", intento: LLAMADA(`select retail.registrar_serie_comprobante(gen_random_uuid(), 'boleta', 'B001', 1)`), mensaje: /Solo un líder puede registrar una serie de comprobantes/, pasan: [] },
 ];
 
@@ -345,7 +346,7 @@ select (select cerrado_por = :'rosa' from retail.conteos where id = :'conteo') |
 // líder y NINGUNA menciona una capacidad de terminal. Las de etiquetas salieron de esta lista (20260923130000): se abren
 // con el módulo Etiquetas, con descuento o sin él (ADR-0293, 20261001130000; verificado abajo).
 const SIGUEN_DEL_LIDER = [
-  "aprobar_devolucion", "rechazar_devolucion", "anular_venta", "anular_comprobante", "marcar_comprobante_no_emitido",
+  "aprobar_devolucion", "rechazar_devolucion", "anular_comprobante", "marcar_comprobante_no_emitido",
   "registrar_serie_comprobante", "liquidar_prenda_danada", "resolver_prenda_danada",
 ];
 verificar(
@@ -359,7 +360,7 @@ verificar(
   /^2\|0$/
 );
 verificar(
-  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anulaciones, series, prendas dañadas`,
+  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anular comprobantes, series, prendas dañadas`,
   correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and p.proname in (${SIGUEN_DEL_LIDER.map((f) => `'${f}'`).join(", ")})
     and pg_get_functiondef(p.oid) ~ 'fn_es_lider\\(\\)'

@@ -5,7 +5,7 @@ import { categoriaDe } from "@/components/ui/PrendaCelda";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
-import { formatoSoles } from "@/lib/resumen-formato";
+import { soles } from "@/lib/precio-sede-reglas";
 import { ayudaNuevos, chipsNuevos, filtrarNuevos, hrefFichaProducto, hrefFotosProducto, notaEnMiSede, type FiltroNuevos, type NuevoProducto, colorUnico } from "@/lib/inicio-almacen-reglas";
 import { ChipSede } from "./ChipSede";
 import { Ico } from "./iconos";
@@ -183,9 +183,15 @@ function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number;
             <b>{p.colores.length > 4 ? `+${p.colores.length - 4}` : `${p.colores.length} ${p.colores.length === 1 ? "color" : "colores"}`}</b>
           </div>
         )}
-        <div className="ia-pie-pc">
-          <span className="ia-pr">{p.precio === null ? "Sin precio" : formatoSoles(p.precio)}</span>
-          {notaEnMiSede(p.enMiSede) && <span className={`ia-tr ${(p.enMiSede ?? 0) > 0 ? "ia-ok" : ""}`}>{notaEnMiSede(p.enMiSede)}</span>}
+        {/* «Precio de esta tienda» solo si es el propio de la sede (Felipe 2026-10-10), como en Existencias. Va ENCIMA de la línea del
+            pie y no dentro: adentro ensanchaba el precio y la nota «en tu sede» se partía en dos líneas. */}
+        <div className="mt-auto">
+          {p.precioDeSede && <span className="mb-1 block text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+          <div className="ia-pie-pc">
+            {/* Con céntimos (S/ 69.90, no «S/ 70»): el número de la caja y de la etiqueta. */}
+            <span className="ia-pr">{p.precio === null ? "Sin precio" : soles(p.precio)}</span>
+            {notaEnMiSede(p.enMiSede) && <span className={`ia-tr ${(p.enMiSede ?? 0) > 0 ? "ia-ok" : ""}`}>{notaEnMiSede(p.enMiSede)}</span>}
+          </div>
         </div>
       </div>
       <div className="ia-ac2">

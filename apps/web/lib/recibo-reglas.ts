@@ -105,7 +105,7 @@ export function armarRecibo(entrada: {
   /** Lo que no se cobró por redondear el efectivo (ADR-0311). Ausente o 0 sin redondeo. */
   redondeo?: number;
   tasaIgv: number;
-  /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
+  /** Nombre y apellido de quien atendió; ver `atendioDelTicket` en `vender-reglas.ts`. */
   atendio?: string | null;
   /** El cumpleaños canjeado en esta venta: las líneas ya traen su descuento total (con la parte del club). */
   cumple?: { pct: number; monto: number } | null;

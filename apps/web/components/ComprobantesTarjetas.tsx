@@ -7,7 +7,7 @@ import { antiguedad, progresoDeEnvio } from "@/lib/facturacion-resumen-reglas";
 import { cuantosPorTipo, type Tramo } from "@/lib/comprobantes-graficos-reglas";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaKpiVidrio } from "@/components/ui/TarjetaKpiVidrio";
-import { BarraApilada, BarrasPorTramo, Puntos } from "@/components/ComprobantesGraficos";
+import { BarraConLeyenda, BarrasPorTramo, Puntos } from "@/components/ComprobantesGraficos";
 
 // Las cuatro tarjetas de arriba de Comprobantes (ADR-0124): el mismo vidrio que las del Resumen,
 // con las cuentas del mes. Emitidos y Monto facturado son DEL MES que se mira; Pendientes y
@@ -77,7 +77,7 @@ export function ComprobantesTarjetas({
           </>
         }
       >
-        <BarraApilada
+        <BarraConLeyenda
           partes={[
             { valor: tipos.boletas, clase: "g-tinta", texto: "Boletas" },
             { valor: tipos.facturas, clase: "g-taupe", texto: "Facturas" },
@@ -136,7 +136,7 @@ export function ComprobantesTarjetas({
         }
       >
         {total > 0 ? (
-          <BarraApilada
+          <BarraConLeyenda
             partes={[
               { valor: enviados, clase: "g-alza", texto: "enviados" },
               { valor: total - enviados, clase: "g-baja", texto: "faltan" },

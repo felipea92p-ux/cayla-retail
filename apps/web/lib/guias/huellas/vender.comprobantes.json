@@ -2,7 +2,7 @@
   "guia": "vender.comprobantes",
   "ruta": "/vender/comprobantes",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 45,
+  "total": 49,
   "controles": {
     "components/ComprobantesPanel.tsx": [
       "BotonCompacto «{`Reintentar ${numero}»",
@@ -31,15 +31,19 @@
       "button «Cancelar»",
       "button «{responsable.motivo ?? undefined}»"
     ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/DetalleVentaModal.tsx": [
-      "button «Cerrar»",
       "button «Reintentar»",
+      "Boton «Corregir pago»",
       "button «Imprimir ticket»",
       "button «Imprimir»"
-    ],
-    "components/FacturacionCabecera.tsx": [
-      "input «Buscar en esta vista»",
-      "button «Borrar la búsqueda»"
     ],
     "components/FacturacionPestanas.tsx": [
       "Pestanas «);»"
@@ -66,7 +70,7 @@
       "Link «{p.etiqueta}»"
     ],
     "components/SinCoincidencias.tsx": [
-      "BotonCompacto «Borrar la búsqueda»"
+      "Boton «Borrar la búsqueda»"
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"

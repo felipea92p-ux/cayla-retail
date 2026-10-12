@@ -14,6 +14,7 @@ import { fechaHoraLima, NOMBRE_METODO, TEXTO_REDONDEO, textoNumeroRecibo } from 
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
 import { textoValeCobrado } from "@/lib/club-aniversario-canje-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Props = {
   ok: VentaOk;
@@ -170,11 +171,11 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               </details>
 
               {sinDatosFiscales && (
-                <p role="alert" className="rounded-lg border border-ambar/40 bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
+                <Aviso tono="atencion" chico>
                   Faltan el RUC y la razón social de CAYLA en la configuración: el ticket sale sin ellos y no sirve para entregarlo como
                   comprobante. Configura <span className="font-mono">NEXT_PUBLIC_EMISOR_RUC</span> y{" "}
                   <span className="font-mono">NEXT_PUBLIC_EMISOR_RAZON_SOCIAL</span>.
-                </p>
+                </Aviso>
               )}
             </>
           )}

@@ -31,6 +31,7 @@ import {
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
+import { Aviso } from "@/components/ui/Aviso";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -96,8 +97,7 @@ function ordenar(lista: Color[]) {
 // (2026-09-18): con 34+ colores, un número global deja un color nuevo
 // "colgando" al final en vez de junto a sus parecidos, y la última fila
 // queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
-// propia fila — la de "Estampado" con 3 colores se ve completa, no como el
-// resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
+// propia fila, no el resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
 // viene dado por `ordenar()` (escala: gama y de claro a oscuro); cada gama es su propia grilla, así cada fila es una escala
 // pura y la claridad nunca «sube» a mitad de una fila (ADR-0314).
 function gruposPorFamilia(lista: Color[]) {
@@ -174,10 +174,11 @@ function AvisoParecido({
   const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
   const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
   return (
-    <p role="status" className="rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
+    <Aviso tono="atencion" chico>
       Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
       dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
-    </p>
+    </Aviso>
+
   );
 }
 

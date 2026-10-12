@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Icono, type NombreIcono } from "@/components/analisis/iconos";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import { queTiene, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { esTallaUnica } from "@/lib/analisis-reglas";
 
 /** Los cinco estados que usa Análisis (la maqueta): urgente, atención, va bien, para saber, todavía no. */
@@ -97,13 +98,15 @@ export function NombreCorto({ prenda }: { prenda: Pick<PrendaAnalisis, "nombre" 
   return (
     <>
       {prenda.nombre}
-      {!esTallaUnica(prenda.talla) && <span className="tl"> · {prenda.talla}</span>}
+      {prenda.talla !== "" && !esTallaUnica(prenda.talla) && <span className="tl"> · {prenda.talla}</span>}
     </>
   );
 }
 
-/** «Camisa Oxford · Celeste · S», para un tooltip o una etiqueta accesible. */
-export const nombreLargo = (p: Pick<PrendaAnalisis, "nombre" | "color" | "talla">): string => [p.nombre, p.color, p.talla].filter(Boolean).join(" · ");
+/** «Camisa Oxford · Celeste · S», para un tooltip o una etiqueta accesible; de un modelo, sus colores y tallas («Camisa Oxford · 2
+ *  colores · S, M, L»). */
+export const nombreLargo = (p: Pick<PrendaAnalisis, "nombre" | "color" | "talla"> & Partial<Pick<ModeloAnalisis, "colores" | "tallas">>): string =>
+  p.colores && p.tallas ? [p.nombre, queTiene({ colores: p.colores, tallas: p.tallas })].filter(Boolean).join(" · ") : [p.nombre, p.color, p.talla].filter(Boolean).join(" · ");
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 

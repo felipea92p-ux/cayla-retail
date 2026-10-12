@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
 import { buscarPrendas, candidatasDe, sugeridaDe, type Disponible, type IndicePrendas, type PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { TarjetaCandidata } from "./TarjetaCandidata";
 import { PorQue } from "./PorQue";
+import { Buscador } from "@/components/ui/Buscador";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * Las prendas entre las que se elige (ADR-0360): las seis que más calzan con lo que anotó caja y, debajo, un buscador sobre TODO el
@@ -73,35 +75,20 @@ export function PanelPrendas({
           <p className="label-cayla text-[11px] text-tinta/65">¿No ves la tuya?</p>
           <p>Búscala entre todas las prendas del catálogo.</p>
         </div>
-        <label className="relative block">
-          <span className="sr-only">Buscar una prenda en el catálogo</span>
-          <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/45" />
-          <input
-            type="search"
-            value={consulta}
-            onChange={(e) => setConsulta(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && consulta) {
-                // El Escape de un control que lo usó no cierra la hoja de arriba (ADR-0136, «Escape dentro de una hoja»).
-                e.stopPropagation();
-                e.preventDefault();
-                setConsulta("");
-              } else if (e.key === "Enter" && lista[0]) {
-                e.preventDefault();
-                onElegir(lista[0].prenda.id);
-              }
-            }}
-            maxLength={120}
-            autoComplete="off"
-            placeholder="Nombre, color, talla o código" // sugerir-fijo: dice qué se puede escribir, no da el nombre ni el color de una prenda de ejemplo
-            className="h-9 w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60 [&::-webkit-search-cancel-button]:hidden"
-          />
-          {consulta && (
-            <button type="button" aria-label="Borrar la búsqueda" onClick={() => setConsulta("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
-              <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </label>
+        <Buscador
+          valor={consulta}
+          onCambio={setConsulta}
+          onKeyDown={(e) => {
+            // Escape lo usa el Buscador (borra y no cierra la hoja de arriba, ADR-0136); Enter elige la primera.
+            if (e.key === "Enter" && lista[0]) {
+              e.preventDefault();
+              onElegir(lista[0].prenda.id);
+            }
+          }}
+          maxLength={120}
+          placeholder="Nombre, color, talla o código" // sugerir-fijo: dice qué se puede escribir, no da el nombre ni el color de una prenda de ejemplo
+          etiqueta="Buscar una prenda en el catálogo"
+        />
         <div aria-live="polite">
           {buscando && lista.length > 0 && (
             <>
@@ -117,8 +104,13 @@ export function PanelPrendas({
             </>
           )}
           {buscando && lista.length === 0 && (
-            <div className="vsr-res-0">
-              <b>{enLasDeArriba > 0 ? "Ya está entre las de arriba" : `Ninguna prenda coincide con «${consulta.trim()}»`}</b>
+            <Vacio
+              tamano="chico"
+              alinear="izquierda"
+              icono={<SearchX />}
+              accion={enLasDeArriba > 0 ? undefined : { texto: "Borrar la búsqueda", onClick: () => setConsulta("") }}
+            >
+              <b>{enLasDeArriba > 0 ? "Ya está entre las de arriba" : `Ninguna prenda coincide con «${consulta.trim()}»`}</b>.{" "}
               <span>
                 {enLasDeArriba > 0 ? "Tócala ahí. " : "Prueba con otra palabra, o con el código. "}
                 ¿No está en el catálogo?{" "}
@@ -127,7 +119,7 @@ export function PanelPrendas({
                 </Link>{" "}
                 con su precio oficial y vuelve aquí.
               </span>
-            </div>
+            </Vacio>
           )}
         </div>
       </div>

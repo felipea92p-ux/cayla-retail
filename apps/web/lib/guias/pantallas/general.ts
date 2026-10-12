@@ -206,8 +206,8 @@ export const GUIA_INICIO: Guia = {
       id: "almacen-crear",
       ancla: "inicio.almacen-crear",
       opcional: true,
-      titulo: "Crear producto",
-      texto: "Abre la ficha de una prenda nueva (también con la tecla N, desde cualquier parte del Inicio). Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+      titulo: "Crear producto o colgar",
+      texto: "«Crear producto» abre la ficha de una prenda nueva (también con la tecla N, desde cualquier parte del Inicio). Si la sede tiene piso, «Colgar en tandas» escanea con la cámara el lote que tienes en la mano y lo cuelga de una vez. Te llevan a otra pantalla: en la demo no los tocamos.",
     },
     {
       id: "almacen-ultimos",

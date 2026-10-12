@@ -36,6 +36,7 @@ export function SegmentoEnlaces({
   etiquetaAccesible,
   reemplazar = true,
   scroll,
+  soloIconoEnCelular = false,
   className = "",
   guia,
 }: {
@@ -46,6 +47,9 @@ export function SegmentoEnlaces({
   reemplazar?: boolean;
   /** `scroll` del enlace (Next lleva la vista arriba por defecto). */
   scroll?: boolean;
+  /** Bajo `sm`, solo el icono (la palabra queda para el lector de pantalla y en el `title`): Grilla / Tabla en la cabecera de
+   *  Productos del celular, para que las acciones quepan en una fila (2026-10-09). Solo si TODAS las opciones traen icono. */
+  soloIconoEnCelular?: boolean;
   className?: string;
   /** El ancla de la guía interactiva para el segmento entero (`data-guia`, ADR-0362). */
   guia?: string;
@@ -53,9 +57,9 @@ export function SegmentoEnlaces({
   return (
     <nav aria-label={etiquetaAccesible} data-guia={guia} className={`segmento-cayla ${className}`}>
       {opciones.map((o) => (
-        <Link key={o.valor} href={o.href} replace={reemplazar} scroll={scroll} aria-current={o.valor === activo ? "true" : undefined} data-guia={o.guia} className="segmento-cayla__opcion">
+        <Link key={o.valor} href={o.href} replace={reemplazar} scroll={scroll} aria-current={o.valor === activo ? "true" : undefined} data-guia={o.guia} className="segmento-cayla__opcion" title={soloIconoEnCelular ? o.etiqueta : undefined}>
           {o.icono}
-          {o.etiqueta}
+          {soloIconoEnCelular && o.icono ? <span className="max-sm:sr-only">{o.etiqueta}</span> : o.etiqueta}
         </Link>
       ))}
     </nav>

@@ -126,6 +126,7 @@ export function EscanerCamara({
   onCodigo,
   ticket,
   onBuscarPorNombre,
+  onVerTicket,
   onClose,
 }: {
   /** El camino del lector: decide qué prenda es y si entra al ticket. */
@@ -134,6 +135,8 @@ export function EscanerCamara({
   ticket: { prendas: number; total: number };
   /** Sin cámara: cerrar y dejar el campo de búsqueda listo. */
   onBuscarPorNombre: () => void;
+  /** «Ver ticket»: además de cerrar, abre el ticket (en el celular vive en una hoja aparte). Corre después de `onClose`. */
+  onVerTicket?: () => void;
   onClose: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -142,6 +145,9 @@ export function EscanerCamara({
   const bolsaRef = useRef<HTMLSpanElement | null>(null);
   const tarjetaRef = useRef<HTMLDivElement | null>(null);
   const pistaRef = useRef<MediaStreamTrack | null>(null);
+  // «Ver ticket» cierra con la misma salida animada que la ✕, y al terminar abre el ticket (antes solo cerraba: en el
+  // celular volvía a Vender y había que tocar «Ver ticket» otra vez).
+  const irAlTicket = useRef(false);
 
   const [estado, setEstado] = useState<Estado>("abriendo");
   const [historial, setHistorial] = useState<Lectura[]>([]);
@@ -299,7 +305,10 @@ export function EscanerCamara({
     "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-crema/15 text-crema backdrop-blur-md transition-[background-color,transform] duration-200 ease-cayla hover:bg-crema/25 active:scale-95";
 
   return (
-    <Modal variante="camara" titulo="Escanear prenda" subtitulo="Apunta la cámara al QR de la etiqueta. Puedes pasar varias prendas seguidas." onClose={onClose}>
+    <Modal variante="camara" titulo="Escanear prenda" subtitulo="Apunta la cámara al QR de la etiqueta. Puedes pasar varias prendas seguidas." onClose={() => {
+        onClose();
+        if (irAlTicket.current) onVerTicket?.();
+      }}>
       {(cerrar) => (
         <>
           {/* La cámara, a sangre. Fuera de la cascada: es el fondo sobre el que entra todo lo demás. */}
@@ -419,7 +428,14 @@ export function EscanerCamara({
                   <CifraQueCuenta valor={ticketMostrado.total} formato="soles" />
                 </span>
               </span>
-              <button type="button" onClick={cerrar} className="btn-cayla btn-primario shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  irAlTicket.current = true;
+                  cerrar();
+                }}
+                className="btn-cayla btn-primario shrink-0"
+              >
                 Ver ticket
               </button>
             </div>

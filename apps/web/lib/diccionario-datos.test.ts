@@ -13,8 +13,8 @@ import { describe, expect, it } from "vitest";
 //  2. GLOSARIO. Las glosas se pegan por NOMBRE de columna; cuando Finanzas F2 rehízo `gastos` y `activos_fijos`, las viejas
 //     siguieron pegadas y el diccionario se contradecía dentro de la misma tabla («la base acepta cualquier texto» al lado
 //     de la llave foránea que lo impide). La regla: toda glosa apunta a una columna que existe. Hoy la cumplen `gastos`,
-//     `activos_fijos` y las 170 glosas vivas; quedan 247 glosas HUÉRFANAS de antes (175 de 26 tablas que ya no existen en
-//     `retail`, 72 de columnas que salieron de 17 tablas que sí) congeladas en DEUDA_DE_GLOSAS: la lista solo puede
+//     `activos_fijos` y las 174 glosas vivas; quedan 243 glosas HUÉRFANAS de antes (164 de 25 tablas que ya no existen en
+//     `retail`, 79 de columnas que salieron de 18 tablas que sí) congeladas en DEUDA_DE_GLOSAS: la lista solo puede
 //     ENCOGERSE. Una glosa huérfana nueva pone la prueba en rojo, y una que se limpia obliga a sacarla de la lista.
 //     Y una glosa viva NO puede afirmar lo que un cambio de código deja falso (2026-09-25, segunda revisión: en
 //     `activos_fijos` seguían «nadie lo lee» / «ningún cálculo lo usa» con fn_depreciacion_mes usando ambas columnas; al
@@ -179,7 +179,7 @@ describe("glosario: toda glosa apunta a una columna que existe", () => {
 
   // Deuda de antes del refresco de 2026-09-25: glosas escritas para tablas o columnas que ya no existen (renombradas
   // `sede_id → ubicacion_id`, tablas movidas a Dynamic o retiradas). Cada una se RE-ATA a su columna nueva (si el texto
-  // sigue siendo verdad) o se borra; nunca se agrega una. 247 = 175 (26 tablas que ya no están en `retail`) + 72 (17 tablas).
+  // sigue siendo verdad) o se borra; nunca se agrega una. 243 = 164 (25 tablas que ya no están en `retail`) + 79 (18 tablas).
   const DEUDA_DE_GLOSAS: Record<string, string[]> = {
     // Tablas que ya no existen en `retail`:
     ajustes_efectivo: ["created_at", "fecha", "id", "monto", "motivo", "sede_id", "usuario_id"],
@@ -192,7 +192,6 @@ describe("glosario: toda glosa apunta a una columna que existe", () => {
     depositos_bancarios: ["created_at", "fecha", "id", "monto", "nota", "sede_id", "usuario_id"],
     importaciones: ["categorias_creadas", "colores_creados", "created_at", "deshecha_en", "estado", "id", "origen", "persona_id", "plan", "productos_creados", "token", "variantes_creadas"],
     migraciones_aplicadas: ["aplicada_at", "archivo", "nota"],
-    ordenes_compra: ["created_at", "estado", "fecha", "fecha_estimada", "id", "monto_estimado", "nota", "proveedor", "proveedor_id", "sede_destino_id", "updated_at"],
     ordenes_compra_items: ["cantidad", "costo_unitario", "id", "orden_id", "variante_id"],
     ordenes_produccion: ["cantidad_planeada", "cantidad_producida", "created_at", "destino_sede_id", "estado", "etapa", "fecha_fin", "fecha_inicio", "id", "nota", "sede_id", "updated_at", "variante_id"],
     patrimonio_items: ["categoria", "created_at", "id", "monto", "nombre", "nota", "tipo", "updated_at"],
@@ -217,6 +216,9 @@ describe("glosario: toda glosa apunta a una columna que existe", () => {
     conteos: ["abierto_en", "alcance_contenedor_id", "alcance_familia", "lineas_ajustadas", "nombre", "nota", "sede_id", "tratar_no_contado", "ubicacion", "unidades_diferencia"],
     lotes: ["created_at", "orden_compra_id", "origen", "proveedor", "sede_id"],
     movimientos: ["canal", "contenedor_id", "monto", "sede_destino_id", "sede_id", "venta_id"],
+    // 2026-10-11: `ordenes_compra` volvió a existir en producción (otra tabla, con otro diseño: `numero`, `proveedor_id` obligatorio, versiones). Cuatro de
+    // las glosas viejas cayeron sobre columnas del mismo nombre y se REESCRIBIERON; estas siete siguen sin columna.
+    ordenes_compra: ["created_at", "fecha", "fecha_estimada", "monto_estimado", "proveedor", "sede_destino_id", "updated_at"],
     produccion_lineas: ["cantidad"],
     producciones: ["cantidad", "detalle", "fecha", "precio_taller", "unidad_id", "variante_id"],
     productos: ["costo_mano_obra", "foto_url", "genero", "importacion_id", "marca", "material", "sku_padre", "updated_at"],
@@ -233,10 +235,10 @@ describe("glosario: toda glosa apunta a una columna que existe", () => {
     expect(huerfanas.filter((k) => !deuda.has(k))).toEqual([]);
   });
 
-  it("la deuda solo se encoge: lo que ya se limpió sale de la lista (y son 247, ni una más)", () => {
+  it("la deuda solo se encoge: lo que ya se limpió sale de la lista (y son 243, ni una más)", () => {
     const yaLimpias = [...deuda].filter((k) => !huerfanas.includes(k));
     expect(yaLimpias, "estas glosas ya no son huérfanas: bórralas de DEUDA_DE_GLOSAS").toEqual([]);
-    expect(deuda.size, "la deuda cambió de tamaño: actualiza el 247 del encabezado y de esta prueba").toBe(247);
+    expect(deuda.size, "la deuda cambió de tamaño: actualiza el 243 del encabezado y de esta prueba").toBe(243);
   });
 
   // Glosas que se retiraron porque decían lo CONTRARIO de lo que la base ya hace (columna que sí existe, así que el filtro
@@ -297,8 +299,7 @@ describe("glosario: toda glosa apunta a una columna que existe", () => {
       hecho: () => { const c = candado("productos", "productos_estado_check"); return c.includes("'descontinuado'") && !c.includes("agotad"); } },
     { clave: "retail.productos.id", frase: /su receta de costo/i, desmentida: "bom_items (la receta de costo) ya no existe en retail",
       hecho: () => columnas.bom_items === undefined },
-    { clave: "retail.proveedores.id", frase: /lo citan órdenes/i, desmentida: "ordenes_compra ya no existe en retail (hoy son compras)",
-      hecho: () => columnas.ordenes_compra === undefined && existe("compras", "proveedor_id") },
+    // (Se quitó el 2026-10-11: «lo citan órdenes» se había retirado porque `ordenes_compra` ya no existía; hoy existe otra vez y esa frase volvería a ser cierta.)
     { clave: "retail.proveedores.nombre", frase: /nada impide dos fichas iguales/i, desmentida: "proveedores_nombre_clave_unica es un índice único sobre el nombre",
       hecho: () => unicoPor("proveedores", "proveedores_nombre_clave_unica") },
     { clave: "retail.proveedores.ruc", frase: /nadie lo valida/i, desmentida: "proveedores_ruc_check exige 11 dígitos y proveedores_ruc_unico lo hace único",

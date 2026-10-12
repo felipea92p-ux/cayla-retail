@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { avisarDestacado } from "@/components/ui/AvisoDestacado";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -21,7 +22,7 @@ import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
 import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
-import { celdaColgarVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
+import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -41,6 +42,7 @@ import {
   quedaTrasAjuste,
   resumenDeFlujo,
   textoHecho,
+  totalVarias,
   verboFinal,
   type ContextoFlujo,
   type LadoMovido,
@@ -51,6 +53,7 @@ import {
 } from "@/lib/existencias-flujos";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -63,6 +66,7 @@ const ICONO_FINAL: Record<TipoFlujo, ComponentType<{ className?: string; strokeW
   colgar: IconoPercha,
   colgarVarias: IconoPercha,
   subir: Warehouse,
+  subirVarias: Warehouse,
   enviar: Truck,
   pedir: ArrowRight,
   ajustar: PencilLine,
@@ -148,6 +152,43 @@ function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) =>
   );
 }
 
+/** Una celda de «Subir varias»: con algo colgado se edita (de 0 a lo colgado); sin nada colgado dice cuántas hay en almacén; sin nada
+ *  libre en la sede, «Se acabó». El mismo dibujo que la celda de Colgar varias, con el tope en el piso. */
+function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<typeof celdaSubirVarias>; n: number; etiqueta: string; fondo: string; onValor: (n: number, max: number) => void }) {
+  if (celda.tipo === "acabo")
+    return <td className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-[12.5px] font-semibold text-rojo-profundo">Se acabó</td>;
+  if (celda.tipo === "sinPiso")
+    return (
+      <td title={`${etiqueta}: nada colgado`} className="border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe">
+        <b className="block font-normal">—</b>
+        <small className="block text-[10.5px]">{celda.almacen} en almacén</small>
+      </td>
+    );
+  return (
+    <td className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
+      <span className="inline-flex items-center gap-px rounded-lg border border-transparent bg-hueso px-0.5 focus-within:border-taupe focus-within:bg-papel">
+        <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => onValor(n - 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
+          −
+        </button>
+        <input
+          inputMode="numeric"
+          aria-label={`Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
+          value={n === 0 ? "" : n}
+          placeholder="0"
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso)}
+          className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
+        />
+        <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.piso} onClick={() => onValor(n + 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
+          +
+        </button>
+      </span>
+      <small className="mt-1 block text-[10.5px] text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
+      <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
+    </td>
+  );
+}
+
 function Pregunta({ children, ayuda }: { children: ReactNode; ayuda?: ReactNode }) {
   return (
     <div className="mb-3">
@@ -195,7 +236,7 @@ export function FlujoTalla({
   pasoInicial?: number;
   /** El color que se mira. */
   prenda: Prenda;
-  /** Todos los colores del modelo (para «Colgar varias»). */
+  /** Todos los colores del modelo (para «Colgar varias» y «Subir varias»). */
   colores: Prenda[];
   /** La talla que se mira. */
   fila: FilaExistencias;
@@ -208,7 +249,8 @@ export function FlujoTalla({
   sububicacionPisoId: string | null;
   sububicacionAlmacenId: string | null;
   /** Terminó bien: el panel vuelve a la talla con el aviso «hecho». */
-  onHecho: (texto: string) => void;
+  /** `cerrar`: lo hecho se confirmó con el aviso destacado y el panel entero se cierra (hoy, bajar al piso). */
+  onHecho: (texto: string, opciones?: { cerrar?: boolean }) => void;
   /** Cancelar (o Escape): vuelve a la talla sin guardar. */
   onSalir: () => void;
   /** Pasar a otra acción con lo que ya se eligió («Se dañó» en Ajustar lleva a Reportar dañada). */
@@ -224,7 +266,7 @@ export function FlujoTalla({
   // Reportar dañada: el lugar entra elegido solo si es el ÚNICO con algo libre (`desdeInicial`, ADR-0328: con los dos, lo dice la persona).
   const [d, setD] = useState<DatosFlujo>(() => {
     const base: DatosFlujo = {
-      ...(tipo === "colgarVarias" ? { cant: {} } : {}),
+      ...(tipo === "colgarVarias" || tipo === "subirVarias" ? { cant: {} } : {}),
       ...(tipo === "danada" && separa ? { lugar: desdeInicial(tallasReportables([fila])[0]) ?? undefined } : {}),
       ...datosIniciales,
     };
@@ -274,11 +316,13 @@ export function FlujoTalla({
   }, [tipo, ubicacionId, fila.varianteId]);
 
   const almacenPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.almacenDisponible ?? 0)])));
+  const pisoPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.pisoDisponible ?? 0)])));
   const ctx: ContextoFlujo = {
     piso: Math.max(0, fila.pisoDisponible ?? (separa ? 0 : fila.disponible)),
     almacen: Math.max(0, fila.almacenDisponible ?? 0),
     separa,
     almacenPorTalla,
+    pisoPorTalla,
     destinos,
     origenes,
     puedePedirParaCliente,
@@ -340,7 +384,8 @@ export function FlujoTalla({
     let data: unknown = null;
     let errorRpc: ErrorEscritura = null;
     try {
-      const r = await firmar(createClient().rpc(llamada.rpc as never, llamada.args as never).abortSignal(control.signal), responsable.firma());
+      const consulta = createClient().rpc(llamada.rpc as never, llamada.args as never).abortSignal(control.signal);
+      const r = await firmar(llamada.sinLoader ? consulta.setHeader("x-espera", "no") : consulta, responsable.firma());
       data = r.data;
       errorRpc = r.error;
     } catch (ex) {
@@ -370,16 +415,41 @@ export function FlujoTalla({
     }
     enviadoEn.current = null;
     const yaEstaba = llamada.yaEstaba(data);
+    const esBajada = tipo === "colgar" || tipo === "colgarVarias";
+    const esSubida = tipo === "subir" || tipo === "subirVarias";
     if (yaEstaba) {
       avisar.aviso("Esto ya estaba guardado. No se repitió.", { detalle: prenda.referencia });
+    } else if (esBajada || esSubida) {
+      // Bajar al piso y subir al almacén se confirman en grande y el panel se cierra (Felipe, 2026-10-08): la colaboradora está con la
+      // prenda en la mano, mirando el perchero, y el aviso de la esquina se le pasaba. La cifra es la que contestó la base; si no vino,
+      // la que se envió.
+      sonarConfirmacion();
+      const varias = tipo === "colgarVarias" || tipo === "subirVarias";
+      const respondio = esBajada ? leerRespuestaDeBajada(data)?.unidades : leerRespuestaDeRetiro(data)?.unidades;
+      const n = respondio ?? (varias ? totalVarias(d) : (d.n ?? 0));
+      const una = n === 1;
+      const paraEnviar = esSubida && d.destino === "enviar";
+      avisarDestacado({
+        titulo: esBajada ? "Bajado al piso" : "Subido al almacén",
+        cifra: `${unidades(n)} ${esBajada ? (una ? "colgada" : "colgadas") : una ? "guardada" : "guardadas"}`,
+        detalle: varias ? `${prenda.referencia}${llamada.detalle ? ` · ${llamada.detalle}` : ""}` : `${prenda.referencia}${prenda.color ? ` · ${prenda.color}` : ""} · talla ${fila.talla ?? "Única"}`,
+        nota: esBajada
+          ? `Ya ${una ? "está" : "están"} en el piso de ${sedeNombre}: ${una ? "se puede" : "se pueden"} vender.`
+          : paraEnviar
+            ? `${una ? "Queda" : "Quedan"} en el almacén, ${una ? "lista" : "listas"} para enviar a ${nombreSede(d.sedeId) ?? "la otra sede"}.`
+            : `Ya ${una ? "está" : "están"} en el almacén de ${sedeNombre}.`,
+      });
     } else {
       sonarConfirmacion();
       avisar.exito(llamada.titulo?.(data) ?? textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), {
-        detalle: llamada.recordatorio ?? `${prenda.referencia}${tipo === "colgarVarias" ? ` · ${llamada.detalle ?? ""}` : `${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`}`,
+        detalle: llamada.recordatorio ?? `${prenda.referencia}${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`,
       });
     }
-    router.refresh();
-    onHecho(textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)));
+    // Si el panel se cierra (bajar al piso, subir al almacén), refresca él, cuando ya retiró la guardia de «¿Salir sin guardar?»
+    // (PanelTalla).
+    const cerrar = (esBajada || esSubida) && !yaEstaba;
+    if (!cerrar) router.refresh();
+    onHecho(textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), { cerrar });
   }
 
   /** La función de la base de cada acción, con sus argumentos y cómo leer su respuesta y su error. */
@@ -396,6 +466,10 @@ export function FlujoTalla({
     detalle?: string;
     /** Lo que hay que hacer con la prenda en la mano, en el aviso (Reportar dañada: sacarla del perchero). */
     recordatorio?: string;
+    /** Sin el loader a pantalla completa (ADR-0149, `x-espera: no`): el botón ya dice «Guardando…» y lo que confirma es el aviso
+     *  destacado. Bajar al piso y subir al almacén (Felipe, 2026-10-08): el loader con el logo daba la sensación de sacarte de la
+     *  pantalla. */
+    sinLoader?: boolean;
   };
   function armarLlamada(): Llamada | null {
     const n = d.n ?? 0;
@@ -418,11 +492,17 @@ export function FlujoTalla({
           resuelve: respuestaResuelveLaMarca,
           sinResolver: (enviadoEn) => textoMarcaSinResolver(enviadoEn, "Confirmar de nuevo"),
           detalle: tipo === "colgarVarias" ? detalleDeLoMovido(modelo, lineas) : undefined,
+          sinLoader: true,
         };
       }
-      case "subir": {
+      case "subir":
+      case "subirVarias": {
+        // Subir varias: las líneas de todos los colores juntas, recortadas a lo libre del piso, en UNA llamada (todo o nada).
+        const modelo = coloresParaMover(colores);
+        const lineas = tipo === "subir" ? una : lineasDeMoverModelo(modelo, d.cant ?? {}, "subir");
+        const totalSubido = lineas.reduce((a, l) => a + l.cantidad, 0);
         const nota = (d.nota ?? "").trim();
-        const token = tokenPara(JSON.stringify(["subir", una, d.destino, d.sedeId, nota]));
+        const token = tokenPara(JSON.stringify(["subir", lineas, d.destino, d.sedeId, nota]));
         const comunSubir = {
           error: (e: ErrorEscritura) => {
             const fallo = interpretarErrorDeRetiro(e, sedeNombre);
@@ -431,18 +511,20 @@ export function FlujoTalla({
           yaEstaba: (x: unknown) => leerRespuestaDeRetiro(x)?.ya_registrada === true,
           resuelve: respuestaResuelveLaMarcaDeRetiro,
           sinResolver: (enviadoEn: string) => textoMarcaSinResolverDeRetiro(formatearHoraLima(enviadoEn)),
-          titulo: (x: unknown) => tituloDeExitoRetiro(leerRespuestaDeRetiro(x)?.unidades ?? n),
+          titulo: (x: unknown) => tituloDeExitoRetiro(leerRespuestaDeRetiro(x)?.unidades ?? totalSubido),
+          detalle: tipo === "subirVarias" ? detalleDeLoMovido(modelo, lineas) : undefined,
+          sinLoader: true,
         };
         if (d.destino === "enviar") {
           return {
             rpc: RPC_SUBIR_PARA_ENVIAR,
-            args: { p_ubicacion_id: ubicacionId, p_destino_id: d.sedeId, p_items: itemsParaRpc(una), p_nota: nota || null, p_token: token },
+            args: { p_ubicacion_id: ubicacionId, p_destino_id: d.sedeId, p_items: itemsParaRpc(lineas), p_nota: nota || null, p_token: token },
             ...comunSubir,
           };
         }
         return {
           rpc: RPC_RETIRO,
-          args: argumentosDeRetiro(ubicacionId, una, nota, token),
+          args: argumentosDeRetiro(ubicacionId, lineas, nota, token),
           ...comunSubir,
         };
       }
@@ -535,7 +617,7 @@ export function FlujoTalla({
   }, [i, tipo]);
 
   const color = prenda.colorHex ?? "var(--color-hueso)";
-  const fondoContexto = tipo === "colgarVarias" && colores.length > 1 ? `conic-gradient(${colores.map((c) => c.colorHex ?? "var(--color-hueso)").join(",")})` : color;
+  const fondoContexto = (tipo === "colgarVarias" || tipo === "subirVarias") && colores.length > 1 ? `conic-gradient(${colores.map((c) => c.colorHex ?? "var(--color-hueso)").join(",")})` : color;
   const IconoFinal = ICONO_FINAL[tipo];
 
   function cuerpoDelPaso(): ReactNode {
@@ -575,6 +657,13 @@ export function FlujoTalla({
             {/* Subir: si la talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
             {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-[13px] text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
             {tipo === "subir" && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
+            {tipo === "subir" && (
+              <p className="mt-4">
+                <button type="button" onClick={() => onCambiar("subirVarias", { cant: {} })} className="btn-enlace text-[13px]">
+                  ¿Más tallas o colores? Subir varias
+                </button>
+              </p>
+            )}
             {tipo === "colgar" && (
               <p className="mt-4">
                 <button type="button" onClick={() => onCambiar("colgarVarias", { cant: {} })} className="btn-enlace text-[13px]">
@@ -598,10 +687,15 @@ export function FlujoTalla({
         const enPausa = colores.some((c) => c.tallas.some((t) => t.planPiso?.accion === "pausa_sin_cuadre"));
         const muchas = tallasDeTodos.length > 1;
         const poner1 = (id: string, n: number, max: number) => poner({ cant: { ...cant, [id]: Math.max(0, Math.min(max, n)) } });
+        // Subir varias: la misma tabla al revés (2026-10-08). Se edita lo colgado; el atajo es «Todo lo colgado», no «lo que falta».
+        const subiendo = tipo === "subirVarias";
+        const todoLoColgado = llenarTodasCon(todas, Number.MAX_SAFE_INTEGER, "subir");
+        const nColgado = Object.values(todoLoColgado).reduce((a, b) => a + b, 0);
+        const ayuda = subiendo ? "Elige cuántas descuelgas de cada talla." : nFalta > 0 ? "Ya viene 1 donde falta." : enPausa ? "Piso por cuadrar: revisa lo colgado." : undefined;
         return (
           <>
             {/* Textos cortos (Felipe, 2026-10-07: «con una frase corta se debe entender»): las celdas ya dicen lo demás. */}
-            <Pregunta ayuda={nFalta > 0 ? "Ya viene 1 donde falta." : enPausa ? "Piso por cuadrar: revisa lo colgado." : undefined}>¿Cuántas sacas al piso?</Pregunta>
+            <Pregunta ayuda={ayuda}>{subiendo ? "¿Cuántas descuelgas?" : "¿Cuántas sacas al piso?"}</Pregunta>
             <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12.5px] text-taupe" role="group" aria-label="Llenar de un toque">
               <label htmlFor="colgar-llenar">Llenar todas con</label>
               <input
@@ -613,14 +707,20 @@ export function FlujoTalla({
                 onChange={(e) => {
                   const limpio = e.target.value.replace(/\D/g, "");
                   setRelleno(limpio);
-                  poner({ cant: llenarTodasCon(todas, limpio === "" ? null : Number(limpio)) });
+                  poner({ cant: llenarTodasCon(todas, limpio === "" ? null : Number(limpio), subiendo ? "subir" : "bajar") });
                 }}
                 onFocus={(e) => e.currentTarget.select()}
                 className="h-9 w-14 rounded-[9px] border border-transparent bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
               />
-              <button type="button" disabled={nFalta === 0} onClick={() => { setRelleno(""); poner({ cant: { ...loQueFalta } }); }} title="1 en cada talla sin ninguna colgada" className="btn-cayla btn-secundario btn-chico">
-                Solo lo que falta ({nFalta})
-              </button>
+              {subiendo ? (
+                <button type="button" disabled={nColgado === 0} onClick={() => { setRelleno(""); poner({ cant: { ...todoLoColgado } }); }} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
+                  Todo lo colgado ({nColgado})
+                </button>
+              ) : (
+                <button type="button" disabled={nFalta === 0} onClick={() => { setRelleno(""); poner({ cant: { ...loQueFalta } }); }} title="1 en cada talla sin ninguna colgada" className="btn-cayla btn-secundario btn-chico">
+                  Solo lo que falta ({nFalta})
+                </button>
+              )}
               <button type="button" disabled={tot.total === 0} onClick={() => { setRelleno(""); poner({ cant: {} }); }} className="btn-cayla btn-sutil btn-chico">
                 Vaciar
               </button>
@@ -651,6 +751,7 @@ export function FlujoTalla({
                         {tallasDeTodos.map((nombre) => {
                           const t = c.tallas.find((x) => (x.talla ?? "Única") === nombre);
                           if (!t) return <td key={nombre} aria-hidden className={`border-t border-sand ${fondo}`} />;
+                          if (subiendo) return <CeldaSubir key={nombre} celda={celdaSubirVarias(t)} n={cant[t.varianteId] ?? 0} etiqueta={`${c.color ?? ""} ${nombre}`} fondo={fondo} onValor={(n, max) => poner1(t.varianteId, n, max)} />;
                           const celda = celdaColgarVarias(t, faltan);
                           if (celda.tipo === "acabo")
                             return (
@@ -712,9 +813,12 @@ export function FlujoTalla({
               </table>
             </div>
             <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-taupe">
-              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>
-              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />no hay en almacén</span>
+              {!subiendo && <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>}
+              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />{subiendo ? "nada colgado" : "no hay en almacén"}</span>
             </p>
+            {/* Subir: si alguna talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
+            {subiendo && tot.total > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-[13px] text-tinta">{textoDelBloqueSubir(tallasParaReponer(todas), cant)}</p>}
+            {subiendo && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
           </>
         );
       }
@@ -945,7 +1049,7 @@ export function FlujoTalla({
             <b className="font-semibold">{NOMBRE_FLUJO[tipo]}</b>
             <span className="text-taupe">
               {" · "}
-              {tipo === "colgarVarias" ? `${colores.length} ${colores.length === 1 ? "color" : "colores"} · todas las tallas` : `${prenda.color ?? "Sin color"} · talla ${fila.talla ?? "Única"}`}
+              {tipo === "colgarVarias" || tipo === "subirVarias" ? `${colores.length} ${colores.length === 1 ? "color" : "colores"} · todas las tallas` : `${prenda.color ?? "Sin color"} · talla ${fila.talla ?? "Única"}`}
             </span>
           </span>
         </p>
@@ -970,9 +1074,7 @@ export function FlujoTalla({
 
       <div className="grid gap-2 border-t border-sand bg-papel px-[18px] pb-4 pt-3">
         {error && (
-          <p role="alert" className="text-sm text-rojo-profundo">
-            {error}
-          </p>
+          <Aviso tono="error">{error}</Aviso>
         )}
         {!completo && faltanHasta(tipo, i, d, ctx).length > 0 && <PieGuia guia={guiaDePasos} />}
         <div className="flex gap-2">

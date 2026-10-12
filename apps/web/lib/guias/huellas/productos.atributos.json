@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 165,
+  "total": 162,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «{AYUDA[tipo]}»"
@@ -160,7 +160,6 @@
       "button «Con prendas ·»",
       "button «Todas ·»",
       "Desplegable «) : (»",
-      "input «Buscar entre las prendas sin temporada»",
       "button «→alternarTodas»",
       "Desplegable «Asignar a»",
       "button «{motivo ?? undefined}»",
@@ -191,9 +190,7 @@
     ],
     "components/atributos/kit.tsx": [
       "Boton «vocabulario.agregar»",
-      "input «{etiqueta}»",
-      "button «Borrar búsqueda»",
-      "Boton «Quitar filtros»",
+      "Boton «Limpiar filtros»",
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",
       "Boton «Rechazar»",

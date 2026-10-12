@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Clock, History, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { VentasDeHoyLista, type VentaDeHoy } from "@/components/VentasDeHoy";
+import { VentasDeHoyLista } from "@/components/VentasDeHoy";
+import type { VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { anchoBarraMeta, resumenDeHoy } from "@/lib/vender-hoy-reglas";
 
 const soles = (n: number) => `S/${n.toFixed(2)}`;
@@ -23,7 +24,7 @@ export function ResumenDeHoy({
   verHistorial,
   forma,
 }: {
-  ventas: VentaDeHoy[];
+  ventas: readonly VentaDeHoy[];
   fallo: string | null;
   meta: number | null;
   ubicacionEtiqueta: string;
@@ -106,13 +107,13 @@ export function ResumenDeHoy({
               {(verHistorial || verCaja) && (
                 <div className="mt-5 flex gap-2">
                   {verHistorial && (
-                    <Link href="/vender/historial" onClick={cerrar} className="label-cayla inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-tinta/25 bg-papel text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                    <Link href="/vender/historial" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
                       <History className="h-4 w-4" aria-hidden />
                       Historial completo
                     </Link>
                   )}
                   {verCaja && (
-                    <Link href="/caja" onClick={cerrar} className="label-cayla inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-tinta/25 bg-papel text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                    <Link href="/caja" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
                       <Wallet className="h-4 w-4" aria-hidden />
                       Ir a Caja
                     </Link>

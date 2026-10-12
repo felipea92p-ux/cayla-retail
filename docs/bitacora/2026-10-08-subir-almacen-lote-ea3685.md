@@ -1,0 +1,5 @@
+# 2026-10-08 · «Subir a almacén» de la tarjeta sube todas las tallas y colores
+
+- **Qué:** «Más ▸ Subir a almacén» abría el paso de UNA talla (la de más colgadas). Ahora abre «Subir varias»: la misma tabla tallas × colores de «Colgar en el piso», al revés (tope = lo colgado), con «Llenar todas con», «Todo lo colgado (N)» y «Vaciar»; después Destino (si hay a dónde enviar) y Quién. Desde el panel de una talla, Subir sigue siendo de esa talla, con el enlace «¿Más tallas o colores? Subir varias».
+- **Por qué:** Felipe: «debería ser de todas, muy similar a como aparece cuando se presiona en Colgar en el piso».
+- **Cómo:** sin cambio de base: `retirar_del_piso` y `subir_para_enviar` ya reciben 1 a 300 tallas en una llamada, todo o nada (`lineasDeMoverModelo(…, "subir")`). Lógica en `lib/existencias-flujos.ts` (`subirVarias`) y `lib/colgar-varias-tabla.ts` (`celdaSubirVarias`, `llenarTodasCon` con rumbo), con sus pruebas. Verificado en el navegador hasta «Subir 5 unidades a almacén» (sin confirmar: la base local es compartida).

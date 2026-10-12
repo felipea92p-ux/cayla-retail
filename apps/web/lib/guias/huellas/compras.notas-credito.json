@@ -2,13 +2,12 @@
   "guia": "compras.notas-credito",
   "ruta": "/compras/notas-credito",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 52,
+  "total": 46,
   "controles": {
     "components/NotaCreditoDetalle.tsx": [
       "Link «Ver comprobante»",
       "button «→copiar»",
-      "Boton «Registrar la nota»",
-      "Boton «Cerrar»"
+      "Boton «Registrar la nota»"
     ],
     "components/NotaCreditoVistaRapida.tsx": [
       "button «Cerrar vista rápida»",
@@ -21,24 +20,19 @@
     "components/NotasCreditoPanel.tsx": [
       "Boton «notas-credito.registrar»",
       "Pestanas «(sin nombre)»",
-      "button «{`${ETIQUETA_BANDA[t]}»",
-      "input «Buscar por proveedor, comprobante o número de nota»",
-      "button «Borrar búsqueda»",
       "button «{`notas-credito.estado-${p.clave}»",
       "SegmentoDeslizante «Cómo agrupar»",
       "button «Quitar filtro de antigüedad»",
-      "button «notas-credito.registrar-fila»",
-      "button «Limpiar la búsqueda»",
-      "button «Ver todas las que faltan»",
+      "button «Registrar nota»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Ver todas las que faltan»",
       "Link «{p.nombre}»",
       "Link «Usar en un pago →»",
       "button «De qué viene ·»"
     ],
     "components/RegistrarNotaCreditoModal.tsx": [
       "button «Listo»",
-      "input «Buscar factura por serie-número, proveedor o monto»",
       "button «{f.etiqueta}»",
-      "button «Ver todas las facturas»",
       "button «→() => elegirFactura(f.id)»",
       "button «{ETIQUETA_MOTIVO_NOTA[m]}»",
       "input «FC01-000018»",

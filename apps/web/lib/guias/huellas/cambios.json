@@ -2,11 +2,9 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 39,
   "controles": {
     "components/BuscadorVentas.tsx": [
-      "input «Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda»",
-      "button «Limpiar la búsqueda»",
       "button «Buscar»",
       "button «posventa.escanear»",
       "button «posventa.sin-comprobante»",
@@ -14,7 +12,8 @@
     ],
     "components/CambioReemplazo.tsx": [
       "button «{m.etiqueta}»",
-      "ComboBuscable «¿Nada de su agrado? Pasar a devo»",
+      "ComboBuscable «Escanear»",
+      "button «Escanear»",
       "Link «¿Nada de su agrado? Pasar a devolución»",
       "button «{hay ? `Talla ${t}»",
       "button «{hay ? `Color ${nombre}»",
@@ -35,7 +34,7 @@
       "input «{l.referencia}»",
       "Volver «Continuar»",
       "Volver «Revisar el cambio»",
-      "ComboResponsable «{error && <AvisoDeError error={error}»",
+      "ComboResponsable «(sin nombre)»",
       "Volver «Cancelar»"
     ],
     "components/CambiosPanel.tsx": [
@@ -47,7 +46,7 @@
     ],
     "components/ComprasAgrupadas.tsx": [
       "button «{f.texto}»",
-      "button «Buscar en todas las tiendas»"
+      "Boton «Buscar en todas las tiendas»"
     ],
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",

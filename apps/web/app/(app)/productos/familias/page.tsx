@@ -14,7 +14,7 @@ export default async function FamiliasPage() {
   const supabase = await createClient();
 
   const [resFamilias, resCategorias] = await Promise.all([
-    supabase.from("familias").select("codigo, nombre, activo, orden").order("orden"),
+    supabase.from("familias").select("codigo, nombre, activo, orden, entra_a_motores").order("orden"),
     supabase.from("categorias").select("familia").eq("activo", true),
   ]);
   const filas = exigir(resFamilias, "las familias del catálogo");
@@ -31,6 +31,7 @@ export default async function FamiliasPage() {
     nombre: f.nombre,
     activo: f.activo,
     orden: f.orden,
+    entraAMotores: f.entra_a_motores,
     categoriasActivas: conteoPorFamilia.get(f.codigo) ?? 0,
   }));
 
@@ -46,7 +47,9 @@ export default async function FamiliasPage() {
             — cada categoría (Blusas, Jeans, Carteras) pertenece a exactamente una. A diferencia de
             Colores/Tallas/Tejidos/Patrones/Etiquetas: agregar una familia no es de un clic al
             catalogar una prenda, es una decisión de marca — solo un Líder la agrega, edita o
-            desactiva. No se puede desactivar una con categorías activas colgando.
+            desactiva. No se puede desactivar una con categorías activas colgando. Una familia
+            también puede dejar de contar en Análisis, Frescura y el plan del piso (bolsas, cajas):
+            sus ventas siguen entrando a caja, pero no se piden ni se cuentan como demanda.
           </Ayuda>
         </h1>
       </div>

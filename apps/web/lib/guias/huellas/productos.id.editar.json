@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 127,
+  "total": 142,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{producto.referencia}»"
@@ -12,7 +12,7 @@
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
       "button «Descargar reporte de este ajuste»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -24,7 +24,8 @@
     "components/ConfirmarCambios.tsx": [
       "ComboResponsable «(sin nombre)»",
       "Volver «→cerrar»",
-      "Boton «Confirmar y guardar»"
+      "Boton «Confirmar y guardar»",
+      "Casilla «{`Igualar ${t.sede}»"
     ],
     "components/ProductoForm.tsx": [
       "button «Deshacer»",
@@ -169,6 +170,24 @@
       "button «{`Una menos de ${nombre}»",
       "button «{bloqueo ? `Una más de ${nombre}»",
       "button «editar.falta»"
+    ],
+    "components/ficha-producto/PrecioSedeModal.tsx": [
+      "CampoSelect «Tienda»",
+      "CampoTexto «Precio (S/)»",
+      "CampoTexto «Por qué esta tienda tiene otro precio»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «Por qué (opcional)»",
+      "ComboResponsable «(sin nombre)» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+    ],
+    "components/ficha-producto/PreciosPorSede.tsx": [
+      "Boton «{textoPoner}»",
+      "Boton «{`Cambiar el precio de ${f.sede}»",
+      "Boton «{`Quitar el precio de ${f.sede}»",
+      "Boton «{`Poner un precio propio en ${f.sede}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "Link «Imprimir etiquetas»",

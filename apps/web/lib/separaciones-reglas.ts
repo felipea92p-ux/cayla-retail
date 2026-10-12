@@ -194,8 +194,10 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   const e: Partial<Record<CampoApartado, string>> = {};
   if (!f.nombres.trim()) e.nombres = "Escribe los nombres.";
   if (!f.apellidos.trim()) e.apellidos = "Escribe los apellidos.";
-  // Un celular peruano tiene 9 dígitos y empieza en 9: un fijo o un número a medias no recibe el aviso ni el Yape.
-  if (!esCelularPeru(f.celular)) e.celular = "9 dígitos y empieza en 9: por aquí se le avisa y se le devuelve.";
+  // El celular es opcional (ADR-0367, Felipe 2026-10-09): hay clientes que no lo dan. El que se escribe sí tiene que ser
+  // un celular peruano (9 dígitos que empiezan en 9): un fijo o un número a medias no recibe el aviso ni el Yape.
+  const celular = soloDigitos(f.celular);
+  if (celular && !esCelularPeru(celular)) e.celular = "9 dígitos y empieza en 9 (o déjalo vacío).";
   const dni = soloDigitos(f.dni);
   if (dni && dni.length !== 8) e.dni = "El DNI tiene 8 dígitos.";
   if (!dni && f.comprobante === "boleta" && total > TOPE_BOLETA_SIN_DNI) e.dni = `Pasa de S/${TOPE_BOLETA_SIN_DNI}: la boleta lleva DNI.`;
@@ -213,7 +215,9 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
     const num = soloDigitos(f.devolucionNumero);
+    // Vacío = su celular. Sin celular no hay a dónde devolverle: el número va aparte (la base lo exige igual).
     if (num && !esCelularPeru(num)) e.devolucion = "El número tiene 9 dígitos y empieza en 9 (vacío = su celular).";
+    else if (!num && !celular) e.devolucion = `Sin celular, escribe su número de ${f.devolucionMedio === "plin" ? "Plin" : "Yape"} para devolverle.`;
   }
   if (!f.acepta) e.acepta = "Falta que el cliente acepte las condiciones.";
   return e;
@@ -338,7 +342,8 @@ export function colaPorAvisar(
   hoy: string,
 ): { porAvisar: Apartado[]; avisadasHoy: Apartado[] } {
   const toca = apartados
-    .filter((a) => a.estado === "abierta" && ["porvencer", "vencida"].includes(estadoVisible(a, hoy).clave))
+    // Sin celular (ADR-0367) no hay a quién escribirle: no entra a la cola de WhatsApp.
+    .filter((a) => a.estado === "abierta" && a.celular !== "" && ["porvencer", "vencida"].includes(estadoVisible(a, hoy).clave))
     .sort((x, y) => x.venceEl.localeCompare(y.venceEl) || x.codigo.localeCompare(y.codigo));
   return {
     porAvisar: toca.filter((a) => !avisadaHoy(avisos[a.id], hoy)),

@@ -8,6 +8,9 @@ import { datosPagoDe } from "@/lib/proveedores-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { CompraFormV2 } from "@/components/CompraFormV2";
 import { Volver } from "@/components/ui/Volver";
+import { Building2, Shirt } from "lucide-react";
+import { BotonEnlace } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Registrar una factura de proveedor (ADR-0035). La página solo junta los
 // tres catálogos que el formulario necesita; las reglas (contado exige pago,
@@ -46,9 +49,33 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
     return (
       <div className="space-y-6">
         {cabecera}
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          {proveedores.length === 0 ? "Todavía no hay proveedores registrados — no se puede registrar un comprobante sin uno." : "Todavía no hay productos en el catálogo — revisa Productos primero."}
-        </p>
+        <div className="card-cayla">
+          {proveedores.length === 0 ? (
+            <Vacio
+              icono={<Building2 />}
+              titulo="Todavía no hay proveedores"
+              acciones={
+                <BotonEnlace href="/compras/proveedores" peso="primario">
+                  Ir a Proveedores
+                </BotonEnlace>
+              }
+            >
+              No se puede registrar un comprobante sin uno: registra primero al proveedor que te vendió.
+            </Vacio>
+          ) : (
+            <Vacio
+              icono={<Shirt />}
+              titulo="Todavía no hay productos en el catálogo"
+              acciones={
+                <BotonEnlace href="/productos" peso="primario">
+                  Ir a Productos
+                </BotonEnlace>
+              }
+            >
+              Crea primero las prendas que compraste; después las eliges aquí.
+            </Vacio>
+          )}
+        </div>
       </div>
     );
   }

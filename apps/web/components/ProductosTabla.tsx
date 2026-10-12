@@ -2,16 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
-import { esFuncionAusente } from "@/lib/compras-reglas";
-import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2, X, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
-import { ComboResponsable } from "@/components/ComboResponsable";
+import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { describirRotacion } from "@/lib/reorden-reglas";
@@ -40,14 +34,17 @@ import {
   variantesQueSeVenden,
 } from "@/lib/productos-vista";
 import { margenPorcentaje } from "@/lib/alta-producto";
-import { useResponsable } from "@/lib/useResponsable";
-import { firmar } from "@/lib/responsable-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
+import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
+import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -80,6 +77,8 @@ type Fila = {
   lineas: LineasStock | null;
   rotacion: string | null;
   descontinuado: boolean;
+  /** Tiendas que la venden a otro precio (Felipe 2026-10-09); vacío = un solo precio. */
+  otrosPrecios: PrecioDeTienda[];
 };
 
 type Permisos = {
@@ -98,8 +97,16 @@ export function ProductosTabla({
   puedeEliminar,
   veDinero,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
+  hrefLimpiar,
+  preciosTienda = {},
+  preciosAqui,
 }: {
   productos: ProductoListado[];
+  /** Por prenda, el precio en cada tienda (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
+  preciosTienda?: Record<string, PrecioDeTienda[]>;
+  /** Los precios propios de la tienda elegida arriba (variante → precio). La fila, sus variantes y el margen usan ESE precio: el que
+   *  cobra la caja aquí (Felipe 2026-10-10). Sin tienda (CAYLA Global), el de la prenda. */
+  preciosAqui?: Record<string, number>;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   ubicacionId: string;
@@ -114,23 +121,29 @@ export function ProductosTabla({
   /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos_listado` ya manda el costo vacío: aquí solo se esconden las columnas. */
   veDinero: boolean;
   mensajeVacio?: string;
+  /** «Limpiar filtros» dentro del vacío (Felipe 2026-10-08: deshacerlo ahí mismo). */
+  hrefLimpiar?: string;
 }) {
   const pantalla = usePantallaActual();
   const filas = useMemo<Fila[]>(
     () =>
-      productos.map((p) => ({
-        p,
-        colores: coloresDe(p.variantes),
-        tallas: tallasDe(p.variantes),
-        precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
-        costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
-        margen: margenDe(variantesQueSeVenden(p.variantes)),
-        alerta: alertaDeStock(p),
-        lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
-        rotacion: describirRotacion(p.demandaDiaria),
-        descontinuado: p.estado !== "activo",
-      })),
-    [productos, existencias],
+      productos.map((original) => {
+        const p = conPrecioAqui(original, preciosAqui);
+        return {
+          p,
+          colores: coloresDe(p.variantes),
+          tallas: tallasDe(p.variantes),
+          precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
+          costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
+          margen: margenDe(variantesQueSeVenden(p.variantes)),
+          alerta: alertaDeStock(p),
+          lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
+          rotacion: describirRotacion(p.demandaDiaria),
+          descontinuado: p.estado !== "activo",
+          otrosPrecios: preciosTienda[p.productoId] ?? [],
+        };
+      }),
+    [productos, existencias, preciosTienda, preciosAqui],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -173,7 +186,14 @@ export function ProductosTabla({
   }
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
+    // Los filtros (o la búsqueda) dejaron cero: la pieza única del vacío (ADR-0358 ronda 5). Limpiar vive en la barra de filtros.
+    return (
+      <div className="card-cayla">
+        <Vacio icono={<FunnelX />} acciones={hrefLimpiar ? <BotonEnlace href={hrefLimpiar}>Limpiar filtros</BotonEnlace> : null}>
+          {mensajeVacio}
+        </Vacio>
+      </div>
+    );
   }
 
   const acciones = (f: Fila): AccionesFila => ({
@@ -294,7 +314,7 @@ export function ProductosTabla({
         />
       )}
       {cambiando && (
-        <CambiarEstadoHoja
+        <CambiarEstadoProductosHoja
           estado={cambiando}
           productos={seleccion}
           onClose={() => setCambiando(null)}
@@ -479,7 +499,10 @@ function FilaAncha({
         <td className="hidden px-3 py-3 align-middle @6xl:table-cell">
           <Tallas tallas={tallas} />
         </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">{fila.precio}</td>
+        <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">
+          {fila.precio}
+          <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
+        </td>
         {conMargen && (
           <td className="hidden whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta/65 @4xl:table-cell">
             {fila.costo ?? <span className="text-[12px] text-tinta/45">sin costo</span>}
@@ -618,7 +641,10 @@ function TarjetaFila({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
-            <p className="shrink-0 text-[14px] tabular-nums text-tinta">{fila.precio}</p>
+            <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
+              {fila.precio}
+              <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
+            </p>
           </div>
           <p className="mt-0.5 truncate text-[11px] text-tinta/55">
             <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"} · {p.marca ?? "sin marca"}
@@ -763,7 +789,7 @@ function FichaVariantes({
           Historial
         </Link>
         {acciones.eliminar && (
-          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-sutil min-h-10 text-[12.5px] text-rojo-profundo">
+          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
             <Trash2 aria-hidden className="h-4 w-4" />
             Eliminar
           </button>
@@ -819,6 +845,7 @@ function BarraMarcadas({
   const variantes = seleccion.flatMap((p) => p.variantes.filter((v) => v.activo).map((v) => v.varianteId));
   const hayActivas = seleccion.some((p) => p.estado === "activo");
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
+  const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
     "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
   const boton = `${forma} hover:bg-crema/10`;
@@ -864,6 +891,13 @@ function BarraMarcadas({
         <Printer aria-hidden className="h-4 w-4" />
         Etiquetas
       </EnlaceEtiquetas>
+      {/* El rótulo del anaquel (ADR-0366): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}
+      {hrefRotulos && (
+        <Link href={hrefRotulos} className={boton} tabIndex={n > 0 ? 0 : -1}>
+          <SignpostBig aria-hidden className="h-4 w-4" />
+          Rótulo
+        </Link>
+      )}
       <span aria-hidden className="mx-1 hidden h-5 w-px bg-crema/20 sm:block" />
       <button
         type="button"
@@ -878,100 +912,8 @@ function BarraMarcadas({
   );
 }
 
-/**
- * Confirmar descontinuar o reactivar lo marcado, con el combo «Responsable» (ADR-0161: cambiar el estado de una prenda
- * es Catálogo, se firma). Se monta solo al abrirse: la lista no lee la asistencia mientras nadie va a guardar nada.
- */
-function CambiarEstadoHoja({
-  estado,
-  productos,
-  onClose,
-  onHecho,
-}: {
-  estado: "activo" | "descontinuado";
-  productos: ProductoListado[];
-  onClose: () => void;
-  onHecho: () => void;
-}) {
-  const router = useRouter();
-  const responsable = useResponsable();
-  const [guardando, setGuardando] = useState(false);
-  const reactivar = estado === "activo";
-  const cambian = productos.filter((p) => (reactivar ? p.estado !== "activo" : p.estado === "activo"));
-  const verbo = reactivar ? "Reactivar" : "Descontinuar";
-  const sustantivo = (n: number) => (n === 1 ? "prenda" : "prendas");
-
-  async function confirmar() {
-    if (!responsable.listo || cambian.length === 0) return;
-    const ids = cambian.map((p) => p.productoId);
-    setGuardando(true);
-    const supabase = createClient();
-    let { error } = await firmar(supabase.rpc("cambiar_estado_productos", { p_producto_ids: ids, p_estado: estado }), responsable.firma());
-    // Web publicada antes que la migración (20260928235000): el camino de antes, sin la revisión de marca al reactivar.
-    if (esFuncionAusente(error)) {
-      ({ error } = await firmar(supabase.from("productos").update({ estado }).in("id", ids), responsable.firma()));
-    }
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, reactivar ? "reactivar las prendas" : "descontinuar las prendas"));
-      return;
-    }
-    avisar.exito(`${ids.length} ${sustantivo(ids.length)} ${reactivar ? "reactivada" : "descontinuada"}${ids.length === 1 ? "" : "s"}`);
-    onHecho();
-    router.refresh();
-  }
-
-  return (
-    <Modal
-      variante="hoja"
-      ancho="max-w-lg"
-      bloqueado={guardando}
-      titulo={`¿${verbo} ${cambian.length} ${sustantivo(cambian.length)}?`}
-      subtitulo={
-        reactivar
-          ? "Vuelven a contar para «Para pedir» y a verse como activas. Antes se revisa que su marca y su proveedor sigan activos."
-          : "Dejan de contar para «Para pedir» y se ven marcadas en la Grilla y en la Tabla. Se pueden reactivar cuando quieras."
-      }
-      onClose={onClose}
-    >
-      {(cerrar) => (
-        <div className="space-y-4">
-          <ul className="max-h-60 divide-y divide-sand overflow-y-auto border-y border-sand">
-            {productos.map((p) => {
-              const queda = reactivar ? p.estado === "activo" : p.estado !== "activo";
-              return (
-                <li key={p.productoId} className="flex items-baseline justify-between gap-3 py-2.5 text-[13.5px]">
-                  <span className={`min-w-0 truncate ${queda ? "text-tinta/50" : "text-tinta"}`}>{p.referencia}</span>
-                  <span className="shrink-0 text-[12px] text-tinta/55">
-                    {queda ? `Ya está ${reactivar ? "activa" : "descontinuada"}: queda igual` : `${p.stockTotal.toLocaleString("es-PE")} en stock`}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
-          <p className="nota-cayla">
-            {reactivar
-              ? "Si una prenda tiene su marca o su proveedor dado de baja, no se reactiva ninguna y te decimos cuál corregir."
-              : "Para volver atrás, márcalas y usa «Reactivar». El historial de cada prenda guarda quién hizo el cambio."}
-          </p>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} disabled={guardando} className={botonCancelar}>
-              Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => void confirmar()}
-              disabled={guardando || !responsable.listo || cambian.length === 0}
-              title={responsable.motivo ?? undefined}
-              className={botonPrimario}
-            >
-              {guardando ? "Guardando…" : `${verbo} ${cambian.length}`}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
+/** La prenda con el precio de la tienda elegida en cada variante que tiene uno propio ahí (la misma regla de `fn_precio_en_sede`). */
+function conPrecioAqui(p: ProductoListado, preciosAqui: Readonly<Record<string, number>> | undefined): ProductoListado {
+  if (!preciosAqui || !p.variantes.some((v) => preciosAqui[v.varianteId] !== undefined)) return p;
+  return { ...p, variantes: p.variantes.map((v) => (preciosAqui[v.varianteId] !== undefined ? { ...v, precio: preciosAqui[v.varianteId]! } : v)) };
 }

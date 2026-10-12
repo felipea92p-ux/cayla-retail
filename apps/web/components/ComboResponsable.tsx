@@ -137,7 +137,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           type="button"
           onClick={() => void control.recargar()}
           disabled={control.recargando}
-          className="label-cayla mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-tinta/25 bg-crema px-3 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-60"
+          className="btn-cayla btn-secundario mt-3 inline-flex h-9 items-center gap-2"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${control.recargando ? "motion-safe:animate-spin" : ""}`} aria-hidden />
           {control.recargando ? "Actualizando…" : "Actualizar lista"}

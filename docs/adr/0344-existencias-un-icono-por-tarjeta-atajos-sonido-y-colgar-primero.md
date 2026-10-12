@@ -358,3 +358,10 @@ dirían cosas distintas.
 explícito de Felipe; con varias agotadas habrá más de dos. Si se ve ruidoso, se vuelve a decidir con él.
 SE ROMPE SI: alguien cambia el ámbar o el rojo en un solo lugar sin la regla compartida; `lib/existencias-tarjeta-compacta.test.ts` y
 `lib/existencias-acciones.test.ts` lo vigilan.
+
+## Actualización 2026-10-08 — la columna de la talla y la onda del color elegido
+
+- Toda la columna de una talla en la tarjeta se ilumina al pasar el mouse (hueso al 45 %, fundido de 300 ms) y abre su «Colgar».
+- El color elegido es un punto más grande con aro separado y nombre en tinta, y de él sale **una onda lenta y suave, siempre**
+  (aro de tinta que crece ×2,3 y se apaga cada 3,2 s; `cayla-onda-color`, `.onda-color` en `globals.css`). **Excepción a ADR-0136
+  (bucle), elegida por Felipe** entre «al elegir el color» y «siempre, muy lento». Quieta con `prefers-reduced-motion`.

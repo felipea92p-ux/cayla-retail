@@ -32,7 +32,7 @@ import { firmar } from "@/lib/responsable-reglas";
 type Tienda = { id: string; nombre: string };
 export type LineaReasignable = { id: string; producto: string };
 
-const BTN_PRIMARIO = "label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50";
+const BTN_PRIMARIO = "btn-cayla btn-primario";
 
 export function BotonReasignar({
   compra,

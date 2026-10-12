@@ -227,6 +227,14 @@ const BASE = [
     gobierna: ["ADR-0169"],
   },
   {
+    id: "grafico.barra",
+    grupo: "Datos",
+    nombre: "Barra apilada",
+    funcion: "Una barra que reparte un total en partes de un solo color (la deuda por vencimiento, las unidades del piso por estado, cómo se pagó). Se reconoce por su forma: una fila baja y ancha de tramos sin texto cuyos anchos suman el de la fila.",
+    pieza: "`<BarraApilada>` (components/ui/BarraApilada.tsx), ADR-0358; las de Análisis (ADR-0357) y el aviso de cierre de Caja (ADR-0359) existen por una decisión y esperan la palabra de Felipe",
+    gobierna: ["ADR-0169", "ADR-0128", "ADR-0357", "ADR-0359"],
+  },
+  {
     id: "titulo-pagina",
     grupo: "Textos",
     nombre: "Títulos de pantalla",
@@ -373,8 +381,6 @@ export const DECISIONES = {
     // El texto del botón suele ir en la línea siguiente a su clase: la firma mira 9 líneas desde donde empieza.
     "ventana": 9,
     "firmas": [
-      // Un «+ Nuevo / Registrar / Agregar» con la cara vieja de btn-cayla (34 px, letra normal).
-      "className=\\{?[\"'`]btn-cayla btn-(?:primario|secundario)\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear|Dar acceso)\\b",
       // La cara B copiada a mano (sin el barrido de luz ni el encogerse al presionar de la pieza).
       "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b",
       // El barrido viejo de 800 ms (ronda 3: el movimiento es uno solo, `.mov-boton`).
@@ -386,6 +392,53 @@ export const DECISIONES = {
     ],
     "excepciones": [
       { "archivo": "components/analisis/TodaviaNo.tsx", "motivo": "El «Registrar N» chico dentro del anillo de Análisis v4 tiene su propio diseño y movimiento (ADR-0357); Felipe dice si se unifica" }
+    ]
+  },
+  "boton": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/boton.md",
+    "elegida": "B · dos voces a propósito (versalitas en la cabecera de una pantalla, letra normal en hojas y tarjetas), con la onda al clic; elegida mirando el 2026-10-07",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["components/ui/OndaBotones.tsx", "app/globals.css"],
+    "firmas": [
+      // La versalita copiada a mano (label-cayla + esquinas + fondo tinta o borde): no toma la voz del lugar ni la onda.
+      "\\blabel-cayla\\b[^\"'`]*\\brounded-(?:md|lg|xl)\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/\\d+)\\b|\\blabel-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/\\d+)\\b[^\"'`]*\\brounded-(?:md|lg|xl)\\b"
+    ],
+    // El mostrador entró en su propia pasada (2026-10-07): conserva sus altos (28–36 px los compactos, 44–56 los de cobro) con
+    // letra de 12,5 px en los compactos, y toma la voz, el movimiento y la onda. Probado a 375 px (PL-105).
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "Es el selector de mes de la barra de vidrio de Comprobantes (ADR-0124): un filtro de período, familia de pestañas, no un botón" }
+    ]
+  },
+  "accion.eliminar": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/boton.md",
+    "elegida": "A · rojo desde el principio (btn-peligro, <Boton peso=\"peligro\">, fila-alerta en la barra de vidrio), elegida mirando el 2026-10-07",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["app/globals.css"],
+    "firmas": [
+      // Un enlace o un botón sutil teñido de rojo a mano para borrar o anular: va btn-peligro.
+      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo"
+    ],
+    "deuda": []
+  },
+  "accion.cerrar": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/boton.md",
+    "elegida": "A · la × sola, arriba a la derecha (<Modal conCerrar>, ModalRuta por defecto), elegida mirando el 2026-10-07",
+    "pieza": "components/ui/Modal.tsx",
+    "tambien": ["components/ui/ModalRuta.tsx"],
+    "firmas": [
+      // Un botón «Cerrar» escrito al pie de una hoja.
+      "^\\s*Cerrar\\s*$"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/CajaTablero.tsx", "motivo": "Es «Cerrar caja» (con su candado), una operación del negocio, no cerrar una hoja" }
     ]
   },
   "pestanas": {
@@ -407,6 +460,97 @@ export const DECISIONES = {
       "-mb-px[^\"'`]*\\bborder-b-2\\b|\\bborder-b-2\\b[^\"'`]*-mb-px|after:h-0\\.5 after:bg-(?:tinta|rojo)\\b"
     ],
     "deuda": []
+  },
+  "vacio": {
+    "fecha": "2026-10-08",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/vacio.md",
+    "elegida": "P1 · el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón (grande y chico); al no encontrar, dice qué se buscó y deja deshacerlo ahí; elegida tocándola el 2026-10-08",
+    "pieza": "components/ui/Vacio.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "firmas": [
+      // La frase en cursiva serif (B) y su versión «SinCoincidencias».
+      "\\bfont-display\\b[^\"'`]*\\bitalic\\b[^\"'`]*\\btext-tinta\\/6[05]\\b",
+      // La frase gris suelta de <Tabla> y sus primas (A), la centrada gris clara de Caja y la cursiva chica.
+      "\\bTABLA\\.vacio\\b|\\bpx-5 py-8 text-center text-sm text-taupe\\b|\\bp-5 text-sm text-tinta\\/75\\b|\\bpy-6 text-center text-xs text-tinta\\/50\\b|\\btext-xs italic text-tinta\\/65\\b|\\bpx-3 py-3 text-sm text-tinta\\/65\\b",
+      // El título en negrita sobre panel claro (C), el recuadro punteado (F, Apartados) y el colibrí que flota (G).
+      "\\bfin-guia\\b|\\bvacio-vista\\b|<GuiaVacia\\b|\\brounded-xl bg-papel\\/60 px-6 py-10\\b|\\bborder-dashed border-(?:sand|tinta\\/25)\\b[^\"'`]*\\bpy-(?:6|10)\\b[^\"'`]*\\btext-center\\b|\\bcmp-flota\\b|\\btp-vacia\\b"
+    ],
+    "deuda": [
+
+    ],
+    "excepciones": []
+  },
+  "aviso": {
+    "fecha": "2026-10-08",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/aviso.md",
+    "elegida": "P2 · la franja a la izquierda con el ícono que se dibuja (el error destella una vez) · nota-cayla con su «i» · el error de un dato bajo su campo y el de la hoja en el aviso; elegida tocándola el 2026-10-08",
+    "pieza": "components/ui/Aviso.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css", "components/ui/campos.tsx", "components/ui/Avisos.tsx"],
+    "firmas": [
+      // Un recuadro de tono pintado a mano: fondo suave de ámbar, rojo o verde con su texto profundo, esquinas de caja y relleno
+      // de recuadro (una insignia o un chip, redondos y chicos, no cuentan).
+      "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)\\b)(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
+      // La franja copiada (con su fondo de tono; el acento de una tarjeta de cifra no es un aviso).
+      "\\bborder-l-(?:ambar|rojo)\\b[^\"'`]*\\bbg-(?:ambar|rojo)\\/",
+      // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
+      "\\baviso-datos\\b|\\bfin-nota-bloque\\b",
+      // Las dos piezas que existían a mano.
+      "^\\s*(?:export\\s+)?function\\s+(?:AvisoInline|AvisoDeError)\\b",
+      // Un párrafo rojo suelto (el error va bajo su campo o en <Aviso tono=\"error\">).
+      "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b"
+    ],
+    "deuda": [
+
+    ],
+    "excepciones": []
+  },
+  "buscador": {
+    "fecha": "2026-10-08",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/buscador.md",
+    "elegida": "P1 · la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda y el conteo (lista) · la píldora que se despega (mostrador); busca mientras se escribe; elegida tocándola el 2026-10-08",
+    "pieza": "components/ui/Buscador.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css", "components/ui/BusquedaEnUrl.tsx"],
+    "firmas": [
+      // Una caja de buscar dibujada a mano.
+      // (Un `inputMode="search"` o el placeholder de Vender ya no cuentan: son props que se le pasan a la pieza.)
+      "<input\\b[^>]*type=\"search\"|^\\s*type=\"search\"",
+      "<SenalBuscando\\b",
+      // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
+      "\\bfin-buscar\\b|className=\"buscar\""
+    ],
+    "deuda": [
+
+    ],
+    "excepciones": []
+  },
+  "grafico.barra": {
+    "fecha": "2026-10-09",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.barra.md",
+    "elegida": "P · la pista de arena de Frescura y Facturación con todo el movimiento de «Deuda por vencimiento» de Compras: entra tramo a tramo, se estira al pasar el mouse y los demás bajan, se reacomoda al cambiar la cifra; tres altos (12 · 8 · 4), 24 px para el mouse y una sola voz para el lector; elegida tocando las demos el 2026-10-09",
+    "pieza": "components/ui/BarraApilada.tsx",
+    "tambien": ["app/estilos/barra-apilada.css"],
+    "firmas": [
+      // El tramo dibujado a mano: crece por `flex-basis 0` y se reacomoda con `transition-[flex-grow…]` (Compras, Por pagar, el reparto de un pago).
+      // Las clases van en un solo texto y en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])basis-0(?![\\w-]))(?=[^\"'`]*\\btransition-\\[[^\\]]*flex-grow)",
+      // La barra dibujada a mano con un hilo entre tramos: una fila baja (de 4 a 14 px) separada por 1 a 3 px.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|3|3\\.5|\\[5px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])gap-(?:px|0\\.5|\\[3px\\])(?![\\w.\\[-]))",
+      // La barra con pista y sin hilo: una fila baja (de 3 a 16 px) sobre una pista de arena, hueso o tinta al 5 o 10 % (Caja, Por pagar
+      // de Producción, el reparto del gasto del Taller, el cierre de caja). Una barra de UN solo relleno que se llena con `absolute` o sin
+      // `flex` no entra (mide un avance: `BarraAvance`, `PistaPlazo`); si alguien la dibuja con `flex`, salta y se resuelve con la pieza o con
+      // `unificar-fijo` y su motivo. Las clases, en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|2\\.5|3|3\\.5|4|\\[\\d+px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/(?:5|10))(?![\\w-]))",
+      // Las barras con clase propia: la de las tarjetas de Facturación (`kpi-apilada`) y las de Notas de crédito (`nc-conc`, `nc-barra`).
+      "className=\"[^\"]*(?<![\\w-])(?:kpi-apilada|nc-conc|nc-barra)(?![\\w-])",
+      // Una pieza homónima (la de Facturación y Proformas, con `partes` y leyenda propia): el mismo nombre que la del sistema.
+      "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraApilada\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
   },
 };
 

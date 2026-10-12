@@ -186,3 +186,22 @@ menos de 5° del corte. No reasigna a ningún color existente.
   medio (Felipe: «no debería existir dos nombres que aparenten lo mismo»). Perla y Amarillo mantequilla siguen donde estaban (ADR-0314).
 - Neutro y Tierra se reparten distinto: Beige, Arena y **Topo** son tierra; **Nude** se queda en neutro (ADR-0314, ajustado por el 0317).
 - «Arena pasa a Neutro» de este ADR lo había reemplazado ya el 0314; con el 0317 Arena queda en Tierra.
+
+## Actualización 2026-10-10: «Estampado» deja de ser una familia
+
+Felipe (2026-10-10): «estampado no existe, ya no existe». Un estampado no tiene un tono: es un dibujo, y los dibujos viven en Patrones
+(ADR-0106). Las familias pasan de 11 a **10** (`neutro, tierra, rosado, rojo, naranja, amarillo, verde, azul, morado, metalico`) y el
+criterio 1 de la prioridad queda solo con «acabado: metálico».
+
+- **Web:** `FAMILIAS_COLOR` (`lib/colores-familias.ts`) sin `estampado`; `color-alta-reglas.ts` ya no lo excluye de la sugerencia por tono.
+  `colores.tipo = 'estampado'` es OTRA cosa (cómo se dibuja la muestra) y no cambia.
+- **Base:** `20261010160000_colores_sin_familia_estampado.sql` reemplaza el candado `colores_familia_color_check` por las 10 y archiva las
+  3 filas que la usaban —EST Estampado, MUL Multicolor, ANI Animal print—: `activo = false` y `familia_color = null` (la columna admite
+  nulo). **No se borran** (regla del repo). Medido en producción el 2026-10-10: 0 variantes, 0 prendas por regularizar, 0 fotos, 0
+  temporadas y el hex de relleno `#c9b79c`; nadie las usó. La migración corta si aparece una variante con ellas antes de pegarla.
+- **Descarté** dejarlas activas sin familia (saldrían en la carta como un círculo beige bajo «Sin familia») y reasignarlas a Neutro
+  (Multicolor no es neutro). Un Líder las reactiva desde Atributos ▸ Colores y les elige una familia real.
+- **Se rompe si** la migración se pega antes que la web: la web vieja aún ofrece «Estampado» y el candado nuevo rechaza el guardado.
+  **Orden: primero la web, después la migración.** Entre una y otra, la web degrada con gracia (verificado en local: las 3 filas salen en
+  una píldora «Estampado», sin errores).
+- **Deshacer:** las cuatro líneas están al final del encabezado de la migración.

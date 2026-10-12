@@ -121,3 +121,20 @@ celular) y el título del paso abierto cae bajo ella (`scroll-mt-[11.5rem]`). A 
 desborde ni nombres encimados. `tema:auditar` en `/productos/nuevo`: 0 hallazgos solo en oscuro (los 6 «heredados» son del buscador
 de la cabecera y de las tarjetas de familia, anteriores a este cambio). La base local no tiene patrones en ninguna categoría, así que
 el recorrido completo se hizo con Bisutería (no exige tejido ni patrón).
+
+## Actualización 2026-10-09 — los puntos en el celular, más bajos (Felipe)
+
+En el celular la barra de puntos medía 104 px; pegada bajo la cabecera ocupaba de 56 a 160 px de una pantalla de 812, y la guía de
+foco, que calculaba lo libre con 96 px fijos, dejaba debajo de ella el campo que decía «Sigue aquí» (lo vio Felipe con «Unidades de
+hoy»). Pidió «que no sea tan invasiva y no le quite tanto espacio al contenido». Bajo `sm` (`app/estilos/puntos-avance.css`):
+
+- **~58 px en vez de 104:** puntos más chicos (`--marca: 26px`), nombre de 11,5 px, y sin el rótulo «Estás aquí / Sigue / Listo».
+  El punto que late y el nombre en negrita ya dicen dónde se está. Escritorio no cambia.
+- **La guía mide lo que tapa** (`arribaTapado` en `useGuiaAlta.ts`): cabecera + la barra pegada, en vivo, y centra el campo en el hueco
+  entre ella y la barra de abajo (antes, `scrollIntoView` centraba en la ventana y ponía el campo bajo una de las dos). El título del
+  paso cae con `scroll-mt-32` en el celular.
+
+En el mismo cambio, del mismo recorrido de Felipe: tras elegir marca y proveedor el cursor va al nombre (un combo con el foco ya no
+cuenta como «escribiendo»); la luz que vuelve a un campo porque la persona lo toca no mueve la página (la carta de colores subía a su
+inicio); el nombre del color tocado se lee pegado sobre la barra de abajo; y el segmento de «Unidades de hoy» parte su texto en dos
+líneas en vez de ensanchar la página 23 px.

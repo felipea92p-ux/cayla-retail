@@ -503,6 +503,22 @@ select :'e1' ~ '^A-[0-9]{2}$', :'e1' <> :'e2', (select estante from retail.separ
   (x) => x === "t|t|t|t");
 
 // ---------------------------------------------------------------------------
+// Historial por fecha (20261010180000): el rango acota lo cerrado; lo que espera algo sale siempre
+// ---------------------------------------------------------------------------
+exito("historial por fecha: lo entregado de hace 40 días queda fuera de los últimos 30; lo abierto igual de viejo, no",
+  `${preparar(FELIPE)}${separar({ como: "s1" })}${separar({ como: "s2" })}${separar({ como: "s3" })}
+select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _v \\gset
+select retail.entregar_separacion(:'s3', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _w \\gset
+update retail.separaciones set created_at = now() - interval '40 days' where id in (:'s1', :'s2');
+select (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29) where id = :'s1'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29) where id = :'s2'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29) where id = :'s3'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', p_desde => retail.fn_hoy_lima() - 29, p_hasta => retail.fn_hoy_lima() - 1) where id = :'s3'),
+       (select count(*) from retail.buscar_separaciones(:'ubic') where id in (:'s1', :'s2', :'s3'));`,
+  // s1 cerrado y viejo: fuera · s2 abierto y viejo: dentro · s3 cerrado hoy: dentro, salvo si el rango termina ayer · sin rango: los tres.
+  (x) => x === "0|1|1|0|3");
+
+// ---------------------------------------------------------------------------
 // Editar (20260927120000): quitar y sumar en una sola transacción
 // ---------------------------------------------------------------------------
 exito("editar: sumar una prenda aparta otra unidad, sube el total y el invariante cuadra",

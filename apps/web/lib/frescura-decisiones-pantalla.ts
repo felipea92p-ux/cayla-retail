@@ -381,11 +381,12 @@ type ErrorRpc = { code?: string | null; hint?: string | null; message?: string |
  * Lo que se le dice a quien anotó cuando la base dice que no. Cada pista es un porqué que la persona puede corregir.
  * Con `version_cambiada` (otra persona anotó primero) el texto ya viene de la base, con el nombre y la hora de quien fue.
  */
-export function textoErrorDecision(e: ErrorRpc, sede: string): { texto: string; conVer: boolean; nuevaMarca: boolean } {
+export function textoErrorDecision(e: ErrorRpc, sede: string, boton = "Anotar"): { texto: string; conVer: boolean; nuevaMarca: boolean } {
   // Una pista nuestra es la base diciendo que NO (nada se guardó), aunque el error no traiga código; solo lo que no dice nada,
-  // o un corte de red, es una respuesta incierta: ahí la marca se conserva y reintentar no anota dos veces.
+  // o un corte de red, es una respuesta incierta: ahí la marca se conserva y reintentar no anota dos veces. `boton` es el que
+  // se tocó («Anotar» en la hoja, «La cambié de lugar» en la fila): se le dice a la persona qué volver a tocar.
   const pistaNuestra = typeof e?.hint === "string" && (e.hint === "version_cambiada" || e.hint.startsWith("frescura_"));
-  if (e && !pistaNuestra && esRespuestaIncierta(e as never)) return { texto: "No se pudo anotar: revisa la conexión y vuelve a tocar «Anotar». No se va a anotar dos veces.", conVer: false, nuevaMarca: false };
+  if (e && !pistaNuestra && esRespuestaIncierta(e as never)) return { texto: `No se pudo anotar: revisa la conexión y vuelve a tocar «${boton}». No se va a anotar dos veces.`, conVer: false, nuevaMarca: false };
   switch (e?.hint) {
     case "version_cambiada":
       return { texto: e.message?.trim() || "Otra persona acaba de anotar una decisión sobre esta prenda. Mírala antes de anotar la tuya.", conVer: true, nuevaMarca: true };

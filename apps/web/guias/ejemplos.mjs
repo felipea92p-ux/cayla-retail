@@ -32,7 +32,16 @@ export const EJEMPLOS = {
     sinDatos: "select case when count(*) = 0 then 'no hay un conteo abierto (Revisar solo existe mientras se cuenta)' end from retail.conteos where estado = 'abierto'",
     url: () => `/inventario/conteo/${id("select id from retail.conteos order by created_at desc limit 1")}/revisar` },
   "/inventario/traslados/(billetera)/[id]": { url: () => `/inventario/traslados/${id("select id from retail.transferencias order by created_at desc limit 1")}` },
-  "/productos/[id]/editar": { url: () => `/productos/${id("select id from retail.productos where estado = 'activo' order by created_at desc limit 1")}/editar` },
+  // Editar producto y Familias leen columnas que entraron con las migraciones del 2026-10-10/11 (familias que entran a los
+  // motores, precio de tienda): con la base local atrasada, la página no carga. No se aplican migraciones por esto.
+  "/productos/familias": {
+    sinDatos:
+      "select case when count(*) = 0 then 'la base local no tiene las migraciones del 2026-10-10 (familias.entra_a_motores): la página no carga' end from information_schema.columns where table_schema = 'retail' and table_name = 'familias' and column_name = 'entra_a_motores'",
+  },
+  "/productos/[id]/editar": {
+    sinDatos:
+      "select case when count(*) = 0 then 'la base local no tiene las migraciones del 2026-10-10 (familias.entra_a_motores, precio de tienda): la página no carga' end from information_schema.columns where table_schema = 'retail' and table_name = 'familias' and column_name = 'entra_a_motores'",
+    url: () => `/productos/${id("select id from retail.productos where estado = 'activo' order by created_at desc limit 1")}/editar` },
   // La prenda con más movimientos: así el Historial tiene qué mostrar (filtros, varias tarjetas).
   "/productos/[id]/historial": {
     url: () =>
@@ -40,6 +49,12 @@ export const EJEMPLOS = {
   },
   // El buscador con una búsqueda que encuentra algo de verdad: así se ven los pasos de resultados.
   "/buscar": { url: () => `/buscar?q=${encodeURIComponent(id("select split_part(referencia, ' ', 1) from retail.productos where estado = 'activo' and referencia ~ '^[A-Za-zÁÉÍÓÚáéíóúñÑ]{3,}' and referencia not ilike 'prenda%' order by created_at limit 1"))}` },
+  // Plan del piso: su módulo y sus lecturas nacen en 20261006100000/20261006110000; sin ellas la cuenta cae en «Sin acceso».
+  "/inventario/plan-del-piso": {
+    sinDatos: "select case when count(*) = 0 then 'la base local no tiene el módulo plan_piso (faltan las migraciones 20261006100000 y 20261006110000)' end from retail.modulos where clave = 'plan_piso'",
+  },
+  // Rótulos con dos modelos (como llega desde Productos con dos marcados): así se ven «Cómo salen», la vista previa y las copias.
+  "/rotulos": { url: () => `/rotulos?productos=${id("select string_agg(id::text, ',') from (select id from retail.productos where estado = 'activo' order by created_at desc limit 2) p")}` },
   "/produccion": { cuenta: "admin-taller" },
   "/produccion/comprobantes": { cuenta: "admin-taller" },
   "/produccion/cotizaciones-maquila": { cuenta: "admin-taller" },

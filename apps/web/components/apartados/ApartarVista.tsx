@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -21,6 +21,8 @@ import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
+import { nombresYApellidos } from "@/lib/club-registro-reglas";
+import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
@@ -47,6 +49,12 @@ import {
 import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
+import { Vacio } from "@/components/ui/Vacio";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -72,13 +80,26 @@ const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
+  "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
 // Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0302).
 const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampana(p.precio, p.campana.pct) : 0);
 const precioFinal = (p: VarianteBusqueda) => totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) }]);
+
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11): lo escaneado, los datos del cliente, el
+ *  adelanto, la nota y el paso. El token viaja con él: es el mismo apartado, y reintentarlo no lo duplica. */
+type ApartadoArmado = {
+  lineas: Linea[];
+  f: typeof FORMULARIO_VACIO;
+  nota: string;
+  paso: Paso;
+  clientaQ: string;
+  clientaId: string | null;
+  sinFicha: null | "padron" | "nada";
+  token: string;
+};
 
 const FORMULARIO_VACIO = {
   nombres: "",
@@ -131,6 +152,10 @@ export function ApartarVista({
   onPedidoHecho?: () => void;
 }) {
   const router = useRouter();
+  // El apartado a medio armar es de SU sede (Felipe, 2026-10-11): el panel monta Apartar con la sede en la key, y lo armado en otra
+  // sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo armado, se arranca desde ahí. Uno de un pedido, no.
+  const { inicial: guardadoDeLaSede, reportar: reportarApartado } = useTrabajoPorSede<ApartadoArmado>(ubicacionId);
+  const guardado = pedido ? undefined : guardadoDeLaSede;
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
   // foto del servidor al entrar o tras un `router.refresh()`; `ajustesStock` la corrige con lo que releyó el
   // sondeo mientras la pantalla sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la
@@ -159,7 +184,9 @@ export function ApartarVista({
     ),
   );
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(() =>
-    pedido
+    guardado
+      ? null
+      : pedido
       ? { tono: "info", texto: `Llegó de ${pedido.otraSede} para ${pedido.nombres} y está guardada. Cobra su adelanto: al confirmar pasa al piso y queda apartada.` }
       : desdeTicket.noEntraron.length > 0
       ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
@@ -171,15 +198,15 @@ export function ApartarVista({
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
-  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : desdeTicket.lineas));
+  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
-  const [nota, setNota] = useState("");
-  const [paso, setPaso] = useState<Paso>("ticket");
+  const [nota, setNota] = useState(guardado?.nota ?? "");
+  const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
-    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : FORMULARIO_VACIO,
+    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : (guardado?.f ?? FORMULARIO_VACIO),
   );
   const conOtraSede = encendida(apagadas, "otra_sede");
   const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string; cantidad: number } } | null>(null);
@@ -191,22 +218,50 @@ export function ApartarVista({
   const esTelefono = useConsultaMedia(MQ_TELEFONO) && encendida(apagadas, "qr");
   const conClienta = veClientas && encendida(apagadas, "clienta");
   // Clienta por DNI o celular (Apartados v2): si ya tiene ficha, sus datos se llenan solos y el apartado queda ligado a ella.
-  const [clientaQ, setClientaQ] = useState("");
-  const [clientaId, setClientaId] = useState<string | null>(null);
+  const [clientaQ, setClientaQ] = useState(guardado?.clientaQ ?? "");
+  const [clientaId, setClientaId] = useState<string | null>(guardado?.clientaId ?? null);
   const [buscandoClienta, setBuscandoClienta] = useState(false);
-  const [sinFicha, setSinFicha] = useState(false);
+  // Qué pasó al buscar y no haber ficha: «padron» = el nombre vino de SUNAT; «nada» = hay que escribirlo (ADR-0367).
+  const [sinFicha, setSinFicha] = useState<null | "padron" | "nada">(guardado?.sinFicha ?? null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);
   const [enviando, setEnviando] = useState(false);
   const [registrado, setRegistrado] = useState<{ apartado: Apartado; vuelto: number } | null>(null);
-  const token = useRef<string>(crypto.randomUUID());
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
   const escaner = useRef<HTMLInputElement>(null);
   // Apartar guarda en la tienda (cobra un adelanto y deja las prendas no disponibles): pide Responsable (ADR-0161).
   // Viene vacío en cada apartado —como todo el módulo Punto de venta, no propone a quien inició sesión—; el elegido
   // queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
+
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, queda guardado en ESTA sede (Felipe, 2026-10-11).
+  const armado = apartadoArmado({
+    lineas,
+    nombres: f.nombres,
+    apellidos: f.apellidos,
+    celular: f.celular,
+    dni: f.dni,
+    ruc: f.ruc,
+    razonSocial: f.razonSocial,
+    pagos: f.pagos,
+    nota,
+    buscado: clientaQ,
+  });
+  useEffect(() => {
+    const prendas = lineas.reduce((a, l) => a + l.cantidad, 0);
+    reportarApartado(
+      !pedido && armado
+        ? {
+            etiqueta: ubicacionEtiqueta,
+            unidades: prendas,
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, token: token.current },
+            ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
+          }
+        : null,
+    );
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha]);
 
   const total = totalDeLineas(
     lineas.map((l) => {
@@ -266,6 +321,26 @@ export function ApartarVista({
       almacen: v.almacenAqui,
     };
   }
+
+  // La pistola, igual que en Vender (`usePistola`): lo que entra a ritmo de pistola es un código exacto o nada (nunca la fila
+  // resaltada), lee aunque la pistola no mande Enter y el campo queda vacío para la siguiente lectura, la haya encontrado o no.
+  // Con el foco en un botón del ticket, la primera tecla suelta vuelve al campo; en los pasos de la clienta y el adelanto no
+  // (ahí un combo enfocado es dueño de sus teclas), y nunca con una ventana encima.
+  const sinVentana = !pedir && !camaraAbierta && !registrado;
+  usePistola(escaner, {
+    activa: sinVentana,
+    fuera: paso === "ticket" ? "atraer" : "nada",
+    alLeer: ({ codigo }) => {
+      setTexto("");
+      setActivo(0);
+      const v = resolverCodigoV2(codigo, prendas);
+      if (!v) {
+        setMensaje({ tono: "error", texto: `No encontramos «${codigo}» en ${ubicacionEtiqueta}. Revisa el código de la etiqueta.` });
+        return;
+      }
+      agregar(v.varianteId);
+    },
+  });
 
   // La lista se arma mientras se escribe, como en el Punto de venta: lo que se puede apartar arriba, lo agotado al
   // final y sin poder elegirse (ADR-0168). El lector de código no la usa: escribe el código y manda Enter.
@@ -363,37 +438,66 @@ export function ApartarVista({
     setF((x) => ({ ...x, pagos: x.pagos.length ? [{ ...x.pagos[0], monto, recibido: undefined }] : [{ metodo: "yape", monto }] }));
   }
 
+  /** Los largos que acepta el buscador: con el módulo Clientas, DNI (8) o celular (9); sin él, solo DNI, que va al padrón. */
+  const largosBuscables = conClienta ? [8, 9] : [8];
+
   async function buscarFicha() {
     const t = soloDigitos(clientaQ);
-    if (t.length !== 8 && t.length !== 9) return;
+    if (!largosBuscables.includes(t.length)) return;
     setBuscandoClienta(true);
-    const { clientas, error } = await buscarClienta(t);
-    setBuscandoClienta(false);
-    if (error) return avisar.error(traducirError(error, "buscar al cliente"));
-    // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
-    // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
-    const exacta = clientas.find((x) =>
-      t.length === 8 ? x.documentoTipo === "dni" && x.documentoNumero === t : soloDigitos(x.telefonoWhatsapp ?? "") === t,
-    );
-    const c = exacta ?? clientas[0];
-    if (!c) {
-      setClientaId(null);
-      setSinFicha(true);
-      setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
-      return;
+    // 1) La ficha de clientes, si la cuenta la ve: trae nombre, celular y liga el apartado a su historial.
+    if (conClienta) {
+      const { clientas, error } = await buscarClienta(t);
+      if (error) {
+        setBuscandoClienta(false);
+        return avisar.error(traducirError(error, "buscar al cliente"));
+      }
+      // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
+      // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
+      const exacta = clientas.find((x) =>
+        t.length === 8 ? x.documentoTipo === "dni" && x.documentoNumero === t : soloDigitos(x.telefonoWhatsapp ?? "") === t,
+      );
+      const c = exacta ?? clientas[0];
+      if (c) {
+        // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
+        const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
+        setClientaId(c.id);
+        setSinFicha(null);
+        setBuscandoClienta(false);
+        setF((x) => ({
+          ...x,
+          nombres: nombres || x.nombres,
+          apellidos: resto.join(" ") || x.apellidos,
+          celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
+          // El apartado guarda solo DNI (`separaciones.clienta_dni`): un carné o un pasaporte no se copia ahí.
+          dni: c.documentoTipo === "dni" && c.documentoNumero ? c.documentoNumero : x.dni,
+        }));
+        return;
+      }
     }
-    // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
-    const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
-    setClientaId(c.id);
-    setSinFicha(false);
-    setF((x) => ({
-      ...x,
-      nombres: nombres || x.nombres,
-      apellidos: resto.join(" ") || x.apellidos,
-      celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
-      // El apartado guarda solo DNI (`separaciones.clienta_dni`): un carné o un pasaporte no se copia ahí.
-      dni: c.documentoTipo === "dni" && c.documentoNumero ? c.documentoNumero : x.dni,
-    }));
+    setClientaId(null);
+    setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
+    // 2) Sin ficha y con DNI: el padrón (SUNAT público primero, el de pago si no responde; `app/api/padron`, ADR-0008).
+    //    Si no contesta o no lo conoce, se escribe a mano: un tercero caído nunca frena el apartado (principio 9).
+    const nombre = t.length === 8 ? await nombreDelPadron(t) : null;
+    setBuscandoClienta(false);
+    if (nombre) {
+      setF((x) => ({ ...x, nombres: nombre.nombres, apellidos: nombre.apellidos }));
+    }
+    setSinFicha(nombre ? "padron" : "nada");
+  }
+
+  /** El nombre de un DNI según el padrón, en las dos cajas. null si no responde o no lo conoce. */
+  async function nombreDelPadron(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
+    try {
+      const r = await fetch(`/api/padron?tipo=dni&numero=${dni}`);
+      if (!r.ok) return null;
+      const datos = (await r.json()) as RespuestaPadron;
+      // SUNAT público trae «apellidos nombres»; el proveedor de pago, «nombres apellidos» (`lib/padron.ts`).
+      return nombresYApellidos(datos.nombre, datos.via === "proveedor" ? "nombres_primero" : "apellidos_primero");
+    } catch {
+      return null;
+    }
   }
 
   async function confirmar() {
@@ -455,7 +559,7 @@ export function ApartarVista({
     setTocados(new Set());
     setClientaId(null);
     setClientaQ("");
-    setSinFicha(false);
+    setSinFicha(null);
     setPaso("ticket");
     setUltima(null);
     setMensaje(null);
@@ -482,34 +586,31 @@ export function ApartarVista({
       <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
-            <label data-guia="apartados.buscador" className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
-              <ScanBarcode className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
-              <input
-                ref={escaner}
-                autoFocus
-                value={texto}
-                onChange={(e) => escribir(e.target.value)}
-                onKeyDown={teclado}
-                placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
-                aria-label="Escanea la etiqueta o busca la prenda por nombre"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={abierta}
-                aria-controls="apt-resultados"
-                aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
-              />
-              {texto && (
-                <button type="button" aria-label="Limpiar búsqueda" onClick={() => escribir("")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40">
-                  ×
-                </button>
-              )}
-            </label>
+            {/* El buscador del mostrador (ADR-0358, ronda 5): el código de barras que se enciende, filtra mientras se escribe. */}
+            <Buscador guia="apartados.buscador"
+              tamano="mostrador"
+              icono="barras"
+              ref={escaner}
+              autoFocus
+              valor={texto}
+              onCambio={(v) => escribir(v)}
+              onKeyDown={teclado}
+              placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
+              etiqueta="Escanea la etiqueta o busca la prenda por nombre"
+              role="combobox"
+              aria-expanded={abierta}
+              aria-controls="apt-resultados"
+              aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
+              aria-autocomplete="list"
+            />
             {abierta && (
               <ul id="apt-resultados" role="listbox" aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
                 {disponibles.length + agotadas.length === 0 ? (
-                  <li className="px-4 py-5 text-sm text-tinta/65">No encontramos «{texto.trim()}» en {ubicacionEtiqueta}.</li>
+                  <li>
+                    <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                      No encontramos <b>«{texto.trim()}»</b> en {ubicacionEtiqueta}.
+                    </Vacio>
+                  </li>
                 ) : (
                   <>
                     {disponibles.map((v, i) => filaResultado(v, i))}
@@ -576,7 +677,7 @@ export function ApartarVista({
                   <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {tiendasConPrenda.map((t) => (
-                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="label-cayla h-8 rounded-lg border border-ambar/40 bg-papel px-3 text-[10.5px] text-tinta hover:border-tinta/40">
+                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="btn-cayla btn-secundario h-8 px-2.5 text-[12.5px]">
                         Pedir a {t.nombre} para apartar
                       </button>
                     ))}
@@ -592,18 +693,12 @@ export function ApartarVista({
           </article>
           </div>
         ) : (
-          <div className="flex min-h-[260px] flex-1 items-center justify-center rounded-2xl border border-dashed border-sand p-6 text-center">
-            <div>
-              <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-sand/60">
-                <ScanBarcode className="h-7 w-7 text-tinta/70" aria-hidden />
-              </div>
-              <p className="font-display text-2xl text-tinta">Escanea la prenda que el cliente quiere apartar</p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-tinta/60">
-                {esTelefono
-                  ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
-                  : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
-              </p>
-            </div>
+          <div className="flex min-h-[260px] flex-1 items-center justify-center">
+            <Vacio icono={<ScanBarcode />} titulo="Escanea la prenda que el cliente quiere apartar">
+              {esTelefono
+                ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
+                : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
+            </Vacio>
           </div>
         )}
 
@@ -642,10 +737,9 @@ export function ApartarVista({
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               {lineas.length === 0 ? (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-display text-xl text-tinta">Nada por apartar todavía</p>
-                  <p className="mt-1 text-sm text-tinta/60">Escanea la etiqueta de la prenda.</p>
-                </div>
+                <Vacio icono={<Bookmark />} titulo="Nada por apartar todavía">
+                  Escanea la etiqueta de la prenda.
+                </Vacio>
               ) : (
                 <>
                   {lineas.map((l, i) => {
@@ -742,39 +836,47 @@ export function ApartarVista({
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
                   <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
-                  {conClienta && (
-                    <div className="space-y-1.5">
-                      {clientaId ? (
-                        <p className="flex items-center justify-between gap-2 rounded-xl border border-verde/30 bg-verde/5 px-3 py-2 text-[12.5px] text-verde-profundo">
-                          <span>Ficha encontrada: el apartado queda ligado a su historial.</span>
-                          <button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }} className="label-cayla text-[10px] text-tinta/70">Cambiar</button>
-                        </p>
-                      ) : (
-                        <div className="flex gap-2">
-                          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-hueso px-3 focus-within:ring-1 focus-within:ring-taupe">
-                            <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
-                            <input
-                              value={clientaQ}
-                              onChange={(e) => { setClientaQ(e.target.value); setSinFicha(false); }}
-                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
-                              inputMode="numeric"
-                              placeholder="DNI (8) o celular (9) del cliente"
-                              aria-label="Buscar al cliente por DNI o celular"
-                              className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
-                            />
-                          </label>
-                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="label-cayla h-11 shrink-0 rounded-xl border border-sand px-3 text-[10.5px] disabled:opacity-45">
-                            {buscandoClienta ? "Buscando…" : "Buscar"}
-                          </button>
-                        </div>
-                      )}
-                      {sinFicha && <p className="text-xs text-tinta/60">No tiene ficha todavía: completa sus datos abajo.</p>}
-                    </div>
-                  )}
+                  {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
+                  <div className="space-y-1.5">
+                    {clientaId ? (
+                      <Aviso
+                        tono="exito"
+                        chico
+                        accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
+                      >
+                        Ficha encontrada: el apartado queda ligado a su historial.
+                      </Aviso>
+                    ) : (
+                      <div className="flex gap-2">
+                        {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
+                            cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
+                        <Buscador
+                          valor={clientaQ}
+                          onCambio={(v) => { setClientaQ(v); setSinFicha(null); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                          inputMode="numeric"
+                          placeholder={conClienta ? "DNI (8) o celular (9) del cliente" : "DNI del cliente (8 dígitos)"}
+                          etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
+                          className="min-w-0 flex-1"
+                        />
+                        <button type="button" onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-10 shrink-0">
+                          {buscandoClienta ? "Buscando…" : "Buscar"}
+                        </button>
+                      </div>
+                    )}
+                    {sinFicha === "padron" && (
+                      <p className="text-xs text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
+                    )}
+                    {sinFicha === "nada" && (
+                      <p className="text-xs text-tinta/60">
+                        {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo abajo.` : "No tiene ficha todavía: completa sus datos abajo."}
+                      </p>
+                    )}
+                  </div>
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
                     <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
-                    <Campo etiqueta="Celular · WhatsApp" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="Celular · WhatsApp (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                     <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                   </div>
                   <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
@@ -842,7 +944,7 @@ export function ApartarVista({
                     <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${total ? Math.min(100, (adelanto / total) * 100) : 0}%` }} />
                   </div>
                   <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
-                  {ver("pago") && <p className="text-xs text-rojo-profundo">{ver("pago")}</p>}
+                  {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (
                     <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
                       <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
@@ -863,7 +965,7 @@ export function ApartarVista({
                   {f.devolucionMedio === "transferencia" ? (
                     <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                   ) : (
-                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "el mismo celular"} className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className={`${CAMPO} font-mono`} /></Campo>
                   )}
                   <p className="text-xs text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
                 </fieldset>

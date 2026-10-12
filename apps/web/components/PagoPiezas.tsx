@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Copy, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -11,6 +12,7 @@ import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } fr
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
@@ -478,12 +480,14 @@ export function MediosDePago({
               </div>
             ))}
           </div>
-          {/* Cómo se reparte el pago: un tramo por medio; crece y se reacomoda al escribir. */}
-          <div aria-hidden className="flex h-[5px] gap-0.5">
-            {lineas.map((l, i) => (
-              <i key={i} className={`block h-full min-w-0 basis-0 rounded-sm transition-[flex-grow] duration-500 ease-cayla ${COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)]}`} style={{ flexGrow: Math.max(0, Number(l.monto) || 0) }} />
-            ))}
-          </div>
+          {/* Cómo se reparte el pago: un tramo por medio; crece y se reacomoda al escribir. Es `<BarraApilada>` (ADR-0358), decorativa:
+              los montos ya están escritos en los campos de arriba. */}
+          <BarraApilada
+            decorativa
+            viva
+            alto={4}
+            segmentos={lineas.map((l, i) => ({ clave: String(i), nombre: `Medio ${i + 1}`, valor: Math.max(0, Number(l.monto) || 0), clase: COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)] }))}
+          />
           <div className="w-full sm:w-44">{fechaCampo}</div>
         </>
       )}
@@ -518,7 +522,9 @@ export function MediosDePago({
             Completar con el último medio
           </button>
         )}
-        {favorUsado > saldoFavor + 0.005 && <p className="w-full text-xs text-rojo">Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.</p>}
+        {favorUsado > saldoFavor + 0.005 && <Aviso tono="error" chico className="w-full">
+            Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.
+          </Aviso>}
       </div>
     </div>
   );

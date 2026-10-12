@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { busquedaDesdeLectura, hrefPedirTraslado, sedesDeOrigen, textoTicketCambio } from "./cambios-atajos-reglas";
+import { abrirDesdeLectura, busquedaDesdeLectura, hrefPedirTraslado, sedesDeOrigen, textoTicketCambio } from "./cambios-atajos-reglas";
 
 describe("busquedaDesdeLectura", () => {
   it("la etiqueta de una prenda se busca tal cual", () => {
@@ -75,5 +75,22 @@ describe("textoTicketCambio", () => {
   it("lo cobrado y lo devuelto, en palabras de la clienta", () => {
     expect(textoTicketCambio({ ...base, diferencia: 20 })).toContain("Pagaste S/ 20.00 de diferencia");
     expect(textoTicketCambio({ ...base, comprobante: null, diferencia: -15.5 })).toContain("Te devolvimos S/ 15.50");
+  });
+});
+
+describe("abrirDesdeLectura", () => {
+  const l = (ventaId: string, ventaItemId: string, coincideConBusqueda = false) => ({ ventaId, ventaItemId, coincideConBusqueda });
+  it("una sola compra: entra con la prenda leída marcada", () => {
+    expect(abrirDesdeLectura([l("v1", "a"), l("v1", "b", true)], () => true)).toEqual({ venta: [l("v1", "a"), l("v1", "b", true)], lineaId: "b" });
+  });
+  it("una prenda que ya no se puede: entra sin nada marcado", () => {
+    expect(abrirDesdeLectura([l("v1", "a", true)], () => false)?.lineaId).toBeNull();
+  });
+  it("la boleta (ninguna prenda resaltada): entra sin nada marcado", () => {
+    expect(abrirDesdeLectura([l("v1", "a"), l("v1", "b")], () => true)?.lineaId).toBeNull();
+  });
+  it("dos compras o ninguna: no abre nada", () => {
+    expect(abrirDesdeLectura([l("v1", "a", true), l("v2", "b", true)], () => true)).toBeNull();
+    expect(abrirDesdeLectura([], () => true)).toBeNull();
   });
 });

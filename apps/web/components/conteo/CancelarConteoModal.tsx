@@ -10,6 +10,7 @@ import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    CancelarConteoModal · «¿Cancelar el conteo 12?» (Inventario ▸ Conteo, rediseño 2026-09-29)
@@ -62,9 +63,7 @@ export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: s
         <div className="space-y-4">
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={cancelando} />}
           {error && (
-            <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
-              {error}
-            </p>
+            <Aviso tono="error">{error}</Aviso>
           )}
           {/* En el celular la salida segura («Seguir contando») queda arriba, la más a mano: cancelar tira lo contado y no debe ser el botón más fácil de tocar. */}
           <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">

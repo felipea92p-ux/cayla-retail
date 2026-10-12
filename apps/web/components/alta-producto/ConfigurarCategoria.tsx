@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { guardarEjesCategoria, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Una categoría sin tallas (o sin tejidos/patrones, si su familia los exige)
 // no tiene con qué armar un producto. En vez de mandar a la Líder a otra
@@ -90,12 +91,12 @@ export function ConfigurarCategoria({
 
   return (
     <div className="space-y-3">
-      <AvisoInline tono="ambar">
+      <Aviso tono="atencion">
         <p>
           <strong>{categoriaNombre}</strong> {t.faltante}.{motivoExtra ? ` ${motivoExtra}` : ""}
         </p>
         <p className="mt-1 text-xs">{t.efecto} Esto se guarda en la categoría, no solo en este producto.</p>
-      </AvisoInline>
+      </Aviso>
 
       <p className="label-cayla text-[11px] text-tinta/60">{t.accion}</p>
       {universo.length === 0 ? (
@@ -110,18 +111,15 @@ export function ConfigurarCategoria({
         </div>
       )}
 
-      {error && (
-        <p role="alert" className="text-xs text-rojo-profundo">
-          {error}
-        </p>
-      )}
+      {error && <Aviso tono="error">{error}</Aviso>}
+
       <AvisoSinIdentidad firma={firma} />
       <button
         type="button"
         onClick={() => void guardar()}
         disabled={elegidos.length === 0 || guardando || !firma.listo}
         title={firma.motivo ?? undefined}
-        className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-40"
+        className="btn-cayla btn-primario"
       >
         {guardando ? "Guardando…" : `Guardar en ${categoriaNombre}`}
       </button>

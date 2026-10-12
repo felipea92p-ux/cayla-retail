@@ -129,11 +129,21 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
 /**
  * La salida que se le ofrece cuando no se puede eliminar. Una pieza del sistema no se retira de ninguna manera. Si ya
  * está descontinuado, no hay nada más que hacer; si no (activo, o no se sabe: en Existencias la lectura del catálogo
- * puede fallar y el estado llega en null), la salida es descontinuarlo desde Editar, el mismo interruptor
- * Activo/Descontinuado que ya existe. `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
+ * puede fallar y el estado llega en null), la salida es descontinuarlo, y de dos maneras:
+ *  - `desactivar`: quien abrió la ventana puede abrir la hoja que cambia el estado (`puedeDesactivar`, la Grilla): el botón
+ *    «Desactivar» hace el cambio ahí mismo (2026-10-09, Felipe: «este producto era una prueba» y ya tenía una venta);
+ *  - `irAEditar`: si no puede (Existencias, la Tabla), el enlace a Editar, donde está el interruptor Activo/Descontinuado.
+ * `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
  */
-export function salidaSinEliminar(estado: string | null, nivel: NivelEliminar): { texto: string; irAEditar: boolean } | null {
+export function salidaSinEliminar(
+  estado: string | null,
+  nivel: NivelEliminar,
+  puedeDesactivar = false
+): { texto: string; irAEditar: boolean; desactivar: boolean } | null {
   if (nivel === "sistema") return null;
-  if (estado === "descontinuado") return { texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false };
-  return { texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.", irAEditar: true };
+  if (estado === "descontinuado") return { texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false, desactivar: false };
+  if (puedeDesactivar) {
+    return { texto: "Si ya no lo quieres a la venta, desactívalo: sale de la lista y su historia se conserva.", irAEditar: false, desactivar: true };
+  }
+  return { texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.", irAEditar: true, desactivar: false };
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { Children, Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
-import { Plus } from "lucide-react";
+import { CircleAlert, Plus, SearchX } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -115,7 +116,17 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
       <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
-        {pie ? <span className="anim-revelar block">{pie}</span> : null}
+        {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
+        {pie ? (
+          tono === "error" ? (
+            <span className="pie-error trazo-dibuja anim-revelar">
+              <CircleAlert aria-hidden />
+              <span>{pie}</span>
+            </span>
+          ) : (
+            <span className="anim-revelar block">{pie}</span>
+          )
+        ) : null}
       </div>
     </div>
   );
@@ -806,7 +817,11 @@ export function Desplegable<T extends string>({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+              <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{busqueda.trim()}»</b>.
+                </Vacio>
+              </li>
             ) : (
               // Los grupos (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin grupo, las filas sueltas
               // de siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay grupos.
@@ -897,20 +912,23 @@ export function CampoSelect<T extends string>({
    vuelo, que es lo que le dice a quien está en el mostrador que el
    sistema NO se colgó.
    ------------------------------------------------------------------ */
+// Cada peso es una variante de `btn-cayla` (globals.css): el mismo botón que el resto del ERP, con su movimiento y su onda. La VOZ
+// no la decide el peso sino el lugar (ADR-0358, ronda 4, Felipe 2026-10-07: «dos voces»): dentro de una cabecera de pantalla
+// (`data-voz="cabecera"`) habla en versalitas de 11 px; en una hoja o una tarjeta, en letra normal.
 const PESO_BOTON = {
   // Guía oficial (2026-09-22): el hover del primario es rojo PROFUNDO — el rojo de marca no se gasta en un hover.
-  primario: "bg-tinta text-crema hover:bg-rojo-profundo disabled:bg-tinta/30",
-  fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
-  discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
+  primario: "btn-primario",
+  fantasma: "btn-secundario",
+  discreto: "btn-sutil",
+  // Lo que borra, anula o desactiva: rojo desde el principio (ronda 4, la A).
+  peligro: "btn-peligro",
 } as const;
 
-/* El botón de la acción principal y su pareja (ADR-0358, «Botón Nuevo / Registrar»: Felipe eligió mirando el 2026-10-07 la forma B,
-   versalitas de 11 px y 40 px de alto). Su movimiento es el ÚNICO de los botones del ERP (`.mov-boton` en globals.css, ronda 3: la D):
-   sube con su sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar, y
-   mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es `<BotonEnlace>`; con un archivo o
-   un enlace afuera, `<BotonAncla>`. */
-const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) =>
-  `mov-boton label-cayla rounded-md px-4 py-3 text-[11px] disabled:cursor-not-allowed ${PESO_BOTON[peso]} ${className}`;
+/* El botón del ERP (ADR-0358). Su movimiento es el ÚNICO de los botones (`.btn-cayla` / `.mov-boton` en globals.css): sube con su
+   sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar y una onda
+   nace donde tocaste; mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es
+   `<BotonEnlace>`; con un archivo o un enlace afuera, `<BotonAncla>`. */
+const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) => `btn-cayla ${PESO_BOTON[peso]} ${className}`;
 
 /**
  * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:

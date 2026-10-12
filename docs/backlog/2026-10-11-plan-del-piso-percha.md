@@ -1,0 +1,9 @@
+## Plan del piso ▸ Propuesta: el riel de perchas (maqueta A) — rama `claude/plan-del-piso-percha` (2026-10-11)
+
+- [x] 1 · Maqueta A «La percha» elegida por Felipe mirando (tres direcciones más la actual, `docs/maquetas/plan-del-piso-2026-10/`) y llevada al ERP: dos rieles de perchas, «78 de 1,800 prendas», «¿Por qué?», fichas de «Fuera del riel»; tabla y mancuerna en el mismo lenguaje. ADR-0352, act. 2026-10-11.
+- [x] 2 · Revisión de 7 lentes + un escéptico por hallazgo: aplicado lo confirmado (accesibilidad, «según el sistema», panel pegado a su botón, 375 px, vocabulario único, bordes). Informe: `docs/formidable/plan-del-piso.md`.
+- [ ] 3 · **Ver la ruta real con su base** (la local no tiene las tablas del Plan del piso): abrir `/inventario/plan-del-piso` con una sede real, correr `pnpm --filter web tema:auditar -- --ruta /inventario/plan-del-piso --escenarios` (hay que agregar el escenario del panel «¿Por qué?» y de la ficha fijada) y probarlo con una colaboradora real.
+- [ ] 4 · `/chaos` sobre la pestaña **Grupos** (es lo único de la pantalla que guarda; no se tocó).
+- [ ] 5 · Decidir mirando: la clave «Cada percha = N prendas» pegada al riel y con un solo sentido para «prendas» y «lugares»; una pista de que la tabla se desplaza a 1024 px con el menú abierto; el chip «N categorías por revisar» en la cabecera; tocar un tramo del riel para fijarlo.
+- [ ] 6 · Pregunta para Felipe: la pestaña **Historia** dibuja la mezcla de los mismos grupos con `BarraApilada`; ¿pasa a perchas o se queda en barras? Y los grupos 7 en adelante (hoy repiten color; la base siembra 6 y nada crea grupos).
+- [ ] 7 · Heredado de la lista aparte de (b), sin hacer: «Por cuadrar» sin camino a `/inventario/cuadrar`; los roles («Destino», «Rutina»…) solo por `title`; `TarjetaCifra` con `acento`; `Aviso` con acción a 375 px (hoy una regla local en `plan-piso.css`); `Tabla` sin roles de tabla para lectores.

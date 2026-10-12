@@ -1,0 +1,4 @@
+## 2026-10-11 (Producción mide el margen con el precio MÁS BAJO de cualquier tienda)
+Qué hice: el semáforo y el «margen promedio» de Producción dejaron de usar el precio más alto de la grilla y usan el precio propio más bajo que alguna tienda le pone al modelo, si lo hay; la tarjeta, las terminadas, el panel y la hoja de Nueva orden dicen en qué tienda (solo web, sin SQL; ADR-0370, actualización 2026-10-11 «Producción»).
+Por qué así: lo elegiste tú («el más bajo de cualquier tienda»): es la vara prudente, si ahí todavía gana, gana en todas. El margen es del líder, así que los precios de las tiendas solo se leen para el líder; si no se pueden leer, el margen sigue con el precio de la grilla, como antes.
+Felipe se lleva: una orden cuyo modelo AQP vende a 69.90 y la grilla a 79.90 se mide con 69.90 y lo dice («Al filo 57% · en Trujillo»); el precio de venta de la tarjeta y de «se vende a» sigue siendo el de la grilla. Un modelo sin precio propio no cambia nada.

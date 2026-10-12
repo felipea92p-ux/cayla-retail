@@ -2,14 +2,14 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 139,
+  "total": 146,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
       "button «Descargar reporte de este ajuste»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -18,10 +18,8 @@
       "ComboResponsable «(sin nombre)»",
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "Boton «Cerrar»",
       "a «{a.contacto}»",
-      "button «Liberar»",
-      "Boton «Cerrar» #2"
+      "button «Liberar»"
     ],
     "components/BotonSonidoConfirmar.tsx": [
       "button «Sonido al confirmar:»",
@@ -31,6 +29,7 @@
       "ComboResponsable «(sin nombre)»",
       "Boton «{puede ? \"Cancelar\" : \"Cerrar\"}»",
       "Link «Editar»",
+      "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/EscanerBusqueda.tsx": [
@@ -48,11 +47,10 @@
       "button «{`${h.color ?? \"Sin color\"}»"
     ],
     "components/ExistenciasVacio.tsx": [
-      "button «{`Quitar el filtro ${filtro.etiqueta}»",
       "Link «{`Ver «${producto.referencia}»",
       "button «{relajacion.texto}»",
-      "button «{`Buscar «${quisisteDecir.consulta}»",
-      "button «{etiquetaLimpiar}»"
+      "button «{etiquetaLimpiar}»",
+      "button «{`Buscar «${quisisteDecir.consulta}»"
     ],
     "components/FiltrosExistencias.tsx": [
       "DesplegablePildora «Categoría»",
@@ -67,8 +65,6 @@
       "button «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
       "button «existencias.chip-vista»",
       "button «Limpiar todo»",
-      "input «{placeholder}»",
-      "button «Borrar búsqueda»",
       "button «existencias.escanear»",
       "BotonFiltros «{alLadoDeFiltros}»",
       "button «Limpiar filtros»",
@@ -81,6 +77,9 @@
       "button «Ver todas»",
       "Link «{p.referencia}»",
       "Link «Cuadrar el piso»",
+      "SegmentoDeslizante «Ver unidades en»",
+      "Boton «Ver ambos»",
+      "button «Ver ambos»",
       "button «Exportar CSV»",
       "button «Exportar CSV» #2",
       "Casilla «Marcar todas las tallas de esta página»",
@@ -91,6 +90,7 @@
       "Link «Bajar al piso»",
       "Link «Trasladar»",
       "Link «Etiquetas»",
+      "Link «Rótulo»",
       "button «Quitar las marcas»",
       "button «existencias.escanear-celular»"
     ],
@@ -106,8 +106,7 @@
       "CampoMonto «0.00»",
       "CampoSelect «{guia.etiqueta(\"metodo\", \"Forma de pago\")}»",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? undefined}» #3",
-      "Boton «Cerrar»"
+      "Boton «{responsable.motivo ?? undefined}» #3"
     ],
     "components/ResumenStockOverlay.tsx": [
       "button «Reintentar»"
@@ -132,14 +131,19 @@
       "input «{etiqueta}»",
       "button «Una más»",
       "textarea «Ej. no cabe en el riel»",
+      "button «{`Una menos de ${etiqueta}»",
+      "input «{`Cuántas descuelgas de ${etiqueta}»",
+      "button «{`Una más de ${etiqueta}»",
       "button «Todas (»",
+      "button «¿Más tallas o colores? Subir varias»",
       "button «¿Más tallas o colores? Colgar varias»",
       "input «1»",
+      "button «Todo lo que está colgado de cada talla»",
       "button «1 en cada talla sin ninguna colgada»",
       "button «Vaciar»",
-      "button «{`Una menos de ${etiqueta}»",
+      "button «{`Una menos de ${etiqueta}» #2",
       "input «{`Cuántas cuelgas de ${etiqueta}»",
-      "button «{`Una más de ${etiqueta}»",
+      "button «{`Una más de ${etiqueta}» #2",
       "input «Nombres»",
       "input «Apellidos»",
       "input «Celular»",
@@ -155,6 +159,8 @@
     ],
     "components/existencias/PanelTalla.tsx": [
       "button «{`${valor}»",
+      "button «{valor}»",
+      "button «{`Ver la foto de ${prenda.referencia}»",
       "button «Cerrar»",
       "button «{v === \"talla\" ? \"existencias.cajon-esta-talla\" : \"existencias.cajon-todas\"}»",
       "button «{`${c.color ?? \"Sin color\"}»",
@@ -162,6 +168,7 @@
       "button «→() => alAccionar(a.clave)»",
       "button «Ver ficha»",
       "button «existencias.cajon-como-se-vende»",
+      "button «Ver piso y almacén»",
       "button «{lectura}» #2",
       "button «{lectura}» #3",
       "button «existencias.cajon-colgar-varias»",

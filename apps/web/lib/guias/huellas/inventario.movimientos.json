@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 59,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «);»",
@@ -14,9 +14,17 @@
       "Link «{cuerpo}»",
       "button «Cerrar»"
     ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/DetalleVentaModal.tsx": [
-      "button «Cerrar»",
       "button «Reintentar»",
+      "Boton «Corregir pago»",
       "button «Imprimir ticket»",
       "button «Imprimir»"
     ],
@@ -43,8 +51,6 @@
       "button «{f.etiqueta}»",
       "Pastilla «Todos»",
       "Pastilla «{etiquetaProceso(p)}»",
-      "input «Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)»",
-      "button «Limpiar búsqueda»",
       "button «Escanear una etiqueta»",
       "button «movimientos.filtros-celular»",
       "Pastilla «{p.texto}» #2",

@@ -58,6 +58,7 @@ import {
   esChoqueDeCandados,
   bloqueoPorVenta,
   choqueDeCorreccion,
+  costoMaximoGuardado,
   etiquetasComunes,
   filasDelEje,
   filasDeProducto,
@@ -85,6 +86,10 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
+import { PreciosPorSede } from "@/components/ficha-producto/PreciosPorSede";
+import type { Tienda } from "@/components/ficha-producto/PrecioSedeModal";
+import { usePreciosDeTienda } from "@/components/ficha-producto/usePreciosDeTienda";
+import { nombreCorto, tiendasAlCambiarPrecio } from "@/lib/precio-sede-reglas";
 import { MatrizStockFicha, MotivoDeLaVisita, type BotonesDeColor, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
 import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
@@ -180,7 +185,7 @@ import type { AjusteStockFicha, ContextoFicha, LecturaStockFicha } from "@/compo
    talla que ADR-0258 ponía en las filas «sin historia» se retiraron.
    ==================================================================== */
 
-type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
+type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean; admitePrecioCero: boolean };
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
@@ -233,6 +238,7 @@ export function ProductoForm({
   puedeCorregir = true,
   ajusteStock = null,
   lecturaStock = null,
+  preciosSede = null,
   producto,
   volverA = "/productos",
 }: {
@@ -261,6 +267,16 @@ export function ProductoForm({
   ajusteStock?: AjusteStockFicha | null;
   /** La sede de la que se LEE el stock aunque la cuenta no pueda ajustarlo (sin «Ajustar stock» se ve, no se toca). */
   lecturaStock?: LecturaStockFicha | null;
+  /** Precio por tienda (Felipe 2026-10-09; 2026-10-10): las tiendas donde esta cuenta puede poner precio (`tiendas`), todas las
+   *  abiertas (`todas`, para mostrar el precio en cada una), el precio de la prenda guardado (`general`: null si cambia según la
+   *  talla) y la tienda de quien edita (sus precios propios los lee la ficha: `usePreciosDeTienda`). `null` = no se muestra (alta). */
+  preciosSede?: {
+    tiendas: Tienda[];
+    todas: Tienda[];
+    general: number | null;
+    ubicacionId: string;
+    sede: string;
+  } | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
   /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
@@ -514,6 +530,15 @@ export function ProductoForm({
   // cambios». Sin cambios no hay barra, y sin barra no hay dónde guardar: la comparación cubre TODO lo editable. Deshacer a mano
   // un cambio lo quita de la cuenta (una fila agregada y quitada, o un precio devuelto, no son nada que perder).
   const [hojaAbierta, setHojaAbierta] = useState(false);
+  // Precio por tienda: los precios propios de la prenda (los comparten el bloque y la hoja) y las tiendas que, al cambiar el precio
+  // de la prenda, se pidió igualar al nuevo (Felipe 2026-10-10: «preguntar al guardar»).
+  const preciosTienda = usePreciosDeTienda(preciosSede ? producto?.id : null);
+  // El precio propio de la tienda de quien edita, para la cabecera de «Variantes y precios» («S/ 69.90 en TRU»).
+  const propioAqui = preciosSede ? preciosTienda.precios?.find((p) => p.ubicacionId === preciosSede.ubicacionId) : undefined;
+  const precioPropioAqui = propioAqui ? { sede: nombreCorto(propioAqui.sede), precio: propioAqui.precio } : null;
+  // El precio de esta tienda después del último guardado (o null: el de la prenda), para la vista previa de las etiquetas.
+  const precioAquiTras = useRef<number | null>(null);
+  const [igualarTiendas, setIgualarTiendas] = useState<ReadonlySet<string>>(new Set());
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
 
@@ -559,6 +584,7 @@ export function ProductoForm({
     tallasHabilitadas: tallasCategoria.map((t) => t.id),
     nombre: categoriaActual?.nombre,
     cambio: categoriaId !== enLaBase.datos.categoriaId,
+    admitePrecioCero: !!categoriaActual?.admitePrecioCero,
   });
   const avisoBloque = avisoBloqueSinAplicar(bloquePendiente);
   const avisosSinBloquear = problemas.filter((p) => !p.bloquea).map((p) => p.texto);
@@ -612,6 +638,18 @@ export function ProductoForm({
   const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
   const grupoStock = grupoDeStockEnHoja(stock.cambios, stock.motivos.find((m) => m.valor === stock.motivo)?.texto ?? "Ajuste", donde);
   const totalCambios = resumen.total + stock.cambios.length;
+  // Si cambió el precio de alguna talla activa y alguna tienda tiene precio propio: qué pasa en cada tienda (la hoja lo pregunta).
+  const preciosActivos = (vs: readonly { activo: boolean; precio: string }[]) => vs.filter((v) => v.activo).map((v) => Number(v.precio)).filter((n) => n > 0);
+  const alCambiarPrecio =
+    preciosSede && preciosTienda.precios
+      ? tiendasAlCambiarPrecio({
+          propios: preciosTienda.precios,
+          tiendas: preciosSede.todas,
+          antes: preciosActivos(variantesResumen.guardadas),
+          despues: preciosActivos(variantesResumen.ahora),
+          puedeTocar: (id) => preciosSede.tiendas.some((t) => t.id === id),
+        })
+      : null;
   const hayCambios = !guardado && totalCambios > 0;
   // «¿Salir sin guardar?» (Felipe, 2026-09-28: «preguntar antes de perder»): el aviso de Compras y Recibir, con esta frase.
   // Cubre enlaces, Atrás y cerrar la pestaña; ver `useSalidaSinGuardar`.
@@ -695,6 +733,7 @@ export function ProductoForm({
    *  (se elige ahí mismo, en la hoja); con cualquier otro error se cierra para que se vea la ficha y el campo a corregir. */
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
+    precioAquiTras.current = propioAqui?.precio ?? null;
     // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
     if (resumen.total === 0) {
       setLoading(true);
@@ -794,6 +833,34 @@ export function ProductoForm({
     // Lo principal ya está en la base: desde aquí, «sin guardar» se mide contra esto (la barra dice solo lo que falta).
     setEnLaBase({ datos: datosDeLaPrenda(), fotos: fotosVista.map((f) => ({ ...f, fijo: false })) });
     logrado.current.frases = [...new Set([...logrado.current.frases, ...hecho])];
+
+    // Precio por tienda (Felipe 2026-10-10, «preguntar al guardar»): las tiendas que en la hoja se pidió igualar al precio nuevo de la
+    // prenda pierden su precio propio. Va JUSTO después del guardado principal (el precio nuevo ya está en la base) y antes del stock,
+    // las etiquetas y la temporada: si uno de esos falla, el reintento ya no ve un cambio de precio y la casilla se perdería. Si falla,
+    // la prenda igual quedó guardada y esa tienda sigue con su precio: el aviso lo dice, y se iguala desde «Precio por tienda».
+    const igualadas = new Set<string>();
+    for (const t of alCambiarPrecio?.conPropio.filter((x) => x.que === "se-queda" && x.puedeIgualar && igualarTiendas.has(x.ubicacionId)) ?? []) {
+      const { error: errorIgualar } = await firmar(
+        supabase.rpc("quitar_precio_sede", { p_producto_id: producto.id, p_ubicacion_id: t.ubicacionId, p_motivo: "Igualado al nuevo precio de la prenda" }),
+        firma
+      );
+      if (errorIgualar) {
+        avisar.error(traducirError(errorIgualar, `igualar el precio de ${t.sede}`), {
+          detalle: `${nombrePrenda} ya quedó guardado; ${t.sede} sigue con su precio propio. Iguálalo desde «Precio por tienda».`,
+        });
+        break;
+      }
+      igualadas.add(t.ubicacionId);
+    }
+    setIgualarTiendas(new Set());
+    // El precio propio de esta tienda que sigue vigente después del guardado (la vista previa de «Etiquetas de lo que entró» sale con él):
+    // ni se igualó a mano ni quedó igual al de la prenda (la base lo quita sola).
+    const quedaIgualAqui = alCambiarPrecio?.conPropio.some(
+      (t) => t.ubicacionId === propioAqui?.ubicacionId && (t.que === "se-iguala" || igualadas.has(t.ubicacionId))
+    );
+    precioAquiTras.current = propioAqui && !quedaIgualAqui ? propioAqui.precio : null;
+    // La base quita sola el precio propio que quedó igual al de la prenda: el bloque se vuelve a leer.
+    if ((preciosTienda.precios?.length ?? 0) > 0) preciosTienda.recargar();
 
     // Cómo quedaron las variantes: los ids de las nuevas (para sus etiquetas) y si la base aplicó las correcciones. Con
     // la base sin el SQL de ADR-0263, `catalogo_actualizar_producto` ignora el color y la talla de una variante que ya
@@ -936,7 +1003,11 @@ export function ProductoForm({
     // Entró stock (subió una talla o un color nuevo nació con unidades) y no hubo correcciones: la hoja grande «Etiquetas de lo
     // que entró» (Felipe 2026-10-03), con una etiqueta por cada prenda que entró. Tras corregir color o talla se reimprime TODO
     // (lo pegado ya no dice lo correcto): eso sigue siendo el botón del aviso.
-    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres) : [];
+    // El precio de la tienda es de la PRENDA (2026-10-10): vale para toda talla, también la que nació en este guardado (que no estaba en
+    // el mapa leído al abrir). Sin precio propio vigente, el de cada talla.
+    const precioAqui = precioAquiTras.current;
+    const preciosAquiTras = precioAqui !== null ? Object.fromEntries(filasFinales.filter((f) => f.id).map((f) => [f.id!, precioAqui])) : {};
+    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosAquiTras) : [];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
     setGuardado(true);
     if (lineas.length > 0 && hrefSubidas) {
@@ -1514,7 +1585,7 @@ export function ProductoForm({
             numero={4}
             hecho={false}
             titulo="Variantes y precios"
-            resumen={resumenVariantes(filas)}
+            resumen={resumenVariantes(filas, precioPropioAqui)}
             abierta={abiertas.variantes}
             onAbierta={(v) => setAbiertas((a) => ({ ...a, variantes: v }))}
             retraso={190}
@@ -1538,6 +1609,7 @@ export function ProductoForm({
                       veCosto={veCosto}
                       deshabilitado={loading}
                       campoFijo={vista === "costo" ? "costo" : "precio"}
+                      admitePrecioCero={!!categoriaActual?.admitePrecioCero}
                     />
                   </div>
                 ) : undefined
@@ -1558,6 +1630,20 @@ export function ProductoForm({
             />
 
             {vista === "unidades" && <MotivoDeLaVisita stock={stock} deshabilitado={loading} />}
+
+            {producto && preciosSede && (
+              <PreciosPorSede
+                productoId={producto.id}
+                precios={preciosTienda.precios}
+                onCambio={preciosTienda.recargar}
+                precioPrenda={preciosSede.general}
+                todas={preciosSede.todas}
+                tiendas={preciosSede.tiendas}
+                ubicacionActual={preciosSede.ubicacionId}
+                costoMaximo={veCosto ? costoMaximoGuardado(filas) : null}
+                deshabilitado={loading}
+              />
+            )}
 
             {correcciones.length > 0 && (
               <ul className="mt-2.5 space-y-1.5" aria-label="Correcciones de color o talla que se guardan">
@@ -1692,6 +1778,7 @@ export function ProductoForm({
           onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
           onConfirmar={agregarColores}
           onClose={() => setAgregandoColor(false)}
+          admitePrecioCero={!!categoriaActual?.admitePrecioCero}
         />
       )}
       {agregandoTalla && (
@@ -1703,6 +1790,7 @@ export function ProductoForm({
           etiquetasTexto={etiquetasTexto}
           onConfirmar={(r) => setFilas(agregarCombinaciones(filas, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }))}
           onClose={() => setAgregandoTalla(false)}
+          admitePrecioCero={!!categoriaActual?.admitePrecioCero}
         />
       )}
       {imprimir && (
@@ -1765,6 +1853,21 @@ export function ProductoForm({
           avisos={avisosSinBloquear}
           notaAgregan={notaAgregan}
           extra={grupoStock}
+          tiendas={
+            alCambiarPrecio
+              ? {
+                  datos: alCambiarPrecio,
+                  igualar: igualarTiendas,
+                  onIgualar: (id, si) =>
+                    setIgualarTiendas((previo) => {
+                      const n = new Set(previo);
+                      if (si) n.add(id);
+                      else n.delete(id);
+                      return n;
+                    }),
+                }
+              : null
+          }
           responsable={stock.responsable}
           onConfirmar={guardar}
           onClose={() => setHojaAbierta(false)}

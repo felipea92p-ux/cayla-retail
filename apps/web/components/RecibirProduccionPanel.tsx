@@ -10,6 +10,8 @@ import { RecibirComprobanteModal } from "@/components/RecibirComprobanteModal";
 import { etiquetaTipo } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { agruparPorComprobante, resumenRecepcion, type ComprobantePorRecibir, type LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
+import { CircleCheck, PackageOpen } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Recibir insumos (ADR-0133, F4d). Los comprobantes de los proveedores con lo que todavía no llegó, del que lleva más tiempo esperando al
 // más nuevo. Solo CANTIDADES: quien recibe en el Taller no ve dinero. Cada línea que llega abre un lote (con el costo de la línea, que la
@@ -26,7 +28,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
+      <div data-voz="cabecera" className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir</h1>
         <p className="mt-1 max-w-xl text-sm text-tinta/65">
@@ -53,11 +55,17 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
       </div>
 
       {grupos.length === 0 ? (
-        <div data-guia="prod-recibir.lista" className="card-cayla space-y-1.5 p-5 text-sm text-tinta/75">
-          <p>No hay comprobantes con insumos para recibir. Cuando el líder registre la factura de un proveedor de tela o avíos, aparecerá aquí.</p>
+        <div className="card-cayla">
+          <Vacio guia="prod-recibir.lista" icono={<PackageOpen />} titulo="No hay insumos por recibir">
+            Cuando el líder registre la factura de un proveedor de tela o avíos, aparecerá aquí para que anotes lo que llegó.
+          </Vacio>
         </div>
       ) : abiertos.length === 0 ? (
-        <div data-guia="prod-recibir.lista" className="card-cayla p-5 text-sm text-tinta/75">Todo lo facturado ya llegó o se cerró. No hay nada por recibir.</div>
+        <div className="card-cayla">
+          <Vacio guia="prod-recibir.lista" icono={<CircleCheck />} titulo="Todo lo facturado ya llegó">
+            Lo que se compró ya entró al Taller o se cerró. No hay nada por recibir.
+          </Vacio>
+        </div>
       ) : (
         <ul data-guia="prod-recibir.lista" className="space-y-3">
           {abiertos.map((g, i) => (

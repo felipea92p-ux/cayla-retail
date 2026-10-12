@@ -180,8 +180,16 @@ export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto
       if (!control.current) return;
       const r = control.current.getBoundingClientRect();
       const margen = 8;
-      const abajo = window.innerHeight - r.bottom - separacion - margen;
-      const arriba = r.top - separacion - margen;
+      // El aire se mide contra lo que SE VE, no contra la ventana entera (2026-10-08, Prenda sin registrar en el celular): con el
+      // teclado abierto, `innerHeight` sigue contando la parte tapada, la lista creía tener 256 px abajo y se abría detrás del
+      // teclado, con una opción y media a la vista. `fixed` y `getBoundingClientRect` hablan en el marco de la página; el trozo
+      // visible va de `offsetTop` a `offsetTop + height`. Con zoom de pellizco se queda como antes (ahí lo chico no es el teclado).
+      const vv = window.visualViewport;
+      const conVisible = vv && vv.scale <= 1.01;
+      const techo = conVisible ? vv.offsetTop : 0;
+      const piso = conVisible ? vv.offsetTop + vv.height : window.innerHeight;
+      const abajo = piso - r.bottom - separacion - margen;
+      const arriba = r.top - techo - separacion - margen;
       // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
       const haciaAbajo = abajo >= Math.min(alto, 160) || abajo >= arriba;
       const maxHeight = haciaAbajo ? Math.min(alto, Math.max(abajo, 120)) : Math.min(alto, arriba);

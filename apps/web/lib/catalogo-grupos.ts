@@ -41,8 +41,8 @@ export type GrupoCatalogo<T> = {
   referencia: string;
   color: string | null;
   categoria: string | null;
-  /** De la primera variante del grupo — todas comparten prenda+color, así que
-   *  comparten foto. */
+  /** La de la primera variante del grupo que tenga foto — todas comparten prenda+color,
+   *  así que comparten foto. */
   fotoUrl: string | null;
   /** Ordenadas como se leen en tienda (ver `ordenTalla`). */
   tallas: TallaDelGrupo<T>[];
@@ -82,6 +82,8 @@ export function agruparCatalogo<T extends VarianteAgrupable>(variantes: T[]): Gr
       };
       grupos.set(clave, grupo);
     }
+    // Una talla sin foto no le quita la foto al color: vale la de la primera talla que la tenga.
+    grupo.fotoUrl ??= v.fotoUrl;
     const almacenAqui = Math.max(0, v.almacenAqui ?? 0);
     grupo.tallas.push({ variante: v, talla: v.talla?.trim() || SIN_TALLA, stockAqui: v.stockAqui, almacenAqui });
     grupo.stockTotal += v.stockAqui;
@@ -193,9 +195,22 @@ export function filtrarConStock<T>(prendas: PrendaCatalogo<T>[], soloConStock: b
   return { prendas: visibles, ocultos, ocultosEnAlmacen };
 }
 
-/** El color con el que abre la tarjeta: el primero con algo en el piso; si no, el primero en el almacén; si no, el primero. */
+/** El color con el que abre la tarjeta: el primero con algo en el piso; si no, el primero en el almacén; si no, el primero.
+ *  Desde el 2026-10-08 (Felipe) un color CON FOTO va primero dentro de cada escalón: la foto principal es la prenda real, no su
+ *  ícono. Uno con foto pero sin nada (ni piso ni almacén) no le gana a uno sin foto que sí se puede vender. */
 export function colorInicial<T>(prenda: PrendaCatalogo<T>): GrupoCatalogo<T> | undefined {
-  return prenda.colores.find((c) => c.stockTotal > 0) ?? prenda.colores.find((c) => c.almacenTotal > 0) ?? prenda.colores[0];
+  const cs = prenda.colores;
+  const piso = (c: GrupoCatalogo<T>) => c.stockTotal > 0;
+  const almacen = (c: GrupoCatalogo<T>) => c.almacenTotal > 0;
+  const foto = (c: GrupoCatalogo<T>) => !!c.fotoUrl;
+  return (
+    cs.find((c) => foto(c) && piso(c)) ??
+    cs.find((c) => foto(c) && almacen(c)) ??
+    cs.find(piso) ??
+    cs.find(almacen) ??
+    cs.find(foto) ??
+    cs[0]
+  );
 }
 
 /** Cuántos puntos de color caben en la tarjeta: hasta `max` se ven todos; con más, `max - 1` y un «+N». El elegido

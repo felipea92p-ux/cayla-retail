@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Search, X } from "lucide-react";
+import { Minus, Plus, Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
@@ -18,6 +18,11 @@ import { Boton, CampoSelect, CampoTexto, Desplegable, Segmentado } from "@/compo
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
 export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; precio: number; fotoUrl: string | null; colorHex: string | null };
@@ -34,9 +39,10 @@ const CONTROL = "rounded-md border border-tinta/15 bg-vidrio/60 px-1.5 py-1 text
 // arranca como copia de otra: «Duplicar» o, si venció, «Renovar» (precios de hoy, sin los descuentos de antes).
 export function NuevaProformaModal({
   onCerrar,
-  prendas,
+  prendas: prendasCatalogo,
   ubicaciones,
   ubicacionActualId,
+  preciosPorSede = {},
   esLider,
   inicial = null,
 }: {
@@ -44,6 +50,8 @@ export function NuevaProformaModal({
   prendas: PrendaParaProforma[];
   ubicaciones: { id: string; nombre: string }[];
   ubicacionActualId: string;
+  /** Precio propio de cada tienda (Felipe 2026-10-09): se cotiza al de la tienda elegida, como lo guarda `crear_proforma`. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   esLider: boolean;
   inicial?: Proforma | null;
 }) {
@@ -52,8 +60,10 @@ export function NuevaProformaModal({
   // Crear una proforma guarda en Facturación: pide Responsable (ADR-0161, A7).
   const responsable = useResponsable();
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
+  // Las prendas al precio de la tienda elegida: cambiar la tienda cambia el precio de las filas (cada fila toma la prenda de AHORA).
+  const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.varianteId), [prendasCatalogo, preciosPorSede, ubicacionId]);
   const lineasIniciales = lineasDeLaProforma(inicial?.items) ?? [];
-  const [filas, setFilas] = useState<Fila[]>(() =>
+  const [filasGuardadas, setFilas] = useState<Fila[]>(() =>
     lineasIniciales.flatMap((l) => {
       const prenda = prendas.find((p) => p.varianteId === l.variante_id);
       if (!prenda) return [];
@@ -63,6 +73,16 @@ export function NuevaProformaModal({
       return [{ prenda, cantidad: l.cantidad, pct, motivo: pct > 0 ? (l.motivo_descuento ?? "") : "", detalle: pct > 0 ? (l.motivo_descuento_detalle ?? "") : "" }];
     })
   );
+  // Cada fila con la prenda del catálogo de AHORA (2026-10-08): si alguien cambia el precio con la hoja abierta, la
+  // pantalla se refresca sola (`<PreciosEnVivo />`) y el total, la fila y lo que se guarda toman el precio nuevo. El
+  // descuento es un %, así que sigue siendo el mismo sobre el precio nuevo.
+  const filas = useMemo(() => {
+    const porId = new Map(prendas.map((p) => [p.varianteId, p]));
+    return filasGuardadas.map((f) => {
+      const alDia = porId.get(f.prenda.varianteId);
+      return alDia && alDia !== f.prenda ? { ...f, prenda: alDia } : f;
+    });
+  }, [filasGuardadas, prendas]);
   // Las que ya no están en el catálogo no se copian: se dice cuáles, en vez de perderlas en silencio.
   const noCopiadas = lineasIniciales.filter((l) => !prendas.some((p) => p.varianteId === l.variante_id)).map((l) => l.descripcion);
   const [q, setQ] = useState("");
@@ -76,6 +96,18 @@ export function NuevaProformaModal({
   const totales = totalesDeLineas(filas.map((f) => ({ cantidad: f.cantidad, precio_unitario: f.prenda.precio, descuento_unitario: descuentoDe(f) })));
   const faltaMotivo = filas.some((f) => f.pct > 0 && (!f.motivo || (f.motivo === "otro" && !f.detalle.trim())));
   const diasValidos = Math.max(1, Math.min(60, Math.round(Number(dias)) || 7));
+
+  // La pistola, la misma pieza de Vender (`usePistola`): lo leído es un código exacto (nunca la primera sugerencia), no se pega
+  // a lo que había escrito y se lee aunque la pistola no mande Enter. El campo queda vacío para la siguiente lectura.
+  const buscador = useRef<HTMLInputElement>(null);
+  usePistola(buscador, {
+    alLeer: ({ codigo }) => {
+      setQ("");
+      const v = resolverCodigoV2(codigo, prendas);
+      if (v) agregar(v);
+      else avisar.error(`No encontramos «${codigo}». Revisa el código de la etiqueta.`);
+    },
+  });
 
   function agregar(p: PrendaParaProforma) {
     setFilas((actual) =>
@@ -132,9 +164,9 @@ export function NuevaProformaModal({
       {(cerrar) => (
         <form onSubmit={onCrear} className="mt-5 space-y-4">
           {noCopiadas.length > 0 && (
-            <p role="status" className="rounded-md border border-ambar/30 bg-ambar/10 px-3 py-2 text-sm text-ambar-profundo">
+            <Aviso tono="atencion" chico>
               Ya no están en el catálogo y no se copiaron: {noCopiadas.join(", ")}.
-            </p>
+            </Aviso>
           )}
 
           {esLider && ubicaciones.length > 1 && (
@@ -145,24 +177,19 @@ export function NuevaProformaModal({
 
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}
           <div data-guia="proformas.modal-buscar" className="relative">
-            <label className="vidrio-cayla flex h-10 items-center gap-2 rounded-[10px] px-3 text-sm text-tinta focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rojo/60">
-              <Search aria-hidden strokeWidth={1.75} className="h-4 w-4 shrink-0 text-tinta/60" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  e.preventDefault();
-                  const elegida = resolverCodigoV2(q, prendas) ?? resultados[0];
-                  if (elegida) agregar(elegida);
-                }}
-                placeholder="Busca la prenda o escanea su código…"
-                aria-label="Buscar prenda"
-                autoComplete="off"
-                spellCheck={false}
-                className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-tinta/55"
-              />
-            </label>
+            <Buscador
+              ref={buscador}
+              valor={q}
+              onCambio={setQ}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                const elegida = resolverCodigoV2(q, prendas) ?? resultados[0];
+                if (elegida) agregar(elegida);
+              }}
+              placeholder="Busca la prenda o escanea su código…"
+              etiqueta="Buscar prenda"
+            />
             {resultados.length > 0 && (
               <ul className="card-cayla absolute inset-x-0 top-11 z-10 max-h-72 overflow-auto p-1" data-sin-cascada>
                 {resultados.map((p) => (
@@ -186,7 +213,11 @@ export function NuevaProformaModal({
           </div>
 
           {filas.length === 0 ? (
-            <p className="rounded-[12px] border border-dashed border-tinta/25 px-4 py-6 text-center text-sm text-tinta/60">Todavía no hay prendas. Búscalas arriba.</p>
+            <div className="rounded-[12px] border border-tinta/10">
+              <Vacio tamano="chico" icono={<Shirt />}>
+                Todavía no hay prendas. Búscalas arriba.
+              </Vacio>
+            </div>
           ) : (
             <ul className="divide-y divide-tinta/10 rounded-[12px] border border-tinta/10">
               {filas.map((f) => {

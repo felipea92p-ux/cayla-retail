@@ -6,7 +6,6 @@ import {
   finEjePiso,
   lugarDeLoQueTienes,
   marcasEjePiso,
-  modelosEnElPiso,
   nuncaSalio,
   prendasSinSalir,
   textoVendidasTipo,
@@ -14,6 +13,7 @@ import {
   tiposPiso,
   vacioPiso,
 } from "./analisis-piso";
+import { armarModelos } from "./analisis-modelo";
 import { diasDeVentas, leerVista, VENTANA_VENTAS } from "./analisis-reglas";
 
 // Datos inventados para la prueba (no son de producción).
@@ -108,15 +108,15 @@ describe("el orden", () => {
 });
 
 describe("las cifras de arriba", () => {
-  it("prendas, unidades, modelos, costo y precio de lo guardado que nunca salió; cuántas son de un modelo ya colgado", () => {
-    const todas = [
+  it("modelos, unidades, costo y precio de lo guardado que nunca salió; el dinero, talla por talla (ADR-0357, decisión 12)", () => {
+    const tallas = [
       prenda({ varianteId: "a", productoId: "m1", almacen: 3, costo: 20, precio: 50 }),
-      prenda({ varianteId: "b", productoId: "m1", almacen: 1, costo: null, precio: 50 }),
+      prenda({ varianteId: "b", productoId: "m1", talla: "L", almacen: 1, costo: null, precio: 50 }),
       prenda({ varianteId: "c", productoId: "m2", almacen: 2, costo: 10, precio: null }),
-      prenda({ varianteId: "d", productoId: "m2", piso: 2, almacen: 1, salioAlPiso: "2026-10-01" }),
+      prenda({ varianteId: "d", productoId: "m2", talla: "L", piso: 2, almacen: 1, salioAlPiso: "2026-10-01" }),
     ];
-    expect(cifrasPiso(todas)).toEqual({ prendas: 3, unidades: 6, modelos: 2, costo: 80, precioVenta: 200, sinCosto: 1, conModeloEnPiso: 1 });
-    expect(modelosEnElPiso(todas)).toEqual(new Set(["m2"]));
+    // m2 tiene una talla colgada: el modelo entero ya salió y no cuenta aquí.
+    expect(cifrasPiso(armarModelos(tallas, HOY))).toEqual({ prendas: 1, unidades: 4, costo: 60, precioVenta: 200, sinCosto: 1 });
   });
   it("sin costos ni precios, «no se sabe» (null), nunca 0", () => {
     const c = cifrasPiso([prenda({ costo: null, precio: null })]);

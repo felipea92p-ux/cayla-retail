@@ -7,8 +7,8 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
-import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
 import { hrefEnviar, hrefLiquidar } from "@/lib/analisis-acciones";
@@ -27,6 +27,9 @@ import {
   vacioQuietas,
   type VacioQuietas,
 } from "@/lib/analisis-quietas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
 // de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días en el piso sin venderse» con el control «Liquidar desde», que mueve las prendas de
@@ -55,7 +58,7 @@ export function PestanaQuieta() {
   // 2026-10-07: en TRU no había nada quieto y no tenía dónde cambiar los 60 días).
   const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length);
   const sinSalir = datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : 0;
-  if (vacio === "sin-datos") return <Vacio tipo={vacio} />;
+  if (vacio === "sin-datos") return <SinCarril tipo={vacio} />;
 
   // Las cifras son de toda la tienda (como la cuenta de la pestaña); el carril, de lo que deja ver el buscador.
   const cifras = cifrasQuietas(prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde));
@@ -84,7 +87,7 @@ export function PestanaQuieta() {
       icono: "camion",
       est: "ate",
       prendas: enviar,
-      lote: lote(enviarTodas, "Enviar todas", `Enviar todas a ${sedeDestino?.ciudad ?? "otra tienda"}`),
+      lote: lote(enviarTodas, "Enviar todos", `Enviar todos a ${sedeDestino?.ciudad ?? "otra tienda"}`),
     },
     {
       clave: "liquidar",
@@ -93,7 +96,7 @@ export function PestanaQuieta() {
       icono: "etiqueta",
       est: "ate",
       prendas: liquidar,
-      lote: lote(liquidarTodas, "Liquidar todas", `Liquidar todas: ${liquidar.length} ${plural(liquidar.length, "prenda", "prendas")}`),
+      lote: lote(liquidarTodas, "Liquidar todos", `Liquidar todos: ${liquidar.length} ${plural(liquidar.length, "modelo", "modelos")}`),
     },
     {
       clave: "vigila",
@@ -161,7 +164,7 @@ export function PestanaQuieta() {
     </span>
   );
 
-  const pista = (p: PrendaAnalisis) => {
+  const pista = (p: ModeloAnalisis) => {
     const dias = p.diasSinVender ?? 0;
     const { n, zona, cifraALaIzquierda } = pistaQuieta(dias, liquidarDesde);
     return (
@@ -179,7 +182,7 @@ export function PestanaQuieta() {
     );
   };
 
-  const pildoras = (p: PrendaAnalisis, g: GrupoCarril) => {
+  const pildoras = (p: ModeloAnalisis, g: GrupoCarril) => {
     const vende = g.clave === "enviar" ? sedeQueMasVende(p.otras) : null;
     const sede = vende ? sedeDe(vende.sedeId) : undefined;
     if (vende && sede) {
@@ -196,7 +199,7 @@ export function PestanaQuieta() {
     );
   };
 
-  const accion = (p: PrendaAnalisis, g: GrupoCarril) => {
+  const accion = (p: ModeloAnalisis, g: GrupoCarril) => {
     if (g.clave === "enviar") {
       const vende = sedeQueMasVende(p.otras);
       const href = vende ? hrefEnviar([p], { id: vende.sedeId }, acceso) : null;
@@ -223,7 +226,7 @@ export function PestanaQuieta() {
     <>
       <div className="dos d21">
         <section className="tarjeta bloque q-numeros entra" style={{ ["--i" as string]: 0 }}>
-          <Numero valor={nf(cifras.prendas)} et={plural(cifras.prendas, "prenda quieta", "prendas quietas")} sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}`} />
+          <Numero valor={nf(cifras.prendas)} et={plural(cifras.prendas, "modelo quieto", "modelos quietos")} sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}`} />
           <Numero
             valor={cifras.costo === null ? "—" : soles(cifras.costo)}
             et={
@@ -243,7 +246,7 @@ export function PestanaQuieta() {
       {sinSalir > 0 && (
         <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 1 }}>
           <span className="b-nota">
-            <b>{nf(sinSalir)}</b> {plural(sinSalir, "prenda nunca salió al piso: no cuenta aquí.", "prendas nunca salieron al piso: no cuentan aquí.")}
+            <b>{nf(sinSalir)}</b> {plural(sinSalir, "modelo nunca salió al piso: no cuenta aquí.", "modelos nunca salieron al piso: no cuentan aquí.")}
           </span>
           <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("piso")}>
             Nunca salió al piso <Icono nombre="sigue" />
@@ -257,7 +260,7 @@ export function PestanaQuieta() {
             <h3 className="b-tit">Días en el piso sin venderse</h3>
             <span className="b-nota">{control}</span>
           </div>
-          <Vacio tipo="todo-se-mueve" dentro />
+          <SinCarril tipo="todo-se-mueve" dentro />
         </section>
       ) : (
         <Carril
@@ -353,19 +356,25 @@ function EdadDeLoQueTienes() {
 }
 
 /** Sin carril: todo se mueve (la respuesta corta y buena) o no se pudieron leer las prendas (nunca «todo se mueve» por una falla). */
-function Vacio({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
-  const todo = tipo === "todo-se-mueve";
+function SinCarril({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const texto = TEXTO_VACIO_QUIETAS[tipo];
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
+  // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
+  const vacio = (
+    <Vacio icono={<Check />} titulo={texto.titulo}>
+      {texto.linea}
+    </Vacio>
+  );
+  if (dentro) return vacio;
   return (
-    <section className={dentro ? "vacio-vista" : "tarjeta vacio-vista entra"} style={dentro ? undefined : { ["--i" as string]: 0 }}>
-      <span className="q-vacia-ic" style={{ ["--c" as string]: COLOR_ESTADO[todo ? "bien" : "nd"] }}>
-        <Icono nombre={todo ? "check" : "nd"} />
-      </span>
-      <div>
-        {todo ? <ChipEstado est="bien" /> : <ChipEstado est="nd">Sin datos</ChipEstado>}
-        <h2>{texto.titulo}</h2>
-        <p>{texto.linea}</p>
-      </div>
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      {vacio}
     </section>
   );
 }

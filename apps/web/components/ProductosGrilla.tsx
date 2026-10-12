@@ -5,8 +5,10 @@ import Image from "next/image";
 import { Chip } from "@/components/ui/Chip";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
+import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
+import { destinoDelBoton, type EstadoProducto } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
-import { coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
+import { colorPrincipal, coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -22,8 +24,15 @@ import {
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
-import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
-import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, guardarTamanoGrilla, type TamanoGrilla } from "@/lib/tamano-grilla";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
+import type { TarjetaLook } from "@/lib/combinar-reglas";
+import { useTamanoGrilla } from "@/components/SelectorTamanoGrilla";
+import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, type TamanoGrilla } from "@/lib/tamano-grilla";
+import { FunnelX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
+import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
+import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
@@ -46,9 +55,22 @@ export function ProductosGrilla({
   puedeEditar,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
+  hrefLimpiar,
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
+  preciosTienda = {},
+  preciosAqui,
+  colores,
+  tarjetasLook,
 }: {
   productos: ProductoListado[];
+  /** La ficha de cada color activo (ADR-0316): la vista rápida dice con qué se combina el color de la foto. Ausente = no dice nada. */
+  colores?: ColorConFicha[];
+  /** El catálogo de la sede como tarjetas prenda×color con piso: la frase «Combina bien con un jean…» de la vista rápida. */
+  tarjetasLook?: TarjetaLook[];
+  /** Por prenda, las tiendas que la venden a otro precio: la insignia «2 precios» (Felipe 2026-10-09). */
+  preciosTienda?: Record<string, PrecioDeTienda[]>;
+  /** Precio propio de esta sede por variante: la vista rápida muestra el que cobra su caja (ADR-0370). */
+  preciosAqui?: Record<string, number>;
   /** El tamaño de las tarjetas que la persona dejó la última vez (cookie, leída en el servidor). */
   tamanoInicial?: TamanoGrilla;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
@@ -65,6 +87,8 @@ export function ProductosGrilla({
   /** Quien edita el catálogo (`fn_puede_editar_catalogo`, ADR-0252 act. 2026-10-03). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
+  /** «Limpiar filtros» dentro del vacío (Felipe 2026-10-08: deshacerlo ahí mismo). */
+  hrefLimpiar?: string;
 }) {
   // El stock de la sede de TODA la página en una sola lectura (una por tarjeta serían 24), y otra vez cuando la página
   // cambia o se refresca (un ajuste): `productos` es otro arreglo.
@@ -73,39 +97,42 @@ export function ProductosGrilla({
   useEffect(() => {
     if (productos.length > 0) void leer(productos.map((p) => p.productoId));
   }, [productos, leer]);
-  // Cuánto ver de un vistazo (Felipe, 2026-09-29): cambia cuántas tarjetas caben por fila, no cuántas trae la página.
-  const [tamano, setTamano] = useState<TamanoGrilla>(tamanoInicial);
-  const elegirTamano = (t: TamanoGrilla) => {
-    setTamano(t);
-    guardarTamanoGrilla(t);
-  };
+  // Cuánto ver de un vistazo (Felipe, 2026-09-29): cambia cuántas tarjetas caben por fila, no cuántas trae la página. El control
+  // vive en la barra de resultados, junto al conteo (`SelectorTamanoGrilla`, 2026-10-09).
+  const [tamano] = useTamanoGrilla(tamanoInicial);
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
+    // Los filtros (o la búsqueda) dejaron cero: la pieza única del vacío (ADR-0358 ronda 5). Limpiar vive en la barra de filtros.
+    return (
+      <div className="card-cayla">
+        <Vacio icono={<FunnelX />} acciones={hrefLimpiar ? <BotonEnlace href={hrefLimpiar}>Limpiar filtros</BotonEnlace> : null}>
+          {mensajeVacio}
+        </Vacio>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div data-guia="productos.tamano">
-        <SelectorTamanoGrilla valor={tamano} onCambiar={elegirTamano} />
-      </div>
-      <div className={`grid ${CLASES_GRILLA[tamano]}`}>
-        {productos.map((p) => (
-          <TarjetaProducto
-            key={p.productoId}
-            producto={p}
-            existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
-            veExistencias={veExistencias}
-            veMovimientos={veMovimientos}
-            stock={stockSede.de(p.productoId)}
-            leer={leer}
-            sede={sede}
-            puedeEditar={puedeEditar}
-            puedeEliminar={puedeEliminar}
-            compacta={tamano === "pequeno"}
-          />
-        ))}
-      </div>
+    <div className={`grid ${CLASES_GRILLA[tamano]}`}>
+      {productos.map((p) => (
+        <TarjetaProducto
+          key={p.productoId}
+          producto={p}
+          existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
+          veExistencias={veExistencias}
+          veMovimientos={veMovimientos}
+          stock={stockSede.de(p.productoId)}
+          leer={leer}
+          sede={sede}
+          puedeEditar={puedeEditar}
+          puedeEliminar={puedeEliminar}
+          compacta={tamano === "pequeno"}
+          otrosPrecios={preciosTienda[p.productoId]}
+          preciosAqui={preciosAqui}
+          fichasColor={colores}
+          tarjetasLook={tarjetasLook}
+        />
+      ))}
     </div>
   );
 }
@@ -121,8 +148,17 @@ function TarjetaProducto({
   puedeEditar,
   puedeEliminar,
   compacta = false,
+  otrosPrecios,
+  preciosAqui,
+  fichasColor,
+  tarjetasLook,
 }: {
   producto: ProductoListado;
+  otrosPrecios?: PrecioDeTienda[];
+  preciosAqui?: Record<string, number>;
+  /** Las fichas de color del vocabulario (ADR-0316), para la vista rápida. `colores`, abajo, son los de ESTA prenda. */
+  fichasColor?: ColorConFicha[];
+  tarjetasLook?: TarjetaLook[];
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
   veMovimientos: boolean;
@@ -140,8 +176,11 @@ function TarjetaProducto({
   const [colorHover, setColorHover] = useState<string | null>(null);
   const [vistaRapida, setVistaRapida] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  // A qué estado va la hoja, FIJADO al abrirla: si otra persona cambia esta prenda con la hoja abierta (la pantalla se refresca sola, ADR-0363),
+  // el destino no se da vuelta bajo el dedo; la hoja solo dice «Ya está…: queda igual» y no deja confirmar.
+  const [cambiandoEstado, setCambiandoEstado] = useState<EstadoProducto | null>(null);
 
-  const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
+  const nombreActivo = colorHover ?? colorFijo ?? colorPrincipal(colores)?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
 
   // Una prenda descontinuada no dispara alertas y se ve como tal; «Sin stock» no es rojo (lib/productos-stock.ts).
@@ -199,7 +238,11 @@ function TarjetaProducto({
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div data-guia="productos.precio-stock" className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
-          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => v.precio)) ?? "—"}</span>
+          <span className="text-[15px] font-semibold tabular-nums text-tinta">
+            {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
+            {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => preciosAqui?.[v.varianteId] ?? v.precio)) ?? "—"}
+            <InsigniaPrecios lista={otrosPrecios} className="ml-1.5 align-middle" />
+          </span>
           <span
             title={EXPLICACION_STOCK_TOTAL}
             className={`ml-auto font-semibold tabular-nums ${compacta ? "text-[11.5px]" : "whitespace-nowrap text-[12.5px]"} ${tonoStock}`}
@@ -257,6 +300,9 @@ function TarjetaProducto({
           existencias={existencias}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
+          preciosAqui={preciosAqui}
+          colores={fichasColor}
+          tarjetasLook={tarjetasLook}
           veExistencias={veExistencias}
           veMovimientos={veMovimientos}
           puedeEditar={puedeEditar}
@@ -265,12 +311,34 @@ function TarjetaProducto({
             setVistaRapida(false);
             setEliminando(true);
           }}
+          onCambiarEstado={() => {
+            setVistaRapida(false);
+            setCambiandoEstado(destinoDelBoton(producto.estado));
+          }}
         />
       )}
       {eliminando && (
         <EliminarProductoModal
           producto={{ productoId: producto.productoId, referencia: producto.referencia, estado: producto.estado, numVariantes: producto.variantes.length }}
           onClose={() => setEliminando(false)}
+          // Una prenda que ya se vendió no se borra: la salida es desactivarla ahí mismo (solo quien edita el catálogo, como «Editar»).
+          onDesactivar={
+            puedeEditar
+              ? () => {
+                  setEliminando(false);
+                  setCambiandoEstado("descontinuado");
+                }
+              : undefined
+          }
+        />
+      )}
+      {cambiandoEstado && (
+        <CambiarEstadoProductosHoja
+          estado={cambiandoEstado}
+          productos={[producto]}
+          vocabulario="desactivar"
+          onClose={() => setCambiandoEstado(null)}
+          onHecho={() => setCambiandoEstado(null)}
         />
       )}
     </div>

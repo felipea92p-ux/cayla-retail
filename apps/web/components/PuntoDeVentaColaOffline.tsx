@@ -59,14 +59,14 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
                   onDescartar(venta.token);
                   setConfirmando(null);
                 }}
-                className="label-cayla h-7 rounded-md bg-rojo px-2 text-[11px] text-crema hover:bg-rojo-profundo"
+                className="btn-cayla btn-peligro h-7 px-2.5 text-[12.5px]"
               >
                 Sí, descartar
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmando(null)}
-                className="label-cayla h-7 rounded-md border border-tinta/25 px-2 text-[11px] text-tinta hover:bg-sand/40"
+                className="btn-cayla btn-secundario h-7 px-2.5 text-[12.5px]"
               >
                 Cancelar
               </button>
@@ -75,7 +75,7 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
             <button
               type="button"
               onClick={() => setConfirmando(venta.token)}
-              className="label-cayla h-7 shrink-0 rounded-md border border-rojo/40 px-2 text-[11px] text-rojo-profundo hover:bg-rojo/8"
+              className="btn-cayla btn-peligro h-7 shrink-0 px-2.5 text-[12.5px]"
             >
               Descartar
             </button>

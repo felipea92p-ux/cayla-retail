@@ -2,10 +2,12 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 123,
+  "total": 125,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «:»",
+      "Volver «(sin nombre)»",
+      "BotonEnlace «Ir a Categorías»"
     ],
     "components/ColaOfflineAviso.tsx": [
       "button «Sí, descartar»",
@@ -42,7 +44,6 @@
     "components/alta-producto/ArbolCategoria.tsx": [
       "button «Cambiar»",
       "button «{f.nombre}»",
-      "input «Busca: botines, vestidos, relojes…»",
       "button «{nombreVisible(c)}»",
       "button «→alternarVerMas»",
       "button «nuevo.categoria»"
@@ -120,7 +121,7 @@
       "button «{`Restar a ${etiqueta}»",
       "input «{`Cuántas tienes de ${etiqueta}»",
       "button «{`Sumar a ${etiqueta}»",
-      "input «{`Precio de ${etiqueta}»"
+      "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/MatrizVariantes.tsx": [
       "button «{`Ver o quitar las fotos de ${nombreDe(color)}»",
@@ -157,6 +158,7 @@
     ],
     "components/alta-producto/ProductoCreado.tsx": [
       "Link «Editar el producto»",
+      "Link «{abrirOrden.boton}»",
       "Link «{completas ? \"Ver las fotos\" : \"Agregar fotos\"}»",
       "Link «Imprimir etiquetas»",
       "button «Crear otro parecido»",

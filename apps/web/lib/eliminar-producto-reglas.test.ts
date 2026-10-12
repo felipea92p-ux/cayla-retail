@@ -120,12 +120,32 @@ describe("salidaSinEliminar", () => {
     expect(salidaSinEliminar("activo", "con_documentos")).toEqual({
       texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.",
       irAEditar: true,
+      desactivar: false,
     });
     expect(salidaSinEliminar("activo", "con_historia")?.irAEditar).toBe(true);
   });
 
+  it("activo y quien abrió la ventana puede abrir la hoja: se ofrece «Desactivar» ahí mismo, no el rodeo por Editar", () => {
+    expect(salidaSinEliminar("activo", "con_documentos", true)).toEqual({
+      texto: "Si ya no lo quieres a la venta, desactívalo: sale de la lista y su historia se conserva.",
+      irAEditar: false,
+      desactivar: true,
+    });
+    // Sin saber el estado (Existencias) y con la hoja a mano, se trata como activo.
+    expect(salidaSinEliminar(null, "con_historia", true)?.desactivar).toBe(true);
+  });
+
+  it("ya descontinuado o pieza del sistema: no se ofrece desactivar aunque se pueda", () => {
+    expect(salidaSinEliminar("descontinuado", "con_documentos", true)).toEqual({
+      texto: "Ya está descontinuado: su historia se conserva.",
+      irAEditar: false,
+      desactivar: false,
+    });
+    expect(salidaSinEliminar("activo", "sistema", true)).toBeNull();
+  });
+
   it("descontinuado: ya está retirado, no hay nada que sugerir", () => {
-    expect(salidaSinEliminar("descontinuado", "con_documentos")).toEqual({ texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false });
+    expect(salidaSinEliminar("descontinuado", "con_documentos")).toEqual({ texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false, desactivar: false });
   });
 
   it("una pieza del sistema no tiene salida: no se retira de ninguna manera", () => {

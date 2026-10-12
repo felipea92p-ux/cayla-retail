@@ -6,7 +6,7 @@ import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/N
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { proveedoresDeMarca, sugerenciasDeCategoria, type MarcaConProveedores, type MarcaOpcion, type ParejaUso, type ProveedorOpcion, type Vinculo } from "@/lib/marcas";
-import { alElegirMarca, alElegirProveedor, opcionesDeMarca, opcionesDeProveedor, type CambioDePareja, type ParejaElegida } from "@/lib/marca-proveedor-reglas";
+import { alElegirMarca, alElegirProveedor, opcionesDeMarca, opcionesDeProveedor, queVaciar, type CambioDePareja, type ParejaElegida, type VaciarCampos } from "@/lib/marca-proveedor-reglas";
 
 // Elegir DE QUIÉN es un producto: marca y proveedor (ADR-0109). Una marca la pueden traer varios proveedores (raro, pero pasa
 // con accesorios y chompas importadas), así que son dos datos con una regla: si hay LOS DOS, el proveedor tiene que traer esa
@@ -15,8 +15,8 @@ import { alElegirMarca, alElegirProveedor, opcionesDeMarca, opcionesDeProveedor,
 // Marca y proveedor por separado (Felipe, 2026-09-29, ADR-0283). La mercadería llega a almacén antes de que alguien registre de
 // quién es o quién la trajo; el producto se crea igual y se completa después. Por eso ya no es «una pareja o nada» (un solo
 // buscador de parejas, spike v2 de 2026-09-28): son DOS campos, cada uno opcional, y cada uno recorta y completa al otro:
-//   · elegir la marca deja en el proveedor solo a quienes la traen, y si la trae uno solo, lo pone;
-//   · elegir el proveedor deja solo las marcas que trae, y si trae una sola, la pone;
+//   · elegir la marca pone arriba, en el proveedor, a quienes la traen (los demás siguen abajo), y si la trae uno solo, lo pone;
+//   · elegir el proveedor pone arriba las marcas que trae, y si trae una sola, la pone;
 //   · si lo que ya estaba elegido no es compatible con lo nuevo, se suelta y la pantalla lo dice en una línea.
 // Las reglas viven en `lib/marca-proveedor-reglas.ts` (puras, probadas); este archivo solo las pinta.
 //
@@ -168,6 +168,25 @@ export function ElegirMarcaProveedor({
     emitir({ marcaId: r.marcaId, proveedorId: r.proveedorId }, { marca: r.marcaNombre, proveedor: r.proveedorNombre });
   }
 
+  // «Dejar sin …» (2026-10-09): quien escribe «sin proveedor», «ninguno» o «-» no busca un nombre, quiere dejarlo vacío. Se
+  // ofrece en vez de «+ Registrar «sin proveedor»» (así nació la marca de relleno «SIN PROVEEDOR»). Solo con campos opcionales.
+  function dejarVacio(v: VaciarCampos) {
+    const nombres = (cs: readonly string[]) => (cs.length === 2 ? "marca y proveedor" : cs[0]);
+    if (!v.marca && !v.proveedor) {
+      setNota(`Este producto ya tenía ${nombres(v.bloqueado)}: no se puede dejar vacío. Busca ${v.bloqueado.length === 2 ? "los correctos" : v.bloqueado[0] === "marca" ? "la correcta" : "el correcto"} por su nombre.`);
+      return;
+    }
+    setNota(v.bloqueado.length > 0 ? `${v.bloqueado[0] === "marca" ? "La marca ya estaba guardada y se queda" : "El proveedor ya estaba guardado y se queda"}; el ${v.marca ? "campo Marca" : "campo Proveedor"} quedó vacío.` : null);
+    emitir({ marcaId: v.marca ? "" : marcaId, proveedorId: v.proveedor ? "" : proveedorId });
+  }
+  const alEscribir = (campo: "marca" | "proveedor") =>
+    opcional
+      ? (t: string) => {
+          const v = queVaciar(t, campo, guardado);
+          return v ? { texto: v.texto, detalle: v.detalle, onElegir: () => dejarVacio(v) } : null;
+        }
+      : undefined;
+
   // ---------- registrar marca o proveedor sin salir ----------
   if (creando) {
     return (
@@ -191,12 +210,15 @@ export function ElegirMarcaProveedor({
   const crear = (etiqueta: (q: string) => string) =>
     puedeCrear ? { etiqueta, onCrear: (q: string) => setCreando({ nombre: q }) } : undefined;
   const sinNada = !marcaId && !proveedorId;
-  // Lo que dice el campo vacío: cuántas hay y, si el otro campo ya recortó la lista, de quién son (con el singular bien dicho).
-  const marcadorMarca = proveedorId
-    ? totalMarcas === 1 ? `La única marca que trae ${nombreProv(proveedorId)}…` : `Las ${totalMarcas} marcas que trae ${nombreProv(proveedorId)}…`
+  // Lo que dice el campo vacío: cuántas hay y, si el otro campo ya está elegido, que sus compatibles van arriba. La lista
+  // ofrece TODAS (lib/marca-proveedor-reglas.ts, `primeroLasCompatibles`): no se promete «la única» cuando hay más.
+  const traeAlguna = vinculos.some((v) => v.proveedorId === proveedorId);
+  const laTraeAlguien = vinculos.some((v) => v.marcaId === marcaId);
+  const marcadorMarca = proveedorId && traeAlguna
+    ? `Primero las que trae ${nombreProv(proveedorId)}…`
     : totalMarcas === 0 ? "Escribe la marca…" : totalMarcas === 1 ? "Toca para ver la marca…" : `Toca para ver las ${totalMarcas} marcas…`;
-  const marcadorProveedor = marcaId
-    ? totalProv === 1 ? `El único que trae ${nombreMarca(marcaId)}…` : `Los ${totalProv} que traen ${nombreMarca(marcaId)}…`
+  const marcadorProveedor = marcaId && laTraeAlguien
+    ? `Primero quienes traen ${nombreMarca(marcaId)}…`
     : totalProv === 0 ? "Escribe el proveedor…" : totalProv === 1 ? "Toca para ver el proveedor…" : `Toca para ver los ${totalProv} proveedores…`;
 
   return (
@@ -223,6 +245,7 @@ export function ElegirMarcaProveedor({
             valor={marcaId}
             onValor={elegirMarca}
             opciones={opcionesMarca}
+            alEscribir={alEscribir("marca")}
             crearArriba
             crear={crear((q) => (q ? `+ Registrar «${q}» como marca nueva` : "+ Registrar una marca o un proveedor nuevo"))}
           />
@@ -246,6 +269,7 @@ export function ElegirMarcaProveedor({
             valor={proveedorId}
             onValor={elegirProveedor}
             opciones={opcionesProv}
+            alEscribir={alEscribir("proveedor")}
             crearArriba
             crear={crear((q) => (q ? `+ Registrar «${q}» como proveedor nuevo` : "+ Registrar una marca o un proveedor nuevo"))}
           />

@@ -3,8 +3,8 @@
 import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, type NombreIcono } from "@/components/analisis/iconos";
-import { Ayuda, COLOR_ESTADO, TilePrenda, type Estado } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import { Ayuda, COLOR_ESTADO, nombreLargo, TilePrenda, type Estado } from "@/components/analisis/piezas";
+import { queTiene, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { textoVerMas } from "@/lib/analisis-piso";
 
 // Análisis v4 (ADR-0357): el carril de la maqueta, gráfico y lista en una sola pieza. Cada fila es una prenda: su miniatura,
@@ -22,7 +22,7 @@ export type GrupoCarril = {
   est: Estado;
   /** «Vigílalas»: más apagado, sin botón por fila. */
   mudo?: boolean;
-  prendas: PrendaAnalisis[];
+  prendas: ModeloAnalisis[];
   /** El botón de todo el grupo («Comprar todas»), si lo hay. */
   lote?: ReactNode;
   /** Un dibujo en vez del ícono de Análisis: el tipo de prenda en «Nunca salió al piso». */
@@ -53,10 +53,10 @@ export function Carril({
   /** Las marcas del eje sobre las pistas: el texto y su posición (`"50%"`). */
   eje: { texto: ReactNode; left: string }[];
   grupos: GrupoCarril[];
-  pista: (p: PrendaAnalisis, grupo: GrupoCarril) => ReactNode;
-  pildoras: (p: PrendaAnalisis, grupo: GrupoCarril) => ReactNode;
+  pista: (p: ModeloAnalisis, grupo: GrupoCarril) => ReactNode;
+  pildoras: (p: ModeloAnalisis, grupo: GrupoCarril) => ReactNode;
   /** El botón de la fila (y lo que vaya debajo, como «o pedir a Arequipa»); null en los grupos sin acción. */
-  accion: (p: PrendaAnalisis, grupo: GrupoCarril) => ReactNode;
+  accion: (p: ModeloAnalisis, grupo: GrupoCarril) => ReactNode;
 }) {
   const { abrirFicha } = useAnalisis();
   // Los grupos con corte que ya se abrieron enteros (se vuelven a cortar al entrar otra vez a la pestaña).
@@ -109,7 +109,7 @@ export function Carril({
               role="button"
               tabIndex={0}
               data-ps={p.varianteId}
-              aria-label={`${p.nombre} · ${p.color} · ${p.talla}: ver su ficha`}
+              aria-label={`${nombreLargo(p)}: ver su ficha`}
               onClick={(e) => {
                 if (!e.currentTarget.contains(e.target as Node)) return;
                 abrirFicha(p.varianteId);
@@ -125,9 +125,7 @@ export function Carril({
               <TilePrenda prenda={p} tamano={36} />
               <span className="c-nom">
                 <b>{p.nombre}</b>
-                <span>
-                  {p.color} · {p.talla}
-                </span>
+                <span>{queTiene(p)}</span>
               </span>
               {pista(p, g)}
               <span className="c-pil">{pildoras(p, g)}</span>

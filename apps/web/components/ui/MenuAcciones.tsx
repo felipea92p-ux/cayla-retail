@@ -138,7 +138,7 @@ export function MenuAcciones({
         onClick={() => setAbierto((a) => !a)}
         className={
           texto
-            ? "label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 max-sm:px-3 text-[11px] text-tinta transition-colors ease-cayla hover:border-rojo hover:text-rojo disabled:opacity-40 aria-expanded:border-rojo aria-expanded:text-rojo"
+            ? "btn-cayla btn-secundario inline-flex items-center gap-2"
             : "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-tinta/20 text-lg leading-none text-tinta/75 transition-colors hover:border-tinta/40 hover:text-tinta disabled:opacity-40"
         }
       >

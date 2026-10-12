@@ -11,6 +11,7 @@ import { TodosVista } from "@/components/apartados/TodosVista";
 import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -60,6 +61,14 @@ export function ApartadosPanel(props: Props) {
   const [opciones, setOpciones] = useState(false);
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
+  // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
+  // de la sede anterior y no están en las listas de esta. Lo que se estaba apartando lo guarda `TrabajoPorSede` (ver `ApartarVista`).
+  const [sedePrevia, setSedePrevia] = useState(props.ubicacionId);
+  if (props.ubicacionId !== sedePrevia) {
+    setSedePrevia(props.ubicacionId);
+    setElegido(null);
+    setPedidoParaApartar(null);
+  }
   const apagadas = props.apagadas ?? [];
   const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
 
@@ -76,7 +85,9 @@ export function ApartadosPanel(props: Props) {
   const pestañas: { id: Vista; etiqueta: string; icono: React.ReactNode; insignia?: number }[] = [
     { id: "apartar", etiqueta: "Apartar", icono: <Bookmark className="h-5 w-5" aria-hidden /> },
     { id: "entregar", etiqueta: "Entregar", icono: <ShoppingBag className="h-5 w-5" aria-hidden /> },
-    { id: "todos", etiqueta: "Todos", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
+    // «Historial» (ADR-0367, Felipe 2026-10-09: «debe haber un apartado donde se vea el historial»): la lista de todos los
+    // apartados de la tienda, con su ticket para reimprimir. La clave sigue siendo «todos».
+    { id: "todos", etiqueta: "Historial", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
   ];
 
   // Pestañas, «Opciones» y avisos, pegados a la izquierda (Felipe, 2026-09-26, spike
@@ -122,12 +133,12 @@ export function ApartadosPanel(props: Props) {
           {props.liberadosAhora > 0 && (
             <p className="text-rojo-profundo">
               {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
-              la prenda volvió al stock y falta devolver el adelanto (ver «Todos»).
+              la prenda volvió al stock y falta devolver el adelanto (ver «Historial»).
             </p>
           )}
           {props.hayMas && (
             <p className="text-tinta/70">
-              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras de «Todos» sí los cuentan.
+              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras del Historial sí los cuentan.
             </p>
           )}
           {!props.cajaAbierta && <p className="text-ambar-profundo">No hay caja abierta en {props.ubicacionEtiqueta}: para apartar o entregar, primero abre la caja.</p>}
@@ -150,7 +161,7 @@ export function ApartadosPanel(props: Props) {
           veClientas={props.veClientas}
           tiendas={props.tiendas ?? []}
           pedido={pedidoParaApartar}
-          key={pedidoParaApartar?.id ?? "apartar"}
+          key={claveDelApartado(props.ubicacionId, pedidoParaApartar?.id)}
           onPedidoHecho={() => setPedidoParaApartar(null)}
         />
       )}
@@ -178,7 +189,7 @@ export function ApartadosPanel(props: Props) {
       <EnCuerpo>
       <nav
         aria-label="Apartados"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral lg:hidden"
       >
         {pestañas.map((p) => (
           <button

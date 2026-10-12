@@ -32,6 +32,35 @@ const MARCA = "__guardiaSalida";
 const esGuardia = () => Boolean((window.history.state as Record<string, unknown> | null)?.[MARCA]);
 /** El `popstate` que provoca retirar la guardia no es la persona pulsando «atrás»: se ignora una vez. */
 let ignorarProximoPop = false;
+/** Quien espera a que la guardia termine de irse (`retirarYa`): se avisa con ESE popstate. */
+let alRetirarse: (() => void) | null = null;
+function guardiaRetirada() {
+  ignorarProximoPop = false;
+  const avisar = alRetirarse;
+  alRetirarse = null;
+  avisar?.();
+}
+
+/* Ese `popstate` propio tampoco le llega al router de Next (2026-10-08). Retirar la guardia vuelve a la MISMA URL, así que no
+   hay nada que restaurar; pero Next restaura el árbol guardado en la entrada de abajo, y esa entrada puede ser vieja: Existencias
+   cambia sus filtros con `history.replaceState`, sin navegar, y la entrada sigue con el árbol de antes de la búsqueda. Con ese
+   árbol Next volvía a montar la pantalla entera (se perdía la vista elegida, la página, lo abierto) y, si en ese instante corría
+   el `router.refresh()` del guardado, recargaba la página completa. Visto al bajar al piso: el panel se cerraba solo, la lista
+   volvía a las tarjetas y el aviso de «listo» se perdía con la recarga.
+   Se escucha en la CAPTURA de `window`: en el destino, los escuchadores de captura corren antes que el de Next (que escucha sin
+   captura), y `stopImmediatePropagation` corta a todos los demás, también a los `alVolver` de los formularios montados, que de
+   todos modos lo ignoraban. Se instala una sola vez, al cargar el módulo. */
+if (typeof window !== "undefined") {
+  window.addEventListener(
+    "popstate",
+    (e) => {
+      if (!ignorarProximoPop) return;
+      guardiaRetirada();
+      e.stopImmediatePropagation();
+    },
+    { capture: true }
+  );
+}
 
 export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_SE_PIERDE) {
   const router = useRouter();
@@ -111,14 +140,28 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     if (!conGuardia.current) return;
     conGuardia.current = false;
     if (esGuardia() && window.location.href === urlGuardia.current) {
+      // La bandera la apaga ESE popstate, en el escuchador de captura de arriba, aunque ya no quede ningún formulario
+      // escuchando (un modal que se cerró): sin eso, el primer «atrás» del próximo formulario se tragaba sin preguntar.
       ignorarProximoPop = true;
-      // La bandera se apaga con ESE popstate aunque ya no quede ningún formulario escuchando (un modal que se cerró):
-      // sin esto, el primer «atrás» del próximo formulario se tragaba sin preguntar. Se registra después de los
-      // escuchadores de los formularios montados, así que ellos la ven prendida y recién después se apaga.
-      window.addEventListener("popstate", () => void (ignorarProximoPop = false), { once: true });
       window.history.back();
     }
   }, []);
+  /** Retira la guardia AHORA y avisa cuando el navegador terminó de volver. Para quien guardó y va a refrescar: el
+   *  `router.refresh()` tiene que correr DESPUÉS de ese «atrás», nunca a la vez. Si corren juntos, Next puede caer a una
+   *  recarga completa de la página (visto al bajar al piso en Existencias con una búsqueda recién escrita, 2026-10-08). */
+  const retirarYa = useCallback((): Promise<void> => {
+    hayCambios.current = false;
+    if (!conGuardia.current) return Promise.resolve();
+    return new Promise<void>((listo) => {
+      alRetirarse = listo;
+      retirarGuardia();
+      // No había entrada que retirar (otra navegación ya la sacó), o el popstate nunca llega: no se espera para siempre.
+      if (!ignorarProximoPop) return guardiaRetirada();
+      window.setTimeout(() => {
+        if (alRetirarse === listo) guardiaRetirada();
+      }, 600);
+    });
+  }, [retirarGuardia]);
   useEffect(() => {
     if (saliendo.current) return;
     if (conCambios && !conGuardia.current) {
@@ -131,8 +174,9 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
   }, [conCambios, retirarGuardia]);
   useEffect(() => {
     const alVolver = () => {
+      // Respaldo: el escuchador de captura ya corta este popstate; un navegador que no corra la captura primero lo deja pasar.
       if (ignorarProximoPop) {
-        ignorarProximoPop = false;
+        guardiaRetirada();
         return;
       }
       if (!conGuardia.current || !debePreguntar()) return;
@@ -180,5 +224,5 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     </Modal>
   ) : null;
 
-  return { pedirSalir, pedirAccion, soltar, aviso };
+  return { pedirSalir, pedirAccion, soltar, retirarYa, aviso };
 }

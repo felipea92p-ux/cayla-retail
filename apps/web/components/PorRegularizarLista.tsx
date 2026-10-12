@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { CalendarArrowDown, CalendarArrowUp, Search, X } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp } from "lucide-react";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
@@ -12,9 +12,12 @@ import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
+import { CorregirPrendaSinRegistrarModal } from "@/components/CorregirPrendaSinRegistrarModal";
+import type { ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 import { FranjaAvance } from "@/components/por-regularizar/FranjaAvance";
 import { MesaRegularizar } from "@/components/por-regularizar/MesaRegularizar";
+import { Buscador } from "@/components/ui/Buscador";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla y dibujarla (sin costo: esta pantalla la ve almacén). */
 export type { PrendaParaRegularizar };
@@ -39,17 +42,21 @@ export function PorRegularizarLista({
   filas,
   prendas,
   disponibles,
+  preciosPorSede = {},
   ubicacionEtiqueta,
   variasSedes,
   esLider,
   plazos,
   sedeInicial,
   abrirItemId = null,
+  listas,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
   /** Unidades libres por tienda y por prenda; una tienda que falta = no se pudo leer (la pantalla sigue, sin cifras de stock). */
   disponibles: Record<string, Record<string, number>>;
+  /** Precio propio de cada tienda (`getPreciosPorSede`): el oficial de una venta es el de su tienda. */
+  preciosPorSede?: Record<string, Record<string, number>>;
   /** Para el mensaje de «no hay nada»: la sede que se mira, o «tus tiendas» si es el líder. */
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
@@ -62,12 +69,15 @@ export function PorRegularizarLista({
   sedeInicial: string | null;
   /** La línea de venta (`?item=`) con que llega Historial: si su prenda sigue pendiente, esa venta entra elegida. */
   abrirItemId?: string | null;
+  /** Las listas de la hoja «Prenda sin registrar» (las mismas de la caja), para «Corregir lo anotado» (ADR-0369). */
+  listas: ListasPrendaLibre;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
   const [soloVencidas, setSoloVencidas] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
+  const [corrigiendo, setCorrigiendo] = useState<FilaPorRegularizar | null>(null);
   const [sugiriendo, setSugiriendo] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const ahora = useMemo(() => new Date(), []);
@@ -156,30 +166,14 @@ export function PorRegularizarLista({
         <div className="card-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
           {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo de líder va en «Más». */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-5 pb-3 pt-4">
-            <label data-guia="regularizar.buscador" className="relative block min-w-[11rem] flex-1 basis-44">
-              <span className="sr-only">Buscar una venta sin registrar</span>
-              <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/45" />
-              <input
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape" && busqueda) {
-                    e.preventDefault();
-                    setBusqueda("");
-                  }
-                }}
-                maxLength={120}
-                autoComplete="off"
-                placeholder="Buscar prenda, color, talla, quién vendió o precio"
-                className="h-9 w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60 [&::-webkit-search-cancel-button]:hidden"
-              />
-              {busqueda && (
-                <button type="button" aria-label="Borrar la búsqueda" onClick={() => setBusqueda("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
-                  <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </label>
+            <Buscador guia="regularizar.buscador"
+              valor={busqueda}
+              onCambio={setBusqueda}
+              maxLength={120}
+              placeholder="Buscar prenda, color, talla, quién vendió o precio"
+              etiqueta="Buscar una venta sin registrar"
+              className="min-w-[11rem] flex-1 basis-44"
+            />
             <div data-guia="regularizar.filtros" className="flex flex-wrap items-center gap-2">
               {FILTROS.map((f) => (
                 <button
@@ -227,6 +221,7 @@ export function PorRegularizarLista({
               elegidaAlAbrir={elegidaAlAbrir}
               prendas={prendas}
               disponibles={disponibles}
+              preciosPorSede={preciosPorSede}
               variasSedes={variasSedes}
               esLider={esLider}
               ahora={ahora}
@@ -234,6 +229,7 @@ export function PorRegularizarLista({
               etiquetaSede={ubicacionEtiqueta}
               soloPendientes={filtro === "pendiente"}
               onReabrir={setReabriendo}
+              onCorregir={setCorrigiendo}
               onHecha={(id) => setHechasLocal((previas) => new Set(previas).add(id))}
               vacio={
                 busqueda.trim()
@@ -264,8 +260,9 @@ export function PorRegularizarLista({
         mes y el anterior.
       </p>
 
-      {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
+      {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} preciosPorSede={preciosPorSede} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
       {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
+      {corrigiendo && <CorregirPrendaSinRegistrarModal fila={corrigiendo} listas={listas} onClose={() => setCorrigiendo(null)} />}
       {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>
   );

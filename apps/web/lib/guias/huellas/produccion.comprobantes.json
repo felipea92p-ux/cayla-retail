@@ -2,7 +2,7 @@
   "guia": "produccion.comprobantes",
   "ruta": "/produccion/comprobantes",
   "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 36,
   "controles": {
     "components/ComprobanteProduccionDetalle.tsx": [
       "CampoTexto «Motivo de la anulación»",
@@ -32,9 +32,12 @@
     ],
     "components/ComprobantesProduccionPanel.tsx": [
       "Boton «prod-facturas.nueva»",
+      "BotonEnlace «Ir a Proveedores»",
+      "Boton «Registrar la primera»",
       "button «{o.etiqueta}»",
-      "Desplegable «Buscar factura»",
-      "input «Proveedor o F001-123»",
+      "Desplegable «(sin nombre)»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Limpiar filtros»",
       "button «{diaMes(c.fechaEmision)}»"
     ],
     "components/MediosDePago.tsx": [

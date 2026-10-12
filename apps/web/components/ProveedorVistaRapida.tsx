@@ -137,7 +137,7 @@ export function ProveedorVistaRapida({
               {p.activo && (
                 <Link
                   href={`/compras/nueva?prov=${p.id}`}
-                  className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
+                  className="btn-cayla btn-secundario"
                 >
                   + Comprobante
                 </Link>
@@ -156,7 +156,7 @@ export function ProveedorVistaRapida({
               </span>
               <Link
                 href={`/compras/proveedores/${p.id}`}
-                className="label-cayla basis-full rounded-md bg-tinta px-4 py-3 text-center text-[11px] text-crema transition-colors hover:bg-rojo-profundo"
+                className="btn-cayla btn-primario basis-full text-center"
               >
                 Abrir ficha completa →
               </Link>
