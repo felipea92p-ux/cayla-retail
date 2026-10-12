@@ -152,6 +152,8 @@ export type FilaColaReintento = {
   intentos_transmision: number;
   ultimo_intento_transmision_at: string | null;
   ultimo_error_transmision: string | null;
+  /** Horas desde que se EMITIÓ (ADR-0378). La RPC de la cola la trae desde el último intento, y `getPorEnviar` la
+   *  reemplaza: así un comprobante que se reintenta seguido no entra y sale del aviso «más de 1 hora sin llegar». */
   horas_esperando: number | null;
   /** De dónde sale la fila: la cola de reintento (`pendiente_reintento`), una que nunca se intentó
    *  (`pendiente`) o una que SUNAT rechazó (`rechazado`). Sin él, es de la cola (la RPC no lo trae). */
@@ -192,7 +194,8 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
   let consulta = supabase
     .from("comprobantes")
     .select("id, ubicacion_id, tipo, serie, numero, estado, intentos_transmision, ultimo_intento_transmision_at, ultimo_error_transmision, motivo_rechazo, created_at")
-    .in("estado", ["pendiente", "rechazado"])
+    // También los de la cola, solo por su fecha de emisión (ver abajo): la RPC no la trae.
+    .in("estado", ["pendiente", "rechazado", "pendiente_reintento"])
     .neq("tipo", "nota_venta");
   if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
   const res = await consulta.order("created_at", { ascending: true }).limit(500);
@@ -205,7 +208,9 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
     intentos_transmision: number | null; ultimo_intento_transmision_at: string | null; ultimo_error_transmision: string | null;
     motivo_rechazo: string | null; created_at: string;
   };
-  const sueltos: FilaColaReintento[] = ((datos ?? []) as unknown as Suelto[]).map((c) => ({
+  const leidos = (datos ?? []) as unknown as Suelto[];
+  const emitido = new Map(leidos.map((c) => [c.id, c.created_at]));
+  const sueltos: FilaColaReintento[] = leidos.filter((c) => c.estado !== "pendiente_reintento").map((c) => ({
     comprobante_id: c.id,
     ubicacion_id: c.ubicacion_id,
     tipo: c.tipo,
@@ -217,7 +222,13 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
     horas_esperando: (ahora - Date.parse(c.created_at)) / 3_600_000,
     estado: c.estado as "pendiente" | "rechazado",
   }));
-  const deLaCola = cola.map((f) => ({ ...f, estado: "pendiente_reintento" as const }));
+  // «Más de 1 hora sin llegar a SUNAT» cuenta desde la emisión, como dice el aviso (ADR-0378): la RPC lo medía desde el
+  // último intento, y un comprobante que se reintentaba cada 15 minutos nunca llegaba a la hora aunque llevara días.
+  // Si la fecha no se pudo leer, queda la de la RPC (mejor un aviso tardío que ninguno).
+  const deLaCola = cola.map((f) => {
+    const creado = emitido.get(f.comprobante_id);
+    return { ...f, estado: "pendiente_reintento" as const, horas_esperando: creado ? (ahora - Date.parse(creado)) / 3_600_000 : f.horas_esperando };
+  });
   return [...deLaCola, ...sueltos].sort((a, b) => (b.horas_esperando ?? 0) - (a.horas_esperando ?? 0));
 });
 
