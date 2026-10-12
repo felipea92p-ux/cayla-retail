@@ -9,6 +9,7 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { agruparPorCompra, agruparPorDia, varianteLegible, type EstadoVisual } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
+import { valorPagado } from "@/lib/devoluciones-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 
 // La lista de compras que comparten Cambios y Devoluciones (2026-09-18). La unidad es la
@@ -178,7 +179,7 @@ export function FilaPrendaVenta({
           </p>
           <p className="text-sm text-tinta/75">{varianteLegible(linea)}</p>
           <p className="mt-1 text-xs text-tinta/70">
-            <span className="font-mono">{codigoPrenda(linea)}</span> · {soles(linea.precioUnitario)}
+            <span className="font-mono">{codigoPrenda(linea)}</span> · {soles(valorPagado(linea, 1))}
             {linea.cantidad > 1 && ` · compró ${linea.cantidad}`}
           </p>
           {detalle}

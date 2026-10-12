@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 167,
+  "total": 168,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -66,11 +66,12 @@
       "button «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendaSinRegistrarModal.tsx": [
+      "button «Usar «»",
+      "button «{categoria ? `Cambiar a ${categoriaSugerida.nombre}»",
       "button «{t.valor}»",
       "ComboBuscable «(sin nombre)»",
       "ComboBuscable «(sin nombre)» #2",
       "CampoTexto «Descripción corta»",
-      "button «Usar «»",
       "input «Precio cobrado en soles»",
       "ComboResponsable «)»",
       "button «{guia.frase ?? undefined}»"

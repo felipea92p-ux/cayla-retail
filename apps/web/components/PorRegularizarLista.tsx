@@ -7,6 +7,7 @@ import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import type { PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
+import type { LibroPorVenta } from "@/lib/por-regularizar-deduccion";
 import { Desplegable } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
@@ -43,6 +44,7 @@ export function PorRegularizarLista({
   prendas,
   disponibles,
   preciosPorSede = {},
+  libro = null,
   ubicacionEtiqueta,
   variasSedes,
   esLider,
@@ -57,6 +59,8 @@ export function PorRegularizarLista({
   disponibles: Record<string, Record<string, number>>;
   /** Precio propio de cada tienda (`getPreciosPorSede`): el oficial de una venta es el de su tienda. */
   preciosPorSede?: Record<string, Record<string, number>>;
+  /** Lo que dice el libro de cada prenda a la hora de cada venta (`getLibroPorVenta`); `null` = no se pudo leer: sin sugerencia en «¿Cómo estaba?». */
+  libro?: LibroPorVenta | null;
   /** Para el mensaje de «no hay nada»: la sede que se mira, o «tus tiendas» si es el líder. */
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
@@ -222,6 +226,7 @@ export function PorRegularizarLista({
               prendas={prendas}
               disponibles={disponibles}
               preciosPorSede={preciosPorSede}
+              libro={libro}
               variasSedes={variasSedes}
               esLider={esLider}
               ahora={ahora}

@@ -13,7 +13,7 @@ import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import { OPCION, OPCION_ACTIVA, OPCION_INACTIVA } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { unidadesDisponibles, METODOS_DIFERENCIA, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
-import type { Reemplazo, Seleccion } from "@/lib/cambio-reemplazo-reglas";
+import { textoPagoConDescuento, type Reemplazo, type Seleccion } from "@/lib/cambio-reemplazo-reglas";
 
 /** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. */
 const OPCION_SIN_STOCK = `${OPCION} border-dashed border-tinta/35 bg-transparent text-tinta/65 hover:border-tinta/55`;
@@ -250,7 +250,7 @@ export function CambioReemplazo({
 
       <div className="space-y-4 border-t border-tinta/[0.08] pt-8">
         <ComparacionPrendas
-          devuelta={{ referencia: linea.referencia, talla: linea.talla, color: linea.color, colorHex: linea.colorHex, fotoUrl: linea.fotoUrl, precio: linea.precioUnitario }}
+          devuelta={{ referencia: linea.referencia, talla: linea.talla, color: linea.color, colorHex: linea.colorHex, fotoUrl: linea.fotoUrl, precio: r.pagadoUnitario, detalle: textoPagoConDescuento(linea) }}
           nueva={
             r.varianteNueva && !r.sinStockAqui
               ? {

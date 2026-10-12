@@ -40,4 +40,7 @@
   en el archivo de la rama en `docs/backlog/` como «POR PEGAR» con la fecha.
 
 <!-- El check «SQL pegado» sale rojo si el PR trae una migración nueva y no hay ninguna de las dos casillas marcadas, o si
-     edita o borra una migración que ya está en `main` (la corrección va en un archivo nuevo). -->
+     edita o borra una migración que ya está en `main` (la corrección va en un archivo nuevo). Con «SQL pegado en
+     producción» marcada, además MIRA producción (ADR-0251, act. 2026-10-12): espera a que el CI levante su base y compara
+     lo que deja cada migración; si falta algo, sale rojo nombrando el archivo. Pegaste después de marcarla: vuelve a
+     correr el check (Re-run) o edita este cuerpo. -->
