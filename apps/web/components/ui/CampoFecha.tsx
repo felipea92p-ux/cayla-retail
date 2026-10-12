@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ALTO_CONTROL, Campo, Hilo } from "@/components/ui/campos";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 
 /* ====================================================================
    CampoFecha · elegir un día (2026-09-14)
@@ -102,6 +104,8 @@ function conBarras(crudo: string): string {
 /** `w-[17rem]` del calendario, en px (con la letra raíz de 16 px), y el aire mínimo que se le deja al borde de la pantalla. */
 const ANCHO_CALENDARIO = 272;
 const MARGEN_PANTALLA = 8;
+/** Alto del calendario abierto (encabezado, 6 semanas y su pie), en px: si no cabe abajo, se abre hacia arriba. */
+const ALTO_CALENDARIO = 340;
 
 export function CampoFecha({
   etiqueta,
@@ -157,7 +161,13 @@ export function CampoFecha({
   // El día con foco dentro de la grilla (teclado) y el mes que se muestra.
   const [cursor, setCursor] = useState<Dia>(elegido ?? hoy());
   const raiz = useRef<HTMLDivElement>(null);
+  const calendario = useRef<HTMLDivElement>(null);
   const grilla = useRef<HTMLDivElement>(null);
+  // El calendario flota en `fixed`, medido contra el campo y colgado fuera de él (como la lista de un combo, ADR-0211): dibujado en
+  // `absolute` dentro de una hoja de <Modal>, la hoja (que scrollea) lo recortaba por abajo y por la derecha y aparecía una barra
+  // horizontal (Nueva campaña, «Hasta», 2026-10-12). Si abajo no cabe, se abre hacia arriba.
+  const pos = usePosicionLista(raiz, abierto, ALTO_CALENDARIO);
+  const destino = useDestinoFlotante(raiz, abierto);
   const entrada = useRef<HTMLInputElement>(null);
 
   // Si el valor cambia desde afuera (se limpió el filtro, cambió la
@@ -173,7 +183,8 @@ export function CampoFecha({
   useEffect(() => {
     if (!abierto) return;
     function afuera(e: MouseEvent) {
-      if (!raiz.current?.contains(e.target as Node)) setAbierto(false);
+      // El calendario vive fuera del campo (portal): un clic en él no es «afuera».
+      if (!raiz.current?.contains(e.target as Node) && !calendario.current?.contains(e.target as Node)) setAbierto(false);
     }
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -316,11 +327,26 @@ export function CampoFecha({
         </button>
         {!caja && <Hilo activo={enfocado || abierto} />}
 
-        {abierto && (
+        {abierto && pos && destino && createPortal(
           <div
+            ref={calendario}
             role="dialog"
             aria-label="Calendario"
-            className={`anim-revelar absolute top-full z-50 mt-1.5 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md ${haciaIzquierda ? "right-0" : "left-0"}`}
+            style={{
+              ...("top" in pos ? { top: pos.top } : { bottom: pos.bottom }),
+              // Anclado al borde izquierdo del campo; cerca del borde derecho de la pantalla, a su borde derecho.
+              left: haciaIzquierda ? pos.left + pos.width - ANCHO_CALENDARIO : pos.left,
+            }}
+            // Un Escape con el foco en cualquier parte del calendario (las flechas del mes, «Hoy») cierra SOLO el calendario y devuelve el
+            // foco a la fecha; antes solo lo atendía la grilla de días y, desde una flecha, cerraba también la hoja (useEscapeLibre.ts).
+            onKeyDown={(e) => {
+              if (e.key !== "Escape") return;
+              e.preventDefault();
+              e.stopPropagation();
+              setAbierto(false);
+              entrada.current?.focus();
+            }}
+            className="anim-revelar fixed z-50 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md"
           >
             <div className="mb-2 flex items-center justify-between">
               <button
@@ -421,7 +447,8 @@ export function CampoFecha({
                 </button>
               )}
             </div>
-          </div>
+          </div>,
+          destino
         )}
       </div>
     </Campo>
