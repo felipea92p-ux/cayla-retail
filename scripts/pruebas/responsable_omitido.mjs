@@ -170,7 +170,7 @@ caso(
 // de ventas sin registrar (cerrar, reabrir e identificar: 20261005100100, 20261005110000 y 20261005120000; ADR-0334). Es el MISMO número que
 // fija `apps/web/lib/responsable-omitido.test.ts`, que lo cuenta leyendo las migraciones: sumar una acción es sumarla en los dos.
 // Menos dos: Editar producto (`producto_confirmar_cambios`) vuelve a pedir responsable desde 20261006180100 (ADR-0354) y Regularizar
-// una prenda (`regularizar_prenda`) desde 20261006200000.
+// una prenda (`regularizar_prenda`) desde 20261004204000 (ADR-0328, en producción desde el 5-oct; 20261006200000 repite el borrado).
 const TOTAL = EN_SECO ? "28" : "32";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");

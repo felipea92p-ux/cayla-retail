@@ -1243,6 +1243,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
 
+      # Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
+      # con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
+      # mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que
+      # «ya estaba registrada» sale de lo disponible y que una prenda sin cargar en la sede no se regulariza. ROLLBACK.
+      - name: pruebas:ventas-sin-registrar
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ventas-sin-registrar
+
       # Cierre de la cola de arranque (ADR-0334): un líder da por hechas, en bloque y dentro de su plazo, las ventas sin registrar que
       # ya no se pueden identificar. Cubre que sea todo-o-nada y solo del líder, que cerrar no mueva stock, que una prenda cerrada no
       # pueda cambiarse ni regularizarse por el camino de siempre, y los estados imposibles del esquema. Cada caso termina en ROLLBACK;
