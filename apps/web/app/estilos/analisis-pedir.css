@@ -29,6 +29,7 @@
     /* Cada fila conserva su alto: sin esto, al limitar el alto de la lista, el flex las encogía y el nombre de un tipo quedaba
        encima de «vendiste · tienes» del de arriba (Felipe 2026-10-12). */
     .al-lista > .al-f{flex:none}
+    .al-nota{margin:-4px 0 10px}
     .al-mas{position:sticky;bottom:0;flex:none;margin-top:-34px;min-height:44px;padding-top:18px;border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
       color:var(--color-taupe);background:linear-gradient(to bottom,transparent,var(--color-papel) 62%)}
     .al-mas:hover{color:var(--color-tinta)}
