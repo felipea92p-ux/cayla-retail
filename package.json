@@ -129,6 +129,8 @@
     "pruebas:comprobante-venta-anulada": "node scripts/pruebas/comprobante_venta_anulada.mjs",
     "pruebas:notas-credito-serie-por-letra": "node scripts/pruebas/notas_credito_serie_por_letra.mjs",
     "pruebas:sunat-reintento-por-cron": "node scripts/pruebas/sunat_reintento_por_cron.mjs",
+    "pruebas:sunat-estado-no-retrocede": "node scripts/pruebas/sunat_estado_no_retrocede.mjs",
+    "pruebas:sunat-estado-no-retrocede-concurrencia": "node scripts/pruebas/sunat_estado_no_retrocede_concurrencia.mjs",
     "pruebas:insumos-devolucion": "node scripts/pruebas/insumos_devolucion.mjs",
     "pruebas:proveedores-produccion": "node scripts/pruebas/proveedores_produccion.mjs",
     "pruebas:comprobantes-produccion": "node scripts/pruebas/comprobantes_produccion.mjs",
