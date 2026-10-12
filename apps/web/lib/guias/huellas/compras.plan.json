@@ -57,12 +57,10 @@
       "button «{plegadas.length}»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
-      "BotonEnlace «Ir a Etiquetas»",
-      "CampoSelect «Nombre del plan»",
-      "CampoTexto «{<span className=\"sr-only\">Nombre del plan</span>}»",
+      "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -79,7 +77,9 @@
       "Pestanas «);»"
     ],
     "components/plan-compra/PlanCampana.tsx": [
-      "Boton «Nueva campaña»",
+      "Boton «Armar el plan de»",
+      "Boton «Campaña nueva»",
+      "Boton «Campaña nueva» #2",
       "Boton «Ver campañas archivadas»",
       "Boton «plan.resumen»",
       "Boton «Exportar»",

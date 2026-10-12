@@ -18,6 +18,7 @@ import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaC
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
+import { hoyLima } from "@/lib/fechas-lima";
 import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal";
 import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
@@ -50,6 +51,8 @@ import {
   type CategoriaPlan,
   type FiltroPlan,
   type OrdenPlan,
+  ranurasSinPlan,
+  type RanuraCalendario,
 } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
 import type { LecturaMotor } from "@/lib/motor-demanda";
@@ -117,7 +120,8 @@ export function PlanCampana({
   const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [editandoReparto, setEditandoReparto] = useState(false);
-  const [nuevaCampana, setNuevaCampana] = useState(false);
+  // La hoja de una campaña: una del calendario para armar su plan (`ranura`) o una nueva (`ranura: null`). Act. 2026-10-12 f.
+  const [hojaCampana, setHojaCampana] = useState<{ ranura: RanuraCalendario | null } | null>(null);
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
@@ -171,7 +175,17 @@ export function PlanCampana({
   };
 
   const hayArchivadas = !!campanas && campanasArchivadas(campanas).length > 0;
+  const hoja = hojaCampana && campanas && (
+    <NuevaCampanaModal
+      key={hojaCampana.ranura ? `${hojaCampana.ranura.etiquetaId}|${hojaCampana.ranura.anio}` : "nueva"}
+      etiquetas={campanas.etiquetas}
+      nombresEnUso={campanas.planes.map((c) => c.nombre)}
+      ranura={hojaCampana.ranura}
+      onClose={() => setHojaCampana(null)}
+    />
+  );
   if (!plan) {
+    const proxima = campanas ? (ranurasSinPlan(campanas, hoyLima()).at(0) ?? null) : null;
     return (
       <div className="space-y-6">
         <EncabezadoPagina sede="Todas las tiendas" titulo="Plan de campaña" subtitulo="Cuánto comprar de cada categoría para una campaña." />
@@ -186,9 +200,19 @@ export function PlanCampana({
               acciones={
                 esLider && campanas ? (
                   <>
-                    <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
-                      Nueva campaña
-                    </Boton>
+                    {/* Lo primero que ofrece es la próxima campaña del calendario, ya con sus fechas; «Campaña nueva», para lo que no está. */}
+                    {proxima ? (
+                      <>
+                        <Boton peso="primario" onClick={() => setHojaCampana({ ranura: proxima })}>
+                          Armar el plan de {proxima.nombre}
+                        </Boton>
+                        <Boton onClick={() => setHojaCampana({ ranura: null })}>Campaña nueva</Boton>
+                      </>
+                    ) : (
+                      <Boton peso="primario" onClick={() => setHojaCampana({ ranura: null })}>
+                        Campaña nueva
+                      </Boton>
+                    )}
                     {hayArchivadas && <Boton onClick={() => setVerArchivadas(true)}>Ver campañas archivadas</Boton>}
                   </>
                 ) : undefined
@@ -204,7 +228,7 @@ export function PlanCampana({
             </Vacio>
           </div>
         )}
-        {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+        {hoja}
         {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
       </div>
     );
@@ -291,7 +315,8 @@ export function PlanCampana({
                 actualId={plan.plan.id}
                 hoy={plan.hoy}
                 puedeCrear={esLider}
-                onNueva={() => setNuevaCampana(true)}
+                onNueva={() => setHojaCampana({ ranura: null })}
+                onArmar={(ranura) => setHojaCampana({ ranura })}
                 onEditar={() => setEditandoCampana(true)}
                 onArchivadas={() => setVerArchivadas(true)}
               />
@@ -471,8 +496,7 @@ export function PlanCampana({
       />
 
       {salidaPaso.aviso}
-
-      {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+        {hoja}
 
       {editandoCampana && campanaActual && campanas && (
         <EditarCampanaModal

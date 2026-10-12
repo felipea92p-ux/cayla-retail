@@ -42,6 +42,8 @@ const MIGRACION_B3 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010
 const MIGRACION_B4 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010200000_plan_compra_version_de_linea.sql"), "utf8");
 // ADR-0372 · B5: editar, quitar (borrar si está vacía, archivar si no) y restaurar una campaña.
 const MIGRACION_B5 = readFileSync(join(RAIZ, "supabase", "migrations", "20261012120000_plan_compra_editar_y_quitar.sql"), "utf8");
+// ADR-0372 act. 2026-10-12 (f): un plan por campaña y por año, y «Campaña nueva» que la deja en Etiquetas (`crear_campana_con_plan`).
+const MIGRACION_F = readFileSync(join(RAIZ, "supabase", "migrations", "20261012234000_plan_compra_campana_por_anio_y_campana_nueva.sql"), "utf8");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -77,6 +79,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B4)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B5)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_F)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -418,12 +422,68 @@ caso(
   "42501/42501,Solo un líder crea una campaña del plan,false,false"
 );
 caso(
-  "C5 el esquema impide dos planes de la misma etiqueta (aunque alguien escriba la tabla a mano)",
+  "C5 el esquema impide dos planes de la misma etiqueta EL MISMO AÑO (aunque alguien escriba la tabla a mano); otro año, sí",
   `${ETIQUETA_CAMPANA}
    reset role;
    insert into retail.planes_compra (nombre, desde, hasta, etiqueta_id) values ('ZZ A', date '2027-01-01', date '2027-01-02', :'et');
-   select split_part(pg_temp.intento(format('insert into retail.planes_compra (nombre, desde, hasta, etiqueta_id) values (''ZZ B'', date ''2027-01-01'', date ''2027-01-02'', %L)', :'et')), '|', 1);`,
-  "23505"
+   select split_part(pg_temp.intento(format('insert into retail.planes_compra (nombre, desde, hasta, etiqueta_id) values (''ZZ B'', date ''2027-03-01'', date ''2027-03-02'', %L)', :'et')), '|', 1) || ',' ||
+     pg_temp.intento(format('insert into retail.planes_compra (nombre, desde, hasta, etiqueta_id) values (''ZZ C'', date ''2028-01-01'', date ''2028-01-02'', %L)', :'et'));`,
+  "23505,SIN_ERROR"
+);
+caso(
+  "C6 la misma campaña el año siguiente: su plan se crea con su año, y el calendario trae los dos (el último en plan_id)",
+  `${ETIQUETA_CAMPANA}
+   select retail.crear_plan_compra(:'et') ->> 'id' as p27 \\gset
+   select retail.crear_plan_compra(:'et', null, date '2028-05-01', date '2028-05-10') ->> 'nombre' as n28 \\gset
+   select :'n28' || ',' || (select string_agg(x ->> 'anio', '/' order by x ->> 'anio') from jsonb_array_elements(
+       (select e -> 'planes' from jsonb_array_elements(retail.fn_planes_compra() -> 'etiquetas') e where e ->> 'id' = :'et')) x) || ',' ||
+     ((select e ->> 'plan_id' from jsonb_array_elements(retail.fn_planes_compra() -> 'etiquetas') e where e ->> 'id' = :'et')
+       = (select id::text from retail.planes_compra where etiqueta_id = :'et' and extract(year from hasta) = 2028));`,
+  "ZZ Campaña de prueba 2028,2027/2028,true"
+);
+caso(
+  "C7 el calendario también trae las campañas sin fechas (para pedirlas en Etiquetas), con sus fechas vacías",
+  `insert into retail.etiquetas (nombre, estilo, estado, activo) values ('ZZ Sin fechas', 'campana', 'aprobado', true);
+   select (select (e ->> 'desde') is null and (e ->> 'hasta') is null and jsonb_array_length(e -> 'planes') = 0
+             from jsonb_array_elements(retail.fn_planes_compra() -> 'etiquetas') e where e ->> 'nombre' = 'ZZ Sin fechas');`,
+  "t"
+);
+
+// D. CAMPAÑA NUEVA DESDE EL PLAN (ADR-0372 act. 2026-10-12 f) ----------------------------------------------------------------
+caso(
+  "D1 un líder crea una campaña que no estaba: queda en Etiquetas con el formato de las demás (campaña, aprobada, sus fechas, sin descuento) y con su plan",
+  `select retail.crear_campana_con_plan('  ZZ Cyber Wow ', date '2027-11-03', date '2027-11-05') as r \\gset
+   select (:'r'::jsonb ->> 'nombre') || ',' ||
+     (select e.estilo || '/' || e.estado || '/' || e.activo || '/' || e.vigente_desde || '/' || e.vigente_hasta || '/' || coalesce(e.descuento_pct::text, 'sin descuento') || '/' || (e.propuesto_por is not null)
+        from retail.etiquetas e where e.id = (:'r'::jsonb ->> 'etiqueta_id')::uuid) || ',' ||
+     (select p.desde || '/' || p.hasta || '/' || (p.etiqueta_id = (:'r'::jsonb ->> 'etiqueta_id')::uuid) from retail.planes_compra p where p.id = (:'r'::jsonb ->> 'id')::uuid);`,
+  "ZZ Cyber Wow 2027,campana/aprobado/true/2027-11-03/2027-11-05/sin descuento/true,2027-11-03/2027-11-05/true"
+);
+caso(
+  "D2 rechaza el nombre de una etiqueta que ya existe (sin mirar mayúsculas ni tildes), sin nombre, sin fechas o al revés",
+  `insert into retail.etiquetas (nombre, estilo, estado, activo) values ('ZZ Campaña Única', 'campana', 'aprobado', true);
+   select concat_ws(' / ',
+     split_part(pg_temp.intento('select retail.crear_campana_con_plan(''zz campana unica'', date ''2027-01-01'', date ''2027-01-02'')'), '|', 2),
+     split_part(pg_temp.intento('select retail.crear_campana_con_plan(''  '', date ''2027-01-01'', date ''2027-01-02'')'), '|', 2),
+     split_part(pg_temp.intento('select retail.crear_campana_con_plan(''ZZ Otra'', null, date ''2027-01-02'')'), '|', 2),
+     split_part(pg_temp.intento('select retail.crear_campana_con_plan(''ZZ Otra'', date ''2027-01-05'', date ''2027-01-02'')'), '|', 2));`,
+  "Ya hay una etiqueta «zz campana unica» en Catálogo ▸ Etiquetas: elígela en el calendario. / Escribe el nombre de la campaña. / Pon las dos fechas de la campaña. / La campaña no puede terminar antes de empezar."
+);
+caso(
+  "D3 todo o nada: si el plan no se puede crear (su nombre ya es de otro plan), tampoco queda la etiqueta",
+  `select split_part(pg_temp.intento('select retail.crear_campana_con_plan(''Diciembre'', date ''2026-12-01'', date ''2026-12-31'')'), '|', 2) || ',' ||
+     (select count(*) from retail.etiquetas where nombre = 'Diciembre');`,
+  "Ya hay un plan con ese nombre: ponle otro.,0"
+);
+caso(
+  "D4 sin ser líder, 42501; y nadie la ejecuta como anon",
+  `reset role;
+   select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
+   insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'plan_compra') on conflict do nothing;
+   ${como(MICAELA)}
+   select pg_temp.intento('select retail.crear_campana_con_plan(''ZZ De Micaela'', date ''2027-01-01'', date ''2027-01-02'')') || ',' ||
+     has_function_privilege('anon', 'retail.crear_campana_con_plan(text,date,date)', 'execute');`,
+  "42501|Solo un líder crea una campaña del plan,false"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien.`);
