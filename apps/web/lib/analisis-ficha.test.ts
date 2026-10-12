@@ -318,16 +318,27 @@ describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felip
     expect(t.filas.find((f) => f.color === "Blanco")!.sinStock).toBe(true);
     expect(t.filas.find((f) => f.color === "Verde agua")!.sinStock).toBe(false);
     expect(celda("Negro", "S")).toMatchObject({ estado: "pedir", fuerte: "1 vendida" });
-    expect(celda("Verde agua", "S")).toMatchObject({ estado: "queda", fuerte: "queda 1", suave: "sin ventas" });
+    expect(celda("Verde agua", "S")).toMatchObject({ estado: "queda", fuerte: "sin ventas", suave: "queda 1" });
     expect(celda("Vino", "M")).toMatchObject({ estado: "nada", fuerte: "no hay", suave: null });
     const vende = tablaDelModelo(modeloDe([v("x", "Rosa", "S", 2, 3), v("y", "Rosa", "M", 0, 0)], HOY_FICHA))!;
-    expect(vende.filas[0].celdas[0]).toMatchObject({ estado: "queda", fuerte: "quedan 3", suave: "vendiste 2" });
+    // Arriba siempre lo vendido y abajo lo que queda, haya stock o no (Felipe 2026-10-12).
+    expect(vende.filas[0].celdas[0]).toMatchObject({ estado: "queda", fuerte: "2 vendidas", suave: "quedan 3", tip: "Rosa · S: 2 vendidas, quedan 3" });
     expect(vende.filas[0].celdas[1]).toMatchObject({ estado: "nada", fuerte: "no hay" });
   });
 
   it("a igual venta no importa si queda: el orden es solo por lo vendido y después por nombre", () => {
     const t = tablaDelModelo(modeloDe([v("a", "Rosa", "S", 2, 3), v("b", "Azul", "S", 2, 0), v("c", "Azul", "M", 0, 0), v("d", "Rosa", "M", 0, 0)], HOY_FICHA))!;
     expect(t.filas.map((f) => [f.color, f.sinStock])).toEqual([["Azul", true], ["Rosa", false]]);
+  });
+
+  it("lo que ni se vendió ni tienes va al final, debajo de lo que no se vendió pero tienes", () => {
+    const t = tablaDelModelo(
+      modeloDe([v("a", "Azul", "Estándar", 0, 0), v("b", "Rosa", "Estándar", 0, 2), v("c", "Negro", "Estándar", 1, 0), v("d", "Beige", "Estándar", 0, 3)], HOY_FICHA),
+    )!;
+    expect(t.filas.map((f) => f.color)).toEqual(["Negro", "Beige", "Rosa", "Azul"]);
+    expect(t.filas[3].celdas[0].fuerte).toBe("no hay");
+    // Solo se alerta lo que se vendió y se quedó sin stock: «Azul» nunca se vendió y su celda ya dice «no hay».
+    expect(t.filas.map((f) => f.sinStock)).toEqual([true, false, false, false]);
   });
 
   it("una sola talla de un solo color no lleva tabla: la frase ya lo dice", () => {
