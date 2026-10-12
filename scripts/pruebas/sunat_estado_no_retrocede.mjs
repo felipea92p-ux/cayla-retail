@@ -10,7 +10,8 @@
  *   3. Los pasos de siempre siguen pasando: pendiente → cola → en trámite → rechazado → reenvío → aceptado → anulado.
  *   4. El disparador frena a CUALQUIER escritor, no solo a la RPC: un `update` directo que haga retroceder un aceptado,
  *      un anulado o un no emitido falla con su mensaje; y si SUNAT acepta algo que el ERP ya liberó, la RPC NO lo
- *      ignora: falla, porque es una contradicción que tiene que verse.
+ *      ignora: falla, porque es una contradicción que tiene que verse. Y lo que ya intentó salir a SUNAT no se libera
+ *      (`20261012180100`, opción A): pudo haber llegado.
  *   5. Un cambio que deja el mismo estado (otra consulta en trámite, otro reintento) no pasa por el disparador.
  *
  * LO QUE ESTA NO VE: dos conexiones a la vez. Eso es `sunat_estado_no_retrocede_concurrencia.mjs`, que commitea y por
@@ -207,6 +208,13 @@ select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{
 ${A_MANO}
 update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'x' where id = :'b';`,
     "está «rechazado» y no puede pasar a «no_emitido»"
+  );
+  denegado(
+    "una boleta que ya intentó salir no se libera (no emitido): pudo haber llegado a SUNAT (opción A)",
+    `select retail.fn_marcar_reintento_transmision(:'b', 'sin_respuesta: Lucode no respondió a tiempo') as _m \\gset
+${A_MANO}
+update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'x' where id = :'b';`,
+    "está «pendiente_reintento» y no puede pasar a «no_emitido»"
   );
   denegado(
     "una boleta en la cola no vuelve a «pendiente»",

@@ -1,4 +1,4 @@
-# ADR-0382 — Lo que SUNAT aceptó no retrocede en el ERP
+# ADR-0382 — Lo que SUNAT aceptó no retrocede, y lo que pudo llegar no se libera
 
 - **Fecha:** 2026-10-12 · **Estado:** construido y verificado en local (una base desechable propia, ver «Verificación»). **Sin pegar en
   producción**: necesita el OK puntual de Felipe.
@@ -50,10 +50,43 @@
 **Se rompe si** hace falta un paso nuevo legítimo (p. ej. volver a abrir un comprobante liberado): necesita su propia migración que lo
 agregue al disparador, a propósito.
 
+## Decisión 2 — anular una venta no libera lo que pudo llegar a SUNAT (`20261012180100`, opción A de Felipe)
+
+`anular_venta` liberaba (`no_emitido`) también el comprobante en la cola de reintento (`20260922151500`), suponiendo que lo de la cola «nunca
+se transmitió con éxito». El ADR-0378 mostró lo contrario: de 52 en la cola de producción, 41 ya estaban en SUNAT. Anular una de esas ventas
+dejaba una venta declarada y devuelta a quien compró, sin nota de crédito, con el número dado por libre. Además, «Liberar sin espera» ya solo
+liberaba un `pendiente`: dos puertas decían cosas distintas sobre lo mismo.
+
+Ahora, si el comprobante de la venta tuvo **algún intento** de envío, la venta no se anula y la base lo dice con el número:
+
+> El comprobante B001-13 de esta venta ya se intentó enviar a SUNAT y pudo haber llegado, así que la venta no se anula. En Comprobantes ▸ Por
+> enviar pulsa «Reintentar ahora»; cuando figure aceptado, usa Devolución (sale con su nota de crédito).
+
+Lo que nunca intentó salir (`pendiente` sin intentos, la nota de venta `interna`) se sigue liberando como siempre. El disparador de la
+decisión 1 lo hace cumplir para cualquier escritor: `no_emitido` solo desde `pendiente` o `interna` y con cero intentos. La pantalla no cambia:
+ya muestra el mensaje de la base tal cual.
+
+**Corrección a lo que se le dijo a Felipe al elegir.** El plan decía que, tras «Reintentar ahora», «si no llegó, se puede anular». No es así:
+«Reintentar ahora» **envía** el comprobante si Lucode no lo tiene, así que en los dos casos termina `aceptado` y el camino es Devolución con
+nota de crédito. Una venta cuyo comprobante intentó salir ya no se anula nunca. Para el negocio la diferencia es un papel más (la nota de
+crédito) en un caso raro y del mismo día; a cambio, ninguna venta declarada queda sin su nota.
+
+**Descartado:**
+
+- *B: preguntarle a Lucode desde la pantalla de anular, antes de anular.* Anularía al momento lo que de verdad no llegó, pero la regla viviría
+  en la web y cualquier otro camino (una RPC futura, un script) se la saltaría.
+- *C: dejarlo como estaba.* El caso de las 41 quedaba abierto.
+
+**Se rompe si** Lucode está caído cuando la tienda quiere anular una venta cuya boleta ya intentó salir: no se anula hasta que «Reintentar
+ahora» la resuelva. Felipe lo aceptó al elegir la opción A.
+
 ## Verificación
 
-- `pnpm pruebas:sunat-estado-no-retrocede` (al CI, todo en ROLLBACK): **3/12 sin la migración, 12/12 con ella** (respuesta vieja tras
-  aceptar y tras anular, pasos de siempre, siete pasos imposibles por update directo, mismo estado sin disparador).
+- `pnpm pruebas:sunat-estado-no-retrocede` (al CI, todo en ROLLBACK): **3/12 sin la decisión 1, 12/12 con ella**; con el caso de la
+  decisión 2, **12/13 sin ella y 13/13 con las dos** (respuesta vieja tras aceptar y tras anular, pasos de siempre, ocho pasos imposibles por
+  update directo, mismo estado sin disparador).
+- `pnpm pruebas:venta-contrato-ampliado`: el caso que fijaba la regla vieja (anular liberaba lo de la cola) ahora espera la negativa, el
+  mensaje con el número y nada cambiado; falla sin la decisión 2 y pasa con ella.
 - `pnpm pruebas:sunat-estado-no-retrocede-concurrencia` (dos conexiones con COMMIT; solo con `BASE_DESECHABLE=1`): en una base desechable
   (contenedor propio con la misma imagen de Supabase y una copia de `retail` y `public` de la base local), **2/3 sin la migración** (la
   carrera pisa el aceptado) y **3/3 con ella**. La migración se aplicó dos veces seguidas sin error (re-ejecutable).
@@ -63,8 +96,13 @@ agregue al disparador, a propósito.
 
 ## Producción
 
-Se pega tal cual en el SQL Editor, de una vez: sin políticas ni `drop trigger`, con `lock_timeout` de 3 s. Antes de reemplazar la función
-comprueba su huella (`2614dff116d42705bcf9fd85bafa0720`) y se detiene si alguien la cambió. Después:
+Dos pegados, en orden, cada uno de una vez: sin políticas ni `drop trigger`, con `lock_timeout` de 3 s, re-ejecutables.
+
+1. `20261012180000`: antes de reemplazar la función comprueba su huella (`2614dff116d42705bcf9fd85bafa0720`) y se detiene si alguien la cambió.
+2. `20261012180100`: se detiene si falta el disparador del paso 1. Reemplazo anclado de `anular_venta` (huella en producción
+   `7eec68a5d7d9aa95ef21c8a045a2ad8e`; consultado el 2026-10-12: cada ancla aparece exactamente una vez).
+
+Después:
 
 ```sql
 select count(*) from retail.comprobantes
