@@ -21,8 +21,12 @@ import { libroDesdeFilas, type LibroPorVenta } from "./por-regularizar-deduccion
 export async function getLibroPorVenta(ubicacionId: string | null): Promise<LibroPorVenta | null> {
   try {
     const supabase = await createClient();
-    const args = ubicacionId ? { p_ubicacion_id: ubicacionId } : {};
-    const r = await leerTodas((desde, hasta) => supabase.rpc("fn_candidatas_por_regularizar", args).range(desde, hasta), { enParalelo: 1 });
+    // Sin tienda (el líder mirando todas), el parámetro no viaja y la base usa su `null`: todas las que la cuenta opera. Escrito en la
+    // misma llamada para que `pnpm datos:comparar` compare los parámetros con la firma de producción.
+    const r = await leerTodas(
+      (desde, hasta) => supabase.rpc("fn_candidatas_por_regularizar", { p_ubicacion_id: ubicacionId ?? undefined }).range(desde, hasta),
+      { enParalelo: 1 },
+    );
     if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
     return libroDesdeFilas(r.data);
   } catch (e) {
