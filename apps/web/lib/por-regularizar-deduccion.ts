@@ -42,18 +42,29 @@ export type LibroPorVenta = Readonly<Record<string, Readonly<Record<string, Hech
 /** La respuesta que dice el libro, con su porqué. `forma: null` = el libro no alcanza para decidir (el porqué dice por qué). */
 export type FormaDeducida = { forma: FormaRegularizar | null; porque: string };
 
-/** Lo que fue la primera entrada, para el porqué. */
-const QUE_FUE: Readonly<Record<string, string>> = {
-  carga_inicial: "su carga inicial",
-  recepcion: "su recepción",
-  traslado_entrada: "el traslado que la trajo",
-  movimiento_interno: "el traslado que la trajo",
-  conteo: "un conteo",
-  cambio: "un cambio",
-  devolucion: "una devolución",
-  produccion: "su ingreso desde el Taller",
+/** El remate del porqué depende de lo que fue esa primera entrada: un conteo (la carga inicial, «Encontré prendas») contó lo que había
+ *  y la vendida ya no estaba; una llegada (recepción, traslado, Taller, devolución) se registró cuando la vendida ya se había ido. Decirle
+ *  «ese conteo» a una recepción confunde (revisión adversarial de #975). */
+const CONTO = "ese conteo ya no la incluyó";
+const REGISTRO = "cuando se registró, la vendida ya no estaba";
+
+/** Lo que fue la primera entrada, para el porqué: qué fue y con qué remata. */
+const QUE_FUE: Readonly<Record<string, { que: string; remate: string }>> = {
+  carga_inicial: { que: "su carga inicial", remate: CONTO },
+  conteo: { que: "un conteo", remate: CONTO },
+  conteo_fisico: { que: "un conteo", remate: CONTO },
+  hallazgo_conteo: { que: "un conteo", remate: CONTO },
+  reposicion: { que: "su registro con «Encontré prendas»", remate: CONTO },
+  recepcion: { que: "su recepción", remate: REGISTRO },
+  traslado_entrada: { que: "el traslado que la trajo", remate: REGISTRO },
+  transferencia: { que: "el traslado que la trajo", remate: REGISTRO },
+  movimiento_interno: { que: "el traslado que la trajo", remate: REGISTRO },
+  cambio: { que: "un cambio", remate: REGISTRO },
+  devolucion: { que: "una devolución", remate: REGISTRO },
+  produccion: { que: "su ingreso desde el Taller", remate: REGISTRO },
 };
-const queFue = (motivo: string | null) => (motivo && QUE_FUE[motivo]) || "su primera entrada";
+const PRIMERA_ENTRADA = { que: "su primera entrada", remate: REGISTRO };
+const queFue = (motivo: string | null) => (motivo && QUE_FUE[motivo]) || PRIMERA_ENTRADA;
 
 /** Lo que cambió lo contado después de la venta, dicho en la tienda: «llegó una recepción», «se ajustó en un conteo». */
 const QUE_CAMBIO: Readonly<Record<string, string>> = {
@@ -92,9 +103,10 @@ export function deducirForma(h: HechoDelLibro, vendidoEn: string, sede: string):
     const entrada = h.primeraEntrada ? Date.parse(h.primeraEntrada) : Number.NaN;
     // La más clara de decir: se vendió antes de que esa prenda entrara por primera vez a la tienda.
     if (h.primeraEntrada && Number.isFinite(entrada) && Date.parse(vendidoEn) < entrada) {
+      const { que, remate } = queFue(h.primeraEntradaMotivo);
       return {
         forma: "llego_nueva",
-        porque: `Se vendió el ${cuando(vendidoEn)}, antes de ${queFue(h.primeraEntradaMotivo)} en ${sede} (${cuando(h.primeraEntrada)}): ese conteo ya no la incluyó.`,
+        porque: `Se vendió el ${cuando(vendidoEn)}, antes de ${que} en ${sede} (${cuando(h.primeraEntrada)}): ${remate}.`,
       };
     }
     return { forma: "llego_nueva", porque: `Cuando se vendió (${cuando(vendidoEn)}), el sistema no tenía ninguna en ${sede}: no pudo estar contada.` };

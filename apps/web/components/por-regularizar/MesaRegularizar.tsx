@@ -9,6 +9,9 @@ import { useResponsable } from "@/lib/useResponsable";
 import { indexarPrendas, modoDeMesa, textoDeDiferencia, diferenciaDe, type FormaRegularizar, type ModoDeMesa, type PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { deduccionPara, type LibroPorVenta } from "@/lib/por-regularizar-deduccion";
+import { motivoPropiaVenta, notaSinUnidades } from "@/lib/por-regularizar-reglas";
+import { useSedeActiva } from "@/components/SedeActiva";
+import { usePrendaSinCargar } from "./usePrendaSinCargar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -143,6 +146,12 @@ export function MesaRegularizar({
   const unidadesDeLaPrenda = prenda && disponibleDeSede ? (disponibleDeSede.get(prenda.id) ?? 0) : null;
   // «¿Cómo estaba?» deducido del libro de ESA prenda en la tienda de la venta (ADR-0328 act. 5): una sugerencia, nunca una elección.
   const deducida = deduccionPara(libro, sel, prenda?.id ?? null);
+  // Lo que `regularizar_prenda` va a rechazar (20261004204000), dicho antes del botón con la misma frase de la base: una prenda que nunca
+  // entró a esa tienda (se pregunta solo por la que no tiene unidades libres) y la venta propia. Solo avisan: no cambian la guía ni el botón.
+  const sinCargar = usePrendaSinCargar(prenda?.id ?? null, sel?.ubicacionId ?? null, prenda !== null && !(unidadesDeLaPrenda !== null && unidadesDeLaPrenda > 0));
+  const notaStock = prenda && sel ? notaSinUnidades({ disponible: unidadesDeLaPrenda, cargada: sinCargar.cargada, sede: sel.sede, carga: sinCargar.carga }) : null;
+  const personaSesionId = useSedeActiva()?.personaSesionId ?? null;
+  const propiaVenta = sel ? motivoPropiaVenta({ vendidoPorId: sel.vendidoPorId, responsableId: responsable.elegidoId, personaSesionId, esLider }) : null;
   const hecho = sel !== null && saliendoId === sel.id;
 
   // La guía de foco (CLAUDE.md «Guía de foco», ADR-0284): lo que falta sale de lo que ya bloquea el botón, nada más.
@@ -243,7 +252,7 @@ export function MesaRegularizar({
   );
   const puente = sel && pendiente && (
     <div className="vsr-puente" ref={puenteRef}>
-      <PuenteUnion venta={sel} prenda={prenda} disponible={unidadesDeLaPrenda} deducida={deducida} forma={forma} onForma={elegirForma} responsable={responsable} guia={guia} guardando={guardando} hecho={hecho} onGuardar={() => void guardar()} onCorregir={() => abrirCorreccion(sel)} alCrecer={traerElBotonALaVista} />
+      <PuenteUnion venta={sel} prenda={prenda} disponible={unidadesDeLaPrenda} notaStock={notaStock} propiaVenta={propiaVenta} deducida={deducida} forma={forma} onForma={elegirForma} responsable={responsable} guia={guia} guardando={guardando} hecho={hecho} onGuardar={() => void guardar()} onCorregir={() => abrirCorreccion(sel)} alCrecer={traerElBotonALaVista} />
     </div>
   );
   const derecha = !sel ? (

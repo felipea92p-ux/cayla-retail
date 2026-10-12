@@ -307,8 +307,13 @@
 @keyframes vsr-sello { 0% { opacity: 0; transform: rotate(-8deg) scale(1.6); } 55% { opacity: 1; transform: rotate(-8deg) scale(0.96); } 100% { opacity: 1; transform: rotate(-8deg) scale(1); } }
 @keyframes vsr-pliega { 0% { opacity: 1; transform: none; max-height: 8rem; margin-bottom: 0; } 60% { opacity: 0; transform: translateX(34px); max-height: 8rem; margin-bottom: 0; } 100% { opacity: 0; transform: translateX(34px); max-height: 0; margin-bottom: -0.625rem; border-width: 0; padding-block: 0; } }
 
+/* Todo se apaga con movimiento reducido (ADR-0360, ADR-0136): la mesa (`.vsr`) y también la hoja del celular (`.vsr-hoja`), que sube en
+   un portal de `<Modal>` FUERA de `.vsr` y por eso no la alcanzaba (revisión adversarial de #975). */
 @media (prefers-reduced-motion: reduce) {
   .vsr *,
   .vsr *::before,
-  .vsr *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; }
+  .vsr *::after,
+  .vsr-hoja *,
+  .vsr-hoja *::before,
+  .vsr-hoja *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; }
 }

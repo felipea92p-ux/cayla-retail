@@ -68,13 +68,37 @@ describe("deducirForma — ¿perdió la etiqueta o llegó nueva?", () => {
     expect(deducirForma(libro({ saldoALaVenta: 1 }), "2026-10-02T16:40:00.000Z", "TRU")?.forma).toBe("ya_registrada");
   });
 
-  it("vale para cualquier primera entrada, no solo la carga inicial, y dice cuál fue", () => {
-    const antes = (motivo: string | null) =>
-      deducirForma(libro({ saldoALaVenta: 0, primeraEntrada: "2026-10-03T15:00:00.000Z", primeraEntradaMotivo: motivo }), "2026-10-02T15:00:00.000Z", "TRU")?.porque;
-    expect(antes("traslado_entrada")).toContain("el traslado que la trajo");
-    expect(antes("recepcion")).toContain("su recepción");
-    expect(antes("motivo_raro")).toContain("su primera entrada");
-    expect(antes(null)).toContain("su primera entrada");
+  // Revisión adversarial de #975: el remate decía «ese conteo ya no la incluyó» también a una recepción o a un traslado, donde no hubo
+  // ningún conteo. Ahora depende de lo que fue la primera entrada, y se compara la frase ENTERA para cada motivo.
+  it.each([
+    // Un conteo (la carga inicial, un conteo, «Encontré prendas»): contó lo que había y la vendida ya no estaba.
+    ["carga_inicial", "su carga inicial", "ese conteo ya no la incluyó"],
+    ["conteo", "un conteo", "ese conteo ya no la incluyó"],
+    ["conteo_fisico", "un conteo", "ese conteo ya no la incluyó"],
+    ["hallazgo_conteo", "un conteo", "ese conteo ya no la incluyó"],
+    ["reposicion", "su registro con «Encontré prendas»", "ese conteo ya no la incluyó"],
+    // Una llegada: se registró cuando la vendida ya se había ido.
+    ["recepcion", "su recepción", "cuando se registró, la vendida ya no estaba"],
+    ["traslado_entrada", "el traslado que la trajo", "cuando se registró, la vendida ya no estaba"],
+    ["transferencia", "el traslado que la trajo", "cuando se registró, la vendida ya no estaba"],
+    ["movimiento_interno", "el traslado que la trajo", "cuando se registró, la vendida ya no estaba"],
+    ["cambio", "un cambio", "cuando se registró, la vendida ya no estaba"],
+    ["devolucion", "una devolución", "cuando se registró, la vendida ya no estaba"],
+    ["produccion", "su ingreso desde el Taller", "cuando se registró, la vendida ya no estaba"],
+    // Lo que no se conoce no se inventa: «su primera entrada», sin hablar de un conteo.
+    ["motivo_raro", "su primera entrada", "cuando se registró, la vendida ya no estaba"],
+    [null, "su primera entrada", "cuando se registró, la vendida ya no estaba"],
+  ])("vendida antes de su primera entrada (%s): la frase entera dice qué fue y remata según eso", (motivo, que, remate) => {
+    const d = deducirForma(libro({ saldoALaVenta: 0, primeraEntrada: "2026-10-04T15:00:00.000Z", primeraEntradaMotivo: motivo }), "2026-10-03T15:00:00.000Z", "Tienda Trujillo");
+    expect(d?.forma).toBe("llego_nueva");
+    expect(d?.porque).toBe(`Se vendió el 03/10 a las 10:00, antes de ${que} en Tienda Trujillo (04/10 a las 10:00): ${remate}.`);
+  });
+
+  it("ninguna llegada habla de «ese conteo»", () => {
+    for (const motivo of ["recepcion", "traslado_entrada", "transferencia", "movimiento_interno", "cambio", "devolucion", "produccion", "otro", null]) {
+      const p = deducirForma(libro({ saldoALaVenta: 0, primeraEntrada: "2026-10-04T15:00:00.000Z", primeraEntradaMotivo: motivo }), "2026-10-03T15:00:00.000Z", "TRU")?.porque;
+      expect(p).not.toContain("conteo");
+    }
   });
 
   it("sin saldo conocido (tienda apagada) o con una fecha rota: nada que decir (null)", () => {

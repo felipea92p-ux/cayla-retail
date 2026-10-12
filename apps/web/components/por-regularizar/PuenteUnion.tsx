@@ -18,6 +18,16 @@ import { estaEscribiendo } from "@/components/alta-producto/useGuiaAlta";
 /** Un rótulo pegado a una marca de la regla no se sale de ella: cerca de un borde se alinea hacia adentro. */
 const alinear = (pos: number): "ini" | "fin" | undefined => (pos < 24 ? "ini" : pos > 76 ? "fin" : undefined);
 
+/** ¿La línea no se ve? Fuera de la ventana, o debajo del pie fijo del puente (`.vsr-pu-fin`, pegado abajo en la hoja y en dos columnas):
+ *  lo que queda bajo su borde de arriba está tapado. Con el pie en su lugar (debajo de la línea, en tres columnas), no tapa nada. */
+function quedaTapado(el: HTMLElement): boolean {
+  const r = el.getBoundingClientRect();
+  const pie = el.closest("[data-vsr-puente]")?.querySelector<HTMLElement>(".vsr-pu-fin");
+  const bordePie = pie ? pie.getBoundingClientRect().top : Infinity;
+  const abajo = Math.min(window.innerHeight, bordePie > r.top ? bordePie : Infinity);
+  return r.top < 0 || r.bottom > abajo;
+}
+
 /**
  * El puente (ADR-0360, maqueta A2): la unión de la venta con la prenda, a la vista. Arriba lo que anotó caja; abajo la prenda elegida;
  * en medio la cuerda con tres visitos (prenda, talla, color: el que no coincide dice «≠»). Con la prenda elegida aparecen el precio
@@ -30,6 +40,8 @@ export function PuenteUnion({
   venta,
   prenda,
   disponible,
+  notaStock = null,
+  propiaVenta = null,
   deducida = null,
   forma,
   onForma,
@@ -45,6 +57,12 @@ export function PuenteUnion({
   prenda: PrendaParaRegularizar | null;
   /** Unidades libres de la prenda en la tienda de la venta; `null` = no se pudo leer. */
   disponible: number | null;
+  /** La nota en ámbar de una prenda sin unidades libres (`notaSinUnidades`): si nunca entró a la tienda, la MISMA frase con que la base
+   *  la va a rechazar (20261004204000); `null` = nada que decir. */
+  notaStock?: string | null;
+  /** Nadie regulariza su propia venta, salvo el líder firmando él mismo (`motivoPropiaVenta`, 20261004204000): se dice bajo el
+   *  «Responsable», antes del botón. Solo avisa: la guía y el botón no cambian. */
+  propiaVenta?: string | null;
   /** Lo que dice el libro de esta prenda a la hora de la venta (ADR-0328 act. 5): la respuesta sugerida y su porqué, o `null` si no hay
    *  nada que decir. Solo SUGIERE: no elige ni cambia qué se puede confirmar. */
   deducida?: FormaDeducida | null;
@@ -65,24 +83,29 @@ export function PuenteUnion({
   const diferencia = prenda ? diferenciaDe(venta, prenda) : 0;
   const balanza = prenda ? balanzaDe(venta.precioCobrado, prenda.precio) : null;
   const puedeGuardar = Boolean(prenda && forma && responsable.listo && !guardando && !hecho);
-  const sinUnidades = prenda !== null && disponible === 0;
   // Si la persona elige lo contrario de lo que dice el libro, un aviso en ámbar dice qué pasaría (sin detenerla: puede tener razón).
   const aviso = avisoDeRespuesta(deducida, forma, venta.sede);
-  // El aviso aparece donde la persona puede no estar mirando (en la hoja del celular, bajo el pie fijo con «Regularizar»): se trae a la
-  // vista una vez, con suavidad, solo si no se ve (`nearest`, con `scroll-margin` para librar el pie). Nunca mientras se teclea.
+  const porque = deducida?.porque ?? null;
+  // El porqué de «Sugerida» (al elegir la prenda) y el aviso (al elegir la contraria) aparecen donde la persona puede no estar mirando: en
+  // la hoja del celular o en la mesa de dos columnas quedaban bajo el pie fijo con «Regularizar», y se veía «Sugerida» sin su porqué. Se
+  // traen a la vista una vez, con suavidad, SOLO si quedaron tapados (`nearest`, con `scroll-margin` para librar el pie): si ya se ven, no
+  // se mueve nada (ni se corta el desplazamiento que trae el botón). Nunca mientras se teclea; sin animación con movimiento reducido.
   const refDeduce = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    if (!aviso || estaEscribiendo()) return;
+    if ((!aviso && !porque) || estaEscribiendo()) return;
     const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     let segundo = 0;
     const primero = requestAnimationFrame(() => {
-      segundo = requestAnimationFrame(() => refDeduce.current?.scrollIntoView({ block: "nearest", behavior: quieto ? "auto" : "smooth" }));
+      segundo = requestAnimationFrame(() => {
+        const el = refDeduce.current;
+        if (el && quedaTapado(el)) el.scrollIntoView({ block: "nearest", behavior: quieto ? "auto" : "smooth" });
+      });
     });
     return () => {
       cancelAnimationFrame(primero);
       cancelAnimationFrame(segundo);
     };
-  }, [aviso]);
+  }, [aviso, porque]);
 
   return (
     <div className="vsr-pu" data-vsr-puente data-hecho={hecho ? "" : undefined}>
@@ -165,9 +188,9 @@ export function PuenteUnion({
             </div>
           </div>
 
-          {sinUnidades && (
+          {notaStock && (
             <p className="vsr-aviso-stock" role="note">
-              Hoy no tiene unidades libres en esta tienda. Si nunca se contó en un lote, elige «Llegó nueva».
+              {notaStock}
             </p>
           )}
 
@@ -221,6 +244,11 @@ export function PuenteUnion({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando || hecho} compacto />
           </CampoGuiado>
+          {propiaVenta && (
+            <p className="vsr-aviso-stock" role="note">
+              {propiaVenta}
+            </p>
+          )}
 
           <div className="vsr-pu-fin">
             <PieGuia guia={guia} />
