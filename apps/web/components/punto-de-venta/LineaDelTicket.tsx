@@ -9,8 +9,11 @@ const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appea
 
 const PUNTO: Record<TonoStock, string> = { verde: "bg-verde", ambar: "bg-ambar", excedido: "bg-rojo-profundo" };
 
-/** Los dos botones del paso: los del spike (`h-7 w-6`), apagados en gris en vez de desaparecer. */
-const BOTON_PASO = "h-7 w-6 rounded-md text-base transition-colors hover:bg-sand/40 disabled:text-tinta/30 disabled:hover:bg-transparent";
+/** Los dos botones del paso: los del spike (`h-7 w-6`), apagados en gris en vez de desaparecer. Con el DEDO (celular o tablet,
+ *  `pointer-coarse`) crecen a 44 × 40: a 24 px, con tres prendas en el ticket, la cajera tocaba el importe o el basurero sin
+ *  querer. Con el mouse no cambia nada. */
+const BOTON_PASO =
+  "h-7 w-6 rounded-md text-base transition-colors hover:bg-sand/40 disabled:text-tinta/30 disabled:hover:bg-transparent pointer-coarse:h-11 pointer-coarse:w-10";
 
 type Props = {
   linea: ItemCarrito;
@@ -43,8 +46,9 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
   const f = filaDelTicket(linea, detalle);
   const nombre = linea.referencia;
   return (
-    <article className="px-5 py-2.5">
-      <div className="flex items-center gap-2">
+    // En el celular los controles crecen para el dedo: la fila devuelve margen al nombre para que «Blusa Valentina» no se corte.
+    <article className="px-5 py-2.5 max-sm:px-3">
+      <div className="flex items-center gap-2 pointer-coarse:gap-1.5">
         <div className="min-w-0 flex-1" title={f.titulo}>
           <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] leading-snug text-tinta/65">
@@ -59,7 +63,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
         </div>
 
         {f.conPaso && (
-          <div className="flex h-8 shrink-0 items-center rounded-lg border border-sand bg-crema has-[input:focus]:border-rojo">
+          <div className="flex h-8 shrink-0 items-center rounded-lg border border-sand bg-crema has-[input:focus]:border-rojo pointer-coarse:h-11">
             <button
               type="button"
               aria-label="Reducir cantidad"
@@ -100,7 +104,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             disabled={bloqueado}
             aria-label={`Descuento para ${nombre} (importe ${money(f.importe)})`}
             title="Descuento de esta prenda"
-            className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent"
+            className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent pointer-coarse:mr-1 pointer-coarse:min-h-11"
           >
             <Percent aria-hidden className={`h-3 w-3 shrink-0 ${f.pct > 0 ? "text-rojo-profundo" : "text-tinta/35"}`} />
             <span className="min-w-[4.25rem]">
@@ -118,7 +122,8 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           aria-label={`Quitar ${nombre}`}
           title="Quitar"
           onClick={() => onQuitar(linea.claveLinea)}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+          // Con el dedo, 44 × 44 y separado del importe (que abre el descuento): el mismo basurero que OpcionesDePrendaModal.
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo pointer-coarse:h-11 pointer-coarse:w-11"
         >
           <Trash2 className="h-4 w-4" aria-hidden />
         </button>
