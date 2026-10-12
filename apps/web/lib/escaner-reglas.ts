@@ -18,7 +18,8 @@ export const PAUSA_MISMO_CODIGO_MS = 2000;
  *  y no es lo mismo que `agotada`. `apartada`: lo único que queda en el piso es de una clienta que lo apartó (no hay
  *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
  *  (`lib/vender-stock-local.ts`). */
-export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "no-encontrada";
+/** `sin_precio`: una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384, `sinPrecioParaVender`). */
+export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -88,6 +89,8 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
       return (r.almacen ?? 0) > 0
         ? { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: las del piso ya están en el ticket y las demás en el almacén` }
         : { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} en el ticket` };
+    case "sin_precio":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: no tiene precio en el catálogo` };
     case "no-encontrada":
       return { tono: "ambar", texto: `No encontramos «${r.codigo}» en esta tienda` };
   }
@@ -111,6 +114,8 @@ export function estadoCorto(r: ResultadoEscaneo): string | null {
       return "No entró · apartada";
     case "tope":
       return enAlmacen ? "No entró · en almacén" : "Sin más stock";
+    case "sin_precio":
+      return "No entró · sin precio";
     case "no-encontrada":
       return "No es de esta tienda";
   }

@@ -237,6 +237,14 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve a agregarla.");
   });
 
+  it("sin precio (ADR-0384): nombra la prenda y dice qué hacer, no `venta_sin_precio` crudo", () => {
+    const salida = traducirError(
+      { message: "venta_sin_precio", details: "Blusa Emma (BLU-EMMA-BEI-S)", hint: "La prenda no tiene precio en el catálogo: ponle precio en su ficha antes de venderla.", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.");
+  });
+
   it("variante restringida a otra sede en la venta: nombra la prenda, no el código crudo", () => {
     const salida = traducirError(
       { message: "venta_variante_restringida_a_otra_sede", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },

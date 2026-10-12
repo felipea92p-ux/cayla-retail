@@ -2,7 +2,7 @@
   "guia": "rotulos",
   "ruta": "/rotulos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 18,
+  "total": 20,
   "controles": {
     "components/GuiaImpresion.tsx": [
       "button «Ir al paso»",
@@ -18,17 +18,21 @@
       "a «Ver foto grande»"
     ],
     "components/ImprimirRotulos.tsx": [
-      "ComboBuscable «); const botonImprimir = (»",
-      "button «→imprimir»",
-      "Volver «0 ? botonImprimir : undefined»",
+      "button «→mandar»",
+      "Volver «(sin nombre)»",
+      "button «Quitar todas»",
       "button «{`Quitar ${m.referencia}»",
-      "button «rotulos.por-modelo»",
-      "button «rotulos.juntos»",
-      "input «))»"
+      "ComboBuscable «)»",
+      "SegmentoDeslizante «Cómo salen los rótulos»"
     ],
     "components/impresion/useImpresionBrother.tsx": [
       "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
       "button «Copiar»"
+    ],
+    "components/rotulos/TiraBrother.tsx": [
+      "button «{`Una copia menos de ${nombre}»",
+      "input «= MAX_COPIAS»",
+      "button «{`Una copia más de ${nombre}»"
     ]
   }
 }
