@@ -207,20 +207,28 @@ export function fraseDelModelo(m: { variantes: readonly PrendaAnalisis[] }, dias
   return `Vendiste ${vendio} en ${enDias} y ${queda}.`;
 }
 
-/** Qué pasó con una talla de un color: se vendía y no queda (`pedir`), te queda (`queda`) o no hay (`nada`). */
+/** Qué pasó con una talla de un color: se vendió y no hay stock (`pedir`), te queda (`queda`) o no hay (`nada`). */
 export type EstadoCelda = "pedir" | "queda" | "nada";
 
 export type CeldaTabla = {
   talla: string;
   estado: EstadoCelda;
-  /** La línea fuerte («2 vendidas», «queda 1») y la de abajo («no queda», «sin ventas», «vendiste 2»); `nada` solo dice «no hay». */
+  /** Arriba, siempre lo vendido («2 vendidas», «sin ventas»); abajo, lo que queda («quedan 2», «sin stock»); `nada` solo dice «no hay». */
   fuerte: string;
   suave: string | null;
-  /** Para el lector y el tooltip: «Blanco · M: 2 vendidas, no queda». */
+  /** Para el lector y el tooltip: «Blanco · M: 2 vendidas, sin stock». */
   tip: string;
 };
 
-export type FilaTabla = { color: string; punto: string | null; vendio: number; celdas: CeldaTabla[] };
+export type FilaTabla = {
+  color: string;
+  punto: string | null;
+  vendio: number;
+  /** Se vendió y el color ya no tiene stock en ninguna talla (Felipe 2026-10-12: «que exista algún indicador que alerte que ya no hay
+   *  stock»). Lo que nunca se vendió ni hay no se alerta: su celda ya dice «no hay». */
+  sinStock: boolean;
+  celdas: CeldaTabla[];
+};
 
 export type TablaModelo = {
   /** Las tallas en el orden de tienda (`compararTallas`). */
@@ -237,14 +245,15 @@ function celda(color: string, talla: string, vs: readonly PrendaAnalisis[]): Cel
   if (vs.length === 0) return { talla, estado: "nada", fuerte: "no hay", suave: null, tip: `${nombre}: no hay` };
   const vendio = vs.reduce((s, v) => s + v.vendidas30, 0);
   const tiene = vs.reduce((s, v) => s + totalEnTienda(v), 0);
+  // Siempre igual (Felipe 2026-10-12): arriba, en negrita, lo vendido; abajo, lo que queda. Antes, con stock la negrita era «quedan 2»
+  // y sin stock era «2 vendidas»: la misma línea decía dos cosas distintas según la celda.
+  const fuerte = vendio > 0 ? unidades(vendio, "vendida", "vendidas") : "sin ventas";
   if (tiene > 0) {
-    const fuerte = tiene === 1 ? "queda 1" : `quedan ${tiene}`;
-    const suave = vendio > 0 ? `vendiste ${vendio}` : "sin ventas";
+    const suave = tiene === 1 ? "queda 1" : `quedan ${tiene}`;
     return { talla, estado: "queda", fuerte, suave, tip: `${nombre}: ${fuerte}, ${suave}` };
   }
   if (vendio > 0) {
-    const fuerte = unidades(vendio, "vendida", "vendidas");
-    return { talla, estado: "pedir", fuerte, suave: "no queda", tip: `${nombre}: ${fuerte}, no queda` };
+    return { talla, estado: "pedir", fuerte, suave: "sin stock", tip: `${nombre}: ${fuerte}, sin stock` };
   }
   return { talla, estado: "nada", fuerte: "no hay", suave: null, tip: `${nombre}: no hay` };
 }
@@ -254,21 +263,32 @@ export function tablaDelModelo(m: { variantes: readonly PrendaAnalisis[] }): Tab
   const tallas = [...new Set(m.variantes.map((v) => v.talla))].sort(compararTallas);
   const colores = [...new Set(m.variantes.map((v) => v.color))];
   if (tallas.length < 2 && colores.length < 2) return null;
+  // Solo por lo que más se vendió, quede o no (Felipe 2026-10-12); a igual venta, por nombre. Lo que no tiene stock lo alerta su fila.
+  // Entre lo que no se vendió, lo que todavía tienes va antes; lo que ni se vendió ni tienes («no hay»), al final (Felipe 2026-10-12).
   const filas = colores
     .map((color, orden) => {
       const delColor = m.variantes.filter((v) => v.color === color);
+      const vendio = delColor.reduce((s, v) => s + v.vendidas30, 0);
+      const tiene = delColor.reduce((s, v) => s + totalEnTienda(v), 0);
       return {
         orden,
-        tiene: delColor.reduce((s, v) => s + totalEnTienda(v), 0),
+        tiene,
         fila: {
           color,
           punto: delColor.map((v) => estiloMosaicoColor(v.colorHex)?.fondo).find((f): f is string => Boolean(f)) ?? null,
-          vendio: delColor.reduce((s, v) => s + v.vendidas30, 0),
+          vendio,
+          sinStock: vendio > 0 && tiene === 0,
           celdas: tallas.map((t) => celda(color, t, delColor.filter((v) => v.talla === t))),
         },
       };
     })
-    .sort((a, b) => b.fila.vendio - a.fila.vendio || b.tiene - a.tiene || a.fila.color.localeCompare(b.fila.color, "es") || a.orden - b.orden)
+    .sort(
+      (a, b) =>
+        b.fila.vendio - a.fila.vendio ||
+        (a.fila.vendio === 0 ? Number(b.tiene > 0) - Number(a.tiene > 0) : 0) ||
+        a.fila.color.localeCompare(b.fila.color, "es") ||
+        a.orden - b.orden,
+    )
     .map((x) => x.fila);
   const vendioPorTalla = tallas.map((t) => m.variantes.filter((v) => v.talla === t).reduce((s, v) => s + v.vendidas30, 0));
   return { tallas, filas, vendioPorTalla, vendio: vendioPorTalla.reduce((s, n) => s + n, 0) };

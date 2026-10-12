@@ -31,7 +31,7 @@ export type PerfilMenu = {
  *  suma en `lib/menu.ts` cuando exista (fase F7). */
 export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion";
 
-export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
+export type ClaveMenuCompras = "proveedores" | "ordenesCompra" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
 
 /** Compras es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra (decisión de Felipe, 2026-09-21), del
  *  mismo modo que Producción no se muestra parado en una tienda. Se decide por el TIPO de la ubicación activa, no por su

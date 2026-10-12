@@ -85,7 +85,7 @@ del otro antes de que aterrizara en `main`.
        {"type": "deletion"},
        {"type": "non_fast_forward"},
        {"type": "required_status_checks", "parameters": {
-         "strict_required_status_checks_policy": false,
+         "strict_required_status_checks_policy": true,
          "do_not_enforce_on_create": false,
          "required_status_checks": [
            {"context": "Tipos, lint y pruebas"},
@@ -96,18 +96,24 @@ del otro antes de que aterrizara en `main`.
    }
    EOF
    ```
-   Un PR abierto antes del 2026-09-25 reporta el check de Postgres con su nombre viejo
-   («piloto, no bloquea») y queda trabado hasta que trae `main`. `strict` va en `false` a propósito: con `main` moviéndose
-   varias veces por hora, exigir la rama al día obligaría a correr el CI otra vez en cada
-   fusión. Si aparecen choques entre dos PR que pasan cada uno por su lado, se sube a `true`.
+   `strict` va en `true` (lo exige ADR-0345). Para que ponerse al día no cueste otra espera larga, las
+   pruebas de Postgres corren en 4 tandas a la vez (~4 min, ADR-0381).
+5. **Números reservados al empezar y PR abiertos con `/abrir-pr`** (ADR-0381). Antes de crear un ADR o una migración:
+   `pnpm reservar adr` / `pnpm reservar migracion` (una etiqueta `reserva/…` en el remoto; dos personas nunca se llevan el
+   mismo número). Antes de abrir el PR: `pnpm abrir-pr:choques`, que compara tu rama con `main` y con los PR abiertos
+   (mismo número, la misma función de la base, los archivos de registro). No pidas «Update branch» mientras el CI corre: lo
+   cancela y vuelve a empezar.
 
 ## 3. Migraciones nuevas — con timestamp, no con el próximo número a ojo
 
 Desde hoy (ver [ADR-0034](docs/adr/0034-migraciones-nuevas-nacen-con-timestamp-no-con-el-proximo-numero.md)):
 
 ```bash
-npx supabase migration new nombre_descriptivo
+pnpm reservar migracion        # → 20261012153000 (reservada para tu rama, ADR-0381)
+touch supabase/migrations/20261012153000_nombre_descriptivo.sql
 ```
+
+(`npx supabase migration new` también da un timestamp, pero sin reserva: dos ramas pueden tomar el mismo minuto.)
 
 Nunca se elige a mano el "próximo número libre" — con 5 personas escribiendo en paralelo
 eso es lo que ya chocó dos veces. El timestamp hace el choque imposible por diseño, no

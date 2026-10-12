@@ -9,12 +9,22 @@ import {
   HEX_SIN_COLOR,
   idsDeColumna,
   idsDeFila,
+  notaFueraDePisoYAlmacen,
+  partesDeLaCelda,
   precioBaseDe,
+  repartoDeLaPrenda,
+  rotuloDeLaCifra,
   soloLasQueExisten,
+  stockSegunDonde,
   TALLA_UNICA,
+  textoLugares,
+  unidadesDeLaFila,
+  unidadesEnDonde,
   unidadesTexto,
   vendidasEn30Dias,
 } from "./vista-rapida-producto-reglas";
+import { lugaresEnSede, type FilaStockConLugar } from "./stock-en-sede-reglas";
+import { sumarEntradas } from "./etiqueta-precio-reglas";
 
 let n = 0;
 function v(parcial: Partial<VarianteListado>): VarianteListado {
@@ -251,5 +261,82 @@ describe("armarMatriz · el precio de la sede que se mira (ADR-0370)", () => {
   it("sin precios propios, la matriz es la de siempre", () => {
     const m = armarMatriz(nuki(), stock({}), {});
     expect(m.celdas.every((c) => c.precio === 79.9)).toBe(true);
+  });
+});
+
+describe("piso y almacén · «Dónde» (Felipe 2026-10-12: «no sé si esa cantidad es del almacén o la tienda»)", () => {
+  // Camel M: 4 colgadas y 3 guardadas; Camel S: 2 guardadas; Negro L: 1 colgada y 1 dañada; el resto, nada.
+  const filas: FilaStockConLugar[] = [
+    { variante_id: "Camel-M", cantidad: 4, sububicacion: { tipo: "piso_venta" } },
+    { variante_id: "Camel-M", cantidad: 3, sububicacion: { tipo: "almacen_tienda" } },
+    { variante_id: "Camel-S", cantidad: 2, sububicacion: { tipo: "almacen_tienda" } },
+    { variante_id: "Negro-L", cantidad: 1, sububicacion: { tipo: "piso_venta" } },
+    { variante_id: "Negro-L", cantidad: 1, sububicacion: { tipo: "cuarentena" } },
+  ];
+  const total = sumarEntradas(filas);
+  const lugares = lugaresEnSede(filas);
+  const todo = () => armarMatriz(nuki(), total);
+
+  it("el reparto de la prenda cuadra con «Todo»: piso + almacén + dañadas + sin ubicar = la cifra de siempre", () => {
+    const m = todo();
+    const r = repartoDeLaPrenda(m, lugares)!;
+    expect(r).toEqual({ piso: 5, almacen: 5, danadas: 1, sinLugar: 0, total: 11 });
+    expect(r.total).toBe(m.totalGeneral);
+  });
+
+  it("sin lectura, o sin nada en el piso ni en el almacén (el Taller, o todo sin ubicar), no hay «Dónde» que ofrecer", () => {
+    expect(repartoDeLaPrenda(todo(), null)).toBeNull();
+    expect(repartoDeLaPrenda(armarMatriz(nuki(), null), lugares)).toBeNull();
+    const taller = lugaresEnSede([{ variante_id: "Camel-M", cantidad: 9, sububicacion: null }]);
+    expect(repartoDeLaPrenda(armarMatriz(nuki(), stock({ "Camel-M": 9 })), taller)).toBeNull();
+  });
+
+  it("«Piso» y «Almacén» redibujan la matriz con solo ese lugar; «Todo» es la lectura de siempre", () => {
+    expect(stockSegunDonde("todo", total, lugares)).toBe(total);
+    const piso = armarMatriz(nuki(), stockSegunDonde("piso", total, lugares));
+    const almacen = armarMatriz(nuki(), stockSegunDonde("almacen", total, lugares));
+    expect(piso.totalGeneral).toBe(5);
+    expect(almacen.totalGeneral).toBe(5);
+    expect(piso.celdas.find((c) => c.varianteId === "Camel-S")!.unidades).toBe(0);
+    expect(almacen.celdas.find((c) => c.varianteId === "Camel-S")!.unidades).toBe(2);
+    // Una variante sin ninguna fila sigue en 0, no en «no se sabe».
+    expect(piso.celdas.find((c) => c.varianteId === "Gris-S")!.unidades).toBe(0);
+  });
+
+  it("mientras no se lee, ningún lugar inventa un número", () => {
+    expect(stockSegunDonde("piso", null, lugares)).toBeNull();
+    expect(stockSegunDonde("piso", total, null)).toBe(total);
+  });
+
+  it("la barrita de dos tonos: qué parte de la celda está en el piso y qué parte en el almacén", () => {
+    expect(partesDeLaCelda(lugares, "Camel-M")).toEqual({ piso: 4 / 7, almacen: 3 / 7 });
+    expect(partesDeLaCelda(lugares, "Negro-L")).toEqual({ piso: 0.5, almacen: 0 });
+    expect(partesDeLaCelda(lugares, "Gris-S")).toBeNull();
+    expect(partesDeLaCelda(null, "Camel-M")).toBeNull();
+  });
+
+  it("redacta solo los lugares con algo, y dice lo que «Todo» incluye fuera del piso y el almacén", () => {
+    expect(textoLugares({ piso: 4, almacen: 3, danadas: 0, sinLugar: 0 })).toBe("4 en el piso · 3 en almacén");
+    expect(textoLugares({ piso: 0, almacen: 2, danadas: 1, sinLugar: 2 })).toBe("2 en almacén · 1 dañada · 2 sin ubicar");
+    expect(notaFueraDePisoYAlmacen(repartoDeLaPrenda(todo(), lugares)!)).toBe("«Todo» incluye 1 dañada");
+    expect(notaFueraDePisoYAlmacen({ piso: 3, almacen: 1, danadas: 0, sinLugar: 0, total: 4 })).toBeNull();
+  });
+
+  it("la cifra grande y lo elegido dicen de qué lugar es su número", () => {
+    expect(rotuloDeLaCifra("todo", "TRU")).toEqual({ linea: "en TRU", deSede: null });
+    expect(rotuloDeLaCifra("piso", "TRU")).toEqual({ linea: "en el piso", deSede: "de TRU" });
+    expect(rotuloDeLaCifra("almacen", "TRU")).toEqual({ linea: "en almacén", deSede: "de TRU" });
+    expect(unidadesEnDonde(1, "piso")).toBe("1 unidad en el piso");
+    expect(unidadesEnDonde(3, "almacen")).toBe("3 unidades en almacén");
+    expect(unidadesEnDonde(7, "todo")).toBe("7 unidades");
+  });
+
+  it("un color sin nada dice DÓNDE no tiene («0 en piso» no es «sin unidades»), y nunca más largo que «24 unidades»", () => {
+    expect(unidadesDeLaFila(0, "todo")).toBe("sin unidades");
+    expect(unidadesDeLaFila(0, "piso")).toBe("0 en piso");
+    expect(unidadesDeLaFila(0, "almacen")).toBe("0 en almacén");
+    for (const d of ["todo", "piso", "almacen"] as const) expect(unidadesDeLaFila(0, d).length).toBeLessThanOrEqual(unidadesTexto(24).length + 1);
+    expect(unidadesDeLaFila(5, "piso")).toBe("5 unidades");
+    expect(unidadesDeLaFila(null, "piso")).toBe("");
   });
 });

@@ -120,6 +120,11 @@ describe("avisosInicio", () => {
     );
   });
 
+  it("«Fotos que faltan» lleva a Productos ya filtrado por «Sin foto», no a la lista entera", () => {
+    const [a] = avisosInicio({ fotosQueFaltan: 19 });
+    expect(a).toMatchObject({ clave: "fotos", cantidad: 19, href: "/productos?falta=foto" });
+  });
+
   it("nada que colgar ni que esperar es «al día»; si el motor no se pudo leer es «sin leer», nunca un cero", () => {
     expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 0 } })[0]).toMatchObject({
       titulo: "Por colgar",
