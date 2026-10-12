@@ -20,6 +20,7 @@
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
+import type { PropuestaCategoria } from "./plan-compra-propuesta";
 import { compararTallas } from "./tallas";
 
 export const RPC_PLAN = "fn_plan_compra";
@@ -398,6 +399,8 @@ export function borradorDe(
   vendido: ReadonlyMap<string, number> | undefined,
   /** Lo que hay en el catálogo (ADR-0372): sin plan guardado, el precio y el costo arrancan con eso en vez de en blanco. */
   catalogo?: { precio: number; costo: number } | null,
+  /** El % de lo que sobra de la campaña (C5): sin plan guardado, la categoría arranca con él; se puede cambiar. */
+  recuperoDefecto?: number | null,
 ): Borrador {
   const curva = linea && Object.keys(linea.curva).length > 0 ? linea.curva : curvaSugerida(tallas, vendido);
   return {
@@ -406,7 +409,7 @@ export function borradorDe(
     bueno: linea ? String(linea.bueno) : "",
     precio: linea ? linea.precio.toFixed(2) : catalogo ? catalogo.precio.toFixed(2) : "",
     costo: linea ? linea.costo.toFixed(2) : catalogo ? catalogo.costo.toFixed(2) : "",
-    recupero: linea ? String(linea.recuperoPct) : "",
+    recupero: linea ? String(linea.recuperoPct) : recuperoDefecto != null ? String(recuperoDefecto) : "",
     curva: Object.fromEntries(Object.entries(curva).map(([k, v]) => [k, String(v)])),
   };
 }
@@ -465,6 +468,10 @@ export type FilaPlan = {
   sedes: { ubicacion: string; unidades: number }[] | null;
   /** Precio y costo promedio del catálogo, o null si no hay o la base todavía no lo manda. */
   catalogo: { precio: number; costo: number } | null;
+  /** Flojo, normal y bueno que propone el sistema (C4, `lib/plan-compra-propuesta.ts`); null = no vendió; undefined = la base no lo manda. */
+  propuesta?: PropuestaCategoria | null;
+  /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
+  recuperoDefecto?: number | null;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
