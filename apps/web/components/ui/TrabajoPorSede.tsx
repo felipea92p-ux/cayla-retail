@@ -33,6 +33,8 @@ export type TrabajoGuardado = { sede: string; etiqueta: string; unidades: number
 
 type Contexto = {
   leer: (sede: string) => TrabajoReportado<unknown> | undefined;
+  /** Esta pantalla se está montando porque la sede acaba de cambiar (no porque se entró a ella). */
+  vieneDeOtraSede: (sede: string) => boolean;
   reportar: (sede: string, reporte: TrabajoReportado<unknown> | null) => void;
   otras: TrabajoGuardado[];
 };
@@ -43,19 +45,22 @@ const SIN_OTRAS: TrabajoGuardado[] = [];
 
 /**
  * Para la pantalla que arma. `inicial`: lo que quedó guardado para esta sede (se lee UNA vez, al montar; `undefined` si no hay
- * nada). `reportar`: lo armado ahora (`null` si nada). `otras`: lo guardado en otras sedes. Fuera de `TrabajoPorSede` no guarda nada
- * y no falla.
+ * nada). `reportar`: lo armado ahora (`null` si nada). `otras`: lo guardado en otras sedes. `vieneDeOtraSede`: se montó porque la sede
+ * cambió (una pantalla que abre algo desde la URL, como Cambios con `?item=`, no lo reabre desde cero en la sede nueva). Fuera de
+ * `TrabajoPorSede` no guarda nada y no falla.
  */
 export function useTrabajoPorSede<T>(sede: string): {
   inicial: T | undefined;
   reportar: (reporte: TrabajoReportado<T> | null) => void;
   otras: TrabajoGuardado[];
+  vieneDeOtraSede: boolean;
 } {
   const contexto = useContext(ContextoTrabajo);
   const [inicial] = useState(() => contexto?.leer(sede)?.trabajo as T | undefined);
+  const [vieneDeOtraSede] = useState(() => contexto?.vieneDeOtraSede(sede) ?? false);
   const reportarAlGuardian = contexto?.reportar;
   const reportar = useCallback((reporte: TrabajoReportado<T> | null) => reportarAlGuardian?.(sede, reporte), [reportarAlGuardian, sede]);
-  return { inicial, reportar, otras: contexto?.otras ?? SIN_OTRAS };
+  return { inicial, reportar, otras: contexto?.otras ?? SIN_OTRAS, vieneDeOtraSede };
 }
 
 export function TrabajoPorSede({ ubicacionId, children }: { ubicacionId: string; children: ReactNode }) {
@@ -74,6 +79,9 @@ export function TrabajoPorSede({ ubicacionId, children }: { ubicacionId: string;
     if (guardado) leidas.current.add(sede);
     return guardado;
   }, []);
+
+  // Se pregunta al montar la pantalla, ANTES del efecto de abajo (los hijos se dibujan antes): todavía dice la sede anterior.
+  const vieneDeOtraSede = useCallback((sede: string) => sedeAnterior.current !== sede, []);
 
   const reportar = useCallback((sede: string, reporte: TrabajoReportado<unknown> | null) => {
     if (reporte) vivos.current.set(sede, reporte);
@@ -103,6 +111,6 @@ export function TrabajoPorSede({ ubicacionId, children }: { ubicacionId: string;
     if (retomado) avisar.exito(retomado.avisoAlVolver);
   }, [ubicacionId]);
 
-  const valor = useMemo(() => ({ leer, reportar, otras }), [leer, reportar, otras]);
+  const valor = useMemo(() => ({ leer, vieneDeOtraSede, reportar, otras }), [leer, vieneDeOtraSede, reportar, otras]);
   return <ContextoTrabajo.Provider value={valor}>{children}</ContextoTrabajo.Provider>;
 }
