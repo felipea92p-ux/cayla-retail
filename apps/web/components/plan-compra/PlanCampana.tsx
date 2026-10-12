@@ -17,6 +17,7 @@ import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
 import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal";
 import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
+import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
@@ -129,6 +130,7 @@ export function PlanCampana({
     return (
       <div className="space-y-6">
         <EncabezadoPagina sede="Todas las tiendas" titulo="Plan de campaña" subtitulo="Cuánto comprar de cada categoría para una campaña." />
+        <PestanasPlan activa="plan" />
         {falla ? (
           <Aviso tono="error">{falla}.</Aviso>
         ) : (
@@ -221,6 +223,8 @@ export function PlanCampana({
           </Chip>
         }
       />
+
+      <PestanasPlan activa="plan" planId={plan.plan.id} />
 
       {plan.plan.archivado && (
         <Aviso

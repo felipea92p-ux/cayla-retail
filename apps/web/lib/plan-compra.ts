@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { hoyEnLima } from "@/lib/resumen-periodo";
+import { RPC_HISTORIAL, leerHistorial, rangoDelAnio, type EtiquetaHistorial, type LecturaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
 export type FamiliaPlan = { codigo: string; nombre: string };
@@ -62,4 +63,33 @@ export async function getPlanCompra(planId?: string): Promise<{
     return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste };
   }
   return { datos: plan.data, falla: null, familias: nombres, preparacion, campanas, planPedidoNoExiste };
+}
+
+/**
+ * Historial (ADR-0372, C3): lo vendido por tienda en el año pedido (y el anterior, para comparar) y las campañas de Etiquetas, que dan las
+ * fechas de cada fila. Sin año válido en la URL, el último con su diciembre completo (el año pasado). Si la base falla, lo dice: nunca una
+ * tabla vacía que parezca «no se vendió nada».
+ */
+export async function getHistorialPlan(anioPedido?: string): Promise<{
+  anio: number;
+  historial: LecturaHistorial | null;
+  etiquetas: EtiquetaHistorial[];
+  falla: string | null;
+}> {
+  const hoy = hoyEnLima(new Date());
+  const pedido = Number(anioPedido);
+  const anio = Number.isInteger(pedido) && pedido >= 2000 && pedido <= Number(hoy.slice(0, 4)) ? pedido : Number(hoy.slice(0, 4)) - 1;
+  const supabase = await createClient();
+  const rango = rangoDelAnio(anio);
+  const [historia, planes] = await Promise.all([
+    supabase.rpc(RPC_HISTORIAL as never, { p_desde: rango.desde, p_hasta: rango.hasta } as never),
+    supabase.rpc(RPC_PLANES as never),
+  ]);
+  if (planes.error) console.error(`${RPC_PLANES} (historial): ${planes.error.message}`);
+  const etiquetas = (planes.error ? null : leerCampanas(planes.data))?.etiquetas ?? [];
+  if (historia.error) {
+    console.error(`${RPC_HISTORIAL}: ${historia.error.message}`);
+    return { anio, historial: null, etiquetas, falla: "No se pudo leer el historial. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder" };
+  }
+  return { anio, historial: leerHistorial(historia.data), etiquetas, falla: null };
 }
