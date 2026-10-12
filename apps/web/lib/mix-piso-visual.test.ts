@@ -39,6 +39,11 @@ describe("cómo se escribe una cifra del plan del piso", () => {
     expect(cifraEs(0)).toBe("0");
   });
 
+  it("el formato guardado escribe lo mismo que `toLocaleString` (el de antes): ni un decimal ni una coma de diferencia", () => {
+    const valores = [0, -0, 1, -1, 0.04, 0.05, 0.15, 4.55, 9.95, 47.6, 99.99, 100, 999.95, 1800, 12345.67, -2.25, 1e6, 0.1 + 0.2];
+    for (const x of valores) expect(cifraEs(x), String(x)).toBe(x.toLocaleString("es-PE", { maximumFractionDigits: 1 }));
+  });
+
   it("la palabra concuerda con la cifra: una prenda, dos prendas, cero prendas", () => {
     expect(prendasEs(1)).toBe("1 prenda");
     expect(prendasEs(30)).toBe("30 prendas");
