@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { celdaCsv, csvDeHistorial, nombreArchivoHistorial } from "./historial-exportar-reglas";
+import { csvDeHistorial, nombreArchivoHistorial } from "./historial-exportar-reglas";
 import type { FilaHistorial } from "./ventas-historial-reglas";
 
 const fila: FilaHistorial = {
@@ -41,10 +41,9 @@ describe("exportar el historial", () => {
     expect(linea).toBe('2026-09-25,13:22,Tienda TRU,Chiara Flores,"Lucía ""Lu"" Paredes",Polo Básico M/corta · Estándar · Arena,1,39.90,Yape,01234567,Boleta B004-000029,Aceptado,No,Cambio,');
   });
 
-  it("una celda que Excel tomaría como fórmula se neutraliza", () => {
-    expect(celdaCsv("=HYPERLINK(1)")).toBe("'=HYPERLINK(1)");
-    expect(celdaCsv("-5")).toBe("'-5");
-    expect(celdaCsv(null)).toBe("");
+  it("un nombre que Excel tomaría como fórmula sale como texto (la celda es la única del ERP: exportar-csv.test.ts)", () => {
+    const linea = csvDeHistorial([{ ...fila, clienta: "=HYPERLINK(1)" }]).split("\r\n")[1];
+    expect(linea).toContain(",'=HYPERLINK(1),");
   });
 
   it("el nombre del archivo dice la tienda y el período", () => {

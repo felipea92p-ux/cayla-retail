@@ -737,16 +737,13 @@ export function filasDeLaListaDeCompra(filas: readonly FilaPlan[]): FilaListaCom
     .sort((a, b) => b.inversion - a.inversion || a.categoria.localeCompare(b.categoria, "es"));
 }
 
-/** Un texto que empieza con = + - @ lo lee Excel como una fórmula: se le antepone una comilla para que sea solo texto. */
-export const comoTextoDeExcel = (t: string): string => (/^[=+\-@\t\r]/.test(t) ? `'${t}` : t);
-
 export const ENCABEZADOS_LISTA_COMPRA = ["Categoría", "Comprar", "Por talla", "Inversión (S/)"] as const;
 
-/** Las filas del CSV, con el total al final. */
+/** Las filas del CSV, con el total al final. Que Excel no lea un nombre como fórmula lo cuida `celdaCsv` al escribir el archivo. */
 export function filasDelCsvDeCompra(lista: readonly FilaListaCompra[]): (string | number)[][] {
   const total = lista.reduce((s, f) => ({ comprar: s.comprar + f.comprar, inversion: s.inversion + f.inversion }), { comprar: 0, inversion: 0 });
   return [
-    ...lista.map((f) => [comoTextoDeExcel(f.categoria), f.comprar, comoTextoDeExcel(f.porTalla), f.inversion.toFixed(2)]),
+    ...lista.map((f) => [f.categoria, f.comprar, f.porTalla, f.inversion.toFixed(2)]),
     ["Total", total.comprar, "", total.inversion.toFixed(2)],
   ];
 }

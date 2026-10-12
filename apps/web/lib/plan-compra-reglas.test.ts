@@ -10,7 +10,6 @@ import {
   borradorDeCampana,
   calcular,
   colaDelPaso,
-  comoTextoDeExcel,
   comprarPorTalla,
   cuantilCritico,
   confianzaDelStock,
@@ -78,6 +77,7 @@ import {
 } from "./plan-compra-reglas";
 import { camposDeLaCampana, camposDeLaEdicion, camposDelPlan, camposDelTope } from "./plan-compra-guia";
 import { sePuedeConfirmar } from "./guia-campos";
+import { textoCsv } from "./exportar-csv";
 
 const TALLAS: TallaPlan[] = [
   { id: "s", valor: "S" },
@@ -572,17 +572,11 @@ describe("la lista de compra: lo que se exporta", () => {
   it("el CSV lleva el total al final, el dinero con dos decimales y las «fórmulas» como texto", () => {
     const csv = filasDelCsvDeCompra(filasDeLaListaDeCompra(filas()));
     expect(csv[0]).toEqual(["Camisas y Blusas", 100, "S 50 · M 30 · XL 20", "4000.00"]);
-    expect(csv[2][0]).toBe("'=SUMA(1;1)");
+    // Que Excel no lea el nombre como fórmula lo cuida la celda única al escribir el archivo.
+    expect(csv[2][0]).toBe("=SUMA(1;1)");
+    expect(textoCsv([...ENCABEZADOS_LISTA_COMPRA], csv)).toContain("\r\n'=SUMA(1;1),3,");
     expect(csv[csv.length - 1]).toEqual(["Total", 123, "", "4920.00"]);
     expect(ENCABEZADOS_LISTA_COMPRA).toEqual(["Categoría", "Comprar", "Por talla", "Inversión (S/)"]);
-  });
-  it("un texto que empieza con = + - @ se vuelve texto; los demás no se tocan", () => {
-    expect(comoTextoDeExcel("=1+1")).toBe("'=1+1");
-    expect(comoTextoDeExcel("+51 999")).toBe("'+51 999");
-    expect(comoTextoDeExcel("-3")).toBe("'-3");
-    expect(comoTextoDeExcel("@a")).toBe("'@a");
-    expect(comoTextoDeExcel("Polos")).toBe("Polos");
-    expect(comoTextoDeExcel("A-B")).toBe("A-B");
   });
   it("el nombre del archivo, sin tildes ni signos", () => {
     expect(nombreDelArchivoDeCompra("Diciembre 2026")).toBe("lista-de-compra-diciembre-2026.csv");

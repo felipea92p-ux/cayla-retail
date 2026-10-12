@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avanceParcial, celdaCsv, celdaPago, celdaRecepcion, nombreDelMes, rangoDelMes, subEmision, vistaActiva } from "./comprobantes-lista-reglas";
+import { avanceParcial, celdaPago, celdaRecepcion, nombreDelMes, rangoDelMes, subEmision, vistaActiva } from "./comprobantes-lista-reglas";
 import type { CompraResumen } from "./compras-reglas";
 
 const AHORA = new Date("2026-09-19T00:30:00Z"); // 18/09 19:30 en Lima
@@ -108,14 +108,5 @@ describe("mes de exportación", () => {
     expect(rangoDelMes("2026-12")).toEqual({ desde: "2026-12-01", hasta: "2026-12-31" });
     expect(rangoDelMes("2026-13")).toBeNull();
     expect(nombreDelMes("2026-09-18")).toBe("septiembre");
-  });
-});
-
-describe("celdaCsv", () => {
-  it("escapa comas, comillas y saltos de línea; vacío para nulos", () => {
-    expect(celdaCsv("Hilados, del Norte")).toBe('"Hilados, del Norte"');
-    expect(celdaCsv('Dijo "hola"')).toBe('"Dijo ""hola"""');
-    expect(celdaCsv(null)).toBe("");
-    expect(celdaCsv(12.5)).toBe("12.5");
   });
 });

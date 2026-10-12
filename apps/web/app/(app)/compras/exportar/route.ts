@@ -1,6 +1,7 @@
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { listarCompras, ETIQUETA_TIPO_DOCUMENTO, type Cursor } from "@/lib/compras";
-import { celdaCsv, rangoDelMes } from "@/lib/comprobantes-lista-reglas";
+import { rangoDelMes } from "@/lib/comprobantes-lista-reglas";
+import { celdaCsv } from "@/lib/exportar-csv";
 import { hoyLima } from "@/lib/fechas-lima";
 
 // GET /compras/exportar?mes=aaaa-mm — el registro de compras del mes en CSV, para el contador
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
           c.condicion === "credito" ? "Crédito" : "Contado",
           c.fechaVencimiento,
         ]
-          .map(celdaCsv)
+          .map((v) => celdaCsv(v))
           .join(","),
       );
     }

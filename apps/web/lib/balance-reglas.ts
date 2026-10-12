@@ -5,6 +5,8 @@
 // que se manda al registrar el arranque. La única cuenta es la del modal: sumar lo que el líder escribe para decirle, antes
 // de guardar, si cuadra (la base vuelve a comprobarlo y no deja guardar un arranque que no cuadra).
 
+import { celdaCsv as celdaCsvComun } from "./exportar-csv";
+
 type Fila = Record<string, unknown>;
 const n = (v: unknown): number => (v == null || v === "" ? 0 : Number(v));
 const nulo = (v: unknown): number | null => (v == null || v === "" ? null : Number(v));
@@ -486,10 +488,8 @@ export const arranquePropuesto = (hoy: string) => `${hoy.slice(0, 7)}-01`;
 
 // ---- Descargar Excel --------------------------------------------------------------------------------------------------------
 
-const celda = (v: string | number) => {
-  const s = typeof v === "number" ? v.toFixed(2) : v;
-  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+// Montos a dos decimales con punto; la celda (sin fórmula, entre comillas si hace falta) es la única del ERP.
+const celda = (v: string | number) => celdaCsvComun(typeof v === "number" ? v.toFixed(2) : v, ";");
 /** El Balance y su comprobación en un CSV separado por «;» (Excel en español lo abre en columnas). */
 export function csvBalance(lineas: readonly LineaBalance[], chequeos: readonly Chequeo[], unidades: readonly UnidadBalance[], corte: string): string {
   const filas: (string | number)[][] = [["Balance al", corte], [], ["Sección", "Cuenta", "Concepto", "Monto"]];

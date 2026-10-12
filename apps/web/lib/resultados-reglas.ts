@@ -5,6 +5,8 @@
 // la base (20260925130000), no aquí. La excepción es la cuenta de «cuánto más hay que vender» de una campaña que viene:
 // es un despeje sobre dos datos de la base (su margen normal y su descuento), y vive aquí con sus pruebas.
 
+import { celdaCsv as celdaCsvComun } from "./exportar-csv";
+
 export type UnidadER = "tienda" | "taller" | "empresa" | "consolidado";
 export type DetalleGastoER = { cuenta: string; nombre: string; monto: number };
 export type DetalleMermaER = { regla: string; monto: number };
@@ -445,10 +447,8 @@ export function puntoDeEquilibrio(f: Pick<FilaER, "ventas" | "margen" | "gastos"
 
 // ---- Descargar (Excel abre el CSV) -----------------------------------------------------------------------------------------
 
-const celdaCsv = (v: string | number) => {
-  const s = typeof v === "number" ? v.toFixed(2) : v;
-  return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+// Montos a dos decimales con punto; la celda (sin fórmula, entre comillas si hace falta) es la única del ERP.
+const celdaCsv = (v: string | number) => celdaCsvComun(typeof v === "number" ? v.toFixed(2) : v, ";");
 /** Separado por «;» (Excel en español), con los montos exactos (dos decimales, punto). */
 export function csvDe(filas: (string | number)[][]): string {
   return `﻿${filas.map((f) => f.map(celdaCsv).join(";")).join("\r\n")}\r\n`;

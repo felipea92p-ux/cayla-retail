@@ -1,5 +1,6 @@
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "./comprobantes-reglas";
 import type { FilaHistorial } from "./ventas-historial-reglas";
+import { celdaCsv } from "./exportar-csv";
 
 // El archivo de «Exportar» de Ventas ▸ Historial (ADR-0230): una fila por venta, en CSV que Excel abre directo. Regla pura,
 // con pruebas. UTF-8 con BOM (sin él Excel lee «Blusa Ã‰mma»), coma como separador y punto decimal (así lo lee el Excel
@@ -23,13 +24,6 @@ const COLUMNAS = [
   "Apartado",
 ] as const;
 
-export function celdaCsv(valor: string | number | null | undefined): string {
-  if (valor === null || valor === undefined) return "";
-  const texto = String(valor);
-  // Una celda que empieza con = + - @ Excel la ejecuta como fórmula: se le antepone un apóstrofo.
-  const seguro = /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
-  return /[",\n\r]/.test(seguro) ? `"${seguro.replace(/"/g, '""')}"` : seguro;
-}
 
 export function csvDeHistorial(filas: FilaHistorial[]): string {
   const lineas = filas.map((f) =>
@@ -50,7 +44,7 @@ export function csvDeHistorial(filas: FilaHistorial[]): string {
       f.posventa.map((m) => (m.tipo === "cambio" ? "Cambio" : m.pendiente ? "Devolución por aprobar" : "Devolución")).join(" · "),
       f.apartado?.codigo ?? (f.conAnticipo ? "Sí" : ""),
     ]
-      .map(celdaCsv)
+      .map((v) => celdaCsv(v))
       .join(",")
   );
   return `﻿${[COLUMNAS.join(","), ...lineas].join("\r\n")}\r\n`;

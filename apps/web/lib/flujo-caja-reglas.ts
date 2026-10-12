@@ -6,6 +6,8 @@
 // para Escenarios, se rehace LA MISMA cuenta de la proyección con las palancas («¿y si vendo 10 % más?») sin guardar nada.
 // Sin palancas, `proyectar` da exactamente las semanas de la base (lo prueba `flujo-caja-reglas.test.ts`).
 
+import { celdaCsv as celdaCsvComun } from "./exportar-csv";
+
 import { fechaCorta, solesRedondo } from "./gastos-reglas";
 import { sumarDias } from "./fechas-lima";
 import { puntoDeEquilibrio, type FilaER } from "./resultados-reglas";
@@ -617,10 +619,8 @@ export function textoPeriodo(desde: string, hasta: string, hoy: string): string 
   return hasta === hoy ? `${nombre}${anio} al ${dia(hasta)}` : `${nombre}${anio}`;
 }
 
-const celda = (v: string | number) => {
-  const s = typeof v === "number" ? v.toFixed(2) : v;
-  return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+// Montos a dos decimales con punto; la celda (sin fórmula, entre comillas si hace falta) es la única del ERP.
+const celda = (v: string | number) => celdaCsvComun(typeof v === "number" ? v.toFixed(2) : v, ";");
 /** CSV separado por «;» (Excel en español), montos exactos con punto: el mismo formato de Reportes (F5). */
 const csv = (filas: (string | number)[][]) => "﻿" + filas.map((f) => f.map(celda).join(";")).join("\r\n");
 
