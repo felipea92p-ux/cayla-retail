@@ -49,6 +49,8 @@ salga el «Modelo nuevo» del Taller y la cuenta del Taller no edite el catálog
    - `con_ordenes_abiertas`: hay una `producciones.estado = 'en_proceso'` del producto → «anula esa orden en Producción»;
    - `con_stock`: `sum(stock.cantidad) > 0` → «ajusta su stock a 0 en Existencias» (el stock sale por `movimientos`, principio 4; nunca se «borra»);
    - **Aprobar nunca se bloquea.** Con cualquiera de los dos, la hoja ofrece aprobar y, con stock, descontinuar en la ficha (reversible).
+     *(Ajustado el 2026-10-12, ADR-0380: ni las órdenes ni el stock frenan una aprobación, pero una variante activa en S/ 0 fuera de Empaque sí
+     —`sin_precio`—: aprobar es decir que está lista para vender. La hoja lo dice y lleva a la ficha con «Ponerle precio».)*
    - Es **idempotente** (aprobar dos veces, rechazar dos veces: no falla ni duplica la línea de Actividad); revisar en el sentido contrario una ya revisada
      dice `ya_revisada` y **quién ganó**; y pregunta el permiso con su propia frase (`sin_permiso`, 42501) en vez del mensaje «solo un líder» del
      disparador (que desde ADR-0160 ya no es solo del líder).
