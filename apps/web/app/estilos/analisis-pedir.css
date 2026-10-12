@@ -26,6 +26,10 @@
     .al-cab,.al-f{display:grid;grid-template-columns:22px minmax(110px,170px) minmax(120px,1fr) 112px;gap:12px;align-items:center}
     /* Opción A (Felipe 2026-10-10): la lista se desplaza por dentro, y «↓ N tipos más» se pega abajo mientras quede algo. */
     .al-lista{position:relative;display:flex;flex-direction:column;gap:2px;max-height:min(540px,64vh);overflow-y:auto;overscroll-behavior:contain}
+    /* Cada fila conserva su alto: sin esto, al limitar el alto de la lista, el flex las encogía y el nombre de un tipo quedaba
+       encima de «vendiste · tienes» del de arriba (Felipe 2026-10-12). */
+    .al-lista > .al-f{flex:none}
+    .al-nota{margin:-4px 0 10px}
     .al-mas{position:sticky;bottom:0;flex:none;margin-top:-34px;min-height:44px;padding-top:18px;border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
       color:var(--color-taupe);background:linear-gradient(to bottom,transparent,var(--color-papel) 62%)}
     .al-mas:hover{color:var(--color-tinta)}
