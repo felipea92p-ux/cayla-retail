@@ -22,7 +22,7 @@
  */
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { textoDeFamilia } from "./colores-familias";
-import { cifraEs, pctEs } from "./mix-piso-visual";
+import { cifraEs, pctEs, prendasEs } from "./mix-piso-visual";
 import type { TallaEnSede, VentaPorAtributo } from "./piso-plan";
 
 /** Cuántas familias se dibujan; el resto se junta en «Otras» (Felipe, 2026-10-12). */
@@ -300,3 +300,46 @@ export function notaDelColor(e: Pick<ColorDeLaTienda, "hayVentas" | "hayDetalleD
     ? `${base} Por color solo se cuentan las confirmadas.`
     : `${base} Casi no hay ventas confirmadas: por color todavía no se puede ver qué sale. Registra las ventas anotadas para verlo.`;
 }
+
+// ── El reparto por familia de UN grupo (el detalle al pasar por un tramo del riel) ─────────────────────────────────────────────
+
+/** Una fila del detalle de un grupo: una familia (o «Otras») con lo que cuelga de ese grupo. */
+export type FilaDeRepartoDeGrupo = { clave: string; nombre: string; hex: string | null; otras: boolean; prendas: number; pct: number };
+
+/** De qué familias es lo que cuelga de un grupo: las `MAX_FAMILIAS` con más prendas y el resto en «Otras». Solo lo que cuelga: las ventas se miran en la franja de la tienda. */
+export type RepartoDeGrupo = { total: number; filas: FilaDeRepartoDeGrupo[] };
+
+/**
+ * El reparto por familia de lo que cuelga de UN grupo. `tallas` son las del grupo; `hexDe` da el color con que la franja de la tienda pinta cada familia, para que el detalle y la
+ * franja usen el mismo (una familia, un color en toda la pantalla). Devuelve `null` si el grupo no cuelga nada: sin tramo, sin detalle.
+ */
+export function repartoDeUnGrupo(tallas: readonly Pick<TallaParaColor, "familiaColor" | "pisoLibre">[], hexDe: (clave: string) => string | null): RepartoDeGrupo | null {
+  const porFamilia = new Map<string, number>();
+  let total = 0;
+  for (const t of tallas) {
+    const n = cuenta(t.pisoLibre);
+    if (n === 0) continue;
+    const clave = claveDeFamilia(t.familiaColor);
+    porFamilia.set(clave, (porFamilia.get(clave) ?? 0) + n);
+    total += n;
+  }
+  if (!(total > 0)) return null;
+  const orden = [...porFamilia.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const fila = (clave: string, prendas: number): FilaDeRepartoDeGrupo => ({ clave, nombre: textoDeFamilia(clave === SIN_FAMILIA ? null : clave), hex: hexDe(clave), otras: false, prendas, pct: redondear((prendas / total) * 100) });
+  const filas = orden.slice(0, MAX_FAMILIAS).map(([clave, prendas]) => fila(clave, prendas));
+  const resto = orden.slice(MAX_FAMILIAS).reduce((s, [, prendas]) => s + prendas, 0);
+  if (resto > 0) filas.push({ clave: "otras", nombre: "Otras", hex: null, otras: true, prendas: resto, pct: redondear((resto / total) * 100) });
+  return { total, filas };
+}
+
+/** El color con que se pinta cada familia, según la franja de la tienda (la fuente de verdad del color de una familia en la pantalla). */
+export const hexDeFamilias = (c: Pick<ColorDeLaTienda, "familias"> | null): ((clave: string) => string | null) => {
+  const mapa = new Map((c?.familias ?? []).map((f) => [f.clave, f.hex] as const));
+  return (clave) => mapa.get(clave) ?? null;
+};
+
+/** El subtítulo del detalle de un grupo: «167 prendas colgadas · según el sistema · por familia de color». */
+export const textoDelReparto = (r: Pick<RepartoDeGrupo, "total">, cuadrado: boolean): string => `${prendasEs(r.total)} ${r.total === 1 ? "colgada" : "colgadas"}${cuadrado ? "" : " · según el sistema"} · por familia de color`;
+
+/** El detalle de un grupo en una línea, para el lector de pantalla: «Neutro 32 %, Tierra 31 %, … ». */
+export const textoDeRepartoParaLector = (r: RepartoDeGrupo): string => r.filas.map((f) => `${f.nombre} ${pctEs(f.pct)}`).join(", ");

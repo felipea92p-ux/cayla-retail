@@ -185,6 +185,7 @@ export function PropuestaDelMix({
       propuesta: f.propuestaPrendas ?? 0,
       propuestaPct: f.propuestaPct,
       coloresDelIcono: coloresDelIcono(f.colores),
+      reparto: f.repartoDeColor,
     }));
     const repartidas = grupos.reduce((s, g) => s + g.propuesta, 0);
     const nota = notaDeEscala(rieles.unidad);

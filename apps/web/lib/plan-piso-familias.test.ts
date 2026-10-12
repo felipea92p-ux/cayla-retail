@@ -10,9 +10,13 @@ import {
   notaDelColor,
   palabraDeMarca,
   palabraDeMarcaDeColor,
+  repartoDeUnGrupo,
   SIN_FAMILIA,
   textoDeAMirar,
+  textoDelReparto,
+  textoDeRepartoParaLector,
   textoDeVentasDeFamilia,
+  hexDeFamilias,
   type FamiliaDeColor,
   type TallaParaColor,
   type VentaParaColor,
@@ -294,6 +298,76 @@ describe("la nota al pie dice de dónde salen las ventas, según los datos", () 
   });
 });
 
+describe("el detalle de un grupo: de qué familias es lo que cuelga de él", () => {
+  const tallas = (cuentas: [string | null, number][]) => cuentas.map(([familiaColor, pisoLibre]) => ({ familiaColor, pisoLibre }));
+  const hexDe = (c: string) => ({ neutro: HEX_DE_NEUTRO, tierra: "#cdb592" })[c] ?? null;
+
+  it("da las familias de la que más cuelga a la que menos, con su porcentaje, y suma lo que cuelga", () => {
+    const r = repartoDeUnGrupo(tallas([["neutro", 60], ["tierra", 30], ["azul", 10]]), hexDe)!;
+    expect(r.total).toBe(100);
+    expect(r.filas.map((f) => [f.clave, f.prendas, f.pct])).toEqual([["neutro", 60, 60], ["tierra", 30, 30], ["azul", 10, 10]]);
+    expect(r.filas.reduce((s, f) => s + f.prendas, 0)).toBe(r.total);
+  });
+
+  it("junta varias tallas de la misma familia y calla lo que no cuelga", () => {
+    const r = repartoDeUnGrupo(tallas([["tierra", 5], ["tierra", 7], ["azul", 0], ["rojo", Number.NaN], ["verde", -2]]), hexDe)!;
+    expect(r.filas.map((f) => [f.clave, f.prendas])).toEqual([["tierra", 12]]);
+  });
+
+  it("muestra las 6 con más prendas y el resto en «Otras», que suma lo que no cupo", () => {
+    const familias = ["a", "b", "c", "d", "e", "f", "g", "h", "i"].map((f, i) => [f, 40 - i * 4] as [string, number]); // 40, 36, 32, 28, 24, 20 | 16, 12, 8
+    const r = repartoDeUnGrupo(tallas(familias), hexDe)!;
+    expect(r.filas).toHaveLength(MAX_FAMILIAS + 1);
+    expect(r.filas.slice(0, 6).map((f) => f.clave)).toEqual(["a", "b", "c", "d", "e", "f"]);
+    const otras = r.filas.at(-1)!;
+    expect(otras).toMatchObject({ clave: "otras", nombre: "Otras", otras: true, hex: null, prendas: 16 + 12 + 8 });
+    expect(r.filas.reduce((s, f) => s + f.prendas, 0)).toBe(r.total);
+  });
+
+  it("con seis familias o menos no hay «Otras»", () => {
+    expect(repartoDeUnGrupo(tallas([["a", 5], ["b", 4], ["c", 3], ["d", 2], ["e", 2], ["f", 1]]), hexDe)!.filas.some((f) => f.otras)).toBe(false);
+  });
+
+  it("pinta cada familia con el color que le da la franja (una familia, un color en toda la pantalla); una desconocida, sin color", () => {
+    const r = repartoDeUnGrupo(tallas([["neutro", 5], ["tierra", 4], ["turquesa", 3]]), hexDe)!;
+    expect(r.filas.map((f) => f.hex)).toEqual([HEX_DE_NEUTRO, "#cdb592", null]);
+    expect(r.filas.find((f) => f.clave === "turquesa")!.nombre).toBe("Turquesa");
+  });
+
+  it("lo que no tiene familia es «Sin familia»", () => {
+    const r = repartoDeUnGrupo(tallas([[null, 6], ["neutro", 4]]), hexDe)!;
+    expect(r.filas[0]).toMatchObject({ clave: SIN_FAMILIA, nombre: "Sin familia", prendas: 6 });
+  });
+
+  it("un grupo que no cuelga nada no tiene detalle (sin tramo, sin tarjeta)", () => {
+    expect(repartoDeUnGrupo([], hexDe)).toBeNull();
+    expect(repartoDeUnGrupo(tallas([["neutro", 0], ["tierra", -3]]), hexDe)).toBeNull();
+  });
+
+  it("a igual cantidad el orden no depende de cómo llegó la lectura", () => {
+    const a = repartoDeUnGrupo(tallas([["rojo", 5], ["azul", 5], ["verde", 5]]), hexDe);
+    const b = repartoDeUnGrupo(tallas([["verde", 5], ["rojo", 5], ["azul", 5]]), hexDe);
+    expect(a).toEqual(b);
+    expect(a!.filas.map((f) => f.clave)).toEqual(["azul", "rojo", "verde"]);
+  });
+
+  it("las frases: el subtítulo concuerda y dice «según el sistema» mientras el piso no esté cuadrado; el lector oye todas las filas", () => {
+    expect(textoDelReparto({ total: 167 }, false)).toBe("167 prendas colgadas · según el sistema · por familia de color");
+    expect(textoDelReparto({ total: 1 }, true)).toBe("1 prenda colgada · por familia de color");
+    const r = repartoDeUnGrupo(tallas([["neutro", 6], ["tierra", 4]]), hexDe)!;
+    expect(textoDeRepartoParaLector(r)).toBe("Neutro 60\u00a0%, Tierra 40\u00a0%");
+  });
+
+  it("hexDeFamilias lee el color de la franja y una familia que la franja no tiene queda sin color", () => {
+    const franja = armarColorDeLaTienda({ tallas: tallasDe(TRU), ventas: [] })!;
+    const hex = hexDeFamilias(franja);
+    expect(hex("neutro")).toBe(HEX_DE_NEUTRO);
+    expect(hex("tierra")).toBe("#cdb592");
+    expect(hex("inexistente")).toBeNull();
+    expect(hexDeFamilias(null)("neutro")).toBeNull();
+  });
+});
+
 describe("lo que no es un color, una cuenta rara o un orden distinto", () => {
   it("sin nada colgado no hay franja (no hay qué repartir), aunque haya ventas", () => {
     expect(armarColorDeLaTienda({ tallas: [], ventas: [] })).toBeNull();
@@ -395,6 +469,22 @@ describe("la franja cuenta lo mismo que el riel", () => {
     expect(c.anotadas).toBe(p.ventasAnotadasDelRiel);
   });
 
+  it("cada grupo trae su detalle por familia: suma lo que cuelga del grupo y usa el color de la franja", () => {
+    const [polos, jeans] = p.enRiel;
+    expect(polos!.repartoDeColor!.total).toBe(polos!.colgadas);
+    expect(polos!.repartoDeColor!.filas.map((f) => [f.clave, f.prendas])).toEqual([["neutro", 30], ["tierra", 20]]);
+    expect(jeans!.repartoDeColor!.filas.map((f) => [f.clave, f.prendas])).toEqual([["azul", 10]]);
+    const franja = p.colorDeLaTienda!.familias;
+    for (const fila of p.enRiel) for (const f of fila.repartoDeColor?.filas ?? []) expect(f.hex).toBe(franja.find((x) => x.clave === f.clave)!.hex);
+    // y la suma de los grupos es lo que cuelga en el riel
+    expect(p.enRiel.reduce((s, f) => s + (f.repartoDeColor?.total ?? 0), 0)).toBe(p.colgadasEnElRiel);
+  });
+
+  it("un grupo del riel sin nada colgado no tiene detalle", () => {
+    const sinJeans = armarPropuesta({ grupos: GRUPOS, categorias: CATEGORIAS, lectura: { ...lectura, tallas: lectura.tallas.filter((x) => x.categoriaId !== "c-jeans") }, capacidad: 600, codigoSede: "tru" });
+    expect(sinJeans.enRiel.find((f) => f.grupo.clave === "jeans")!.repartoDeColor).toBeNull();
+  });
+
   it("sin nada colgado en el riel no hay franja", () => {
     const vacia = armarPropuesta({ grupos: GRUPOS, categorias: CATEGORIAS, lectura: { ...lectura, tallas: lectura.tallas.map((x) => ({ ...x, pisoLibre: 0 })) }, capacidad: 600, codigoSede: "tru" });
     expect(vacia.colorDeLaTienda).toBeNull();
@@ -402,6 +492,7 @@ describe("la franja cuenta lo mismo que el riel", () => {
 
   it("la franja no cambia ninguna cuenta de la propuesta (solo se dibuja)", () => {
     const otra = armarPropuesta({ grupos: GRUPOS, categorias: CATEGORIAS, lectura: { ...lectura, tallas: lectura.tallas.map((x) => ({ ...x, familiaColor: null })) }, capacidad: 600, codigoSede: "tru" });
-    expect({ ...otra, colorDeLaTienda: null }).toEqual({ ...p, colorDeLaTienda: null });
+    const sinColor = (x: typeof p) => ({ ...x, colorDeLaTienda: null, enRiel: x.enRiel.map((f) => ({ ...f, repartoDeColor: null })) });
+    expect(sinColor(otra)).toEqual(sinColor(p));
   });
 });

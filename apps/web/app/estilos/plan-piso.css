@@ -65,7 +65,7 @@
   .pp-rcab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
   .pp-rtit { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
   .pp-rsub { font-size: 13px; color: var(--color-tinta-60); }
-  .pp-banda { background: color-mix(in srgb, var(--color-hueso) 52%, var(--color-papel)); border-radius: var(--radius-lg); padding: 14px var(--pp-banda) 16px; min-width: 0; }
+  .pp-banda { background: color-mix(in srgb, var(--color-hueso) 52%, var(--color-papel)); border-radius: var(--radius-lg); padding: 14px var(--pp-banda) 16px; min-width: 0; position: relative; }
 
   .pp-rail {
     display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px var(--pp-gap);
@@ -343,6 +343,30 @@
   .pp-col-pct { font-family: var(--font-serif); font-size: 26px; line-height: 1.05; font-variant-numeric: lining-nums tabular-nums; }
   .pp-col-nota { font-size: 12.5px; line-height: 1.4; color: var(--color-tinta-60); max-width: 62ch; }
   @container pp (max-width: 560px) { .pp-col-celdas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* ---------- el detalle por familia de un grupo (al señalarlo): flota sobre la banda de «Hoy» y no empuja la página ----------
+     `--cx` es el centro del tramo (lo mide TarjetaDelRiel); el `clamp` lo acomoda para que la tarjeta no se salga de la banda ni de la pantalla. Entra con `anim-revelar`
+     (240 ms) y no recibe el mouse: al cruzarlo no parpadea. */
+  .pp-det {
+    --pp-det-ancho: min(300px, 100%);
+    position: absolute; z-index: 6; bottom: calc(100% + 6px); width: var(--pp-det-ancho); left: clamp(0px, calc(var(--cx, 0px) - var(--pp-det-ancho) / 2), calc(100% - var(--pp-det-ancho)));
+    padding: 12px 14px; border-radius: var(--radius-lg); border: 1px solid var(--color-sand); background: var(--color-vidrio); pointer-events: none;
+    box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--color-sombra) 38%, transparent);
+  }
+  .pp-det-abajo { bottom: auto; top: calc(100% + 6px); }
+  /* En una tarjeta angosta (celular) las fichas de los grupos están apiladas debajo de la banda y son la manera de tocar otro grupo: una tarjeta flotando encima las taparía.
+     Ahí el detalle es parte de la banda, que crece para alojarlo (crece, no se encoge: no se mueve nada bajo el dedo, solo se alarga). */
+  @container pp (max-width: 560px) {
+    .pp-det, .pp-det-abajo { position: static; width: auto; margin-top: 12px; box-shadow: none; background: var(--color-papel); }
+  }
+  .pp-det-t { font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .pp-det-s { margin-top: 1px; font-size: 12px; line-height: 1.35; color: var(--color-tinta-60); }
+  .pp-det-l { margin-top: 8px; display: grid; gap: 5px; list-style: none; }
+  .pp-det-f { display: grid; grid-template-columns: 12px minmax(0, 72px) minmax(0, 1fr) 46px; align-items: center; gap: 8px; font-size: 12px; line-height: 1.2; }
+  .pp-det-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pp-det-b { display: block; height: 6px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--color-tinta) 12%, transparent); }
+  .pp-det-b i { display: block; height: 100%; border-radius: inherit; background: var(--color-tinta-60); }
+  .pp-det-p { text-align: right; font-variant-numeric: lining-nums tabular-nums; }
 
   @media (pointer: coarse) { .pp-chip, .pp-porque { min-height: 44px; } }
 

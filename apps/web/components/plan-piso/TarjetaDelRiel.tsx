@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { DetalleDelGrupo } from "@/components/plan-piso/DetalleDelGrupo";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { PorQue } from "@/components/plan-piso/PorQue";
 import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
 import type { ColorDePercha } from "@/lib/plan-piso-colores";
 import { ariaDeLasFichasDeHoy, etiquetaDeChipHoy, leyendaDeGrupo, rotuloCabe, type BloqueDelRiel, type Libre, type PanelDelPorQue } from "@/lib/plan-piso-percha";
+import type { RepartoDeGrupo } from "@/lib/plan-piso-familias";
 import { siluetaDe } from "@/lib/plan-piso-siluetas";
 
 // Los dos rieles de perchas del Plan del piso ▸ Propuesta (maqueta A «La percha», ADR-0352 act. 2026-10-11): «Hoy» y «Cómo quedaría», cada uno con las perchas
@@ -29,6 +31,8 @@ export type GrupoDelRiel = {
   propuestaPct: number | null;
   /** Los colores principales de lo que cuelga del grupo (`#rrggbb`, hasta tres): su ícono los muestra. Vacío = el ícono del color del grupo. */
   coloresDelIcono: string[];
+  /** De qué familias de color es lo que cuelga del grupo: el detalle que sale al señalarlo. `null` si no cuelga nada. */
+  reparto: RepartoDeGrupo | null;
 };
 
 type Props = {
@@ -57,6 +61,13 @@ type Props = {
 
 const vars = (v: Record<string, string | number>) => v as unknown as CSSProperties;
 
+/** El `id` del detalle por familia (solo hay uno a la vez): la ficha del grupo señalado lo lleva como descripción para el lector de pantalla. */
+const ID_DETALLE = "pp-detalle-grupo";
+/** Lo que mide, a ojo, el detalle de un grupo con `filas` familias (título, subtítulo y una fila por familia): para saber si le cabe arriba de la banda. */
+const altoDelDetalle = (filas: number) => 56 + filas * 22 + 24;
+/** La cabecera fija de la pantalla más un respiro: la tarjeta no debe quedar debajo de ella. */
+const ESPACIO_DE_LA_CABECERA = 72;
+
 /** El color de una percha es el de la variante que representa (dato de la prenda); «Otros colores» es un gris neutro de la interfaz; sin color, el del grupo (lo pone el tramo). */
 const colorDePercha = (c: ColorDePercha | null): Record<string, string> => (c === null ? {} : { "--pp-c": c.hex ?? "var(--pp-otros)" });
 
@@ -80,6 +91,21 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
   // Un grupo sin ninguna percha (0 hoy y 0 en la propuesta) no tiene tramo que resaltar: sin esto, señalarlo bajaba TODOS los tramos y no encendía ninguno.
   const hayTramo = sel !== null && [...hoy, ...propuesta].some((b) => b.clave === sel);
 
+  // El detalle por familia del grupo señalado se ancla al centro de SU tramo en «Hoy». Se mide aquí (el CSS solo sabe acomodarlo para que no se salga de la banda): la tarjeta flota,
+  // así que la página no se mueve al señalar un grupo.
+  const bandaHoy = useRef<HTMLDivElement>(null);
+  const [ancla, setAncla] = useState<{ centro: number; abajo: boolean } | null>(null);
+  const detalle = grupoSel?.reparto && hayTramo ? grupoSel : undefined;
+  useLayoutEffect(() => {
+    const banda = bandaHoy.current;
+    const tramo = detalle && banda ? [...banda.querySelectorAll<HTMLElement>(".pp-blq")].find((t) => t.dataset.g === detalle.clave) : undefined;
+    if (!banda || !tramo || !detalle?.reparto) return setAncla(null);
+    const b = banda.getBoundingClientRect();
+    const t = tramo.getBoundingClientRect();
+    // Arriba de la banda si le cabe (la tarjeta no tapa lo que se está mirando); si la banda está tan arriba de la ventana que se cortaría, abajo.
+    setAncla({ centro: t.left + t.width / 2 - b.left, abajo: b.top < altoDelDetalle(detalle.reparto.filas.length) + ESPACIO_DE_LA_CABECERA });
+  }, [detalle]);
+
   // Con un toque no hay cursor que siga encima: al soltar lo fijado también se suelta lo señalado (si no, el segundo toque dejaba el resaltado pegado).
   // El mouse y el teclado no entran aquí: un cursor que sigue encima SÍ sigue señalando el grupo.
   const alternar = (clave: string, e: MouseEvent) => {
@@ -101,7 +127,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
           for (let k = 0; k < b.llenas; k++) perchas.push(<Percha key={k} clave={b.clave} fraccion={1} i={i++} color={b.colores[k] ?? null} />);
           if (b.resto > 0) perchas.push(<Percha key="resto" clave={b.clave} fraccion={b.resto} i={i++} color={b.colores[b.llenas] ?? null} />);
           return (
-            <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} title={[g?.nombre, b.detalleDeColores].filter(Boolean).join(" · ")} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
+            <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
               {rotulos && g && rotuloCabe(b.perchas) && (
                 // El nombre completo si el tramo es ancho, el corto si no cabe (lo decide el CSS por el ancho de esta caja, que mide lo que el tramo): igual que la ficha de «Hoy».
                 <span className="pp-et-caja">
@@ -131,7 +157,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
             <span className="pp-rsub">{subHoy}</span>
           </div>
         </div>
-        <div className="pp-banda">
+        <div className="pp-banda" ref={bandaHoy}>
           <div className="pp-rail" role="img" aria-label={ariaHoy} style={estiloRiel}>
             {tramos(hoy, false)}
             <div className="pp-libre">
@@ -140,11 +166,12 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
               <small>{libre.nota}</small>
             </div>
           </div>
+          {detalle?.reparto && ancla !== null && <DetalleDelGrupo id={ID_DETALLE} nombre={detalle.nombre} reparto={detalle.reparto} cuadrado={cuadrado} centro={ancla.centro} abajo={ancla.abajo} />}
         </div>
         <ul className="pp-chips" aria-label={ariaDeLasFichasDeHoy(cuadrado)}>
           {grupos.map((g) => (
             <li key={g.clave}>
-              <button type="button" className={`pp-chip${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} aria-label={etiquetaDeChipHoy(g, cuadrado)} onClick={(e) => alternar(g.clave, e)} {...señas(g.clave)}>
+              <button type="button" className={`pp-chip${on(g.clave)}`} data-g={g.clave} style={estiloDeGrupo(g.indice)} aria-pressed={fijo === g.clave} aria-label={etiquetaDeChipHoy(g, cuadrado)} aria-describedby={detalle?.clave === g.clave && ancla !== null ? ID_DETALLE : undefined} onClick={(e) => alternar(g.clave, e)} {...señas(g.clave)}>
                 <IconoDeGrupo clave={g.clave} colores={g.coloresDelIcono} />
                 {g.nombre} <b>{cifraEs(g.hoy)}</b>
               </button>
