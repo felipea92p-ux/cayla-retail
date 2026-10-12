@@ -1,0 +1,143 @@
+/* =====================================================================
+   C · Molde — el tapete de corte, la cinta métrica, las cotas y la tira de contacto.
+   ===================================================================== */
+.C .c-col{margin-top:34px;display:flex;flex-direction:column;gap:20px}
+
+/* la caja de prendas, con las fichas adentro */
+.c-barra{position:relative;z-index:5;padding:20px 22px}
+.c-pregunta{display:flex;align-items:baseline;justify-content:space-between;gap:6px 20px;flex-wrap:wrap;margin-bottom:14px}
+.c-tit{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:26px;line-height:1.1;margin:0;transition:font-size .4s var(--ease)}
+.C.vacio .c-tit{font-size:30px}
+.c-tambien{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 60%,transparent)}
+.c-tambien b{color:var(--tinta);font-weight:600}
+.C .buscador.con-fichas .fichas{position:relative;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+.C .buscador.con-fichas .fichas:empty{display:none}
+.C .buscador.con-fichas .chip{height:32px;background:var(--papel)}
+.C .buscador.con-fichas .caja:focus-within .chip{background:var(--crema)}
+.c-como{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px}
+.c-tope{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+
+/* la mesa: tapete + ficha */
+.c-mesa{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:stretch}
+@container pag (max-width:900px){.c-mesa{grid-template-columns:1fr}}
+.c-tapete{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--sand);--gx:0px;--gy:0px;
+  background-color:var(--papel);
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--sand) 95%,var(--taupe)) 1px,transparent 1px),
+    linear-gradient(90deg,color-mix(in srgb,var(--sand) 95%,var(--taupe)) 1px,transparent 1px),
+    linear-gradient(color-mix(in srgb,var(--sand) 55%,transparent) 1px,transparent 1px),
+    linear-gradient(90deg,color-mix(in srgb,var(--sand) 55%,transparent) 1px,transparent 1px);
+  background-size:calc(10mm * var(--z)) calc(10mm * var(--z)),calc(10mm * var(--z)) calc(10mm * var(--z)),calc(2mm * var(--z)) calc(2mm * var(--z)),calc(2mm * var(--z)) calc(2mm * var(--z));
+  background-position:var(--gx) var(--gy);
+  transition:background-color .35s var(--ease)}
+.c-tapete::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(90% 80% at 50% 55%,transparent 55%,color-mix(in srgb,var(--papel) 70%,transparent))}
+
+/* la cinta métrica: el 0 en el borde izquierdo del rótulo */
+.c-cinta{position:relative;z-index:2;height:34px;border-bottom:1px solid color-mix(in srgb,var(--taupe) 35%,transparent);
+  background:
+    repeating-linear-gradient(90deg,var(--tinta) 0 1px,transparent 1px calc(10mm * var(--z))) var(--gx) 100%/100% 13px no-repeat,
+    repeating-linear-gradient(90deg,color-mix(in srgb,var(--tinta) 70%,transparent) 0 1px,transparent 1px calc(5mm * var(--z))) var(--gx) 100%/100% 8px no-repeat,
+    repeating-linear-gradient(90deg,color-mix(in srgb,var(--tinta) 38%,transparent) 0 1px,transparent 1px calc(1mm * var(--z))) var(--gx) 100%/100% 5px no-repeat,
+    var(--hueso);
+  animation:cinta .8s var(--ease) both .3s}
+@keyframes cinta{from{opacity:0;transform:translateX(-36px)}}
+.c-cinta-et{position:absolute;left:10px;top:5px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.c-num{position:absolute;top:4px;translate:-50% 0;font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tinta);animation:aparece .4s var(--ease) both;animation-delay:calc(600ms + var(--k) * 40ms)}
+.c-num:first-of-type{color:var(--rojo)}
+
+.c-campo{position:relative;z-index:1;display:grid;place-items:center;padding:74px 76px 62px;min-height:calc(40.1mm * var(--z) + 150px)}
+.c-muestra{position:relative}
+.c-hoja{position:relative;box-shadow:0 1px 1px color-mix(in srgb,var(--tinta-fija) 12%,transparent),0 24px 40px -26px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.c-hoja .papel{transition:opacity .35s var(--ease)}
+.C .rot-nombre>span{transform-origin:0 50%}
+
+/* cotas: líneas finas taupe con sus topes; la cifra en el medio */
+.c-cota{position:absolute;display:flex;align-items:center;color:var(--taupe);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em;pointer-events:none}
+.c-cota i{flex:1;background:color-mix(in srgb,var(--taupe) 70%,transparent)}
+.c-cota span{padding:0 8px;white-space:nowrap}
+.c-cota-h{left:0;right:0;top:-30px;height:14px}
+.c-cota-h i{height:1px}
+.c-cota-h::before,.c-cota-h::after{content:"";position:absolute;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--taupe) 70%,transparent)}
+.c-cota-h::before{left:0}.c-cota-h::after{right:0}
+.c-cota-h i:first-child{transform-origin:100% 50%}.c-cota-h i:last-child{transform-origin:0 50%}
+.c-cota-v{top:0;bottom:0;right:-34px;width:14px;flex-direction:column}
+.c-cota-v i{width:1px}
+.c-cota-v::before,.c-cota-v::after{content:"";position:absolute;left:0;right:0;height:1px;background:color-mix(in srgb,var(--taupe) 70%,transparent)}
+.c-cota-v::before{top:0}.c-cota-v::after{bottom:0}
+.c-cota-v span{writing-mode:vertical-rl;rotate:180deg;padding:6px 0}
+.c-cota-v i:first-child{transform-origin:50% 100%}.c-cota-v i:last-child{transform-origin:50% 0}
+/* la cota de la letra: a la izquierda, del alto de la primera línea del nombre */
+.c-cota-letra{position:absolute;right:calc(100% + 12px);top:var(--t,0);height:var(--h,0);width:54px;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;color:var(--rojo);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;
+  border-right:1px solid currentColor;transition:top .62s var(--ease),height .62s var(--ease);transition-delay:var(--espera,0ms)}
+.c-cota-letra::before,.c-cota-letra::after{content:"";position:absolute;right:-1px;width:8px;height:1px;background:currentColor}
+.c-cota-letra::before{top:0}.c-cota-letra::after{bottom:0}
+.c-muestra.vacia .c-cota-letra{opacity:.0}
+
+/* llega (entrada) o entra (cambio de rótulo) */
+.c-muestra.llega .c-hoja{animation:asienta .7s var(--ease) both .55s}
+@keyframes asienta{from{opacity:0;transform:translateY(16px) scale(.985);box-shadow:none}}
+.c-muestra.llega .c-cota i{animation:traza-h .7s var(--ease) both .75s}
+.c-muestra.llega .c-cota-v i{animation-name:traza-v}
+.c-muestra.llega .c-cota span{animation:aparece .5s var(--ease) both .7s}
+.c-muestra.llega .c-cota::before,.c-muestra.llega .c-cota::after{animation:aparece .3s var(--ease) both 1.2s}
+@keyframes traza-h{from{transform:scaleX(0)}}
+@keyframes traza-v{from{transform:scaleY(0)}}
+.c-muestra.entra{animation:muestraEntra .5s var(--ease) both}
+@keyframes muestraEntra{from{opacity:0;transform:translateX(calc(var(--dir,1) * 46px))}}
+.c-muestra.fantasma.sale{animation:muestraSale .32s var(--salida) both}
+@keyframes muestraSale{to{opacity:0;transform:translateX(calc(var(--dir,1) * -46px))}}
+.c-muestra.fantasma .c-cota-letra{transition:none}
+.c-no-sale{position:absolute;inset:0;z-index:2;display:grid;place-items:center;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--hoja-gris);background:repeating-linear-gradient(-45deg,transparent 0 10px,color-mix(in srgb,var(--hoja-gris) 14%,transparent) 10px 11px);opacity:0;transition:opacity .35s var(--ease)}
+.c-muestra.cero .papel{opacity:.2}
+.c-muestra.cero .c-no-sale{opacity:1}
+
+/* la ficha */
+.c-ficha{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:20px 20px 18px;display:flex}
+.c-ficha-in{display:flex;flex-direction:column;width:100%;animation:aparece .35s var(--ease) both}
+.c-ficha-in.vacia{justify-content:center;gap:4px;color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.c-ficha-in.vacia>.ic{width:26px;height:26px;color:var(--taupe);margin-bottom:6px}
+.c-ficha-in.vacia p{margin:6px 0 0;font-size:13.5px}
+.c-ficha-pie{font-size:12px!important;color:var(--taupe)}
+.c-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px}
+.c-nav-b{display:flex;gap:4px}
+.c-nav-b button{width:30px;height:30px;border-radius:99px;border:1px solid var(--sand);display:grid;place-items:center;color:var(--tinta);transition:background-color .2s,border-color .2s,translate .2s var(--ease)}
+.c-nav-b button .ic{width:15px;height:15px}
+.c-nav-b button:hover:not(:disabled){background:var(--hueso)}
+.c-nav-b button:disabled{opacity:.35}
+.c-nombre{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:24px;line-height:1.12;margin:10px 0 0}
+.c-datos{margin:16px 0 0;display:flex;flex-direction:column}
+.c-datos>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--sand);font-size:13.5px}
+.c-datos dt{color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.c-datos dd{margin:0;text-align:right;font-weight:500}
+.c-datos b{font-variant-numeric:tabular-nums;font-weight:700}
+.c-ficha-in.cascada .c-datos>div{animation:sube .45s var(--ease) both;animation-delay:calc(1050ms + var(--i) * 55ms)}
+.c-copias{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:14px;border-top:1px solid var(--sand)}
+.c-pista{display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:color-mix(in srgb,var(--tinta) 78%,transparent)}
+.c-pista .ic{width:15px;height:15px;margin-top:2px;color:var(--taupe)}
+
+/* la tira de contacto */
+.c-contacto{position:relative;padding:16px 4px 2px}
+.c-contacto-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;padding:0 4px}
+.c-contacto-n{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 60%,transparent)}
+.c-tiras{position:relative;display:flex;gap:10px;overflow-x:auto;padding:4px 2px 16px;--z:.62;scrollbar-width:thin}
+.c-mini{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 10px 8px;border-radius:14px;transition:background-color .25s var(--ease),translate .26s var(--ease)}
+.c-mini:hover{background:var(--hueso);translate:0 -2px}
+.c-mini.activo{background:var(--hueso)}
+.c-mini-hoja{position:relative;display:block;line-height:0;box-shadow:0 1px 1px color-mix(in srgb,var(--tinta-fija) 14%,transparent),0 8px 14px -10px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.c-mini-hoja .papel{transition:opacity .3s var(--ease)}
+.c-mini-n{font-size:12px;font-weight:600;color:var(--taupe);font-variant-numeric:tabular-nums}
+.c-mini.cero .papel{opacity:.25}
+.c-mini.entra{animation:miniEntra .45s var(--ease) both}
+@keyframes miniEntra{from{opacity:0;transform:translateX(22px)}}
+.c-mini.fantasma.sale{animation:miniSale .3s var(--salida) both}
+@keyframes miniSale{to{opacity:0;transform:translateY(10px) scale(.92)}}
+.c-ind{position:absolute;bottom:6px;left:0;width:0;height:2px;border-radius:2px;background:var(--tinta);opacity:0;transition:left .45s var(--ease),width .45s var(--ease),opacity .3s}
+.c-contacto .c-ind{bottom:14px}
+
+@container pag (max-width:560px){
+  .c-campo{padding:66px 40px 50px 66px}
+  .c-cota-letra{width:40px;padding-right:8px;font-size:10.5px}
+  .c-cota-v{right:-26px}
+  .c-barra{padding:16px}
+  .c-pregunta{margin-bottom:12px}
+}

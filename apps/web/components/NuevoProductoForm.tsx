@@ -89,7 +89,8 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
-import { montoDeCelda } from "@/lib/tabla-alta-reglas";
+import { celdaSinPrecio, montoDeCelda, nombreCelda } from "@/lib/tabla-alta-reglas";
+import { precioValido } from "@/lib/variantes-ficha-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
@@ -428,6 +429,11 @@ export function NuevoProductoForm({
     celdasIncluidas.map((c) => c.clave)
   );
   const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
+  // ADR-0384: una celda de «Precios» con 0 crearía esa variante a S/ 0. Se nombra como en la tabla, para que se encuentre.
+  const celdaEnCero = celdaSinPrecio(celdasIncluidas, overridePrecio);
+  const nombreCeldaEnCero = celdaEnCero
+    ? nombreCelda(colores.find((c) => c.codigo === celdaEnCero.color)?.nombre, tallasOrdenadas.find((t) => t.id === celdaEnCero.tallaId)?.texto)
+    : null;
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
@@ -446,6 +452,7 @@ export function NuevoProductoForm({
     celdasIncluidas: celdasIncluidas.length,
     precioBase,
     costoBase,
+    celdaSinPrecio: nombreCeldaEnCero,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
     sinStock: sinStockVigente,
@@ -569,8 +576,10 @@ export function NuevoProductoForm({
       const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
-    if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
-      avisar.error("Una de las celdas tiene un precio inválido.");
+    // La misma regla que Editar producto (`precioValido`): mayor que 0. `problemasAlta` ya lo frena; esto es por si llega un envío
+    // programático (ADR-0384).
+    if (variantes.some((v) => !precioValido(v.precio))) {
+      avisar.error("Una de las celdas tiene un precio en 0 o inválido.");
       return;
     }
     if (variantes.some((v) => !Number.isFinite(v.costo) || v.costo < 0)) {

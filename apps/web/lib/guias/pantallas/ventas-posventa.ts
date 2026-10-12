@@ -479,7 +479,7 @@ export const GUIA_CAJA: Guia = {
       ancla: "caja.movimientos",
       opcional: true,
       titulo: "Movimientos del turno",
-      texto: "Cada venta y cada entrada o salida del cajón, la más reciente arriba, con quién la hizo. Toca una venta para ver su detalle.",
+      texto: "Cada venta y cada entrada o salida del cajón, la más reciente arriba, con quién la hizo. Toca cualquier fila para ver su detalle: una venta abre lo que se vendió y cómo se pagó, y un gasto o un retiro, qué fue y quién lo registró.",
     },
     {
       id: "movimientos-filtro",

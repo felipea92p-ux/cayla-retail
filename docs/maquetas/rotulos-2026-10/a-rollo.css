@@ -1,0 +1,93 @@
+/* =====================================================================
+   A · Rollo — la Brother y su tira.
+   ===================================================================== */
+.A .a-grid{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:40px;align-items:start;margin-top:34px}
+@container pag (max-width:860px){.A .a-grid{grid-template-columns:1fr;gap:28px}}
+
+.a-elegir{position:relative;z-index:5}
+.a-tit{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:26px;line-height:1.1;margin:0 0 6px;letter-spacing:-.005em;transition:font-size .4s var(--ease)}
+.A.vacio .a-tit{font-size:32px}
+.a-bajada{margin:4px 0 0;color:color-mix(in srgb,var(--tinta) 68%,transparent);font-size:14.5px}
+.A .chips{position:relative;display:flex;flex-wrap:wrap;gap:8px}
+.A .chips:not(:empty){margin-top:16px}
+.a-busca{margin-top:16px}
+.a-como{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:18px}
+.a-tope{margin:8px 0 0;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.a-tope:empty{display:none}
+.a-tambien{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--sand);font-size:12.5px;color:color-mix(in srgb,var(--tinta) 60%,transparent)}
+.a-tambien b{color:var(--tinta);font-weight:600}
+
+/* --- la Brother --- */
+.a-maquina{position:relative;display:flex;flex-direction:column;align-items:center;padding:6px 0 10px;min-height:360px;--z:1.2}
+.a-maquina::before{content:"";position:absolute;z-index:-1;left:50%;top:-40px;width:min(640px,100%);height:420px;translate:-50% 0;background:radial-gradient(closest-side,color-mix(in srgb,var(--papel) 95%,transparent),transparent);pointer-events:none}
+.brother{position:relative;z-index:2;width:calc(62mm * var(--z) + 104px);animation:baja .75s var(--ease) both .22s}
+@keyframes baja{from{opacity:0;transform:translateY(-18px)}}
+.b-tapa{height:30px;margin:0 16px;border-radius:18px 18px 0 0;background:linear-gradient(180deg,var(--maquina-1),var(--maquina-2));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema-fija) 16%,transparent)}
+.b-frente{position:relative;height:62px;margin-top:-4px;border-radius:14px;display:flex;align-items:center;gap:12px;padding:0 18px 8px;
+  background:linear-gradient(180deg,var(--maquina-1) 0%,var(--maquina-2) 100%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema-fija) 14%,transparent),0 22px 34px -20px color-mix(in srgb,var(--sombra) 75%,transparent)}
+.b-frente::after{content:"";position:absolute;left:50%;bottom:0;translate:-50% 0;width:calc(62mm * var(--z) + 18px);height:8px;border-radius:5px 5px 0 0;background:var(--ranura);box-shadow:inset 0 2px 3px color-mix(in srgb,var(--tinta-fija) 90%,transparent)}
+.b-luz{width:7px;height:7px;border-radius:99px;background:var(--led-apagado);transition:background-color .4s var(--ease),box-shadow .4s var(--ease)}
+.brother.encendida .b-luz{background:var(--led);box-shadow:0 0 0 3px color-mix(in srgb,var(--led) 22%,transparent),0 0 12px 1px var(--led)}
+.brother.encendida .b-luz.bucle{animation:respira 2.6s ease-in-out infinite}
+.brother.trabaja .b-luz{background:var(--led-ambar);box-shadow:0 0 0 3px color-mix(in srgb,var(--led-ambar) 25%,transparent),0 0 14px 2px var(--led-ambar);animation:none}
+@keyframes respira{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--led) 10%,transparent),0 0 6px 0 var(--led)}}
+.b-rotulo{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--crema-fija) 42%,transparent)}
+.b-perilla{margin-left:auto;width:22px;height:22px;border-radius:99px;background:radial-gradient(circle at 38% 32%,var(--maquina-filo),var(--maquina-2) 70%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--crema-fija) 10%,transparent),0 1px 0 color-mix(in srgb,var(--crema-fija) 8%,transparent)}
+
+/* --- la tira --- */
+.tira{position:relative;z-index:1;width:calc(62mm * var(--z));display:flex;flex-direction:column;box-shadow:0 1px 0 color-mix(in srgb,var(--tinta-fija) 8%,transparent),0 18px 30px -18px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.tira::before{content:"";position:absolute;z-index:6;top:0;left:0;right:0;height:18px;background:linear-gradient(color-mix(in srgb,var(--tinta-fija) 22%,transparent),transparent);pointer-events:none}
+.seg{position:relative;display:grid;grid-template-rows:1fr;transition:grid-template-rows .7s cubic-bezier(.45,.05,.25,1)}
+.seg>.in{position:relative;min-height:0;overflow:hidden;background:var(--hoja)}
+.seg+.seg>.in::before{content:"";position:absolute;z-index:2;left:0;right:0;top:0;border-top:1px dashed var(--hoja-corte)}
+.seg .papel{transition:opacity .35s var(--ease)}
+.seg.nace{grid-template-rows:0fr}
+.seg.crece>.in::after{content:"";position:absolute;z-index:4;left:-3px;right:-3px;bottom:0;height:2px;border-radius:2px;background:var(--rojo);box-shadow:0 0 12px 3px color-mix(in srgb,var(--rojo) 45%,transparent);animation:apaga .72s linear forwards}
+@keyframes apaga{0%,86%{opacity:1}100%{opacity:0}}
+.seg.cubierto>.in>.cubre{opacity:1}
+.seg.asoma>.in{animation:asoma .9s cubic-bezier(.45,.05,.25,1) both .75s}
+.seg.asoma .copias{animation:aparece .5s var(--ease) both 1.5s}
+@keyframes aparece{from{opacity:0}}
+@keyframes asoma{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.tijera{position:absolute;z-index:3;left:-28px;top:-9px;color:var(--taupe);opacity:.75}
+.tijera .ic{width:16px;height:16px;rotate:-90deg}
+
+/* copias al costado del papel */
+.copias{position:absolute;left:calc(100% + 16px);top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:10px;white-space:nowrap;transition:opacity .32s var(--ease) .48s,transform .32s var(--ease) .48s}
+.guia-l{width:16px;height:1px;background:color-mix(in srgb,var(--taupe) 55%,transparent)}
+.seg.nace .copias{opacity:0;transform:translate(-10px,-50%);transition-delay:0s}
+.sello{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe);border:1px dashed color-mix(in srgb,var(--taupe) 50%,transparent);border-radius:999px;padding:6px 11px}
+
+/* en 0 copias el rótulo no sale */
+.no-sale{position:absolute;inset:0;z-index:2;display:grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--hoja-gris);background:repeating-linear-gradient(-45deg,transparent 0 7px,color-mix(in srgb,var(--hoja-gris) 16%,transparent) 7px 8px);opacity:0;transition:opacity .35s var(--ease);pointer-events:none}
+.seg.cero .papel{opacity:.22}
+.seg.cero .no-sale{opacity:1}
+
+/* sale de la tira hacia la derecha; el de ejemplo se desvanece */
+.seg.fantasma.sale{animation:segSale .34s var(--salida) both}
+@keyframes segSale{to{opacity:0;transform:translateX(42px)}}
+.seg.fantasma.sale .copias{opacity:0;transition:opacity .12s}
+.seg.fantasma.se-va{animation:seVa .24s var(--salida) both}
+@keyframes seVa{to{opacity:0}}
+
+/* la copia que se suelta al imprimir */
+.tira.suelta{position:absolute;margin:0;z-index:0;pointer-events:none;animation:suelta .9s var(--salida) forwards}
+@keyframes suelta{0%{transform:none;opacity:.95}100%{transform:translateY(70px) rotate(1.4deg);opacity:0}}
+
+.a-pie{display:flex;align-items:center;gap:8px;margin:20px 0 0;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 62%,transparent);opacity:0;transform:translateY(6px);transition:opacity .4s var(--ease) .3s,transform .4s var(--ease) .3s}
+.a-pie.ve{opacity:1;transform:none}
+.a-pie b{color:var(--tinta);font-variant-numeric:tabular-nums}
+.a-pie .ic{width:14px;height:14px;color:var(--taupe)}
+
+/* --- angosto: las copias bajan bajo cada rótulo --- */
+@container pag (max-width:560px){
+  .seg{grid-template-rows:1fr auto}
+  .seg.nace{grid-template-rows:0fr auto}
+  .copias{position:static;transform:none;justify-content:center;padding:10px 0 14px;background:var(--crema)}
+  .seg.nace .copias{transform:translateY(-6px)}
+  .guia-l{display:none}
+  .tijera{display:none}
+  .tira{box-shadow:none}
+  .seg>.in{box-shadow:0 10px 16px -12px color-mix(in srgb,var(--sombra) 35%,transparent)}
+}
