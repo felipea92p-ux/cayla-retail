@@ -72,6 +72,7 @@ export function BotonVerDetalleCierre({ cierre }: { cierre: CierreCaja }) {
       <button
         type="button"
         onClick={() => abrir(cierre)}
+        data-guia="caja-historial.ver"
         aria-label={`Ver el detalle del cierre de ${cierre.ubicacionNombre} (${hora(cierre.cerradaEn)})`}
         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-tinta/8 hover:text-rojo"
       >
@@ -128,7 +129,7 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
   const tonoDiferencia = estado === "cuadro" ? "text-verde-profundo" : estado === "sobro" ? "text-ambar-profundo" : "text-rojo-profundo";
 
   return (
-    <div className="@container mt-1">
+    <div data-guia="caja-historial.detalle" className="@container mt-1">
       {/* Veredicto: lo primero que se quiere saber de un cierre es si cuadró. */}
       <div className="flex items-center justify-between gap-4 rounded-2xl bg-tinta px-5 py-4 text-crema">
         <p className="font-display min-w-0 text-2xl leading-tight">{estado === "cuadro" ? "Cuadró, sin diferencia" : `${estado === "sobro" ? "Sobró" : "Faltó"} ${money(Math.abs(cierre.diferencia))}`}</p>

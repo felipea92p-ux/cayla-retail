@@ -148,16 +148,18 @@ export function AtributosHub({
       <Pestanas
         etiquetaAccesible="Atributos"
         idIndicador="atributos-secciones"
+        guia="atributos.pestanas"
         activa={tipo}
         items={TABS.filter((t) => !tipos || tipos.includes(t.tipo)).map((t) => ({
           clave: t.tipo,
           etiqueta: t.etiqueta,
           href: `/productos/atributos?tipo=${t.tipo}`,
+          guia: `atributos.pestana-${t.tipo}`,
           icono: <IconoTab d={t.icono} />,
         }))}
       />
 
-      <p className="text-xs text-tinta/60">{AYUDA[tipo]}</p>
+      <p data-guia="atributos.ayuda" className="text-xs text-tinta/60">{AYUDA[tipo]}</p>
 
       {tipo === "colores" && <ColoresLista coloresIniciales={colores} puedeEditar={puedeEditar} />}
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}

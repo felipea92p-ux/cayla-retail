@@ -257,7 +257,7 @@ export function VistaRapidaProducto({
       ) : (
       <div className={paso}>
       <div className="vr-cuerpo">
-        <aside className="vr-lado">
+        <aside data-guia="vista-rapida.foto" className="vr-lado">
           <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
           <div>
             <div className="vr-pie-foto">
@@ -331,7 +331,7 @@ export function VistaRapidaProducto({
             </span>
           </p>
         )}
-        <div className="vr-botones">
+        <div data-guia="vista-rapida.botones" className="vr-botones">
           {puedeEditar && (
             <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={BOTON}>
               <Pencil aria-hidden className="h-4 w-4" />
@@ -365,7 +365,7 @@ export function VistaRapidaProducto({
             Rótulo
           </Link>
           {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
-          <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial>
+          <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial data-guia="vista-rapida.historial">
             <History aria-hidden className="h-4 w-4" />
             Historial
           </button>

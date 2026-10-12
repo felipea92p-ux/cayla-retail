@@ -14,7 +14,7 @@ export function ConfiguracionEmpresa({ datos }: { datos: DatosEmpresa }) {
   return (
     <>
       <section className="fin-dos-col">
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="config.empresa-datos">
           <CabeceraBloque titulo="Datos de la empresa" bajada="Salen en boletas, facturas y reportes para el contador." />
           {campo("RUC", datos.ruc)}
           {campo("Razón social", datos.razonSocial)}
@@ -24,7 +24,7 @@ export function ConfiguracionEmpresa({ datos }: { datos: DatosEmpresa }) {
             {campo("Teléfono", datos.telefono)}
           </div>
         </Superficie>
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="config.empresa-tiendas">
           <CabeceraBloque titulo="Datos fiscales por tienda" bajada="Dirección y series de cada punto de emisión." />
           <ListaDatos
             filas={datos.tiendas.map((t) => ({

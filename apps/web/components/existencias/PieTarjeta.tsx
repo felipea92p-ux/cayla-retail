@@ -61,6 +61,7 @@ export function PieTarjeta({
         <button
           type="button"
           onClick={onBoton}
+          data-guia="existencias.colgar"
           aria-label={`${boton.etiqueta}: ${etiqueta}`}
           className={`${estiloBoton} flex-1 justify-center font-semibold ${
             boton.tipo === "colgar" && boton.sugerido ? "border-ambar/40 bg-ambar/[0.12] text-ambar-profundo hover:border-ambar/60" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/30"
@@ -79,6 +80,7 @@ export function PieTarjeta({
       <button
         type="button"
         aria-haspopup="menu"
+        data-guia="existencias.mas"
         aria-expanded={abierto}
         aria-label={`Más acciones de ${etiqueta}`}
         onClick={() => setAbierto((a) => !a)}
@@ -92,6 +94,7 @@ export function PieTarjeta({
         <div
           ref={menu}
           role="menu"
+          data-guia="existencias.mas-menu"
           aria-label={`Acciones de ${etiqueta}`}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
@@ -110,6 +113,7 @@ export function PieTarjeta({
                 key={o.clave}
                 type="button"
                 role="menuitem"
+                data-guia={o.clave === "ficha" ? "existencias.ver-ficha" : undefined}
                 // Se ve pero no se elige, y dice por qué; sigue alcanzable con el teclado (el lector de pantalla oye el motivo).
                 aria-disabled={apagada || undefined}
                 onClick={() => {

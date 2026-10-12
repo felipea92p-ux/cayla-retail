@@ -377,7 +377,7 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          <div data-guia="cambios.flujo-prendas" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>
@@ -388,6 +388,7 @@ export function CambiosFlujo({
                   return (
                     <label
                       key={l.ventaItemId}
+                      data-guia="cambios.prenda-elegir"
                       // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta).
                       className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
                         estado.cambiable ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
@@ -418,9 +419,9 @@ export function CambiosFlujo({
               </div>
             </fieldset>
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="cambios.pie-prenda">
             <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
-            <BotonPrincipal onClick={continuarDesdePrenda}>
+            <BotonPrincipal guia="cambios.continuar" onClick={continuarDesdePrenda}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
             </BotonPrincipal>
@@ -431,7 +432,7 @@ export function CambiosFlujo({
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div data-guia="cambios.reemplazo" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <CambioReemplazo
                 linea={linea}
                 seleccion={seleccion}
@@ -467,9 +468,9 @@ export function CambiosFlujo({
             </div>
             {/* Con la prenda nueva ya elegida, el panel muestra también qué pasará en el
                 inventario y en la caja: se ve mientras se elige, no solo en la confirmación. */}
-            <PanelValidaciones validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
+            <PanelValidaciones guia="cambios.validaciones" validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="cambios.pie-reemplazo">
             <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar el cambio

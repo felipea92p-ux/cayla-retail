@@ -256,6 +256,7 @@ export function TejidosLista({
   return (
     <div className="space-y-6">
       <BarraAtributos
+        guia="atributos.barra-tejidos"
         etiqueta="Filtrar tejidos"
         filtros={
           <>

@@ -56,8 +56,8 @@ export function SelectorAgrupar() {
       valor={agrupar}
       onCambio={(v) => cambiarAgrupar(v as Agrupar)}
       opciones={[
-        { clave: "urgencia", etiqueta: "Por urgencia" },
-        { clave: "proveedor", etiqueta: "Por proveedor" },
+        { clave: "urgencia", etiqueta: "Por urgencia", guia: "por-pagar.agrupar-urgencia" },
+        { clave: "proveedor", etiqueta: "Por proveedor", guia: "por-pagar.agrupar-proveedor" },
       ]}
     />
   );

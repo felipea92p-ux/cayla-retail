@@ -83,7 +83,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       <div className="anim-entra">
         <Volver href="/compras/proveedores" a="Proveedores" />
         <div data-voz="cabecera" className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          <div className="flex min-w-0 items-start gap-4">
+          <div className="flex min-w-0 items-start gap-4" data-guia="proveedor-ficha.cabecera">
             <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
               {proveedor.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
             </span>
@@ -113,7 +113,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      {paso && <PasoSugerido paso={paso} proveedorId={id} indice={1} />}
+      {paso && (
+        <div data-guia="proveedor-ficha.sugerencia">
+          <PasoSugerido paso={paso} proveedorId={id} indice={1} />
+        </div>
+      )}
 
       <ProveedorCuentasFicha proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
 
@@ -127,7 +131,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             </Vacio>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div data-guia="proveedor-ficha.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 2 }} punto="neutro" etiqueta="Total facturado" valor={<CifraQueCuenta valor={m.facturado_12m} formato="soles" alMontar />}>
               {plural(m.facturas_vigentes, "comprobante vigente", "comprobantes vigentes")}
             </TarjetaCifra>
@@ -191,8 +195,10 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {conCompras && ultimos && (
         <div className="grid gap-3 lg:grid-cols-2">
-          <ProveedorCostoEvolucion evolucion={costo} />
-          <div className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 12 }}>
+          <div data-guia="proveedor-ficha.costo" className="[&>*]:h-full">
+            <ProveedorCostoEvolucion evolucion={costo} />
+          </div>
+          <div data-guia="proveedor-ficha.ultimos" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 12 }}>
             <p className="label-cayla px-5 pb-2 pt-4 text-[11px] text-tinta/65">Últimos comprobantes</p>
             <div className="divide-y divide-tinta/10">
               {ultimos.filas.map((c) => {
@@ -224,7 +230,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       )}
 
       {/* Dos negocios, nunca sumados: devoluciones/dañados e insumos del Taller van aparte de las prendas terminadas. */}
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div data-guia="proveedor-ficha.otros" className="grid gap-3 lg:grid-cols-2">
         {/* Las dos con la pieza única de cifra (TarjetaCifra, ADR-0358): cero devoluciones es un dato; sin lotes, «sin dato». */}
         <TarjetaCifra
           className="anim-entra"

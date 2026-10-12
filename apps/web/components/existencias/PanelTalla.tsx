@@ -451,6 +451,7 @@ export function PanelTalla({
         />
         <Dialog.Content
           ref={raiz}
+          data-guia="existencias.cajon"
           tabIndex={-1}
           onKeyDown={alTeclear}
           onEscapeKeyDown={alEscape}
@@ -572,6 +573,7 @@ export function PanelTalla({
                       key={v}
                       type="button"
                       aria-pressed={vista === v}
+                      data-guia={v === "talla" ? "existencias.cajon-esta-talla" : "existencias.cajon-todas"}
                       onClick={() => {
                         setVista(v);
                         setHecho(null);
@@ -609,7 +611,7 @@ export function PanelTalla({
                       })}
                       {prenda.color && <span className="text-sm text-taupe">{prenda.color}</span>}
                     </div>
-                    <div role="group" aria-label="Talla" className="flex flex-wrap gap-1.5">
+                    <div role="group" aria-label="Talla" data-guia="existencias.cajon-tallas" className="flex flex-wrap gap-1.5">
                       {prenda.tallas.map((t) => {
                         const sel = t.varianteId === fila.varianteId;
                         // Cada talla dice lo suyo aquí, no en una lista aparte: fondo ámbar si falta en el piso; debajo, el piso o, si aquí no
@@ -686,7 +688,7 @@ export function PanelTalla({
                     </div>
                     {/* Las acciones en UNA lista (2026-10-07): la que la talla necesita primero y teñida; las que no se pueden ahora, apagadas al
                         final con su porqué, en la misma lista (antes iban aparte, «No se puede ahora»). «Ficha» baja al pie como enlace. */}
-                    <ul className="overflow-hidden rounded-2xl border border-sand bg-crema">
+                    <ul data-guia="existencias.cajon-acciones" className="overflow-hidden rounded-2xl border border-sand bg-crema">
                       {acciones
                         .filter((a) => a.clave !== "ficha")
                         .map((a) => {
@@ -718,20 +720,20 @@ export function PanelTalla({
                         })}
                     </ul>
                     {/* Al pie: la ficha (antes una pestaña) y, plegado, el ritmo y el código (antes siempre a la vista). */}
-                    <div className="flex items-center justify-between gap-3 text-[13px] text-taupe">
+                    <div data-guia="existencias.cajon-pie" className="flex items-center justify-between gap-3 text-[13px] text-taupe">
                       <button type="button" onClick={() => setVista("ficha")} className="inline-flex items-center gap-1.5 hover:text-tinta">
                         <ClipboardList aria-hidden className="h-4 w-4" strokeWidth={1.6} />
                         Ver ficha
                       </button>
                       {(ritmo || codigo || vendidasTalla !== null) && (
-                        <button type="button" aria-expanded={verRitmo} onClick={() => setVerRitmo((v) => !v)} className="inline-flex items-center gap-1.5 hover:text-tinta">
+                        <button type="button" data-guia="existencias.cajon-como-se-vende" aria-expanded={verRitmo} onClick={() => setVerRitmo((v) => !v)} className="inline-flex items-center gap-1.5 hover:text-tinta">
                           <Info aria-hidden className="h-3.5 w-3.5" />
                           ¿Cómo se vende?
                         </button>
                       )}
                     </div>
                     {verRitmo && (ritmo || codigo || vendidasTalla !== null) && (
-                      <div className="anim-revelar flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
+                      <div data-guia="existencias.cajon-ritmo" className="anim-revelar flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
                         {ritmo && <AroSemanas ritmo={ritmoColor} tam={40} />}
                         <div className="min-w-0">
                           {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
@@ -814,7 +816,7 @@ export function PanelTalla({
                           </span>
                         </p>
                       ))}
-                    <div className="scroll-cayla overflow-x-auto">
+                    <div data-guia="existencias.cajon-todas-tabla" className="scroll-cayla overflow-x-auto">
                       <table className="w-full table-fixed border-separate border-spacing-y-2 text-center text-sm">
                         <colgroup>
                           <col className="w-[88px]" />
@@ -895,7 +897,7 @@ export function PanelTalla({
                     </div>
                     <p className="-mt-1 text-xs text-taupe">Toca una talla para verla.</p>
                     {separa && puedeReponer && (
-                      <button type="button" onClick={() => lanzar("colgarVarias", { cant: {} })} className="flex w-full items-center gap-3 rounded-2xl border border-sand bg-ambar/[0.10] px-3 py-2.5 text-left transition-colors hover:bg-ambar/[0.16]">
+                      <button type="button" data-guia="existencias.cajon-colgar-varias" onClick={() => lanzar("colgarVarias", { cant: {} })} className="flex w-full items-center gap-3 rounded-2xl border border-sand bg-ambar/[0.10] px-3 py-2.5 text-left transition-colors hover:bg-ambar/[0.16]">
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ambar/[0.18] text-ambar-profundo">
                           <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
                         </span>

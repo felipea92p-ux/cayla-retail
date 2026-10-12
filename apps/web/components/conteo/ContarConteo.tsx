@@ -573,12 +573,14 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
       >
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
-      <PasosConteo actual="contar" />
+      <div data-guia="conteo.pasos">
+        <PasosConteo actual="contar" />
+      </div>
       {notaAcotada}
 
       <div ref={tarjetaRef} role="region" aria-label="Contar" className="space-y-3">
         {/* Escanear o buscar: UN campo de ancho completo. La cámara vive en la barra de abajo del celular. */}
-        <div className="relative">
+        <div data-guia="contar.escaner" className="relative">
           <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-rojo-profundo" />
           <input
             ref={escanerRef}
@@ -619,7 +621,11 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
-            {hayVariantes && !vaciaPorAcotar && <BotonAplicarTodos control={control} alPedir={pedirAplicarTodos} />}
+            {hayVariantes && !vaciaPorAcotar && (
+              <span data-guia="contar.aplicar-todos" className="inline-flex">
+                <BotonAplicarTodos control={control} alPedir={pedirAplicarTodos} />
+              </span>
+            )}
           </div>
         </div>
 
@@ -640,7 +646,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
               />
             )}
             {/* Aunque no coincida nada la lista sigue montada (escondida): volver a dibujarla al borrar el buscador costaría medio segundo. */}
-            <div hidden={nCoincidencias === 0}>
+            <div data-guia="contar.lista" hidden={nCoincidencias === 0}>
               <ListaConteo
                 grupos={grupos}
                 coincidencias={coincidencias}
@@ -728,7 +734,7 @@ function CifrasCabecera({ control }: { control: ControlConteo }) {
     { valor: r.conDiferencia, etiqueta: "Con diferencia", color: r.conDiferencia > 0 ? "text-rojo-profundo" : "text-verde" },
   ];
   return (
-    <section aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
+    <section data-guia="contar.cifras" aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
       {celdas.map((c) => (
         <div key={c.etiqueta} className="min-w-0 flex-1 px-4 py-4 lg:w-[8.75rem] lg:flex-none">
           <p className={`font-display text-2xl leading-none tabular-nums ${c.color}`}>{c.valor}</p>
@@ -898,7 +904,7 @@ function PieContar({
         />
       }
       acciones={
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+        <div data-guia="contar.pie" className="flex w-full items-center gap-2 sm:w-auto">
           <button type="button" onClick={alCamara} aria-label="Escanear con la cámara" className="btn-cayla btn-secundario h-11 w-11 shrink-0 p-0 sm:hidden">
             <Camera aria-hidden className="h-5 w-5" />
           </button>

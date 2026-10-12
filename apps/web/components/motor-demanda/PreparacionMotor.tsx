@@ -29,7 +29,7 @@ function TarjetaSede({ p }: { p: PreparacionSede }) {
       </div>
       {/* El veredicto en una línea, la misma que verá la columna «Sugerencias» de Tareas (ADR-0345). */}
       <p className="mt-1 text-sm text-tinta/75">{fraseDelMotor(p)}</p>
-      <ul className="mt-4 space-y-4">
+      <ul className="mt-4 space-y-4" data-guia="global.motor-requisitos">
         {p.condiciones.map((c) => (
           <li key={c.clave} className="flex gap-3">
             {c.cumple ? (

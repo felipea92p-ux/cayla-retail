@@ -65,7 +65,7 @@ export function TiposMovimiento({
 }) {
   const total = resumen?.todos.operaciones ?? 0;
   return (
-    <nav aria-label="Tipo de movimiento" className="min-w-0">
+    <nav aria-label="Tipo de movimiento" data-guia="movimientos.tipos" className="min-w-0">
       <p className="label-cayla mb-2 hidden text-[10px] font-bold text-taupe lg:block">Filtrar por tipo · {periodo}</p>
       <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:mx-0 lg:grid lg:gap-2 lg:overflow-visible lg:px-0 lg:pb-0" data-hay={categoria ? "" : undefined}>
         {GRUPOS_TIPO.map((g) => {

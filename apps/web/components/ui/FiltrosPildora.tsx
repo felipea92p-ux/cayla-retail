@@ -32,10 +32,13 @@ export function BotonFiltros({
   activos,
   onClick,
   soloIcono = false,
+  "data-guia": guia,
 }: {
   abierto: boolean;
   activos: number;
   onClick: () => void;
+  /** Ancla de la guía (ADR-0389), en el botón mismo. */
+  "data-guia"?: string;
   /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
    *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
   soloIcono?: boolean;
@@ -45,6 +48,7 @@ export function BotonFiltros({
     return (
       <button
         type="button"
+        data-guia={guia}
         onClick={onClick}
         aria-expanded={abierto}
         aria-controls="filtros-panel"
@@ -87,10 +91,10 @@ export function BotonFiltros({
  *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
  *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
  *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
-export function PanelPildoras({ children, filas = false }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean }) {
+export function PanelPildoras({ children, filas = false, guia }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   if (filas) {
     return (
-      <div id="filtros-panel" className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
         {children}
       </div>
     );
@@ -98,6 +102,7 @@ export function PanelPildoras({ children, filas = false }: { children: ReactNode
   return (
     <div
       id="filtros-panel"
+      data-guia={guia}
       className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
     >
       {children}

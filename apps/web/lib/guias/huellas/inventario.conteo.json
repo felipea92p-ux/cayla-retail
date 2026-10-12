@@ -1,0 +1,50 @@
+{
+  "guia": "inventario.conteo",
+  "ruta": "/inventario/conteo",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 28,
+  "controles": {
+    "components/AbrirConteo.tsx": [
+      "Link «Ver traslados →»",
+      "SegmentoDeslizante «Qué vas a contar»",
+      "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
+      "button «{guia.frase ?? undefined}»",
+      "button «{o.icono}»",
+      "input «Buscar categoría»",
+      "button «{c.nombre}»"
+    ],
+    "components/ConteoVista.tsx": [
+      "Link «Contar todo»",
+      "Link «Ir a ese día»",
+      "Link «Ver todos»",
+      "Link «Ver ajustes por conteo →»"
+    ],
+    "components/ConteosLista.tsx": [
+      "Link «conteo.fila»"
+    ],
+    "components/conteo/AccionesEnCurso.tsx": [
+      "Link «Seguir contando»",
+      "button «Cancelar conteo»"
+    ],
+    "components/conteo/CancelarConteoModal.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "button «Seguir contando»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/conteo/ElegirPrendas.tsx": [
+      "button «Reintentar»",
+      "input «Buscar prenda, código, color o talla...»",
+      "button «Agregar las»",
+      "button «→() => alternar(p)»",
+      "button «Ver más (»",
+      "button «Quitar todas»",
+      "button «{`Quitar ${nombre}»"
+    ],
+    "components/conteo/FiltroConteosRecientes.tsx": [
+      "Link «Todos»",
+      "Link «Hoy»",
+      "Link «Ayer»",
+      "CampoFecha «Otra fecha»"
+    ]
+  }
+}

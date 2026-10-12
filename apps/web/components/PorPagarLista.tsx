@@ -283,7 +283,7 @@ export function PorPagarLista({
   const otrosDeVista = vista ? compras.filter((c) => c.proveedorId === vista.proveedorId && c.id !== vista.id) : [];
 
   return (
-    <div className={seleccion.length > 0 ? "pb-28 sm:pb-24" : ""}>
+    <div data-guia="por-pagar.lista" className={seleccion.length > 0 ? "pb-28 sm:pb-24" : ""}>
       {/* La línea de resumen del spike: cuántos comprobantes y cuánto suman lo que se ve. Con un filtro por clic lleva además su chip
           (para quitarlo) y dice «de cuántos». La cifra cuenta hasta su valor nuevo al filtrar. */}
       <div className="anim-entra mb-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-tinta/65" style={{ ["--i" as string]: Math.max(0, indice - 1) }}>
@@ -646,7 +646,7 @@ function FilaPorPagar({
           <span className="label-cayla text-[11px]">Pagada</span>
         </span>
       )}
-      <span className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
+      <span data-guia="por-pagar.casilla" className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
         <Casilla marcada={marcada} onAlternar={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
       </span>
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
@@ -697,14 +697,14 @@ function FilaPorPagar({
         )}
       </div>
       <div className={`shrink-0 text-right ${sellada ? "opacity-55" : ""}`}>
-        <span className="font-display block text-[18px] tabular-nums text-tinta">{soles(saldoMostrado)}</span>
+        <span data-guia="por-pagar.saldo-fila" className="font-display block text-[18px] tabular-nums text-tinta">{soles(saldoMostrado)}</span>
         {/* Donde la columna «Pagado» no cabe (< 56rem), lo pagado se dice aquí, bajo el saldo. */}
         {c.pagado > 0 && <span className="block text-xs tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
-        <span className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
+        <span data-guia="por-pagar.pagar" className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
           <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} misTiendas={misTiendas} />
         </span>
       </div>
-      <div className={`relative z-10 hidden items-center justify-end gap-2 text-right @[40rem]:flex ${sellada ? "opacity-55" : ""}`}>
+      <div data-guia="por-pagar.pagar" className={`relative z-10 hidden items-center justify-end gap-2 text-right @[40rem]:flex ${sellada ? "opacity-55" : ""}`}>
         <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} misTiendas={misTiendas} />
         {/* La flecha aparece al pasar el mouse: dice «esta fila se abre», sin ocupar sitio en reposo. */}
         <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />

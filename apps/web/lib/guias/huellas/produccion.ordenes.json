@@ -1,0 +1,120 @@
+{
+  "guia": "produccion.ordenes",
+  "ruta": "/produccion/ordenes",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 80,
+  "controles": {
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/MatrizOrden.tsx": [
+      "input «{`Buenas de ${c.nombre}»"
+    ],
+    "components/ModeloNuevoCampos.tsx": [
+      "Link «Créalo en Productos»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
+      "CampoSelect «{guia.etiqueta(\"categoria\", \"Categoría\")}»",
+      "CampoMonto «{guia.etiqueta(\"precio\", \"Precio a tienda (c/u)\")}»"
+    ],
+    "components/NuevaOrdenProduccionForm.tsx": [
+      "CampoSelect «{guia.etiqueta(\"modelo\", \"Modelo\")}»",
+      "input «{`${color}»",
+      "Link «Editar producto»",
+      "Desplegable «(sin nombre)»",
+      "button «{curva.total > 0 ? `Usar la sugerencia · ${curva.total}»",
+      "button «Usar como costo estimado»",
+      "CampoMonto «Tela»",
+      "CampoMonto «Avíos»",
+      "CampoMonto «Maquila»",
+      "Link «Ponle precio en Editar producto»",
+      "CampoTexto «Fecha de entrega»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Usar ese modelo»",
+      "Boton «Es otro modelo, crearlo igual»",
+      "button «Cancelar»",
+      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/OrdenCierre.tsx": [
+      "CampoMonto «Tela (real)»",
+      "CampoMonto «Avíos (real)»",
+      "CampoMonto «Maquila (real)»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/OrdenInsumos.tsx": [
+      "button «{abierto ? \"Cancelar devolución\" : \"Devolver al estante\"}»",
+      "input «0»",
+      "button «Devolver todo»",
+      "ComboResponsable «{devolviendo ? \"Devolviendo…\" : \"Devolver al lote\"}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Link «Cárgalos en Insumos»",
+      "button «{i.nombre}»",
+      "input «0» #2",
+      "ComboResponsable «{cargando ? \"Descontando…\" : \"Descontar del lote\"}»",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/OrdenModales.tsx": [
+      "input «Por qué se cancela la corrida»",
+      "ComboResponsable «Volver»",
+      "button «Volver»",
+      "button «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «Volver» #2",
+      "button «Volver» #2",
+      "button «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/OrdenPanel.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Marcar hecho»",
+      "Boton «(sin nombre)»",
+      "button «Reabrir»",
+      "Link «Llevarlas a las tiendas»",
+      "Link «Imprimir etiquetas de precio»",
+      "Boton «→() => setCerrando(true)»",
+      "Boton «Anular»",
+      "Boton «Volver sin cerrar»",
+      "Boton «Revertir cierre»"
+    ],
+    "components/OrdenTarjeta.tsx": [
+      "button «prod-ordenes.tarjeta»"
+    ],
+    "components/OrdenesTablero.tsx": [
+      "Boton «prod-ordenes.nueva»",
+      "Boton «+ Crear el primer modelo»",
+      "Boton «Abrir una orden»",
+      "button «Terminadas (»",
+      "button «{o.referencia}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «setCarta((v) => !v)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «);»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "input «{ejemplo.nombre.texto}»",
+      "Desplegable «Código»",
+      "input «{ejemplo.codigo.texto}»",
+      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/motor-demanda/MotorEnProduccion.tsx": [
+      "button «{curva.total > 0 ? `Usar la del motor · ${curva.total}»"
+    ]
+  }
+}

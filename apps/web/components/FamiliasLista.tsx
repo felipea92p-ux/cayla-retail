@@ -119,7 +119,7 @@ export function FamiliasLista({
       {puedeEditar && (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <span />
-          <Boton type="button" peso="primario" onClick={() => setBorrador({ codigo: null, nombre: "", entraAMotores: true })}>
+          <Boton type="button" peso="primario" onClick={() => setBorrador({ codigo: null, nombre: "", entraAMotores: true })} data-guia="familias.agregar">
             + Agregar familia
           </Boton>
         </div>
@@ -127,7 +127,7 @@ export function FamiliasLista({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {activas.map((f) => (
-          <div key={f.codigo} className="card-cayla p-5">
+          <div key={f.codigo} data-guia="familias.tarjeta" className="card-cayla p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-tinta">{f.nombre}</p>
@@ -137,7 +137,7 @@ export function FamiliasLista({
               </div>
               {puedeEditar && (
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[10.5px]" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre, entraAMotores: f.entraAMotores })}>
+                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[10.5px]" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre, entraAMotores: f.entraAMotores })} data-guia="familias.editar">
                     Editar
                   </Boton>
                   <Boton
@@ -175,7 +175,7 @@ export function FamiliasLista({
       )}
 
       {desactivadas.length > 0 && (
-        <section className="space-y-2">
+        <section data-guia="familias.desactivadas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al elegir familia en Categorías</p>
           <div className="card-cayla flex flex-wrap gap-2 p-5">
             {desactivadas.map((f) => (
@@ -244,7 +244,7 @@ function FamiliaModal({
     >
       {(cerrar) => (
         <>
-          <div className="mt-5 space-y-4">
+          <div data-guia="familias.form" className="mt-5 space-y-4">
             <CampoGuiado id="nombre" guia={guia}>
               <CampoTexto
                 etiqueta={guia.etiqueta("nombre", "Nombre")}
@@ -274,7 +274,7 @@ function FamiliaModal({
           <div className="mt-4">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
           </div>
-          <div className="mt-4 flex justify-end gap-2">
+          <div data-guia="familias.form-pie" className="mt-4 flex justify-end gap-2">
             <Boton peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>

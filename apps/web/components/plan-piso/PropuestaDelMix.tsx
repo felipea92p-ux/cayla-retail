@@ -231,7 +231,7 @@ export function PropuestaDelMix({
         <div className="pp-raiz">
           <section className="pp-card" aria-label="El riel de la tienda">
             <h2 className="sr-only">El riel de la tienda</h2>
-            <header className="pp-estado">
+            <header className="pp-estado" data-guia="plan-piso.estado">
               <div className="pp-est-cifra">
                 <span className="pp-etq">{etiquetaDeCifra(p.cuadrado)}</span>
                 <div className="pp-est-n">
@@ -270,14 +270,14 @@ export function PropuestaDelMix({
               </div>
             </header>
             {riel}
-            <AvisoPorRevisar porRevisar={categoriasPorRevisar} sinGrupo={categoriasSinGrupo} esLider={esLider} />
+            <AvisoPorRevisar guia="plan-piso.aviso-revisar" porRevisar={categoriasPorRevisar} sinGrupo={categoriasSinGrupo} esLider={esLider} />
           </section>
         </div>
       )}
 
       {dibujaFuera && (
         <div className="pp-raiz">
-          <section className="pp-fuera" aria-label="Fuera del riel">
+          <section className="pp-fuera" aria-label="Fuera del riel" data-guia="plan-piso.fuera">
             <div className="pp-fuera-cab">
               <h2 className="pp-etq">Fuera del riel</h2>
               <span>
@@ -310,7 +310,7 @@ export function PropuestaDelMix({
 
       <Mancuerna propuesta={p} />
 
-      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Propuesta del mix en el riel">
+      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Propuesta del mix en el riel" data-guia="plan-piso.tabla">
         <div className="border-b border-sand px-5 py-4">
           <h3 className="font-display text-xl text-tinta">Lugar de cada grupo en el riel</h3>
           <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">

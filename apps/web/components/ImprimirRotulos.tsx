@@ -66,6 +66,7 @@ export function ImprimirRotulos({
   const lleno = ids.length >= MAX_MODELOS_EN_URL;
 
   const agregar = (
+    <div data-guia="rotulos.agregar">
     <ComboBuscable
       etiquetaAccesible="Agregar un modelo al rótulo"
       valor=""
@@ -75,10 +76,11 @@ export function ImprimirRotulos({
       caja
       className="w-full sm:max-w-sm"
     />
+    </div>
   );
 
   const botonImprimir = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2" data-guia="rotulos.imprimir">
       <BotonGuiaImpresion />
       <button type="button" className="btn-cayla btn-primario" disabled={total === 0 || enviando} onClick={imprimir}>
         {total === 0 ? "Nada que imprimir" : enviando ? "Imprimiendo…" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
@@ -102,6 +104,7 @@ export function ImprimirRotulos({
     return (
       <div className="space-y-6">
         {cabecera}
+        <div data-guia="rotulos.vacio">
         <Vacio
           icono={<SignpostBig />}
           titulo="¿Qué modelos van en este anaquel?"
@@ -110,6 +113,7 @@ export function ImprimirRotulos({
           Búscalos por nombre o código y aparece el rótulo listo para imprimir. También puedes marcarlos en Productos o en
           Existencias y tocar «Rótulo».
         </Vacio>
+        </div>
       </div>
     );
   }
@@ -121,7 +125,7 @@ export function ImprimirRotulos({
       {cabecera}
 
       <div className="grid items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)]">
-      <section aria-label="Modelos del rótulo" className="space-y-4 rounded-xl border border-sand bg-papel p-4 lg:col-start-1">
+      <section aria-label="Modelos del rótulo" data-guia="rotulos.modelos" className="space-y-4 rounded-xl border border-sand bg-papel p-4 lg:col-start-1">
         <div className="flex flex-wrap items-center gap-2">
           {modelos.map((m) => (
             <span key={m.productoId} className="inline-flex items-center gap-1 rounded-full border border-sand bg-crema py-1 pl-3 pr-1 text-sm text-tinta">
@@ -139,12 +143,12 @@ export function ImprimirRotulos({
         </div>
         {!lleno && agregar}
         {modelos.length >= 2 && (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-taupe">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-taupe" data-guia="rotulos.como-salen">
             <span>Cómo salen:</span>
-            <button type="button" className="pildora-cayla" aria-pressed={!juntar || !puedeJuntar} onClick={() => setJuntar(false)}>
+            <button type="button" className="pildora-cayla" data-guia="rotulos.por-modelo" aria-pressed={!juntar || !puedeJuntar} onClick={() => setJuntar(false)}>
               Un rótulo por modelo
             </button>
-            <button type="button" className="pildora-cayla" aria-pressed={juntar && puedeJuntar} disabled={!puedeJuntar} onClick={() => setJuntar(true)}>
+            <button type="button" className="pildora-cayla" data-guia="rotulos.juntos" aria-pressed={juntar && puedeJuntar} disabled={!puedeJuntar} onClick={() => setJuntar(true)}>
               Todos en un rótulo
             </button>
             {!puedeJuntar && <span className="text-xs">Juntos se leen hasta {MAX_JUNTOS} modelos.</span>}
@@ -152,7 +156,7 @@ export function ImprimirRotulos({
         )}
       </section>
 
-      <section aria-label="Vista previa" className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1">
+      <section aria-label="Vista previa" data-guia="rotulos.vista" className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1">
         <p className="text-sm text-taupe">Así salen, en el papel de la etiqueta (62 × 40,1 mm):</p>
         <div className="flex flex-wrap gap-6">
           {rotulos.map((r) => (
@@ -160,7 +164,7 @@ export function ImprimirRotulos({
               <VistaQueCabe>
                 <RotuloAnaquel rotulo={r} />
               </VistaQueCabe>
-              <figcaption className="flex items-center justify-end gap-2 text-sm text-taupe">
+              <figcaption data-guia="rotulos.copias" className="flex items-center justify-end gap-2 text-sm text-taupe">
                 <label htmlFor={`copias-${r.clave}`}>Copias</label>
                 <input
                   id={`copias-${r.clave}`}
@@ -179,12 +183,12 @@ export function ImprimirRotulos({
       </section>
 
       {avisoMac && (
-        <div className="lg:col-start-1">
+        <div className="lg:col-start-1" data-guia="rotulos.aviso-mac">
           <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome con el mismo papel de las etiquetas." />
         </div>
       )}
 
-      <div className="nota-cayla flex flex-wrap items-center justify-between gap-3 lg:col-start-1">
+      <div className="nota-cayla flex flex-wrap items-center justify-between gap-3 lg:col-start-1" data-guia="rotulos.nota">
         <span>
           <b>Sale en el mismo papel que las etiquetas de precio:</b> no hay que cambiar nada en la Brother. Si sale corto, chico o
           girado, la guía lo muestra paso a paso.
