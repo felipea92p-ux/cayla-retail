@@ -74,7 +74,7 @@ export function OpcionesComprobante({
         </p>
       )}
 
-      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div data-guia="comprobantes.opciones-acciones" className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {c.pdfUrl && (
           <a href={enlaceWhatsAppA(extra?.telefono, mensaje)} target="_blank" rel="noreferrer" className={PRIMARIA}>
             <MessageCircle aria-hidden size={18} strokeWidth={1.75} className="shrink-0" />

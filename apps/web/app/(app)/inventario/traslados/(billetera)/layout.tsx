@@ -29,7 +29,7 @@ export default async function TrasladosBilleteraLayout({ children }: { children:
           <div className="flex flex-wrap items-center gap-3">
             <BotonPedirAOtraSede {...pedir} />
             {/* Secundario: en esta pantalla el botón negro es el del pase, lo que te toca (Formidable, 2026-10-06). */}
-            <BotonEnlace href={RUTA_NUEVO_TRASLADO}>+ Nuevo traslado</BotonEnlace>
+            <BotonEnlace href={RUTA_NUEVO_TRASLADO} data-guia="traslados.nuevo">+ Nuevo traslado</BotonEnlace>
           </div>
         }
       />

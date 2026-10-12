@@ -198,7 +198,7 @@ export function DetalleMuestraModal({
       onClose={onClose}
     >
       <div className="mt-2 space-y-5">
-        <section className="space-y-2">
+        <section data-guia="muestra.dibujo" className="space-y-2">
           <Muestra nombre={muestra.nombre} imagenUrl={imagenVisible} className="aspect-[2/1] w-full" />
           <p className="text-xs text-tinta/60">
             {pendiente
@@ -288,7 +288,7 @@ export function DetalleMuestraModal({
         {/* Qué es el tejido, para qué prendas sirve y cómo se cuida: lo que una integrante necesita para reconocerlo y explicárselo al
             cliente. Lo ve cualquiera que abra el detalle (no solo quien edita). Los patrones no la llevan: su dibujo ya dice qué son. */}
         {ayuda && (
-          <section className="space-y-2">
+          <section data-guia="muestra.sobre" className="space-y-2">
             <p className="label-cayla text-[11px] text-tinta/65">Sobre este tejido</p>
             <div className="rounded-lg border border-sand bg-hueso/60 p-3 text-sm text-tinta/85">
               <p>{ayuda.queEs}</p>
@@ -304,7 +304,7 @@ export function DetalleMuestraModal({
           </section>
         )}
 
-        <section className="space-y-2">
+        <section data-guia="muestra.prendas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Prendas con {palabra.el}</p>
           {carga.estado === "cargando" && (
             <ul className="space-y-2" aria-label="Buscando prendas">

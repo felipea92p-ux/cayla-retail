@@ -77,7 +77,7 @@ export function CampanasPanel({
         acciones={
           <>
             <Chip versalitas={false}>{esLider ? "CAYLA entera" : tiendaNombre}</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar}>
+            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} data-guia="fin-reportes.excel">
               Descargar Excel
             </button>
           </>
@@ -91,7 +91,7 @@ export function CampanasPanel({
       ))}
 
       <section className="fin-dos-col fin-der">
-        <div {...entra(1)}>
+        <div {...entra(1)} data-guia="fin-campanas.grafico">
           <Superficie pad>
             <CabeceraBloque titulo="Margen extra de cada campaña" bajada="Lo que dejó contra lo que habría dejado en días normales." />
             {conExtra.length ? (
@@ -115,7 +115,7 @@ export function CampanasPanel({
           </Superficie>
         </div>
 
-        <div {...entra(2)}>
+        <div {...entra(2)} data-guia="fin-campanas.pasadas">
           <Superficie>
             <div className="fin-tabla-wrap">
               <table className="fin-tabla" style={{ minWidth: 520 }}>
@@ -175,7 +175,7 @@ export function CampanasPanel({
         </div>
       </section>
 
-      <div {...entra(3)}>
+      <div {...entra(3)} data-guia="fin-campanas.vienen">
         <Superficie>
           <Herramientas>
             <b className="text-[14px]">Las que vienen</b>
@@ -265,7 +265,7 @@ export function CampanasPanel({
         </Superficie>
       </div>
 
-      <div {...entra(4, "nota-cayla")}>
+      <div {...entra(4, "nota-cayla")} data-guia="fin-campanas.nota">
         Una campaña también puede valer por otras cosas (clientes nuevos, sacar mercadería que no rota). El sistema no decide por ti: te
         dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en
         Catálogo ▸ Etiquetas; la meta y el fondo, en{" "}

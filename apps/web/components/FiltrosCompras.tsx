@@ -159,7 +159,7 @@ export function FiltrosCompras({
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
         {/* El buscador único (ADR-0358, ronda 5): busca mientras se escribe; «Buscando…» solo si la base tarda. */}
-        <Buscador
+        <Buscador guia="filtros-compras.buscador"
           id={ID_BUSCADOR}
           valor={busqueda}
           onCambio={setBusqueda}
@@ -173,7 +173,9 @@ export function FiltrosCompras({
             que el botón quede a la altura del input, no de toda la columna. */}
         {[
           accionesAntes,
-          <BotonFiltros key="filtros" abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />,
+          <span key="filtros" data-guia="filtros-compras.boton" className="inline-flex">
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          </span>,
           accionesDespues,
         ].map(
           (control, i) =>
@@ -186,6 +188,7 @@ export function FiltrosCompras({
       </div>
 
       {panelAbierto && (
+        <div data-guia="filtros-compras.panel">
         <PanelPildoras>
           {ver("proveedor") && (
             <DesplegablePildora
@@ -275,10 +278,11 @@ export function FiltrosCompras({
 
           {ver("fechas") && <PildoraFechas desde={desde ?? ""} hasta={hasta ?? ""} onCambiar={(d, h) => aplicar({ desde: d, hasta: h })} />}
         </PanelPildoras>
+        </div>
       )}
 
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-guia="filtros-compras.chips">
           {chips.map((c) => (
             <button
               key={c.texto}

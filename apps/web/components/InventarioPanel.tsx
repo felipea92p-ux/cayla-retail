@@ -826,6 +826,7 @@ export function InventarioPanel({
               ) : (
                 <button
                   type="button"
+                  data-guia="existencias.pendientes"
                   onClick={() => setViendoPendientes(true)}
                   title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
                   className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-[13px] text-taupe"
@@ -952,7 +953,7 @@ export function InventarioPanel({
           {/* Qué lugar se ve en las tarjetas: solo el piso, solo el almacén o ambos (de entrada, como el «Todas» de un desplegable).
               Cada opción dice cuántas unidades libres hay ahí entre lo que deja la lista. No quita prendas: cambia lo que se lee. */}
           {separa && (
-            <div className="mb-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+            <div data-guia="existencias.lugar" className="mb-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
               <span className="text-[13px] text-taupe">Ver unidades en</span>
               <SegmentoDeslizante
                 forma="modo"
@@ -1028,7 +1029,7 @@ export function InventarioPanel({
           />
           {/* Sin tarjetas a la vista («Piso» o «Almacén» escondió todas) el pie no tiene qué contar: lo dice el vacío de arriba. */}
           {delLugar.modelos.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
+          <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
@@ -1057,7 +1058,7 @@ export function InventarioPanel({
           )}
         </div>
       ) : vista === "prenda" ? (
-        <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
+        <Tabla guia="existencias.tabla" className="rounded-none border-0 border-t border-sand bg-transparent">
           <ExistenciasPorPrenda
             prendas={paginaPrendas.filas}
             separa={separa}
@@ -1069,7 +1070,7 @@ export function InventarioPanel({
             abiertaClave={abierta?.clave ?? null}
             onAbrir={abrirPrenda}
           />
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaPrendas.totalPaginas > 1 ? `Mostrando ${paginaPrendas.desde}–${paginaPrendas.hasta} de ` : "Mostrando "}
@@ -1095,7 +1096,7 @@ export function InventarioPanel({
           </div>
         </Tabla>
       ) : (
-        <Tabla className="@container rounded-none border-0 border-t border-sand bg-transparent">
+        <Tabla guia="existencias.tabla-talla" className="@container rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que va a la izquierda como en su diseño, y «Acción hoy» y
               «En la red», que se leen de corrido (diseño aprobado, 2026-09-28). La tabla COMUNICA el estado y no ofrece acciones:
               tocar una fila abre el cajón de la prenda, donde viven Reponer, Trasladar, Ajustar, Etiquetas e Historial. */}
@@ -1550,6 +1551,7 @@ export function InventarioPanel({
         <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
           <button
             type="button"
+            data-guia="existencias.escanear-celular"
             onClick={() => setCamara(true)}
             className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
           >

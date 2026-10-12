@@ -222,7 +222,7 @@ export function TodosVista({
 
   return (
     <div className="space-y-5 p-5 sm:p-6">
-      <div className="grid overflow-hidden rounded-2xl border border-sand sm:grid-cols-2 lg:grid-cols-4">
+      <div data-guia="apartados.cifras" className="grid overflow-hidden rounded-2xl border border-sand sm:grid-cols-2 lg:grid-cols-4">
         {cifras.map((c, i) => (
           <div
             key={c.etiqueta}
@@ -257,7 +257,7 @@ export function TodosVista({
       )}
 
       {conOtraSede && pedidos.length > 0 && (
-        <section className="rounded-2xl border border-sand">
+        <section data-guia="apartados.pedidos" className="rounded-2xl border border-sand">
           <h3 className="font-display flex items-baseline gap-2 border-b border-sand px-5 py-3 text-lg text-tinta">
             Pedidos entre tiendas <span className="font-sans text-[11px] text-tinta/55">{pedidos.length}</span>
           </h3>
@@ -315,7 +315,7 @@ export function TodosVista({
         </section>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div data-guia="apartados.filtros" className="flex flex-wrap items-center gap-2">
         {FILTROS.map((f) => (
           // Filtro de un valor = la píldora del sistema (ADR-0358): deja menos apartados, no cambia de vista.
           <button key={f.id} type="button" aria-pressed={filtro === f.id} onClick={() => setFiltro(f.id)} className="pildora-cayla">
@@ -347,7 +347,7 @@ export function TodosVista({
       </div>
 
       {conPeriodo && (
-        <div className="-mt-2 space-y-2.5">
+        <div data-guia="apartados.periodo" className="-mt-2 space-y-2.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {/* Las mismas píldoras de período que el Historial de ventas (ADR-0358): Hoy, 7, 30, 90 días y Personalizado. En el
                 celular corren de lado en vez de partirse en dos líneas. */}
@@ -453,7 +453,7 @@ export function TodosVista({
           const filas = lista.filter(({ e }) => g.claves.includes(e.clave));
           if (filas.length === 0) return null;
           return (
-            <section key={g.titulo}>
+            <section key={g.titulo} data-guia="apartados.lista">
               <h3 className="font-display mb-2.5 flex items-baseline gap-2 text-lg text-tinta">
                 {g.titulo} <span className="font-sans text-[11px] text-tinta/55">{filas.length}</span>
               </h3>

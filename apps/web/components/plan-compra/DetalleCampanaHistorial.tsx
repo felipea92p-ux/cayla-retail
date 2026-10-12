@@ -107,7 +107,7 @@ export function DetalleCampanaHistorial({
           <p className="nota-cayla">{medida?.estado === "sin-dato" ? medida.motivo : "Todavía no empieza."} No hay día a día que mostrar en esta tienda.</p>
         ) : (
           <>
-            <dl className="grid gap-3 sm:grid-cols-3">
+            <dl data-guia="plan-historial.resumen" className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-xl bg-hueso px-4 py-3">
                 <dt className="text-xs text-taupe">Vendió</dt>
                 <dd className="font-serif text-xl text-tinta">{solesSinCentimos(medida.soles)}</dd>
@@ -125,7 +125,7 @@ export function DetalleCampanaHistorial({
               </div>
             </dl>
 
-            <section>
+            <section data-guia="plan-historial.dias">
               <h3 className="text-[13px] font-semibold text-tinta">Día a día</h3>
               <p className="text-xs text-tinta/70">
                 {detalle.diaNormal !== null ? `La línea es un día normal: ${solesSinCentimos(detalle.diaNormal)} (el promedio de los 60 días de antes).` : "Sin los 60 días de antes no hay día normal con qué comparar."}
@@ -151,7 +151,7 @@ export function DetalleCampanaHistorial({
           </>
         )}
 
-        <section>
+        <section data-guia="plan-historial.anual">
           <h3 className="text-[13px] font-semibold text-tinta">La misma campaña, año por año</h3>
           {anuales === undefined ? (
             <p className="mt-2 text-sm text-taupe">Buscando los otros años…</p>

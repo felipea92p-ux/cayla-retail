@@ -1,0 +1,206 @@
+{
+  "guia": "productos.atributos",
+  "ruta": "/productos/atributos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 162,
+  "controles": {
+    "components/AtributosHub.tsx": [
+      "Pestanas «{AYUDA[tipo]}»"
+    ],
+    "components/ColoresLista.tsx": [
+      "BotonFiltro «Todos»",
+      "BotonFiltro «{g.texto}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoTexto «{guia.etiqueta(\"codigo\", \"Código (3 letras)\")}»",
+      "CampoSelect «{guia.etiqueta(\"familia\", \"Familia\")}»",
+      "CampoTexto «Notas»",
+      "CampoTexto «{guia.etiqueta(\"pantone\", \"Pantone (TCX)\")}»",
+      "CampoTexto «Sinónimos»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar» #2",
+      "Boton «Confirmar rechazo»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}» #2",
+      "CampoSelect «Familia»",
+      "CampoTexto «Notas» #2",
+      "CampoTexto «{guia.etiqueta(\"pantone\", \"Pantone (TCX)\")}» #2",
+      "CampoTexto «Sinónimos» #2",
+      "button «Cambiar color»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/CombinaConCampo.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "ComboBuscable «)»",
+      "textarea «Descripción del color»"
+    ],
+    "components/ConfirmarConResponsable.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/DetalleMuestraModal.tsx": [
+      "Boton «Subir foto»",
+      "Boton «Generar dibujo»",
+      "Boton «Quitar imagen»",
+      "input «)»",
+      "Boton «Cancelar»",
+      "Boton «→guardar»",
+      "Boton «Reintentar»",
+      "Link «{p.referencia}»"
+    ],
+    "components/EtiquetasLista.tsx": [
+      "Link «(sin nombre)»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «{ESTILOS[g].grupo}»",
+      "BotonFiltro «Vigentes hoy»",
+      "CampoTexto «Comentario (obligatorio)»",
+      "Boton «Cancelar»",
+      "Boton «→() => aprobar(aprobandoEtiqueta)»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar» #2",
+      "Boton «Confirmar rechazo»",
+      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
+      "CampoTexto «Desde»",
+      "CampoTexto «Hasta»",
+      "button «Quitar todas»",
+      "button «{c.nombre}»",
+      "Boton «Cancelar» #3",
+      "Boton «{guia.frase ?? undefined}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la etiqueta\")}»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar» #4",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/GeneradorDibujo.tsx": [
+      "CampoTexto «Describe cómo se ve (opcional)»",
+      "button «{`Propuesta ${i + 1}»",
+      "Boton «Cancelar»",
+      "Boton «Otras variantes»",
+      "Boton «Usar este dibujo»"
+    ],
+    "components/PatronesLista.tsx": [
+      "BotonFiltro «Todos»",
+      "BotonFiltro «{GRUPOS_USO[u].grupo}»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «Confirmar rechazo»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del patrón\")}»",
+      "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/PrendasDeEtiquetaModal.tsx": [
+      "ComboResponsable «setConfirmando(false)»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «Buscar»",
+      "CampoSelect «Categoría»",
+      "Boton «Reintentar»",
+      "button «Marcar visibles»",
+      "button «Soltar visibles»",
+      "Casilla «{`${p.referencia}»",
+      "button «{p.referencia}»",
+      "input «{[v.talla, v.color].filter(Boolean).join(\" · \") || \"Única\"}»",
+      "ComboResponsable «)»",
+      "Boton «Cancelar»",
+      "Boton «{vista ? \"Revisar y aplicar\" : \"Aplicar\"}»",
+      "input «{etiqueta}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/TallasLista.tsx": [
+      "BotonFiltro «Todas»",
+      "BotonFiltro «{TIPOS[g].grupo}»",
+      "CampoTexto «Comentario (obligatorio)»",
+      "Boton «Cancelar»",
+      "Boton «Confirmar aprobación»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar» #2",
+      "Boton «Confirmar rechazo»",
+      "CampoTexto «{guia.etiqueta(\"valor\", \"Valor de la talla\")}»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/TejidosLista.tsx": [
+      "BotonFiltro «Todos»",
+      "BotonFiltro «{GRUPOS_USO[u].grupo}»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «Confirmar rechazo»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del tejido\")}»",
+      "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/TemporadasLista.tsx": [
+      "button «{guia}»",
+      "Volver «→alLista»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «{GRUPOS_TEMPORADA[g].grupo}»",
+      "Boton «Agregar»",
+      "button «{`Cambiar el inicio de ${NOMBRE_ESTACION[e.estacion]}»",
+      "button «Ver»",
+      "CampoTexto «{`${etiqueta}»",
+      "CampoTexto «Hora de Perú»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? revision.error ?? guia.frase ?? undefined}»",
+      "Boton «Cancelar» #2",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «Con prendas ·»",
+      "button «Todas ·»",
+      "Desplegable «) : (»",
+      "button «→alternarTodas»",
+      "Desplegable «Asignar a»",
+      "button «{motivo ?? undefined}»",
+      "button «Desmarcar»",
+      "Desplegable «Ponérsela a la categoría»",
+      "button «{eleccion ? undefined : \"Elige primero la temporada.\"}»",
+      "Link «{p.nombre}»",
+      "input «{`Marcar ${p.nombre}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «setCarta((v) => !v)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «);»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "input «{ejemplo.nombre.texto}»",
+      "Desplegable «Código»",
+      "input «{ejemplo.codigo.texto}»",
+      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/atributos/kit.tsx": [
+      "Boton «vocabulario.agregar»",
+      "Boton «Limpiar filtros»",
+      "button «{abrir.titulo}»",
+      "Boton «Aprobar»",
+      "Boton «Rechazar»",
+      "button «{guia}»",
+      "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «Reactivar»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "Link «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ]
+  }
+}

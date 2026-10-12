@@ -9,6 +9,7 @@ export function PestanasPlan({ activa, planId }: { activa: PestanaDelPlan; /** L
   return (
     <Pestanas
       idIndicador="plan-compra-vistas"
+      guia="plan.vistas"
       etiquetaAccesible="Vistas del Plan de campaña"
       activa={activa}
       items={[

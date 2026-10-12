@@ -1,0 +1,14 @@
+{
+  "guia": "pedidos-no-atendidos",
+  "ruta": "/pedidos-no-atendidos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 2,
+  "controles": {
+    "app/(app)/pedidos-no-atendidos/page.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/PedidosNoAtendidosLista.tsx": [
+      "Boton «pedidos.resolver»"
+    ]
+  }
+}

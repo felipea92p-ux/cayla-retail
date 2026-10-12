@@ -23,13 +23,13 @@ import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPre
 // trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto
 // (capa «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías.
 const PESTANAS = [
-  { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa" },
-  { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
-  { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas" },
-  { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja" },
-  { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
-  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto" },
-  { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos" },
+  { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa", guia: "config.tab-empresa" },
+  { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas", guia: "config.tab-tiendas" },
+  { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas", guia: "config.tab-cuentas" },
+  { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja", guia: "config.tab-caja" },
+  { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos", guia: "config.tab-fijos" },
+  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto", guia: "config.tab-presupuesto" },
+  { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos", guia: "config.tab-impuestos" },
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
@@ -44,7 +44,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         titulo="Configuración"
         bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
       />
-      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
+      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
       {pestana === "tiendas" && <SeccionTiendas esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
       {pestana === "cuentas" && <SeccionCuentas />}

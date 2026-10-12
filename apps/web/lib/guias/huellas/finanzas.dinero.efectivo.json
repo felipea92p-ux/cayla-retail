@@ -1,0 +1,34 @@
+{
+  "guia": "finanzas.dinero.efectivo",
+  "ruta": "/finanzas/dinero/efectivo",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 22,
+  "controles": {
+    "components/finanzas/CuentasDinero.tsx": [
+      "Boton «fin-dinero.registrar»",
+      "button «fin-dinero.poner-plata»",
+      "button «Sacar plata»",
+      "Link «Cambiar en Configuración»",
+      "button «fin-dinero.decir-cuenta»",
+      "ComboResponsable «{actual.cuenta.nombre}»",
+      "button «(sin nombre)»",
+      "button «revisada»",
+      "button «Revisada»",
+      "button «Anular este saldo…»",
+      "button «{guardando ? \"Guardando…\" : \"Anotar\"}»",
+      "button «{fechaCorta(h.fecha, true)}»",
+      "button «Conciliar»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{guardando ? \"Registrando…\" : \"Registrar\"}»",
+      "button «Anular…»",
+      "ComboResponsable «Volver»",
+      "button «Volver»",
+      "button «{guardando ? \"Anulando…\" : accion}»"
+    ],
+    "components/finanzas/PagosSinCuenta.tsx": [
+      "button «{guardando === p.clave ? \"Guardando…\" : \"Guardar\"}»",
+      "ComboResponsable «);»"
+    ]
+  }
+}

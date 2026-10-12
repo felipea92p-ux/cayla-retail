@@ -117,10 +117,12 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
       </p>
 
       <CampoGuiado id="pct" guia={guia} titulo="Cupón de cumpleaños" ayuda="Un canje en su mes, sobre toda la compra">
+        <div data-guia="avisos.beneficios-cumple">
         <Caja id={ID.pct} etiqueta="Porcentaje de descuento del cumpleaños" valor={borrador.pct} onChange={poner("pct")} decimal fin="%" disabled={guardando} />
+        </div>
       </CampoGuiado>
 
-      <fieldset className="space-y-4">
+      <fieldset className="space-y-4" data-guia="avisos.beneficios-anio">
         <legend className="mb-1 text-[13px] font-semibold text-tinta">Un año de club cuenta para el aniversario con…</legend>
         <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
           <CampoGuiado id="compras" guia={guia} titulo="Compras en el año">
@@ -134,11 +136,13 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
       </fieldset>
 
       <CampoGuiado id="dias" guia={guia} titulo="Días para usar el vale" ayuda="Desde su aniversario en el club">
+        <div data-guia="avisos.beneficios-dias">
         <Caja id={ID.dias} etiqueta="Días para usar el vale de aniversario" valor={borrador.dias} onChange={poner("dias")} fin="días" disabled={guardando} />
+        </div>
       </CampoGuiado>
 
       <CampoGuiado id="escala" guia={guia} titulo="Vale de aniversario de cada año" ayuda="En soles, para comprar en toda la tienda">
-        <div className="grid grid-cols-5 gap-2 max-sm:grid-cols-3">
+        <div className="grid grid-cols-5 gap-2 max-sm:grid-cols-3" data-guia="avisos.beneficios-vale">
           {Array.from({ length: ANIOS_ESCALA }, (_, i) => (
             <label key={i} className="block min-w-0">
               <span className="mb-1 block text-[11px] text-taupe">{i === ANIOS_ESCALA - 1 ? `Año ${i + 1} y más` : `Año ${i + 1}`}</span>
@@ -180,7 +184,7 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
       <PieGuia guia={guia} listo={sinCambios ? "Todo en orden. Cambia un valor para guardar." : "Todo listo para guardar."} />
 
       <div className="pie-hoja-fijo">
-        <div className="flex justify-end gap-3 pt-2">
+        <div className="flex justify-end gap-3 pt-2" data-guia="avisos.beneficios-guardar">
           <Boton type="button" onClick={cerrar} disabled={guardando}>
             Cancelar
           </Boton>

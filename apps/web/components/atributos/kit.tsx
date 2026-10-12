@@ -41,6 +41,7 @@ export function BarraAtributos({
   filtros,
   busqueda,
   agregar,
+  guia,
 }: {
   /** El nombre del grupo de píldoras: «Filtrar tallas». */
   etiqueta: string;
@@ -48,17 +49,20 @@ export function BarraAtributos({
   filtros: ReactNode;
   busqueda?: Busqueda;
   agregar?: { texto: string; onClick: () => void };
+  /** Ancla de la guía interactiva para la barra entera (`data-guia`, ADR-0389). Una por pestaña: al cambiar de pestaña, la
+   *  guía tiene que encontrar la barra NUEVA, no la de la pestaña que se está yendo. */
+  guia?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div role="group" aria-label={etiqueta} className="flex flex-wrap items-center gap-1.5">
+    <div data-guia={guia} className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div role="group" aria-label={etiqueta} data-guia="vocabulario.filtros" className="flex flex-wrap items-center gap-1.5">
         {filtros}
       </div>
       {(busqueda || agregar) && (
         <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
           {busqueda && <Buscador {...busqueda} />}
           {agregar && (
-            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0">
+            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0" data-guia="vocabulario.agregar">
               {agregar.texto}
             </Boton>
           )}
@@ -72,6 +76,7 @@ export function BarraAtributos({
 function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda) {
   return (
     <BuscadorUnico
+      guia="vocabulario.buscador"
       valor={valor}
       onCambio={(v) => onValor(v)}
       placeholder={placeholder}
@@ -179,6 +184,7 @@ export function TarjetaAtributo({
   );
   return (
     <div
+      data-guia="vocabulario.tarjeta"
       className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
@@ -216,11 +222,12 @@ export function PieTarjeta({ children }: { children: ReactNode }) {
 }
 
 /** Un enlace del pie. Cada uno en una sola línea: «Configurar campaña» partido en dos se leía como dos acciones. */
-export function AccionTarjeta({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+export function AccionTarjeta({ onClick, children, guia }: { onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      data-guia={guia}
       className="label-cayla whitespace-nowrap text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
     >
       {children}

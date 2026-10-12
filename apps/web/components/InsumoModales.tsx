@@ -83,7 +83,7 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose} ancho="max-w-md">
       <form onSubmit={guardar} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
           <CampoSelect etiqueta="Tipo" valor={tipo} onValor={(v) => cambiarTipo(v)} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
           <CampoSelect
             etiqueta="Se mide en"
@@ -92,11 +92,11 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
             opciones={Object.entries(UNIDADES_INSUMO).map(([k, u]) => ({ valor: k as UnidadInsumo, texto: u.larga }))}
           />
         </div>
-        <div className="grid grid-cols-[7rem_1fr] gap-3">
+        <div data-guia="prod-insumo-nuevo.nombre" className="grid grid-cols-[7rem_1fr] gap-3">
           <CampoTexto etiqueta="Código" mono placeholder="LIN-01" value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={20} />
           <CampoTexto etiqueta="Nombre" placeholder="Lino lavado crudo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div data-guia="prod-insumo-nuevo.minimo" className="grid grid-cols-2 gap-3">
           <CampoTexto
             etiqueta="Mínimo"
             pie={`Avisa cuando quede menos de esto (${UNIDADES_INSUMO[unidad].corta})`}
@@ -107,11 +107,15 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
           />
           <CampoTexto etiqueta="Merma al cortar (%)" pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(e) => setMerma(e.target.value)} />
         </div>
-        <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
-        <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-          {cargando ? "Guardando…" : "Agregar al catálogo"}
-        </Boton>
+        <div data-guia="prod-insumo-nuevo.nota">
+          <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
+        </div>
+        <div data-guia="prod-insumo-nuevo.cierre" className="space-y-4">
+          <ComboResponsable control={responsable} deshabilitado={cargando} />
+          <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+            {cargando ? "Guardando…" : "Agregar al catálogo"}
+          </Boton>
+        </div>
       </form>
     </Modal>
   );

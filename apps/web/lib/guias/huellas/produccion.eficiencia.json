@@ -1,0 +1,13 @@
+{
+  "guia": "produccion.eficiencia",
+  "ruta": "/produccion/eficiencia",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 3,
+  "controles": {
+    "components/EficienciaTallerPanel.tsx": [
+      "Pestanas «Producción»",
+      "button «{p.ventana.etiqueta}»",
+      "Link «el Resumen»"
+    ]
+  }
+}

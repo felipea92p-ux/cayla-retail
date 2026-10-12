@@ -129,10 +129,11 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
   const subtitulo = subtituloDePrendas(v.piezas, v.unidades);
   const meta = [v.hora, nombreCortoSede(v.ubicacion), v.clienta ?? "Cliente varios", v.vendedor && `Vendido por ${v.vendedor}`].filter(Boolean).join(" · ");
   return (
-    <li className="group relative rounded-2xl transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
+    <li data-guia="historial.venta" className="group relative rounded-2xl transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
       <button
         type="button"
         onClick={onAbrir}
+        data-guia="historial.venta-abrir"
         aria-label={`Ver el detalle de la venta de las ${v.hora} en ${v.ubicacion}, ${soles(v.total)}${v.anulada ? ", anulada" : ""}`}
         className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
@@ -166,6 +167,7 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
                 (comprobanteAccionable(v, puedeFacturar) ? (
                   <Link
                     href="/vender/comprobantes/por-reintentar"
+                    data-guia="historial.venta-sunat"
                     title="Resolverlo en Comprobantes ▸ Por enviar"
                     className="relative z-10 rounded-full transition-shadow hover:ring-1 hover:ring-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
                   >

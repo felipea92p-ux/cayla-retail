@@ -107,14 +107,16 @@ export function ApartadosPanel(props: Props) {
           className="max-lg:hidden"
           etiquetaAccesible="Apartados"
           idIndicador="apartados"
+          guia="apartados.pestanas"
           activa={vista}
           onCambio={(c) => irA(c as Vista)}
-          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined }))}
+          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined, guia: `apartados.pestana-${p.id}` }))}
         />
         {props.esLider && (
           <button
             type="button"
             onClick={() => setOpciones(true)}
+            data-guia="apartados.opciones"
             title="Qué funciones usa Apartados en esta tienda"
             aria-label="Opciones"
             className="label-cayla flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[10.5px] text-tinta/80 hover:border-taupe"
@@ -194,7 +196,9 @@ export function ApartadosPanel(props: Props) {
             key={p.id}
             type="button"
             onClick={() => irA(p.id)}
-            aria-current={vista === p.id ? "page" : undefined}
+            // «false» (válido en ARIA) y no ausente: así la guía interactiva reconoce la pestaña también cuando no es la elegida.
+            aria-current={vista === p.id ? "page" : "false"}
+            data-guia={`apartados.pestana-${p.id}`}
             style={{ height: ALTO_PESTANAS_MOVIL }}
             className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
           >

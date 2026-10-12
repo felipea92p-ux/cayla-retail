@@ -154,7 +154,7 @@ export function MatrizUnidades({
   const unidadesElegidas = celdasElegidas.some((c) => c.unidades === null) ? null : celdasElegidas.reduce((t, c) => t + (c.unidades ?? 0), 0);
 
   return (
-    <section ref={caja} className="vr-mx" aria-label="Unidades por color y talla" onPointerMove={brillo} onPointerLeave={apagarBrillo}>
+    <section ref={caja} data-guia="vista-rapida.matriz" className="vr-mx" aria-label="Unidades por color y talla" onPointerMove={brillo} onPointerLeave={apagarBrillo}>
       <div className="vr-mx-cab">
         <div style={{ minWidth: 0 }}>
           <span className="vr-rotulo label-cayla">Unidades por color y talla</span>
@@ -205,7 +205,7 @@ export function MatrizUnidades({
       {/* «Dónde»: la misma matriz contada en todo el local, solo en el piso o solo en el almacén. Cada opción trae su cifra, así que el
           reparto se lee sin tocar nada; el cuadrito es el tono de su parte en la barrita de cada celda. */}
       {reparto && (
-        <div className="vr-donde">
+        <div className="vr-donde" data-guia="vista-rapida.donde">
           <SegmentoDeslizante
             forma="modo"
             etiqueta={`Dónde están las unidades en ${sedeNombre}`}
@@ -241,6 +241,7 @@ export function MatrizUnidades({
 
       <div
         className="vr-grid"
+        data-guia="vista-rapida.tabla"
         role="group"
         aria-label={`Unidades ${donde === "piso" ? "en el piso de" : donde === "almacen" ? "en el almacén de" : "en"} ${sedeNombre}, por color y talla`}
         data-cruz={cruz.fila !== null || cruz.col !== null || undefined}

@@ -42,6 +42,7 @@ export function AjustarInicio({
     <>
       <button
         type="button"
+        aria-haspopup="dialog"
         onClick={() => setAbierto(true)}
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12.5px] text-taupe transition-colors hover:bg-tinta/5"
       >
@@ -61,7 +62,7 @@ export function AjustarInicio({
           ancho="max-w-lg"
         >
           {(cerrar) => (
-            <div className="space-y-5">
+            <div className="space-y-5" data-guia="inicio.ajustar-lista">
               {grupos.map((g) => (
                 <div key={g}>
                   <p className="label-cayla mb-2 text-[11px] text-tinta/65">{g}</p>

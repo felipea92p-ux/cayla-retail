@@ -121,7 +121,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
       <PestanasPlan activa="resultados" planId={r.plan.id} />
 
       {r.tiendas.length > 1 && (
-        <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Tienda" data-guia="plan-resultados.tiendas" className="flex flex-wrap gap-2">
           <button type="button" className="pildora-cayla" aria-pressed={tienda === null} onClick={() => setTienda(null)}>
             Todas
           </button>
@@ -133,7 +133,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-guia="plan-resultados.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <TarjetaCifra etiqueta="Toda CAYLA" valor={enteroES.format(total.unidades)} unidad="prendas">
           {solesES(total.soles)}
           {momento === "en-curso" ? " · hasta ayer" : ""}
@@ -148,7 +148,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
         })}
       </div>
 
-      <Tabla>
+      <Tabla guia="plan-resultados.tabla">
         <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
           {["Categoría", "Vendidas", "Soles", tienda === null ? "Contra el plan" : "Contra el plan (todas las tiendas)", "Lo que sobró"].map((t) => (
             <span key={t} className="text-xs font-normal text-taupe" role="columnheader">
@@ -186,7 +186,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
       </Tabla>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card-cayla p-5">
+        <section data-guia="plan-resultados.prendas" className="card-cayla p-5">
           <h2 className="font-serif text-lg text-tinta">Las prendas que más vendieron</h2>
           {prendas.length === 0 ? (
             <p className="mt-2 text-sm text-taupe">Todavía ninguna.</p>
@@ -205,7 +205,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
             </ol>
           )}
         </section>
-        <section className="card-cayla p-5">
+        <section data-guia="plan-resultados.colores" className="card-cayla p-5">
           <h2 className="font-serif text-lg text-tinta">Por color y por familia</h2>
           {colores.length === 0 ? (
             <p className="mt-2 text-sm text-taupe">Todavía ninguno.</p>
@@ -228,7 +228,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
 
       {/* Lo que deja la campaña para la próxima es un dato, no una definición: queda a la vista (las definiciones van en el «!»). */}
       {conMultiplicador.length > 0 && momento === "terminada" && (
-        <p className="nota-cayla">
+        <p className="nota-cayla" data-guia="plan-resultados.proxima">
           Para la próxima: {conMultiplicador.map((x) => `${x.t.nombre} ${textoMultiplicador(x.m!)}`).join(", ")}
           {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números en vez de × 3.
         </p>
