@@ -62,8 +62,6 @@ export function filtrarCierres(cierres: CierreCaja[], filtro: FiltroCierres): Ci
   return filtro === "todos" ? cierres : cierres.filter((c) => estadoCierre(c.diferencia) === filtro);
 }
 
-export type GrupoMes = { clave: string; etiqueta: string; cierres: CierreCaja[] };
-
 function partes(iso: string) {
   const p = new Intl.DateTimeFormat("es-PE", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "numeric", weekday: "short" }).formatToParts(new Date(iso));
   const de = (t: string) => p.find((x) => x.type === t)?.value ?? "";
@@ -74,23 +72,6 @@ function partes(iso: string) {
 export function bloqueFecha(iso: string): { dia: string; diaSemana: string } {
   const { dia, diaSemana } = partes(iso);
   return { dia, diaSemana };
-}
-
-/** Agrupa por mes de Lima conservando el orden recibido (el más reciente primero). */
-export function agruparPorMes(cierres: CierreCaja[]): GrupoMes[] {
-  const grupos: GrupoMes[] = [];
-  for (const c of cierres) {
-    const { anio, mes } = partes(c.cerradaEn);
-    const clave = `${anio}-${mes}`;
-    let g = grupos.find((x) => x.clave === clave);
-    if (!g) {
-      const nombre = new Intl.DateTimeFormat("es-PE", { timeZone: ZONA, month: "long" }).format(new Date(c.cerradaEn));
-      g = { clave, etiqueta: `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${anio}`, cierres: [] };
-      grupos.push(g);
-    }
-    g.cierres.push(c);
-  }
-  return grupos;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

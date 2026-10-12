@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorDia, agruparPorMes, bloqueFecha, cobrosPorMedio, cuadreDelTurno, diasDelGrafico, duracionTurno, estadoCierre, filtrarCierres, limitesDelMes, mesDeLima, mesesDelSelector, nombreDelMes, topeDelGrafico, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
+import { agruparPorDia, bloqueFecha, cobrosPorMedio, cuadreDelTurno, diasDelGrafico, duracionTurno, estadoCierre, filtrarCierres, limitesDelMes, mesDeLima, mesesDelSelector, nombreDelMes, topeDelGrafico, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
 
 function cierre(p: Partial<CierreCaja>): CierreCaja {
   return {
@@ -98,15 +98,6 @@ describe("historial de cierres", () => {
     expect(filtrarCierres(lista, "sobro").map((c) => c.id)).toEqual(["c"]);
     // menos de un céntimo es «cuadró»: no entra en ninguno de los dos
     expect(filtrarCierres([cierre({ diferencia: -0.004 })], "falto")).toEqual([]);
-  });
-
-  it("agruparPorMes usa la hora de Lima (la noche del 30 no salta de mes) y conserva el orden", () => {
-    const g = agruparPorMes([
-      cierre({ id: "a", cerradaEn: "2026-10-01T03:00:00Z" }), // 30/09 22:00 en Lima
-      cierre({ id: "b", cerradaEn: "2026-10-03T15:00:00Z" }),
-    ]);
-    expect(g.map((x) => x.etiqueta)).toEqual(["Setiembre 2026", "Octubre 2026"]);
-    expect(g[0].cierres[0].id).toBe("a");
   });
 
   it("bloqueFecha da el día de Lima", () => {
