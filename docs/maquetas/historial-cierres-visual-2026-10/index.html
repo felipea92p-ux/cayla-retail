@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Detalle de cierre — tres propuestas visuales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* Maqueta 2026-10-12 — tokens copiados de apps/web/app/globals.css (ADR-0169). Solo para mirar: no es código del ERP.
+   REAL: el cierre del vie 9 (veredicto, apertura, esperado, contado, traslados, fondo, quién abrió y cerró, horas de apertura y cierre).
+   EJEMPLO INVENTADO: ventas por hora, montos por medio de pago, ventas por persona, nº de ventas y prendas, y los movimientos. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--verde:#48603f;--verde-profundo:#44583a;--ambar:#74501a;--pizarra:#4c5d6e;
+  --m-efectivo:#d19a12;--m-tarjeta:#525a64;--m-yape:#6d3fa3;--m-transf:#2f6aa3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#d9d2c5;font-family:"DM Sans",system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;font-size:14px}
+.num{font-variant-numeric:tabular-nums}
+.lam{width:1160px;padding:44px 40px 36px;position:relative}
+.rotulo{position:absolute;top:14px;left:40px;font:600 11px/1 "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:#4a443d}
+.marco{border-radius:14px;padding:26px 0;background:#8f897d;display:flex;justify-content:center}
+.hoja{width:1000px;background:var(--crema);border:1px solid var(--sand);border-radius:18px;box-shadow:0 20px 50px rgba(26,26,24,.35);padding:26px 28px 26px;position:relative}
+.hoja h2{font-family:"EB Garamond";font-weight:500;font-size:22px;margin:0;line-height:1.2}
+.hoja .sub{font-size:13px;color:rgba(26,26,24,.7);margin:3px 0 16px}
+.x{position:absolute;right:18px;top:18px;width:28px;height:28px;display:grid;place-items:center;color:rgba(26,26,24,.55)}
+.x svg{width:16px;height:16px}
+.migas{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.volver{width:34px;height:34px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--tinta)}
+.volver svg{width:16px;height:16px}
+.migas .t{font:600 11px "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.lab{font:600 10.5px "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:16px 18px}
+.card .cab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.card .cab .r{font-size:12px;color:rgba(26,26,24,.6)}
+.serif{font-family:"EB Garamond"}
+.muted{color:rgba(26,26,24,.6)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-amb{background:color-mix(in srgb,#a8741f 16%,transparent);color:var(--ambar)}
+.c-roj{background:color-mix(in srgb,var(--rojo) 12%,transparent);color:var(--rojo-profundo)}
+.c-ver{background:color-mix(in srgb,var(--verde) 12%,transparent);color:var(--verde-profundo)}
+.pild{display:inline-flex;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe)}
+.pild.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.vered{background:var(--tinta);color:var(--crema);border-radius:18px;padding:18px 22px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.leyenda{font-size:12px;color:#4a443d;margin:10px 2px 0;line-height:1.5}
+.ejemplo{display:inline-block;background:#f6ead3;border:1px solid #e9cf9f;color:#6e4a12;border-radius:6px;padding:1px 7px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 4px;vertical-align:middle}
+.av{width:30px;height:30px;border-radius:50%;background:var(--hueso);display:inline-grid;place-items:center;font:700 11px "DM Sans";color:var(--taupe);flex:none}
+.eq{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:7px 0}
+.eq .barra{height:8px;border-radius:99px;background:var(--sand);overflow:hidden;margin-top:5px}
+.eq .barra i{display:block;height:100%;border-radius:99px}
+.hilo{position:relative;padding-left:26px}
+.hilo:before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--sand)}
+.mv{position:relative;display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:8px 0;font-size:13.5px}
+.mv .p{position:absolute;left:-23px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;border:2px solid var(--crema);box-sizing:content-box}
+.mv .h{font-size:12px;color:rgba(26,26,24,.6)}
+.mv small{display:block;font-size:12px;color:rgba(26,26,24,.55)}
+.mas{color:var(--verde-profundo)}.menos{color:var(--rojo-profundo)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+.fila{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;font-size:13.5px}
+.tile{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px 18px;position:relative}
+.kpi .v{font:500 30px/1 "EB Garamond";margin-top:8px}
+.kpi .s{font-size:12px;color:rgba(26,26,24,.6);margin-top:4px}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+svg text{font-family:"DM Sans"}
+</style>
+</head>
+<body>
+<script>
+const I={
+ x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+ atras:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>'
+};
+const m2=n=>'S/ '+n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const MEDIOS=[['Efectivo',712.10,'var(--m-efectivo)',11],['Tarjeta',845.50,'var(--m-tarjeta)',9],['Yape / Plin',606.00,'var(--m-yape)',9],['Transferencia',230.00,'var(--m-transf)',2]];
+const TOTAL=2393.60;
+const HORAS=[320,187,317,80,282,435,138,96,210,148,112,68]; // 8 a. m. … 7 p. m. (EJEMPLO)
+const MOVS=[
+ ['08:59','up','Venta · 7 prendas','efectivo · Janis Revilla','+S/ 251.30','mas'],
+ ['09:03','up','Venta · 1 prenda','efectivo · Janis Revilla','+S/ 69.00','mas'],
+ ['09:41','down','Retiro de efectivo','Baño Angie · Melany Enrriquez','−S/ 0.80','menos'],
+ ['09:59','up','Venta · 1 prenda','yape · Janis Revilla','+S/ 45.90','mas'],
+ ['10:12','up','Venta · 3 prendas','tarjeta · Melany Enrriquez','+S/ 189.00','mas'],
+ ['11:05','down','Devolución','reembolso efectivo · Janis Revilla','−S/ 20.90','menos'],
+ ['12:02','sw','Cambio','diferencia efectivo · Janis Revilla','+S/ 12.00','mas'],
+];
+const colMov=t=>t==='up'?'var(--verde)':t==='down'?'var(--rojo)':'var(--pizarra)';
+function movs(n,hilo){return `<div class="${hilo?'hilo':''}">`+MOVS.slice(0,n).map(m=>`<div class="mv">${hilo?`<span class="p" style="background:${colMov(m[1])}"></span>`:''}<span class="h">${m[0]} a. m.</span><span>${m[2]}<small>${m[3]}</small></span><span class="num ${m[5]}">${m[4]}</span></div>`).join('')+'</div>';}
+function cab(){return `<span class="x">${I.x}</span><div class="migas"><span class="volver">${I.atras}</span><span class="t">Historial de cierres</span></div><h2>Cierre · Tienda TRU</h2><div class="sub">viernes, 9 de octubre · 08:02 a. m. – 07:50 p. m. · abrió Melany Enrriquez, cerró Janis Revilla</div>`;}
+
+/* ---- gráficos ---- */
+function donut(size,r,sw,centro,sub){
+  const C=2*Math.PI*r;let acc=0;const cx=size/2;
+  const arcs=MEDIOS.map(m=>{const f=m[1]/TOTAL;const gap=3;const len=Math.max(0,f*C-gap);const s=`<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${m[2]}" stroke-width="${sw}" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-acc}" transform="rotate(-90 ${cx} ${cx})" stroke-linecap="butt"/>`;acc+=f*C;return s;}).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--sand)" stroke-width="${sw}"/>${arcs}<text x="${cx}" y="${cx-2}" text-anchor="middle" font-family="EB Garamond" font-size="${size/6.2}" fill="var(--tinta)">${centro}</text><text x="${cx}" y="${cx+size/9}" text-anchor="middle" font-size="${size/14}" fill="rgba(26,26,24,.6)">${sub}</text></svg>`;
+}
+function leyendaMedios(){return MEDIOS.map(m=>`<div class="fila"><span><span class="dot" style="background:${m[2]}"></span>${m[0]} <span class="muted">· ${m[3]} ventas</span></span><span class="num">${m2(m[1])} <span class="muted" style="margin-left:6px">${Math.round(m[1]/TOTAL*100)} %</span></span></div>`).join('');}
+function reloj(size){ // dial de 24 h con el turno 08:02 → 19:50
+  const cx=size/2,r=size/2-30;const pol=(h,rr)=>{const a=(h/24)*2*Math.PI-Math.PI/2;return [cx+rr*Math.cos(a),cy(rr,a)]};const cy=(rr,a)=>cx+rr*Math.sin(a);
+  const a0=8+2/60,a1=19+50/60;const p0=pol(a0,r),p1=pol(a1,r);const large=(a1-a0)/24>0.5?1:0;
+  const ticks=[0,6,12,18].map(h=>{const [x,y]=pol(h,r+20);return `<text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="10" fill="rgba(26,26,24,.5)">${h===0?'12 a. m.':h===12?'12 p. m.':h===6?'6 a. m.':'6 p. m.'}</text>`}).join('');
+  const marks=[8+2/60,19+50/60].map(h=>{const [x,y]=pol(h,r);return `<circle cx="${x}" cy="${y}" r="5.5" fill="var(--papel)" stroke="var(--tinta)" stroke-width="2.5"/>`}).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--sand)" stroke-width="10"/><path d="M${p0[0]} ${p0[1]} A${r} ${r} 0 ${large} 1 ${p1[0]} ${p1[1]}" fill="none" stroke="var(--tinta)" stroke-width="10" stroke-linecap="round"/>${ticks}${marks}<text x="${cx}" y="${cx+2}" text-anchor="middle" font-family="EB Garamond" font-size="${size/6}" fill="var(--tinta)">11 h 48</text><text x="${cx}" y="${cx+size/10+2}" text-anchor="middle" font-size="11" fill="rgba(26,26,24,.6)">de turno</text></svg>`;
+}
+function medidor(w){ // semicírculo −S/ 20 … +S/ 20 con la aguja en +2
+  const cx=w/2,cy=w/2*0.95,r=w/2-18;const ang=v=>Math.PI*(1-(v+20)/40);const pt=(v,rr)=>[cx+rr*Math.cos(ang(v)),cy-rr*Math.sin(ang(v))];
+  const arc=(a,b,col)=>{const p=pt(a,r),q=pt(b,r);return `<path d="M${p[0]} ${p[1]} A${r} ${r} 0 0 1 ${q[0]} ${q[1]}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="butt"/>`};
+  const n=pt(2,r-24),t=pt(2,r+11);
+  return `<svg width="${w}" height="${cy+26}" viewBox="0 0 ${w} ${cy+26}">${arc(-20,-0.01,'color-mix(in srgb,#b8412d 55%,transparent)')}${arc(-0.01,0.01,'#48603f')}${arc(0.01,20,'color-mix(in srgb,#a8741f 60%,transparent)')}<line x1="${cx}" y1="${cy}" x2="${n[0]}" y2="${n[1]}" stroke="#f5f0e8" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="6" fill="#f5f0e8"/><circle cx="${t[0]}" cy="${t[1]}" r="4" fill="#f5f0e8"/><text x="${cx-r}" y="${cy+20}" text-anchor="middle" font-size="10.5" fill="rgba(245,240,232,.65)">−S/ 20</text><text x="${cx}" y="${cy+20}" text-anchor="middle" font-size="10.5" fill="rgba(245,240,232,.65)">cuadra</text><text x="${cx+r}" y="${cy+20}" text-anchor="middle" font-size="10.5" fill="rgba(245,240,232,.65)">+S/ 20</text></svg>`;
+}
+function porHora(w,h,alto){ // barras por hora + carril de eventos
+  const x0=44,x1=w-16,bw=(x1-x0)/12;const base=h-26,max=Math.max(...HORAS);const X=t=>x0+(t-8)/12*(x1-x0);
+  const bars=HORAS.map((v,i)=>{const bh=v/max*alto;const pico=v===max;return `<rect x="${x0+i*bw+6}" y="${base-bh}" width="${bw-12}" height="${bh}" rx="5" fill="${pico?'var(--tinta)':'color-mix(in srgb,var(--taupe) 34%,var(--sand))'}"/>`+(pico?`<text x="${x0+i*bw+bw/2}" y="${base-bh-7}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--tinta)">${m2(v)}</text>`:'');}).join('');
+  const lbl=[8,10,12,14,16,18].map(t=>`<text x="${X(t)}" y="${h-8}" font-size="11" fill="rgba(26,26,24,.55)">${t<12?t+' a. m.':t===12?'12 p. m.':(t-12)+' p. m.'}</text>`).join('');
+  const ev=[[9+41/60,'var(--rojo)','Retiro'],[11+5/60,'var(--rojo)','Devolución'],[12+2/60,'var(--pizarra)','Cambio']].map(e=>`<circle cx="${X(e[0])}" cy="14" r="6" fill="${e[1]}" stroke="var(--papel)" stroke-width="2.5"/>`).join('');
+  const flag=(t,txt)=>`<path d="M${X(t)} 6v22" stroke="var(--tinta)" stroke-width="2"/><path d="M${X(t)} 6h9l-3 4 3 4h-9z" fill="var(--tinta)"/>`;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><line x1="${x0}" x2="${x1}" y1="${base+0.5}" y2="${base+0.5}" stroke="var(--sand)"/><line x1="${x0}" x2="${x1}" y1="14" y2="14" stroke="var(--sand)" stroke-dasharray="3 4"/>${bars}${ev}${flag(8+2/60)}${flag(19+50/60)}${lbl}</svg>`;
+}
+const eq=(ini,nom,ventas,monto,pct,col)=>`<div class="eq"><span class="av">${ini}</span><div><div style="font-weight:600;font-size:13.5px">${nom} <span class="muted" style="font-weight:400">· ${ventas} ventas</span></div><div class="barra"><i style="width:${pct}%;background:${col}"></i></div></div><span class="num" style="font-weight:600">${monto}</span></div>`;
+</script>
+
+<!-- ===================== A · LA LÍNEA DEL DÍA ===================== -->
+<section class="lam" id="a"><div class="rotulo">Propuesta A · «La línea del día» — el cierre contado como una historia: cómo cuadró, cómo fue el día y a dónde fue la plata</div>
+<div class="marco"><div class="hoja" id="A"></div></div></section>
+
+<!-- ===================== B · EL RECORRIDO DE LA PLATA ===================== -->
+<section class="lam" id="b"><div class="rotulo">Propuesta B · «El recorrido de la plata» — un diagrama de flujo del efectivo: de dónde salió, cuánto debía haber, cuánto había y a dónde fue</div>
+<div class="marco"><div class="hoja" id="B"></div></div></section>
+
+<!-- ===================== C · TABLERO DEL TURNO ===================== -->
+<section class="lam" id="c"><div class="rotulo">Propuesta C · «Tablero del turno» — tarjetas con su gráfico: medidor, reloj del turno, medios de pago, ventas por hora y equipo</div>
+<div class="marco"><div class="hoja" id="C"></div></div></section>
+
+<script>
+const $=id=>document.getElementById(id);
+const NOTA=`<div class="leyenda"><b>Real:</b> veredicto, apertura, esperado, contado, traslados, fondo y quién abrió/cerró del cierre del vie 9. <b>Ejemplo inventado</b><span class="ejemplo">ejemplo</span>ventas por hora, montos por medio de pago, ventas por persona, nº de ventas y los movimientos.</div>`;
+
+/* ---------------- A ---------------- */
+const barraEsc=`<div style="position:relative;height:34px;margin-top:14px"><div style="position:absolute;left:0;right:0;top:13px;height:8px;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,#b8412d 55%,transparent) 0 49.5%,#48603f 49.5% 50.5%,color-mix(in srgb,#a8741f 60%,transparent) 50.5% 100%)"></div><div style="position:absolute;left:55%;top:5px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--crema);border:4px solid var(--tinta);box-sizing:border-box;top:6px"></div><div style="position:absolute;left:0;top:24px;font-size:11px;color:rgba(245,240,232,.6)">falta S/ 20</div><div style="position:absolute;left:50%;transform:translateX(-50%);top:24px;font-size:11px;color:rgba(245,240,232,.6)">cuadra</div><div style="position:absolute;right:0;top:24px;font-size:11px;color:rgba(245,240,232,.6)">sobra S/ 20</div></div>`;
+$('A').innerHTML=cab()+`
+<div class="vered" style="display:grid;grid-template-columns:1fr 280px;gap:30px;align-items:center">
+  <div><div class="serif" style="font-size:34px;line-height:1.05">Sobró S/ 2.00</div><div style="font-size:13px;color:rgba(245,240,232,.7);margin-top:6px">El sistema esperaba S/ 967.60 y se contó S/ 969.60.</div>${barraEsc}</div>
+  <div style="text-align:right"><div class="serif num" style="font-size:44px;line-height:1">S/ 969.60</div><div class="lab" style="color:rgba(245,240,232,.7);margin-top:6px">Contado</div></div>
+</div>
+<div class="card" style="margin-top:14px"><div class="cab"><span class="lab">Cómo fue el día</span><span class="r">ventas por hora · ● retiro y devolución · ● cambio · ⚑ abre y cierra</span></div>${porHora(910,150,78)}
+  <div style="display:flex;gap:26px;margin-top:6px;font-size:13px"><span><b>27</b> <span class="muted">ventas</span></span><span><b>61</b> <span class="muted">prendas</span></span><span><b>S/ 88.65</b> <span class="muted">por venta</span></span><span><b>1</b> <span class="muted">anulada</span></span><span style="margin-left:auto" class="muted">Hora fuerte: 1 – 2 p. m.</span></div></div>
+<div class="g3" style="margin-top:12px">
+  <div class="card"><div class="cab"><span class="lab">Qué se cobró</span><span class="r">${m2(TOTAL)}</span></div><div style="display:flex;justify-content:center">${donut(150,56,16,'S/ 2,394','vendido')}</div><div style="margin-top:8px">${leyendaMedios()}</div></div>
+  <div class="card"><div class="cab"><span class="lab">Cómo cuadró el efectivo</span></div>
+    <svg width="100%" viewBox="0 0 300 190"><g font-size="10.5" fill="rgba(26,26,24,.6)">
+      <rect x="10" y="${150-277.2/1000*130}" width="40" height="${277.2/1000*130}" rx="4" fill="var(--taupe)"/><text x="30" y="${150-277.2/1000*130-6}" text-anchor="middle" fill="var(--tinta)" font-weight="600">277</text><text x="30" y="166" text-anchor="middle">Apertura</text>
+      <rect x="68" y="${150-989.3/1000*130}" width="40" height="${712.1/1000*130}" rx="4" fill="var(--m-efectivo)"/><text x="88" y="${150-989.3/1000*130-6}" text-anchor="middle" fill="var(--tinta)" font-weight="600">+712</text><text x="88" y="166" text-anchor="middle">Efectivo</text><text x="88" y="178" text-anchor="middle">vendido</text>
+      <rect x="126" y="${150-989.3/1000*130}" width="40" height="${21.7/1000*130+3}" rx="3" fill="var(--rojo)"/><text x="146" y="${150-989.3/1000*130-6}" text-anchor="middle" fill="var(--rojo-profundo)" font-weight="600">−22</text><text x="146" y="166" text-anchor="middle">Retiros y</text><text x="146" y="178" text-anchor="middle">devoluc.</text>
+      <rect x="184" y="${150-967.6/1000*130}" width="40" height="${967.6/1000*130}" rx="4" fill="var(--tinta)"/><text x="204" y="${150-967.6/1000*130-6}" text-anchor="middle" fill="var(--tinta)" font-weight="600">967.60</text><text x="204" y="166" text-anchor="middle">Esperado</text>
+      <rect x="242" y="${150-969.6/1000*130}" width="40" height="${969.6/1000*130}" rx="4" fill="var(--ambar)"/><text x="262" y="${150-969.6/1000*130-6}" text-anchor="middle" fill="var(--ambar)" font-weight="600">969.60</text><text x="262" y="166" text-anchor="middle">Contado</text>
+    </g><line x1="6" x2="294" y1="150.5" y2="150.5" stroke="var(--sand)"/></svg>
+    <div class="fila" style="border-top:1px solid var(--sand);margin-top:4px"><span>Diferencia</span><span class="chip c-amb">Sobró S/ 2.00</span></div></div>
+  <div class="card"><div class="cab"><span class="lab">A dónde fue el efectivo</span><span class="r">de S/ 969.60</span></div>
+    <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;gap:2px;background:var(--sand);margin:6px 0 12px"><i style="width:72.2%;background:var(--rojo)"></i><i style="width:27.8%;background:var(--verde)"></i></div>
+    <div class="fila"><span><span class="dot" style="background:var(--rojo)"></span>Caja fuerte de la sede</span><span class="num">S/ 700.00</span></div>
+    <div class="fila" style="font-weight:600"><span><span class="dot" style="background:var(--verde)"></span>Quedó en el cajón</span><span class="num">S/ 269.60</span></div>
+    <div style="margin-top:10px"><div class="muted" style="font-size:12px;margin-bottom:5px">Fondo que pedía el día: S/ 300.00</div><div style="position:relative;height:10px;border-radius:99px;background:var(--sand)"><i style="position:absolute;left:0;top:0;bottom:0;width:89.9%;background:var(--verde);border-radius:99px"></i><span style="position:absolute;left:100%;top:-4px;bottom:-4px;width:2px;background:var(--tinta)"></span></div><div style="font-size:12px;color:var(--ambar);margin-top:6px;font-weight:600">Dejó S/ 30.40 menos del fondo</div></div></div>
+</div>
+<div class="card" style="margin-top:12px"><div class="cab"><span class="lab">Lo que pasó en el turno</span><span class="r">36 movimientos</span></div><div style="display:flex;gap:6px;margin-bottom:8px"><span class="pild on">Todo</span><span class="pild">Ventas</span><span class="pild">Mueve el cajón</span></div>${movs(5,true)}</div>`;
+
+/* ---------------- B ---------------- */
+function flow(x1,y1,x2,y2,h,col,op){const m=(x1+x2)/2;return `<path d="M${x1} ${y1} C${m} ${y1} ${m} ${y2} ${x2} ${y2} L${x2} ${y2+h} C${m} ${y2+h} ${m} ${y1+h} ${x1} ${y1+h} Z" fill="${col}" opacity="${op}"/>`}
+const s=215.2/967.6;const hA=277.2*s,hV=712.1*s,hE=967.6*s,hS=Math.max(5,21.7*s),hC=969.6*s,hF=700*s,hQ=269.6*s;
+const lbl=(x,y,t,sub,anchor)=>`<text x="${x}" y="${y}" text-anchor="${anchor||'start'}" font-size="13" font-weight="600" fill="var(--tinta)" stroke="var(--papel)" stroke-width="5" paint-order="stroke">${t}</text>`+(sub?`<text x="${x}" y="${y+16}" text-anchor="${anchor||'start'}" font-size="12.5" fill="rgba(26,26,24,.7)" stroke="var(--papel)" stroke-width="5" paint-order="stroke">${sub}</text>`:'');
+const sank=`<svg width="100%" viewBox="0 0 930 300">
+ ${flow(14,30,300,30,hA,'var(--taupe)',.32)}${flow(14,105.6,300,30+hA,153.5,'var(--m-efectivo)',.42)}${flow(14,105.6+153.5,300,257,hS,'var(--rojo)',.4)}
+ ${flow(314,30,600,30,hE,'var(--tinta)',.18)}${flow(614,30,880,30,hF,'var(--rojo)',.34)}${flow(614,30+hF,880,199.7,hQ+ (hC-hF-hQ),'var(--verde)',.4)}
+ <rect x="0" y="30" width="14" height="${hA}" rx="3" fill="var(--taupe)"/><rect x="0" y="105.6" width="14" height="${hV}" rx="3" fill="var(--m-efectivo)"/>
+ <rect x="300" y="30" width="14" height="${hE}" rx="3" fill="var(--tinta)"/><rect x="300" y="257" width="14" height="${hS}" rx="3" fill="var(--rojo)"/>
+ <rect x="600" y="30" width="14" height="${hC}" rx="3" fill="var(--ambar)"/>
+ <rect x="880" y="30" width="14" height="${hF}" rx="3" fill="var(--rojo)"/><rect x="880" y="199.7" width="14" height="${hQ}" rx="3" fill="var(--verde)"/>
+ ${lbl(26,66,'Apertura','S/ 277.20')}${lbl(26,176,'Ventas en efectivo','S/ 712.10')}
+ ${lbl(326,84,'Esperado en el cajón','S/ 967.60')}${lbl(326,262,'Salió: retiros y devoluciones','S/ 21.70')}
+ ${lbl(626,84,'Contado','S/ 969.60')}
+ <g transform="translate(430,8)"><rect width="150" height="22" rx="11" fill="color-mix(in srgb,#a8741f 18%,var(--papel))" stroke="var(--ambar)" stroke-width="1"/><text x="75" y="15" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ambar)">+ S/ 2.00 sobró</text></g>
+ <text x="874" y="${30+hF/2-8}" text-anchor="end" font-size="13" font-weight="600" fill="var(--tinta)" stroke="var(--papel)" stroke-width="5" paint-order="stroke">Caja fuerte de la sede</text><text x="874" y="${30+hF/2+9}" text-anchor="end" font-size="12.5" fill="rgba(26,26,24,.7)" stroke="var(--papel)" stroke-width="5" paint-order="stroke">S/ 700.00</text>
+ <text x="874" y="${199.7+hQ/2-8}" text-anchor="end" font-size="13" font-weight="600" fill="var(--tinta)" stroke="var(--papel)" stroke-width="5" paint-order="stroke">Quedó en el cajón</text><text x="874" y="${199.7+hQ/2+9}" text-anchor="end" font-size="12.5" fill="rgba(26,26,24,.7)" stroke="var(--papel)" stroke-width="5" paint-order="stroke">S/ 269.60</text>
+ <line x1="868" x2="900" y1="${199.7+hQ-300*s}" y2="${199.7+hQ-300*s}" stroke="var(--tinta)" stroke-width="2" stroke-dasharray="4 3"/><text x="906" y="${199.7+hQ-300*s+4}" font-size="11" fill="var(--tinta)" font-weight="600" text-anchor="start" style="display:none">fondo</text>
+ </svg>`;
+$('B').innerHTML=cab()+`
+<div style="display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;background:var(--tinta);color:var(--crema);border-radius:18px;padding:16px 22px">
+  <span class="serif" style="font-size:32px">Sobró S/ 2.00</span><span style="font-size:13px;color:rgba(245,240,232,.7)">El sistema esperaba S/ 967.60 y se contó S/ 969.60.</span>
+  <span style="text-align:right"><span class="serif num" style="font-size:36px;line-height:1">S/ 969.60</span><br><span class="lab" style="color:rgba(245,240,232,.7);font-size:10px">Contado</span></span></div>
+<div class="card" style="margin-top:14px;padding:18px 20px 12px"><div class="cab"><span class="lab">El recorrido del efectivo</span><span class="r">el grosor de cada cinta es proporcional al monto</span></div>${sank}
+  <div style="display:flex;justify-content:flex-end;font-size:12px;color:rgba(26,26,24,.7);margin-top:-4px"><span style="border-top:2px dashed var(--tinta);width:22px;display:inline-block;margin:7px 8px 0 0"></span>Fondo que pedía el día: S/ 300.00 — <b style="color:var(--ambar);margin-left:4px">dejó S/ 30.40 menos</b></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+  <div class="card"><div class="cab"><span class="lab">Lo que NO pasó por el cajón</span><span class="r">S/ 1,681.50</span></div>
+    <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;gap:2px;background:var(--sand);margin:4px 0 10px">${MEDIOS.slice(1).map(m=>`<i style="width:${m[1]/1681.5*100}%;background:${m[2]}"></i>`).join('')}</div>
+    ${MEDIOS.slice(1).map(m=>`<div class="fila"><span><span class="dot" style="background:${m[2]}"></span>${m[0]} <span class="muted">· ${m[3]} ventas</span></span><span class="num">${m2(m[1])}</span></div>`).join('')}
+    <div style="font-size:12px;color:rgba(26,26,24,.6);margin-top:6px;background:var(--hueso);border-radius:10px;padding:8px 12px">Va al banco, a la billetera o al POS. Total vendido del día: <b>${m2(TOTAL)}</b>.</div></div>
+  <div class="card"><div class="cab"><span class="lab">Cómo abrió y cerró</span><span class="r">11 h 48 min</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div class="muted" style="font-size:12px">Abrió · 08:02 a. m.</div><div style="font-weight:600;margin-top:2px">Melany Enrriquez</div></div><div style="text-align:right"><div class="muted" style="font-size:12px">Cerró · 07:50 p. m.</div><div style="font-weight:600;margin-top:2px">Janis Revilla</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:12px 0 10px"><span style="width:12px;height:12px;border-radius:50%;border:3px solid var(--tinta);box-sizing:border-box"></span><span style="flex:1;height:3px;border-radius:2px;background:var(--tinta)"></span><span style="width:12px;height:12px;border-radius:50%;background:var(--tinta)"></span></div>
+    <div style="border-left:3px solid var(--ambar);background:var(--crema);border-radius:10px;padding:9px 12px;font-size:13px">Abrió con S/ 277.20 y el cierre anterior había dejado S/ 977.20: «Especificaron mal el monto».</div></div>
+</div>
+<div class="card" style="margin-top:12px"><div class="cab"><span class="lab">Lo que pasó en el turno</span><span class="r">36 movimientos</span></div><div style="display:flex;gap:6px;margin-bottom:8px"><span class="pild on">Todo</span><span class="pild">Ventas</span><span class="pild">Mueve el cajón</span></div>${movs(4,true)}</div>`;
+
+/* ---------------- C ---------------- */
+$('C').innerHTML=cab()+`
+<div class="bento">
+  <div class="tile" style="grid-column:span 5;background:var(--tinta);color:var(--crema);border-color:var(--tinta);display:flex;flex-direction:column;align-items:center;padding-bottom:12px">
+    <div class="lab" style="color:rgba(245,240,232,.7);align-self:flex-start">¿Cuadró?</div>${medidor(330)}
+    <div class="serif" style="font-size:34px;line-height:1;margin-top:-6px">Sobró S/ 2.00</div>
+    <div style="font-size:12.5px;color:rgba(245,240,232,.7);margin-top:6px;text-align:center">Se esperaban S/ 967.60 y se contaron <b style="color:var(--crema)">S/ 969.60</b></div></div>
+  <div class="tile" style="grid-column:span 3;display:flex;flex-direction:column;align-items:center"><div class="lab" style="align-self:flex-start">El turno</div><div style="margin:6px 0 4px">${reloj(196)}</div>
+    <div style="font-size:12.5px;text-align:center"><span class="muted">Abrió</span> <b>Melany E.</b> · 08:02<br><span class="muted">Cerró</span> <b>Janis R.</b> · 19:50</div></div>
+  <div class="tile" style="grid-column:span 4"><div class="lab">Qué se cobró</div><div style="display:flex;align-items:center;gap:14px;margin-top:8px">${donut(120,44,13,'2,394','soles')}<div style="flex:1;font-size:12.5px">${MEDIOS.map(m=>`<div class="fila" style="padding:3px 0"><span><span class="dot" style="background:${m[2]};width:8px;height:8px"></span>${m[0].replace(' / Plin','')}</span><span class="num">${Math.round(m[1]/TOTAL*100)} %</span></div>`).join('')}</div></div>
+    <div class="muted" style="font-size:12px;margin-top:8px;border-top:1px solid var(--sand);padding-top:8px">Solo el efectivo (${m2(712.10)}) pasó por el cajón</div></div>
+
+  <div class="tile kpi" style="grid-column:span 3"><div class="lab">Ventas</div><div class="v">27</div><div class="s">1 anulada</div></div>
+  <div class="tile kpi" style="grid-column:span 3"><div class="lab">Prendas vendidas</div><div class="v">61</div><div class="s">2.3 por venta</div></div>
+  <div class="tile kpi" style="grid-column:span 3"><div class="lab">Venta promedio</div><div class="v">S/ 88.65</div><div class="s">de ${m2(TOTAL)}</div></div>
+  <div class="tile kpi" style="grid-column:span 3"><div class="lab">Mueve el cajón</div><div class="v" style="color:var(--rojo-profundo)">− S/ 21.70</div><div class="s">1 retiro · 1 devolución</div></div>
+
+  <div class="tile" style="grid-column:span 7"><div class="cab" style="display:flex;justify-content:space-between"><span class="lab">Ventas por hora</span><span class="muted" style="font-size:12px">hora fuerte: 1 – 2 p. m.</span></div>${porHora(500,150,78)}</div>
+  <div class="tile" style="grid-column:span 5"><div class="lab">Quién vendió</div><div style="margin-top:6px">${eq('JR','Janis Revilla',17,'S/ 1,540.00',100,'var(--tinta)')}${eq('ME','Melany Enrriquez',10,'S/ 853.60',55,'var(--taupe)')}</div>
+    <div class="muted" style="font-size:12px;border-top:1px solid var(--sand);margin-top:8px;padding-top:8px">Ventas registradas por cada persona en esta caja</div></div>
+
+  <div class="tile" style="grid-column:span 5"><div class="lab">El efectivo, paso a paso</div>
+    <div style="margin-top:10px">${[['Apertura','277.20',27.7,'var(--taupe)'],['Esperado','967.60',96.8,'var(--tinta)'],['Contado','969.60',97,'var(--ambar)']].map(r=>`<div style="margin-bottom:11px"><div class="fila" style="padding:0 0 4px"><span>${r[0]}</span><span class="num" style="font-weight:600">S/ ${r[1]}</span></div><div style="height:10px;border-radius:99px;background:var(--sand)"><i style="display:block;height:100%;width:${r[2]}%;background:${r[3]};border-radius:99px"></i></div></div>`).join('')}</div>
+    <div class="lab" style="margin-top:14px">A dónde fue</div>
+    <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;gap:2px;background:var(--sand);margin:8px 0 8px"><i style="width:72.2%;background:var(--rojo)"></i><i style="width:27.8%;background:var(--verde)"></i></div>
+    <div class="fila" style="padding:2px 0;font-size:13px"><span><span class="dot" style="background:var(--rojo)"></span>Caja fuerte</span><span class="num">S/ 700.00</span></div>
+    <div class="fila" style="padding:2px 0;font-size:13px;font-weight:600"><span><span class="dot" style="background:var(--verde)"></span>Quedó en el cajón</span><span class="num">S/ 269.60</span></div>
+    <div style="border-left:3px solid var(--ambar);background:var(--crema);border-radius:10px;padding:8px 12px;font-size:12.5px;margin-top:8px">Dejó menos del fondo: el día pedía S/ 300.00</div></div>
+  <div class="tile" style="grid-column:span 7"><div class="cab" style="display:flex;justify-content:space-between"><span class="lab">Lo que pasó en el turno</span><span class="muted" style="font-size:12px">36 movimientos</span></div><div style="display:flex;gap:6px;margin:6px 0 6px"><span class="pild on">Todo</span><span class="pild">Ventas</span><span class="pild">Mueve el cajón</span></div>${movs(7,true)}</div>
+</div>`;
+document.querySelectorAll('.hoja').forEach(h=>{});
+[...document.querySelectorAll('.marco')].forEach(m=>{const l=m.parentElement;l.insertAdjacentHTML('beforeend',NOTA)});
+if(location.hash){document.querySelectorAll('.lam').forEach(l=>{if('#'+l.id!==location.hash)l.style.display='none'})}
+</script>
+</body>
+</html>

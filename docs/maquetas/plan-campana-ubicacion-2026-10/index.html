@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de campaña · dónde va cada cosa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+  /* Paleta oficial «CAYLA Dynamic» (apps/web/app/globals.css, ADR-0169). Ningún hex suelto fuera de esta lista. */
+  :root{color-scheme:light;
+    --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;
+    --verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+    --t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 65%,transparent);--t35:color-mix(in srgb,var(--tinta) 35%,transparent);
+    --ease:cubic-bezier(.32,.72,.24,1);--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding:12px 16px 64px}
+  button,input{font:inherit;color:inherit}button{cursor:pointer}a{color:inherit}
+  :focus-visible{outline:2px solid var(--rojo);outline-offset:2px}[hidden]{display:none!important}
+  p{margin:0}h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0;line-height:1.1}
+  .etq{font:600 11px/1.3 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin:0}
+  .muted{color:var(--t65)}.chico{font-size:12.5px}
+  /* Barra de la maqueta (no es parte del ERP) */
+  .mando{position:sticky;top:8px;z-index:30;max-width:1280px;margin:0 auto 12px;padding:10px 14px;border:1px dashed var(--taupe);border-radius:12px;background:color-mix(in srgb,var(--papel) 93%,transparent);backdrop-filter:blur(6px);display:grid;gap:8px}
+  .fila{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;font:500 12.5px var(--sans);color:var(--taupe);padding:6px 12px;border-radius:999px}
+  .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  .ley{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t65)}
+  /* Las marcas de la maqueta: qué es nuevo, qué ya existe, qué es un acceso a otro módulo */
+  .marca{position:absolute;top:-10px;right:14px;z-index:2;font:700 10px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;border-radius:999px}
+  .m-nuevo{background:var(--rojo);color:var(--crema)}
+  .m-existe{background:var(--hueso);color:var(--taupe);border:1px solid var(--sand)}
+  .m-enlace{background:var(--pizarra);color:var(--crema)}
+  .con-marca{position:relative}
+  .nuevo-borde{outline:2px dashed color-mix(in srgb,var(--rojo) 55%,transparent);outline-offset:4px}
+  .ya{opacity:.62}
+  /* ERP */
+  .erp{max-width:1280px;margin:0 auto;background:var(--crema);border:1px solid var(--sand);border-radius:16px;padding:28px 32px 40px;display:grid;gap:20px}
+  .cab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+  .sede{display:flex;align-items:center;gap:10px;font:600 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--taupe)}
+  .sede::before{content:"";width:36px;height:1px;background:var(--taupe)}
+  h1{font-size:44px;margin-top:6px}
+  .frase{color:var(--t80);max-width:620px;margin-top:4px}
+  .ayuda{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;border:1.5px solid var(--t35);font:700 11px var(--sans);color:var(--t65);vertical-align:middle;margin-left:4px}
+  .pastilla{border:1px solid var(--sand);border-radius:8px;padding:9px 14px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;background:var(--papel);height:40px}
+  .tabs{display:inline-flex;gap:4px;border:1px solid var(--sand);border-radius:14px;padding:5px;background:var(--papel)}
+  .tabs span{padding:9px 16px;border-radius:10px;font:600 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--tinta)}
+  .tabs span.on{background:var(--tinta);color:var(--crema)}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{border:1px solid var(--sand);border-radius:999px;padding:6px 14px;background:var(--papel);font:500 13px var(--sans)}
+  .pill.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .cifras{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .cifra{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:16px 18px}
+  .cifra b{display:block;font:600 30px/1.15 var(--serif);margin-top:6px}
+  .card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:20px 22px}
+  .banda{background:var(--hueso);border-radius:12px;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:13px;color:var(--t80)}
+  .btn{border:1px solid var(--t35);background:var(--papel);border-radius:10px;padding:8px 14px;font:500 13px var(--sans)}
+  .btn.prim{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .enlace{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--pizarra);color:var(--pizarra);border-radius:999px;padding:4px 11px;font:500 12px var(--sans);text-decoration:none;white-space:nowrap}
+  .enlace::after{content:"→"}
+  table{width:100%;border-collapse:collapse}
+  th{font:400 12px var(--sans);color:var(--taupe);text-align:left;padding:9px 12px;background:var(--hueso)}
+  th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td{padding:11px 12px;border-top:1px solid var(--sand);vertical-align:middle}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font:500 12px var(--sans);white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+  .c-verde{background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde)}
+  .c-ambar{background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar)}
+  .c-rojo{background:color-mix(in srgb,var(--rojo) 12%,var(--papel));color:var(--rojo-p)}
+  .veredicto{font:600 24px/1.2 var(--serif)}
+  input[type=range]{width:100%;accent-color:var(--tinta)}
+  .barra{height:10px;border-radius:999px;background:var(--sand);overflow:hidden;display:flex}.barra span{display:block;height:100%;transition:width .4s var(--ease)}
+  .pila{display:flex;height:16px;border-radius:6px;overflow:hidden;background:var(--sand)}.pila span{display:block;height:100%}
+  .grid2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .notas{max-width:1280px;margin:16px auto 0;display:grid;gap:10px}
+  .nota-m{border-left:3px solid var(--taupe);padding:6px 12px;font-size:13px;color:var(--t80);background:var(--papel);border-radius:0 10px 10px 0}
+  @keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .erp:not([hidden]){animation:sube .35s var(--ease) both}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="mando">
+  <div class="fila">
+    <span class="etq">Maqueta · Plan de campaña · dónde va cada cosa</span>
+    <div class="seg" id="vistas">
+      <button data-v="plan" aria-pressed="true">Plan · antes de la campaña</button>
+      <button data-v="curso">Resultados · durante</button>
+      <button data-v="cierre">Resultados · al terminar</button>
+      <button data-v="historial">Historial</button>
+    </div>
+  </div>
+  <div class="fila">
+    <span class="ley"><span class="marca m-nuevo" style="position:static">Nuevo</span> se construye</span>
+    <span class="ley"><span class="marca m-enlace" style="position:static">Acceso</span> lleva a otro módulo que ya lo hace</span>
+    <span class="ley"><span class="marca m-existe" style="position:static">Ya está</span> hecho hoy (atenuado)</span>
+  </div>
+</div>
+
+<!-- ================================================ PLAN (antes) -->
+<section class="erp" data-v="plan">
+  <div class="cab">
+    <div><p class="sede">Todas las tiendas · lunes, 12 de octubre · 11:59</p><h1>Plan de campaña</h1>
+      <p class="frase">Cuánto comprar de cada categoría para Navidad 2026, del 11 de diciembre al 25 de diciembre. <span class="ayuda">!</span></p></div>
+    <div style="display:flex;gap:10px;align-items:flex-start"><span class="pastilla">Navidad 2026 · 11 dic – 25 dic ⌄</span><span class="btn" style="height:40px">Exportar</span></div>
+  </div>
+  <div class="tabs"><span class="on">Plan</span><span>Resultados</span><span>Historial</span></div>
+  <div class="banda ya con-marca"><span class="marca m-existe">Ya está</span><span>Lo que sobra se vende al 40 % del precio: con eso arranca cada categoría nueva, y cada una puede cambiarlo.</span><span class="btn">Cambiar el %</span></div>
+
+  <div class="cifras">
+    <div class="cifra ya con-marca"><span class="marca m-existe">Ya está</span><p class="etq">Categorías con plan</p><b>5 de 42</b><span class="chico muted">Las demás no suman a la compra</span></div>
+    <div class="cifra ya con-marca"><span class="marca m-existe">Ya está</span><p class="etq">Prendas a comprar</p><b id="pCompra">–</b><span class="chico muted">Lo que conviene tener menos lo que ya hay</span></div>
+    <div class="cifra con-marca nuevo-borde"><span class="marca m-nuevo">Nuevo</span><p class="etq">Te quedan para comprar</p><b id="pQueda">–</b><span class="chico muted" id="pQuedaSub"></span>
+      <div class="barra" style="margin-top:10px"><span id="pB1" style="background:var(--tinta)"></span><span id="pB2" style="background:var(--rojo)"></span></div></div>
+    <div class="cifra con-marca"><span class="marca m-enlace">Acceso</span><p class="etq">Qué pedir, prenda por prenda</p><b style="font-size:22px">En Análisis</b><span class="chico muted">Lo que se está acabando en cada tienda.</span><div style="margin-top:8px"><a class="enlace" href="#">Ver en Análisis ▸ Qué pedir</a></div></div>
+  </div>
+
+  <div class="card con-marca nuevo-borde">
+    <span class="marca m-nuevo">Nuevo</span>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:baseline"><h3>¿Y si la campaña vende distinto?</h3><span class="chico muted">Solo simula: no cambia nada guardado.</span></div>
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <label class="chico muted" for="mult">Un mes bueno vende <b id="multTxt"></b> uno normal</label><input id="mult" type="range" min="15" max="35" value="30">
+        <p class="chico muted">La historia de Trujillo: Navidad ×2.0, Diciembre ×1.8. <a href="#" style="color:var(--taupe)">Ver en Historial</a></p>
+        <label class="chico muted" for="rec" style="display:block;margin-top:8px">Lo que sobra se vende al <b id="recTxt"></b></label><input id="rec" type="range" min="20" max="90" value="40">
+      </div>
+      <div style="display:grid;gap:8px;align-content:start"><p class="veredicto" id="simVer"></p><p class="chico muted" id="simSub"></p></div>
+    </div>
+  </div>
+
+  <div class="card ya con-marca" style="padding:0;overflow:hidden"><span class="marca m-existe">Ya está</span>
+    <table><thead><tr><th>Categoría</th><th>Venta esperada · flojo · normal · bueno</th><th class="n">Hay hoy</th><th class="n">Comprar</th><th class="n">Inversión</th></tr></thead><tbody id="tPlan"></tbody></table>
+  </div>
+</section>
+
+<!-- ================================================ RESULTADOS durante -->
+<section class="erp" data-v="curso" hidden>
+  <div class="cab">
+    <div><p class="sede">Todas las tiendas · lunes, 12 de octubre · 11:59</p><h1>Plan de campaña</h1>
+      <p class="frase">Aniversario CAYLA 2026, del 1 oct al 21 oct: lo vendido hasta ayer (11 días). <span class="ayuda">!</span></p></div>
+    <span class="pastilla">Aniversario CAYLA 2026 · 1 oct – 21 oct ⌄</span>
+  </div>
+  <div class="tabs"><span>Plan</span><span class="on">Resultados</span><span>Historial</span></div>
+  <div class="pills ya"><span class="pill on">Todas</span><span class="pill">Tienda AQP</span><span class="pill">Tienda LIM</span><span class="pill">Tienda TRU</span></div>
+
+  <div class="card con-marca nuevo-borde">
+    <span class="marca m-nuevo">Nuevo · ¿Cómo va?</span>
+    <div class="grid2" style="align-items:center">
+      <div><p class="veredicto" id="cVer"></p><p class="chico muted" id="cSub" style="margin-top:6px"></p>
+        <label class="chico muted" for="ritmo" style="display:block;margin-top:12px">Para la maqueta, cómo va la campaña: <b id="ritmoTxt"></b></label><input id="ritmo" type="range" min="-30" max="30" value="-8"></div>
+      <svg id="curva" viewBox="0 0 520 210" role="img" aria-label="Vendido acumulado contra el plan" style="width:100%;height:auto"></svg>
+    </div>
+    <p class="chico muted" style="margin-top:8px"><span class="ley"><i style="width:14px;height:2px;background:var(--pizarra)"></i>Plan</span>&nbsp;&nbsp;<span class="ley"><i style="width:14px;height:3px;background:var(--rojo)"></i>Vendido</span>&nbsp;&nbsp;<span class="ley"><i style="width:14px;height:2px;background:var(--rojo);opacity:.4"></i>Si sigue así</span></p>
+  </div>
+
+  <div class="cifras ya con-marca"><span class="marca m-existe">Ya está</span>
+    <div class="cifra"><p class="etq">Toda CAYLA</p><b>861 <span style="font:400 16px var(--sans)">prendas</span></b><span class="chico muted">S/ 46,626.41 · hasta ayer</span></div>
+    <div class="cifra"><p class="etq">Tienda AQP</p><b>266 <span style="font:400 16px var(--sans)">prendas</span></b><span class="chico muted">S/ 14,836.99</span></div>
+    <div class="cifra"><p class="etq">Tienda TRU</p><b>595 <span style="font:400 16px var(--sans)">prendas</span></b><span class="chico muted">S/ 31,789.42</span></div>
+  </div>
+
+  <div class="card con-marca nuevo-borde" style="padding:0;overflow:hidden">
+    <span class="marca m-nuevo">Nuevo · pedir más o impulsar</span>
+    <table><thead><tr><th>Categoría</th><th class="n">Vendidas</th><th class="n">Contra el plan a hoy</th><th class="n">Alcanza para</th><th>Qué hacer</th><th>Las prendas</th></tr></thead><tbody id="tCurso"></tbody></table>
+    <p class="chico muted" style="padding:10px 14px;border-top:1px solid var(--sand)">«Alcanza para»: lo que queda en todas las tiendas, al ritmo de esta campaña, contra los días que le faltan. La prenda exacta que se acaba (y en qué tienda) ya la dice Análisis: <span class="marca m-enlace" style="position:static">Acceso</span></p>
+  </div>
+
+  <div class="card ya con-marca"><span class="marca m-existe">Ya está</span><p class="chico">Tabla por categoría con «Contra el plan», «Se agotó en…» y, al tocar una fila, <b>qué prendas y de qué colores se vendieron</b>.</p></div>
+</section>
+
+<!-- ================================================ RESULTADOS al terminar -->
+<section class="erp" data-v="cierre" hidden>
+  <div class="cab">
+    <div><p class="sede">Todas las tiendas · martes, 26 de enero · 10:00</p><h1>Plan de campaña</h1>
+      <p class="frase">Navidad 2026, del 11 dic al 25 dic: lo que se vendió de verdad, tienda por tienda. <span class="ayuda">!</span></p></div>
+    <span class="pastilla">Navidad 2026 · 11 dic – 25 dic ⌄</span>
+  </div>
+  <div class="tabs"><span>Plan</span><span class="on">Resultados</span><span>Historial</span></div>
+
+  <div class="cifras con-marca nuevo-borde"><span class="marca m-nuevo">Nuevo · cierre</span>
+    <div class="cifra"><p class="etq">Vendido a precio lleno</p><b>71 %</b><span class="chico muted">de lo que había para la campaña</span></div>
+    <div class="cifra"><p class="etq">Con rebaja</p><b>13 %</b><span class="chico muted">vendido con descuento</span></div>
+    <div class="cifra"><p class="etq">Sobra</p><b>196</b><span class="chico muted">prendas al cerrar</span></div>
+    <div class="cifra con-marca"><span class="marca m-enlace">Acceso</span><p class="etq">Liquidar primero</p><b style="font-size:24px">Vestidos</b><span class="chico muted">es lo que más sobra</span><div style="margin-top:8px"><a class="enlace" href="#">Ver en Análisis ▸ No se vende</a></div></div>
+  </div>
+
+  <div class="card con-marca nuevo-borde"><span class="marca m-nuevo">Nuevo</span>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px"><span class="ley"><i style="width:10px;height:10px;border-radius:3px;background:var(--verde)"></i>A precio lleno</span><span class="ley"><i style="width:10px;height:10px;border-radius:3px;background:var(--ambar)"></i>Con rebaja</span><span class="ley"><i style="width:10px;height:10px;border-radius:3px;background:var(--sand)"></i>Sobra</span></div>
+    <div id="pilas" style="display:grid;gap:12px"></div>
+  </div>
+
+  <div class="card ya con-marca"><span class="marca m-existe">Ya está</span><p class="chico">«Para la próxima: Tienda TRU ×2.0, Tienda AQP ×1.2, y lo que sobró se vendió al 55 % del precio». El Plan del año que viene usa estos números en vez de × 3.</p></div>
+</section>
+
+<!-- ================================================ HISTORIAL -->
+<section class="erp" data-v="historial" hidden>
+  <div class="cab"><div><p class="sede">Todas las tiendas · lunes, 12 de octubre</p><h1>Plan de campaña</h1>
+    <p class="frase">Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció. <span class="ayuda">!</span></p></div></div>
+  <div class="tabs"><span>Plan</span><span>Resultados</span><span class="on">Historial</span></div>
+  <div class="card ya con-marca"><span class="marca m-existe">Ya está</span>
+    <p>Un año a la vez (píldoras 2017–2026), una fila por campaña, una columna por tienda (Arequipa, Lima, Trujillo). Al tocar una fila: el día a día contra un día normal, el mejor y el peor día, y la misma campaña año por año.</p>
+    <p class="chico muted" style="margin-top:8px">Sin cambios en esta tanda: ya lo tienes en local y en el PR.</p>
+  </div>
+</section>
+
+<div class="notas" id="notas"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const S = (n) => "S/ " + Math.round(n).toLocaleString("es-PE");
+const E = (n) => Math.round(n).toLocaleString("es-PE");
+const NOTAS = {
+  plan: ["<b>Antes de la campaña</b> se decide cuánto comprar: aquí van el simulador y «te quedan para comprar». El tope ya existía; lo nuevo es decirlo como plata disponible y mover supuestos sin guardar.",
+         "<b>Por qué no se repite «Qué pedir»:</b> Análisis ya dice, prenda por prenda y tienda por tienda, qué se está acabando. El Plan mira la categoría entera para la campaña; para la prenda exacta, un acceso."],
+  curso: ["<b>Durante la campaña</b> la pregunta es «¿voy bien?»: arriba de Resultados, el veredicto con la proyección al cierre (el Presupuesto de Finanzas proyecta el mes, no la campaña).",
+          "<b>Pedir más o impulsar</b> es por categoría y contra el FIN DE ESTA CAMPAÑA (Análisis mide contra Navidad y por tienda). Cada fila lleva un acceso a Análisis ▸ Se está acabando o ▸ No se vende para ver las prendas."],
+  cierre: ["<b>Al terminar</b>, lo nuevo es el sell-through: qué parte de lo que había se vendió a precio lleno, con rebaja o sobró. Se calcula sin facturas: vendido ÷ (vendido + lo que quedó al cierre).",
+           "<b>Liquidar</b> ya lo resuelve Análisis ▸ No se vende (con «Liquidar desde»): aquí solo se dice por dónde empezar y se lleva allá."],
+  historial: ["<b>Historial</b> queda como está."],
+};
+function mostrar(v) {
+  document.querySelectorAll("#vistas button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === v));
+  document.querySelectorAll(".erp").forEach((s) => (s.hidden = s.dataset.v !== v));
+  $("#notas").innerHTML = NOTAS[v].map((n) => `<p class="nota-m">${n}</p>`).join("");
+}
+document.querySelectorAll("#vistas button").forEach((b) => b.addEventListener("click", () => mostrar(b.dataset.v)));
+
+/* Plan: simulador y «te quedan» (la cuenta del Plan: cuantil crítico sobre la triangular) */
+const CATS = [
+  { n: "Polos", normal: 163, flojo: 120, precio: 59.9, costo: 22, hay: 140 },
+  { n: "Camisas y Blusas", normal: 146, flojo: 100, precio: 89.9, costo: 34, hay: 236 },
+  { n: "Tops", normal: 69, flojo: 45, precio: 59.9, costo: 21, hay: 60 },
+  { n: "Pantalones", normal: 66, flojo: 48, precio: 129.9, costo: 48, hay: 70 },
+  { n: "Vestidos", normal: 40, flojo: 25, precio: 149.9, costo: 62, hay: 132 },
+];
+const TOPE = 30000;
+function cuantil(a, c, b, p) { const fc = (c - a) / (b - a); return p < fc ? a + Math.sqrt(p * (b - a) * (c - a)) : b - Math.sqrt((1 - p) * (b - a) * (b - c)); }
+function plan() {
+  const mult = +$("#mult").value / 10, rec = +$("#rec").value / 100;
+  $("#multTxt").textContent = "×" + mult.toFixed(1); $("#recTxt").textContent = Math.round(rec * 100) + " % del precio";
+  let inv = 0, comp = 0;
+  $("#tPlan").innerHTML = CATS.map((c) => {
+    const bueno = Math.round(c.normal * mult), cu = c.precio - c.costo, co = Math.max(c.costo - c.precio * rec, 0), p = cu / (cu + co);
+    const obj = Math.round(cuantil(c.flojo, c.normal, Math.max(bueno, c.normal + 1), p)), compra = Math.max(0, obj - c.hay);
+    inv += compra * c.costo; comp += compra;
+    return `<tr><td><b>${c.n}</b></td><td>${E(c.flojo)} · ${E(c.normal)} · ${E(bueno)}</td><td class="n">${E(c.hay)}</td><td class="n">${E(compra)}</td><td class="n">${S(compra * c.costo)}</td></tr>`;
+  }).join("");
+  $("#pCompra").textContent = E(comp);
+  const queda = TOPE - inv, base = Math.max(inv, TOPE);
+  $("#pQueda").textContent = queda >= 0 ? S(queda) : "−" + S(-queda);
+  $("#pQueda").style.color = queda >= 0 ? "" : "var(--rojo-p)";
+  $("#pQuedaSub").textContent = queda >= 0 ? `de un tope de ${S(TOPE)}: el plan usa ${S(inv)}` : `te pasas del tope de ${S(TOPE)}`;
+  $("#pB1").style.width = (Math.min(inv, TOPE) / base) * 100 + "%"; $("#pB2").style.width = (Math.max(0, inv - TOPE) / base) * 100 + "%";
+  $("#simVer").textContent = `Comprarías ${E(comp)} prendas por ${S(inv)}.`;
+  $("#simSub").textContent = mult > 2.4 ? `Con ×${mult.toFixed(1)} compras para una campaña mejor que cualquiera de la historia de Trujillo (Navidad ×2.0).` : "Cerca de lo que Trujillo vendió de verdad en sus campañas.";
+}
+["#mult", "#rec"].forEach((s) => $(s).addEventListener("input", plan));
+
+/* Resultados durante: ¿Cómo va? y pedir más o impulsar (Aniversario 2026: 11 de 21 días) */
+const DIAS = 21, HOY = 11;
+const CURVA = Array.from({ length: DIAS }, (_, i) => 1 + 0.5 * Math.sin(i / 2.2) + (i > 15 ? 0.6 : 0));
+const CURSO = [
+  { n: "Polos", plan: 290, vend: 160, stock: 40, hay: "acaba" },
+  { n: "Camisas y Blusas", plan: 260, vend: 146, stock: 236 },
+  { n: "Tops", plan: 110, vend: 69, stock: 60 },
+  { n: "Pantalones", plan: 160, vend: 66, stock: 197, hay: "nose" },
+  { n: "Vestidos", plan: 90, vend: 22, stock: 132, hay: "nose" },
+];
+function curso() {
+  const ritmo = +$("#ritmo").value / 100; $("#ritmoTxt").textContent = `${ritmo >= 0 ? "+" : ""}${Math.round(ritmo * 100)} % contra el plan`;
+  const tot = CURVA.reduce((a, v) => a + v, 0), META = 52000;
+  const acum = (arr) => arr.reduce((a, v) => (a.push((a.at(-1) ?? 0) + v), a), []);
+  const plan = acum(CURVA.map((v) => (v / tot) * META)), real = plan.slice(0, HOY).map((v) => v * (1 + ritmo));
+  const hoy = real.at(-1), proy = plan.map((v, i) => (i < HOY ? real[i] : hoy + (v - plan[HOY - 1]) * (1 + ritmo)));
+  const max = Math.max(META, proy.at(-1)) * 1.08, X = (i) => 20 + (i / (DIAS - 1)) * 490, Y = (v) => 195 - (v / max) * 180;
+  const ln = (arr, d = 0) => arr.map((v, i) => `${i ? "L" : "M"}${X(i + d).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  $("#curva").innerHTML = `<line x1="20" x2="510" y1="195" y2="195" stroke="var(--sand)"/>
+    <path d="${ln(plan)}" fill="none" stroke="var(--pizarra)" stroke-width="2" stroke-dasharray="6 5"/>
+    <path d="${ln(proy.slice(HOY - 1), HOY - 1)}" fill="none" stroke="var(--rojo)" stroke-opacity=".4" stroke-width="2.5" stroke-dasharray="3 4"/>
+    <path d="${ln(real)}" fill="none" stroke="var(--rojo)" stroke-width="3"/><circle cx="${X(HOY - 1)}" cy="${Y(hoy)}" r="5" fill="var(--rojo)"/>
+    <text x="${X(HOY - 1)}" y="${Y(hoy) - 10}" font-size="11" text-anchor="middle" fill="var(--rojo-p)">hoy</text>`;
+  const dif = Math.round(ritmo * 100);
+  $("#cVer").textContent = dif >= 2 ? `Vas +${dif} %: por encima del plan.` : dif <= -5 ? `Vas −${-dif} %: por debajo del plan.` : "Vas en el plan.";
+  $("#cSub").textContent = `Si sigue así, terminas en ${S(proy.at(-1))}; el plan pide ${S(META)}. Quedan ${DIAS - HOY} días.`;
+  $("#tCurso").innerHTML = CURSO.map((c) => {
+    const esperado = (plan[HOY - 1] / META) * c.plan, vend = Math.round(c.vend * (1 + ritmo)), rel = vend / esperado - 1, porDia = vend / HOY, alcanza = c.stock / porDia, faltan = DIAS - HOY;
+    const acc = alcanza < faltan && rel > -0.05 ? ["Pide más", "c-rojo", "acaba", "Se está acabando"] : rel < -0.2 && alcanza > faltan * 1.5 ? ["Impúlsala", "c-ambar", "nose", "No se vende"] : ["Va bien", "c-verde", null, null];
+    return `<tr><td><b>${c.n}</b></td><td class="n">${E(vend)}</td><td class="n">${rel >= 0 ? "+" : "−"}${Math.abs(Math.round(rel * 100))} %</td><td class="n">${alcanza > 60 ? "toda la campaña" : Math.round(alcanza) + " días"}</td><td><span class="chip ${acc[1]}">${acc[0]}</span></td><td>${acc[2] ? `<a class="enlace" href="#">Análisis ▸ ${acc[3]}</a>` : '<span class="chico muted">Tocar la fila: prendas y colores</span>'}</td></tr>`;
+  }).join("");
+}
+$("#ritmo").addEventListener("input", curso);
+
+/* Resultados al terminar */
+const CIERRE = [["Polos", 520, 430, 50, "Faltó: se agotó el 21 dic. El próximo año, más cerca del bueno."], ["Camisas y Blusas", 300, 222, 48, "74 % a precio lleno: repite el plan."], ["Vestidos", 200, 96, 40, "Sobró: planifica más cerca del flojo."], ["Pantalones", 180, 130, 28, "Bien: lo que sobra se vende al 70 %."], ["Tops", 120, 70, 20, "Algo sobró."]];
+$("#pilas").innerHTML = CIERRE.map(([n, t, l, r, lec]) => `<div style="display:grid;grid-template-columns:150px 1fr 300px;gap:12px;align-items:center"><b>${n}</b><div class="pila" title="${l} a precio lleno · ${r} con rebaja · ${t - l - r} sobran"><span style="width:${(l / t) * 100}%;background:var(--verde)"></span><span style="width:${(r / t) * 100}%;background:var(--ambar)"></span></div><span class="chico">${Math.round((l / t) * 100)} % · ${lec}</span></div>`).join("");
+
+plan(); curso(); mostrar("plan");
+</script>
+</body>
+</html>

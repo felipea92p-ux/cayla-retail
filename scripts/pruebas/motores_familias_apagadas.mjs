@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Pruebas de que los motores del piso, la demanda, el plan de campaña, Análisis y Frescura IGNORAN una familia apagada (Bolsas de despacho,
- * actividades 2 y 3) contra el Postgres local — CAYLA V2. Migraciones: `20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql` y
- * `20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql`.
+ * Pruebas de que los motores del piso, la demanda, el plan de campaña, Análisis, Frescura y la preparación del motor de demanda IGNORAN una
+ * familia apagada (Bolsas de despacho, actividades 2 y 3) contra el Postgres local — CAYLA V2. Migraciones:
+ * `20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql`, `20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql` y
+ * `20261012220000_preparacion_motor_ignora_familias_apagadas.sql`.
  *
  * LO QUE VIGILA. `familias.entra_a_motores = false` (la familia «Empaque» de las bolsas) tiene que sacar de TRES lecturas todo lo de sus
  * categorías: prendas con stock, ventas escaneadas, ventas «sin registrar» y lo que se pidió y no había. El error caro es que la bolsa de
@@ -17,6 +18,8 @@
  *   A  ANÁLISIS (`fn_analisis_sede`): `prendas` trae el polo y no la bolsa, y la cifra «rebaja_de_100» solo mira mercadería (la bolsa, a precio de
  *      lista, no la diluye).
  *   F  FRESCURA (`fn_frescura_sede`): `prendas` trae el polo y no la bolsa.
+ *   E  PREPARACIÓN DEL MOTOR (`fn_motor_demanda_preparacion`, 20261012220000): «¿ya puede recomendar?» no cuenta la bolsa ni en las
+ *      unidades ni en las identificadas (una bolsa por ticket inflaba el % de venta identificada).
  *   V  VENTA INTACTA: la venta de la bolsa SIGUE en `ventas`/`venta_items` (los motores la ignoran, la caja no).
  *   R  RE-EJECUTABLE: cargar la migración dos veces no cambia nada ni falla.
  *
@@ -38,6 +41,7 @@ const leer = (n) => readFileSync(join(RAIZ, "supabase", "migrations", n), "utf8"
 const MARCA = leer("20261010231000_familias_entran_a_motores.sql");
 const MOTORES = leer("20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql");
 const ANALISIS_FRESCURA = leer("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
+const PREPARACION = leer("20261012220000_preparacion_motor_ignora_familias_apagadas.sql");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -67,6 +71,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(MOTORES)}
 set local search_path = retail, public, extensions;
 ${sinControl(ANALISIS_FRESCURA)}
+set local search_path = retail, public, extensions;
+${sinControl(PREPARACION)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -296,6 +302,16 @@ caso(
   "1,0",
 );
 
+// E. PREPARACIÓN DEL MOTOR -----------------------------------------------------------------------------------------------
+caso(
+  "E1 «¿ya puede recomendar?» no cuenta la bolsa: polo 2 + sin registrar 1 = 3 unidades, 2 identificadas (no 5 y 4)",
+  `${DOS_PRENDAS}
+   select pg_temp.anota(:'cat_p');
+   select concat_ws(',', sum((d ->> 'unidades')::int), sum((d ->> 'identificadas')::int))
+     from retail.fn_motor_demanda_preparacion(:'sede') p, jsonb_array_elements(p.dias) d;`,
+  "3,2",
+);
+
 // V. LA VENTA SIGUE SIENDO VENTA ------------------------------------------------------------------------------------------
 caso(
   "V1 la venta de la bolsa sigue entera en ventas y venta_items: los motores la ignoran, la caja no",
@@ -309,16 +325,18 @@ caso(
 
 // R. RE-EJECUTABLE --------------------------------------------------------------------------------------------------------
 caso(
-  "R1 cargar las migraciones otra vez no falla ni agrega preguntas de más (5 / 3 / 10 · 2 / 1)",
+  "R1 cargar las migraciones otra vez no falla ni agrega preguntas de más (5 / 3 / 10 · 2 / 1 · 1)",
   `${sinControl(MOTORES)}
    ${sinControl(ANALISIS_FRESCURA)}
+   ${sinControl(PREPARACION)}
    select concat_ws(',',
      (length(pg_get_functiondef('retail.fn_piso_plan_lectura(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_piso_plan_lectura(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
      (length(pg_get_functiondef('retail.fn_demanda_sede(uuid, integer)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_demanda_sede(uuid, integer)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
      (length(pg_get_functiondef('retail.fn_plan_compra(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_plan_compra(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
      (length(pg_get_functiondef('retail.fn_analisis_sede(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_analisis_sede(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
-     (length(pg_get_functiondef('retail.fn_frescura_sede(uuid, integer)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_frescura_sede(uuid, integer)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'));`,
-  "5,3,10,2,1",
+     (length(pg_get_functiondef('retail.fn_frescura_sede(uuid, integer)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_frescura_sede(uuid, integer)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
+     (length(pg_get_functiondef('retail.fn_motor_demanda_preparacion(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_motor_demanda_preparacion(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'));`,
+  "5,3,10,2,1,1",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien.`);

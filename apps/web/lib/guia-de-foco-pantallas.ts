@@ -264,6 +264,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
+  "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
   "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles

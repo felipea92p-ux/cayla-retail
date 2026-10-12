@@ -2,6 +2,7 @@
 // Supabase: el resumen, el agrupado por mes y las cifras del cuadre se calculan aquí y se prueban aparte.
 
 import type { CierreCaja } from "@/lib/caja";
+import { horaDelDiaLima } from "./panel-serie";
 import { claveDeMetodo, cobradoDelTurno, type MetodoCobrado } from "./caja-tablero-reglas";
 import { NOMBRES_MES, type Mes } from "./facturacion-reglas";
 
@@ -171,15 +172,6 @@ export function duracionTurno(abiertaEn: string, cerradaEn: string): string {
   return h === 0 ? `${m} min` : `${h} h ${String(m).padStart(2, "0")} min`;
 }
 
-/**
- * El cuadre en tres cifras que SIEMPRE suman: apertura + lo que movió el efectivo = lo que el sistema esperaba.
- * «Lo que movió» se deriva (esperado − apertura) en vez de sumar ventas, ingresos y devoluciones por separado: las
- * ventas de pago mixto no dicen cuánto fue efectivo, y una suma aparte podría no calzar con el esperado de la base.
- */
-export function cuadreDelTurno(c: Pick<CierreCaja, "montoApertura" | "montoCierreSistema">) {
-  return { apertura: c.montoApertura, movio: redondear(c.montoCierreSistema - c.montoApertura), esperado: c.montoCierreSistema };
-}
-
 /** A dónde fue el efectivo contado: lo trasladado y lo que quedó en el cajón, con su parte de la barra (0–100). `null` en cierres sin traslado registrado (anteriores a ADR-0186). */
 export function rutaDelEfectivo(c: Pick<CierreCaja, "montoCierreReal" | "montoFondo" | "traslados">) {
   if (c.montoFondo === null) return null;
@@ -336,5 +328,116 @@ export function cobrosPorMedio(pagos: readonly { ventaId: string; metodo: string
     total,
     anticipo,
     medios: metodos.map((m) => ({ clave: m.clave, texto: m.texto, monto: m.monto, ventas: ventasDe.get(m.clave)?.size ?? 0, pct: total > 0 ? Math.round((m.monto / total) * 100) : 0 })),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Detalle de un cierre, versión «La línea del día» (2026-10-12): escala del veredicto, ventas por hora y cascada del efectivo.
+
+/** Hasta dónde llega cada lado de la escala del veredicto: la primera de estas medidas que contiene la diferencia (la última si se pasa). */
+const RANGOS_ESCALA = [20, 50, 100, 200, 500, 1000, 5000] as const;
+
+/** Dónde cae una diferencia sobre la escala del veredicto: `pos` va de 0 (todo a «falta») a 100 (todo a «sobra»), 50 = cuadró. */
+export function escalaDiferencia(diferencia: number): { rango: number; pos: number } {
+  const d = Math.abs(diferencia) < 0.01 ? 0 : diferencia;
+  const rango = RANGOS_ESCALA.find((r) => Math.abs(d) <= r) ?? RANGOS_ESCALA[RANGOS_ESCALA.length - 1];
+  return { rango, pos: Math.min(97, Math.max(3, 50 + (d / rango) * 50)) };
+}
+
+/** «8 a. m.», «12 p. m.», «1 p. m.» para una hora entera (0–23). */
+export function etiquetaHora(h: number): string {
+  const x = ((h % 24) + 24) % 24;
+  return x === 0 ? "12 a. m." : x < 12 ? `${x} a. m.` : x === 12 ? "12 p. m." : `${x - 12} p. m.`;
+}
+
+/** «1 – 2 p. m.» o «11 a. m. – 12 p. m.»: la franja de una hora que empieza en `h`. */
+export function franjaHora(h: number): string {
+  const a = etiquetaHora(h);
+  const b = etiquetaHora(h + 1);
+  const mA = a.slice(a.indexOf(" ") + 1);
+  const mB = b.slice(b.indexOf(" ") + 1);
+  return mA === mB ? `${a.slice(0, a.indexOf(" "))} – ${b}` : `${a} – ${b}`;
+}
+
+/** Lo que el detalle necesita saber de cada hecho del turno para dibujar el día. */
+export type HechoDelTurno =
+  | { tipo: "venta"; hora: string; total: number; unidades: number; anulada: boolean }
+  | { tipo: "movimiento"; hora: string; direccion: "ingreso" | "egreso" }
+  | { tipo: "devolucion" | "cambio"; hora: string };
+
+export type MarcaDelDia = { pos: number; tipo: "apertura" | "cierre" | "sale" | "entra" | "cambio" };
+export type HoraDelDia = { hora: number; etiqueta: string; total: number; pico: boolean };
+
+const horaDecimalLima = (iso: string) => horaDelDiaLima(new Date(iso).getTime()) / 3_600_000;
+
+/**
+ * El día de una caja en una mirada: las ventas de cada hora entre que abrió y cerró (una barra por hora, sin inventar horas fuera del
+ * turno), las marcas sobre esa línea (abre, cierra, sale plata, entra plata, cambio) y las cifras de al lado. Una venta anulada no suma
+ * ventas ni plata, solo se cuenta aparte. `promedio` es `null` si no hubo ventas.
+ */
+export function diaDelTurno(c: Pick<CierreCaja, "abiertaEn" | "cerradaEn">, hechos: readonly HechoDelTurno[]) {
+  const ini = Math.floor(horaDecimalLima(c.abiertaEn));
+  let fin = Math.floor(horaDecimalLima(c.cerradaEn));
+  if (fin < ini) fin += 24;
+  const cuantas = Math.min(24, fin - ini + 1);
+  const vuelta = (h: number) => (((h - ini) % 24) + 24) % 24;
+
+  const totales = new Array<number>(cuantas).fill(0);
+  let ventas = 0;
+  let anuladas = 0;
+  let prendas = 0;
+  let vendido = 0;
+  const marcas: MarcaDelDia[] = [
+    { pos: Math.min(1, vuelta(horaDecimalLima(c.abiertaEn)) / cuantas), tipo: "apertura" },
+    { pos: Math.min(1, vuelta(horaDecimalLima(c.cerradaEn)) / cuantas), tipo: "cierre" },
+  ];
+  for (const h of hechos) {
+    if (Number.isNaN(new Date(h.hora).getTime())) continue;
+    const hd = horaDecimalLima(h.hora);
+    const v = vuelta(hd);
+    const idx = Math.floor(v);
+    if (h.tipo === "venta") {
+      if (h.anulada) {
+        anuladas += 1;
+        continue;
+      }
+      ventas += 1;
+      prendas += h.unidades;
+      vendido += h.total;
+      if (idx < cuantas) totales[idx] += h.total;
+      continue;
+    }
+    if (idx >= cuantas) continue;
+    marcas.push({ pos: v / cuantas, tipo: h.tipo === "cambio" ? "cambio" : h.tipo === "movimiento" && h.direccion === "ingreso" ? "entra" : "sale" });
+  }
+  const maximo = Math.max(...totales);
+  const picoIdx = maximo > 0 ? totales.indexOf(maximo) : -1;
+  const horas: HoraDelDia[] = totales.map((total, i) => ({ hora: (ini + i) % 24, etiqueta: etiquetaHora(ini + i), total: redondear(total), pico: i === picoIdx }));
+  return {
+    horas,
+    marcas,
+    ventas,
+    anuladas,
+    prendas,
+    vendido: redondear(vendido),
+    promedio: ventas > 0 ? redondear(vendido / ventas) : null,
+    horaFuerte: picoIdx >= 0 ? franjaHora(ini + picoIdx) : null,
+  };
+}
+
+/**
+ * La cascada del efectivo en cinco cifras que SIEMPRE suman: apertura + efectivo vendido + otros movimientos = lo que el sistema esperaba.
+ * «Otros movimientos» se DERIVA (esperado − apertura − vendido) en vez de sumar retiros, devoluciones, entradas y cambios por separado: así
+ * el total es siempre el de la base (`fn_calcular_esperado_caja`), aunque un cambio o una venta mixta no digan cuánto fue efectivo. Negativo = salió plata del cajón; positivo = entró.
+ */
+export function cascadaEfectivo(c: Pick<CierreCaja, "montoApertura" | "montoCierreSistema" | "montoCierreReal">, efectivoVendido: number) {
+  const vendido = redondear(efectivoVendido);
+  return {
+    apertura: c.montoApertura,
+    vendido,
+    otros: redondear(c.montoCierreSistema - c.montoApertura - vendido),
+    esperado: c.montoCierreSistema,
+    contado: c.montoCierreReal,
+    diferencia: redondear(c.montoCierreReal - c.montoCierreSistema),
   };
 }

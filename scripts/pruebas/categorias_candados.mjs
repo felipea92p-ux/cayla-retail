@@ -165,5 +165,53 @@ select count(*) from retail.categorias where nombre like 'Polos (huérfana%';`);
   esperar("repegar la migración no falla y renombra la huérfana (la nota pasa a `notas`)", r.ok && nombre === "Polos (V1, retirada)" && quedan === "0", r);
 }
 
+// 7. La familia del padre baja a sus hijas (20261012215000). El caso real: pasar «Bolsas» a una familia con los motores
+//    apagados (ADR-0377) dejaba a sus subcategorías en la vieja, contando como demanda.
+const MIGRACION_FAMILIA = readFileSync(new URL("../../supabase/migrations/20261012215000_categorias_familia_baja_a_las_hijas.sql", import.meta.url), "utf8");
+const ESCENA_BOLSAS = `${ESCENA}
+${MIGRACION_FAMILIA}
+insert into retail.familias (codigo, nombre, entra_a_motores) values ('empaque_prueba', 'Empaque de prueba', false) returning codigo as empaque \\gset
+insert into retail.categorias (nombre, familia, prefijo) values ('Bolsas de prueba', 'accesorios', 'BZP') returning id as bolsas \\gset
+insert into retail.categorias (nombre, familia, prefijo, categoria_padre_id) values ('Bolsa kraft de prueba', 'accesorios', 'BZK', :'bolsas') returning id as kraft \\gset
+`;
+{
+  const r = correr(`${ESCENA_BOLSAS}
+update retail.categorias set familia = :'empaque' where id = :'bolsas';
+select familia from retail.categorias where id = :'kraft';
+select retail.fn_categoria_entra_a_motores(:'kraft');
+${sesion(FELIPE)}
+select pg_temp.intento(format('select retail.actualizar_categoria(%L, %L, %L, %L)', :'bolsas', 'Bolsas de prueba', 'accesorios', 'BZP'));
+select familia from retail.categorias where id = :'kraft';`);
+  const [directo, motores, porPantalla, deVuelta] = lineas(r);
+  esperar("cambiar la familia del padre (UPDATE directo) se la pasa a la hija", r.ok && directo === "empaque_prueba", r);
+  esperar("la hija queda fuera de los motores igual que su padre", r.ok && motores === "f", r);
+  esperar("por la pantalla (actualizar_categoria) también: la hija vuelve con su padre", r.ok && porPantalla === "SIN_ERROR" && deVuelta === "accesorios", r);
+}
+{
+  // Todo o nada: si la hija activa no puede ir a la familia nueva (apagada), el padre tampoco cambia.
+  const r = correr(`${ESCENA_BOLSAS}
+update retail.categorias set activo = false where id = :'bolsas';
+update retail.familias set activo = false where codigo = :'empaque';
+select pg_temp.intento(format('update retail.categorias set familia = %L where id = %L', :'empaque', :'bolsas'));
+select familia from retail.categorias where id = :'bolsas';
+select familia from retail.categorias where id = :'kraft';`);
+  const [intento, padre, hija] = lineas(r);
+  esperar("con la hija activa y la familia nueva apagada se rechaza todo: ni el padre ni la hija cambian",
+    r.ok && intento.startsWith('No se puede activar "Bolsa kraft de prueba"') && padre === "accesorios" && hija === "accesorios", r);
+}
+{
+  // Lo que ya estaba desalineado (escrito con los disparadores apagados) se corrige al pegar, y pegar dos veces no falla.
+  const r = correr(`${ESCENA_BOLSAS}
+set local session_replication_role = replica;
+update retail.categorias set familia = :'empaque' where id = :'kraft';
+set local session_replication_role = origin;
+${MIGRACION_FAMILIA}
+${MIGRACION_FAMILIA}
+select familia from retail.categorias where id = :'kraft';
+select count(*) from retail.categorias h join retail.categorias p on p.id = h.categoria_padre_id where h.familia is distinct from p.familia;`);
+  const [hija, desalineadas] = lineas(r);
+  esperar("pegar la migración (dos veces) realinea a la hija que había quedado en otra familia", r.ok && hija === "accesorios" && desalineadas === "0", r);
+}
+
 console.log(`\n${casos - fallos}/${casos} casos pasaron.`);
 if (fallos > 0) process.exit(1);

@@ -614,6 +614,11 @@
   "relkind": "r",
   "rls": true
  },
+ "planes_compra_reparto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planilla_por_sede": {
   "forzado": false,
   "relkind": "v",
@@ -900,6 +905,11 @@
   "rls": true
  },
  "ventas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ventas_historicas": {
   "forzado": false,
   "relkind": "r",
   "rls": true

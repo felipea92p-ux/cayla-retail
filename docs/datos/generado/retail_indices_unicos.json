@@ -1025,6 +1025,11 @@
   "tablename": "planes_compra_lineas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX planes_compra_reparto_pkey ON retail.planes_compra_reparto USING btree (plan_id, ubicacion_id)",
+  "indexname": "planes_compra_reparto_pkey",
+  "tablename": "planes_compra_reparto"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX precios_sede_pkey ON retail.precios_sede USING btree (id)",
   "indexname": "precios_sede_pkey",
   "tablename": "precios_sede"
@@ -1558,5 +1563,10 @@
   "indexdef": "CREATE UNIQUE INDEX ventas_token_cliente_key ON retail.ventas USING btree (token_cliente)",
   "indexname": "ventas_token_cliente_key",
   "tablename": "ventas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX ventas_historicas_pkey ON retail.ventas_historicas USING btree (ubicacion_id, fecha)",
+  "indexname": "ventas_historicas_pkey",
+  "tablename": "ventas_historicas"
  }
 ]

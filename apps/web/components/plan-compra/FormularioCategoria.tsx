@@ -14,7 +14,10 @@ import { useResponsable } from "@/lib/useResponsable";
 import { compararTallas } from "@/lib/tallas";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { camposDelPlan } from "@/lib/plan-compra-guia";
+import { Check, Sparkles } from "lucide-react";
+import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
+import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
   RPC_GUARDAR_LINEA,
   argsGuardar,
@@ -73,6 +76,7 @@ export type PieDelFormulario = {
 
 export function FormularioCategoria({
   planId,
+  campana,
   fila,
   vendidoPorTalla,
   tope,
@@ -87,6 +91,8 @@ export function FormularioCategoria({
   irAlMontar = false,
 }: {
   planId: string;
+  /** La campaña que se planifica: su nombre (los textos hablan de ELLA, no de «diciembre») y sus días (el normal de respaldo). */
+  campana: { nombre: string; dias: number };
   /** La categoría con todo lo que la lectura sabe de ella: su plan, lo que hay, lo vendido, el catálogo y dónde está el stock. */
   fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
@@ -156,7 +162,12 @@ export function FormularioCategoria({
   // La propuesta de los tres escenarios (C4) si la base la manda; si no (base vieja), la de antes: solo el normal.
   const sugerida = fila.propuesta;
   const porque = sugerida ? explicarPropuesta(sugerida) : null;
-  const propuesta = propuestaDeNormal(ventas);
+  // «Normal 263: lo que vende…» → «Lo que vende…»: la cifra ya se ve grande en la tarjeta; el «!» dice solo de dónde sale.
+  const sinCifra = (t: string) => {
+    const resto = t.slice(t.indexOf(":") + 1).trim();
+    return resto.charAt(0).toUpperCase() + resto.slice(1);
+  };
+  const propuesta = propuestaDeNormal(ventas, campana.dias);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
 
@@ -204,29 +215,55 @@ export function FormularioCategoria({
           {sedes && sedes.length > 0 ? <span className="text-tinta/70">: {sedes.map((x) => `${x.ubicacion} ${enteroES.format(x.unidades)}`).join(" · ")}</span> : " entre tiendas y Taller"}
         </span>
         {sugerida !== undefined ? (
-          <>
-            {/* C4 (Felipe 2026-10-12): el sistema propone los tres escenarios y dice de dónde salió cada uno; la persona los corrige. */}
-            <Boton
-              type="button"
-              className="ml-auto"
-              disabled={sugerida === null}
-              onClick={() =>
-                sugerida &&
-                setB((x) => ({ ...x, flojo: sugerida.flojo === null ? x.flojo : String(sugerida.flojo), normal: String(sugerida.normal), bueno: String(sugerida.bueno) }))
-              }
-            >
-              Proponer los tres desde lo vendido
-            </Boton>
-            {sugerida === null ? (
-              <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
-            ) : (
-              <ul className="basis-full space-y-0.5 text-xs text-tinta/65">
-                <li>{porque!.flojo}</li>
-                <li>{porque!.normal}</li>
-                <li>{porque!.bueno}</li>
-              </ul>
-            )}
-          </>
+          sugerida === null ? (
+            <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
+          ) : (
+            // C4 (Felipe 2026-10-12): la propuesta a la vista —las tres cifras grandes, cada una con su «!» que dice de dónde salió, como en
+            // Productos— y un botón principal que las pone en las cajas. Una cifra ya puesta lleva su ✓.
+            <div data-guia="plan-modal.propuesta" className="basis-full rounded-xl border border-sand bg-papel p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[13px] font-semibold text-tinta">Lo que propone el sistema</p>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  onClick={() =>
+                    setB((x) => ({ ...x, flojo: sugerida.flojo === null ? x.flojo : String(sugerida.flojo), normal: String(sugerida.normal), bueno: String(sugerida.bueno) }))
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Sparkles aria-hidden className="h-4 w-4" />
+                    Usar estos tres
+                  </span>
+                </Boton>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["flojo", "Flojo", sugerida.flojo, sugerida.flojo === null ? (sugerida.motivoSinFlojo ?? "Escríbelo tú.") : sinCifra(porque!.flojo)],
+                    ["normal", "Normal", sugerida.normal, sinCifra(porque!.normal)],
+                    ["bueno", "Bueno", sugerida.bueno, sinCifra(porque!.bueno)],
+                  ] as const
+                ).map(([clave, nombre, valor, explica]) => {
+                  const puesto = valor !== null && b[clave] === String(valor);
+                  return (
+                    <div key={clave} className={`rounded-lg px-3 py-2 transition-colors duration-300 ease-cayla ${puesto ? "bg-verde/10" : "bg-hueso"}`}>
+                      <p className="flex items-center gap-1.5 text-xs text-taupe">
+                        {nombre}
+                        <Ayuda titulo={`${nombre}: de dónde sale`}>{explica}</Ayuda>
+                      </p>
+                      <p className="flex items-baseline gap-1.5 font-display text-2xl leading-tight text-tinta">
+                        {valor === null ? "—" : enteroES.format(valor)}
+                        {puesto && (
+                          <Check aria-label="Ya está en el plan" className="h-4 w-4 text-verde" />
+                        )}
+                      </p>
+                      {valor === null && <p className="text-[11.5px] text-tinta/65">escríbelo tú</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )
         ) : (
           <>
             <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
@@ -235,24 +272,24 @@ export function FormularioCategoria({
             <span className="basis-full text-xs text-tinta/65">
               {propuesta === null
                 ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
-                : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+                : `Lo que vendió por día en 90 días, llevado a los ${campana.dias} días de la campaña: un normal de ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
             </span>
           </>
         )}
       </div>
 
       <fieldset data-guia="plan-modal.escenarios">
-        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en diciembre?</legend>
-        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si el mes va flojo, normal o bueno.</p>
+        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en {campana.nombre}?</legend>
+        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si la campaña va floja, normal o buena.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
           <CampoGuiado id="flojo" guia={guia} titulo="Flojo">
-            <CampoTexto etiqueta="Diciembre flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="normal" guia={guia} titulo="Normal">
-            <CampoTexto etiqueta="Diciembre normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="bueno" guia={guia} titulo="Bueno">
-            <CampoTexto etiqueta="Diciembre bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
           </CampoGuiado>
         </div>
       </fieldset>
@@ -289,7 +326,7 @@ export function FormularioCategoria({
             </span>
           </div>
           <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
-            {loQueSobra ?? "Lo que quede sin vender después de diciembre: a cuánto lo venderías en la liquidación de enero. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
+            {loQueSobra ?? "Lo que quede sin vender al terminar la campaña: a cuánto lo venderías después, en la liquidación. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
             {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
               <span className="mt-1 block text-xs text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
             )}
@@ -349,9 +386,16 @@ export function FormularioCategoria({
               </div>
             )}
             {tope !== null && <EfectoEnElTope efecto={efectoEnElTope(inversionDeLasDemas, calculo.inversion, tope)} tope={tope} />}
+            {fila.reparto && fila.reparto.length > 1 && (
+              <RepartoTiendas
+                objetivo={calculo.objetivo}
+                tiendas={fila.reparto}
+                taller={(sedes ?? []).filter((s) => !fila.reparto!.some((t) => t.nombre === s.ubicacion)).reduce((a, s) => a + s.unidades, 0)}
+              />
+            )}
           </>
         ) : (
-          <p className="text-sm text-tinta/70">Cuando completes los tres diciembres, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
+          <p className="text-sm text-tinta/70">Cuando completes los tres escenarios, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
         )}
       </div>
 
