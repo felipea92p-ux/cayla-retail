@@ -11,8 +11,15 @@
  */
 export const colorDeGrupo = (indice: number): string => `var(--grupo-${((indice % 6) + 6) % 6})`;
 
+/**
+ * El formato se arma UNA vez: `toLocaleString` con idioma y opciones construye un `Intl.NumberFormat` nuevo en cada llamada (~22 µs), y la
+ * mancuerna escribe cuatro cifras por fila cada vez que se dibuja. Por eso la prueba que recorre las 14,641 combinaciones de marcas tardaba 1.9 s
+ * y se pasaba de los 5 s con la suite entera (2026-10-12). Escribe exactamente lo mismo que antes: ECMA-402 define `toLocaleString` así.
+ */
+const FORMATO_CIFRA = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
+
 /** Una cifra como se escribe en Perú: coma de miles y punto decimal («1,800», «4.5»); la misma convención de `resumen-formato.ts`. */
-export const cifraEs = (x: number): string => x.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+export const cifraEs = (x: number): string => FORMATO_CIFRA.format(x);
 
 /** Un porcentaje como se lee en la pantalla: «4 %», con espacio duro para que la cifra y el signo no se partan en dos renglones. */
 export const pctEs = (x: number): string => `${cifraEs(x)}\u00a0%`;
