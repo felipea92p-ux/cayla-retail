@@ -168,15 +168,30 @@ function textoOriginal(descripcion: string, desde: number, n: number): string {
   return fuente.slice(desde, desde + n).join(" ");
 }
 
+/** Las posiciones de la descripción que ocupa alguna de las frases `ciegas` (cada una entera y en orden: «azul denim»). */
+function posicionesCiegas(palabras: string[], ciegas: readonly string[]): Set<number> {
+  const tapadas = new Set<number>();
+  for (const frase of ciegas) {
+    const f = formas(frase);
+    if (f.length === 0) continue;
+    for (let i = 0; i + f.length <= palabras.length; i++) {
+      if (f.every((x, j) => palabras[i + j] === x)) for (let j = 0; j < f.length; j++) tapadas.add(i + j);
+    }
+  }
+  return tapadas;
+}
+
 /**
  * La categoría que nombra la descripción, o `null`. Determinista: la misma descripción y las mismas categorías dan siempre lo mismo
- * (sin azar ni red: una sede sin señal ve lo mismo).
+ * (sin azar ni red: una sede sin señal ve lo mismo). `ciegas`: frases que no cuentan como prenda aunque lo parezcan (el nombre del
+ * color elegido: «Azul denim» nombra un color, no un jean).
  */
-export function sugerirCategoria(descripcion: string, categorias: readonly CategoriaParaSugerir[]): CategoriaSugerida | null {
+export function sugerirCategoria(descripcion: string, categorias: readonly CategoriaParaSugerir[], ciegas: readonly string[] = []): CategoriaSugerida | null {
   const palabras = formas(descripcion);
   if (palabras.length === 0) return null;
+  const tapadas = posicionesCiegas(palabras, ciegas);
   const terminos = categorias.flatMap(terminosDe);
-  const todas = coincidencias(palabras, terminos);
+  const todas = coincidencias(palabras, terminos).filter((c) => !c.termino.formas.some((_, j) => tapadas.has(c.desde + j)));
   if (todas.length === 0) return null;
 
   // La prenda va primero; en el mismo lugar, la frase más larga; y con el mismo largo, la palabra con más peso.
@@ -198,7 +213,7 @@ export function sugerirCategoria(descripcion: string, categorias: readonly Categ
   if (regla) {
     const destino = categorias.find((c) => c.prefijo === regla.a);
     const despues = palabras.slice(primera + largo);
-    const i = despues.findIndex((p) => regla.con.some((c) => formas(c).join(" ") === p));
+    const i = despues.findIndex((p, j) => !tapadas.has(primera + largo + j) && regla.con.some((c) => formas(c).join(" ") === p));
     if (destino && i >= 0) {
       categoria = destino;
       palabra = textoOriginal(descripcion, primera + largo + i, 1);
@@ -207,17 +222,28 @@ export function sugerirCategoria(descripcion: string, categorias: readonly Categ
   return { categoriaId: categoria.id, nombre: categoria.nombre, palabra };
 }
 
+/** Lo que el sistema puso por su cuenta en la descripción: la descripción armada («Pantalones · Azul denim · Talla 28») y el nombre del
+ *  color elegido. Nada de eso lo escribió la persona: no es evidencia de qué prenda es. */
+export type LoQueArmoElSistema = { armada?: string | null; color?: string | null };
+
 /**
- * Lo que el modal le dice a la asesora, o `null` si no hay nada que decir: la descripción no nombra una prenda, o nombra justo la
+ * Lo que el modal le dice a la asesora, o `null` si no hay nada que decir: lo que ELLA escribió no nombra una prenda, o nombra justo la
  * categoría que ya eligió. Es el único lugar donde se decide CUÁNDO se muestra la sugerencia.
+ *
+ * Solo cuenta lo que escribió la persona (revisión adversarial de #975): «Escribiste «denim»» citaba una palabra que puso el sistema.
+ *   · la descripción armada sola no es evidencia (sale de la categoría elegida): `descripcionEscrita === null` → nada;
+ *   · si lo escrito EMPIEZA con la armada (le agregó detalles, como invita el pie), cuenta solo lo agregado;
+ *   · y el nombre del color elegido no delata una prenda, esté donde esté («Azul denim» con «Pantalones» no es un jean).
  */
 export function sugerenciaParaMostrar(
   descripcionEscrita: string | null,
   categoriaElegidaId: string,
   categorias: readonly CategoriaParaSugerir[],
+  sistema: LoQueArmoElSistema = {},
 ): CategoriaSugerida | null {
-  // La descripción que el sistema armó solo («Pantalones · Negro · Talla 28») no es evidencia: sale de la categoría elegida.
   if (descripcionEscrita === null) return null;
-  const s = sugerirCategoria(descripcionEscrita, categorias);
+  const { armada, color } = sistema;
+  const escrito = armada && descripcionEscrita.startsWith(armada) ? descripcionEscrita.slice(armada.length) : descripcionEscrita;
+  const s = sugerirCategoria(escrito, categorias, color ? [color] : []);
   return s && s.categoriaId !== categoriaElegidaId ? s : null;
 }

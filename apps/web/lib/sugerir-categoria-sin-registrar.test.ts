@@ -1,4 +1,6 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { sugerirDescripcion } from "./prenda-sin-registrar-reglas";
 import {
   SINONIMOS_POR_CATEGORIA,
   formas,
@@ -212,6 +214,91 @@ describe("cuándo se le muestra a la asesora (sugerenciaParaMostrar)", () => {
     for (let i = 0; i < 5; i++) expect(sugerirCategoria("Chaqueta jean oversize", CATEGORIAS)).toEqual(una);
   });
 });
+
+// Revisión adversarial de #975: con «Pantalones», talla 28 y el color «Azul denim», la descripción se arma sola («Pantalones · Azul denim ·
+// Talla 28»); apenas la asesora le agregaba « tiro alto» (lo que el pie la invita a hacer), el nombre del COLOR entraba a la búsqueda y
+// salía «Escribiste «denim»: ¿no será Jeans?», citando una palabra que puso el sistema. Solo cuenta lo que ella escribió.
+describe("solo cuenta lo que escribió la persona: ni la descripción armada ni el nombre del color", () => {
+  const PANTALONES = "id-PAN";
+  const AZD = "Azul denim";
+  const armada = (categoria: string, color: string, talla = "28") => sugerirDescripcion(categoria, color, talla)!;
+
+  it("los casos de la revisión: «denim» lo puso el sistema, no ella → nada", () => {
+    for (const extra of [" tiro alto", " palazzo"]) {
+      const d = armada("Pantalones", AZD) + extra;
+      expect(sugerenciaParaMostrar(d, PANTALONES, CATEGORIAS, { armada: armada("Pantalones", AZD), color: AZD }), d).toBeNull();
+    }
+    // Una camisa «Azul denim» no es un jean.
+    const camisa = armada("Camisas y Blusas", AZD, "M");
+    expect(sugerenciaParaMostrar(`${camisa} manga larga`, "id-CMS", CATEGORIAS, { armada: camisa, color: AZD })).toBeNull();
+    // Y si editó en medio (la armada ya no es el comienzo), el color sigue sin contar.
+    expect(sugerenciaParaMostrar("Pantalones tiro alto · Azul denim · Talla 28", PANTALONES, CATEGORIAS, { armada: armada("Pantalones", AZD), color: AZD })).toBeNull();
+  });
+
+  it("la descripción armada tampoco delata nada: una categoría creada sin deploy cuyo nombre empieza con otra prenda («Tops y Polos»)", () => {
+    const nueva: CategoriaParaSugerir = { id: "id-NUEVA", nombre: "Tops y Polos", prefijo: null };
+    const conNueva = [...CATEGORIAS, nueva];
+    const a = armada(nueva.nombre, "Negro", "M");
+    // Leída entera, «Tops» iría primero y sugeriría Tops: lo escribió el sistema, no ella.
+    expect(sugerirCategoria(`${a} tiro alto`, conNueva, ["Negro"])?.nombre).toBe("Tops");
+    expect(sugerenciaParaMostrar(`${a} tiro alto`, nueva.id, conNueva, { armada: a, color: "Negro" })).toBeNull();
+    // Lo que ella agrega sí cuenta.
+    expect(sugerenciaParaMostrar(`${a} jean`, nueva.id, conNueva, { armada: a, color: "Negro" })?.nombre).toBe("Jeans");
+  });
+
+  it("lo que ELLA agregó sí cuenta, y la palabra que se cita es la suya", () => {
+    const base = armada("Pantalones", AZD);
+    expect(sugerenciaParaMostrar(`${base} jean`, PANTALONES, CATEGORIAS, { armada: base, color: AZD })).toEqual({ categoriaId: "id-JEA", nombre: "Jeans", palabra: "jean" });
+    // Editando en medio, un pantalón que ella llamó «jean» sigue siendo un jean (la regla de refinar no mira el color).
+    expect(sugerenciaParaMostrar("Pantalones tiro alto · Azul denim · Talla 28 jean", PANTALONES, CATEGORIAS, { armada: base, color: AZD })?.palabra).toBe("jean");
+    // Con otro color, «denim» escrito por ella sí delata un jean.
+    const negro = armada("Pantalones", "Negro");
+    expect(sugerenciaParaMostrar("Pantalón denim · Negro · Talla 28", PANTALONES, CATEGORIAS, { armada: negro, color: "Negro" })?.nombre).toBe("Jeans");
+    // Y lo escrito de cero, sin la armada, se lee entero (los casos de AQP).
+    expect(sugerenciaParaMostrar("Jean mom azul denim", PANTALONES, CATEGORIAS, { armada: base, color: AZD })?.palabra).toBe("Jean");
+  });
+
+  it("TOTALIDAD sobre el control de color: TODOS los colores de las migraciones, con cada categoría activa, no sugieren nada por sí solos", () => {
+    const colores = coloresDeLasMigraciones();
+    // El lector no mira una lista vacía: la paleta tiene más de 80 colores, y «Azul denim» está.
+    expect(colores.length).toBeGreaterThan(80);
+    expect(colores).toContain(AZD);
+    for (const c of CATEGORIAS) {
+      for (const color of colores) {
+        const a = armada(c.nombre, color, "M");
+        expect(sugerenciaParaMostrar(`${a} tiro alto`, c.id, CATEGORIAS, { armada: a, color }), `${a} tiro alto`).toBeNull();
+        // Editada en medio: el nombre de la categoría elegida va primero; el color, ciego.
+        const enMedio = `${c.nombre} tiro alto · ${color} · Talla M`;
+        expect(sugerenciaParaMostrar(enMedio, c.id, CATEGORIAS, { armada: a, color }), enMedio).toBeNull();
+      }
+    }
+  });
+
+  it("y aunque un color futuro se llame como una prenda («Tono jean», «Rosa top»…), su nombre nunca delata una categoría", () => {
+    const palabras = Object.values(SINONIMOS_POR_CATEGORIA).flat();
+    for (const c of CATEGORIAS) {
+      for (const p of palabras) {
+        const color = `Tono ${p}`;
+        const enMedio = `${c.nombre} tiro alto · ${color} · Talla M`;
+        expect(sugerenciaParaMostrar(enMedio, c.id, CATEGORIAS, { armada: armada(c.nombre, color, "M"), color }), enMedio).toBeNull();
+      }
+    }
+  });
+});
+
+/** Los nombres de color que las migraciones dejan en `retail.colores` (sus `insert … values` y sus renombres). */
+function coloresDeLasMigraciones(): string[] {
+  const dir = new URL("../../../supabase/migrations/", import.meta.url);
+  const nombres = new Set<string>();
+  for (const archivo of readdirSync(dir).filter((f) => /^\d+_.*\.sql$/.test(f))) {
+    const sql = readFileSync(new URL(archivo, dir), "utf8");
+    for (const m of sql.matchAll(/insert into (?:retail\.)?colores\s*\([^)]*\)\s*values([\s\S]*?);/gi)) {
+      for (const t of m[1]!.matchAll(/\(\s*'([A-Z0-9]{2,4})'\s*,\s*'([^']+)'/g)) nombres.add(t[2]!);
+    }
+    for (const m of sql.matchAll(/update (?:retail\.)?colores\s+set\s+nombre\s*=\s*'([^']+)'/gi)) nombres.add(m[1]!);
+  }
+  return [...nombres];
+}
 
 describe("singular y palabras", () => {
   it.each([

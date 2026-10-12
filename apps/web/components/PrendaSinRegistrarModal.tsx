@@ -109,7 +109,10 @@ export function PrendaSinRegistrarModal({
   // ADR-0328 (decisión 6, rescatada de #788): si lo que la persona ESCRIBIÓ nombra otra prenda («Jean…» con Pantalones elegida), se le
   // sugiere esa categoría bajo la descripción. Nunca se aplica sola: ella toca «Cambiar a …» o la deja como está. Vale igual al corregir
   // lo anotado (ADR-0369): ahí es justo el caso de una venta escrita «Jean…» que caja guardó como Pantalones.
-  const categoriaSugerida = sugerenciaParaMostrar(descripcionEscrita, categoriaId, listas.categorias);
+  // Solo cuenta lo que escribió la persona: lo que el sistema armó (la descripción armada, el nombre del color) no delata una prenda.
+  const categoriaSugerida = sugerenciaParaMostrar(descripcionEscrita, categoriaId, listas.categorias, { armada: sugerencia, color: color?.texto ?? null });
+  // Al corregir, la descripción que trae la venta la escribió caja, no quien corrige: el pie lo dice así.
+  const escritaPorCaja = Boolean(corregir && descripcion === corregir.inicial.descripcion);
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
@@ -190,7 +193,7 @@ export function PrendaSinRegistrarModal({
       <span className="text-tinta/65">Se armó sola con lo que elegiste. Puedes agregarle detalles.</span>
     ) : descripcionEscrita !== null && sugerencia && descripcionEscrita.trim() !== sugerencia ? (
       <span className="flex flex-wrap items-baseline gap-x-2 text-tinta/65">
-        <span>{descripcion.trim() === "" ? "Vacía." : corregir && descripcion === corregir.inicial.descripcion ? "Escrita a mano en caja." : "Escrita por ti."}</span>
+        <span>{descripcion.trim() === "" ? "Vacía." : escritaPorCaja ? "Escrita a mano en caja." : "Escrita por ti."}</span>
         <button type="button" onClick={volverASugerencia} className="btn-cayla btn-enlace">
           Usar «{sugerencia}»
         </button>
@@ -199,7 +202,7 @@ export function PrendaSinRegistrarModal({
   const pieCategoria = categoriaSugerida ? (
     <span key={categoriaSugerida.categoriaId} className="anim-revelar mt-1 flex flex-wrap items-baseline gap-x-2 text-tinta/80" data-sugerencia-categoria>
       <span>
-        Escribiste «{categoriaSugerida.palabra}»: {categoria ? "¿no será" : "parece"}{" "}
+        {escritaPorCaja ? "Caja escribió" : "Escribiste"} «{categoriaSugerida.palabra}»: {categoria ? "¿no será" : "parece"}{" "}
         <span className="font-semibold text-tinta">{categoriaSugerida.nombre}</span>
         {categoria ? "?" : "."}
       </span>
