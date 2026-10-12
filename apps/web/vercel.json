@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "node \"$(git rev-parse --show-toplevel)/scripts/ci/vercel-ignorar.mjs\"",
   "regions": ["gru1"],
   "crons": [
     { "path": "/api/lucode/reintentar", "schedule": "*/5 * * * *" },
