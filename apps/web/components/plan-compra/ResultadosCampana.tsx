@@ -78,7 +78,7 @@ export function ResultadosCampana({ datos, campanas, falla }: { datos: unknown; 
         ) : (
           <div className="card-cayla">
             <Vacio icono={<ChartColumn />} titulo="Todavía no hay campañas">
-              Cuando un líder cree una campaña en la pestaña Plan, aquí ves lo que se vendió en ella.
+              Cuando se cree una campaña en la pestaña Plan, aquí ves lo que se vendió en ella.
             </Vacio>
           </div>
         )}

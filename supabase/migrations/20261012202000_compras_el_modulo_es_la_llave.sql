@@ -117,6 +117,17 @@ $v$,
 $v$,
   1);
 
+-- El % de lo que sobra (`guardar_plan_compra_recupero`, que trajo main con el PR #977, migración 20261012161000): también solo el módulo.
+select pg_temp.reemplazar(
+  'retail.guardar_plan_compra_recupero(uuid,integer)',
+  $v$  if retail.fn_es_lider() is not true then
+    raise exception 'Solo un líder fija a qué %% se vende lo que sobra' using errcode = '42501', hint = 'plan_compra_solo_lider';
+  end if;
+$v$,
+  $v$  -- ADR-0387 (Felipe 2026-10-12): el módulo es la llave en Compras; aquí ya no se pide además ser líder.
+$v$,
+  1);
+
 -- 2. Cambiar la tienda que gestiona un comprobante: el módulo Facturas de proveedor.
 select pg_temp.reemplazar(
   'retail.cambiar_tienda_gestora_compra(uuid,uuid)',
@@ -198,7 +209,7 @@ declare
 begin
   foreach v_firma in array array['retail.crear_plan_compra(uuid,text,date,date)', 'retail.editar_plan_compra(uuid,text,date,date)',
     'retail.quitar_plan_compra(uuid)', 'retail.restaurar_plan_compra(uuid)', 'retail.guardar_plan_compra_tope(uuid,numeric)',
-    'retail.cambiar_tienda_gestora_compra(uuid,uuid)'] loop
+    'retail.guardar_plan_compra_recupero(uuid,integer)', 'retail.cambiar_tienda_gestora_compra(uuid,uuid)'] loop
     if position('fn_es_lider' in pg_get_functiondef(v_firma::regprocedure)) > 0 then
       raise exception '% todavía pregunta si es líder', v_firma;
     end if;

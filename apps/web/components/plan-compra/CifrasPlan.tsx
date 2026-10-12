@@ -30,7 +30,7 @@ export function CifrasPlan({
   onSeguirLlenando: () => void;
   /** El tope de inversión: `soportado` = la base ya sabe de topes; `valor` null = sin tope. */
   tope: { soportado: boolean; valor: number | null };
-  /** Abre la hoja del tope; solo se pasa a quien puede fijarlo (un líder). Sin esto, el tope se ve pero no se edita. */
+  /** Abre la hoja del tope; solo se pasa a quien puede fijarlo (quien tiene el módulo Plan de campaña, ADR-0387). Sin esto, el tope se ve pero no se edita. */
   onTope?: () => void;
 }) {
   const verReal = estado !== "antes";

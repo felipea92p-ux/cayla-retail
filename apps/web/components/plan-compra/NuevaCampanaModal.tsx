@@ -28,7 +28,7 @@ import {
 // «Nueva campaña» del plan (ADR-0372, B3): el plan de una campaña NACE de una etiqueta «campaña» de Catálogo ▸ Etiquetas (una por etiqueta) y
 // arranca con su nombre y sus fechas. Las fechas del plan son del plan: una ventana de compra puede ser más ancha que la de venta
 // («Navidad» es del 11 al 25 y «Diciembre 2026» del 1 al 31), así que se pueden ajustar, y si difieren de las de la etiqueta la hoja lo dice.
-// Solo un líder la abre (la base lo exige también). Guía de foco (ADR-0284): `camposDeLaCampana` sale de la misma regla que la base.
+// La abre quien tiene el módulo Plan de campaña (la base lo exige también; ADR-0387: ya no solo un líder). Guía de foco (ADR-0284): `camposDeLaCampana` sale de la misma regla que la base.
 
 export function NuevaCampanaModal({ etiquetas, nombresEnUso, onClose }: { etiquetas: readonly EtiquetaCampana[]; nombresEnUso: readonly string[]; onClose: () => void }) {
   const router = useRouter();

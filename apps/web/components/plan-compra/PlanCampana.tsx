@@ -49,6 +49,9 @@ import type { LecturaMotor } from "@/lib/motor-demanda";
 // Formidable y chaos (2026-10-10, docs/formidable/compras-plan.md): UNA acción principal arriba («Empezar por …»); la vista «Paso a paso»
 // vive en la URL (`?vista=paso`), así «Atrás» vuelve a la tabla en vez de salir de la pantalla; y salir del paso a paso con algo escrito
 // pregunta antes de perderlo (la misma pieza que la hoja: `useSalidaSinGuardar`).
+//
+// Quién gestiona (ADR-0387, Felipe 2026-10-12): quien llega aquí ya tiene el módulo (la página lo exige), y con él crea, edita, quita y
+// restaura campañas y fija el tope, sea líder o no; la base lo vuelve a comprobar. Por eso no hay botones escondidos por rol.
 
 /** Marca, en el historial, la entrada que la pantalla agregó al pasar al paso a paso: volver a la tabla la retira en vez de apilar otra. */
 const MARCA_VISTA = "__planVistaPaso";
@@ -60,7 +63,6 @@ export function PlanCampana({
   preparacion,
   campanas,
   puedeContar,
-  esLider,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
 }: {
@@ -70,7 +72,6 @@ export function PlanCampana({
   preparacion: LecturaMotor;
   campanas: CampanasLeidas | null;
   puedeContar: boolean;
-  esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
   /** Los hechos para proponer flojo, normal y bueno y el % de lo que sobra (C4–C5), crudos; null = sin propuesta. */
@@ -152,7 +153,7 @@ export function PlanCampana({
               icono={<CalendarDays />}
               titulo={hayArchivadas ? "No hay campañas activas" : "Todavía no hay ninguna campaña para planificar"}
               acciones={
-                esLider && campanas ? (
+                campanas ? (
                   <>
                     <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
                       Nueva campaña
@@ -163,12 +164,8 @@ export function PlanCampana({
               }
             >
               {hayArchivadas
-                ? esLider
-                  ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Etiquetas."
-                  : "Las campañas que había están archivadas. Cuando un líder restaure o cree una, aquí se arma cuánto comprar."
-                : esLider
-                  ? "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría."
-                  : "Cuando un líder cree una campaña, aquí se arma cuánto comprar de cada categoría."}
+                ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Etiquetas."
+                : "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría."}
             </Vacio>
           </div>
         )}
@@ -209,7 +206,7 @@ export function PlanCampana({
                 campanas={campanas}
                 actualId={plan.plan.id}
                 hoy={plan.hoy}
-                puedeCrear={esLider}
+                puedeCrear
                 onNueva={() => setNuevaCampana(true)}
                 onEditar={() => setEditandoCampana(true)}
                 onArchivadas={() => setVerArchivadas(true)}
@@ -245,7 +242,7 @@ export function PlanCampana({
           guia="plan.archivada"
           titulo="Esta campaña está archivada"
           accion={
-            esLider && campanas ? (
+            campanas ? (
               <Boton peso="fantasma" onClick={() => setVerArchivadas(true)}>
                 Restaurar…
               </Boton>
@@ -266,18 +263,16 @@ export function PlanCampana({
       <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
       {hechos && hechos.planId === plan.plan.id && (
-        // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
+        // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva, y el botón para fijarlo.
         <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
           <span className="min-w-0 flex-1 basis-72">{fraseDelRecupero(hechos.recupero)}</span>
-          {esLider && (
-            <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
-              {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
-            </Boton>
-          )}
+          <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
+            {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
+          </Boton>
         </div>
       )}
 
-      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
+      <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={() => setEditandoTope(true)} />
 
       <ListaCategorias
         filas={filas}

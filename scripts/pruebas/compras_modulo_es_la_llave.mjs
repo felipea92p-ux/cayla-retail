@@ -363,10 +363,10 @@ for (const [modulo, esperado] of [["facturas_compra", "1"], ["existencias", "0"]
 
 // F. LA FORMA -----------------------------------------------------------------------------------------------------------
 caso(
-  "F1 ni el Plan (cinco funciones) ni la tienda gestora preguntan ya si es líder",
+  "F1 ni el Plan (seis funciones, con el % de lo que sobra) ni la tienda gestora preguntan ya si es líder",
   `select count(*) from unnest(array['retail.crear_plan_compra(uuid,text,date,date)', 'retail.editar_plan_compra(uuid,text,date,date)',
      'retail.quitar_plan_compra(uuid)', 'retail.restaurar_plan_compra(uuid)', 'retail.guardar_plan_compra_tope(uuid,numeric)',
-     'retail.cambiar_tienda_gestora_compra(uuid,uuid)']) f
+     'retail.guardar_plan_compra_recupero(uuid,integer)', 'retail.cambiar_tienda_gestora_compra(uuid,uuid)']) f
     where position('fn_es_lider' in pg_get_functiondef(f::regprocedure)) > 0;`,
   "0"
 );
