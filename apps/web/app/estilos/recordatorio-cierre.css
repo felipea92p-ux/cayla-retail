@@ -31,7 +31,7 @@
   z-index: 40; /* sobre la cabecera (30) y el lateral (40, al otro lado), bajo los modales (50) y el loader (60) */
   pointer-events: none;
   container: rcc / inline-size;
-  transition: left 300ms var(--ease-cayla);
+  /* Sin transición de `left`: salta con la cabecera al plegar el menú (ver la nota v3.6 de `AppShell`, 2026-10-10). */
 }
 .rcc-isla[data-nivel="2"] { --rcc-claro: color-mix(in srgb, var(--color-metodo-efectivo) 90%, var(--color-crema)); }
 .rcc-isla[data-nivel="3"] { --rcc-claro: color-mix(in srgb, var(--color-rojo) 85%, var(--color-crema)); }

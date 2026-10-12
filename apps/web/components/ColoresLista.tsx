@@ -97,8 +97,7 @@ function ordenar(lista: Color[]) {
 // (2026-09-18): con 34+ colores, un número global deja un color nuevo
 // "colgando" al final en vez de junto a sus parecidos, y la última fila
 // queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
-// propia fila — la de "Estampado" con 3 colores se ve completa, no como el
-// resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
+// propia fila, no el resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
 // viene dado por `ordenar()` (escala: gama y de claro a oscuro); cada gama es su propia grilla, así cada fila es una escala
 // pura y la claridad nunca «sube» a mitad de una fila (ADR-0314).
 function gruposPorFamilia(lista: Color[]) {

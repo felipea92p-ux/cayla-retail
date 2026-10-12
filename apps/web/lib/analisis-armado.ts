@@ -3,6 +3,18 @@
 
 import type { LlegadaPrenda, PrendaAnalisis, PrendaSede, SedeAnalisis } from "./analisis-tipos";
 import { totalEnTienda } from "./analisis-reglas";
+import { conPrecioDeLaSede } from "./precio-sede-reglas";
+
+/**
+ * Las prendas de MI tienda con el precio al que ESTA tienda las vende (Felipe 2026-10-10: la pantalla de una tienda usa el precio de
+ * esa tienda). La base (`fn_analisis_sede`) entrega el precio de la prenda (`variantes.precio`); aquí la que tiene precio propio en
+ * la tienda lo toma —la regla de `fn_precio_en_sede`— y de ahí salen «a precio de venta», «Ganas por cada una» y el precio del
+ * subtítulo. `propios` es lo de `getPreciosPorSede` para esta tienda (solo las excepciones). `undefined` o vacío: las mismas prendas.
+ * Las filas de las OTRAS tiendas no se tocan: de ellas solo se leen unidades y ventas, nunca su precio.
+ */
+export function conPreciosDeMiTienda(mias: PrendaSede[], propios: Readonly<Record<string, number>> | undefined): PrendaSede[] {
+  return conPrecioDeLaSede(mias, propios, (p) => p.varianteId);
+}
 
 /**
  * Las prendas de mi tienda con su red: cada una sabe cuánto tiene y vendió cada otra tienda (una fila por tienda, aunque sea

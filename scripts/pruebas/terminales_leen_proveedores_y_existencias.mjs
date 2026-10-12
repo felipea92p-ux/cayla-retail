@@ -20,7 +20,8 @@
  *     líder, toda). Es la comprobación que no se pudo hacer contra producción (hoy tiene 0 compras).
  *   · EXISTENCIAS. `fn_existencias` y `fn_existencias_productos` le devuelven a la terminal lo mismo que el núcleo.
  *   · EL BARRIDO. Toda lectura que se puede llamar sin argumentos y usa la puerta devuelve filas a la terminal cuando se
- *     las devuelve al líder. Es la prueba que habría atrapado el bug original, y atrapa el de la próxima función.
+ *     las devuelve al líder (con el módulo `plan_piso` dado a la terminal dentro del escenario: una lectura que además pide un módulo no
+ *     puede fallar por eso, porque el barrido mide la puerta y no los módulos). Es la prueba que habría atrapado el bug original, y atrapa el de la próxima función.
  *   · LA MIGRACIÓN. Se puede pegar dos veces sin cambiar nada, se detiene sin tocar si la puerta tiene otro cuerpo, deja
  *     UNA firma con los mismos permisos, y nada más (políticas, vistas) depende de la puerta.
  *
@@ -141,6 +142,14 @@ const APAGAR_SEDE = `update retail.ubicaciones set activo = false where id = :'s
 /** Como en producción, el rol «Terminal Almacén» ve los módulos de dinero de Compras (la base local no los siembra). */
 const MODULOS_DE_DINERO = `insert into retail.rol_modulos (rol_id, modulo)
   select retail.fn_rol_por_clave('terminal_administrativa'), m from unnest(array['facturas_compra', 'por_pagar', 'notas_credito']) m on conflict do nothing;\n`;
+
+/** Para el BARRIDO: una lectura que además de la puerta de retail pide un MÓDULO (`fn_ve_modulo`, ADR-0161: hoy las del Plan del piso, `plan_piso`) le dice 42501
+ *  a quien no lo ve, y eso es correcto, no un fallo de la puerta. Lo que el barrido mide es que la puerta conozca a las terminales, así que la terminal
+ *  administrativa recibe aquí el módulo (dentro del escenario, con ROLLBACK): si aun así una lectura no le devuelve filas, es la puerta. Es una lista
+ *  EXPLÍCITA y no «todos los delegables» a propósito: la base no deja darle a un rol de terminal los módulos que son solo de personas (Colaboradores…).
+ *  Si otra lectura sin argumentos empieza a pedir un módulo, el barrido fallará con su 42501 y el módulo se suma aquí. */
+const MODULOS_DE_LECTURA_CON_MODULO = `insert into retail.rol_modulos (rol_id, modulo)
+  select retail.fn_rol_por_clave('terminal_administrativa'), m from unnest(array['plan_piso']) m on conflict do nothing;\n`;
 
 let fallas = 0;
 let casos = 0;
@@ -278,7 +287,8 @@ caso(
 
 caso(
   "BARRIDO: toda lectura sin argumentos que usa la puerta le devuelve filas a la terminal cuando se las devuelve al líder (mínimo 3 revisadas)",
-  `create function pg_temp.barrido(p_lider text, p_terminal text) returns text language plpgsql as $f$
+  MODULOS_DE_LECTURA_CON_MODULO +
+    `create function pg_temp.barrido(p_lider text, p_terminal text) returns text language plpgsql as $f$
    declare r record; v_l bigint; v_t bigint; v_n integer := 0; v_malas text[] := '{}';
    begin
      for r in

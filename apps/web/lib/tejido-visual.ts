@@ -22,20 +22,29 @@ export type FamiliaTejido =
   | "algodon"
   | "pima"
   | "alpaca"
+  | "catania"
   | "denim"
   | "drill"
+  | "encaje"
   | "franela"
   | "gabardina"
+  | "gamuza"
   | "gasa"
   | "hilo"
   | "jersey"
   | "licra"
   | "lino"
   | "macrame"
+  | "mesh"
   | "mojado"
+  | "organza"
   | "oxford"
   | "pana"
+  | "papel_couche"
+  | "papel_kraft"
+  | "papel_opalina"
   | "pique"
+  | "plastico"
   | "polar"
   | "poliester"
   | "popelina"
@@ -46,6 +55,7 @@ export type FamiliaTejido =
   | "suplex"
   | "tela"
   | "terciopelo"
+  | "tnt"
   | "viscosa";
 
 // El orden importa cuando dos reglas pueden coincidir: "pima" antes que
@@ -59,6 +69,20 @@ export type FamiliaTejido =
 // misma función; una regla `\btela\b` le taparía la palabra «sarga». Se reconoce
 // solo cuando el nombre ENTERO es «Tela» (`FAMILIA_POR_NOMBRE_EXACTO`).
 const REGLAS: ReadonlyArray<readonly [FamiliaTejido, RegExp]> = [
+  // Los materiales de las bolsas (2026-10-11, ADR-0377): papel, TNT, organza y plástico no se parecen a ninguna tela de ropa, así que
+  // van primero y cada uno con su nombre propio. «Satín» NO está aquí: una bolsa de satén usa el Satín que ya existe (dibujo de seda).
+  ["papel_kraft", /\bkraft\b/],
+  ["papel_couche", /\b(couche|estucado)\b/],
+  ["papel_opalina", /\b(opalina|maule)\b/],
+  ["tnt", /\b(tnt|tokuyo|tela no tejida)\b/],
+  ["organza", /\borganza\b/],
+  ["plastico", /\b(plastico|polietileno)\b/],
+  // Los que producción tenía y salían «Sin muestra» (2026-10-11): encaje, gamuza, mesh y catania. Van antes que «hilo» y «algodón»:
+  // «Hilo de encaje» es un encaje, no un punto de hilo.
+  ["encaje", /\b(encaje|lace|guipur)\b/],
+  ["gamuza", /\b(gamuza|gamusa|gamuzad[oa]s?|suede)\b/],
+  ["mesh", /\b(mesh|malla)\b/],
+  ["catania", /\b(catania|katania)\b/],
   ["pima", /\bpima\b/],
   ["rib", /\b(rib|canale|acanalado)\b/],
   ["licra", /\b(licra|lycra|elastano|spandex)\b/],

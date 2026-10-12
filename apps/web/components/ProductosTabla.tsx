@@ -99,10 +99,14 @@ export function ProductosTabla({
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
   hrefLimpiar,
   preciosTienda = {},
+  preciosAqui,
 }: {
   productos: ProductoListado[];
-  /** Por prenda, las tiendas que la venden a otro precio (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
+  /** Por prenda, el precio en cada tienda (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
   preciosTienda?: Record<string, PrecioDeTienda[]>;
+  /** Los precios propios de la tienda elegida arriba (variante → precio). La fila, sus variantes y el margen usan ESE precio: el que
+   *  cobra la caja aquí (Felipe 2026-10-10). Sin tienda (CAYLA Global), el de la prenda. */
+  preciosAqui?: Record<string, number>;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   ubicacionId: string;
@@ -123,20 +127,23 @@ export function ProductosTabla({
   const pantalla = usePantallaActual();
   const filas = useMemo<Fila[]>(
     () =>
-      productos.map((p) => ({
-        p,
-        colores: coloresDe(p.variantes),
-        tallas: tallasDe(p.variantes),
-        precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
-        costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
-        margen: margenDe(variantesQueSeVenden(p.variantes)),
-        alerta: alertaDeStock(p),
-        lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
-        rotacion: describirRotacion(p.demandaDiaria),
-        descontinuado: p.estado !== "activo",
-        otrosPrecios: preciosTienda[p.productoId] ?? [],
-      })),
-    [productos, existencias, preciosTienda],
+      productos.map((original) => {
+        const p = conPrecioAqui(original, preciosAqui);
+        return {
+          p,
+          colores: coloresDe(p.variantes),
+          tallas: tallasDe(p.variantes),
+          precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
+          costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
+          margen: margenDe(variantesQueSeVenden(p.variantes)),
+          alerta: alertaDeStock(p),
+          lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
+          rotacion: describirRotacion(p.demandaDiaria),
+          descontinuado: p.estado !== "activo",
+          otrosPrecios: preciosTienda[p.productoId] ?? [],
+        };
+      }),
+    [productos, existencias, preciosTienda, preciosAqui],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -902,4 +909,10 @@ function BarraMarcadas({
       </button>
     </div>
   );
+}
+
+/** La prenda con el precio de la tienda elegida en cada variante que tiene uno propio ahí (la misma regla de `fn_precio_en_sede`). */
+function conPrecioAqui(p: ProductoListado, preciosAqui: Readonly<Record<string, number>> | undefined): ProductoListado {
+  if (!preciosAqui || !p.variantes.some((v) => preciosAqui[v.varianteId] !== undefined)) return p;
+  return { ...p, variantes: p.variantes.map((v) => (preciosAqui[v.varianteId] !== undefined ? { ...v, precio: preciosAqui[v.varianteId]! } : v)) };
 }

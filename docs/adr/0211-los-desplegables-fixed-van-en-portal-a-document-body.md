@@ -213,6 +213,11 @@ el calendario existe.
 
 **Lo vigila** `lib/combos-fuera-de-la-cascada.test.ts`: `CampoFecha` entró a su lista de paneles flotantes.
 
+**Al unir con `main` (2026-10-12):** `main` trajo el mismo arreglo por su lado, el mismo día que se unieron las ramas (la hoja
+de «Nueva campaña» recortaba el calendario, y un Escape en sus flechas cerraba también la hoja). Quedó la versión de `main`,
+con una sola cosa de aquí: abre hacia abajo solo si cabe entero (`{ entero: true }`), porque con la regla de las listas
+(160 px bastan) el calendario, de 340 px, quedaba cortado al pie de la pantalla.
+
 **Verificado en el navegador**, sobre el banco de pruebas:
 - En «Nueva orden de compra», con la guía encendida en la fecha: el calendario queda encima de «Lo que pides», a 6 px del
   campo. Teclado, clic, Escape y clic afuera funcionan.

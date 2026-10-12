@@ -1,7 +1,6 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { Ayuda } from "@/components/Ayuda";
 import { MarcasLista, type MarcaFila } from "@/components/MarcasLista";
 
 // Marcas del catálogo y qué proveedores las traen (ADR-0109, 20260918231000).
@@ -56,23 +55,5 @@ export default async function MarcasPage() {
       })),
   }));
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Marcas
-          <Ayuda titulo="Marcas">
-            De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca:
-            la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un
-            proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece
-            solo cuando ningún producto tiene la marca —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos
-            en Productos.
-          </Ayuda>
-        </h1>
-      </div>
-
-      <MarcasLista marcasIniciales={filas} proveedores={proveedores} puedeEditar={puede(persona, "editarCatalogo")} />
-    </div>
-  );
+  return <MarcasLista marcasIniciales={filas} proveedores={proveedores} puedeEditar={puede(persona, "editarCatalogo")} sede={persona.ubicacionEtiqueta} />;
 }

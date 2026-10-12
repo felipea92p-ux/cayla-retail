@@ -144,6 +144,47 @@ describe("armarNuevos", () => {
     expect(p!.colores).toEqual([{ nombre: "Vino", hex: "#6b2a35" }, { nombre: "Negro", hex: null }]);
   });
 
+  describe("el precio es el de la SEDE de quien mira (Felipe 2026-10-10)", () => {
+    const variantes = [
+      { id: "s", precio: 79.9, activo: true, color: { nombre: "Negro", hex: null } },
+      { id: "m", precio: 79.9, activo: true, color: { nombre: "Negro", hex: null } },
+    ];
+    const porSede = { tru: { s: 69.9, m: 69.9 }, aqp: { s: 59.9 } };
+    const nuevo = (ubicacionId: string, mapa: typeof porSede | Record<string, never> = porSede) =>
+      armarNuevos([fila("a", "2026-09-30T14:00:00Z", { variantes })], new Map(), null, AHORA, undefined, { porSede: mapa, ubicacionId })[0]!;
+
+    it("con precio propio, el de la tienda y la marca «Precio de esta tienda»", () => {
+      expect(nuevo("tru").precio).toBe(69.9);
+      expect(nuevo("tru").precioDeSede).toBe(true);
+    });
+    it("nunca el de OTRA tienda: cada cuenta lee solo el suyo", () => {
+      expect(nuevo("aqp").precio).toBe(59.9);
+      expect(nuevo("lim").precio).toBe(79.9);
+      expect(nuevo("lim").precioDeSede).toBeUndefined();
+    });
+    it("un precio propio MÁS ALTO que el de la prenda también gana", () => {
+      const [p] = armarNuevos([fila("a", "2026-09-30T14:00:00Z", { variantes })], new Map(), null, AHORA, undefined, { porSede: { lim: { s: 89.9, m: 89.9 } }, ubicacionId: "lim" });
+      expect(p!.precio).toBe(89.9);
+    });
+    it("solo una talla en el mapa (la otra ya vale igual): marca y mínimo salen bien", () => {
+      const [p] = armarNuevos([fila("a", "2026-09-30T14:00:00Z", { variantes })], new Map(), null, AHORA, undefined, { porSede: { tru: { m: 69.9 } }, ubicacionId: "tru" });
+      expect(p!.precio).toBe(69.9);
+      expect(p!.precioDeSede).toBe(true);
+    });
+    it("un precio propio de una talla inactiva no cuenta", () => {
+      const [p] = armarNuevos(
+        [fila("a", "2026-09-30T14:00:00Z", { variantes: [{ id: "s", precio: 79.9, activo: false, color: null }, { id: "m", precio: 79.9, activo: true, color: null }] })],
+        new Map(), null, AHORA, undefined, { porSede: { tru: { s: 50 } }, ubicacionId: "tru" },
+      );
+      expect(p!.precio).toBe(79.9);
+      expect(p!.precioDeSede).toBeUndefined();
+    });
+    it("si la lectura falló (la sede no está en el mapa) o no se pasó, el precio de la prenda: lo de siempre", () => {
+      expect(nuevo("tru", {}).precio).toBe(79.9);
+      expect(armarNuevos([fila("a", "2026-09-30T14:00:00Z", { variantes })], new Map(), null, AHORA)[0]!.precio).toBe(79.9);
+    });
+  });
+
   it("sin precios en ninguna variante, el precio es null y no cero", () => {
     const [p] = armarNuevos([fila("a", "2026-09-30T14:00:00Z", { variantes: [{ id: "1", precio: null, activo: true, color: null }] })], new Map(), null, AHORA);
     expect(p!.precio).toBeNull();

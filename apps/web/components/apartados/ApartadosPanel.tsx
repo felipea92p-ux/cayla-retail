@@ -11,6 +11,7 @@ import { TodosVista } from "@/components/apartados/TodosVista";
 import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -60,6 +61,14 @@ export function ApartadosPanel(props: Props) {
   const [opciones, setOpciones] = useState(false);
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
+  // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
+  // de la sede anterior y no están en las listas de esta. Lo que se estaba apartando lo guarda `TrabajoPorSede` (ver `ApartarVista`).
+  const [sedePrevia, setSedePrevia] = useState(props.ubicacionId);
+  if (props.ubicacionId !== sedePrevia) {
+    setSedePrevia(props.ubicacionId);
+    setElegido(null);
+    setPedidoParaApartar(null);
+  }
   const apagadas = props.apagadas ?? [];
   const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
 
@@ -150,7 +159,7 @@ export function ApartadosPanel(props: Props) {
           veClientas={props.veClientas}
           tiendas={props.tiendas ?? []}
           pedido={pedidoParaApartar}
-          key={pedidoParaApartar?.id ?? "apartar"}
+          key={claveDelApartado(props.ubicacionId, pedidoParaApartar?.id)}
           onPedidoHecho={() => setPedidoParaApartar(null)}
         />
       )}
@@ -178,7 +187,7 @@ export function ApartadosPanel(props: Props) {
       <EnCuerpo>
       <nav
         aria-label="Apartados"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral lg:hidden"
       >
         {pestañas.map((p) => (
           <button

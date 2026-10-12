@@ -2350,6 +2350,7 @@ export type Database = {
           activo: boolean
           codigo: string
           created_at: string
+          entra_a_motores: boolean
           exige_tejido_patron: boolean
           nombre: string
           orden: number
@@ -2358,6 +2359,7 @@ export type Database = {
           activo?: boolean
           codigo: string
           created_at?: string
+          entra_a_motores?: boolean
           exige_tejido_patron?: boolean
           nombre: string
           orden?: number
@@ -2366,6 +2368,7 @@ export type Database = {
           activo?: boolean
           codigo?: string
           created_at?: string
+          entra_a_motores?: boolean
           exige_tejido_patron?: boolean
           nombre?: string
           orden?: number
@@ -5181,6 +5184,24 @@ export type Database = {
         }
         Returns: string
       }
+      abrir_produccion_con_modelo_nuevo: {
+        Args: {
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_costo_avios?: number
+          p_costo_maquila?: number
+          p_costo_tela?: number
+          p_es_muestra?: boolean
+          p_fecha_entrega?: string
+          p_nota?: string
+          p_precio?: number
+          p_referencia: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       actualizar_campana_etiqueta: {
         Args: {
           p_categoria_ids: string[]
@@ -5341,7 +5362,13 @@ export type Database = {
       // Apartados con adelanto (ADR-0166, 20260923090000_separaciones.sql). Escritos a mano con la forma que da
       // `supabase gen types` (esta sesión no pudo levantar el stack): regenerar al pegar la migración en producción.
       buscar_separaciones: {
-        Args: { p_estados?: string[]; p_texto?: string; p_ubicacion_id: string }
+        Args: {
+          p_desde?: string
+          p_estados?: string[]
+          p_hasta?: string
+          p_texto?: string
+          p_ubicacion_id: string
+        }
         Returns: {
           adelanto: number
           asesora: string | null
@@ -5379,6 +5406,7 @@ export type Database = {
       }
 
       fn_candidatas_de_venta: { Args: { p_ubicacion_id: string }; Returns: { disponible: number; limpia: boolean; prenda_id: string; variante_id: string }[] }
+      fn_categoria_entra_a_motores: { Args: { p_categoria_id: string }; Returns: boolean }
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
@@ -7286,6 +7314,32 @@ export type Database = {
           total_productos: number
           variante_codigo: string
           variante_id: string
+        }[]
+      }
+      fn_productos_por_revisar: {
+        Args: { p_desde?: number; p_limite?: number }
+        Returns: {
+          categoria: string | null
+          categoria_familia: string | null
+          categoria_prefijo: string | null
+          codigo: string | null
+          color_hex: string | null
+          colores: string[]
+          creado_en: string
+          marca: string | null
+          ordenes_abiertas: number
+          precio_max: number | null
+          precio_min: number | null
+          producto_id: string
+          propuesto_por_nombre: string | null
+          referencia: string
+          sede: string | null
+          sede_tipo: string | null
+          stock: number
+          tallas: string[]
+          terminal: string | null
+          total: number
+          variantes: number
         }[]
       }
       fn_productos_resumen: {

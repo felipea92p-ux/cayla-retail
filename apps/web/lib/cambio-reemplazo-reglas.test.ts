@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparCatalogo, derivarReemplazo, opcionesDePrenda, seleccionDesdeLectura, type Seleccion, type VarianteCatalogo } from "./cambio-reemplazo-reglas";
+import { agruparCatalogo, derivarReemplazo, opcionesDePrenda, precioParaCambio, seleccionDesdeLectura, type Seleccion, type VarianteCatalogo } from "./cambio-reemplazo-reglas";
 import { validarCambio } from "./cambios-reglas";
 import type { LineaVentaReciente } from "./ventas-v2";
 
@@ -202,5 +202,36 @@ describe("seleccionDesdeLectura — escanear la prenda que se lleva (Felipe 2026
     const pp = agruparCatalogo(sinStock);
     expect(opcionesDePrenda({ ...linea, productoId: "otra" } as LineaVentaReciente, pp).map((o) => o.valor)).toEqual(["otra"]);
     expect(opcionesDePrenda({ ...linea, productoId: "otra" } as LineaVentaReciente, pp, "cinturon").map((o) => o.valor)).toEqual(["otra", "cinturon"]);
+  });
+});
+
+describe("precio de tienda en un cambio (Felipe 2026-10-10, «vale lo que pagó»)", () => {
+  const nueva = (extra: Partial<Parameters<typeof precioParaCambio>[1]> = {}) =>
+    ({ varianteId: "s", productoId: "falda", precio: 79.9, precioPrenda: 79.9, preciosPorTienda: { tru: 69.9 }, ...extra }) as Parameters<typeof precioParaCambio>[1];
+  it("la misma prenda en otra talla, cambiada en Lima, vale lo de la tienda donde se compró (TRU)", () => {
+    expect(precioParaCambio({ productoId: "falda", ubicacionVentaId: "tru" }, nueva())).toBe(69.9);
+  });
+  it("comprada en una tienda sin precio propio, vale el de la prenda aunque aquí tenga otro", () => {
+    expect(precioParaCambio({ productoId: "falda", ubicacionVentaId: "lim" }, nueva({ precio: 69.9 }))).toBe(79.9);
+  });
+  it("otra prenda es una venta nueva aquí: el precio de esta tienda", () => {
+    expect(precioParaCambio({ productoId: "blusa", ubicacionVentaId: "tru" }, nueva({ precio: 79.9 }))).toBe(79.9);
+  });
+  it("sin saber dónde se compró, el de esta tienda", () => {
+    expect(precioParaCambio({ productoId: "falda", ubicacionVentaId: null }, nueva({ precio: 79.9 }))).toBe(79.9);
+  });
+});
+
+describe("el precio que se muestra y la diferencia salen del mismo número (Cambios, pasos 3 y 4)", () => {
+  // Comprada en TRU a 69.90 (precio propio de TRU), cambiada de talla en Lima, donde vale 79.90.
+  const conTiendas = agruparCatalogo([
+    variante("l-negro", "polera", { talla: "L", color: "Negro", stockAqui: 2, precio: 79.9, precioPrenda: 79.9, preciosPorTienda: { tru: 69.9 } }),
+  ]);
+  const deTru = { ...linea, precioUnitario: 69.9, ubicacionVentaId: "tru" } as LineaVentaReciente;
+  it("la misma prenda: se muestra 69.90 y la diferencia es 0", () => {
+    const r = derivarReemplazo(deTru, conTiendas, sel({ talla: "L", color: "Negro" }));
+    expect(r.precioNueva).toBe(69.9);
+    expect(r.diferencia).toBeCloseTo((r.precioNueva ?? NaN) - deTru.precioUnitario);
+    expect(r.diferencia).toBeCloseTo(0);
   });
 });

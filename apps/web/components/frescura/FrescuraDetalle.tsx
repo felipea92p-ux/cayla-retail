@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
-import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import type { AccionDecision, TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
@@ -30,8 +31,34 @@ const ZONA: Record<Tramo | "nada", string> = {
 
 const TRASLADO: Record<"inicio" | "medio" | "fin", string> = { inicio: "translate-x-0", medio: "-translate-x-1/2", fin: "-translate-x-full" };
 
+/**
+ * ¿Cabe el nombre dentro de su zona? Con el ancho REAL de la regla (en el celular la hoja va a lo ancho: ~330 px; en escritorio, ~520): cada
+ * letra de 12 px ocupa ~7 px más el relleno. Lo que no cabe no se corta («Vige…», la ciega no supo leerlo, Formidable 2026-10-10 (c)): va
+ * debajo de la regla, con su muestra. Mientras no se midió, se supone el escritorio.
+ */
+const cabeElNombre = (nombre: string, anchoPct: number, reglaPx: number): boolean => (anchoPct / 100) * reglaPx >= nombre.length * 7 + 12;
+
+/** El ancho de un elemento, al día con su tamaño (null hasta medirlo). */
+function useAncho<T extends HTMLElement>(): [RefObject<T | null>, number | null] {
+  const ref = useRef<T | null>(null);
+  const [ancho, setAncho] = useState<number | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => setAncho(el.getBoundingClientRect().width || null);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, ancho];
+}
+
 function Regla({ regla }: { regla: ReglaVista }) {
   const alinearElla = regla.ella.pos < 8 ? "inicio" : regla.ella.pos > 92 ? "fin" : "medio";
+  const [refRegla, reglaPx] = useAncho<HTMLDivElement>();
+  const px = reglaPx ?? 520;
+  const sinLugar = regla.zonas.filter((z) => !cabeElNombre(z.nombre, z.ancho, px));
   return (
     <div className="relative mt-3.5 pt-7" role="img" aria-label={`Dónde cae entre las demás de su categoría: ${regla.ella.texto}`}>
       <span
@@ -41,7 +68,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
         <span className="whitespace-nowrap">{regla.ella.texto}</span>
         <span aria-hidden className="mt-0.5 h-6 w-0.5 rounded-sm bg-tinta" />
       </span>
-      <div className="flex h-6 overflow-hidden rounded-md shadow-[inset_0_0_0_1px_var(--color-taupe)]">
+      <div ref={refRegla} className="flex h-6 overflow-hidden rounded-md shadow-[inset_0_0_0_1px_var(--color-taupe)]">
         {regla.zonas.map((z, i) => (
           <span
             key={`${z.clave}-${i}`}
@@ -49,7 +76,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
             className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[12px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
             style={{ width: `${z.ancho}%` }}
           >
-            <span className="truncate">{z.nombre}</span>
+            {cabeElNombre(z.nombre, z.ancho, px) && <span className="truncate">{z.nombre}</span>}
           </span>
         ))}
       </div>
@@ -70,6 +97,16 @@ function Regla({ regla }: { regla: ReglaVista }) {
           </span>
         ))}
       </div>
+      {sinLugar.length > 0 && (
+        <ul aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-taupe">
+          {sinLugar.map((z, i) => (
+            <li key={`${z.clave}-${i}`} className="flex items-center gap-1.5">
+              <MuestraTramo clase={ZONA[z.clave]} />
+              {z.nombre}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

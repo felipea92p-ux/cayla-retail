@@ -8,8 +8,10 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede, nombreCortoSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
+import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
 
@@ -41,7 +43,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
 
   const supabase = await createClient();
   const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
-    getApartadosDeTienda(persona.ubicacionId),
+    // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
+    getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
@@ -99,28 +102,33 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     }));
 
   return (
-    <ApartadosPanel
-      ubicacionId={persona.ubicacionId}
-      ubicacionEtiqueta={persona.ubicacionEtiqueta}
-      abrir={abrir}
-      hoy={hoyLima()}
-      cajaAbierta={caja !== null}
-      puedeGestionar={puede(persona, "gestionarCaja")}
-      prendas={prendas}
-      apartados={datos.apartados}
-      resumen={datos.resumen}
-      liberadosAhora={datos.liberadosAhora}
-      hayMas={datos.hayMas}
-      avisos={datos.avisos}
-      apagadas={datos.apagadas}
-      // Buscar la ficha de la clienta es del módulo «Clientas» (ADR-0249, 2026-09-28): la base se lo rechaza a quien no lo tiene.
-      veClientas={veModulo(persona, "clientas")}
-      pedidos={datos.pedidos}
-      // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
-      tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
-      esLider={persona.rol === "lider"}
-      lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
-      redondeoEfectivo={resRedondeo.data === true}
-    />
+    // El apartado a medio armar es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`,
+    // sin cambiar la ruta. Apartar lleva la sede en su key (`claveDelApartado`) y `TrabajoPorSede`, que no cambia con la sede, guarda
+    // lo armado en la que se deja para retomarlo al volver.
+    <TrabajoPorSede key="apartados" ubicacionId={persona.ubicacionId}>
+      <ApartadosPanel
+        ubicacionId={persona.ubicacionId}
+        ubicacionEtiqueta={persona.ubicacionEtiqueta}
+        abrir={abrir}
+        hoy={hoyLima()}
+        cajaAbierta={caja !== null}
+        puedeGestionar={puede(persona, "gestionarCaja")}
+        prendas={prendas}
+        apartados={datos.apartados}
+        resumen={datos.resumen}
+        liberadosAhora={datos.liberadosAhora}
+        hayMas={datos.hayMas}
+        avisos={datos.avisos}
+        apagadas={datos.apagadas}
+        // Buscar la ficha de la clienta es del módulo «Clientas» (ADR-0249, 2026-09-28): la base se lo rechaza a quien no lo tiene.
+        veClientas={veModulo(persona, "clientas")}
+        pedidos={datos.pedidos}
+        // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
+        tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
+        esLider={persona.rol === "lider"}
+        lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
+        redondeoEfectivo={resRedondeo.data === true}
+      />
+    </TrabajoPorSede>
   );
 }

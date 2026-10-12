@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import type { FiltroAcaba } from "@/lib/analisis-acaba";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 
 // Análisis v4 (ADR-0357): lo que la pantalla le da a cada pestaña y a la ficha. Una pestaña no lee nada por su cuenta: todo
 // llega leído del servidor (`DatosAnalisis`) y filtrado por el buscador de la cabecera.
@@ -13,8 +14,9 @@ export type { FiltroAcaba };
 export type ContextoAnalisis = {
   datos: DatosAnalisis;
   acceso: AccesoAnalisis;
-  /** Las prendas de mi tienda que pasan el buscador (todas si no se busca nada). */
-  prendas: PrendaAnalisis[];
+  /** Los modelos de mi tienda (cada uno con todas sus tallas y colores, ADR-0357 decisión 12) que pasan el buscador (todos si no se
+   *  busca nada). */
+  prendas: ModeloAnalisis[];
   /** Cuántos días de ventas tiene la tienda en el ERP, hasta 30 (`diasDeVentas`): «vendiste 38 en 8 días». */
   diasDeVentas: number;
   /** Lo escrito en el buscador. */
@@ -29,6 +31,7 @@ export type ContextoAnalisis = {
   setCategoria: (c: string | null) => void;
   /** Una tienda por id (para «AQP tiene 3» y «o pedir a Arequipa»). */
   sedeDe: (id: string) => SedeAnalisis | undefined;
+  /** Abre el detalle de un modelo (su `varianteId`, que es el id del modelo). */
   abrirFicha: (varianteId: string) => void;
   /** Cambia de pestaña; con `foco`, deja a la vista ese grupo del carril y lo destella una vez. */
   irA: (vista: VistaAnalisis, opciones?: { foco?: string }) => void;

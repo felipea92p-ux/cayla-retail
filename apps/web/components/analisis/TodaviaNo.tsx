@@ -5,7 +5,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Anillo, ChipEstado, pct, Racha, TilePrenda, NombreCorto } from "@/components/analisis/piezas";
 import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
 import { esTallaUnica } from "@/lib/analisis-reglas";
-import { META_CON_PRENDA as META, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
+import { META_CON_PRENDA as META, pasoParaHablar, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { DIAS_SOSTENIDOS, fechaCorta } from "@/lib/motor-demanda-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Hourglass } from "lucide-react";
@@ -227,14 +227,7 @@ export function VistaTodaviaNo() {
   const primera = faltan[0] ?? null;
   const despues = faltan.slice(1).map((c) => TEXTO_FALTA[c]);
   // El botón de lo que falta primero, si la cuenta ve esa pantalla.
-  const boton =
-    primera === "venta_identificada" && acceso.regularizar && v.sinPrenda > 0
-      ? { href: "/inventario/por-regularizar", texto: `Registrar ${v.sinPrenda} sin prenda` }
-      : primera === "piso_cuadrado" && acceso.cuadrar
-        ? { href: "/inventario/cuadrar", texto: "Cuadrar el piso" }
-        : primera === "almacen_contado" && acceso.conteo
-          ? { href: "/inventario/conteo", texto: "Contar el almacén" }
-          : null;
+  const boton = pasoParaHablar(primera, v.sinPrenda, acceso);
   return (
     // La pieza única de vacío (ADR-0358, ronda 5): el reloj dice «todavía no», el título lo que falta primero; el anillo, la racha y
     // los botones siguen debajo, como antes. El chip «Sin datos» repetía el título y se fue.

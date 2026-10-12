@@ -261,6 +261,9 @@ export function motivoBloqueoCobro(v: {
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
+  // Un ticket que no cobra nada (solo la bolsa de obsequio, a S/ 0.00) no se puede cobrar ni emitir: la base rechaza una venta en S/ 0
+  // entera. Se dice aquí, con la causa, en vez de dejar «Elige cómo pagó el cliente» para un total que no tiene qué pagar.
+  if (v.total <= 0) return "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";

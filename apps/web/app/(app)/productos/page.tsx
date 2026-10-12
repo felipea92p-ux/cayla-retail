@@ -5,6 +5,7 @@ import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
 import {
   filtrosProductosDesdeParams,
   conSede,
@@ -14,8 +15,12 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
+  getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
+import { getDisponibleEnSede } from "@/lib/inventario-v2";
+import { cantidadCobrable } from "@/lib/vender-stock-local";
+import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
@@ -31,8 +36,11 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { urlRotulos } from "@/lib/rotulos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
+import { variantesQueSeVenden } from "@/lib/productos-vista";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -98,12 +106,13 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo").eq("activo", true).order("nombre"),
+    // Con su ficha (descripción y «combina con», ADR-0316): la vista rápida la lee bajo la foto del color que se mira (Felipe 2026-10-10).
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -112,6 +121,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("tallas").select("id, valor").eq("activo", true),
     // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
+    // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
+    // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
+    editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -129,19 +141,35 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas] = await Promise.all([
+  const [existencias, preciosTiendas, catalogoSede, pisoSede] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
     // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
     getPreciosDeLasTiendas(),
+    // «Combina bien con un jean o una cartera» en la vista rápida (Felipe 2026-10-10): el catálogo entero (la copia guardada que ya
+    // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
+    getCatalogo().catch(() => null),
+    getDisponibleEnSede(persona.ubicacionId).catch(() => null),
   ]);
+  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
+  // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
+  // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
+  // CAYLA Global no hay tienda: el de la prenda.
   const preciosTienda = preciosDeTiendaPorProducto(
-    resultado.productos.map((p) => ({ productoId: p.productoId, varianteIds: p.variantes.map((v) => v.varianteId) })),
+    resultado.productos.map((p) => {
+      const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
+      return {
+        productoId: p.productoId,
+        varianteIds: p.variantes.map((v) => v.varianteId),
+        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
+      };
+    }),
     preciosTiendas.porSede,
     preciosTiendas.nombres,
   );
+  const preciosAqui = enSede ? preciosTiendas.porSede[persona.ubicacionId] : undefined;
 
   const categoriasLeidas = exigir(categorias, "las categorías");
   const categoriasOpciones = categoriasLeidas.map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -153,6 +181,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return c ? { ...p, categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : p;
   });
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
+  const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({
+    codigo: c.codigo,
+    nombre: c.nombre,
+    hex: c.hex,
+    familiaColor: c.familia_color ?? "",
+    tipo: c.tipo,
+    descripcion: c.descripcion ?? null,
+    combinaCon: c.combina_con ?? [],
+  }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
     .map((t) => ({ id: t.id, nombre: t.valor }))
@@ -228,6 +265,23 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       />
 
 
+      {porRevisar !== null && porRevisar > 0 && (
+        // ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la rechace. Vive
+        // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
+        // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
+        <Aviso
+          tono="atencion"
+          titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
+          accion={
+            <Link href="/productos/por-revisar" className="btn-cayla btn-enlace text-[13px]">
+              Revisar
+            </Link>
+          }
+        >
+          La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
+        </Aviso>
+      )}
+
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
         // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
@@ -286,7 +340,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
-            preciosAqui={preciosTiendas.porSede[persona.ubicacionId]}
+            preciosAqui={preciosAqui}
+            colores={fichasDeColor}
+            tarjetasLook={tarjetasLook}
           />
         ) : (
           <ProductosTabla
@@ -301,6 +357,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             hrefLimpiar="/productos?vista=tabla"
             preciosTienda={preciosTienda}
+            preciosAqui={preciosAqui}
           />
         )}
 

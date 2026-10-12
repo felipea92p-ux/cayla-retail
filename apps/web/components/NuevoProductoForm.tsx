@@ -89,6 +89,7 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
+import { montoDeCelda } from "@/lib/tabla-alta-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
@@ -218,6 +219,8 @@ export function NuevoProductoForm({
   const [costoTocado, setCostoTocado] = useState(false);
   const [excluidas, setExcluidas] = useState<Set<string>>(new Set());
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
+  // El costo propio de una celda (pestaña «Costos» de la tabla, 2026-10-10); vacía = el costo de arriba.
+  const [overrideCosto, setOverrideCosto] = useState<Record<string, string>>({});
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
   // Las etiquetas creadas AQUÍ (campo «Etiquetas» del paso 2) se suman a las que trajo la página; si la página se relee
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
@@ -262,7 +265,7 @@ export function NuevoProductoForm({
   const fotoActual = fotoFormulario({
     categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
-    overridePrecio, etiquetasElegidas, cantidades, sinStock, lugarCarga,
+    overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
   const [fotoAlAbrir] = useState(fotoActual);
   const salida = useSalidaSinGuardar(
@@ -344,6 +347,7 @@ export function NuevoProductoForm({
     setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
+    setOverrideCosto({});
     setCantidades({});
     // Mientras la persona no haya escrito un costo, el que hay es el sugerido de la categoría ANTERIOR: al cambiar, se
     // reemplaza por el de la nueva o se vacía. Dejarlo sería guardar el costo de una blusa como el de un bolso.
@@ -363,6 +367,7 @@ export function NuevoProductoForm({
     setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
+    setOverrideCosto({});
   }
 
   function alternarColor(codigo: string) {
@@ -555,16 +560,21 @@ export function NuevoProductoForm({
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
-    const costo = costoBase.trim() === "" ? 0 : costoNum;
+    const costoDeTodas = costoBase.trim() === "" ? 0 : costoNum;
     const variantes = celdasIncluidas.map((c) => {
-      const o = overridePrecio[c.clave];
-      const precio = o !== undefined && o !== "" ? Number(o) : precioNum;
+      // Cada celda lleva su precio y su costo propios (pestañas «Precios» y «Costos» de la tabla); vacía = el de todas.
+      const precio = montoDeCelda(overridePrecio[c.clave], precioNum);
+      const costo = montoDeCelda(overrideCosto[c.clave], costoDeTodas);
       // Solo viaja la cantidad de la celda que tiene stock: sin la clave, la base no carga nada (y no inventa un cero).
       const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
       avisar.error("Una de las celdas tiene un precio inválido.");
+      return;
+    }
+    if (variantes.some((v) => !Number.isFinite(v.costo) || v.costo < 0)) {
+      avisar.error("Una de las celdas tiene un costo inválido.");
       return;
     }
     const conStock = stock.total > 0;
@@ -716,6 +726,7 @@ export function NuevoProductoForm({
     setColoresElegidos([]);
     setExcluidas(new Set());
     setOverridePrecio({});
+    setOverrideCosto({});
     // Las cantidades son de ESA prenda: la parecida se cuenta de nuevo. Dónde están (piso o almacén) sí se conserva.
     setCantidades({});
     setSinStock(false);
@@ -1132,6 +1143,9 @@ export function NuevoProductoForm({
               precioBase={precioBase}
               precios={overridePrecio}
               onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
+              costoBase={costoBase}
+              costos={overrideCosto}
+              onCosto={(clave, valor) => setOverrideCosto((prev) => ({ ...prev, [clave]: valor }))}
               destinoEtiqueta={destino.etiqueta}
               cantidadesCerradas={cargaCerrada ? avisoCarga : null}
             />
