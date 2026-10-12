@@ -51,6 +51,7 @@ export function TalonVenta({
     <button
       type="button"
       className="vsr-talon"
+      data-guia="regularizar.talon"
       data-vsr-talon={fila.id}
       data-saliendo={saliendo ? "" : undefined}
       aria-pressed={seleccionado}

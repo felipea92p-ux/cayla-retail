@@ -77,7 +77,7 @@ export function DetalleCategoriaResultados({
           </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-guia="plan-resultados.contra" className="grid gap-3 sm:grid-cols-2">
           <TarjetaCifra
             etiqueta={tienda === null ? "Contra lo esperado" : "Contra lo esperado · toda CAYLA"}
             valor={esperado ? (esperado.diferencia !== null ? pct(esperado.diferencia) : enteroES.format(esperado.vendidas)) : null}

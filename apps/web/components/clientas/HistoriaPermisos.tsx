@@ -32,7 +32,7 @@ export function HistoriaPermisos({ clientaId, clave }: { clientaId: string; clav
 
   // Plegada: es para cuando alguien pregunta «¿cuándo aceptó?», no para leerla cada vez que se abre la ficha.
   return (
-    <details className="card-cayla group p-4">
+    <details className="card-cayla group p-4" data-guia="clientas.ficha-permisos">
       <summary className="label-cayla flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] text-tinta/65 [&::-webkit-details-marker]:hidden">
         <span>
           Historial de permisos <span className="tabular-nums text-tinta/45">· {eventos.length}</span>

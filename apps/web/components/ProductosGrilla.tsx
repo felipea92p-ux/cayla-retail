@@ -22,7 +22,7 @@ import {
   type ExistenciasProducto,
 } from "@/lib/productos-stock";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
-import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
+import { useStockEnSede, type LugaresDeModelo, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import type { TarjetaLook } from "@/lib/combinar-reglas";
@@ -122,6 +122,7 @@ export function ProductosGrilla({
           veExistencias={veExistencias}
           veMovimientos={veMovimientos}
           stock={stockSede.de(p.productoId)}
+          lugares={stockSede.lugaresDe(p.productoId)}
           leer={leer}
           sede={sede}
           puedeEditar={puedeEditar}
@@ -143,6 +144,7 @@ function TarjetaProducto({
   veExistencias,
   veMovimientos,
   stock,
+  lugares,
   leer,
   sede,
   puedeEditar,
@@ -164,6 +166,8 @@ function TarjetaProducto({
   veMovimientos: boolean;
   /** Stock de este modelo en la sede (`useStockEnSede`, leído una vez para toda la página). */
   stock: StockDeModelo;
+  /** Lo mismo, repartido por lugar (piso, almacén): lo usa la vista rápida para decir dónde está cada unidad. */
+  lugares: LugaresDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
   puedeEditar: boolean;
@@ -193,7 +197,7 @@ function TarjetaProducto({
   const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
 
   return (
-    <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+    <div data-guia="productos.tarjeta" className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
       <button
         type="button"
         onClick={() => setVistaRapida(true)}
@@ -227,7 +231,7 @@ function TarjetaProducto({
 
       <div className={`flex flex-1 flex-col ${compacta ? "gap-2 px-3 py-3" : "gap-2.5 px-4 py-4"}`}>
         <div>
-          <p className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
+          <p data-guia="productos.nombre" className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
           <p className="label-cayla mt-0.5 truncate text-[10px] text-tinta/55">
             {compacta ? (producto.codigo ?? "sin código") : `${producto.codigo ?? "sin código"} · ${producto.categoria ?? "sin categoría"}`}
           </p>
@@ -237,7 +241,7 @@ function TarjetaProducto({
         </div>
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
+        <div data-guia="productos.precio-stock" className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">
             {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
             {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => preciosAqui?.[v.varianteId] ?? v.precio)) ?? "—"}
@@ -285,7 +289,7 @@ function TarjetaProducto({
             {[lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ")}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2">
+        <div data-guia="productos.colores" className="flex items-center justify-between gap-2">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
           <span className="min-w-0 truncate text-right text-[11px] text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
         </div>
@@ -295,6 +299,7 @@ function TarjetaProducto({
         <VistaRapidaProducto
           producto={producto}
           stock={stock}
+          lugares={lugares}
           leer={leer}
           sede={sede}
           existencias={existencias}

@@ -152,6 +152,7 @@ export function ComprobanteProduccionForm({
   return (
     <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
       <form onSubmit={guardar} className="space-y-5">
+        <div data-guia="prod-factura-nueva.proveedor">
         <CampoSelect
           etiqueta="Proveedor"
           valor={proveedorId}
@@ -159,9 +160,10 @@ export function ComprobanteProduccionForm({
           opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
           marcador="Elige un proveedor…"
         />
+        </div>
         {proveedores.length === 0 && <p className="-mt-3 text-xs text-tinta/65">Todavía no hay proveedores de Producción. Agrégalos en Proveedores.</p>}
 
-        <div>
+        <div data-guia="prod-factura-nueva.documento">
           <p className="label-cayla text-[11px] text-tinta/65">Documento</p>
           <div className="mt-1.5 grid gap-3 sm:grid-cols-[auto_6rem_1fr_9.5rem]">
             <SegmentoDeslizante
@@ -185,7 +187,7 @@ export function ComprobanteProduccionForm({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-guia="prod-factura-nueva.condicion" className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="label-cayla text-[11px] text-tinta/65">¿Cómo se paga?</p>
             <SegmentoDeslizante
@@ -194,8 +196,8 @@ export function ComprobanteProduccionForm({
               valor={condicion}
               onCambio={(c) => setCondicion(c as CondicionComprobante)}
               opciones={[
-                { clave: "credito", etiqueta: "Crédito" },
-                { clave: "contado", etiqueta: "Contado" },
+                { clave: "credito", etiqueta: "Crédito", guia: "prod-factura-nueva.credito" },
+                { clave: "contado", etiqueta: "Contado", guia: "prod-factura-nueva.contado" },
               ]}
             />
           </div>
@@ -216,7 +218,7 @@ export function ComprobanteProduccionForm({
           )}
         </div>
 
-        <fieldset>
+        <fieldset data-guia="prod-factura-nueva.lineas">
           <legend className="label-cayla text-[11px] text-tinta/65">Qué se compró · costo unitario sin IGV</legend>
           <ul className="mt-2 space-y-2">
             {lineas.map((l, i) => {
@@ -284,7 +286,7 @@ export function ComprobanteProduccionForm({
           </button>
         </fieldset>
 
-        <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+        <dl data-guia="prod-factura-nueva.totales" className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
           <div className="flex justify-between gap-3 px-3 py-2">
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{soles(totales.subtotal)}</dd>
@@ -299,9 +301,13 @@ export function ComprobanteProduccionForm({
           </div>
         </dl>
 
-        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />}
+        {condicion === "contado" && (
+          <div data-guia="prod-factura-nueva.medios">
+            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+          </div>
+        )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-guia="prod-factura-nueva.papel" className="grid gap-3 sm:grid-cols-2">
           <CampoTexto
             etiqueta="Total impreso en el papel"
             inputMode="decimal"
@@ -313,7 +319,7 @@ export function ComprobanteProduccionForm({
           <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} />
         </div>
 
-        <div className="space-y-1.5">
+        <div data-guia="prod-factura-nueva.registrar" className="space-y-1.5">
           <p className="min-h-4 text-xs text-tinta/65" role="status">
             {error && (proveedorId || serie || numero || totales.lineasCompletas > 0) ? error : ""}
           </p>

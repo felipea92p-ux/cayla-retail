@@ -139,7 +139,7 @@ export function HistorialCampanas({
       {cabecera}
       <PestanasPlan activa="historial" />
 
-      <nav aria-label="Año" className="flex flex-wrap gap-2">
+      <nav aria-label="Año" data-guia="plan-historial.anios" className="flex flex-wrap gap-2">
         {aniosConHistoria(historial).map((a) => (
           <Link key={a} href={`/compras/plan/historial?anio=${a}`} className="pildora-cayla" aria-current={a === anio ? "page" : undefined}>
             {a}
@@ -147,7 +147,7 @@ export function HistorialCampanas({
         ))}
       </nav>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-guia="plan-historial.tiendas" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiendas.map((t) => {
           const total = totalDelAnio(historial, t.id, anio);
           return (
@@ -166,9 +166,9 @@ export function HistorialCampanas({
         })}
       </div>
 
-      <Tabla>
+      <Tabla guia="plan-historial.tabla">
         {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. Por fecha es el orden de siempre. */}
-        <div className="flex flex-wrap items-center gap-3 px-5 py-3">
+        <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
           <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
         </div>
@@ -193,6 +193,7 @@ export function HistorialCampanas({
             key={campana.clave}
             type="button"
             onClick={() => setAbierta(campana)}
+            data-guia="plan-historial.fila"
             className="fila-cayla grid w-full cursor-pointer gap-x-4 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline"
             style={{ gridTemplateColumns: columnas }}
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}

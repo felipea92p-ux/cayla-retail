@@ -9,7 +9,7 @@ import { repartir, type TiendaReparto } from "@/lib/plan-compra-reparto";
 export function RepartoTiendas({ objetivo, tiendas, taller }: { objetivo: number; tiendas: readonly TiendaReparto[]; /** Lo que hay en el Taller (de donde se manda primero). */ taller: number }) {
   const r = repartir(objetivo, tiendas);
   return (
-    <div className="mt-4 border-t border-sand pt-3">
+    <div data-guia="plan-modal.reparto" className="mt-4 border-t border-sand pt-3">
       <p className="flex items-center gap-1.5 text-[13px] font-semibold text-tinta">
         Cómo se reparte entre tiendas
         <Ayuda titulo="El reparto">

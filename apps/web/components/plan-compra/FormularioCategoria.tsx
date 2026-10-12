@@ -197,7 +197,7 @@ export function FormularioCategoria({
     // Todos los títulos de la guía con el mismo alto: el que dice «Sigue aquí» medía 21 px y los demás 24,5, y la caja de abajo subía 3 px cada
     // vez que la luz pasaba al siguiente campo (ADR-0185: nada se mueve bajo el mouse).
     <form onSubmit={guardar} className="space-y-6 [&_[data-campo]>p:first-child]:min-h-6.5">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+      <div data-guia="plan-modal.historia" className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
         <span>
           Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en 90 días
           {ventas30 !== null && (
@@ -217,7 +217,7 @@ export function FormularioCategoria({
           ) : (
             // C4 (Felipe 2026-10-12): la propuesta a la vista —las tres cifras grandes, cada una con su «!» que dice de dónde salió, como en
             // Productos— y un botón principal que las pone en las cajas. Una cifra ya puesta lleva su ✓.
-            <div className="basis-full rounded-xl border border-sand bg-papel p-3.5">
+            <div data-guia="plan-modal.propuesta" className="basis-full rounded-xl border border-sand bg-papel p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[13px] font-semibold text-tinta">Lo que propone el sistema</p>
                 <Boton
@@ -275,7 +275,7 @@ export function FormularioCategoria({
         )}
       </div>
 
-      <fieldset>
+      <fieldset data-guia="plan-modal.escenarios">
         <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en diciembre?</legend>
         <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si el mes va flojo, normal o bueno.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
@@ -291,7 +291,7 @@ export function FormularioCategoria({
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div data-guia="plan-modal.precios" className="grid gap-4 sm:grid-cols-2">
         <CampoGuiado id="precio" guia={guia} titulo="Precio de venta">
           <CampoMonto
             etiqueta={<span className="sr-only">Precio de venta, promedio de la categoría</span>}
@@ -313,7 +313,7 @@ export function FormularioCategoria({
       </div>
 
       <CampoGuiado id="recupero" guia={guia} titulo="Lo que sobre, ¿a qué % del precio lo vendes?">
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+        <div data-guia="plan-modal.recupero" className="flex flex-wrap items-start gap-x-4 gap-y-1">
           <div className="flex w-32 items-center gap-2">
             <div className="min-w-0 flex-1">
               <CampoTexto etiqueta="Lo que sobre, en % del precio" caja inputMode="numeric" value={b.recupero} onChange={(e) => cambiar("recupero")(soloDigitos(e.target.value))} />
@@ -331,6 +331,7 @@ export function FormularioCategoria({
         </div>
       </CampoGuiado>
 
+      <div data-guia="plan-modal.curva">
       <CampoGuiado id="curva" guia={guia} titulo="Curva de tallas" ayuda={`Suma ${sumaCurva} %`}>
         {tallas.length === 0 ? (
           <p className="text-sm text-tinta/70">Esta categoría no tiene tallas cargadas: se compra el total.</p>
@@ -367,8 +368,9 @@ export function FormularioCategoria({
           </div>
         )}
       </CampoGuiado>
+      </div>
 
-      <div className="rounded-xl bg-hueso px-4 py-3">
+      <div data-guia="plan-modal.porque" className="rounded-xl bg-hueso px-4 py-3">
         {calculo ? (
           <>
             <p className="text-sm text-tinta/80">
@@ -400,7 +402,7 @@ export function FormularioCategoria({
         <ComboResponsable control={responsable} deshabilitado={guardando} />
       </CampoGuiado>
 
-      <div className={enPantalla ? "space-y-1" : "pie-hoja-fijo"}>
+      <div data-guia="plan-modal.pie" className={enPantalla ? "space-y-1" : "pie-hoja-fijo"}>
         {/* La respuesta, siempre a la vista mientras se escribe (antes quedaba al fondo de la hoja, fuera de la pantalla). */}
         <p className="flex flex-wrap items-baseline gap-x-2 pt-1" aria-live="polite">
           {calculo ? (

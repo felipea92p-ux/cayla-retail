@@ -80,6 +80,7 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
                   {/* La fila entera es el enlace (el conteo en curso también: allí se sigue contando); al pasar el mouse, la hora de cierre. */}
                   <Link
                     href={`/inventario/conteo/${c.id}`}
+                    data-guia="conteo.fila"
                     title={textoAperturaCierre(c)}
                     className={`${FILA_ACTIVIDAD} focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo`}
                   >

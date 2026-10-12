@@ -101,8 +101,17 @@ const HUELLAS: Huella[] = [
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
   },
   {
+    // ADR-0328 (20261004204000, en producción desde el 5-oct): llega con 42501 y este hint; la frase es la misma de la base.
+    // Sin esta huella caía al genérico con «avisa a Felipe. Código: …», y no es un rechazo del combo «Responsable».
+    marca: "regularizar_propia_venta",
+    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
+  },
+  {
+    // Desde 20261004204000 «Perdió la etiqueta» descuenta solo de lo DISPONIBLE (como las cifras de la mesa): las apartadas y las
+    // de Cuarentena no se descuentan, aunque la tienda las tenga.
     marca: "prenda_sin_stock_para_descontar",
-    frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
+    frase:
+      "Esa prenda no tiene unidades libres en esta tienda (las apartadas y las de Cuarentena no cuentan). Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
   },
   {
     // Toda RPC que llama la web tiene EXECUTE para `authenticated`; si Postgres dice «permission denied for
@@ -167,6 +176,13 @@ const HUELLAS: Huella[] = [
     // navegador. El detalle es «referencia (sku)».
     marca: "venta_precio_cambiado",
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
+  },
+  {
+    // 20261012190000_precio_cero_solo_empaque.sql (ADR-0384) — una prenda de mercadería con precio 0 en el catálogo no se vende
+    // (solo la bolsa de obsequio, de Empaque, va en S/ 0). La caja ya no la deja entrar al ticket; esto es la red si llega igual
+    // (una venta sin conexión, una pantalla vieja). El detalle es «referencia (sku)».
+    marca: "venta_sin_precio",
+    frase: (prenda) => `${prenda} no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.`,
   },
   {
     // 20260917100700_movimientos_respetan_restriccion_sede.sql — una etiqueta con

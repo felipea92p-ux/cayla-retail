@@ -582,6 +582,103 @@ select retail.registrar_venta(:'ubic',
 );
 
 // ---------------------------------------------------------------------------
+// ADR-0384: una prenda sin precio no se vende (el 0 solo vale en una familia fuera de los motores)
+// ---------------------------------------------------------------------------
+// Antes, `registrar_venta` solo comparaba el precio de la caja con el del catálogo: 0 = 0 pasaba, y una prenda con el precio olvidado
+// salía de la tienda a S/ 0.00 junto con otra que sí se cobraba (y, por `itemsParaLucode`, sin declararse a SUNAT).
+
+/** Le pone 5 unidades a BLU-EMMA-NEG-S (`:v0`) en el piso de la sede, con precio de catálogo 0. Va DESPUÉS de `fixture()`. */
+const prendaEnCero = `
+select id as v0 from retail.variantes where sku = 'BLU-EMMA-NEG-S' \\gset
+update retail.variantes set precio = 0 where id = :'v0';
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v0', :'ubic', :'sub_piso', 'entrada', 5, 'colchón de prueba') returning id as mov0 \\gset
+select retail.fn_aplicar_movimiento(:'mov0') as _d0 \\gset
+`;
+
+error(
+  "una prenda de mercadería con precio 0 no se vende, aunque vaya junto a otra que sí se cobra (venta_sin_precio)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+${prendaEnCero}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(
+    jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0),
+    jsonb_build_object('variante_id', :'v0', 'cantidad', 1, 'precio_unitario', 0, 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric)),
+  null, gen_random_uuid());
+rollback;
+`
+  ),
+  "venta_sin_precio"
+);
+
+exito(
+  "en una familia fuera de los motores (la bolsa de obsequio) el precio 0 sí se vende, y descuenta su stock",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+${prendaEnCero}
+update retail.familias set entra_a_motores = false
+  where codigo = (select c.familia from retail.categorias c join retail.productos p on p.categoria_id = c.id
+                   join retail.variantes v on v.producto_id = p.id where v.id = :'v0');
+select coalesce((select sum(cantidad) from retail.stock where variante_id = :'v0' and ubicacion_id = :'ubic'), 0) as stock_v0_antes \\gset
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(
+    jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0),
+    jsonb_build_object('variante_id', :'v0', 'cantidad', 1, 'precio_unitario', 0, 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric)),
+  null, gen_random_uuid()) as venta_id \\gset
+select
+  (select count(*) from retail.venta_items where venta_id = :'venta_id'),
+  coalesce((select sum(cantidad) from retail.stock where variante_id = :'v0' and ubicacion_id = :'ubic'), 0) - :'stock_v0_antes';
+rollback;
+`
+  ),
+  ([items, deltaStock]) => Number(items) === 2 && Number(deltaStock) === -1
+);
+
+exito(
+  "una prenda con precio base 0 y precio propio de la tienda se vende al de la tienda (se mira el precio que se cobra)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select producto_id as p1 from retail.variantes where id = :'v1' \\gset
+select retail.poner_precio_sede(:'p1', :'ubic', 70, 'prueba automatizada') as _ps \\gset
+update retail.variantes set precio = 0 where id = :'v1';
+select retail.fn_precio_en_sede(:'v1', :'ubic') as precio_tienda \\gset
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'precio_tienda', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'precio_tienda')::numeric)),
+  null, gen_random_uuid()) as venta_id \\gset
+select :'precio_tienda'::numeric, (select precio_unitario from retail.venta_items where venta_id = :'venta_id');
+rollback;
+`
+  ),
+  ([precioTienda, cobrado]) => Number(precioTienda) === 70 && Number(cobrado) === 70
+);
+
+exito(
+  "una «Prenda sin registrar» (la variante centinela vale S/ 0 y no tiene familia) se sigue vendiendo con lo que anota caja",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select p.categoria_id as cat, v.talla_id as talla, v.color_codigo as color
+  from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'v1' \\gset
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', '22222222-2222-4222-8222-222222222222', 'cantidad', 1, 'precio_unitario', 45,
+    'descuento_unitario', 0, 'descripcion_libre', 'Blusa sin etiqueta', 'categoria_id', :'cat', 'talla_id', :'talla', 'color_codigo', :'color')),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 45)),
+  null, gen_random_uuid()) as venta_id \\gset
+select count(*) from retail.prendas_por_regularizar pr join retail.venta_items vi on vi.id = pr.venta_item_id where vi.venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([enCola]) => Number(enCola) === 1
+);
+
+// ---------------------------------------------------------------------------
 
 function main() {
   try {

@@ -176,7 +176,7 @@ export function ResultadosCampana({
       {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
       {r.tiendas.length > 1 && (
-        <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Tienda" data-guia="plan-resultados.tiendas" className="flex flex-wrap gap-2">
           <button type="button" className="pildora-cayla" aria-pressed={tienda === null} onClick={() => setTienda(null)}>
             Todas
           </button>
@@ -188,7 +188,7 @@ export function ResultadosCampana({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-guia="plan-resultados.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {enCurso && <TarjetaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} />}
         <TarjetaCifra etiqueta="Toda CAYLA" valor={enteroES.format(total.unidades)} unidad="prendas">
           {solesES(total.soles)}
@@ -206,9 +206,9 @@ export function ResultadosCampana({
 
       {enCurso && enCurso.piden.length > 0 && <SenalesCampana senales={enCurso.piden} faltan={enCurso.faltan} veAnalisis={veAnalisis} />}
 
-      <Tabla>
+      <Tabla guia="plan-resultados.tabla">
         {/* Buscar y ordenar (Felipe 2026-10-12): como en el Historial, en la misma tarjeta que la tabla. «Más vendidas» es el de siempre. */}
-        <div className="flex flex-wrap items-center gap-3 px-5 py-3">
+        <div data-guia="plan-resultados.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una categoría o familia" etiqueta="Buscar una categoría o familia" atajo conteo={q ? `${categorias.length} de ${todasLasCategorias.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
           <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenResultados)} opciones={ORDENES_RESULTADOS} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
         </div>
@@ -244,6 +244,7 @@ export function ResultadosCampana({
               key={c.id}
               type="button"
               onClick={() => setAbierta(c)}
+              data-guia="plan-resultados.fila"
               aria-label={`Ver el detalle de ${c.nombre}`}
               className={`fila-cayla grid w-full cursor-pointer gap-x-6 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline ${PLANTILLA}`}
             >
@@ -277,7 +278,7 @@ export function ResultadosCampana({
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card-cayla p-5">
+        <section data-guia="plan-resultados.prendas" className="card-cayla p-5">
           <h2 className="font-serif text-lg text-tinta">Las prendas que más vendieron</h2>
           {prendas.length === 0 ? (
             <p className="mt-2 text-sm text-taupe">Todavía ninguna.</p>
@@ -296,7 +297,7 @@ export function ResultadosCampana({
             </ol>
           )}
         </section>
-        <section className="card-cayla p-5">
+        <section data-guia="plan-resultados.colores" className="card-cayla p-5">
           <h2 className="font-serif text-lg text-tinta">Por color y por familia</h2>
           {colores.length === 0 ? (
             <p className="mt-2 text-sm text-taupe">Todavía ninguno.</p>
@@ -319,7 +320,7 @@ export function ResultadosCampana({
 
       {/* Lo que deja la campaña para la próxima es un dato, no una definición: queda a la vista (las definiciones van en el «!»). */}
       {conMultiplicador.length > 0 && momento === "terminada" && (
-        <p className="nota-cayla">
+        <p className="nota-cayla" data-guia="plan-resultados.proxima">
           Para la próxima: {conMultiplicador.map((x) => `${x.t.nombre} ${textoMultiplicador(x.m!)}`).join(", ")}
           {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números en vez de × 3.
         </p>

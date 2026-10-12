@@ -15,7 +15,7 @@ const pct = (n: number) => `${Math.round(n * 100)} %`;
 
 export function CierreCampana({ c, veAnalisis }: { c: Cierre; veAnalisis: boolean }) {
   return (
-    <section className="space-y-4">
+    <section data-guia="plan-resultados.cierre" className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <TarjetaCifra etiqueta="Vendido a precio lleno" valor={pct(c.pctLleno)}>
           de lo que había para la campaña

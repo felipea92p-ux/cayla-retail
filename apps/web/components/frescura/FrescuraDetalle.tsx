@@ -235,7 +235,7 @@ export function FrescuraDetalle({
       ) : (
         <>
           <Bloque primero>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div data-guia="frescura.detalle-estado" className="flex flex-wrap items-center gap-x-3 gap-y-2">
               {detalle.dias !== null && (
                 <span className="font-display text-[30px] font-semibold leading-none tabular-nums">
                   {detalle.dias}
@@ -293,7 +293,7 @@ export function FrescuraDetalle({
                 <FrescuraQuitar decisionId={decision.vigenteId} sede={decision.sede} onNo={() => setModo("detalle")} onListo={cerrar} />
               </div>
             ) : (
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div data-guia="frescura.decidir" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
                 {puedeDecidir && bloque.estado === "vigente" && (
                   <button type="button" className="btn-cayla btn-secundario" onClick={() => setModo("decidir")}>
                     Anotar otra decisión
@@ -356,7 +356,7 @@ export function FrescuraDetalle({
           </Bloque>
 
           <Bloque titulo={`Tallas en ${sede}`}>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
+            <div data-guia="frescura.detalle-tallas" className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
               {detalle.tallas.map((t) => (
                 <div key={t.varianteId} className="rounded-[10px] bg-hueso px-2.5 py-2 text-[12.5px] leading-normal">
                   <b className="block text-[13px] font-semibold">{t.talla}</b>
@@ -377,7 +377,7 @@ export function FrescuraDetalle({
           <Bloque titulo="Qué puedes hacer">
             {detalle.acciones.length > 0 ? (
               <>
-                <div className="grid gap-2">
+                <div data-guia="frescura.detalle-acciones" className="grid gap-2">
                   {detalle.acciones.map((a) => {
                     const Icono = ICONO_SUGERENCIA[a.clave];
                     return (

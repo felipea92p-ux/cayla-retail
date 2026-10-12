@@ -14,7 +14,7 @@ export function PorQue({ texto, panel }: { texto: string; panel: PanelDelPorQue 
   const idPanel = useId();
   return (
     <>
-      <button type="button" className="pp-porque" aria-expanded={abierto} aria-controls={idPanel} onClick={() => setAbierto((a) => !a)}>
+      <button type="button" className="pp-porque" data-guia="plan-piso.por-que" aria-expanded={abierto} aria-controls={idPanel} onClick={() => setAbierto((a) => !a)}>
         <span className="pp-q" aria-hidden="true">
           ?
         </span>

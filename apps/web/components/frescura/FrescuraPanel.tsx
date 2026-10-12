@@ -289,6 +289,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const botonComoSeLee = (
     <button
       type="button"
+      data-guia="frescura.como-se-lee"
       className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]"
       aria-expanded={comoSeLee}
       aria-controls="frescura-como-se-lee"
@@ -335,8 +336,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               acciones={botonComoSeLee}
             />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
-            <div className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
-              <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
+            <div data-guia="frescura.filtros" className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
+              <div data-guia="frescura.buscador" className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
                 <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
                 <input
                   type="text"
@@ -419,7 +420,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             )}
 
             {primeroLoDecidible ? (
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-2.5 sm:px-5">
+              <div data-guia="frescura.franja" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-2.5 sm:px-5">
                 {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces).
                     Con un solo grupo, su nombre va en esta misma franja y no en una propia (Formidable 2026-10-10 (c): 57 px menos). */}
                 {franjaUnica ? (
@@ -533,7 +534,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             {/* El pie: «Mostrando N de M» solo con filtros (sin ellos, la franja y las cifras ya lo dicen); el almacén en cifras con los
                 nombres a un toque (Formidable 2026-10-09, ley 8: eran 12 nombres en 6 renglones). */}
             {(hayFiltros(filtros) || (efectivos.porDecidir && porDecidirOtras > 0) || resumenDelPie?.guardadas || resumenDelPie?.nuncaColgadas || resumenDelPie?.agotadas) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
+              <div data-guia="frescura.pie" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
                 {hayFiltros(filtros) && (
                   <span>
                     Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} {enTabla.length === 1 ? "prenda" : "prendas"} ·{" "}

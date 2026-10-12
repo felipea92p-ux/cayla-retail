@@ -208,6 +208,7 @@ export function PuntoDeVentaCatalogo({
             // (h-14) y mismo lugar: la encargada busca «escanear» donde siempre estuvo.
             <button
               type="button"
+              data-guia="vender.escanear"
               onClick={onAbrirCamara}
               disabled={bloqueado}
               className="btn-cayla btn-primario flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap"
@@ -219,7 +220,7 @@ export function PuntoDeVentaCatalogo({
           <div className="relative z-20 min-w-0 flex-1 max-sm:static">
             {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega, con el código de barras que se enciende
                 en rojo («acá se escanea» sin una palabra más). Filtra mientras se escribe. */}
-            <Buscador
+            <Buscador guia="vender.buscador"
               tamano="mostrador"
               icono="barras"
               id="venta-buscar"
@@ -243,6 +244,7 @@ export function PuntoDeVentaCatalogo({
               <ul
                 id="venta-resultados"
                 role="listbox"
+                data-guia="vender.resultados"
                 aria-label="Prendas encontradas"
                 className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
               >
@@ -319,6 +321,7 @@ export function PuntoDeVentaCatalogo({
             <button
               type="button"
               onClick={modoCamara ? onBuscarPorTexto : onAbrirCamara}
+              data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}
               disabled={bloqueado}
               aria-label={modoCamara ? "Buscar la prenda por nombre" : "Escanear QR con la cámara"}
               className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand bg-papel text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
@@ -336,6 +339,7 @@ export function PuntoDeVentaCatalogo({
           <button
             type="button"
             onClick={() => onPrendaSinRegistrar()}
+            data-guia="vender.sin-registrar"
             disabled={bloqueado}
             // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
             // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
@@ -358,6 +362,7 @@ export function PuntoDeVentaCatalogo({
         <button
           type="button"
           onClick={() => setCatalogoAbierto((v) => !v)}
+          data-guia="vender.ver-catalogo"
           aria-expanded={catalogoAbierto}
           aria-controls="venta-catalogo-filtros venta-catalogo-grilla"
           className="btn-cayla btn-secundario mt-3 flex h-11 w-full items-center justify-center gap-2 sm:hidden"
@@ -381,6 +386,7 @@ export function PuntoDeVentaCatalogo({
             <button
               type="button"
               role="switch"
+              data-guia="vender.solo-stock"
               aria-checked={soloConStock}
               onClick={() => onSoloConStock(!soloConStock)}
               disabled={bloqueado}
@@ -415,7 +421,7 @@ export function PuntoDeVentaCatalogo({
           </div>
 
           {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-          <div className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
+          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
             {categorias.map((c, i) => (
               <button
                 key={c}

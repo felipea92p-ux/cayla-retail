@@ -1,0 +1,79 @@
+{
+  "guia": "vender.comprobantes",
+  "ruta": "/vender/comprobantes",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 49,
+  "controles": {
+    "components/ComprobantesPanel.tsx": [
+      "BotonCompacto «{`Reintentar ${numero}»",
+      "BotonCompacto «{`Liberar sin espera ${numero}»",
+      "BotonCompacto «{`Anular ${numero}»",
+      "BotonCompacto «{`Consultar la anulación de ${numero}»",
+      "a «Ver PDF»",
+      "a «{`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]}»",
+      "a «XML»",
+      "a «CDR»",
+      "DesplegablePildora «Tipo»",
+      "DesplegablePildora «Tienda»",
+      "DesplegablePildora «Estado»",
+      "BotonCompacto «comprobantes.opciones»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "CampoTexto «Motivo» #2",
+      "ComboResponsable «Cancelar» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/ConfirmarTransmision.tsx": [
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Reintentar»",
+      "Boton «Corregir pago»",
+      "button «Imprimir ticket»",
+      "button «Imprimir»"
+    ],
+    "components/FacturacionPestanas.tsx": [
+      "Pestanas «);»"
+    ],
+    "components/FacturacionShell.tsx": [
+      "Link «comprobantes.aviso-sunat»"
+    ],
+    "components/OpcionesComprobante.tsx": [
+      "a «{tieneNumero && primerNombre ? `WhatsApp a ${primerNombre}»",
+      "a «Ver PDF»",
+      "button «Ver la venta»",
+      "a «Imprimir de nuevo»",
+      "Link «Cambio»",
+      "Link «Devolución»",
+      "Link «Ya tiene la nota de crédito»",
+      "a «XML»",
+      "a «CDR»"
+    ],
+    "components/PeriodoComprobantes.tsx": [
+      "Link «Hoy»",
+      "Link «comprobantes.este-mes»"
+    ],
+    "components/PestanasComprobantesMovil.tsx": [
+      "Link «{p.etiqueta}»"
+    ],
+    "components/SinCoincidencias.tsx": [
+      "Boton «Borrar la búsqueda»"
+    ],
+    "components/apartados/piezas.tsx": [
+      "button «{accion}»"
+    ]
+  }
+}

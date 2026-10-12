@@ -54,23 +54,26 @@ export function SelectorCampana({
   }, [enLista, actual, archivadas, campanas.edicion, puedeCrear]);
   if (opciones.length < 2) return null;
   return (
-    <Desplegable
-      valor={actual ? actualId : ""}
-      onValor={(v) => {
-        if (v === NUEVA) return onNueva();
-        if (v === EDITAR) return onEditar();
-        if (v === ARCHIVADAS) return onArchivadas();
-        if (v !== actualId) router.push(`${ruta}?plan=${v}`);
-      }}
-      opciones={opciones}
-      forma="pastilla"
-      alineacion="derecha"
-      // Las campañas crecen seis por año: se buscan por nombre o por año («madre», «2027») aunque todavía sean pocas (Felipe 2026-10-12).
-      conBuscador
-      etiquetaAccesible="Campaña"
-      marcador="Campaña"
-      // En la cabecera mide lo mismo que «Exportar» (40 px): la pastilla de la sede mide 30 y quedaba más baja en la misma fila.
-      className="[&>button]:h-10"
-    />
+    // La caja solo lleva el ancla de la guía (ADR-0389): el desplegable no recibe atributos sueltos.
+    <div data-guia="plan.selector">
+      <Desplegable
+        valor={actual ? actualId : ""}
+        onValor={(v) => {
+          if (v === NUEVA) return onNueva();
+          if (v === EDITAR) return onEditar();
+          if (v === ARCHIVADAS) return onArchivadas();
+          if (v !== actualId) router.push(`${ruta}?plan=${v}`);
+        }}
+        opciones={opciones}
+        forma="pastilla"
+        alineacion="derecha"
+        // Las campañas crecen seis por año: se buscan por nombre o por año («madre», «2027») aunque todavía sean pocas (Felipe 2026-10-12).
+        conBuscador
+        etiquetaAccesible="Campaña"
+        marcador="Campaña"
+        // En la cabecera mide lo mismo que «Exportar» (40 px): la pastilla de la sede mide 30 y quedaba más baja en la misma fila.
+        className="[&>button]:h-10"
+      />
+    </div>
   );
 }

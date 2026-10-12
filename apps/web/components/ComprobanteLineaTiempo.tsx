@@ -21,7 +21,7 @@ export function ComprobanteLineaTiempo({ linea }: { linea: LineaTiempo }) {
   const [n1, n2, n3] = linea.nodos;
   const [c1, c2] = linea.conectores;
   return (
-    <div className="cd-linea-tiempo" role="list" aria-label="Avance del comprobante">
+    <div className="cd-linea-tiempo" role="list" aria-label="Avance del comprobante" data-guia="factura.linea-tiempo">
       <Nodo nodo={n1} />
       <Conector conector={c1} />
       <Nodo nodo={n2} />

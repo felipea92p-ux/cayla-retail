@@ -38,7 +38,7 @@ export function ResumenCompactoPlan({
   return (
     // Una sola fila según el ancho de la TARJETA, no de la ventana (Felipe 2026-10-12: a ~940 px de tarjeta se partía en una grilla de
     // tres columnas «que no queda bien»). Solo en una tarjeta angosta (celular) pasa a dos columnas, sin líneas sueltas al borde.
-    <div className="card-cayla @container">
+    <div data-guia="plan.cifras" className="card-cayla @container">
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-3 @3xl:flex @3xl:flex-wrap @3xl:items-center @3xl:gap-x-0 @3xl:px-1">
         <div className="col-span-2 flex flex-col justify-center @3xl:px-3">
           <span className="flex items-center gap-1.5">
@@ -62,7 +62,7 @@ export function ResumenCompactoPlan({
           </div>
         ))}
         <div className="col-span-2 flex items-center justify-end @3xl:ml-auto @3xl:pl-2 @3xl:pr-1">
-          <button type="button" onClick={onAbrir} aria-expanded={false} className="btn-cayla btn-sutil inline-flex items-center gap-1.5 whitespace-nowrap">
+          <button type="button" data-guia="plan.detalle" onClick={onAbrir} aria-expanded={false} className="btn-cayla btn-sutil inline-flex items-center gap-1.5 whitespace-nowrap">
             {/* En una tarjeta angosta dice solo «Detalle», para que todo quepa en una fila. */}
             <span className="@5xl:hidden">Detalle</span>
             <span className="hidden @5xl:inline">Ver detalle</span>

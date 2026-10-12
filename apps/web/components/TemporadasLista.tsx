@@ -193,8 +193,8 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   const falta = r.sinTemporada;
   const cifra = (n: number | string) => <b className="font-semibold tabular-nums text-tinta">{n}</b>;
   return (
-    <div role="group" aria-label="Trabajo de temporadas" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
-      <Atajo accion="Completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
+    <div role="group" aria-label="Trabajo de temporadas" data-guia="temporadas.franja" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
+      <Atajo accion="Completar" guia="temporadas.atajo-completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
         {falta > 0 ? (
           <>
             {cifra(falta)} {falta === 1 ? "prenda" : "prendas"} sin temporada
@@ -203,7 +203,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
           "Todas las prendas tienen temporada"
         )}
       </Atajo>
-      <Atajo accion="Por categoría" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
+      <Atajo accion="Por categoría" guia="temporadas.atajo-categorias" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
         {r.categoriasSinTemporada > 0 ? (
           <>
             {cifra(r.categoriasSinTemporada)} de {r.categorias} {r.categorias === 1 ? "categoría" : "categorías"} sin temporada
@@ -212,7 +212,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
           "Todas las categorías tienen temporada"
         )}
       </Atajo>
-      <Atajo accion="Calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
+      <Atajo accion="Calendario" guia="temporadas.atajo-calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
         {r.enCurso ? (
           <>
             {cifra(NOMBRE_ESTACION[r.enCurso.estacion])} en curso
@@ -226,9 +226,9 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   );
 }
 
-function Atajo({ accion, punto, onClick, children }: { accion: string; punto: string; onClick: () => void; children: ReactNode }) {
+function Atajo({ accion, punto, onClick, children, guia }: { accion: string; punto: string; onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string }) {
   return (
-    <button type="button" onClick={onClick} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
+    <button type="button" onClick={onClick} data-guia={guia} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
       <span aria-hidden className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${punto}`} />
       <span>{children}</span>
       <span className="label-cayla whitespace-nowrap text-[10.5px] text-tinta/75 underline underline-offset-4 transition-colors group-hover/atajo:text-rojo-profundo">
@@ -244,7 +244,7 @@ function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; ba
   return (
     <div className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-3 ${className}`} style={style}>
       <div className="min-w-0 space-y-1">
-        <div className="flex items-center gap-3">
+        <div data-guia="temporadas.volver" className="flex items-center gap-3">
           {alLista && <Volver onClick={alLista} a="Las nueve temporadas" />}
           <h2 className="font-display text-xl text-tinta">{titulo}</h2>
         </div>
@@ -285,6 +285,7 @@ function VistaNueve({
   return (
     <>
       <BarraAtributos
+        guia="atributos.barra-temporadas"
         etiqueta="Filtrar temporadas"
         filtros={
           <>
@@ -302,7 +303,7 @@ function VistaNueve({
 
       <FranjaTrabajo resumen={resumen} onElegir={onElegir} />
 
-      <div key={grupo} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+      <div key={grupo} data-guia="temporadas.nueve" className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
         {gruposConAlgo
           .filter((g) => grupo === "todas" || g === grupo)
           .map((g) => (
@@ -370,7 +371,7 @@ function VistaCalendario({
   let pieza = desfase + 2;
 
   return (
-    <section className="space-y-3" aria-label="Calendario de estaciones">
+    <section className="space-y-3" aria-label="Calendario de estaciones" data-guia="temporadas.calendario">
       <TituloVista
         desfase={desfase}
         titulo="Calendario"
@@ -780,7 +781,7 @@ function VistaCategorias({
   }
 
   return (
-    <section className="space-y-3" aria-label="La temporada de cada categoría">
+    <section className="space-y-3" aria-label="La temporada de cada categoría" data-guia="temporadas.categorias">
       <TituloVista
         desfase={desfase}
         titulo="Por categoría"
@@ -992,7 +993,7 @@ function VistaPorCompletar({
 
   if (lista.length === 0) {
     return (
-      <section className="space-y-3" aria-label="Prendas por completar">
+      <section className="space-y-3" aria-label="Prendas por completar" data-guia="temporadas.completar">
         <TituloVista desfase={desfase} titulo="Por completar" bajada="Prendas activas sin temporada propia, de un color ni de su categoría." />
         <div className="card-cayla anim-entra p-6 text-center" style={entra(desfase + 1).style}>
           <p className="font-display text-xl text-verde-profundo">Todas las prendas tienen temporada</p>
@@ -1003,7 +1004,7 @@ function VistaPorCompletar({
   }
 
   return (
-    <section className="space-y-3" aria-label="Prendas por completar">
+    <section className="space-y-3" aria-label="Prendas por completar" data-guia="temporadas.completar">
       <TituloVista
         desfase={desfase}
         titulo="Por completar"

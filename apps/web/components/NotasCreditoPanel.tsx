@@ -174,7 +174,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
           </p>
         </div>
-        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })}>
+        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} aria-haspopup="dialog" data-guia="notas-credito.registrar">
           + Registrar nota
           <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
         </Boton>
@@ -185,11 +185,12 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
         <Pestanas
           etiquetaAccesible="Secciones del módulo"
           idIndicador="notas-credito-secciones"
+          guia="notas-credito.secciones"
           activa={vista}
           onCambio={(v) => setVista(v as "notas" | "saldos")}
           items={[
-            { clave: "notas", etiqueta: "Notas" },
-            { clave: "saldos", etiqueta: cifras.saldoFavorTotal > 0 ? `Saldos a favor · ${soles(cifras.saldoFavorTotal)}` : "Saldos a favor" },
+            { clave: "notas", etiqueta: "Notas", guia: "notas-credito.tab-notas" },
+            { clave: "saldos", etiqueta: cifras.saldoFavorTotal > 0 ? `Saldos a favor · ${soles(cifras.saldoFavorTotal)}` : "Saldos a favor", guia: "notas-credito.tab-saldos" },
           ]}
         />
       </div>
@@ -203,7 +204,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
       {vista === "notas" ? (
         <>
           {/* --- las cuatro cifras --------------------------------------------------- */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div data-guia="notas-credito.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <TarjetaCifra
               acentoTrazo={cifras.porReclamar.cantidad > 0}
               punto={cifras.porReclamar.masVieja > 14 ? "rojo" : "ambar"}
@@ -284,7 +285,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
 
           {/* --- buscador, pestañas y agrupación ------------------------------------- */}
           <div className="anim-entra flex flex-wrap items-center gap-x-5 gap-y-3" style={{ ["--i" as string]: 6 }}>
-            <Buscador
+            <Buscador guia="notas-credito.buscador"
               valor={busqueda}
               onCambio={setBusqueda}
               atajo
@@ -293,9 +294,9 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               className="min-w-[15rem] flex-1"
             />
             {/* El estado deja menos notas en la misma lista: la píldora de filtro (ADR-0358). */}
-            <div role="group" aria-label="Estado de la nota" className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Estado de la nota" data-guia="notas-credito.estados" className="flex flex-wrap items-center gap-2">
               {PESTANAS.map((p) => (
-                <button key={p.clave} type="button" aria-pressed={pestana === p.clave} onClick={() => { setPestana(p.clave); setBanda(null); }} className="pildora-cayla">
+                <button key={p.clave} type="button" aria-pressed={pestana === p.clave} onClick={() => { setPestana(p.clave); setBanda(null); }} className="pildora-cayla" data-guia={`notas-credito.estado-${p.clave}`}>
                   {p.etiqueta} <span className="pildora-cayla__n">{conteos[p.clave]}</span>
                 </button>
               ))}
@@ -307,8 +308,8 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               valor={agrupar}
               onCambio={(v) => setAgrupar(v as "urgencia" | "proveedor")}
               opciones={[
-                { clave: "urgencia", etiqueta: "Por urgencia" },
-                { clave: "proveedor", etiqueta: "Por proveedor" },
+                { clave: "urgencia", etiqueta: "Por urgencia", guia: "notas-credito.agrupar-urgencia" },
+                { clave: "proveedor", etiqueta: "Por proveedor", guia: "notas-credito.agrupar-proveedor" },
               ]}
             />
           </div>
@@ -346,6 +347,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           {visibles.length === 0 ? (
             <Vacia busqueda={busqueda} pestana={pestana} banda={banda} onLimpiar={() => { setBusqueda(""); setBanda(null); }} />
           ) : (
+            <div data-guia="notas-credito.lista">
             <Tabla className="anim-entra" style={{ ["--i" as string]: 7 }}>
               <Encabezado
                 plantilla={PLANTILLA}
@@ -367,9 +369,10 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
                 ))}
               </div>
             </Tabla>
+            </div>
           )}
 
-          <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-tinta/55">
+          <p data-guia="notas-credito.atajos" className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-tinta/55">
             {[["/", "buscar"], ["j k", "moverse"], ["Enter", "vista rápida"], ["N", "nota nueva"], ["Esc", "cerrar"]].map(([k, t]) => (
               <span key={k} className="inline-flex items-center gap-1.5">
                 <kbd className="rounded border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55">{k}</kbd> {t}
@@ -378,7 +381,9 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           </p>
         </>
       ) : (
-        <SaldosAFavorTablero proveedores={proveedores} movimientos={movimientos} total={cifras.saldoFavorTotal} puedeReembolsar={puedeReembolsar} />
+        <div data-guia="notas-credito.saldos">
+          <SaldosAFavorTablero proveedores={proveedores} movimientos={movimientos} total={cifras.saldoFavorTotal} puedeReembolsar={puedeReembolsar} />
+        </div>
       )}
 
       {abierta && (
@@ -444,7 +449,7 @@ function FilaNota({
       className={filaClases(PLANTILLA, "cmp-fila cursor-pointer")}
     >
       <span className={celda()}>
-        <span className="block truncate text-sm text-tinta">
+        <span className="block truncate text-sm text-tinta" data-guia="notas-credito.proveedor">
           <Resaltado texto={f.proveedorNombre} busqueda={busqueda} />
         </span>
         {/* Documento y detalle en la MISMA línea: el documento cortado a «F001-00…» no le sirve a nadie,
@@ -478,7 +483,7 @@ function FilaNota({
           </>
         )}
       </span>
-      <span className={celda("der")}>
+      <span className={celda("der")} data-guia="notas-credito.monto">
         <span className="font-display block text-[18px] tabular-nums text-tinta">{soles(f.monto)}</span>
         <span className={`block text-xs ${f.estado === "emitida" || f.devuelto ? "text-verde-profundo" : "text-tinta/55"}`}>{destinoTexto(f)}</span>
         {f.clase === "nota" && f.monto > 0 && (

@@ -18,7 +18,7 @@ export function SenalesCampana({ senales, faltan, veAnalisis }: { senales: Senal
   return (
     // Sin `overflow-hidden` en la tarjeta: recortaba el globo del «!» (Felipe 2026-10-12). Lo que sí debe quedar dentro de las esquinas (las
     // filas) va en su propia caja recortada, abajo.
-    <section className="card-cayla">
+    <section data-guia="plan-resultados.senales" className="card-cayla">
       <div className={`flex flex-wrap items-center justify-between gap-2 px-5 ${piden.length === 0 ? "py-3" : "py-4"}`}>
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-taupe">
           Pedir más o impulsar

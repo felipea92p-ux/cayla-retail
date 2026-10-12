@@ -32,15 +32,15 @@ export function PlanDelPisoPestanas({ propuesta, grupos, historia, porRevisar, i
     caja.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
   }, [vista]);
   const items: Pestana[] = [
-    { clave: "propuesta", etiqueta: "Propuesta" },
+    { clave: "propuesta", etiqueta: "Propuesta", guia: "plan-piso.pestana-propuesta" },
     // El conteo de «por revisar» pide algo (ámbar) y su texto es lo que oye quien usa lector de pantalla tras el número.
-    { clave: "grupos", etiqueta: "Grupos", conteo: porRevisar > 0 ? porRevisar : undefined, pide: porRevisar > 0 ? "por revisar" : undefined },
-    { clave: "historia", etiqueta: "Historia" },
+    { clave: "grupos", etiqueta: "Grupos", guia: "plan-piso.pestana-grupos", conteo: porRevisar > 0 ? porRevisar : undefined, pide: porRevisar > 0 ? "por revisar" : undefined },
+    { clave: "historia", etiqueta: "Historia", guia: "plan-piso.pestana-historia" },
   ];
   return (
     <IrALaVista.Provider value={irALaVista}>
     <div ref={caja} className="space-y-6">
-      <Pestanas items={items} activa={vista} onCambio={(c) => setVista(c as VistaPlanDelPiso)} etiquetaAccesible="Vistas del plan del piso" idIndicador="plan-piso" />
+      <Pestanas items={items} activa={vista} onCambio={(c) => setVista(c as VistaPlanDelPiso)} etiquetaAccesible="Vistas del plan del piso" idIndicador="plan-piso" guia="plan-piso.pestanas" />
       {/* Las tres quedan montadas y solo se oculta la que no se mira: lo que el líder dejó preparado en «Grupos» no se pierde al mirar la
           propuesta (un panel desmontado olvida su estado), y al volver está donde lo dejó. */}
       <div role="tabpanel" aria-label="Propuesta" hidden={vista !== "propuesta"}>

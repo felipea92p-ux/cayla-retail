@@ -113,12 +113,12 @@ export function ListaActividad({
 
   return (
     <div>
-      {agruparPorDia(filas, ahora).map((g) => (
+      {agruparPorDia(filas, ahora).map((g, gi) => (
         <section key={g.dia} className="mb-4 last:mb-0">
           <h3 className="label-cayla mb-1 text-[11px] text-taupe">{g.dia}</h3>
           <ul className="divide-y divide-sand/70 border-t border-sand/70">
-            {g.filas.map((f) => (
-              <li key={f.id} className="flex items-start gap-3 py-2.5">
+            {g.filas.map((f, fi) => (
+              <li key={f.id} className="flex items-start gap-3 py-2.5" data-guia={gi === 0 && fi === 0 ? "actividad.fila" : undefined}>
                 <AvatarPersona personaId={f.persona_id} nombre={quien(f)} className="mt-0.5 h-8 w-8 shrink-0 text-xs" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug text-tinta">
@@ -144,7 +144,7 @@ export function ListaActividad({
           ))}
         </div>
       ) : hayMas ? (
-        <button type="button" onClick={cargarMas} className="btn-cayla btn-sutil mt-2 w-full">
+        <button type="button" onClick={cargarMas} className="btn-cayla btn-sutil mt-2 w-full" data-guia="actividad.ver-mas">
           Ver más
         </button>
       ) : null}

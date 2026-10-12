@@ -140,6 +140,10 @@ export const PRUEBAS = [
   // rechazar (rechazar se niega con una orden en proceso o con stock); idempotencia; permisos; y la carrera de una orden en vuelo. ROLLBACK.
   "pruebas:revisar-productos",
 
+  // El precio 0 solo vale en Empaque, también en la base (ADR-0384): Nuevo producto y Editar producto no dejan una variante activa
+  // en S/ 0 fuera de una familia apagada; la regla, sus permisos y que la migración se pueda pegar dos veces. ROLLBACK.
+  "pruebas:precio-cero",
+
   // Historial de la prenda (ADR-0354): etiquetas, variantes nuevas, fotos, tejido y patrón dejan su fila con quién y dónde;
   // guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
   "pruebas:historial-prenda",
@@ -347,6 +351,11 @@ export const PRUEBAS = [
   // Cron de SUNAT (PL-113): la llave de servicio toma la cola solo de las últimas 4 horas, sin claims el candado
   // sigue cerrado y las tres funciones de la cola la dejan pasar. Control sin la migración. Cada caso: ROLLBACK.
   "pruebas:sunat-reintento-por-cron",
+
+  // Lo que SUNAT aceptó no retrocede (ADR-0386): una respuesta vieja de Lucode no pisa un aceptado ni un anulado (se
+  // ignora sin error), el disparador de la tabla frena cualquier paso de estado que no existe, venga de donde venga, y lo
+  // que ya intentó salir a SUNAT no se libera. La carrera de dos conexiones (commitea) va aparte, en EXCLUIDAS. ROLLBACK.
+  "pruebas:sunat-estado-no-retrocede",
 
   // Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
   // tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
@@ -786,6 +795,12 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:corregir-prenda-sin-registrar",
 
+  // Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
+  // con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
+  // mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que
+  // «ya estaba registrada» sale de lo disponible y que una prenda sin cargar en la sede no se regulariza. ROLLBACK.
+  "pruebas:ventas-sin-registrar",
+
   // Familias fuera de los motores (bolsas de despacho): `familias.entra_a_motores` nace true para todas las familias que ya
   // existen, `fn_categoria_entra_a_motores` responde por la familia de la categoría (y true ante lo que no sabe), solo un líder
   // cambia la marca y la migración se puede cargar dos veces. Cada caso termina en ROLLBACK.
@@ -994,8 +1009,8 @@ export const PRUEBAS = [
   // mismo comprobante reservado); fn_asesoras_de_turno nunca falla, ni sin sede_dynamic_id ni sin las
   // tablas de Dynamic; un descuento de venta sobre el tope del rol sin autorización de líder falla con
   // SQLSTATE 42501 exacto, y el mismo descuento con un líder real autorizando pasa y queda auditado;
-  // p_emisor = 'alegra' no reserva comprobante; anular_venta libera también un comprobante que ya estaba
-  // en la cola de reintento de SUNAT (pendiente_reintento, D-60). Cada caso termina en ROLLBACK.
+  // p_emisor = 'alegra' no reserva comprobante; anular_venta NO libera un comprobante que ya estaba en la
+  // cola de reintento de SUNAT (pendiente_reintento): pudo haber llegado (ADR-0386, opción A). Cada caso termina en ROLLBACK.
   "pruebas:venta-contrato-ampliado",
 
   // Catálogo ▸ Marcas ▸ Editar (20260926150000): nombre y proveedores todo o nada; un proveedor con productos (también
@@ -1131,6 +1146,10 @@ export const PRUEBAS = [
   // La función con llave que GitHub llama cada mañana en producción (20260928210000): con la llave, anon recibe
   // EXACTAMENTE la celda de deriva.sql; sin ella, 42501; nadie más crea llaves ni lee la tabla de la llave.
   "pruebas:huellas-catalogo",
+
+  // Lo que el paso `supabase` hace con las migraciones de un PR (ADR-0251, act. 2026-10-12): aparta, aplica una por una
+  // en su transacción, toma huellas y devuelve. En una base APARTE del mismo Postgres: la de las pruebas no se toca.
+  "pruebas:huellas-del-pr",
 ];
 
 /** `"2/4"` → `{ n: 2, de: 4 }`. Lanza si no calza: un error de tipeo en ci.yml no debe correr cero pruebas en verde. */

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { claveCelda, construirCeldas } from "./alta-producto";
 import {
+  celdaSinPrecio,
   costoDistinto,
   leyendaVariantes,
   limpiarPrecio,
   llenarTodas,
   montoDeCelda,
+  nombreCelda,
   pasoCantidad,
   precioDistinto,
+  precioPropioInvalido,
   textoCostoBase,
   textoFotosDeFila,
   textoPrecioBase,
@@ -172,5 +175,42 @@ describe("textoFotosDeFila", () => {
     expect(textoFotosDeFila(0, true)).toBe("usa la de todos");
     expect(textoFotosDeFila(1, true)).toBe("1 foto");
     expect(textoFotosDeFila(3, false)).toBe("3 fotos");
+  });
+});
+
+describe("celdaSinPrecio — un 0 escrito en una celda de «Precios» no crea la variante a S/ 0 (ADR-0384)", () => {
+  const celdas = construirCeldas(["s", "m"], ["NEG", "BEI"]);
+  const clave = (talla: string, color: string) => claveCelda(talla, color);
+
+  it("vacía no cuenta: toma el precio de todas, que se revisa aparte", () => {
+    expect(celdaSinPrecio(celdas, {})).toBeNull();
+    expect(celdaSinPrecio(celdas, { [clave("m", "NEG")]: "  " })).toBeNull();
+    expect(precioPropioInvalido(undefined)).toBe(false);
+    expect(precioPropioInvalido("")).toBe(false);
+  });
+
+  it("un precio mayor que 0 sirve; 0, 0.00 y lo que no es número no", () => {
+    expect(precioPropioInvalido("59.90")).toBe(false);
+    expect(precioPropioInvalido("0.01")).toBe(false);
+    for (const malo of ["0", "0.00", ".", "abc"]) expect(precioPropioInvalido(malo)).toBe(true);
+  });
+
+  it("devuelve la PRIMERA celda en 0, en el orden de la tabla (color por color, talla por talla)", () => {
+    const precios = { [clave("m", "BEI")]: "0", [clave("s", "NEG")]: "79.90", [clave("m", "NEG")]: "0" };
+    expect(celdaSinPrecio(celdas, precios)?.clave).toBe(clave("m", "NEG"));
+  });
+
+  it("una celda quitada de la tabla no cuenta: no se crea", () => {
+    const incluidas = celdas.filter((c) => c.clave !== clave("m", "NEG"));
+    expect(celdaSinPrecio(incluidas, { [clave("m", "NEG")]: "0" })).toBeNull();
+  });
+});
+
+describe("nombreCelda — la celda se llama igual en la tabla y en «Falta»", () => {
+  it("color en talla; sin color o sin talla, lo dice", () => {
+    expect(nombreCelda("Negro", "M")).toBe("Negro en M");
+    expect(nombreCelda(null, "M")).toBe("Sin color en M");
+    expect(nombreCelda("Negro", null)).toBe("Negro en Única");
+    expect(nombreCelda(undefined, undefined)).toBe("Sin color en Única");
   });
 });

@@ -177,7 +177,7 @@ export default async function InicioPage() {
         bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`}
         acciones={
           vende ? (
-            <Link href="/vender" className="btn-cayla btn-primario hidden items-center gap-2 sm:inline-flex">
+            <Link href="/vender" className="btn-cayla btn-primario hidden items-center gap-2 sm:inline-flex" data-guia="inicio.vender">
               <Icono clave="vender" /> Vender
             </Link>
           ) : undefined
@@ -203,7 +203,7 @@ export default async function InicioPage() {
 
       {fijo && (
         <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <Link href={fijo.href} className="flex h-13 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema">
+          <Link href={fijo.href} className="flex h-13 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema" data-guia="inicio.fijo">
             <Icono clave={fijo.icono} /> {fijo.etiqueta}
           </Link>
         </div>
@@ -220,7 +220,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
   if (!esLider && miMeta) return <SeccionMiMeta miMeta={miMeta} cajaAbierta={hoy.cajaAbierta} titulo={titulo} />;
   if (hoy.totales === null) {
     return (
-      <section>
+      <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <p role="status" className="rounded-xl border border-tinta/12 bg-papel px-5 py-3 text-sm text-tinta/75">
           No se pudieron cargar las ventas de hoy. Lo demás de esta pantalla sí está al día.
@@ -234,7 +234,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
   // Sin ventas todavía (las 9 a. m.): tres tarjetas en «S/ 0 · — · —» no dicen nada. Una línea dice lo útil.
   if (r.ventas === 0) {
     return (
-      <section>
+      <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <div className="card-cayla flex items-start gap-3 px-4 py-3.5 text-sm text-tinta/80 sm:px-5">
           <Icono clave="caja" className="mt-0.5 size-[18px] text-tinta/60" />
@@ -248,7 +248,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
   }
 
   return (
-    <section>
+    <section data-guia="inicio.hoy">
       <Etiqueta>{titulo}</Etiqueta>
       {/* En celular la primera cifra va a todo lo ancho y las otras dos lado a lado; desde `sm`, las tres en fila. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -305,10 +305,10 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
   const corte = corteCelular(activos);
   if (activos.length === 0 && alDia.length === 0 && ocultosConAlgo === 0) return null;
   return (
-    <section>
+    <section data-guia="inicio.te-toca">
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <p className="label-cayla text-[11px] text-tinta/65">Te toca</p>
-        {ajustar}
+        <span data-guia="inicio.ajustar">{ajustar}</span>
       </div>
       {/* «Ver N más» en celular sin JavaScript: una casilla oculta; marcada, el contenedor muestra las filas extra. */}
       <div className="card-cayla divide-y divide-tinta/10 overflow-hidden [&:has(input[data-ver-mas]:checked)_[data-extra]]:flex">
@@ -373,7 +373,7 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
 function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
   const columnas = accesos.length >= 4 ? "grid-cols-4 lg:grid-cols-2" : accesos.length === 3 ? "grid-cols-3" : "grid-cols-2";
   return (
-    <section>
+    <section data-guia="inicio.accesos">
       <Etiqueta>Accesos</Etiqueta>
       <div className={`grid gap-2 ${columnas}`}>
         {accesos.map((a) => (
@@ -395,7 +395,7 @@ const hora = new Intl.DateTimeFormat("es-PE", { hour: "numeric", minute: "2-digi
 
 function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLider: boolean }) {
   return (
-    <section>
+    <section data-guia="inicio.equipo">
       <Etiqueta>Equipo de hoy</Etiqueta>
       <div className="card-cayla divide-y divide-tinta/10">
         {equipo === null ? (
