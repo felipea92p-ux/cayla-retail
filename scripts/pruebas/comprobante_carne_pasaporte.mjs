@@ -350,7 +350,8 @@ select retail.registrar_serie_comprobante(:'ubic', 'nota_credito', 'BC97') as _b
                      and archivada_at is null and serie like 'B%') \\gset
 -- SUNAT solo admite notas sobre lo que ya aceptó (fn_valida_nota_referencia_aceptada).
 select retail.actualizar_transmision_comprobante(:'bol', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _ab \\gset
-select retail.emitir_nota(:'bol', 'nota_credito', '06', 84.75, 15.25, 100.00) as nota \\gset
+-- La nota acredita lo que cobró la boleta (su propio subtotal, IGV y total): desde 20261012120000 una nota que pasara de eso se rechaza.
+select retail.emitir_nota(c.id, 'nota_credito', '06', c.subtotal, c.igv, c.total) as nota from retail.comprobantes c where c.id = :'bol' \\gset
 select cliente_tipo_doc || '|' || cliente_num_doc || '|' || left(serie, 1) from retail.comprobantes where id = :'nota';
 `,
   "carne_extranjeria|001234567|B"
