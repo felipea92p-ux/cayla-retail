@@ -3,7 +3,7 @@
  * (el conteo, el «Modelo nuevo» del Taller) y que un líder aprueba o rechaza.
  *
  * La REGLA de qué se puede revisar no vive aquí: la decide `revisar_producto_censo` en la base (permiso, idempotencia, y que rechazar
- * se niegue con una orden en proceso o con stock; y, desde ADR-0381, que aprobar se niegue sin precio). Este archivo solo (1) lee las
+ * se niegue con una orden en proceso o con stock; y, desde ADR-0384, que aprobar se niegue sin precio). Este archivo solo (1) lee las
  * filas de `fn_productos_por_revisar`, (2) redacta lo que se le dice a quien revisa y (3) adelanta esos bloqueos, con las mismas
  * condiciones de la base, para que el botón no prometa lo que la base va a negar. Si la base cambia la regla, `bloqueoDeRechazo`,
  * `bloqueoDeAprobacion` y su prueba son lo primero que hay que tocar.
@@ -46,7 +46,7 @@ export type ProductoPorRevisar = {
   /** Órdenes de producción en proceso de este modelo. */
   ordenesAbiertas: number;
   /** Su familia está fuera de los motores (Empaque, ADR-0377): una variante en S/ 0 es la bolsa de obsequio, no un precio
-   *  olvidado, y se puede aprobar así (ADR-0381). */
+   *  olvidado, y se puede aprobar así (ADR-0384). */
   admitePrecioCero: boolean;
 };
 
@@ -119,7 +119,7 @@ export function textoPropuesta(p: Pick<ProductoPorRevisar, "propuestoPor" | "cre
 }
 
 export type BloqueoRechazo = {
-  /** `precio`: lo que frena APROBAR (ADR-0381); los otros dos frenan rechazar (ADR-0371). */
+  /** `precio`: lo que frena APROBAR (ADR-0384); los otros dos frenan rechazar (ADR-0371). */
   motivo: "ordenes" | "stock" | "precio";
   /** Una frase corta para la fila y la hoja. */
   texto: string;
@@ -153,7 +153,7 @@ export function bloqueoDeRechazo(p: Pick<ProductoPorRevisar, "ordenesAbiertas" |
 }
 
 /**
- * ¿Se puede aprobar? Lo mismo que niega la base (`revisar_producto_censo`, ADR-0381): una variante ACTIVA en S/ 0 fuera de Empaque.
+ * ¿Se puede aprobar? Lo mismo que niega la base (`revisar_producto_censo`, ADR-0384): una variante ACTIVA en S/ 0 fuera de Empaque.
  * Proponer una prenda en 0 sí se puede (el conteo: «déjalo en 0 y lo completa el Líder»; la muestra del Taller), pero aprobarla es
  * decir que está lista para vender, y en S/ 0 no lo está: la caja no la cobraría. `precioMin` es el de las variantes activas.
  */

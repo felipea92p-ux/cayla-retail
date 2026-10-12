@@ -190,7 +190,7 @@ export type EstadoAlta = {
   precioBase: string;
   costoBase: string;
   /** La primera celda de la tabla con un precio propio en 0 (o que no es un número), como se lee en pantalla: «Negro en M».
-   *  `null` o ausente = ninguna (`celdaSinPrecio`, lib/tabla-alta-reglas.ts; ADR-0381). */
+   *  `null` o ausente = ninguna (`celdaSinPrecio`, lib/tabla-alta-reglas.ts; ADR-0384). */
   celdaSinPrecio?: string | null;
   /** Paso 4 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
   stockTotal: number;
@@ -218,7 +218,7 @@ export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalid
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
  *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
-/** Lo que se dice de una celda de la tabla con el precio en 0 (ADR-0381): cuál es, dónde está y qué hacer. Una sola frase para
+/** Lo que se dice de una celda de la tabla con el precio en 0 (ADR-0384): cuál es, dónde está y qué hacer. Una sola frase para
  *  `problemasAlta` y la guía, que tienen que decir lo mismo. */
 export function textoCeldaSinPrecio(celda: string): string {
   return `${celda} tiene el precio en 0 (tabla, pestaña Precios): pon un precio mayor que 0 o déjala vacía para que tome el de todas.`;

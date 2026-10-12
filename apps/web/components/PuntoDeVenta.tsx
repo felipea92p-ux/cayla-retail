@@ -948,7 +948,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
   ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | null {
     if (bloqueado) return null;
-    // ADR-0381: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
+    // ADR-0384: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
     // con la prenda ya entregada). La bolsa de obsequio sí: es de una familia fuera de los motores.
     if (sinPrecioParaVender(v)) {
       if (!silencioso) {

@@ -18,7 +18,7 @@ export const PAUSA_MISMO_CODIGO_MS = 2000;
  *  y no es lo mismo que `agotada`. `apartada`: lo único que queda en el piso es de una clienta que lo apartó (no hay
  *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
  *  (`lib/vender-stock-local.ts`). */
-/** `sin_precio`: una prenda de mercadería en S/ 0 no entra al ticket (ADR-0381, `sinPrecioParaVender`). */
+/** `sin_precio`: una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384, `sinPrecioParaVender`). */
 export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;

@@ -132,7 +132,7 @@ describe("bloqueoDeRechazo", () => {
   });
 });
 
-describe("bloqueoDeAprobacion (ADR-0381)", () => {
+describe("bloqueoDeAprobacion (ADR-0384)", () => {
   const base = { precioMin: 59.9, precioMax: 79.9, admitePrecioCero: false };
   it("con precio en todas sus variantes activas, se aprueba", () => {
     expect(bloqueoDeAprobacion(base)).toBeNull();

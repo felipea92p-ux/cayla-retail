@@ -258,7 +258,7 @@ const lineas = (r) => (r.ok ? r.salida.split("\n") : []);
 }
 
 // ============================================================================
-// 2b. Sin precio no se aprueba (ADR-0381): el 0 solo vale en una familia fuera de los motores
+// 2b. Sin precio no se aprueba (ADR-0384): el 0 solo vale en una familia fuera de los motores
 // ============================================================================
 {
   // Micaela propone en el conteo con el precio en 0 («déjalo en 0 y lo completa el Líder», `censo_crear_variante`): eso sigue

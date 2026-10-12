@@ -11,7 +11,7 @@ import { bloqueoDeAprobacion, textoOrigen, textoPrecio, textoPropuesta, textoVar
 /**
  * La cola de «Por revisar» (Catálogo ▸ Productos, ADR-0371): una fila por prenda propuesta, la más vieja primero, con lo que hace falta
  * para decidir sin abrir la ficha —quién la propuso, desde dónde, sus variantes y su precio— y, en chips, lo que frena un rechazo
- * (órdenes en proceso, stock) o una aprobación (sin precio, ADR-0381). Aprobar y Rechazar abren la misma hoja, que pide el responsable; la fila no decide nada por sí sola.
+ * (órdenes en proceso, stock) o una aprobación (sin precio, ADR-0384). Aprobar y Rechazar abren la misma hoja, que pide el responsable; la fila no decide nada por sí sola.
  */
 export function PorRevisarLista({
   productos,
@@ -33,7 +33,7 @@ export function PorRevisarLista({
     <>
       <ul className="card-cayla divide-y divide-sand overflow-hidden p-0" data-resultados>
         {productos.map((p) => {
-          // ADR-0381: lo que frena aprobar se ve en la fila, como lo que frena rechazar.
+          // ADR-0384: lo que frena aprobar se ve en la fila, como lo que frena rechazar.
           const sinPrecio = bloqueoDeAprobacion(p);
           return (
             <li key={p.productoId} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

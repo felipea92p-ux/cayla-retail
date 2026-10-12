@@ -548,7 +548,7 @@ export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
 }
 
 /**
- * ¿Esta prenda no puede entrar al ticket porque no tiene precio? (ADR-0381.) Una prenda de mercadería en S/ 0 es un precio
+ * ¿Esta prenda no puede entrar al ticket porque no tiene precio? (ADR-0384.) Una prenda de mercadería en S/ 0 es un precio
  * olvidado: la base la rechaza al cobrar (`venta_sin_precio`), y una venta sin conexión recién se rechazaría al subir, con la prenda
  * ya entregada. Por eso la caja la frena al agregarla, con la misma regla de Editar producto (`precioValido`): solo lo de una familia
  * fuera de los motores (la bolsa de obsequio) va en 0. `precio` es el que cobra ESTA tienda (su precio propio, si tiene).

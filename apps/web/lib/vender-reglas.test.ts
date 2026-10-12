@@ -1022,7 +1022,7 @@ describe("lecturaDelRecibido — vuelto, falta o exacto bajo los billetes (la ho
   });
 });
 
-describe("sinPrecioParaVender — una prenda de mercadería en S/ 0 no entra al ticket (ADR-0381)", () => {
+describe("sinPrecioParaVender — una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384)", () => {
   it("con precio, entra", () => {
     expect(sinPrecioParaVender({ precio: 79.9 })).toBe(false);
     expect(sinPrecioParaVender({ precio: 0.5, fueraDeMotores: true })).toBe(false);

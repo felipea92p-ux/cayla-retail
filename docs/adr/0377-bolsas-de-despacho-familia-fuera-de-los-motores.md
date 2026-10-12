@@ -69,7 +69,7 @@ ELEGIDA (`productos/[id]/editar/page.tsx`): si la bolsa se pasa a una categoría
   aceptaría (`precios_sede_precio_positivo`). Para regalar una prenda sigue el descuento.
 - **Queda igual, a propósito:** Nuevo producto sigue pidiendo un precio mayor que 0. Una bolsa de obsequio nueva se da de alta con un precio y se deja
   en 0 desde su ficha. *(Corregido el 2026-10-12: aquí decía que `crear_producto_con_variantes` también lo exigía en la base; no era así —aceptaba
-  «0 o más»—, y una celda de la tabla de precios en 0 lo dejaba pasar. Desde el ADR-0381 la regla de esta sección vale también en la base: alta,
+  «0 o más»—, y una celda de la tabla de precios en 0 lo dejaba pasar. Desde el ADR-0384 la regla de esta sección vale también en la base: alta,
   edición, aprobación y venta.)*
 
 ## Se rompe si…

@@ -1,4 +1,4 @@
-## 🏷️ El precio 0 solo vale en Empaque, también en la base (2026-10-12, ADR-0381) — migración `20261012190000` **sin pegar en producción**; rama `claude/precio-cero-solo-empaque`
+## 🏷️ El precio 0 solo vale en Empaque, también en la base (2026-10-12, ADR-0384) — migración `20261012190000` **sin pegar en producción**; rama `claude/precio-cero-solo-empaque`
 
 - [x] `fn_categoria_admite_precio_cero` (la regla, un lugar) y candados en `registrar_venta` (`venta_sin_precio`), `revisar_producto_censo`,
       `crear_producto_con_variantes` y `catalogo_actualizar_producto` (`sin_precio`). Reemplazos anclados, idempotente, una sola parte.

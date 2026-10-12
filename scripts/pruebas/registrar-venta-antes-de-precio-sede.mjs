@@ -2,7 +2,7 @@
 // exacta con la que esa migración prometió, corren sobre una base donde después se aplicaron parches a la función: el precio por
 // sede (20261010100200, ADR-0370), que cambió una línea, y el origen de la línea sugerida (20261010220100, «Combina bien con»), que
 // sumó una columna al insert de `venta_items`; entre los dos, las piezas de liquidación (20261010195000, ADR-0379) le hicieron dos
-// reemplazos anclados; y al final, el candado del precio 0 (20261012190000, ADR-0381), otro reemplazo anclado. El candado de huella
+// reemplazos anclados; y al final, el candado del precio 0 (20261012190000, ADR-0384), otro reemplazo anclado. El candado de huella
 // de la migración vieja los rechaza, y está bien que lo haga.
 //
 // Para probar la migración vieja sobre SU punto de partida, este texto devuelve la función a como estaba antes de esos parches
@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 const FIRMA = `(select p.oid::regprocedure::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                     where n.nspname = 'retail' and p.proname = 'registrar_venta')`;
 
-/** Inverso de 20261012190000 (ADR-0381): quita el candado `venta_sin_precio`. El reemplazo se lee del archivo (el de `registrar_venta`,
+/** Inverso de 20261012190000 (ADR-0384): quita el candado `venta_sin_precio`. El reemplazo se lee del archivo (el de `registrar_venta`,
  *  el único de los cuatro que trae `venta_sin_precio`) para no copiarlo. Si la base no lo tiene, `replace` no cambia nada. */
 const PRECIO_CERO = readFileSync("supabase/migrations/20261012190000_precio_cero_solo_empaque.sql", "utf8");
 const REEMPLAZO_PRECIO_CERO = [...PRECIO_CERO.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g)]

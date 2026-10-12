@@ -67,7 +67,7 @@ describe("el vuelo de la tarjeta al ticket", () => {
   });
 });
 
-describe("una prenda sin precio que la cámara lee (ADR-0381)", () => {
+describe("una prenda sin precio que la cámara lee (ADR-0384)", () => {
   it("dice que no entró y por qué, en la bandeja y en la tarjeta", () => {
     const r = { estado: "sin_precio" as const, codigo: "C1", nombre: "Blusa Emma · M" };
     expect(mensajeEscaneo(r)).toEqual({ tono: "ambar", texto: "Blusa Emma · M no entró: no tiene precio en el catálogo" });
