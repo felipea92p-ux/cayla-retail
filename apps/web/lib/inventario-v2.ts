@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, leerTodas } from "@/lib/resultado";
+import { exigir, leerTodas, tolerar } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
@@ -272,7 +272,7 @@ export async function getExistencias(
   ubicacionId: string,
   ubicaciones: { id: string; nombre: string }[],
   opciones: { incluirPrueba?: boolean } = {}
-): Promise<FilaExistencias[]> {
+): Promise<{ filas: FilaExistencias[]; redFallo: string | null }> {
   const supabase = await createClient();
   const [stock, redRes, transitoRes, pruebaRes] = await Promise.all([
     getStockPorUbicacion(ubicacionId),
@@ -313,7 +313,11 @@ export async function getExistencias(
     // conocido" en vez de tumbar toda la pantalla.
     supabase.from("productos").select("id").eq("es_prueba", true),
   ]);
-  const red = agruparStockPorSede(exigir(redRes, "el stock de las otras sedes"), ubicaciones, ubicacionId);
+  // Lo que hay en OTRAS sedes es apoyo («hay 2 en Arequipa»), no el stock de esta: si esa lectura falla, la pantalla sigue con
+  // lo suyo y lo dice. Antes se caía entera y la encargada no veía ni su propio stock.
+  const redLeida = tolerar(redRes, "lo que hay en las otras sedes");
+  if (redLeida.fallo) console.error("Existencias: no se pudo leer el stock de las otras sedes", redRes.error);
+  const red = agruparStockPorSede(redLeida.datos ?? [], ubicaciones, ubicacionId);
   const enCamino = exigir(transitoRes, "lo que viene en camino");
   const transito = new Map<string, number>();
   for (const item of enCamino) transito.set(item.variante_id, (transito.get(item.variante_id) ?? 0) + item.cantidad);
@@ -368,7 +372,10 @@ export async function getExistencias(
       esPrueba: productoEsPrueba,
     });
   }
-  return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
+  return {
+    filas: filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es")),
+    redFallo: redLeida.fallo,
+  };
 }
 
 export type ResumenExistencias = ResumenInventario & {

@@ -6,6 +6,7 @@ import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
 import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
+import { opcional } from "@/lib/resultado";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
@@ -66,7 +67,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones, misPartes] = await Promise.all([
     listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
-    getResumenComprasExtra(),
+    // Secundario (cifras de las tarjetas): si su función no responde, las tarjetas dicen «no se pudo leer» y la lista sigue.
+    opcional(getResumenComprasExtra(), "los indicadores de compras"),
     getProveedoresActivos(),
     getUbicaciones(),
     // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
@@ -156,7 +158,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           ) : (
             <>
               {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)} por llegar
+              {extra ? `${soles(extra.valorPorRecibir)} por llegar` : "Monto por llegar sin leer"}
             </>
           )}
         </TarjetaCifra>
@@ -164,18 +166,24 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           className="anim-entra"
           style={{ ["--i" as string]: 3 }}
           etiqueta={`Compras de ${mesActual}`}
-          valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
+          valor={extra ? <CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar /> : null}
+          noSePudoLeer={!extra}
         >
-          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
+          {!extra
+            ? "No se pudo leer ahora"
+            : extra.comprasMesAnterior > 0
+              ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}`
+              : `Sin compras en ${mesAnterior}`}
         </TarjetaCifra>
         <TarjetaCifra
           className="anim-entra"
           style={{ ["--i" as string]: 4 }}
           punto="verde"
           etiqueta="IGV del mes"
-          valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
+          valor={extra ? <CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar /> : null}
+          noSePudoLeer={!extra}
         >
-          Crédito fiscal · solo facturas
+          {extra ? "Crédito fiscal · solo facturas" : "No se pudo leer ahora"}
         </TarjetaCifra>
       </div>
 

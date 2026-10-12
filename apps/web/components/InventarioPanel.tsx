@@ -192,6 +192,7 @@ export function InventarioPanel({
   sedeNombre,
   sinStock,
   marcaFallo = null,
+  redFallo = null,
   verProductos = false,
   politica,
   veTraslados = false,
@@ -241,6 +242,8 @@ export function InventarioPanel({
   sinStock: ProductoSinStock[];
   /** Si la marca de los productos no se pudo leer: el aviso (sin Marca en el buscador ni en los filtros); null = todo bien. */
   marcaFallo?: string | null;
+  /** Lo que hay en las otras sedes no se pudo leer: la tabla sigue con lo de esta sede y «En otras sedes» queda vacío. */
+  redFallo?: string | null;
   /** ¿Su rol ve el módulo Productos (ADR-0161)? Sin él, «Ver en Productos» llevaría a «Sin acceso»: los nombres se muestran, sin enlace. */
   verProductos?: boolean;
   /** Política operativa de Inventario (`politica-operativa-inventario.ts`): las jornadas mínimas que lee el popover de Ritmo
@@ -885,6 +888,8 @@ export function InventarioPanel({
       {/* El piso sin cuadrar (antes, una franja de texto aquí) lo dice el atajo «Por colgar», en pausa, y la lista vacía de ese atajo. */}
       {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
       {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
+      {/* Sin el aviso, «no hay en otras sedes» parecería un dato: es que no se pudo leer. */}
+      {redFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{redFallo} Mientras tanto no se ve cuánto hay en las otras sedes.</p>}
       {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}
       {/* Desde 3 letras: con una sola («b») casi todo el catálogo «coincide» y la línea aparecía y desaparecía en cada tecla, moviendo la tabla. */}
       {sinRastroAqui.total > 0 && filtradas.length > 0 && busqueda.trim().length >= 3 && (

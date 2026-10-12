@@ -62,7 +62,7 @@ export default async function InventarioPage({
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan] = await Promise.all([
+  const [{ filas: stockBase, redFallo }, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -265,6 +265,7 @@ export default async function InventarioPage({
         sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
         sinStock={sinStock}
         marcaFallo={catalogo.fallo}
+        redFallo={redFallo}
         verProductos={veModulo(persona, "productos")}
         politica={politica}
         veTraslados={veTraslados}

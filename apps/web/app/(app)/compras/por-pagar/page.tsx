@@ -4,6 +4,8 @@ import { partesPorPagar } from "@/lib/compras-mi-parte-reglas";
 import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
 import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
+import { opcional } from "@/lib/resultado";
+import { Aviso } from "@/components/ui/Aviso";
 import { getProveedores } from "@/lib/proveedores";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
@@ -69,9 +71,11 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
       return { pagina, notas, pagos };
     }),
     getResumenCompras(),
-    getResumenComprasExtra(),
-    getDeudaPorVencimiento(),
-    getSalidasCaja30d(),
+    // Secundarios: la concentración, la deuda por vencimiento y las salidas de 30 días ayudan a decidir, pero sin ellos se sigue
+    // pudiendo pagar la factura que vence hoy. Si su función no responde, su lugar lo dice y la lista sigue en pie.
+    opcional(getResumenComprasExtra(), "los indicadores de compras"),
+    opcional(getDeudaPorVencimiento(), "la deuda por vencimiento"),
+    opcional(getSalidasCaja30d(), "las salidas de caja de 30 días"),
     getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda, tipo: filtros.tipo, desde: filtros.desde, hasta: filtros.hasta, destinoId: filtros.destinoId }),
     getProveedoresActivos(),
     getProveedores(),
@@ -180,7 +184,11 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
           >
             {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana}` : "Ninguno en los próximos 7 días"}
           </TarjetaCifra>
-          {conDeuda && extra.topProveedorNombre ? (
+          {conDeuda && !extra ? (
+            <TarjetaCifra etiqueta="Concentración" valor={null} noSePudoLeer {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+              No se pudo leer ahora
+            </TarjetaCifra>
+          ) : conDeuda && extra?.topProveedorNombre ? (
             <TarjetaCifra punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
               {extra.topProveedorNombre} concentra la deuda
               <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
@@ -204,8 +212,20 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
 
         {/* `grid-cols-1` = `minmax(0, 1fr)`: sin él, en celular la columna única crece hasta el contenido más ancho (las etiquetas de las barras) y la tarjeta se sale de la pantalla. */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <DeudaPorVencimiento tramos={vencimiento} indice={6} />
-          <SalidasDeCaja salidas={salidas} indice={7} />
+          {vencimiento ? (
+            <DeudaPorVencimiento tramos={vencimiento} indice={6} />
+          ) : (
+            <Aviso tono="atencion" chico titulo="No se pudo leer la deuda por vencimiento">
+              La lista de abajo sí está al día: puedes pagar igual.
+            </Aviso>
+          )}
+          {salidas ? (
+            <SalidasDeCaja salidas={salidas} indice={7} />
+          ) : (
+            <Aviso tono="atencion" chico titulo="No se pudo leer cuánto sale de caja en 30 días">
+              La lista de abajo sí está al día: puedes pagar igual.
+            </Aviso>
+          )}
         </div>
 
         <div {...entra(8)}>
