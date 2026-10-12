@@ -325,7 +325,6 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
     <div className="pt-bloque">
       <div className="pt-cab">
         {titulo}
-        {c.falta ? <ChipEstado est="ate">Falta {c.falta}</ChipEstado> : <ChipEstado est="bien">Parejo</ChipEstado>}
       </div>
       <div className={`cols-t ${c.columnas.length > 5 ? "muchas" : ""}`}>
         {c.columnas.map((t, k) => (
