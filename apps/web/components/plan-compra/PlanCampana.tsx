@@ -278,6 +278,7 @@ export function PlanCampana({
           estado={momento.estado}
           tope={plan.tope.valor}
           recuperoPct={hechos && hechos.planId === plan.plan.id ? hechos.recupero.pct : null}
+          sedes={[...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"))}
           onAbrir={() => setResumenAbierto(true)}
         />
       ) : (
