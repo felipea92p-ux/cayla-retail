@@ -22,9 +22,9 @@
  *   5. Extra (mismo módulo, mismo archivo, barato de cubrir): `p_emisor = 'alegra'` NO reserva
  *      comprobante aunque venga `p_tipo_comprobante`; un `p_emisor` inválido se rechaza; un
  *      líder no tiene tope (puede aplicar cualquier descuento de venta sin autorización); y
- *      `anular_venta` libera también un comprobante que ya estaba en la cola de reintento
- *      (`pendiente_reintento`, D-60) — el hueco que documenta la cabecera de
- *      `20260922151500_comprobantes_cola_de_reintento.sql`.
+ *      `anular_venta` NO libera un comprobante que ya estaba en la cola de reintento
+ *      (`pendiente_reintento`): pudo haber llegado a SUNAT, así que la venta no se anula
+ *      (ADR-0386, opción A, que reemplaza lo que aquí probaba D-60 desde `20260922151500`).
  *
  * CÓMO. Mismo patrón que `registrar_venta.mjs` (léelo primero si esto no tiene sentido): cada
  * escenario en su propia transacción con ROLLBACK — nunca se commitea nada, corre seguro contra
@@ -344,24 +344,30 @@ select retail.registrar_venta(
   'p_emisor solo puede ser "alegra" o "retail"'
 );
 
+// ADR-0386 (opción A, 2026-10-12) reemplaza lo que aquí probaba D-60: un comprobante en la cola de reintento ya
+// intentó salir y pudo haber llegado a SUNAT (Lucode emite aunque el ERP deje de esperar), así que su venta NO se
+// anula y nada cambia. Lo que nunca intentó salir se sigue liberando (`anular_venta_comprobante.mjs`, punto 1).
 exito(
-  "D-60: anular_venta libera también un comprobante que ya estaba en la cola de reintento (pendiente_reintento)",
+  "ADR-0386: anular_venta NO libera un comprobante que ya intentó salir (pendiente_reintento): se niega, lo nombra y no toca nada",
   comoPersona(
     FELIPE,
-    `${fixture()}
+    `${INTENTO}
+${fixture()}
 select retail.registrar_venta(:'ubic', ${CARRITO_1}, ${PAGO_EXACTO}, null, gen_random_uuid(), 'boleta') as venta_id \\gset
 select id as venta_item from retail.venta_items where venta_id = :'venta_id' \\gset
-select id as comp from retail.comprobantes where venta_id = :'venta_id' \\gset
-select retail.fn_marcar_reintento_transmision(:'comp', 'timeout de red simulado') as _m \\gset
-select estado as estado_tras_marcar from retail.comprobantes where id = :'comp' \\gset
-select retail.anular_venta(:'venta_id', 'prueba automatizada',
-  jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'condicion', 'vendible'))) as _a \\gset
-select :'estado_tras_marcar', estado, (motivo_no_emitido like 'Venta anulada:%') from retail.comprobantes where id = :'comp';
+select id as comp, serie || '-' || numero as numero from retail.comprobantes where venta_id = :'venta_id' \\gset
+select retail.fn_marcar_reintento_transmision(:'comp', 'sin_respuesta: Lucode no respondió a tiempo') as _m \\gset
+select pg_temp.intento(format('select retail.anular_venta(%L, %L, %L::jsonb)', :'venta_id', 'prueba automatizada',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'condicion', 'vendible'))::text)) as intento \\gset
+select split_part(:'intento', '|', 1),
+       position(:'numero' in :'intento') > 0 and position('Reintentar ahora' in :'intento') > 0,
+       (select estado from retail.comprobantes where id = :'comp'),
+       (select estado from retail.ventas where id = :'venta_id');
 rollback;
 `
   ),
-  ([estadoTrasMarcar, estadoTrasAnular, motivoOk]) =>
-    estadoTrasMarcar === "pendiente_reintento" && estadoTrasAnular === "no_emitido" && motivoOk === "t"
+  ([sqlstate, mensajeOk, estadoComprobante, estadoVenta]) =>
+    sqlstate === "P0001" && mensajeOk === "t" && estadoComprobante === "pendiente_reintento" && estadoVenta !== "anulada"
 );
 
 // ---------------------------------------------------------------------------
