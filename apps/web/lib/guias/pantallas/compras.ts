@@ -1660,7 +1660,7 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
       ancla: "plan-historial.buscar",
       opcional: true,
       titulo: "Buscar y ordenar",
-      texto: "Escribe el nombre de una campaña para encontrarla rápido, y elige el orden: por fecha (el de siempre), más o menos vendidas, o por nombre.",
+      texto: "Escribe el nombre de una campaña para encontrarla rápido. De entrada van la de ahora y las que vienen (la de estos días lleva su marca); también por fecha, más o menos vendidas, o por nombre.",
     },
     {
       id: "tabla",
