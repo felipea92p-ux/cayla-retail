@@ -169,13 +169,14 @@ export function alcancePorTipo(
 }
 
 /**
- * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que se acaba antes (lo que `alcancePorTipo` ya
- * devuelve); o lo que más se vende primero, a igual venta lo que se acaba antes y después por nombre. Lo que no se vendió va al final.
+ * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que más se vende primero (a igual venta, lo que se
+ * acaba antes; después, por nombre; lo que no se vendió va al final); o lo que se acaba antes (lo que `alcancePorTipo` ya devuelve).
  */
 export type OrdenAlcance = "acaba" | "vende";
+export const ORDEN_ALCANCE_DEFECTO: OrdenAlcance = "vende";
 export const ORDENES_ALCANCE: readonly { clave: OrdenAlcance; texto: string }[] = [
-  { clave: "acaba", texto: "Se acaba antes" },
   { clave: "vende", texto: "Más vendido" },
+  { clave: "acaba", texto: "Se acaba antes" },
 ];
 
 export function ordenarAlcance(tipos: readonly AlcanceTipo[], orden: OrdenAlcance): AlcanceTipo[] {
@@ -231,8 +232,6 @@ export type CurvaTallas =
       columnas: ColumnaTalla[];
       /** La columna más alta: las demás se miden contra ella. */
       max: number;
-      /** La talla que más se vende por encima de lo que se tiene, si se nota («Falta M»); null = parejo. */
-      falta: string | null;
       /** Sin tipo elegido: qué tallas se compararon («Modelos con talla S, M y L»). */
       nota: string | null;
     };
@@ -248,7 +247,9 @@ const conTalla = (talla: string): boolean => !esTallaUnica(talla) && tipoDeTalla
 /**
  * La curva de tallas: por talla, qué parte de lo vendido en 30 días y qué parte de lo que tengo. Con un tipo elegido, todas
  * sus tallas; sin tipo, solo las del sistema que más pesa en la tienda (letras S·M·L o números 26·28…: mezclarlos no se lee) y
- * una nota que lo dice. La talla única y la estándar no se comparan.
+ * una nota que lo dice. La talla estándar (o única) es una columna más, la primera (Felipe 2026-10-12: en Polos de TRU era 84 de
+ * 86 vendidas y no se veía); si un tipo SOLO tiene talla estándar, no hay nada que comparar y se dice así. Sin el aviso «Falta M»
+ * (Felipe 2026-10-12): cada barra ya dice si «pide más».
  */
 export function curvaDeTallas(
   prendas: readonly Pick<PrendaAnalisis, "categoria" | "talla" | "vendidas30" | "piso" | "almacen">[],
@@ -259,6 +260,11 @@ export function curvaDeTallas(
   if (conMovimiento.length === 0) return { tipo: "vacia" };
   let consideradas = conMovimiento.filter((p) => conTalla(p.talla));
   if (consideradas.length === 0) return { tipo: "unica" };
+  // La estándar (o única) va en UNA columna, con el nombre que más usa la tienda («Estándar»).
+  const unicas = conMovimiento.filter((p) => !conTalla(p.talla));
+  const usos = new Map<string, number>();
+  for (const p of unicas) usos.set(p.talla.trim(), (usos.get(p.talla.trim()) ?? 0) + 1);
+  const nombreUnica = [...usos.entries()].sort(([a, x], [b, y]) => y - x || a.localeCompare(b, "es"))[0]?.[0] ?? null;
 
   if (categoria === null) {
     const peso = new Map<TipoTalla, number>();
@@ -269,6 +275,12 @@ export function curvaDeTallas(
   }
 
   const porTalla = new Map<string, { vend: number; tiene: number }>();
+  if (nombreUnica !== null) porTalla.set(nombreUnica, { vend: 0, tiene: 0 });
+  for (const p of unicas) {
+    const a = porTalla.get(nombreUnica!)!;
+    a.vend += Math.max(0, p.vendidas30);
+    a.tiene += Math.max(0, totalEnTienda(p));
+  }
   for (const p of consideradas) {
     const k = p.talla.trim();
     const a = porTalla.get(k) ?? { vend: 0, tiene: 0 };
@@ -279,20 +291,17 @@ export function curvaDeTallas(
   const totalV = [...porTalla.values()].reduce((s, a) => s + a.vend, 0);
   const totalT = [...porTalla.values()].reduce((s, a) => s + a.tiene, 0);
   const columnas = [...porTalla.entries()]
-    .sort(([a], [b]) => compararTallas(a, b))
+    .sort(([a], [b]) => (a === nombreUnica ? -1 : b === nombreUnica ? 1 : compararTallas(a, b)))
     .map(([talla, a]) => {
       const v = de100(a.vend, totalV);
       const t = de100(a.tiene, totalT);
       return { talla, v, t, vend: a.vend, tiene: a.tiene, pideMas: v - t >= DIFERENCIA_QUE_SE_NOTA };
     });
 
-  // La que más se vende por encima de lo que hay; a igual diferencia, la primera en el orden de la tienda.
-  const peor = columnas.reduce((a, c) => (c.v - c.t > a.v - a.t ? c : a), columnas[0]!);
   return {
     tipo: "tallas",
     columnas,
     max: Math.max(1, ...columnas.flatMap((c) => [c.v, c.t])),
-    falta: peor.v - peor.t >= DIFERENCIA_QUE_SE_NOTA ? peor.talla : null,
     nota: categoria === null ? `Modelos con talla ${enLista(columnas.map((c) => c.talla))}` : null,
   };
 }
