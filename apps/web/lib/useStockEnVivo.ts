@@ -97,7 +97,8 @@ export function useStockEnVivo(
     // Cada arranque del sondeo (sede nueva, caja que se abre) parte sin memoria: la primera lectura siempre avisa.
     ultimoRef.current = null;
     const sondear = async () => {
-      if (document.visibilityState !== "visible" || !navigator.onLine) return;
+      // Sin mirar `navigator.onLine` (puede decir «sin red» con internet, 2026-10-10): sin red de verdad, falla y ya.
+      if (document.visibilityState !== "visible") return;
       const releido = await leerStockDeSede(ubicacionId, conocidosRef.current);
       if (!releido || cancelado) return;
       if (ultimoRef.current && mismoStock(ultimoRef.current, releido)) return;

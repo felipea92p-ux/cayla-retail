@@ -25,6 +25,8 @@
   @media (max-width: 420px) {
     .gr-mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
+  /* «Registrar ingreso» tiene seis conceptos: dos filas de tres, sin una fila coja. */
+  .gr-mosaico[data-columnas="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   .gr-baldosa {
     position: relative;
