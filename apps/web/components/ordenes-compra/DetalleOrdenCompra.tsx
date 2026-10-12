@@ -3,7 +3,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { ESTADO_ORDEN, lugarDeLlegada, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import { ESTADO_ORDEN, lugarDeLlegada, textoPapelDeLinea, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import { ComprobantesDeOrden } from "@/components/ordenes-compra/ComprobantesDeOrden";
 
 // Una orden de compra por dentro (ADR-0362, fase 1 · actividad 3): lo mismo en la ventana que se abre sobre la lista y en la página
 // completa que se ve al recargar o compartir el enlace. Sin estado: lo dibuja el servidor.
@@ -11,6 +12,9 @@ import { ESTADO_ORDEN, lugarDeLlegada, type DetalleOrden } from "@/lib/ordenes-c
 // Arriba, lo que la ubica (proveedor, a dónde llega, cuándo se emitió y cuándo se espera); al medio, lo que se pidió, línea por línea,
 // con el descuento en soles y el % si se escribió así; abajo, el total, la nota y quién la creó. Una anulada lo dice primero, con su
 // motivo: es lo único que importa de ella.
+//
+// Con papel (fase 2): cada línea dice cuánto llegó ya en comprobantes («Llegó en papel: 8 de 10») y, bajo la tabla, van los comprobantes de
+// la orden con su «Anular». Todo con tolerancia: una base que todavía no los cuenta no trae nada de esto y la orden se ve como siempre.
 //
 // # · Categoría y marca (+ descripción) · Cantidad · Precio · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: la misma pieza vive en una ventana de 896 px y en una página con el menú abierto, donde con una
@@ -29,6 +33,8 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
   const creada = diaYHoraLima(d.creadaEn);
   const editada = d.actualizadaEn ? diaYHoraLima(d.actualizadaEn) : null;
   const anulada = d.anuladaEn ? diaYHoraLima(d.anuladaEn) : null;
+  // «Llegó en papel» solo cuando la orden ya tiene algún comprobante: en una sin papel, «0 de 10» en cada línea sería ruido.
+  const conPapel = d.papel === "en_parte" || d.papel === "completa";
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -83,6 +89,11 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
                 {l.categoria} · {l.marca}
               </span>
               {l.descripcion && <span className="block text-xs text-taupe">{l.descripcion}</span>}
+              {conPapel && textoPapelDeLinea(l) && (
+                <span className={`mt-0.5 block text-xs tabular-nums ${(l.facturado ?? 0) > l.cantidad ? "text-ambar" : (l.facturado ?? 0) >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}>
+                  Llegó en papel: {textoPapelDeLinea(l)}
+                </span>
+              )}
               {/* Sin columnas: la cuenta entera en un renglón. */}
               <span className="mt-1 block text-sm tabular-nums text-tinta/80 @min-[40rem]:hidden">
                 {l.cantidad.toLocaleString("es-PE")} × {soles(l.precioUnitario)}
@@ -115,6 +126,8 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
         </div>
       </Tabla>
 
+      <ComprobantesDeOrden orden={d} />
+
       {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado (Formidable, 2026-10-10). */}
       {d.nota && (
         <p className="nota-cayla sin-i whitespace-pre-line">
@@ -124,6 +137,7 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
 
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
+        {conPapel && <Chip tono={d.papel === "completa" ? "verde" : "ambar"}>{d.papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
           {/* La última edición (actividad 4): quién y cuándo. Lo que decía antes queda en el archivo y en la Actividad. */}

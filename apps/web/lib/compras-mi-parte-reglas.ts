@@ -131,7 +131,8 @@ export type DetalleMiParte = {
     gestoraNombre: string;
   };
   partes: { ubicacionId: string; ubicacionNombre: string; unidades: number; subtotal: number; igv: number; total: number; pagado: number; saldo: number }[];
-  lineas: { ubicacionId: string; referencia: string; talla: string | null; color: string | null; descripcion: string | null; costoUnitario: number; cantidad: number; subtotal: number }[];
+  // `categoria` y `marca` solo en una línea sin prenda (la de un comprobante que sale de una orden de compra, ADR-0362): con ellas se nombra.
+  lineas: { ubicacionId: string; referencia: string; categoria: string | null; marca: string | null; talla: string | null; color: string | null; descripcion: string | null; costoUnitario: number; cantidad: number; subtotal: number }[];
   pagos: { id: string; fecha: string; monto: number; metodo: string; referencia: string | null; ubicacionId: string }[];
 };
 
@@ -172,6 +173,8 @@ export function detalleMiParteDeJson(j: JsonDetalle): DetalleMiParte {
     lineas: (j.lineas ?? []).map((l) => ({
       ubicacionId: String(l.ubicacion_id),
       referencia: String(l.referencia ?? ""),
+      categoria: texto(l.categoria),
+      marca: texto(l.marca),
       talla: texto(l.talla),
       color: texto(l.color),
       descripcion: texto(l.descripcion),

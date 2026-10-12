@@ -29,7 +29,7 @@ import { ayudaDeCosto, costoConocido, progresoDeCompra, requisitosDeCompra } fro
 import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendientes, NumeroTramo, TextoQueSeAsienta, type EstadoRegistro } from "@/components/CompraFormProgreso";
 import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
-import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, soles, totalesCompra } from "@/lib/compras-reglas";
+import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
 import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
@@ -248,18 +248,15 @@ export function CompraFormV2({
   const conIgv = igvEfectivo > 0 && precioIncluyeIgv;
   const baseDeLinea = (l: Linea) => costoBase(Number(l.costoUnitario), igvEfectivo, conIgv);
   // Las líneas que de verdad se mandan (la base numera las suyas, `linea`, desde 1, sobre esta misma lista).
-  const lineasQueSeEnvian = lineas.filter((l) => l.productoId && l.cantidad > 0);
+  const lineasQueSeEnvian = lineas.filter(seEnviaLinea);
   const huellaDeLineas = JSON.stringify(lineasQueSeEnvian.map((l) => [l.productoId, l.varianteId, l.cantidad, baseDeLinea(l)]));
   const costosAtipicos = atipicos && atipicos.huella === huellaDeLineas ? atipicos.costos : null;
   // Lo que se muestra en cada línea: con IGV incluido, lo que dice el papel
   // (cantidad × precio tipeado); sin IGV, la base. El resumen sale de la
-  // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren.
+  // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren. Suma EXACTAMENTE las líneas que se envían: una fila a medio
+  // llenar (sin prenda o sin cantidad) no se manda a `registrar_compra`, y sumarla mostraba un total mayor al que se registraba.
   const importeDeLinea = (l: Linea) => (conIgv ? Math.round(l.cantidad * (Number(l.costoUnitario) || 0) * 100) / 100 : l.cantidad * baseDeLinea(l));
-  const { subtotal, igv, total } = totalesCompra(
-    lineas.map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
-    igvEfectivo,
-    conIgv,
-  );
+  const { subtotal, igv, total } = totalesDeLasLineasQueSeEnvian(lineas, igvEfectivo, conIgv);
   const hayPago = condicion === "contado" || pagarAhora;
   const sumaPagos = sumaLineasPago(pagos);
   // Qué falta para poder registrar: UNA sola función pura (lib/compra-form-progreso.ts) alimenta la lista junto al
@@ -280,7 +277,7 @@ export function CompraFormV2({
   });
   const progreso = progresoDeCompra(requisitos);
   // Para el resumen «Dónde cae»: cuántas unidades le tocan a cada tienda (solo cuando se reparte).
-  const unidadesTienda = unidadesPorTienda(lineas.filter((l) => l.productoId && l.cantidad > 0));
+  const unidadesTienda = unidadesPorTienda(lineasQueSeEnvian);
   const porTienda = ubicaciones.filter((u) => (unidadesTienda[u.id] ?? 0) > 0).map((u) => ({ id: u.id, nombre: u.nombre, unidades: unidadesTienda[u.id] }));
   // La tienda gestora que se manda a la RPC (ADR-0184, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
   // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`). Sin restricción para nadie (ADR-0387): la elegida o,
@@ -386,7 +383,7 @@ export function CompraFormV2({
   /** `confirmadas`: las líneas (posición desde 1, las de la base) que quien registra confirmó; `null` en el primer intento. */
   async function registrar(confirmadas: number[] | null) {
     if (loading || registrada) return;
-    const validas = lineas.filter((l) => l.productoId && l.cantidad > 0);
+    const validas = lineas.filter(seEnviaLinea);
     // Las mismas reglas que la lista de pendientes (`requisitosDeCompra`): el primer requisito sin cumplir avisa arriba
     // a la derecha Y deja el cursor en el campo. Con el botón deshabilitado hasta cumplirlos, esto es la red de
     // seguridad (Enter, un envío forzado): la base vuelve a exigir todo en `registrar_compra`.

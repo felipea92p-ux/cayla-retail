@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ArgsCrearOrden, ArgsEditarOrden } from "@/lib/orden-compra-alta";
-import { RPC_ANULAR_ORDEN, RPC_CREAR_ORDEN, RPC_EDITAR_ORDEN } from "@/lib/ordenes-compra-reglas";
+import { leerResultadoComprobante, type ArgsRegistrarComprobante, type ResultadoComprobante } from "@/lib/comprobante-orden-reglas";
+import { RPC_ANULAR_COMPROBANTE, RPC_ANULAR_ORDEN, RPC_CREAR_ORDEN, RPC_EDITAR_ORDEN, RPC_REGISTRAR_COMPROBANTE } from "@/lib/ordenes-compra-reglas";
 
 // Órdenes de compra (ADR-0362): lo que la pantalla le pide a la base para guardar. Las reglas viven en la función; aquí solo se arma
 // la llamada con su firma: con la cuenta de una persona, `firmaOmitida("orden_compra_crear")` o `("orden_compra_editar")` (firma ella,
@@ -47,4 +48,28 @@ export async function anularOrdenCompra(
   const { data, error } = await firmar(createClient().rpc(RPC_ANULAR_ORDEN as never, args as never), firma);
   const fila = Array.isArray(data) ? (data[0] as { version?: unknown } | undefined) : undefined;
   return { version: typeof fila?.version === "number" ? fila.version : null, error: error ?? null };
+}
+
+/**
+ * Registra el comprobante de una orden generada (fase 2, `registrar_comprobante_orden`). Con la cuenta de una persona firma ella
+ * (`firmaOmitida("orden_compra_comprobante")`); desde una terminal, el combo «Responsable». `args.p_token` se reusa en cada reintento:
+ * la base devuelve el mismo comprobante si el envío es el mismo (un corte de señal no lo duplica). Sin error y sin `resultado`, la
+ * base contestó algo que la pantalla no entiende: el comprobante pudo quedar registrado y se manda a revisar la orden.
+ */
+export async function registrarComprobanteOrden(
+  args: ArgsRegistrarComprobante,
+  firma: Firma | FirmaOmitida | null,
+): Promise<{ resultado: ResultadoComprobante | null; error: ErrorDeBase }> {
+  const { data, error } = await firmar(createClient().rpc(RPC_REGISTRAR_COMPROBANTE as never, args as never), firma);
+  return { resultado: error ? null : leerResultadoComprobante(data), error: error ?? null };
+}
+
+/** Anula el comprobante de una orden: es `anular_compra`, la misma función de Facturas de proveedor (la base deja anular también a quien
+ *  tiene Órdenes de compra si el comprobante sale de una orden). No devuelve nada: sin error, quedó anulado. */
+export async function anularComprobanteDeOrden(
+  args: { p_compra_id: string; p_motivo: string },
+  firma: Firma | FirmaOmitida | null,
+): Promise<{ error: ErrorDeBase }> {
+  const { error } = await firmar(createClient().rpc(RPC_ANULAR_COMPROBANTE as never, args as never), firma);
+  return { error: error ?? null };
 }

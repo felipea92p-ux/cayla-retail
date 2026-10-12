@@ -14,6 +14,8 @@ import {
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
   fechaCorta,
+  hayAlgoQueRecibir,
+  nombreDeLineaSinPrenda,
   soles,
   type CompraResumen,
   type LineaCompra,
@@ -294,10 +296,21 @@ export function CompraDetalle({
                 return (
                   <div key={l.id} className={fila(PLANTILLA_LINEAS)}>
                     <span className={celda("izq", "text-sm text-tinta")}>
-                      {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
-                      {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                      {l.productoId ? (
+                        <>
+                          {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
+                          {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                        </>
+                      ) : (
+                        <>
+                          {/* La línea de un comprobante que sale de una orden de compra se pidió por «categoría + marca» (ADR-0362):
+                              la prenda se crea cuando llega la mercadería, por guía. */}
+                          {nombreDeLineaSinPrenda(l)}
+                          <span className="block text-xs text-tinta/55">Sin prenda todavía: llega por guía</span>
+                        </>
+                      )}
                       {l.cerrado > 0 && <span className="block text-xs text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
-                      {!anulada && l.pendiente > 0 && (
+                      {!anulada && l.pendiente > 0 && l.productoId && (
                         <BotonCerrarFaltante
                           compra={compra}
                           linea={l}
@@ -340,7 +353,7 @@ export function CompraDetalle({
           <section className="space-y-2">
             <div className="flex items-baseline justify-between">
               <p className="label-cayla text-[11px] text-tinta/65">Recepciones</p>
-              {!anulada && compra.estadoRecepcion !== "recibida" && (
+              {!anulada && compra.estadoRecepcion !== "recibida" && hayAlgoQueRecibir(lineas) && (
                 <Link href={`/compras/recibir?compra=${compra.id}`} className="label-cayla text-[11px] text-rojo hover:underline">
                   Recibir mercadería →
                 </Link>
@@ -384,7 +397,7 @@ export function CompraDetalle({
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} />
+          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} hayQueRecibir={hayAlgoQueRecibir(lineas)} />
         </div>
       )}
     </>

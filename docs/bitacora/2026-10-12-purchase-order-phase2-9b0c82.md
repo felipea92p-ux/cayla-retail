@@ -23,3 +23,16 @@
 - **Cómo:** migración `20261012204000` (reemplazos anclados contados en producción; dos partes, las políticas solas al final), web de
   Compras y Finanzas, `pnpm pruebas:compras-llave` 37/37 (13 fallan sin la migración) y ya en la lista del CI; las pruebas viejas de
   «cada tienda lo suyo» pasadas a la regla nueva caso por caso. **Sin pegar en producción** (la base va antes que la web).
+
+## Compras ▸ fase 2, actividades 3 a 8: el comprobante de una orden (2026-10-12)
+
+- **Qué:** desde la orden abierta, «Registrar comprobante»: boleta, nota de venta o factura con IGV, al crédito o al contado (a nombre de
+  la empresa), con lo pendiente de la orden ya puesto, el precio de venta sugerido y lo que no estaba en la orden; lo de más se acepta y
+  se avisa; la orden muestra «Llegó en papel X de Y» y sus comprobantes, con «Anular». Las líneas «categoría + marca» (sin prenda) se ven
+  bien en todo el ERP y Recibir no las ofrece (llegan por guía, fase 4). «Por repartir» pasa a la fase 3.
+- **Por qué:** Felipe pidió cerrar la fase 2 hoy: las actividades 3 a 8 se hicieron juntas con tres agentes en paralelo sobre un contrato
+  escrito (`docs/compras/ordenes-de-compra-2026-10/contrato-comprobante-de-orden.md`).
+- **Cómo:** migraciones `20261012205000` (esquema), `20261012210000` (Recibir y lecturas) y `20261012211000` (la función); pruebas
+  `pruebas:ordenes-compra-comprobante` 18/18 y `pruebas:compras-lineas-sin-prenda` 20/20 (las dos fallan sin su migración), vitest
+  completo y tsc en verde, y en el navegador una integrante registró F001-000777 de la OC-000352. Los 57 reemplazos anclados de la fase
+  2 se simularon contra producción (solo lectura): todos entran. **Sin pegar en producción.**

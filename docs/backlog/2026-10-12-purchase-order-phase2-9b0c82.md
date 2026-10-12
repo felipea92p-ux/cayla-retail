@@ -8,13 +8,16 @@ ADR-0362 (decisiones 5–9, 16, 21 y 40–45) y ADR-0387. Lista aprobada por Fel
   nombre de la empresa; Proveedores ve los montos de la empresa; la deuda de una factura es de la tienda que hizo el pedido (Finanzas
   alineado). Migración `20261012204000` (DOS partes: funciones, y las políticas solas al final) **SIN pegar en producción**; se pega
   ANTES de desplegar la web. Recibir no cambia (va con la fase 4); `compradores_de_tienda` y lo de «mi parte» quedan sin efecto.
-- [ ] 3 · Las líneas por «categoría + marca» se ven bien en todo el ERP (las 15 funciones y la vista que leen el producto de una línea).
-- [ ] 4 · Registrar el comprobante de una orden (boleta o nota de venta, al crédito, a una tienda).
-- [ ] 5 · Factura con IGV.
-- [ ] 6 · Al contado, con su pago (cuenta de la empresa; solo el módulo Órdenes de compra).
-- [ ] 7 · Precio de venta sugerido.
-- [ ] 8 · Entregas parciales (lo de más se acepta y se avisa).
-- [ ] 9 · Órdenes «Por repartir».
+**Actividades 3 a 8 juntas, el mismo día** (Felipe 2026-10-12): contrato en `docs/compras/ordenes-de-compra-2026-10/contrato-comprobante-de-orden.md`;
+migraciones `20261012205000` (esquema), `20261012210000` (Recibir y lecturas sin prenda) y `20261012211000` (la función del comprobante).
+- [x] 3 · Las líneas por «categoría + marca» se ven bien en todo el ERP; Recibir no las ofrece ni las recibe (llegan por guía, fase 4).
+- [x] 4 · Registrar el comprobante de una orden (`registrar_comprobante_orden`, página `/compras/ordenes/comprobante/[id]`).
+- [x] 5 · Factura con IGV («Sumar IGV», marcado por defecto; «si el papel dice otro total», con la tolerancia de `registrar_compra`).
+- [x] 6 · Al contado, con su pago a nombre de la empresa («Sale de»), solo con el módulo Órdenes de compra.
+- [x] 7 · Precio de venta sugerido (opcional, `compra_items.precio_venta_sugerido`).
+- [x] 8 · Entregas parciales: «Llegó en papel X de Y», varios comprobantes por orden; lo de más y lo que no estaba en la orden se aceptan y se avisan.
+- [ ] 9 · ~~Órdenes «Por repartir»~~ → **pasa a la fase 3** (Felipe 2026-10-12, para cerrar la fase 2 hoy): son las que se reparten a las
+  sedes. Mientras tanto, una orden «Por repartir» no muestra «Registrar comprobante».
 - [ ] 10 · Revisión de calidad (/formidable, /chaos también contra los permisos nuevos, modo oscuro).
 - [ ] 11 · Cierre: producción con el OK de Felipe, diccionario y PR.
 
@@ -30,3 +33,6 @@ tienda (la base la rechaza al guardar); arreglo sugerido en `fn_cuentas_para_ele
 guías de main: conservar las dos cosas); `guardar_plan_compra_recupero` todavía pide ser líder (pasarlo al módulo, con su caso en
 `pruebas:compras-llave`); textos «un líder» que quedaron en el Plan (CifrasPlan, NuevaCampanaModal, EditarCampanaModal,
 CampanasArchivadasModal, TopeModal y el texto visible de ResultadosCampana).
+**De las actividades 3 a 8 (para después):** `anular_compra` no rechaza a una terminal sin responsable (ya pasaba); corregir un comprobante
+al CONTADO no se puede anulando (tiene pago) hasta que exista anular un pago; la guía «categoría · marca» de las líneas sin prenda se
+retira cuando la fase 4 cree la prenda desde la guía.

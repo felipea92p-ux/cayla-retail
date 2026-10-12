@@ -45,17 +45,20 @@ export function CompraAcciones({
   tieneRecepciones,
   datosPago,
   permite,
+  hayQueRecibir = true,
 }: {
   compra: CompraResumen;
   tieneRecepciones: boolean;
   datosPago?: DatosPagoProveedor;
   permite: AccionesDeCompra;
+  /** `false` si lo que falta llegar es de líneas sin prenda (un comprobante de orden de compra): llega por guía, no por Recibir. */
+  hayQueRecibir?: boolean;
 }) {
   const router = useRouter();
   const [anulando, setAnulando] = useState(false);
   const [pagando, setPagando] = useState(false);
   const vigente = compra.estado === "vigente";
-  const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida";
+  const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida" && hayQueRecibir;
   const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
   // ADR-0195 F2: la factura de un gasto o de un activo se anula desde Finanzas ▸ Gastos (con lo que detalla); la base tampoco la deja sola.
   const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && (compra.naturaleza ?? "mercaderia") === "mercaderia";

@@ -3,7 +3,7 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { getCompra } from "@/lib/compras";
 import { getMiParteDeCompra } from "@/lib/compras-mi-parte";
 import { compraParaPagarMiParte, parteDelDetalle } from "@/lib/compras-mi-parte-reglas";
-import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, soles } from "@/lib/compras-reglas";
+import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, nombreDeLineaSinPrenda, soles } from "@/lib/compras-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -76,7 +76,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
           {lineas.map((l, i) => (
             <li key={i} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2.5">
               <span className="min-w-0 text-tinta">
-                {l.referencia || l.descripcion || "—"}
+                {l.referencia || (l.categoria || l.marca || l.descripcion ? nombreDeLineaSinPrenda(l) : "—")}
                 {l.talla || l.color ? <span className="text-tinta/65"> · {[l.talla, l.color].filter(Boolean).join(" · ")}</span> : null}
                 {varias ? <span className="text-taupe"> · {nombreTienda[l.ubicacionId]}</span> : null}
               </span>

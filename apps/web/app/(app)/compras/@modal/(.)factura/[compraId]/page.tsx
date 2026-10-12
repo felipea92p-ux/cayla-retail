@@ -2,6 +2,7 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { CompraDetalle, DatosComprobante, TituloComprobante, cargarDetalleCompra } from "@/components/CompraDetalle";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
+import { hayAlgoQueRecibir } from "@/lib/compras-reglas";
 
 // Detalle de la factura como modal, encima de la lista desde la que se abrió.
 //
@@ -55,7 +56,7 @@ export default async function CompraDetalleModal({
       ancho="max-w-2xl"
       cierre="equis"
       alCerrar={alCerrar}
-      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} permite={detalle.acciones} />}
+      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} permite={detalle.acciones} hayQueRecibir={hayAlgoQueRecibir(detalle.lineas)} />}
     >
       <CompraDetalle detalle={detalle} adjuntosFallidos={adjuntosFallidos} acciones={false} />
     </ModalRuta>
