@@ -84,6 +84,7 @@ export function PorPagarVistaRapida({
         <Dialog.Content
           onEscapeKeyDown={alEscape}
           onKeyDown={alFlecha}
+          data-guia="por-pagar.vista"
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[28.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
         >
           {/* `key`: al pasar de un comprobante a otro el contenido se re-asienta (y la línea de vida se vuelve a dibujar);
@@ -130,7 +131,7 @@ export function PorPagarVistaRapida({
 
               <LineaDeVida emision={c.fechaEmision} vencimiento={c.fechaVencimiento} ahora={ahora} />
 
-              <div className="mt-[18px] space-y-3">
+              <div className="mt-[18px] space-y-3" data-guia="por-pagar.vista-pasos">
                 {pasos.map((p, i) => (
                   <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-[13.5px] text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
                     <b className="font-semibold">{p.fuerte}</b>
@@ -163,7 +164,7 @@ export function PorPagarVistaRapida({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="por-pagar.vista-acciones">
               <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono misTiendas={misTiendas} />
               <Link
                 href={`/compras/factura/${c.id}`}

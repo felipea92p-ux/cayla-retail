@@ -13,7 +13,7 @@ const PUNTO: Record<AvisoHistorial["tono"], string> = { ambar: "bg-ambar", rojo:
 export function AvisosHistorial({ avisos }: { avisos: AvisoHistorial[] }) {
   if (avisos.length === 0) return null;
   return (
-    <ul aria-label="Avisos" className="grid gap-2">
+    <ul aria-label="Avisos" data-guia="historial.avisos" className="grid gap-2">
       {avisos.map((a) => (
         <li key={a.href}>
           <Link href={a.href} className="group flex items-center gap-3 rounded-xl bg-hueso px-4 py-2.5 text-[13.5px] text-tinta transition-colors hover:bg-sand">

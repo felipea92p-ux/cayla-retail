@@ -160,13 +160,14 @@ export function ImprimirRotulos({
   const vacia = modelos.length === 0;
 
   const acciones = vacia ? undefined : (
-    <>
+    // La guía interactiva enciende los dos botones juntos (ADR-0389): el mismo flex que pone la cabecera, para que se vean igual.
+    <div data-guia="rotulos.imprimir" className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
       <BotonGuiaImpresion />
       <button type="button" className="btn-cayla btn-primario" disabled={total === 0 || enviando || recorriendo !== null} onClick={mandar}>
         <Printer aria-hidden className="h-4 w-4" />
         {total === 0 ? "Nada que imprimir" : recorriendo || enviando ? "Imprimiendo…" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
       </button>
-    </>
+    </div>
   );
 
   return (
@@ -183,7 +184,7 @@ export function ImprimirRotulos({
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] xl:gap-10">
         <div className="min-w-0 space-y-4">
           <section aria-labelledby="rotulos-titulo" className="space-y-4 rounded-2xl border border-sand bg-papel p-5 sm:p-6">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-guia={vacia ? "rotulos.vacio" : undefined}>
               <h2 id="rotulos-titulo" className={`font-display leading-tight text-tinta ${vacia ? "text-[32px]" : "text-[26px]"}`}>
                 ¿Qué prendas van en este anaquel?
               </h2>
@@ -191,7 +192,7 @@ export function ImprimirRotulos({
             </div>
 
             {!vacia && (
-              <div className="space-y-2.5">
+              <div className="space-y-2.5" data-guia="rotulos.modelos">
                 <div className="flex min-h-8 items-center justify-between gap-3">
                   <span className="label-cayla text-[11px] text-taupe">{plural(modelos.length, "prenda", "prendas")}</span>
                   {modelos.length >= 2 && (
@@ -229,21 +230,23 @@ export function ImprimirRotulos({
             )}
 
             {!lleno && (
-              <ComboBuscable
-                key={vueltaBuscador}
-                autoFocus={vueltaBuscador > 0}
-                etiquetaAccesible="Sumar una prenda al rótulo"
-                valor=""
-                onValor={sumar}
-                opciones={opciones}
-                marcador="Busca por nombre o código" // sugerir-fijo: busca en todo el catálogo, no depende de nada elegido
-                caja
-                className="w-full"
-              />
+              <div data-guia="rotulos.agregar">
+                <ComboBuscable
+                  key={vueltaBuscador}
+                  autoFocus={vueltaBuscador > 0}
+                  etiquetaAccesible="Sumar una prenda al rótulo"
+                  valor=""
+                  onValor={sumar}
+                  opciones={opciones}
+                  marcador="Busca por nombre o código" // sugerir-fijo: busca en todo el catálogo, no depende de nada elegido
+                  caja
+                  className="w-full"
+                />
+              </div>
             )}
 
             {modelos.length >= 2 && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="rotulos.como-salen">
                 <span className="label-cayla text-[11px] text-taupe">Cómo salen</span>
                 <SegmentoDeslizante
                   forma="modo"
@@ -251,8 +254,8 @@ export function ImprimirRotulos({
                   valor={juntar && puedeJuntar ? "juntas" : "una"}
                   onCambio={(c) => setJuntar(c === "juntas")}
                   opciones={[
-                    { clave: "una", etiqueta: "Uno por prenda" },
-                    { clave: "juntas", etiqueta: "Todas en uno", deshabilitada: !puedeJuntar, ayuda: puedeJuntar ? undefined : `Juntas se leen hasta ${MAX_JUNTOS} prendas` },
+                    { clave: "una", etiqueta: "Uno por prenda", guia: "rotulos.por-modelo" },
+                    { clave: "juntas", etiqueta: "Todas en uno", guia: "rotulos.juntos", deshabilitada: !puedeJuntar, ayuda: puedeJuntar ? undefined : `Juntas se leen hasta ${MAX_JUNTOS} prendas` },
                   ]}
                 />
                 {!puedeJuntar && <span className="w-full text-xs text-tinta/70">Juntas se leen hasta {MAX_JUNTOS} prendas: con más, va uno por prenda.</span>}
@@ -265,14 +268,16 @@ export function ImprimirRotulos({
           </section>
 
           {avisoMac && (
-            <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome con el mismo papel de las etiquetas." />
+            <div data-guia="rotulos.aviso-mac">
+              <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome con el mismo papel de las etiquetas." />
+            </div>
           )}
         </div>
 
         <TiraBrother rotulos={rotulos} copias={copias} onCopias={(clave, texto) => setCopias((c) => ({ ...c, [clave]: texto }))} recorriendo={recorriendo} />
       </div>
 
-      <p className="nota-cayla">
+      <p className="nota-cayla" data-guia="rotulos.nota">
         <b>Sale en el mismo papel que las etiquetas de precio</b> (62 × 40,1 mm): no hay que cambiar nada en la Brother. Si sale corto,
         chico o girado, la{" "}
         <BotonGuiaImpresion className="font-semibold underline underline-offset-2 transition-colors hover:text-rojo">guía de impresión</BotonGuiaImpresion> lo

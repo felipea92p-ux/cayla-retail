@@ -80,7 +80,7 @@ export function AbrirCajaFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
+    <form data-guia="caja.abrir" onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
       <div>
         {!enHoja && <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>}
         <h2 className="font-display mt-0.5 text-2xl text-tinta">

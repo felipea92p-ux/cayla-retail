@@ -96,6 +96,7 @@ export function TiraBrother({
     <section
       ref={raiz}
       aria-label="Así salen de la Brother"
+      data-guia="rotulos.vista"
       className="rot-maquina"
       style={{ "--z": zoom.toFixed(3) } as CSSProperties}
       data-recorriendo={recorriendo ? "" : undefined}
@@ -158,7 +159,7 @@ export function TiraBrother({
                   <span aria-hidden className="rot-seg__cabezal" />
                 </div>
                 {i > 0 && <Scissors aria-hidden className="rot-seg__tijera" />}
-                <div className="rot-seg__copias">
+                <div className="rot-seg__copias" data-guia={i === 0 ? "rotulos.copias" : undefined}>
                   <span aria-hidden className="rot-seg__guia" />
                   <label htmlFor={`copias-${r.clave}`} className="rot-seg__etiqueta">
                     Copias

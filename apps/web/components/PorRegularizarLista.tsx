@@ -170,7 +170,7 @@ export function PorRegularizarLista({
         <div className="card-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
           {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo de líder va en «Más». */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-5 pb-3 pt-4">
-            <Buscador
+            <Buscador guia="regularizar.buscador"
               valor={busqueda}
               onCambio={setBusqueda}
               maxLength={120}
@@ -178,7 +178,7 @@ export function PorRegularizarLista({
               etiqueta="Buscar una venta sin registrar"
               className="min-w-[11rem] flex-1 basis-44"
             />
-            <div className="flex flex-wrap items-center gap-2">
+            <div data-guia="regularizar.filtros" className="flex flex-wrap items-center gap-2">
               {FILTROS.map((f) => (
                 <button
                   key={f.clave}
@@ -194,7 +194,7 @@ export function PorRegularizarLista({
                 </button>
               ))}
             </div>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div data-guia="regularizar.herramientas" className="ml-auto flex flex-wrap items-center gap-2">
               {/* Un solo botón chico que alterna el orden por fecha de venta: el ícono y la palabra dicen cómo está ordenada hoy; tocarlo la invierte. */}
               <button
                 type="button"
@@ -260,7 +260,7 @@ export function PorRegularizarLista({
         </div>
       </div>
 
-      <p className="nota-cayla text-sm">
+      <p data-guia="regularizar.nota" className="nota-cayla text-sm">
         Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda cuadrado. Las pendientes salen todas; las ya resueltas, las de este
         mes y el anterior.
       </p>

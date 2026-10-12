@@ -145,19 +145,21 @@ export function ClientasPanel({
         acciones={
           <>
             {/* `max-sm:px-3`: a 375 px los tres botones caben en una fila (con el padding de siempre, «+ Nuevo cliente» bajaba). */}
-            <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa">
+            <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa" data-guia="clientas.exportar">
               Exportar
             </Boton>
             {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px.
                 «Llegó un mensaje de WhatsApp» se fue en la tanda 1g (G-7): ella se une desde el cartel y la BAJA va en su ficha. */}
-            <MenuAcciones
-              etiqueta="Más acciones de Clientes"
-              texto="Más"
-              items={[
-                { clave: "cartel", etiqueta: "Imprimir el cartel del club", onSelect: () => router.push("/clientas/cartel") },
-              ]}
-            />
-            <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)}>
+            <span data-guia="clientas.mas">
+              <MenuAcciones
+                etiqueta="Más acciones de Clientes"
+                texto="Más"
+                items={[
+                  { clave: "cartel", etiqueta: "Imprimir el cartel del club", onSelect: () => router.push("/clientas/cartel") },
+                ]}
+              />
+            </span>
+            <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)} data-guia="clientas.nuevo">
               + Nuevo cliente
             </Boton>
           </>
@@ -165,7 +167,7 @@ export function ClientasPanel({
       />
 
       {cifras && (
-        <div className="anim-sube grid grid-cols-2 gap-3 lg:grid-cols-4" style={{ "--i": 1 } as React.CSSProperties}>
+        <div className="anim-sube grid grid-cols-2 gap-3 lg:grid-cols-4" style={{ "--i": 1 } as React.CSSProperties} data-guia="clientas.cifras">
           <TarjetaCifra etiqueta="Identificados" valor={cifras.identificadas}>
             Con ficha: sus compras se ligan
           </TarjetaCifra>
@@ -187,7 +189,7 @@ export function ClientasPanel({
             <BuscadorClientas params={params} />
             {/* Un filtro por clic es una acción decidida: navega con el loader de siempre (ADR-0149). «Archivados» es una
                 píldora más, al final: mira solo las fichas fuera de la libreta (para reactivar una o revisar una fusión). */}
-            <nav className="flex flex-wrap gap-2" aria-label="Filtrar la lista">
+            <nav className="flex flex-wrap gap-2" aria-label="Filtrar la lista" data-guia="clientas.filtros">
               {FILTROS_LISTA.map((f) => (
                 <Link
                   key={f.valor}
@@ -203,7 +205,7 @@ export function ClientasPanel({
             </nav>
           </div>
 
-          <div data-resultados>
+          <div data-resultados data-guia="clientas.lista">
             {falla ? (
               <div className="p-5">
                 <Aviso tono="error" chico>
@@ -245,7 +247,7 @@ export function ClientasPanel({
           </div>
 
           {!falla && (
-            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-2`}>
+            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-2`} data-guia="clientas.pie">
               <span>{pieLista(total, params.filtro, cifras)}</span>
               {paginas > 1 && (
                 <nav className="flex items-center gap-3" aria-label="Páginas">
@@ -269,7 +271,7 @@ export function ClientasPanel({
         </Tabla>
       </div>
 
-      <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties}>
+      <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties} data-guia="clientas.nota">
         La <b>sede</b> de cada cliente es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «Sin publicidad» son miembros
         que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
       </p>
@@ -299,15 +301,17 @@ function FilaClienta({ c, hoy, onAbrir }: { c: ClientaDeLista; hoy: string; onAb
   // Como el spike: bajo el nombre, solo el documento (el código de miembro se busca igual en el buscador).
   const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false) ?? "Sin documento";
   const celular = c.telefonoWhatsapp ? celularLegible(c.telefonoWhatsapp) : null;
+  // La guía interactiva escribe en el buscador la primera palabra de un nombre de esta lista: solo sirve una de 3 letras o más.
+  const nombreDeEjemplo = (c.nombre ?? "").split(/\s+/).some((p) => p.length >= 3);
   const chipPublicidad = publicidad ? (
     <Chip tono={publicidad.tono} tachado={false}>
       {publicidad.texto}
     </Chip>
   ) : null;
   return (
-    <button type="button" onClick={onAbrir} className={`fila-cayla w-full cursor-pointer px-5 py-3 text-left ${PLANTILLA} ${c.archivadaEn ? "opacity-60" : ""}`}>
+    <button type="button" onClick={onAbrir} className={`fila-cayla w-full cursor-pointer px-5 py-3 text-left ${PLANTILLA} ${c.archivadaEn ? "opacity-60" : ""}`} data-guia="clientas.fila">
       <span className="min-w-0">
-        <span className="block break-words text-sm font-medium text-tinta @min-[560px]:truncate">{c.nombre ?? "Sin nombre"}</span>
+        <span className="block break-words text-sm font-medium text-tinta @min-[560px]:truncate" data-guia={nombreDeEjemplo ? "clientas.nombre" : undefined}>{c.nombre ?? "Sin nombre"}</span>
         <span className="block truncate text-xs text-tinta/65">
           {documento}
           {celular && <span className="hidden @min-[560px]:inline @min-[800px]:hidden"> · {celular}</span>}

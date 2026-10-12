@@ -37,7 +37,10 @@ export function PaginacionCursor({
   params,
   pathname,
   sustantivo,
+  guia,
 }: {
+  /** Ancla de la guía (ADR-0389). */
+  guia?: string;
   mostradas: number;
   cursorSiguiente: string | null;
   hayCursor: boolean;
@@ -56,7 +59,7 @@ export function PaginacionCursor({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-tinta/65">
+    <div data-guia={guia} className="flex flex-wrap items-center justify-between gap-3 text-xs text-tinta/65">
       <span>
         {mostradas === 0 ? "Sin resultados en esta página." : `${mostradas} ${mostradas === 1 ? sustantivo[0] : sustantivo[1]} en esta página`}
       </span>

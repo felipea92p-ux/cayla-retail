@@ -108,7 +108,7 @@ export function PuenteUnion({
   }, [aviso, porque]);
 
   return (
-    <div className="vsr-pu" data-vsr-puente data-hecho={hecho ? "" : undefined}>
+    <div className="vsr-pu" data-guia="regularizar.puente" data-vsr-puente data-hecho={hecho ? "" : undefined}>
       <p className="label-cayla vsr-pu-t text-[11px] text-tinta/65">Venta y prenda</p>
 
       <div className="vsr-sl vsr-sl-venta" data-vsr-slot="venta">
@@ -195,7 +195,7 @@ export function PuenteUnion({
           )}
 
           <CampoGuiado id="forma" guia={guia} titulo="¿Cómo estaba esta prenda en el sistema?" retiene="fila">
-            <div className="vsr-formas" role="group" aria-label="Cómo estaba esta prenda en el sistema">
+            <div className="vsr-formas" data-guia="regularizar.formas" role="group" aria-label="Cómo estaba esta prenda en el sistema">
               {(["ya_registrada", "llego_nueva"] as const).map((f) => (
                 <button key={f} type="button" className="vsr-forma" aria-pressed={forma === f} onClick={() => onForma(f)} disabled={guardando || hecho}>
                   {f === "ya_registrada" ? <Tag aria-hidden strokeWidth={1.6} /> : <Box aria-hidden strokeWidth={1.6} />}
@@ -250,7 +250,7 @@ export function PuenteUnion({
             </p>
           )}
 
-          <div className="vsr-pu-fin">
+          <div className="vsr-pu-fin" data-guia="regularizar.guardar">
             <PieGuia guia={guia} />
             <button type="button" onClick={onGuardar} disabled={!puedeGuardar} title={guia.frase ?? responsable.motivo ?? undefined} className={`${botonPrimario} w-full ${guia.claseConfirmar}`}>
               {guardando ? "Guardando…" : hecho ? "Listo" : "Regularizar"}

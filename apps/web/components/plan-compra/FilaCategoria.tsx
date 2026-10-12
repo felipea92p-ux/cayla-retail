@@ -33,6 +33,7 @@ export function FilaCategoria({ f, estado, indice, recienGuardada = false, onAbr
     <button
       type="button"
       onClick={onAbrir}
+      data-guia="plan.categoria"
       style={{ ["--i" as string]: paso }}
       // La fila que se acaba de guardar se enciende en verde una vez y se apaga sola (la confirmación de Por pagar, `anim-destello-ok`).
       className={`${fila(plantilla)} ${recienGuardada ? "anim-destello-ok" : "anim-sube"} w-full text-left transition-colors hover:bg-sand/30`}

@@ -112,7 +112,7 @@ export function PestanaPedir() {
           <div className="b-cab">
             <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
             {/* Ordenar (Felipe 2026-10-12): lo que más se vende primero (por defecto), o lo que se acaba antes. */}
-            <span className="filtro-a" role="group" aria-label="Ordenar los tipos">
+            <span className="filtro-a" role="group" aria-label="Ordenar los tipos" data-guia="analisis.pedir-orden">
               {ORDENES_ALCANCE.map((o) => (
                 <button key={o.clave} type="button" className="pildora" aria-pressed={orden === o.clave} onClick={() => setOrden(o.clave)}>
                   {o.texto}

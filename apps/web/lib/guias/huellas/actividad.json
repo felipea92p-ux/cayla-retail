@@ -1,0 +1,17 @@
+{
+  "guia": "actividad",
+  "ruta": "/actividad",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 5,
+  "controles": {
+    "components/actividad/ListaActividad.tsx": [
+      "button «actividad.ver-mas»"
+    ],
+    "components/actividad/PantallaActividad.tsx": [
+      "Desplegable «(sin nombre)»",
+      "Desplegable «) : (»",
+      "Desplegable «(sin nombre)» #2",
+      "button «{p.etiqueta}»"
+    ]
+  }
+}

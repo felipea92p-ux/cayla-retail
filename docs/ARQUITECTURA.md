@@ -212,6 +212,11 @@ flowchart TB
   pinta con `components/ui/AvatarPersona.tsx` (foto o iniciales, nunca imagen rota): pie del lateral, «Mi perfil», combo
   «Responsable» y las tablas de Colaboradores. «Mi perfil» sube la foto a `fotos-perfil` y guarda la RUTA con
   `actualizar_mi_foto_perfil` → `public.fn_actualizar_foto_perfil` (rechaza lo que no empiece por `perfil/`).
+  **Guías interactivas (ADR-0389, 2026-10-07):** `components/guias/MotorGuias.tsx`, montado en `AppShell`, ofrece la demo de la pantalla
+  una vez por persona (`fn_guias_vistas` / `marcar_guia_vista` sobre `retail.guias_vistas`, migración `20261007180000`, aún no en
+  producción; sin ella, se recuerda en el navegador) y la arranca con `?demo=1` o con el evento `cayla:abrir-guia`. «Mi perfil ▸ Demo»
+  abre `components/guias/ElegirDemoModal.tsx` (las filas del lateral de la cuenta). El contenido vive en `lib/guias/pantallas/`, el tablero
+  en `lib/guias/registro.ts` y el candado en `lib/guias.test.ts` + `guias/escaner.mjs` (huellas en `lib/guias/huellas/`).
 
 **Catálogo / inventario**
 - `/inventario` (Existencias; rediseño 2026-10-04, ADR-0331) → `app/(app)/inventario/page.tsx` lee `lib/inventario-v2.ts`

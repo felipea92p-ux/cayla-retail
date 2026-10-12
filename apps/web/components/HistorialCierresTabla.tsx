@@ -32,7 +32,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
 
   return (
     <>
-      <Tabla>
+      <Tabla guia="caja-historial.tabla">
         <Encabezado
           grande
           plantilla={PLANTILLA}
@@ -88,13 +88,13 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
                         <span className="mr-1 text-xs font-normal text-tinta/60 sm:hidden">Se contó</span>
                         {money(c.montoCierreReal)}
                       </span>
-                      <span className={`flex items-center gap-2.5 whitespace-nowrap font-semibold ${r.texto}`}>
+                      <span data-guia="caja-historial.diferencia" className={`flex items-center gap-2.5 whitespace-nowrap font-semibold ${r.texto}`}>
                         <span className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${r.fondo}`} aria-hidden>
                           <Icono className="h-3 w-3 text-papel" strokeWidth={3} />
                         </span>
                         {textoResultado(c.diferencia)}
                       </span>
-                      <span className="flex items-center justify-end gap-0.5 whitespace-nowrap text-[13px] font-semibold text-rojo group-hover:text-rojo-profundo">
+                      <span data-guia="caja-historial.ver" className="flex items-center justify-end gap-0.5 whitespace-nowrap text-[13px] font-semibold text-rojo group-hover:text-rojo-profundo">
                         Ver detalle
                         <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" aria-hidden />
                       </span>

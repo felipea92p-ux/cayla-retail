@@ -29,7 +29,7 @@ export default async function CompraDetallePage({
   return (
     <div className="max-w-3xl space-y-6">
       <Volver href="/compras" a="Facturas de proveedor" />
-      <div>
+      <div data-guia="factura.cabecera">
         <h1 className="font-display text-tinta">
           <TituloComprobante compra={compra} />
         </h1>

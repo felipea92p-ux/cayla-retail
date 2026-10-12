@@ -498,7 +498,7 @@ export function CategoriasLista({
         >
           {(cerrar) => (
             <>
-          <div className="mt-5 space-y-4">
+          <div data-guia="categorias.form-datos" className="mt-5 space-y-4">
             {!editando && (
               <CampoSelect
                 etiqueta="Categoría padre (opcional)"
@@ -594,7 +594,7 @@ export function CategoriasLista({
           </div>
 
           {editando && !borrador.categoriaPadreId && (
-            <div className="mt-5 border-t border-tinta/10 pt-4">
+            <div data-guia="categorias.form-subcategorias" className="mt-5 border-t border-tinta/10 pt-4">
               <p className="label-cayla text-[11px] text-tinta/65">Subcategorías</p>
               {hijasDeEditada.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -680,7 +680,7 @@ export function CategoriasLista({
           )}
 
           {editando && (
-            <div className="mt-5 space-y-4 border-t border-tinta/10 pt-4">
+            <div data-guia="categorias.form-ejes" className="mt-5 space-y-4 border-t border-tinta/10 pt-4">
               <div>
                 <p className="label-cayla text-[11px] text-tinta/65">Tallas que ofrece</p>
                 {universo.tallas.length > 0 ? (
@@ -749,7 +749,7 @@ export function CategoriasLista({
           )}
 
           <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
-          <div className="mt-5 flex items-center justify-between gap-2">
+          <div data-guia="categorias.form-pie" className="mt-5 flex items-center justify-between gap-2">
             {editando ? (
               <button
                 type="button"
@@ -781,7 +781,7 @@ export function CategoriasLista({
       )}
 
       {desactivadasVisibles.length > 0 && (
-        <section className="space-y-2">
+        <section data-guia="categorias.desactivadas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al crear productos nuevos</p>
           <div className="card-cayla flex flex-wrap gap-2 p-5">
             {desactivadasVisibles.map((c) => (
@@ -915,6 +915,7 @@ function VistaRapidaCategoria({
         <div className="space-y-4">
           <Link
             href={`/productos?cat=${categoria.id}`}
+            data-guia="categorias.vista-productos"
             className="group flex items-center justify-between rounded-lg border border-tinta/10 bg-papel px-3 py-2.5 transition-colors hover:border-rojo/40"
           >
             <span className="text-sm text-tinta">
@@ -948,12 +949,14 @@ function VistaRapidaCategoria({
             </div>
           )}
 
-          <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
-          <GrupoEjes titulo="Tejidos" valores={tejidos} />
-          <GrupoEjes titulo="Patrones" valores={patrones} />
+          <div data-guia="categorias.vista-ejes" className="space-y-4">
+            <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
+            <GrupoEjes titulo="Tejidos" valores={tejidos} />
+            <GrupoEjes titulo="Patrones" valores={patrones} />
+          </div>
 
           {temporada && (
-            <div>
+            <div data-guia="categorias.vista-temporada">
               <p className="label-cayla text-[10.5px] text-tinta/55">Temporada por defecto</p>
               <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
               <p className="mt-0.5 text-xs text-tinta/60">
@@ -979,9 +982,9 @@ function VistaRapidaCategoria({
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end gap-2 border-t border-tinta/10 pt-4">
+      <div data-guia="categorias.vista-pie" className="mt-6 flex justify-end gap-2 border-t border-tinta/10 pt-4">
         {puedeEditar && (
-          <Boton peso="primario" onClick={onEditar}>
+          <Boton peso="primario" onClick={onEditar} data-guia="categorias.vista-editar">
             Editar
           </Boton>
         )}
