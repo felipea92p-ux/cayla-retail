@@ -41,6 +41,8 @@
 import { execFileSync } from "node:child_process";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// Otra base del mismo Postgres (p. ej. una copia desechable con las migraciones de esta rama): `PRUEBAS_BASE=mi_copia node …`.
+const BASE = process.env.PRUEBAS_BASE ?? "postgres";
 
 // Mismas credenciales obvias que supabase/seed.sql.
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
@@ -49,7 +51,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   );
 }
@@ -89,7 +91,7 @@ ${sqlDespues}
  * "compra" no falle) y en la NUEVA salvo que `toparStockNuevo` sea falso — el
  * escenario de "sin stock suficiente" necesita la variante nueva sin ese colchón.
  */
-function fixture({ cantidad = 1, diferenciaUnitaria = 0, toparStockNuevo = true }) {
+function fixture({ cantidad = 1, diferenciaUnitaria = 0, toparStockNuevo = true, descuentoUnitario = 0 }) {
   const colchonViejo = Math.max(1000, cantidad + 10);
   return `
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -140,8 +142,10 @@ update retail.variantes set precio = :'precio_viejo' where id = :'v_old';
 -- cerrar_caja y contaminaría la aserción del escenario 12 (que solo quiere ver la
 -- diferencia del CAMBIO, no la de la venta original).
 select retail.registrar_venta(:'ubic',
-  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', ${cantidad}, 'precio_unitario', :'precio_viejo', 'descuento_unitario', 0)),
-  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'precio_viejo')::numeric * ${cantidad})),
+  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', ${cantidad}, 'precio_unitario', :'precio_viejo', 'descuento_unitario', ${descuentoUnitario}${
+    descuentoUnitario > 0 ? `, 'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'prueba automatizada'` : ""
+  })),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', ((:'precio_viejo')::numeric - ${descuentoUnitario}) * ${cantidad})),
   null, gen_random_uuid()) as venta_id \\gset
 
 select id as venta_item from retail.venta_items where venta_id = :'venta_id' and variante_id = :'v_old' \\gset
@@ -485,6 +489,65 @@ rollback;
 `
   ),
   ([msg]) => msg.includes("se vendieron 2: ya se cambiaron 1 y se devolvieron 1") && msg.includes("quedan 0, no puedes cambiar 1")
+);
+
+// ---------------------------------------------------------------------------
+// 20261012120100 (ADR-0380): la diferencia se mide contra lo que la clienta PAGÓ (precio − descuento), no contra el precio de
+// lista. Ejemplo de Felipe: polera de lista S/ X con S/ 20 de campaña. Antes, cambiarla por otra de la misma lista daba «diferencia
+// 0» y la tienda regalaba los S/ 20; cambiarla por una más barata devolvía de más.
+// ---------------------------------------------------------------------------
+
+exito(
+  "con descuento: cambiarla por una de la misma lista cobra lo que se descontó",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, c.metodo_pago_diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia, metodo]) => Number(diferencia) === 20 && metodo === "efectivo"
+);
+
+exito(
+  "con descuento: por una prenda más barata se devuelve solo lo que sobra de lo pagado, no de la lista",
+  // Lista de la vieja = nueva + 60; pagó nueva + 40; se lleva la nueva → se le devuelven 40 (antes: 60, más de lo que sobraba).
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: -60, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia]) => Number(diferencia) === -40
+);
+
+exito(
+  "con descuento: si la prenda nueva vale justo lo que pagó, no hay diferencia ni método de pago",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: -20, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, coalesce(c.metodo_pago_diferencia, '') from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia, metodo]) => Number(diferencia) === 0 && metodo === ""
+);
+
+exito(
+  "con descuento y varias unidades: la diferencia es por unidad × cantidad",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 3, diferenciaUnitaria: 0, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 2, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia]) => Number(diferencia) === 40
 );
 
 // ---------------------------------------------------------------------------

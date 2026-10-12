@@ -32,8 +32,10 @@ import {
   agruparCatalogo,
   derivarReemplazo,
   opcionesDePrenda,
+  pagadoPorUnidad,
   seleccionDesdeLectura,
   seleccionInicial,
+  textoPagoConDescuento,
   type Seleccion,
   type VarianteCatalogo,
 } from "@/lib/cambio-reemplazo-reglas";
@@ -68,8 +70,8 @@ const TITULOS: Record<Paso, string> = {
   exito: "Cambio registrado",
 };
 
-function ficha(p: { referencia: string; talla: string | null; color: string | null; colorHex: string | null; fotoUrl: string | null }, precio: number): PrendaFicha {
-  return { referencia: p.referencia, talla: p.talla, color: p.color, colorHex: p.colorHex, fotoUrl: p.fotoUrl, precio };
+function ficha(p: { referencia: string; talla: string | null; color: string | null; colorHex: string | null; fotoUrl: string | null }, precio: number, detalle: string | null = null): PrendaFicha {
+  return { referencia: p.referencia, talla: p.talla, color: p.color, colorHex: p.colorHex, fotoUrl: p.fotoUrl, precio, detalle };
 }
 
 /**
@@ -410,7 +412,7 @@ export function CambiosFlujo({
                         <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
                         <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
                         <span className="mt-0.5 block text-xs text-tinta/70">
-                          <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
+                          <span className="font-mono">{codigoPrenda(l)}</span> · {soles(pagadoPorUnidad(l))}
                         </span>
                       </span>
                       <span className="max-sm:basis-full max-sm:pl-8">
@@ -499,7 +501,7 @@ export function CambiosFlujo({
                 <Dato titulo="La prenda que trae">{r.condicion === "vendible" ? "Impecable: vuelve al piso" : "Con defecto o uso: va a cuarentena"}</Dato>
               </dl>
               <ComparacionPrendas
-                devuelta={ficha(linea, linea.precioUnitario)}
+                devuelta={ficha(linea, r.pagadoUnitario, textoPagoConDescuento(linea))}
                 nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
                 cantidad={seleccion.cantidad}
                 diferencia={r.diferencia}
