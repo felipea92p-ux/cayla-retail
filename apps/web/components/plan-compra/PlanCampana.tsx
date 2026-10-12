@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
+import { ArrowRight, CalendarDays, Download, PanelRightOpen } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -227,19 +228,33 @@ export function PlanCampana({
         }
         acciones={
           <>
-            {/* El resumen y los avisos, en un cajón (Felipe 2026-10-12): la tabla queda justo bajo las pestañas. El número dice cuántas
-                tiendas tienen el stock sin cuadrar, para que el aviso no se olvide aunque no se vea. */}
-            <Boton peso="fantasma" data-guia="plan.resumen" onClick={() => setResumenAbierto(true)} aria-expanded={resumenAbierto}>
-              <span className="inline-flex items-center gap-2">
-                <PanelRightOpen aria-hidden className="h-4 w-4" />
-                Resumen y avisos
+            {/* El resumen y los avisos, en un cajón (Felipe 2026-10-12): la tabla queda justo bajo las pestañas. Solo el ícono, con su nombre
+                al pasar el mouse (y para el lector de pantalla); el número dice cuántas tiendas tienen el stock sin cuadrar, para que el aviso
+                no se olvide aunque no se vea. */}
+            <TooltipProvider delayDuration={150}>
+              {/* El número va FUERA del botón, encima de su esquina (Felipe 2026-10-12): el botón recorta lo que se le sale (su onda). */}
+              <span className="relative inline-flex">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Boton
+                      peso="fantasma"
+                      data-guia="plan.resumen"
+                      className="w-10 justify-center px-0!"
+                      onClick={() => setResumenAbierto(true)}
+                      aria-expanded={resumenAbierto}
+                      aria-label={avisos > 0 ? `Resumen y avisos: ${avisos} ${avisos === 1 ? "aviso" : "avisos"}` : "Resumen y avisos"}
+                    >
+                      <PanelRightOpen aria-hidden className="h-[18px] w-[18px]" />
+                    </Boton>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={6}>Resumen y avisos</TooltipContent>
+                </Tooltip>
                 {avisos > 0 && (
-                  <span className="inline-grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1.5 text-[11px] font-semibold text-crema" aria-label={`${avisos} ${avisos === 1 ? "aviso" : "avisos"}`}>
+                  <span aria-hidden className="pointer-events-none absolute -right-2 -top-2 inline-grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-semibold leading-none text-crema ring-2 ring-crema">
                     {avisos}
                   </span>
                 )}
               </span>
-            </Boton>
             {campanas && (
               <SelectorCampana
                 campanas={campanas}
@@ -251,11 +266,17 @@ export function PlanCampana({
                 onArchivadas={() => setVerArchivadas(true)}
               />
             )}
-            {totales.conPlan > 0 && (
-              <Boton peso="fantasma" onClick={() => setExportando(true)}>
-                Exportar
-              </Boton>
-            )}
+              {totales.conPlan > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Boton peso="fantasma" className="w-10 justify-center px-0!" onClick={() => setExportando(true)} aria-label="Exportar">
+                      <Download aria-hidden className="h-[18px] w-[18px]" />
+                    </Boton>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={6}>Exportar</TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
             {primera && (
               <Boton peso="primario" className="whitespace-nowrap" data-guia="plan.empezar" onClick={() => setAbierta(primera.c)}>
                 <span className="inline-flex items-center gap-2">
@@ -303,7 +324,7 @@ export function PlanCampana({
           sigue viva detrás (tocar una cifra que filtra, filtra la tabla). De arriba abajo: lo que avisa, las cifras de toda CAYLA, lo que
           sobra, el reparto entre tiendas y, antes de la campaña, el simulador. */}
       {resumenAbierto && (
-        <CajonFicha clave="resumen" onCerrar={() => setResumenAbierto(false)}>
+        <CajonFicha clave="resumen" conVelo onCerrar={() => setResumenAbierto(false)}>
           <div className="pr-8">
             <Dialog.Title className="font-display text-2xl leading-tight text-tinta">Resumen y avisos</Dialog.Title>
             <Dialog.Description className="mt-1 text-[13.5px] text-taupe">
