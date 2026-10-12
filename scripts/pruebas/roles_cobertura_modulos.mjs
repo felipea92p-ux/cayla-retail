@@ -182,6 +182,15 @@ const SOLO_LIDER_GRUPOS = [
       "Flujo de caja y Escenarios (app/(app)/finanzas/reportes/flujo y /escenarios): quien no es líder ve <SoloLiderFlujo> en lugar de la " +
       "pantalla. El mensaje de fn_flujo_exigir_lider dice «por ahora lo ve el líder»: es una decisión provisional, no un olvido.",
   },
+  {
+    modulo: "liquidacion",
+    funciones: ["crear_pieza_liquidacion", "cambiar_precio_pieza_liquidacion"],
+    razon:
+      "Liquidación (ADR-0379, Felipe 2026-10-10): las dos piden el módulo (fn_exigir_modulo('liquidacion')) y solo exigen líder en UNA rama, " +
+      "un precio bajo el mínimo (fn_exigir_precio_liquidacion, `parametros_liquidacion.precio_minimo`, S/ 10). Quien ve el módulo etiqueta y " +
+      "rebaja; bajo el mínimo la hoja dice «Desde S/ 10» y la guía no deja confirmar (lib/liquidacion-guia.ts, problemaDePrecio), y si igual " +
+      "llega, la base responde «Ese precio necesita un líder».",
+  },
 ];
 const SOLO_LIDER = {};
 for (const g of SOLO_LIDER_GRUPOS) {

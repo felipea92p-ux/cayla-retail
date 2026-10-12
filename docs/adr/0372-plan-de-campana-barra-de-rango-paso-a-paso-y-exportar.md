@@ -115,3 +115,27 @@ Corridas sobre lo ya publicado (PR #931): `/chaos` con semilla 931 (informe loca
   `006bd08e` de `guardar_plan_compra_linea`, iguales a local). El candado actúa cuando se publica la web que manda la versión.
 - **Pendiente de Felipe:** el número que más mueve la compra, «Lo que sobra», sigue escribiéndose por categoría:
   con el margen de CAYLA, desde un 39 % el sistema compra para el diciembre bueno. Propuesta: un solo % de CAYLA, fijado por un líder.
+
+## Actualización 2026-10-10 (c) — editar, quitar y restaurar una campaña (B5)
+
+Una campaña nacía con su nombre y sus fechas y nunca más se podía tocar. En producción, el mismo día, había tres: «San Valentín 2026» (ya pasada,
+creada por error), «Diciembre 2026» y «Navidad 2026», que se superpone con Diciembre. Felipe eligió (2026-10-10): **borrar si está vacía, archivar si
+no**, y que se editen **nombre y fechas**.
+
+- **DECIDÍ** `quitar_plan_compra`: vacía (ninguna categoría armada y sin tope) → se borra; con algo → se archiva (`planes_compra.archivado_por/en`,
+  sale del selector, conserva todo, `restaurar_plan_compra` la devuelve). La base decide, no la pantalla: bloquea la fila antes de mirar, y la
+  clave foránea de las categorías (sin cascada) hace imposible borrar una campaña con alguna. `editar_plan_compra` cambia nombre y fechas; la etiqueta
+  no cambia (si se eligió mal, se quita y se crea otra). Todo pide el módulo y ser líder, y firma el responsable del combo (también restaurar, que
+  queda como la última edición).
+  **DESCARTÉ** archivar siempre (lo que recomendé): Felipe prefirió que una campaña creada por error y vacía no quede guardada para siempre; borrar algo
+  sin historia no pierde nada. **DESCARTÉ** cambiar la etiqueta al editar: el plan podía quedar con fechas de una campaña y nombre de otra.
+  **SE ROMPE SI** alguien quiere recuperar una campaña vacía borrada (no se puede: por eso el botón dice «Borrar» y se confirma con el resumen), o si se
+  archiva una campaña y se intenta crear otra desde la misma etiqueta (la archivada sigue siendo dueña de su etiqueta: hay que restaurarla).
+- **Pantalla:** el selector suma «Editar o quitar esta campaña…» y «Campañas archivadas (N)…» (solo líder; se esconden si la base no tiene B5). La hoja
+  de edición dice antes qué va a pasar: «Borrar campaña» (se confirma: es irreversible) o «Archivar campaña» (sin confirmar; el aviso trae «Deshacer»).
+  Una campaña archivada abierta por su enlace se ve tal como quedó, con un aviso y «Restaurar…».
+- **Verificado:** pruebas SQL 23/23 (E1–E4 nuevas); reglas 115; navegador local: borrar una vacía, editar el nombre, archivar una con 5 categorías,
+  «Deshacer», «Campañas archivadas» → «Restaurar», y el vacío «No hay campañas activas». Migración `20261012120000`: `fn_planes_compra` y `fn_plan_compra` se cambian con
+  reemplazos ANCLADOS sobre su definición viva (no se copian), porque `fn_plan_compra` ya tiene el filtro de familias apagadas de `20261010232000`.
+  **En producción desde el 2026-10-12** (OK de Felipe; ensayo revertido; versión registrada `20261012134639`; huellas iguales a local salvo `fn_plan_compra`,
+  que conserva sus 10 filtros de familias).

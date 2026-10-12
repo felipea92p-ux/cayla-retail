@@ -800,6 +800,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`filtrarColores`, `filtrarPorNombre`, `usoDe`) y, para Temporadas, `lib/temporadas-pantalla.ts` (`estacionesDe`,
   `grupoDeTemporada`, `tonoDeTemporada`; dibujo en `MuestraTemporada`, molde `MuestraIcono` de `MuestraEtiqueta`).
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
+- `/productos/liquidacion` (Catálogo ▸ Liquidación, módulo `liquidacion`, ADR-0379) → `page.tsx` lee `fn_piezas_liquidacion` y
+  `categorias` → `LiquidacionPantalla.tsx` (cifras, buscador que lee una etiqueta LQ con `fn_pieza_liquidacion`, lista) +
+  `EtiquetarPiezaModal.tsx` (`crear_pieza_liquidacion`) + `PiezaLiquidacionModal.tsx` (`cambiar_precio_pieza_liquidacion`,
+  `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
+  `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
+  (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -1436,7 +1442,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     confianza del stock y lista de compra) + `lib/plan-compra-guia.ts`. Pantalla: `components/plan-compra/PlanCampana.tsx` arma
     `AvisoStock`, `CifrasPlan` y `ListaCategorias` (con `FilaCategoria` y `BarraRango`); la hoja de una categoría es
     `PlanCategoriaModal.tsx` y el paso a paso `PasoAPaso.tsx`, los dos con `FormularioCategoria.tsx` (`guardar_plan_compra_linea`);
-    `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`).
+    `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`). B5 (act. c): `EditarCampanaModal.tsx` → `editar_plan_compra` y `quitar_plan_compra` (vacía se borra, con algo se archiva); `CampanasArchivadasModal.tsx` → `restaurar_plan_compra`; `fn_planes_compra` dice `archivado` y `con_tope`, y `fn_plan_compra` no abre por defecto una archivada.
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 

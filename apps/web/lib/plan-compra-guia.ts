@@ -3,7 +3,7 @@
 // La prueba exige que la guía deje confirmar exactamente cuando la base aceptaría.
 
 import type { CampoDeGuia } from "./guia-campos";
-import { problemaDelTope, problemasDeLaCampana, problemasDelBorrador, type BorradorCampana, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
+import { problemaDelTope, problemasDeLaCampana, problemasDeLaEdicion, problemasDelBorrador, type BorradorCampana, type BorradorEdicion, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
 
 export function camposDelPlan(
   b: Borrador,
@@ -44,5 +44,17 @@ export function camposDeLaCampana(b: BorradorCampana, etiquetas: readonly Etique
     campo("desde", "Desde"),
     campo("hasta", "Hasta"),
     { id: "responsable", nombre: "Quién crea la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién crea la campaña." },
+  ];
+}
+
+/** La guía de «Editar campaña» (ADR-0372, B5): nombre, fechas y quién la edita. «Hecho» es lo que `problemasDeLaEdicion` acepta: la regla de la base. */
+export function camposDeLaEdicion(b: BorradorEdicion, otrosNombres: readonly string[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const p = problemasDeLaEdicion(b, otrosNombres);
+  const campo = (id: "nombre" | "desde" | "hasta", nombre: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? "Falta este dato." });
+  return [
+    campo("nombre", "Nombre del plan"),
+    campo("desde", "Desde"),
+    campo("hasta", "Hasta"),
+    { id: "responsable", nombre: "Quién edita la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién edita la campaña." },
   ];
 }
