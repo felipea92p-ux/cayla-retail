@@ -19,12 +19,15 @@ const MODAL = leer("components/ui/Modal.tsx");
 const ANCLAJE = leer("components/ui/useAnclaje.ts");
 const CSS = leer("app/globals.css");
 
-// Los combos con lista flotante (ADR-0209) y cómo llama cada uno a su portal.
+// Los combos con lista flotante (ADR-0209) y cómo llama cada uno a su portal. El calendario de `CampoFecha` también es un panel que
+// flota (2026-10-10): sin portal, la luz de la guía de foco o una tarjeta `@container` lo atrapaban y la sección siguiente se pintaba
+// encima de él (Nueva orden de compra).
 const COMBOS = [
   { ruta: "components/ui/campos.tsx", portal: "maybePortal(" },
   { ruta: "components/ui/ComboBuscable.tsx", portal: "createPortal(" },
   { ruta: "components/ComboResponsable.tsx", portal: "createPortal(" },
   { ruta: "components/ui/FiltrosPildora.tsx", portal: "createPortal(" },
+  { ruta: "components/ui/CampoFecha.tsx", portal: "createPortal(" },
 ].map((c) => ({ ...c, fuente: leer(c.ruta) }));
 
 describe("la lista de un combo dentro de un modal no entra en la cascada", () => {

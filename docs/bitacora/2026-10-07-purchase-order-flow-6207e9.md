@@ -1,0 +1,4 @@
+## 2026-10-10 (Compras con órdenes de compra: diseñado y aprobado por fases, sin código todavía)
+Qué hice: con Felipe, en rondas de preguntas y contra su brief «Compras y LIM Taller», diseñé el flujo orden de compra → comprobante → envío a la sede → recepción → deudas del proveedor → fondo por rendir y rendición, con la orden del Taller aparte; quedó en `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md` (31 decisiones y el mapa de módulos) y sus anexos en `docs/compras/ordenes-de-compra-2026-10/`.
+Por qué así: producción tiene 0 compras, así que rehacer Compras hoy no migra datos; cada decisión de dinero, stock y permisos la tomó Felipe, y cada diseño pasó por agentes críticos antes de llegarle.
+Felipe se lleva: las 7 fases aprobadas; faltan 4 respuestas suyas antes de la fase 1 (fondo que no alcanza, quién aprueba su rendición, precios del Taller, quién entrega fondos) y una lista para su contador.
