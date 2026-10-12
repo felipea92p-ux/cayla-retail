@@ -22,6 +22,8 @@ import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-pro
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
 import { ResumenCompactoPlan } from "@/components/plan-compra/ResumenCompactoPlan";
+import { RepartoModal } from "@/components/plan-compra/RepartoModal";
+import { fraseDeLosMinimos } from "@/lib/plan-compra-reparto";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
@@ -101,6 +103,7 @@ export function PlanCampana({
   const [editandoTope, setEditandoTope] = useState(false);
   const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [resumenAbierto, setResumenAbierto] = useState(false);
+  const [editandoReparto, setEditandoReparto] = useState(false);
   const [nuevaCampana, setNuevaCampana] = useState(false);
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
@@ -114,7 +117,23 @@ export function PlanCampana({
     if (!plan) return [];
     const base = armarFilas(plan);
     if (!hechos || hechos.planId !== plan.plan.id) return base;
-    return base.map((f) => ({ ...f, propuesta: proponer(hechos, f.c.id), recuperoDefecto: hechos.recupero.pct }));
+    return base.map((f) => ({
+      ...f,
+      propuesta: proponer(hechos, f.c.id),
+      recuperoDefecto: hechos.recupero.pct,
+      // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
+      reparto:
+        hechos.tiendasActivas.length > 0
+          ? hechos.tiendasActivas.map((t) => ({
+              id: t.id,
+              nombre: t.nombre,
+              u90: hechos.categorias.get(f.c.id)?.find((h) => h.tienda === t.id)?.u90 ?? 0,
+              dias90: hechos.tiendas.find((x) => x.id === t.id)?.dias90 ?? 0,
+              stock: f.sedes?.find((s) => s.ubicacion === t.nombre)?.unidades ?? 0,
+              minimo: hechos.minimos.get(t.id) ?? null,
+            }))
+          : undefined,
+    }));
   }, [plan, hechos]);
 
   const recordar = (categoriaId: string, version: number | null) => {
@@ -295,6 +314,22 @@ export function PlanCampana({
         </div>
       )}
 
+      {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
+        // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; un líder fija el mínimo de la que vende poco (Lima).
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-hueso px-4 py-2.5 text-[13px] text-tinta/80">
+          <span className="min-w-0 flex-1 basis-72">
+            Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
+            {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
+            detalle, en la hoja de cada categoría.
+          </span>
+          {esLider && (
+            <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
+              {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
+            </Boton>
+          )}
+        </div>
+      )}
+
       <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
 
       {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
@@ -372,6 +407,9 @@ export function PlanCampana({
       {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
 
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
+      {editandoReparto && hechos && (
+        <RepartoModal planId={plan.plan.id} planNombre={plan.plan.nombre} tiendas={hechos.tiendasActivas} minimos={hechos.minimos} onClose={() => setEditandoReparto(false)} />
+      )}
       {editandoRecupero && hechos && (
         <RecuperoModal planId={plan.plan.id} planNombre={plan.plan.nombre} actual={hechos.recupero.pct} heredado={hechos.recupero.heredado} onClose={() => setEditandoRecupero(false)} />
       )}

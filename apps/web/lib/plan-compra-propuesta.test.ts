@@ -10,6 +10,8 @@ const lectura = (tiendas: TiendaPropuesta[], hechos: { tienda: string; u90: numb
   recupero: { pct: null, heredado: false },
   tiendas,
   categorias: new Map([["polos", hechos.map((h) => ({ ventanas: [], previa: 0, agotada: false, ...h }))]]),
+  tiendasActivas: tiendas.map((x) => ({ id: x.id, nombre: x.nombre })),
+  minimos: new Map(),
 });
 
 describe("proponer: el ejemplo de Felipe", () => {

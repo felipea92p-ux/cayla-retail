@@ -42,6 +42,10 @@ export type LecturaPropuesta = {
   tiendas: TiendaPropuesta[];
   /** categoría → sus hechos por tienda. */
   categorias: Map<string, HechoCategoria[]>;
+  /** Todas las tiendas activas, vendan o no (Lima también): el reparto les toca a todas. Vacío si la base todavía no lo manda. */
+  tiendasActivas: { id: string; nombre: string }[];
+  /** tienda → el mínimo (0 a 1) que fijó un líder para esta campaña. */
+  minimos: Map<string, number>;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -84,6 +88,13 @@ export function leerPropuesta(v: unknown): LecturaPropuesta | null {
     recupero: { pct: pct !== null && pct >= 0 && pct <= 100 ? Math.round(pct) : null, heredado: recupero.heredado === true },
     tiendas,
     categorias,
+    tiendasActivas: lista(v.tiendas_activas).flatMap((t) => (texto(t.id) && texto(t.nombre) ? [{ id: t.id as string, nombre: t.nombre as string }] : [])),
+    minimos: new Map(
+      lista(v.minimos).flatMap((m) => {
+        const pct = num(m.pct);
+        return texto(m.u) && pct !== null && pct > 0 && pct <= 100 ? [[m.u as string, pct / 100] as const] : [];
+      }),
+    ),
   };
 }
 

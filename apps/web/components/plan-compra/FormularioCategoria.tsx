@@ -17,6 +17,7 @@ import { camposDelPlan } from "@/lib/plan-compra-guia";
 import { Check, Sparkles } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
+import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
   RPC_GUARDAR_LINEA,
   argsGuardar,
@@ -380,6 +381,13 @@ export function FormularioCategoria({
               </div>
             )}
             {tope !== null && <EfectoEnElTope efecto={efectoEnElTope(inversionDeLasDemas, calculo.inversion, tope)} tope={tope} />}
+            {fila.reparto && fila.reparto.length > 1 && (
+              <RepartoTiendas
+                objetivo={calculo.objetivo}
+                tiendas={fila.reparto}
+                taller={(sedes ?? []).filter((s) => !fila.reparto!.some((t) => t.nombre === s.ubicacion)).reduce((a, s) => a + s.unidades, 0)}
+              />
+            )}
           </>
         ) : (
           <p className="text-sm text-tinta/70">Cuando completes los tres diciembres, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
