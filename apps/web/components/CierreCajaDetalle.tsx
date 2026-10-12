@@ -8,6 +8,7 @@ import type { CierreCaja } from "@/lib/caja";
 import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
 import type { MetodoCobrado } from "@/lib/caja-tablero-reglas";
 import { cuadreDelTurno, duracionTurno, estadoCierre, rutaDelEfectivo } from "@/lib/historial-cierres-reglas";
+import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
@@ -397,6 +398,8 @@ function FilaEvento({ evento: e }: { evento: EventoCaja }) {
   }
   if (e.tipo === "movimiento") {
     const ingreso = e.direccion === "ingreso";
+    // El mismo nombre que la lista del turno: un gasto se llama por lo que se pagó, no «Otro · Gasto · …».
+    const fila = filaDeMovimiento(e);
     return (
       <Fila
         hora={hora(e.hora)}
@@ -405,9 +408,9 @@ function FilaEvento({ evento: e }: { evento: EventoCaja }) {
         quien={e.colaboradorNombre}
         texto={
           <>
-            {e.motivo}
+            {fila.titulo}
             {e.esAjuste && <span className="text-tinta/55"> · ajuste</span>}
-            {e.nota && <span className="text-tinta/55"> · {e.nota}</span>}
+            {fila.detalle && <span className="text-tinta/55"> · {fila.detalle}</span>}
           </>
         }
         monto={`${ingreso ? "+" : "-"}${money(e.monto)}`}
