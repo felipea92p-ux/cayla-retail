@@ -9,7 +9,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { despuesDe, reservar, siguienteAdr, siguienteMigracion } from "./reservar.mjs";
-import { leerReservas, parsearReservas, revisarReservas } from "./reservas.mjs";
+import { leerReservas, parsearReservas, revisarLaRama, revisarReservas } from "./reservas.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "reservar.mjs");
 const correr = promisify(execFile);
@@ -136,6 +136,49 @@ test("reservar se niega desde main y sin red, sin inventar un número", () => {
     assert.throws(() => reservar({ tipo: "adr", cwd: dir }), /Sin conexión/);
     assert.equal(git(dir, "tag", "-l", "reserva/*"), "", "no dejó ninguna etiqueta a medias");
   } finally {
+    limpiar();
+  }
+});
+
+test("revisarLaRama (lo que agregan los candados del CI): mía pasa, de otra rama falla, sin reservar solo avisa", () => {
+  const { clonar, limpiar } = armarRemoto();
+  const antes = { ...process.env };
+  const silencio = [console.log, console.error];
+  try {
+    for (const k of ["GITHUB_BASE_REF", "GITHUB_HEAD_REF", "GITHUB_EVENT_NAME"]) delete process.env[k];
+    const duena = clonar("claude/duena");
+    const [suyo] = reservar({ tipo: "adr", cwd: duena }); // 0013
+    const otra = clonar("claude/intrusa");
+    const ADR = /^(\d{4})-.+\.md$/;
+    const revisar = (cwd) => {
+      const lineas = [];
+      console.log = console.error = (l) => lineas.push(l);
+      try {
+        return { errores: revisarLaRama({ tipo: "adr", carpeta: "docs/adr", patron: ADR, cwd }), lineas };
+      } finally {
+        [console.log, console.error] = silencio;
+      }
+    };
+    writeFileSync(join(duena, "docs", "adr", `${suyo}-mio.md`), "x");
+    assert.equal(revisar(duena).errores, 0, "la dueña usa lo suyo");
+    writeFileSync(join(otra, "docs", "adr", `${suyo}-ajeno.md`), "x");
+    const ajeno = revisar(otra);
+    assert.equal(ajeno.errores, 1, "la otra rama usa un número reservado por la dueña");
+    assert.match(ajeno.lineas.join("\n"), /claude\/duena/);
+    rmSync(join(otra, "docs", "adr", `${suyo}-ajeno.md`));
+    writeFileSync(join(otra, "docs", "adr", "0099-sin-reserva.md"), "x");
+    const libre = revisar(otra);
+    assert.equal(libre.errores, 0, "sin reserva no es error todavía");
+    assert.match(libre.lineas.join("\n"), /0099 no está reservado/);
+    process.env.GITHUB_EVENT_NAME = "push";
+    writeFileSync(join(otra, "docs", "adr", `${suyo}-ajeno.md`), "x");
+    assert.equal(revisar(otra).errores, 0, "en un push a main no se juzga");
+  } finally {
+    [console.log, console.error] = silencio;
+    for (const k of ["GITHUB_BASE_REF", "GITHUB_HEAD_REF", "GITHUB_EVENT_NAME"]) {
+      if (k in antes) process.env[k] = antes[k];
+      else delete process.env[k];
+    }
     limpiar();
   }
 });

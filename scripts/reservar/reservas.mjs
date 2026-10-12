@@ -7,6 +7,8 @@
  * de otra rama?».
  */
 import { execFileSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 export const PREFIJO = "reserva/";
 const ETIQUETA = /^reserva\/(adr|migracion)-(\d{4}|\d{14})$/;
@@ -68,4 +70,61 @@ export function revisarReservas({ tipo, nuevos, reservas, rama }) {
       );
   }
   return { errores, avisos };
+}
+
+/**
+ * Los números de `carpeta` que esta rama agrega: los que hay en el árbol y no en `main`. En un PR del CI el checkout es
+ * el merge del PR sobre `main`, así que `main` es `HEAD^1`; en local, `origin/main`. Devuelve `null` si no puede saberlo
+ * (sin esa ref): el candado avisa y no juzga, nunca falla por no saber.
+ */
+export function nuevosDeLaRama({ cwd, carpeta, patron }) {
+  const base = process.env.GITHUB_BASE_REF ? "HEAD^1" : "origin/main";
+  let enBase;
+  try {
+    enBase = execFileSync("git", ["ls-tree", "--name-only", base, `${carpeta}/`], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  } catch {
+    return null;
+  }
+  const numeros = (texto) =>
+    new Set(
+      texto
+        .split("\n")
+        .map((ruta) => patron.exec(ruta.split("/").pop())?.[1])
+        .filter(Boolean),
+    );
+  const deMain = numeros(enBase);
+  const delArbol = numeros(readdirSync(join(cwd, carpeta)).join("\n"));
+  return [...delArbol].filter((n) => !deMain.has(n)).sort();
+}
+
+/** La rama que se revisa: la del PR en el CI, la actual en local. Vacía en un push a `main` (ahí no se juzga nada). */
+export function ramaQueSeRevisa(cwd) {
+  if (process.env.GITHUB_HEAD_REF) return process.env.GITHUB_HEAD_REF;
+  if (process.env.GITHUB_EVENT_NAME === "push") return "";
+  try {
+    const rama = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return rama === "main" || rama === "HEAD" ? "" : rama;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Lo que agregan los candados `scripts/adr/numeros.mjs` y `scripts/migraciones/versiones.mjs`: imprime los avisos y los
+ * errores de reserva de los números nuevos de esta rama y devuelve cuántos errores hubo.
+ */
+export function revisarLaRama({ tipo, carpeta, patron, cwd }) {
+  const rama = ramaQueSeRevisa(cwd);
+  if (!rama) return 0;
+  const nuevos = nuevosDeLaRama({ cwd, carpeta, patron });
+  if (nuevos === null) {
+    console.log(`ℹ No encontré \`main\` para comparar (¿sin origin/main?): no reviso las reservas.`);
+    return 0;
+  }
+  if (nuevos.length === 0) return 0;
+  const { errores, avisos } = revisarReservas({ tipo, nuevos, reservas: leerReservas({ cwd }), rama });
+  for (const a of avisos) console.log(`⚠ ${a}`);
+  for (const e of errores) console.error(`✗ ${e}`);
+  if (errores.length === 0 && avisos.length === 0) console.log(`✓ Reservas: ${nuevos.join(", ")} son de «${rama}».`);
+  return errores.length;
 }

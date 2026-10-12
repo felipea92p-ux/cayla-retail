@@ -118,7 +118,9 @@ export function reservar({ tipo, cuantos = 1, cwd = process.cwd(), remoto = "ori
       return "";
     }
   })();
-  const base = git(["rev-parse", `${remoto}/main`], cwd);
+  // La etiqueta apunta al archivo vacío, no a un commit: así bajar las reservas trae solo las etiquetas. Si apuntara a
+  // un commit, un checkout corto (el CI usa `fetch-depth: 2`) se bajaría toda la historia que hay detrás para leerlas.
+  const base = git(["hash-object", "-w", "--stdin"], cwd, { input: "", stdio: ["pipe", "pipe", "pipe"] });
   const mias = [];
   let candidato = tipo === "adr" ? siguienteAdr(usados) : siguienteMigracion(usados, ahora);
   for (let i = 0; mias.length < cuantos; i++) {
