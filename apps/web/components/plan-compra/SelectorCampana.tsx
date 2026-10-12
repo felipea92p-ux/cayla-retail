@@ -3,26 +3,52 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
-import { rotuloDeCampana, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { campanasActivas, campanasArchivadas, rotuloDeCampana, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 
-// El selector de campaña del plan (ADR-0372, B3): pasa entre las campañas que ya tienen plan (`?plan=<id>`, que la pantalla ya leía) y, solo a
-// quien puede crearlas (un líder), ofrece «+ Nueva campaña…», que abre su hoja. Con una sola campaña y sin poder crear otra, no se dibuja:
-// un control que no tiene nada que elegir es ruido.
+// El selector de campaña del plan (ADR-0372, B3 y B5): pasa entre las campañas activas (`?plan=<id>`) y, solo a quien puede (un líder), ofrece
+// «+ Nueva campaña…», «Editar o quitar esta campaña…» y «Campañas archivadas (N)…», que abren su hoja. Las archivadas no salen en la lista: se
+// ven desde su hoja. Con una sola campaña y nada más que ofrecer, no se dibuja: un control sin nada que elegir es ruido.
 
 const NUEVA = "__nueva";
+const EDITAR = "__editar";
+const ARCHIVADAS = "__archivadas";
 
-export function SelectorCampana({ campanas, actualId, puedeCrear, onNueva }: { campanas: CampanasLeidas; actualId: string; puedeCrear: boolean; onNueva: () => void }) {
+export function SelectorCampana({
+  campanas,
+  actualId,
+  puedeCrear,
+  onNueva,
+  onEditar,
+  onArchivadas,
+}: {
+  campanas: CampanasLeidas;
+  actualId: string;
+  /** Un líder: crea, edita, quita y restaura campañas (la base lo exige también). */
+  puedeCrear: boolean;
+  onNueva: () => void;
+  onEditar: () => void;
+  onArchivadas: () => void;
+}) {
   const router = useRouter();
+  const activas = useMemo(() => campanasActivas(campanas), [campanas]);
+  const archivadas = useMemo(() => campanasArchivadas(campanas), [campanas]);
   const opciones = useMemo((): Opcion<string>[] => {
-    const planes = campanas.planes.map((c) => ({ valor: c.id, texto: rotuloDeCampana(c) }));
-    return puedeCrear ? [...planes, { valor: NUEVA, texto: "+ Nueva campaña…" }] : planes;
-  }, [campanas, puedeCrear]);
+    const planes = activas.map((c) => ({ valor: c.id, texto: rotuloDeCampana(c) }));
+    if (!puedeCrear) return planes;
+    const acciones: Opcion<string>[] = [{ valor: NUEVA, texto: "+ Nueva campaña…" }];
+    // Editar y archivar existen desde B5: si la base todavía no lo sabe, no se ofrece.
+    if (campanas.edicion && activas.some((c) => c.id === actualId)) acciones.push({ valor: EDITAR, texto: "Editar o quitar esta campaña…" });
+    if (campanas.edicion && archivadas.length > 0) acciones.push({ valor: ARCHIVADAS, texto: `Campañas archivadas (${archivadas.length})…` });
+    return [...planes, ...acciones];
+  }, [activas, archivadas, campanas.edicion, puedeCrear, actualId]);
   if (opciones.length < 2) return null;
   return (
     <Desplegable
-      valor={campanas.planes.some((c) => c.id === actualId) ? actualId : ""}
+      valor={activas.some((c) => c.id === actualId) ? actualId : ""}
       onValor={(v) => {
         if (v === NUEVA) return onNueva();
+        if (v === EDITAR) return onEditar();
+        if (v === ARCHIVADAS) return onArchivadas();
         if (v !== actualId) router.push(`/compras/plan?plan=${v}`);
       }}
       opciones={opciones}
