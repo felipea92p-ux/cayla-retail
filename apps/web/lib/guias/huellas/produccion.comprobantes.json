@@ -1,0 +1,52 @@
+{
+  "guia": "produccion.comprobantes",
+  "ruta": "/produccion/comprobantes",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 36,
+  "controles": {
+    "components/ComprobanteProduccionDetalle.tsx": [
+      "CampoTexto «Motivo de la anulación»",
+      "ComboResponsable «setAnulando(false)»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "button «Anular este comprobante»"
+    ],
+    "components/ComprobanteProduccionForm.tsx": [
+      "CampoSelect «Proveedor»",
+      "SegmentoDeslizante «Tipo de comprobante»",
+      "CampoTexto «{<span className=\"sr-only\">Serie</span>}»",
+      "CampoTexto «{<span className=\"sr-only\">Número</span>}»",
+      "CampoTexto «{<span className=\"sr-only\">Fecha de emisión</span>}»",
+      "SegmentoDeslizante «Condición de pago»",
+      "CampoTexto «Vence el»",
+      "Desplegable «(sin nombre)»",
+      "input «{`Línea ${i + 1}»",
+      "input «{`Línea ${i + 1}» #2",
+      "input «{`Línea ${i + 1}» #3",
+      "button «{`Quitar la línea ${i + 1}»",
+      "button «Agregar línea»",
+      "CampoTexto «Total impreso en el papel»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/ComprobantesProduccionPanel.tsx": [
+      "Boton «prod-facturas.nueva»",
+      "BotonEnlace «Ir a Proveedores»",
+      "Boton «Registrar la primera»",
+      "button «{o.etiqueta}»",
+      "Desplegable «(sin nombre)»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Limpiar filtros»",
+      "button «{diaMes(c.fechaEmision)}»"
+    ],
+    "components/MediosDePago.tsx": [
+      "Desplegable «cambiar(i,»",
+      "input «{`Monto del medio ${i + 1}»",
+      "input «{`Referencia del medio ${i + 1}»",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «Agregar otro medio»",
+      "Desplegable «(sin nombre)»"
+    ]
+  }
+}

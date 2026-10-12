@@ -81,6 +81,7 @@ export function PreciosPorSede({
     <div
       className="mt-4 rounded-sm border border-sand bg-papel px-3.5 py-3"
       data-campo="precio-por-tienda"
+      data-guia="editar.precio-tienda"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <Store

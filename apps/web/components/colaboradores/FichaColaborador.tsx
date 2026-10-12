@@ -144,7 +144,7 @@ export function FichaColaborador({
 
   return (
     <CajonFicha clave={persona.id} onCerrar={onCerrar}>
-              <div className="flex items-center gap-4 pr-9">
+              <div className="flex items-center gap-4 pr-9" data-guia="colaboradores.ficha-cabecera">
                 <CaraPersona p={persona} grande />
                 <div className="min-w-0">
                   <Dialog.Title asChild>
@@ -163,7 +163,7 @@ export function FichaColaborador({
                 </div>
               </div>
 
-              <p className="rounded-xl bg-hueso px-4 py-3 text-[15px] leading-snug text-tinta">
+              <p className="rounded-xl bg-hueso px-4 py-3 text-[15px] leading-snug text-tinta" data-guia="colaboradores.ficha-frase">
                 {frase.map((p, i) => (p.fuerte ? <strong key={i} className="font-semibold">{p.texto}</strong> : <span key={i}>{p.texto}</span>))}
               </p>
 
@@ -177,7 +177,7 @@ export function FichaColaborador({
                   <ComboResponsable control={responsable} compacto deshabilitado={ocupado} />
 
                   {persona.estado === "activa" ? (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2" data-guia="colaboradores.ficha-acciones">
                       {veCambiarRol && <BotonAccion icono={KeyRound} texto="Cambiar rol" activo={panel === "rol"} onClick={() => alternar("rol")} />}
                       {puede("cambiar_ubicacion") && <BotonAccion icono={ArrowLeftRight} texto="Cambiar sede" activo={panel === "sede"} onClick={() => alternar("sede")} />}
                       {puede("suspender") && <BotonAccion icono={PauseCircle} texto="Suspender" activo={panel === "suspender"} onClick={() => alternar("suspender")} />}
@@ -308,14 +308,14 @@ export function FichaColaborador({
               )}
 
               {menu && (
-                <section aria-label="Así ve el sistema" className="space-y-2">
+                <section aria-label="Así ve el sistema" className="space-y-2" data-guia="colaboradores.ficha-menu">
                   <h3 className="flex items-baseline justify-between text-[11.5px] font-bold uppercase tracking-[0.1em] text-taupe-profundo">
                     {destino ? `Así lo verá con ${destino.nombre}` : "Así ve el sistema"}
                     <span className="text-xs font-normal normal-case tracking-normal text-tinta/55">{(destino ?? rolActual)?.modulos.length ?? 0} módulos</span>
                   </h3>
                   <MenuQueVe filas={menu} />
                   {onVerRol && !destino && (
-                    <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={onVerRol}>
+                    <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={onVerRol} data-guia="colaboradores.ficha-ver-rol">
                       Ver el rol {persona.rolNombre} en Roles y accesos →
                     </button>
                   )}
@@ -323,7 +323,7 @@ export function FichaColaborador({
               )}
 
               {tocable && (persona.estado === "activa" ? puede("quitar") : persona.puedeReactivar) && (
-                <div className="border-t border-sand pt-4">
+                <div className="border-t border-sand pt-4" data-guia="colaboradores.ficha-quitar">
                   {panel === "quitar" ? (
                     <div className="anim-revelar space-y-2.5 rounded-xl bg-rojo/10 px-4 py-3 text-[14px] text-tinta">
                       <p>

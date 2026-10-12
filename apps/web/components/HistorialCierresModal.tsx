@@ -158,7 +158,7 @@ export function HistorialCierresModal({
         ) : (
           // El mes, a la altura del título y a la izquierda de la ✕ (el Modal no tiene otro lugar para un control ahí).
           <div className="pointer-events-none relative z-[1] -mb-10 flex justify-end pr-9 max-[480px]:mb-2 max-[480px]:justify-start max-[480px]:pr-0">
-            <div className="pointer-events-auto">
+            <div className="pointer-events-auto" data-guia="caja.historial-mes">
               <SelectorMes valor={mes} actual={actual} onCambiar={cambiarMes} />
             </div>
           </div>
@@ -183,23 +183,25 @@ export function HistorialCierresModal({
           )
         ) : (
           <>
-            <GraficoCierresDelMes cierres={cierres} mes={mes} hoy={hoy} onVer={verCierre} />
+            <div data-guia="caja.historial-grafico">
+              <GraficoCierresDelMes cierres={cierres} mes={mes} hoy={hoy} onVer={verCierre} />
+            </div>
 
-            <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div data-guia="caja.historial-cifras" className="mt-2.5 grid grid-cols-3 gap-2">
               <CuentaSello estado="cuadro" texto="Cuadró" veces={resumen.cuadraron} />
               <CuentaSello estado="falto" texto="Faltó" veces={resumen.faltaron.veces} monto={resumen.faltaron.monto} />
               <CuentaSello estado="sobro" texto="Sobró" veces={resumen.sobraron.veces} monto={resumen.sobraron.monto} />
             </div>
 
-            <div role="group" aria-label="Filtrar cierres" className="mt-4 flex flex-wrap gap-2">
+            <div role="group" aria-label="Filtrar cierres" data-guia="caja.historial-filtro" className="mt-4 flex flex-wrap gap-2">
               {filtros.map((f) => (
-                <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla">
+                <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} data-guia={f.valor === "falto" ? "caja.historial-falto" : undefined} className="pildora-cayla">
                   {f.texto}
                 </button>
               ))}
             </div>
 
-            <div data-lista-cierres className="scroll-cayla -mx-1 mt-3 max-h-[44vh] overflow-y-auto px-1 pb-1">
+            <div data-lista-cierres data-guia="caja.historial-lista" className="scroll-cayla -mx-1 mt-3 max-h-[44vh] overflow-y-auto px-1 pb-1">
               {visibles.length === 0 ? (
                 <Vacio tamano="chico" icono={<CircleCheck />} className="py-8">
                   {filtro === "falto" ? `En ningún cierre de ${nombre} faltó plata.` : `En ningún cierre de ${nombre} sobró plata.`}
@@ -216,7 +218,7 @@ export function HistorialCierresModal({
             </div>
           </>
         )}
-        <div className="flex items-center justify-between gap-3 pt-3">
+        <div data-guia="caja.historial-pie" className="flex items-center justify-between gap-3 pt-3">
           <p className="text-xs text-tinta/60">{cierres.length > 0 ? "Toca un ticket o una barra para ver su detalle" : ""}</p>
           <Link href="/caja/historial" className="label-cayla text-[11px] text-rojo hover:text-rojo-profundo">
             Ver todas las sedes →

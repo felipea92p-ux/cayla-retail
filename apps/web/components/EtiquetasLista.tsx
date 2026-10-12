@@ -469,8 +469,8 @@ export function EtiquetasLista({
                         />
                       ) : (
                         <PieTarjeta>
-                          <AccionTarjeta onClick={() => setEtiquetando(e)}>Prendas</AccionTarjeta>
-                          <AccionTarjeta onClick={() => setConfigurando(e)}>Configurar campaña</AccionTarjeta>
+                          <AccionTarjeta onClick={() => setEtiquetando(e)} guia="atributos.prendas">Prendas</AccionTarjeta>
+                          <AccionTarjeta onClick={() => setConfigurando(e)} guia="atributos.campana">Configurar campaña</AccionTarjeta>
                           <DesactivarTarjeta
                             cambiando={cambiandoId === e.id}
                             onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => desactivar(e)))}
@@ -675,7 +675,7 @@ function CampanaModal({
   return (
     <Modal titulo={`Campaña «${etiqueta.nombre}»`} ancho="max-w-md" onClose={onClose}>
       {(cerrar) => (
-        <div className="mt-5 space-y-5">
+        <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
           <CampoGuiado id="descuento" guia={guia}>
           <CampoTexto
             etiqueta={guia.etiqueta("descuento", "Descuento (%)")}
@@ -763,7 +763,7 @@ function CampanaModal({
           </p>
 
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2 pt-1">
+          <div data-guia="atributos.campana-pie" className="flex gap-2 pt-1">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>

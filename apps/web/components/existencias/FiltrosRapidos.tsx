@@ -61,6 +61,7 @@ export function FiltrosRapidos({
 
   return (
     <div
+      data-guia="existencias.atajos"
       role="group"
       aria-label="Atajos de filtro"
       className="scroll-cayla -mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 py-0.5 max-xl:pr-8 max-xl:[mask-image:linear-gradient(90deg,#000_calc(100%-2rem),transparent)] xl:flex-wrap xl:overflow-visible"

@@ -37,7 +37,7 @@ export function BarraCierreCaja({ estado, onCerrar }: { estado: EstadoBotonCierr
   if (!estado) return null;
   return (
     <div className="cc-barra-pie hidden sm:block">
-      <div className="cc-barra" data-nivel={estado.nivel} role="status">
+      <div data-guia="caja.barra-cierre" className="cc-barra" data-nivel={estado.nivel} role="status">
         <div>
           <b>{estado.titulo}</b>
           <span className="cc-bajada">{estado.bajada}</span>

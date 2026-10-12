@@ -23,7 +23,7 @@ export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
       tituloGrande
       conCerrar
     >
-      <div className="analisis analisis-hoja">
+      <div className="analisis analisis-hoja" data-guia="analisis.hoja-confianza">
         <div className="anim">
           <AnillosCondiciones p={mia} />
         </div>

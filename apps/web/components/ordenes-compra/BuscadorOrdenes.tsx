@@ -44,6 +44,7 @@ export function BuscadorOrdenes({ filtros }: { filtros: FiltrosLista }) {
       onCambio={setTexto}
       buscando={buscando}
       atajo
+      guia="ordenes.buscador"
       enterKeyHint="search"
       etiqueta="Buscar una orden de compra por su número o por el proveedor"
       // sugerir-fijo: dice qué se puede buscar (el número o el proveedor); no depende de la sede ni del estado elegidos

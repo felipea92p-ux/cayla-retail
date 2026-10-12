@@ -23,7 +23,7 @@ export function NotasCreditoCompra({ compra, notas, cerrados }: { compra: Compra
   const esperado = montoDeCierres(cerrados, tasaIgv(compra));
   const unidadesCerradas = cerrados.reduce((a, c) => a + c.faltan, 0);
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-guia="factura.notas">
       <div className="flex items-baseline justify-between">
         <p className="label-cayla text-[11px] text-tinta/65">Notas de crédito</p>
         {compra.estado === "vigente" && (

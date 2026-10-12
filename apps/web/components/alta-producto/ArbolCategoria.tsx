@@ -142,7 +142,7 @@ export function ArbolCategoria({
 
   return (
     <div className="@container space-y-4">
-      <div>
+      <div data-guia="nuevo.buscar-categoria">
         <Buscador
           id="buscar-categoria"
           valor={busqueda}
@@ -176,7 +176,7 @@ export function ArbolCategoria({
         )}
       </div>
 
-      <div>
+      <div data-guia="nuevo.familias">
         <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
           Familia
           {!familiaAbierta && <EtiquetaAhora />}
@@ -208,7 +208,7 @@ export function ArbolCategoria({
       </div>
 
       {familiaAbierta && (
-        <div id="categorias-de-la-familia" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
+        <div id="categorias-de-la-familia" data-guia="nuevo.categorias" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
           <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
             Categoría
             <EtiquetaAhora />
@@ -218,6 +218,7 @@ export function ArbolCategoria({
               <button
                 key={c.id}
                 type="button"
+                data-guia="nuevo.categoria"
                 onClick={() => onElegir(c.id)}
                 className="min-h-11 min-w-0 break-words rounded-md border border-tinta/15 px-3 py-2 text-left text-sm text-tinta transition-colors hover:border-tinta hover:bg-tinta/[0.04]"
               >

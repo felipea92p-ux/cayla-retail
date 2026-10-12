@@ -37,7 +37,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
         <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita.</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
           punto={totalPorPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
@@ -70,12 +70,12 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
       {tramos.length === 0 ? (
         <div className="card-cayla">
-          <Vacio icono={<CircleCheck />} titulo="El Taller no debe nada">
+          <Vacio guia="prod-por-pagar.lista" icono={<CircleCheck />} titulo="El Taller no debe nada">
             Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.
           </Vacio>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div data-guia="prod-por-pagar.lista" className="space-y-5">
           {tramos.map((t) => (
             <section key={t.clave} className="space-y-2" aria-label={t.etiqueta}>
               <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-lg text-tinta">
@@ -104,7 +104,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                         )}
                       </span>
                       <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(c.saldo)}</span>
-                      <Boton peso="fantasma" onClick={() => setPagando(c)} className="col-span-2 sm:col-span-1">
+                      <Boton peso="fantasma" data-guia="prod-por-pagar.pagar" onClick={() => setPagando(c)} className="col-span-2 sm:col-span-1">
                         Pagar
                       </Boton>
                     </li>
@@ -116,7 +116,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
         </div>
       )}
 
-      <section aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
+      <section data-guia="prod-por-pagar.deuda-total" aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
         <div>
           <h2 className="font-display text-xl text-tinta">Deuda total de CAYLA</h2>
           <p className="text-xs text-tinta/65">Compras y Producción juntos, en un solo lugar. Solo se lee: cada deuda se paga en su propio módulo.</p>
@@ -134,7 +134,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 {consolidado.vencido > 0 ? `${soles(consolidado.vencido)} ya vencidos` : "nada vencido"}
               </p>
             </div>
-            <div>
+            <div data-guia="prod-por-pagar.reparto">
               {/* La barra es `<BarraApilada>` (ADR-0358): Producción contra Compras, el 100 % de la deuda. */}
               <BarraApilada
                 alto={8}
@@ -155,7 +155,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 </span>
               </p>
             </div>
-            <ul>
+            <ul data-guia="prod-por-pagar.deudores">
               {deuda.slice(0, 8).map((f) => (
                 <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-[13px] last:border-b-0">
                   <span className="min-w-0">
@@ -178,7 +178,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
         )}
 
         {igv && (
-          <div className="border-t border-tinta/10 pt-4">
+          <div data-guia="prod-por-pagar.igv" className="border-t border-tinta/10 pt-4">
             <h3 className="label-cayla text-[11px] text-tinta/65">IGV crédito fiscal · {nombreDeMes(igv.mes)}</h3>
             <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
               <div className="flex justify-between gap-3 px-3 py-2">

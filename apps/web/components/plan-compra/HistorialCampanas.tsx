@@ -131,7 +131,7 @@ export function HistorialCampanas({
       {cabecera}
       <PestanasPlan activa="historial" />
 
-      <nav aria-label="Año" className="flex flex-wrap gap-2">
+      <nav aria-label="Año" data-guia="plan-historial.anios" className="flex flex-wrap gap-2">
         {aniosConHistoria(historial).map((a) => (
           <Link key={a} href={`/compras/plan/historial?anio=${a}`} className="pildora-cayla" aria-current={a === anio ? "page" : undefined}>
             {a}
@@ -139,7 +139,7 @@ export function HistorialCampanas({
         ))}
       </nav>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-guia="plan-historial.tiendas" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiendas.map((t) => {
           const total = totalDelAnio(historial, t.id, anio);
           return (
@@ -158,7 +158,7 @@ export function HistorialCampanas({
         })}
       </div>
 
-      <Tabla>
+      <Tabla guia="plan-historial.tabla">
         <div className="encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid" role="row" style={{ gridTemplateColumns: columnas }}>
           <span className="text-xs font-normal text-taupe" role="columnheader">
             Campaña · {anio}
@@ -175,6 +175,7 @@ export function HistorialCampanas({
             key={campana.clave}
             type="button"
             onClick={() => setAbierta(campana)}
+            data-guia="plan-historial.fila"
             className="fila-cayla grid w-full cursor-pointer gap-x-4 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline"
             style={{ gridTemplateColumns: columnas }}
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}

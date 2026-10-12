@@ -45,7 +45,7 @@ export function Mancuerna({ propuesta: p }: { propuesta: PropuestaMix }) {
   };
 
   return (
-    <section className="card-cayla mc anim-sube" style={{ "--i": 3 } as CSSProperties} aria-label="Hoy, punto de partida, tus ventas y propuesta de cada grupo">
+    <section className="card-cayla mc anim-sube" style={{ "--i": 3 } as CSSProperties} aria-label="Hoy, punto de partida, tus ventas y propuesta de cada grupo" data-guia="plan-piso.mancuerna">
       <h3 className="font-display text-xl text-tinta">Dónde está cada grupo</h3>
       <p className="mc-bajada">
         En % de cada total (lo que cuelga, los lugares del riel, tus ventas). Cuando los puntos caen juntos, la mezcla se parece; cuando se separan, se ve quién empuja hacia dónde. Pasa el cursor por un grupo, o tócalo, para leer sus

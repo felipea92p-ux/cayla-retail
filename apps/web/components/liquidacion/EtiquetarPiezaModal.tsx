@@ -131,7 +131,7 @@ export function EtiquetarPiezaModal({
           {impresion.hoja}
         </div>
       ) : (
-        <form onSubmit={guardar} className="space-y-4">
+        <form onSubmit={guardar} className="space-y-4" data-guia="liquidacion-etiquetar.campos">
           <CampoGuiado id="categoria" guia={guia} titulo="Qué prenda es">
             <CampoSelect etiqueta="Categoría" valor={categoriaId} onValor={setCategoriaId} opciones={opciones} marcador="Elige la categoría" caja />
           </CampoGuiado>
