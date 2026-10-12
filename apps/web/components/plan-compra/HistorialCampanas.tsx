@@ -10,7 +10,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { Tabla, celda } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
@@ -26,6 +26,7 @@ import {
   type CampanaDelAnio,
   textoCrecimiento,
   textoMultiplicador,
+  totalDeCayla,
   totalDelAnio,
   type CeldaHistorial,
   type EtiquetaHistorial,
@@ -150,24 +151,39 @@ export function HistorialCampanas({
         ))}
       </nav>
 
-      <div data-guia="plan-historial.tiendas" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tiendas.map((t) => {
-          const total = totalDelAnio(historial, t.id, anio);
-          return (
-            <TarjetaCifra key={t.id} etiqueta={t.nombre} valor={total.soles > 0 ? solesSinCentimos(total.soles) : null}>
-              {total.soles === 0
-                ? `Sin ventas cargadas en ${anio}`
-                : anioEnCurso
-                  ? `${anio}, hasta hoy`
-                  : total.crecimiento !== null
-                    ? `${textoCrecimiento(total.crecimiento)} que ${anio - 1}`
-                    : total.completo
-                      ? `Todo ${anio} · sin ${anio - 1} completo para comparar`
-                      : `${anio} no está completo en la historia`}
-            </TarjetaCifra>
-          );
-        })}
-      </div>
+      {/* Las cifras del año en UNA barra, como Resultados (Felipe 2026-10-12): primero toda CAYLA, después cada tienda. */}
+      <BarraCifras
+        guia="plan-historial.tiendas"
+        celdas={[
+          (() => {
+            const t = totalDeCayla(historial, anio);
+            return {
+              clave: "toda",
+              etiqueta: "Toda CAYLA",
+              valor: t.soles > 0 ? solesSinCentimos(t.soles) : null,
+              bajo: t.soles === 0 ? `Sin ventas cargadas en ${anio}` : anioEnCurso ? `${anio}, hasta hoy` : t.crecimiento !== null ? `${textoCrecimiento(t.crecimiento)} que ${anio - 1}` : "sin un año parejo con qué comparar",
+            };
+          })(),
+          ...tiendas.map((t) => {
+            const total = totalDelAnio(historial, t.id, anio);
+            return {
+              clave: t.id,
+              etiqueta: t.nombre,
+              valor: total.soles > 0 ? solesSinCentimos(total.soles) : null,
+              bajo:
+                total.soles === 0
+                  ? `Sin ventas cargadas en ${anio}`
+                  : anioEnCurso
+                    ? `${anio}, hasta hoy`
+                    : total.crecimiento !== null
+                      ? `${textoCrecimiento(total.crecimiento)} que ${anio - 1}`
+                      : total.completo
+                        ? `sin ${anio - 1} completo para comparar`
+                        : `${anio} no está completo`,
+            };
+          }),
+        ]}
+      />
 
       <Tabla guia="plan-historial.tabla">
         {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}

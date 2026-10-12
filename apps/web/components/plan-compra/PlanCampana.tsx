@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CalendarDays, Download, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Ayuda } from "@/components/Ayuda";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -222,9 +223,25 @@ export function PlanCampana({
         sede="Todas las tiendas"
         titulo="Plan de campaña"
         subtitulo={
-          momento.estado === "antes"
-            ? `Cuánto comprar de cada categoría para ${plan.plan.nombre}, ${rango}.`
-            : `${plan.plan.nombre}, ${rango}: lo que planificaste y, al lado, lo que se vendió de verdad.`
+          <>
+            {momento.estado === "antes"
+              ? `Cuánto comprar de cada categoría para ${plan.plan.nombre}, ${rango}. `
+              : `${plan.plan.nombre}, ${rango}: lo que planificaste y, al lado, lo que se vendió de verdad. `}
+            {/* «Cómo se calcula», antes una nota al pie, va en el «!» junto a la frase, como en Resultados e Historial (Felipe 2026-10-12). */}
+            <span data-guia="plan.como" className="inline-block align-middle">
+              <Ayuda titulo="Cómo se calcula">
+                <span className="block">
+                  Con tus tres escenarios (flojo, normal y bueno), el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente
+                  a sobrar (lo que pierdes al vender lo que queda más barato).
+                </span>
+                <span className="mt-2 block">
+                  Si lo que sobra se vende casi al mismo precio, conviene cubrir el escenario bueno; si se pierde, conviene quedarse más cerca del flojo.
+                  Comprar = lo que conviene tener − lo que ya hay hoy.
+                </span>
+                <span className="mt-2 block">Son tus supuestos (o los que propone el sistema): al terminar la campaña, Resultados los compara con lo que pasó.</span>
+              </Ayuda>
+            </span>
+          </>
         }
         acciones={
           <>
@@ -408,13 +425,6 @@ export function PlanCampana({
           />
         }
       />
-
-      <p className="nota-cayla" data-guia="plan.como">
-        Cómo se calcula: con tus tres escenarios, el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente a
-        sobrar (lo que pierdes al vender lo que queda más barato). Si lo que sobra se vende casi al mismo precio, conviene cubrir el
-        escenario bueno; si se pierde, conviene quedarse más cerca del flojo. Estos números son tus supuestos (o los que propone el sistema):
-        al terminar la campaña, Resultados los compara con lo que pasó.
-      </p>
 
       {salidaPaso.aviso}
 
