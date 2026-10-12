@@ -1343,7 +1343,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   pregunta por lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— con
   `fn_tomar_comprobantes_para_consultar` → `lib/consultar-comprobante.ts` (reglas en `lib/consulta-sunat-reglas.ts`)
   → `actualizar_transmision_comprobante` o `fn_confirmar_baja_sunat` (`20261007200000`). El trabajo programado
-  consulta también en producción (solo lee de SUNAT); transmitir sigue siendo solo sandbox. La numeración sale
+  (`GET`, cada 5 min, `cronNoAutorizado` solo mira `CRON_SECRET`) transmite y consulta también en producción desde
+  el 2026-10-12 (ADR-0165, «Actualización 2026-10-12»). La numeración sale
   de `fn_reservar_numero_serie` (solo la serie activa; en las notas, la de la letra del original: BC.. corrige
   boletas, FC.. facturas, ADR-0278), que llaman `emitir_comprobante` y `emitir_nota` (esta última desde
   `aprobar_devolucion`). El modal de emisión usa `ConsultaDocumento.tsx` → `GET /api/padron` →

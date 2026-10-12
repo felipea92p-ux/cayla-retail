@@ -221,7 +221,7 @@ Faltan:
 |---|---|---|---|
 | Gestión (directo + indirecto) | ×2 | 7 | Directo: qué está en camino y qué se perdió. Indirecto: el stock por sede del que viven Existencias, Vender, Análisis y «Pedir a otra sede» |
 | Dinero y stock que toca | ×1 | 8 | Mueve stock entre sedes; una diferencia mal cerrada deja una prenda fantasma o una pérdida sin rastro |
-| Frecuencia y personas que la usan | ×1 | 5 | Hoy, 0 usos reales. Se espera de 2 a 10 por semana entre 3 tiendas y el Taller, con 1 a 2 personas por sede |
+| Frecuencia y personas que la usan | ×1 | 5 | Hoy, 0 usos reales (**corregido 2026-10-12: hay 4 traslados, pero ninguno con prendas**, ver «Corrección de cifras»; el puntaje no se recalculó). Se espera de 2 a 10 por semana entre 3 tiendas y el Taller, con 1 a 2 personas por sede |
 | Qué se detiene si falla | ×1 | 7 | La ropa se mueve igual por courier; el stock de cada sede se desvía y lo que llega se vende «por regularizar». Cuando se cierre la carga inicial, será la única puerta del Taller a las tiendas |
 
 Relevancia = (2·7 + 8 + 5 + 7) / 5 = **6,8 → Soporte**. Sube a Núcleo el día que el Taller produzca en el sistema.
@@ -229,7 +229,7 @@ Relevancia = (2·7 + 8 + 5 + 7) / 5 = **6,8 → Soporte**. Sube a Núcleo el dí
 ## 6 · Conexión con el ERP
 - **Aguas arriba:**
   - El stock del almacén del origen: hoy entra al 100 % por carga inicial (TRU 751 u., AQP 14, LIM 1, Taller 0) `[producción]`.
-  - Los pedidos entre sedes (`separacion_pedidos`, vacía) `[producción]`.
+  - Los pedidos entre sedes (`separacion_pedidos`, vacía) `[producción]` (sigue vacía al 2026-10-12).
   - Las sugerencias de Análisis.
   - Los enlaces prellenados de Existencias, Producción y Cambios (`/inventario/mover?…`).
 - **Aguas abajo:**
@@ -482,3 +482,14 @@ Relevancia = (2·7 + 8 + 5 + 7) / 5 = **6,8 → Soporte**. Sube a Núcleo el dí
 |---|---|---|---|---|
 | 2026-09-26 | recorrido de usabilidad (sin puntajes; 17 hallazgos, SHA `2227a9fd`) | — | — | — |
 | 2026-10-03 | completo (SHA `fe5441ec`) | 5,0 (6,3 con tope) | 6,8 Soporte | De los 17 hallazgos del 26-sep: **cerrados 10** (1 piso/almacén, 2 «por recibir», 3 todo o nada, 4 se perdía el conteo, 5 anular, 6 el formulario decidía, 11 «Coincide», 12 escáner, 13 botones que se movían, 14 cierre sin confirmar). **Parcial 1:** 15 (la lista ya dice «Cerrado con diferencia», pero el origen sigue sin enterarse: va a la #1). **Abiertos 6:** 7 buscador por palabras, 8 la cantidad cambia sola, 9 fecha con hora, 10 envío sin número ni papel (#5), 16 el menú marca Existencias (#6) y 17 búsqueda por código de etiqueta (sin verificar hoy). Su sección «Lo que no se pidió» («dos puertas para recibir») está **cerrada**: ADR-0299 está en producción. |
+
+## Corrección de cifras (2026-10-12)
+> Consulta de solo lectura a producción (`cayla-dynamic`, schema `retail`: `transferencias`, `transferencia_items`,
+> `transferencia_recepciones`, `separacion_pedidos`), cifras agregadas, sin escribir nada. El SHA analizado del encabezado **no
+> cambia** (y la pantalla ya está marcada como vencida arriba): volver a puntuar es trabajo de `/pantalla`.
+
+| Qué decía este análisis | Qué hay en producción al 2026-10-12 |
+|---|---|
+| «Hoy, 0 usos reales» (§5, *Frecuencia*) | Hay **4 traslados** en `retail.transferencias`, numerados del 1 al 4, creados el 2026-09-16 (TRU → AQP, completado) y el 2026-09-17 (Taller → TRU, dos, cerrados; Taller → AQP, **todavía en tránsito**). Los cuatro son anteriores al análisis del 2026-10-03. |
+| (no decía cuántas líneas tenían) | **Ninguno tiene líneas de prendas**: `transferencia_items` y `transferencia_recepciones` tienen 0 filas en total. «0 usos reales» sigue siendo cierto si se cuentan prendas enviadas o recibidas por esta pantalla, pero no es cierto que no haya traslados. |
+| «Los pedidos entre sedes (`separacion_pedidos`, vacía)» | Sigue vacía: **0 pedidos entre sedes**. |
