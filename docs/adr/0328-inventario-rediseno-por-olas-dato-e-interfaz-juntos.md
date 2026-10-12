@@ -448,7 +448,26 @@ parecido», «lo que escribió la caja»), el buscador por la tienda de la venta
 la línea que agrupaba las ventas de prendas sin cargar: la mesa ya ofrece las seis que más calzan con su stock, la sugerida con la
 misma definición de la base y un buscador sobre todo el catálogo; y lo anotado mal se corrige con ADR-0369 en vez de pedir una
 segunda lectura por la categoría escrita. En la base quedan sin pantalla que las lea `fn_por_regularizar_sin_cargar` y el parámetro
-`p_categoria_de` de `fn_candidatas_por_regularizar`; `fn_prenda_cargada_en_sede` sí trabaja, dentro de `regularizar_prenda`.
+`p_categoria_de` de `fn_candidatas_por_regularizar`; `fn_prenda_cargada_en_sede` trabaja dentro de `regularizar_prenda` y, desde la
+revisión de abajo, también la lee la mesa.
+
+**Revisión adversarial del rescate (#975, 2026-10-12): dos avisos de #788 NO estaban superados.** El primer corte del rescate los
+descartó junto con su modal, pero la mesa de ADR-0360 no los cubría, y la base (en producción desde el 5-oct) sí rechaza esos casos:
+- **Una prenda que nunca entró a la tienda.** La nota del puente para una prenda sin unidades libres decía «Si nunca se contó en un
+  lote, elige «Llegó nueva»»: justo lo que `fn_exigir_prenda_cargada_en_sede` rechaza con cualquier respuesta. Y el comentario de
+  `20261004204000` (que ya no se edita) promete que «la web dice las MISMAS frases antes del botón (`prendaSinCargar`,
+  lib/por-regularizar-reglas.ts)». Ahora es cierto: con una prenda sin unidades libres, la mesa pregunta `fn_prenda_cargada_en_sede` y
+  la carga de la sede (`fn_carga_inicial_sedes`) y, si nunca entró, la nota dice la frase de la base (cárgala, o «Encontré prendas» si
+  la carga ya se cerró); `por-regularizar-reglas.test.ts` arma esas frases desde el texto de la migración y las compara al carácter.
+- **La venta propia.** «Nadie regulariza su propia venta, salvo el líder firmando él mismo» se descubría al tocar «Regularizar»,
+  después de elegir la prenda, contestar y firmar. Ahora, bajo el «Responsable», una línea en ámbar lo dice antes
+  (`motivoPropiaVenta`, los mismos casos C1–C14 de la prueba SQL; la lista trae `vendidoPorId`).
+
+Los dos **solo avisan**: el botón y la guía de foco no cambian, y si la web y la base no coinciden, manda la base. La misma revisión
+corrigió que «Escribiste «denim»» citara el nombre del color (ahora solo cuenta lo que la persona agregó: ni la descripción armada ni
+el color elegido), que el porqué de «Sugerida» quedara bajo el pie fijo en el celular, que la hoja del celular se animara con
+movimiento reducido, y que el porqué dijera «ese conteo» a una recepción o un traslado. Y sumó `lib/sugerencia-nunca-elige.test.ts`:
+ningún mutante que eligiera solo la forma o la categoría sobrevive.
 
 **DECIDÍ:** la respuesta deducida es una sugerencia marcada, nunca una elección ni un candado.
 **DESCARTÉ:** preelegir la respuesta (o rechazar la contraria en `regularizar_prenda`), porque la deducción falla cuando la carga se
