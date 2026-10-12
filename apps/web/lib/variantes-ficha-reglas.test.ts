@@ -20,6 +20,7 @@ import {
   corregida,
   corregir,
   costoEfectivo,
+  costoMaximoGuardado,
   costosSinComprobar,
   destinoGuardado,
   ejesDeLaPrenda,
@@ -591,6 +592,29 @@ describe("precio y costo en bloque", () => {
       { valor: "talla:t-s", texto: "Talla: S" },
       { valor: "talla:t-m", texto: "Talla: M" },
     ]);
+  });
+
+  describe("el costo que fija el piso del precio de una tienda (lo guardado, la talla que más cuesta)", () => {
+    const filas = (...vs: VarianteOrigen[]) => filasDeProducto(vs, N);
+    it("es el mayor costo de las tallas activas guardadas", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 35.5 }), variante("c", "NEG", "t-l", { costo: 30 })))).toBe(35.5);
+    });
+    it("una talla desactivada no cuenta (la base mira solo las activas)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 99, activo: false })))).toBe(20);
+    });
+    it("lo que se está escribiendo no cuenta: manda lo guardado", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
+      expect(costoMaximoGuardado([{ ...f!, costo: "500" }])).toBe(20);
+    });
+    it("una variante nueva (todavía no existe para la base) no cuenta", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
+      expect(costoMaximoGuardado([{ ...f!, guardada: null, id: null, costo: "50" }])).toBeNull();
+    });
+    it("quien no ve el dinero (costo vacío) o sin costo cargado: no hay piso que mostrar", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: null as unknown as number })))).toBeNull();
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 0 })))).toBeNull();
+      expect(costoMaximoGuardado([])).toBeNull();
+    });
   });
 
   it("el margen usa el costo guardado si el campo quedó vacío (el vacío no es cero)", () => {

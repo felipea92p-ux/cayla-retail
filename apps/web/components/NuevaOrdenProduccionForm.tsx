@@ -23,7 +23,7 @@ import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion"
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
-import { costoUnitario, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
+import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
@@ -230,7 +230,9 @@ export function NuevaOrdenProduccionForm({
   for (const r of rendimiento) materialesPorTipo[r.tipo] += r.porPrenda * total * (saldos.get(r.insumoId)?.costoUnitario ?? 0);
   // El margen es del líder (`decision` solo le llega a él), con o sin lectura de la red: si la red falla, el margen no se esconde.
   const verMargen = decision !== null;
-  const semaforo = semaforoMargen(precio, unitario);
+  // El margen se mide con el precio propio MÁS BAJO de una tienda, si lo hay (ADR-0370); `precio` (el de la grilla) es el que se dice en «se vende a».
+  const precioMasBajo = modelo?.precioMasBajo ?? null;
+  const semaforo = semaforoMargen(precioParaMargen({ precioVenta: precio, precioMasBajo }), unitario);
 
   // La guía de foco (ADR-0284): qué está hecho, qué sigue y qué falta. Sale de la misma validación que apaga el botón.
   const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total, costos: { tela, avios, maquila } }));
@@ -681,6 +683,7 @@ export function NuevaOrdenProduccionForm({
           <span className="text-tinta/70">
             {total} prendas · costo estimado {soles(costoTotal)}
             {precio > 0 && ` · se vende a ${soles(precio)}`}
+            {verMargen && precioMasBajo && ` (${soles(precioMasBajo.precio)} en ${precioMasBajo.sede})`}
             {verMargen && semaforo && ` · margen ${Math.round(semaforo.margen * 100)} %`}
           </span>
           <span className="flex items-center gap-2.5">

@@ -91,6 +91,8 @@ export function leerPrendaSede(v: unknown): PrendaSede | null {
     categoriaPrefijo: texto(v.categoria_prefijo),
     categoriaFamilia: texto(v.categoria_familia),
     fotoUrl: texto(v.foto_url),
+    // `variantes.precio`: el de la PRENDA. El de mi tienda lo pone `analisis-datos.ts` (`conPreciosDeMiTienda`); de las otras tiendas
+    // el precio no se lee ni se muestra.
     precio: dinero(v.precio),
     costo: dinero(v.costo),
     origen: elOrigen,
