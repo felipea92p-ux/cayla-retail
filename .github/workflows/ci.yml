@@ -696,6 +696,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:sunat-reintento-por-cron
 
+      # Lo que SUNAT aceptó no retrocede (ADR-0382): una respuesta vieja de Lucode no pisa un aceptado ni un anulado (se
+      # ignora sin error), y el disparador de la tabla frena cualquier paso de estado que no existe, venga de donde venga.
+      # La carrera de dos conexiones (commitea) va aparte: `pruebas:sunat-estado-no-retrocede-concurrencia`. Cada caso: ROLLBACK.
+      - name: pruebas:sunat-estado-no-retrocede
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:sunat-estado-no-retrocede
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.
