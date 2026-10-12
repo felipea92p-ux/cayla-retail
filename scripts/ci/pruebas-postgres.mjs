@@ -786,6 +786,12 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:corregir-prenda-sin-registrar",
 
+  // Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
+  // con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
+  // mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que
+  // «ya estaba registrada» sale de lo disponible y que una prenda sin cargar en la sede no se regulariza. ROLLBACK.
+  "pruebas:ventas-sin-registrar",
+
   // Familias fuera de los motores (bolsas de despacho): `familias.entra_a_motores` nace true para todas las familias que ya
   // existen, `fn_categoria_entra_a_motores` responde por la familia de la categoría (y true ante lo que no sabe), solo un líder
   // cambia la marca y la migración se puede cargar dos veces. Cada caso termina en ROLLBACK.
@@ -912,6 +918,11 @@ export const PRUEBAS = [
   // curva ajena o que no suma 100, y guardar dos veces deja una línea firmada; la hoja trae el stock libre de la red, la curva
   // vendida en 90 días y lo vendido dentro de la campaña. ROLLBACK siempre.
   "pruebas:plan-compra",
+
+  // La historia del plan (ADR-0372, C2–C6): Sinatra manda antes de la primera venta en el ERP y el ERP desde ella; «lo que sobra» solo
+  // lo fija un líder y se hereda; la propuesta trae lo vendido en 90 días, la misma campaña del año anterior, el multiplicador real de la
+  // tienda y si la categoría se agotó (sin Cuarentena); los resultados, lo vendido por prenda y a qué % se vendió lo de después. ROLLBACK.
+  "pruebas:plan-compra-historia",
 
   // Órdenes de compra (ADR-0362, fase 1): el módulo nace en Compras sin rol; solo quien lo tiene lee la lista (42501 si no) y, con
   // él, ve las órdenes de TODAS las sedes; nadie lee las tablas directo; la lista suma bien (descuento incluido), filtra por destino,
@@ -1126,6 +1137,10 @@ export const PRUEBAS = [
   // La función con llave que GitHub llama cada mañana en producción (20260928210000): con la llave, anon recibe
   // EXACTAMENTE la celda de deriva.sql; sin ella, 42501; nadie más crea llaves ni lee la tabla de la llave.
   "pruebas:huellas-catalogo",
+
+  // Lo que el paso `supabase` hace con las migraciones de un PR (ADR-0251, act. 2026-10-12): aparta, aplica una por una
+  // en su transacción, toma huellas y devuelve. En una base APARTE del mismo Postgres: la de las pruebas no se toca.
+  "pruebas:huellas-del-pr",
 ];
 
 /** `"2/4"` → `{ n: 2, de: 4 }`. Lanza si no calza: un error de tipeo en ci.yml no debe correr cero pruebas en verde. */
