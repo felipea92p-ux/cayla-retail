@@ -139,3 +139,43 @@ no**, y que se editen **nombre y fechas**.
   reemplazos ANCLADOS sobre su definición viva (no se copian), porque `fn_plan_compra` ya tiene el filtro de familias apagadas de `20261010232000`.
   **En producción desde el 2026-10-12** (OK de Felipe; ensayo revertido; versión registrada `20261012134639`; huellas iguales a local salvo `fn_plan_compra`,
   que conserva sus 10 filtros de familias).
+
+## Actualización 2026-10-12 — la historia: Sinatra, el Historial, la propuesta de tres escenarios, lo que sobra y los Resultados (C1–C6)
+
+Felipe pidió «datos reales o precisos» para predecir cuánto se vende en una campaña, con los documentos Sinatra (los Excel de Finanzas) y una
+pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y decisiones suyas del 2026-10-12:
+
+- **C1, la lista de campañas.** El selector agrupa «En curso», «Por venir · año» y «Terminadas» (las del último año; las más viejas, en el Historial) y
+  trae buscador siempre (`Desplegable conBuscador`). Sin `?plan=` abre la que toca hoy (`campanaQueAbre`): en curso, si no la próxima, si no la última
+  terminada. Antes abría la de inicio más lejano: con «Día de la Madre 2027» creada, en diciembre se abría mayo. La lista de un desplegable de cabecera
+  ya no se sale por la izquierda (se pega al borde izquierdo del control si no cabe).
+- **C2, Sinatra.** `retail.ventas_historicas (ubicacion_id, fecha, soles, fuente)`: solo soles por tienda y día (Sinatra no sabe de categorías ni
+  unidades). Se carga una vez con `scripts/plan-compra/sinatra-a-sql.py` (los datos nunca entran al repo). Hasta 2023 el único «Diario» es Trujillo;
+  Arequipa desde feb-2024. Fuera: KIDS y «Sodalita 2023» (la línea de niños: Sodalita es el diario de KIDS con S/ 300 más por día), «CAYLA PET 2022»
+  (copia de 2022) y Lima 2026 (su hoja «Ingresos» son 20 registros sueltos, no un diario). Cada archivo aporta solo los días de su año.
+  **DECIDÍ** una tabla aparte. **DESCARTÉ** meterla en `ventas` (ventas sin prenda, pagos ni comprobante rompen caja y SUNAT) y cargar las compras por
+  categoría de Sinatra (53 nombres distintos y la mitad sin categoría en 2025: traducirlas sería adivinar). **SE ROMPE SI** alguien corrige un día en el
+  Excel después de la carga: es una foto; por eso cada fila guarda su archivo y la carga es un upsert.
+- **C3, Historial** (`/compras/plan/historial`): un año a la vez; una fila por campaña de Etiquetas llevada a ese año (mismo día y mes; Día de la Madre
+  con su segundo domingo de mayo) más «Diciembre»; por tienda, soles, «×N un día normal» (soles por día ÷ los de los 60 días de antes) y el crecimiento
+  contra el año anterior. Antes de la primera venta de una tienda en el ERP manda Sinatra; desde ella, el ERP (`fn_historial_ventas`).
+- **C4, proponer los tres escenarios** (`fn_plan_compra_propuesta` da los hechos; `lib/plan-compra-propuesta.ts`, la regla): normal = un mes estándar
+  (90 días con ERP llevados a 30, y a los días de la campaña); flojo = el mes más bajo de los últimos 6 (ventanas de 30 días completas; si una tienda no
+  tiene ninguna, no se propone); bueno = normal × 3 mientras no haya la misma campaña del año anterior en el ERP, y después el punto medio entre «normal ×
+  multiplicador real de la tienda» y lo vendido en esa campaña, **salvo que la categoría se haya agotado** (entonces solo normal × multiplicador: lo
+  vendido quedó corto por stock, no por clientes). Por tienda y sumado; enteros por tienda antes de multiplicar («normal 3 × 3 = 9», nunca 8).
+  **Esto reemplaza R-19 en la propuesta**: antes el normal era 3 meses (diciembre = 3 × un mes); ahora el normal es un mes estándar y el × 3 va en el bueno.
+- **C5, lo que sobra de CAYLA.** `planes_compra.recupero_defecto_pct` (con su autor) y `guardar_plan_compra_recupero` (solo líder, firmado): el % con que
+  arranca cada categoría nueva; cada una puede cambiarlo. Una campaña sin el suyo hereda el de la anterior más reciente.
+- **C6, Resultados** (`/compras/plan/resultados`, `fn_plan_compra_resultados`): por tienda (unidades, soles, multiplicador real), por categoría (contra
+  el plan, «Se agotó en…», lo que sobró = lo cobrado en los 60 días después ÷ su precio de etiqueta), las prendas y los colores que más vendieron.
+- **Una sola definición de «lo vendido»** para la propuesta y los resultados: `fn_unidades_vendidas` (con su prenda o anotado sin registrar; solo
+  familias que cuentan en los motores, ADR-0377). «Agotada» sale de `fn_stock_categoria_al` (el stock de hoy menos lo movido después, sin Cuarentena;
+  sin fila de stock = cero). Las dos son internas (sin permiso para la web).
+- **Verificado:** reglas (historial 16, propuesta 13, resultados 11, plan 121); pruebas SQL `pnpm pruebas:plan-compra-historia` 10/10; navegador local
+  con la historia real de Trujillo (2025: S/ 1 649 544, +9 %; Navidad ×2.0, Diciembre ×1.8). **Migraciones `20261012160000` y `20261012161000` EN PRODUCCIÓN
+  desde el 2026-10-12** (orden de Felipe; ensayo revertido antes; verificado como líder: las 6 funciones responden, las internas no se exponen y
+  anon no lee). Falta la carga de Sinatra (`carga-sinatra.sql`, fuera del repo).
+- **El detalle de una fila del Historial** (Felipe: «al darle clic a una fila, los detalles»): `DetalleCampanaHistorial.tsx`, el día a día de la
+  campaña contra un día normal (mejor y peor día) y la misma campaña año por año (una lectura chica por año). Sinatra no sabe de prendas: el
+  detalle de prendas y colores está en Resultados, y la hoja lleva ahí si la campaña tiene su plan en el ERP.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { Children, Fragment, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
 import { CircleAlert, Plus, SearchX } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
@@ -97,6 +97,10 @@ type CampoProps = {
   idEtiqueta?: string;
   /** La etiqueta existe (para lectores de pantalla) pero no se ve: la caja ya dice qué es con su marcador. */
   etiquetaOculta?: boolean;
+  /** Sin el renglón del pie reservado (cuando no hay `pie`). Para una caja que vive en una FILA de tabla junto a combos: con el
+   *  renglón vacío medía 18 px más que ellos y la fila quedaba desalineada (Nueva orden de compra, Felipe 2026-10-10). Ahí los
+   *  mensajes no van bajo cada caja: los dice la guía de la fila. */
+  sinPie?: boolean;
   children: ReactNode;
 };
 
@@ -107,7 +111,7 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
-export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, children }: CampoProps) {
+export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
     <div>
       <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "label-cayla block text-[11px] text-tinta/65"}>
@@ -115,7 +119,7 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
         {ayuda}
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
-      <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
+      {sinPie && !pie ? null : <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
         {pie ? (
           tono === "error" ? (
@@ -127,7 +131,7 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
             <span className="anim-revelar block">{pie}</span>
           )
         ) : null}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -151,6 +155,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   valido?: boolean;
   /** Guía oficial: caja hundida en hueso, sin hilo, y la etiqueta solo para lectores de pantalla (barras de filtros). */
   caja?: boolean;
+  /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
+  sinPie?: boolean;
 };
 
 /* Altura única de todo control de una línea (input, fecha, combo): 36px, que
@@ -169,13 +175,13 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
   const [enfocado, setEnfocado] = useState(false);
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja} sinPie={sinPie}>
       <div className={caja ? "caja-cayla relative px-3" : "relative"}>
         <input
           id={id}
@@ -500,6 +506,7 @@ export function Desplegable<T extends string>({
   // su contenido y la pega al borde derecho: en la cabecera el disparador
   // dice "TRU" y mide 60px, y una lista de 60px no se puede leer.
   alineacion = "campo",
+  conBuscador = false,
   trabajando = false,
   idEtiqueta,
   etiquetaAccesible,
@@ -514,6 +521,9 @@ export function Desplegable<T extends string>({
   marcador?: string;
   forma?: keyof typeof FORMA_DESPLEGABLE;
   alineacion?: "campo" | "derecha";
+  /** El buscador aparece aunque haya 8 opciones o menos (la regla de ADR-0209 lo pone solo desde 9). Para una lista que crece con el
+   *  tiempo y que se busca por algo que no es su orden, como las campañas del plan («2027», «madre»). */
+  conBuscador?: boolean;
   trabajando?: boolean;
   /** Id de un <label> existente (lo pasa `CampoSelect`). */
   idEtiqueta?: string;
@@ -547,7 +557,7 @@ export function Desplegable<T extends string>({
   // Regla global de combos (ADR-0209): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
   // cambio para los cientos de Desplegable de 2 a 6 opciones que ya funcionaban. El grupo también se busca: «banco»
   // trae todas las cuentas de «Bancos y billeteras».
-  const mostrarBuscador = comboNecesitaBuscador(opciones.length);
+  const mostrarBuscador = conBuscador || comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
     return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto, detalle: o.grupo }));
@@ -562,6 +572,20 @@ export function Desplegable<T extends string>({
   const destino = useDestinoFlotante(contenedor, abierto && flotante);
   // La lista en `fixed` se pinta recién cuando tiene posición (un render después de abrir).
   const listaVisible = abierto && (!flotante || !!posLista);
+  // `derecha` pega la lista al borde derecho del control y la deja crecer hacia la izquierda. Si el control quedó a la izquierda (la
+  // cabecera baja sus acciones bajo la frase cuando la derecha está ocupada), la lista se salía de la pantalla y se leía «OR VENIR · 2026»
+  // (Felipe 2026-10-12, Plan de campaña). Medida al abrir: si se sale por la izquierda, se pega al borde izquierdo del control.
+  // Se corrige en el DOM antes de pintar (sin estado: no hay un cuadro con la lista cortada).
+  useLayoutEffect(() => {
+    const el = capa.current;
+    if (!listaVisible || flotante || !el) return;
+    el.style.left = "";
+    el.style.right = "";
+    if (el.getBoundingClientRect().left < 8) {
+      el.style.left = "0";
+      el.style.right = "auto";
+    }
+  }, [listaVisible, flotante]);
 
   const indiceActual = opciones.findIndex((o) => o.valor === valor);
   const elegida = indiceActual >= 0 ? opciones[indiceActual] : null;
@@ -785,7 +809,7 @@ export function Desplegable<T extends string>({
                 : undefined
             }
             className={`anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg ${
-              flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
+              flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full max-w-[calc(100vw-16px)]"
             }`}
           >
           {mostrarBuscador && (
