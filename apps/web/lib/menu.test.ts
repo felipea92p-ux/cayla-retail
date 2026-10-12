@@ -263,7 +263,13 @@ const TOPE_HIJAS = 6;
 // mercadería sin ver Compras (hoy no existe). Se descartó el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba
 // el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
 // Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7 };
+// INVENTARIO, 8 (Felipe, 2026-10-05; ADR-0329, Plan del piso): la cláusula de arriba se cumplió y Felipe eligió SUBIR el tope en
+// vez de regrupar (preguntado con las dos opciones): «Plan del piso» va DIRECTO en Inventario, después de Frescura, para que ni una
+// ni otra queden un clic más adentro. El líder ve 7 (a Existencias, Movimientos, Traslados, Conteo, Análisis y Frescura suma Plan del
+// piso; Recibir mercadería sigue saliendo solo a quien no ve Compras). Llega a 8 únicamente un rol que vea Análisis, Frescura y
+// Plan del piso y reciba mercadería sin ver Compras (hoy no existe). SE ROMPE SI Inventario suma otra pantalla o ese rol aparece:
+// entonces SÍ se regrupa (el subgrupo del piso, Frescura + Plan del piso), y este número no vuelve a subir.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 8 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -768,5 +774,21 @@ describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre 
     const modulos: ClaveModulo[] = ["existencias"];
     const m = menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
     expect(m.riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+  });
+});
+
+describe("en CAYLA Global, Inventario es solo Frescura del piso y se llama así (ADR-0208, act. 2026-10-10 (b))", () => {
+  const conModulos = (modulos: ClaveModulo[]) =>
+    menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
+
+  it("la fila dice «Frescura del piso» y abre su pantalla, no «Inventario»", () => {
+    const riel = conModulos(["frescura"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/inventario/frescura"]);
+  });
+
+  it("con otra pantalla de Inventario al lado, el grupo sigue llamándose «Inventario»", () => {
+    const riel = conModulos(["frescura", "existencias"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
   });
 });

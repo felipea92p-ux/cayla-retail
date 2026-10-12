@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan del piso — maquetas de estilo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* MAQUETA · Plan del piso ▸ Propuesta (2026-10-10). Solo diseño, sin decidir. Datos INVENTADOS (Tienda AQP).
+   Tokens = los de apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro). Nada de hex fuera de este bloque. */
+:root{
+  --color-rojo:#b8412d;--color-rojo-profundo:#8b2a1f;--color-crema:#f5f0e8;--color-tinta:#1a1a18;--color-sand:#e8e0d0;--color-taupe:#805c4c;--color-taupe-profundo:#805c4c;
+  --color-papel:#fbf8f2;--color-hueso:#eae1d2;--color-sombra:#1a1a18;--color-vidrio:#ffffff;--color-pizarra:#4c5d6e;--color-tinta-60:#5b544c;
+  --color-verde:#48603f;--color-verde-profundo:#44583a;--color-ambar:#74501a;--color-ambar-profundo:#734f15;
+  --color-tinta-fija:#1a1a18;--color-crema-fija:#f5f0e8;
+  --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;--radius-2xl:20px;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);
+  --serif:'EB Garamond',ui-serif,Georgia,serif;--sans:'DM Sans',ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+html[data-tema="oscuro"]{
+  --color-crema:#1a1a18;--color-papel:#242422;--color-hueso:#31302d;--color-sand:#3d3c38;--color-sombra:#000000;--color-vidrio:#31302d;
+  --color-tinta:#f5f0e8;--color-tinta-60:#b9b2a7;--color-taupe:#c4a898;--color-taupe-profundo:#c4a898;
+  --color-rojo:#e8806a;--color-rojo-profundo:#f29a86;--color-verde:#9ccb8d;--color-verde-profundo:#a8d49a;--color-ambar:#e4b968;--color-ambar-profundo:#ecc676;--color-pizarra:#a2b8cd;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--color-tinta);background:var(--color-crema);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--color-rojo);outline-offset:2px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no es parte del diseño) ---------- */
+.ctl{position:sticky;top:0;z-index:50;background:#1a1a18;color:#f5f0e8;padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;font-size:12.5px}
+.ctl b{font-weight:600;margin-right:6px;opacity:.7}
+.seg{display:inline-flex;background:rgba(255,255,255,.1);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{padding:5px 11px;border-radius:6px;color:rgba(245,240,232,.75)}
+.seg button[aria-pressed=true]{background:#f5f0e8;color:#1a1a18}
+.fuera{background:#d8d2c6;min-height:100vh;padding:0 0 60px}
+html[data-tema="oscuro"] .fuera{background:#0d0d0c}
+.hoja{display:flex;justify-content:center;padding:18px 12px 0}
+
+/* ---------- marco de la app ---------- */
+.marco{display:grid;grid-template-columns:var(--ancho-lateral) minmax(0,1fr);background:var(--color-crema);border:1px solid color-mix(in srgb,var(--color-tinta) 14%,transparent);border-radius:10px;overflow:hidden;width:var(--ancho-marco);min-height:760px}
+body[data-vista="1440"]{--ancho-marco:1440px;--ancho-lateral:240px;--ancho-contenido:1024px;--pad-pagina:88px}
+body[data-vista="1024"]{--ancho-marco:1024px;--ancho-lateral:271px;--ancho-contenido:657px;--pad-pagina:48px}
+body[data-vista="375"]{--ancho-marco:375px;--ancho-lateral:0px;--ancho-contenido:341px;--pad-pagina:17px}
+body[data-vista="375"] .lat{display:none}
+body[data-vista="375"] .marco{grid-template-columns:minmax(0,1fr)}
+.lat{background:color-mix(in srgb,var(--color-hueso) 55%,var(--color-crema));border-right:1px solid var(--color-sand);padding:20px 12px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.lat .logo{font-family:var(--serif);letter-spacing:.34em;font-size:15px;padding:4px 14px 22px;font-weight:500}
+.lat .logo small{display:block;font-family:var(--sans);font-size:9px;letter-spacing:.3em;color:var(--color-taupe-profundo);margin-top:2px}
+.lat a{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-radius:10px;color:var(--color-tinta);text-decoration:none}
+.lat a.on{background:var(--color-sand)}
+.lat a i{font-style:normal;color:var(--color-taupe-profundo);font-size:11px}
+.lat .pie{margin-top:auto;padding:14px;font-size:12px;color:var(--color-taupe-profundo);border-top:1px solid var(--color-sand)}
+.lat .pie b{display:block;color:var(--color-tinta);font-weight:500;font-size:13px}
+.cuerpo{min-width:0}
+.top{height:58px;border-bottom:1px solid var(--color-sand);display:flex;align-items:center;gap:12px;padding:0 22px}
+.top .busca{background:color-mix(in srgb,var(--color-hueso) 70%,transparent);border-radius:999px;padding:7px 16px;color:var(--color-taupe-profundo);font-size:13px;min-width:190px}
+.top .der{margin-left:auto;display:flex;gap:18px;align-items:center;font-size:11px;letter-spacing:.12em;font-weight:600;text-transform:uppercase}
+.top .sede{border:1px solid var(--color-sand);border-radius:8px;padding:7px 12px}
+body[data-vista="375"] .top .busca,body[data-vista="375"] .top .der span:not(.sede){display:none}
+.pagina{max-width:var(--ancho-contenido);margin:0 auto;padding:28px 0 56px;width:calc(100% - 2*var(--pad-pagina))}
+body[data-vista="375"] .pagina{width:calc(100% - 34px)}
+.enc .linea{display:flex;align-items:center;gap:14px;font-size:11px;letter-spacing:.13em;font-weight:600;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.enc .linea::before{content:"";width:36px;height:1px;background:var(--color-taupe)}
+.enc h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.1;margin:10px 0 8px;letter-spacing:-.01em}
+.enc p{font-size:15.5px;color:var(--color-tinta-60);max-width:560px}
+body[data-vista="375"] .enc h1{font-size:36px}
+.tabs{max-width:100%;overflow-x:auto;display:inline-flex;margin:22px 0 24px;padding:5px;gap:2px;background:var(--color-vidrio);border:1px solid var(--color-sand);border-radius:16px}
+.tabs span{padding:9px 19px;border-radius:11px;font-size:11.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;display:inline-flex;gap:8px;align-items:center}
+.tabs span.on{background:var(--color-tinta);color:var(--color-crema)}
+.tabs em{font-style:normal;font-size:10.5px;letter-spacing:0;background:var(--color-sand);color:var(--color-ambar-profundo);border-radius:999px;padding:2px 8px}
+.diseno{min-width:0}
+
+/* ---------- kit mínimo de piezas del sistema (las maquetas pueden usarlo o dibujar lo suyo con su prefijo) ---------- */
+.cy-card{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl)}
+.cy-label{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.cy-serif{font-family:var(--serif);font-weight:400}
+.cy-num{font-variant-numeric:lining-nums tabular-nums}
+.cy-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:600;background:color-mix(in srgb,var(--color-pizarra) 14%,var(--color-papel));color:var(--color-pizarra)}
+.cy-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.cy-chip.ambar{background:color-mix(in srgb,var(--color-ambar) 16%,var(--color-papel));color:var(--color-ambar-profundo)}
+.cy-chip.verde{background:color-mix(in srgb,var(--color-verde) 16%,var(--color-papel));color:var(--color-verde-profundo)}
+.cy-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;border:1px solid var(--color-taupe);color:var(--color-tinta);transition:background-color 200ms var(--ease-cayla),transform 200ms var(--ease-cayla)}
+.cy-btn:hover{background:var(--color-sand);transform:translateY(-1px)}
+.cy-aviso{display:flex;align-items:center;gap:14px;padding:12px 14px 12px 16px;border-radius:4px 12px 12px 4px;border:1px solid color-mix(in srgb,var(--color-ambar) 40%,var(--color-sand));border-left:3px solid var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 8%,var(--color-papel))}
+.cy-aviso b{display:block;font-weight:600;color:var(--color-ambar-profundo);font-size:14px}
+.cy-aviso span{font-size:13.5px;color:var(--color-tinta-60)}
+.cy-aviso .cy-btn{margin-left:auto;white-space:nowrap}
+.cy-nota{background:var(--color-hueso);border-radius:var(--radius-lg);padding:12px 16px;font-size:13px;color:var(--color-tinta-60)}
+</style>
+<script>window.DATOS={
+  sede:"Tienda AQP",fecha:"sábado, 10 de octubre",hora:"21:14",
+  capacidad:1800,capacidadProvisional:true,cuadrado:false,
+  colgadasEnElRiel:78,ventasConfirmadas:5,ventasSinRegistrar:210,dias:14,pesoVentaPct:6,categoriasPorRevisar:45,
+  grupos:[
+    {clave:"polos_tops_blusas",nombre:"Polos, tops y blusas",rol:"Destino",hoy:30,hoyPct:38.5,industriaPct:44,ventaPct:40,ventas:2,ventaRango:[9.1,81.6],propuesta:788,propuestaPct:43.8},
+    {clave:"jeans",nombre:"Jeans",rol:"Destino",hoy:3,hoyPct:3.8,industriaPct:10,ventaPct:0,ventas:0,ventaRango:[0,53.5],propuesta:169,propuestaPct:9.4},
+    {clave:"pantalones_faldas_shorts",nombre:"Pantalones, faldas y shorts",rol:"Rutina",hoy:14,hoyPct:17.9,industriaPct:18,ventaPct:20,ventas:1,ventaRango:[2.7,69.4],propuesta:326,propuestaPct:18.1},
+    {clave:"vestidos_conjuntos",nombre:"Vestidos, conjuntos y enterizos",rol:"Ocasional",hoy:9,hoyPct:11.5,industriaPct:10,ventaPct:20,ventas:1,ventaRango:[2.7,69.4],propuesta:191,propuestaPct:10.6},
+    {clave:"bodys_corsets_lenceria",nombre:"Bodys, corsets y lencería",rol:"Ocasional",hoy:6,hoyPct:7.7,industriaPct:6,ventaPct:0,ventas:0,ventaRango:[0,53.5],propuesta:101,propuestaPct:5.6},
+    {clave:"abrigo_y_capas",nombre:"Abrigo y capas",rol:"De temporada",hoy:16,hoyPct:20.5,industriaPct:12,ventaPct:20,ventas:1,ventaRango:[2.7,69.4],propuesta:225,propuestaPct:12.5}
+  ],
+  fuera:[
+    {clave:"accesorios_de_impulso",nombre:"Accesorios de impulso y caja",rol:"Conveniencia",colgadas:11,ventaPct:0,meta:"16–18 %"},
+    {clave:"bolsos_y_calzado",nombre:"Bolsos y calzado",rol:"Ocasional",colgadas:4,ventaPct:0,meta:"6–8 %"}
+  ]
+};</script>
+</head>
+<body data-diseno="actual" data-vista="1440">
+<div class="ctl">
+  <span><b>Diseño</b><span class="seg" id="seg-diseno">
+    <button data-v="actual" aria-pressed="true">Actual (PR #944)</button>
+    <button data-v="a" aria-pressed="false">A</button>
+    <button data-v="b" aria-pressed="false">B</button>
+    <button data-v="c" aria-pressed="false">C</button>
+  </span></span>
+  <span><b>Tema</b><span class="seg" id="seg-tema">
+    <button data-v="claro" aria-pressed="true">Claro</button>
+    <button data-v="oscuro" aria-pressed="false">Oscuro</button>
+  </span></span>
+  <span><b>Vista</b><span class="seg" id="seg-vista">
+    <button data-v="1440" aria-pressed="true">Escritorio</button>
+    <button data-v="1024" aria-pressed="false">Laptop con menú</button>
+    <button data-v="375" aria-pressed="false">Celular</button>
+  </span></span>
+  <span style="opacity:.6">Datos inventados · solo diseño, sin decidir</span>
+</div>
+<div class="fuera"><div class="hoja">
+<div class="marco">
+  <aside class="lat">
+    <div class="logo">CAYLA<small>RETAIL</small></div>
+    <a>Inicio</a><a>Ventas <i>›</i></a><a class="on">Inventario <i>⌄</i></a><a>Catálogo <i>›</i></a><a>Compras <i>›</i></a><a>Finanzas <i>›</i></a><a>Clientes <i>›</i></a><a>Rendimiento</a>
+    <div class="pie"><b>Felipe Alvarez</b>LÍDER · TIENDA AQP</div>
+  </aside>
+  <div class="cuerpo">
+    <header class="top"><span class="busca">Buscar…  Ctrl K</span><span class="der"><span>Actividad</span><span class="sede">Tienda AQP ⌄</span></span></header>
+    <main class="pagina">
+      <div class="enc">
+        <div class="linea">Tienda AQP · sábado, 10 de octubre · 21:14</div>
+        <h1>Plan del piso</h1>
+        <p>Cuánto lugar tiene cada grupo de prendas en el riel, y a qué grupo pertenece cada categoría.</p>
+      </div>
+      <div class="tabs"><span class="on">Propuesta</span><span>Grupos <em>45</em></span><span>Historia</span></div>
+      <section class="diseno" data-diseno="actual"><!--@actual--></section>
+      <section class="diseno" data-diseno="a" hidden><!--@a--></section>
+      <section class="diseno" data-diseno="b" hidden><!--@b--></section>
+      <section class="diseno" data-diseno="c" hidden><!--@c--></section>
+    </main>
+  </div>
+</div></div></div>
+<script>
+
+(function(){
+  var q=new URLSearchParams(location.search),b=document.body,h=document.documentElement;
+  function marca(id,v){document.querySelectorAll('#'+id+' button').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.v===v)})}
+  function diseno(v){b.dataset.diseno=v;marca('seg-diseno',v);document.querySelectorAll('.diseno').forEach(function(s){s.hidden=s.dataset.diseno!==v});window.dispatchEvent(new CustomEvent('plan:diseno',{detail:v}))}
+  function tema(v){h.dataset.tema=v;marca('seg-tema',v)}
+  function vista(v){b.dataset.vista=v;marca('seg-vista',v)}
+  document.getElementById('seg-diseno').onclick=function(e){if(e.target.dataset.v)diseno(e.target.dataset.v)};
+  document.getElementById('seg-tema').onclick=function(e){if(e.target.dataset.v)tema(e.target.dataset.v)};
+  document.getElementById('seg-vista').onclick=function(e){if(e.target.dataset.v)vista(e.target.dataset.v)};
+  diseno(q.get('diseno')||'actual');tema(q.get('tema')||'claro');vista(q.get('vista')||'1440');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+## 2026-10-11 (Las pantallas de una tienda ya muestran el precio de ESA tienda)
+Qué hice: Inicio de Almacén, Análisis, Dañadas y el aviso de costo de las campañas pasaron a usar el precio propio de la tienda (el de su caja y su etiqueta) en vez del precio de la prenda; solo web, sin SQL (ADR-0370, actualización 2026-10-11).
+Por qué así: la regla que dijiste es «la pantalla de una tienda usa el precio de esa tienda»; las cuatro leían `variantes.precio` por su cuenta, y `fn_precios_en_sede` ya trae las excepciones, así que se reutilizó en vez de tocar funciones SQL vivas con tres parches.
+Felipe se lleva: en TRU, una prenda con precio propio ya se ve igual en Existencias, Almacén, Análisis, Dañadas y la etiqueta; y una campaña que dejaría una prenda bajo el costo en una tienda con precio propio ahora lo avisa nombrando la tienda. Producción queda aparte: es decisión tuya.

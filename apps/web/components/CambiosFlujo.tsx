@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -55,6 +55,8 @@ import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { avisosDelCambio, type CambioArmado } from "@/lib/cambios-cambio-de-sede";
 
 const PASOS = ["Venta", "Prenda", "Reemplazo", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -111,6 +113,9 @@ export function CambiosFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // El cambio a medio armar es de SU sede (Felipe, 2026-10-11): si se vuelve a una sede con un cambio guardado, se sigue en el mismo
+  // paso (el panel ya retomó la venta).
+  const { inicial: guardado, reportar: reportarCambio } = useTrabajoPorSede<CambioArmado>(ubicacionId);
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `catalogoProp` es
   // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
   // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
@@ -141,10 +146,10 @@ export function CambiosFlujo({
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
-  const [lineaId, setLineaId] = useState<string | null>(lineaInicialId);
-  const [paso, setPaso] = useState<Paso>(lineaInicialId ? 3 : 2);
+  const [lineaId, setLineaId] = useState<string | null>(guardado ? guardado.lineaId : lineaInicialId);
+  const [paso, setPaso] = useState<Paso>(guardado ? guardado.paso : lineaInicialId ? 3 : 2);
   const linea = venta.find((l) => l.ventaItemId === lineaId) ?? null;
-  const [seleccion, setSeleccion] = useState<Seleccion | null>(linea ? seleccionInicial(linea) : null);
+  const [seleccion, setSeleccion] = useState<Seleccion | null>(guardado ? guardado.seleccion : linea ? seleccionInicial(linea) : null);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<TicketCambio | null>(null);
@@ -156,7 +161,22 @@ export function CambiosFlujo({
   // Reintento (doble clic, o red que se corta después del commit y antes de la
   // respuesta — ADR-0032) debe mandar el MISMO token para que el índice único de
   // `retail.cambios.token_cliente` lo reconozca como el mismo envío.
-  const token = useRef<string>(crypto.randomUUID());
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
+
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, el cambio queda guardado en ESTA sede. Registrado, ya no hay nada que
+  // guardar.
+  useEffect(() => {
+    reportarCambio(
+      paso !== "exito"
+        ? {
+            etiqueta: sede,
+            unidades: seleccion?.cantidad ?? 1,
+            trabajo: { venta, lineaInicialId, lineaId, paso, seleccion, token: token.current },
+            ...avisosDelCambio({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
+          }
+        : null,
+    );
+  }, [reportarCambio, paso, sede, seleccion, venta, lineaInicialId, lineaId, compra.clienta, compra.comprobante]);
 
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -474,7 +494,7 @@ export function CambiosFlujo({
               </dl>
               <ComparacionPrendas
                 devuelta={ficha(linea, linea.precioUnitario)}
-                nueva={ficha(r.varianteNueva, r.varianteNueva.precio)}
+                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
                 cantidad={seleccion.cantidad}
                 diferencia={r.diferencia}
               />

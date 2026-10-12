@@ -4,6 +4,8 @@ import { getVentasRecientes } from "@/lib/ventas-v2";
 import { contarPrendasEnCuarentena, getDevolucionesPendientes, getDevolucionesResueltas, getEstadisticasDevoluciones } from "@/lib/devoluciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { DevolucionesPanel } from "@/components/DevolucionesPanel";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { claveDeDevoluciones } from "@/lib/devoluciones-cambio-de-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
@@ -49,26 +51,31 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
         />
       </EncabezadoPagina>
 
-      <DevolucionesPanel
-        lineas={lineas}
-        pendientes={pendientes}
-        resueltas={resueltas}
-        busqueda={q?.trim() ?? ""}
-        todasLasSedes={todasLasSedes}
-        puedeVerTodas={esLider}
-        esLider={esLider}
-        sede={persona.ubicacionEtiqueta}
-        ubicacionId={persona.ubicacionId}
-        colaboradora={persona.nombre}
-        cajaAbierta={caja !== null}
-        abrirItemId={item}
-        accesos={{
-          cambios: veModulo(persona, "cambios"),
-          caja: veModulo(persona, "caja"),
-          comprobantes: veModulo(persona, "facturacion"),
-          cuarentena: veInventario ? enCuarentena : null,
-        }}
-      />
+      {/* La devolución a medio armar es de su sede (Felipe, 2026-10-11), como en Cambios: el panel lleva la sede en su key y
+          `TrabajoPorSede`, que no cambia con la sede, guarda la de la que se deja para retomarla al volver. */}
+      <TrabajoPorSede key="devoluciones" ubicacionId={persona.ubicacionId}>
+        <DevolucionesPanel
+          key={claveDeDevoluciones(persona.ubicacionId)}
+          lineas={lineas}
+          pendientes={pendientes}
+          resueltas={resueltas}
+          busqueda={q?.trim() ?? ""}
+          todasLasSedes={todasLasSedes}
+          puedeVerTodas={esLider}
+          esLider={esLider}
+          sede={persona.ubicacionEtiqueta}
+          ubicacionId={persona.ubicacionId}
+          colaboradora={persona.nombre}
+          cajaAbierta={caja !== null}
+          abrirItemId={item}
+          accesos={{
+            cambios: veModulo(persona, "cambios"),
+            caja: veModulo(persona, "caja"),
+            comprobantes: veModulo(persona, "facturacion"),
+            cuarentena: veInventario ? enCuarentena : null,
+          }}
+        />
+      </TrabajoPorSede>
     </div>
   );
 }

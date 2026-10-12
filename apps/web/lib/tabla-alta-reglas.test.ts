@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { claveCelda, construirCeldas } from "./alta-producto";
-import { leyendaVariantes, limpiarPrecio, llenarTodas, pasoCantidad, precioDistinto, textoFotosDeFila, textoPrecioBase, totalesCantidades, vaciarTodas } from "./tabla-alta-reglas";
+import {
+  costoDistinto,
+  leyendaVariantes,
+  limpiarPrecio,
+  llenarTodas,
+  montoDeCelda,
+  pasoCantidad,
+  precioDistinto,
+  textoCostoBase,
+  textoFotosDeFila,
+  textoPrecioBase,
+  totalesCantidades,
+  vaciarTodas,
+} from "./tabla-alta-reglas";
 
 // Peor caso real (README del spike): 9 tallas × 8 colores = 72 celdas.
 const TALLAS = ["26", "28", "30", "32", "34", "36", "38", "40", "42"];
@@ -118,6 +131,38 @@ describe("precios de la tabla", () => {
   it("vacía = S/ precio de venta", () => {
     expect(textoPrecioBase("89.9")).toBe("S/ 89.90");
     expect(textoPrecioBase("")).toBe("el precio de venta");
+  });
+});
+
+describe("costos de la tabla", () => {
+  it("un costo distinto es el que no es el de arriba; sin costo arriba, el de todas es 0", () => {
+    expect(costoDistinto("1.80", "1.2")).toBe(true);
+    expect(costoDistinto("1.20", "1.2")).toBe(false);
+    expect(costoDistinto("", "1.2")).toBe(false);
+    expect(costoDistinto(undefined, "1.2")).toBe(false);
+    expect(costoDistinto("0.90", "")).toBe(true);
+    expect(costoDistinto("0", "")).toBe(false);
+    expect(costoDistinto(".", "1.2")).toBe(false);
+  });
+
+  it("vacía = S/ costo de arriba, o sin costo (es opcional)", () => {
+    expect(textoCostoBase("1.2")).toBe("S/ 1.20");
+    expect(textoCostoBase("")).toBe("sin costo");
+    expect(textoCostoBase("0")).toBe("sin costo");
+  });
+});
+
+describe("montoDeCelda", () => {
+  it("lo escrito en la celda, o vacía, el de todas", () => {
+    expect(montoDeCelda("2.5", 1.2)).toBe(2.5);
+    expect(montoDeCelda("0", 1.2)).toBe(0);
+    expect(montoDeCelda("", 1.2)).toBe(1.2);
+    expect(montoDeCelda("  ", 1.2)).toBe(1.2);
+    expect(montoDeCelda(undefined, 1.2)).toBe(1.2);
+  });
+
+  it("un texto que no es número no se vuelve el de todas: da NaN para que el formulario lo frene", () => {
+    expect(montoDeCelda(".", 1.2)).toBeNaN();
   });
 });
 
