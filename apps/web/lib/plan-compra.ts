@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { hoyEnLima } from "@/lib/resumen-periodo";
 import { RPC_PROPUESTA } from "@/lib/plan-compra-propuesta";
+import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
 import { RPC_HISTORIAL, leerHistorial, rangoDelAnio, type EtiquetaHistorial, type LecturaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
@@ -70,6 +71,26 @@ export async function getPlanCompra(planId?: string): Promise<{
   const propuesta = typeof abierto === "string" ? await supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: abierto } as never) : null;
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
   return { datos: plan.data, falla: null, familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: propuesta && !propuesta.error ? propuesta.data : null };
+}
+
+/**
+ * Resultados (ADR-0372, C6): lo vendido en una campaña. Sin campaña válida en la URL, la que está en curso, si no la última terminada, si no la
+ * próxima (`campanaParaResultados`). Si la base falla, lo dice.
+ */
+export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null }> {
+  const supabase = await createClient();
+  const planes = await supabase.rpc(RPC_PLANES as never);
+  if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
+  const campanas = planes.error ? null : leerCampanas(planes.data);
+  const pedido = esIdDePlan(planId) ? planId.trim() : null;
+  const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
+  if (!id) return { datos: null, campanas, falla: null };
+  const r = await supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never);
+  if (r.error) {
+    console.error(`${RPC_RESULTADOS}: ${r.error.message}`);
+    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder" };
+  }
+  return { datos: r.data, campanas, falla: null };
 }
 
 /**

@@ -19,6 +19,7 @@ export function SelectorCampana({
   campanas,
   actualId,
   hoy,
+  ruta = "/compras/plan",
   puedeCrear,
   onNueva,
   onEditar,
@@ -28,6 +29,8 @@ export function SelectorCampana({
   actualId: string;
   /** Hoy en Lima («aaaa-mm-dd», el de la base): decide qué está en curso, por venir o terminado. */
   hoy: string;
+  /** A qué pantalla lleva elegir una campaña: el Plan (por defecto) o sus Resultados. */
+  ruta?: string;
   /** Un líder: crea, edita, quita y restaura campañas (la base lo exige también). */
   puedeCrear: boolean;
   onNueva: () => void;
@@ -57,7 +60,7 @@ export function SelectorCampana({
         if (v === NUEVA) return onNueva();
         if (v === EDITAR) return onEditar();
         if (v === ARCHIVADAS) return onArchivadas();
-        if (v !== actualId) router.push(`/compras/plan?plan=${v}`);
+        if (v !== actualId) router.push(`${ruta}?plan=${v}`);
       }}
       opciones={opciones}
       forma="pastilla"

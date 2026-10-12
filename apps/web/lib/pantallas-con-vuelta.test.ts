@@ -44,6 +44,7 @@ const EXCEPCIONES: Record<string, string> = {
   "/vender/comprobantes/series": "pestaña de Comprobantes",
   "/produccion/eficiencia": "pestaña del Resumen de Producción",
   "/compras/plan/historial": "pestaña del Plan de campaña",
+  "/compras/plan/resultados": "pestaña del Plan de campaña",
 };
 
 function rutasDelMenu(nodos: readonly Nodo[], salida = new Set<string>()): Set<string> {
