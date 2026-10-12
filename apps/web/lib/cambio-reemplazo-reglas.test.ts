@@ -236,7 +236,7 @@ describe("el precio que se muestra y la diferencia salen del mismo número (Camb
   });
 });
 
-describe("la diferencia se mide contra lo que la clienta pagó, no contra el precio de lista (ADR-0378)", () => {
+describe("la diferencia se mide contra lo que la clienta pagó, no contra el precio de lista (ADR-0380)", () => {
   // Polera de S/ 100 con campaña del 20 %: pagó S/ 80. `variante()` pone S/ 100 de precio por defecto.
   const conCampana = { ...linea, precioUnitario: 100, descuentoUnitario: 20 } as LineaVentaReciente;
   const otraPrenda = (precio: number) =>

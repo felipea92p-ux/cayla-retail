@@ -207,7 +207,7 @@ rollback;
   );
 
 
-  // ---- 20261012120100 (ADR-0378): la nota de crédito sale por lo que la clienta PAGÓ, no por el precio de lista ----
+  // ---- 20261012120100 (ADR-0380): la nota de crédito sale por lo que la clienta PAGÓ, no por el precio de lista ----
   // Venta con boleta ACEPTADA, S/ 20 de descuento por prenda y una devolución pendiente (mismo armado que
   // `arreglos_en_vivo.mjs`). Antes la nota salía por el precio de lista: más que la boleta.
   const FIXTURE_CON_NOTA = (descuento) => `${FIXTURE_BASE}

@@ -1,6 +1,7 @@
-# ADR-0378 — Cambios y devoluciones se calculan con lo que la clienta pagó, no con el precio de lista
+# ADR-0380 — Cambios y devoluciones se calculan con lo que la clienta pagó, no con el precio de lista
 
-- **Fecha:** 2026-10-12 · **Estado:** construido y probado en una copia de la base local; **SQL EN PRODUCCIÓN desde 2026-10-12** (con OK de Felipe; la web nueva sigue sin publicar hasta fusionar el PR #968).
+- **Fecha:** 2026-10-12 · **Estado:** construido y probado en una copia de la base local; **SQL EN PRODUCCIÓN desde 2026-10-12** (con OK de Felipe); la web nueva se publicó el mismo día al fusionar el PR #968.
+- **Número:** nació como ADR-0378; se renumeró a 0380 al actualizar el PR, porque `main` ya tenía su propio 0378 (`0378-lucode-ya-tiene-el-numero.md`) y su 0379.
 - **Pedido:** el hallazgo #1 («Crítica · Hoy · Ventas») del análisis de Ventas: «Cambios y devoluciones: calcular con lo que la clienta pagó, no con el precio de lista».
   Decidido con Felipe el 2026-10-12: la prenda nueva se compara a precio de lista («cambiarla por una de S/ 100 debe mostrar S/ 20 a cobrar»).
 
@@ -55,6 +56,12 @@ de pago (esa venta traía S/ 10 de descuento; ahora pasa `tarjeta`, porque la su
 
 ## Producción
 
-**Aplicada el 2026-10-12** con `apply_migration` (el archivo se llamó `20261012120000` y se renombró a `20261012120100` porque el PR #964 (Plan de campaña) tomó ese mismo timestamp; Supabase la registró como `20261012143814`, sin relación con el nombre del archivo) (historial de Supabase `cambios_y_devoluciones_con_lo_que_pago`), tras comprobar en solo lectura que cada función tenía una sola firma y el texto a reemplazar una sola vez. Verificado después: `md5(prosrc)` de las tres funciones igual al calculado de antemano (`aprobar_devolucion` 94dfe580…, `registrar_cambio` 36b15583…, `emitir_nota` 196885b8…), permisos sin cambios. **Ventana hasta publicar la web:** una línea con descuento mostrará «Sin diferencia» en Cambios mientras la base pide S/ 20 y responderá «Hay una diferencia de S/ 20 — indica cómo se cobra»: un error claro, sin guardar nada; las devoluciones ya salen bien.
+**Aplicada el 2026-10-12** con `apply_migration` (el archivo se llamó `20261012120000` y se renombró a `20261012120100` porque el PR #964 (Plan de campaña) tomó ese mismo timestamp; Supabase la registró como `20261012143814`, sin relación con el nombre del archivo) (historial de Supabase `cambios_y_devoluciones_con_lo_que_pago`), tras comprobar en solo lectura que cada función tenía una sola firma y el texto a reemplazar una sola vez. Verificado después: `md5(prosrc)` de las tres funciones igual al calculado de antemano (`aprobar_devolucion` 94dfe580…, `registrar_cambio` 36b15583…, `emitir_nota` 196885b8…), permisos sin cambios. **Ventana hasta publicar la web:** una línea con descuento mostrará «Sin diferencia» en Cambios mientras la base pide S/ 20 y responderá «Hay una diferencia de S/ 20 — indica cómo se cobra»: un error claro, sin guardar nada; las devoluciones ya salen bien. Esa ventana se cerró al fusionar el PR #968 (2026-10-12). La regla era pegar el SQL junto con la web, y aquí se pegó antes: quien repita este patrón, que fusione primero o pegue en el mismo momento.
 
-Una sola parte (solo `create or replace` de tres funciones, sin tablas ni políticas). **Se pega al publicar la web**: con la web vieja Cambios mostraría «S/ 0» mientras la base cobra S/ 20 y el cajón dejaría de coincidir con la pantalla.
+Una sola parte (solo `create or replace` de tres funciones, sin tablas ni políticas).
+
+**Notas ya emitidas con el precio de lista:** ninguna. Una consulta de solo lectura del 2026-10-12 encontró **0 notas de crédito** en producción, así que no hay papel viejo que corregir.
+
+## Lo que este ADR no arregla: la nota de una devolución PARCIAL lleva todas las líneas
+
+`aprobar_devolucion` llama a `emitir_nota` sin `p_items`, y `emitir_nota` copia los ítems del comprobante original (`coalesce(p_items, v_original.items)`). Desde este ADR el **total** de la nota es lo pagado por lo devuelto, pero en una devolución parcial (motivo «07») los **ítems** siguen siendo todas las líneas de la boleta, y eso es lo que `itemsParaLucode` manda a SUNAT. Ejemplo: boleta con una polera de S/ 80 y una blusa de S/ 60; se devuelve la polera → nota por S/ 80 que declara las dos prendas (S/ 140). Se vio en el código el 2026-10-12, sin probarlo contra Lucode. Está latente: en producción hay 0 devoluciones en 30 días. Arreglo propuesto: que `aprobar_devolucion` pase `p_items` armados con lo devuelto. Es SUNAT, así que espera el OK de Felipe (backlog de este ADR).

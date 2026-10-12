@@ -112,7 +112,7 @@ export function precioParaCambio(linea: Pick<LineaVentaReciente, "productoId" | 
 
 /**
  * Lo que la clienta pagó por UNA unidad de la prenda que devuelve: el precio menos su descuento (la campaña, el club, lo que fuera).
- * Es contra esto —no contra el precio de lista— que se mide la diferencia del cambio (`registrar_cambio`, ADR-0378): pagó S/ 80 por
+ * Es contra esto —no contra el precio de lista— que se mide la diferencia del cambio (`registrar_cambio`, ADR-0380): pagó S/ 80 por
  * una polera de S/ 100 con campaña y la cambia por otra de S/ 100 → S/ 20 a cobrar. La misma cuenta que el tope de reembolso de
  * Devoluciones (`valorPagado`); no se repite aquí.
  */
@@ -190,7 +190,7 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     /** Lo que pagó por cada unidad que devuelve (precio − descuento): lo que se muestra como «precio» de la prenda devuelta. */
     pagadoUnitario: pagadoPorUnidad(linea),
     // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira). Lo mismo que calcula `registrar_cambio`: la
-    // prenda nueva a su precio contra lo que la clienta PAGÓ por la devuelta (ADR-0378), redondeada al céntimo como la base.
+    // prenda nueva a su precio contra lo que la clienta PAGÓ por la devuelta (ADR-0380), redondeada al céntimo como la base.
     diferencia: varianteNueva ? Math.round((precioParaCambio(linea, varianteNueva) * s.cantidad - valorPagado(linea, s.cantidad)) * 100) / 100 : 0,
     condicionFija,
     condicion: condicionFija ?? s.condicionElegida,
