@@ -107,6 +107,12 @@ select retail.registrar_pago_comprobante_produccion(:'cid', '[{"metodo":"transfe
 select saldo as saldo_tras_pago, estado_pago as estado_tras_pago from retail.fn_comprobantes_produccion() where id = :'cid' \\gset
 \\echo '   pagó 2500 (transferencia + Yape) → saldo' :saldo_tras_pago '(' :estado_tras_pago ')'
 select pg_temp.exigir(:saldo_tras_pago = :total - 2500, 'el saldo debe bajar lo pagado') as _ok \\gset
+-- Doble clic con el mismo token (20261012214000): el token se mira CON el comprobante bloqueado. Si se mirara antes, dos llamadas
+-- gemelas no se verían y las dos pagarían; la prueba con dos conexiones reales es pago_produccion_concurrencia.mjs.
+select pg_temp.exigir(position('where grupo_id = p_token' in d) > position('for update' in d) and position('for update' in d) > 0,
+  'registrar_pago_comprobante_produccion debe mirar el token DESPUÉS del for update del comprobante') as _ok
+  from (select pg_get_functiondef('retail.registrar_pago_comprobante_produccion(uuid,jsonb,date,uuid)'::regprocedure) as d) x \\gset
+\\echo '   → un doble clic con el mismo token no paga dos veces: el token se mira con el comprobante bloqueado'
 
 -- 5 ────────────────────────────────────────────────────────────────────────────
 \\echo ''
