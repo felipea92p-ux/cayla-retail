@@ -85,9 +85,11 @@ function useCuenta(objetivo: number, retraso: number): number {
   return sinCuenta ? objetivo : n;
 }
 
-function Baldosa({
+/** Una baldosa del mosaico (también la usa «Registrar ingreso»: la misma pieza, ADR-0358). `Icono` reemplaza al del concepto de gasto. */
+export function Baldosa({
   clave,
   nombre,
+  Icono: IconoPropio,
   veces,
   frecuente,
   indice,
@@ -97,6 +99,7 @@ function Baldosa({
 }: {
   clave: string;
   nombre: string;
+  Icono?: LucideIcon;
   veces: number;
   frecuente: boolean;
   indice: number;
@@ -104,7 +107,7 @@ function Baldosa({
   hayEleccion: boolean;
   onElegir: (e: MouseEvent<HTMLButtonElement>) => void;
 }) {
-  const Icono = ICONOS[clave] ?? PencilLine;
+  const Icono = IconoPropio ?? ICONOS[clave] ?? PencilLine;
   const retrasoEstrella = 420 + indice * 40;
   const cuenta = useCuenta(frecuente ? veces : 0, retrasoEstrella);
   return (
@@ -141,6 +144,7 @@ export function GastoRapidoModal({
   hoy,
   onCerrar,
   onFormularioCompleto,
+  onRetiro,
 }: {
   caja: { id: string; ubicacionId: string };
   ubicacionNombre: string;
@@ -152,6 +156,8 @@ export function GastoRapidoModal({
   onCerrar: () => void;
   /** «Proveedor nuevo o a crédito»: abre el formulario completo de Finanzas ▸ Gastos. */
   onFormularioCompleto?: () => void;
+  /** «¿No es un gasto?»: abre el retiro o depósito (2026-10-10: «Depósito o retiro» dejó la cabecera de Caja). */
+  onRetiro?: () => void;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -441,6 +447,15 @@ export function GastoRapidoModal({
               </div>
             </div>
           </div>
+
+          {onRetiro && (
+            <p className="text-[12.5px] text-taupe">
+              ¿Sale plata del cajón y no es un gasto (un retiro, un depósito al banco)?{" "}
+              <button type="button" className="btn-enlace" onClick={onRetiro}>
+                Retiro o depósito
+              </button>
+            </p>
+          )}
 
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
