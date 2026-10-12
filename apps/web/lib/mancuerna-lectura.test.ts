@@ -63,23 +63,34 @@ describe("las etiquetas sobre la pista de cada fila", () => {
   });
 
   it("siempre: cada marca con valor sale exactamente una vez, dos etiquetas nunca están a menos de una separación y dos del mismo carril, a menos de dos", () => {
+    // Las 11⁴ = 14,641 combinaciones, con cada marca en cada posición: se revisan en JS y los fallos se juntan en UN expect al final. Un expect por
+    // chequeo eran 58,707 y costaban diez veces lo que la función misma (445 ms contra 43, medido el 2026-10-12): con la suite entera en paralelo,
+    // la prueba se pasaba de los 5 s.
     const pasos = [0, 3, 8, 14, 15.5, 22, 40, 41, 49, 63, 80];
+    const todas = [...TIPOS_DE_MARCA].sort().join(",");
+    const fallos: string[] = [];
     let casos = 0;
     for (const a of pasos) for (const b of pasos) for (const c of pasos) for (const d of pasos) {
       const valores: Record<TipoMarca, number> = { hoy: a, partida: b, ventas: c, propuesta: d };
       const e = etiquetasDeFila(valores, 80);
       casos++;
-      const vistos = e.flatMap((x) => x.partes.map((p) => p.tipo)).sort();
-      expect(vistos, JSON.stringify(valores)).toEqual([...TIPOS_DE_MARCA].sort());
+      const vistos = e.flatMap((x) => x.partes.map((p) => p.tipo)).sort().join(",");
+      if (vistos !== todas) fallos.push(`${JSON.stringify(valores)}: salen las marcas ${vistos}`);
       for (let i = 1; i < e.length; i++) {
         const dist = e[i]!.pos - e[i - 1]!.pos;
         // el centro de una etiqueta que junta varias queda dentro del grupo: la distancia entre centros nunca baja de lo que separa a las marcas de los bordes
-        expect(dist, JSON.stringify(valores)).toBeGreaterThan(0);
+        if (!(dist > 0)) fallos.push(`${JSON.stringify(valores)}: dos etiquetas vecinas a ${dist}`);
       }
       const carriles = { arriba: [] as number[], abajo: [] as number[] };
       for (const x of e) carriles[x.carril].push(x.pos);
-      for (const lista of Object.values(carriles)) for (let i = 1; i < lista.length; i++) expect(lista[i]! - lista[i - 1]!, JSON.stringify(valores)).toBeGreaterThanOrEqual(SEPARACION_MINIMA);
+      for (const [carril, lista] of Object.entries(carriles))
+        for (let i = 1; i < lista.length; i++) {
+          const dist = lista[i]! - lista[i - 1]!;
+          if (!(dist >= SEPARACION_MINIMA)) fallos.push(`${JSON.stringify(valores)}: dos etiquetas de ${carril} a ${dist}`);
+        }
     }
+    // Los primeros bastan para ver el patrón; la cuenta dice cuántos más hay.
+    expect(fallos.slice(0, 6), `${fallos.length} fallos en ${casos} casos`).toEqual([]);
     expect(casos).toBe(pasos.length ** 4);
   });
 });
