@@ -54,7 +54,7 @@ export function ComprobantesDeOrden({ orden }: { orden: DetalleOrden }) {
   if (orden.comprobantes.length === 0) return null;
 
   return (
-    <section aria-label="Comprobantes de la orden" className="space-y-2">
+    <section aria-label="Comprobantes de la orden" data-guia="orden.comprobantes" className="space-y-2">
       <h3 className="text-[13px] font-semibold text-tinta">
         Comprobantes <span className="font-normal text-taupe">· el papel que ya llegó</span>
       </h3>
@@ -100,6 +100,7 @@ export function ComprobantesDeOrden({ orden }: { orden: DetalleOrden }) {
                   <Boton
                     peso="peligro"
                     className="px-3 py-1.5 text-[11px]"
+                    data-guia="orden.anular-comprobante"
                     onClick={(e) => {
                       origen.current = e.currentTarget;
                       setAnulando(c);

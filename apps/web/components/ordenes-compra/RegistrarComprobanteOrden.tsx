@@ -308,7 +308,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
         subtitulo={`${orden.proveedor.nombre}${destino ? ` · llega a ${destino.nombre}` : ""}. Copia el papel tal como llegó: lo que falta de la orden ya viene puesto.`}
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
-        <div className="anim-sube text-right" style={{ ["--i" as string]: 1 }}>
+        <div data-guia="comprobante.cifras" className="anim-sube text-right" style={{ ["--i" as string]: 1 }}>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Total del papel</p>
           <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
             {soles(totalSoles)}
@@ -317,12 +317,12 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
       </EncabezadoPagina>
 
       {orden.papel === "completa" && (
-        <Aviso tono="atencion" titulo="Esta orden ya tiene todo su papel registrado">
+        <Aviso tono="atencion" guia="comprobante.aviso" titulo="Esta orden ya tiene todo su papel registrado">
           Si registras otro comprobante, lo que pase de lo pedido se acepta y queda avisado como «de más».
         </Aviso>
       )}
       {orden.papel === "en_parte" && (
-        <Aviso tono="info" titulo="Esta orden ya tiene papel registrado">
+        <Aviso tono="info" guia="comprobante.aviso" titulo="Esta orden ya tiene papel registrado">
           Abajo viene solo lo que todavía no llegó en papel.
         </Aviso>
       )}
@@ -341,7 +341,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
         }}
         className="space-y-6"
       >
-        <section className="@container card-cayla p-4 sm:p-5" aria-label="El papel">
+        <section data-guia="comprobante.papel" className="@container card-cayla p-4 sm:p-5" aria-label="El papel">
           <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
             <CampoGuiado id="tipo" guia={guia} className="@min-[28rem]:col-span-2">
               <p className={TITULO_FIJO}>{etiqueta("tipo", "Qué papel te dieron")}</p>
@@ -409,8 +409,8 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                   if (cond === "contado" && unico) setPagos([{ ...unico, monto: totalSoles > 0 ? totalSoles.toFixed(2) : "" }]);
                 }}
                 opciones={[
-                  { clave: "credito", etiqueta: "Crédito" },
-                  { clave: "contado", etiqueta: "Contado" },
+                  { clave: "credito", etiqueta: "Crédito", guia: "comprobante.credito" },
+                  { clave: "contado", etiqueta: "Contado", guia: "comprobante.contado" },
                 ]}
               />
               <p className="mt-1.5 text-xs text-taupe">{condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}</p>
@@ -460,7 +460,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           </div>
         </section>
 
-        <section className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que dice el papel">
+        <section data-guia="comprobante.renglones" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que dice el papel">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-display text-xl text-tinta">Lo que dice el papel</h2>
             <p className="text-sm tabular-nums text-taupe">
@@ -519,7 +519,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           })}
 
           {sinRenglon.length > 0 && (
-            <div className="space-y-2 border-t border-sand pt-3">
+            <div data-guia="comprobante.sin-poner" className="space-y-2 border-t border-sand pt-3">
               <p className={TITULO}>De la orden, sin poner en este papel</p>
               <ul className="space-y-1.5">
                 {sinRenglon.map((l) => (
@@ -542,12 +542,12 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sand pt-4">
-            <Boton type="button" onClick={agregarFuera} disabled={lineas.length >= TOPES_COMPROBANTE.lineas || datos.categorias.length === 0}>
+            <Boton type="button" onClick={agregarFuera} disabled={lineas.length >= TOPES_COMPROBANTE.lineas || datos.categorias.length === 0} data-guia="comprobante.fuera">
               + Algo que no estaba en la orden
             </Boton>
           </div>
 
-          <div className="ml-auto w-full max-w-sm space-y-1.5 text-sm">
+          <div data-guia="comprobante.totales" className="ml-auto w-full max-w-sm space-y-1.5 text-sm">
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-taupe">Subtotal</span>
               <span className="tabular-nums text-tinta">{soles(totales.subtotalCentimos / 100)}</span>
@@ -583,7 +583,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
         </section>
 
         {condicion === "contado" && (
-          <section className="card-cayla space-y-3 p-4 sm:p-5 anim-revelar" aria-label="Pago al contado">
+          <section data-guia="comprobante.pago" className="card-cayla space-y-3 p-4 sm:p-5 anim-revelar" aria-label="Pago al contado">
             <CampoGuiado id="pago" guia={guia} titulo="Pago al contado" ayuda={`Total ${soles(totalSoles)}`}>
               <LineasPago
                 id="comprobante-pagos"
@@ -600,7 +600,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           </section>
         )}
 
-        <section className="space-y-3" aria-label="Registrar">
+        <section data-guia="comprobante.registrar" className="space-y-3" aria-label="Registrar">
           <CampoGuiado id="nota" guia={guia} className="max-w-2xl">
             <p className={TITULO_FIJO}>
               {etiqueta("nota", "Nota")}
@@ -721,7 +721,7 @@ function RenglonDelPapel({
 
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
-      <div className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
+      <div data-guia="comprobante.renglon" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[56rem]:col-span-1 @min-[56rem]:justify-start">
           <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Renglón ${numero}`)}</p>
           <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Renglón ${numero}`}>

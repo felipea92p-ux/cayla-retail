@@ -90,7 +90,7 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
               </span>
               {l.descripcion && <span className="block text-xs text-taupe">{l.descripcion}</span>}
               {conPapel && textoPapelDeLinea(l) && (
-                <span className={`mt-0.5 block text-xs tabular-nums ${(l.facturado ?? 0) > l.cantidad ? "text-ambar" : (l.facturado ?? 0) >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}>
+                <span data-guia="orden.papel-linea" className={`mt-0.5 block text-xs tabular-nums ${(l.facturado ?? 0) > l.cantidad ? "text-ambar" : (l.facturado ?? 0) >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}>
                   Llegó en papel: {textoPapelDeLinea(l)}
                 </span>
               )}

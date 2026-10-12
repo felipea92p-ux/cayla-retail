@@ -6,7 +6,7 @@
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «(sin nombre)»",
-      "Link «{c.documento}»",
+      "Link «{celdas}»",
       "Link «Ver todos sus comprobantes →»"
     ],
     "components/ConsultaDocumento.tsx": [

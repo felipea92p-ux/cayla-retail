@@ -84,6 +84,7 @@ export default async function EditarOrdenCompraPage({ params }: { params: Promis
         />
         <Aviso
           tono="atencion"
+          guia="orden-form.con-comprobante"
           titulo="Esta orden ya tiene comprobante: no se edita"
           accion={<BotonEnlace href={`/compras/ordenes/ver/${detalle.id}`}>Ver la orden</BotonEnlace>}
         >

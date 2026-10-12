@@ -67,7 +67,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
     </Boton>
   );
   const registrar = puedeRegistrarComprobante(orden) && (
-    <BotonEnlace href={`/compras/ordenes/comprobante/${orden.id}`} peso="primario">
+    <BotonEnlace href={`/compras/ordenes/comprobante/${orden.id}`} peso="primario" data-guia="orden.registrar-comprobante">
       <span className="inline-flex items-center gap-2">
         <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar comprobante
       </span>

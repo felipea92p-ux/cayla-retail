@@ -13,11 +13,26 @@ const id = (sql) => {
   return v;
 };
 
+/** Una consulta preferida y, si la base local es más vieja y no entiende alguna de sus columnas, la simple. */
+const idConRespaldo = (preferida, simple) => {
+  try {
+    return id(preferida);
+  } catch {
+    return id(simple);
+  }
+};
+/** La orden más reciente, «generada» primero: la consulta simple de las pantallas de orden. */
+const SIMPLE_ORDEN = "select id from retail.ordenes_compra order by (estado = 'generada') desc, creada_en desc limit 1";
+
 // Sin la tabla de órdenes de compra (o sin una orden), sus pantallas no tienen qué mostrar.
 const SIN_ORDENES =
   "select case when count(*) = 0 then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' end from retail.modulos where clave = 'ordenes_compra'";
 const SIN_ORDENES_O_NINGUNA =
   "select case when to_regclass('retail.ordenes_compra') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_compra') then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' when query_to_xml('select 1 from retail.ordenes_compra limit 1', false, true, '')::text = '' then 'no hay ninguna orden de compra en la base local' end";
+
+// Registrar el comprobante de una orden pide la función `registrar_comprobante_orden` (fase 2) y una orden generada con «Llega a».
+const SIN_COMPROBANTE_DE_ORDEN =
+  "select case when to_regclass('retail.ordenes_compra') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_compra') then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'registrar_comprobante_orden') then 'la base local no tiene registrar_comprobante_orden (migraciones de los comprobantes de orden, fase 2): la pantalla avisa que todavía no está lista' when query_to_xml('select 1 from retail.ordenes_compra where estado = ''generada'' and ubicacion_destino_id is not null limit 1', false, true, '')::text = '' then 'no hay una orden generada con «Llega a» en la base local' end";
 
 export const EJEMPLOS = {
   // La factura con más que enseñar: con saldo y mercadería por llegar (así se ven «Cerrar con faltante», «Ir a recibir» y «Registrar pago»).
@@ -32,13 +47,33 @@ export const EJEMPLOS = {
   // acceso». Una orden «generada» es la que más enseña (con «Editar» y «Anular orden»). No se aplican migraciones por esto.
   "/compras/ordenes": { sinDatos: SIN_ORDENES },
   "/compras/ordenes/nueva": { sinDatos: SIN_ORDENES },
+  // Fase 2 (comprobantes de orden): la que más enseña al verla es una generada con un comprobante vigente (se ven «Llegó en papel», la lista
+  // de comprobantes y su «Anular»); al editarla, una generada SIN comprobante (con él, solo se ve el aviso de que ya no se edita); y al registrar
+  // su comprobante, una generada con «Llega a» y sin papel todavía (todo el formulario precargado). Si la base local es más vieja y no tiene
+  // `compras.orden_compra_id`, se cae a la orden generada más reciente.
   "/compras/ordenes/ver/[id]": {
     sinDatos: SIN_ORDENES_O_NINGUNA,
-    url: () => `/compras/ordenes/ver/${id("select id from retail.ordenes_compra order by (estado = 'generada') desc, created_at desc limit 1")}`,
+    url: () =>
+      `/compras/ordenes/ver/${idConRespaldo(
+        "select o.id from retail.ordenes_compra o order by exists (select 1 from retail.compras c where c.orden_compra_id = o.id and c.estado = 'vigente') desc, (o.estado = 'generada') desc, o.creada_en desc limit 1",
+        SIMPLE_ORDEN,
+      )}`,
   },
   "/compras/ordenes/editar/[id]": {
     sinDatos: SIN_ORDENES_O_NINGUNA,
-    url: () => `/compras/ordenes/editar/${id("select id from retail.ordenes_compra order by (estado = 'generada') desc, created_at desc limit 1")}`,
+    url: () =>
+      `/compras/ordenes/editar/${idConRespaldo(
+        "select o.id from retail.ordenes_compra o order by (o.estado = 'generada' and not exists (select 1 from retail.compras c where c.orden_compra_id = o.id)) desc, o.creada_en desc limit 1",
+        SIMPLE_ORDEN,
+      )}`,
+  },
+  "/compras/ordenes/comprobante/[id]": {
+    sinDatos: SIN_COMPROBANTE_DE_ORDEN,
+    url: () =>
+      `/compras/ordenes/comprobante/${idConRespaldo(
+        "select o.id from retail.ordenes_compra o where o.estado = 'generada' and o.ubicacion_destino_id is not null order by (not exists (select 1 from retail.compras c where c.orden_compra_id = o.id)) desc, o.creada_en desc limit 1",
+        "select o.id from retail.ordenes_compra o where o.estado = 'generada' and o.ubicacion_destino_id is not null order by o.creada_en desc limit 1",
+      )}`,
   },
   // Resultados e Historial del Plan de campaña leen funciones de las migraciones del 2026-10-12 (campañas y ventas de Sinatra): sin ellas
   // Resultados dice «Todavía no hay campañas» e Historial, que no pudo leer.
