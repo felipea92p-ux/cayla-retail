@@ -38,7 +38,7 @@ export function CifrasPlan({
   const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
   const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
   return (
-    <div data-guia="plan.cifras" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div data-guia="plan.cifras" className="grid gap-3">
       {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
       <TarjetaCifra
         etiqueta="Categorías con plan"
@@ -77,7 +77,8 @@ export function CifrasPlan({
           ? "Solo las categorías con plan"
           : excede > 0
             ? `Te pasas ${solesES(excede)} del tope de ${solesES(tope.valor)}`
-            : `${Math.round((totales.inversion / tope.valor) * 100)} % del tope de ${solesES(tope.valor)}`}
+            : // El «open-to-buy» de los grandes, en palabras de tienda: cuánta plata queda para comprar (Felipe 2026-10-12).
+              `Te quedan ${solesES(Math.round((tope.valor - totales.inversion) * 100) / 100)} para comprar, de ${solesES(tope.valor)}`}
       </TarjetaCifra>
       {verReal ? (
         <TarjetaCifra etiqueta="Vendido en la campaña" valor={enteroES.format(totales.vendido)}>

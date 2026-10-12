@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan · órdenes y precios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+  /* Spike (Felipe 2026-10-12): conectar las órdenes de compra al Plan, y qué hacer con el precio que el Plan supone (¿cambia el catálogo?).
+     Paleta oficial «CAYLA Dynamic» (ADR-0169). Cifras de ejemplo: lo que se decide es la FORMA y las reglas. */
+  :root{color-scheme:light;
+    --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;
+    --verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+    --t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 65%,transparent);--t35:color-mix(in srgb,var(--tinta) 35%,transparent);
+    --sombra:color-mix(in srgb,var(--tinta) 22%,transparent);
+    --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding:12px 16px 64px}
+  button,input{font:inherit;color:inherit}button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--rojo);outline-offset:2px}[hidden]{display:none!important}
+  p{margin:0}h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0;line-height:1.1}
+  .etq{font:600 11px/1.3 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);margin:0}
+  .muted{color:var(--t65)}.chico{font-size:12.5px}
+  .mando{position:sticky;top:8px;z-index:30;max-width:1320px;margin:0 auto 14px;padding:10px 14px;border:1px dashed var(--taupe);border-radius:12px;background:color-mix(in srgb,var(--papel) 94%,transparent);backdrop-filter:blur(6px);display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+  @media (max-width:1100px){.mando{position:static}}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;font:500 12.5px var(--sans);color:var(--taupe);padding:6px 12px;border-radius:999px}
+  .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  main{max-width:1320px;margin:0 auto;display:grid;gap:18px}
+  .card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 20px}
+  .grid2{display:grid;gap:16px;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+  @media (max-width:1000px){.grid2{grid-template-columns:1fr}}
+  .nota{border-left:3px solid var(--taupe);padding:8px 12px;font-size:13px;color:var(--t80);background:var(--hueso);border-radius:0 10px 10px 0}
+  .alerta{border-left:3px solid var(--rojo);background:color-mix(in srgb,var(--rojo) 7%,var(--papel))}
+  table{width:100%;border-collapse:collapse}
+  th{font:400 12.5px var(--sans);color:var(--taupe);text-align:left;padding:9px 12px;background:var(--hueso);white-space:nowrap}
+  th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td{padding:10px 12px;border-top:1px solid var(--sand);vertical-align:middle}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font:500 12px var(--sans);white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+  .c-verde{background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde)}
+  .c-ambar{background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar)}
+  .c-rojo{background:color-mix(in srgb,var(--rojo) 12%,var(--papel));color:var(--rojo-p)}
+  .c-piz{background:color-mix(in srgb,var(--pizarra) 14%,var(--papel));color:var(--pizarra)}
+  .btn{border:1px solid var(--t35);background:var(--papel);border-radius:10px;padding:8px 14px;font:500 13px var(--sans);white-space:nowrap}
+  .btn.prim{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .btn.peligro{background:var(--rojo);color:var(--crema);border-color:var(--rojo)}
+  .barra{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--sand)}
+  .barra span{height:100%;transition:width .35s}
+  .kpis{display:flex;flex-wrap:wrap}
+  .kpis > div{padding:4px 18px;display:flex;flex-direction:column}
+  .kpis > div + div{border-left:1px solid var(--sand)}
+  .kpis b{font:600 22px var(--serif)}
+  .tachado{text-decoration:line-through;color:var(--t65)}
+  .sube{color:var(--rojo-p);font-weight:600}.baja{color:var(--verde);font-weight:600}
+  .icono{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;font:700 11px var(--sans)}
+  .i-sube{background:color-mix(in srgb,var(--rojo) 14%,var(--papel));color:var(--rojo-p)}
+  .i-cal{background:color-mix(in srgb,var(--pizarra) 16%,var(--papel));color:var(--pizarra)}
+  input[type=number],input[type=date],input[type=text]{border:1px solid var(--sand);background:var(--hueso);border-radius:8px;padding:6px 8px;width:100%}
+  input[type=checkbox]{accent-color:var(--tinta);width:16px;height:16px}
+  input[type=range]{accent-color:var(--tinta);width:100%}
+  .mapa{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+  .mod{border:1px solid var(--sand);border-radius:12px;padding:10px 12px;background:var(--papel);transition:all .25s}
+  .mod h4{margin:0 0 4px;font:600 13.5px var(--sans);display:flex;justify-content:space-between;gap:6px}
+  .mod p{font-size:12.5px;color:var(--t80)}
+  .mod.toca{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 6%,var(--papel))}
+  .mod.rompe{border-color:var(--rojo);background:color-mix(in srgb,var(--rojo) 6%,var(--papel))}
+  .mod.nada{opacity:.55}
+  .opc{border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--papel);cursor:pointer;text-align:left;display:grid;gap:4px}
+  .opc[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+  .opcs{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .gp{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
+  .gp dt{font-weight:600}.gp dd{margin:0;color:var(--t80)}
+  .ficha{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+  .prod{border:1px solid var(--sand);border-radius:14px;padding:12px;background:var(--papel)}
+  .foto{height:96px;border-radius:10px;margin-bottom:8px}
+  .precio{font:600 20px var(--serif)}
+</style>
+</head>
+<body>
+
+<div class="mando">
+  <span class="etq">Spike · Plan de campaña · órdenes de compra y precio de campaña</span>
+  <div class="seg" id="partes" role="group" aria-label="Parte">
+    <button data-p="ordenes" aria-pressed="true">1 · Órdenes de compra ↔ Plan</button>
+    <button data-p="precio">2 · El precio del Plan y el catálogo</button>
+    <button data-p="productos">3 · Cómo se vería en Productos</button>
+  </div>
+</div>
+
+<main>
+<!-- =========================================================== 1. ÓRDENES ↔ PLAN -->
+<section data-p="ordenes">
+  <div class="grid2">
+    <div class="card">
+      <p class="etq">Lo que hay hoy en el código</p>
+      <ul class="chico" style="margin:6px 0 0;padding-left:18px;display:grid;gap:4px;color:var(--t80)">
+        <li>Cada línea de una orden lleva su <b>categoría</b> (la misma clave que el Plan), marca, cantidad y precio. No lleva prenda ni talla.</li>
+        <li>La orden <b>no sabe de qué campaña es</b>. El Plan no lee órdenes: «Te quedan» resta solo lo planificado.</li>
+        <li>Una orden solo puede estar <b>generada</b> o <b>anulada</b>: nada la marca como «llegó». Cuando la mercadería entra por Recibir, sube el «Hay hoy» y la orden sigue «generada».</li>
+      </ul>
+    </div>
+    <div class="card">
+      <p class="etq">El riesgo de contar dos veces</p>
+      <p class="chico" style="margin-top:6px;color:var(--t80)">Si el Plan resta lo pedido <i>y</i> lo que ya llegó al stock, una prenda que ya llegó se cuenta dos veces y el Plan dice «ya no hace falta pedir» cuando sí hace falta. Hay que decidir <b>cuándo deja de contar lo pedido</b> (abajo).</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <p class="etq">Decisión 1 · ¿Cómo sabe el Plan qué orden es de su campaña?</p>
+    <div class="opcs" style="margin-top:8px" id="optAtrib">
+      <button class="opc" data-a="explicita" aria-pressed="true"><b>A · La orden elige su campaña (recomendado)</b><span class="chico muted">En «Nueva orden», un campo «¿Para qué campaña?», que arranca en la que está en curso o la próxima. «Ninguna» también vale.</span></button>
+      <button class="opc" data-a="fechas"><b>B · Por fechas, sin preguntar</b><span class="chico muted">Cuenta toda orden emitida desde 60 días antes de la campaña hasta su fin. Cero campos nuevos, pero una reposición de octubre «se mete» en Navidad.</span></button>
+    </div>
+    <p class="etq" style="margin-top:16px">Decisión 2 · ¿Cuándo deja de contar lo pedido? (para no contarlo dos veces)</p>
+    <div class="opcs" style="margin-top:8px" id="optLlega">
+      <button class="opc" data-l="fecha" aria-pressed="true"><b>A · Por la fecha de entrega (recomendado hoy)</b><span class="chico muted">Cuenta como «por llegar» hasta su fecha de entrega estimada; después se asume que ya está en el stock. Sin fecha: cuenta hasta el fin de la campaña.</span></button>
+      <button class="opc" data-l="marca"><b>B · Alguien marca «Llegó»</b><span class="chico muted">Un botón en la orden. Exacto, pero es un estado nuevo en Órdenes (hoy solo generada/anulada) y depende de que alguien se acuerde.</span></button>
+      <button class="opc" data-l="fase4"><b>C · Esperar la recepción contra la orden</b><span class="chico muted">La fase 4 de Órdenes (recibir mercadería contra su orden) lo resuelve de verdad. Hasta entonces el Plan solo muestra lo pedido, sin restarlo.</span></button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">
+      <h2 style="font-size:24px">Plan · Navidad 2026</h2>
+      <span class="chico muted">Simula: toca «+ orden» para pedir y «Pasa la fecha» para que llegue</span>
+    </div>
+    <div class="kpis" style="margin-top:12px" id="kpiOrd"></div>
+    <div class="barra" style="margin:12px 0 4px"><span id="bPedido" style="background:var(--tinta)"></span><span id="bPlan" style="background:var(--taupe);opacity:.45"></span></div>
+    <p class="chico muted" id="bLeyenda"></p>
+    <table style="margin-top:12px"><thead><tr><th>Categoría</th><th class="n">Conviene tener</th><th class="n">Hay hoy</th><th class="n">Por llegar</th><th class="n">Falta pedir</th><th class="n">Inversión</th><th></th></tr></thead><tbody id="tOrd"></tbody></table>
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn" id="pasaFecha">Pasa la fecha de entrega (llega la mercadería)</button><button class="btn" id="reiniciar">Reiniciar</button></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <p class="etq">Y en «Nueva orden de compra»</p>
+    <div class="grid2" style="margin-top:8px">
+      <div style="display:grid;gap:10px">
+        <label class="chico">¿Para qué campaña?<input type="text" value="Navidad 2026 · 11 dic – 25 dic   ⌄" readonly></label>
+        <table><thead><tr><th>Categoría</th><th class="n">Cantidad</th><th class="n">Precio</th><th>El plan</th></tr></thead>
+          <tbody><tr><td>Vestidos · Marca CAYLA</td><td class="n">40</td><td class="n">S/ 35.00</td><td><span class="chip c-piz">pide 69 · ya pedidas 20 · faltan 49</span></td></tr>
+          <tr><td>Polos · Marca CAYLA</td><td class="n">30</td><td class="n">S/ 16.00</td><td><span class="chip c-ambar">pide 21 · con esta te pasas 9</span></td></tr></tbody></table>
+      </div>
+      <p class="nota">El costo que el Plan supuso (S/ 35) se ofrece como precio de la línea. La orden no cambia el Plan: el Plan la lee. Una orden anulada deja de contar sola.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== 2. PRECIO DEL PLAN ↔ CATÁLOGO -->
+<section data-p="precio" hidden>
+  <div class="grid2">
+    <div class="card">
+      <p class="etq">Lo que hay hoy en el código</p>
+      <ul class="chico" style="margin:6px 0 0;padding-left:18px;display:grid;gap:4px;color:var(--t80)">
+        <li>El precio vive en <b>cada prenda</b> (variante): uno para todas las tiendas, y una tienda puede tener el suyo propio (ADR-0370), sin fecha de fin a propósito: la etiqueta colgada diría otro precio.</li>
+        <li>Lo único con fechas son las <b>campañas de descuento</b> (Catálogo ▸ Etiquetas): bajan un % entre dos fechas y vuelven solas. La etiqueta de precio ya imprime el precio <span class="tachado">tachado</span> + «Válido hasta».</li>
+        <li><b>No existe un precio que suba por una temporada.</b> Vender rechaza una venta si el precio no es el del catálogo en ese momento.</li>
+        <li>El precio del Plan es <b>un supuesto para calcular cuánto comprar</b>: hoy no toca el catálogo.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <p class="etq">Tu ejemplo: polo de S/ 45, en el Plan a S/ 50</p>
+      <div style="display:flex;gap:16px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <label class="chico" style="width:150px">Precio en el Plan<input type="number" id="pPlan" value="50" step="1"></label>
+        <span class="chico">Hoy en catálogo, promedio de la categoría: <b>S/ 45.00</b> · <span id="pDif" class="sube"></span></span>
+      </div>
+      <p class="nota" style="margin-top:10px" id="pLectura"></p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <p class="etq">Decisión 3 · ¿Qué hace el precio del Plan con el catálogo?</p>
+    <div class="opcs" style="margin-top:8px" id="optPrecio">
+      <button class="opc" data-m="supuesto"><b>A · Solo supuesto</b><span class="chico muted">No toca nada. El Plan muestra la diferencia con el catálogo («supones +11 %») para que no compres a un precio que no vas a cobrar.</span></button>
+      <button class="opc" data-m="aplicar" aria-pressed="true"><b>B · Llevarlo al catálogo, eligiendo prendas (recomendado)</b><span class="chico muted">Desde la hoja de la categoría: ver sus prendas con el precio de hoy, elegir cuáles suben y cuánto, y aplicarlo en una fecha. Es un cambio de precio normal (queda en el historial de cada prenda) y pide reimprimir sus etiquetas.</span></button>
+      <button class="opc" data-m="temporal"><b>C · Precio de campaña con fechas (sube y vuelve solo)</b><span class="chico muted">Como las campañas de descuento, pero hacia arriba: entre el 11 y el 25 de diciembre cuesta S/ 50 y después vuelve a S/ 45. Es un concepto nuevo en toda la venta.</span></button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px" id="hojaPrendas">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+      <h2 style="font-size:22px">Polos · las prendas de la categoría</h2>
+      <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label class="chico">Cambiar<span class="seg" id="modoCambio" style="margin-left:6px"><button data-c="pct" aria-pressed="true">en %</button><button data-c="monto">a un monto</button></span></label>
+        <label class="chico" style="width:110px"><span id="lblValor">Sube %</span><input type="number" id="valorCambio" value="11" step="1"></label>
+        <label class="chico" style="width:150px">Desde<input type="date" id="fDesde" value="2026-12-01"></label>
+        <label class="chico" style="width:150px" id="wHasta" hidden>Hasta<input type="date" id="fHasta" value="2026-12-25"></label>
+      </span>
+    </div>
+    <table style="margin-top:10px"><thead><tr><th><input type="checkbox" id="todas" checked aria-label="Todas"></th><th>Prenda</th><th class="n">Hoy</th><th class="n">Nuevo</th><th class="n">Cambio</th><th class="n">Margen</th><th>Tiendas con precio propio</th></tr></thead><tbody id="tPrendas"></tbody></table>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;align-items:center">
+      <p class="chico" id="resumenCambio"></p>
+      <button class="btn prim" id="btnAplicar">Programar el cambio</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <p class="etq">Qué módulos toca cada opción</p>
+    <p class="chico muted" style="margin:4px 0 10px">Ámbar = cambia algo que hay que construir o cuidar · Rojo = se rompe si no se arregla antes · Gris = no cambia</p>
+    <div class="mapa" id="mapa"></div>
+  </div>
+</section>
+
+<!-- =========================================================== 3. PRODUCTOS -->
+<section data-p="productos" hidden>
+  <div class="card">
+    <p class="etq">Catálogo ▸ Productos · cómo se ve una prenda con un cambio de precio por campaña</p>
+    <div class="seg" id="estadoProd" style="margin-top:10px">
+      <button data-e="antes" aria-pressed="true">Antes de la fecha (programado)</button>
+      <button data-e="durante">Desde la fecha (ya cambió)</button>
+      <button data-e="temporal">Opción C: precio temporal de campaña</button>
+    </div>
+    <div class="ficha" style="margin-top:14px" id="fichas"></div>
+    <p class="nota" style="margin-top:14px" id="notaProd"></p>
+  </div>
+</section>
+</main>
+
+<script>
+/* ============================================================ 1. Órdenes ↔ Plan */
+const CATS = [
+  { cat: "Vestidos", tener: 165, hay: 96, costo: 35 },
+  { cat: "Polos", tener: 230, hay: 209, costo: 16 },
+  { cat: "Casacas", tener: 90, hay: 35, costo: 45 },
+  { cat: "Faldas", tener: 70, hay: 74, costo: 22 },
+];
+const TOPE = 25000;
+let ordenes = [], llegaron = false, atrib = "explicita", llega = "fecha";
+const ent = (n) => n.toLocaleString("es-PE");
+const sol = (n) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function pintarOrdenes() {
+  const pedido = (c) => ordenes.filter((o) => o.cat === c).reduce((a, o) => a + o.u, 0);
+  // Lo pedido que todavía no llegó: depende de la decisión 2.
+  const porLlegar = (c) => (llega === "fase4" ? 0 : llegaron ? 0 : pedido(c));
+  const hayDe = (c) => c.hay + (llegaron ? pedido(c.cat) : 0);
+  let comprometido = 0, planificado = 0;
+  document.getElementById("tOrd").innerHTML = CATS.map((c) => {
+    const hay = hayDe(c), pl = porLlegar(c.cat), falta = Math.max(0, c.tener - hay - pl);
+    comprometido += pedido(c.cat) * c.costo; planificado += falta * c.costo;
+    return `<tr><td><b>${c.cat}</b></td><td class="n">${c.tener}</td><td class="n">${hay}</td><td class="n">${pedido(c.cat) ? (llega === "fase4" ? `<span class="muted">${pedido(c.cat)} pedidas</span>` : pl ? `<b>${pl}</b>` : `<span class="muted">0 · llegaron</span>`) : "—"}</td>
+      <td class="n"><b>${falta}</b></td><td class="n">${sol(falta * c.costo)}</td><td><button class="btn" data-pedir="${c.cat}" style="padding:4px 10px">+ orden de 20</button></td></tr>`;
+  }).join("");
+  const queda = TOPE - comprometido - planificado;
+  document.getElementById("kpiOrd").innerHTML = `<div><span class="etq">Tope</span><b>${sol(TOPE)}</b></div><div><span class="etq">Ya pedido en órdenes</span><b>${sol(comprometido)}</b><span class="chico muted">${ordenes.length} ${ordenes.length === 1 ? "orden" : "órdenes"} de esta campaña</span></div><div><span class="etq">Falta pedir</span><b>${sol(planificado)}</b><span class="chico muted">lo que el plan aún pide</span></div><div><span class="etq">Te quedan</span><b style="color:${queda < 0 ? "var(--rojo-p)" : "inherit"}">${sol(queda)}</b><span class="chico muted">tope − pedido − falta pedir</span></div>`;
+  document.getElementById("bPedido").style.width = `${Math.min(100, (comprometido / TOPE) * 100)}%`;
+  document.getElementById("bPlan").style.width = `${Math.min(100, (planificado / TOPE) * 100)}%`;
+  document.getElementById("bLeyenda").innerHTML = `<b style="color:var(--tinta)">■</b> ya pedido · <span style="color:var(--taupe)">■</span> falta pedir · el resto, libre. ${atrib === "fechas" ? "<span class='chip c-ambar'>Por fechas: también entraría una reposición de octubre</span>" : ""}`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.pedir) { ordenes.push({ cat: b.dataset.pedir, u: 20 }); llegaron = false; pintarOrdenes(); }
+  if (b.id === "pasaFecha") { llegaron = true; pintarOrdenes(); }
+  if (b.id === "reiniciar") { ordenes = []; llegaron = false; pintarOrdenes(); }
+  if (b.dataset.a) { atrib = b.dataset.a; marcar("#optAtrib", b); pintarOrdenes(); }
+  if (b.dataset.l) { llega = b.dataset.l; marcar("#optLlega", b); pintarOrdenes(); }
+  if (b.dataset.p) { document.querySelectorAll("section[data-p]").forEach((s) => (s.hidden = s.dataset.p !== b.dataset.p)); marcar("#partes", b); }
+  if (b.dataset.m) { modo = b.dataset.m; marcar("#optPrecio", b); pintarPrecio(); }
+  if (b.dataset.c) { modoCambio = b.dataset.c; marcar("#modoCambio", b); document.getElementById("lblValor").textContent = modoCambio === "pct" ? "Sube %" : "Nuevo S/"; document.getElementById("valorCambio").value = modoCambio === "pct" ? 11 : 50; pintarPrecio(); }
+  if (b.dataset.e) { estadoProd = b.dataset.e; marcar("#estadoProd", b); pintarProductos(); }
+});
+const marcar = (sel, b) => document.querySelectorAll(`${sel} [aria-pressed]`).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+
+/* ============================================================ 2. Precio del Plan ↔ catálogo */
+const PRENDAS = [
+  { n: "Polo Aurora · Negro", p: 45, c: 16, sede: "" },
+  { n: "Polo Aurora · Blanco", p: 45, c: 16, sede: "" },
+  { n: "Polo Lucky · Camel", p: 49.9, c: 18, sede: "TRU S/ 44.90" },
+  { n: "Polo Básico · Gris", p: 39.9, c: 14, sede: "" },
+  { n: "Polo Rayas · Azul", p: 45, c: 17, sede: "" },
+  { n: "Polo Oversize · Verde", p: 52, c: 19, sede: "AQP S/ 49.00" },
+];
+const marcadas = new Set(PRENDAS.map((_, i) => i));
+let modo = "aplicar", modoCambio = "pct";
+const nuevo = (pr) => { const v = Number(document.getElementById("valorCambio").value) || 0; return modoCambio === "pct" ? Math.round(pr.p * (1 + v / 100) * 10) / 10 : v; };
+const MODULOS = [
+  ["Plan de campaña", "El precio del Plan pasa a ser la propuesta. En A, solo se muestra la diferencia con el catálogo.", ["toca", "toca", "toca"]],
+  ["Catálogo ▸ Productos", "B: un cambio de precio normal, programado; la prenda muestra «Sube a S/ 50 el 1 dic». C: precio temporal con su ícono de campaña.", ["nada", "toca", "toca"]],
+  ["Historial de la prenda", "B: queda como un cambio de precio más (quién, cuándo, de cuánto a cuánto). C: habría que sumar «precio de campaña».", ["nada", "toca", "toca"]],
+  ["Vender (cobrar)", "B: desde la fecha cobra el precio nuevo, como cualquier cambio. C: concepto nuevo: la venta tiene que aceptar un precio MÁS ALTO que el de lista solo esos días (hoy solo acepta descuentos).", ["nada", "nada", "rompe"]],
+  ["Etiquetas de precio (papel)", "B: hay que reimprimir las etiquetas de las prendas que cambian (lista lista para imprimir). C: imprimir dos veces (al subir y al volver) o la etiqueta colgada miente: ADR-0370 descartó por esto un fin automático.", ["nada", "toca", "rompe"]],
+  ["Precio propio de tienda", "Una tienda con su precio (TRU S/ 44.90) no cambia sola: el cambio sube el precio base. Hay que decidir si también sube el de la tienda.", ["nada", "toca", "toca"]],
+  ["Cambios (talla por talla)", "Se cobra la diferencia con el precio de HOY: si sube, un cambio de talla de un polo comprado a S/ 45 cobraría S/ 5. Ya pasa con cualquier cambio de precio.", ["nada", "toca", "toca"]],
+  ["Devoluciones y notas de crédito", "No cambian: devuelven lo que se pagó.", ["nada", "nada", "nada"]],
+  ["Apartados", "No cambian: el precio queda congelado al apartar.", ["nada", "nada", "nada"]],
+  ["Resultados del Plan (rebajadas)", "Hoy mide «a precio lleno» contra el precio de HOY, no el de la venta: si un precio sube, las ventas pasadas a S/ 45 se ven como «rebajadas». Ya pasa con los precios por tienda. Hay que arreglarlo antes.", ["nada", "rompe", "rompe"]],
+  ["Análisis y Existencias", "Muestran el precio vigente: cambian solos el día del cambio. Nada que construir.", ["nada", "nada", "toca"]],
+  ["SUNAT / comprobantes", "No cambia: cada comprobante guarda el precio con que se vendió.", ["nada", "nada", "nada"]],
+];
+function pintarPrecio() {
+  const pPlan = Number(document.getElementById("pPlan").value) || 0;
+  const dif = (pPlan / 45 - 1) * 100;
+  document.getElementById("pDif").textContent = `supones ${dif >= 0 ? "+" : ""}${dif.toFixed(0)} %`;
+  document.getElementById("pDif").className = dif >= 0 ? "sube" : "baja";
+  document.getElementById("pLectura").textContent = modo === "supuesto"
+    ? `El Plan calcula con S/ ${pPlan} pero el catálogo sigue en S/ 45: si no subes el precio, comprarás pensando en un margen que no vas a tener.`
+    : modo === "aplicar"
+      ? `Con «Llevarlo al catálogo», abres las prendas de Polos, eliges cuáles suben y desde qué fecha; el Plan se queda con el precio nuevo como supuesto.`
+      : `Con «Precio de campaña», sube entre dos fechas y vuelve solo. Es lo más flexible y lo más caro de construir (mira el mapa: dos módulos se rompen).`;
+  document.getElementById("hojaPrendas").hidden = modo === "supuesto";
+  document.getElementById("wHasta").hidden = modo !== "temporal";
+  document.getElementById("btnAplicar").textContent = modo === "temporal" ? "Programar el precio de campaña" : "Programar el cambio";
+  let n = 0, sumaPct = 0;
+  document.getElementById("tPrendas").innerHTML = PRENDAS.map((pr, i) => {
+    const on = marcadas.has(i), nv = nuevo(pr), pct = (nv / pr.p - 1) * 100, margen = ((nv - pr.c) / nv) * 100;
+    if (on) { n++; sumaPct += pct; }
+    return `<tr style="${on ? "" : "opacity:.5"}"><td><input type="checkbox" data-i="${i}" ${on ? "checked" : ""} aria-label="${pr.n}"></td><td>${pr.n}</td><td class="n">${on ? `<span class="tachado">${sol(pr.p)}</span>` : sol(pr.p)}</td><td class="n"><b>${on ? sol(nv) : "—"}</b></td><td class="n ${pct >= 0 ? "sube" : "baja"}">${on ? `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)} %` : ""}</td><td class="n">${on ? `${margen.toFixed(0)} %` : ""}</td><td>${pr.sede ? `<span class="chip c-ambar">${pr.sede} · ¿también sube?</span>` : '<span class="muted chico">—</span>'}</td></tr>`;
+  }).join("");
+  const desde = document.getElementById("fDesde").value, hasta = document.getElementById("fHasta").value;
+  document.getElementById("resumenCambio").innerHTML = n === 0 ? "Elige al menos una prenda." : `<b>${n} de ${PRENDAS.length} prendas</b> suben en promedio <b class="sube">${(sumaPct / n).toFixed(0)} %</b> desde el ${desde.split("-").reverse().slice(0, 2).join("/")}${modo === "temporal" ? ` hasta el ${hasta.split("-").reverse().slice(0, 2).join("/")}, y vuelven solas` : ""}. ${n} etiquetas por reimprimir.`;
+  const k = modo === "supuesto" ? 0 : modo === "aplicar" ? 1 : 2;
+  document.getElementById("mapa").innerHTML = MODULOS.map(([t, d, e]) => `<div class="mod ${e[k]}"><h4>${t}<span class="chip ${e[k] === "rompe" ? "c-rojo" : e[k] === "toca" ? "c-ambar" : "c-verde"}">${e[k] === "rompe" ? "se rompe" : e[k] === "toca" ? "cambia" : "igual"}</span></h4><p>${d}</p></div>`).join("");
+}
+document.addEventListener("input", (e) => {
+  if (e.target.matches("[data-i]")) { const i = Number(e.target.dataset.i); e.target.checked ? marcadas.add(i) : marcadas.delete(i); pintarPrecio(); }
+  if (e.target.id === "todas") { PRENDAS.forEach((_, i) => (e.target.checked ? marcadas.add(i) : marcadas.delete(i))); pintarPrecio(); }
+  if (["pPlan", "valorCambio", "fDesde", "fHasta"].includes(e.target.id)) pintarPrecio();
+});
+
+/* ============================================================ 3. Productos */
+let estadoProd = "antes";
+const COLORES = ["var(--tinta)", "var(--hueso)", "var(--taupe)", "var(--pizarra)"];
+function pintarProductos() {
+  document.getElementById("fichas").innerHTML = PRENDAS.slice(0, 4).map((pr, i) => {
+    const nv = Math.round(pr.p * 1.11 * 10) / 10;
+    const precio =
+      estadoProd === "antes" ? `<p class="precio">${sol(pr.p)}</p><p class="chico" style="display:flex;gap:6px;align-items:center;margin-top:4px"><span class="icono i-cal">⏱</span><span>Sube a <b>${sol(nv)}</b> el 1 dic · Navidad 2026</span></p>`
+      : estadoProd === "durante" ? `<p class="precio">${sol(nv)} <span class="chico tachado" style="font-family:var(--sans)">${sol(pr.p)}</span></p><p class="chico" style="display:flex;gap:6px;align-items:center;margin-top:4px"><span class="icono i-sube">▲</span><span>Subió 11 % el 1 dic · Plan Navidad 2026</span></p>`
+      : `<p class="precio">${sol(nv)} <span class="chico tachado" style="font-family:var(--sans)">${sol(pr.p)}</span></p><p class="chico" style="display:flex;gap:6px;align-items:center;margin-top:4px"><span class="icono i-sube">★</span><span>Precio de Navidad hasta el 25 dic · vuelve a ${sol(pr.p)}</span></p>`;
+    return `<div class="prod"><div class="foto" style="background:${COLORES[i]}"></div><p style="font-weight:600">${pr.n}</p>${precio}</div>`;
+  }).join("");
+  document.getElementById("notaProd").innerHTML =
+    estadoProd === "antes" ? "Antes de la fecha: el precio de hoy sigue mandando (es el que se cobra); al lado, un ícono de calendario con la fecha y el precio nuevo. Una pastilla de filtro «Cambian de precio» lista todas las prendas programadas."
+    : estadoProd === "durante" ? "Desde la fecha: el precio nuevo manda y el anterior queda tachado solo dentro del ERP (unos días, para que el equipo lo note). Al cliente no se le muestra un tachado de un precio que subió: el tachado al público es solo para descuentos."
+    : "Opción C: el precio de campaña sube y vuelve solo, con su ícono de estrella. Necesita que Vender acepte un precio mayor al de lista esos días y dos impresiones de etiquetas (al subir y al volver).";
+}
+
+pintarOrdenes(); pintarPrecio(); pintarProductos();
+</script>
+</body>
+</html>

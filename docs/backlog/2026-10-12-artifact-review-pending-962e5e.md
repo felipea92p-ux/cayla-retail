@@ -1,0 +1,16 @@
+## Victorias rápidas de la revisión del 11-oct (2026-10-12)
+- [x] Pago de Producción: el token se mira después del `for update` (`20261012214000`). Prueba con dos conexiones y COMMIT:
+  `BASE_DESECHABLE=1 pnpm pruebas:pago-produccion-concurrencia -- --base <copia>` (rojo sin la migración, verde con ella); en el CI,
+  `pruebas:produccion-punta-a-punta` vigila la forma.
+- [x] Baja ante SUNAT: líder, nota vigente y baja en trámite se revisan antes de Lucode (`app/api/lucode/anular/route.ts`,
+  `lib/anular-comprobante-reglas.ts` con su prueba).
+- [x] La familia del padre baja a sus subcategorías (`20261012215000`, disparador `categorias_familia_a_las_hijas`); casos en
+  `pruebas:categorias-candados`.
+- [x] `fn_motor_demanda_preparacion` ignora las familias apagadas (`20261012220000`); caso E1 en `pruebas:motores-familias-apagadas`.
+- [x] Borrada `fn_historial_producto_cambios`, sin uso (`20261012213000`).
+- [x] **Pegadas en producción (2026-10-12, Felipe):** `20261012213000`, `20261012214000`, `20261012215000` y `20261012220000`. Antes de
+  pegar, los anclajes coincidían con producción y había 1 subcategoría, 0 desalineadas. Después, la verificación dio todo `true`.
+- [x] Refrescado el volcado y `docs/datos/generado` (2026-10-12, foto de las 21:26 UTC: 183 relaciones, 988 funciones; las 1.271 huellas
+  coinciden con producción). Todo lo nuevo tiene su migración en el repo; `planes_compra_reparto` y `ventas_historicas` ya tienen pájaro.
+- [ ] **`pruebas:motores-familias-apagadas` M1 y M2 fallan en `main`** (no es de este cambio): en el plan de campaña, `vendido` del
+  polo sale 0 dentro de la campaña. Lo más probable es que venga de las migraciones del plan de campaña del 2026-10-12 (161000–164000).

@@ -35,6 +35,11 @@ describe("cobradoDelTurno", () => {
 
   it("un método desconocido cae en «Otro»", () => {
     expect(cobradoDelTurno({ credito: 10 }).metodos).toEqual([{ clave: "otro", texto: "Otro", monto: 10 }]);
+    // El QR es un medio real del mostrador (`venta_pagos_metodo_check`): se llama «QR», nunca «Otro».
+    expect(cobradoDelTurno({ qr: 937.21, credito: 10 }).metodos).toEqual([
+      { clave: "qr", texto: "QR", monto: 937.21 },
+      { clave: "otro", texto: "Otro", monto: 10 },
+    ]);
   });
 
   it("el redondeo del efectivo (ADR-0311) no es una forma de pago: ni suma a lo cobrado ni cae en «Otro»", () => {

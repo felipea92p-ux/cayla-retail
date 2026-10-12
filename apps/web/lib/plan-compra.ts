@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanaPlan, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { hoyEnLima } from "@/lib/resumen-periodo";
 import { RPC_PROPUESTA } from "@/lib/plan-compra-propuesta";
+import { RPC_PEDIDO } from "@/lib/plan-compra-pedido";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
-import { RPC_HISTORIAL, rangoDelAnio, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
+import { RPC_HISTORIAL, rangoDelAnio, sumarDias, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
 export type FamiliaPlan = { codigo: string; nombre: string };
@@ -35,6 +36,8 @@ export async function getPlanCompra(planId?: string): Promise<{
   planPedidoNoExiste: boolean;
   /** Lo que devuelve `fn_plan_compra_propuesta` (C4), crudo; null si no se pudo leer. */
   propuesta: unknown;
+  /** Lo ya pedido en órdenes de compra para esta campaña (`fn_plan_compra_pedido`), crudo; null si no se pudo leer. */
+  pedido: unknown;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -64,33 +67,62 @@ export async function getPlanCompra(planId?: string): Promise<{
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
-  const propuesta = typeof abierto === "string" ? await supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: abierto } as never) : null;
+  // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
+  const [propuesta, ordenes] =
+    typeof abierto === "string"
+      ? await Promise.all([
+          supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: abierto } as never),
+          supabase.rpc(RPC_PEDIDO as never, { p_plan_id: abierto } as never),
+        ])
+      : [null, null];
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
-  return { datos: plan.data, falla: null, familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: propuesta && !propuesta.error ? propuesta.data : null };
+  if (ordenes?.error) console.error(`${RPC_PEDIDO}: ${ordenes.error.message}`);
+  return {
+    datos: plan.data,
+    falla: null,
+    familias: nombres,
+    preparacion,
+    campanas,
+    planPedidoNoExiste,
+    propuesta: propuesta && !propuesta.error ? propuesta.data : null,
+    pedido: ordenes && !ordenes.error ? ordenes.data : null,
+  };
 }
 
 /**
  * Resultados (ADR-0372, C6): lo vendido en una campaña. Sin campaña válida en la URL, la que está en curso, si no la última terminada, si no la
  * próxima (`campanaParaResultados`). Si la base falla, lo dice.
  */
-export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null }> {
+export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown; propuesta: unknown }> {
   const supabase = await createClient();
   const planes = await supabase.rpc(RPC_PLANES as never);
   if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
   const campanas = planes.error ? null : leerCampanas(planes.data);
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
   const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
-  if (!id) return { datos: null, campanas, falla: null };
-  const r = await supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never);
+  if (!id) return { datos: null, campanas, falla: null, anterior: null, propuesta: null };
+  // La misma campaña un año antes (Sinatra o ERP), en paralelo: da la forma de los días para «¿Cómo va?». Es una ayuda: si falla, los
+  // días pesan igual. La propuesta (C4) trae lo que vendió cada categoría en esa campaña del año anterior, para el detalle de una fila:
+  // también es una ayuda; si falla, el detalle dice que no hay con qué comparar.
+  const fechas = campanas?.planes.find((p) => p.id === id);
+  const [r, anterior, propuesta] = await Promise.all([
+    supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never),
+    fechas
+      ? supabase.rpc(RPC_HISTORIAL as never, { p_desde: sumarDias(fechas.desde, -366), p_hasta: sumarDias(fechas.hasta, -365) } as never)
+      : Promise.resolve({ data: null, error: null }),
+    supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: id } as never),
+  ]);
   if (r.error) {
     console.error(`${RPC_RESULTADOS}: ${r.error.message}`);
-    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder" };
+    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", anterior: null, propuesta: null };
   }
-  return { datos: r.data, campanas, falla: null };
+  if (anterior.error) console.error(`${RPC_HISTORIAL} (resultados): ${anterior.error.message}`);
+  if (propuesta.error) console.error(`${RPC_PROPUESTA} (resultados): ${propuesta.error.message}`);
+  return { datos: r.data, campanas, falla: null, anterior: anterior.error ? null : anterior.data, propuesta: propuesta.error ? null : propuesta.data };
 }
 
 /**

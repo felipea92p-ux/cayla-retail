@@ -17,20 +17,21 @@ import { ORDEN_METODOS, type MetodoRitmo } from "./caja-panel-reglas";
    Cobrado en el turno
    ------------------------------------------------------------------ */
 
-export type MetodoCobrado = { clave: "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro"; texto: string; monto: number };
+export type MetodoCobrado = { clave: "efectivo" | "tarjeta" | "yape" | "transferencia" | "qr" | "otro"; texto: string; monto: number };
 
 const TEXTO_METODO: Record<MetodoCobrado["clave"], string> = {
   efectivo: "Efectivo",
   tarjeta: "Tarjeta",
   yape: "Yape / Plin",
   transferencia: "Transferencia",
+  qr: "QR",
   otro: "Otro",
 };
-const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "qr", "otro"];
 
-/** A qué forma de pago de «Cobrado» pertenece un método de `venta_pagos`: Yape y Plin juntos, lo desconocido en «Otro». */
+/** A qué forma de pago de «Cobrado» pertenece un método de `venta_pagos`: Yape y Plin juntos, el QR aparte (es un medio real del mostrador), lo desconocido en «Otro». */
 export function claveDeMetodo(metodo: string): MetodoCobrado["clave"] {
-  return metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" ? metodo : "otro";
+  return metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" || metodo === "qr" ? metodo : "otro";
 }
 
 /**

@@ -2,23 +2,31 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, History } from "lucide-react";
+import { ChevronRight, History, SearchX } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
 import { Aviso } from "@/components/ui/Aviso";
+import { Chip } from "@/components/ui/Chip";
 import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { Tabla, celda } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
+  faltaEnElCalendario,
   filasDelAnio,
+  filtrarYOrdenar,
   leerHistorial,
+  ORDENES_HISTORIAL,
+  type OrdenHistorial,
   type CampanaDelAnio,
   textoCrecimiento,
   textoMultiplicador,
+  totalDeCayla,
   totalDelAnio,
   type CeldaHistorial,
   type EtiquetaHistorial,
@@ -68,6 +76,9 @@ export function HistorialCampanas({
   const historial: LecturaHistorial | null = useMemo(() => leerHistorial(crudo), [crudo]);
   // La fila abierta: su hoja muestra el día a día y la misma campaña año por año (Felipe 2026-10-12).
   const [abierta, setAbierta] = useState<CampanaDelAnio | null>(null);
+  const [q, setQ] = useState("");
+  // De entrada, la de ahora y las que vienen (Felipe 2026-10-12): en octubre, Aniversario CAYLA, Halloween, Black Friday, Navidad…
+  const [orden, setOrden] = useState<OrdenHistorial>("ahora");
   const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
   // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
   const ayuda = (
@@ -122,6 +133,7 @@ export function HistorialCampanas({
   }
 
   const filas = filasDelAnio(historial, etiquetas, anio);
+  const visibles = filtrarYOrdenar(filas, q, orden, historial.hoy);
   const tiendas = historial.tiendas;
   const columnas = `minmax(0,1.2fr) repeat(${tiendas.length}, minmax(0,1fr))`;
   const anioEnCurso = anio === Number(historial.hoy.slice(0, 4));
@@ -139,26 +151,46 @@ export function HistorialCampanas({
         ))}
       </nav>
 
-      <div data-guia="plan-historial.tiendas" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tiendas.map((t) => {
-          const total = totalDelAnio(historial, t.id, anio);
-          return (
-            <TarjetaCifra key={t.id} etiqueta={t.nombre} valor={total.soles > 0 ? solesSinCentimos(total.soles) : null}>
-              {total.soles === 0
-                ? `Sin ventas cargadas en ${anio}`
-                : anioEnCurso
-                  ? `${anio}, hasta hoy`
-                  : total.crecimiento !== null
-                    ? `${textoCrecimiento(total.crecimiento)} que ${anio - 1}`
-                    : total.completo
-                      ? `Todo ${anio} · sin ${anio - 1} completo para comparar`
-                      : `${anio} no está completo en la historia`}
-            </TarjetaCifra>
-          );
-        })}
-      </div>
+      {/* Las cifras del año en UNA barra, como Resultados (Felipe 2026-10-12): primero toda CAYLA, después cada tienda. */}
+      <BarraCifras
+        guia="plan-historial.tiendas"
+        celdas={[
+          (() => {
+            const t = totalDeCayla(historial, anio);
+            return {
+              clave: "toda",
+              etiqueta: "Toda CAYLA",
+              valor: t.soles > 0 ? solesSinCentimos(t.soles) : null,
+              bajo: t.soles === 0 ? `Sin ventas cargadas en ${anio}` : anioEnCurso ? `${anio}, hasta hoy` : t.crecimiento !== null ? `${textoCrecimiento(t.crecimiento)} que ${anio - 1}` : "sin un año parejo con qué comparar",
+            };
+          })(),
+          ...tiendas.map((t) => {
+            const total = totalDelAnio(historial, t.id, anio);
+            return {
+              clave: t.id,
+              etiqueta: t.nombre,
+              valor: total.soles > 0 ? solesSinCentimos(total.soles) : null,
+              bajo:
+                total.soles === 0
+                  ? `Sin ventas cargadas en ${anio}`
+                  : anioEnCurso
+                    ? `${anio}, hasta hoy`
+                    : total.crecimiento !== null
+                      ? `${textoCrecimiento(total.crecimiento)} que ${anio - 1}`
+                      : total.completo
+                        ? `sin ${anio - 1} completo para comparar`
+                        : `${anio} no está completo`,
+            };
+          }),
+        ]}
+      />
 
       <Tabla guia="plan-historial.tabla">
+        {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}
+        <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
+          <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
+          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+        </div>
         <div className="encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid" role="row" style={{ gridTemplateColumns: columnas }}>
           <span className="text-xs font-normal text-taupe" role="columnheader">
             Campaña · {anio}
@@ -169,7 +201,12 @@ export function HistorialCampanas({
             </span>
           ))}
         </div>
-        {filas.map(({ campana, celdas }) => (
+        {visibles.length === 0 && (
+          <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna campaña de ${anio} se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
+            Prueba con otra palabra o borra la búsqueda.
+          </Vacio>
+        )}
+        {visibles.map(({ campana, celdas }) => (
           // Toda la fila abre su detalle (el día a día y la misma campaña año por año); la flecha dice que se puede tocar.
           <button
             key={campana.clave}
@@ -184,6 +221,8 @@ export function HistorialCampanas({
               <span className="flex items-center gap-1.5 font-semibold text-tinta">
                 {campana.nombre}
                 <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
+                {/* Dónde estás parado en el calendario: la campaña que cae en estos días (en otro año, «en esta fecha»). */}
+                {faltaEnElCalendario(campana, historial.hoy) === 0 && <Chip tono="verde">{anioEnCurso ? "Ahora" : "En esta fecha"}</Chip>}
               </span>
               <span className="block text-xs text-taupe">
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}

@@ -141,6 +141,7 @@
     "pruebas:abrir-produccion-modelo-nuevo": "node scripts/pruebas/abrir_produccion_con_modelo_nuevo.mjs",
     "pruebas:planilla-por-sede": "node scripts/pruebas/planilla_por_sede.mjs",
     "pruebas:produccion-punta-a-punta": "node scripts/pruebas/produccion_punta_a_punta.mjs",
+    "pruebas:pago-produccion-concurrencia": "node scripts/pruebas/pago_produccion_concurrencia.mjs",
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:proveedores-cuentas": "node scripts/pruebas/proveedores_cuentas_pago.mjs",

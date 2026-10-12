@@ -7,8 +7,10 @@
  * mandando donde se necesita saber DE QUÉ GRUPO es (el poste del tramo, las fichas, la mancuerna).
  *
  * LA REGLA: una percha, un color. Una percha vale 20 prendas y esas 20 pueden ser de varios colores, pero una percha con franjas a 15 px se ve como ruido. Por
- * eso un color que no llega a media percha (`MINIMO_DE_COLOR`) no gana una propia y se junta en «Otros colores», un gris neutro. Un color que no es un color
- * (Estampado, Multicolor: sin `colores.hex`) también va ahí.
+ * eso un color que no llega a media percha (`MINIMO_DE_COLOR`) no gana una propia y se junta en «Otros colores», un gris neutro. Un color sin hex también va
+ * ahí, pero hoy `colores` no tiene ninguno (medido el 2026-10-12: las 99 filas traen hex). Estampado, Multicolor y Animal print, que no eran un color, traían
+ * un hex de relleno (#c9b79c) y desde la migración 20261010160000 (ADR-0312) están archivados, sin familia y sin variantes. Lo único que hoy llegaría sin hex es
+ * una variante sin color asignado, que se junta como «Sin color».
  *
  * DE DÓNDE SALE EL DATO. De `LecturaDelPiso.tallas` (`fn_piso_plan_lectura`), que ya trae el color de cada variante y lo libre en el piso: la MISMA cuenta que
  * `colgadas` en `mix-piso.ts`, así que los colores de un grupo siempre suman lo que el grupo dice que cuelga. No hay datos nuevos ni migración.
@@ -21,7 +23,7 @@
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { cifraEs } from "./mix-piso-visual";
 
-/** Un color de lo que cuelga de un grupo: su nombre, su `#rrggbb` (`null` si no es un color: Estampado, Multicolor) y cuántas prendas libres hay en el piso. */
+/** Un color de lo que cuelga de un grupo: su nombre, su `#rrggbb` (`null` si no tiene hex válido: hoy solo una variante sin color asignado) y cuántas prendas libres hay en el piso. */
 export type ColorDelGrupo = { clave: string; nombre: string; hex: string | null; prendas: number };
 
 /** El color de una percha: `hex: null` es «Otros colores» (el gris neutro de la interfaz, no un color de prenda). */
@@ -112,7 +114,7 @@ export function coloresDeLasPerchas(mezcla: readonly ColorDelGrupo[], llenas: nu
 
 /**
  * Los colores del ícono de un grupo en las fichas y las tarjetas: sus colores principales (hasta `MAX_COLORES_DEL_ICONO`), del que más cuelga al que menos, cada uno
- * un `#rrggbb` de verdad (un color que no es un color, Estampado o Multicolor, no se dibuja). El ícono los pone como hasta tres prendas pequeñas superpuestas, como
+ * un `#rrggbb` de verdad (un color sin hex no se dibuja). El ícono los pone como hasta tres prendas pequeñas superpuestas, como
  * las perchas del riel; vacío si el grupo no tiene ni un color conocido y el ícono queda del color del grupo.
  */
 export function coloresDelIcono(mezcla: readonly ColorDelGrupo[]): string[] {

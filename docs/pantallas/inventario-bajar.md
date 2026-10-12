@@ -48,7 +48,7 @@ La escritura es de las mejores del repo (todo o nada, marca anti-duplicado, list
 - *Transacción:* empieza en la marca (`pg_advisory_xact_lock`) y termina tras la última `mover_interno`; las 300 líneas máximo acotan cuánto retiene el stock.
 - *Concurrencia:* dos personas con la misma prenda → la segunda ve «pides 3 y en el almacén hay 1» y no se baja nada `[código 20260926000200:211-250]`. Dos pestañas del mismo aparato comparten borrador pero la base responde `bajada_token_reusado` y la pantalla resta lo guardado ✓.
 - *Caída:* **sin red se puede seguir escaneando** (la lista de prendas ya está en el navegador); al confirmar sin red la lista se congela y se reenvía con el mismo token; nada se guarda dos veces. Mientras está congelada no se puede escanear más (a propósito). Se degrada así: no pierde la lista (12 h) ni baja dos veces.
-- *Volumen:* `[producción vía backlog, 2026-09-30]` Trujillo tenía **3 bajadas en toda su historia** (`docs/backlog/2026-09-29-frescura-registro-discipline-signal-0cd4b5.md:26`). Cada carga y **cada confirmación** (`refrescar()`, `:295-298`) relee el stock de la sede: TRU > 2.300 filas = ≥3 consultas con embeds `[código inventario-v2.ts:82]`. Cuánto tarda `[no verificable]`; sin número no hay opinión (tarea #8).
+- *Volumen:* `[producción, consulta 2026-10-12]` Trujillo tiene **331 bajadas y 615 prendas del 2026-09-26 al 2026-10-11** (mediana de 1 prenda por bajada). El «3 bajadas en toda su historia» que decía este párrafo venía de un backlog del 30-sep (`docs/backlog/2026-09-29-frescura-registro-discipline-signal-0cd4b5.md:26`) y era erróneo: ver «Corrección de cifras» al final. Cada carga y **cada confirmación** (`refrescar()`, `:295-298`) relee el stock de la sede: TRU > 2.300 filas = ≥3 consultas con embeds `[código inventario-v2.ts:82]`. Cuánto tarda `[no verificable]`; sin número no hay opinión (tarea #8).
 - *Complejidad que sobra:* el búfer de la pistola (`:134-137, 207-231, 336-352`) existe porque el loader global deja la pantalla `inert` mientras se relee todo `[código :207-208]`. Es síntoma, no causa.
 
 **Funciones** Existen y funcionan: escanear (SKU o código de barras), ± y número a mano, quitar, borrador, confirmar, tarjeta de éxito, lista congelada, llegada desde Existencias con `?lineas=` (4 entradas: `inventario/page.tsx:179`, `existencias-prendas.ts:145`, `movimientos-atajos.ts:81`, `analisis-que-hacer.ts:316`). Fantasma: ninguna. **Faltan:** sonido/vibración por lectura · buscar por nombre · cámara · deshacer «Quitar» · ver/corregir lo recién bajado · salida clara cuando el sistema dice 0. Sobran: nada.
@@ -68,7 +68,7 @@ Cada paso donde se pierde es diseño, no capacitación.
 |---|---|---|---|
 | Gestión (directo + indirecto) | ×2 | 8 | Es la captura raíz de Frescura (ADR-0208): sin bajada a tiempo no hay «edad del piso» ni decisión de liquidar |
 | Dinero y stock que toca | ×1 | 7 | Mueve stock almacén→piso, que es lo que Vender puede vender; no toca dinero directo |
-| Frecuencia y personas que la usan | ×1 | 4 | `[producción vía backlog]` 3 bajadas en toda la historia de Trujillo al 30-sep; **provisional hasta el SQL** |
+| Frecuencia y personas que la usan | ×1 | 4 | Puntaje del 2026-10-03, **sin recalcular**: se apoyaba en «3 bajadas en toda la historia de Trujillo» `[producción vía backlog]`, cifra errónea (hoy 331 hasta el 11-oct `[producción, 2026-10-12]`, ver «Corrección de cifras»). `/pantalla` lo vuelve a puntuar |
 | Qué se detiene si falla | ×1 | 5 | Con ADR-0321 Vender ya no se frena por una prenda sin bajar; se pierde el dato de Frescura |
 
 Relevancia = (2·8 + 7 + 4 + 5) / 5 = **6.4 — Soporte.** Si el SQL muestra uso diario real, la frecuencia sube y pasa a Núcleo (≥ 8 no, pero ~7).
@@ -119,7 +119,7 @@ Relevancia = (2·8 + 7 + 4 + 5) / 5 = **6.4 — Soporte.** Si el SQL muestra uso
 
 ### #6 · Replantear — ¿Dos pasos (recibir y luego bajar) o uno solo?
 - **Dónde:** el flujo completo: Recibir mercadería (almacén) → Bajar al piso (piso). Sección 8.
-- **Por qué en este puesto:** el dato que hay (3 bajadas en toda la historia de Trujillo) y el ADR-0321 (se baja sin registrar «a veces») sugieren que el segundo paso se omite. Esta tarea no cambia nada: pide que **Felipe decida sobre la sección 8** con el SQL del apéndice en la mano.
+- **Por qué en este puesto:** el dato que había (3 bajadas en toda la historia de Trujillo, **cifra errónea: hoy son 331 al 11-oct**, ver «Corrección de cifras» al final) y el ADR-0321 (se baja sin registrar «a veces») sugieren que el segundo paso se omite. Esta tarea no cambia nada: pide que **Felipe decida sobre la sección 8** con el SQL del apéndice en la mano.
 - **Cómo lo verificas tú:** con las cifras B1–B3 del apéndice sabes si el paso se hace, por qué puerta, y si el stock vive en el almacén o ya nace en el piso.
 - **Esfuerzo / dependencias:** decisión · después del SQL.
 - **DECIDÍ:** (propuesta, no decidida) seguir con A —mejorar esta pantalla con #1–#5— y medir antes de tocar el modelo.
@@ -182,7 +182,7 @@ Filtro «¿le sirve a 3 tiendas y 1 taller hoy?»: lo de arriba pasa; esto no (f
 - Hora real de la operación sin conexión: hoy una caída de internet parece «tardía» toda la jornada (`backlog 2026-09-29-frescura-registro-discipline-signal-0cd4b5`, punto d).
 
 ## 10 · Fuera de esta pantalla
-**Frescura mide sobre un hábito de registro que casi no existe, y el ADR-0321 va a mover ese registro a la caja.** Con 3 bajadas en la historia de Trujillo `[producción vía backlog, 30-sep]`, la «edad del piso» y la señal de disciplina (diseñada, esperando a Felipe) leen ruido; y cuando la web del ADR-0321 se publique, la mayoría de las bajadas pasarán por Vender, donde Frescura las cuenta como «probable registro tardío» (efecto aceptado en el propio ADR). Antes de construir la señal de disciplina o confiar en «Edad del piso», hay que decidir **cuál puerta es la oficial** (§8).
+**Frescura mide sobre un hábito de registro que casi no existe, y el ADR-0321 va a mover ese registro a la caja.** Con 3 bajadas en la historia de Trujillo `[producción vía backlog, 30-sep]` (**cifra errónea: hoy son 331 al 11-oct**, ver «Corrección de cifras» al final), la «edad del piso» y la señal de disciplina (diseñada, esperando a Felipe) leen ruido; y cuando la web del ADR-0321 se publique, la mayoría de las bajadas pasarán por Vender, donde Frescura las cuenta como «probable registro tardío» (efecto aceptado en el propio ADR). Antes de construir la señal de disciplina o confiar en «Edad del piso», hay que decidir **cuál puerta es la oficial** (§8).
 
 ## 11 · Líneas propuestas para el backlog
 - [ ] `[pantalla:inventario-bajar]` #1 Cada lectura suena y vibra (reusar `avisarLectura`) — S
@@ -276,3 +276,17 @@ select * from retail.fn_verificar_bajadas();
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-10-03 | completo, sin SQL | 6.7 | 6.4 (frecuencia provisional) | — (primer análisis) |
+
+## Corrección de cifras (2026-10-12)
+> Consulta de solo lectura a producción (`cayla-dynamic`, schema `retail`: `bajadas_piso` y `bajada_piso_items`), cifras agregadas, sin
+> escribir nada. El SHA analizado del encabezado **no cambia**: este sigue siendo el análisis del 2026-10-03; volver a puntuarlo es
+> trabajo de `/pantalla`. Aquí solo se corrige el dato que estaba mal.
+
+| Qué decía este análisis | Qué hay en producción (Tienda TRU, corte al cierre del 2026-10-11) |
+|---|---|
+| «3 bajadas en toda la historia de Trujillo» (de un backlog del 30-sep, sin SQL) | **331 bajadas y 615 prendas**, del 2026-09-26 al 2026-10-11. **26** de ellas sin renglones de prendas en `bajada_piso_items`. Mediana de **1 prenda por bajada**. |
+| (no decía nada de «Colgar en tandas») | Desde «Colgar en tandas» (2026-10-09): 78 bajadas y 228 prendas, **2,9 prendas por bajada** (antes de ese día, 253 bajadas y 387 prendas: 1,5). Con el día en curso (12-oct, incompleto) van 336 bajadas y 658 prendas. |
+
+**Qué queda por re-evaluar.** Lo que se apoyaba en la cifra de 3 (el «Volumen» de §4, el puntaje de *Frecuencia* de §5, la tarea #6 de §7 y la frase de §10
+de que el hábito de registro «casi no existe») no se reescribe aquí: la pantalla se usa más de lo que el análisis supuso, y lo que
+haya que decidir sobre la «puerta oficial» (§8) hay que mirarlo con `/pantalla` y las consultas B1–B4 del apéndice, ya con datos.
