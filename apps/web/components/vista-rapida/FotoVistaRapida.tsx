@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import Image from "next/image";
+import { ZoomIn } from "lucide-react";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -18,8 +19,23 @@ const MS_CRUCE = 620;
  * se funde y se asienta (de 1.06 a 1), y recién cuando termina se quita la de abajo — nunca hay un instante sin foto. Sin foto de ese
  * color, el mosaico de la prenda (ícono de su categoría sobre el color, ADR-0333), con su «Muestra — color» como en la tarjeta.
  * Con mouse, la foto se mueve apenas hacia el lado contrario del puntero (paralaje de ±6 px): es un detalle, no una función.
+ *
+ * Con foto, tocarla la abre en grande (Felipe 2026-10-12: «que se abra más grande para ver mejor la imagen»), como la miniatura del
+ * panel de Existencias: la lupa de la esquina dice que se puede. Se abre la foto que está ARRIBA, la del color que se ve. Sin foto (el
+ * mosaico) no hay nada que agrandar y no se ofrece.
  */
-export function FotoVistaRapida({ producto, fila }: { producto: ProductoListado; fila: FilaColor | undefined }) {
+export function FotoVistaRapida({
+  producto,
+  fila,
+  onAmpliar,
+  botonAmpliar,
+}: {
+  producto: ProductoListado;
+  fila: FilaColor | undefined;
+  onAmpliar?: (foto: { fotoUrl: string; color: string }) => void;
+  /** El botón de la lupa, para devolverle el foco al cerrar la foto en grande. */
+  botonAmpliar?: RefObject<HTMLButtonElement | null>;
+}) {
   const clave = fila?.clave ?? "";
   const nombre = fila?.nombre ?? "";
   const hex = fila?.hex;
@@ -52,6 +68,9 @@ export function FotoVistaRapida({ producto, fila }: { producto: ProductoListado;
     caja.current?.style.setProperty("--vr-py", "0px");
   }
 
+  const arriba = capas[capas.length - 1];
+  const ampliable = onAmpliar && arriba?.fotoUrl ? { fotoUrl: arriba.fotoUrl, color: arriba.nombre } : null;
+
   return (
     <div ref={caja} className="vr-foto" onPointerMove={mover} onPointerLeave={soltar}>
       {capas.map((c, i) => (
@@ -66,6 +85,20 @@ export function FotoVistaRapida({ producto, fila }: { producto: ProductoListado;
           {!c.fotoUrl && i === capas.length - 1 && <span className="vr-muestra">Muestra{c.nombre ? ` — ${c.nombre}` : ""}</span>}
         </div>
       ))}
+      {ampliable && (
+        <button
+          ref={botonAmpliar}
+          type="button"
+          className="vr-ampliar"
+          onClick={() => onAmpliar!(ampliable)}
+          aria-label={`Ver la foto de ${producto.referencia}${ampliable.color ? ` — ${ampliable.color}` : ""} en grande`}
+          title="Ver la foto en grande"
+        >
+          <span className="vr-ampliar-lupa" aria-hidden="true">
+            <ZoomIn strokeWidth={2} />
+          </span>
+        </button>
+      )}
     </div>
   );
 }
