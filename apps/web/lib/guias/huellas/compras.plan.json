@@ -2,7 +2,7 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 81,
+  "total": 82,
   "controles": {
     "components/colaboradores/CajonFicha.tsx": [
       "button «Cerrar»"
@@ -34,6 +34,7 @@
       "button «plan.categoria»"
     ],
     "components/plan-compra/FormularioCategoria.tsx": [
+      "button «Usar el del catálogo: S/»",
       "Boton «Usar estos tres»",
       "Boton «Proponer el normal desde lo vendido»",
       "CampoTexto «Flojo, prendas»",

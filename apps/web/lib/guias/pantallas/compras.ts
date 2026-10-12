@@ -1238,7 +1238,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan-modal.precios",
       opcional: true,
       titulo: "Precio y costo",
-      texto: "El precio de venta y el costo por prenda, en promedio. Son supuestos: no cambian el precio de las prendas. Si tu precio se aparta del catálogo, aquí te avisa cuánto.",
+      texto: "El precio de venta y el costo por prenda, en promedio. Son supuestos: no cambian el precio de las prendas. Si se apartan del catálogo, te avisa; «Usar el del catálogo» los vuelve a poner.",
     },
     {
       id: "recupero",

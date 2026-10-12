@@ -57,6 +57,17 @@ export function fraseDelPedido(p: PedidoCategoria | undefined, comprar: number |
 }
 
 /**
+ * El monto del catálogo para volver a ponerlo en la hoja (Felipe 2026-10-12: «si quito el precio o el costo, un botón que me regrese el que hay en el
+ * sistema»): el promedio de la categoría con dos decimales, o null si no hay catálogo o la caja ya dice eso.
+ */
+export function montoParaVolver(texto: string, catalogo: number | null): string | null {
+  if (catalogo === null || !Number.isFinite(catalogo) || catalogo <= 0) return null;
+  const monto = catalogo.toFixed(2);
+  const escrito = Number(texto.replace(",", "."));
+  return texto.trim() !== "" && Number.isFinite(escrito) && escrito.toFixed(2) === monto ? null : monto;
+}
+
+/**
  * El aviso del precio supuesto contra el catálogo (Felipe 2026-10-12: «solo supuesto, con aviso»): si se aparta 1 % o más del promedio que hoy
  * tiene la categoría en el catálogo, cuánto. null si no hay con qué comparar o casi no se aparta.
  */

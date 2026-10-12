@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoDelPrecio, fraseDelPedido, leerPedido, numeroDeOrden } from "./plan-compra-pedido";
+import { avisoDelPrecio, fraseDelPedido, leerPedido, montoParaVolver, numeroDeOrden } from "./plan-compra-pedido";
 
 const CRUDO = {
   ordenes: [
@@ -34,6 +34,19 @@ describe("lo pedido en órdenes de compra", () => {
     expect(fraseDelPedido({ unidades: 30, soles: 480, ordenes: [12] }, 21)).toBe("30 ya pedidas · 9 más de lo que pide el plan");
     expect(fraseDelPedido({ unidades: 1, soles: 35, ordenes: [12] }, null)).toBe("1 ya pedida");
     expect(fraseDelPedido(undefined, 10)).toBeNull();
+  });
+});
+
+describe("volver al precio o al costo del catálogo", () => {
+  it("se ofrece si la caja está vacía o dice otra cosa; no si ya dice el del catálogo", () => {
+    expect(montoParaVolver("", 143.234)).toBe("143.23");
+    expect(montoParaVolver("160", 143.23)).toBe("143.23");
+    expect(montoParaVolver("143.23", 143.23)).toBeNull();
+    expect(montoParaVolver("143,23", 143.23)).toBeNull();
+  });
+  it("sin catálogo no hay a qué volver", () => {
+    expect(montoParaVolver("", null)).toBeNull();
+    expect(montoParaVolver("", 0)).toBeNull();
   });
 });
 

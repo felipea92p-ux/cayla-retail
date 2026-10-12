@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { avisoDelPrecio, numeroDeOrden } from "@/lib/plan-compra-pedido";
+import { avisoDelPrecio, montoParaVolver, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -76,6 +76,23 @@ export type PieDelFormulario = {
   /** Clase que la guía le pone al botón de guardar. */
   claseConfirmar: string;
 };
+
+/**
+ * El pie de la caja de precio o de costo, con un botón que vuelve a poner el del catálogo (Felipe 2026-10-12: «si lo quito, un botón que me regrese
+ * el que existe en el sistema»). Solo aparece si la caja no dice ya eso.
+ */
+function PieConVuelta({ texto, monto, onVolver }: { texto: string; monto: string | null; onVolver: (monto: string) => void }) {
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-2">
+      <span>{texto}</span>
+      {monto && (
+        <button type="button" onClick={() => onVolver(monto)} className="btn-cayla btn-enlace text-xs">
+          Usar el del catálogo: S/ {monto}
+        </button>
+      )}
+    </span>
+  );
+}
 
 export function FormularioCategoria({
   planId,
@@ -313,7 +330,13 @@ export function FormularioCategoria({
         <CampoGuiado id="precio" guia={guia} titulo="Precio de venta">
           <CampoMonto
             etiqueta={<span className="sr-only">Precio de venta, promedio de la categoría</span>}
-            pie={delCatalogo && b.precio === delCatalogo.precio ? "Del catálogo · revísalo" : "Promedio de la categoría"}
+            pie={
+              <PieConVuelta
+                texto={delCatalogo && b.precio === delCatalogo.precio ? "Del catálogo · revísalo" : "Promedio de la categoría"}
+                monto={montoParaVolver(b.precio, fila.catalogo?.precio ?? null)}
+                onVolver={(m) => cambiar("precio")(m)}
+              />
+            }
             inputMode="decimal"
             value={b.precio}
             onChange={(e) => cambiar("precio")(soloMonto(e.target.value))}
@@ -322,7 +345,13 @@ export function FormularioCategoria({
         <CampoGuiado id="costo" guia={guia} titulo="Costo por prenda">
           <CampoMonto
             etiqueta={<span className="sr-only">Costo por prenda, promedio</span>}
-            pie={delCatalogo && b.costo === delCatalogo.costo ? "Del catálogo · revísalo" : "Lo que te cuesta cada una, en promedio"}
+            pie={
+              <PieConVuelta
+                texto={delCatalogo && b.costo === delCatalogo.costo ? "Del catálogo · revísalo" : "Lo que te cuesta cada una, en promedio"}
+                monto={montoParaVolver(b.costo, fila.catalogo?.costo ?? null)}
+                onVolver={(m) => cambiar("costo")(m)}
+              />
+            }
             inputMode="decimal"
             value={b.costo}
             onChange={(e) => cambiar("costo")(soloMonto(e.target.value))}
