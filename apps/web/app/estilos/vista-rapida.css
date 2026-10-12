@@ -21,6 +21,12 @@
     --vr-t45: color-mix(in srgb, var(--color-tinta) 45%, transparent);
     --vr-t35: color-mix(in srgb, var(--color-tinta) 35%, transparent);
     --vr-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    /* Los tonos de cada lugar (Felipe 2026-10-12): el cuadrito de «Dónde» y su parte en la barrita de cada celda. Lo colgado en el piso,
+       en tinta; lo guardado en el almacén, en taupe (el tono de siempre de la barrita); lo que no es ni lo uno ni lo otro (dañadas, sin
+       ubicar), en un taupe tenue. Se invierten solos en oscuro. */
+    --vr-c-piso: var(--color-tinta);
+    --vr-c-almacen: var(--color-taupe);
+    --vr-c-otro: color-mix(in srgb, var(--color-taupe) 40%, var(--color-sand));
   }
   /* En oscuro, los dos tonos más tenues del texto suben al piso de legibilidad (el mismo 58 % de `tema.css`, ADR-0336): `--vr-t45` rinde
      3.9:1 sobre papel oscuro. `--vr-t25` es un fantasma a propósito (rayas, ceros) y no se toca. */
@@ -132,6 +138,42 @@
     text-transform: uppercase;
     color: var(--vr-t80, var(--color-tinta));
     animation: vr-dato-entra 360ms var(--ease-cayla) 420ms backwards;
+  }
+  /* Tocar la foto la abre en grande (Felipe 2026-10-12), como la miniatura de Existencias: toda la foto es el botón y la lupa de la
+     esquina, siempre a la vista (no solo al pasar el mouse), dice que se puede. Por encima de la foto y por debajo del destello. */
+  .vr-ampliar {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    cursor: zoom-in;
+    outline: none;
+  }
+  .vr-ampliar:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--color-tinta);
+  }
+  .vr-ampliar-lupa {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-papel) 90%, transparent);
+    color: var(--color-tinta);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--color-sombra) 25%, transparent);
+    transition: transform 220ms var(--ease-cayla);
+    animation: vr-dato-entra 360ms var(--ease-cayla) 520ms backwards;
+  }
+  .vr-ampliar-lupa svg {
+    width: 16px;
+    height: 16px;
+  }
+  .vr-ampliar:hover .vr-ampliar-lupa,
+  .vr-ampliar:focus-visible .vr-ampliar-lupa {
+    transform: scale(1.1);
   }
   .vr-pie-foto {
     display: flex;
@@ -323,6 +365,34 @@
   .vr-aviso b {
     font-weight: 600;
   }
+  /* «Dónde» (Felipe 2026-10-12): Todo · Piso · Almacén, entre la cabecera y la matriz; a su lado, lo que «Todo» incluye aparte. */
+  .vr-donde {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 0 0 12px;
+    padding: 0 4px;
+  }
+  /* Taupe y no `--vr-t60`: sobre el papel de la matriz, t60 rinde 4,45:1 (bajo el 4,5 de WCAG AA); taupe, 5,6:1 (medido 2026-10-12). */
+  .vr-donde-nota {
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .vr-lugar {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    flex: none;
+    border-radius: 2px;
+    background: var(--vr-c-piso);
+  }
+  .vr-lugar[data-lugar="almacen"] {
+    background: var(--vr-c-almacen);
+  }
+  .vr-estado .vr-lugares {
+    color: var(--color-taupe);
+  }
 
   .vr-grid {
     --vr-nt: 3;
@@ -398,8 +468,11 @@
   }
   .vr-rcolor .vr-s {
     display: block;
+    overflow: hidden;
     font-size: 11px;
     font-weight: 400;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--vr-t60);
   }
   .vr-ct {
@@ -481,6 +554,22 @@
     transition: transform 520ms var(--ease-cayla);
     animation: vr-barra 700ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--vr-i, 0) * 34ms + 560ms);
+  }
+  /* En «Todo», la barrita va en dos tonos: lo colgado en el piso y lo guardado en el almacén (y, si queda, lo dañado o sin ubicar). Se
+     escala entera, así que las proporciones viajan con ella. Con un lugar elegido, un solo tono: el de ese lugar. */
+  .vr-cel[data-partida="true"] .vr-barra {
+    height: 4px;
+  }
+  .vr-cel[data-partida="true"] .vr-barra i {
+    background: linear-gradient(
+      to right,
+      var(--vr-c-piso) 0 calc(var(--vr-pp, 0) * 100%),
+      var(--vr-c-almacen) 0 calc((var(--vr-pp, 0) + var(--vr-pa, 0)) * 100%),
+      var(--vr-c-otro) 0
+    );
+  }
+  .vr-grid[data-donde="piso"] .vr-cel .vr-barra i {
+    background: var(--vr-c-piso);
   }
   .vr-cel[data-cero="true"] {
     background: transparent;
@@ -654,6 +743,17 @@
     .vr-muestra {
       display: none;
     }
+    /* En la miniatura de 96 px, la lupa chica de Existencias. */
+    .vr-ampliar-lupa {
+      right: 4px;
+      bottom: 4px;
+      width: 22px;
+      height: 22px;
+    }
+    .vr-ampliar-lupa svg {
+      width: 12px;
+      height: 12px;
+    }
     .vr-pista {
       display: none;
     }
@@ -793,6 +893,7 @@
   .vr-foto::after,
   .vr-capa[data-nueva="true"],
   .vr-muestra,
+  .vr-ampliar-lupa,
   .vr-mx,
   .vr-cel,
   .vr-hueco,
@@ -811,6 +912,7 @@
   .vr-sw,
   .vr-cel,
   .vr-cel .vr-barra i,
+  .vr-ampliar-lupa,
   .vr-mx::before {
     transition: none !important;
   }
