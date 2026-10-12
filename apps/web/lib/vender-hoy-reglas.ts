@@ -66,6 +66,32 @@ export function nombreDeEspera(nombre: string | undefined | null, indice: number
 /** Tope del nombre de un ticket en espera: es una etiqueta, no una nota (la nota del ticket ya existe). */
 export const NOMBRE_ESPERA_MAX = 30;
 
+/**
+ * Arma lo que se guarda de un ticket al dejarlo en espera. Las DOS puertas por las que un ticket entra a la espera
+ * («Dejar en espera» y el intercambio de `retomar()`, que manda el ticket de la caja al lugar del que se retoma) pasan
+ * por acá a propósito: mientras cada una lo armaba por su cuenta, el intercambio se olvidó del `nombre` y el ticket de
+ * «María» volvía a la tira llamado «Ticket 2» (bug 2026-10-12). Un campo nuevo del ticket se agrega una vez, acá, y las
+ * dos puertas lo llevan.
+ *
+ * `id` y `creadoEn` se reciben hechos: el reloj y el generador de UUID no entran a una función pura.
+ */
+export function ticketParaEspera<L, C>(
+  datos: { carrito: L[]; nota: string; nombre: string; clienta: C | null },
+  id: string,
+  creadoEn: string,
+): { id: string; creadoEn: string; carrito: L[]; nota: string; nombre: string | undefined; clienta: C | null } {
+  return {
+    id,
+    creadoEn,
+    carrito: datos.carrito,
+    nota: datos.nota,
+    // Sin nombre se guarda AUSENTE, no como "": así `nombreDeEspera` cae a «Ticket N» igual que con un ticket viejo
+    // del navegador, que nació antes de que la espera llevara nombre.
+    nombre: datos.nombre.trim() || undefined,
+    clienta: datos.clienta,
+  };
+}
+
 /** Hace cuánto se dejó un ticket en espera, legible (spike «el ticket a lo alto»): la tira decía «3216 min» de un
  *  ticket de hace dos días. Menos de una hora en minutos, menos de un día en horas, y después en días. */
 export function haceCuanto(desdeIso: string, ahora: number): string {

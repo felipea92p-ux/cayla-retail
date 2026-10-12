@@ -53,9 +53,22 @@ export function TiraDeEsperas({ enEspera, onRetomar, bloqueado }: { enEspera: re
 const SUGERENCIAS = ["Probador 1", "Probador 2", "Probador 3"];
 
 /** Antes de dejar un ticket en espera, un nombre corto para reconocerlo al volver. Opcional: Enter sin escribir lo
- *  deja como «Ticket N». Las sugerencias son de un toque porque la clienta está esperando. */
-export function DejarEnEsperaModal({ onDejar, onClose, ocupados }: { onDejar: (nombre: string) => void; onClose: () => void; ocupados: readonly string[] }) {
-  const [nombre, setNombre] = useState("");
+ *  deja como «Ticket N». Las sugerencias son de un toque porque la clienta está esperando.
+ *
+ *  `nombreInicial` es el nombre que el ticket YA tenía (se retomó «Probador 2» y vuelve a la espera): viene escrito
+ *  para que Enter lo deje igual, y seleccionado para que escribir encima lo reemplace de una. */
+export function DejarEnEsperaModal({
+  onDejar,
+  onClose,
+  ocupados,
+  nombreInicial = "",
+}: {
+  onDejar: (nombre: string) => void;
+  onClose: () => void;
+  ocupados: readonly string[];
+  nombreInicial?: string;
+}) {
+  const [nombre, setNombre] = useState(nombreInicial);
   const libres = SUGERENCIAS.filter((s) => !ocupados.includes(s));
   return (
     <Modal titulo="Dejar en espera" subtitulo="Un nombre corto para reconocerlo al volver. Opcional." variante="hoja" ancho="max-w-sm" onClose={onClose}>
@@ -69,6 +82,7 @@ export function DejarEnEsperaModal({ onDejar, onClose, ocupados }: { onDejar: (n
         >
           <input
             autoFocus
+            onFocus={(e) => e.currentTarget.select()}
             value={nombre}
             maxLength={NOMBRE_ESPERA_MAX}
             onChange={(e) => setNombre(e.target.value)}

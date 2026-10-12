@@ -125,6 +125,7 @@ import {
 } from "@/lib/club-cumple-canje-reglas";
 import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
+import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
 import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
@@ -455,6 +456,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
+  // Cómo se llama el ticket que está en la caja («Probador 2», «María»): se llena al RETOMAR uno con nombre y vuelve
+  // con él si se lo deja en espera otra vez. Sin esto, el ticket retomado perdía su nombre y la tira lo mostraba como
+  // «Ticket N» (bug 2026-10-12): la cajera ya no sabía de qué clienta era cada uno.
+  const [nombreTicket, setNombreTicket] = useState("");
   // El RESPONSABLE de la venta (ADR-0161; reemplaza la fila «Atendió» del ADR-0163): solo quienes están presentes
   // ahora en la tienda, vacío en cada venta, y sin nadie presente no se cobra. Viaja como `p_asesora_id` y como
   // encabezado `x-responsable` (`firmar`), y es el nombre que sale en el papel del ticket. En el Punto de venta NO se
@@ -1330,6 +1335,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setCarrito([]);
     quitarClienta();
     setNota("");
+    setNombreTicket("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
     responsable.limpiar();
@@ -1353,7 +1359,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, nombre: nombre || undefined, clienta }]);
+    persistirEspera([...enEspera, ticketParaEspera({ carrito, nota, nombre, clienta }, crypto.randomUUID(), new Date().toISOString())]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -1362,7 +1368,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, clienta } : null;
+      carrito.length > 0
+        ? ticketParaEspera({ carrito, nota, nombre: nombreTicket, clienta }, crypto.randomUUID(), new Date().toISOString())
+        : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -1380,6 +1388,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
+    // El nombre viaja con el ticket: si se lo vuelve a dejar en espera, la hoja lo propone y la tira lo sigue
+    // llamando igual.
+    setNombreTicket(ticket.nombre ?? "");
     // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta.
     if (ticket.clienta) elegirClienta(ticket.clienta);
     else quitarClienta();
@@ -2280,6 +2291,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
       {esperaAbierta && (
         <DejarEnEsperaModal
+          nombreInicial={nombreTicket}
           ocupados={enEspera.map((t) => t.nombre ?? "")}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
