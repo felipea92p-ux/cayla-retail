@@ -240,6 +240,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
   return (
     <div className="space-y-6">
       <BarraAtributos
+        guia="atributos.barra-tallas"
         etiqueta="Filtrar tallas"
         filtros={
           <>

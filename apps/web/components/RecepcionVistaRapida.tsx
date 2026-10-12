@@ -61,6 +61,7 @@ export function RecepcionVistaRapida({
       <Dialog.Portal>
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
+          data-guia="recibidas.vista-rapida"
           onEscapeKeyDown={alEscape}
           onKeyDown={alFlecha}
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[28.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}

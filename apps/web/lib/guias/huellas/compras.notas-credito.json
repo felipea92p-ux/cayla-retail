@@ -1,0 +1,66 @@
+{
+  "guia": "compras.notas-credito",
+  "ruta": "/compras/notas-credito",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 46,
+  "controles": {
+    "components/NotaCreditoDetalle.tsx": [
+      "Link «Ver comprobante»",
+      "button «→copiar»",
+      "Boton «Registrar la nota»"
+    ],
+    "components/NotaCreditoVistaRapida.tsx": [
+      "button «Cerrar vista rápida»",
+      "button «{f.bloqueada ? \"Aún no se puede\" : \"Registrar nota\"}»",
+      "button «Ver detalle»",
+      "Link «Comprobante»",
+      "button «Nota anterior»",
+      "button «Nota siguiente»"
+    ],
+    "components/NotasCreditoPanel.tsx": [
+      "Boton «notas-credito.registrar»",
+      "Pestanas «(sin nombre)»",
+      "button «{`notas-credito.estado-${p.clave}»",
+      "SegmentoDeslizante «Cómo agrupar»",
+      "button «Quitar filtro de antigüedad»",
+      "button «Registrar nota»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Ver todas las que faltan»",
+      "Link «{p.nombre}»",
+      "Link «Usar en un pago →»",
+      "button «De qué viene ·»"
+    ],
+    "components/RegistrarNotaCreditoModal.tsx": [
+      "button «Listo»",
+      "button «{f.etiqueta}»",
+      "button «→() => elegirFactura(f.id)»",
+      "button «{ETIQUETA_MOTIVO_NOTA[m]}»",
+      "input «FC01-000018»",
+      "CampoFecha «Fecha de la nota»",
+      "input «0.00»",
+      "button «{ETIQUETA_METODO[m] ?? m}»",
+      "CampoFecha «Fecha en que lo devuelve»",
+      "input «Op. 00881230»",
+      "button «Usar»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "button «(sin nombre)»",
+      "button «{titulo}»",
+      "button «Cambiar»"
+    ],
+    "components/SaldoFavorAcciones.tsx": [
+      "button «Registrar reembolso →»",
+      "CampoTexto «Monto devuelto»",
+      "CampoFecha «Fecha»",
+      "button «{t}»",
+      "CampoTexto «Referencia»",
+      "CampoTexto «Nota (opcional)»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{loading ? \"Registrando…\" : \"Registrar reembolso\"}»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

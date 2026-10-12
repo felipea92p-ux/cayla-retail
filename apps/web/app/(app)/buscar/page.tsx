@@ -24,7 +24,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">
+        <p className="label-cayla text-[11px] text-tinta/65" data-guia="buscar.ayuda">
           Búsqueda
           <Ayuda titulo="Búsqueda">
             Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
@@ -37,7 +37,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           {term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
         </h1>
         <form method="get" className="mt-4 flex items-end gap-3">
-          <div className="max-w-sm flex-1">
+          <div className="max-w-sm flex-1" data-guia="buscar.campo">
             <CampoTexto
               name="q"
               etiqueta="Buscar"
@@ -46,7 +46,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
               autoFocus
             />
           </div>
-          <Boton type="submit" peso="primario">
+          <Boton type="submit" peso="primario" data-guia="buscar.boton">
             Buscar
           </Boton>
         </form>
@@ -118,7 +118,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-tinta/65">
+      <p className="text-sm text-tinta/65" data-guia="buscar.conteo">
         {resultados.length} resultado{resultados.length === 1 ? "" : "s"}
       </p>
 
@@ -131,7 +131,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
           const stockTotal = detalles.reduce((acc, d) => acc + d.cantidad, 0);
           const hayStock = stockTotal > 0;
           return (
-            <div key={v.varianteId} className="card-cayla p-5">
+            <div key={v.varianteId} className="card-cayla p-5" data-guia="buscar.resultado">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-tinta">
@@ -141,7 +141,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
                   {v.categoria && <p className="mt-0.5 text-xs text-tinta/65">{v.categoria}</p>}
                   <p className="mt-1 font-mono text-[11px] text-tinta/65">{v.sku}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right" data-guia="buscar.stock">
                   <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{stockTotal}</p>
                   <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
                   <p className="mt-1 text-xs text-tinta/70">S/{(preciosAqui[v.varianteId] ?? v.precio).toFixed(2)}</p>
@@ -149,7 +149,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
               </div>
 
               {detalles.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
+                <div className="mt-3 flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12" data-guia="buscar.sedes">
                   {detalles.map((d, i) => (
                     <span key={`${d.ubicacion}-${i}`} className="bg-crema px-3 py-1.5 text-xs text-tinta/80">
                       {d.ubicacion} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
@@ -166,7 +166,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
           pantalla también depende del catálogo V1. La tarjeta ya responde la
           pregunta que motiva la búsqueda (cuánto hay y dónde) sin necesitar
           ese detalle. */}
-      <Link href="/productos" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+      <Link href="/productos" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo" data-guia="buscar.catalogo">
         Ver catálogo completo →
       </Link>
     </div>

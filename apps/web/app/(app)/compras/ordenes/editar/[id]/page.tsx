@@ -61,6 +61,7 @@ export default async function EditarOrdenCompraPage({ params }: { params: Promis
         />
         <Aviso
           tono="atencion"
+          guia="orden-form.anulada"
           titulo="Esta orden está anulada: ya no se puede editar"
           accion={<BotonEnlace href={`/compras/ordenes/ver/${detalle.id}`}>Ver la orden</BotonEnlace>}
         >

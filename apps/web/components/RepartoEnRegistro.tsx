@@ -79,7 +79,7 @@ export function DestinoDeLaMercaderia({
   }
 
   return (
-    <div className={repartir ? "sm:col-span-2" : ""}>
+    <div className={repartir ? "sm:col-span-2" : ""} data-guia="nueva.destino">
       <p className={campoEtiqueta}>Mercadería destinada a</p>
       <SegmentoDeslizante
         etiqueta="Destino de la mercadería"

@@ -18,7 +18,7 @@ export function FiltrosMarcas({ resumen, filtro, onFiltro }: { resumen: ResumenM
   return (
     // Angosta (celular, o ventana chica con el menú abierto): una sola fila que se desliza de lado, sin barra, en vez de tres renglones
     // que empujan las marcas hacia abajo. Ancha: se acomodan en filas, como siempre.
-    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] @2xl:flex-wrap @2xl:overflow-visible [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filtrar las marcas por estado">
+    <div data-guia="marcas.filtros" className="-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] @2xl:flex-wrap @2xl:overflow-visible [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filtrar las marcas por estado">
       {PILDORAS.map(({ filtro: f, texto }) => {
         const puesta = filtro === f;
         const avisa = f === "sin-proveedor" && resumen[f] > 0;

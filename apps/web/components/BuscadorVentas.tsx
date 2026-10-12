@@ -128,7 +128,7 @@ export function BuscadorVentas({
     <form role="search" onSubmit={enviar} className="space-y-4">
       {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega al enfocar, con su botón. Busca al tocar
           «Buscar» o con Enter (la pistola teclea el código y un Enter). Escaneando, el ícono pasa al código de barras. */}
-      <Buscador
+      <Buscador guia="posventa.buscador"
         tamano="mostrador"
         ref={campoRef}
         valor={texto}
@@ -155,11 +155,11 @@ export function BuscadorVentas({
       <div className="flex flex-wrap items-center gap-2.5">
         {/* En el celular este chip repite un botón fijo de abajo (la cámara en Cambios, «Escanear prenda» en
             Devoluciones): se esconde ahí. */}
-        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
+        <button type="button" data-guia="posventa.escanear" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
-        <button type="button" onClick={onSinComprobante} className={CHIP_ACCION}>
+        <button type="button" data-guia="posventa.sin-comprobante" onClick={onSinComprobante} className={CHIP_ACCION}>
           <ReceiptText className="h-4 w-4" aria-hidden />
           Sin comprobante
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -168,7 +168,7 @@ export function BuscadorVentas({
         {extra}
 
         {puedeVerTodas && (
-          <div className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
+          <div data-guia="posventa.buscar-en" className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
             <span>Buscar en</span>
             <Desplegable
               forma="pastilla"

@@ -54,7 +54,9 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         subtitulo={`Conteo ${c.numero} · ${textoLugar(c)}`}
         volver={<Volver href={`/inventario/conteo/${c.id}/revisar`} a="Revisar" />}
       />
-      <PasosConteo actual="confirmar" />
+      <div data-guia="conteo.pasos">
+        <PasosConteo actual="confirmar" />
+      </div>
       <ConfirmarConteo
         conteoId={c.id}
         filas={aActualizar}

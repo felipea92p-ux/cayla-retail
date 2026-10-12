@@ -77,7 +77,7 @@ export function FlujoCajaPanel({
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!real && !proyeccion}>
+            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!real && !proyeccion} data-guia="fin-reportes.excel">
               Descargar Excel
             </button>
           </>
@@ -91,10 +91,10 @@ export function FlujoCajaPanel({
       ))}
 
       <section className="fin-dos-col fin-der">
-        <div {...entra(1)}>
+        <div {...entra(1)} data-guia="fin-flujo.paso">
           <Superficie pad>
             {/* Un <div> y no un <p>: el combo es una caja, y una caja dentro de un <p> rompe el HTML del servidor. */}
-            <div className="fin-etq">
+            <div className="fin-etq" data-guia="fin-flujo.mes">
               Lo que ya pasó ·{" "}
               <SelectEnLineaFin
                 etiqueta="Qué mes mirar"
@@ -110,9 +110,9 @@ export function FlujoCajaPanel({
           </Superficie>
         </div>
 
-        <div {...entra(2)}>
+        <div {...entra(2)} data-guia="fin-flujo.viene">
           <Superficie pad>
-            <div className="fin-etq">
+            <div className="fin-etq" data-guia="fin-flujo.cuantas-semanas">
               Lo que viene · próximas{" "}
               <SelectEnLineaFin
                 etiqueta="Cuántas semanas mirar"
@@ -169,9 +169,9 @@ function LoQuePaso({ real }: { real: FlujoReal }) {
           </ul>
         </>
       )}
-      <div className="nota-cayla">{pintarPartes(frase.partes)}</div>
+      <div className="nota-cayla" data-guia="fin-flujo.frase">{pintarPartes(frase.partes)}</div>
 
-      <div className="fin-tabla-wrap mt-4">
+      <div className="fin-tabla-wrap mt-4" data-guia="fin-flujo.semana-a-semana">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Semana a semana: lo que entró, lo que salió y lo que quedó</caption>
           <thead>
@@ -241,7 +241,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
       </p>
       {p.diasDeCaja !== null && (
-        <p className="fin-dias">
+        <p className="fin-dias" data-guia="fin-flujo.dias">
           <Chip tono={tonoDiasDeCaja(p.diasDeCaja)} versalitas={false}>
             {p.diasDeCaja} {p.diasDeCaja === 1 ? "día" : "días"} de caja
           </Chip>
@@ -267,7 +267,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
           lineas: [`Entra ${soles(w.entra)} · Sale ${soles(w.sale)}`, `Queda ${soles(w.saldo)}`, queVence(p.salidas, w.desde, w.hasta)],
         }))}
       />
-      <div className="fin-tabla-wrap mt-3">
+      <div className="fin-tabla-wrap mt-3" data-guia="fin-flujo.que-vence">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Lo que viene, semana por semana</caption>
           <thead>
@@ -312,7 +312,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </table>
       </div>
       {sinMeta.length > 0 && (
-        <p className="nota-cayla mt-3">
+        <p className="nota-cayla mt-3" data-guia="fin-flujo.sin-meta">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
           espera lo que cobró en promedio esos mismos días de la semana en las últimas 8 semanas. Ponle meta en{" "}
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2 hover:text-rojo">
@@ -322,7 +322,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </p>
       )}
       {!p.planillaVisible && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
-      <p className="nota-cayla mt-3">
+      <p className="nota-cayla mt-3" data-guia="fin-flujo.config">
         El mínimo de caja y los avisos se cambian en{" "}
         <Link href="/configuracion?tab=caja" className="underline underline-offset-2 hover:text-rojo">
           Configuración ▸ Caja y avisos

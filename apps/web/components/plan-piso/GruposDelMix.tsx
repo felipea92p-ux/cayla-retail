@@ -94,7 +94,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="plan-piso.grupos-cifras">
         <TarjetaCifra etiqueta="Categorías" valor={resumen.total} className="anim-sube">
           activas, repartidas en {grupos.length} grupos
         </TarjetaCifra>
@@ -109,7 +109,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
         </TarjetaCifra>
       </div>
 
-      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Grupos del plan del piso">
+      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Grupos del plan del piso" data-guia="plan-piso.grupos-tabla">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-sand px-5 py-4">
           <div className="min-w-0">
             <h2 className="font-display text-xl text-tinta">Grupos del plan</h2>
@@ -120,7 +120,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
             </p>
           </div>
           {esLider && (
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5" data-guia="plan-piso.grupos-acciones">
               {siguiente && (
                 <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => irA(siguiente)}>
                   Siguiente por revisar: {siguiente.categoria} →
@@ -279,7 +279,7 @@ function FilaCategoria({
   const opciones = gruposPermitidos(c, grupos).map((g) => ({ valor: g.clave, texto: g.nombre }));
 
   return (
-    <div id={`cat-${c.categoriaId}`} data-campo={`cat-${c.categoriaId}`} className={fila(PLANTILLA, "sm:items-center")}>
+    <div id={`cat-${c.categoriaId}`} data-campo={`cat-${c.categoriaId}`} data-guia="plan-piso.grupos-fila" className={fila(PLANTILLA, "sm:items-center")}>
       <div className={celda("izq")}>
         <span className="text-sm text-tinta">{c.categoria}</span>
         {c.prefijo && <span className="ml-2 font-mono text-[11px] text-taupe">{c.prefijo}</span>}

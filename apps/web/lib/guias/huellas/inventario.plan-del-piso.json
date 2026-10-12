@@ -1,0 +1,42 @@
+{
+  "guia": "inventario.plan-del-piso",
+  "ruta": "/inventario/plan-del-piso",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 20,
+  "controles": {
+    "app/(app)/inventario/plan-del-piso/page.tsx": [
+      "Link «Reintentar»",
+      "Link «Reintentar» #2",
+      "Link «Reintentar» #3"
+    ],
+    "components/plan-piso/AvisoPorRevisar.tsx": [
+      "Boton «{aviso.accion}»"
+    ],
+    "components/plan-piso/GruposDelMix.tsx": [
+      "button «Siguiente por revisar:»",
+      "button «Confirmar»",
+      "button «Entendido»",
+      "Boton «Descartar»",
+      "Boton «Revisar y guardar»",
+      "Desplegable «(sin nombre)»",
+      "button «{`Confirmar ${c.categoria}»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}»"
+    ],
+    "components/plan-piso/Mancuerna.tsx": [
+      "button «{TEXTO_DE_LEYENDA[t]}»",
+      "button «{resumenDeFila(l)}»"
+    ],
+    "components/plan-piso/PlanDelPisoPestanas.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/plan-piso/PorQue.tsx": [
+      "button «plan-piso.por-que»"
+    ],
+    "components/plan-piso/TarjetaDelRiel.tsx": [
+      "button «{etiquetaDeChipHoy(g, cuadrado)}»",
+      "button «{g.nombre}»"
+    ]
+  }
+}

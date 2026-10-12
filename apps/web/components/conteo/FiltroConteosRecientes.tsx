@@ -46,7 +46,7 @@ export function FiltroConteosRecientes({
   const otraFecha = dia && dia !== hoy && dia !== ayer ? dia : "";
 
   return (
-    <div role="group" aria-label="Filtrar los conteos por día" className="flex flex-wrap items-center gap-x-2 gap-y-2">
+    <div data-guia="conteo.filtro" role="group" aria-label="Filtrar los conteos por día" className="flex flex-wrap items-center gap-x-2 gap-y-2">
       <Link href={hrefRecientes(null, variantes)} scroll={false} className="pildora-cayla" aria-current={dia === null ? "true" : undefined} data-activa={dia === null}>
         Todos
       </Link>

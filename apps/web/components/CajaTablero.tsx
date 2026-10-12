@@ -67,7 +67,7 @@ const COLOR_METODO: Record<string, string> = {
 export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | null; piezas: PiezaCajon[]; indice: number }) {
   const [enteros, centimos] = esperado === null ? [null, null] : soles(esperado).split(".");
   return (
-    <div className="card-cayla anim-sube relative flex flex-col border-l-[3px] p-5" style={{ "--i": indice, borderLeftColor: "var(--color-metodo-efectivo)" } as CSSProperties}>
+    <div data-guia="caja.cajon" className="card-cayla anim-sube relative flex flex-col border-l-[3px] p-5" style={{ "--i": indice, borderLeftColor: "var(--color-metodo-efectivo)" } as CSSProperties}>
       <div className="flex items-center justify-between gap-3">
         <p className="label-cayla text-[11px]" style={{ color: "var(--color-metodo-efectivo-tinta)" }}>
           Efectivo en el cajón ahora
@@ -241,7 +241,7 @@ export function BarraCajaMovil({
 }) {
   const cuadrado = "flex h-14 w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-sand bg-papel text-[10px] font-semibold text-tinta/80 active:scale-[0.97]";
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+    <div data-guia="caja.barra-movil" className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
       {vender && (
         <Link href="/vender" className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema">
           <ShoppingBag size={18} aria-hidden /> Vender

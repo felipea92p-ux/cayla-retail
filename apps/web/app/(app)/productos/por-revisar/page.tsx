@@ -40,15 +40,17 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
         subtitulo="Prendas que alguien propuso en un conteo o desde el Taller. Aprueba las que están bien y rechaza las que se crearon por error."
         pie={
           res.estado === "ok" && total > 0 ? (
-            <Chip tono="ambar" versalitas={false}>
-              {total === 1 ? "1 prenda por revisar" : `${total.toLocaleString("es-PE")} prendas por revisar`}
-            </Chip>
+            <span data-guia="por-revisar.total">
+              <Chip tono="ambar" versalitas={false}>
+                {total === 1 ? "1 prenda por revisar" : `${total.toLocaleString("es-PE")} prendas por revisar`}
+              </Chip>
+            </span>
           ) : undefined
         }
       />
 
       {res.estado === "sin_funcion" && (
-        <Aviso tono="atencion" titulo="Esta vista todavía no está activa en la base de datos">
+        <Aviso tono="atencion" titulo="Esta vista todavía no está activa en la base de datos" guia="por-revisar.sin-funcion">
           Falta aplicar la migración <span className="font-mono text-[13px]">20261010170000_revisar_productos_pendientes.sql</span> en producción. Hasta entonces las prendas
           propuestas siguen funcionando igual; solo no se pueden revisar desde aquí.
         </Aviso>
@@ -61,7 +63,7 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
       )}
 
       {res.estado === "ok" && res.productos.length === 0 && (
-        <div className="card-cayla">
+        <div className="card-cayla" data-guia="por-revisar.vacio">
           <Vacio
             icono={<CheckCheck />}
             titulo="No hay prendas por revisar"
@@ -84,6 +86,7 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
             veProduccion={veModulo(persona, "produccion")}
             veExistencias={veModulo(persona, "existencias")}
           />
+          <div data-guia="por-revisar.paginas">
           <PaginacionPaginas
             pagina={pagina}
             totalPaginas={totalPaginas}
@@ -92,10 +95,11 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
             pathname="/productos/por-revisar"
             sustantivo={["prenda", "prendas"]}
           />
+          </div>
         </>
       )}
 
-      <p className="nota-cayla">
+      <p className="nota-cayla" data-guia="por-revisar.nota">
         Una prenda queda «por revisar» cuando la crea alguien que no edita el catálogo. Mientras tanto se puede contar y vender como cualquier otra.
         Rechazar es permanente: la prenda queda descontinuada y no se reactiva (si solo quieres sacarla de venta por ahora, descontínuala en su ficha).
       </p>

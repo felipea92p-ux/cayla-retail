@@ -79,7 +79,7 @@ async function copiarAlPortapapeles(valor: string, que: string): Promise<boolean
 export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
   if (!datos || (!datos.formaPagoPreferida && datos.plazoCreditoDias == null)) return null;
   return (
-    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand bg-sand/40 px-4 py-3">
+    <div data-guia="pago-modal.datos" className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand bg-sand/40 px-4 py-3">
       <div>
         <p className="label-cayla text-[10px] text-tinta/55">Paga por</p>
         <p className="mt-0.5 text-sm text-tinta">
@@ -422,7 +422,7 @@ export function MediosDePago({
     ) : null;
 
   return (
-    <div className="space-y-3" id={id}>
+    <div className="space-y-3" id={id} data-guia="pago-modal.medios">
       {!varios ? (
         <div className="grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr]">
           <div>

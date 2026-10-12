@@ -348,6 +348,11 @@ export const PRUEBAS = [
   // sigue cerrado y las tres funciones de la cola la dejan pasar. Control sin la migración. Cada caso: ROLLBACK.
   "pruebas:sunat-reintento-por-cron",
 
+  // Lo que SUNAT aceptó no retrocede (ADR-0386): una respuesta vieja de Lucode no pisa un aceptado ni un anulado (se
+  // ignora sin error), el disparador de la tabla frena cualquier paso de estado que no existe, venga de donde venga, y lo
+  // que ya intentó salir a SUNAT no se libera. La carrera de dos conexiones (commitea) va aparte, en EXCLUIDAS. ROLLBACK.
+  "pruebas:sunat-estado-no-retrocede",
+
   // Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
   // tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
   // Cada caso termina en ROLLBACK.
@@ -1000,8 +1005,8 @@ export const PRUEBAS = [
   // mismo comprobante reservado); fn_asesoras_de_turno nunca falla, ni sin sede_dynamic_id ni sin las
   // tablas de Dynamic; un descuento de venta sobre el tope del rol sin autorización de líder falla con
   // SQLSTATE 42501 exacto, y el mismo descuento con un líder real autorizando pasa y queda auditado;
-  // p_emisor = 'alegra' no reserva comprobante; anular_venta libera también un comprobante que ya estaba
-  // en la cola de reintento de SUNAT (pendiente_reintento, D-60). Cada caso termina en ROLLBACK.
+  // p_emisor = 'alegra' no reserva comprobante; anular_venta NO libera un comprobante que ya estaba en la
+  // cola de reintento de SUNAT (pendiente_reintento): pudo haber llegado (ADR-0386, opción A). Cada caso termina en ROLLBACK.
   "pruebas:venta-contrato-ampliado",
 
   // Catálogo ▸ Marcas ▸ Editar (20260926150000): nombre y proveedores todo o nada; un proveedor con productos (también

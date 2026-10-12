@@ -41,12 +41,15 @@ type Props = {
   /** El de error recibe el foco al aparecer en un flujo (para el lector de pantalla). */
   enfocable?: boolean;
   ref?: Ref<HTMLDivElement>;
+  /** Ancla de la guía interactiva (ADR-0389). */
+  guia?: string;
 };
 
-export function Aviso({ tono, titulo, children, accion, chico = false, id, className = "", enfocable = false, ref }: Props) {
+export function Aviso({ tono, titulo, children, accion, chico = false, id, className = "", enfocable = false, ref, guia }: Props) {
   return (
     <div
       ref={ref}
+      data-guia={guia}
       id={id}
       data-tono={tono}
       role={tono === "error" ? "alert" : "status"}

@@ -31,7 +31,7 @@ export function FranjaAvance({
 }) {
   const { proporcion } = avanceDe(inicial, pendientes);
   return (
-    <section aria-label="Avance" className="card-cayla vsr-franja anim-sube">
+    <section aria-label="Avance" data-guia="regularizar.avance" className="card-cayla vsr-franja anim-sube">
       <div className="vsr-f-prog">
         <p className="vsr-f-top">
           <b className="vsr-f-n">

@@ -181,7 +181,7 @@ export function FiltrosExistencias({
   // Como el orden: si la lista no se ve en tarjetas, un chip lo dice y vuelve a ellas de un toque (el control vive dentro de «Filtros»).
   const vistaDistinta = verComo !== null && verComo.valor !== "tarjetas" ? (VISTAS.find((v) => v.valor === verComo.valor)?.texto ?? null) : null;
   const panel = (
-    <PanelPildoras filas>
+    <PanelPildoras filas guia="existencias.panel-filtros">
       <FilaPildoras titulo="Prenda">
         <DesplegablePildora
           icono={Shirt}
@@ -279,13 +279,14 @@ export function FiltrosExistencias({
         {/* «Ver como» (2026-10-06, tarde): tarjetas, tabla o una fila por talla, a un toque y con su nombre. Antes era un icono suelto en
             la barra y, en la tabla, otro par «Por prenda | Por talla»: ahora la barra solo busca y filtra. */}
         {verComo && (
-          <div role="group" aria-label="Ver como" className="flex h-9 shrink-0 items-center gap-1.5 px-3">
+          <div role="group" aria-label="Ver como" data-guia="existencias.ver-como" className="flex h-9 shrink-0 items-center gap-1.5 px-3">
             <span className="label-cayla text-[11px] text-tinta/55">Ver como:</span>
             <span className="inline-flex rounded-lg bg-tinta/[0.05] p-0.5">
               {VISTAS.map(({ valor, texto, icono: Icono }) => (
                 <button
                   key={valor}
                   type="button"
+                  data-guia={`existencias.ver-${valor}`}
                   aria-pressed={verComo.valor === valor}
                   onClick={() => verComo.onValor(valor)}
                   className="label-cayla inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
@@ -317,7 +318,7 @@ export function FiltrosExistencias({
   // Con el panel abierto en la computadora cada píldora ya dice su valor y su ✕: los chips repetirían lo mismo debajo. Se ven
   // con el panel cerrado y en el celular (donde el panel vive en la hoja).
   const bloqueChips = (chips.length > 0 || ordenDistinto || vistaDistinta) && (
-    <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
+    <div data-guia="existencias.chips" className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
         <button
           key={c.quitar.join("|")}
@@ -345,6 +346,7 @@ export function FiltrosExistencias({
         <button
           type="button"
           onClick={() => verComo.onValor("tarjetas")}
+          data-guia="existencias.chip-vista"
           className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           aria-label={`Volver a las tarjetas (ahora: ${vistaDistinta})`}
         >
@@ -373,7 +375,7 @@ export function FiltrosExistencias({
               barra tiene menos piezas, y un buscador de 26rem dejaba media barra vacía). */}
           {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario (el Buscador ya lo apaga).
               «/» lleva el cursor aquí (`atajo`); Escape y la «×» borran lo escrito. */}
-          <Buscador
+          <Buscador guia="existencias.buscador"
             id={ID_BUSCADOR_EXISTENCIAS}
             ref={buscadorRef}
             valor={busqueda}
@@ -396,6 +398,7 @@ export function FiltrosExistencias({
             <button
               type="button"
               onClick={onEscanear}
+              data-guia="existencias.escanear"
               aria-label="Escanear etiqueta"
               title="Escanear etiqueta"
               className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
@@ -404,7 +407,16 @@ export function FiltrosExistencias({
             </button>
           )}
           {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). */}
-          <BotonFiltros soloIcono abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+          <span data-guia="existencias.filtros" className="flex shrink-0">
+            <BotonFiltros
+              soloIcono
+              abierto={hojaAbierta || (esEscritorio && panelAbierto)}
+              activos={activos}
+              onClick={alTocarFiltros}
+              // La guía (ADR-0389) abre el panel y lo vuelve a cerrar: el ancla dice qué hará el toque, para que cerrar nunca reabra.
+              data-guia={esEscritorio && panelAbierto ? "existencias.filtros-cerrar" : "existencias.filtros-abrir"}
+            />
+          </span>
           {alLadoDeFiltros}
         </div>
 
@@ -438,6 +450,7 @@ export function FiltrosExistencias({
             <button
               type="button"
               onClick={copiarEnlace}
+              data-guia="existencias.copiar-enlace"
               aria-label="Copiar enlace de esta lista"
               title="Copiar enlace de esta lista"
               className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-tinta/60 transition-colors hover:text-tinta"

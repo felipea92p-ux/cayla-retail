@@ -51,7 +51,7 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
   }
 
   return (
-    <section className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
+    <section data-guia="caja-historial.aperturas" className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
       <div>
         <h2 id="aperturas-por-revisar" className="font-display text-xl text-tinta">
           Aperturas con diferencia por revisar
