@@ -258,6 +258,56 @@ const lineas = (r) => (r.ok ? r.salida.split("\n") : []);
 }
 
 // ============================================================================
+// 2b. Sin precio no se aprueba (ADR-0380): el 0 solo vale en una familia fuera de los motores
+// ============================================================================
+{
+  // Micaela propone en el conteo con el precio en 0 («déjalo en 0 y lo completa el Líder», `censo_crear_variante`): eso sigue
+  // pudiendo pasar. Lo que ya no pasa es APROBARLA así: la base dice `sin_precio` y la prenda sigue pendiente.
+  const r = correr(`
+    ${COMO(MICAELA)}
+    select variante_id as vc from retail.censo_crear_variante('Blusa Prueba Revisar C', :'cat', 'TESTREV-C-1', :'talla', null, 0, 0) \\gset
+    select producto_id as pc from retail.variantes where id = :'vc' \\gset
+    ${COMO(FELIPE)}
+    select estado_alta || '|' || (select precio from retail.variantes where id = :'vc') from retail.productos where id = :'pc';
+    select pg_temp.intentar(format('select retail.revisar_producto_censo(%L, true)', :'pc'));
+    select estado_alta from retail.productos where id = :'pc';
+    -- Rechazarla sí se puede: el precio no frena un rechazo.
+    select pg_temp.intentar(format('select retail.revisar_producto_censo(%L, false)', :'pc'));
+  `);
+  const l = lineas(r).filter((x) => x !== "");
+  esperar("el conteo todavía puede proponer una prenda con el precio en 0 (queda pendiente)", r.ok && l[0] === "pendiente|0.00", r.ok ? l : r.mensaje);
+  esperar("aprobarla sin precio se niega con sin_precio, nombrando la prenda", r.ok && /^sin_precio :: No se puede aprobar «Blusa Prueba Revisar C»/.test(l[1] ?? ""), l);
+  esperar("…y sigue pendiente", r.ok && l[2] === "pendiente", l);
+  esperar("rechazar una prenda sin precio sí se puede", r.ok && l[3] === "ok", l);
+}
+{
+  const r = correr(`
+    update retail.variantes set precio = 0 where producto_id = :'pa';
+    select pg_temp.intentar(format('select retail.revisar_producto_censo(%L, true)', :'pa'));
+    update retail.variantes set precio = 59.90 where producto_id = :'pa';
+    select pg_temp.intentar(format('select retail.revisar_producto_censo(%L, true)', :'pa'));
+    select estado_alta from retail.productos where id = :'pa';
+  `);
+  const l = lineas(r).filter((x) => x !== "");
+  esperar("con el precio puesto en su ficha, la misma prenda se aprueba", r.ok && /^sin_precio/.test(l[0] ?? "") && l[1] === "ok" && l[2] === "aprobado", r.ok ? l : r.mensaje);
+}
+{
+  const r = correr(`
+    update retail.variantes set precio = 0 where producto_id = :'pa';
+    update retail.familias set entra_a_motores = false where codigo = (select familia from retail.categorias where id = :'cat');
+    select pg_temp.intentar(format('select retail.revisar_producto_censo(%L, true)', :'pa'));
+  `);
+  esperar("en una familia fuera de los motores (Empaque) el 0 sí se aprueba", r.ok && lineas(r)[0] === "ok", r.ok ? r.salida : r.mensaje);
+}
+{
+  const r = correr(`
+    update retail.variantes set precio = 0, activo = false where producto_id = :'pa';
+    select pg_temp.intentar(format('select retail.revisar_producto_censo(%L, true)', :'pa'));
+  `);
+  esperar("una variante desactivada en 0 no frena la aprobación (no se vende)", r.ok && lineas(r)[0] === "ok", r.ok ? r.salida : r.mensaje);
+}
+
+// ============================================================================
 // 3. Permisos
 // ============================================================================
 {
