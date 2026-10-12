@@ -100,3 +100,28 @@ export function repartir(objetivo: number, tiendas: readonly TiendaReparto[]): {
   }));
   return { filas, falta: filas.reduce((a, f) => a + f.falta, 0), sobra: filas.reduce((a, f) => a + f.sobra, 0) };
 }
+
+/**
+ * Las tiendas de una categoría listas para repartir, con lo que trae la propuesta del Plan (`fn_plan_compra_propuesta`): todas las tiendas
+ * activas, su venta de 90 días de esa categoría, sus días con ERP y su mínimo. `stockDe` da lo que tiene hoy cada una (por nombre). Lo usan el
+ * Plan (cuánto mandarle) y Resultados (la parte del plan de una tienda): una sola regla.
+ */
+export function tiendasParaRepartir(
+  hechos: {
+    tiendasActivas: readonly { id: string; nombre: string }[];
+    tiendas: readonly { id: string; dias90: number }[];
+    categorias: ReadonlyMap<string, readonly { tienda: string; u90: number }[]>;
+    minimos: ReadonlyMap<string, number>;
+  },
+  categoriaId: string,
+  stockDe: (nombreTienda: string) => number = () => 0,
+): TiendaReparto[] {
+  return hechos.tiendasActivas.map((t) => ({
+    id: t.id,
+    nombre: t.nombre,
+    u90: hechos.categorias.get(categoriaId)?.find((h) => h.tienda === t.id)?.u90 ?? 0,
+    dias90: hechos.tiendas.find((x) => x.id === t.id)?.dias90 ?? 0,
+    stock: stockDe(t.nombre),
+    minimo: hechos.minimos.get(t.id) ?? null,
+  }));
+}

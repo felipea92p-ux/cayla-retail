@@ -77,7 +77,7 @@ main»): se conserva el guardado en dos tiempos del #568 (ADR-0257) y la migraci
 - [ ] **Abierto (T8):** una venta de dos tallas en orden inverso al id contra la corrección de esas dos tallas todavía puede dar
   40P01; la ficha reintenta una vez y, si vuelve, lo dice con palabras. Cerrarlo del todo es que `fn_bloquear_en_orden` tome
   `for key share` en Ventas, Traslados, Compras y Producción (decisión de varios módulos).
-- [ ] **Abierto:** «Unir variantes» (D-138, fase aparte); `fn_historial_producto_cambios` devuelve `sku` y no `codigo`.
+- [ ] **Abierto:** «Unir variantes» (D-138, fase aparte); ~~`fn_historial_producto_cambios` devuelve `sku` y no `codigo`~~ (la función se borró: 20261012213000).
 - Cómo verificas (tras pegar el SQL):
   - Abre BOD-0003 ▸ Editar ▸ «Corregir color» en el grupo «Sin color» ▸ Negro: la vista previa dice `BOD-0003-S → BOD-0003-NEG-S`;
     guarda. Escanea una etiqueta vieja `BOD-0003-S` en Vender: sale la prenda, ahora Negro.

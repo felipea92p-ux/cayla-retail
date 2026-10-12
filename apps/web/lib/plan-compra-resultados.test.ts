@@ -4,6 +4,7 @@ import {
   cierre,
   contraLaCampanaPasada,
   contraLoEsperado,
+  enlaceAnalisis,
   filtrarYOrdenarCategorias,
   parteQuePaso,
   coloresQueMasVendieron,
@@ -20,6 +21,7 @@ import {
   recuperoRealTotal,
   type LecturaResultados,
 } from "./plan-compra-resultados";
+import { fraseDeLoReal } from "./plan-compra-reglas";
 import { leerPropuesta } from "./plan-compra-propuesta";
 
 const CRUDO = {
@@ -165,6 +167,44 @@ describe("durante la campaña: ¿cómo va? y pedir más o impulsar", () => {
   it("sin el stock de la base no inventa señales", () => {
     expect(senales({ ...enCurso, stock: null }, parejos)).toEqual([]);
   });
+
+  // Una tienda (Felipe 2026-10-12): Arequipa vende 6 por día; le toca el 20 % del plan; tiene 300 polos.
+  const porTienda = leerResultados({
+    ...CRUDO,
+    hoy: "2026-12-19",
+    medido_hasta: "2026-12-18",
+    por_dia: Array.from({ length: 8 }, (_, i) => ({ f: `2026-12-${String(11 + i).padStart(2, "0")}`, u: 20 })),
+    stock: [{ c: "polos", hoy: 330, cierre: 330 }],
+    por_dia_tienda: Array.from({ length: 8 }, (_, i) => ({ f: `2026-12-${String(11 + i).padStart(2, "0")}`, t: "aqp", u: 6 })),
+    stock_tienda: [
+      { c: "polos", t: "aqp", hoy: 300, cierre: 300 },
+      { c: "polos", t: "tru", hoy: 30, cierre: 30 },
+    ],
+  }) as LecturaResultados;
+  const aqp = { tienda: "aqp", parte: () => 0.2 };
+  it("de una tienda: SUS ventas contra SU parte del plan", () => {
+    const c = comoVa(porTienda, parejos, aqp);
+    // Su plan: 20 % de (250 + 20) = 54; a hoy (8/15) se esperaban 29; vendió 48 → +66 %.
+    expect([c.planTotal, c.vendido, c.esperado, Math.round(c.diferencia! * 100)]).toEqual([54, 48, 29, 66]);
+  });
+  it("sin la propuesta no hay plan de la tienda con qué comparar, pero sí lo vendido", () => {
+    const c = comoVa(porTienda, parejos, { tienda: "aqp", parte: null });
+    expect([c.planTotal, c.esperado, c.vendido]).toEqual([null, null, 48]);
+  });
+  it("las señales de una tienda usan su stock y sus ventas: a Arequipa le alcanzan los polos, a Trujillo no", () => {
+    // AQP: 60 polos en 8 días con 300 → le alcanza; va +78 % sobre su parte (50 × 8/15 = 26.7) → bien.
+    expect(senales(porTienda, parejos, aqp).map((x) => [x.nombre, x.senal])).toEqual([["Polos", "bien"]]);
+    // TRU: 250 polos en 8 días con 30 → pide más.
+    expect(senales(porTienda, parejos, { tienda: "tru", parte: () => 0.8 }).find((x) => x.nombre === "Polos")?.senal).toBe("pedir");
+  });
+  it("la tabla de una tienda lee contra SU parte del plan; sin la parte, no se compara", () => {
+    // AQP vendió 60 polos; su 20 % del plan es flojo 30 · normal 50 · bueno 90.
+    expect(porCategoria(porTienda, "aqp", () => 0.2).find((f) => f.id === "polos")?.lectura).toBe(fraseDeLoReal(60, { flojo: 30, normal: 50, bueno: 90 }));
+    expect(porCategoria(porTienda, "aqp").find((f) => f.id === "polos")?.lectura).toBeNull();
+  });
+  it("sin el stock por tienda de la base, las señales de una tienda no se inventan", () => {
+    expect(senales({ ...porTienda, stockTienda: null }, parejos, aqp)).toEqual([]);
+  });
 });
 
 describe("al terminar: el cierre con sell-through", () => {
@@ -216,6 +256,11 @@ describe("la tabla de categorías: buscar y ordenar", () => {
     expect(filtrarYOrdenarCategorias(filas, "POLO", "mas").map((f) => f.id)).toEqual(["polos"]);
     expect(filtrarYOrdenarCategorias(filas, "indumentária", "az").map((f) => f.id)).toEqual(["jeans", "polos"]);
     expect(filtrarYOrdenarCategorias(filas, "zzz", "mas")).toEqual([]);
+  });
+  it("«Piden atención» deja solo esas, y se combina con lo buscado", () => {
+    expect(filtrarYOrdenarCategorias(filas, "", "mas", new Set(["jeans", "casacas"])).map((f) => f.id)).toEqual(["jeans", "casacas"]);
+    expect(filtrarYOrdenarCategorias(filas, "jea", "mas", new Set(["jeans", "casacas"])).map((f) => f.id)).toEqual(["jeans"]);
+    expect(filtrarYOrdenarCategorias(filas, "", "mas", new Set())).toEqual([]);
   });
   it("no toca la lista que recibe", () => {
     const copia = filas.map((f) => f.id);
@@ -273,5 +318,12 @@ describe("el detalle de una categoría: contra lo esperado y contra la campaña 
   });
   it("sin la propuesta no se inventa nada", () => {
     expect(contraLaCampanaPasada(null, "polos", null)).toBeNull();
+  });
+});
+
+describe("las señales llevan a Análisis ya buscando la categoría", () => {
+  it("pide más → «Se está acabando»; impúlsala → «No se vende»; la categoría va codificada", () => {
+    expect(enlaceAnalisis("pedir", "Aretes")).toBe("/inventario/resumen?vista=acaba&q=Aretes");
+    expect(enlaceAnalisis("impulsar", "Ropa interior/Lencería")).toBe("/inventario/resumen?vista=nose&q=Ropa%20interior%2FLencer%C3%ADa");
   });
 });

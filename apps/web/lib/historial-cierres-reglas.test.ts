@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorDia, agruparPorMes, bloqueFecha, cascadaEfectivo, cobrosPorMedio, diaDelTurno, escalaDiferencia, etiquetaHora, franjaHora, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
+import { agruparPorDia, bloqueFecha, cascadaEfectivo, cobrosPorMedio, diaDelTurno, diasDelGrafico, duracionTurno, escalaDiferencia, estadoCierre, etiquetaHora, filtrarCierres, franjaHora, limitesDelMes, mesDeLima, mesesDelSelector, nombreDelMes, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado, topeDelGrafico } from "./historial-cierres-reglas";
 
 function cierre(p: Partial<CierreCaja>): CierreCaja {
   return {
@@ -20,17 +20,84 @@ describe("historial de cierres", () => {
 
   it("resumirCierres cuenta y suma solo lo que no cuadró", () => {
     const r = resumirCierres([cierre({}), cierre({ diferencia: -5 }), cierre({ diferencia: 2.2 })]);
-    expect(r).toEqual({ total: 3, cuadraron: 1, conDiferencia: 2, diferenciaNeta: -2.8 });
-    expect(resumirCierres([])).toEqual({ total: 0, cuadraron: 0, conDiferencia: 0, diferenciaNeta: 0 });
+    expect(r).toEqual({
+      total: 3, cuadraron: 1, conDiferencia: 2, diferenciaNeta: -2.8,
+      faltaron: { veces: 1, monto: 5 }, sobraron: { veces: 1, monto: 2.2 },
+    });
+    expect(resumirCierres([])).toEqual({
+      total: 0, cuadraron: 0, conDiferencia: 0, diferenciaNeta: 0,
+      faltaron: { veces: 0, monto: 0 }, sobraron: { veces: 0, monto: 0 },
+    });
   });
 
-  it("agruparPorMes usa la hora de Lima (la noche del 30 no salta de mes) y conserva el orden", () => {
-    const g = agruparPorMes([
-      cierre({ id: "a", cerradaEn: "2026-10-01T03:00:00Z" }), // 30/09 22:00 en Lima
-      cierre({ id: "b", cerradaEn: "2026-10-03T15:00:00Z" }),
-    ]);
-    expect(g.map((x) => x.etiqueta)).toEqual(["Setiembre 2026", "Octubre 2026"]);
-    expect(g[0].cierres[0].id).toBe("a");
+  it("resumirCierres: los sellos suman en positivo y cuadran con la neta (los 11 de TRU del 2026-10-12)", () => {
+    const difs = [-0.2, 0, 2, -114.6, -5.6, 0, 0, 31.4, -511.4, 0, 0];
+    const r = resumirCierres(difs.map((diferencia) => cierre({ diferencia })));
+    expect(r.cuadraron).toBe(5);
+    expect(r.faltaron).toEqual({ veces: 4, monto: 631.8 });
+    expect(r.sobraron).toEqual({ veces: 2, monto: 33.4 });
+    expect(r.diferenciaNeta).toBe(-598.4);
+    expect(r.cuadraron + r.faltaron.veces + r.sobraron.veces).toBe(r.total);
+  });
+
+  it("limitesDelMes: el mes de Lima, con el salto de año", () => {
+    expect(limitesDelMes({ anio: 2026, mes: 10 })).toEqual({ desde: "2026-10-01T00:00:00-05:00", hasta: "2026-11-01T00:00:00-05:00" });
+    expect(limitesDelMes({ anio: 2026, mes: 12 }).hasta).toBe("2027-01-01T00:00:00-05:00");
+    // la noche del 31 a las 22:00 en Lima ya es 1.º en UTC, pero es del mes que termina
+    expect(mesDeLima("2026-11-01T03:00:00Z")).toEqual({ anio: 2026, mes: 10 });
+  });
+
+  it("mesesDelSelector: los doce meses, bloqueados los que todavía no llegan", () => {
+    const actual = { anio: 2026, mes: 10 };
+    const m = mesesDelSelector(2026, actual);
+    expect(m).toHaveLength(12);
+    expect(m.filter((x) => x.bloqueado).map((x) => x.mes)).toEqual([11, 12]);
+    expect(m[9]).toEqual({ mes: 10, nombre: "Octubre", bloqueado: false });
+    expect(mesesDelSelector(2025, actual).some((x) => x.bloqueado)).toBe(false);
+    expect(mesesDelSelector(2027, actual).every((x) => x.bloqueado)).toBe(true);
+  });
+
+  it("diasDelGrafico: octubre de TRU (cierres por día, la caja que quedó abierta, hoy y lo que falta)", () => {
+    const L = (s: string) => new Date(`${s}:00-05:00`).toISOString();
+    const c = (id: string, ab: string, ce: string) => cierre({ id, abiertaEn: L(ab), cerradaEn: L(ce) });
+    const lista = [
+      c("d11", "2026-10-11T09:07", "2026-10-11T17:42"),
+      c("d4b", "2026-10-04T11:32", "2026-10-04T16:55"),
+      c("d4a", "2026-10-02T10:48", "2026-10-04T11:32"), // abierta el 2 y el 3
+      c("d1b", "2026-10-01T10:39", "2026-10-01T19:43"),
+      c("d1a", "2026-09-30T10:50", "2026-10-01T10:38"), // se abrió en setiembre
+    ];
+    const dias = diasDelGrafico(lista, { anio: 2026, mes: 10 }, { anio: 2026, mes: 10, dia: 12 });
+    expect(dias).toHaveLength(31);
+    expect(dias[0].cierres.map((x) => x.id)).toEqual(["d1a", "d1b"]); // del más antiguo al más nuevo
+    expect(dias[1].tipo).toBe("abierta");
+    expect(dias[2].tipo).toBe("abierta");
+    expect(dias[3].cierres.map((x) => x.id)).toEqual(["d4a", "d4b"]);
+    expect(dias[4].tipo).toBe("vacio");
+    expect(dias[11].tipo).toBe("hoy");
+    expect(dias[12].tipo).toBe("futuro");
+    // setiembre: la caja abierta el 30 marca la noche del 30, y no aparece ningún cierre (se cerró en octubre)
+    const sep = diasDelGrafico(lista, { anio: 2026, mes: 9 }, { anio: 2026, mes: 10, dia: 12 });
+    expect(sep).toHaveLength(30);
+    expect(sep[29].tipo).toBe("abierta");
+    expect(sep.every((d) => d.cierres.length === 0)).toBe(true);
+    expect(sep.some((d) => d.tipo === "hoy" || d.tipo === "futuro")).toBe(false);
+  });
+
+  it("topeDelGrafico: redondea a S/ 500 hacia arriba, con un piso de 500", () => {
+    expect(topeDelGrafico([{ montoCierreReal: 1550, montoCierreSistema: 2061.4 }])).toBe(2500);
+    expect(topeDelGrafico([{ montoCierreReal: 45.9, montoCierreSistema: 45.9 }])).toBe(500);
+    expect(topeDelGrafico([])).toBe(500);
+    expect(nombreDelMes({ anio: 2026, mes: 10 })).toBe("Octubre 2026");
+  });
+
+  it("filtrarCierres: todos, solo faltó o solo sobró, sin cambiar el orden", () => {
+    const lista = [cierre({ id: "a", diferencia: -1 }), cierre({ id: "b" }), cierre({ id: "c", diferencia: 3 }), cierre({ id: "d", diferencia: -0.5 })];
+    expect(filtrarCierres(lista, "todos").map((c) => c.id)).toEqual(["a", "b", "c", "d"]);
+    expect(filtrarCierres(lista, "falto").map((c) => c.id)).toEqual(["a", "d"]);
+    expect(filtrarCierres(lista, "sobro").map((c) => c.id)).toEqual(["c"]);
+    // menos de un céntimo es «cuadró»: no entra en ninguno de los dos
+    expect(filtrarCierres([cierre({ diferencia: -0.004 })], "falto")).toEqual([]);
   });
 
   it("bloqueFecha da el día de Lima", () => {

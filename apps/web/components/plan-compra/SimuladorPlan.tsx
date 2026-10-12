@@ -23,13 +23,13 @@ export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis }: { fi
   const sim = simular(lineas, mult / 10, rec, calcular);
   const dif = sim.inversion - hoy.inversion;
   return (
-    <section data-guia="plan.simulador" className="card-cayla grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center">
+    <section data-guia="plan.simulador" className="card-cayla grid gap-5 p-5">
       <div className="space-y-3">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-taupe">
           ¿Y si la campaña vende distinto?
           <Ayuda titulo="El simulador">
             <span className="block">Cambia, para todas las categorías con plan a la vez, el «bueno» (cuántas veces un mes normal) y a qué % se vende lo que sobra, y mira cuánto se compraría.</span>
-            <span className="mt-2 block">Solo simula: lo guardado en cada categoría no cambia. La historia de Trujillo: Navidad vendió ×2.0 un día normal y diciembre ×1.8 (pestaña Historial).</span>
+            <span className="mt-2 block">Solo simula: lo guardado en cada categoría no cambia. Cuántas veces un día normal vendió cada tienda en cada campaña está en la pestaña Historial.</span>
           </Ayuda>
         </p>
         <label className="block text-sm text-tinta/80">

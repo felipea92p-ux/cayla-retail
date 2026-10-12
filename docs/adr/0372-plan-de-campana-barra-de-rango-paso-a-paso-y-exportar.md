@@ -210,3 +210,32 @@ pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y
   interactivas recorridas en local (Plan 22 pasos, Resultados 12, Historial 11; la demo no escribió en la base). **Migraciones `20261012163000` y
   `20261012164000` EN PRODUCCIÓN desde el 2026-10-12** (ensayadas y deshechas antes; las pegó Felipe; verificadas como líder: Aniversario CAYLA 2026
   trae 11 días, 34 categorías con stock y las tres tiendas activas; la tabla nueva con RLS y sin políticas, no la lee la web).
+
+## Actualización 2026-10-12 (c) — Resultados de una tienda
+
+Felipe: «al seleccionar una tienda, ¿no debería mostrar de manera individual lo que es suyo, y Toda CAYLA el global?». Eligió que todo siga a la
+tienda. Las tarjetas de tienda son el filtro (las píldoras que repetían lo mismo se fueron); con una elegida, «¿Cómo va?», «Pedir más o impulsar» y
+la columna «Contra el plan» de la tabla son de ELLA, y «Toda CAYLA» sigue siendo el total.
+
+- **Su parte del plan** sale de la misma regla del reparto del Plan (`porcentajes` de `lib/plan-compra-reparto.ts`, con `tiendasParaRepartir`, que
+  ahora usan los dos): el «normal» de cada categoría × la fracción que le toca. Sin la propuesta, no hay plan de la tienda: se dice, no se inventa.
+- Migración `20261012212000` (reservada): `por_dia_tienda` y `stock_tienda` en `fn_plan_compra_resultados` (reemplazo anclado, solo lee). Sin ella,
+  «¿Cómo va?» de una tienda queda en cero y «Pedir más» de una tienda no aparece (no se inventa sin su stock).
+- **DECIDÍ** medir la tienda contra su parte del reparto. **DESCARTÉ** guardar un plan por tienda (otra cifra que llenar y que se desalinea del total).
+  **SE ROMPE SI** el reparto cambia a mitad de campaña (un mínimo nuevo para Lima): la parte de cada tienda se recalcula con el mínimo de hoy, también
+  hacia atrás; el «esperado» de ayer no queda guardado.
+- «Pedir más o impulsar» abre Análisis ya buscando su categoría (`?q=`, que Análisis ahora lee); Análisis mira la sede elegida arriba.
+
+## Actualización 2026-10-12 (d) — la tabla primero
+
+Felipe: «la información está bien, pero no veo la tabla principal». Spike `docs/maquetas/plan-campana-rediseno-2026-10/` (5 rediseños del Plan y 3
+lugares para «Pedir más o impulsar», con la altura de la primera fila medida en cada uno). Eligió:
+
+- **Plan: el botón «Resumen y avisos»** (opción D, sin tocar la cabecera): el aviso de stock, las cifras de toda CAYLA, lo que sobra, el reparto y el
+  simulador viven en el cajón de la derecha (`CajonFicha`, el de Equipo: sin velo, la tabla sigue viva detrás). El botón lleva un número con las
+  tiendas que tienen el stock sin cuadrar (`avisosDelResumen`). La primera categoría pasó de ~1 000 px a 569 px en una pantalla de 900.
+  **DECIDÍ** el cajón con su número. **DESCARTÉ** dejar el aviso de stock a la vista (es lo que más empujaba la tabla) y la cabecera corta (cambia la
+  regla de cabecera del ERP, ADR-0220). **SE ROMPE SI** nadie abre el cajón: el número rojo es lo único que recuerda que el «Hay hoy» está incompleto.
+- **Resultados: R2**, «Pedir más o impulsar» dentro de la tabla de categorías. Durante la campaña, la columna «Lo que sobró» (que siempre decía «Al
+  terminar») se cambia por «Qué hacer» y «Alcanza para», y la píldora «Piden atención N» deja solo esas; «¿Cómo va?» lleva a esa píldora. El acceso
+  a la prenda exacta en Análisis pasó a la hoja de la categoría. Se borraron `SenalesCampana` y `ResumenCompactoPlan`: una tabla de categorías, no dos.

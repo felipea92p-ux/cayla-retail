@@ -21,6 +21,7 @@ import {
 } from "@/lib/plan-piso-percha";
 import { ROL_AYUDA, ROL_ETIQUETA } from "@/lib/plan-piso-grupos";
 import { coloresDelIcono, NOTA_DE_COLORES } from "@/lib/plan-piso-colores";
+import { ColorDeLaTienda } from "@/components/plan-piso/ColorDeLaTienda";
 import { AvisoPorRevisar } from "@/components/plan-piso/AvisoPorRevisar";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { Mancuerna } from "@/components/plan-piso/Mancuerna";
@@ -168,6 +169,8 @@ export function PropuestaDelMix({
   const notaSinGrupo = notaDeSinGrupo(p.sinGrupo.colgadas);
 
   const hayColores = p.enRiel.some((f) => f.colores.some((c) => c.hex !== null));
+  // «Color de la tienda»: de qué familias de color es lo que cuelga y si se parece a lo que se vende (ADR-0352 act. 2026-10-12). Cuenta lo mismo que el riel.
+  const franja = p.colorDeLaTienda ? <ColorDeLaTienda color={p.colorDeLaTienda} cuadrado={p.cuadrado} dias={p.dias} /> : null;
 
   let riel: React.ReactNode = null;
   if (capacidad !== null && dibujaTarjeta) {
@@ -182,6 +185,7 @@ export function PropuestaDelMix({
       propuesta: f.propuestaPrendas ?? 0,
       propuestaPct: f.propuestaPct,
       coloresDelIcono: coloresDelIcono(f.colores),
+      reparto: f.repartoDeColor,
     }));
     const repartidas = grupos.reduce((s, g) => s + g.propuesta, 0);
     const nota = notaDeEscala(rieles.unidad);
@@ -202,16 +206,21 @@ export function PropuestaDelMix({
         panel={panelPorQue}
         nota={nota}
         notaDeColores={hayColores ? NOTA_DE_COLORES : null}
+        colorDeLaTienda={p.colorDeLaTienda}
+        dias={p.dias}
       />
     );
   } else if (dibujaTarjeta) {
     // Sin capacidad medida no hay riel que dibujar, pero «cómo se calcula» sigue a un toque (antes desaparecía con el riel).
     riel = (
-      <div className="pp-riel">
-        <div className="pp-rcab">
-          <PorQue texto={textoPorQue} panel={panelPorQue} />
+      <>
+        <div className="pp-riel">
+          <div className="pp-rcab">
+            <PorQue texto={textoPorQue} panel={panelPorQue} />
+          </div>
         </div>
-      </div>
+        {franja}
+      </>
     );
   }
 

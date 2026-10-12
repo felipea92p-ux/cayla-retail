@@ -76,6 +76,7 @@ export type PieDelFormulario = {
 
 export function FormularioCategoria({
   planId,
+  campana,
   fila,
   vendidoPorTalla,
   tope,
@@ -90,6 +91,8 @@ export function FormularioCategoria({
   irAlMontar = false,
 }: {
   planId: string;
+  /** La campaña que se planifica: su nombre (los textos hablan de ELLA, no de «diciembre») y sus días (el normal de respaldo). */
+  campana: { nombre: string; dias: number };
   /** La categoría con todo lo que la lectura sabe de ella: su plan, lo que hay, lo vendido, el catálogo y dónde está el stock. */
   fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
@@ -164,7 +167,7 @@ export function FormularioCategoria({
     const resto = t.slice(t.indexOf(":") + 1).trim();
     return resto.charAt(0).toUpperCase() + resto.slice(1);
   };
-  const propuesta = propuestaDeNormal(ventas);
+  const propuesta = propuestaDeNormal(ventas, campana.dias);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
 
@@ -269,24 +272,24 @@ export function FormularioCategoria({
             <span className="basis-full text-xs text-tinta/65">
               {propuesta === null
                 ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
-                : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+                : `Lo que vendió por día en 90 días, llevado a los ${campana.dias} días de la campaña: un normal de ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
             </span>
           </>
         )}
       </div>
 
       <fieldset data-guia="plan-modal.escenarios">
-        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en diciembre?</legend>
-        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si el mes va flojo, normal o bueno.</p>
+        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en {campana.nombre}?</legend>
+        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si la campaña va floja, normal o buena.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
           <CampoGuiado id="flojo" guia={guia} titulo="Flojo">
-            <CampoTexto etiqueta="Diciembre flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="normal" guia={guia} titulo="Normal">
-            <CampoTexto etiqueta="Diciembre normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="bueno" guia={guia} titulo="Bueno">
-            <CampoTexto etiqueta="Diciembre bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
           </CampoGuiado>
         </div>
       </fieldset>
@@ -323,7 +326,7 @@ export function FormularioCategoria({
             </span>
           </div>
           <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
-            {loQueSobra ?? "Lo que quede sin vender después de diciembre: a cuánto lo venderías en la liquidación de enero. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
+            {loQueSobra ?? "Lo que quede sin vender al terminar la campaña: a cuánto lo venderías después, en la liquidación. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
             {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
               <span className="mt-1 block text-xs text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
             )}
@@ -392,7 +395,7 @@ export function FormularioCategoria({
             )}
           </>
         ) : (
-          <p className="text-sm text-tinta/70">Cuando completes los tres diciembres, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
+          <p className="text-sm text-tinta/70">Cuando completes los tres escenarios, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
         )}
       </div>
 

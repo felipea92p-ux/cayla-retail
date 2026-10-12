@@ -32,3 +32,5 @@
   nombre de la campaña.
 - [ ] **«Diciembre 2026» y «Navidad 2026» se superponen**: en diciembre las dos están «En curso»; decidir si Navidad es parte de Diciembre.
 - [ ] **Refrescar el volcado de producción** cuando entren las migraciones (`ventas_historicas`, `recupero_defecto_pct` y las funciones nuevas).
+- [x] **`20261012212000_plan_compra_resultados_por_tienda.sql` EN PRODUCCIÓN (2026-10-12)**, verificada como líder: «¿Cómo va?» y «Pedir más» de una
+  tienda.
