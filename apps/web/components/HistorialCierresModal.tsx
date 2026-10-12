@@ -1,14 +1,21 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CircleCheck, Clock, Wallet } from "lucide-react";
+import { CalendarX, CircleCheck, Clock } from "lucide-react";
+import { leerCierresDelMes } from "@/app/actions/caja";
+import { Aviso } from "@/components/ui/Aviso";
 import { Modal } from "@/components/ui/Modal";
+import { SelectorMes } from "@/components/ui/SelectorMes";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
 import { ANCHO_DETALLE_CIERRE, DetalleCierreContenido, bajadaDelCierre, tituloDelCierre, useDatosDetalleCierre } from "@/components/CierreCajaDetalle";
+import { GraficoCierresDelMes } from "@/components/GraficoCierresDelMes";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorMes, bloqueFecha, duracionTurno, estadoCierre, filtrarCierres, resumirCierres, type EstadoCierre, type FiltroCierres } from "@/lib/historial-cierres-reglas";
+import { NOMBRES_MES, esMismoMes, type Mes } from "@/lib/facturacion-reglas";
+import { bloqueFecha, diaDeLima, duracionTurno, estadoCierre, filtrarCierres, mesDeLima, resumirCierres, type EstadoCierre, type FiltroCierres } from "@/lib/historial-cierres-reglas";
+
+const claveMes = ({ anio, mes }: Mes) => `${anio}-${mes}`;
 
 function money(n: number) {
   return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -27,21 +34,76 @@ function textoSello(estado: EstadoCierre, diferencia: number) {
 const veces = (n: number) => (n === 1 ? "vez" : "veces");
 
 /**
- * «Historial de cierres» desde la cabecera de Caja: los últimos cierres de esta sede como tickets de caja, cada uno con
+ * «Historial de cierres» desde la cabecera de Caja: los cierres de esta sede EN UN MES como tickets de caja, cada uno con
  * su sello (CUADRÓ · FALTÓ · SOBRÓ), y arriba los tres sellos contados (Felipe 2026-10-12, maqueta E «Los tickets», elegida
- * entre cinco). El ticket no lleva quién cerró: eso está en el detalle. Tocar un ticket abre el detalle de ese cierre EN LA
+ * entre cinco). Abre siempre en el mes actual; arriba a la derecha se elige otro mes o el año anterior (`SelectorMes`), y
+ * sobre los sellos va «Cómo cerró cada día», una barra por cierre con lo que se contó (`GraficoCierresDelMes`, maqueta 1,
+ * Felipe el mismo día). El ticket no lleva quién cerró: eso está en el detalle. Tocar un ticket o una barra abre el detalle de ese cierre EN LA
  * MISMA HOJA (Felipe 2026-10-10, opción «A ampliada»): la hoja crece de ancho para dejar los movimientos a la derecha y
  * arriba lleva «← Historial de cierres» para volver. La lista queda montada (escondida) mientras se mira un cierre, así que
  * al volver el filtro y el lugar del desplazamiento siguen donde estaban. La lógica (resumen, filtro, agrupado, estado) vive
  * en `lib/historial-cierres-reglas.ts`; el papel y el sello, en `app/estilos/historial-tickets.css`.
  */
-export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { cierres: CierreCaja[]; ubicacionNombre: string; onClose: () => void }) {
+export function HistorialCierresModal({
+  cierres: recientes,
+  ubicacionId,
+  ubicacionNombre,
+  onClose,
+}: {
+  /** Los cierres recientes que la pantalla ya tiene: dibujan el mes actual al instante mientras llega el mes completo. */
+  cierres: CierreCaja[];
+  ubicacionId: string;
+  ubicacionNombre: string;
+  onClose: () => void;
+}) {
+  // Hoy, en Lima: se fija al abrir el modal (el mes actual y el día marcado con «HOY» en el gráfico).
+  const [hoy] = useState(() => diaDeLima(new Date().toISOString()));
+  const actual: Mes = useMemo(() => ({ anio: hoy.anio, mes: hoy.mes }), [hoy]);
+  const [mes, setMes] = useState<Mes>(actual);
+  const [porMes, setPorMes] = useState<Record<string, CierreCaja[]>>(() => ({
+    [claveMes(actual)]: recientes.filter((c) => c.ubicacionId === ubicacionId && esMismoMes(mesDeLima(c.cerradaEn), actual)),
+  }));
+  const [leidos, setLeidos] = useState<Set<string>>(() => new Set());
+  const [errorMes, setErrorMes] = useState(false);
+  const [reintento, setReintento] = useState(0);
   const [filtro, setFiltro] = useState<FiltroCierres>("todos");
   const { abierto, abrir, cerrar, detalle, cargando, error } = useDatosDetalleCierre();
   const lista = useRef<HTMLDivElement>(null);
   const desplazamiento = useRef({ hoja: 0, lista: 0 });
+
+  const clave = claveMes(mes);
+  const cierres = useMemo(() => porMes[clave] ?? [], [porMes, clave]);
+  const yaLeido = leidos.has(clave);
   const resumen = useMemo(() => resumirCierres(cierres), [cierres]);
-  const grupos = useMemo(() => agruparPorMes(filtrarCierres(cierres, filtro)), [cierres, filtro]);
+  const visibles = useMemo(() => filtrarCierres(cierres, filtro), [cierres, filtro]);
+  const nombre = NOMBRES_MES[mes.mes - 1].toLowerCase();
+
+  // Cada mes se lee una vez (el actual también: los recientes pueden no traerlo entero) y queda guardado mientras el
+  // modal esté abierto, así que ir y volver entre meses no vuelve a pedir nada.
+  useEffect(() => {
+    if (leidos.has(clave)) return;
+    let vigente = true;
+    leerCierresDelMes(ubicacionId, mes.anio, mes.mes)
+      .then((filas) => {
+        if (!vigente) return;
+        setPorMes((p) => ({ ...p, [clave]: filas }));
+        setLeidos((l) => new Set(l).add(clave));
+        setErrorMes(false);
+      })
+      .catch(() => {
+        if (vigente) setErrorMes(true);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [clave, leidos, mes, ubicacionId, reintento]);
+
+  function cambiarMes(m: Mes) {
+    setMes(m);
+    setFiltro("todos");
+    setErrorMes(false);
+    listaScroll()?.scrollTo({ top: 0 });
+  }
 
   // La hoja es la que se desplaza (`role="dialog"`); la lista de cierres tiene además su propio desplazamiento.
   const hoja = () => lista.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
@@ -77,7 +139,11 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
     <Modal
       conCerrar
       titulo={abierto ? tituloDelCierre(abierto) : "Historial de cierres"}
-      subtitulo={abierto ? bajadaDelCierre(abierto) : `${ubicacionNombre} · ${cierres.length === 0 ? "sin cierres todavía" : `últimos ${cierres.length}`}`}
+      subtitulo={
+        abierto
+          ? bajadaDelCierre(abierto)
+          : `${ubicacionNombre} · ${errorMes ? `${nombre} de ${mes.anio}` : !yaLeido && cierres.length === 0 ? "leyendo…" : cierres.length === 0 ? `sin cierres en ${nombre}` : `${cierres.length} ${cierres.length === 1 ? "cierre" : "cierres"} en ${nombre}`}`
+      }
       onClose={onClose}
       // La hoja crece (o se encoge) al pasar de la lista al detalle con el mismo ritmo de las demás: `ease-cayla`, sin rebote.
       ancho={`${abierto ? ANCHO_DETALLE_CIERRE : "max-w-xl"} transition-[max-width] duration-300 ease-cayla motion-reduce:transition-none`}
@@ -89,17 +155,37 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
               Historial de cierres
             </button>
           </div>
-        ) : undefined
+        ) : (
+          // El mes, a la altura del título y a la izquierda de la ✕ (el Modal no tiene otro lugar para un control ahí).
+          <div className="pointer-events-none relative z-[1] -mb-10 flex justify-end pr-9 max-[480px]:mb-2 max-[480px]:justify-start max-[480px]:pr-0">
+            <div className="pointer-events-auto">
+              <SelectorMes valor={mes} actual={actual} onCambiar={cambiarMes} />
+            </div>
+          </div>
+        )
       }
     >
       <div ref={lista} hidden={abierto !== null}>
-        {cierres.length === 0 ? (
-          <Vacio tamano="chico" icono={<Wallet />} className="py-8">
-            Todavía no hay cierres en esta sede. Aparecerán aquí cuando se cierre la primera caja.
-          </Vacio>
+        {errorMes ? (
+          <Aviso tono="error" titulo={`No se pudieron leer los cierres de ${nombre}`} className="mt-3" accion={<button type="button" className="btn-cayla btn-enlace" onClick={() => setReintento((r) => r + 1)}>Reintentar</button>}>
+            Revisa la conexión y vuelve a intentarlo.
+          </Aviso>
+        ) : cierres.length === 0 ? (
+          yaLeido && (
+            <Vacio
+              tamano="chico"
+              icono={<CalendarX />}
+              className="py-8"
+              accion={esMismoMes(mes, actual) ? undefined : { texto: `Ir a ${NOMBRES_MES[actual.mes - 1].toLowerCase()}`, onClick: () => cambiarMes(actual) }}
+            >
+              {esMismoMes(mes, actual) ? `Todavía no hay cierres en ${nombre}. Aparecerán aquí cuando se cierre la caja.` : `En ${nombre} de ${mes.anio} no hubo cierres en esta sede.`}
+            </Vacio>
+          )
         ) : (
           <>
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <GraficoCierresDelMes cierres={cierres} mes={mes} hoy={hoy} onVer={verCierre} />
+
+            <div className="mt-2.5 grid grid-cols-3 gap-2">
               <CuentaSello estado="cuadro" texto="Cuadró" veces={resumen.cuadraron} />
               <CuentaSello estado="falto" texto="Faltó" veces={resumen.faltaron.veces} monto={resumen.faltaron.monto} />
               <CuentaSello estado="sobro" texto="Sobró" veces={resumen.sobraron.veces} monto={resumen.sobraron.monto} />
@@ -113,29 +199,25 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
               ))}
             </div>
 
-            <div data-lista-cierres className="scroll-cayla -mx-1 mt-2 max-h-[52vh] overflow-y-auto px-1 pb-1">
-              {grupos.length === 0 && (
+            <div data-lista-cierres className="scroll-cayla -mx-1 mt-3 max-h-[44vh] overflow-y-auto px-1 pb-1">
+              {visibles.length === 0 ? (
                 <Vacio tamano="chico" icono={<CircleCheck />} className="py-8">
-                  {filtro === "falto" ? "En ningún cierre faltó plata." : "En ningún cierre sobró plata."}
+                  {filtro === "falto" ? `En ningún cierre de ${nombre} faltó plata.` : `En ningún cierre de ${nombre} sobró plata.`}
                 </Vacio>
+              ) : (
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {visibles.map((c) => (
+                    <li key={c.id}>
+                      <Ticket cierre={c} onVer={() => verCierre(c)} />
+                    </li>
+                  ))}
+                </ul>
               )}
-              {grupos.map((g) => (
-                <section key={g.clave} aria-label={g.etiqueta}>
-                  <h3 className="label-cayla sticky top-0 z-10 bg-[var(--fondo-hoja)] pb-2 pt-3 text-[10px] text-tinta/60">{g.etiqueta}</h3>
-                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {g.cierres.map((c) => (
-                      <li key={c.id}>
-                        <Ticket cierre={c} onVer={() => verCierre(c)} />
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
             </div>
           </>
         )}
         <div className="flex items-center justify-between gap-3 pt-3">
-          <p className="text-xs text-tinta/60">Toca un ticket para ver su detalle</p>
+          <p className="text-xs text-tinta/60">{cierres.length > 0 ? "Toca un ticket o una barra para ver su detalle" : ""}</p>
           <Link href="/caja/historial" className="label-cayla text-[11px] text-rojo hover:text-rojo-profundo">
             Ver todas las sedes →
           </Link>
@@ -151,10 +233,10 @@ function CuentaSello({ estado, texto, veces: n, monto }: { estado: EstadoCierre;
   return (
     <div className="ht-cuenta" data-estado-cierre={estado}>
       <span className="ht-sello">{texto}</span>
-      <span className="font-display text-[28px] leading-none text-tinta tabular-nums">{n}</span>
-      <span className="text-[11.5px] text-tinta/60">
+      <span className="font-display text-[24px] leading-none text-tinta tabular-nums">{n}</span>
+      <span className="text-left text-[11px] leading-tight text-tinta/60">
         {veces(n)}
-        {monto !== undefined && n > 0 && <span className="tabular-nums"> · {money(monto)}</span>}
+        {monto !== undefined && n > 0 && <span className="block tabular-nums">{money(monto)}</span>}
       </span>
     </div>
   );
