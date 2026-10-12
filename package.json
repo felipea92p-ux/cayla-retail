@@ -23,6 +23,7 @@
     "chaos:invariantes": "node scripts/chaos/invariantes.mjs",
     "chaos:catalogo": "node scripts/chaos/catalogo.mjs",
     "pruebas:registrar-cambio": "node scripts/pruebas/registrar_cambio.mjs",
+    "pruebas:cambio-sin-precio": "node scripts/pruebas/cambio_sin_precio.mjs",
     "pruebas:actividad": "node scripts/pruebas/actividad.mjs",
     "pruebas:observatorio": "node scripts/pruebas/observatorio.mjs",
     "pruebas:mis-ventas": "node scripts/pruebas/mis_ventas_del_dia.mjs",
