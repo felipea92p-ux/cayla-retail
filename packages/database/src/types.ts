@@ -2350,6 +2350,7 @@ export type Database = {
           activo: boolean
           codigo: string
           created_at: string
+          entra_a_motores: boolean
           exige_tejido_patron: boolean
           nombre: string
           orden: number
@@ -2358,6 +2359,7 @@ export type Database = {
           activo?: boolean
           codigo: string
           created_at?: string
+          entra_a_motores?: boolean
           exige_tejido_patron?: boolean
           nombre: string
           orden?: number
@@ -2366,6 +2368,7 @@ export type Database = {
           activo?: boolean
           codigo?: string
           created_at?: string
+          entra_a_motores?: boolean
           exige_tejido_patron?: boolean
           nombre?: string
           orden?: number
@@ -5403,6 +5406,7 @@ export type Database = {
       }
 
       fn_candidatas_de_venta: { Args: { p_ubicacion_id: string }; Returns: { disponible: number; limpia: boolean; prenda_id: string; variante_id: string }[] }
+      fn_categoria_entra_a_motores: { Args: { p_categoria_id: string }; Returns: boolean }
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }

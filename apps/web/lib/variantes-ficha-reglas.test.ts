@@ -20,6 +20,7 @@ import {
   corregida,
   corregir,
   costoEfectivo,
+  costoMaximoGuardado,
   costosSinComprobar,
   destinoGuardado,
   ejesDeLaPrenda,
@@ -43,6 +44,7 @@ import {
   nombreVariante,
   ordenDeGuardado,
   payloadVariantes,
+  precioValido,
   precioYCostoPorDefecto,
   problemasVariantes,
   puedeQuedarSinColor,
@@ -575,6 +577,14 @@ describe("precio y costo en bloque", () => {
     expect(aplicarEnBloque(filas, "precio", "todas", "0").error).toBe("Escribe un precio mayor que 0.");
   });
 
+  it("en Empaque (fuera de los motores) el precio puede ser 0, nunca negativo", () => {
+    const filas = filasDeProducto([variante("a", "ARN", "t-s"), variante("b", "ARN", "t-m")], N);
+    const r = aplicarEnBloque(filas, "precio", "todas", "0", true);
+    expect(r.error).toBeNull();
+    expect(r.aplicadas).toBe(2);
+    expect(aplicarEnBloque(filas, "precio", "todas", "-1", true).error).toBe("Escribe un precio de 0 o más.");
+  });
+
   it("los alcances: todas, y cada color o talla solo si hay más de uno", () => {
     const filas = filasDeProducto([variante("a", null, "t-s"), variante("b", null, "t-m")], N);
     expect(alcancesDeBloque(filas, N)).toEqual([
@@ -582,6 +592,29 @@ describe("precio y costo en bloque", () => {
       { valor: "talla:t-s", texto: "Talla: S" },
       { valor: "talla:t-m", texto: "Talla: M" },
     ]);
+  });
+
+  describe("el costo que fija el piso del precio de una tienda (lo guardado, la talla que más cuesta)", () => {
+    const filas = (...vs: VarianteOrigen[]) => filasDeProducto(vs, N);
+    it("es el mayor costo de las tallas activas guardadas", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 35.5 }), variante("c", "NEG", "t-l", { costo: 30 })))).toBe(35.5);
+    });
+    it("una talla desactivada no cuenta (la base mira solo las activas)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 99, activo: false })))).toBe(20);
+    });
+    it("lo que se está escribiendo no cuenta: manda lo guardado", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
+      expect(costoMaximoGuardado([{ ...f!, costo: "500" }])).toBe(20);
+    });
+    it("una variante nueva (todavía no existe para la base) no cuenta", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
+      expect(costoMaximoGuardado([{ ...f!, guardada: null, id: null, costo: "50" }])).toBeNull();
+    });
+    it("quien no ve el dinero (costo vacío) o sin costo cargado: no hay piso que mostrar", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: null as unknown as number })))).toBeNull();
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 0 })))).toBeNull();
+      expect(costoMaximoGuardado([])).toBeNull();
+    });
   });
 
   it("el margen usa el costo guardado si el campo quedó vacío (el vacío no es cero)", () => {
@@ -626,6 +659,28 @@ describe("problemas antes de guardar", () => {
     const p = problemasVariantes(filas, N);
     expect(p).toContainEqual({ texto: "Negro S necesita un precio mayor que 0.", bloquea: true, clave: "a" });
     expect(p.some((x) => x.clave === "b")).toBe(false);
+  });
+
+  // La bolsa de obsequio (ADR-0377, Felipe 2026-10-10): solo una categoría de Empaque admite 0. Si la prenda se pasa a una
+  // categoría de mercadería, el 0 vuelve a bloquear: lo decide la categoría ELEGIDA, no la guardada.
+  it("precio 0 solo pasa en una categoría de Empaque; negativo o vacío bloquean igual", () => {
+    const empaque = { tallasHabilitadas: ["t-s", "t-m"], cambio: false, admitePrecioCero: true };
+    const prenda = { tallasHabilitadas: ["t-s", "t-m"], cambio: true, admitePrecioCero: false };
+    const cero = filasDeProducto([variante("a", "NEG", "t-s", { precio: 0 })], N);
+    expect(problemasVariantes(cero, N, empaque).some((x) => x.clave === "a")).toBe(false);
+    expect(problemasVariantes(cero, N, prenda)).toContainEqual({ texto: "Negro S necesita un precio mayor que 0.", bloquea: true, clave: "a" });
+    const negativa = filasDeProducto([variante("a", "NEG", "t-s", { precio: -1 })], N);
+    expect(problemasVariantes(negativa, N, empaque)).toContainEqual({ texto: "Negro S necesita un precio de 0 o más.", bloquea: true, clave: "a" });
+  });
+
+  it("precioValido: 0 solo con permiso; negativo y NaN nunca", () => {
+    expect([precioValido(0), precioValido(0, true), precioValido(0.5), precioValido(-1, true), precioValido(Number.NaN, true)]).toEqual([
+      false,
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 
   it("«Sin color» junto a colores bloquea con la misma frase que la base", () => {

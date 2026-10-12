@@ -1,18 +1,17 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Info, Layers, Search, Shirt, X } from "lucide-react";
+import { ChevronDown, Info, Search, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { ResumenSede } from "@/components/ui/ResumenSede";
 import {
   FILTROS_ESTADO,
   SIN_FILTROS,
   TODAS_LAS_CATEGORIAS,
   accionDeFila,
   agrupar,
-  avisoPocasVentas,
+  mayoriaAproximada,
   cifrasVista,
   consultaDe,
   fraseEncabezado,
@@ -39,7 +38,7 @@ import {
   resumenPie,
   textoConsecuenciaFila,
 } from "@/lib/frescura-pantalla";
-import type { FrescuraSede } from "@/lib/frescura-reglas";
+import { varaQueJuzgo, type FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
 import { plazoDeAccion, type AccionDecision } from "@/lib/frescura-decisiones-reglas";
 import { bloqueDeDecision, filaDeDecision, notaDelMes } from "@/lib/frescura-decisiones-pantalla";
@@ -49,7 +48,10 @@ import { FrescuraComoSeLee } from "./FrescuraComoSeLee";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTablero } from "./FrescuraTablero";
-import { FrescuraTiendas } from "./FrescuraTiendas";
+import { FrescuraPiso } from "./FrescuraPiso";
+import { FrescuraAguja } from "./FrescuraAguja";
+import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
+import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -71,12 +73,10 @@ function escribirUrl(f: Filtros, prenda: string | null) {
 export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso: AccesoFrescura }) {
   const params = useSearchParams();
   const router = useRouter();
-  const [verTiendas, setVerTiendas] = useState(false);
   const [comoSeLee, setComoSeLee] = useState(false);
   // El pie dice cifras; los nombres se despliegan a un toque (Formidable 2026-10-09, ley 8).
   const [verGuardadas, setVerGuardadas] = useState(false);
   const [verNuncaColgadas, setVerNuncaColgadas] = useState(false);
-  const botonTiendas = useRef<HTMLButtonElement | null>(null);
   const [pedidos, setPedidos] = useState<Filtros>(() => filtrosDeUrl((k) => params.get(k)));
   const [prendaAbierta, setPrendaAbierta] = useState<string | null>(() => params.get("prenda"));
   // Con qué se abre la hoja: el detalle, o directo «Ya decidí» con una opción marcada (el botón de la fila que no pudo anotar a
@@ -106,10 +106,75 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
   // El tablero por categoría (nivel 1): se arma con TODAS las prendas de la tabla, no con las filtradas, para que no cambie al tocarlo.
   const tablero = useMemo(() => (ctx ? tableroVista(enTabla, ctx) : []), [enTabla, ctx]);
+  // La tienda de un vistazo (ADR-0208, act. 2026-10-10 (b)): una barra por familia, con todo lo colgado (no solo lo de la tabla filtrada).
+  const piso = useMemo(
+    () =>
+      sede
+        ? pisoPorFamilia(sede.prendas, {
+            familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null,
+            familias: datos.familias,
+            precioDe: (v) => datos.precios[v] ?? null,
+          })
+        : [],
+    [sede, datos.categoriasVisuales, datos.familias, datos.precios],
+  );
+  // Arriba, toda la tienda (Felipe, Formidable 2026-10-10 (c)); cada familia va debajo en su línea.
+  const tienda = useMemo(() => pisoDeLaTienda(piso), [piso]);
+  // Contra hace 4 semanas (la meta de Felipe): toda la tienda, reconstruida del mismo libro en el servidor.
+  const antes = sede?.haceUnMes && tienda ? conteoDeTodo(sede.haceUnMes) : null;
+  // Hoy, contado con la misma regla que hace 4 semanas (sin apartar lo vendido sin registrar): la tendencia compara lo mismo con lo mismo.
+  const hoyComparable = useMemo(
+    () =>
+      sede && antes
+        ? (pisoDeLaTienda(
+            pisoPorFamilia(sede.prendas, { familiaDe: (cat) => datos.categoriasVisuales[cat]?.familia ?? null, familias: datos.familias, sinApartar: true }),
+          )?.unidades ?? null)
+        : null,
+    [sede, antes, datos.categoriasVisuales, datos.familias],
+  );
+  const respuesta = sede ? respuestaDelPiso(tienda, datos.puerta, antes, hoyComparable) : null;
+  // Lo que mueve la aguja: las categorías que se quedan y la que se lleva más (con lo anotado en caja como control).
+  const pisoCuadrado = datos.puerta?.pisoCuadrado === true;
+  const anotadasDe = useMemo(() => {
+    const m = new Map(datos.anotadas.map((a) => [a.categoriaId, a]));
+    return (cat: string, dias: number) => {
+      const a = m.get(cat);
+      return a ? (dias <= 14 ? a.d14 : a.d28) : 0;
+    };
+  }, [datos.anotadas]);
+  // Para la rapidez de la aguja: solo lo anotado con el piso ya cuadrado (antes, lo colgado no se medía y las ventas de la cola de
+  // arranque inflaban a su categoría; revisión adversaria). «Lo que más se llevan» sí cuenta todo: es lo que se lleva el cliente.
+  const anotadasMedidas = useMemo(() => {
+    const m = new Map(datos.anotadas.map((a) => [a.categoriaId, a]));
+    const desde = datos.puerta?.cuadradoEn ? Date.parse(datos.puerta.cuadradoEn) : Infinity;
+    // «Ahora» es el de la lectura (puro: nada de la hora del navegador al dibujar).
+    const ahora = sede ? Date.parse(sede.ahora) : 0;
+    return (cat: string, dias: number) => (m.get(cat)?.fechas ?? []).filter((f) => Date.parse(f) >= Math.max(desde, ahora - dias * 86_400_000)).length;
+  }, [datos.anotadas, datos.puerta, sede]);
+  const senales = useMemo(
+    () => {
+      if (!sede) return [];
+      // La vara que juzgó a cada categoría: «se queda por edad» compara lo viejo contra lo que ELLA espera (Formidable 2026-10-10 (c)).
+      const varas = new Map(sede.categorias.map((v) => [v.categoriaId, varaQueJuzgo(v).cortes]));
+      return loQueMueveLaAguja(sede.prendas, sede.ritmoPorCategoria, {
+        pisoCuadrado,
+        anotadas: datos.anotadas.length > 0 ? anotadasMedidas : undefined,
+        varaDe: (cat) => varas.get(cat) ?? null,
+      });
+    },
+    [sede, pisoCuadrado, datos.anotadas, anotadasMedidas],
+  );
+  const seLlevan = useMemo(() => {
+    if (!sede || pisoCuadrado) return [];
+    const nombres = new Map<string, string>([...sede.categorias.map((c) => [c.categoriaId, c.categoriaNombre] as const), ...datos.anotadas.map((a) => [a.categoriaId, a.nombre] as const)]);
+    return loQueSeLlevan(sede.ritmoPorCategoria, anotadasDe, datos.anotadas.map((a) => a.categoriaId), (cat) => nombres.get(cat) ?? "Sin categoría");
+  }, [sede, pisoCuadrado, datos.anotadas, anotadasDe]);
   // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
   const sinTemporada = textoSinTemporada(enTabla);
-  // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
-  const avisoPocas = ctx ? avisoPocasVentas(enTabla, datos.sede.nombre) : null;
+  // Lo aproximado se dice UNA vez, en la tarjeta de la tienda, cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada
+  // fila lo marca. Con la puerta cerrada ya lo dice su aviso.
+  const aproximadoEsLaRegla = ctx ? mayoriaAproximada(enTabla) : false;
+  const puertaCerrada = datos.puerta === null || !datos.puerta.puedeHablar;
   const cifras = sede ? cifrasVista(sede.cifras) : null;
   const pie = sede ? pieVista(sede.prendas) : null;
   const resumenDelPie = pie ? resumenPie(pie) : null;
@@ -134,6 +199,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const { primeroLoDecidible, efectivos } = vistaDeEntrada(filtros, cifras?.porDecidir ?? 0);
   const visibles = enTabla.filter((p) => pasaFiltros(p, efectivos));
   const grupos = agrupar(visibles);
+  // Lo por decidir es de UNA categoría: su nombre va en la franja «Esperan tu decisión» y no en una franja propia.
+  const franjaUnica = primeroLoDecidible && grupos.length === 1;
 
   const cambiar = (cambio: Partial<Filtros>) => {
     const f = { ...filtros, ...cambio };
@@ -214,28 +281,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       : null;
 
   // ---- La cabecera ----
-  // Solo el atajo a las otras tiendas (líder). El registro al colgar y «Ventas a pedido» (que aún no tiene dato) ya no ocupan la cabecera:
-  // el registro vive en «¿Cómo se lee esto?».
-  const pieCabecera =
-    datos.esLider && datos.tiendas && datos.tiendas.length > 1 ? (
-      <p className="max-w-[30rem] text-[13px] leading-relaxed text-taupe">
-        {/* «Comparar», no «Ver»: la ciega leyó «Ver las 2 tiendas» como cambiar de tienda (Formidable 2026-10-09). */}
-        <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]">
-          Comparar las {datos.tiendas.length} tiendas
-        </button>
-      </p>
-    ) : undefined;
-
-  // Dos datos neutros. «Por decidir» NO es una cifra aparte: lo dice la frase de arriba y lo filtra la píldora de abajo (una sola vez).
-  const resumen = cifras && (
-    <ResumenSede
-      sede={datos.sede.nombre}
-      cifras={[
-        { valor: enTabla.length, etiqueta: enTabla.length === 1 ? "prenda colgada" : "prendas colgadas", icono: Shirt },
-        { valor: cifras.unidades, etiqueta: `${cifras.unidades === 1 ? "unidad" : "unidades"} en el piso`, icono: Layers },
-      ]}
-    />
-  );
+  // Sin atajo a las otras tiendas: comparar tiendas es CAYLA Global ▸ Frescura, una sola forma de hacerlo (Felipe, Formidable 2026-10-10 (c):
+  // «Comparar las N tiendas» mostraba el % Nueva y la edad promedio que el ADR ya había retirado). El registro al colgar vive en «¿Cómo se lee esto?».
 
   // «¿Cómo se lee esto?» va junto al título del tablero (cabía de milagro en la fila de filtros: a 1440 caía solo a una segunda
   // línea y costaba 38 px de pantalla); sin tablero (nada colgado), vuelve a la fila de filtros.
@@ -253,12 +300,28 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   );
 
   return (
-    <div className="space-y-6">
-      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(cifras ? cifras.porDecidir : null, avisoPocas !== null)} />} pie={pieCabecera}>
-        {resumen}
-      </EncabezadoPagina>
+    <div className="space-y-5">
+      {/* La frase es la pregunta de Felipe y su respuesta (la barra de abajo); lo que espera decisión lo dicen la franja y la píldora. */}
+      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(respuesta)} />} />
 
-      <section aria-label="Prendas por categoría" className="card-cayla overflow-hidden" data-resultados>
+      {sede && <FrescuraPiso tienda={tienda} familias={piso} puerta={datos.puerta} acceso={acceso} antes={respuesta?.antes ?? null} pocasVentas={aproximadoEsLaRegla} dudasFallo={sede.dudasFallo === true} />}
+
+      {sede && datos.sede.tienda && (
+        <FrescuraAguja
+          senales={senales}
+          pisoCuadrado={pisoCuadrado}
+          seLlevan={seLlevan}
+          estrenar={sinEstrenar(sede.prendas)}
+          puedeBajar={acceso.existencias}
+          onVerCategoria={(cat) => {
+            cambiar({ cat });
+            const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            document.getElementById("frescura-prendas")?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" });
+          }}
+        />
+      )}
+
+      <section id="frescura-prendas" aria-label="Prendas por categoría" className="card-cayla scroll-mt-4 overflow-hidden" data-resultados>
         {!sede ? (
           <EstadoSinLectura datos={datos} onReintentar={() => router.refresh()} />
         ) : (
@@ -272,7 +335,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               acciones={botonComoSeLee}
             />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
-            <div className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
               <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
                 <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
                 <input
@@ -348,14 +411,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 sinTemporada={sinTemporada === null ? null : { texto: sinTemporada, href: acceso.atributos ? "/productos/atributos?tipo=temporadas&vista=completar" : null }}
               />
             )}
-            {avisoPocas && (
-              <p role="status" className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  <TextoConNegritas texto={avisoPocas} />
-                </span>
-              </p>
-            )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
@@ -364,9 +419,16 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             )}
 
             {primeroLoDecidible ? (
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-3 sm:px-5">
-                {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces). */}
-                <span className="text-sm font-semibold text-tinta">Esperan tu decisión</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-2.5 sm:px-5">
+                {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces).
+                    Con un solo grupo, su nombre va en esta misma franja y no en una propia (Formidable 2026-10-10 (c): 57 px menos). */}
+                {franjaUnica ? (
+                  <h2 className="text-sm font-semibold text-tinta">
+                    Esperan tu decisión <span className="font-normal text-taupe">· {grupos[0].nombre}</span>
+                  </h2>
+                ) : (
+                  <span className="text-sm font-semibold text-tinta">Esperan tu decisión</span>
+                )}
                 <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13.5px]" onClick={() => cambiar({ todas: true })}>
                   Ver todas las prendas ({enTabla.length})
                 </button>
@@ -385,7 +447,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">
                 {filtros.porDecidir && !hayFiltros({ ...filtros, porDecidir: false }) ? (
                   <>
-                    <b className="font-semibold text-tinta">{avisoPocas === null ? "Nada por decidir: todo en orden." : "Nada por decidir por ahora."}</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
+                    <b className="font-semibold text-tinta">{aproximadoEsLaRegla || puertaCerrada ? "Nada por decidir por ahora." : "Nada por decidir: todo en orden."}</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => cambiar({ porDecidir: false, todas: true })}>
                       Ver todas las prendas
                     </button>
@@ -410,6 +472,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               grupos.map((g) => {
                 return (
                   <Fragment key={g.categoriaId}>
+                    {!franjaUnica && (
                     <div className="border-t border-sand px-4 pb-3 pt-4 sm:px-5">
                       <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
                         <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">
@@ -423,6 +486,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                         </h2>
                       </div>
                     </div>
+                    )}
                     <div className="overflow-x-auto [scrollbar-width:thin]">
                       <div className={ANCHO_MINIMO_TABLA}>
                         <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
@@ -445,7 +509,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                                 fila={filaVista(p, ctx!)}
                                 onAbrir={() => abrir(p.clave)}
                                 decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)}
-                                marcarAproximado={avisoPocas === null}
+                                marcarAproximado={!aproximadoEsLaRegla}
                                 apariencia={datos.apariencias[p.clave] ?? null}
                                 categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
                                 accion={accion}
@@ -520,9 +584,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           modoInicial={hojaPedida.modo}
           opcionInicial={hojaPedida.opcion}
         />
-      )}
-      {verTiendas && datos.tiendas && datos.registro && (
-        <FrescuraTiendas tiendas={datos.tiendas} registro={datos.registro} actual={datos.sede.id} volverA={botonTiendas} onClose={() => setVerTiendas(false)} />
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { contar, tolerarLectura } from "@/lib/inicio";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { planDelPiso } from "@/lib/piso-plan";
 import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { getResumenTienda } from "@/lib/movimientos-v2";
@@ -45,7 +46,9 @@ const MAX_NUEVOS = 12;
 
 /**
  * Los productos dados de alta hoy y ayer (día de Lima), del más nuevo al más viejo, con lo que la tarjeta necesita: foto,
- * precio, colores y cuánto hay YA en la sede de quien mira. Una lectura de `productos` con sus variantes y sus fotos; lo que hay
+ * precio, colores y cuánto hay YA en la sede de quien mira. El precio es el de ESA sede (su precio propio, si lo tiene; si no, el
+ * de la prenda): el mismo que cobra la caja y sale en la etiqueta que imprime esta cuenta (`fn_precios_en_sede`,
+ * `getPreciosPorSede`); si esa lectura falla, el de la prenda, como antes. Una lectura de `productos` con sus variantes y sus fotos; lo que hay
  * en esta sede sale de `fn_existencias_productos` (`getExistenciasProductos`), la misma cifra que Existencias y el Catálogo:
  * ninguna pantalla suma la tabla `stock` por su cuenta (ADR-0270, `lib/stock-una-sola-cifra.test.ts`). Si esa función falla o
  * todavía no está en la base, solo falta ese dato (`enMiSede: null`) y la tarjeta no dice un 0 que no sabe.
@@ -78,12 +81,14 @@ export async function getNuevosDelCatalogo(ubicacionId: string, ahoraMs: number 
       if (n.error) console.error("Inicio · no se pudieron leer los nombres de quien dio de alta:", n.error.message);
       for (const p of n.data ?? []) nombres.set(p.id, p.nombre);
     }
-    const [existencias, porProducto] = await Promise.all([
+    const [existencias, porProducto, preciosPorSede] = await Promise.all([
       getExistenciasProductos(filas.map((f) => f.id), ubicacionId),
       getOrigenDeProductos(supabase, filas.map((f) => f.id)),
+      // Sin productos nuevos no hay nada que pintar: ni se pide (como las otras dos lecturas).
+      filas.length === 0 ? Promise.resolve<Record<string, Record<string, number>>>({}) : getPreciosPorSede([ubicacionId]),
     ]);
     const aqui = existencias === null ? null : new Map([...existencias].map(([id, e]) => [id, e.aqui]));
-    return armarNuevos(filas, nombres, aqui, ahoraMs, { porProducto, miUbicacionId: ubicacionId });
+    return armarNuevos(filas, nombres, aqui, ahoraMs, { porProducto, miUbicacionId: ubicacionId }, { porSede: preciosPorSede, ubicacionId });
   });
 }
 

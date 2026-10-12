@@ -463,8 +463,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `getPropuestaDelMix` = `leerLecturaDelPiso` (`fn_piso_plan_lectura`, el motor del piso) + `getCapacidadPiso` (`fn_capacidad_piso`) → `armarPropuesta`
   (`lib/mix-piso.ts`, puro; punto de partida de la industria por sede en `lib/mix-piso-partida.ts`) y `getFotosDelEspacio` = RPC `fn_espacio_piso` →
   `armarHistoria` (`lib/espacio-piso.ts`, puro). Tres pestañas en estado (`PlanDelPisoPestanas.tsx`, cliente; las tres quedan montadas): **Propuesta**
-  (`PropuestaDelMix.tsx`, servidor, solo lectura: lo que cuelga, la industria, la venta propia con su rango de Wilson y la propuesta en prendas que suma la
-  capacidad; el riel a escala `RielAEscala.tsx` —canvas, cliente—, la mancuerna `Mancuerna.tsx` y la lectura en palabras `lecturaDeGrupo` de `lib/mix-piso.ts`; colores y ganchos en `lib/mix-piso-visual.ts`, puro), **Grupos** (`GruposDelMix.tsx`, cliente: el líder prepara cambios en las filas y los guarda juntos con «Revisar y guardar» →
+  (`PropuestaDelMix.tsx`, servidor, solo lectura; maqueta A «La percha», ADR-0352 act. 2026-10-11: la tarjeta «78 de 1,800 prendas» con su frase, los dos rieles de perchas «Hoy» y «Cómo quedaría» en `TarjetaDelRiel.tsx` —cliente: el resaltado al señalar o fijar un grupo— con el botón «¿Por qué?» y su panel en `PorQue.tsx` —cliente—,
+  las fichas de «Fuera del riel», el aviso de las categorías «por revisar» `AvisoPorRevisar.tsx` (cliente: su botón abre la pestaña Grupos por el contexto de `PlanDelPisoPestanas.tsx`), y «El detalle, grupo por grupo»: la mancuerna `Mancuerna.tsx` (cliente: el cursor enciende una fila y flota una tarjeta con sus cuatro cifras; su lógica pura, en `lib/mancuerna-lectura.ts`) y la tabla; las siluetas se dibujan una vez con `SiluetasDelPlan.tsx` y se usan con `IconoDeGrupo.tsx`.
+  Las perchas, las unidades (5 a 100 prendas por percha) y todas las frases salen de `lib/plan-piso-percha.ts` y la silueta de cada grupo de `lib/plan-piso-siluetas.ts` (puros, con sus pruebas); el color de cada grupo vive en `app/estilos/plan-piso.css` (`--grupo-0..5`), la lectura en palabras `lecturaDeGrupo` y «Para empezar» de «Fuera del riel» —`referenciaFueraDelRiel`, con sus semanas en `lib/mix-piso-partida.ts`— en `lib/mix-piso.ts`; ADR-0352 act. 2026-10-11 (b)), **Grupos** (`GruposDelMix.tsx`, cliente: el líder prepara cambios en las filas y los guarda juntos con «Revisar y guardar» →
   RPC `fijar_grupos_de_categorias`, todo o nada, con el combo Responsable y PT409; un cambio preparado caduca si otra persona cambió la categoría) e
   **Historia** (`HistoriaDelEspacio.tsx`, servidor). Se degrada por pestaña: sin la lectura del piso o de las fotos se apaga solo esa pestaña.
 - `/inventario/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y
@@ -480,7 +481,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   decidir primero (`vistaDeEntrada`), `getFrescuraPantalla` suma la miniatura de cada prenda con `getAparienciaVariantes` y la
   tabla `categorias` (tolerante, sin SQL nuevo) y la metodología vive en `FrescuraComoSeLee`. Piezas:
   `FrescuraFila` (fila en la computadora, tarjeta en el celular), `FrescuraDetalle` (`<Modal variante="hoja">` con la
-  regla de la categoría), `FrescuraTiendas` («Las N tiendas», solo líder), `piezas.tsx`. Desde el paso 4b (2026-09-29,
+  regla de la categoría), `piezas.tsx` (`FrescuraTiendas`, «Las N tiendas», se retiró el 2026-10-10 (c): comparar tiendas es CAYLA Global). Desde el paso 4b (2026-09-29,
   ADR-0208, migraciones `20261001100000`–`…200`, **sin pegar**) sí escribe, y solo una cosa: «Ya decidí» →
   `FrescuraDecidir.tsx` (hoja con guía de foco; `ComboResponsable`) → RPC `anotar_decision_frescura` /
   `anular_decision_frescura` sobre `retail.frescura_decisiones` (de solo agregar); `getFrescuraPantalla` suma en paralelo
@@ -516,6 +517,28 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   completo si no hay nada por decidir; la vara solo habla en la excepción (`varaTablero` devuelve `null` para sólido y aceptable); el pie
   son dos frases plegadas (`resumenPie`); bajo el botón de la fila va `textoConsecuenciaFila` (qué pasa al tocarlo); la hoja dice «Anotar
   lo que hice» y la silueta de `loading.tsx` dibuja el tablero.
+  **Desde el 2026-10-10 (b) (ADR-0208, «la tienda de un vistazo», 7 decisiones de Felipe; sin SQL nuevo):** la cabecera responde
+  «¿Tu piso está fresco?» (`respuestaDelPiso`) y arriba va la barra por familia de categorías (`FrescuraPiso.tsx`; puro en
+  `lib/frescura-piso.ts`: `pisoPorFamilia`, Fresca · Vigente · Envejeciendo · Aún no se sabe, en unidades y soles a precio de venta de la sede
+  —`preciosDelPiso`, RPC `fn_precios_en_sede`—; «hace 4 semanas» con `pisoAnterior`, que reconstruye la sede del mismo libro con `lecturaAl`). La frase solo
+  afirma si la tienda pasa la puerta de Análisis (`puertaDelPiso` = RPC `fn_motor_demanda_preparacion` + `preparacionDeSede`).
+  Debajo, «Lo que mueve la aguja» (`FrescuraAguja.tsx`; puro en `lib/frescura-aguja.ts`: `loQueMueveLaAguja` con la acogida
+  Gamma-Poisson por categoría, `ritmoPorCategoria` de `analizarSede`, la acción completa tallas → cambia de lugar → cuelga más; sin
+  piso cuadrado, `loQueSeLlevan` con lo anotado en caja de `prendas_por_regularizar` —`anotadasDeLaSede`— y `sinEstrenar` con su enlace
+  a Bajar al piso). En `analizarSede`: la vara del mes (`inicioDelMesLima`, 90 días congelados al día 1), dos relojes
+  (`tramoDosRelojes`: Fresca por el modelo, Vigente y Envejeciendo por la unidad más vieja colgada) y la cola de la curva
+  (`cortesConCola`). **En CAYLA Global** (`frescura` está en `MODULOS_DE_LA_VISTA_GLOBAL` y la ruta en `RUTAS_DE_LA_VISTA_GLOBAL`)
+  `page.tsx` dibuja `FrescuraRed.tsx` con `lib/frescura.ts:getFrescuraRed` (`armarFrescuraLider` + las puertas de todas las tiendas +
+  `familiasDeCategorias`) → `lib/frescura-red.ts` (puro: `resumenDeTienda`, `resumenCayla`, `cuadricula`); hoy solo para el líder
+  (`fn_frescura_sede` exige operar la sede). El selector (`UbicacionSwitcher`) deja en su pantalla a quien elige CAYLA Global parado
+  en una ruta de esa vista.
+  **Desde el 2026-10-10 (c) (Formidable, ADR-0208):** toda la tienda arriba (`pisoDeLaTienda`, `conteoDeTodo`) y cada familia debajo; la
+  puerta trae `falta` y `sinPrenda`, y su botón sale de `pasoParaHablar` (`lib/analisis-aviso.ts`, compartido con «Todavía no» de Análisis,
+  `components/analisis/TodaviaNo.tsx`); «Aún no se sabe» con sus causas (`sinSaberPor`); `analizarSede(…, { dudas })` aparta la unidad que
+  puede ser la vendida sin registrar (`cargarDudasCon` lee `prendas_por_regularizar` pendientes con `tallas ( valor )`); la aguja mide la
+  edad contra su vara (`varaQueJuzgo`, `parteViejaEsperada`, `envejeceDeMas`) y suma lo anotado como venta. En CAYLA Global, cada tienda y
+  cada celda llevan a `/inventario/frescura/tienda?tienda=&cat=` (`route.ts`: cambia la tienda con `cambiarUbicacionActiva` y vuelve a
+  Frescura con la categoría elegida; enlazada con `<a>`, sin prefetch).
 - `/inventario/resumen` (**Análisis**, ADR-0357, 2026-10-06: cinco pestañas —Hoy · Se está acabando · No se vende · Nunca salió al piso
   (2026-10-07, decisión 11) · Qué pedir—;
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
@@ -588,6 +611,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Proveedores (RPC `registrar_proveedor`, que la base ya exige a `fn_puede_gestionar_proveedores`) y deja elegido al recién
   guardado; la página pasa `puedeAgregarProveedor` (`puede(persona, "editarCuentasProveedor")`) y los rubros en uso
   (`getRubrosEnUso`, `lib/proveedores.ts`). Quien no tiene el módulo ve a quién pedírselo.
+- **Recibir y el cambio de sede** (ADR-0330 act. 2026-10-11): `recibir/page.tsx` monta `LlegoMercaderia` y `RecepcionEnvio` con
+  `key={claveDeLaRecepcion(<sede>)}` dentro de `components/recibir/ConteoPorSede.tsx` (uno por vista, sin la sede en su key), que
+  guarda lo contado en la sede que se deja y se lo devuelve a la pantalla al volver (`useConteoPorSede`). Lógica pura:
+  `lib/recibir-cambio-de-sede.ts`. Las dos puertas usan `useSalidaSinGuardar`, que también avisa lo guardado en otra sede.
 - **Ventas sin registrar = `/inventario/por-regularizar`** (ADR-0330, 2026-10-04; antes la pestaña `/recibir?vista=por-regularizar`,
   que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
   `lib/por-regularizar.ts` + `lib/por-regularizar-stock.ts` (`fn_existencias` por tienda) + `PorRegularizarLista.tsx` → la mesa **talones · puente · prendas** (ADR-0360, 2026-10-07; maqueta A2 «Puente»): `components/por-regularizar/` (`MesaRegularizar`, `TalonVenta`, `PuenteUnion`, `PanelPrendas`, `TarjetaCandidata`, `HilosMesa`, `FranjaAvance`), lógica pura en `lib/por-regularizar-mesa.ts`, estilos en `app/estilos/ventas-sin-registrar.css`; el modal «Regularizar» ya no existe (es el puente) → RPC `regularizar_prenda` (sin cambios; detalle en «Recibir mercadería»,
@@ -727,7 +754,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `20260929180000`, parche por ancla; «vendidos» = unidades de `movimientos` salida/venta de 30 días, como `demanda`); el tamaño
   de las tarjetas (`grande | mediano | pequeno`) va en la cookie `cayla_grilla_tam` (`lib/tamano-grilla.ts`, la lee la página
   y la escribe `SelectorTamanoGrilla.tsx`; columnas `auto-fill` por ancho disponible); la cabecera lleva una frase y `<Ayuda>`.
-- **Precio propio por sede (ADR-0370):** `/productos/[id]/editar` dibuja «Precio por tienda» (`ficha-producto/PreciosPorSede.tsx` + `PrecioSedeModal.tsx`; RPC `fn_precios_sede_producto`, `poner_precio_sede`, `quitar_precio_sede`; reglas `lib/precio-sede-reglas.ts`, ejemplo `lib/sugerencias-precio-sede.ts`). La regla del precio es `fn_precio_en_sede` y la usan `registrar_venta`, `separar_prendas`, `editar_separacion`, `registrar_cambio`, `crear_proforma` y `regularizar_prenda`. Las pantallas leen `fn_precios_en_sede`: Vender en su página y en `lib/usePreciosEnVivo.ts`; Apartados, Cambios, Proformas, Ventas sin registrar, Etiquetas (`lib/etiquetas-precio.ts`), Existencias (`getStockPorUbicacion`) y Traslados (`EscenarioPase.tsx`) con `lib/precios-sede-datos.ts`; Productos marca «2 precios» (`ficha-producto/InsigniaPrecios.tsx`).
+- **Precio propio por sede (ADR-0370):** `/productos/[id]/editar` dibuja «Precio por tienda» (`ficha-producto/PreciosPorSede.tsx` + `PrecioSedeModal.tsx`; RPC `fn_precios_sede_producto`, `poner_precio_sede`, `quitar_precio_sede`; reglas `lib/precio-sede-reglas.ts`, ejemplo `lib/sugerencias-precio-sede.ts`). La regla del precio es `fn_precio_en_sede` y la usan `registrar_venta`, `separar_prendas`, `editar_separacion`, `registrar_cambio`, `crear_proforma` y `regularizar_prenda`. Las pantallas leen `fn_precios_en_sede`: Vender en su página y en `lib/usePreciosEnVivo.ts`; Apartados, Cambios, Proformas, Ventas sin registrar, Etiquetas (`lib/etiquetas-precio.ts`), Existencias (`getStockPorUbicacion`) y Traslados (`EscenarioPase.tsx`) con `lib/precios-sede-datos.ts`; Productos marca «2 precios» (`ficha-producto/InsigniaPrecios.tsx`). **Desde el 2026-10-10 el precio de una tienda es de la PRENDA** (`precios_sede_prenda`, uno por prenda y tienda; `precios_sede` por variante quedó como historia, `20261011100000`): `fn_precio_en_sede` lo busca por la prenda de la variante, un disparador diferido en `variantes` (`fn_precio_sede_depurar`) quita el que queda igual al precio de la prenda, y `registrar_cambio` cobra con `fn_precio_para_cambio` (la misma prenda, al precio de la tienda donde se compró; `20261011100200`, que además hace que `fn_productos_filtro` filtre y ordene con el precio de la tienda; la segunda lectura de `separar_prendas` la arregla `20261011100100`). **Desde el 2026-10-11 también lo leen, con `getPreciosPorSede`/`getPreciosDeLasTiendas`:** Inicio de Almacén (`lib/inicio-almacen.ts`, la tarjeta «Nuevo en el catálogo»), Análisis (`lib/analisis-datos.ts` → `conPreciosDeMiTienda`), Dañadas (`getPrendasDanadasPendientes` → `precioEnLaSede`) y el aviso de costo de Catálogo ▸ Atributos ▸ Etiquetas (`productos/atributos/page.tsx` → `precioMasBajoEnTiendas`); y Producción (`produccion/ordenes/page.tsx` → `conPreciosMasBajos` de `lib/produccion-reglas.ts`, solo para el líder) mide el margen con el precio propio MÁS BAJO de cualquier tienda (`precioPropioMasBajo`, `precioParaMargen`). La ficha lee los precios con `ficha-producto/usePreciosDeTienda.ts` (los comparten el bloque y la hoja «Revisa y guarda», `ConfirmarCambios.tsx`, que pregunta por cada tienda al cambiar el precio de la prenda); Productos, `/buscar` y la cabecera de la ficha muestran el precio de la tienda elegida arriba.
+- **Bolsas de despacho / familias fuera de los motores (ADR-0377, 2026-10-10):** Catálogo ▸ Familias (`/productos/familias`, `FamiliasLista` + `api/productos/familias`) trae el interruptor «Cuenta en Análisis, Frescura y el plan del piso» (`familias.entra_a_motores`, por defecto sí). La pregunta es `retail.fn_categoria_entra_a_motores(categoria_id)` (sin dato: sí) y la hacen `fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_plan_compra`, `fn_analisis_sede` y `fn_frescura_sede`; la web lo hace en las dos lecturas directas de la cola de `lib/frescura.ts` (`lib/familias-motores.ts`). Vender: `vender/page.tsx` lee `familias` con la marca apagada y pone `fueraDeMotores` en cada prenda; `lib/bolsas-reglas.ts` elige las bolsas y `punto-de-venta/BolsaDelTicket.tsx` dibuja la fila «Bolsas · + Agregar bolsa» (en el `arriba` del ticket, junto a `ClientaDelTicket`) y su hoja, que agrega por `agregar()`. Un ticket de S/ 0.00 no se cobra (`motivoBloqueoCobro`) y `itemsParaLucode` no declara una línea de precio de etiqueta 0. Dinero, comprobante, Ventas, Finanzas y Resumen siguen contando la bolsa.
 - `/productos/[id]/editar` → `ProductoForm.tsx` guarda en dos tiempos (ADR-0257): un `useState(capturar)` guarda la foto de «al
   abrir» y `lib/producto-cambios-reglas.ts:resumenDeCambios` la compara contra el estado actual en cada render (función pura,
   `CAMPOS_CUBIERTOS` obliga a decidir cómo se compara cada campo nuevo de la ficha). Mientras `resumen.total > 0`, sube
@@ -949,14 +977,18 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   caja cerrada → `punto-de-venta/CajaCerrada` (persiana y cartel «Cerrado» sobre el área de trabajo, POS `inert` detrás; su único
   botón abre `AbrirCajaFormV2`; textos en `lib/caja-cerrada-reglas.ts` con el último cierre de `getUltimoCierre`, ADR-0301);
-  píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
-  página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
+  píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `lib/useVentasDeHoy.ts` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
+  página; al cambiar de sede manda la lectura nueva del servidor, regla `alDiaConElServidor` de `lib/vender-hoy-reglas.ts`); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
   (`lib/pedidos-no-atendidos-acciones.ts` → RPC `registrar_pedido_no_atendido` con `p_motivo = 'no_habia_talla'`, firmada con el responsable; «¿se la probó y no la llevó?» al quitar una prenda → `punto-de-venta/SeProboNoLlevo` (misma RPC con `p_motivo = 'se_probo_no_llevo'` y `p_razon`; la prenda quitada la guarda `PuntoDeVenta` y la pone en el `arriba` del ticket; lógica en `lib/se-probo-reglas.ts`, ADR-0288 tanda 1d); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
   buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
   ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
   → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
-  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
+  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. El ticket es de su sede (ADR-0049, act.
+  2026-10-11): `vender/page.tsx` monta `PuntoDeVenta` con `key={claveDelPuntoDeVenta({ ubicacionId, … })}`
+  (`lib/vender-cambio-de-sede.ts`) dentro de `punto-de-venta/TicketPorSede.tsx` (sin key: sobrevive al `router.refresh()`
+  del selector de sede); `PuntoDeVenta` le reporta su ticket (`useReportarTicket`) y, al cambiar de sede, el de la anterior
+  queda en `cayla:vender:<sede anterior>:en-espera` como «Al cambiar de sede». `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
   `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
   `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de

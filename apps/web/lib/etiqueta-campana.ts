@@ -45,7 +45,18 @@ export function objecionVigencia(desde: string | null, hasta: string | null): st
 // escrito por error se cobra tal cual en el mostrador. El costo es un dato del Líder, así
 // que el aviso vive acá y no en la caja.
 
-export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string };
+/** `precio` es el MÁS BAJO al que se cobra la prenda en cualquier tienda (la campaña vale en todas: el peor caso es el que importa):
+ *  el de la prenda o el propio de una tienda (`precioMasBajoEnTiendas`, Felipe 2026-10-10). `enSede` dice cuál tienda lo fija
+ *  («Trujillo»), o `null` si es el de la prenda: el aviso nombra la tienda para que quien configura sepa dónde está el precio. */
+export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string; enSede?: string | null };
+
+/** Cómo se nombra una prenda en el aviso: «Falda Emma (FAL-0008-NEG-M) · precio más bajo: S/ 69.90 en Trujillo» si el precio más bajo
+ *  al que se cobra es el propio de una tienda; el nombre tal cual si es el de la prenda. Dice un HECHO (el precio más bajo y dónde), no
+ *  una causa: si la prenda a su precio —o otra tienda— también queda bajo el costo, el texto no insinúa que arreglar esa tienda basta.
+ *  (Un separador, no un paréntesis: el nombre ya lleva uno.) */
+export function nombreBajoCosto(p: Pick<PrendaConCosto, "nombre" | "enSede" | "precio">): string {
+  return p.enSede ? `${p.nombre} · precio más bajo: S/ ${p.precio.toFixed(2)} en ${p.enSede}` : p.nombre;
+}
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
  *  El alcance es el que aplica la base: las etiquetadas a mano MÁS todas las de las

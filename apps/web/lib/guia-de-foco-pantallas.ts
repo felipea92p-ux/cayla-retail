@@ -208,7 +208,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // base la acepte: `validarCierre`) y quién hace el cambio.
   // ADR-0354: la hoja de «Revisar y guardar» de Editar producto suma UN solo control, «Quién hace estos cambios»; su porqué va
   // bajo el combo y el botón espera hasta que haya alguien de turno.
-  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control (Responsable): el botón dice por qué espera." },
+  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control obligatorio (Responsable): el botón dice por qué espera. Las casillas «Igualar … al precio nuevo» (precio por tienda, 2026-10-10) son opcionales y no bloquean." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   "components/plan-piso/GruposDelMix.tsx": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al

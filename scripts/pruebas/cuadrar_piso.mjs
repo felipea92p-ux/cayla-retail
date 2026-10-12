@@ -103,7 +103,9 @@ const DESHACER_ELIMINAR = deshacer(MIGRACION_ELIMINAR);
 // primero ese parche posterior: si no, al deshacer solo el cuadre queda un cuerpo (el de antes del cuadre + la vara) que la
 // guarda del cuadre no reconoce, y abortaría como si alguien hubiera parchado en vivo. Cada parche posterior se suma aquí.
 const MIGRACION_VARA_CAYLA = "20261008120000_frescura_vara_cayla.sql";
-const DESHACER_POSTERIORES = deshacer(MIGRACION_VARA_CAYLA);
+// Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera las familias apagadas. Es el parche más nuevo: se deshace PRIMERO.
+const MIGRACION_FAMILIAS_APAGADAS = "20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql";
+const DESHACER_POSTERIORES = [deshacer(MIGRACION_FAMILIAS_APAGADAS), deshacer(MIGRACION_VARA_CAYLA)].join("\n");
 
 const PRELUDIO = `
 begin;

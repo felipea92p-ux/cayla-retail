@@ -347,3 +347,43 @@ describe("la lectura de cada grupo, en palabras", () => {
     expect(lecturaDeGrupo(abrigo(p), p)?.texto).toBe("Sobra: no cuelgues más hasta llegar a su parte; no se retira nada.");
   });
 });
+
+describe("los colores de lo que cuelga de cada grupo (solo se dibujan: no entran en ninguna cuenta)", () => {
+  // Una lectura donde cada talla trae su color: [categoría, código, nombre, hex, prendas libres en el piso].
+  const conColores = (filas: [keyof typeof CAT, string, string, string | null, number][]): LecturaDelPiso => {
+    const base = lectura([], []);
+    return {
+      ...base,
+      tallas: filas.map(([c, codigo, nombre, hex, n], i) => ({
+        varianteId: `v${i}`, productoId: `p${i}`, referencia: "R", categoriaId: CAT[c][0], tallaId: null, talla: null, colorCodigo: codigo, color: nombre,
+        colorHex: hex, familiaColor: null, retirada: false, fotoUrl: null, pisoLibre: n, almacenLibre: 0, enCamino: 0, vendidasHoy: 0, vendidasAyer: 0, vendidas14: 0,
+      })),
+    };
+  };
+
+  it("los colores de un grupo suman lo que el grupo dice que cuelga, del que más al que menos", () => {
+    const p = armarPropuesta(entrada(conColores([
+      ["pol", "BLA", "Blanco", "#ffffff", 20], ["pol", "NEG", "Negro", "#1a1a1a", 30], ["pol", "NEG", "Negro", "#1a1a1a", 25], ["jea", "AZU", "Azul", "#1d4ed8", 12],
+    ], )));
+    const polos = p.enRiel.find((f) => f.grupo.clave === "polos_tops_blusas")!;
+    expect(polos.colgadas).toBe(75);
+    expect(polos.colores.map((c) => [c.nombre, c.prendas])).toEqual([["Negro", 55], ["Blanco", 20]]);
+    expect(polos.colores.reduce((s, c) => s + c.prendas, 0)).toBe(polos.colgadas);
+    for (const f of p.enRiel) expect(f.colores.reduce((s, c) => s + c.prendas, 0)).toBe(f.colgadas);
+  });
+
+  it("agregar los colores no cambia ninguna cuenta de la propuesta", () => {
+    const filas: [keyof typeof CAT, string, string, string | null, number][] = [["pol", "NEG", "Negro", "#1a1a1a", 60], ["pol", "EST", "Estampado", null, 15], ["pan", "BEI", "Beige", "#d9c7a5", 40]];
+    const con = armarPropuesta(entrada(conColores(filas)));
+    const sin = armarPropuesta(entrada(lectura([["pol", 75], ["pan", 40]], [])));
+    const sinColores = ({ colores: _c, ...resto }: (typeof con.enRiel)[number]) => resto;
+    expect(con.enRiel.map(sinColores)).toEqual(sin.enRiel.map(sinColores));
+    expect(con.colgadasEnElRiel).toBe(sin.colgadasEnElRiel);
+  });
+
+  it("un grupo sin nada colgado no tiene colores, y lo que no tiene grupo no los reparte", () => {
+    const p = armarPropuesta(entrada(conColores([["pol", "NEG", "Negro", "#1a1a1a", 10], ["sin", "ROJ", "Rojo", "#b3261e", 30]])));
+    expect(p.enRiel.find((f) => f.grupo.clave === "jeans")!.colores).toEqual([]);
+    expect(p.enRiel.flatMap((f) => f.colores).some((c) => c.clave === "ROJ")).toBe(false);
+  });
+});

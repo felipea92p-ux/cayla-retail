@@ -71,6 +71,7 @@ debe poner el dato también en texto. Si Felipe quiere un piso, es `bg-tinta/50`
 
 Lo siguiente existe por una decisión, o no es esta función, y **no se corrigió: Felipe dice si se unifica**.
 
+- **Plan del piso ▸ Propuesta** (ADR-0352, act. 2026-10-11; Felipe eligió mirando la maqueta A): el riel de perchas «Hoy» y «Cómo quedaría» es un **pictograma** donde cada percha vale N prendas, no una fila baja de tramos sin texto; por eso no es `BarraApilada`. La pestaña **Historia** de la misma pantalla sí la usa para los mismos grupos: queda abierta la pregunta de si pasa a perchas.
 - **Análisis** (ADR-0357): la barra por tiempo sin venderse (`PestanaQuieta`), la de «Dónde está lo que tienes» (`PestanaPiso`, pestaña
   «Nunca salió al piso») y la de modelos de «Todavía no» (`TodaviaNo`) usan `flex` con su cascada propia («los gráficos de Análisis tienen su
   excepción de movimiento»).

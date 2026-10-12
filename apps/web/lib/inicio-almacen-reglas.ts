@@ -39,8 +39,12 @@ export type NuevoProducto = {
   dia: "hoy" | "ayer";
   /** «hace 2 h» o «ayer, 6:40 p. m.» */
   hace: string;
-  /** El precio de lista más bajo de sus variantes; `null` si ninguna tiene precio. */
+  /** El precio más bajo al que se vende en la SEDE de quien mira: el precio propio de la tienda si lo tiene, si no el de la prenda
+   *  (la regla de `fn_precio_en_sede`, la misma que cobra la caja y sale en la etiqueta). `null` si ninguna talla tiene precio. */
   precio: number | null;
+  /** En esta sede alguna talla se vende a otro precio que el de la prenda: la tarjeta lo dice («Precio de esta tienda»), como
+   *  Existencias. Ausente = el de la prenda. */
+  precioDeSede?: boolean;
   /** Los colores de sus variantes, sin repetir. */
   colores: { nombre: string; hex: string | null }[];
   fotoUrl: string | null;
@@ -153,19 +157,28 @@ export function tonoDeSede(etiqueta: string): 0 | 1 | 2 {
  * @param aqui cuánto hay de cada producto en esta sede (`producto_id` → unidades), o `null` si no se pudo leer.
  * @param origen la sede de registro de cada producto (`fn_producto_origen`) y la sede de quien mira; sin él, o con `porProducto`
  *   en `null` (la función no responde o todavía no está en la base), `sede` llega `null` y la pantalla no muestra sigla.
+ * @param precios los precios propios de las tiendas (`getPreciosPorSede`: sede → variante → precio, solo las excepciones) y la sede
+ *   de quien mira: de ahí sale el precio de la tarjeta (Felipe 2026-10-10: la pantalla de UNA tienda usa el precio de ESA tienda). Se
+ *   recibe el mapa entero y se elige aquí la sede, para que ninguna pantalla pueda pasar por error el de otra tienda. Sin él, o sin
+ *   la sede en el mapa (la lectura falló), el precio de la prenda: lo de siempre.
  */
 export function armarNuevos(
   filas: readonly FilaNuevoCruda[],
   nombres: ReadonlyMap<string, string>,
   aqui: ReadonlyMap<string, number> | null,
   ahoraMs: number,
-  origen?: { porProducto: ReadonlyMap<string, OrigenDeProducto> | null; miUbicacionId: string }
+  origen?: { porProducto: ReadonlyMap<string, OrigenDeProducto> | null; miUbicacionId: string },
+  precios?: { porSede: Readonly<Record<string, Readonly<Record<string, number>>>>; ubicacionId: string }
 ): NuevoProducto[] {
+  const propios = precios?.porSede[precios.ubicacionId];
   return [...filas]
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
     .map((f) => {
       const vars = (f.variantes ?? []).filter((v) => v.activo);
-      const precios = vars.map((v) => Number(v.precio)).filter((p) => Number.isFinite(p) && p > 0);
+      // El mínimo se saca DESPUÉS de aplicar el precio de la sede (un precio propio más alto que el de la prenda también gana).
+      const lista = vars.map((v) => propios?.[v.id] ?? Number(v.precio)).filter((p) => Number.isFinite(p) && p > 0);
+      // «Alguna talla activa está en el mapa», no «la más barata»: `fn_precios_en_sede` omite las que ya valen igual.
+      const conPrecioPropio = vars.some((v) => propios?.[v.id] !== undefined);
       const colores: NuevoProducto["colores"] = [];
       for (const v of vars) {
         if (!v.color) continue;
@@ -179,7 +192,8 @@ export function armarNuevos(
         referencia: f.referencia,
         creadoEn: f.created_at,
         ...etiquetaHace(f.created_at, ahoraMs),
-        precio: precios.length ? Math.min(...precios) : null,
+        precio: lista.length ? Math.min(...lista) : null,
+        ...(conPrecioPropio ? { precioDeSede: true } : {}),
         colores,
         fotoUrl: fotoPrincipal(f.producto_fotos),
         categoria: f.categoria?.nombre ?? null,

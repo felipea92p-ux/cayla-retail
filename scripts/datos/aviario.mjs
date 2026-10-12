@@ -49,6 +49,9 @@ export const AVIARIO = [
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
+      // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
+      "precios_sede_prenda",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -90,6 +93,9 @@ export const AVIARIO = [
       "cuadres_piso", "cuadre_piso_items",
       // Cuántas prendas caben en el piso de cada sede (ADR-0329, 20261005103000). Es del piso, como el cuadre. Refresco del 2026-10-05.
       "capacidad_piso",
+      // Plan del piso (20261006110000): la foto diaria de cuánto espacio ocupa cada categoría en el piso de cada sede. Es del piso, como su
+      // capacidad. Asignada en el refresco del volcado del 2026-10-11.
+      "espacio_piso",
       // Plan del piso (ADR-0329, commit 1532264f): los grupos del mix y a qué grupo va cada categoría. Es del piso, como su
       // capacidad. Asignadas en el refresco del volcado del 2026-10-06 (ADR-0354), al aparecer en producción.
       "grupos_mix", "categoria_grupo_mix",
@@ -147,6 +153,10 @@ export const AVIARIO = [
       // una persona queda como fila (solo se agregan; ADR-0325). Está en producción desde el 2026-09-29 (la parte 1 de `20260930050200`).
       // Refresco del 2026-10-02.
       "metas_persona_ajustes",
+      // Piezas de liquidación (rama claude/liquidacion-prendas-unicas-55bbee, PR #940): prendas sueltas que se etiquetan, se rebajan y se
+      // venden sin entrar al catálogo, y el precio mínimo con que se aceptan. Se venden por `venta_items`, así que son de quien responde por
+      // la venta. Ya están en producción (la migración se pegó antes de fusionar); asignadas en el refresco del volcado del 2026-10-11.
+      "piezas_liquidacion", "piezas_liquidacion_etiquetas", "parametros_liquidacion",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -165,6 +175,10 @@ export const AVIARIO = [
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0349 (Plan de campaña): cuánto comprar por categoría para una campaña. Nace con dueño; refresco del 2026-10-05.
       "planes_compra", "planes_compra_lineas",
+      // Órdenes de compra: el pedido que se le manda a un proveedor (generada o anulada), sus líneas y la versión anterior de cada edición, que
+      // nunca se cambia. Están en producción y su migración TODAVÍA NO ESTÁ en el repo (ni en `main` ni en una rama): se encontraron en el
+      // refresco del volcado del 2026-10-11 (docs/backlog/2026-10-11-diccionario-precios-tienda.md).
+      "ordenes_compra", "orden_compra_items", "orden_compra_versiones",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
       // Asignadas en el refresco del volcado del 2026-09-23.
       "compra_parte_por_tienda", "compradores_de_tienda",

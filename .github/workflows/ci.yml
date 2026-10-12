@@ -1252,6 +1252,27 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:corregir-prenda-sin-registrar
 
+      # Familias fuera de los motores (bolsas de despacho): `familias.entra_a_motores` nace true para todas las familias que ya
+      # existen, `fn_categoria_entra_a_motores` responde por la familia de la categoría (y true ante lo que no sabe), solo un líder
+      # cambia la marca y la migración se puede cargar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:familias-motores
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:familias-motores
+
+      # Los motores ignoran una familia apagada (bolsas de despacho): la misma venta, el mismo stock y la misma anotada en una categoría
+      # de una familia apagada y en una normal; el motor del piso, la demanda y el plan de campaña traen la normal y NO la apagada, y el
+      # interruptor es en vivo. La venta de la bolsa sigue entera en `ventas`. Cada caso termina en ROLLBACK.
+      - name: pruebas:motores-familias-apagadas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:motores-familias-apagadas
+
+      # El script de una sola vez que pasa a «Bolsas» las ventas de bolsa anotadas como otra cosa (Bolsas de despacho): usa la función de
+      # «Corregir lo anotado», cambia solo categoría, talla y la descripción automática, deja su foto y su línea en Actividad, es todo o nada
+      # ante una lista mala o un destino que aún cuenta en los motores, volver a pegarlo no hace nada, y después el motor ya no las cuenta.
+      - name: pruebas:reclasificar-bolsas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:reclasificar-bolsas
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un

@@ -135,6 +135,20 @@ export const ICONOS_POR_PREFIJO: Readonly<Record<string, readonly FormaIcono[]>>
     { t: "path", d: "M7.6 4.6 7.2 8.6M16.4 4.6l.4 4" },
     { t: "path", d: "M4.4 9.2c0 4.6 2.8 6 5.2 5.2 1.3-.5 2.4-1.6 2.4-3.4 0 1.8 1.1 2.9 2.4 3.4 2.4.8 5.2-.6 5.2-5.2-2.2-1.6-5.2-1.2-7.6 2.4-2.4-3.6-5.4-4-7.6-2.4z" },
   ],
+  // Capas (creada desde la pantalla, 2026-10). Sin mangas y abierta adelante, con su lazo al cuello: lo que la separa del
+  // abrigo (mangas) y del vestido (más angosto).
+  CAP: [
+    { t: "path", d: "M9.6 4.2C7.4 5 6.4 6.6 5.8 9L3.6 19.6c2.7 1 5.5 1.4 8.4 1.4s5.7-.4 8.4-1.4L18.2 9c-.6-2.4-1.6-4-3.8-4.8" },
+    { t: "path", d: "M9.6 4.2c.4 1.2 1.3 1.8 2.4 1.8s2-.6 2.4-1.8" },
+    { t: "path", d: "M12 6v15" },
+    { t: "path", d: "M12 6l-1.4 2.4M12 6l1.4 2.4" },
+  ],
+  // Corsets (creada desde la pantalla, 2026-10). La cintura entallada y el cordón cruzado al centro; a 16 px, más cruces o
+  // las varillas de los costados se empastan.
+  COR: [
+    { t: "path", d: "M6.5 5c1.8-.9 3.8-.8 5.5 1 1.7-1.8 3.7-1.9 5.5-1-.9 2.4-1.4 4.6-1.4 7s.5 4.6 1.4 7l-5.5 1.5L6.5 19c.9-2.4 1.4-4.6 1.4-7S7.4 7.4 6.5 5z" },
+    { t: "path", d: "M10.6 8.6l2.8 2.2M13.4 8.6l-2.8 2.2M10.6 12.6l2.8 2.2M13.4 12.6l-2.8 2.2" },
+  ],
 
   // ---------- Calzado ----------
   // Zapatillas
@@ -223,6 +237,13 @@ export const ICONOS_POR_PREFIJO: Readonly<Record<string, readonly FormaIcono[]>>
     { t: "path", d: "M12 9.4V12l1.8 1.1" },
     { t: "path", d: "M9 6.8 9.7 3h4.6l.7 3.8M9 17.2 9.7 21h4.6l.7-3.8" },
   ],
+  // Accesorios de moda (creada desde la pantalla, 2026-10): la categoría general de la familia, así que un moño, que no es
+  // ninguna de las otras. El de lazadas redondas, a 16 px, se leía como unos lentes.
+  ACC: [
+    { t: "path", d: "M10.5 12 4.6 8.1c-.9-.6-2.1 0-2.1 1.1v5.6c0 1.1 1.2 1.7 2.1 1.1zM13.5 12l5.9-3.9c.9-.6 2.1 0 2.1 1.1v5.6c0 1.1-1.2 1.7-2.1 1.1z" },
+    { t: "rect", x: 10.5, y: 10.2, width: 3, height: 3.6, rx: 1 },
+    { t: "path", d: "M11 13.8 9.4 19M13 13.8l1.6 5.2" },
+  ],
   // Riñoneras
   RIN: [
     { t: "path", d: "M6 8.4c0-.8.6-1.4 1.4-1.4h9.2c.8 0 1.4.6 1.4 1.4V15c0 1.7-1.3 3-3 3H9c-1.7 0-3-1.3-3-3z" },
@@ -298,6 +319,14 @@ export const ICONOS_POR_PREFIJO: Readonly<Record<string, readonly FormaIcono[]>>
   // Útiles de oficina
   UOF: [
     { t: "path", d: "m21.440 11.050-9.190 9.190a6 6 0 0 1-8.490-8.490l8.570-8.570A4 4 0 1 1 18 8.840l-8.590 8.570a2 2 0 0 1-2.830-2.830l8.490-8.480" },
+  ],
+
+  // ---------- Empaque (familia creada desde la pantalla, no por migración) ----------
+  // Bolsas: la bolsa de compra, con el asa que entra al cuerpo. No es la cartera (CAR: asa por encima y cierre) ni el bolso
+  // de Accesorios (solapa en V): una asa que termina en el borde de arriba, a 16 px, se lee como un candado.
+  BOL: [
+    { t: "path", d: "M5 8.5h14l-1 12H6z" },
+    { t: "path", d: "M9 11.5V7a3 3 0 0 1 6 0v4.5" },
   ],
 };
 
