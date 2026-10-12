@@ -49,5 +49,7 @@ describe("exportar el historial", () => {
   it("el nombre del archivo dice la tienda y el período", () => {
     expect(nombreArchivoHistorial("Tienda TRU", "2026-08-28", "2026-09-26")).toBe("historial-tru-2026-08-28-a-2026-09-26.csv");
     expect(nombreArchivoHistorial("todas", undefined, "2026-09-26")).toBe("historial-todas-hasta-2026-09-26.csv");
+    // Más ventas que el tope: el archivo no puede parecer completo.
+    expect(nombreArchivoHistorial("todas", "2026-01-01", "2026-12-31", true)).toBe("historial-todas-2026-01-01-a-2026-12-31-solo-las-mas-recientes.csv");
   });
 });

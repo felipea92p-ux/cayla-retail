@@ -51,7 +51,9 @@ export function csvDeHistorial(filas: FilaHistorial[]): string {
 }
 
 /** «historial-tru-2026-08-28-a-2026-09-26.csv»: se reconoce en la carpeta de descargas sin abrirlo. */
-export function nombreArchivoHistorial(alcance: string, desde: string | undefined, hasta: string): string {
+/** Con `recortado` (el período pasó del tope de la exportación), el nombre lo dice: un archivo cortado nunca parece completo.
+ *  Es la misma regla que Movimientos (`nombreArchivoMovimientos`, ADR-0234): exportar es igual en todo el ERP. */
+export function nombreArchivoHistorial(alcance: string, desde: string | undefined, hasta: string, recortado = false): string {
   const slug = alcance
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -59,5 +61,5 @@ export function nombreArchivoHistorial(alcance: string, desde: string | undefine
     .replace(/^tienda\s+/, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
-  return `historial-${slug || "todas"}-${desde ? `${desde}-a-` : "hasta-"}${hasta}.csv`;
+  return `historial-${slug || "todas"}-${desde ? `${desde}-a-` : "hasta-"}${hasta}${recortado ? "-solo-las-mas-recientes" : ""}.csv`;
 }

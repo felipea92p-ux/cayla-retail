@@ -136,7 +136,11 @@ export async function contarComprobantesAtascados(ahora = Date.now()): Promise<n
  *  «Por enviar», en la misma petición — se lee una sola vez y las dos cifras no pueden diferir. */
 export const getResumenPorEnviar = cache(async (): Promise<ResumenPorEnviar | null> => {
   const supabase = await createClient();
-  const res = await supabase.from("comprobantes").select("estado, created_at").in("estado", ["pendiente", "pendiente_reintento", "rechazado"]);
+  // Todas las filas: PostgREST corta en 1.000 sin avisar, y el día que se cae SUNAT la cola puede pasar de eso (el contador
+  // diría «1.000» con 1.400 sin enviar). Por páginas solo si hace falta.
+  const res = await leerTodas((desde, hasta) =>
+    supabase.from("comprobantes").select("id, estado, created_at").in("estado", ["pendiente", "pendiente_reintento", "rechazado"]).order("id").range(desde, hasta),
+  );
   const { datos, fallo } = tolerar(res, "los comprobantes por enviar");
   // `fallo` es el aviso para la persona; la causa real (Postgres) es para quien lea el log.
   if (fallo) console.error("Facturación: no se pudo leer la cola «por enviar» (contador de la pestaña Comprobantes):", res.error?.message);
@@ -191,14 +195,21 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
   const cola = await getColaReintento(ubicacionId);
   if (!cola) return null;
   const supabase = await createClient();
-  let consulta = supabase
-    .from("comprobantes")
-    .select("id, ubicacion_id, tipo, serie, numero, estado, intentos_transmision, ultimo_intento_transmision_at, ultimo_error_transmision, motivo_rechazo, created_at")
-    // También los de la cola, solo por su fecha de emisión (ver abajo): la RPC no la trae.
-    .in("estado", ["pendiente", "rechazado", "pendiente_reintento"])
-    .neq("tipo", "nota_venta");
-  if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
-  const res = await consulta.order("created_at", { ascending: true }).limit(500);
+  // Una consulta NUEVA por página: el constructor de supabase-js se modifica a sí mismo, y tres páginas en paralelo sobre el
+  // mismo objeto pedirían las tres el mismo rango.
+  const pagina = (desde: number, hasta: number) => {
+    let consulta = supabase
+      .from("comprobantes")
+      .select("id, ubicacion_id, tipo, serie, numero, estado, intentos_transmision, ultimo_intento_transmision_at, ultimo_error_transmision, motivo_rechazo, created_at")
+      // También los de la cola, solo por su fecha de emisión (ver abajo): la RPC no la trae.
+      .in("estado", ["pendiente", "rechazado", "pendiente_reintento"])
+      .neq("tipo", "nota_venta");
+    if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
+    return consulta.order("created_at", { ascending: true }).order("id").range(desde, hasta);
+  };
+  // Todas, por páginas: con un tope de 500 de la más vieja a la más nueva, el día que se juntaban más quedaban fuera las
+  // boletas más NUEVAS sin que nada lo dijera (y el plazo de SUNAT corre para todas).
+  const res = await leerTodas(pagina);
   const { datos, fallo } = tolerar(res, "los comprobantes sin enviar");
   if (fallo) console.error("Comprobantes: no se pudo leer los pendientes y rechazados:", res.error?.message);
   const ahora = Date.now();

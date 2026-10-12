@@ -10,7 +10,8 @@ import { csvDeHistorial, nombreArchivoHistorial } from "@/lib/historial-exportar
 //
 // Un `route.ts` no pasa por el `layout.tsx` que exige el módulo: se pregunta aquí (módulo «historial» + líder).
 
-/** Hasta cuántas ventas se exportan de una vez (un año de las tres tiendas cabe de sobra). */
+/** Hasta cuántas ventas se exportan de una vez. Si el período trae más, el archivo sale con las más recientes y su NOMBRE
+ *  lo dice (`-solo-las-mas-recientes`), igual que Movimientos: cortado en silencio, el contador lo tomaba por completo. */
 const TOPE_EXPORTAR = 5000;
 const POR_PAGINA = 500;
 
@@ -39,10 +40,11 @@ export async function GET(req: Request) {
   } while (cursor && filas.length < TOPE_EXPORTAR);
 
   const alcance = tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "todas";
+  const recortado = cursor !== null;
   return new Response(csvDeHistorial(filas), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${nombreArchivoHistorial(alcance, filtros.desde, filtros.hasta ?? hoy)}"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoHistorial(alcance, filtros.desde, filtros.hasta ?? hoy, recortado)}"`,
       "Cache-Control": "no-store",
     },
   });
