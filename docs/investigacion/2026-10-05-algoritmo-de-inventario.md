@@ -81,7 +81,7 @@ Están ordenadas por cuánto le sirven a CAYLA. **[V]** significa verificado en 
 | **Shein** (HBS 2023) [V] | Qué estilos escalar | **Probar y repetir:** lote corto, leer las primeras ventas, reordenar solo lo ganador | **Muy alta:** el taller propio de CAYLA es justo lo que lo hace posible |
 | **Fisher y Raman** (HBR 1994, *Marketing Science* 2000) [V] | Qué producir primero | Producir primero lo predecible y dejar lo incierto para después de las primeras ventas; las ventas tempranas proyectan el total de la temporada | Alta |
 | **Benetton** [V] | Cuándo fijar el color | Postergación: tejer en crudo y teñir tarde | Media: equivale a guardar tela o cortes y decidir talla y color tarde |
-| **Nextail** (software de asignación para moda) [V] | Pronóstico por tienda y talla | **Si un producto vendió menos de 200 unidades al año, usa las ventas de su familia.** Corrige los quiebres. Rearma tallas rotas entre tiendas | Alta (las reglas) |
+| **Nextail** (software de asignación para moda) [V] | Pronóstico por tienda y talla | **Las curvas de talla de un producto que vendió poco se mezclan con las de su familia** (umbral de 200 unidades al año por defecto: el producto pesa ventas ÷ 200 y la familia pone el resto; si aun así no alcanza, una distribución normal). Corrige los quiebres. Rearma tallas rotas entre tiendas | Alta (las reglas) |
 | **Inventory Planner** [V] | Cuánto reponer | Velocidad calculada **excluyendo los días sin stock** | Alta: CAYLA ya lo hace en Análisis |
 | **Onebeat / colchones dinámicos TOC** [V] | Cuánto reponer, sin pronóstico | Objetivo por SKU y tienda en tercios (verde, amarillo, rojo); sube 1/3 si pasa mucho tiempo en rojo y baja 1/3 si pasa mucho en verde | Media: solo para lo que se repite (básicos) |
 | **Target**; DeHoratius y Raman (*Management Science* 2008) [V] | Detectar quiebres que el sistema no ve | La mitad de los quiebres eran invisibles; el 65 % de los registros de stock eran inexactos. **Primero la verdad del stock** | **Muy alta:** es la lección principal |
@@ -89,6 +89,14 @@ Están ordenadas por cuánto le sirven a CAYLA. **[V]** significa verificado en 
 | **Stitch Fix** [V] | Qué ofrecer a cada cliente | El algoritmo propone y la estilista elige; solo se recomienda lo que hay en stock | Media-alta para atención al cliente |
 | **Amazon** (pronóstico por cuantiles) [V] | Cuánto tener | Quedarse corto y pasarse no cuestan lo mismo, así que no se pronostica el promedio. Es la misma lógica que el «newsvendor» (§4, Compras) | El concepto sí; la red neuronal no |
 | **Topitop** (Gestión 2014) [V] | Compró la suite de asignación de JDA | No hay resultados publicados | **Contraejemplo:** comprar software no arregla datos inexactos |
+
+> **Corrección (2026-10-12) — la fila de Nextail.** Decía que, si un producto vendió menos de 200 unidades al año, Nextail usaba
+> las ventas de su familia (como si fuera el pronóstico de demanda). La [página oficial](https://help.nextail.co/en/legacy/reorder-algorithms-demand-forecast)
+> dice otra cosa: el umbral de 200 unidades (por defecto, en 1 año) es solo de las **curvas de talla**. Cuando el producto vendió
+> menos que el umbral, sus pesos de talla se mezclan con los de su familia en proporción a ventas ÷ umbral (80 vendidas con umbral
+> 200 = 0,4: el producto cuenta 40 % y la familia 60 %), y la caída es producto → familia → distribución normal. La página no
+> describe un umbral de ventas para el pronóstico de demanda en sí. La lección para CAYLA se mantiene (bajar con proporciones
+> cuando un modelo vendió poco), pero es sobre tallas, no sobre la cantidad pronosticada.
 
 Enlaces principales: [Zara, reposición](http://web.mit.edu/jgallien/www/ZaraInterfaces2010.pdf) ·
 [Zara, liquidación](https://www.anderson.ucla.edu/faculty_pages/felipe.caro/papers/pdf_FC15.pdf) ·

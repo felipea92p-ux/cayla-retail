@@ -4,6 +4,9 @@
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 14,
   "controles": {
+    "components/plan-compra/BarraCifras.tsx": [
+      "button «{cuerpo}»"
+    ],
     "components/plan-compra/CierreCampana.tsx": [
       "Link «Qué no se vende, en Análisis»"
     ],
@@ -20,7 +23,6 @@
       "Pestanas «);»"
     ],
     "components/plan-compra/ResultadosCampana.tsx": [
-      "button «{x.nombre}»",
       "button «Todas»",
       "button «Piden atención»",
       "Desplegable «(sin nombre)»",

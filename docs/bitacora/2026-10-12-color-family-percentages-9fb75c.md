@@ -1,0 +1,6 @@
+## 2026-10-12 (Plan del piso ▸ «Color de la tienda»: los porcentajes por familia de color, contra lo que se vende — ADR-0352 act. 2026-10-12)
+Qué hice: una franja entre «Hoy» y «Cómo quedaría» con las 6 familias de color más relevantes y «Otras» (Neutro, Tierra, Rosado…), una frase que dice si lo que cuelga se parece a lo que se vende, y una marca por
+familia solo cuando hay evidencia. Al señalar un grupo del riel sale su reparto por familia (reemplaza el `title` con los colores exactos) y al tocar una familia se abre el desglose por color, con «Se vende y falta» y «Cuelga y no sale» arriba.
+Por qué así: la familia esconde al color (Tierra se veía equilibrada y uno de sus colores colgaba 31 y vendía 3), y ordenar solo por lo que cuelga escondía a Amarillo en «Otras» siendo la señal más clara. La marca compara contra lo que la propia tienda vende
+(residuo de Poisson, varianza mínima 2): un primer intento marcaba un color con 2 colgadas y 3 vendidas, y se corrigió midiendo con datos de TRU antes de escribir el código. Sin migración ni RPC: la familia ya viaja en la lectura del piso.
+Felipe se lleva: mirar el equilibrio de color de una tienda de un vistazo y bajar al color exacto; lo que NO se vio es la ruta real contra su base (no hay base local), ni `/formidable`, ni una colaboradora probándolo.

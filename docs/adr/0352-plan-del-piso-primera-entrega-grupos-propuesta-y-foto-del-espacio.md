@@ -295,3 +295,39 @@ elegidos por la propuesta: sería inventar una compra.
 captura de TRU: sin cuadrar y cuadrado, sin datos de color (cae al color del grupo), en claro y oscuro, a 375 px (sin desborde horizontal) y a escritorio, y el resaltado al pasar por una ficha. **No se vio la ruta real contra su base** (sigue
 sin tener las tablas del Plan del piso en local), **no se corrió `tema:auditar`** (necesita sesión) y **no lo probó una colaboradora**. Un color real con muchas variantes de un mismo tono (negro y gris oscuro) se ven casi iguales a 19 px:
 es el límite del tamaño, no un error. **Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-12 — «Color de la tienda»: los porcentajes por familia de color, contra lo que se vende (Felipe)
+
+**Qué pidió Felipe, mirando la pantalla:** «antes pasaba el mouse y aparecían los colores que estaban colgados; ¿sería bueno ponerlos por porcentajes de familias de color? Los colores sirven porque ayudan a que una tienda no esté tan
+desequilibrada o esté armonizada». Eligió mirando la maqueta (`docs/maquetas/color-de-la-tienda-2026-10/`, datos inventados con la forma de TRU) y contestó cuatro decisiones. Reemplaza el punto 7 de la actualización (c): el `title` con los
+colores exactos ya no existe.
+
+**Qué se decidió** (`lib/plan-piso-familias.ts`, con 63 pruebas; `ColorDeLaTienda.tsx`, `DetalleDelGrupo.tsx`, `DesgloseDeColor.tsx`):
+1. **Una franja fija entre «Hoy» y «Cómo quedaría»** con las 6 familias más relevantes y «Otras» (`<BarraApilada>` + una celda por familia). «Cómo quedaría» no elige colores, así que la franja habla solo de lo que cuelga. Cuenta EXACTAMENTE
+   lo que el riel (`armarPropuesta` le pasa solo las tallas y ventas de los grupos del riel; una prueba lo exige). Sin migración ni RPC: la familia ya viaja en `fn_piso_plan_lectura` (`tallas[].familia_color`, `ventas[].familia_color`).
+2. **«Más relevante» = el MAYOR entre lo que cuelga y lo que vende.** Ordenar solo por lo que cuelga habría escondido a Amarillo en «Otras» justo cuando es la señal más clara de TRU (cuelga 2 %, vende 5 %).
+3. **Una marca por familia SOLO con evidencia** («Le falta lugar» / «Cuelga de más»). Esperado = ventas totales × la parte que cuelga; marca si lo vendido se aparta de lo esperado más de lo que el azar explica (residuo de Poisson ≥ 2) **y** por al menos
+   3 prendas **y** con 30 ventas o más en la tienda. Es relativa: se compara con lo que la propia tienda vende, sin cortes fijos (la misma lógica de Frescura). **La varianza no baja de 2:** con casi nada esperado, 3 ventas no son raras
+   (con λ = 1,5 pasa 1 de cada 5 veces) y sin ese piso un color con 2 colgadas y 3 vendidas salía marcado; se midió con datos de TRU del 2026-10-12 y se corrigió antes de escribirlo en el código. Los tres umbrales son CRITERIO, no dato:
+   viven como constantes (`MINIMO_DE_VENTAS`, `Z_MINIMO`, `DIFERENCIA_MINIMA`, `VARIANZA_MINIMA`) y Felipe puede moverlos.
+4. **La familia esconde al color, y el desglose lo descubre.** Tierra puede verse equilibrada (33 % contra 31 %) mientras uno de sus colores cuelga 31 y vende 3 en 14 días. Al tocar una familia (su celda o su tramo) o «Otras» se abre debajo
+   un panel con cada color (cuelgan N · vendieron M), con «Se vende y falta» y «Cuelga y no sale» arriba (usa la `Tabla` del sistema; en celular las filas se apilan). Cada familia avisa «N colores a mirar». El panel se cierra con la ×, con otro toque
+   o con Escape, que devuelve el foco a la familia.
+5. **Las ventas, según el nivel.** Por familia cuentan las confirmadas Y las «sin registrar» (lo que ya usa «Tus ventas»; en AQP 169 de 170 ventas son anotadas y sin ellas la franja jamás tendría evidencia). Por COLOR solo las confirmadas
+   (`vendidas14`; una anotada puede no traer el color exacto). La nota al pie lo dice con las cifras de cada tienda, y con casi todo sin registrar el desglose lo avisa («por color todavía no se puede ver qué sale») y deja la lista sin marcas.
+6. **Neutro se pinta con un gris fijo** (`HEX_DE_NEUTRO`): su color que más cuelga suele ser el Negro, que sobre el papel oscuro se leía como un hueco. Las demás familias, con el color que más cuelga de ellas (dato de la prenda, `data-color-dato`).
+7. **El detalle de cada grupo al señalarlo** (mouse sobre el tramo, Tab en su ficha o un toque, que lo fija) es una tarjeta con su reparto por familia (6 + «Otras»), con el mismo color por familia que la franja. Flota sobre la banda de «Hoy» sin mover la
+   página, se abre por debajo si arriba no le cabe en la ventana y, en una tarjeta angosta (celular), es parte de la banda —que crece— para no tapar las fichas, que son la manera de tocar otro grupo.
+8. **La franja se pasa a `TarjetaDelRiel` como DATOS, no como elemento.** Un elemento hecho en el servidor y pasado como prop a un componente de cliente hacía que React avisara de una `key` que falta (se vio en una pestaña limpia; con datos, la consola queda vacía).
+
+**Qué se descartó.** La doble barra «cuelga contra vende» siempre visible en cada familia (más dibujo; Felipe prefirió la marca con evidencia); una meta por familia que fije el líder (otra tabla, otra pantalla y una migración a producción: queda para una segunda vuelta si hace falta);
+agrupar en «Neutros · Tierras · Colores»; una tarjeta aparte con los casos de toda la tienda; «los colores que menos salen» en absoluto (57 colores colgados y ~270 ventas: casi todos tienen entre 0 y 3, así que se mide contra lo que cuelga, no en bruto).
+
+**SE ROMPE SI:** una tienda vende MUCHO más que las ~400 ventas de 14 días de TRU: el residuo de Poisson crece con la raíz del volumen, así que con miles de ventas una diferencia de un punto ya «supera el azar» y la franja marcaría de más (el piso de 3 prendas casi no frena a esa escala). Para las tres tiendas de CAYLA no pasa; si pasa, hace falta un piso en puntos del total, además del de prendas; o `fn_piso_plan_lectura` deja de traer `familia_color`
+en `ventas` (la franja quedaría sin ventas y diría «pocas ventas para opinar», nunca un veredicto falso); o se mira un color sin ninguna fila de existencias en la sede (la lectura trae las variantes con fila en `fn_existencias_base`, que incluye las de todo cero —145 de 914 en TRU—; una
+variante sin fila no aparece en el desglose aunque se haya vendido). Una familia que la base cree y el código aún no conoce sale con su propio nombre, nunca escondida.
+
+**Cómo se verificó y qué NO.** `tsc`, `eslint` y `vitest` (426 archivos, 157,458 pruebas) en verde; 63 pruebas nuevas de la regla (bordes del residuo, simetría, entradas inválidas, orden independiente de cómo llegó la lectura, «la franja suma lo que el riel») y una adaptada de `mix-piso.test.ts`.
+En el navegador, con una página de ensayo temporal (fuera de la rama) que monta los componentes reales con datos inventados que imitan TRU y AQP: la franja, el detalle de un grupo con mouse, con foco de teclado y fijado, el desglose de una familia y de «Otras», Escape y × (con retorno de foco), sin cuadrar y
+cuadrado, sin capacidad, en claro y oscuro, a 375 px (sin desborde horizontal) y a escritorio, y la consola limpia en una pestaña nueva. **No se vio la ruta real contra su base** (no hay base local: Docker está desinstalado), **no se corrió `tema:auditar`** ni se agregó el escenario del desglose a
+`tema/escenarios/registro.mjs` (necesita sesión), **no se corrió `/formidable`** sobre la pantalla y **no lo probó una colaboradora**. **Para producción:** nada que pegar; solo publicar la web.
