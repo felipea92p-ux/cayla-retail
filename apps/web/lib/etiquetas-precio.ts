@@ -1,6 +1,6 @@
 import type { createClient as crearCliente } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerPorTandas, leerTodas } from "@/lib/resultado";
 import {
   armarEtiquetas,
   fechaDeAlcance,
@@ -97,23 +97,29 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
   }
   if (entradas.size === 0) return { etiquetas: [], sinCodigo: [], ...extra };
 
-  const variantes = exigir(
-    await supabase
-      .from("variantes")
-      .select(
-        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
-      )
-      .in("id", [...entradas.keys()]),
+  // Por tandas: una campaña sobre toda una categoría deja cientos de prendas, y cientos de ids en la URL la hacen fallar entera
+  // justo el día que empieza la campaña (la caja cobraría un precio distinto del de la prenda).
+  const variantes = await leerPorTandas(
+    entradas.keys(),
+    (tanda) =>
+      supabase
+        .from("variantes")
+        .select(
+          "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+        )
+        .in("id", tanda),
     "las prendas a etiquetar",
   );
 
   // Las otras tallas de esos modelos, para la fila «Tallas del modelo». Un envío grande (50 modelos × 20 variantes)
   // pasa las 1.000 filas: cortada, la etiqueta saldría con tallas de menos sin que nadie lo note.
   const productoIds = [...new Set(variantes.map((v) => v.producto_id))];
-  const hermanas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase.from("variantes").select("id, producto_id, color_codigo, activo, talla:tallas ( valor )").in("producto_id", productoIds).order("id").range(desde, hasta),
-    ),
+  const hermanas = await leerPorTandas(
+    productoIds,
+    (tanda) =>
+      leerTodas((desde, hasta) =>
+        supabase.from("variantes").select("id, producto_id, color_codigo, activo, talla:tallas ( valor )").in("producto_id", tanda).order("id").range(desde, hasta),
+      ),
     "las tallas de esos modelos",
   );
 
@@ -197,14 +203,14 @@ async function iconosDeLasPrendas(
 /** Unidades en la tienda por prenda (todas sus sububicaciones: piso y almacén). `cantidad` es lo físico: lo apartado
  *  de una separación también está en la tienda y también lleva etiqueta (`cantidad_apartada ≤ cantidad`). */
 async function stockEnTienda(supabase: Cliente, ubicacionId: string, varianteIds: string[] | null): Promise<Map<string, number>> {
-  const filas = exigir(
-    await leerTodas((desde, hasta) => {
+  const leer = (tanda: string[] | null) =>
+    leerTodas((desde, hasta) => {
       let q = supabase.from("stock").select("variante_id, sububicacion_id, cantidad").eq("ubicacion_id", ubicacionId).gt("cantidad", 0);
-      if (varianteIds) q = q.in("variante_id", varianteIds);
+      if (tanda) q = q.in("variante_id", tanda);
       return q.order("variante_id").order("sububicacion_id", { nullsFirst: true }).range(desde, hasta);
-    }),
-    "el stock de la tienda",
-  );
+    });
+  // Las marcadas en Existencias pueden ser cientos: por tandas. Sin lista, toda la tienda en una consulta paginada.
+  const filas = varianteIds ? await leerPorTandas(varianteIds, leer, "el stock de la tienda") : exigir(await leer(null), "el stock de la tienda");
   return sumarEntradas(filas);
 }
 

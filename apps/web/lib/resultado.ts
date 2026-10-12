@@ -78,6 +78,22 @@ export function trocear<T>(xs: readonly T[], tamano: number): T[][] {
   return lotes;
 }
 
+/**
+ * Lee por tandas de `IDS_POR_URL` una consulta que filtra por una lista de ids que puede ser larga, en paralelo, y junta lo
+ * que vuelve. Como `exigir()`: si UNA tanda falla, revienta con contexto; media lista nunca se entrega como lista entera
+ * (una etiqueta de campaña sin la mitad de las prendas parecería completa). Ids repetidos se piden una sola vez.
+ */
+export async function leerPorTandas<T>(
+  ids: Iterable<string>,
+  leer: (tanda: string[]) => PromiseLike<ResultadoConsulta<T[]>>,
+  que: string,
+): Promise<T[]> {
+  const unicos = [...new Set(ids)];
+  if (unicos.length === 0) return [];
+  const respuestas = await Promise.all(trocear(unicos, IDS_POR_URL).map(async (tanda) => exigir(await leer(tanda), que)));
+  return respuestas.flat();
+}
+
 /** El `max_rows` de PostgREST en producción (y en `supabase/config.toml`). */
 export const FILAS_POR_PAGINA = 1000;
 // ponytail: tanda fija de 3 (= 3.000 filas en una vuelta); si una lectura pasa de ~10.000 filas, pedir el total

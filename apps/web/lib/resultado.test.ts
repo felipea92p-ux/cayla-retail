@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FILAS_POR_PAGINA, leerTodas, opcional } from "./resultado";
+import { FILAS_POR_PAGINA, IDS_POR_URL, leerPorTandas, leerTodas, opcional } from "./resultado";
 
 describe("opcional", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -58,5 +58,37 @@ describe("leerTodas", () => {
       ++llamada === 1 ? { data: tabla(FILAS_POR_PAGINA), error: null } : { data: null, error: { message: "timeout" } },
     );
     expect(res).toEqual({ data: null, error: { message: "timeout" } });
+  });
+});
+
+describe("leerPorTandas — una lista larga de ids no rompe la URL", () => {
+  const ids = Array.from({ length: 300 }, (_, i) => `id-${i}`);
+
+  it("300 ids viajan en tandas de a lo más IDS_POR_URL, sin perder ni repetir ninguno", async () => {
+    const tamanos: number[] = [];
+    const filas = await leerPorTandas(
+      [...ids, "id-0", "id-1"],
+      async (tanda) => {
+        tamanos.push(tanda.length);
+        return { data: tanda.map((id) => ({ id })), error: null };
+      },
+      "las prendas",
+    );
+    expect(Math.max(...tamanos)).toBeLessThanOrEqual(IDS_POR_URL);
+    expect(tamanos.reduce((s, n) => s + n, 0)).toBe(300);
+    expect(new Set(filas.map((f) => f.id)).size).toBe(300);
+  });
+
+  it("si una tanda falla, revienta: media lista no se entrega como entera", async () => {
+    let n = 0;
+    await expect(
+      leerPorTandas(ids, async (tanda) => (++n === 2 ? { data: null, error: { message: "URI too long" } } : { data: tanda, error: null }), "las prendas"),
+    ).rejects.toThrow(/las prendas: URI too long/);
+  });
+
+  it("sin ids no consulta", async () => {
+    const leer = vi.fn();
+    expect(await leerPorTandas([], leer, "nada")).toEqual([]);
+    expect(leer).not.toHaveBeenCalled();
   });
 });
