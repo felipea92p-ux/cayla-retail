@@ -264,9 +264,9 @@ const TOPE_HIJAS = 6;
 // el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
 // Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
 // COMPRAS, 7 — TEMPORAL (Felipe, 2026-10-10; ADR-0362, decisión 38): «Órdenes de compra» entra como séptima hija mientras
-// «Recibir mercadería» siga en Compras. ADR-0361 la muda a Inventario (la base ya la tiene en ese grupo desde el 2026-10-07; falta
-// la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete son puertas de uso
-// diario y la mudanza ya está decidida.
+// «Recibir mercadería» siga en Compras. La sesión de Recepción la muda a Inventario (la base ya la tiene en ese grupo desde el
+// 2026-10-07; falta la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete
+// son puertas de uso diario y la mudanza ya está decidida.
 const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7, compras: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 

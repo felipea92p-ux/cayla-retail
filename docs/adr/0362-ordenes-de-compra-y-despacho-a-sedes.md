@@ -7,8 +7,11 @@
 - **Rama:** diseño en `claude/purchase-order-flow-6207e9` (2026-10-07 → 10); desde el 2026-10-10 sigue en
   `claude/purchase-order-redesign-9b0c82`, al día con `main`. El rango reservado (`20261008100000`–`…109999`) quedó atrás de lo que
   entró a `main` (hasta `20261010150000`): las versiones se eligen el día que se escriba cada migración.
-- **Contrato con:** ADR-0361 (sesión «Recibir Mercadería», rama `claude/recepcion-mercaderia-inventario-16e55e`): la recepción en
-  la sede es de Inventario y la construye esa sesión; esta construye la orden de compra, el comprobante y el despacho.
+- **Contrato con:** la sesión «Recibir Mercadería» (rama `claude/recepcion-mercaderia-inventario-16e55e`): la recepción en la sede es
+  de Inventario y la construye esa sesión; esta construye la orden de compra, el comprobante y el despacho. **Ojo con el número
+  (2026-10-12):** esa sesión había reservado el ADR-0361, y en este ADR y en `docs/compras/ordenes-de-compra-2026-10/` «ADR-0361» quiere
+  decir ella. Pero su rama ya no existe (ni local ni en GitHub) y en `main` el 0361 lo tomó «Modelo nuevo desde la orden de producción»
+  (#937). La recepción todavía no tiene ADR ni quien la construya: se decide al llegar a la fase 3.
 - **Reemplaza:** de ADR-0035, «CAYLA no emite pedidos formales» (ya los emite). Vuelve a existir la orden de compra, con tablas nuevas:
   las viejas `ordenes_compra` se borraron el 2026-09-12 y producción tiene 0 compras, 0 envíos y 2 lotes (consultado el 2026-10-07).
 
@@ -174,7 +177,7 @@ deuda por reponer y nota de crédito tipo 07 si se devuelve dinero; tope de la p
   categoría + marca obliga a revisarlas una por una.
 - `fn_gestora_con_parte` exige que la tienda gestora conserve parte de la mercadería: choca con «todo a una sede» si esa sede no es la gestora.
 
-## Contrato provisional con la sesión de Recepción (ADR-0361)
+## Contrato provisional con la sesión de Recepción (la que reservó el ADR-0361; ver «Contrato con»)
 
 - Tablas (nacen aquí): `ordenes_compra`, `orden_compra_items` (`categoria_id` y `marca_id` NOT NULL), `despachos` (la guía: una sede,
   `numero_guia` opcional, `despachado_por` = `fn_actor_persona_id(true)`), `despacho_items` (`orden_compra_item_id` NOT NULL,
@@ -200,7 +203,7 @@ fondo», gastos del viaje y dañadas son acciones dentro de pantallas, no módul
 | Compras ▸ Facturas de compra | `facturas_compra` | existe | encargadas, líder, contador | ver comprobantes; filtro «Sin comprobante» |
 | Compras ▸ Proveedores | `proveedores` | existe, gana «Nos debe» | encargadas, líder | faltantes por reponer, saldo a favor, devueltas; se salda con reposición, depósito o descuento |
 | Compras ▸ Por pagar | `por_pagar` | existe, cambia | administración, líder | solo crédito; se retira «la parte de mi tienda» (decisión 16) |
-| Inventario ▸ Recibir mercadería | `recibir` | existe (ADR-0361) | la sede | contar por guía, corregir costo, faltantes, sobrantes, dañadas |
+| Inventario ▸ Recibir mercadería | `recibir` | existe (sesión de Recepción) | la sede | contar por guía, corregir costo, faltantes, sobrantes, dañadas |
 | Inventario ▸ Existencias (Dañadas) | `existencias` | existe | la sede | arreglar, liquidar, regalar, desechar, devolver al proveedor |
 | Producción ▸ Abastecimiento ▸ **Órdenes de insumos** | `produccion` | pantalla nueva | quien compra para el Taller | `OI-`, insumo con unidad, proveedores del Taller, «Tu fondo» |
 | Finanzas ▸ **Fondos por rendir** | `fondos` | nueva (nace solo para el líder) | líder o a quien él se lo dé | entregar plata, aprobar rendiciones, tablero de control |

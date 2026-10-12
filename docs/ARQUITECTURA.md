@@ -1368,7 +1368,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     que arrancan en la sede donde se trabaja, píldoras, vacío, página de 50 pidiendo 51) + `components/ordenes-compra/BuscadorOrdenes.tsx`
     (número o proveedor, sin loader) + `PaginacionCursor`. Cabecera `EncabezadoPagina`; cifras que no cambian con los filtros (total,
     la sede donde se trabaja, por repartir); columnas por el ancho de la tabla (`@container`). 7.ª entrada temporal de Compras hasta que
-    Recibir pase a Inventario (ADR-0361).
+    Recibir pase a Inventario (la sesión de Recepción; ver ADR-0362, «Contrato con»).
   - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
     sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como

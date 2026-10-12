@@ -25,7 +25,7 @@ decisiones posteriores (cada anexo dice en su cabecera qué quedó superado).
 | 1 | Orden de compra de tienda: listado, crear (`OC-000001`, bloqueado), ver en modal, editar, anular, PDF | esta línea |
 | 2 | Comprobante desde la OC (factura/boleta/nota de venta/«sin comprobante»), IGV, contado con pago, precio sugerido, parciales | esta línea |
 | 3 | Envío a la sede: la general manda (una guía por sede); la de tienda → envío directo a su sede | esta línea |
-| 4 | Recepción en la sede (contar, costo, faltantes, sobrantes, dañadas, prendas nuevas) | sesión de Recepción (ADR-0361) |
+| 4 | Recepción en la sede (contar, costo, faltantes, sobrantes, dañadas, prendas nuevas) | sesión de Recepción (reservó el ADR-0361, que en `main` quedó para Producción; hoy sin rama ni ADR) |
 | 5 | Deudas del proveedor («Nos debe»): reposición, depósito o descuento; devueltas | esta línea |
 | 6 | Fondo por rendir + gastos del viaje (aparte del costo), rendición «te quedan S/ X» | esta línea |
 | 7 | Orden de insumos del Taller (`OI-`), proveedores del Taller, recibe el Taller | esta línea |
