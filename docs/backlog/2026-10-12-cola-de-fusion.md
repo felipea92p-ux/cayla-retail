@@ -1,0 +1,11 @@
+## Fusionar sin círculo: tandas, reservas y `/abrir-pr` (2026-10-12, ADR-0381)
+- [x] **«Pruebas de RPC contra Postgres» en 4 tandas paralelas** (`scripts/ci/pruebas-postgres.mjs`, reparto por duración medida; el check obligatorio conserva su nombre).
+- [x] **Reserva atómica de números** (`pnpm reservar adr|migracion`, etiquetas `reserva/*`; probado con cinco clones reservando a la vez contra un remoto real).
+- [x] **Los candados miran las reservas** (`adr:numeros`, `migraciones:versiones`: rojo si otra rama reservó el número, aviso si no tiene reserva).
+- [x] **`/abrir-pr` + `pnpm abrir-pr:choques`** (números, funciones de la base, archivos de registro; `--entre-prs` para el tablero). Regla en CLAUDE.md.
+- [ ] **Medir el CI de las tandas** con la primera corrida real de este PR y reescribir las duraciones: `node scripts/ci/pruebas-postgres.mjs --medir <id de corrida>`. Las de hoy salieron del job en serie.
+- [ ] **Felipe: proteger `reserva/*`** (Settings ▸ Rules ▸ regla de etiquetas que impida moverlas o borrarlas). Opcional. Sin ella, un `push --force` pisa una reserva.
+- [ ] **Felipe: confirmar Vercel ▸ Git ▸ Deployment Checks** (¿espera el CI de main para publicar?). Si lo espera, no cambia nada: el check se llama igual.
+- [ ] **En una semana (≈2026-10-19): ¿sigue el círculo de «Update branch»?** Contar los PR que se pusieron al día más de una vez. Si sigue, diseñar la cola de fusión casera (workflow + GitHub App, `en-cola`, uno a la vez); si no, cerrar esto.
+- [ ] **Pasar «número sin reserva» de aviso a rojo** cuando los PR abiertos antes del 2026-10-12 hayan salido (`revisarReservas` en `scripts/reservar/reservas.mjs`).
+- [ ] **#975 repite dos migraciones de #788** (20261004203000 y 20261004204000) y **#600 trae un ADR-0262 distinto al de main**: lo encontró `pnpm abrir-pr:choques --entre-prs`. Decidir cuál se cierra.
