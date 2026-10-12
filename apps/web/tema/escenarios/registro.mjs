@@ -680,6 +680,21 @@ ESCENARIOS.push(
       await esperar(pagina, 900);
     },
   },
+  {
+    // «Dónde» (Felipe 2026-10-12): la matriz contada solo en el piso. La prenda del seed con piso, almacén y una dañada en Lima; `abre`
+    // exige la matriz redibujada, no solo la ventana (sin piso ni almacén no hay «Dónde» y el escenario no pasa en verde).
+    id: "productos.vista-rapida-piso",
+    ruta: "/productos?q=Pantal%C3%B3n%20Carla",
+    cuentas: CATALOGO,
+    abre: '[role=dialog] .vr-grid[data-donde="piso"]',
+    nombre: "Productos · la vista rápida contando solo lo del piso",
+    async preparar(pagina) {
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+      await pagina.locator('.vr-donde [role="radio"]', { hasText: "Piso" }).click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
   { id: "productos.filtro-categoria", ruta: "/productos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=listbox],[role=dialog],[data-capa-flotante]", nombre: "Productos · la lista del filtro «Categoría»", preparar: clicRol("button", /^Categoría/) },
   { id: "productos.ordenar", ruta: "/productos", cuentas: ["admin"], abre: "[role=listbox],[role=menu],[role=dialog]", nombre: "Productos · «Ordenar por»", preparar: clicRol("button", /^Ordenar por/) },
   { id: "productos.temporada", ruta: "/productos", cuentas: ["admin"], nombre: "Productos · el aviso «prendas sin temporada» abierto", async preparar(pagina) { await pagina.getByText(/sin temporada/i).first().click({ timeout: 8000 }); await esperar(pagina, 1100); } },

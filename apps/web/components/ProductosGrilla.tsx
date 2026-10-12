@@ -22,7 +22,7 @@ import {
   type ExistenciasProducto,
 } from "@/lib/productos-stock";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
-import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
+import { useStockEnSede, type LugaresDeModelo, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import type { TarjetaLook } from "@/lib/combinar-reglas";
@@ -122,6 +122,7 @@ export function ProductosGrilla({
           veExistencias={veExistencias}
           veMovimientos={veMovimientos}
           stock={stockSede.de(p.productoId)}
+          lugares={stockSede.lugaresDe(p.productoId)}
           leer={leer}
           sede={sede}
           puedeEditar={puedeEditar}
@@ -143,6 +144,7 @@ function TarjetaProducto({
   veExistencias,
   veMovimientos,
   stock,
+  lugares,
   leer,
   sede,
   puedeEditar,
@@ -164,6 +166,8 @@ function TarjetaProducto({
   veMovimientos: boolean;
   /** Stock de este modelo en la sede (`useStockEnSede`, leído una vez para toda la página). */
   stock: StockDeModelo;
+  /** Lo mismo, repartido por lugar (piso, almacén): lo usa la vista rápida para decir dónde está cada unidad. */
+  lugares: LugaresDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
   puedeEditar: boolean;
@@ -295,6 +299,7 @@ function TarjetaProducto({
         <VistaRapidaProducto
           producto={producto}
           stock={stock}
+          lugares={lugares}
           leer={leer}
           sede={sede}
           existencias={existencias}
