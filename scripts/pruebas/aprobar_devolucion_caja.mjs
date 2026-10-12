@@ -28,6 +28,8 @@
 import { execFileSync } from "node:child_process";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// Otra base del mismo Postgres (p. ej. una copia desechable con las migraciones de esta rama): `PRUEBAS_BASE=mi_copia node …`.
+const BASE = process.env.PRUEBAS_BASE ?? "postgres";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 // Segunda líder (seed.sql), usada solo para aprobar — desde
 // 20260922235000_candado_dinero_caja_cambios_devoluciones.sql quien registra una devolución
@@ -38,7 +40,7 @@ const SANDRA = "22222222-2222-4222-8222-000000000005";
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   );
 }
@@ -108,10 +110,12 @@ set local request.jwt.claim.sub = '${SANDRA}';
 `;
 
 let fallos = 0;
+let total = 0;
 
 // `resultado` (lo que devolvió `correr`) se imprime solo si falla: distingue "el candado
 // no existe" de "el fixture se rompió antes de llegar al candado".
 function esperar(nombre, ok, resultado) {
+  total++;
   console.log(`${ok ? "✓" : "✗"} ${nombre}`);
   if (!ok) {
     fallos++;
@@ -202,7 +206,68 @@ rollback;
     arqueoConVentaAnulada
   );
 
-  console.log(`\n${5 - fallos}/5 pruebas en verde.`);
+
+  // ---- 20261012120100 (ADR-0380): la nota de crédito sale por lo que la clienta PAGÓ, no por el precio de lista ----
+  // Venta con boleta ACEPTADA, S/ 20 de descuento por prenda y una devolución pendiente (mismo armado que
+  // `arreglos_en_vivo.mjs`). Antes la nota salía por el precio de lista: más que la boleta.
+  const FIXTURE_CON_NOTA = (descuento) => `${FIXTURE_BASE}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', 1, 'precio_unitario', :'precio_viejo', 'descuento_unitario', ${descuento}${
+    descuento > 0 ? `, 'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'prueba automatizada'` : ""
+  })),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'precio_viejo')::numeric - ${descuento})),
+  null, gen_random_uuid(), 'boleta') as venta_nota \\gset
+update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox' where venta_id = :'venta_nota';
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
+  select :'ubic', 'nota_credito', 'BC01' where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito');
+select id as item_nota from retail.venta_items where venta_id = :'venta_nota' \\gset
+select retail.crear_devolucion(:'venta_nota', :'ubic',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'item_nota', 'cantidad', 1, 'condicion', 'vendible')),
+  'prueba automatizada', 'otro') as dev_nota \\gset
+set local request.jwt.claim.sub = '${SANDRA}';
+`;
+
+  const notaConDescuento = correr(`${FIXTURE_CON_NOTA(20)}
+select retail.aprobar_devolucion(:'dev_nota', (:'precio_viejo')::numeric - 20, 'yape') as _ok \\gset
+select n.total, n.igv, n.subtotal, b.total
+  from retail.devoluciones d
+  join retail.comprobantes n on n.id = d.nota_credito_id
+  join retail.comprobantes b on b.id = n.comprobante_original_id
+ where d.id = :'dev_nota';
+rollback;
+`);
+  {
+    const [total, igv, subtotal, totalBoleta] = notaConDescuento.ok ? notaConDescuento.salida.split("|").map(Number) : [];
+    esperar(
+      "con descuento, la nota de crédito sale por lo pagado (igual a la boleta), no por el precio de lista",
+      notaConDescuento.ok && total === totalBoleta && Math.abs(igv + subtotal - total) < 0.005 && igv === Math.round((total - total / 1.18) * 100) / 100,
+      notaConDescuento
+    );
+  }
+
+  const notaDeMas = correr(`${FIXTURE_CON_NOTA(20)}
+select retail.aprobar_devolucion(:'dev_nota', (:'precio_viejo')::numeric - 20, 'yape') as _ok \\gset
+select retail.emitir_nota(c.id, 'nota_credito', '07', 0.01, 0, 0.01) from retail.comprobantes c where c.venta_id = :'venta_nota' and c.tipo = 'boleta';
+rollback;
+`);
+  esperar(
+    "una segunda nota de crédito que pasaría de lo que cobró la boleta se rechaza (nunca se acredita más que lo cobrado)",
+    !notaDeMas.ok && notaDeMas.mensaje.includes("pasarían de lo que cobró"),
+    notaDeMas
+  );
+
+  const notaSinDescuento = correr(`${FIXTURE_CON_NOTA(0)}
+select retail.aprobar_devolucion(:'dev_nota', :'precio_viejo', 'yape') as _ok \\gset
+select n.total = b.total
+  from retail.devoluciones d
+  join retail.comprobantes n on n.id = d.nota_credito_id
+  join retail.comprobantes b on b.id = n.comprobante_original_id
+ where d.id = :'dev_nota';
+rollback;
+`);
+  esperar("sin descuento nada cambia: la nota sale por el total de la boleta", notaSinDescuento.ok && notaSinDescuento.salida === "t", notaSinDescuento);
+
+  console.log(`\n${total - fallos}/${total} pruebas en verde.`);
   process.exit(fallos > 0 ? 1 : 0);
 }
 
