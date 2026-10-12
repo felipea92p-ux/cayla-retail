@@ -81,7 +81,8 @@ export function partesPorPagar(partes: readonly ParteDeCompra[]): ParteDeCompra[
 
 /**
  * La parte con la forma de un comprobante, para reusar el modal de pago tal cual: el saldo y el total son los de MI tienda
- * (el modal no deja pagar más que eso) y el pago va con `p_ubicacion_id` = mi tienda. Los campos que el modal no usa
+ * (el modal no deja pagar más que eso). Hasta ADR-0387 el pago iba con `p_ubicacion_id` = mi tienda; desde su decisión 45 el
+ * modal ya no manda tienda (el pago es de la empresa) y esto queda sin pantalla, hasta retirarlo. Los campos que el modal no usa
  * quedan en valores neutros: esto NO es el comprobante, y no debe pintarse como tal en ningún otro lado.
  */
 export function compraParaPagarMiParte(p: ParteDeCompra): CompraResumen {

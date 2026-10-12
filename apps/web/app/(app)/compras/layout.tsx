@@ -33,7 +33,8 @@ export default async function ComprasLayout({ children, modal }: { children: Rea
   // de compra, Por pagar o Notas de crédito: `verDineroCompras`); cada pantalla exige además SU módulo (`exigirModulo`).
   // ADR-0161 P3 (20260923140000): también quien tiene Proveedores, aunque no vea los montos: el directorio y la ficha viven
   // aquí. Las pantallas de dinero lo siguen pidiendo cada una (su módulo, y el detalle de un comprobante `verDineroCompras`).
-  // ADR-0184: el rol dice QUIÉN entra; de QUÉ TIENDAS ve cada fila lo filtra la base (`fn_compras_ubicaciones`), no este layout.
+  // ADR-0184: el rol dice QUIÉN entra; de QUÉ TIENDAS ve cada fila lo decide la base, no este layout. Desde ADR-0387 (actividad 2)
+  // quien tiene Facturas de proveedor, Por pagar o Notas de crédito ve las de todas las tiendas, como el líder.
   // ADR-0362 (decisión 34): también quien tiene Órdenes de compra, aunque no vea los montos de las facturas; su módulo trae sus
   // precios. Las demás pantallas siguen con su propio candado (cada una pide su módulo o `verDineroCompras`).
   // ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): también quien tiene Plan de campaña, que pide solo su módulo.

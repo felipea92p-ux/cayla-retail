@@ -226,7 +226,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar una terminal: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
   "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },
   "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
-  "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
+  "components/CompraDetallePanel.tsx": PENDIENTE, // 7 controles
   "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
   "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
   "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
@@ -266,7 +266,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
-  "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
+  "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
   // ADR-0328 act. 17: «Para enviar» en Traslados. Su ventana «Ya no la envío»: «falta» = el porqué (la base lo exige) y quién lo hace.
   "components/ParaEnviar.tsx": { estado: "aplicada", evidencia: ["components/ParaEnviar.tsx"] },

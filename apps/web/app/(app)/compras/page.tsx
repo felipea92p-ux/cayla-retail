@@ -2,8 +2,6 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Download } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
-import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
@@ -53,7 +51,9 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  const persona = await exigirModulo("facturas_compra"); // 20260923130000: la lista de facturas es del módulo Facturas de compra
+  // 20260923130000: la lista de facturas es del módulo Facturas de compra. ADR-0387 (Felipe 2026-10-12): con el módulo se ven
+  // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
+  await exigirModulo("facturas_compra");
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -63,14 +63,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
   // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
   // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones, misPartes] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
     listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
     getUbicaciones(),
-    // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
-    persona.rol === "lider" ? Promise.resolve([]) : getMisPartesDeCompras(),
   ]);
   // Para decir a qué tiendas va un comprobante repartido (ADR-0139).
   const nombrePorUbicacion = Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]));
@@ -112,8 +110,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-tinta/65">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
-              quien no es líder exporta lo de sus tiendas). */}
+          {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien exporta: desde ADR-0387,
+              quien tiene el módulo exporta las facturas de todas las tiendas, como el líder. */}
           <BotonAncla href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}>
             <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
           </BotonAncla>
@@ -178,8 +176,6 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           Crédito fiscal · solo facturas
         </TarjetaCifra>
       </div>
-
-      <MisPartesDeCompras partes={misPartes} indice={5} />
 
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
           con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la

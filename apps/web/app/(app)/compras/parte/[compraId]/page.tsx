@@ -14,6 +14,10 @@ import { Volver } from "@/components/ui/Volver";
 // montos del comprobante entero, lo que le toca a mi tienda (subtotal, IGV, total, pagado, saldo), mis líneas con mis unidades
 // y los pagos de mi tienda — todo sale de `fn_mi_parte_de_compra`, que no devuelve nada de la otra tienda. Quien ve el
 // comprobante entero (líder o tienda gestora) va al detalle de siempre.
+//
+// ADR-0387 (Felipe 2026-10-12, con su decisión 45): quien tiene un módulo de plata de Compras ve el comprobante entero (así que
+// esta página lo manda al detalle) y la deuda es toda de la tienda que lo pidió. Ya no tiene enlaces; su «Pagar» va a nombre de
+// la empresa, sin tienda. Queda hasta que se retire junto con `MisPartesDeCompras` y `lib/compras-mi-parte*.ts`.
 export default async function MiParteDeCompraPage({ params }: { params: Promise<{ compraId: string }> }) {
   const persona = await exigirPermiso("verDineroCompras");
   const { compraId } = await params;
@@ -56,7 +60,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
                 <p className="text-sm tabular-nums text-tinta">Pagado {soles(p.pagado)}</p>
                 <p className={`mt-0.5 text-sm tabular-nums ${p.saldo > 0 ? "text-tinta" : "text-verde"}`}>{p.saldo > 0 ? `Por pagar ${soles(p.saldo)}` : "Pagada"}</p>
               </div>
-              <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} misTiendas={[{ id: p.ubicacionId, nombre: p.ubicacionNombre }]} />
+              <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} />
             </div>
           }
         >

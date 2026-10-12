@@ -10,3 +10,16 @@
   y de Recibir, `pnpm pruebas:compras-llave` (16/16; falla sin la migración) y las pruebas viejas pasadas a la regla nueva (plan 23/23,
   lote 24/24, envío 21/21, por tienda 35/35, reparto 57/57, dinero 30/30, roles 70/70), vitest completo 436/436, y en el navegador una
   integrante con Plan de campaña ve y abre lo que antes era del líder. **Sin pegar en producción** (espera el OK de Felipe al cerrar la fase).
+
+## Compras ▸ fase 2, actividad 2: todas las tiendas y a nombre de la empresa (2026-10-12)
+
+- **Qué:** quien tiene un módulo de plata de Compras ve las facturas de todas las tiendas y paga a nombre de la empresa, como el líder;
+  Proveedores ve los montos de la empresa con su módulo (decisión 44); y la deuda de una factura es 100 % de la tienda que hizo el pedido
+  (decisión 45), también en Finanzas (Por pagar por tienda y Balance por tienda). En la web, el camino del líder es el de todos: sin
+  «Pagas desde» ni «Tu parte…», gestora libre al registrar.
+- **Por qué:** Felipe, 2026-10-12: «todas las tiendas», «Sí, que los vea», y «Trujillo y Lima, si no hicieron el pedido, no tienen nada
+  que pagar, sino quien realizó el pedido». Medido en el banco antes del cambio: una boleta de S/ 1,000 repartida 600/400 con un pago de
+  la empresa de S/ 500 daba S/ 900 de deuda por tienda.
+- **Cómo:** migración `20261012204000` (reemplazos anclados contados en producción; dos partes, las políticas solas al final), web de
+  Compras y Finanzas, `pnpm pruebas:compras-llave` 37/37 (13 fallan sin la migración) y ya en la lista del CI; las pruebas viejas de
+  «cada tienda lo suyo» pasadas a la regla nueva caso por caso. **Sin pegar en producción** (la base va antes que la web).

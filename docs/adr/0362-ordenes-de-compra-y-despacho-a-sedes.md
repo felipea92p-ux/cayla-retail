@@ -62,6 +62,8 @@
 | 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12) |
 | 42 | Comprobante y contado | Registrar el comprobante de una orden y pagarlo al contado (desde una cuenta de la empresa, hasta que existan los fondos de la fase 6) piden **solo el módulo Órdenes de compra** (Felipe 2026-10-12) |
 | 43 | Más de lo pedido | Si el papel del proveedor trae más unidades o una línea que no estaba en la orden, **se acepta y se avisa** (Felipe 2026-10-12) |
+| 44 | Proveedores ve sus montos | Quien tiene el módulo Proveedores ve, dentro de Proveedores, lo que la empresa le compra y le debe a cada uno y su saldo a favor («Sí, que los vea»); revierte ADR-0161 P3. No abre los tableros de Facturas ni Por pagar. ADR-0387 (Felipe 2026-10-12) |
+| 45 | De quién es la deuda | **La deuda de una factura es 100 % de la tienda que hizo el pedido** (la gestora, la que guarda el papel): «Trujillo y Lima, si no hicieron el pedido, no tienen nada que pagar, sino quien realizó el pedido»; si otra tienda recibió parte, se compensan entre ellas, fuera del sistema. El pago de la empresa baja la deuda de esa factura. Finanzas (Por pagar por tienda y Balance por tienda) deja de sumar «partes», y su Por pagar se paga igual que Compras. ADR-0387 (Felipe 2026-10-12) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»

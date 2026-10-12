@@ -5,22 +5,28 @@ import { useRouter } from "next/navigation";
 import { Chip } from "@/components/ui/Chip";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
-import { compraParaPagarMiParte, type ParteDeCompra } from "@/lib/compras-mi-parte-reglas";
+import { compraParaPagarMiParte, partesPorPagar, type ParteDeCompra } from "@/lib/compras-mi-parte-reglas";
 
 // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona OTRA tienda. La tienda que registró tiene el papel; esta
 // tienda recibe su mercadería y paga lo suyo desde aquí. Se muestran SU monto y SU saldo, nunca los del comprobante entero
 // (la base ni siquiera se los da). «Parte nueva» es el aviso a la tienda que no registró: llegó hace poco y todavía no pagó nada.
+//
+// ADR-0387 (Felipe 2026-10-12): Compras ya no lo muestra — quien tiene el módulo ve cada comprobante entero y lo paga a nombre de
+// la empresa; y con la decisión 45 la deuda de una factura es toda de la tienda que la pidió, así que ya no hay «partes» que
+// pagar. Queda sin pantalla (y su «Pagar» ya no se ata a ninguna tienda) hasta que se retire junto con `lib/compras-mi-parte*.ts`
+// y `/compras/parte/[compraId]`.
 export function MisPartesDeCompras({
-  partes,
+  partes: todas,
   pagar = false,
   indice = 0,
 }: {
   partes: ParteDeCompra[];
-  /** En Por pagar: un botón «Pagar» por fila (desde la tienda de esa parte). */
+  /** En Por pagar: solo las que todavía se deben (`partesPorPagar`), con un botón «Pagar» por fila (desde la tienda de esa parte). */
   pagar?: boolean;
   indice?: number;
 }) {
   const router = useRouter();
+  const partes = pagar ? partesPorPagar(todas) : todas;
   if (partes.length === 0) return null;
   const nuevas = partes.filter((p) => p.parteNueva).length;
   return (
@@ -63,12 +69,7 @@ export function MisPartesDeCompras({
                 <p className={`text-xs tabular-nums ${p.saldo > 0 ? "text-tinta/80" : "text-verde"}`}>{p.saldo > 0 ? `Por pagar ${soles(p.saldo)}` : "Pagada"}</p>
               </div>
               {pagar && p.vigente && p.saldo > 0 && (
-                <BotonPagar
-                  compacto
-                  compra={compraParaPagarMiParte(p)}
-                  misTiendas={[{ id: p.ubicacionId, nombre: p.ubicacionNombre }]}
-                  onPagado={() => router.refresh()}
-                />
+                <BotonPagar compacto compra={compraParaPagarMiParte(p)} onPagado={() => router.refresh()} />
               )}
             </div>
           </li>

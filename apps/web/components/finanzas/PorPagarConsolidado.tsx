@@ -92,7 +92,7 @@ export function PorPagarConsolidado({
                 titulo={verTodas ? "Todo lo que CAYLA debe" : `Lo que debe ${nombre}`}
                 bajada={
                   ver.ubicacionId
-                    ? "Mercadería, gastos, activos e insumos del Taller. De una factura repartida entre tiendas, solo su parte."
+                    ? "Mercadería, gastos, activos e insumos del Taller. Cada factura cuenta entera para la tienda que la pidió, aunque parte de la mercadería vaya a otra."
                     : "Mercadería, gastos, activos e insumos del Taller en una sola lista."
                 }
               >

@@ -107,7 +107,6 @@ const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia?.
 export function CompraFormV2({
   proveedores,
   ubicaciones,
-  misTiendas,
   ubicacionInicialId,
   variantes,
   proveedorInicialId = null,
@@ -116,12 +115,10 @@ export function CompraFormV2({
   repartoDisponible = true,
 }: {
   proveedores: Proveedor[];
+  /** Todas las tiendas activas: la gestora se elige entre ellas, sea líder o no (ADR-0387, Felipe 2026-10-12; antes ADR-0184
+   *  F5 limitaba a quien no es líder a sus tiendas). */
   ubicaciones: Ubicacion[];
-  /** ADR-0184 (F5): solo para un comprador de tienda — las tiendas donde puede ser gestora (`fn_compras_ubicaciones()`),
-   *  un subconjunto de `ubicaciones`. `undefined` = sin restricción (líder, como siempre): elige cualquiera de
-   *  `ubicaciones` y la gestora sale de `tiendasReparto[0]`. Con esto, la gestora sale de LA tienda del comprador que
-   *  siga en el reparto (nunca de la posición 0, que sigue el orden de `ubicaciones` y podría no ser la suya). */
-  misTiendas?: Ubicacion[];
+  /** Con qué tienda arranca «Mercadería destinada a»: la sede de la persona. */
   ubicacionInicialId: string;
   variantes: Variante[];
   /** `?prov=<uuid>`: llega desde «+ Comprobante» de la lista o la ficha de un proveedor. */
@@ -286,8 +283,9 @@ export function CompraFormV2({
   const unidadesTienda = unidadesPorTienda(lineas.filter((l) => l.productoId && l.cantidad > 0));
   const porTienda = ubicaciones.filter((u) => (unidadesTienda[u.id] ?? 0) > 0).map((u) => ({ id: u.id, nombre: u.nombre, unidades: unidadesTienda[u.id] }));
   // La tienda gestora que se manda a la RPC (ADR-0184, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
-  // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`).
-  const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId, misTiendas?.map((u) => u.id));
+  // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`). Sin restricción para nadie (ADR-0387): la elegida o,
+  // repartiendo, la primera tienda del reparto.
+  const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId);
   // ADR-0195 F3b: «Sale de» en cada medio del pago al contado; la propuesta sale de la tienda gestora.
   const cuentas = useCuentasParaElegir("pago", gestora || null);
   const documentoNormalizado = `${serie.trim().toUpperCase()}-${numero.trim()}`;
@@ -413,7 +411,7 @@ export function CompraFormV2({
       p_numero: numero.trim(),
       p_condicion: condicion,
       // Repartido: cada línea trae sus `destinos`, y este parámetro pasa a ser la tienda GESTORA (ADR-0184, F3) —
-      // ya no es solo un valor por defecto. Ver `gestora` arriba: para un comprador nunca es una posición ciega.
+      // ya no es solo un valor por defecto. Ver `gestora` arriba: cualquier tienda activa del reparto (ADR-0387).
       p_ubicacion_destino_id: gestora,
       p_items: validas.map((l, n) => ({
         producto_id: l.productoId,
@@ -667,7 +665,6 @@ export function CompraFormV2({
             </div>
             <DestinoDeLaMercaderia
               ubicaciones={ubicaciones}
-              ubicacionesPropia={misTiendas}
               puedeRepartir={repartoDisponible}
               repartir={repartir}
               onRepartir={alternarRepartir}

@@ -919,6 +919,12 @@ export const PRUEBAS = [
   // anulada sin motivo, entrega antes de la emisión, número repetido). ROLLBACK siempre.
   "pruebas:ordenes-compra",
 
+  // Compras: el módulo es la llave (ADR-0387, fase 2 de ADR-0362): en Compras nada es «solo del líder» si se tiene el módulo (Plan,
+  // tienda gestora, costo atípico al recibir); quien tiene un módulo de plata ve y paga las facturas de TODAS las tiendas a nombre de
+  // la empresa, y Proveedores ve los montos de la empresa; sin módulo, nada; Recibir sigue viendo solo su sede. Carga sus migraciones
+  // dentro de cada caso (dos veces: se pueden pegar de nuevo). ROLLBACK siempre.
+  "pruebas:compras-llave",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

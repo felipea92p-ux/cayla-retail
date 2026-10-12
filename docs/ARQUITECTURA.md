@@ -1230,13 +1230,22 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `fn_saldo_de_tienda` de sus tiendas, gestione quien gestione). La usan `resumen_compras`, `resumen_compras_extra`,
   `deuda_por_vencimiento`, `salidas_caja_30d`, `por_pagar_tramos` (solo `gestionada`) y el saldo de `fn_proveedores`; la página
   `/compras/por-pagar` reemplaza los montos de sus filas con `porPagarConMiParte` (`lib/compras-mi-parte.ts`).
+  **DESHECHO en Compras por ADR-0387 (actividad 2, `20261012204000`, sin pegar en producción):** quien tiene un módulo de plata de
+  Compras ve y maneja las facturas de TODAS las tiendas, como el líder: las políticas preguntan `(select fn_puede_ver_dinero_de_compras())`
+  (ya no `fn_compras_visibles`), `fn_compra_es_de_mis_tiendas` = `fn_puede_ver_dinero_de_compras()`, `fn_puede_comprar_en` = cualquier
+  tienda activa, `fn_deuda_visible` da la factura entera y `fn_mis_partes_de_compras` sale vacía. Se paga a nombre de la empresa: las
+  tres RPC de pago ya no exigen `p_ubicacion_id` (si llega, se valida como antes) y el contado de `registrar_compra` va sin tienda. La web
+  de Compras no muestra «Pagas desde» ni «Tu parte…» (Finanzas ▸ Por pagar tampoco). Proveedores ve los montos de la empresa con su
+  módulo (`fn_ve_plata_de_proveedores`). Decisión 45: la deuda es de la tienda que hizo el pedido (la gestora): `fn_por_pagar_consolidado`
+  mirando una tienda y `fn_bal_facturas_de_tienda` suman por gestora, sin partes. `compradores_de_tienda`, `fn_compras_ubicaciones`,
+  `fn_compras_visibles`, `fn_mi_parte_de_compra`, `MisPartesDeCompras` y `/compras/parte/[compraId]` quedan sin efecto (se retiran).
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su
   suma por línea = la cantidad lo exige un constraint trigger diferido). Lo recibido por tienda no se guarda: sale de
   `movimientos` (`compra_item_id` + `ubicacion_id`) y lo cruza la vista `compra_item_reparto_resumen`
   (`pendiente = asignado − recibido − cerrado`). `recibir_compras` topa **por tienda**; `cerrar_linea_compra` lleva
-  `p_ubicacion_id`; `reasignar_reparto_compra` (solo líder) mueve lo que aún no llegó y deja rastro en `compra_reasignaciones`;
+  `p_ubicacion_id`; `reasignar_reparto_compra` (quien tiene Facturas de proveedor, de cualquier tienda: ADR-0387) mueve lo que aún no llegó y deja rastro en `compra_reasignaciones`;
   `fn_puede_ver_compra` reemplaza al candado por el destino de la cabecera; `compras_resumen.ubicaciones_destino` trae las
   tiendas. Web: `lib/reparto-reglas.ts` (reglas puras: validar y explicar un reparto, «Te toca 12 de 24»), `lib/compras-reparto.ts`
   (lee el reparto y las reasignaciones de un comprobante, tolerante), `lib/compras.ts` (`listarCompras`/`getLineasCompra` reciben la
