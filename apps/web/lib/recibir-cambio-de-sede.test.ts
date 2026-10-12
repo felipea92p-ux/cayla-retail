@@ -25,7 +25,7 @@ describe("Recibir: el conteo es de su sede", () => {
 
   it("la recepción contra factura se monta con la sede en la key, dentro del guardián del cambio de sede", () => {
     expect(pagina).toMatch(/<RecepcionEnvio\s+key=\{claveDeLaRecepcion\(ubicacionMirada\)\}/);
-    const guardian = pagina.lastIndexOf("<ConteoPorSede", pagina.indexOf("<RecepcionEnvio"));
+    const guardian = pagina.lastIndexOf("<TrabajoPorSede", pagina.indexOf("<RecepcionEnvio"));
     expect(guardian).toBeGreaterThan(-1);
     // El guardián va POR ENCIMA del «no hay nada pendiente»: si la sede nueva no tiene facturas, la recepción no se dibuja y,
     // con el guardián adentro, el conteo guardado de la otra sede se perdería con él.
@@ -34,20 +34,20 @@ describe("Recibir: el conteo es de su sede", () => {
 
   it("«Llegó mercadería» se monta con la sede en la key, dentro del guardián del cambio de sede", () => {
     expect(pagina).toMatch(/<LlegoMercaderia\s+key=\{claveDeLaRecepcion\(persona\.ubicacionId\)\}/);
-    const guardian = pagina.lastIndexOf("<ConteoPorSede", pagina.indexOf("<LlegoMercaderia"));
+    const guardian = pagina.lastIndexOf("<TrabajoPorSede", pagina.indexOf("<LlegoMercaderia"));
     expect(guardian).toBeGreaterThan(-1);
-    expect(pagina.slice(guardian, pagina.indexOf("<LlegoMercaderia"))).not.toContain("</ConteoPorSede>");
+    expect(pagina.slice(guardian, pagina.indexOf("<LlegoMercaderia"))).not.toContain("</TrabajoPorSede>");
   });
 
   it("cada vista tiene su propio guardián: lo guardado en una no aparece en la otra", () => {
-    expect(pagina).toMatch(/<ConteoPorSede\s+key="llegada"\s+ubicacionId=\{persona\.ubicacionId\}/);
-    expect(pagina).toMatch(/<ConteoPorSede\s+key="factura"\s+ubicacionId=\{ubicacionMirada\}/);
+    expect(pagina).toMatch(/<TrabajoPorSede\s+key="llegada"\s+ubicacionId=\{persona\.ubicacionId\}/);
+    expect(pagina).toMatch(/<TrabajoPorSede\s+key="factura"\s+ubicacionId=\{ubicacionMirada\}/);
   });
 
   it("los dos componentes leen lo guardado de su sede y reportan lo que cuentan", () => {
     for (const archivo of [RECEPCION_ENVIO, LLEGO_MERCADERIA]) {
       const fuente = readFileSync(archivo, "utf8");
-      expect(fuente).toMatch(/\{ inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras \} = useConteoPorSede</);
+      expect(fuente).toMatch(/\{ inicial: guardado, reportar: reportarConteo, otras: guardadosEnOtras \} = useTrabajoPorSede</);
       expect(fuente).toMatch(/reportarConteo\(\s*!ok && contado/);
     }
   });
