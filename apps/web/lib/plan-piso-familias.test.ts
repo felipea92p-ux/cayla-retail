@@ -10,7 +10,10 @@ import {
   notaDelColor,
   palabraDeMarca,
   palabraDeMarcaDeColor,
+  fraseDeFamilia,
   repartoDeUnGrupo,
+  seccionesDeColores,
+  subtituloDeOtras,
   SIN_FAMILIA,
   textoDeAMirar,
   textoDelReparto,
@@ -365,6 +368,63 @@ describe("el detalle de un grupo: de qué familias es lo que cuelga de él", () 
     expect(hex("tierra")).toBe("#cdb592");
     expect(hex("inexistente")).toBeNull();
     expect(hexDeFamilias(null)("neutro")).toBeNull();
+  });
+});
+
+describe("el desglose de una familia", () => {
+  const f = tru();
+  const familia = (clave: string) => f.familias.find((x) => x.clave === clave)!;
+
+  it("reparte los colores en «Se vende y falta», «Cuelga y no sale» y «Los demás colores», con su cuenta", () => {
+    const s = seccionesDeColores(familia("tierra").colores, true);
+    expect(s.map((x) => [x.clave, x.titulo, x.colores.map((c) => c.nombre)])).toEqual([
+      ["falta", "Se vende y falta · 2", ["Chocolate", "Topo"]],
+      ["sobra", "Cuelga y no sale · 1", ["Arena"]],
+      ["resto", "Los demás colores · 8", ["Beige", "Marrón", "Moka", "Camel", "Coñac", "Tostado", "Caqui", "Terracota"]],
+    ]);
+  });
+
+  it("no pierde ni repite un color: las secciones suman los colores de la familia", () => {
+    for (const x of f.familias) {
+      const n = seccionesDeColores(x.colores, true).reduce((s, sec) => s + sec.colores.length, 0);
+      expect(n).toBe(x.colores.length);
+    }
+  });
+
+  it("sin marcas el resto se llama «Colores»; una sección vacía no se dibuja", () => {
+    const s = seccionesDeColores(familia("azul").colores, true);
+    expect(s).toHaveLength(1);
+    expect(s[0]!.titulo).toBe(`Colores · ${familia("azul").colores.length}`);
+  });
+
+  it("sin ventas confirmadas suficientes no se opina por color: todo en una sola lista, aunque el color traiga marca", () => {
+    const s = seccionesDeColores(familia("tierra").colores, false);
+    expect(s).toHaveLength(1);
+    expect(s[0]).toMatchObject({ clave: "resto", titulo: "Colores · 11" });
+    expect(s[0]!.colores).toHaveLength(familia("tierra").colores.length);
+  });
+
+  it("una familia sin colores no tiene secciones", () => {
+    expect(seccionesDeColores([], true)).toEqual([]);
+    expect(seccionesDeColores([], false)).toEqual([]);
+  });
+
+  it("la frase de una familia: lo que cuelga y lo que vende, con la cuenta de ventas de las dos clases", () => {
+    expect(fraseDeFamilia(familia("tierra"), { hayVentas: true, dias: 14 })).toBe("Cuelga 33\u00a0% (121 prendas) y vende 29.8\u00a0% (124 ventas: 84 confirmadas y 40 sin registrar).");
+  });
+
+  it("sin ventas en la familia lo dice, y con pocas ventas en la tienda no compara", () => {
+    const sinVentas = { colgadas: 5, pctColgadas: 2, vendidas: 0, pctVendidas: null, confirmadas: 0, anotadas: 0 };
+    expect(fraseDeFamilia(sinVentas, { hayVentas: true, dias: 14 })).toBe("Cuelga 2\u00a0% (5 prendas) y no vendió nada en 14 días.");
+    expect(fraseDeFamilia({ ...sinVentas, colgadas: 1, pctColgadas: 0.3 }, { hayVentas: false, dias: 14 })).toBe("Cuelga 0.3\u00a0% (1 prenda). Todavía hay pocas ventas para compararlo con lo que vendes.");
+  });
+
+  it("una familia que ya no cuelga nada («se acabó») no dice «cuelga 0 %»", () => {
+    expect(fraseDeFamilia({ colgadas: 0, pctColgadas: 0, vendidas: 4, pctVendidas: 1, confirmadas: 4, anotadas: 0 }, { hayVentas: true, dias: 14 })).toBe("No cuelga nada y vende 1\u00a0% (4 ventas).");
+  });
+
+  it("el subtítulo de «Otras» nombra las familias que junta y cuánto cuelga de ellas", () => {
+    expect(subtituloDeOtras(f.otras!)).toBe("Verde, Morado, Naranja · 4.4\u00a0% de lo que cuelga");
   });
 });
 

@@ -332,10 +332,15 @@
   .pp-col .barra-tramo-color { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 22%, transparent); }
   :root[data-tema="oscuro"] .pp-col .barra-tramo-color { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 60%, transparent); }
   .pp-col-celdas { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; list-style: none; }
+  .pp-col-item { display: flex; min-width: 0; }
   .pp-col-celda {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 96px; padding: 10px 10px 11px;
-    border: 1px solid var(--color-sand); background: var(--color-papel); border-radius: var(--radius-lg); min-width: 0;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-height: 96px; padding: 10px 10px 11px;
+    border: 1px solid var(--color-sand); background: var(--color-papel); border-radius: var(--radius-lg); min-width: 0; text-align: left;
+    transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
   }
+  .pp-col-celda:hover { background: var(--color-hueso); }
+  /* la familia abierta: la misma cara que el botón «¿Por qué?» cuando su panel está abierto */
+  .pp-col-celda[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
   .pp-col-n { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.2; }
   .pp-col-m { display: block; flex: none; width: 12px; height: 12px; border-radius: 50%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-tinta) 30%, transparent); background: var(--color-sand); }
   :root[data-tema="oscuro"] .pp-col-m { border-color: color-mix(in srgb, var(--color-tinta) 60%, transparent); }
@@ -343,6 +348,25 @@
   .pp-col-pct { font-family: var(--font-serif); font-size: 26px; line-height: 1.05; font-variant-numeric: lining-nums tabular-nums; }
   .pp-col-nota { font-size: 12.5px; line-height: 1.4; color: var(--color-tinta-60); max-width: 62ch; }
   @container pp (max-width: 560px) { .pp-col-celdas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* ---------- el desglose de una familia: el mismo panel hueso de «¿Por qué?», con la tabla de colores adentro ---------- */
+  .pp-des { gap: 12px; padding: 18px 20px; }
+  @container pp (max-width: 560px) { .pp-des { padding: 16px 14px; } }
+  .pp-des-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .pp-des-t { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-serif); font-size: 24px; font-weight: 400; line-height: 1.15; color: var(--color-tinta); }
+  .pp-des-t small { font-family: var(--font-sans); font-size: 13px; color: var(--color-tinta-60); }
+  .pp-des-x {
+    display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--color-sand); background: var(--color-papel); color: var(--color-tinta);
+    transition: background-color 200ms var(--ease-cayla);
+  }
+  .pp-des-x:hover { background: var(--color-sand); }
+  .pp-des-frase { font-size: 14px; line-height: 1.45; color: var(--color-tinta); max-width: 68ch; }
+  .pp-des-fam { display: grid; gap: 8px; }
+  .pp-des-fam + .pp-des-fam { margin-top: 6px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--color-tinta) 14%, transparent); }
+  .pp-des-fh { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; font-weight: 600; color: var(--color-tinta); }
+  /* lo que cuelga de un color, frente a lo que más cuelga de su familia */
+  .pp-des-b { display: block; flex: 1 1 0; min-width: 24px; height: 6px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--color-tinta) 12%, transparent); }
+  .pp-des-b i { display: block; height: 100%; border-radius: inherit; background: var(--color-tinta-60); }
 
   /* ---------- el detalle por familia de un grupo (al señalarlo): flota sobre la banda de «Hoy» y no empuja la página ----------
      `--cx` es el centro del tramo (lo mide TarjetaDelRiel); el `clamp` lo acomoda para que la tarjeta no se salga de la banda ni de la pantalla. Entra con `anim-revelar`

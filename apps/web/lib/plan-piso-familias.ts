@@ -343,3 +343,40 @@ export const textoDelReparto = (r: Pick<RepartoDeGrupo, "total">, cuadrado: bool
 
 /** El detalle de un grupo en una línea, para el lector de pantalla: «Neutro 32 %, Tierra 31 %, … ». */
 export const textoDeRepartoParaLector = (r: RepartoDeGrupo): string => r.filas.map((f) => `${f.nombre} ${pctEs(f.pct)}`).join(", ");
+
+// ── El desglose de una familia (clic en una celda de la franja) ───────────────────────────────────────────────────────────────
+
+/** Un grupo de colores del desglose, con su título: «Se vende y falta · 2». */
+export type SeccionDeColores = { clave: "falta" | "sobra" | "resto"; titulo: string; colores: ColorDeLaFamilia[] };
+
+/**
+ * Cómo se reparten los colores de una familia en el desglose: primero los que se venden y faltan, luego los que cuelgan y no salen, y al final el resto. Sin ventas confirmadas
+ * suficientes (`hayDetalleDeColor` falso) no hay marcas de color y todo va en una sola lista: no se opina por color. Una sección vacía no se dibuja. El resto se llama «Los demás
+ * colores» si arriba hubo marcas y «Colores» si no.
+ */
+export function seccionesDeColores(colores: readonly ColorDeLaFamilia[], hayDetalleDeColor: boolean): SeccionDeColores[] {
+  const marcados = hayDetalleDeColor ? colores.filter((c) => c.veredicto !== null) : [];
+  const falta = marcados.filter((c) => c.veredicto === "falta");
+  const sobra = marcados.filter((c) => c.veredicto === "sobra");
+  const resto = hayDetalleDeColor ? colores.filter((c) => c.veredicto === null) : [...colores];
+  const secciones: SeccionDeColores[] = [
+    { clave: "falta", titulo: "Se vende y falta", colores: falta },
+    { clave: "sobra", titulo: "Cuelga y no sale", colores: sobra },
+    { clave: "resto", titulo: marcados.length > 0 ? "Los demás colores" : "Colores", colores: resto },
+  ];
+  return secciones.filter((x) => x.colores.length > 0).map((x) => ({ ...x, titulo: `${x.titulo} · ${cifraEs(x.colores.length)}` }));
+}
+
+/**
+ * La frase con que abre el desglose de una familia: lo que cuelga y lo que vende, en prendas y en %. Con pocas ventas en la tienda no compara (no hay con qué); sin ventas de esa
+ * familia lo dice; y una familia que ya no cuelga nada («se acabó») no dice «cuelga 0 %».
+ */
+export function fraseDeFamilia(f: Pick<FamiliaDeColor, "colgadas" | "pctColgadas" | "vendidas" | "pctVendidas" | "confirmadas" | "anotadas">, e: { hayVentas: boolean; dias: number }): string {
+  const cuelga = f.colgadas > 0 ? `Cuelga ${pctEs(f.pctColgadas)} (${prendasEs(f.colgadas)})` : "No cuelga nada";
+  if (!e.hayVentas) return `${cuelga}. Todavía hay pocas ventas para compararlo con lo que vendes.`;
+  if (f.vendidas === 0) return `${cuelga} y no vendió nada en ${cifraEs(e.dias)} días.`;
+  return `${cuelga} y vende ${pctEs(f.pctVendidas ?? 0)} (${textoDeVentasDeFamilia(f)}).`;
+}
+
+/** El subtítulo del desglose de «Otras»: las familias que junta y cuánto cuelga de ellas. */
+export const subtituloDeOtras = (o: Pick<OtrasFamilias, "familias" | "pctColgadas">): string => `${o.familias.map((f) => f.nombre).join(", ")} · ${pctEs(o.pctColgadas)} de lo que cuelga`;

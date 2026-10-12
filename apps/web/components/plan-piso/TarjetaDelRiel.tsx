@@ -1,13 +1,14 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import { ColorDeLaTienda } from "@/components/plan-piso/ColorDeLaTienda";
 import { DetalleDelGrupo } from "@/components/plan-piso/DetalleDelGrupo";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import { PorQue } from "@/components/plan-piso/PorQue";
 import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
 import type { ColorDePercha } from "@/lib/plan-piso-colores";
 import { ariaDeLasFichasDeHoy, etiquetaDeChipHoy, leyendaDeGrupo, rotuloCabe, type BloqueDelRiel, type Libre, type PanelDelPorQue } from "@/lib/plan-piso-percha";
-import type { RepartoDeGrupo } from "@/lib/plan-piso-familias";
+import type { ColorDeLaTienda as DatosDeColor, RepartoDeGrupo } from "@/lib/plan-piso-familias";
 import { siluetaDe } from "@/lib/plan-piso-siluetas";
 
 // Los dos rieles de perchas del Plan del piso ▸ Propuesta (maqueta A «La percha», ADR-0352 act. 2026-10-11): «Hoy» y «Cómo quedaría», cada uno con las perchas
@@ -55,8 +56,11 @@ type Props = {
   nota: { antes: string; unidad: string; despues: string };
   /** Lo que dice el pie sobre el color de las perchas; `null` si ningún grupo trae colores y todo se dibuja del color del grupo. */
   notaDeColores: string | null;
-  /** «Color de la tienda» (`<ColorDeLaTienda>`, del servidor): va entre «Hoy» y «Cómo quedaría», porque habla de lo que cuelga hoy y esa propuesta no elige colores. */
-  ranuraDeColor?: ReactNode;
+  /** «Color de la tienda»: va entre «Hoy» y «Cómo quedaría», porque habla de lo que cuelga hoy y esa propuesta no elige colores. Se pasan sus DATOS y se dibuja aquí: un elemento
+   *  que el servidor le pasara a este componente de cliente como `prop` hacía que React avisara de una `key` que falta. */
+  colorDeLaTienda?: DatosDeColor | null;
+  /** Los días de la ventana de ventas (los dice la franja de color). */
+  dias?: number;
 };
 
 const vars = (v: Record<string, string | number>) => v as unknown as CSSProperties;
@@ -82,7 +86,7 @@ function Percha({ clave, fraccion, i, color }: { clave: string; fraccion: number
   );
 }
 
-export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota, notaDeColores, ranuraDeColor }: Props) {
+export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado, libre, subHoy, subPropuesta, ariaHoy, ariaPropuesta, textoPorQue, panel, nota, notaDeColores, colorDeLaTienda = null, dias = 14 }: Props) {
   const [sobre, setSobre] = useState<string | null>(null);
   const [fijo, setFijo] = useState<string | null>(null);
   const sel = fijo ?? sobre;
@@ -180,7 +184,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
         </ul>
       </div>
 
-      {ranuraDeColor}
+      {colorDeLaTienda && <ColorDeLaTienda color={colorDeLaTienda} cuadrado={cuadrado} dias={dias} />}
 
       <div className="pp-riel" data-riel="prop">
         <div className="pp-rcab">

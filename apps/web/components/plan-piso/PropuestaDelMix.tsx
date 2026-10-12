@@ -206,7 +206,8 @@ export function PropuestaDelMix({
         panel={panelPorQue}
         nota={nota}
         notaDeColores={hayColores ? NOTA_DE_COLORES : null}
-        ranuraDeColor={franja}
+        colorDeLaTienda={p.colorDeLaTienda}
+        dias={p.dias}
       />
     );
   } else if (dibujaTarjeta) {
