@@ -17,6 +17,10 @@
  *    `cerrar_caja` no espera en el cajón el efectivo de una venta anulada: ya volvió a la
  *    clienta, contarlo dejaba un faltante fantasma en el arqueo.
  *
+ * 3. `20261012221000_devolucion_espera_la_boleta_aceptada.sql` (Felipe, 2026-10-12): con la boleta de la venta en camino a
+ *    SUNAT (pendiente, en cola, enviada) o rechazada, aprobar se niega —sin nota de crédito, la boleta llegaría después por el
+ *    total—; con la boleta liberada (no_emitido) se aprueba como siempre.
+ *
  * Mismo mecanismo que `scripts/pruebas/registrar_cambio.mjs` (`docker exec ... psql` +
  * `set local request.jwt.claim.sub` + `ROLLBACK` siempre) — ver ese archivo para el
  * razonamiento completo y ADR-0066/ADR-0064.
@@ -149,6 +153,50 @@ rollback;
     "sin caja abierta, aprobar SIN reembolso en efectivo sigue funcionando",
     sinReembolso.ok && sinReembolso.salida.split("|")[0] === "aprobada",
     sinReembolso
+  );
+
+  // ---- la boleta de la venta todavía no está aceptada por SUNAT (20261012221000) ----
+  // La boleta se escribe a mano dentro de la transacción que se revierte: el estado es lo que se prueba, no cómo se emitió.
+  const conBoleta = (estado) => `${FIXTURE_VENTA}
+reset request.jwt.claim.sub;
+insert into retail.comprobantes (ubicacion_id, tipo, serie, numero, total, venta_id, estado, motivo_no_emitido, entorno_transmision)
+  values (:'ubic', 'boleta', 'ZPRU', 990000 + (random() * 9999)::int, :'precio_viejo', :'venta_id', '${estado}',
+          ${estado === "no_emitido" ? "'prueba automatizada'" : "null"}, ${["enviado", "rechazado"].includes(estado) ? "'sandbox'" : "null"});
+set local request.jwt.claim.sub = '${SANDRA}';
+`;
+  const conPendiente = correr(`${conBoleta("pendiente")}
+select retail.aprobar_devolucion(:'devolucion_id', null, null);
+`);
+  esperar(
+    "con la boleta sin enviar a SUNAT, aprobar se niega y dice que espere",
+    !conPendiente.ok && conPendiente.mensaje.includes("todavía no está aceptada por SUNAT") && conPendiente.mensaje.includes("Espera a que SUNAT la acepte"),
+    conPendiente
+  );
+  const conEnviada = correr(`${conBoleta("enviado")}
+select retail.aprobar_devolucion(:'devolucion_id', null, null);
+`);
+  esperar(
+    "con la boleta enviada y sin respuesta de SUNAT, aprobar se niega",
+    !conEnviada.ok && conEnviada.mensaje.includes("SUNAT aún no responde"),
+    conEnviada
+  );
+  const conRechazada = correr(`${conBoleta("rechazado")}
+select retail.aprobar_devolucion(:'devolucion_id', null, null);
+`);
+  esperar(
+    "con la boleta rechazada por SUNAT, aprobar se niega y dice que la reintente",
+    !conRechazada.ok && conRechazada.mensaje.includes("Reintenta su envío en Comprobantes"),
+    conRechazada
+  );
+  const conLiberada = correr(`${conBoleta("no_emitido")}
+select retail.aprobar_devolucion(:'devolucion_id', null, null) as _ok \\gset
+select estado from retail.devoluciones where id = :'devolucion_id';
+rollback;
+`);
+  esperar(
+    "con la boleta liberada (no_emitido), aprobar funciona como siempre",
+    conLiberada.ok && conLiberada.salida === "aprobada",
+    conLiberada
   );
 
   // ---- venta anulada: `anular_venta` ya devolvió sus prendas al stock ----
