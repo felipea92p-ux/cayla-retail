@@ -24,9 +24,9 @@ export default async function RotulosPage({ searchParams }: { searchParams: Prom
   const { modelos, catalogo } = await getRotulos(ids);
 
   return (
+    // Las prendas que llegan por la URL son las de ARRANQUE: después se suman y se quitan en el navegador, que reescribe la
+    // URL sin navegar (ADR-0366, act. 2026-10-12). Por eso no lleva `key`: rearmar la pantalla en cada prenda borraba las copias.
     <ImprimirRotulos
-      // Otra lista de modelos = otros rótulos: las copias y «juntos» elegidos para la anterior no se arrastran.
-      key={modelos.map((m) => m.productoId).join(",")}
       modelos={modelos}
       catalogo={catalogo}
       origen={origen === "existencias" || origen === "almacen" ? { desde: origen } : { productos: desde }}

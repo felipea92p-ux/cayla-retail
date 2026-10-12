@@ -140,6 +140,10 @@ export const PRUEBAS = [
   // rechazar (rechazar se niega con una orden en proceso o con stock); idempotencia; permisos; y la carrera de una orden en vuelo. ROLLBACK.
   "pruebas:revisar-productos",
 
+  // El precio 0 solo vale en Empaque, también en la base (ADR-0384): Nuevo producto y Editar producto no dejan una variante activa
+  // en S/ 0 fuera de una familia apagada; la regla, sus permisos y que la migración se pueda pegar dos veces. ROLLBACK.
+  "pruebas:precio-cero",
+
   // Historial de la prenda (ADR-0354): etiquetas, variantes nuevas, fotos, tejido y patrón dejan su fila con quién y dónde;
   // guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
   "pruebas:historial-prenda",

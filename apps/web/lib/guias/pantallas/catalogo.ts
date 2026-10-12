@@ -43,7 +43,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.por-revisar",
       opcional: true,
       titulo: "Prendas por revisar",
-      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender. «Revisar» te lleva a la lista.",
+      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
     },
     {
       id: "sin-temporada",
@@ -1174,14 +1174,14 @@ export const GUIA_POR_REVISAR: Guia = {
       ancla: "por-revisar.prenda",
       opcional: true,
       titulo: "Cada prenda",
-      texto: "Su nombre y código, cuántos colores y tallas tiene, su precio, quién la propuso, cuándo y desde dónde. Si ya tiene stock u órdenes en el Taller, lo dice. Toca el nombre para abrir su ficha y corregirla antes de aprobar.",
+      texto: "Su nombre y código, cuántos colores y tallas tiene, su precio, quién la propuso, cuándo y desde dónde. Si ya tiene stock u órdenes en el Taller, lo dice, y si le falta precio también («No tiene precio»). Toca el nombre para abrir su ficha y corregirla antes de aprobar.",
     },
     {
       id: "decidir",
       ancla: "por-revisar.decidir",
       opcional: true,
       titulo: "Aprobar o rechazar",
-      texto: "«Aprobar» la deja como una prenda más del catálogo. «Rechazar» la descontinúa para siempre. Los dos abren una hoja donde eliges quién lo hace antes de guardar. Mientras tanto, la prenda se puede contar y vender igual.",
+      texto: "«Aprobar» la deja como una prenda más del catálogo. «Rechazar» la descontinúa para siempre. Los dos abren una hoja donde eliges quién lo hace antes de guardar. Una prenda sin precio no se aprueba: la hoja te lleva a su ficha con «Ponerle precio». Mientras tanto, la prenda se puede contar, y vender si tiene precio.",
     },
     {
       id: "paginas",
@@ -1205,8 +1205,8 @@ export const GUIA_POR_REVISAR: Guia = {
   ],
 };
 
-// Rótulos de anaquel (ADR-0366): se llega desde Productos, Existencias o Inicio de Almacén. La demo cambia entre «un rótulo por modelo» y
-// «todos en uno» y escribe un ejemplo en el buscador, pero nunca imprime: eso se explica.
+// Rótulos de anaquel (ADR-0366, rediseño A «Rollo» del 2026-10-12): se llega desde Productos, Existencias o Inicio de Almacén. La vista
+// previa es la Brother soltando su tira. La demo cambia entre «uno por prenda» y «todas en uno», pero nunca imprime: eso se explica.
 export const GUIA_ROTULOS: Guia = {
   id: "rotulos",
   ruta: "/rotulos",
@@ -1217,35 +1217,35 @@ export const GUIA_ROTULOS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "El letrero del anaquel",
-      texto: "Aquí armas el rótulo que va en el canto del anaquel o en el frente de una bolsa: dice qué modelo hay ahí, su marca y sus tallas, para encontrarlo de lejos. Sale en la Brother, en el mismo papel de las etiquetas.",
+      texto: "Aquí armas el rótulo que va en el canto del anaquel o en el frente de una bolsa: dice qué prenda hay ahí, su marca y sus tallas, para encontrarla de lejos. Sale en la Brother, en el mismo papel de las etiquetas.",
     },
     {
       id: "vacio",
       ancla: "rotulos.vacio",
       opcional: true,
-      titulo: "Elige los modelos",
-      texto: "Todavía no hay ningún modelo. Búscalo aquí por nombre o código. También puedes marcarlos en Productos o en Existencias y tocar «Rótulo»: llegan ya elegidos.",
+      titulo: "Elige las prendas",
+      texto: "Todavía no hay ninguna prenda: a la derecha, la Brother muestra en gris cómo saldrá. Búscalas aquí por nombre o código. También puedes marcarlas en Productos o en Existencias y tocar «Rótulo»: llegan ya elegidas.",
     },
     {
       id: "modelos",
       ancla: "rotulos.modelos",
       opcional: true,
-      titulo: "Los modelos elegidos",
-      texto: "Los modelos que van en el rótulo. La ✕ de cada uno lo saca de la lista.",
+      titulo: "Las prendas elegidas",
+      texto: "Las prendas que van en el rótulo. La ✕ de cada una la saca, y «Quitar todas» las saca de una vez; si te equivocas, «Deshacer» las devuelve con sus copias.",
     },
     {
       id: "agregar",
       ancla: "rotulos.agregar",
       opcional: true,
-      titulo: "Suma otro modelo",
-      texto: "Escribe aquí el nombre o el código de otro modelo y elígelo de la lista: se suma al rótulo y aparece en la vista previa. La lista solo muestra los que todavía no elegiste.",
+      titulo: "Suma otra prenda",
+      texto: "Escribe aquí el nombre o el código de otra prenda y elígela de la lista: se suma a la tira al toque, sin recargar la pantalla. La lista solo muestra las que todavía no elegiste.",
     },
     {
       id: "como-salen",
       ancla: "rotulos.como-salen",
       opcional: true,
-      titulo: "Uno por modelo o todos juntos",
-      texto: "Con dos o más modelos eliges cómo salen: un rótulo para cada uno, o todos en un solo rótulo (para un anaquel con varios modelos). Te mostramos los dos.",
+      titulo: "Uno por prenda o todas juntas",
+      texto: "Con dos o más prendas eliges cómo salen: un rótulo para cada una, o todas en un solo rótulo (para un anaquel con varias prendas). Te mostramos los dos.",
       demostrar: [{ tipo: "clic", ancla: "rotulos.juntos" }],
     },
     {
@@ -1253,7 +1253,7 @@ export const GUIA_ROTULOS: Guia = {
       ancla: "rotulos.vista",
       opcional: true,
       titulo: "Así sale",
-      texto: "El rótulo tal como saldrá en el papel. Mira que el modelo, la marca y las tallas sean los que van en ese anaquel.",
+      texto: "La Brother suelta la tira con los rótulos tal como saldrán, con su corte entre uno y otro. Mira que la prenda, la marca y las tallas sean las de ese anaquel.",
     },
     {
       id: "copias",
@@ -1261,14 +1261,14 @@ export const GUIA_ROTULOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "rotulos.por-modelo", siEsta: true }],
       titulo: "Cuántas copias",
-      texto: "Cuántos de cada rótulo quieres, por ejemplo uno para cada bolsa. Con 0, ese no se imprime.",
+      texto: "Al costado de cada rótulo, cuántos quieres de ese: por ejemplo uno para cada bolsa. Con 0 no se imprime, y el pie dice cuántos salen y cuánto papel usan.",
     },
     {
       id: "imprimir",
       ancla: "rotulos.imprimir",
       opcional: true,
       titulo: "Imprimir",
-      texto: "El botón dice cuántos rótulos salen y los manda a la Brother. El de al lado abre la guía de impresión, con fotos, por si sale corto, chico o girado.",
+      texto: "Arriba, el botón dice cuántos rótulos salen y los manda a la Brother. El de al lado abre la guía de impresión, con fotos, por si sale corto, chico o girado.",
     },
     {
       id: "aviso-mac",

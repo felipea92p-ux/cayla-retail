@@ -28,6 +28,7 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinPrecioParaVender,
   totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
@@ -950,8 +951,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function agregar(
     v: VarianteBusqueda,
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
-  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | null {
     if (bloqueado) return null;
+    // ADR-0384: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
+    // con la prenda ya entregada). La bolsa de obsequio sí: es de una familia fuera de los motores.
+    if (sinPrecioParaVender(v)) {
+      if (!silencioso) {
+        avisar.error(`${[v.referencia, v.talla].filter(Boolean).join(" · ")} no tiene precio`, {
+          detalle: "No entra al ticket. Pide que le pongan precio en su ficha (Catálogo ▸ Productos) antes de venderla.",
+        });
+      }
+      setAviso(null);
+      setQ("");
+      setActivo(0);
+      buscador.current?.focus();
+      return "sin_precio";
+    }
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");

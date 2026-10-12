@@ -185,3 +185,37 @@ export function volverDeRotulos(origen: OrigenRotulos, desde: string | null): { 
   if (origen === "existencias") return { href: "/inventario", a: "Existencias" };
   return { href: "/", a: "Inicio" };
 }
+
+// ── La tira de la Brother (ADR-0366, act. 2026-10-12: la pantalla dibuja la tira tal como sale) ────────────────────────
+
+/** Cada rótulo ocupa 40,1 mm del rollo: el corte de la etiqueta de precio, el mismo papel. */
+export const LARGO_ROTULO_MM = 40.1;
+
+/** Cuánto papel usa la tira, en centímetros con un decimal: lo que dice el pie («unos 20,1 cm de papel»). */
+export function papelDeTiraCm(rotulos: number): number {
+  return Math.round(Math.max(0, rotulos) * LARGO_ROTULO_MM) / 10;
+}
+
+/**
+ * Cuánto tarda el cabezal en recorrer la tira antes de mandarla a la Brother: es una señal («esto es lo que sale»), no una
+ * espera, así que el total ronda el segundo aunque sean muchos rótulos. Se recorre ANTES de imprimir porque después no se
+ * vería: en Windows el diálogo de Chrome detiene la pantalla y en la Mac la tapa el loader mientras responde el ayudante.
+ */
+export function recorridoDeImpresion(rotulos: number): { porRotulo: number; total: number } {
+  if (rotulos <= 0) return { porRotulo: 0, total: 0 };
+  const porRotulo = Math.round(Math.min(320, Math.max(40, 900 / rotulos)));
+  return { porRotulo, total: porRotulo * rotulos + 120 };
+}
+
+/** Los rótulos que estaban y ya no están, con el lugar que ocupaban en la tira: se dibujan ahí mientras salen. */
+export function quienesSalen<T>(antes: readonly T[], ahora: readonly T[], clave: (t: T) => string): { item: T; lugar: number }[] {
+  const quedan = new Set(ahora.map(clave));
+  return antes.flatMap((item, lugar) => (quedan.has(clave(item)) ? [] : [{ item, lugar }]));
+}
+
+/** La tira que se dibuja: los rótulos de ahora y, cada uno en su lugar de antes, los que están saliendo (`sale`). */
+export function tiraConSalientes<T>(actuales: readonly T[], salientes: readonly { item: T; lugar: number }[]): { item: T; sale: boolean }[] {
+  const tira = actuales.map((item) => ({ item, sale: false }));
+  for (const s of [...salientes].sort((a, b) => a.lugar - b.lugar)) tira.splice(Math.min(s.lugar, tira.length), 0, { item: s.item, sale: true });
+  return tira;
+}
