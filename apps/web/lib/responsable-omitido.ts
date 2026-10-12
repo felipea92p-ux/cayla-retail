@@ -63,6 +63,13 @@ export const ACCIONES_SIN_RESPONSABLE = {
   aviso_club_enviar: "Anotar un aviso del club como enviado por WhatsApp",
   aviso_club_deshacer: "Deshacer un aviso del club anotado como enviado",
   aviso_club_baja: "Registrar que un cliente pidió BAJA de los mensajes del club",
+  // Órdenes de compra (ADR-0362, decisión 39; migración 20261010223500): quien compra suele estar en Gamarra, lejos del kiosco. Con su
+  // cuenta firma ella; una terminal sigue eligiendo quién (la base no deja una orden sin autor: quien la crea no la recibe, decisión 17).
+  orden_compra_crear: "Crear una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Editarla, igual (actividad 4, migración 20261010235000).
+  orden_compra_editar: "Editar una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Y anularla (actividad 5, migración 20261010235500).
+  orden_compra_anular: "Anular una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;
