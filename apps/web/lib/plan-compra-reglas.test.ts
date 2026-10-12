@@ -34,7 +34,9 @@ import {
   accionDeQuitar,
   argsEditarCampana,
   borradorDeEdicion,
+  campanaQueAbre,
   campanasActivas,
+  campanasDelSelector,
   campanasArchivadas,
   edicionCambio,
   problemasDeLaEdicion,
@@ -71,6 +73,7 @@ import {
   TOP_VENTAS,
   totalesDelPlan,
   type Borrador,
+  type CampanaPlan,
   type TallaPlan,
 } from "./plan-compra-reglas";
 import { camposDeLaCampana, camposDeLaEdicion, camposDelPlan, camposDelTope } from "./plan-compra-guia";
@@ -901,5 +904,46 @@ describe("editar, quitar y restaurar una campaña (ADR-0372, B5: borrar si está
     const base = { plan: { id: "p", nombre: "x", desde: "2026-12-01", hasta: "2026-12-31" }, hoy: "2026-10-10" };
     expect(leerPlan(base)!.plan.archivado).toBe(false);
     expect(leerPlan({ ...base, plan: { ...base.plan, archivado: true } })!.plan.archivado).toBe(true);
+  });
+});
+
+describe("la lista de campañas por año (C1)", () => {
+  const c = (id: string, desde: string, hasta: string, archivado = false): CampanaPlan => ({ id, nombre: id, desde, hasta, etiquetaId: null, conPlan: 0, archivado, conTope: false });
+  const sanValentin = c("San Valentín 2026", "2026-02-01", "2026-02-14");
+  const diciembre = c("Diciembre 2026", "2026-12-01", "2026-12-31");
+  const navidad = c("Navidad 2026", "2026-12-11", "2026-12-25");
+  const madre = c("Día de la Madre 2027", "2027-05-01", "2027-05-10");
+  const vieja = c("Fiestas Patrias 2025", "2025-07-15", "2025-07-28");
+  const todas = [sanValentin, diciembre, navidad, madre, vieja];
+
+  it("en octubre abre la próxima en empezar, no la de inicio más lejano", () => {
+    expect(campanaQueAbre(todas, "2026-10-12")?.id).toBe("Diciembre 2026");
+  });
+  it("en diciembre abre la que está en curso y, si hay dos, la que termina antes", () => {
+    expect(campanaQueAbre(todas, "2026-12-05")?.id).toBe("Diciembre 2026");
+    expect(campanaQueAbre(todas, "2026-12-15")?.id).toBe("Navidad 2026");
+  });
+  it("sin nada en curso ni por venir abre la que terminó más tarde; nunca una archivada", () => {
+    expect(campanaQueAbre([sanValentin, vieja], "2026-10-12")?.id).toBe("San Valentín 2026");
+    expect(campanaQueAbre([c("x", "2026-12-01", "2026-12-31", true), sanValentin], "2026-10-12")?.id).toBe("San Valentín 2026");
+    expect(campanaQueAbre([], "2026-10-12")).toBeNull();
+  });
+  it("agrupa: en curso, por venir por año y terminadas del último año", () => {
+    const l = campanasDelSelector(todas, "2026-12-15");
+    expect(l.map((x) => [x.campana.id, x.grupo])).toEqual([
+      ["Navidad 2026", "En curso"],
+      ["Diciembre 2026", "En curso"],
+      ["Día de la Madre 2027", "Por venir · 2027"],
+      ["San Valentín 2026", "Terminadas"],
+    ]);
+  });
+  it("una terminada hace más de un año sale del selector (va al Historial) y una archivada nunca está", () => {
+    expect(campanasDelSelector(todas, "2026-10-12").map((x) => x.campana.id)).not.toContain("Fiestas Patrias 2025");
+    expect(campanasDelSelector([c("x", "2026-12-01", "2026-12-31", true)], "2026-10-12")).toEqual([]);
+  });
+  it("el día que empieza ya está en curso y el día que termina todavía lo está", () => {
+    expect(campanasDelSelector([diciembre], "2026-12-01")[0].grupo).toBe("En curso");
+    expect(campanasDelSelector([diciembre], "2026-12-31")[0].grupo).toBe("En curso");
+    expect(campanasDelSelector([diciembre], "2027-01-01")[0].grupo).toBe("Terminadas");
   });
 });
