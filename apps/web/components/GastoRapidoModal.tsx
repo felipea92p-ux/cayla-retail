@@ -21,7 +21,9 @@ import {
   CLAVE_OTRO,
   DIAS_FRECUENCIA,
   GASTO_RAPIDO_VACIO,
+  MEDIOS_RAPIDOS,
   TEXTO_COMPROBANTE_RAPIDO,
+  TEXTO_MEDIO_RAPIDO,
   borradorDeGastoRapido,
   camposDeGastoRapido,
   categoriaDe,
@@ -31,15 +33,17 @@ import {
   nombreCategoria,
   opcionesOtro,
   textoVeces,
+  textosDelMedio,
   type ComprobanteRapido,
   type ConceptoOrdenado,
   type EstadoGastoRapido,
+  type MedioRapido,
 } from "@/lib/gasto-rapido-reglas";
 
 // Caja ▸ Registrar gasto, la versión rápida (maqueta A, Felipe 2026-10-09: docs/maquetas/gasto-rapido-caja-2026-10/).
 // Un mosaico con lo que se paga en una tienda —ordenado por lo que más se usa en ESTA sede, con ★ y sus veces en los 4 primeros—,
-// el monto (con los montos de siempre de ese concepto) y listo: sale del cajón abierto, al contado. La factura o boleta se abre
-// solo si la dieron. La regla es la de Finanzas (`validarGasto` → `registrar_gasto`): esta hoja solo arma el borrador más corto.
+// el monto (con los montos de siempre de ese concepto) y listo: sale del cajón abierto, al contado, o del Yape o el Plin de la tienda
+// (2026-10-12; entonces el cajón no cambia). La factura o boleta se abre solo si la dieron. La regla es la de Finanzas (`validarGasto` → `registrar_gasto`): esta hoja solo arma el borrador más corto.
 // Movimiento rico por decisión de Felipe (ADR-0136, act. 2026-10-09): ola del mosaico, ★ que se dibuja, veces que cuentan, tinta que
 // se derrama desde el clic, cifra del botón que sube, check que se dibuja al terminar. Sin rebote ni bucle; se apaga con reduced-motion.
 
@@ -164,7 +168,7 @@ export function GastoRapidoModal({
   const [e, setE] = useState<EstadoGastoRapido>(GASTO_RAPIDO_VACIO);
   const [documento, setDocumento] = useState("");
   const [guardando, setGuardando] = useState(false);
-  const [listo, setListo] = useState<{ que: string; monto: number } | null>(null);
+  const [listo, setListo] = useState<{ que: string; monto: number; sello: string } | null>(null);
   const [token] = useState(() => crypto.randomUUID());
   const montoRef = useRef<HTMLInputElement>(null);
   const poner = <K extends keyof EstadoGastoRapido>(k: K, v: EstadoGastoRapido[K]) => setE((x) => ({ ...x, [k]: v }));
@@ -173,6 +177,7 @@ export function GastoRapidoModal({
   const esOtro = e.concepto === CLAVE_OTRO;
   const categoria = nombreCategoria(categorias, categoriaDe(e));
   const hayFrecuentes = conceptos.some((c) => c.frecuente);
+  const textos = textosDelMedio(e.medio, ubicacionNombre);
 
   const campos = [
     ...camposDeGastoRapido(e),
@@ -225,11 +230,12 @@ export function GastoRapidoModal({
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "registrar el gasto"));
     const que = esOtro ? e.otroTexto.trim() : (conceptoPorClave(e.concepto)?.nombre ?? "Gasto");
-    setListo({ que, monto: v.valor.p_monto_total });
+    setListo({ que, monto: v.valor.p_monto_total, sello: textos.sello });
   }
 
   // El sello de «listo» sale DESPUÉS del loader, nunca debajo (la regla de ADR-0149: primero «espera», después «listo»). Una vez a la
-  // vista se queda un momento, y después la hoja se cierra y Caja se refresca (el cajón ya lo descuenta).
+  // vista se queda un momento, y después la hoja se cierra y Caja se refresca (el cajón ya lo descuenta; con Yape o Plin, «Gastos del turno»
+  // ya lo muestra).
   const pantallaLibre = useSyncExternalStore(suscribirEspera, () => !esperaOcupada(), () => true);
   const [selloAlaVista, setSelloAlaVista] = useState(false);
   // Una vez a la vista se queda, aunque el refresco de después vuelva a ocupar la pantalla (se ajusta al dibujar, sin efecto).
@@ -238,7 +244,7 @@ export function GastoRapidoModal({
     if (!listo || !selloAlaVista) return;
     const corto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const t = window.setTimeout(() => {
-      avisar.exito("Gasto registrado", { detalle: `${listo.que} · ${soles(listo.monto)}. Salió del cajón: la caja ya lo descuenta.` });
+      avisar.exito("Gasto registrado", { detalle: `${listo.que} · ${soles(listo.monto)}. ${listo.sello}` });
       const guardiaFuera = avisoSalida.retirarYa();
       onCerrar();
       void guardiaFuera.then(() => router.refresh());
@@ -256,8 +262,8 @@ export function GastoRapidoModal({
       titulo="Registrar gasto"
       subtitulo={
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="gr-punto" />
-          Sale del cajón de {ubicacionNombre}, que está abierto.
+          <span aria-hidden className="gr-punto" data-medio={e.medio} />
+          {textos.subtitulo}
         </span>
       }
       onClose={() => avisoSalida.pedirAccion(onCerrar)}
@@ -383,6 +389,17 @@ export function GastoRapidoModal({
             )}
           </CampoGuiado>
 
+          <CampoGuiado id="medio" guia={guia} titulo="¿Cómo lo pagaste?">
+            <Segmentado<MedioRapido>
+              etiqueta="¿Cómo lo pagaste?"
+              etiquetaOculta
+              valor={e.medio}
+              onValor={(v) => setE((x) => ({ ...x, medio: v, medioElegido: true }))}
+              opciones={MEDIOS_RAPIDOS.map((m) => ({ valor: m, texto: TEXTO_MEDIO_RAPIDO[m] }))}
+              pie={textos.ayuda}
+            />
+          </CampoGuiado>
+
           <CampoGuiado id="nota" guia={guia} titulo="Nota">
             <CampoTexto etiqueta="Nota" caja value={e.nota} onChange={(ev) => poner("nota", ev.target.value)} maxLength={120} />
           </CampoGuiado>
@@ -462,9 +479,20 @@ export function GastoRapidoModal({
           </CampoGuiado>
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
-            <PieGuia guia={guia} listo="Todo listo: sale del cajón." />
+            <PieGuia guia={guia} listo={textos.listo} />
             <div className="ml-auto flex gap-3">
-              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
+              {/* Ya confirmó «Salir sin guardar»: se suelta el aviso antes de la salida animada, o el `onClose` de la hoja volvería a
+                  preguntar al terminar de cerrarse. */}
+              <Boton
+                type="button"
+                onClick={() =>
+                  avisoSalida.pedirAccion(() => {
+                    avisoSalida.soltar();
+                    cerrar();
+                  })
+                }
+                disabled={guardando}
+              >
                 Cancelar
               </Boton>
               <Boton
@@ -490,7 +518,7 @@ export function GastoRapidoModal({
               </svg>
               <p className="gr-listo-titulo font-display">{soles(listo.monto)}</p>
               <p className="gr-listo-que">{listo.que}</p>
-              <p className="gr-listo-detalle">Salió del cajón: la caja ya lo descuenta.</p>
+              <p className="gr-listo-detalle">{listo.sello}</p>
             </div>
           )}
           {avisoSalida.aviso}

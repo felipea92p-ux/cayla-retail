@@ -357,6 +357,7 @@ export function Segmentado<T extends string>({
   valor,
   onValor,
   opciones,
+  etiquetaOculta,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -365,6 +366,8 @@ export function Segmentado<T extends string>({
   valor: T;
   onValor: (v: T) => void;
   opciones: readonly Opcion<T>[];
+  /** El título ya lo dibuja quien lo envuelve (un `CampoGuiado` con `titulo`): la etiqueta queda solo para el lector de pantalla. */
+  etiquetaOculta?: boolean;
 }) {
   const idEtiqueta = useId();
   const indice = Math.max(0, opciones.findIndex((o) => o.valor === valor));
@@ -382,7 +385,7 @@ export function Segmentado<T extends string>({
   }
 
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={etiquetaOculta}>
       <div role="radiogroup" aria-labelledby={idEtiqueta} className="relative">
         <div className="grid min-h-9" style={{ gridTemplateColumns: `repeat(${opciones.length}, minmax(0, 1fr))` }}>
           {opciones.map((o, i) => (

@@ -5,12 +5,14 @@ import {
   CLAVE_OTRO,
   CONCEPTOS,
   GASTO_RAPIDO_VACIO,
+  MEDIOS_RAPIDOS,
   borradorDeGastoRapido,
   camposDeGastoRapido,
   conceptoDeGasto,
   descripcionDe,
   limpiarMonto,
   ordenarPorFrecuencia,
+  textosDelMedio,
   type EstadoGastoRapido,
 } from "./gasto-rapido-reglas";
 
@@ -156,6 +158,11 @@ describe("la guía dice lo mismo que validarGasto", () => {
     ["con boleta completa", { ...base, concepto: "arreglo", monto: "60", conComprobante: true, proveedorId: "p1", serie: "B001", numero: "42" }],
     ["factura completa", { ...base, concepto: "luz", monto: "180.40", conComprobante: true, comprobante: "factura", proveedorId: "p1", serie: "F001", numero: "9" }],
     ["cerró la factura: lo de adentro ya no cuenta", { ...base, concepto: "agua", monto: "48.30", conComprobante: false, proveedorId: "" }],
+    ["movilidad por Yape", { ...base, concepto: "movilidad", monto: "5", medio: "yape", medioElegido: true }],
+    ["bolsas por Plin", { ...base, concepto: "bolsas", monto: "12", medio: "plin", medioElegido: true }],
+    ["Yape sin monto", { ...base, concepto: "movilidad", medio: "yape", medioElegido: true }],
+    ["arreglo por Yape con boleta", { ...base, concepto: "arreglo", monto: "60", medio: "yape", medioElegido: true, conComprobante: true, proveedorId: "p1", serie: "B001", numero: "42" }],
+    ["otro por Plin", { ...base, concepto: CLAVE_OTRO, monto: "5", otroTexto: "pilas para el control", otroCategoria: "suministros", medio: "plin", medioElegido: true }],
   ];
 
   for (const [nombre, e] of escenarios) {
@@ -180,6 +187,42 @@ describe("la guía dice lo mismo que validarGasto", () => {
       p_caja_id: "caja-1",
       p_comprobante: null,
     });
+  });
+
+  it("con Yape o Plin no toca la caja: va sin caja y sin cuenta (la base sella la del medio en la tienda)", () => {
+    for (const medio of ["yape", "plin"] as const) {
+      const v = validarGasto(borradorDeGastoRapido({ ...base, concepto: "movilidad", monto: "5", medio, medioElegido: true }, CAJA, HOY), HOY);
+      expect(v.ok && v.valor).toMatchObject({ p_ubicacion_id: "tru", p_medio_pago: medio, p_caja_id: null, p_comprobante: null });
+      expect(v.ok && "p_cuenta_id" in v.valor).toBe(false);
+    }
+  });
+
+  it("«Cómo lo pagaste» es sugerido: nunca bloquea, y cuenta como hecho solo si la persona lo tocó", () => {
+    const completo = { ...base, concepto: "bano", monto: "0.80" };
+    const medio = (e: EstadoGastoRapido) => camposDeGastoRapido(e).find((c) => c.id === "medio")!;
+    expect(medio(completo)).toMatchObject({ requerido: false, sugerido: true, hecho: false });
+    expect(sePuedeConfirmar(camposDeGastoRapido(completo))).toBe(true);
+    expect(medio({ ...completo, medioElegido: true }).hecho).toBe(true);
+    // Va después del monto y antes de la nota: es lo que se mira al terminar de escribir cuánto fue.
+    const orden = camposDeGastoRapido(completo).map((c) => c.id);
+    expect(orden.indexOf("medio")).toBe(orden.indexOf("monto") + 1);
+  });
+
+  it("los textos siguen al medio elegido (A → B → A) y nunca prometen el cajón con Yape o Plin", () => {
+    for (const medio of MEDIOS_RAPIDOS) {
+      const t = textosDelMedio(medio, "Tienda TRU");
+      const todo = Object.values(t).join(" ");
+      if (medio === "efectivo") expect(todo).toMatch(/cajón de Tienda TRU/);
+      else {
+        expect(todo).toMatch(medio === "yape" ? /Yape/ : /Plin/);
+        expect(t.sello).toMatch(/el cajón no cambia/);
+        expect(t.sello).not.toMatch(/descuenta/);
+      }
+    }
+    expect(textosDelMedio("efectivo", "X")).toEqual(textosDelMedio("efectivo", "X"));
+    const ida = textosDelMedio("yape", "X");
+    textosDelMedio("plin", "X");
+    expect(textosDelMedio("yape", "X")).toEqual(ida);
   });
 
   it("lo que se guarda se vuelve a reconocer como el mismo concepto", () => {
