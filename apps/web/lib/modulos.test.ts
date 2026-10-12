@@ -163,7 +163,7 @@ const foto = (p: PerfilDelMenu) => {
 // sumados, el menú vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas cuatro pantallas. (ADR-0288 act. g,
 // 2026-10-01): «Avisos del club», igual: nace sin rol, y sin él la integrante ve Clientas como siempre (el grupo se disuelve en «Fichas»).
 // (ADR-0329, 2026-10-05): «Plan del piso», igual: nace sin rol; la fotografía de antes lo trae porque sus perfiles no traen módulos.
-// (ADR-0375, 2026-10-10): «Liquidación», igual: nace sin rol.
+// (ADR-0379, 2026-10-10): «Liquidación», igual: nace sin rol.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
@@ -190,7 +190,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219) ni «avisos_club» (ADR-0288 act. g) ni «plan_piso» (ADR-0329) ni «liquidacion» (ADR-0375) le faltan exactamente esas seis`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219) ni «avisos_club» (ADR-0288 act. g) ni «plan_piso» (ADR-0329) ni «liquidacion» (ADR-0379) le faltan exactamente esas seis`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));

@@ -1,4 +1,4 @@
-# ADR-0375 — Las prendas sueltas que se liquidan no entran al catálogo: se etiquetan como «piezas de liquidación»
+# ADR-0379 — Las prendas sueltas que se liquidan no entran al catálogo: se etiquetan como «piezas de liquidación»
 
 **Fecha:** 2026-10-10 · **Estado:** aceptado (Felipe, 10 preguntas + «ok»), construido y verificado en local. **En producción desde el
 2026-10-10** (OK de Felipe; por el MCP, versión registrada `20261010172258`): las 13 funciones nuevas tienen el mismo md5 que en

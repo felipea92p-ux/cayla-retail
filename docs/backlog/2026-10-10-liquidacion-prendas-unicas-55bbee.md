@@ -1,4 +1,4 @@
-## 🏷️ Piezas de liquidación (2026-10-10, ADR-0375) — migración `20261010195000` (EN PRODUCCIÓN 2026-10-10, versión `20261010172258`); rama `claude/liquidacion-prendas-unicas-55bbee`
+## 🏷️ Piezas de liquidación (2026-10-10, ADR-0379) — migración `20261010195000` (EN PRODUCCIÓN 2026-10-10, versión `20261010172258`); rama `claude/liquidacion-prendas-unicas-55bbee`
 
 - [x] Base: `piezas_liquidacion`, `piezas_liquidacion_etiquetas`, `parametros_liquidacion` (S/ 10); RPC `crear_pieza_liquidacion`, `cambiar_precio_pieza_liquidacion`, `retirar_pieza_liquidacion`, `guardar_precio_minimo_liquidacion`; lecturas `fn_pieza_liquidacion`, `fn_piezas_liquidacion`; dos reemplazos anclados a `registrar_venta`; venta final en cambios y devoluciones; anular la devuelve. `pnpm pruebas:piezas-liquidacion` 19/19 (también en el CI).
 - [x] Web: Catálogo ▸ Liquidación (módulo `liquidacion`, nace solo del líder), etiqueta de papel, hojas con guía de foco, buscador que lee la etiqueta (también una vieja), precio mínimo del líder; Vender lee el código con pistola, cámara o tecleado (probado a 375 px).

@@ -5758,7 +5758,7 @@ export type Database = {
         Args: { p_ids: string[] }
         Returns: { prenda_id: string; veces: number; ultima_en: string; ultima_por: string | null; antes: Json }[]
       }
-      // ADR-0375 (20261010195000): las piezas de liquidación.
+      // ADR-0379 (20261010195000): las piezas de liquidación.
       crear_pieza_liquidacion: {
         Args: { p_ubicacion_id: string; p_categoria_id: string; p_precio: number; p_token?: string; p_descripcion?: string }
         Returns: Json

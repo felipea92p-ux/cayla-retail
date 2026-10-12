@@ -1,5 +1,10 @@
 -- ============================================================================
--- 20261010195000_piezas_de_liquidacion.sql — CAYLA V2 (ADR-0375, Felipe 2026-10-10)
+-- 20261010195000_piezas_de_liquidacion.sql — CAYLA V2 (ADR-0379, Felipe 2026-10-10)
+--
+-- NUMERACIÓN. Se escribió como `20261010190000` y ADR-0371; al fusionar `main`, que ya usaba esos números (Plan de campaña, «Por
+-- revisar» y, después, Caja con el 0375), pasó a `20261010195000` y ADR-0379. Los dos comentarios que esta migración INYECTA en
+-- `registrar_venta` (los reemplazos 9a y 9b) dicen «ADR-0371» a propósito: así quedaron en producción, y cambiarlos aquí rompería
+-- la idempotencia del reemplazo (no encontraría ni su texto nuevo ni su ancla).
 --
 -- EL PROBLEMA PRIMERO. En el almacén hay prendas de las que queda UNA sola unidad, con tiempo guardadas, que nunca entraron
 -- al sistema y que se van a liquidar. Registrarlas como productos (ficha, foto, talla, color) es trabajo perdido: no vuelven.

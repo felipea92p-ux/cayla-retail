@@ -1,7 +1,7 @@
 // Las pruebas que vuelven a pegar una migración VIEJA de `registrar_venta` (el redondeo, 20261003130000) o que comparan su huella
 // exacta con la que esa migración prometió, corren sobre una base donde después se aplicaron parches a la función: el precio por
 // sede (20261010100200, ADR-0370), que cambió una línea, y el origen de la línea sugerida (20261010220100, «Combina bien con»), que
-// sumó una columna al insert de `venta_items`; entre los dos, las piezas de liquidación (20261010195000, ADR-0375) le hicieron dos
+// sumó una columna al insert de `venta_items`; entre los dos, las piezas de liquidación (20261010195000, ADR-0379) le hicieron dos
 // reemplazos anclados. El candado de huella de la migración vieja los rechaza, y está bien que lo haga.
 //
 // Para probar la migración vieja sobre SU punto de partida, este texto devuelve la función a como estaba antes de esos parches

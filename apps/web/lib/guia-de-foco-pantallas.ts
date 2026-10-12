@@ -107,7 +107,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
   "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
-  // ADR-0375: la pantalla tiene un solo control propio (el buscador); lo que se llena vive en sus dos hojas, que traen su guía.
+  // ADR-0379: la pantalla tiene un solo control propio (el buscador); lo que se llena vive en sus dos hojas, que traen su guía.
   "/productos/liquidacion": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx", "components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
   // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.

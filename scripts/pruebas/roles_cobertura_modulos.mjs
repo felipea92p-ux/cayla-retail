@@ -186,7 +186,7 @@ const SOLO_LIDER_GRUPOS = [
     modulo: "liquidacion",
     funciones: ["crear_pieza_liquidacion", "cambiar_precio_pieza_liquidacion"],
     razon:
-      "Liquidación (ADR-0375, Felipe 2026-10-10): las dos piden el módulo (fn_exigir_modulo('liquidacion')) y solo exigen líder en UNA rama, " +
+      "Liquidación (ADR-0379, Felipe 2026-10-10): las dos piden el módulo (fn_exigir_modulo('liquidacion')) y solo exigen líder en UNA rama, " +
       "un precio bajo el mínimo (fn_exigir_precio_liquidacion, `parametros_liquidacion.precio_minimo`, S/ 10). Quien ve el módulo etiqueta y " +
       "rebaja; bajo el mínimo la hoja dice «Desde S/ 10» y la guía no deja confirmar (lib/liquidacion-guia.ts, problemaDePrecio), y si igual " +
       "llega, la base responde «Ese precio necesita un líder».",
