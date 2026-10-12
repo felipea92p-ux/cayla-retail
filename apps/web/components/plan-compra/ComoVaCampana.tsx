@@ -85,20 +85,23 @@ export function CeldaComoVa({
               ? `Lo vendido hasta ayer en ${de}, contra lo que su parte del plan esperaba a hoy. Su parte sale del mismo reparto del Plan: según lo que vende cada tienda, con su mínimo.`
               : "Lo vendido hasta ayer en todas las tiendas, contra lo que el plan (la suma de los «normal» de cada categoría) esperaba a hoy."}
           </span>
-          {c.medidos > 0 && c.esperado !== null && (
-            <span className="mt-2 block">
-              {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas a hoy; si sigue así, termina en {enteroES.format(c.proyeccion)}
-              {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}.
-            </span>
-          )}
           <span className="mt-2 block">
             {conForma ? "Lo esperado a hoy sigue la forma de esta misma campaña el año pasado." : "Sin la misma campaña el año pasado, lo esperado se reparte parejo entre los días."}
           </span>
         </Ayuda>
       </span>
-      <span className={`font-display text-xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
+      <span className="flex flex-wrap items-baseline gap-x-2">
+        <span className={`font-display text-xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
+        <span className="whitespace-nowrap text-xs text-tinta/65">{frase}</span>
+      </span>
       <span className="flex flex-wrap items-baseline gap-x-2 text-xs text-tinta/65">
-        <span className="whitespace-nowrap">{frase}</span>
+        {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
+        {c.medidos > 0 && c.esperado !== null && (
+          <span className="whitespace-nowrap">
+            {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas · termina en {enteroES.format(c.proyeccion)}
+            {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}
+          </span>
+        )}
         {c.medidos > 0 && (
           <button type="button" onClick={() => setAbierta(true)} className="whitespace-nowrap text-tinta underline underline-offset-2 hover:text-rojo-profundo">
             Ver la curva

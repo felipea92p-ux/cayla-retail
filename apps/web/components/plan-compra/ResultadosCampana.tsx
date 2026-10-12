@@ -216,7 +216,7 @@ export function ResultadosCampana({
       <div data-guia="plan-resultados.cifras" className="card-cayla @container has-[.anim-globo]:relative has-[.anim-globo]:z-30">
         <div className="grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 @3xl:flex @3xl:items-stretch @3xl:gap-x-0 @3xl:px-2">
           {enCurso && (
-            <div className="col-span-2 flex min-w-0 flex-col justify-center gap-0.5 px-1 @3xl:min-w-48 @3xl:px-3">
+            <div className="col-span-2 flex min-w-0 flex-col justify-center gap-0.5 px-1 @3xl:flex-[1.6] @3xl:px-3">
               <CeldaComoVa c={enCurso.como} conForma={pesos.conForma} piden={enCurso.piden.length} de={tiendaElegida?.nombre ?? null} onPiden={verLasQuePiden} />
             </div>
           )}
