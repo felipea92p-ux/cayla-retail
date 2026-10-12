@@ -38,6 +38,8 @@ export function useTransmitir(): { transmitiendoId: string | null; transmitir: (
       const datos = await respuesta.json();
       if (!respuesta.ok) {
         avisar.error("No se pudo transmitir el comprobante", { detalle: datos.error ?? undefined });
+        // Un intento fallido también escribe (el intento, el error nuevo, a veces el estado): la fila tiene que decirlo.
+        router.refresh();
         return;
       }
       avisar.exito("Comprobante transmitido", { detalle: "SUNAT lo tiene; el estado se actualiza en la lista." });

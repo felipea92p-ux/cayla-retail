@@ -2,6 +2,8 @@
 // Supabase ni Lucode, para poder probarlas sin levantar nada. Lo que se transmite no se deshace, así
 // que todo lo que pueda frenarlo se decide ANTES de llamar a Lucode, acá.
 
+import { esYaEmitido, NUMERO_OCUPADO, YA_EMITIDO } from "./ya-emitido-reglas";
+
 export type ComprobanteParaTransmitir = {
   /** `nota_venta` nunca se transmite (ADR-0164). Ausente = se decide solo por el estado. */
   tipo?: string;
@@ -115,16 +117,28 @@ const ERROR_LEGIBLE: Record<string, string> = {
   sin_credenciales: "Falta configurar la conexión con Lucode en el servidor.",
   credenciales_invalidas: "Lucode rechazó la clave de conexión: hay que renovarla.",
   rechazado_por_lucode: "Lucode no aceptó el envío",
+  [YA_EMITIDO]: "Lucode ya la tiene: falta confirmar que es esta venta y traer su estado.",
+  [NUMERO_OCUPADO]: "Ese número ya lo usa otro documento en Lucode, con",
 };
+
+/** El motivo de un error crudo de la cola. Un «fue emitido anteriormente» anotado como rechazo común (así quedaban antes
+ *  del ADR-0378, y así siguen en la base hasta su próxima pasada) se lee como lo que es: Lucode ya la tiene. */
+function motivoDelError(crudo: string): { motivo: string; resto: string[] } {
+  const [motivo, ...resto] = crudo.split(": ");
+  if (motivo === "rechazado_por_lucode" && esYaEmitido(resto.join(": "))) return { motivo: YA_EMITIDO, resto: [] };
+  return { motivo, resto };
+}
 
 /** El último error de la cola en palabras de tienda. En la base queda crudo (`motivo: detalle`, lo que
  *  escribe `transmitirComprobante`) para diagnosticar; en pantalla, qué pasó y a quién le toca. Un
  *  motivo desconocido se muestra tal cual: mejor el texto técnico que ninguno. */
 export function errorDeColaLegible(crudo: string | null): string | null {
   if (!crudo) return null;
-  const [motivo, ...resto] = crudo.split(": ");
+  const { motivo, resto } = motivoDelError(crudo);
   const legible = ERROR_LEGIBLE[motivo];
   if (!legible) return crudo;
+  // El rechazo de Lucode y el número ocupado llevan su detalle: es lo único que dice qué dato revisar.
+  if (motivo === NUMERO_OCUPADO) return resto.length > 0 ? `${legible} ${resto.join(": ").replace(/\.?$/, ".")}` : "Ese número ya lo usa otro documento en Lucode.";
   return motivo === "rechazado_por_lucode" && resto.length > 0 ? `${legible}: ${resto.join(": ")}` : legible;
 }
 
@@ -133,13 +147,15 @@ const QUE_HACER: Record<string, string> = {
   sin_credenciales: "Carga LUCODE_TOKEN en Vercel y vuelve a desplegar; hasta entonces nada llega a SUNAT.",
   credenciales_invalidas: "Renueva la clave en el panel de Lucode y actualiza LUCODE_TOKEN en Vercel.",
   rechazado_por_lucode: "Reintentar no lo arregla: revisa el dato que menciona el error (documento del cliente, serie o montos).",
+  [YA_EMITIDO]: "No se vuelve a enviar: se confirma sola al abrir Comprobantes, o ahora con «Reintentar ahora».",
+  [NUMERO_OCUPADO]: "Reintentar no lo arregla y esta venta todavía no está declarada: el líder de equipo tiene que revisarlo con Lucode.",
 };
 
 /** Qué tiene que hacer alguien con el último error de la cola; `null` si el motivo no se conoce (se
  *  muestra solo el error, sin inventar un consejo). */
 export function queHacerConElError(crudo: string | null): string | null {
   if (!crudo) return null;
-  return QUE_HACER[crudo.split(": ")[0]] ?? null;
+  return QUE_HACER[motivoDelError(crudo).motivo] ?? null;
 }
 
 /** Días calendario que SUNAT da para recibir un comprobante después del día en que se emitió
