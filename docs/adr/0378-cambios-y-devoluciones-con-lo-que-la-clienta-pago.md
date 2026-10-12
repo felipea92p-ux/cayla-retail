@@ -1,6 +1,6 @@
 # ADR-0378 — Cambios y devoluciones se calculan con lo que la clienta pagó, no con el precio de lista
 
-- **Fecha:** 2026-10-12 · **Estado:** construido y probado en una copia de la base local; **SQL todavía NO en producción** (se pega JUNTO con la web nueva).
+- **Fecha:** 2026-10-12 · **Estado:** construido y probado en una copia de la base local; **SQL EN PRODUCCIÓN desde 2026-10-12** (con OK de Felipe; la web nueva sigue sin publicar hasta fusionar el PR #968).
 - **Pedido:** el hallazgo #1 («Crítica · Hoy · Ventas») del análisis de Ventas: «Cambios y devoluciones: calcular con lo que la clienta pagó, no con el precio de lista».
   Decidido con Felipe el 2026-10-12: la prenda nueva se compara a precio de lista («cambiarla por una de S/ 100 debe mostrar S/ 20 a cobrar»).
 
@@ -54,5 +54,7 @@ de pago (esa venta traía S/ 10 de descuento; ahora pasa `tarjeta`, porque la su
 - `vitest`: 424 archivos, 157.372 pruebas (8 casos nuevos en `cambio-reemplazo-reglas.test.ts`).
 
 ## Producción
+
+**Aplicada el 2026-10-12** con `apply_migration` (historial de Supabase `cambios_y_devoluciones_con_lo_que_pago`), tras comprobar en solo lectura que cada función tenía una sola firma y el texto a reemplazar una sola vez. Verificado después: `md5(prosrc)` de las tres funciones igual al calculado de antemano (`aprobar_devolucion` 94dfe580…, `registrar_cambio` 36b15583…, `emitir_nota` 196885b8…), permisos sin cambios. **Ventana hasta publicar la web:** una línea con descuento mostrará «Sin diferencia» en Cambios mientras la base pide S/ 20 y responderá «Hay una diferencia de S/ 20 — indica cómo se cobra»: un error claro, sin guardar nada; las devoluciones ya salen bien.
 
 Una sola parte (solo `create or replace` de tres funciones, sin tablas ni políticas). **Se pega al publicar la web**: con la web vieja Cambios mostraría «S/ 0» mientras la base cobra S/ 20 y el cajón dejaría de coincidir con la pantalla.
