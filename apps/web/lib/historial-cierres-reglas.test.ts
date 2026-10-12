@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorDia, agruparPorMes, bloqueFecha, cobrosPorMedio, cuadreDelTurno, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
+import { agruparPorDia, agruparPorMes, bloqueFecha, cobrosPorMedio, cuadreDelTurno, duracionTurno, estadoCierre, filtrarCierres, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
 
 function cierre(p: Partial<CierreCaja>): CierreCaja {
   return {
@@ -20,8 +20,33 @@ describe("historial de cierres", () => {
 
   it("resumirCierres cuenta y suma solo lo que no cuadró", () => {
     const r = resumirCierres([cierre({}), cierre({ diferencia: -5 }), cierre({ diferencia: 2.2 })]);
-    expect(r).toEqual({ total: 3, cuadraron: 1, conDiferencia: 2, diferenciaNeta: -2.8 });
-    expect(resumirCierres([])).toEqual({ total: 0, cuadraron: 0, conDiferencia: 0, diferenciaNeta: 0 });
+    expect(r).toEqual({
+      total: 3, cuadraron: 1, conDiferencia: 2, diferenciaNeta: -2.8,
+      faltaron: { veces: 1, monto: 5 }, sobraron: { veces: 1, monto: 2.2 },
+    });
+    expect(resumirCierres([])).toEqual({
+      total: 0, cuadraron: 0, conDiferencia: 0, diferenciaNeta: 0,
+      faltaron: { veces: 0, monto: 0 }, sobraron: { veces: 0, monto: 0 },
+    });
+  });
+
+  it("resumirCierres: los sellos suman en positivo y cuadran con la neta (los 11 de TRU del 2026-10-12)", () => {
+    const difs = [-0.2, 0, 2, -114.6, -5.6, 0, 0, 31.4, -511.4, 0, 0];
+    const r = resumirCierres(difs.map((diferencia) => cierre({ diferencia })));
+    expect(r.cuadraron).toBe(5);
+    expect(r.faltaron).toEqual({ veces: 4, monto: 631.8 });
+    expect(r.sobraron).toEqual({ veces: 2, monto: 33.4 });
+    expect(r.diferenciaNeta).toBe(-598.4);
+    expect(r.cuadraron + r.faltaron.veces + r.sobraron.veces).toBe(r.total);
+  });
+
+  it("filtrarCierres: todos, solo faltó o solo sobró, sin cambiar el orden", () => {
+    const lista = [cierre({ id: "a", diferencia: -1 }), cierre({ id: "b" }), cierre({ id: "c", diferencia: 3 }), cierre({ id: "d", diferencia: -0.5 })];
+    expect(filtrarCierres(lista, "todos").map((c) => c.id)).toEqual(["a", "b", "c", "d"]);
+    expect(filtrarCierres(lista, "falto").map((c) => c.id)).toEqual(["a", "d"]);
+    expect(filtrarCierres(lista, "sobro").map((c) => c.id)).toEqual(["c"]);
+    // menos de un céntimo es «cuadró»: no entra en ninguno de los dos
+    expect(filtrarCierres([cierre({ diferencia: -0.004 })], "falto")).toEqual([]);
   });
 
   it("agruparPorMes usa la hora de Lima (la noche del 30 no salta de mes) y conserva el orden", () => {

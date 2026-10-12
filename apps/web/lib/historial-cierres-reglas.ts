@@ -16,16 +16,49 @@ export function estadoCierre(diferencia: number): EstadoCierre {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-export type ResumenCierres = { total: number; cuadraron: number; conDiferencia: number; diferenciaNeta: number };
+/** Cuántas veces y cuánto, en positivo: lo que dice cada sello del modal («FALTÓ · 4 veces · S/ 631.80»). */
+export type VecesYMonto = { veces: number; monto: number };
+
+export type ResumenCierres = {
+  total: number;
+  cuadraron: number;
+  conDiferencia: number;
+  diferenciaNeta: number;
+  faltaron: VecesYMonto;
+  sobraron: VecesYMonto;
+};
 
 export function resumirCierres(cierres: CierreCaja[]): ResumenCierres {
   let cuadraron = 0;
   let neta = 0;
+  const faltaron = { veces: 0, monto: 0 };
+  const sobraron = { veces: 0, monto: 0 };
   for (const c of cierres) {
-    if (estadoCierre(c.diferencia) === "cuadro") cuadraron += 1;
-    else neta += c.diferencia;
+    const estado = estadoCierre(c.diferencia);
+    if (estado === "cuadro") {
+      cuadraron += 1;
+      continue;
+    }
+    neta += c.diferencia;
+    const lado = estado === "falto" ? faltaron : sobraron;
+    lado.veces += 1;
+    lado.monto += Math.abs(c.diferencia);
   }
-  return { total: cierres.length, cuadraron, conDiferencia: cierres.length - cuadraron, diferenciaNeta: redondear(neta) };
+  return {
+    total: cierres.length,
+    cuadraron,
+    conDiferencia: cierres.length - cuadraron,
+    diferenciaNeta: redondear(neta),
+    faltaron: { veces: faltaron.veces, monto: redondear(faltaron.monto) },
+    sobraron: { veces: sobraron.veces, monto: redondear(sobraron.monto) },
+  };
+}
+
+/** El filtro del modal: todos, solo los que faltó o solo los que sobró (Felipe 2026-10-12, maqueta E «Los tickets»). */
+export type FiltroCierres = "todos" | "falto" | "sobro";
+
+export function filtrarCierres(cierres: CierreCaja[], filtro: FiltroCierres): CierreCaja[] {
+  return filtro === "todos" ? cierres : cierres.filter((c) => estadoCierre(c.diferencia) === filtro);
 }
 
 export type GrupoMes = { clave: string; etiqueta: string; cierres: CierreCaja[] };

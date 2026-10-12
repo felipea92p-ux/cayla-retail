@@ -49,6 +49,8 @@
 @import "./estilos/liquidacion.css";
 /* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
 @import "./estilos/plan-piso.css";
+/* Historial de cierres de Caja: cada cierre como un ticket con su sello (maqueta E, Felipe 2026-10-12). */
+@import "./estilos/historial-tickets.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

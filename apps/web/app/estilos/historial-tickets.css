@@ -1,0 +1,82 @@
+/* ====================================================================
+   Historial de cierres · los tickets y sus sellos (Felipe 2026-10-12, maqueta E «Los tickets»).
+
+   Cada cierre se dibuja como el ticket de caja que se imprime: papel con el borde de abajo picado, «Debía haber / Se
+   contó» y un sello girado que dice cómo terminó (CUADRÓ · FALTÓ S/ … · SOBRÓ S/ …). Arriba, los tres sellos contados.
+   Felipe eligió esta cara mirándola entre cinco; el sello reemplaza aquí al <Chip> de estado a propósito. Sin el nombre
+   de quién cerró: eso se ve en el detalle (Felipe, mismo día).
+
+   Solo tokens. Sin animación propia (ADR-0136): el ticket solo cambia de fondo al pasar el mouse. El papel del ticket
+   NO es papel físico (no se imprime desde aquí), así que sigue al tema: en oscuro es papel oscuro.
+   ==================================================================== */
+
+[data-estado-cierre="cuadro"] { --ht-tono: var(--color-verde-profundo); }
+[data-estado-cierre="falto"] { --ht-tono: var(--color-rojo-profundo); }
+[data-estado-cierre="sobro"] { --ht-tono: var(--color-ambar-profundo); }
+
+/* ── El sello: borde del color del resultado, versalitas, un poco girado ── */
+.ht-sello {
+  display: inline-block;
+  flex: none;
+  border: 2px solid var(--ht-tono);
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: var(--ht-tono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transform: rotate(-7deg);
+  background: color-mix(in srgb, var(--color-papel) 70%, transparent);
+}
+
+/* ── Los tres sellos contados ── */
+.ht-cuenta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-sand);
+  border-radius: 14px;
+  background: var(--color-papel);
+  padding: 12px 10px 10px;
+  text-align: center;
+}
+.ht-cuenta .ht-sello { font-size: 12px; letter-spacing: 0.14em; padding: 3px 10px; transform: rotate(-5deg); }
+
+/* ── El ticket ──
+   El papel (fondo, filo y borde picado) va en ::before: si la máscara fuera del botón, también recortaría el anillo de foco. */
+.ht-ticket {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  padding: 12px 14px 20px;
+  border-radius: 10px 10px 0 0;
+  text-align: left;
+  color: var(--color-tinta);
+}
+.ht-ticket::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid var(--color-sand);
+  border-bottom: 0;
+  border-radius: inherit;
+  background: var(--color-papel);
+  -webkit-mask: radial-gradient(circle 5px at 50% 100%, transparent 98%, var(--color-tinta)) 0 0 / 12px 100% repeat-x;
+  mask: radial-gradient(circle 5px at 50% 100%, transparent 98%, var(--color-tinta)) 0 0 / 12px 100% repeat-x;
+  transition: background-color 200ms var(--ease-cayla);
+}
+.ht-ticket:hover::before { background: color-mix(in srgb, var(--color-sand) 55%, var(--color-papel)); }
+
+.ht-linea { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 12.5px; }
+.ht-corte { display: block; height: 0; border-top: 1.5px dashed var(--color-sand); margin: 8px 0 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ht-ticket::before { transition: none; }
+}
