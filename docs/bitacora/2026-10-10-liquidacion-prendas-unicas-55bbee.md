@@ -4,6 +4,6 @@ Por qué así: Felipe no quiere registrar prendas que no vuelven, pero la caja y
 Felipe se lleva: falta publicar la web (PR) y darle el módulo «Liquidación» a los roles de almacén y caja en Roles y accesos.
 
 ## 2026-10-10 (Liquidación: /chaos, /formidable y la descripción opcional)
-Qué hice: /chaos (semilla 371) halló que tres clics creaban tres prendas: candado en las hojas + token en `crear_pieza_liquidacion`. /formidable (6,6 → 7,7): «prenda» en vez de «pieza», «Crear etiqueta», un solo rótulo de precio, cifras que filtran y caben en celular, y «Para reconocerla» opcional (en la etiqueta, la lista, el buscador y la boleta). Las dos migraciones nuevas (`20261010205000`, `20261010210000`) están en producción, verificadas por md5.
+Qué hice: /chaos (semilla 371) halló que tres clics creaban tres prendas: candado en las hojas + token en `crear_pieza_liquidacion`. /formidable (6,6 → 7,7): «prenda» en vez de «pieza», «Crear etiqueta», un solo rótulo de precio, cifras que filtran y caben en celular, y «Para reconocerla» opcional (en la etiqueta, la lista, el buscador y la boleta). Las dos migraciones nuevas (`20261010205000`, `20261010215000`) están en producción, verificadas por md5.
 Por qué así: lo que confundió a la prueba ciega eran palabras, no la estructura; y la prenda fantasma por doble clic se cierra en la base, no solo en el botón.
 Felipe se lleva: falta publicar la web (PR) y darle «Liquidación» a los roles de almacén y caja; después, probar con una colaboradora y con la Brother y la pistola.
