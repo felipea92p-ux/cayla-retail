@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
-import type { StockDeModelo } from "@/components/useStockEnSede";
+import type { LugaresDeModelo, StockDeModelo } from "@/components/useStockEnSede";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { corta, hrefEnExistencias, lineasDeStock, type ExistenciasProducto } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
@@ -15,7 +15,17 @@ import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { rangoSoles } from "@/lib/productos-vista";
-import { alternarVariantes, armarMatriz, etiquetasDeLaSeleccion, fichaCorta, soloLasQueExisten } from "@/lib/vista-rapida-producto-reglas";
+import {
+  alternarVariantes,
+  armarMatriz,
+  etiquetasDeLaSeleccion,
+  fichaCorta,
+  repartoDeLaPrenda,
+  soloLasQueExisten,
+  stockSegunDonde,
+  type Donde,
+} from "@/lib/vista-rapida-producto-reglas";
+import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
 import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
@@ -45,10 +55,16 @@ const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-[12px] max-sm:min-h-11";
  *
  * El stock sigue siendo el de siempre —`useStockEnSede`, la tabla `stock` de la sede—; lo de las otras sedes sale de `existencias` (la
  * cifra única de ADR-0270) y solo se NOMBRA, nunca se suma a lo de «aquí»: dos cifras de «aquí» que no coinciden confunden.
+ *
+ * Piso y almacén (Felipe 2026-10-12: «no sé si esa cantidad es del almacén o la tienda»): esa cifra de la sede suma lo colgado en el piso
+ * y lo guardado en el almacén. «Dónde» (Todo · Piso · Almacén) redibuja la matriz con solo un lugar; en «Todo», cada barrita va en dos
+ * tonos. Hay DOS matrices: la de «Todo» manda en todo lo demás (etiquetas, foto, lo elegido, el aviso de «sin unidades aquí»), y la que
+ * se dibuja es la del lugar elegido. Así elegir «Piso» nunca cambia cuántas etiquetas salen.
  */
 export function VistaRapidaProducto({
   producto,
   stock,
+  lugares,
   leer,
   sede,
   existencias,
@@ -73,6 +89,8 @@ export function VistaRapidaProducto({
    *  cartera» del color de la foto. Vacío = sin frase. */
   tarjetasLook?: TarjetaLook[];
   stock: StockDeModelo;
+  /** Las mismas unidades repartidas por lugar dentro de la sede (`useStockEnSede().lugaresDe`). Sin esto, la ficha no ofrece «Dónde». */
+  lugares?: LugaresDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
   /** Lo de la sede y de las otras (ADR-0270); `null` si no se pudo leer: entonces no se dice nada de las otras sedes. */
@@ -107,6 +125,18 @@ export function VistaRapidaProducto({
   const [vista, setVista] = useState<string | null>(null);
   const [elegidasCrudas, setElegidas] = useState<ReadonlySet<string>>(new Set());
   const elegidas = useMemo(() => soloLasQueExisten(elegidasCrudas, matriz), [elegidasCrudas, matriz]);
+  const [fotoGrande, setFotoGrande] = useState<{ fotoUrl: string; color: string } | null>(null);
+  const botonAmpliar = useRef<HTMLButtonElement>(null);
+
+  // «Dónde» (piso / almacén): solo si hay algo que repartir. Sin reparto (el Taller, o nada en el piso ni en el almacén) se queda en «Todo».
+  const lugaresMapa = mapa && lugares ? lugares : null;
+  const reparto = useMemo(() => repartoDeLaPrenda(matriz, lugaresMapa), [matriz, lugaresMapa]);
+  const [dondeElegido, setDonde] = useState<Donde>("todo");
+  const donde: Donde = reparto ? dondeElegido : "todo";
+  const matrizDibujada = useMemo(
+    () => (donde === "todo" ? matriz : armarMatriz(producto.variantes, stockSegunDonde(donde, mapa, lugaresMapa), preciosAqui)),
+    [donde, matriz, producto.variantes, mapa, lugaresMapa, preciosAqui],
+  );
 
   const sedeCorta = corta(sede) || "tu sede";
   const detalleOtras = existencias ? lineasDeStock(existencias).detalle : null;
@@ -161,6 +191,7 @@ export function VistaRapidaProducto({
   const hrefMovimientos = veMovimientos ? `/inventario/movimientos?q=${encodeURIComponent(producto.codigo ?? producto.referencia)}` : null;
 
   return (
+    <>
     <Modal
       titulo={<span className="vr-titulo">{pagina === "historial" ? "Historial" : producto.referencia}</span>}
       subtitulo={
@@ -227,7 +258,7 @@ export function VistaRapidaProducto({
       <div className={paso}>
       <div className="vr-cuerpo">
         <aside className="vr-lado">
-          <FotoVistaRapida producto={producto} fila={filaEnFoto} />
+          <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
           <div>
             <div className="vr-pie-foto">
               <span className="vr-sw" style={{ background: filaEnFoto?.hex, width: 20, height: 20 }} />
@@ -257,7 +288,12 @@ export function VistaRapidaProducto({
 
         <div className="min-w-0">
           <MatrizUnidades
-            matriz={matriz}
+            matriz={matrizDibujada}
+            totalSede={matriz.totalGeneral}
+            donde={donde}
+            reparto={reparto}
+            lugares={lugaresMapa}
+            alCambiarDonde={setDonde}
             sedeNombre={sede || "tu sede"}
             sedeCorta={sedeCorta}
             detalleOtrasSedes={detalleOtras}
@@ -352,5 +388,17 @@ export function VistaRapidaProducto({
       </div>
       )}
     </Modal>
+    {/* La foto en grande (Felipe 2026-10-12), la misma hoja que abre la miniatura de Existencias. Va FUERA de la vista rápida y no dentro
+        de su contenido: un modal sube sus teclas y sus clics por sus ancestros de React (ADR-0128), y las flechas de la matriz las tomarían. */}
+    {fotoGrande && (
+      <FotoAmpliada
+        fotoUrl={fotoGrande.fotoUrl}
+        referencia={producto.referencia}
+        color={fotoGrande.color || null}
+        onCerrar={() => setFotoGrande(null)}
+        alCerrarEnfocar={botonAmpliar}
+      />
+    )}
+    </>
   );
 }
