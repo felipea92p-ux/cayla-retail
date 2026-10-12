@@ -25,6 +25,7 @@ const leer = (n) => readFileSync(join(RAIZ, "supabase", "migrations", n), "utf8"
 const C2 = leer("20261012160000_ventas_historicas_sinatra.sql");
 const C4 = leer("20261012161000_plan_compra_propuesta_y_resultados.sql");
 const TIENDAS_ACTIVAS = leer("20261012162000_plan_compra_tiendas_activas.sql");
+const EN_CURSO_Y_CIERRE = leer("20261012163000_plan_compra_resultados_en_curso_y_cierre.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -49,6 +50,8 @@ set local search_path = retail, public, extensions;
 ${C4}
 set local search_path = retail, public, extensions;
 ${TIENDAS_ACTIVAS}
+set local search_path = retail, public, extensions;
+${EN_CURSO_Y_CIERRE}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text;
@@ -208,6 +211,23 @@ caso(
      (select round((d->>'soles')::numeric / (d->>'a_precio_lista')::numeric, 2) from jsonb_array_elements(:'r'::jsonb->'despues'->'categorias') d where d->>'c' = :'cat'),
      (select p->>'nombre' from jsonb_array_elements(:'r'::jsonb->'productos') p limit 1));`,
   "4:320.00,4,0.50,Polo PH"
+);
+
+caso(
+  "S2 en curso y cierre: lo vendido por día, cuántas se cobraron con rebaja y el stock de hoy y al cierre de la categoría",
+  `reset role;
+   set local session_replication_role = replica;
+   select pg_temp.vende(:'hoy'::date - 22, 2, 40);
+   set local session_replication_role = origin;
+   insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+     values (:'v', :'tienda', (select id from retail.sububicaciones where ubicacion_id = :'tienda' and tipo = 'piso_venta'), 5, 0);
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_resultados(:'pasada') as r \\gset
+   select concat_ws(',',
+     (select string_agg((d->>'u'), '+' order by d->>'f') from jsonb_array_elements(:'r'::jsonb->'por_dia') d),
+     (select sum((f->>'rebajadas')::int) from jsonb_array_elements(:'r'::jsonb->'filas') f where f->>'c' = :'cat'),
+     (select (s->>'hoy') || '/' || (s->>'cierre') from jsonb_array_elements(:'r'::jsonb->'stock') s where s->>'c' = :'cat'));`,
+  "4+2,2,5/5"
 );
 
 // T. TIENDAS ACTIVAS ------------------------------------------------------------------------------------------------------
