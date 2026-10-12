@@ -1142,6 +1142,10 @@ export const PRUEBAS = [
   // La función con llave que GitHub llama cada mañana en producción (20260928210000): con la llave, anon recibe
   // EXACTAMENTE la celda de deriva.sql; sin ella, 42501; nadie más crea llaves ni lee la tabla de la llave.
   "pruebas:huellas-catalogo",
+
+  // Lo que el paso `supabase` hace con las migraciones de un PR (ADR-0251, act. 2026-10-12): aparta, aplica una por una
+  // en su transacción, toma huellas y devuelve. En una base APARTE del mismo Postgres: la de las pruebas no se toca.
+  "pruebas:huellas-del-pr",
 ];
 
 /** `"2/4"` → `{ n: 2, de: 4 }`. Lanza si no calza: un error de tipeo en ci.yml no debe correr cero pruebas en verde. */
