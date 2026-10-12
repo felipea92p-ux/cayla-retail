@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de campaña · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+  /* Paleta oficial «CAYLA Dynamic» (apps/web/app/globals.css, ADR-0169). Sin modo oscuro en la maqueta: en la pantalla real lo hereda
+     de los tokens. Ningún hex suelto fuera de esta lista. */
+  :root {
+    color-scheme: light;
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0;
+    --tinta:#1a1a18; --taupe:#805c4c; --rojo:#b8412d; --rojo-p:#8b2a1f;
+    --verde:#48603f; --verde-p:#44583a; --ambar:#74501a; --ambar-p:#734f15; --pizarra:#4c5d6e;
+    --t80:color-mix(in srgb,var(--tinta) 80%,transparent); --t70:color-mix(in srgb,var(--tinta) 70%,transparent);
+    --t65:color-mix(in srgb,var(--tinta) 65%,transparent); --t30:color-mix(in srgb,var(--tinta) 30%,transparent);
+    --t25:color-mix(in srgb,var(--tinta) 25%,transparent);
+    --ease:cubic-bezier(.32,.72,.24,1);
+    --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+    --serif:"EB Garamond",ui-serif,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding:10px 16px 56px}
+  button,input,select{font:inherit;color:inherit}
+  button{cursor:pointer}
+  [hidden]{display:none!important}
+  :focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+  svg.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .etq{font:600 11px/1.3 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin:0}
+
+  /* ============ Barra de la maqueta (no es parte del ERP) ============ */
+  .mando{position:sticky;top:8px;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:10px 14px;margin:0 auto 12px;max-width:1440px;border:1px dashed var(--taupe);border-radius:12px;background:color-mix(in srgb,var(--papel) 92%,transparent);backdrop-filter:blur(6px)}
+  .grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .etq-g{font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+  .seg{display:inline-flex;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;font:500 12.5px var(--sans);color:var(--taupe);padding:5px 11px;border-radius:999px}
+  .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  .mini{border:1px solid var(--t25);background:var(--papel);border-radius:999px;padding:5px 12px;font:500 12.5px var(--sans)}
+  @media (max-height:760px){.mando{position:static}}
+  .notas{max-width:1440px;margin:0 auto 14px;padding:0 4px;display:grid;gap:3px}
+  .notas p{margin:0;font-size:12.5px;color:var(--taupe);max-width:1200px}
+  .notas b{color:var(--tinta)}
+
+  /* ============ Marco ============ */
+  .marco{position:relative;margin:0 auto;width:100%;max-width:1280px;border:1px solid var(--sand);border-radius:16px;background:var(--crema);container:marco / inline-size;transition:max-width .3s var(--ease)}
+  .marco[data-ancho="grande"]{max-width:1440px}
+  .marco[data-ancho="tablet"]{max-width:768px}
+  .pantalla{padding:30px 32px 44px;display:grid;gap:20px}
+  @container marco (max-width:640px){.pantalla{padding:22px 16px 32px}}
+
+  /* Movimiento (ADR-0136): sin rebote, sin bucle, nunca decorativo. */
+  @keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes dibuja{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes destello{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--taupe) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+  @keyframes velo{from{opacity:0}to{opacity:1}}
+  @keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+  @keyframes aviso{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes paso{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+  .anim{animation:sube .42s var(--ease) both;animation-delay:calc(var(--i,0)*28ms)}
+  .sin-entrada .anim,.sin-entrada .crece{animation:none}
+  .crece{transform-origin:left;animation:dibuja .7s var(--ease) both;animation-delay:calc(var(--i,0)*28ms + 160ms)}
+  :root[data-reducido] *,:root[data-reducido] *::before{animation:none!important;transition:none!important}
+  @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+
+  /* ---- Cabecera ---- */
+  .cab{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px}
+  .linea{display:flex;align-items:center;gap:12px;margin:0;font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+  .hilo{display:block;width:32px;height:1px;background:var(--taupe);transform-origin:left;animation:dibuja .7s var(--ease) both}
+  h1{font:500 46px/1 var(--serif);letter-spacing:-.01em;margin:12px 0 0}
+  .frase{margin:10px 0 0;color:var(--t70);font-size:15px;max-width:60ch}
+  .cuenta{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:5px 12px 5px 10px;border-radius:999px;background:var(--hueso);font-size:13px;color:var(--t80)}
+  .cuenta b{font-weight:600;color:var(--tinta)}
+  .cuenta .pt{width:8px;height:8px;border-radius:50%;background:var(--taupe)}
+  .cuenta.durante .pt{background:var(--verde)}
+  .acc-cab{display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:relative}
+  .btn{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border:1px solid var(--t25);border-radius:10px;background:var(--papel);font:500 13.5px var(--sans);transition:transform .2s var(--ease),background .2s,border-color .2s;white-space:nowrap}
+  .btn:hover{transform:translateY(-2px);border-color:var(--tinta)}
+  .btn:active{transform:none}
+  .btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .btn.primario:hover{background:var(--rojo-p);border-color:var(--rojo-p)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .btn.s{min-height:32px;padding:0 12px;font-size:13px}
+  .btn.enlace{border:0;background:transparent;padding:0;min-height:0;text-decoration:underline;text-underline-offset:3px;color:var(--t80)}
+  .btn.enlace:hover{transform:none;color:var(--rojo-p)}
+  .cab .btn{min-height:40px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+
+  /* ---- Selector de campaña ---- */
+  .camp{position:relative}
+  .camp > .btn{font:600 13px var(--sans);letter-spacing:0;text-transform:none;gap:10px}
+  .camp .menu-c{position:absolute;right:0;top:calc(100% + 6px);z-index:70;width:300px;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:6px;box-shadow:0 12px 32px color-mix(in srgb,var(--tinta) 18%,transparent);animation:sube .18s var(--ease) both}
+  .menu-c button{display:grid;width:100%;text-align:left;border:0;background:transparent;border-radius:9px;padding:9px 12px;font-size:14px}
+  .menu-c button:hover{background:var(--hueso)}
+  .menu-c button[aria-current="true"]{background:var(--sand)}
+  .menu-c small{color:var(--t65);font-size:12px}
+  .menu-c hr{border:0;border-top:1px solid var(--sand);margin:4px 0}
+
+  /* ---- Aviso: stock incompleto ---- */
+  .aviso{display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;align-items:center;border:1px solid color-mix(in srgb,var(--ambar) 40%,var(--sand));border-left:4px solid var(--ambar);border-radius:14px;background:color-mix(in srgb,var(--ambar) 7%,var(--papel));padding:14px 18px}
+  .aviso h3{margin:0;font:600 15px var(--sans);color:var(--ambar-p)}
+  .aviso p{margin:2px 0 0;font-size:13.5px;color:var(--t80)}
+  .sedes{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .sede{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:12.5px;background:var(--papel);border:1px solid var(--t25)}
+  .sede i{width:7px;height:7px;border-radius:50%;background:var(--verde)}
+  .sede.mal i{background:var(--ambar)}
+  .confia{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--verde-p);font-weight:500}
+  @container marco (max-width:700px){.aviso{grid-template-columns:1fr}}
+
+  /* ---- Cifras ---- */
+  .cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  @container marco (max-width:1000px){.cifras{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .cifra{position:relative;text-align:left;border:1px solid var(--sand);border-radius:18px;background:var(--papel);padding:16px 18px 14px;display:grid;gap:3px;align-content:start;transition:background .2s,border-color .2s,transform .2s var(--ease)}
+  .cifra.pulsable{cursor:pointer}
+  .cifra.pulsable:hover{transform:translateY(-2px);border-color:var(--t30)}
+  .cifra[aria-pressed="true"]{background:var(--sand);border-color:var(--t30)}
+  .cifra .n{font:500 40px/1 var(--serif);font-variant-numeric:tabular-nums}
+  .cifra .n small{font:500 22px var(--serif);color:var(--taupe)}
+  .cifra .t{font:600 11px var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--t65)}
+  .cifra .p{font-size:13px;color:var(--t70)}
+  .cifra .flecha{position:absolute;right:16px;top:16px;color:var(--t30)}
+  .cifra .accion{margin-top:6px;justify-self:start}
+  .prog{height:6px;border-radius:3px;background:var(--hueso);margin:8px 0 2px;overflow:hidden}
+  .prog i{display:block;height:100%;background:var(--verde);border-radius:3px;transform-origin:left;animation:dibuja .8s var(--ease) both;animation-delay:.25s}
+  .tope{position:relative;height:10px;border-radius:5px;background:var(--hueso);margin:8px 0 2px;display:flex;overflow:hidden}
+  .tope i{display:block;height:100%;transform-origin:left;animation:dibuja .8s var(--ease) both;animation-delay:.25s}
+  .tope.paso-tope{outline:2px solid var(--ambar);outline-offset:1px}
+  .ambar{color:var(--ambar-p)!important;font-weight:500}
+
+  /* ---- La tarjeta: filtros + lista ---- */
+  .caja{border:1px solid var(--sand);border-radius:22px;background:var(--papel);padding:18px 18px 16px;display:grid;gap:14px}
+  .barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+  .buscador{position:relative;flex:1 1 240px;max-width:380px}
+  .buscador input{width:100%;height:42px;border:0;border-radius:12px;background:var(--hueso);padding:0 38px 0 40px;font-size:14.5px}
+  .buscador input::placeholder{color:var(--taupe)}
+  .buscador .ic{position:absolute;left:13px;top:13px;color:var(--taupe)}
+  .buscador kbd{position:absolute;right:10px;top:10px;font:600 11px var(--sans);border:1px solid var(--t25);border-radius:6px;padding:1px 7px;color:var(--taupe)}
+  .modo{display:inline-flex;border-radius:12px;background:var(--hueso);padding:3px;gap:2px;margin-left:auto}
+  .modo button{border:0;background:transparent;font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);padding:8px 14px;border-radius:9px;transition:background .2s,color .2s}
+  .modo button[aria-pressed="true"]{background:var(--papel);color:var(--tinta);box-shadow:0 1px 2px color-mix(in srgb,var(--tinta) 14%,transparent)}
+  .pildoras{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .pildora{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 13px;font:500 13px var(--sans);color:var(--t80);display:inline-flex;gap:7px;align-items:center;transition:background .15s}
+  .pildora:hover{background:var(--hueso)}
+  .pildora[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pildora b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--taupe)}
+  .pildora[aria-pressed="true"] b{color:color-mix(in srgb,var(--crema) 75%,transparent)}
+  .selc{height:34px;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:0 12px;font:500 13px var(--sans);color:var(--t80)}
+  .leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--t70);align-items:center;margin:0}
+  .leyenda span{display:inline-flex;align-items:center;gap:7px}
+  .leyenda i{display:inline-block;width:18px;height:8px;border-radius:4px}
+  .l-st{background:var(--verde)} .l-co{background:var(--tinta)} .l-bd{background:color-mix(in srgb,var(--taupe) 30%,transparent);height:6px!important}
+  .l-nm{width:2px!important;height:12px!important;background:var(--taupe);border-radius:1px}
+  .l-vd{width:10px!important;height:10px!important;transform:rotate(45deg);background:var(--pizarra);border-radius:2px!important}
+
+  /* ---- Tabla de categorías ---- */
+  .tabla{border:1px solid var(--sand);border-radius:16px;overflow:hidden;--cols:minmax(200px,1.25fr) minmax(260px,2.1fr) 70px 82px 118px}
+  .tabla.real{--cols:minmax(180px,1.15fr) minmax(250px,2fr) 66px 78px 110px minmax(170px,1.2fr)}
+  .fila{display:grid;grid-template-columns:var(--cols);gap:0 16px;align-items:center;padding:12px 18px;border-top:1px solid var(--sand);width:100%;text-align:left;background:transparent;border-left:0;border-right:0;border-bottom:0}
+  .fila:first-child{border-top:0}
+  button.fila{transition:background .15s}
+  button.fila:hover{background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+  .fila.flash{animation:destello 1.1s var(--ease)}
+  .fila.cab-t{background:var(--hueso);padding-top:10px;padding-bottom:10px;font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--t65)}
+  .fila .der{text-align:right;font-variant-numeric:tabular-nums}
+  .fila .cat{display:grid;gap:3px;min-width:0}
+  .nm{display:flex;align-items:center;gap:9px;font:500 20px/1.15 var(--serif);margin:0;overflow-wrap:anywhere}
+  .rk{font:600 10.5px var(--sans);letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--verde) 15%,var(--papel));color:var(--verde-p);white-space:nowrap}
+  .sub{font-size:13px;color:var(--t70);margin:0}
+  .sub.ag{color:var(--ambar-p);font-weight:500}
+  .num-c{font:600 17px var(--sans);font-variant-numeric:tabular-nums}
+  .tenue{color:var(--taupe)}
+  .chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:3px 11px;font-size:12.5px;background:var(--hueso);color:var(--t80)}
+  .chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pizarra)}
+  .sinplan{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .real-c{font-size:13px;color:var(--t80)}
+  .real-c b{font-weight:600}
+  .sinmov{width:100%;display:flex;align-items:center;gap:10px;padding:13px 18px;border:0;border-top:1px solid var(--sand);background:var(--crema);font:500 13.5px var(--sans);color:var(--t80);text-align:left}
+  .sinmov:hover{background:var(--hueso)}
+  .sinmov .ic{transition:transform .2s var(--ease)}
+  .sinmov[aria-expanded="true"] .ic{transform:rotate(180deg)}
+  @container marco (max-width:860px){
+    .tabla,.tabla.real{--cols:1fr}
+    .fila.cab-t{display:none}
+    .fila{gap:8px;padding:14px 16px}
+    .fila .der{text-align:left}
+  }
+
+  /* ---- La barra de rango: LA pieza visual ---- */
+  .rg{position:relative;height:30px;min-width:200px}
+  .rg .band{position:absolute;top:2px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--taupe) 30%,transparent)}
+  .rg .tn{position:absolute;top:-1px;width:2px;height:12px;background:var(--taupe);border-radius:1px}
+  .rg .pista{position:absolute;left:0;right:0;top:15px;height:9px;border-radius:5px;background:var(--hueso)}
+  .rg .st,.rg .co{position:absolute;top:15px;height:9px}
+  .rg .st{background:var(--verde);border-radius:5px 0 0 5px}
+  .rg .co{background:var(--tinta);border-radius:0 5px 5px 0}
+  .rg .st.solo{border-radius:5px}
+  .rg .vd{position:absolute;top:7px;width:11px;height:11px;margin-left:-5px;transform:rotate(45deg);background:var(--pizarra);border:2px solid var(--papel);border-radius:2px;box-shadow:0 0 0 1px var(--pizarra)}
+  .rg .crece{position:absolute}
+  .rg-n{font-size:12px;color:var(--t70);margin-top:2px;font-variant-numeric:tabular-nums}
+  .rg-n b{font-weight:600;color:var(--tinta)}
+
+  /* ---- Paso a paso ---- */
+  .guiado{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(250px,.8fr);gap:20px;align-items:start}
+  @container marco (max-width:900px){.guiado{grid-template-columns:1fr}}
+  .g-form{border:1px solid var(--sand);border-radius:18px;background:var(--crema);padding:22px 24px}
+  .g-lado{display:grid;gap:12px;position:sticky;top:70px}
+  .g-tarj{border:1px solid var(--sand);border-radius:16px;background:var(--crema);padding:16px 18px}
+  .g-tarj h4{margin:0 0 8px;font:600 11px var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--t65)}
+  .pasos{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+  .pasos button{height:26px;min-width:26px;padding:0 8px;border-radius:999px;border:1px solid var(--t25);background:var(--papel);font:600 11.5px var(--sans);color:var(--t80)}
+  .pasos button.hecho{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+  .pasos button.aqui{border:2px solid var(--tinta);color:var(--tinta)}
+  .g-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .g-cab h2{font:500 32px/1.1 var(--serif);margin:2px 0 0}
+  .g-fin{text-align:center;padding:36px 16px;display:grid;gap:8px;justify-items:center}
+  .g-fin h2{font:500 30px var(--serif);margin:0}
+  .g-fin .ok{width:56px;height:56px;border-radius:50%;background:color-mix(in srgb,var(--verde) 16%,var(--papel));color:var(--verde-p);display:grid;place-items:center}
+  .g-fin .ok svg{width:26px;height:26px;stroke-dasharray:40;animation:dib .8s var(--ease) both}
+  @keyframes dib{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+  .paso-in{animation:paso .35s var(--ease) both}
+
+  /* ---- Formulario de una categoría (hoja y paso a paso) ---- */
+  .ref{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;border-radius:12px;background:var(--hueso);padding:10px 14px;margin-bottom:16px;font-size:13.5px}
+  .ref b{font-weight:600}
+  .ref .btn{margin-left:auto}
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+  @media (max-width:560px){.grid3{grid-template-columns:1fr}}
+  .campo{display:grid;gap:6px;align-content:start;border-radius:14px;padding:2px}
+  .campo label{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+  .campo input{height:44px;border:1px solid transparent;background:var(--hueso);border-radius:12px;padding:0 14px;font-size:15px;width:100%;font-variant-numeric:tabular-nums}
+  .campo small{color:var(--t65);font-size:12.5px}
+  .estado{font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);white-space:nowrap}
+  .estado.ok{color:var(--verde-p)}
+  .campo.ahora{background:color-mix(in srgb,var(--taupe) 8%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--taupe) 12%,transparent)}
+  .campo.ahora input{background:var(--papel);border-color:var(--taupe)}
+  .curva{display:flex;flex-wrap:wrap;gap:10px}
+  .curva label{display:grid;gap:4px;width:74px;font-size:12px;color:var(--t70)}
+  .curva label b{font-size:13px;color:var(--tinta)}
+  .curva input{height:38px;padding:0 10px;text-align:center}
+  .res{border-radius:14px;background:var(--hueso);padding:14px 16px;margin:16px 0}
+  .res .gde{font:500 26px/1.1 var(--serif);margin:0}
+  .res p{margin:6px 0 0;font-size:13.5px;color:var(--t80)}
+  .res .tope-n{margin-top:10px;padding-top:10px;border-top:1px solid var(--sand);font-size:13px}
+  .faltan{margin:0 0 12px;font-size:13px;color:var(--taupe)}
+  .faltan button{border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;color:var(--tinta);padding:0}
+  .botones{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:6px}
+  .firma{font-size:12.5px;color:var(--t65);margin:0 0 10px}
+
+  /* ---- Hojas, avisos ---- */
+  .velo{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--tinta) 32%,transparent);backdrop-filter:blur(6px);animation:velo .22s ease both}
+  .hoja{width:min(680px,100%);max-height:92vh;overflow:auto;background:var(--papel);border-radius:22px;padding:26px 28px 24px;animation:hoja .32s var(--ease) both}
+  .hoja.chica{width:min(480px,100%)}
+  .hoja .cas{animation:sube .4s var(--ease) both;animation-delay:calc(var(--c,0)*55ms + 90ms)}
+  .hoja h2{font:500 28px/1.1 var(--serif);margin:0 0 4px}
+  .hoja .bajada{margin:0 0 16px;color:var(--t70);font-size:14px}
+  .toast{position:fixed;top:18px;right:18px;z-index:120;display:flex;gap:10px;align-items:center;background:var(--tinta);color:var(--crema);border-radius:12px;padding:12px 16px;font-size:13.5px;animation:aviso .3s var(--ease) both}
+  .exp{display:grid;gap:10px;margin:14px 0}
+  .exp-op{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;text-align:left;border:1px solid var(--sand);border-radius:14px;background:var(--crema);padding:14px 16px;transition:border-color .2s,transform .2s var(--ease)}
+  .exp-op:hover{border-color:var(--tinta);transform:translateY(-1px)}
+  .exp-op b{display:block;font-weight:600}
+  .exp-op span{font-size:13px;color:var(--t70)}
+  .papel-fijo{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px;margin:12px 0;font-size:13px;overflow:auto;max-height:300px}
+  .papel-fijo table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  .papel-fijo th{font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;text-align:left;color:var(--t65);padding:4px 8px;border-bottom:1px solid var(--tinta)}
+  .papel-fijo td{padding:5px 8px;border-bottom:1px solid var(--sand)}
+  .papel-fijo td.r,.papel-fijo th.r{text-align:right}
+  .campo-simple{display:grid;gap:6px;margin-bottom:14px}
+  .campo-simple input{height:44px;border:1px solid transparent;background:var(--hueso);border-radius:12px;padding:0 14px;font-size:15px}
+  .check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;margin:4px 0 14px}
+  .vacio{display:grid;justify-items:center;gap:6px;text-align:center;padding:44px 16px}
+  .vacio .ico{width:56px;height:56px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;color:var(--taupe)}
+  .vacio h3{font:500 24px var(--serif);margin:8px 0 0}
+  .vacio p{margin:0;color:var(--t70);max-width:44ch}
+  @media print{body *{visibility:hidden}.papel-fijo,.papel-fijo *{visibility:visible}.papel-fijo{position:absolute;left:0;top:0;max-height:none;border:0}}
+</style>
+</head>
+<body>
+
+<div class="mando" role="group" aria-label="Controles de la maqueta (no son parte del ERP)">
+  <div class="grp"><span class="etq-g">Momento</span>
+    <div class="seg" id="c-mom"><button data-v="antes" aria-pressed="true">Antes · 10 oct</button><button data-v="durante">Durante · 15 dic</button><button data-v="despues">Después · 8 ene</button></div></div>
+  <div class="grp"><span class="etq-g">Datos</span>
+    <div class="seg" id="c-datos"><button data-v="7" aria-pressed="true">7 con plan</button><button data-v="0">Vacío</button><button data-v="10">Las 10 listas</button></div></div>
+  <div class="grp"><span class="etq-g">Stock</span>
+    <div class="seg" id="c-stock"><button data-v="mal" aria-pressed="true">Incompleto (hoy)</button><button data-v="bien">Confiable</button></div></div>
+  <div class="grp"><span class="etq-g">Ancho</span>
+    <div class="seg" id="c-ancho"><button data-v="escritorio" aria-pressed="true">Escritorio</button><button data-v="grande">Grande</button><button data-v="tablet">Tablet</button></div></div>
+  <div class="grp"><span class="etq-g">Movimiento</span>
+    <div class="seg" id="c-mov"><button data-v="0" aria-pressed="true">Normal</button><button data-v="1">Reducido</button></div></div>
+  <button class="mini" id="repetir">↻ Repetir entrada</button>
+</div>
+
+<div class="notas">
+  <p><b>Qué ves.</b> La misma pantalla con dos formas de llenarla —«Tabla» y «Paso a paso», arriba a la derecha de la tarjeta— para que las compares. Toca una categoría, prueba «Armar plan», cambia el <b>Momento</b> para ver «lo que pasó» y el <b>Stock</b> para ver el aviso.</p>
+  <p><b>Es simulación.</b> 45 categorías con cifras inventadas (las 9 primeras copian los «Hay hoy» de tu captura). Nada se guarda. Atajos: «/» busca, Esc cierra.</p>
+</div>
+
+<div class="marco" id="marco" data-ancho="escritorio"><main class="pantalla" id="pantalla"></main></div>
+
+<script>
+/* ============ Datos de ejemplo ============ */
+const FAM = { arriba: "Ropa de arriba", abajo: "Ropa de abajo", vestidos: "Vestidos y enterizos", abrigos: "Abrigos", accesorios: "Accesorios" };
+const T_ROPA = ["XS", "S", "M", "L", "XL"], T_PANT = ["26", "28", "30", "32", "34"], T_NO = [];
+const RAW = [
+ ["Camisas y Blusas","arriba",T_ROPA,69.9,259],["Polos","arriba",T_ROPA,39.9,241],["Pantalones","abajo",T_PANT,89.9,128],["Bodys","arriba",T_ROPA,49.9,124],["Tops","arriba",T_ROPA,45.9,121],
+ ["Conjuntos","vestidos",T_ROPA,119.9,76],["Jeans","abajo",T_PANT,99.9,75],["Chalecos","abrigos",T_ROPA,79.9,70],["Vestidos","vestidos",T_ROPA,129.9,69],
+ ["Blazers","abrigos",T_ROPA,149.9,64],["Faldas","abajo",T_ROPA,69.9,58],["Shorts","abajo",T_PANT,59.9,52],["Casacas","abrigos",T_ROPA,169.9,47],["Chompas","abrigos",T_ROPA,99.9,44],
+ ["Cardigans","abrigos",T_ROPA,89.9,41],["Enterizos","vestidos",T_ROPA,139.9,38],["Leggings","abajo",T_ROPA,49.9,35],["Pijamas","arriba",T_ROPA,79.9,33],["Ropa deportiva","arriba",T_ROPA,69.9,30],
+ ["Trajes de baño","vestidos",T_ROPA,89.9,28],["Bolsos y Carteras","accesorios",T_NO,119.9,26],["Accesorios de moda","accesorios",T_NO,29.9,24],["Collares","accesorios",T_NO,35.9,22],
+ ["Aretes","accesorios",T_NO,25.9,20],["Pulseras","accesorios",T_NO,25.9,19],["Cinturones","accesorios",T_NO,45.9,17],["Gorros","accesorios",T_NO,39.9,15],["Bufandas","accesorios",T_NO,49.9,14],
+ ["Pañuelos","accesorios",T_NO,29.9,12],["Lentes","accesorios",T_NO,59.9,11],["Medias","accesorios",T_NO,19.9,10],["Palazzos","abajo",T_ROPA,79.9,9],["Faldas jean","abajo",T_PANT,79.9,8],
+ ["Kimonos","abrigos",T_ROPA,89.9,0,36],["Capas","abrigos",T_ROPA,159.9,0,22],
+ ["Anillos","accesorios",T_NO,19.9,0,0],["Mochilas","accesorios",T_NO,99.9,0,0],["Billeteras","accesorios",T_NO,49.9,0,0],["Ponchos","abrigos",T_ROPA,129.9,0,0],["Corsets","arriba",T_ROPA,69.9,0,0],
+ ["Vestidos de fiesta","vestidos",T_ROPA,189.9,0,0],["Blusas de fiesta","arriba",T_ROPA,89.9,0,0],["Ropa interior","arriba",T_ROPA,29.9,0,0],["Abrigos largos","abrigos",T_ROPA,199.9,0,0],["Sacos","abrigos",T_ROPA,139.9,0,0]
+];
+const hash = s => { let x = 2166136261; for (const c of s) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
+const CATS = RAW.map(([nombre, fam, tallas, precio, stock, vend], i) => {
+  const h = hash(nombre);
+  const ventas90 = vend !== undefined ? vend : Math.max(3, Math.round(stock * (0.35 + (h % 80) / 100)));
+  const sedes = { TRU: Math.round(stock * 0.40), AQP: Math.round(stock * 0.05), LIM: Math.round(stock * 0.03), Almacén: Math.round(stock * 0.32) };
+  sedes.Taller = Math.max(0, stock - sedes.TRU - sedes.AQP - sedes.LIM - sedes.Almacén);
+  const peso = tallas.map((t, k) => 1 + ((h >>> (k * 3)) % 7));
+  return { id: "c" + i, nombre, fam, tallas, precio, costo: Math.round(precio * (0.38 + (h % 9) / 100) * 10) / 10, stock, ventas90, ventas30: Math.round(ventas90 * 0.36), sedes, ventasTalla: Object.fromEntries(tallas.map((t, k) => [t, Math.round(ventas90 * peso[k] / peso.reduce((a, b) => a + b, 0))])) };
+});
+const RANK = CATS.slice().sort((a, b) => b.ventas90 - a.ventas90 || a.nombre.localeCompare(b.nombre, "es"));
+RANK.forEach((c, i) => c.rank = i + 1);
+const TOP = new Set(RANK.slice(0, 10).map(c => c.id));
+const conMov = c => c.stock > 0 || c.ventas90 > 0;
+
+/* ============ Cuenta (copia fiel de lib/plan-compra-reglas.ts) ============ */
+const cuantilCritico = (precio, costo, rec) => { const cu = Math.max(precio - costo, 0), co = Math.max(costo - precio * rec / 100, 0); return cu + co === 0 ? .5 : cu / (cu + co); };
+const cuantilTri = (a, c, b, p) => { if (b <= a) return a; const q = Math.min(Math.max(p, 0), 1), fc = (c - a) / (b - a); return q < fc ? a + Math.sqrt(q * (b - a) * (c - a)) : b - Math.sqrt((1 - q) * (b - a) * (b - c)); };
+function calcular(l, stock) {
+  const cuantil = cuantilCritico(l.precio, l.costo, l.recupero);
+  const objetivo = Math.ceil(cuantilTri(l.flojo, l.normal, l.bueno, cuantil) - 1e-9);
+  const comprar = Math.max(0, objetivo - stock);
+  return { cuantil, objetivo, stock, comprar, inversion: Math.round(comprar * l.costo * 100) / 100 };
+}
+function porQue(c) {
+  const pct = Math.round(c.cuantil * 100);
+  if (pct >= 99) return "Lo que sobra se vende casi al costo: sobrar no cuesta, así que se compra para cubrir hasta un diciembre bueno.";
+  if (c.cuantil >= .75) return `Sobrar cuesta poco frente a quedarse corto: se compra para cubrir ${pct} de cada 100 diciembres posibles.`;
+  if (c.cuantil <= .4) return `Sobrar cuesta caro: se compra para cubrir solo ${pct} de cada 100 diciembres posibles.`;
+  return `Quedarse corto y sobrar cuestan parecido: se compra para cubrir ${pct} de cada 100 diciembres posibles.`;
+}
+function repartir(total, pesos) {
+  const out = {}, suma = pesos.reduce((s, p) => s + p.peso, 0);
+  if (!pesos.length) return out;
+  if (suma === 0) return repartir(total, pesos.map(p => ({ id: p.id, peso: 1 })));
+  const ex = pesos.map((p, i) => ({ id: p.id, i, e: total * p.peso / suma }));
+  let a = 0; ex.forEach(x => { out[x.id] = Math.floor(x.e + 1e-9); a += out[x.id]; });
+  const resto = ex.slice().sort((p, q) => (q.e - Math.floor(q.e + 1e-9)) - (p.e - Math.floor(p.e + 1e-9)) || p.i - q.i);
+  for (let k = 0; k < total - a; k++) out[resto[k % resto.length].id]++;
+  return out;
+}
+const curvaSugerida = c => {
+  if (!c.tallas.length) return {};
+  const n = c.tallas.reduce((s, t) => s + (c.ventasTalla[t] || 0), 0), w = n / (n + 10);
+  return repartir(100, c.tallas.map(t => ({ id: t, peso: w * (n > 0 ? (c.ventasTalla[t] || 0) / n : 0) + (1 - w) / c.tallas.length })));
+};
+const comprarPorTalla = (total, c, curva) => repartir(total, c.tallas.map(t => ({ id: t, peso: Object.keys(curva).length ? (curva[t] || 0) : 1 })));
+const entero = s => /^\d+$/.test(String(s).trim()) ? Number(String(s).trim()) : null;
+const monto = s => { const t = String(s).trim().replace(",", "."); return /^\d+(\.\d{1,2})?$/.test(t) ? Number(t) : null; };
+function problemas(d, c) {
+  const p = {}, f = entero(d.flojo), n = entero(d.normal), b = entero(d.bueno);
+  if (f === null) p.flojo = 1;
+  if (n === null || (f !== null && n < f)) p.normal = 1;
+  if (b === null || (n !== null && b < n)) p.bueno = 1;
+  const pr = monto(d.precio), co = monto(d.costo);
+  if (pr === null || pr <= 0) p.precio = 1;
+  if (co === null || (pr !== null && co >= pr)) p.costo = 1;
+  const r = entero(d.recupero); if (r === null || r > 100) p.recupero = 1;
+  const usadas = c.tallas.filter(t => String(d.curva[t] ?? "").trim() !== "");
+  if (usadas.length) { const s = c.tallas.reduce((a, t) => a + (entero(d.curva[t] ?? "0") || 0), 0); if (s !== 100) p.curva = 1; }
+  return p;
+}
+const lineaDe = (d, c) => Object.keys(problemas(d, c)).length ? null : { flojo: +d.flojo, normal: +d.normal, bueno: +d.bueno, precio: monto(d.precio), costo: monto(d.costo), recupero: +d.recupero, curva: Object.fromEntries(c.tallas.map(t => [t, entero(d.curva[t] ?? "0") || 0])) };
+const estadoCampana = (hoy, d, h) => hoy < d ? "antes" : hoy > h ? "despues" : "durante";
+const dias = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 864e5);
+const fraseReal = (v, l) => `Se vendieron ${v}: ${v < l.flojo ? "menos que el diciembre flojo" : v <= l.normal ? "entre el flojo y el normal" : v <= l.bueno ? "entre el normal y el bueno" : "más que el diciembre bueno"}.`;
+
+/* ============ Estado ============ */
+const HOY = { antes: "2026-10-10", durante: "2026-12-15", despues: "2027-01-08" };
+const CAMPS = [
+  { id: "dic", nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31", tope: 12000, lineas: {} },
+  { id: "madre", nombre: "Día de la Madre 2027", desde: "2027-05-01", hasta: "2027-05-10", tope: 0, lineas: {} },
+  { id: "patrias", nombre: "Fiestas Patrias 2027", desde: "2027-07-20", hasta: "2027-07-31", tope: 0, lineas: {} },
+];
+const S = { camp: "dic", momento: "antes", stockOk: false, filtro: "todas", fam: "todas", q: "", orden: "ventas", vista: "tabla", sinMov: false, campMenu: false, guia: { alcance: "top", actual: null, saltadas: [] }, sinEntrada: false };
+const camp = () => CAMPS.find(c => c.id === S.camp);
+const FINANZAS = 10500;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sinTildes = t => String(t).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+const nf = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
+const soles = n => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const solesE = n => "S/ " + nf.format(n);
+const fechaL = d => new Date(d + "T12:00:00").toLocaleDateString("es-PE", { day: "numeric", month: "long" });
+const reducido = () => document.documentElement.hasAttribute("data-reducido") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const IC = {
+  buscar: '<svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  baja: '<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+  flecha: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  mas: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  baja2: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>',
+  ok: '<svg class="ic" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  alerta: '<svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--ambar)"><path d="M12 3 2.5 20h19z"/><path d="M12 10v4m0 3h.01"/></svg>',
+  cal: '<svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/></svg>'
+};
+
+/* ============ Cálculos de la tabla ============ */
+function filas() {
+  const c0 = camp(), est = estadoCampana(HOY[S.momento], c0.desde, c0.hasta);
+  return CATS.map(c => {
+    const linea = c0.lineas[c.id] || null;
+    const calc = linea ? calcular(linea, c.stock) : null;
+    const h = hash(c.id + c0.id);
+    const baseReal = linea ? linea.normal : c.ventas90 * 1.4;
+    const vendido = est === "antes" ? 0 : est === "durante" ? Math.round(baseReal * (.35 + (h % 20) / 100)) : Math.round(baseReal * (.7 + (h % 70) / 100));
+    return { c, linea, calc, vendido };
+  });
+}
+function totales(fs) {
+  const con = fs.filter(f => f.linea);
+  return { n: con.length, comprar: con.reduce((s, f) => s + f.calc.comprar, 0), inv: con.reduce((s, f) => s + f.calc.inversion, 0), con };
+}
+
+/* ============ Dibujo: la barra de rango ============ */
+function barra(l, calc, stock, vendido, i = 0, conEtiquetas = true) {
+  const max = Math.max(l.bueno, calc.objetivo, vendido || 0, stock, 1) * 1.1, p = v => (v / max * 100).toFixed(2);
+  const st = Math.min(stock, calc.objetivo);
+  return `<div class="rg" role="img" aria-label="Flojo ${l.flojo}, normal ${l.normal}, bueno ${l.bueno}. Ya hay ${stock}. Comprar ${calc.comprar}.${vendido ? " Se vendieron " + vendido + "." : ""}" style="--i:${i}">
+    <div class="pista"></div>
+    <div class="band crece" style="left:${p(l.flojo)}%;width:${(p(l.bueno) - p(l.flojo)).toFixed(2)}%"></div>
+    <div class="tn" style="left:${p(l.normal)}%"></div>
+    ${st > 0 ? `<div class="st crece ${calc.comprar === 0 ? "solo" : ""}" style="left:0;width:${p(st)}%"></div>` : ""}
+    ${calc.comprar > 0 ? `<div class="co crece" style="left:${p(st)}%;width:${p(calc.comprar)}%;${st === 0 ? "border-radius:5px" : ""}"></div>` : ""}
+    ${vendido ? `<div class="vd" style="left:${p(vendido)}%"></div>` : ""}
+  </div>${conEtiquetas ? `<div class="rg-n">${nf.format(l.flojo)} · <b>${nf.format(l.normal)}</b> · ${nf.format(l.bueno)}</div>` : ""}`;
+}
+
+/* ============ Dibujo: pantalla ============ */
+function dibujar() {
+  const c0 = camp(), est = estadoCampana(HOY[S.momento], c0.desde, c0.hasta), real = est !== "antes";
+  const fs = filas(), T = totales(fs), tope = c0.tope;
+  const topSinPlan = fs.filter(f => TOP.has(f.c.id) && !f.linea).length;
+  const vendidoTotal = fs.reduce((s, f) => s + f.vendido, 0);
+  const planeado = T.con.reduce((s, f) => s + f.linea.normal, 0);
+
+  let cuenta;
+  if (est === "antes") { const d = dias(HOY[S.momento], c0.desde); cuenta = `<span class="cuenta anim" style="--i:1"><span class="pt"></span><b>Faltan ${d} días</b> para que empiece · ${fechaL(c0.desde)} al ${fechaL(c0.hasta)}</span>`; }
+  else if (est === "durante") cuenta = `<span class="cuenta durante anim" style="--i:1"><span class="pt"></span><b>Día ${dias(c0.desde, HOY[S.momento]) + 1} de ${dias(c0.desde, c0.hasta) + 1}</b> · lo que se vendió hasta hoy va al lado</span>`;
+  else cuenta = `<span class="cuenta anim" style="--i:1"><span class="pt"></span><b>Terminó hace ${dias(c0.hasta, HOY[S.momento])} días</b> · mira lo que pasó contra lo que supusiste</span>`;
+
+  const aviso = S.stockOk
+    ? `<p class="confia anim" style="--i:2">${IC.ok} Stock confiable: las tres tiendas cuadradas y el almacén contado.</p>`
+    : `<section class="aviso anim" style="--i:2" role="alert">${IC.alerta}<div><h3>El «Hay hoy» está incompleto</h3><p>AQP y LIM no tienen su stock cargado. El sistema cree que allá no hay nada y te pediría <b>comprar de más</b>. Cuéntalo antes de decidir.</p>
+        <div class="sedes"><span class="sede"><i></i>TRU · cuadrada y contada</span><span class="sede mal"><i></i>AQP · 13 unidades cargadas</span><span class="sede mal"><i></i>LIM · 1 unidad cargada</span></div></div>
+        <button class="btn" data-a="conteo">Ir a Conteo</button></section>`;
+
+  // Cifras
+  const pct = tope ? T.inv / tope * 100 : 0;
+  const top5 = T.con.slice().sort((a, b) => b.calc.inversion - a.calc.inversion);
+  const segs = top5.slice(0, 5).map((f, k) => ({ n: f.c.nombre, v: f.calc.inversion, o: [1, .78, .6, .46, .34][k] }));
+  const otras = top5.slice(5).reduce((s, f) => s + f.calc.inversion, 0); if (otras > 0) segs.push({ n: "Otras", v: otras, o: .2 });
+  const escala = Math.max(tope || 0, T.inv, 1);
+  const barraTope = `<div class="tope ${pct > 100 ? "paso-tope" : ""}" aria-hidden="true">${segs.map(s => `<i title="${esc(s.n)} · ${solesE(s.v)}" style="width:${(s.v / escala * 100).toFixed(2)}%;background:color-mix(in srgb,var(--tinta) ${s.o * 100}%,var(--papel));${true ? "border-right:1px solid var(--papel)" : ""}"></i>`).join("")}</div>`;
+  const pieTope = !tope
+    ? `Sin tope todavía · <button class="btn enlace" data-a="tope">Poner un tope</button>`
+    : pct > 100 ? `<span class="ambar">Te pasas ${solesE(T.inv - tope)} del tope de ${solesE(tope)}</span> · <button class="btn enlace" data-a="tope">Editar</button>`
+    : `${Math.round(pct)} % del tope de ${solesE(tope)} · <button class="btn enlace" data-a="tope">Editar</button>`;
+
+  const cifra4 = !real
+    ? `<div class="cifra anim ${topSinPlan ? "pulsable" : ""}" style="--i:3" ${topSinPlan ? 'data-a="guiar" role="button" tabindex="0"' : ""}>
+        <span class="t">Por llenar primero</span><span class="n" data-cuenta="${topSinPlan}">${topSinPlan}</span>
+        <span class="p">${topSinPlan ? "de las 10 que más venden, sin plan todavía" : "Las 10 que más venden ya tienen plan"}</span>
+        ${topSinPlan ? `<span class="btn primario s accion">Seguir llenando ${IC.flecha}</span>` : ""}</div>`
+    : `<div class="cifra anim" style="--i:3"><span class="t">${est === "durante" ? "Vendido hasta hoy" : "Vendido en la campaña"}</span><span class="n" data-cuenta="${vendidoTotal}">${nf.format(vendidoTotal)}</span>
+        <span class="p">${planeado ? `Las categorías con plan suponían ${nf.format(planeado)} en el normal` : "Todas las categorías"}</span></div>`;
+
+  // Lista según filtros
+  const q = sinTildes(S.q.trim());
+  let lista = fs.filter(f => (S.fam === "todas" || f.c.fam === S.fam) && (!q || sinTildes(f.c.nombre).includes(q)));
+  const conteos = { todas: lista.length, sin: lista.filter(f => !f.linea).length, con: lista.filter(f => f.linea).length, top: lista.filter(f => TOP.has(f.c.id)).length, ago: lista.filter(f => f.c.stock === 0 && f.c.ventas90 > 0).length };
+  const pasa = { todas: () => true, sin: f => !f.linea, con: f => !!f.linea, top: f => TOP.has(f.c.id), ago: f => f.c.stock === 0 && f.c.ventas90 > 0 }[S.filtro];
+  lista = lista.filter(pasa);
+  const ord = { ventas: (a, b) => b.c.ventas90 - a.c.ventas90, inv: (a, b) => (b.calc?.inversion ?? -1) - (a.calc?.inversion ?? -1), az: (a, b) => a.c.nombre.localeCompare(b.c.nombre, "es") }[S.orden];
+  lista.sort((a, b) => ord(a, b) || a.c.nombre.localeCompare(b.c.nombre, "es"));
+  const agrupar = S.filtro === "todas" && !q && S.orden === "ventas";
+  const visibles = agrupar ? lista.filter(f => conMov(f.c)) : lista;
+  const ocultas = agrupar ? lista.filter(f => !conMov(f.c)) : [];
+
+  const pil = (k, t) => `<button class="pildora" data-fl="${k}" aria-pressed="${S.filtro === k}">${t} <b>${conteos[k]}</b></button>`;
+  const fam = `<select class="selc" id="fam" aria-label="Familia"><option value="todas">Todas las familias</option>${Object.entries(FAM).map(([k, v]) => `<option value="${k}" ${S.fam === k ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+  const ordSel = `<select class="selc" id="ord" aria-label="Ordenar"><option value="ventas" ${S.orden === "ventas" ? "selected" : ""}>Las que más venden</option><option value="inv" ${S.orden === "inv" ? "selected" : ""}>Mayor inversión</option><option value="az" ${S.orden === "az" ? "selected" : ""}>A–Z</option></select>`;
+
+  const fila = (f, i) => {
+    const { c, linea, calc } = f, ag = c.stock === 0 && c.ventas90 > 0;
+    const sub = ag ? `<p class="sub ag">Se agotó: vendía ${c.ventas90} en 90 días</p>` : `<p class="sub">${c.ventas90 ? `Vendiste ${c.ventas90} en 90 días` : "Sin ventas en 90 días"}</p>`;
+    const nm = `<div class="cat"><h3 class="nm">${TOP.has(c.id) ? `<span class="rk">N.º ${c.rank}</span>` : ""}${esc(c.nombre)}</h3>${sub}</div>`;
+    if (!linea) return `<button class="fila anim" style="--i:${Math.min(i, 13)}" data-id="${c.id}" aria-label="Armar el plan de ${esc(c.nombre)}">${nm}
+      <div class="sinplan"><span class="chip">Sin plan</span><span class="btn ${TOP.has(c.id) ? "primario" : ""} s">Armar plan</span></div>
+      <span class="der num-c">${nf.format(c.stock)}</span><span class="der tenue">—</span><span class="der tenue">—</span>${real ? `<span class="real-c">Se vendieron <b>${nf.format(f.vendido)}</b>.</span>` : ""}</button>`;
+    return `<button class="fila anim" style="--i:${Math.min(i, 13)}" data-id="${c.id}" aria-label="Corregir el plan de ${esc(c.nombre)}">${nm}
+      <div>${barra(linea, calc, c.stock, real ? f.vendido : 0, Math.min(i, 13))}</div>
+      <span class="der num-c">${nf.format(c.stock)}</span><span class="der num-c">${calc.comprar ? nf.format(calc.comprar) : '<span class="tenue">0</span>'}</span><span class="der">${soles(calc.inversion)}</span>
+      ${real ? `<span class="real-c">${fraseReal(f.vendido, linea)}</span>` : ""}</button>`;
+  };
+  const cab = `<div class="fila cab-t"><span>Categoría</span><span>Venta esperada · flojo · <b style="color:var(--tinta)">normal</b> · bueno</span><span class="der">Hay hoy</span><span class="der">Comprar</span><span class="der">Inversión</span>${real ? `<span>${est === "durante" ? "Vendido hasta hoy" : "Lo que pasó"}</span>` : ""}</div>`;
+
+  let cuerpo;
+  if (!visibles.length && !ocultas.length) {
+    cuerpo = `<div class="vacio"><div class="ico">${IC.buscar}</div><h3>${q ? `Nada coincide con «${esc(S.q.trim())}»` : "No hay categorías en este filtro"}</h3><p>${q ? "Prueba con otra palabra o quita el filtro." : "Cambia el filtro de arriba para ver las demás."}</p><button class="btn" data-a="limpiar" style="margin-top:10px">Quitar filtros</button></div>`;
+  } else {
+    cuerpo = `<div class="tabla ${real ? "real" : ""}">${cab}${visibles.map(fila).join("")}
+      ${ocultas.length ? `<button class="sinmov" data-a="sinmov" aria-expanded="${S.sinMov}">${IC.baja}<span><b>${ocultas.length}</b> categorías sin ventas ni stock · no hace falta plan ahora</span></button>${S.sinMov ? ocultas.map((f, i) => fila(f, i)).join("") : ""}` : ""}</div>`;
+  }
+
+  const barraCaja = `<div class="barra"><label class="buscador">${IC.buscar}<input id="q" type="search" value="${esc(S.q)}" placeholder="Buscar una categoría" aria-label="Buscar una categoría" autocomplete="off"><kbd>/</kbd></label>
+      <div class="modo" role="group" aria-label="Cómo llenar el plan"><button data-v="tabla" aria-pressed="${S.vista === "tabla"}">Tabla</button><button data-v="guiado" aria-pressed="${S.vista === "guiado"}">Paso a paso</button></div></div>`;
+
+  const cajaTabla = `${barraCaja}
+      <div class="pildoras">${pil("todas", "Todas")}${pil("sin", "Sin plan")}${pil("con", "Con plan")}${pil("top", "Las 10 que más venden")}${pil("ago", "Se agotaron")}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">${fam}${ordSel}</span></div>
+      <p class="leyenda"><span><i class="l-st"></i>Ya hay</span><span><i class="l-co"></i>Comprar</span><span><i class="l-bd"></i>Rango flojo–bueno</span><span><i class="l-nm"></i>Normal</span>${real ? '<span><i class="l-vd"></i>Lo que se vendió</span>' : ""}</p>
+      ${cuerpo}`;
+
+  const cabecera = `<header class="cab"><div class="anim"><p class="linea"><span class="hilo"></span><span>Todas las tiendas · Sábado, 10 de octubre · 11:14</span></p><h1>Plan de campaña</h1>
+        <p class="frase">Cuánto comprar por categoría para una campaña, con tres escenarios: uno flojo, uno normal y uno bueno. Después, al lado, lo que se vendió de verdad.</p>${cuenta}</div>
+      <div class="acc-cab anim" style="--i:2"><div class="camp"><button class="btn" id="camp-b" aria-haspopup="menu" aria-expanded="${S.campMenu}">${IC.cal} ${esc(c0.nombre)} ${IC.baja}</button>
+        ${S.campMenu ? `<div class="menu-c" role="menu">${CAMPS.map(c => { const e = estadoCampana(HOY[S.momento], c.desde, c.hasta); const n = Object.keys(c.lineas).length; return `<button role="menuitem" data-camp="${c.id}" aria-current="${c.id === S.camp}"><b>${esc(c.nombre)}</b><small>${fechaL(c.desde)} al ${fechaL(c.hasta)} · ${n ? n + " con plan" : "sin plan todavía"} · ${e === "antes" ? "por venir" : e === "durante" ? "en curso" : "terminada"}</small></button>`; }).join("")}<hr><button role="menuitem" data-a="nueva-camp"><b>+ Nueva campaña</b><small>Con sus fechas y su tope</small></button></div>` : ""}</div>
+        <button class="btn" data-a="exportar" ${T.n ? "" : "disabled"} title="${T.n ? "" : "Arma al menos una categoría para exportar"}">${IC.baja2} Exportar</button></div></header>`;
+
+  $("#pantalla").innerHTML = `${cabecera}${aviso}
+    <section class="cifras" aria-label="Resumen del plan">
+      <button class="cifra anim pulsable" style="--i:0" data-fl="con" aria-pressed="${S.filtro === "con" && S.vista === "tabla"}"><span class="t">Categorías con plan</span><span class="n"><span data-cuenta="${T.n}">${T.n}</span> <small>de ${CATS.length}</small></span><div class="prog" aria-hidden="true"><i style="width:${(T.n / CATS.length * 100).toFixed(1)}%"></i></div><span class="p">${T.n === 0 ? "Empieza por las que más venden" : topSinPlan ? `Faltan ${topSinPlan} de las 10 que más venden` : "Las 10 que más venden ya tienen plan"}</span></button>
+      <div class="cifra anim" style="--i:1"><span class="t">Prendas a comprar</span><span class="n" data-cuenta="${T.comprar}">${nf.format(T.comprar)}</span><span class="p">Lo que conviene tener, menos lo que ya hay${S.stockOk ? "" : " <span class='ambar'>(stock incompleto)</span>"}</span></div>
+      <div class="cifra anim" style="--i:2"><span class="t">Inversión al costo</span><span class="n">${solesE(T.inv)}</span>${barraTope}<span class="p">${pieTope}</span></div>
+      ${cifra4}
+    </section>
+    <section class="caja anim" style="--i:3" aria-label="Categorías">${S.vista === "tabla" ? cajaTabla : `${barraCaja}<div id="guiado"></div>`}</section>
+    <p class="aviso-nota" style="margin:0;font-size:13px;color:var(--t70);background:var(--hueso);border-radius:14px;padding:12px 16px">Cómo se calcula: con tus tres escenarios, el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente a sobrar (lo que pierdes al vender lo que queda más barato). No hay historia de diciembre en el ERP: estos números son tus supuestos, y en enero se comparan con lo que pasó.</p>`;
+  document.body.classList.toggle("sin-entrada", S.sinEntrada);
+  contar();
+  if (S.vista === "guiado") montarGuiado();
+}
+function contar() {
+  if (reducido() || S.sinEntrada) return;
+  document.querySelectorAll("[data-cuenta]").forEach(el => {
+    const a = +el.dataset.cuenta; if (!a) return;
+    const t0 = performance.now(), dur = 650;
+    const paso = t => { const k = Math.min(1, (t - t0) / dur); el.textContent = nf.format(Math.round(a * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(paso); };
+    el.textContent = 0; requestAnimationFrame(paso);
+  });
+}
+function toast(t, d) {
+  document.querySelector(".toast")?.remove();
+  const e = document.createElement("div"); e.className = "toast"; e.setAttribute("role", "status");
+  e.innerHTML = `${IC.ok}<span><b>${esc(t)}</b>${d ? " · " + esc(d) : ""}</span>`; document.body.append(e); setTimeout(() => e.remove(), 3400);
+}
+function destellar(id) {
+  const el = document.querySelector(`.fila[data-id="${id}"]`); if (!el) return;
+  el.scrollIntoView({ behavior: reducido() ? "auto" : "smooth", block: "center" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1200);
+}
+
+/* ============ Formulario de una categoría (hoja y paso a paso) ============ */
+function formulario(host, cat, op) {
+  const c0 = camp(), l0 = c0.lineas[cat.id];
+  const cs = curvaSugerida(cat);
+  const d = l0 ? { flojo: String(l0.flojo), normal: String(l0.normal), bueno: String(l0.bueno), precio: l0.precio.toFixed(2), costo: l0.costo.toFixed(2), recupero: String(l0.recupero), curva: Object.fromEntries(Object.entries(l0.curva).map(([k, v]) => [k, String(v)])) }
+    : { flojo: "", normal: "", bueno: "", precio: cat.precio.toFixed(2), costo: cat.costo.toFixed(2), recupero: "", curva: Object.fromEntries(Object.entries(cs).map(([k, v]) => [k, String(v)])) };
+  const delCatalogo = !l0;
+  let foco = null;
+  const ORD = ["flojo", "normal", "bueno", "precio", "costo", "recupero", "curva"];
+  const TIT = { flojo: "Diciembre flojo", normal: "Diciembre normal", bueno: "Diciembre bueno", precio: "Precio", costo: "Costo", recupero: "Lo que sobra", curva: "Curva de tallas" };
+  const AYU = { flojo: "Unidades", normal: "Unidades", bueno: "Unidades", precio: delCatalogo ? "Del catálogo · revísalo" : "De venta, promedio", costo: delCatalogo ? "Del catálogo · revísalo" : "Por prenda, promedio", recupero: "Lo vendes al % del precio" };
+  const campo = k => `<div class="campo" data-campo="${k}"><label for="f-${k}"><span class="etq">${TIT[k]}</span><span class="estado"></span></label>
+      <input id="f-${k}" inputmode="${k === "precio" || k === "costo" ? "decimal" : "numeric"}" value="${esc(d[k])}" autocomplete="off"><small>${AYU[k]}</small></div>`;
+  const rest = Math.max(op.queda, 0);
+  host.innerHTML = `
+    <div class="ref"><span>Vendiste <b>${cat.ventas90}</b> en 90 días · <b>${cat.ventas30}</b> en los últimos 30</span><span>Hoy hay <b>${nf.format(cat.stock)}</b> en la red</span>
+      <span class="tenue" style="font-size:12.5px">${Object.entries(cat.sedes).filter(([, v]) => v > 0).map(([k, v]) => `${k} ${v}`).join(" · ") || "Sin stock en ninguna parte"}</span>
+      <button type="button" class="btn s" data-prop title="Diciembre triplica un mes promedio (R-19). Normal = 3 meses de lo que vendes por mes; flojo y bueno son una propuesta que tú corriges.">Proponer desde lo vendido</button></div>
+    <div class="grid3">${campo("flojo")}${campo("normal")}${campo("bueno")}</div>
+    <div class="grid3">${campo("precio")}${campo("costo")}${campo("recupero")}</div>
+    <div class="campo" data-campo="curva" style="margin-bottom:6px"><label><span class="etq">Curva de tallas</span><span class="estado"></span></label>
+      ${cat.tallas.length ? `<div class="curva">${cat.tallas.map(t => `<label>${`<b>${t}</b>`}<input data-t="${t}" inputmode="numeric" value="${esc(d.curva[t] ?? "")}" aria-label="Porcentaje de la talla ${t}"><span class="rg-n" data-pt="${t}"></span></label>`).join("")}</div>
+        <small>La propone el sistema con lo vendido en 90 días, apoyado en un reparto parejo cuando hay pocas ventas. <button type="button" class="btn enlace" data-rec>Volver a la que propone el sistema</button></small>`
+        : `<small>Esta categoría no tiene tallas cargadas: se compra el total.</small>`}</div>
+    <div class="res" aria-live="polite" data-res></div>
+    <p class="faltan" data-falta></p>
+    <p class="firma">Firma: Felipe Alvarez (Responsable) · <span class="tenue">en la pantalla real es el combo «Responsable»</span></p>
+    <div class="botones" data-botones></div>`;
+
+  const vivo = () => {
+    const p = problemas(d, cat), faltan = ORD.filter(k => p[k] && !(k === "curva" && !cat.tallas.length));
+    const ahora = foco && p[foco] ? foco : faltan[0];
+    ORD.forEach(k => {
+      const el = host.querySelector(`[data-campo="${k}"]`); if (!el) return;
+      const ok = !p[k] && !(["flojo", "normal", "bueno", "recupero"].includes(k) && d[k] === "");
+      const done = k === "curva" ? !p.curva : ok;
+      el.classList.toggle("ahora", k === ahora);
+      const st = el.querySelector(".estado"); st.textContent = done ? "✓ Listo" : k === ahora ? "Sigue aquí" : "Falta"; st.classList.toggle("ok", done);
+    });
+    const l = lineaDe(d, cat), res = host.querySelector("[data-res]");
+    if (l) {
+      const calc = calcular(l, cat.stock), previo = c0.lineas[cat.id] ? calcular(c0.lineas[cat.id], cat.stock).inversion : 0;
+      const T = totales(filas()), nuevo = T.inv - previo + calc.inversion, tp = c0.tope;
+      const pt = comprarPorTalla(calc.comprar, cat, l.curva);
+      cat.tallas.forEach(t => { const e = host.querySelector(`[data-pt="${t}"]`); if (e) e.textContent = (pt[t] ?? 0) + " prendas"; });
+      res.innerHTML = `<p class="gde">Comprar ${nf.format(calc.comprar)} · ${soles(calc.inversion)}</p>
+        <p>Conviene tener ${calc.objetivo} para la campaña; ya hay ${calc.stock}. ${porQue(calc)}</p>
+        <div style="margin-top:12px">${barra(l, calc, cat.stock, 0, 0)}</div>
+        ${tp ? `<p class="tope-n">Con esto llevarías <b>${solesE(nuevo)}</b> de ${solesE(tp)} de tope (${Math.round(nuevo / tp * 100)} %)${nuevo > tp ? ` · <span class="ambar">te pasas ${solesE(nuevo - tp)}</span>` : ""}.</p>` : ""}
+        ${S.stockOk ? "" : `<p class="tope-n ambar">Ojo: el «ya hay» está incompleto (AQP y LIM); la compra puede estar inflada.</p>`}`;
+    } else res.innerHTML = `<p style="margin:0;color:var(--t70);font-size:13.5px">Cuando completes los escenarios, el precio, el costo y lo que sobra, aquí sale cuánto comprar y por qué.</p>`;
+    const f = host.querySelector("[data-falta]");
+    f.innerHTML = faltan.length ? "Falta: " + faltan.map(k => `<button type="button" data-ir="${k}">${TIT[k].toLowerCase()}</button>`).join(" · ") : "Todo listo para guardar.";
+    host.querySelectorAll("[data-guardar]").forEach(b => b.disabled = !!faltan.length);
+  };
+  const botones = host.querySelector("[data-botones]");
+  botones.innerHTML = op.modo === "hoja"
+    ? `<button type="button" class="btn" data-cancel>Cancelar</button><button type="button" class="btn ${op.sig ? "" : "primario"}" data-guardar data-seguir="0">Guardar</button>${op.sig ? `<button type="button" class="btn primario" data-guardar data-seguir="1">Guardar y seguir con ${esc(op.sig.nombre)} ${IC.flecha}</button>` : ""}`
+    : `<button type="button" class="btn" data-saltar>Saltar por ahora</button><button type="button" class="btn primario" data-guardar data-seguir="1">${op.sig ? `Guardar y seguir con ${esc(op.sig.nombre)}` : "Guardar y terminar"} ${IC.flecha}</button>`;
+
+  host.addEventListener("input", ev => {
+    const t = ev.target;
+    if (t.dataset.t) d.curva[t.dataset.t] = t.value.replace(/\D/g, "");
+    else if (t.id?.startsWith("f-")) { const k = t.id.slice(2); d[k] = ["precio", "costo"].includes(k) ? t.value.replace(/[^\d.,]/g, "") : t.value.replace(/\D/g, ""); }
+    else return;
+    if (t.value !== (t.dataset.t ? d.curva[t.dataset.t] : d[t.id.slice(2)])) t.value = t.dataset.t ? d.curva[t.dataset.t] : d[t.id.slice(2)];
+    vivo();
+  });
+  host.addEventListener("focusin", ev => { const k = ev.target.closest("[data-campo]")?.dataset.campo; if (k) { foco = k; vivo(); } });
+  host.addEventListener("focusout", ev => { if (!host.contains(ev.relatedTarget)) { foco = null; vivo(); } });
+  host.addEventListener("click", ev => {
+    const t = ev.target;
+    if (t.closest("[data-prop]")) { const m = cat.ventas90 / 3; d.flojo = String(Math.round(m * 2)); d.normal = String(Math.round(m * 3)); d.bueno = String(Math.round(m * 4.5)); ["flojo", "normal", "bueno"].forEach(k => host.querySelector("#f-" + k).value = d[k]); vivo(); }
+    if (t.closest("[data-rec]")) { Object.entries(cs).forEach(([k, v]) => { d.curva[k] = String(v); const e = host.querySelector(`[data-t="${k}"]`); if (e) e.value = v; }); vivo(); }
+    const ir = t.closest("[data-ir]"); if (ir) host.querySelector(ir.dataset.ir === "curva" ? "[data-t]" : "#f-" + ir.dataset.ir)?.focus();
+    if (t.closest("[data-cancel]")) op.onCancelar();
+    if (t.closest("[data-saltar]")) op.onSaltar();
+    const g = t.closest("[data-guardar]");
+    if (g && !g.disabled) { const l = lineaDe(d, cat); if (l) op.onGuardar(l, g.dataset.seguir === "1"); }
+  });
+  vivo();
+  return { enfocar: () => host.querySelector("#f-flojo")?.focus() };
+}
+
+/* ============ Hoja de una categoría ============ */
+function siguienteDe(id) {
+  const fs = filas(), pend = RANK.filter(c => conMov(c) && !camp().lineas[c.id] && c.id !== id);
+  return pend[0] || null;
+}
+function abrirHoja(id) {
+  const cat = CATS.find(c => c.id === id); if (!cat) return;
+  const v = document.createElement("div"); v.className = "velo";
+  v.innerHTML = `<div class="hoja" role="dialog" aria-modal="true" aria-label="Plan de ${esc(cat.nombre)}"><h2 class="cas" style="--c:0">Plan de ${esc(cat.nombre)}</h2><p class="bajada cas" style="--c:1">${esc(camp().nombre)}. ${FAM[cat.fam]}.</p><div class="cas" style="--c:2" id="h-form"></div></div>`;
+  v.addEventListener("mousedown", e => { if (e.target === v) v.remove(); });
+  document.body.append(v);
+  const sig = siguienteDe(id);
+  const montar = (c, sg) => formulario($("#h-form", v), c, {
+    modo: "hoja", sig: sg, queda: 0,
+    onCancelar: () => v.remove(),
+    onGuardar: (linea, seguir) => {
+      camp().lineas[c.id] = linea; S.sinEntrada = true; dibujar(); destellar(c.id); toast(`Plan de ${c.nombre} guardado`, `Comprar ${calcular(linea, c.stock).comprar} · ${soles(calcular(linea, c.stock).inversion)}`);
+      if (seguir && sg) { $(".hoja h2", v).textContent = "Plan de " + sg.nombre; $(".hoja .bajada", v).textContent = `${camp().nombre}. ${FAM[sg.fam]}.`; const h = $("#h-form", v); h.classList.remove("cas"); h.classList.add("paso-in"); montar(sg, siguienteDe(sg.id)); } else v.remove();
+    }
+  });
+  montar(cat, sig);
+}
+
+/* ============ Paso a paso ============ */
+function cola() {
+  const L = camp().lineas, top = RANK.filter(c => TOP.has(c.id)), todas = RANK.filter(conMov);
+  return S.guia.alcance === "top" ? top : todas;
+}
+function montarGuiado() {
+  const host = $("#guiado"), L = camp().lineas, q = cola(), hechas = q.filter(c => L[c.id]).length;
+  const pend = q.filter(c => !L[c.id]);
+  const orden = pend.filter(c => !S.guia.saltadas.includes(c.id)).concat(pend.filter(c => S.guia.saltadas.includes(c.id)));
+  const actual = (S.guia.actual && !L[S.guia.actual] && q.some(c => c.id === S.guia.actual)) ? CATS.find(c => c.id === S.guia.actual) : orden[0];
+  S.guia.actual = actual?.id || null;
+  const T = totales(filas()), tope = camp().tope;
+  const alc = `<span class="pildoras"><button class="pildora" data-al="top" aria-pressed="${S.guia.alcance === "top"}">Las 10 que más venden</button><button class="pildora" data-al="todas" aria-pressed="${S.guia.alcance === "todas"}">Todas con movimiento · ${RANK.filter(conMov).length}</button></span>`;
+  const pasos = `<div class="pasos" aria-label="Avance">${q.map((c, i) => `<button type="button" data-ir-c="${c.id}" title="${esc(c.nombre)}" class="${L[c.id] ? "hecho" : c.id === S.guia.actual ? "aqui" : ""}">${L[c.id] ? "✓" : i + 1}</button>`).join("")}</div>`;
+  const lado = `<aside class="g-lado"><div class="g-tarj"><h4>Tu avance</h4><div class="num-c" style="font-size:22px">${hechas} de ${q.length}</div><div class="prog" aria-hidden="true"><i style="width:${q.length ? hechas / q.length * 100 : 0}%"></i></div>${pasos}</div>
+    <div class="g-tarj"><h4>Lo que llevas</h4><div style="display:grid;gap:4px;font-size:14px"><span>Comprar <b>${nf.format(T.comprar)}</b> prendas</span><span>Inversión <b>${solesE(T.inv)}</b>${tope ? ` · ${Math.round(T.inv / tope * 100)} % del tope` : ""}</span></div></div>
+    <div class="g-tarj"><h4>Alcance</h4>${alc}</div></aside>`;
+  if (!actual) {
+    host.innerHTML = `<div class="guiado"><div class="g-form"><div class="g-fin"><div class="ok"><svg viewBox="0 0 24 24" class="ic"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div><h2>${S.guia.alcance === "top" ? "Ya tienes las 10 que más venden" : "Ya llenaste todas las que se mueven"}</h2>
+      <p style="margin:0;color:var(--t70);max-width:42ch">${S.guia.alcance === "top" ? "Son las que más pesan en diciembre. Si quieres seguir, pasa a las demás con movimiento." : "Revisa la tabla o exporta la lista de compra."}</p>
+      <div class="botones" style="justify-content:center;margin-top:8px">${S.guia.alcance === "top" ? '<button class="btn" data-al="todas">Seguir con las demás</button>' : ""}<button class="btn primario" data-v2="tabla">Ver la tabla</button></div></div></div>${lado}</div>`; return;
+  }
+  const idx = q.findIndex(c => c.id === actual.id) + 1, sig = orden.find(c => c.id !== actual.id) || null;
+  host.innerHTML = `<div class="guiado"><div class="g-form"><div class="g-cab"><div><p class="etq">Categoría ${idx} de ${q.length}${TOP.has(actual.id) ? ` · N.º ${actual.rank} en ventas` : ""}</p><h2>${esc(actual.nombre)}</h2></div><span class="chip">${FAM[actual.fam]}</span></div><div class="paso-in" id="g-host"></div></div>${lado}</div>`;
+  formulario($("#g-host"), actual, {
+    modo: "guiado", sig, queda: orden.length - 1,
+    onSaltar: () => { S.guia.saltadas.push(actual.id); S.guia.actual = null; montarGuiado(); },
+    onGuardar: (linea) => { camp().lineas[actual.id] = linea; S.sinEntrada = true; S.guia.actual = null; const c = calcular(linea, actual.stock); toast(`${actual.nombre} guardada`, `Comprar ${c.comprar} · ${soles(c.inversion)}`); dibujarSoloCifras(); montarGuiado(); }
+  });
+}
+function dibujarSoloCifras() { const y = scrollY; dibujar(); scrollTo(0, y); }
+
+/* ============ Otras hojas ============ */
+function hoja(html, chica) {
+  const v = document.createElement("div"); v.className = "velo";
+  v.innerHTML = `<div class="hoja ${chica ? "chica" : ""}" role="dialog" aria-modal="true">${html}</div>`;
+  v.addEventListener("mousedown", e => { if (e.target === v) v.remove(); }); document.body.append(v); return v;
+}
+function hojaTope() {
+  const c0 = camp();
+  const v = hoja(`<h2 class="cas" style="--c:0">Tope de inversión</h2><p class="bajada cas" style="--c:1">Cuánto estás dispuesta a invertir al costo en ${esc(c0.nombre)}. La barra de arriba te avisa cuando te acerques.</p>
+    <div class="campo-simple cas" style="--c:2"><label class="etq" for="t-v">Tope (S/)</label><input id="t-v" inputmode="numeric" value="${c0.tope || ""}" placeholder="Ej. 12000"></div>
+    <div class="ref cas" style="--c:3"><span>Finanzas dice que hay <b>${solesE(FINANZAS)}</b> disponibles para compras de ${esc(c0.nombre)}</span><button class="btn s" data-fin>Usar este</button></div>
+    <p class="bajada cas" style="--c:3;font-size:12.5px;margin-top:-6px">Simulado: en la pantalla real esta cifra saldría de Finanzas, si decides ligarlo. El tope es una guía, nunca bloquea un plan.</p>
+    <div class="botones cas" style="--c:4"><button class="btn" data-x>Cancelar</button><button class="btn primario" data-ok>Guardar tope</button></div>`, true);
+  v.addEventListener("input", e => { if (e.target.id === "t-v") e.target.value = e.target.value.replace(/\D/g, ""); });
+  v.addEventListener("click", e => {
+    if (e.target.closest("[data-fin]")) $("#t-v", v).value = FINANZAS;
+    if (e.target.closest("[data-x]")) v.remove();
+    if (e.target.closest("[data-ok]")) { c0.tope = +$("#t-v", v).value || 0; v.remove(); S.sinEntrada = true; dibujar(); toast("Tope guardado", c0.tope ? solesE(c0.tope) : "sin tope"); }
+  });
+  $("#t-v", v).focus();
+}
+function hojaNueva() {
+  const v = hoja(`<h2 class="cas" style="--c:0">Nueva campaña</h2><p class="bajada cas" style="--c:1">Una campaña tiene su propio plan, sus fechas y su tope.</p>
+    <div class="campo-simple cas" style="--c:2"><label class="etq" for="n-n">Nombre</label><input id="n-n" placeholder="Ej. Día del Padre 2027"></div>
+    <div class="grid3 cas" style="--c:3;grid-template-columns:1fr 1fr"><div class="campo-simple"><label class="etq" for="n-d">Desde</label><input id="n-d" type="date" value="2027-06-01"></div><div class="campo-simple"><label class="etq" for="n-h">Hasta</label><input id="n-h" type="date" value="2027-06-20"></div></div>
+    <label class="check cas" style="--c:4"><input type="checkbox" id="n-c" checked> <span>Empezar con los precios y costos de ${esc(camp().nombre)} (las cantidades las pones tú).</span></label>
+    <p class="faltan cas" style="--c:4" id="n-f">Falta: el nombre</p>
+    <div class="botones cas" style="--c:5"><button class="btn" data-x>Cancelar</button><button class="btn primario" data-ok disabled>Crear campaña</button></div>`, true);
+  const val = () => { const n = $("#n-n", v).value.trim(), d = $("#n-d", v).value, h = $("#n-h", v).value; const mal = !n ? "el nombre" : !d || !h || h < d ? "fechas coherentes (hasta no puede ser antes que desde)" : CAMPS.some(c => c.nombre.toLowerCase() === n.toLowerCase()) ? "un nombre que no exista" : ""; $("#n-f", v).textContent = mal ? "Falta: " + mal : "Todo listo para crear."; $("[data-ok]", v).disabled = !!mal; };
+  v.addEventListener("input", val);
+  v.addEventListener("click", e => {
+    if (e.target.closest("[data-x]")) v.remove();
+    if (e.target.closest("[data-ok]") && !e.target.closest("[data-ok]").disabled) {
+      const base = camp(), nueva = { id: "c" + Date.now(), nombre: $("#n-n", v).value.trim(), desde: $("#n-d", v).value, hasta: $("#n-h", v).value, tope: 0, lineas: {} };
+      CAMPS.push(nueva); S.camp = nueva.id; S.campMenu = false; v.remove(); S.sinEntrada = false; S.filtro = "todas"; dibujar(); toast(`${nueva.nombre} creada`, "Sin plan todavía");
+    }
+  });
+  $("#n-n", v).focus();
+}
+function hojaExportar() {
+  const fs = filas(), T = totales(fs), c0 = camp();
+  const ls = T.con.slice().sort((a, b) => b.calc.inversion - a.calc.inversion);
+  const tallas = f => f.c.tallas.length ? Object.entries(comprarPorTalla(f.calc.comprar, f.c, f.linea.curva)).filter(([, v]) => v > 0).map(([k, v]) => `${k} ${v}`).join(" · ") : "—";
+  const v = hoja(`<h2 class="cas" style="--c:0">Lista de compra</h2><p class="bajada cas" style="--c:1">${esc(c0.nombre)} · ${T.n} categorías · ${nf.format(T.comprar)} prendas · ${soles(T.inv)} al costo</p>
+    <div class="papel-fijo cas" style="--c:2"><table><thead><tr><th>Categoría</th><th class="r">Comprar</th><th>Por talla</th><th class="r">Inversión</th></tr></thead><tbody>${ls.map(f => `<tr><td>${esc(f.c.nombre)}</td><td class="r">${nf.format(f.calc.comprar)}</td><td>${tallas(f)}</td><td class="r">${soles(f.calc.inversion)}</td></tr>`).join("")}</tbody><tfoot><tr><td><b>Total</b></td><td class="r"><b>${nf.format(T.comprar)}</b></td><td></td><td class="r"><b>${soles(T.inv)}</b></td></tr></tfoot></table></div>
+    ${S.stockOk ? "" : `<p class="faltan cas ambar" style="--c:2">Ojo: el «ya hay» está incompleto (AQP y LIM). Esta lista puede pedir de más; cuenta el stock antes de comprar.</p>`}
+    <div class="botones cas" style="--c:3"><button class="btn" data-x>Cerrar</button><button class="btn" data-imp>Imprimir</button><button class="btn primario" data-csv>${IC.baja2} Descargar Excel (CSV)</button></div>`);
+  v.addEventListener("click", e => {
+    if (e.target.closest("[data-x]")) v.remove();
+    if (e.target.closest("[data-imp]")) window.print();
+    if (e.target.closest("[data-csv]")) {
+      const csv = ["Categoría;Comprar;Por talla;Inversión (S/)"].concat(ls.map(f => [f.c.nombre, f.calc.comprar, tallas(f), f.calc.inversion.toFixed(2)].join(";"))).join("\n");
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })); a.download = `lista-de-compra-${c0.nombre.toLowerCase().replace(/\s+/g, "-")}.csv`; a.click(); toast("Lista descargada", a.download);
+    }
+  });
+}
+
+/* ============ Eventos ============ */
+document.addEventListener("click", ev => {
+  const t = ev.target;
+  if (S.campMenu && !t.closest(".camp")) { S.campMenu = false; S.sinEntrada = true; dibujar(); }
+  const f = t.closest("[data-fl]"); if (f) { S.vista = "tabla"; S.filtro = (S.filtro === f.dataset.fl && f.dataset.fl !== "todas") ? "todas" : f.dataset.fl; S.sinEntrada = false; dibujar(); if (t.closest(".cifra")) $(".caja").scrollIntoView({ behavior: reducido() ? "auto" : "smooth", block: "start" }); return; }
+  const v = t.closest(".modo [data-v]"); if (v) { S.vista = v.dataset.v; S.sinEntrada = true; dibujar(); return; }
+  const v2 = t.closest("[data-v2]"); if (v2) { S.vista = "tabla"; S.sinEntrada = true; dibujar(); return; }
+  const al = t.closest("[data-al]"); if (al) { S.guia.alcance = al.dataset.al; S.guia.actual = null; S.guia.saltadas = []; S.sinEntrada = true; dibujar(); return; }
+  const ic = t.closest("[data-ir-c]"); if (ic) { S.guia.actual = ic.dataset.irC; S.sinEntrada = true; montarGuiado(); return; }
+  if (t.closest("#camp-b")) { S.campMenu = !S.campMenu; S.sinEntrada = true; dibujar(); return; }
+  const cm = t.closest("[data-camp]"); if (cm) { S.camp = cm.dataset.camp; S.campMenu = false; S.filtro = "todas"; S.sinEntrada = false; S.guia = { alcance: "top", actual: null, saltadas: [] }; dibujar(); return; }
+  const a = t.closest("[data-a]");
+  if (a) {
+    const k = a.dataset.a;
+    if (k === "nueva-camp") { S.campMenu = false; S.sinEntrada = true; dibujar(); hojaNueva(); }
+    if (k === "tope") hojaTope();
+    if (k === "exportar") hojaExportar();
+    if (k === "guiar") { S.vista = "guiado"; S.sinEntrada = true; dibujar(); $(".caja").scrollIntoView({ behavior: reducido() ? "auto" : "smooth", block: "start" }); }
+    if (k === "conteo") toast("Aquí abriría Conteo", "para cargar el stock de AQP y LIM");
+    if (k === "limpiar") { S.q = ""; S.filtro = "todas"; S.fam = "todas"; dibujar(); }
+    if (k === "sinmov") { S.sinMov = !S.sinMov; S.sinEntrada = true; dibujar(); }
+    return;
+  }
+  const fi = t.closest(".fila[data-id]"); if (fi) abrirHoja(fi.dataset.id);
+});
+document.addEventListener("input", ev => { if (ev.target.id === "q") { const p = ev.target.selectionStart; S.q = ev.target.value; S.sinEntrada = true; dibujar(); const q = $("#q"); q.focus(); q.setSelectionRange(p, p); } });
+document.addEventListener("change", ev => { if (ev.target.id === "fam") { S.fam = ev.target.value; S.sinEntrada = true; dibujar(); } if (ev.target.id === "ord") { S.orden = ev.target.value; S.sinEntrada = true; dibujar(); } });
+document.addEventListener("keydown", ev => {
+  const esc_ = /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName);
+  if (ev.key === "Escape") { document.querySelector(".velo")?.remove(); if (S.campMenu) { S.campMenu = false; S.sinEntrada = true; dibujar(); } }
+  if (ev.key === "/" && !esc_ && !document.querySelector(".velo")) { ev.preventDefault(); $("#q")?.focus(); }
+});
+
+/* ============ Controles de la maqueta ============ */
+function seg(id, fn) { document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener("click", () => { document.querySelectorAll(`#${id} button`).forEach(x => x.setAttribute("aria-pressed", x === b)); fn(b.dataset.v); })); }
+function sembrar(n) {
+  CAMPS.forEach(c => c.lineas = {});
+  RANK.slice(0, n).forEach(c => { const m = c.ventas90 / 3; const l = { flojo: Math.round(m * 2), normal: Math.round(m * 3), bueno: Math.round(m * 4.5), precio: c.precio, costo: c.costo, recupero: 40 + hash(c.nombre) % 20, curva: curvaSugerida(c) }; CAMPS[0].lineas[c.id] = l; });
+}
+seg("c-mom", v => { S.momento = v; S.sinEntrada = false; dibujar(); });
+seg("c-datos", v => { sembrar(+v); S.guia = { alcance: "top", actual: null, saltadas: [] }; S.sinEntrada = false; dibujar(); });
+seg("c-stock", v => { S.stockOk = v === "bien"; S.sinEntrada = true; dibujar(); });
+seg("c-ancho", v => { $("#marco").dataset.ancho = v; });
+seg("c-mov", v => { document.documentElement.toggleAttribute("data-reducido", v === "1"); });
+$("#repetir").addEventListener("click", () => { S.sinEntrada = false; dibujar(); });
+sembrar(7); dibujar();
+</script>
+</body>
+</html>

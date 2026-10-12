@@ -5,6 +5,7 @@ import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventari
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
@@ -37,7 +38,7 @@ export type FilaStock = {
   /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
    *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
   precio?: number | null;
-  /** El precio de arriba es el de ESTA sede (precio propio, Felipe 2026-10-09): la tarjeta dice «Precio de Lima». */
+  /** El precio de arriba es el de ESTA sede (precio propio, Felipe 2026-10-09): la tarjeta dice «Precio de esta tienda». */
   precioDeSede?: boolean;
   categoria: string | null;
   /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
@@ -402,10 +403,10 @@ export type PrendaDanada = {
   referencia: string;
   cantidad: number;
   creadoEn: string;
-  /** Precio de catálogo (`variantes.precio`) — solo un punto de partida para
-   *  que el líder no escriba el precio de liquidación desde cero; el precio
-   *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
-   *  piso ni lo valida contra este número. */
+  /** El precio al que esta tienda vende la prenda (su precio propio, si lo tiene; si no, el de la prenda: `fn_precio_en_sede`) —
+   *  solo un punto de partida para que el líder no escriba el precio de liquidación desde cero; el precio final es el que él
+   *  decide, `liquidar_prenda_danada` no aplica ningún piso ni lo valida contra este número. La liquidación se cobra en la caja
+   *  de esta misma tienda, así que el punto de partida es el de su caja (Felipe 2026-10-10). */
   precioReferencia: number;
   /** De dónde llegó (ADR-0328 act. 10): reportada en la tienda, una devolución o un cambio (`origenDeDanada`). */
   origen: OrigenDanada;
@@ -453,6 +454,8 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
           "las prendas dañadas pendientes"
         ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
       : exigir(conMotivo, "las prendas dañadas pendientes");
+  // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
+  const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -462,7 +465,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     referencia: f.variante?.producto?.referencia ?? "",
     cantidad: f.cantidad,
     creadoEn: f.created_at,
-    precioReferencia: f.variante?.precio ?? 0,
+    precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
     origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
     motivoReporte: f.motivo_reporte,
   }));

@@ -57,6 +57,7 @@ const leerMigracion = (nombre) =>
 const MIGRACION_SEDE = leerMigracion("20261006214000_analisis_prendas_de_sede.sql");
 const MIGRACION_LLEGAR = leerMigracion("20261006215000_analisis_por_llegar.sql");
 const MIGRACION_PISO = leerMigracion("20261007120000_analisis_salio_al_piso.sql");
+const MIGRACION_ULTIMA = leerMigracion("20261010120000_analisis_ultima_venta.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed), su rol sin Análisis
@@ -91,6 +92,7 @@ set local search_path = retail, public, extensions;
 ${MIGRACION_SEDE}
 ${MIGRACION_LLEGAR}
 ${MIGRACION_PISO}
+${MIGRACION_ULTIMA}
 set local search_path = retail, public, extensions;
 
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -292,7 +294,7 @@ caso("F2 fn_analisis_por_llegar: lo mismo", forma(OID_LLEGAR, "fn_analisis_por_l
 const CLAVES_FILA = [
   "variante_id", "producto_id", "nombre", "color", "color_hex", "talla", "categoria", "categoria_prefijo", "categoria_familia",
   "foto_url", "precio", "costo", "origen", "proveedor_id", "piso", "almacen", "vendidas_30", "semanas", "dias_sin_vender",
-  "llegaron_30", "vendidas_de_llegadas_30", "salio_al_piso", "llego",
+  "llegaron_30", "vendidas_de_llegadas_30", "salio_al_piso", "llego", "ultima_venta",
 ].sort();
 caso(
   "F3 las claves del contrato: arriba (tienda, hoy, rebaja, prendas) y en cada fila (las que lee analisis-sede-lectura.ts)",
@@ -457,6 +459,17 @@ caso(
   "9,t,0,null"
 );
 
+caso(
+  "D4 la última venta de cada prenda, sin tope (20261010120000): vendida hace 70 y hace 12 → la de hace 12; colgada sin venderse → NULL. Huella del cuerpo",
+  `select pg_temp.prenda('D4A') as a \\gset
+   select pg_temp.prenda('D4B') as b \\gset
+   select pg_temp.entra(:'a', 3, pg_temp.dia(100)); select pg_temp.vende(:'a', 1, pg_temp.dia(70)); select pg_temp.vende(:'a', 1, pg_temp.dia(12));
+   select pg_temp.entra(:'b', 1, pg_temp.dia(9), 'prueba', 'piso_venta');
+   select concat_ws(',', pg_temp.dato(:'a', 'ultima_venta') = (retail.fn_hoy_lima() - 12)::text, pg_temp.dato(:'b', 'ultima_venta'),
+                    (select md5(prosrc) from pg_proc where oid = 'retail.fn_analisis_sede(uuid)'::regprocedure));`,
+  (o) => o.startsWith("t,null,") && o.split(",")[2].length === 32
+);
+
 // L. LLEGADAS ------------------------------------------------------------------------------------------------------------
 caso(
   "L1 carga inicial y traslado recibido llegan; bajar al piso, ajuste y devolución no; lo vendido desde la primera llegada, nunca más de lo que llegó",
@@ -591,8 +604,8 @@ caso(
 
 // M. LAS MIGRACIONES -----------------------------------------------------------------------------------------------------
 caso(
-  "M1 las tres migraciones se pueden pegar dos veces: una sola firma de cada función",
-  `${MIGRACION_SEDE}\n${MIGRACION_LLEGAR}\n${MIGRACION_PISO}\nset local search_path = retail, public, extensions;
+  "M1 las cuatro migraciones se pueden pegar dos veces: una sola firma de cada función",
+  `${MIGRACION_SEDE}\n${MIGRACION_LLEGAR}\n${MIGRACION_PISO}\n${MIGRACION_ULTIMA}\nset local search_path = retail, public, extensions;
    select (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_sede') || ',' ||
           (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_por_llegar');`,
   "1,1"

@@ -19,6 +19,8 @@ import type { VarianteCatalogo } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
 import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import type { CambioArmado } from "@/lib/cambios-cambio-de-sede";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -85,13 +87,24 @@ export function CambiosPanel({
   const pathname = usePathname();
   const ahora = useMemo(() => new Date(), []);
   const [buscando, startTransition] = useTransition();
+  // El cambio a medio armar es de SU sede (Felipe, 2026-10-11): la página monta el panel con la sede en la key, y el de otra sede quedó
+  // guardado en `TrabajoPorSede`. Al volver a una sede con un cambio guardado, se retoma; si el panel se montó por un cambio de sede,
+  // no se reabre desde cero la venta del enlace (`?item=`): esa ya es de la sede que se dejó, o se busca de nuevo aquí.
+  const { inicial: guardado, reportar: reportarCambio, vieneDeOtraSede } = useTrabajoPorSede<CambioArmado>(ubicacionId);
   const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(() => {
+    if (guardado) return { venta: guardado.venta, lineaId: guardado.lineaInicialId };
+    if (vieneDeOtraSede) return null;
     const l = abrirItemId ? lineas.find((x) => x.ventaItemId === abrirItemId) : undefined;
     if (!l) return null;
     // Una prenda que ya no se puede cambiar (fuera de plazo, ya devuelta…) abre el flujo en
     // el paso de elegir prenda, donde cada una dice por qué sí o por qué no.
     return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaVendida(l, ahora).cambiable ? l.ventaItemId : null };
   });
+  // Sin cambio abierto no hay nada armado: un cambio cancelado o terminado no se guarda al cambiar de sede (el flujo, que es quien
+  // reporta, se desmonta sin decirlo).
+  useEffect(() => {
+    if (!flujo) reportarCambio(null);
+  }, [flujo, reportarCambio]);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [camara, setCamara] = useState(false);
   const campoBusqueda = useRef<HTMLInputElement>(null);

@@ -7,21 +7,35 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { limpiarCantidad, type CeldaAlta } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
-import { claveEje, limpiarPrecio, llenarTodas, pasoCantidad, precioDistinto, textoPrecioBase, totalesCantidades, vaciarTodas } from "@/lib/tabla-alta-reglas";
+import {
+  claveEje,
+  costoDistinto,
+  limpiarPrecio,
+  llenarTodas,
+  pasoCantidad,
+  precioDistinto,
+  textoCostoBase,
+  textoPrecioBase,
+  totalesCantidades,
+  vaciarTodas,
+} from "@/lib/tabla-alta-reglas";
 
 // La tabla de la prenda en el paso 4 de Nuevo producto (spike v2, 2026-09-28): la MISMA tabla color × talla del paso 3,
 // ahora con una caja por celda. Misma forma a propósito: quien acaba de armar la tabla reconoce cada celda sin volver
-// a leerla. Un segmento arriba decide qué se escribe en ella:
+// a leerla. Un segmento arriba decide qué se escribe en ella (las mismas tres que Editar producto, `MatrizStockFicha`):
 //
 //   * «Cuántas tienes hoy» (la carga inicial, ADR-0212): vacío = 0; solo dígitos, hasta 4 (una cantidad imposible ni se
 //     tipea); total por color, por talla y general (la fila «Total» queda fija abajo). «Llenar todas con [n]» pone la
 //     misma cantidad en todas las celdas de un golpe (72 en el peor caso real) y después se corrige a mano lo distinto;
-//   * «¿Alguna cuesta distinto?»: una caja de precio por celda; vacía = el precio de venta (su placeholder); la que
-//     difiere se ve en ámbar. Antes esto vivía en la tabla de variantes, con un botón «Poner un precio distinto».
+//   * «Precios»: una caja de precio por celda; vacía = el precio de venta (su placeholder); la que difiere se ve en ámbar.
+//     Antes esto vivía en la tabla de variantes, con un botón «Poner un precio distinto»;
+//   * «Costos» (Felipe 2026-10-10: «no me deja poner costos distintos»): lo mismo con el costo; vacía = el costo de arriba,
+//     o sin costo si arriba no hay. Una bolsa mediana y una pequeña no cuestan lo mismo, y el margen de cada talla lo usa.
+//     Hasta ese día la opción de precio se llamaba «¿Alguna cuesta distinto?», y «cuesta» se leía como el costo.
 // La celda quitada en el paso 3 sale rayada con «—» y sin caja: esa variante no se crea, no tiene stock ni precio.
 // Encabezado y columna del color fijos, como en el paso 3; en celular la tabla se desliza de lado dentro de su caja.
 
-type Modo = "cantidades" | "precios";
+type Modo = "cantidades" | "precios" | "costos";
 
 const BOTON_PASO =
   "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
@@ -36,6 +50,9 @@ export function MatrizCantidades({
   precioBase,
   precios,
   onPrecio,
+  costoBase,
+  costos,
+  onCosto,
   destinoEtiqueta,
   cantidadesCerradas = null,
 }: {
@@ -49,10 +66,14 @@ export function MatrizCantidades({
   precioBase: string;
   precios: Record<string, string>;
   onPrecio: (clave: string, valor: string) => void;
+  /** El costo de todas (arriba, opcional): vacío = las celdas sin costo propio se crean sin costo. */
+  costoBase: string;
+  costos: Record<string, string>;
+  onCosto: (clave: string, valor: string) => void;
   /** Dónde entra el stock, en palabras de tienda: «TRU · Real Plaza». */
   destinoEtiqueta: string;
   /** La carga inicial de la sede ya se cerró (ADR-0328): «Cuántas tienes hoy» no se ofrece —queda apagado, con esta frase al
-   *  pasar el mouse— y la tabla solo sirve para el precio distinto. `null` = abierta, como siempre. */
+   *  pasar el mouse— y la tabla solo sirve para el precio y el costo distintos. `null` = abierta, como siempre. */
   cantidadesCerradas?: string | null;
 }) {
   const [modoElegido, setModo] = useState<Modo>("cantidades");
@@ -70,6 +91,8 @@ export function MatrizCantidades({
   const conColumnaTotal = enCantidades && columnas.length > 1;
   const conFilaTotal = enCantidades && filas.length > 1;
   const base = Number(precioBase) > 0 ? Number(precioBase).toFixed(2) : "0.00";
+  const baseCosto = Number(costoBase) > 0 ? Number(costoBase).toFixed(2) : "0.00";
+  const enCostos = modo === "costos";
 
   // Se aplica (o se borra) sola, en cada tecla: ya no hay un «Aplicar» que presionar ni que mis-clickear.
   function escribirRelleno(valor: string) {
@@ -84,7 +107,9 @@ export function MatrizCantidades({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
         {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho; en el
             celular cada opción parte su texto en dos líneas (2026-10-09: «¿Alguna cuesta distinto?» de una línea ensanchaba la
-            página 23 px a 375 px y la pantalla entera se corría de lado). */}
+            página 23 px a 375 px y la pantalla entera se corría de lado). Desde el 2026-10-10 también en escritorio: con el menú
+            abierto a 1024 px la columna del alta mide ~250 px, y las tres opciones en una línea se salían de su caja. Con espacio
+            siguen en una línea (`flex-auto`); sin él, se encogen y parten su texto. */}
         <SegmentoDeslizante
           forma="modo"
           etiqueta="Qué escribes en la tabla"
@@ -92,11 +117,12 @@ export function MatrizCantidades({
           onCambio={(m) => setModo(m as typeof modo)}
           opciones={[
             { clave: "cantidades", etiqueta: "Cuántas tienes hoy", deshabilitada: !!cantidadesCerradas, ayuda: cantidadesCerradas || undefined },
-            { clave: "precios", etiqueta: "¿Alguna cuesta distinto?" },
+            { clave: "precios", etiqueta: "Precios" },
+            { clave: "costos", etiqueta: "Costos" },
           ]}
-          className="w-full sm:w-auto [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center max-sm:[&>button]:px-2 max-sm:[&>button]:text-center max-sm:[&>button]:leading-tight max-sm:[&>button]:whitespace-normal sm:[&>button]:flex-none"
+          className="w-full sm:w-auto [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:text-center [&>button]:leading-tight [&>button]:whitespace-normal max-sm:[&>button]:px-2 sm:[&>button]:flex-auto"
         />
-        {/* «Llenar todas» ocupa su lugar también en «precios» (invisible): cambiar de segmento no mueve la tabla (ADR-0185). */}
+        {/* «Llenar todas» ocupa su lugar también en «Precios» y «Costos» (invisible): cambiar de segmento no mueve la tabla (ADR-0185). */}
         <div className={`flex items-center gap-1.5 text-[12.5px] text-taupe ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
           <label htmlFor="alta-llenar-todas">Llenar todas con</label>
           <input
@@ -120,13 +146,16 @@ export function MatrizCantidades({
         </div>
       </div>
 
-      {/* Las dos bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de segmento no lo mueve. */}
+      {/* Las tres bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de segmento no lo mueve. */}
       <div className="grid text-[12.5px] text-taupe">
         <p className={`col-start-1 row-start-1 ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
           Lo que hay hoy en {destinoEtiqueta}. Lo que no tengas, déjalo vacío. <span className="text-tinta/45">—</span> = no existe.
         </p>
-        <p className={`col-start-1 row-start-1 ${enCantidades ? "invisible" : ""}`} aria-hidden={enCantidades}>
-          Escribe solo la que cuesta distinto. Vacía = {textoPrecioBase(precioBase)}.
+        <p className={`col-start-1 row-start-1 ${modo === "precios" ? "" : "invisible"}`} aria-hidden={modo !== "precios"}>
+          Escribe solo el precio que cambia. Vacía = {textoPrecioBase(precioBase)}.
+        </p>
+        <p className={`col-start-1 row-start-1 ${enCostos ? "" : "invisible"}`} aria-hidden={!enCostos}>
+          Escribe solo el costo que cambia. Vacía = {textoCostoBase(costoBase)}.
         </p>
       </div>
 
@@ -193,7 +222,8 @@ export function MatrizCantidades({
                       );
                     }
                     const etiqueta = `${nombre} en ${textoTalla(talla)}`;
-                    const propio = precios[cel.clave] ?? "";
+                    const propio = (enCostos ? costos[cel.clave] : precios[cel.clave]) ?? "";
+                    const distinto = enCostos ? costoDistinto(propio, costoBase) : precioDistinto(propio, precioBase);
                     const valorCelda = cantidades[cel.clave] ?? "";
                     return (
                       <td key={cel.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
@@ -238,13 +268,13 @@ export function MatrizCantidades({
                               type="text"
                               inputMode="decimal"
                               autoComplete="off"
-                              aria-label={`Precio de ${etiqueta}`}
-                              placeholder={base}
+                              aria-label={`${enCostos ? "Costo" : "Precio"} de ${etiqueta}`}
+                              placeholder={enCostos ? baseCosto : base}
                               value={propio}
-                              onChange={(e) => onPrecio(cel.clave, limpiarPrecio(e.target.value))}
+                              onChange={(e) => (enCostos ? onCosto : onPrecio)(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
                               className={`w-[58px] rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px] ${
-                                precioDistinto(propio, precioBase) ? "font-semibold text-ambar" : "text-tinta"
+                                distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />
                           )}

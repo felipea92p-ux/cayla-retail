@@ -73,6 +73,17 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
     expect(motivoBloqueoCobro({ ...listo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
   });
 
+  it("un ticket que no cobra nada (solo la bolsa de obsequio) no se cobra, y el motivo lo dice desde el armado (Bolsas de despacho)", () => {
+    const solo = { ...listo, prendas: 1, total: 0, pagos: [] };
+    const motivo = "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+    expect(motivoBloqueoCobro(solo)).toBe(motivo);
+    expect(motivoBloqueoCobro({ ...solo, momento: "armar" })).toBe(motivo);
+    // La caja cerrada y el ticket vacío siguen mandando antes; con la bolsa de obsequio MÁS una compra, nada cambia.
+    expect(motivoBloqueoCobro({ ...solo, cajaAbierta: false })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...solo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 3, total: 59.9, pagos: [{ metodo: "efectivo", monto: 59.9 }] })).toBeNull();
+  });
+
   it("mientras se arma la venta no exige método de pago: eso se decide al cobrar", () => {
     expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [] })).toBeNull();
   });

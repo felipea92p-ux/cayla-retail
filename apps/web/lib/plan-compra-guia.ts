@@ -3,7 +3,7 @@
 // La prueba exige que la guía deje confirmar exactamente cuando la base aceptaría.
 
 import type { CampoDeGuia } from "./guia-campos";
-import { problemasDelBorrador, type Borrador, type TallaPlan } from "./plan-compra-reglas";
+import { problemaDelTope, problemasDeLaCampana, problemasDelBorrador, type BorradorCampana, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
 
 export function camposDelPlan(
   b: Borrador,
@@ -22,5 +22,27 @@ export function camposDelPlan(
     // La curva viene propuesta por el sistema: solo falta si alguien la cambió y ya no suma 100.
     campo("curva", "Curva de tallas", "Revisa la curva de tallas."),
     { id: "responsable", nombre: "Quién arma el plan", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién arma el plan." },
+  ];
+}
+
+/** La guía de la hoja del tope (ADR-0372): el monto y quién lo firma. «Hecho» es lo que `problemaDelTope` ya acepta: la misma regla que la base. */
+export function camposDelTope(texto: string, responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const problema = problemaDelTope(texto);
+  return [
+    { id: "tope", nombre: "Tope de inversión", requerido: true, hecho: problema === null, pendiente: problema ?? "Escribe cuánto quieres invertir." },
+    { id: "responsable", nombre: "Quién fija el tope", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién fija el tope." },
+  ];
+}
+
+/** La guía de «Nueva campaña» (ADR-0372): qué falta, en el orden en que se llena. «Hecho» es lo que `problemasDeLaCampana` ya acepta: la regla de la base. */
+export function camposDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const p = problemasDeLaCampana(b, etiquetas, nombresEnUso);
+  const campo = (id: "etiqueta" | "nombre" | "desde" | "hasta", nombre: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? "Falta este dato." });
+  return [
+    campo("etiqueta", "Campaña de Etiquetas"),
+    campo("nombre", "Nombre del plan"),
+    campo("desde", "Desde"),
+    campo("hasta", "Hasta"),
+    { id: "responsable", nombre: "Quién crea la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién crea la campaña." },
   ];
 }

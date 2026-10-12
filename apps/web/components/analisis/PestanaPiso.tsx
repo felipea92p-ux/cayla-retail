@@ -6,7 +6,7 @@ import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import { IconoCategoria } from "@/components/IconoCategoria";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { plural } from "@/lib/analisis-reglas";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import {
@@ -16,7 +16,6 @@ import {
   finEjePiso,
   lugarDeLoQueTienes,
   marcasEjePiso,
-  modelosEnElPiso,
   nuncaSalio,
   PRENDAS_POR_TIPO_PISO,
   TEXTO_VACIO_PISO,
@@ -47,7 +46,6 @@ export function PestanaPiso() {
 
   const cifras = cifrasPiso(datos.prendas);
   const tipos = tiposPiso(datos.prendas, prendas, datos.hoy);
-  const colgados = modelosEnElPiso(datos.prendas);
   const fin = finEjePiso(Math.max(0, ...tipos.flatMap((t) => t.prendas.map((p) => diasEnAlmacen(p, datos.hoy) ?? 0))));
 
   const grupos: GrupoCarril[] = tipos.map((t) => {
@@ -73,7 +71,7 @@ export function PestanaPiso() {
   });
 
   // La pista: los días que lleva en la tienda desde que llegó, sobre un eje de un mes (o de los meses que hagan falta).
-  const pista = (p: PrendaAnalisis) => {
+  const pista = (p: ModeloAnalisis) => {
     const dias = diasEnAlmacen(p, datos.hoy);
     if (dias === null) {
       return (
@@ -101,16 +99,15 @@ export function PestanaPiso() {
     );
   };
 
-  const pildoras = (p: PrendaAnalisis) => (
+  const pildoras = (p: ModeloAnalisis) => (
     <>
       <span className="pil">
         <b>{p.almacen}</b> en el almacén
       </span>
-      {colgados.has(p.productoId) && <span className="pil modelo">El modelo ya está en el piso</span>}
     </>
   );
 
-  const accion = (p: PrendaAnalisis) => {
+  const accion = (p: ModeloAnalisis) => {
     const href = hrefReponerPiso([p], acceso);
     return href ? (
       <Link href={href} className="btn-cayla btn-secundario btn-s" aria-label={`Bajar al piso: ${nombreLargo(p)}`}>
@@ -125,20 +122,19 @@ export function PestanaPiso() {
         <section className="tarjeta bloque q-numeros entra" style={{ ["--i" as string]: 0 }}>
           <Numero
             valor={nf(cifras.prendas)}
-            et={plural(cifras.prendas, "prenda sin salir al piso", "prendas sin salir al piso")}
-            sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}, de ${nf(cifras.modelos)} ${plural(cifras.modelos, "modelo", "modelos")}`}
+            et={plural(cifras.prendas, "modelo sin salir al piso", "modelos sin salir al piso")}
+            sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}`}
           />
           <Numero
             valor={cifras.costo === null ? "—" : soles(cifras.costo)}
             et={
               <>
                 costaron
-                {cifras.sinCosto > 0 && <Ayuda texto={`${cifras.sinCosto} ${plural(cifras.sinCosto, "no tiene", "no tienen")} costo guardado: no se cuentan aquí.`} />}
+                {cifras.sinCosto > 0 && <Ayuda texto={`${cifras.sinCosto} ${plural(cifras.sinCosto, "talla no tiene", "tallas no tienen")} costo guardado: no se cuentan aquí.`} />}
               </>
             }
             sub={`a precio de venta ${cifras.precioVenta === null ? "—" : soles(cifras.precioVenta)}`}
           />
-          <Numero valor={nf(cifras.conModeloEnPiso)} et="son de un modelo que ya está en el piso" sub="en otra talla u otro color" />
         </section>
         <DondeEstaLoQueTienes />
       </div>

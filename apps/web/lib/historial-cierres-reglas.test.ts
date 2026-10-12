@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CierreCaja } from "@/lib/caja";
-import { agruparPorDia, agruparPorMes, bloqueFecha, cuadreDelTurno, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
+import { agruparPorDia, agruparPorMes, bloqueFecha, cobrosPorMedio, cuadreDelTurno, duracionTurno, estadoCierre, paginaValida, quienAtendio, rachaDeCierres, resumirCierres, resumirPeriodo, rutaDelEfectivo, textoPeriodo, textoResultado } from "./historial-cierres-reglas";
 
 function cierre(p: Partial<CierreCaja>): CierreCaja {
   return {
@@ -118,5 +118,40 @@ describe("racha de «Último cierre»", () => {
       "Últimos 5 cierres de esta tienda: 2 cuadraron, 2 faltaron y 1 sobró."
     );
     expect(rachaDeCierres([{ diferencia: 0 }, { diferencia: 0 }]).texto).toBe("Últimos 2 cierres de esta tienda: 2 cuadraron.");
+  });
+});
+
+describe("«Qué se cobró» del detalle de un cierre", () => {
+  const pagos = [
+    { ventaId: "a", metodo: "efectivo", monto: 100 },
+    { ventaId: "b", metodo: "efectivo", monto: 50 },
+    { ventaId: "b", metodo: "yape", monto: 25 },
+    { ventaId: "c", metodo: "plin", monto: 25 },
+    { ventaId: "d", metodo: "tarjeta", monto: 100 },
+  ];
+
+  it("suma por medio, junta Yape y Plin y cuenta ventas distintas", () => {
+    const r = cobrosPorMedio(pagos);
+    expect(r.total).toBe(300);
+    expect(r.medios.map((m) => [m.clave, m.monto, m.ventas, m.pct])).toEqual([
+      ["efectivo", 150, 2, 50],
+      ["tarjeta", 100, 1, 33],
+      ["yape", 50, 2, 17],
+    ]);
+  });
+
+  it("el anticipo de una separación y el redondeo no son un medio ni suman al total", () => {
+    const r = cobrosPorMedio([...pagos, { ventaId: "e", metodo: "anticipo", monto: 40 }, { ventaId: "e", metodo: "redondeo", monto: 0.05 }]);
+    expect(r.total).toBe(300);
+    expect(r.anticipo).toBe(40);
+    expect(r.medios.some((m) => m.clave === "otro")).toBe(false);
+  });
+
+  it("sin pagos no hay medios ni porcentajes que dividan entre cero", () => {
+    expect(cobrosPorMedio([])).toEqual({ total: 0, anticipo: 0, medios: [] });
+  });
+
+  it("un método que no se conoce cae en «Otro»", () => {
+    expect(cobrosPorMedio([{ ventaId: "z", metodo: "cripto", monto: 10 }]).medios[0]).toMatchObject({ clave: "otro", monto: 10, ventas: 1, pct: 100 });
   });
 });

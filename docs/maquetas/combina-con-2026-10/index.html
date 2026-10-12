@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="es" data-theme="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combina con</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Maqueta 2026-10-10 — dónde aparece «Combina con» (descripción + compañeros de retail.colores) y cómo.
+   Regla que Felipe fijó: NO invasivo. Solo cuando se pasa por el color o se lo deja fijo; en reposo nada cambia.
+   Los 96 colores activos de producción van abajo tal cual (nombre, hex, familia, Pantone, descripción, combina_con),
+   leídos el 2026-10-10 con un select de solo lectura. Los 4 sin ficha (Azul acero, Azul natural, hielo bleach, Crema)
+   muestran lo que pasa de verdad: nada.
+   Paleta y tipografías: los tokens de apps/web/app/globals.css y el bloque oscuro de app/estilos/tema.css. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+  --rojo: #b8412d; --verde: #48603f; --ambar-profundo: #734f15; --pizarra: #4c5d6e; --sombra: #1a1a18;
+  --tinta-fija: #1a1a18; --crema-fija: #f5f0e8;
+  --f-display: "EB Garamond", Georgia, "Times New Roman", serif;
+  --f-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+:root[data-theme="oscuro"] {
+  --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+  --rojo: #e8806a; --verde: #9ccb8d; --ambar-profundo: #ecc676; --pizarra: #a2b8cd; --sombra: #000000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--crema); color: var(--tinta); font: 400 15px/1.5 var(--f-body); padding-inline: 20px; padding-block: 0 96px; }
+.wrap { max-width: 1080px; margin-inline: auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 500; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+p { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 2px solid var(--pizarra); outline-offset: 2px; border-radius: 6px; }
+.mono { font-family: var(--f-mono); font-size: .9em; }
+.label { font: 600 10.5px/1 var(--f-body); letter-spacing: .13em; text-transform: uppercase; color: var(--taupe); }
+.muted { color: color-mix(in srgb, var(--tinta) 55%, transparent); }
+
+/* ---------- cabecera y navegación ---------- */
+header.top { padding-block: 52px 22px; }
+.kicker { font: 600 .72rem/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+h1 { font-size: clamp(3rem, 8vw, 5.4rem); line-height: .95; margin-block: 12px 16px; }
+.lede { max-width: 64ch; font-size: 1.1rem; }
+.lede b { font-weight: 600; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 20px 0 0; padding: 0; list-style: none; color: var(--taupe); font-size: .92rem; }
+.facts b { color: var(--tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+nav.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--crema) 92%, transparent); backdrop-filter: blur(8px); border-block: 1px solid var(--sand); margin-inline: -20px; padding-inline: 20px; }
+nav.nav .wrap { display: flex; gap: 4px 22px; flex-wrap: wrap; align-items: center; padding-block: 10px; }
+nav.nav a { color: var(--taupe); text-decoration: none; font-size: .9rem; font-weight: 500; padding: 2px 0; border-bottom: 2px solid transparent; }
+nav.nav a:hover { color: var(--tinta); border-color: var(--rojo); }
+.tema { margin-left: auto; display: inline-flex; border: 1px solid var(--sand); border-radius: 999px; padding: 2px; background: var(--papel); }
+.tema button { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.tema button[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+
+section { padding-block: 56px 8px; scroll-margin-top: 56px; }
+section > .wrap > h2 { font-size: 2.1rem; line-height: 1.1; }
+.sub { margin-top: 8px; max-width: 66ch; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.regla { display: grid; gap: 10px 18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 20px; }
+.regla div { border-left: 2px solid var(--sand); padding-left: 12px; font-size: 14px; }
+.regla b { display: block; font-weight: 600; margin-bottom: 2px; }
+
+/* ---------- marcos (escritorio y celular) ---------- */
+.marcos { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) 375px; align-items: start; margin-top: 26px; }
+@media (max-width: 860px) { .marcos { grid-template-columns: 1fr; } .marco.movil { max-width: 375px; } }
+.marco { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; overflow: hidden; }
+.marco > .barra { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--sand); font-size: 11.5px; color: var(--taupe); }
+.marco > .barra b { color: var(--tinta); font-weight: 600; }
+.marco .cuerpo { padding: 16px; }
+.marco.movil .cuerpo { padding: 12px; }
+.marco.movil { width: 375px; max-width: 100%; }
+.nuevo { position: relative; }
+.nuevo::before { content: "nuevo"; position: absolute; right: -4px; top: -11px; font: 600 9px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--crema); background: var(--rojo); padding: 3px 6px; border-radius: 999px; }
+
+/* ---------- 1 · la carta del alta ---------- */
+.carta { border: 1px solid var(--sand); border-radius: 14px; background: var(--crema); padding: 12px; }
+.carta .busca { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.carta .busca .caja { flex: 1; min-height: 36px; border: 1px solid var(--sand); background: var(--hueso); border-radius: 10px; padding: 0 12px; display: flex; align-items: center; font-size: 13px; color: var(--taupe); }
+.carta .busca .btn { min-height: 36px; border: 1px solid var(--taupe); border-radius: 10px; padding: 0 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; }
+.familias { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.marco.movil .familias { grid-template-columns: 1fr; }
+.familia { display: grid; grid-template-columns: 76px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--sand); align-items: start; }
+.familia .nom { font-size: 11.5px; color: var(--taupe); height: 32px; display: flex; align-items: center; }
+.circulos { display: flex; flex-wrap: wrap; gap: 6px; }
+.circ { width: 32px; height: 32px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tinta) 25%, transparent); display: grid; place-items: center; font-size: 12px; font-weight: 700; transition: transform 150ms var(--ease); }
+.circ:hover { transform: scale(1.1); }
+.circ[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--crema), 0 0 0 4px var(--tinta); }
+.circ.textura { background-image: radial-gradient(color-mix(in srgb, var(--tinta-fija) 35%, transparent) 1px, transparent 1.3px); background-size: 4px 4px; }
+.pie { margin: 8px -12px -12px; padding: 8px 12px 10px; border-top: 1px solid var(--sand); background: var(--crema); font-size: 12px; display: grid; gap: 3px; }
+.pie.hoy { grid-template-rows: 20px; min-height: 36px; }
+.pie.propuesta { grid-template-rows: 20px 20px; min-height: 56px; }
+.pie .l1, .pie .l2 { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.pie .l1 > span, .pie .l2 > span { overflow: hidden; text-overflow: ellipsis; }
+.pie .nombre { color: var(--tinta); }
+.pie .resto { color: var(--taupe); }
+.pie .conf { color: var(--ambar-profundo); }
+.pie .vacon b { font-weight: 600; color: var(--tinta); }
+.pie .vacon { color: var(--tinta); display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.pie .frase { color: color-mix(in srgb, var(--tinta) 62%, transparent); }
+.pie .vacio { color: var(--taupe); }
+/* Los compañeros como círculos de 20 px (Felipe 2026-10-10): el nombre sale al pasar el mouse o al tocar, siempre en el mismo sitio.
+   Un compañero que no cuelga en esta sede se ve apagado y su nombre dice «no hay aquí». El color es dato: no cambia en oscuro. */
+.comps { display: inline-flex; align-items: center; gap: 4px; }
+.comp { width: 20px; height: 20px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tinta-fija) 22%, transparent); flex: none; cursor: default; transition: transform 150ms var(--ease); }
+.comp.textura { background-image: radial-gradient(color-mix(in srgb, var(--tinta-fija) 35%, transparent) 1px, transparent 1.3px); background-size: 4px 4px; }
+.comp.apagado { opacity: .4; }
+.comp.activo { transform: scale(1.25); box-shadow: 0 0 0 1px var(--crema), 0 0 0 3px color-mix(in srgb, var(--tinta) 30%, transparent); }
+.comp-nombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.punto { width: 12px; height: 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tinta-fija) 22%, transparent); flex: none; display: inline-block; }
+.punto.grande { width: 18px; height: 18px; }
+.marco.movil .carta { max-height: 420px; overflow: auto; position: relative; }
+.marco.movil .pie { position: sticky; bottom: 0; z-index: 2; }
+.conmutador { display: inline-flex; gap: 0; border: 1px solid var(--sand); border-radius: 999px; padding: 2px; background: var(--hueso); margin-top: 14px; }
+.conmutador button { padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 500; color: var(--taupe); }
+.conmutador button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 2px color-mix(in srgb, var(--sombra) 10%, transparent); }
+
+/* ---------- 2 · Vender ▸ Todo de la prenda ---------- */
+.hoja { border-radius: 14px; background: var(--papel); }
+.hoja .cab { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 14px; }
+.hoja .cab h3 { font-size: 22px; line-height: 1.1; }
+.hoja .cab p { font-size: 12.5px; color: var(--taupe); margin-top: 3px; }
+.hoja .x { width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center; font-size: 18px; color: var(--taupe); }
+.hoja .cuerpo2 { display: grid; gap: 22px; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); }
+.marco.movil .hoja .cuerpo2 { grid-template-columns: 1fr; gap: 14px; }
+.foto { position: relative; aspect-ratio: 1; width: 100%; border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
+.foto .cat { position: absolute; left: 10px; bottom: 10px; font: 700 9px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.foto svg { width: 42%; height: 42%; }
+.marco.movil .lado { display: flex; gap: 14px; align-items: center; }
+.marco.movil .foto { width: 96px; flex: none; }
+.datos { margin-top: 14px; min-width: 0; }
+.marco.movil .datos { margin-top: 0; flex: 1; }
+.datos .color { font-family: var(--f-display); font-size: 20px; line-height: 1.1; }
+.datos .precio { margin-top: 4px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.datos .stock { margin-top: 2px; font-size: 12px; color: color-mix(in srgb, var(--tinta) 60%, transparent); font-variant-numeric: tabular-nums; }
+.vacon-bloque { margin-top: 8px; font-size: 12.5px; line-height: 1.45; }
+.vacon-bloque .va { color: var(--tinta); }
+.vacon-bloque .va b { font-weight: 600; }
+.vacon-bloque .porque { font-size: 12px; font-weight: 600; color: var(--taupe); text-decoration: underline; text-underline-offset: 3px; margin-top: 2px; }
+.vacon-bloque .porque:hover { color: var(--tinta); }
+.vacon-bloque .desc { margin-top: 6px; font-size: 12.5px; color: color-mix(in srgb, var(--tinta) 72%, transparent); display: none; }
+.vacon-bloque.abierto .desc { display: block; animation: entra 240ms var(--ease); }
+@keyframes entra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.lista { border-block: 1px solid var(--sand); }
+.fila { position: relative; padding: 10px 4px 10px 12px; border-bottom: 1px solid var(--sand); transition: background 200ms var(--ease); }
+.fila:last-child { border-bottom: 0; }
+.fila.activa { background: color-mix(in srgb, var(--hueso) 45%, transparent); }
+.fila .hilo { position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; border-radius: 2px; background: var(--tinta); opacity: 0; transition: opacity 200ms; }
+.fila.activa .hilo { opacity: 1; }
+.fila .nom { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; width: 100%; text-align: left; }
+.fila .nom .punto { width: 16px; height: 16px; }
+.tallas { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 6px; margin-top: 8px; padding-right: 4px; }
+.talla { border: 1px solid var(--sand); border-radius: 10px; padding: 6px 8px; font-size: 12px; background: var(--papel); text-align: left; }
+.talla b { display: block; font-weight: 600; }
+.talla span { color: var(--taupe); font-size: 11px; }
+.talla.alm { border-style: dashed; color: var(--taupe); }
+.hoja .piehoja { display: flex; justify-content: flex-end; margin-top: 16px; }
+.hoja .listo { background: var(--tinta); color: var(--crema); border-radius: 10px; padding: 10px 22px; font-weight: 600; font-size: 13.5px; }
+
+/* ---------- 3 · vista rápida ---------- */
+.vr { display: grid; gap: 22px; grid-template-columns: 260px minmax(0, 1fr); }
+.marco.movil .vr { grid-template-columns: 1fr; }
+.vr .pie-foto { display: flex; align-items: center; gap: 9px; margin-top: 12px; min-height: 24px; }
+.vr .pie-foto .sw { width: 20px; height: 20px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tinta-fija) 22%, transparent); }
+.vr .pie-foto .nom { font-size: 14px; font-weight: 600; }
+.vr .pie-foto .est { font-size: 11.5px; color: var(--taupe); }
+.vr .pista { margin-top: 6px; font-size: 12px; line-height: 1.45; color: color-mix(in srgb, var(--tinta) 60%, transparent); }
+/* Dos renglones de alto fijo: el aside mide 260 px y seis nombres no caben en uno; el alto no cambia bajo el mouse (ADR-0185). */
+.vr .vacon-linea { margin-top: 8px; font-size: 12.5px; line-height: 20px; height: 40px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.vr .vacon-linea b { font-weight: 600; }
+.vr .sobre { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--taupe); text-decoration: underline; text-underline-offset: 3px; }
+.vr .sobre:hover { color: var(--tinta); }
+.vr .desc { margin-top: 6px; font-size: 12.5px; color: color-mix(in srgb, var(--tinta) 72%, transparent); display: none; }
+.vr .abierto .desc { display: block; animation: entra 240ms var(--ease); }
+.vr .desc-prenda { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sand); font-size: 12.5px; }
+.matriz { border: 1px solid var(--sand); border-radius: 12px; overflow: hidden; }
+.matriz .cabm { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); background: var(--hueso); padding: 8px 12px; font-size: 11px; color: var(--taupe); letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.matriz .fm { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); padding: 9px 12px; border-top: 1px solid var(--sand); align-items: center; font-size: 13px; transition: background 200ms; }
+.matriz .fm.activa { background: color-mix(in srgb, var(--hueso) 45%, transparent); }
+.matriz .fm .nom { display: flex; align-items: center; gap: 8px; font-weight: 600; text-align: left; width: 100%; }
+.matriz .fm .n { font-variant-numeric: tabular-nums; text-align: center; }
+.matriz .fm .n.cero { color: var(--taupe); }
+.ficha { margin-top: 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; padding: 12px 16px; border: 1px solid var(--sand); border-radius: 12px; }
+.marco.movil .ficha { grid-template-columns: 1fr 1fr; }
+.ficha dt { font: 600 10.5px/1 var(--f-body); letter-spacing: .13em; text-transform: uppercase; color: color-mix(in srgb, var(--tinta) 60%, transparent); }
+.ficha dd { margin: 2px 0 0; font-size: 13px; }
+.ficha dd.falta { color: var(--taupe); font-style: italic; }
+
+/* ---------- 4 · lo que no cambia ---------- */
+.no { display: grid; gap: 12px 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 20px; }
+.no div { background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.no b { display: block; font-weight: 600; margin-bottom: 4px; }
+.nota { margin-top: 24px; background: var(--hueso); border-radius: 12px; padding: 12px 16px; font-size: 13.5px; color: color-mix(in srgb, var(--tinta) 80%, transparent); }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <p class="kicker">Maqueta · 10 de octubre de 2026 · Catálogo ▸ Atributos ▸ Colores</p>
+  <h1>Combina con</h1>
+  <p class="lede">Lo que un color dice de sí mismo —<b>qué transmite</b> y <b>con qué va</b>— aparece solo donde ya se está mirando ese color, y <b>solo mientras se lo señala o se lo deja fijo</b>. En reposo no hay nada nuevo en pantalla. Pasa el mouse por los círculos y las filas de abajo: son los 96 colores reales de producción.</p>
+  <ul class="facts">
+    <li><b>96</b> colores activos en producción</li>
+    <li><b>92</b> con ficha (descripción y compañeros)</li>
+    <li><b>0</b> pantallas la muestran hoy fuera de Atributos</li>
+    <li><b>0</b> migraciones, RPC o permisos nuevos</li>
+  </ul>
+</div></header>
+
+<nav class="nav"><div class="wrap">
+  <a href="#alta">1 · Nuevo producto</a>
+  <a href="#vender">2 · Vender</a>
+  <a href="#catalogo">3 · Catálogo</a>
+  <a href="#reglas">4 · Lo que no cambia</a>
+  <div class="tema" role="group" aria-label="Tema">
+    <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
+    <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
+  </div>
+</div></nav>
+
+<!-- ============================ 1 · NUEVO PRODUCTO ============================ -->
+<section id="alta"><div class="wrap">
+  <p class="label">1 · Nuevo producto ▸ Tallas y colores · y, gratis, «Agregar colores» de Editar producto</p>
+  <h2>El pie de la carta gana un renglón</h2>
+  <p class="sub">Hoy, al pasar por un círculo, el pie dice «Beige · Tierra · 14-1118 TCX · se confunde con…». La propuesta le suma un segundo renglón, de alto fijo para que la carta no salte: <b>Combina bien con</b> y los compañeros como círculos (pasa el mouse por uno: dice su nombre), más la primera frase de la descripción. En la tablet y el celular no hay mouse: sale al tocar, y el pie se queda pegado abajo mientras se recorre la carta (como ya hace hoy).</p>
+  <div class="regla">
+    <div><b>Cuándo</b>Al pasar el mouse, al tocar o al llegar con el teclado. Al soltar, vuelve a «Pasa el mouse o toca un círculo».</div>
+    <div><b>Dónde</b><span class="mono">ElegirColores.tsx</span> › <span class="mono">PieDeLaCarta</span>: de 1 renglón (h-9) a 2 de alto fijo.</div>
+    <div><b>Qué no hace</b>No cambia qué se puede elegir ni entra a la guía de foco: es dato, no campo.</div>
+  </div>
+  <div class="conmutador" role="group" aria-label="Cómo verlo">
+    <button type="button" data-pie="propuesta" aria-pressed="true">Propuesta</button>
+    <button type="button" data-pie="hoy" aria-pressed="false">Cómo es hoy</button>
+  </div>
+
+  <div class="marcos">
+    <div class="marco">
+      <div class="barra"><span><b>Escritorio</b> · la carta abierta con «Ver los 96 colores»</span><span>Tallas y colores · estás aquí</span></div>
+      <div class="cuerpo"><div class="carta" data-carta="escritorio"></div></div>
+    </div>
+    <div class="marco movil">
+      <div class="barra"><span><b>Celular · 375 px</b></span><span>el pie se pega abajo</span></div>
+      <div class="cuerpo"><div class="carta" data-carta="movil"></div></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ 2 · VENDER ============================ -->
+<section id="vender"><div class="wrap">
+  <p class="label">2 · Vender ▸ «Todo de la prenda» (la hoja que se abre al tocar una tarjeta de la grilla)</p>
+  <h2>Bajo el color que se mira: «Combina bien con» y un «¿Por qué?»</h2>
+  <p class="sub">La hoja ya tiene un bloque con el color, el precio y el stock del color que se está mirando (pasar por una fila lo anticipa, tocarla lo fija). Debajo entra una línea con los compañeros como círculos: <b>primero los que cuelgan en esta sede</b> (con stock real de TRU, leído de producción); uno que no hay aquí se ve apagado y, al pasar, dice «no hay aquí». La frase del color va detrás de <b>¿Por qué?</b>: a un toque, nunca a la vista por defecto. El ticket, la grilla y el botón Cobrar no cambian. La terminal de ventas no ve Productos, así que este es el único lugar del mostrador donde se mira un color.</p>
+  <div class="regla">
+    <div><b>Cuándo</b>Con el color que se mira: al pasar por una fila de la lista o al fijarla. Sin ficha (un color creado a mano), no se dibuja nada.</div>
+    <div><b>Dónde</b><span class="mono">OpcionesDePrendaModal.tsx</span>, bajo «Color · precio · stock». El código del color ya viene en la consulta de Vender y hoy se descarta.</div>
+    <div><b>Qué no hace</b>No sugiere prendas ni toca el ticket: la vendedora lee los compañeros y mira el piso. Lo de «con este Polo Beige: Pantalón Azul marino, 2 aquí» es otra decisión (ver la investigación).</div>
+  </div>
+
+  <div class="marcos">
+    <div class="marco">
+      <div class="barra"><span><b>Escritorio</b> · Vender ▸ Blusa Camisera Crop Aterciopelada</span><span>Tienda TRU</span></div>
+      <div class="cuerpo"><div class="hoja" data-hoja="escritorio"></div></div>
+    </div>
+    <div class="marco movil">
+      <div class="barra"><span><b>Celular · 375 px</b></span><span>obligatorio en Vender</span></div>
+      <div class="cuerpo"><div class="hoja" data-hoja="movil"></div></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ 3 · CATÁLOGO ============================ -->
+<section id="catalogo"><div class="wrap">
+  <p class="label">3 · Catálogo ▸ Productos ▸ vista rápida</p>
+  <h2>Bajo la foto, una línea del color que está en la foto</h2>
+  <p class="sub">La foto ya sigue al color por el que se pasa en la matriz, y un clic lo deja fijo. La línea «Combina bien con» sigue a la foto, con alto fijo para que la hoja no cambie de tamaño bajo el mouse; los círculos marcan qué cuelga en la sede. «Sobre este color» abre la frase. Es del color; la descripción de la prenda, más abajo, sigue siendo de la prenda.</p>
+  <div class="regla">
+    <div><b>Cuándo</b>Sigue al color que está en la foto (vista previa al pasar, fijado al hacer clic). Una línea; la frase, a un toque.</div>
+    <div><b>Dónde</b><span class="mono">VistaRapidaProducto.tsx</span>, bajo <span class="mono">vr-pie-foto</span>. La página de Productos ya lee el vocabulario de colores.</div>
+    <div><b>Quién lo ve</b>Integrante, Líder y Almacén. No la terminal de ventas (no tiene Productos).</div>
+  </div>
+
+  <div class="marcos">
+    <div class="marco">
+      <div class="barra"><span><b>Escritorio</b> · Catálogo ▸ Productos ▸ Adelle Wide Leg</span><span>vista rápida</span></div>
+      <div class="cuerpo"><div class="vr" data-vr="escritorio"></div></div>
+    </div>
+    <div class="marco movil">
+      <div class="barra"><span><b>Celular · 375 px</b></span><span>la hoja ocupa todo</span></div>
+      <div class="cuerpo"><div class="vr" data-vr="movil"></div></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ 4 · LO QUE NO CAMBIA ============================ -->
+<section id="reglas"><div class="wrap">
+  <p class="label">4 · Lo que no cambia, a propósito</p>
+  <h2>Una pieza, nombres, y nada en reposo</h2>
+  <div class="no">
+    <div><b>Una sola pieza en los tres lugares</b><span class="mono">FichaDelColor</span>: la descripción y «Va con» resueltos por código contra el vocabulario activo. Se corrige en Atributos sin deploy y llega sola a las tres pantallas.</div>
+    <div><b>Círculos que dicen su nombre</b>De 20 px (no los 12 px de Atributos: Perla, Crudo y Beige se confundían) y el nombre aparece al pasar el mouse o al tocar, siempre en el mismo hueco. Solo colores vigentes: un compañero sin stock en la sede se ve apagado.</div>
+    <div><b>Nada en el ticket, la grilla ni Cobrar</b>El momento del cobro no se toca. Tampoco la etiqueta impresa (1,4 mm libres) ni el ticket térmico (no imprime ni talla · color, por decisión).</div>
+    <div><b>Sin ficha, sin nada</b>Un color creado a mano sin descripción (Azul acero, Azul natural, hielo bleach, Crema) no dibuja nada. Nunca un «sin datos».</div>
+    <div><b>Solo tokens y sin bucle</b>La muestra del color es dato (no cambia en oscuro); todo lo demás sale de la paleta. El «¿Por qué?» entra una vez, sin rebote.</div>
+    <div><b>Las 92 fichas se escribieron a mano</b>Siguen a revisar por Felipe en Atributos ▸ Colores. En el alta pueden salir ya (interno); en el mostrador, cuando él diga.</div>
+  </div>
+  <p class="nota">Lo que sigue y es otra decisión: sugerir <em>prendas</em> («con este Polo Beige: Pantalón Azul marino, 2 en TRU»). Para eso hace falta saber qué categoría acompaña a cuál, y hoy la base no lo sabe. Está en la investigación aparte, con los datos reales de ventas.</p>
+</div></section>
+
+<script>
+/* Los 96 colores activos de producción el 2026-10-10 (select de solo lectura sobre retail.colores).
+   c código · n nombre · h hex · f familia · t tipo · p Pantone · d descripción · v combina_con */
+const COLORES = [
+{c:"BLA",n:"Blanco",h:"#ffffff",f:"neutro",t:"solido",p:"11-0601 TCX",d:"Luminoso y limpio: da frescura y sensación de amplitud. El básico del verano y de las telas ligeras; fácil de llevar de día a noche. Pide cuidado porque marca el uso.",v:["NEG","AZM","CAM","ROJ","VEB","DOR"]},
+{c:"CRU",n:"Crudo",h:"#F3ECE0",f:"neutro",t:"solido",p:"11-0103 TCX",d:"Blanco cálido, más suave que el blanco puro. Aporta una elegancia tranquila a lino, punto y algodón, y se luce en looks tono sobre tono con arena y beige.",v:["CAM","AZM","VOL","TER","MSA","NEG"]},
+{c:"PER",n:"Perla",h:"#f5f4ef",f:"neutro",t:"solido",p:null,d:"Gris perlado muy claro, suave y fresco: entre el blanco y el gris, sin el calor del Crudo. Discreto y fácil de combinar; bonito en blusas y vestidos de aire romántico.",v:["NEG","AZM","PAL","LIL","ORR"]},
+{c:"NUD",n:"Nude",h:"#F2D3BC",f:"neutro",t:"solido",p:"12-0911 TCX",d:"Tono piel suave que alarga la silueta y casi no se nota bajo otras prendas. Sofisticado en básicos, calzado y conjuntos tono sobre tono.",v:["BLA","NEG","CHO","MSA","VOL","ORR"]},
+{c:"GRP",n:"Gris perla",h:"#C5C5C5",f:"neutro",t:"solido",p:"14-4201 TCX",d:"Gris claro, frío y ligero. Se ve limpio y moderno y da luz sin llegar al blanco; muy usado en camisas, chaquetas ligeras y ropa deportiva.",v:["GRA","AZM","VIN","PAL","BLA"]},
+{c:"GPI",n:"Gris piedra",h:"#C3BDAB",f:"neutro",t:"solido",p:"14-0105 TCX",d:"Gris cálido y suave, entre el gris y el beige. Sobrio y moderno; funciona en sastrería ligera, punto y tejidos naturales.",v:["NEG","BLA","AZM","VEM","MSA"]},
+{c:"GRM",n:"Gris melange",h:"#A2A2A1",f:"neutro",t:"textura",p:"14-5002 TCX",d:"Gris jaspeado de aspecto informal y cómodo. Clásico del punto y la ropa de diario; disimula mejor las arrugas y el uso que un gris liso.",v:["NEG","BLA","AZM","ROJ","VEB"]},
+{c:"GRI",n:"Gris",h:"#848587",f:"neutro",t:"solido",p:"17-3914 TCX",d:"Gris medio, neutro y discreto. Sobrio para la oficina y el uso diario; deja que destaque el color con el que se combina.",v:["BLA","NEG","FUC","COB","MOS"]},
+{c:"GRA",n:"Gris antracita",h:"#48464A",f:"neutro",t:"solido",p:"19-3907 TCX",d:"Gris muy oscuro, casi negro pero más suave. Serio y moderno; una alternativa elegante al negro en sastrería, jeans oscuros y abrigos.",v:["BLA","CRU","PAL","MOS","VEB","VIN"]},
+{c:"NEG",n:"Negro",h:"#2D2C2F",f:"neutro",t:"solido",p:"19-0303 TCX",d:"Intenso y atemporal: estiliza, disimula y se ve elegante en cualquier ocasión. El fondo ideal para un color vivo o un metal; se desgasta con los lavados.",v:["BLA","CRU","ROJ","FUC","DOR","PLA"]},
+{c:"FFF",n:"Crema",h:"#fff8e7",f:"neutro",t:"solido",p:null,d:null,v:[]},
+{c:"BEI",n:"Beige",h:"#D5BA98",f:"tierra",t:"solido",p:"14-1118 TCX",d:"Neutro cálido y versátil que transmite calma y elegancia sin esfuerzo. Base de los looks de oficina y de media estación; combina con casi todo.",v:["BLA","NEG","AZM","CHO","VOL","TER"]},
+{c:"ARN",n:"Arena",h:"#CCA67F",f:"tierra",t:"solido",p:"15-1225 TCX",d:"Beige dorado y cálido, entre el beige y el camel. Aire natural y veraniego; muy bueno en lino, pantalones y calzado.",v:["BLA","CRU","AZM","TER","VEB","NEG"]},
+{c:"CAQ",n:"Caqui",h:"#A39264",f:"tierra",t:"solido",p:"16-0726 TCX",d:"Verde pardo de tierra, de aire casual y utilitario. Resistente para pantalones, chaquetas y prendas de diario; se mezcla fácil con neutros.",v:["BLA","CRU","AZM","TER","MSA","NEG"]},
+{c:"CAM",n:"Camel",h:"#B0885B",f:"tierra",t:"solido",p:"17-1045 TCX",d:"Marrón claro dorado, cálido y elegante. Clásico de abrigos y accesorios; da aspecto de calidad y combina con casi todo.",v:["BLA","NEG","AZM","CRU","VIN","VEB"]},
+{c:"MOK",n:"Moka",h:"#A47864",f:"tierra",t:"solido",p:"17-1230 TCX",d:"Marrón rosado suave, cálido y acogedor, de aire contemporáneo. Ideal en punto, básicos y looks tono sobre tono.",v:["CRU","CHO","NEG","VOL","AZM","ORR"]},
+{c:"TOS",n:"Tostado",h:"#A47045",f:"tierra",t:"solido",p:"16-1438 TCX",d:"Marrón anaranjado cálido, como cuero o canela. Da calidez y aire artesanal; muy bueno en cuero, gamuza y tejidos de otoño.",v:["CRU","BLA","AZM","VEB","MOS","NEG"]},
+{c:"TOP",n:"Topo",h:"#82776B",f:"tierra",t:"solido",p:"18-1110 TCX",d:"Gris pardo cálido, entre el gris y el marrón. Elegante y de aire natural; muy bueno en sastrería, abrigos y accesorios.",v:["CRU","BLA","CHO","MSA","VOL","AZM"]},
+{c:"TER",n:"Terracota",h:"#B3573F",f:"tierra",t:"solido",p:"18-1451 TCX",d:"Naranja de barro, terroso y vivo a la vez, de aire mediterráneo y artesanal. Da carácter sin gritar; ideal en vestidos, lino y accesorios.",v:["CRU","BLA","VOL","AZP","CHO","CAM"]},
+{c:"MAC",n:"Coñac",h:"#864C24",f:"tierra",t:"solido",p:"18-1148 TCX",d:"Marrón rojizo profundo, como el cuero curtido. Elegante y cálido; se ve de calidad en calzado, bolsos, cinturones y abrigos.",v:["CRU","BLA","AZM","NEG","VEB","DOR"]},
+{c:"MAR",n:"Marrón",h:"#694833",f:"tierra",t:"solido",p:"18-1028 TCX",d:"Marrón clásico y sobrio, sencillo de llevar. Base sólida para otoño e invierno en abrigos y calzado; da seriedad sin la dureza del negro.",v:["CRU","BEI","AZD","VOL","DOR"]},
+{c:"CHO",n:"Chocolate",h:"#4B342F",f:"tierra",t:"solido",p:"19-1419 TCX",d:"Marrón muy oscuro, casi negro cálido. Elegante y envolvente; una alternativa suave al negro, excelente en sastrería, cuero y punto.",v:["CRU","BEI","NUD","BLA","PAL"]},
+{c:"ROS",n:"Rosado",h:"#F0A1BF",f:"rosado",t:"solido",p:"14-2311 TCX",d:"Rosa clásico y alegre. Transmite dulzura y energía joven; funciona de día en prendas casuales y también en ocasiones festivas.",v:["BLA","GRI","AZD","VEA","CAM","ORR"]},
+{c:"PAL",n:"Palo rosa",h:"#D9A6A1",f:"rosado",t:"solido",p:"15-1515 TCX",d:"Rosa apagado y empolvado, con aire vintage. Más sofisticado que el rosa vivo; queda elegante en blusas, vestidos y accesorios.",v:["CRU","GRA","AZM","VEB","ORR","CAM"]},
+{c:"FUC",n:"Fucsia",h:"#CF2D71",f:"rosado",t:"solido",p:"18-2143 TCX",d:"Rosa intenso y atrevido, con máxima presencia. Ideal como prenda protagonista, en fiesta o para dar un toque de color al día a día.",v:["BLA","NEG","AZM","VEB","NAR"]},
+{c:"RCH",n:"Rosa chicle",h:"#E96A97",f:"rosado",t:"solido",p:"16-2126 TCX",d:"Rosa vivo y juvenil, con mucha energía. Llama la atención y levanta el ánimo; mejor como pieza protagonista con neutros.",v:["BLA","NEG","GRI","VEM","DOR"]},
+{c:"RPA",n:"Rosa pálido",h:"#F7D1D1",f:"rosado",t:"solido",p:"12-1706 TCX",d:"Rosa muy suave y delicado, casi un neutro cálido. Transmite ternura y frescura; bonito en blusas, vestidos y ropa de verano.",v:["BLA","GRA","AZD","VJA","ORR"]},
+{c:"RSA",n:"Rosa sandía",h:"#CF6977",f:"rosado",t:"solido",p:"17-1927 TCX",d:"Rosa cálido con un toque de coral. Fresco y veraniego, de aire festivo y de vacaciones.",v:["BLA","CRU","VJA","AZD","CAM"]},
+{c:"COR",n:"Coral",h:"#EA6759",f:"rojo",t:"solido",p:"17-1547 TCX",d:"Naranja rosado, cálido y alegre. Aire de verano y de vacaciones; favorece la prenda protagonista y se lleva muy bien con neutros.",v:["BLA","CRU","AZM","TUR","CAM","ORR"]},
+{c:"ROJ",n:"Rojo",h:"#BD332D",f:"rojo",t:"solido",p:"18-1549 TCX",d:"Rojo clásico, intenso y atemporal. Transmite fuerza y seguridad; una sola prenda roja basta para armar el look.",v:["BLA","NEG","AZM","AZD","VEB","CAM"]},
+{c:"FRA",n:"Frambuesa",h:"#A52350",f:"rojo",t:"solido",p:"19-2039 TCX",d:"Rojo rosado y jugoso, intenso y fresco. Da color con elegancia; funciona en fiesta y en prendas de abrigo.",v:["BLA","GRI","AZM","VEB","CRU","DOR"]},
+{c:"CER",n:"Cereza",h:"#9B1B30",f:"rojo",t:"solido",p:"19-1557 TCX",d:"Rojo oscuro y brillante, elegante y seductor. Más profundo que el rojo clásico; ideal en vestidos, abrigos y accesorios de noche.",v:["BLA","CRU","NEG","AZM","VEB","DOR"]},
+{c:"VIN",n:"Vino",h:"#6C2831",f:"rojo",t:"solido",p:"19-1930 TCX",d:"Rojo muy oscuro con fondo morado. Sofisticado y serio, el color de otoño e invierno por excelencia y una alternativa elegante al negro.",v:["CRU","GRA","VEB","CAM","ORR","BLA"]},
+{c:"MSA",n:"Marsala",h:"#964F4C",f:"rojo",t:"solido",p:"18-1438 TCX",d:"Rojo pardo, apagado y profundo, como vino tinto con tierra. Sofisticado y acogedor; muy bueno en otoño e invierno.",v:["CRU","BEI","GRA","VEB","CAM","DOR"]},
+{c:"RTO",n:"Rojo tomate",h:"#EB3C27",f:"rojo",t:"solido",p:"17-1563 TCX",d:"Rojo vivo y anaranjado, lleno de energía. Se nota desde lejos; funciona como acento en prendas ligeras y de verano.",v:["BLA","CRU","AZD","NEG","VEM"]},
+{c:"DUR",n:"Durazno",h:"#FFBE98",f:"naranja",t:"solido",p:"13-1023 TCX",d:"Naranja pálido y rosado, suave y amable. Aporta calidez y frescura sin ser estridente; romántico en blusas, vestidos y lencería.",v:["BLA","CRU","AZD","VJA","CAM"]},
+{c:"SAL",n:"Salmón",h:"#FAA181",f:"naranja",t:"solido",p:"15-1331 TCX",d:"Rosa anaranjado, cálido y favorecedor. Suave pero con presencia; perfecto para el verano y para prendas de día.",v:["BLA","CRU","AZM","VEB","CAM"]},
+{c:"MAN",n:"Mandarina",h:"#EE9626",f:"naranja",t:"solido",p:"15-1054 TCX",d:"Naranja vivo y dorado, soleado y energético. Pide protagonismo; muy bueno en accesorios, tops y prendas de verano.",v:["BLA","NEG","AZM","TUR","CRU"]},
+{c:"NAR",n:"Naranja",h:"#E8703A",f:"naranja",t:"solido",p:"17-1360 TCX",d:"Naranja intenso, fuerte y alegre. Transmite energía y cercanía; destaca con neutros y con azules.",v:["BLA","NEG","AZM","COB","GRI"]},
+{c:"ALB",n:"Albaricoque",h:"#F7B26A",f:"naranja",t:"solido",p:"15-1145 TCX",d:"Naranja claro y dulce, luminoso y cálido. Da un aspecto alegre y soleado; muy bueno en verano, en lino y algodón.",v:["BLA","CRU","AZM","AZU","CAM"]},
+{c:"AMB",n:"Ámbar",h:"#BB7A2C",f:"naranja",t:"solido",p:"17-1048 TCX",d:"Naranja miel, dorado y cálido, como el ámbar. Elegante y envolvente; muy bueno en otoño, en punto, terciopelo y accesorios.",v:["CRU","CHO","AZM","VEB","NEG","DOR"]},
+{c:"NQU",n:"Naranja quemado",h:"#C46316",f:"naranja",t:"solido",p:"17-1145 TCX",d:"Naranja oscuro y terroso, de aire otoñal. Cálido y con carácter; combina muy bien con neutros y azules profundos.",v:["CRU","BLA","AZM","AZP","CHO","VOL"]},
+{c:"VAI",n:"Vainilla",h:"#F2E6B1",f:"amarillo",t:"solido",p:"11-0616 TCX",d:"Amarillo pálido y cremoso, casi un neutro cálido. Suave, luminoso y fácil de llevar; combina con neutros y pasteles.",v:["BLA","CRU","CEL","LIL","CAM"]},
+{c:"AMM",n:"Amarillo mantequilla",h:"#FEDF87",f:"amarillo",t:"solido",p:null,d:"Amarillo suave y cremoso, delicado y alegre. Da luz sin cansar; muy bueno en verano y en prendas ligeras.",v:["BLA","CRU","CEL","AZD","CAM"]},
+{c:"AML",n:"Amarillo limón",h:"#EADA4F",f:"amarillo",t:"solido",p:"13-0646 TCX",d:"Amarillo fresco y cítrico, muy luminoso. Aporta energía y sensación de verano; mejor en piezas protagonistas o accesorios.",v:["BLA","GRI","AZM","NEG","GLI"]},
+{c:"AMA",n:"Amarillo",h:"#F0C05A",f:"amarillo",t:"solido",p:"14-0848 TCX",d:"Amarillo luminoso y alegre, cálido y optimista. Da buen ánimo y se ve muy bien de día y en verano.",v:["BLA","GRI","NEG","AZD","AZM","LIL"]},
+{c:"MOS",n:"Mostaza",h:"#C89721",f:"amarillo",t:"solido",p:"16-0952 TCX",d:"Amarillo oscuro y terroso, cálido y con carácter. Muy bueno en otoño y en punto; combina con azules, marrones y neutros.",v:["AZM","CRU","CHO","VEB","GRI","BLA"]},
+{c:"ACH",n:"Amarillo chartreuse",h:"#B8AF23",f:"amarillo",t:"solido",p:"15-0548 TCX",d:"Amarillo verdoso, fresco y moderno. Muy llamativo: mejor en pocas prendas protagonistas y acompañado de neutros oscuros.",v:["NEG","GRA","AZM","VEB","BLA","CHO"]},
+{c:"GIR",n:"Girasol",h:"#FFB000",f:"amarillo",t:"solido",p:"15-1062 TCX",d:"Amarillo dorado e intenso, como el girasol. Máxima alegría y presencia; funciona con azules y neutros.",v:["AZM","BLA","NEG","AZD","CRU"]},
+{c:"PIS",n:"Pistacho",h:"#BED38E",f:"verde",t:"solido",p:"13-0324 TCX",d:"Verde amarillento muy suave, fresco y dulce. Aporta calma y aire primaveral; bonito en blusas, vestidos y básicos ligeros.",v:["BLA","CRU","AZD","PAL","CAM"]},
+{c:"VEL",n:"Verde limón",h:"#9FC131",f:"verde",t:"solido",p:"14-0452 TCX",d:"Verde cítrico y vibrante, lleno de energía. Pide protagonismo; ideal en ropa deportiva, en verano y como acento.",v:["BLA","NEG","AZM","GRI","GLI"]},
+{c:"SAV",n:"Salvia",h:"#A1AD92",f:"verde",t:"solido",p:"15-6414 TCX",d:"Verde grisáceo y suave, tranquilo y natural. Elegante y relajado; buen compañero de neutros y tierras.",v:["CRU","BEI","BLA","TER","CHO"]},
+{c:"VOL",n:"Verde oliva",h:"#6A6F34",f:"verde",t:"solido",p:"18-0435 TCX",d:"Verde pardo apagado, sobrio y natural. De aire utilitario y elegante a la vez; se lleva con neutros, tierras y metales cálidos.",v:["CRU","BLA","CAM","TER","NEG","DOR"]},
+{c:"VEM",n:"Verde militar",h:"#4B5335",f:"verde",t:"solido",p:"19-0323 TCX",d:"Verde oscuro mate, de aire utilitario y duradero. Casual y resistente; la base del estilo urbano en chaquetas, pantalones y parkas.",v:["BLA","CRU","NEG","CAM","MOS"]},
+{c:"VEA",n:"Verde agua",h:"#A1D7C9",f:"verde",t:"solido",p:"13-5409 TCX",d:"Verde azulado suave, sereno y fresco. Transmite calma; muy bonito en verano y en conjuntos tono sobre tono con celestes.",v:["BLA","CRU","CEL","ROS","CAM"]},
+{c:"ESM",n:"Esmeralda",h:"#009B74",f:"verde",t:"solido",p:"17-5936 TCX",d:"Verde azulado intenso y brillante, lujoso y vibrante. Elegante en fiesta y de noche; destaca con negro, dorado y neutros.",v:["BLA","NEG","CRU","RPA","DOR"]},
+{c:"VER",n:"Verde",h:"#487D49",f:"verde",t:"solido",p:"17-6333 TCX",d:"Verde clásico, natural y equilibrado. Transmite frescura y estabilidad; combina bien con neutros, tierras y blanco.",v:["BLA","CRU","CAM","AZD","NEG"]},
+{c:"VEB",n:"Verde botella",h:"#264E36",f:"verde",t:"solido",p:"19-6050 TCX",d:"Verde muy oscuro y elegante, de aire clásico. Sobrio y rico: una alternativa distinguida al negro y al azul marino en otoño e invierno.",v:["CRU","BLA","CAM","VIN","DOR","PAL"]},
+{c:"MEN",n:"Menta",h:"#D2E8DF",f:"verde",t:"solido",p:"12-5407 TCX",d:"Verde azulado muy pálido, fresco y limpio. Da sensación de calma y frescura; ideal para verano y prendas ligeras.",v:["BLA","GRI","ROS","AZM","ORR"]},
+{c:"VHO",n:"Verde hoja",h:"#75A14F",f:"verde",t:"solido",p:"16-0237 TCX",d:"Verde de hoja fresca, natural y vivo. Transmite frescura y aire libre; funciona de día, en prendas casuales y en estampados.",v:["BLA","CRU","AZD","CAM","NEG"]},
+{c:"VJA",n:"Verde jade",h:"#70A38D",f:"verde",t:"solido",p:"16-5919 TCX",d:"Verde profundo y suave a la vez, elegante y sereno. Aporta una sofisticación tranquila; muy bueno en blusas, vestidos y sastrería ligera.",v:["CRU","BLA","NEG","MSA","CAM"]},
+{c:"CEL",n:"Celeste",h:"#A9CADA",f:"azul",t:"solido",p:"14-4311 TCX",d:"Azul muy claro y sereno, fresco como el cielo. Transmite calma y limpieza; muy bueno en camisas y en verano.",v:["BLA","CRU","AZM","CAM","PAL"]},
+{c:"TUR",n:"Turquesa",h:"#33BECC",f:"azul",t:"solido",p:"15-4825 TCX",d:"Azul verdoso vivo y tropical, fresco y alegre. Aire de playa y de verano; como acento con blancos y neutros destaca mucho.",v:["BLA","CRU","CAM","COR","GRI"]},
+{c:"AZP",n:"Azul petróleo",h:"#2A5C6A",f:"azul",t:"solido",p:"19-4826 TCX",d:"Azul verdoso oscuro, profundo y distinguido. Elegante y poco común; funciona en sastrería, vestidos y accesorios.",v:["CRU","BLA","CAM","TER","DOR"]},
+{c:"AZC",n:"Azul claro",h:"#80A0D4",f:"azul",t:"solido",p:"15-3930 TCX",d:"Azul suave y limpio, amable y fresco. Fácil de llevar de día y en la oficina; muy clásico en camisas.",v:["BLA","AZM","CAM","GRI","ROS"]},
+{c:"AZD",n:"Azul denim",h:"#5979A2",f:"azul",t:"solido",p:"17-4027 TCX",d:"Azul mezclilla, casual y confiable: el color del jean. Se lleva con casi todo, de día y de uso diario, y envejece bien con los lavados.",v:["BLA","CRU","CAM","MOS","ROJ","GRI"]},
+{c:"AZE",n:"Azul eléctrico",h:"#2E5BF2",f:"azul",t:"solido",p:null,d:"Azul eléctrico, vibrante y moderno: el azul que más se nota. Da energía y personalidad a una prenda protagonista; se ve mejor con neutros limpios.",v:["BLA","CRU","NEG","GRI","MOS","CAM"]},
+{c:"AZI",n:"Azul Intermedio",h:"#56626e",f:"azul",t:"solido",p:null,d:"Gris azulado oscuro, sobrio y discreto. Casi un neutro: funciona como base en la oficina y el uso diario.",v:["BLA","CRU","CAM","PAL","MOS"]},
+{c:"AME",n:"Azul medio",h:"#4A638D",f:"azul",t:"solido",p:"18-3928 TCX",d:"Azul de lavado medio, algo más oscuro y sobrio que el denim: el azul de la camisa Oxford y del jean de lavado medio. Versátil y fácil de llevar; combina con casi todo.",v:["BLA","CRU","BEI","CAM","MOS","GRI"]},
+{c:"COB",n:"Cobalto",h:"#00539C",f:"azul",t:"solido",p:"19-4150 TCX",d:"Azul profundo y puro, vivo y elegante. Transmite confianza y claridad; muy bueno como color de acento y de noche.",v:["BLA","CRU","NEG","GRI","CAM","NAR"]},
+{c:"IND",n:"Índigo",h:"#49516D",f:"azul",t:"solido",p:"19-3928 TCX",d:"Azul oscuro con fondo gris, de aire denim y sobrio. Muy versátil, de día y de noche: una alternativa más suave al negro.",v:["BLA","CRU","CAM","MOS","ROJ","GRI"]},
+{c:"AZM",n:"Azul marino",h:"#2A304E",f:"azul",t:"solido",p:"19-3933 TCX",d:"Azul muy oscuro, serio y elegante: el neutro clásico junto al negro. Sienta bien en oficina y sastrería, y combina con casi todo.",v:["BLA","CRU","CAM","ROJ","DOR","GRI"]},
+{c:"AZU",n:"Azul",h:"#4D91C6",f:"azul",t:"solido",p:"17-4139 TCX",d:"Azul medio brillante y luminoso, como un cielo despejado. Alegre y limpio; funciona de día, en verano y en prendas casuales.",v:["BLA","CRU","CAM","ALB","NEG"]},
+{c:"AZA",n:"Azul acero",h:"#b0c4de",f:"azul",t:"solido",p:null,d:null,v:["CRU"]},
+{c:"AZN",n:"Azul natural",h:"#2a2a6f",f:"azul",t:"solido",p:null,d:null,v:[]},
+{c:"AZF",n:"Azul zafiro",h:"#203C7F",f:"azul",t:"solido",p:"19-3952 TCX",d:"Azul oscuro intenso y brillante, como la piedra. Elegante y de noche; destaca con blanco, dorado y plata.",v:["BLA","CRU","DOR","PLA","PAL"]},
+{c:"HIB",n:"hielo bleach",h:"#b4d7ff",f:"azul",t:"solido",p:null,d:null,v:[]},
+{c:"LAV",n:"Lavanda",h:"#D2C4D6",f:"morado",t:"solido",p:"13-3820 TCX",d:"Lila grisáceo muy suave, delicado y sereno. Transmite calma; muy bonito en verano y en conjuntos con neutros claros.",v:["BLA","CRU","GRI","MEN","ORR"]},
+{c:"LIL",n:"Lila",h:"#BCA4CB",f:"morado",t:"solido",p:"15-3620 TCX",d:"Morado claro y fresco, suave y primaveral. Romántico y moderno a la vez; bonito de día y en verano.",v:["BLA","CRU","GRI","VAI","ORR"]},
+{c:"VIO",n:"Violeta",h:"#7A3FB6",f:"morado",t:"solido",p:null,d:"Morado intenso y vibrante, creativo y con mucha presencia. Distinguido en prendas protagonistas y accesorios; los neutros lo calman.",v:["BLA","GRI","AML","AZM","DOR"]},
+{c:"MOR",n:"Morado",h:"#563474",f:"morado",t:"solido",p:"19-3638 TCX",d:"Morado oscuro y rico, elegante y misterioso. Aire de noche y de invierno; destaca con dorado y neutros.",v:["CRU","BLA","GRI","DOR","MOS"]},
+{c:"MAL",n:"Malva",h:"#B88AAC",f:"morado",t:"solido",p:"16-3110 TCX",d:"Rosa morado apagado, suave y elegante. Aire vintage y delicado; combina bien con grises, verdes suaves y neutros cálidos.",v:["CRU","GRI","SAV","CAM","ORR"]},
+{c:"ORQ",n:"Orquídea",h:"#AD5E99",f:"morado",t:"solido",p:"18-3224 TCX",d:"Rosa violáceo vivo, alegre y sofisticado. Más intenso que el malva; muy bueno en prendas protagonistas.",v:["BLA","GRI","VEB","AZM","ORR"]},
+{c:"MOA",n:"Mora",h:"#854C65",f:"morado",t:"solido",p:"18-1716 TCX",d:"Morado rosado oscuro, profundo y sensual. Elegante en otoño e invierno; sofisticado con neutros.",v:["CRU","GRI","VEB","CAM","ORR"]},
+{c:"CIR",n:"Ciruela",h:"#692D5D",f:"morado",t:"solido",p:"19-2820 TCX",d:"Morado rojizo oscuro, rico y elegante. Muy bueno en otoño, de noche y en accesorios; una alternativa sofisticada al negro.",v:["CRU","GRI","DOR","VEB","ORR"]},
+{c:"BER",n:"Berenjena",h:"#47253C",f:"morado",t:"solido",p:"19-2620 TCX",d:"Morado casi negro, serio y profundo. Muy elegante: funciona como sustituto del negro, con dorado y neutros claros.",v:["CRU","BLA","GRI","DOR","PAL"]},
+{c:"GLI",n:"Glicina",h:"#8B79B1",f:"morado",t:"solido",p:"17-3730 TCX",d:"Violeta azulado suave, sereno y elegante. Distinguido en blusas y vestidos; combina con azules, grises y neutros.",v:["BLA","GRI","AZM","AML","PLA"]},
+{c:"CHA",n:"Champán",h:"#E2D1A6",f:"metalico",t:"solido",p:null,d:"Dorado pálido y suave, elegante y festivo sin ser llamativo. Ideal en fiesta y accesorios; combina con neutros claros y pasteles.",v:["BLA","CRU","NEG","RPA","AZM"]},
+{c:"PLA",n:"Plateado",h:"#B8BCC0",f:"metalico",t:"solido",p:null,d:"Metal frío y brillante, moderno y limpio. Aporta luz y aire festivo; combina con azules, grises, negro y blanco.",v:["NEG","BLA","GRA","AZM","GLI"]},
+{c:"ORR",n:"Oro rosa",h:"#D6A08C",f:"metalico",t:"solido",p:null,d:"Metal cálido con matiz rosado, suave y moderno. Delicado y elegante; combina con rosas, neutros y azul marino.",v:["BLA","CRU","NEG","PAL","AZM","GRA"]},
+{c:"DOR",n:"Dorado",h:"#C8A951",f:"metalico",t:"solido",p:null,d:"Metal cálido y brillante, lujoso y festivo. Realza el negro, el verde botella y el azul marino; ideal en fiesta y accesorios.",v:["NEG","VEB","AZM","VIN","BLA","CRU"]},
+{c:"ORV",n:"Oro viejo",h:"#A68A45",f:"metalico",t:"solido",p:null,d:"Dorado envejecido, apagado y elegante. Menos llamativo que el dorado; sofisticado en joyería, herrajes y prendas de otoño.",v:["NEG","VEB","CHO","VIN","CRU","AZM"]},
+{c:"PLV",n:"Plata vieja",h:"#8C8D88",f:"metalico",t:"solido",p:null,d:"Plata envejecida y apagada, discreta y de aire artesanal. Menos brillo que el plateado; elegante en joyería y herrajes.",v:["NEG","GRA","BLA","AZM","VIN"]},
+{c:"COE",n:"Cobre",h:"#B46A3C",f:"metalico",t:"solido",p:null,d:"Metal rojizo, cálido y con carácter. Aire artesanal y otoñal; combina con verdes, marrones y neutros oscuros.",v:["CRU","NEG","VEB","CHO","AZM","BLA"]},
+{c:"BRO",n:"Bronce",h:"#8C6B3B",f:"metalico",t:"solido",p:null,d:"Metal pardo y apagado, sobrio y robusto. De aire clásico; combina con tierras, verdes y neutros.",v:["CRU","NEG","VEB","CHO","AZM","BLA"]},
+];
+const POR = new Map(COLORES.map(c => [c.c, c]));
+const FAMILIAS = [["neutro","Neutro"],["tierra","Tierra"],["rosado","Rosado"],["rojo","Rojo"],["naranja","Naranja"],["amarillo","Amarillo"],["verde","Verde"],["azul","Azul"],["morado","Morado"],["metalico","Metálico"]];
+const FAM = Object.fromEntries(FAMILIAS);
+
+/* La regla pura que tendría lib/ficha-del-color.ts: compañeros activos en el orden guardado, sin el propio; null si no hay ficha. */
+function ficha(codigo) {
+  const c = POR.get(codigo);
+  if (!c || (!c.d && c.v.length === 0)) return null;
+  const vaCon = c.v.filter(k => k !== codigo).map(k => POR.get(k)).filter(Boolean);
+  return { descripcion: c.d, vaCon };
+}
+function primeraFrase(t) { if (!t) return ""; const i = t.indexOf(". "); return i > 0 ? t.slice(0, i + 1) : t; }
+function nombres(lista, sep) { return lista.map(x => x.n).join(sep); }
+/* Unidades en el piso de Tienda TRU por color (select de solo lectura, 2026-10-10): lo que de verdad cuelga. Fuera de la lista = no hay. */
+const STOCK_TRU = {BLA:130,BEI:123,NEG:116,CEL:96,CHO:80,VIN:72,CRU:66,MAR:57,MOK:56,AZC:46,GRA:29,AZD:28,AME:25,NUD:24,AZM:23,CAM:22,TOP:18,ROJ:15,ARN:13,ROS:13,GRI:12,FFF:11,MAC:11,RPA:10,AZI:10,GRP:9,VAI:9,PER:9,GPI:8,PAL:8,PIS:7,AZE:7,HIB:7,VOL:6,AMM:6,CER:6,MOS:6,TUR:6,RTO:5,AZN:5,GRM:4,FRA:3,LAV:3,AZA:3,RCH:3,TER:3,MSA:2,MOA:2,BER:2,MAN:2,AZF:2,TOS:2,VEA:2,VEM:2,IND:2,COB:2,CAQ:1,MOR:1,VJA:1,NAR:1,GLI:1,NQU:1,COR:1,CIR:1,MAL:1,RSA:1,SAV:1,AMB:1,AML:1,LIL:1};
+const ETIQUETA = "Combina bien con";
+/* La pieza: etiqueta + círculos + el nombre del señalado en un hueco fijo. Con `sede`, los que cuelgan van primero y el nombre dice cuántas. */
+function piezaCombina(vaCon, sede) {
+  let lista = vaCon.map(c => ({ c, aqui: sede ? (STOCK_TRU[c.c] ?? 0) : null }));
+  if (sede) lista = [...lista.filter(x => x.aqui > 0), ...lista.filter(x => x.aqui === 0)];
+  const wrap = document.createElement("span");
+  wrap.className = "vacon";
+  const nombreDe = (x) => x.aqui === null ? x.c.n : x.aqui > 0 ? `${x.c.n} · ${x.aqui} aquí` : `${x.c.n} · no hay aquí`;
+  wrap.innerHTML = `<b>${ETIQUETA}</b><span class="comps" aria-label="${lista.map(nombreDe).join(", ")}">${lista.map(x => `<span class="comp${x.c.t === "textura" ? " textura" : ""}${x.aqui === 0 ? " apagado" : ""}" data-cod="${x.c.c}" title="" style="background:${fondo(x.c)}"></span>`).join("")}</span><span class="comp-nombre"></span>`;
+  const nombre = wrap.querySelector(".comp-nombre");
+  let fijo = null;
+  wrap.querySelectorAll(".comp").forEach(el => {
+    const x = lista.find(y => y.c.c === el.dataset.cod);
+    const senalar = (on) => { wrap.querySelectorAll(".comp").forEach(e => e.classList.toggle("activo", on && e === el)); nombre.textContent = on ? nombreDe(x) : ""; wrap.dispatchEvent(new CustomEvent("senalado", { detail: on })); };
+    el.addEventListener("mouseenter", () => senalar(true));
+    el.addEventListener("mouseleave", () => { if (fijo !== el) senalar(false); });
+    el.addEventListener("click", () => { fijo = fijo === el ? null : el; senalar(fijo === el); });
+  });
+  return wrap;
+}
+function fondo(c) {
+  if (c.f === "metalico") return `linear-gradient(135deg, ${c.h} 0%, #fff8 45%, ${c.h} 70%)`;
+  return c.h;
+}
+function claro(hex) { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 170; }
+function punto(c, grande) { return `<span class="punto${grande ? " grande" : ""}${c.t === "textura" ? " textura" : ""}" style="background:${fondo(c)}" aria-hidden="true"></span>`; }
+
+/* ---------- 1 · la carta ---------- */
+function armarCarta(raiz, modo) {
+  const elegidos = new Set(["AZM"]);
+  raiz.innerHTML = `
+    <div class="busca"><div class="caja">Busca entre los 96 colores: petróleo, coral…</div><div class="btn">Ocultar la carta</div></div>
+    <div class="familias">${FAMILIAS.map(([k, nom]) => `
+      <div class="familia"><p class="nom">${nom}</p><div class="circulos">${COLORES.filter(c => c.f === k).map(c =>
+        `<button type="button" class="circ${c.t === "textura" ? " textura" : ""}" data-cod="${c.c}" aria-label="${c.n}" aria-pressed="${elegidos.has(c.c)}" style="background:${fondo(c)};color:${claro(c.h) ? "var(--tinta-fija)" : "var(--crema-fija)"}">${elegidos.has(c.c) ? "✓" : ""}</button>`).join("")}</div></div>`).join("")}
+    </div>
+    <p class="pie propuesta" aria-hidden="true"></p>`;
+  const pie = raiz.querySelector(".pie");
+  function pintar(c) {
+    const hoy = pie.classList.contains("hoy");
+    if (!c) { pie.innerHTML = `<span class="l1"><span class="vacio">Pasa el mouse o toca un círculo: aquí sale su nombre.</span></span>${hoy ? "" : `<span class="l2"></span>`}`; return; }
+    const f = ficha(c.c);
+    const l1 = `<span class="l1">${punto(c, true)}<span><span class="nombre">${c.n}</span><span class="resto"> · ${FAM[c.f]}${c.p ? " · " + c.p : ""}${elegidos.has(c.c) ? " · elegido" : ""}</span>${c.c === "PER" ? `<span class="conf"> · se confunde con Crudo</span>` : ""}</span></span>`;
+    if (hoy) { pie.innerHTML = l1; return; }
+    pie.innerHTML = l1 + `<span class="l2"></span>`;
+    if (f && f.vaCon.length) {
+      const l2 = pie.querySelector(".l2");
+      const pieza = piezaCombina(f.vaCon, null);
+      l2.appendChild(pieza);
+      if (f.descripcion) {
+        const frase = document.createElement("span"); frase.className = "frase"; frase.textContent = `· ${primeraFrase(f.descripcion)}`;
+        l2.appendChild(frase);
+        // Mientras un compañero está señalado, su nombre ocupa el lugar de la frase.
+        pieza.addEventListener("senalado", (e) => { frase.style.display = e.detail ? "none" : ""; });
+      }
+    }
+  }
+  pintar(null);
+  // El color señalado se queda mientras el mouse siga dentro de la carta (también sobre el pie); al salir, vuelve la pista.
+  raiz.addEventListener("mouseleave", () => pintar(null));
+  raiz.querySelectorAll(".circ").forEach(b => {
+    const c = POR.get(b.dataset.cod);
+    b.addEventListener("mouseenter", () => pintar(c));
+    b.addEventListener("focus", () => pintar(c));
+    b.addEventListener("blur", () => pintar(null));
+    b.addEventListener("click", () => {
+      if (elegidos.has(c.c)) elegidos.delete(c.c); else elegidos.add(c.c);
+      b.setAttribute("aria-pressed", String(elegidos.has(c.c))); b.textContent = elegidos.has(c.c) ? "✓" : "";
+      pintar(c);
+    });
+  });
+  raiz._modoPie = (m) => { pie.classList.toggle("hoy", m === "hoy"); pie.classList.toggle("propuesta", m !== "hoy"); pintar(null); };
+}
+document.querySelectorAll("[data-carta]").forEach(el => armarCarta(el, el.dataset.carta));
+document.querySelectorAll("[data-pie]").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("[data-pie]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  document.querySelectorAll("[data-carta]").forEach(el => el._modoPie(b.dataset.pie));
+}));
+
+/* ---------- 2 · Vender ▸ Todo de la prenda (datos de la captura de Felipe) ---------- */
+const PRENDA_VENDER = {
+  referencia: "Blusa Camisera Crop Aterciopelada", categoria: "Camisas y Blusas", sede: "Tienda TRU", precio: "S/59.90",
+  colores: [
+    { cod: "CEL", piso: 1, alm: 2, tallas: [{ t: "Estándar", piso: 1, alm: 2 }] },
+    { cod: "CAM", piso: 2, alm: 0, tallas: [{ t: "Estándar", piso: 2, alm: 0 }] },
+    { cod: "NEG", piso: 0, alm: 1, tallas: [{ t: "Estándar", piso: 0, alm: 1 }] },
+    { cod: "VIN", piso: 1, alm: 0, tallas: [{ t: "Estándar", piso: 1, alm: 0 }] },
+  ],
+};
+const ICONO_BLUSA = `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M17 8l7 4 7-4 9 5-4 9-5-2v22H17V20l-5 2-4-9z"/><path d="M24 12v4"/></svg>`;
+function stockTexto(c) { return c.piso > 0 ? `${c.piso} en el piso${c.alm ? ` · ${c.alm} en el almacén` : ""}` : c.alm > 0 ? `${c.alm} en el almacén` : "Sin stock aquí"; }
+function armarHoja(raiz) {
+  const p = PRENDA_VENDER;
+  let fijo = p.colores[0].cod, vista = null, abierto = false;
+  raiz.innerHTML = `
+    <div class="cab"><div><h3>${p.referencia}</h3><p>${p.categoria} · 4 colores · ${p.sede}</p></div><span class="x" aria-hidden="true">×</span></div>
+    <div class="cuerpo2">
+      <div class="lado">
+        <div class="foto"></div>
+        <div class="datos">
+          <p class="label">Color</p>
+          <p class="color"></p>
+          <p class="precio">${p.precio}</p>
+          <p class="stock"></p>
+          <div class="vacon-bloque nuevo"></div>
+        </div>
+      </div>
+      <ul class="lista" aria-label="Colores y tallas"></ul>
+    </div>
+    <div class="piehoja"><span class="listo">Listo</span></div>`;
+  const foto = raiz.querySelector(".foto"), color = raiz.querySelector(".color"), stock = raiz.querySelector(".stock"), bloque = raiz.querySelector(".vacon-bloque"), lista = raiz.querySelector(".lista");
+  function pintar() {
+    const cod = vista ?? fijo; const entrada = p.colores.find(x => x.cod === cod); const c = POR.get(cod);
+    foto.style.background = c.h; foto.style.color = claro(c.h) ? "var(--tinta-fija)" : "var(--crema-fija)";
+    foto.innerHTML = `${ICONO_BLUSA}<span class="cat">${p.categoria}</span>`;
+    color.textContent = c.n; stock.textContent = stockTexto(entrada);
+    const f = ficha(cod);
+    if (!f || !f.vaCon.length) { bloque.innerHTML = ""; bloque.classList.remove("abierto"); bloque.style.display = "none"; return; }
+    bloque.style.display = "";
+    bloque.innerHTML = `<p class="va"></p><button type="button" class="porque" aria-expanded="${abierto}">¿Por qué?</button><p class="desc">${f.descripcion ?? ""}</p>`;
+    bloque.querySelector(".va").appendChild(piezaCombina(f.vaCon, "TRU"));
+    bloque.classList.toggle("abierto", abierto);
+    bloque.querySelector(".porque").addEventListener("click", (e) => { abierto = !abierto; e.currentTarget.setAttribute("aria-expanded", String(abierto)); bloque.classList.toggle("abierto", abierto); });
+    lista.querySelectorAll(".fila").forEach(li => li.classList.toggle("activa", li.dataset.cod === cod));
+  }
+  lista.innerHTML = p.colores.map(e => { const c = POR.get(e.cod); return `
+    <li class="fila" data-cod="${e.cod}"><span class="hilo" aria-hidden="true"></span>
+      <button type="button" class="nom">${punto(c)}<span>${c.n}</span></button>
+      <div class="tallas">${e.tallas.map(t => `<span class="talla${t.piso === 0 ? " alm" : ""}"><b>${t.t}</b><span>${t.piso > 0 ? `${t.piso} aquí` : t.alm > 0 ? `${t.alm} en el almacén` : "agotada"}</span></span>`).join("")}</div>
+    </li>`; }).join("");
+  lista.querySelectorAll(".fila").forEach(li => {
+    li.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") { vista = li.dataset.cod; pintar(); } });
+    li.querySelector(".nom").addEventListener("click", () => { fijo = li.dataset.cod; vista = null; pintar(); });
+  });
+  lista.addEventListener("pointerleave", () => { vista = null; pintar(); });
+  pintar();
+}
+document.querySelectorAll("[data-hoja]").forEach(armarHoja);
+
+/* ---------- 3 · vista rápida (Adelle Wide Leg, de la captura de Vender) ---------- */
+const PRENDA_VR = {
+  referencia: "Adelle Wide Leg", categoria: "Jeans", sede: "TRU", descripcion: "Jean de tiro alto y pierna ancha, con bolsillos traseros y cierre con botón.",
+  colores: [ { cod: "AZM", tallas: [3, 4, 0] }, { cod: "CEL", tallas: [0, 2, 1] } ],
+  tallas: ["28", "30", "32"],
+  ficha: [["Material", "Denim 98 % algodón"], ["Patrón", null], ["Marca", null], ["Vendidas · 30 días", "6 en todas las sedes"]],
+};
+const ICONO_JEAN = `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M14 6h20l2 36h-9l-3-22-3 22h-9z"/><path d="M14 12h20"/></svg>`;
+function armarVr(raiz) {
+  const p = PRENDA_VR;
+  let fijo = p.colores[0].cod, vista = null, abierto = false;
+  raiz.innerHTML = `
+    <aside>
+      <div class="foto"></div>
+      <div>
+        <div class="pie-foto"><span class="sw"></span><span class="nom"></span><span class="est"></span></div>
+        <p class="pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
+        <div class="bloque-color nuevo"><p class="vacon-linea"></p><button type="button" class="sobre" aria-expanded="false">Sobre este color</button><p class="desc"></p></div>
+      </div>
+      <div class="desc-prenda"><span class="label">Descripción</span><p style="margin-top:4px">${p.descripcion}</p></div>
+    </aside>
+    <div>
+      <div class="matriz">
+        <div class="cabm"><span>Color</span>${p.tallas.map(t => `<span style="text-align:center">${t}</span>`).join("")}</div>
+        ${p.colores.map(e => { const c = POR.get(e.cod); return `<div class="fm" data-cod="${e.cod}"><button type="button" class="nom">${punto(c)}<span>${c.n}</span></button>${e.tallas.map(n => `<span class="n${n === 0 ? " cero" : ""}">${n === 0 ? "—" : n}</span>`).join("")}</div>`; }).join("")}
+      </div>
+      <dl class="ficha">${p.ficha.map(([k, v]) => `<div><dt>${k}</dt><dd${v ? "" : ' class="falta"'}>${v ?? "Sin registrar"}</dd></div>`).join("")}</dl>
+    </div>`;
+  const foto = raiz.querySelector(".foto"), sw = raiz.querySelector(".sw"), nom = raiz.querySelector(".pie-foto .nom"), est = raiz.querySelector(".est"), bloque = raiz.querySelector(".bloque-color"), linea = raiz.querySelector(".vacon-linea"), desc = raiz.querySelector(".desc"), sobre = raiz.querySelector(".sobre");
+  function pintar() {
+    const cod = vista ?? fijo; const c = POR.get(cod);
+    foto.style.background = c.h; foto.style.color = claro(c.h) ? "var(--tinta-fija)" : "var(--crema-fija)";
+    foto.innerHTML = `${ICONO_JEAN}<span class="cat">${p.categoria}</span>`;
+    sw.style.background = c.h; nom.textContent = c.n; est.textContent = vista && vista !== fijo ? "vista previa" : "fijado";
+    const f = ficha(cod);
+    if (!f || !f.vaCon.length) { bloque.style.display = "none"; }
+    else { bloque.style.display = ""; linea.innerHTML = ""; linea.appendChild(piezaCombina(f.vaCon, "TRU")); desc.textContent = f.descripcion ?? ""; }
+    raiz.querySelectorAll(".fm").forEach(r => r.classList.toggle("activa", r.dataset.cod === cod));
+  }
+  sobre.addEventListener("click", () => { abierto = !abierto; sobre.setAttribute("aria-expanded", String(abierto)); bloque.classList.toggle("abierto", abierto); });
+  raiz.querySelectorAll(".fm").forEach(r => {
+    r.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") { vista = r.dataset.cod; pintar(); } });
+    r.querySelector(".nom").addEventListener("click", () => { fijo = r.dataset.cod; vista = null; pintar(); });
+  });
+  raiz.querySelector(".matriz").addEventListener("pointerleave", () => { vista = null; pintar(); });
+  pintar();
+}
+document.querySelectorAll("[data-vr]").forEach(armarVr);
+
+/* ---------- tema ---------- */
+document.querySelectorAll("[data-tema]").forEach(b => b.addEventListener("click", () => {
+  document.documentElement.dataset.theme = b.dataset.tema;
+  document.querySelectorAll("[data-tema]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+}));
+</script>
+</body>
+</html>

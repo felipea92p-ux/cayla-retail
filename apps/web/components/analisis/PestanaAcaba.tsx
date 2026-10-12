@@ -6,12 +6,13 @@ import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { nombreLargo, TipRico } from "@/components/analisis/piezas";
-import type { PrendaAnalisis } from "@/lib/analisis-tipos";
+import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { diasQueQuedan, otraSedeQueLaTiene, plural, porLlegar } from "@/lib/analisis-reglas";
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
 import {
   cuentasFiltroAcaba,
   EJE_ACABA,
+  faltanDelModelo,
   FILTROS_ACABA,
   LINEA_SEMANA,
   lineasPorLlegar,
@@ -93,7 +94,7 @@ function Filtros({ filtro, cuentas, onFiltro }: { filtro: FiltroAcaba; cuentas: 
 }
 
 /** Cuántos días le quedan: rayada si se agotó; si no, una barra de 0 a 2 semanas, con la semana punteada. */
-function Pista({ p }: { p: PrendaAnalisis }) {
+function Pista({ p }: { p: ModeloAnalisis }) {
   const pista = pistaAcaba(diasQueQuedan(p));
   return (
     <span className="pista">
@@ -117,14 +118,20 @@ function Pista({ p }: { p: PrendaAnalisis }) {
 }
 
 /** «Por llegar 13» (con de dónde y cuándo, al pasar el mouse), y «AQP tiene 3» o a quién se compra. */
-function Pildoras({ p }: { p: PrendaAnalisis }) {
+function Pildoras({ p }: { p: ModeloAnalisis }) {
   const { datos, sedeDe } = useAnalisis();
   const llega = porLlegar(p);
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra ? sedeDe(otra.sedeId) : undefined;
   const proveedor = textoProveedor(p.origen);
+  const faltan = faltanDelModelo(p);
   return (
     <>
+      {faltan && (
+        <span className="pil" data-tip={faltan.todas.length > 1 ? `Ya no hay: ${faltan.todas.join(", ")}` : undefined}>
+          {faltan.texto}
+        </span>
+      )}
       {llega > 0 && (
         <span className="pil llega">
           <Icono nombre="llega" />
@@ -152,7 +159,7 @@ function Pildoras({ p }: { p: PrendaAnalisis }) {
 }
 
 /** «Comprar» (Compras o Producción, según de dónde viene) y, si otra tienda la tiene, «o pedir a Arequipa». */
-function Accion({ p }: { p: PrendaAnalisis }) {
+function Accion({ p }: { p: ModeloAnalisis }) {
   const { acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(p, acceso);
   const otra = otraSedeQueLaTiene(p.otras);

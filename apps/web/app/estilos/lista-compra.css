@@ -1,0 +1,25 @@
+/* ==================================================================
+   LISTA DE COMPRA del plan de campaña (ADR-0349): lo que se lleva al proveedor, en papel.
+   `#lista-compra-print` lo monta `components/plan-compra/ExportarPlan.tsx` pegado a <body> mientras la hoja de «Exportar» está abierta;
+   en pantalla no se ve. Al imprimir (botón «Imprimir» o Ctrl+P con la hoja abierta) desaparece TODO lo demás con `display: none`, como
+   el resto de las impresiones del ERP (boleta A4, etiquetas): no `visibility: hidden`, que dejaría el alto de lo oculto como hojas en
+   blanco. Es papel: sale SIEMPRE en claro (lleva `.papel-fijo`, que vuelve a declarar los tokens claros).
+   ================================================================== */
+#lista-compra-print {
+  display: none;
+}
+@media print {
+  body:has(#lista-compra-print) > *:not(#lista-compra-print) {
+    display: none !important;
+  }
+  html:has(#lista-compra-print),
+  body:has(#lista-compra-print) {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+  }
+  #lista-compra-print {
+    display: block;
+    padding: 12mm;
+  }
+}

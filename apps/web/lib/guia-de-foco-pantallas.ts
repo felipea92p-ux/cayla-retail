@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 61;
+export const PENDIENTES_HOY = 60;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -61,7 +61,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/nueva": PENDIENTE,
   "/compras/parte/[compraId]": PENDIENTE,
   "/compras/por-pagar": PENDIENTE,
-  "/compras/plan": { estado: "no-aplica", motivo: "Tabla del plan de campaña, una fila por categoría: no hay campos en la pantalla. Lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en la ventana de cada categoría, con su guía en el registro de modales (ADR-0349)." },
+  // Plan de campaña (ADR-0349): lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria`, el mismo formulario de la hoja de cada categoría y del paso a paso, con su guía de foco hecha. `PlanCategoriaModal` ya no tiene campos propios: por eso no figura entre los modales.
+  "/compras/plan": { estado: "aplicada", evidencia: ["components/plan-compra/FormularioCategoria.tsx"] },
   "/compras/proveedores": PENDIENTE,
   "/compras/proveedores/[id]": PENDIENTE,
   // ---- configuracion ----
@@ -106,6 +107,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
   "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
+  // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
+  // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.
+  "/inventario/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
@@ -138,7 +142,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
   "/produccion/insumos": PENDIENTE,
-  "/produccion/ordenes": PENDIENTE,
+  "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/ModeloNuevoCampos.tsx"] },
   "/produccion/por-pagar": PENDIENTE,
   "/produccion/proveedores": PENDIENTE,
   "/produccion/recibir": PENDIENTE,
@@ -183,7 +187,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 57;
+export const MODALES_PENDIENTES_HOY = 56;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -204,8 +208,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // base la acepte: `validarCierre`) y quién hace el cambio.
   // ADR-0354: la hoja de «Revisar y guardar» de Editar producto suma UN solo control, «Quién hace estos cambios»; su porqué va
   // bajo el combo y el botón espera hasta que haya alguien de turno.
-  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control (Responsable): el botón dice por qué espera." },
+  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control obligatorio (Responsable): el botón dice por qué espera. Las casillas «Igualar … al precio nuevo» (precio por tienda, 2026-10-10) son opcionales y no bloquean." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
+  "components/plan-piso/GruposDelMix.tsx": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja).
@@ -241,9 +246,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/GastoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/GastoRapidoModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
-  "components/plan-compra/PlanCategoriaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlanCategoriaModal.tsx"] },
+  "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
+  "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
-  "components/NuevaOrdenProduccionForm.tsx": PENDIENTE, // 11 controles
+  "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica

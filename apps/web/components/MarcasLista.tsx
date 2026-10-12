@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, SearchX, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -36,6 +36,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Ayuda } from "@/components/Ayuda";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ResumenMarcas } from "@/components/marcas/ResumenMarcas";
 import { FiltrosMarcas } from "@/components/marcas/FiltrosMarcas";
 
@@ -106,7 +107,12 @@ export function MarcasLista({
   const [destacada, setDestacada] = useState<string | null>(null);
   // La que se está yendo (desactivada o eliminada): se encoge 240 ms y recién entonces sale de la lista.
   const [saliendo, setSaliendo] = useState<string | null>(null);
-  const listaRef = useRef<HTMLUListElement>(null);
+  const cajaRef = useRef<HTMLElement>(null);
+  // Cambiar de página, saltar a una letra o volver adonde quedó una marca es un cambio de VISTA, no un bloque que se encogió:
+  // <PaginaEstable> (ADR-0185) devolvería la vista adonde estaba y, con una página más corta, dejaría aire vacío en pantalla
+  // (pasó con la página 4: 17 marcas tras 24, Felipe 2026-10-10). Se suelta ANTES de pintar, como en Traslados y Vender, y
+  // recién después se lleva la vista: al inicio de la lista (página) o a la marca (letra, guardado; lo hace el destello).
+  const saltoPendiente = useRef<"inicio" | "marca" | null>(null);
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
   // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
@@ -138,6 +144,7 @@ export function MarcasLista({
     setFiltro("activas");
     setVerDesactivadas(false);
     setBusqueda("");
+    saltoPendiente.current = "marca";
     setPagina(i >= 0 ? paginaDeLaPosicion(i) : 1);
     setDestacada(id);
   }
@@ -179,6 +186,14 @@ export function MarcasLista({
     avisar.exito(`${r.nombre} guardada`, { detalle: r.proveedores.map((p) => p.nombre).join(" · ") });
   }
 
+  useLayoutEffect(() => {
+    const salto = saltoPendiente.current;
+    if (!salto) return;
+    saltoPendiente.current = null;
+    soltarPaginaEstable();
+    if (salto === "inicio") cajaRef.current?.scrollIntoView({ block: "start", behavior: sinMovimiento() ? "auto" : "smooth" });
+  });
+
   // La que destella queda a la vista (centrada) y el destello se apaga solo.
   useEffect(() => {
     if (!destacada) return;
@@ -189,13 +204,14 @@ export function MarcasLista({
 
   // Cambiar de página lleva la vista al inicio de la lista (ADR-0185): una paginación al pie no se queda abajo.
   function irAPagina(n: number) {
+    saltoPendiente.current = "inicio";
     setPagina(n);
-    listaRef.current?.scrollIntoView({ block: "start", behavior: sinMovimiento() ? "auto" : "smooth" });
   }
 
   function irALetra(letra: string) {
     const i = posicionDeLaLetra(lista, letra);
     if (i < 0) return;
+    saltoPendiente.current = "marca";
     setPagina(paginaDeLaPosicion(i));
     setDestacada(lista[i].id);
   }
@@ -281,7 +297,9 @@ export function MarcasLista({
       )}
 
       {/* UNA tarjeta: buscador, filtros y lista (CLAUDE.md «Paleta y orden de pantalla»). */}
-      <section className="card-cayla space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
+      {/* `@container`: el acomodo depende del ancho de ESTA tarjeta, no de la ventana. Con el menú lateral abierto en una ventana angosta
+          (o en un celular) la tarjeta mide 300–400 px aunque la ventana mida más (Felipe 2026-10-10). */}
+      <section ref={cajaRef} className="card-cayla @container scroll-mt-20 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <Buscador
             valor={busqueda}
@@ -290,7 +308,7 @@ export function MarcasLista({
             etiqueta="Buscar marca o proveedor"
             atajo
             sombra={{ cola: prediccion?.cola ?? "", alAceptar: (ir) => prediccion && aceptarPrediccion(prediccion.marca.id, prediccion.marca.nombre, ir) }}
-            className="min-w-0 basis-full sm:flex-1 sm:basis-0 sm:max-w-[34rem]"
+            className="min-w-0 basis-full @2xl:flex-1 @2xl:basis-0 @2xl:max-w-[34rem]"
           />
           <p className="text-sm text-tinta/70" aria-live="polite">
             {verDesactivadas ? `${lista.length} desactivada${lista.length === 1 ? "" : "s"}` : buscandoAlgo || filtro !== "activas" ? `${lista.length} de ${resumen.activas}` : `${resumen.activas} marcas activas`}
@@ -361,7 +379,7 @@ export function MarcasLista({
         )}
 
         {lista.length > 0 && (
-          <ul ref={listaRef} className="grid scroll-mt-24 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+          <ul className="grid gap-3 @2xl:grid-cols-2 @6xl:grid-cols-3">
             {pag.filas.map((m, i) => (
               <TarjetaMarca
                 key={m.id}

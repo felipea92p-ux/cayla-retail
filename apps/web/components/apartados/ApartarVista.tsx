@@ -53,6 +53,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -85,6 +87,19 @@ const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm 
 // Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0302).
 const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampana(p.precio, p.campana.pct) : 0);
 const precioFinal = (p: VarianteBusqueda) => totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) }]);
+
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11): lo escaneado, los datos del cliente, el
+ *  adelanto, la nota y el paso. El token viaja con él: es el mismo apartado, y reintentarlo no lo duplica. */
+type ApartadoArmado = {
+  lineas: Linea[];
+  f: typeof FORMULARIO_VACIO;
+  nota: string;
+  paso: Paso;
+  clientaQ: string;
+  clientaId: string | null;
+  sinFicha: null | "padron" | "nada";
+  token: string;
+};
 
 const FORMULARIO_VACIO = {
   nombres: "",
@@ -137,6 +152,10 @@ export function ApartarVista({
   onPedidoHecho?: () => void;
 }) {
   const router = useRouter();
+  // El apartado a medio armar es de SU sede (Felipe, 2026-10-11): el panel monta Apartar con la sede en la key, y lo armado en otra
+  // sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo armado, se arranca desde ahí. Uno de un pedido, no.
+  const { inicial: guardadoDeLaSede, reportar: reportarApartado } = useTrabajoPorSede<ApartadoArmado>(ubicacionId);
+  const guardado = pedido ? undefined : guardadoDeLaSede;
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
   // foto del servidor al entrar o tras un `router.refresh()`; `ajustesStock` la corrige con lo que releyó el
   // sondeo mientras la pantalla sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la
@@ -165,7 +184,9 @@ export function ApartarVista({
     ),
   );
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(() =>
-    pedido
+    guardado
+      ? null
+      : pedido
       ? { tono: "info", texto: `Llegó de ${pedido.otraSede} para ${pedido.nombres} y está guardada. Cobra su adelanto: al confirmar pasa al piso y queda apartada.` }
       : desdeTicket.noEntraron.length > 0
       ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
@@ -177,15 +198,15 @@ export function ApartarVista({
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
-  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : desdeTicket.lineas));
+  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
-  const [nota, setNota] = useState("");
-  const [paso, setPaso] = useState<Paso>("ticket");
+  const [nota, setNota] = useState(guardado?.nota ?? "");
+  const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
-    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : FORMULARIO_VACIO,
+    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : (guardado?.f ?? FORMULARIO_VACIO),
   );
   const conOtraSede = encendida(apagadas, "otra_sede");
   const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string; cantidad: number } } | null>(null);
@@ -197,23 +218,50 @@ export function ApartarVista({
   const esTelefono = useConsultaMedia(MQ_TELEFONO) && encendida(apagadas, "qr");
   const conClienta = veClientas && encendida(apagadas, "clienta");
   // Clienta por DNI o celular (Apartados v2): si ya tiene ficha, sus datos se llenan solos y el apartado queda ligado a ella.
-  const [clientaQ, setClientaQ] = useState("");
-  const [clientaId, setClientaId] = useState<string | null>(null);
+  const [clientaQ, setClientaQ] = useState(guardado?.clientaQ ?? "");
+  const [clientaId, setClientaId] = useState<string | null>(guardado?.clientaId ?? null);
   const [buscandoClienta, setBuscandoClienta] = useState(false);
   // Qué pasó al buscar y no haber ficha: «padron» = el nombre vino de SUNAT; «nada» = hay que escribirlo (ADR-0367).
-  const [sinFicha, setSinFicha] = useState<null | "padron" | "nada">(null);
+  const [sinFicha, setSinFicha] = useState<null | "padron" | "nada">(guardado?.sinFicha ?? null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);
   const [enviando, setEnviando] = useState(false);
   const [registrado, setRegistrado] = useState<{ apartado: Apartado; vuelto: number } | null>(null);
-  const token = useRef<string>(crypto.randomUUID());
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
   const escaner = useRef<HTMLInputElement>(null);
   // Apartar guarda en la tienda (cobra un adelanto y deja las prendas no disponibles): pide Responsable (ADR-0161).
   // Viene vacío en cada apartado —como todo el módulo Punto de venta, no propone a quien inició sesión—; el elegido
   // queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
+
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, queda guardado en ESTA sede (Felipe, 2026-10-11).
+  const armado = apartadoArmado({
+    lineas,
+    nombres: f.nombres,
+    apellidos: f.apellidos,
+    celular: f.celular,
+    dni: f.dni,
+    ruc: f.ruc,
+    razonSocial: f.razonSocial,
+    pagos: f.pagos,
+    nota,
+    buscado: clientaQ,
+  });
+  useEffect(() => {
+    const prendas = lineas.reduce((a, l) => a + l.cantidad, 0);
+    reportarApartado(
+      !pedido && armado
+        ? {
+            etiqueta: ubicacionEtiqueta,
+            unidades: prendas,
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, token: token.current },
+            ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
+          }
+        : null,
+    );
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha]);
 
   const total = totalDeLineas(
     lineas.map((l) => {

@@ -90,6 +90,27 @@ describe("itemsParaLucode", () => {
     expect(variantesPorNombrar(raw)).toEqual([]);
   });
 
+  it("la bolsa de obsequio (precio 0) no se declara a SUNAT, y el total con IGV sigue siendo el cobrado", () => {
+    const raw = [
+      { variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 0 },
+      { variante_id: "obsequio", cantidad: 2, precio_unitario: 0, descuento_unitario: 0 },
+    ];
+    const items = itemsParaLucode(raw, nombres)!;
+    expect(items).toHaveLength(1);
+    expect(items[0].descripcion).toBe("Blusa Emma · CMS-0001-BEI-M");
+    // No hace falta nombrar la de obsequio para transmitir (no llega a Lucode), pero tampoco estorba si se nombra.
+    expect(itemsParaLucode(raw, new Map([...nombres, ["obsequio", "Bolsa de obsequio"]]))).toEqual(items);
+  });
+
+  it("solo se salta el precio de ETIQUETA en 0: una prenda regalada con descuento sigue declarándose (con su valor en 0)", () => {
+    const raw = [{ variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 79.9 }];
+    expect(itemsParaLucode(raw, nombres)).toEqual([{ descripcion: "Blusa Emma · CMS-0001-BEI-M", cantidad: 1, precio_unitario: 0 }]);
+  });
+
+  it("si todas las líneas son de precio 0 no queda nada que declarar: no se transmite", () => {
+    expect(itemsParaLucode([{ variante_id: "obsequio", cantidad: 1, precio_unitario: 0, descuento_unitario: 0 }], nombres)).toBeNull();
+  });
+
   it("sin nombre para una variante, o con datos rotos, no se transmite", () => {
     expect(itemsParaLucode([{ variante_id: "otra", cantidad: 1, precio_unitario: 10 }], nombres)).toBeNull();
     expect(itemsParaLucode([{ variante_id: "v1", cantidad: "1", precio_unitario: 10 }], nombres)).toBeNull();

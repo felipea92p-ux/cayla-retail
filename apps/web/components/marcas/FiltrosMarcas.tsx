@@ -16,12 +16,14 @@ const PILDORAS: { filtro: FiltroMarcas; texto: string }[] = [
  */
 export function FiltrosMarcas({ resumen, filtro, onFiltro }: { resumen: ResumenMarcas; filtro: FiltroMarcas | null; onFiltro: (f: FiltroMarcas) => void }) {
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar las marcas por estado">
+    // Angosta (celular, o ventana chica con el menú abierto): una sola fila que se desliza de lado, sin barra, en vez de tres renglones
+    // que empujan las marcas hacia abajo. Ancha: se acomodan en filas, como siempre.
+    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] @2xl:flex-wrap @2xl:overflow-visible [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filtrar las marcas por estado">
       {PILDORAS.map(({ filtro: f, texto }) => {
         const puesta = filtro === f;
         const avisa = f === "sin-proveedor" && resumen[f] > 0;
         return (
-          <button key={f} type="button" className="pildora-cayla" aria-pressed={puesta} onClick={() => onFiltro(f)}>
+          <button key={f} type="button" className="pildora-cayla shrink-0" aria-pressed={puesta} onClick={() => onFiltro(f)}>
             {avisa && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ambar" />}
             {texto}
             <span className={`ml-1 font-medium tracking-normal tabular-nums ${avisa && !puesta ? "text-ambar-profundo" : ""}`}>{resumen[f]}</span>
