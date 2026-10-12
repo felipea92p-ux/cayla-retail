@@ -130,3 +130,29 @@ migración ni una decisión de esquema, así que no amerita frenar y preguntar, 
 avisar: quien retome esto (o cualquier sesión que use este Postgres local) puede
 toparse con el mismo síntoma hasta que alguien corra el backfill de sububicación sobre
 `stock`.
+
+## Actualización 2026-10-12 — un error pasajero no rechaza la venta, y sube una sola pestaña
+
+**Qué estaba mal.** `pasada()` de `PuntoDeVenta.tsx` marcaba «rechazada» toda venta cuyo error no fuera un corte de red
+(`!esFalloDeRed`). Un 504, un 5xx o un deadlock al volver la internet la dejaban esperando «Descartar», y la cajera la
+cobraba de nuevo a mano: si la primera subida SÍ se había guardado, quedaban dos ventas, dos comprobantes y el stock
+bajaba dos veces. Además, con Vender abierto en dos pestañas las dos subían la misma cola (el mutex `subidaEnCursoRef`
+es de una sola pestaña).
+
+DECIDÍ: una sola regla, `clasificarFalloDeSubida(error, status)` en `lib/error-escritura.ts` (`red` | `pasajero` |
+`definitivo`). Es `definitivo` solo si la base RESPONDIÓ con código de Postgres y no es `esErrorPasajero`; todo lo
+demás —corte de red, 5xx/429/408, bloqueo/deadlock, y una respuesta sin código (`esRespuestaIncierta`)— se reintenta con
+el mismo token. La usan la cola de ventas (sin tope de intentos: un «Descartar» por un fallo del camino es lo que invita a
+duplicar; la venta sigue contada como pendiente) y `useColaOffline.ts` (con su tope de 10). Y `conCandadoDeSubida`
+(`navigator.locks`, `ifAvailable`, `lib/candado-subida.ts`) deja subir a UNA pestaña por cola; la otra relee la cola por
+el evento `storage` y descuenta lo que la primera subió (`ventasSubidasEntre`).
+DESCARTÉ: agregar «token ya registrado» como error de la base que la cola trate como éxito, porque ese error no existe:
+`registrar_venta` devuelve la venta ya guardada sin error (lectura inicial del token y `exception when unique_violation`
+del insert), y volverlo error rompería el reintento de `cobrar()` y de las demás colas. Se midió el 2026-10-12 en el
+Postgres local con dos sesiones reales y el mismo token con stock para una sola venta: la segunda esperó 2,1 s los
+candados de la primera, devolvió la MISMA venta y quedó una sola (el «Stock insuficiente» se dispara en
+`fn_aplicar_movimiento`, después del `insert into ventas`). Descarté también un parche a `registrar_venta` (re-leer el
+token tras los candados): es dinero y stock, hoy no produce error y la pestaña única ya cierra el caso real.
+SE ROMPE SI: un 5xx permanente (un error de programación en `registrar_venta`) deja la venta reintentándose cada 30 s sin
+rechazarse nunca —queda visible como pendiente en la cabecera, pero nadie la ve rechazada—, o si una pestaña que tiene el
+candado cuelga su `fetch` sin que el navegador lo corte: las demás no subirían hasta que ese `fetch` termine.
