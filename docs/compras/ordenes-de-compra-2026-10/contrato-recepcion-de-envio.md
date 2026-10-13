@@ -183,3 +183,20 @@ recibe). Errores en tres líneas de tienda, con su `hint`.
 
 Resolver los faltantes y sobrantes con el proveedor («Nos debe», reposición, saldo a favor, devolver): fase 5. Liquidar, regalar,
 desechar o devolver una dañada: ya existe en Existencias. El fondo y los gastos del viaje: fase 6. La guía impresa: después.
+
+## Cambios al construir (2026-10-12, noche)
+
+- **La lista de envíos de una sede es `fn_envios_por_recibir(p_ubicacion_id)`**, no `fn_envios_por_abrir` ampliada (cambiar lo que
+  devuelve obligaba a borrarla y crearla otra vez, y la prueba de la fase 3 vuelve a pegar su migración). Trae lo mismo que la de la
+  fase 3 más `estado`, `abierto_por`, `abierto_en` y `creado_por_mi`; la pantalla cae a la vieja si no existe.
+- **`prendas_danadas.proveedor_id` no se llena**: el candado `prendas_danadas_proveedor_coherente` lo reserva para «devuelta al
+  proveedor». El proveedor queda en `despacho_recibidos.proveedor_id` y en el lote; `motivo_reporte` dice «Llegó dañada en ENV-…» y
+  `nota`, «Tiene arreglo» o «Sin arreglo».
+- **`preparar_prenda_al_recibir` suma `p_proveedor_id`** (opcional) para lo que no estaba en una guía con dos o más proveedores.
+- **`fn_envio_detalle`**: `categoria`, `marca` y `orden` son objetos; suma `creado_por_mi`, `proveedores`, `recepcion` (el resumen y los
+  lotes), `nota_recepcion` y `extra_posicion`.
+- **Provisional:** una prenda nueva creada por quien no edita el catálogo nace «pendiente» (como el alta al vuelo) y un líder la revisa
+  en «Por revisar»; un costo de 0 también pide confirmar; el costo se promedia una vez por variante con todas las unidades (buenas y
+  dañadas); lo recibido se carga al papel hasta su cupo (primero la línea que nombra el envío, después los comprobantes más antiguos;
+  primero lo bueno); «Recibir sin guía» abre una hoja corta que dice que la orden ya no se podrá anular; «¿Tienen arreglo?» se responde
+  una vez por línea.
