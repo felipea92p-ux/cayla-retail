@@ -28,3 +28,18 @@ en la base local. Y armé la ronda 10 (descargar, filtros, ver en otra pantalla)
 Por qué así: una firma del CI solo ve lo que alguien supo describir; el censo ve la pantalla. Cruzar los dos es lo único que encuentra lo
 que se escapa, y migrar sin mirar el resultado dejó un campo inservible en Nueva compra que nadie habría visto hasta usarlo.
 Felipe se lleva: el ERP más parejo de lo que decía la deuda, Nueva compra usable otra vez y la página de la ronda 10 para elegir.
+
+## 2026-10-13 (/unificar: ronda 10 decidida y migrada, y el censo del mostrador rastreado al código)
+Qué hice: Felipe eligió tocándolas las tres P1 de la ronda 10. Construí `<BotonDescargar>` («Descargar» + qué, con el ícono que baja) y
+`<BotonVer>` (el secundario con la flecha que avanza), y `<BotonFiltros>` dejó sus dos caras por la de una píldora con su número en el
+globito. Migré 17 descargas (Compras, Historial, las seis pestañas de Reportes, Existencias, Movimientos, Clientes, el ajuste de inventario y
+el plan de campaña) y 17 «ver en otra pantalla» (seis eran botones negros); la acción de un vacío sigue negra con su `unificar-fijo`. De
+paso, la caja del «+» dentro de `<Boton>` hacía crecer el botón 3,5 px sobre sus vecinos (43 contra 40 en la misma cabecera): pasó a `flex`.
+Después rastreé al código el censo del mostrador (cuenta del terminal de ventas): encontró en Caja frases grises sueltas que la ronda 5 ya
+prohibía, y al buscarlas en todo el ERP eran 49 en 40 archivos («Sin ventas todavía.», «No hay tickets en espera.»…). Pasaron a `<Vacio>`,
+con una firma nueva que las ve, y tres «Ver todos →» de Caja pasaron a `<EnlaceVer>`. En la vista rápida del proveedor, «Desactivar» pasó a
+rojo como en la del producto.
+Por qué así: «Descargar» se entiende antes que «Exportar»; un botón negro dice «esto es lo principal de aquí», y llevar a otra pantalla casi
+nunca lo es. Clientes a 375 px pedía sus tres botones en una fila: «Descargar» a secas y 8 px entre ellos (342 de 343 px).
+Felipe se lleva: tres familias más con una sola pieza (25 de 41), deuda 0 en todas, la firma de vacíos que ya no deja pasar una frase gris, y
+las fotos de antes y después en `docs/unificar/capturas/accion.*.jpg`.

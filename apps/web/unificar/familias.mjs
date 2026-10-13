@@ -476,7 +476,7 @@ export const DECISIONES = {
     "ventana": 2,
     "firmas": [
       // La frase gris suelta que dice que no hay nada («Sin ventas todavía.», «No hay separaciones abiertas.», «Ninguna cuenta tiene
-      // este rol»), con el texto en su línea o en la siguiente: el censo de mostrador (2026-10-13) encontró 40 que las firmas de abajo,
+      // este rol»), con el texto en su línea o en la siguiente: el censo de mostrador (2026-10-13) encontró 49 que las firmas de abajo,
       // atadas a una clase exacta, no veían. «Nada se guarda todavía» explica, no es un vacío; otra frase que explica lleva su unificar-fijo.
       "<(?:p|div)\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:tinta\\/(?:4|5|6)[05]|taupe(?:\\/\\d+)?)(?![\\w-])[^\"'`]*[\"'`]\\}?[^>]*>\\s*(?:Sin |Ningún|Ninguna|Ninguno|Nada (?!se guard)|Todavía no|No hay|Aún no (?!se guard))",
       // La frase en cursiva serif (B) y su versión «SinCoincidencias».

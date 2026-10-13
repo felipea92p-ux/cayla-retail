@@ -57,7 +57,7 @@ familias:**
 
 ## Por analizar (las próximas rondas)
 
-El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 22 decididas y 19 por analizar (el 2026-10-13). Las cifras son del censo del 2026-10-06 **sin
+El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 25 decididas y 16 por analizar (el 2026-10-13, tras la ronda 10). Las cifras son del censo del 2026-10-06 **sin
 depurar**: en la ronda 1 la depuración las bajó mucho (pestañas, de 25 formas a 18 reales; cifras, de 17 a 7), así que sirven para ordenar,
 no como veredicto. El orden es la recomendación de Claude: primero lo que la colaboradora lee o toca en más pantallas.
 
@@ -101,6 +101,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-09 | `claude/keen-feistel-35a4cb` @ `ef8e017e`, cuentas Admin y Admin-Taller, todo el ERP con los escenarios de Compras, familia `grafico` (el motor aprendió a ver una barra apilada hecha con cajas: antes solo veía SVG) | 180 de 188 | 1 | 10 formas de gráfico en el censo; la barra apilada son 4 huellas (dos de ellas, la misma barra vista tras un modal). Quince archivos la dibujan a mano: Notas de crédito, Proformas, Producción, Caja, el cierre y Eficiencia no salen con el seed y se contaron leyendo el código (Facturación e Historial sí salen). Frescura (otra rama) se midió aparte contra su worktree (`--otra-obra`). Después de migrar «Deuda por vencimiento», el censo la muestra con la huella de P; «Deuda por proveedor» sigue a mano |
 | 2026-10-12 | `claude/unificar-componentes-animaciones-f811a1` @ `6bffcd43c`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion,campo,etiqueta-campo,casilla` (rondas 6 y 7) | **47 de 274** (incompleto) | 6 | **Se cortó a la mitad:** el disco se llenó, Docker se apagó solo (`no space left on device`) y la base local cayó; desde ahí todas las rutas mandaban al login. Las rondas 6 y 7 se armaron con este censo parcial (campo, etiqueta-campo, casilla) y con el completo del 2026-10-07 (combo, tabla, titulo-seccion). La pasada de `terminal-ventas` no alcanzó a correr (la cuenta no existía en la base local y `tema:cuentas` necesita Docker) |
 | 2026-10-13 | `claude/mystifying-jang-ef15d0` @ `3b4b888ef`, cuenta Admin, todo el ERP con escenarios (el censo de después de las rondas 6–9) | 252 de 277 | 41 familias medidas | Sin depurar, cifras altas (combo 36, tabla 39, títulos 41): son la misma pieza en otro tamaño, Finanzas y las excepciones. **Rastreado al código** (el texto de cada variante con `grep`): 10 títulos que la firma no veía (un `\b` tras `]`), 4 «Ver … →» en versalitas, 2 casillas a mano, 5 «+ Agregar» y la caja «Producto» de Nueva compra encogida a 78 px; todo migrado o arreglado ese día. Base de la ronda 10 |
+| 2026-10-13 | `claude/mystifying-jang-ef15d0` @ `ec9b81fa5`, cuenta `terminal-ventas` (el mostrador), todo el ERP con escenarios | 61 de 133 (las demás: sin acceso) | 32 familias medidas | **Rastreado al código:** las seis formas de «vacío» de Caja eran frases grises sueltas, y en todo el ERP había 49 en 40 archivos que la firma no veía (estaba atada a clases exactas). Migradas a `<Vacio>` con una firma nueva, y 3 «Ver … →» de Caja a `<EnlaceVer>` |
 
 ## Cómo se agrega una fila
 
