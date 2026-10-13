@@ -1432,7 +1432,9 @@ export function borradorDePrenda(ctx: ContextoPrenda, o: { precioSugerido?: numb
   }
   return {
     nombre: "",
-    tallaIds: ctx.tallas.filter((t) => t.habitual).map((t) => t.id),
+    // Sin tallas marcadas (Felipe 2026-10-13, /formidable): las «de siempre» venían marcadas aunque no hubieran llegado, y la prenda
+    // nacía con tallas en cero que después salían en Existencias y en las etiquetas. Se marcan las que llegaron.
+    tallaIds: [],
     colorCodigos: [],
     precio: o.precioSugerido != null && o.precioSugerido > 0 ? costoComoTexto(o.precioSugerido) : "",
     descripcion: "",
@@ -1477,9 +1479,10 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
  * número, talla habilitada en la categoría, precio mayor que 0 y hasta S/ 99 999.99, tejido y patrón si la familia los pide) más lo que Nuevo
  * producto también exige (al menos una talla si la categoría las tiene). Los colores son opcionales: sin color, la prenda va «Sin color».
  *
- * `tocados` (ADR-0284 act. h): las tallas habituales y el precio que sugirió quien compró vienen puestos, pero importan (las tallas que
- * llegaron pueden ser otras; el precio es al que se vende). Mientras la persona no los toca son «sugeridos»: la luz pasa por ellos para que los
- * revise y nunca bloquean. Puestos mal (sin tallas, un precio que no sirve), bloquean como siempre.
+ * Las tallas arrancan sin marcar (Felipe 2026-10-13, /formidable): se marcan las que llegaron, y sin ninguna no se crea.
+ * `tocados.precio` (ADR-0284 act. h): el precio que sugirió quien compró viene puesto, pero importa (es al que se vende). Mientras la persona
+ * no lo toca es «sugerido»: la luz pasa por él para que lo revise y no bloquea. Puesto mal (un precio que no sirve), bloquea como siempre.
+ * (`tocados.tallas` queda en la firma por compatibilidad: ya no cambia nada.)
  */
 export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: { tallas?: boolean; precio?: boolean } = {}): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [];
@@ -1491,12 +1494,7 @@ export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: 
   }
   if (ctx.tallas.length > 0) {
     const ok = tallasElegidas(b, ctx).length > 0;
-    const porRevisar = nueva && ok && !tocados.tallas;
-    campos.push(
-      porRevisar
-        ? { id: "prenda-tallas", nombre: "Tallas", requerido: false, sugerido: true, hecho: false, pendiente: "Revisa las tallas: vienen marcadas las de siempre. Deja solo las que llegaron." }
-        : { id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Elige las tallas que llegaron." },
-    );
+    campos.push({ id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Marca las tallas que llegaron." });
   }
   campos.push({ id: "prenda-colores", nombre: "Colores", requerido: false, hecho: b.colorCodigos.length > 0, pendiente: "" });
   if (!nueva) {

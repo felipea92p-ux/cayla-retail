@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 126,
+  "total": 127,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -68,7 +68,7 @@
       "button «Una más»",
       "input «{`Costo por prenda de ${p.referencia}»",
       "button «{`Quitar ${p.referencia}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{despierta && <PieGuia guia={guia}»",
       "button «{guia.frase ?? undefined}»"
     ],
     "components/Paginacion.tsx": [
@@ -158,6 +158,7 @@
       "Boton «Confirmar y recibir»"
     ],
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
+      "Link «)»",
       "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
     ],
     "components/recepcion-envio/RecibirSinGuia.tsx": [

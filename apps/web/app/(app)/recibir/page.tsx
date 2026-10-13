@@ -255,6 +255,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
             verMontos={verMontos}
             veExistencias={veModulo(persona, "existencias")}
+            guiaEnEspera={Boolean(deOrdenes && (deOrdenes.envios.some((e) => !e.creadoPorMi) || deOrdenes.ordenes.some((o) => !o.creadaPorMi)))}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
             rubrosEnUso={rubrosEnUso}
             puedeAgregarProveedor={puedeAgregarProveedor}

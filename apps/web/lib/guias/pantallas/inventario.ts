@@ -1366,7 +1366,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, lo que Compras mandó a tu sede: cada envío con «Recibir» («Seguir recibiendo» si ya se abrió) y cada orden que llegó sin guía con «Recibir sin guía», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
+      texto: "Arriba, lo que Compras mandó a tu sede: toca la fila de tu envío o su botón «Recibir ENV-…» («Seguir recibiendo» si ya se abrió); cada orden que llegó sin guía va con «Recibir sin guía», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
     },
     {
       id: "proveedor",

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -19,8 +20,18 @@ export function EnviosParaRecibir({ envios, ordenes, sede }: { envios: EnvioPorA
       </TituloSeccion>
       <ul className="divide-y divide-sand">
         {envios.map((e) => (
-          <li key={e.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
-            <div className="min-w-0">
+          <li key={e.id} className="group relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
+            {/* Toda la fila lleva a su envío (Felipe 2026-10-13, /formidable): la prueba ciega buscaba el botón de SU envío entre cinco
+                «Recibir». El enlace de fondo no se enfoca ni se lee (el botón ya lo dice); el clic en el texto cae en él. */}
+            {!e.creadoPorMi && (
+              <Link
+                href={`/recibir/envio/${e.id}`}
+                aria-hidden
+                tabIndex={-1}
+                className="absolute inset-y-0 -inset-x-2 rounded-lg transition-colors duration-200 group-hover:bg-tinta/[0.03]"
+              />
+            )}
+            <div className="pointer-events-none relative min-w-0">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
                 <span className="font-semibold tabular-nums">{e.numero}</span>
                 <Chip tono={ESTADO_ENVIO[e.estado].tono}>{ESTADO_ENVIO[e.estado].texto}</Chip>
@@ -30,8 +41,8 @@ export function EnviosParaRecibir({ envios, ordenes, sede }: { envios: EnvioPorA
             {e.creadoPorMi ? (
               <p className="text-[13px] text-taupe">{TEXTO_LA_RECIBE_OTRA}</p>
             ) : (
-              <BotonEnlace href={`/recibir/envio/${e.id}`} peso={e.estado === "abierto" ? "fantasma" : "primario"}>
-                {e.estado === "abierto" ? "Seguir recibiendo" : "Recibir"}
+              <BotonEnlace href={`/recibir/envio/${e.id}`} peso={e.estado === "abierto" ? "fantasma" : "primario"} className="relative">
+                {e.estado === "abierto" ? "Seguir recibiendo" : "Recibir"} {e.numero}
               </BotonEnlace>
             )}
           </li>
