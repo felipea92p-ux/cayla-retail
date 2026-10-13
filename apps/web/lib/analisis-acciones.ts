@@ -21,7 +21,7 @@ function tallasDe<T extends object>(filas: readonly T[]): T[] {
 }
 
 /** Dónde vuelve «Volver» desde las pantallas que lo aceptan. */
-export const RUTA_ANALISIS = "/inventario/resumen";
+export const RUTA_ANALISIS = "/gestion/analisis";
 
 /**
  * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, una compra nueva con su proveedor.

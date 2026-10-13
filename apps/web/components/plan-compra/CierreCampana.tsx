@@ -31,7 +31,7 @@ export function CierreCampana({ c, veAnalisis }: { c: Cierre; veAnalisis: boolea
             <span className="block">
               Es lo que más sobra ({enteroES.format(c.liquidarPrimero.sobra)}).
               {veAnalisis && (
-                <Link href="/inventario/resumen?vista=nose" className="mt-1 flex items-center gap-1 text-pizarra underline-offset-2 hover:underline">
+                <Link href="/gestion/analisis?vista=nose" className="mt-1 flex items-center gap-1 text-pizarra underline-offset-2 hover:underline">
                   Qué no se vende, en Análisis
                   <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                 </Link>

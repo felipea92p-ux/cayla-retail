@@ -27,8 +27,8 @@ import { abrirContexto, exigirLocal } from "../tema/motor/sesion.mjs";
 export const RUTAS = [
   { ruta: "/", nombre: "Inicio" },
   { ruta: "/inventario", nombre: "Existencias" },
-  { ruta: "/inventario/resumen", nombre: "Análisis" },
-  { ruta: "/inventario/frescura", nombre: "Frescura del piso" },
+  { ruta: "/gestion/analisis", nombre: "Análisis" },
+  { ruta: "/gestion/frescura", nombre: "Frescura del piso" },
   { ruta: "/inventario/traslados", nombre: "Traslados" },
   { ruta: "/inventario/movimientos", nombre: "Movimientos" },
   { ruta: "/inventario/bajar", nombre: "Bajar prendas al piso" },

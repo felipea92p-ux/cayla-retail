@@ -98,6 +98,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/reportes/presupuesto": PENDIENTE,
   "/finanzas/resumen": PENDIENTE,
   // ---- global ----
+  "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) manda a la primera de sus cuatro pantallas que la cuenta ve; no hay campos ni pasos." },
   "/global": PENDIENTE,
   "/global/elige-sede": PENDIENTE,
   // ---- inventario ----
@@ -114,12 +115,12 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/conteo/[id]/revisar": PENDIENTE,
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
-  "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
+  "/gestion/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
   // ADR-0379: la pantalla tiene un solo control propio (el buscador); lo que se llena vive en sus dos hojas, que traen su guía.
   "/productos/liquidacion": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx", "components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
   // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.
-  "/inventario/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
+  "/gestion/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
@@ -128,7 +129,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/por-regularizar": { estado: "aplicada", evidencia: ["components/por-regularizar/MesaRegularizar.tsx", "components/por-regularizar/PuenteUnion.tsx", "components/por-regularizar/PanelPrendas.tsx"] },
   // Análisis v4 (ADR-0357): se lee, no se llena. El buscador filtra lo que se ve y los botones abren el flujo de cada acción en su
   // pantalla (ADR-0245), con su propia guía.
-  "/inventario/resumen": {
+  "/gestion/analisis": {
     estado: "no-aplica",
     motivo: "Pantalla de lectura (Análisis v4, ADR-0357): no se llena ningún campo ni se avanza por pasos; cada botón abre el flujo de su acción en su propia pantalla.",
   },

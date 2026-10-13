@@ -178,13 +178,13 @@ export function cuadricula(tiendas: readonly ResumenTienda[]): FilaCuadricula[] 
 
 /**
  * El enlace que lleva de CAYLA Global a UNA tienda en Frescura, con la categoría ya elegida si se da (Felipe, Formidable 2026-10-10 (c):
- * «quitar y conectar»). Pasa por la ruta que cambia la tienda del selector (`/inventario/frescura/tienda`), porque una página no puede
+ * «quitar y conectar»). Pasa por la ruta que cambia la tienda del selector (`/gestion/frescura/tienda`), porque una página no puede
  * escribir la cookie mientras se dibuja.
  */
 export function enlaceATienda(ubicacionId: string, categoriaId?: string): string {
   const q = new URLSearchParams({ tienda: ubicacionId });
   if (categoriaId) q.set("cat", categoriaId);
-  return `/inventario/frescura/tienda?${q.toString()}`;
+  return `/gestion/frescura/tienda?${q.toString()}`;
 }
 
 /**

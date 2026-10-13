@@ -1,13 +1,13 @@
 {
-  "leido_en": "2026-10-12T21:26:22.473009+00:00",
-  "funciones_en_produccion": 988,
+  "leido_en": "2026-10-13T03:39:56.575969+00:00",
+  "funciones_en_produccion": 993,
   "tablas": [
     {
       "esquema": "retail",
       "tabla": "acciones_sin_responsable",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 36,
+      "filas_estimadas": 37,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -56,7 +56,7 @@
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 2315,
+      "filas_estimadas": 2415,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -625,7 +625,7 @@
       "tabla": "ajustes_inventario_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 354,
+      "filas_estimadas": 370,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1102,7 +1102,7 @@
       "tabla": "bajada_piso_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 732,
+      "filas_estimadas": 770,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1261,7 +1261,7 @@
       "tabla": "bajadas_piso",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 371,
+      "filas_estimadas": 389,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1365,7 +1365,7 @@
       "tabla": "caja_movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 46,
+      "filas_estimadas": 51,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1540,7 +1540,7 @@
       "tabla": "caja_traslados",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 16,
+      "filas_estimadas": 18,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2625,7 +2625,7 @@
       "tabla": "categoria_tallas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 239,
+      "filas_estimadas": 240,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2710,7 +2710,7 @@
       "tabla": "categoria_tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 197,
+      "filas_estimadas": 200,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4791,7 +4791,7 @@
       "tabla": "codigos_barras",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1324,
+      "filas_estimadas": 1433,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4894,7 +4894,7 @@
       "tabla": "codigos_correlativos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 33,
+      "filas_estimadas": 34,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -6047,7 +6047,7 @@
         {
           "nombre": "compra_adjuntos_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+          "condicion": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
           "condicion_escritura": null
         }
       ],
@@ -6177,7 +6177,7 @@
         {
           "nombre": "compra_item_cierres_select",
           "operacion": "SELECT",
-          "condicion": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1\n   FROM retail.compra_items i\n  WHERE ((i.id = compra_item_cierres.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))",
+          "condicion": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
           "condicion_escritura": null
         }
       ],
@@ -6271,7 +6271,7 @@
         {
           "nombre": "compra_item_destinos_select",
           "operacion": "SELECT",
-          "condicion": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1\n   FROM retail.compra_items i\n  WHERE ((i.id = compra_item_destinos.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))",
+          "condicion": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
           "condicion_escritura": null
         }
       ],
@@ -6386,7 +6386,7 @@
           "nombre": "producto_id",
           "orden": 3,
           "tipo": "uuid",
-          "acepta_vacio": false,
+          "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
           "comentario": null
@@ -6435,6 +6435,42 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "categoria_id",
+          "orden": 9,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "marca_id",
+          "orden": 10,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "orden_compra_item_id",
+          "orden": 11,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "precio_venta_sugerido",
+          "orden": 12,
+          "tipo": "numeric",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -6442,6 +6478,11 @@
           "nombre": "compra_items_cantidad_check",
           "clase": "regla",
           "definicion": "CHECK ((cantidad > 0))"
+        },
+        {
+          "nombre": "compra_items_categoria_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)"
         },
         {
           "nombre": "compra_items_compra_id_fkey",
@@ -6454,9 +6495,29 @@
           "definicion": "CHECK ((costo_unitario >= (0)::numeric))"
         },
         {
+          "nombre": "compra_items_marca_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)"
+        },
+        {
+          "nombre": "compra_items_orden_compra_item_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (orden_compra_item_id) REFERENCES retail.orden_compra_items(id)"
+        },
+        {
           "nombre": "compra_items_pkey",
           "clase": "llave primaria",
           "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "compra_items_precio_venta_sugerido_check",
+          "clase": "regla",
+          "definicion": "CHECK (((precio_venta_sugerido IS NULL) OR (precio_venta_sugerido >= (0)::numeric)))"
+        },
+        {
+          "nombre": "compra_items_prenda_o_categoria_marca",
+          "clase": "regla",
+          "definicion": "CHECK (((producto_id IS NOT NULL) OR ((categoria_id IS NOT NULL) AND (marca_id IS NOT NULL))))"
         },
         {
           "nombre": "compra_items_producto_id_fkey",
@@ -6467,6 +6528,11 @@
           "nombre": "compra_items_reparto_cuadra",
           "clase": "otro",
           "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED"
+        },
+        {
+          "nombre": "compra_items_variante_con_prenda",
+          "clase": "regla",
+          "definicion": "CHECK (((variante_id IS NULL) OR (producto_id IS NOT NULL)))"
         },
         {
           "nombre": "compra_items_variante_id_fkey",
@@ -6484,7 +6550,7 @@
         {
           "nombre": "compra_items_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+          "condicion": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
           "condicion_escritura": null
         }
       ],
@@ -6593,6 +6659,24 @@
           "nombre": "cerrado",
           "orden": 11,
           "tipo": "bigint",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "categoria_id",
+          "orden": 12,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "marca_id",
+          "orden": 13,
+          "tipo": "uuid",
           "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
@@ -6820,7 +6904,7 @@
         {
           "nombre": "compra_notas_credito_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+          "condicion": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
           "condicion_escritura": null
         }
       ],
@@ -7005,7 +7089,7 @@
         {
           "nombre": "compra_pagos_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+          "condicion": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
           "condicion_escritura": null
         }
       ],
@@ -7223,7 +7307,7 @@
         {
           "nombre": "compra_reasignaciones_select",
           "operacion": "SELECT",
-          "condicion": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
+          "condicion": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false) OR COALESCE((hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
           "condicion_escritura": null
         }
       ],
@@ -7600,6 +7684,24 @@
           "por_defecto": "'mercaderia'::text",
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "orden_compra_id",
+          "orden": 36,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "huella_envio",
+          "orden": 37,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -7684,6 +7786,11 @@
           "definicion": "CHECK ((notas_credito >= (0)::numeric))"
         },
         {
+          "nombre": "compras_orden_compra_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (orden_compra_id) REFERENCES retail.ordenes_compra(id)"
+        },
+        {
           "nombre": "compras_pagado_check",
           "clase": "regla",
           "definicion": "CHECK ((pagado >= (0)::numeric))"
@@ -7697,11 +7804,6 @@
           "nombre": "compras_proveedor_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)"
-        },
-        {
-          "nombre": "compras_proveedor_id_serie_numero_key",
-          "clase": "único",
-          "definicion": "UNIQUE (proveedor_id, serie, numero)"
         },
         {
           "nombre": "compras_recibido_cantidad_check",
@@ -7741,12 +7843,12 @@
       ],
       "indices": [
         {
-          "nombre": "compras_pkey",
-          "definicion": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)"
+          "nombre": "compras_papel_vigente_unico",
+          "definicion": "CREATE UNIQUE INDEX compras_papel_vigente_unico ON retail.compras USING btree (proveedor_id, serie, numero) WHERE (estado = 'vigente'::text)"
         },
         {
-          "nombre": "compras_proveedor_id_serie_numero_key",
-          "definicion": "CREATE UNIQUE INDEX compras_proveedor_id_serie_numero_key ON retail.compras USING btree (proveedor_id, serie, numero)"
+          "nombre": "compras_pkey",
+          "definicion": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)"
         },
         {
           "nombre": "compras_token_cliente_key",
@@ -7757,7 +7859,7 @@
         {
           "nombre": "compras_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+          "condicion": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
           "condicion_escritura": null
         }
       ],
@@ -8148,7 +8250,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 562,
+      "filas_estimadas": 575,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13293,7 +13395,7 @@
       "tabla": "gastos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 29,
+      "filas_estimadas": 34,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14232,7 +14334,7 @@
       "tabla": "guias_vistas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 20,
+      "filas_estimadas": 33,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14299,7 +14401,7 @@
       "tabla": "historial_producto_cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1020,
+      "filas_estimadas": 1160,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15104,7 +15206,7 @@
       "tabla": "marca_proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 92,
+      "filas_estimadas": 93,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15180,7 +15282,7 @@
       "tabla": "marcas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 91,
+      "filas_estimadas": 92,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15654,7 +15756,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 2591,
+      "filas_estimadas": 2747,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16481,7 +16583,7 @@
       "tabla": "movimientos_internos_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 31,
+      "filas_estimadas": 33,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19341,7 +19443,7 @@
       "tabla": "precios_sede_prenda",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 3,
+      "filas_estimadas": 5,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -20053,7 +20155,7 @@
       "tabla": "prendas_por_regularizar",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 685,
+      "filas_estimadas": 698,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21130,7 +21232,7 @@
       "tabla": "producto_fotos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 274,
+      "filas_estimadas": 327,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21246,7 +21348,7 @@
       "tabla": "producto_origen",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 197,
+      "filas_estimadas": 225,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21337,7 +21439,7 @@
       "tabla": "productos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 198,
+      "filas_estimadas": 226,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -22091,7 +22193,7 @@
       "tabla": "proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 86,
+      "filas_estimadas": 87,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -22957,7 +23059,7 @@
       "tabla": "rol_modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 69,
+      "filas_estimadas": 70,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23221,7 +23323,7 @@
       "tabla": "roles_historial",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 44,
+      "filas_estimadas": 45,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -25499,7 +25601,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1744,
+      "filas_estimadas": 1869,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -27694,7 +27796,7 @@
       "tabla": "variante_etiquetas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 236,
+      "filas_estimadas": 225,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -27770,7 +27872,7 @@
       "tabla": "variantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1303,
+      "filas_estimadas": 1408,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -28073,7 +28175,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 971,
+      "filas_estimadas": 996,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -28308,7 +28410,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 584,
+      "filas_estimadas": 597,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -28575,7 +28677,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 560,
+      "filas_estimadas": 573,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
