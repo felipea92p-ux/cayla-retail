@@ -226,15 +226,21 @@ flowchart TB
   «por cuadrar» mientras la sede no tenga cuadre —`cuadrado_en`, leído de `cuadres_piso` si existe—; esa tarjeta cuenta solo la ropa
   del riel, por `categorias.familia`, y dice aparte «+ N accesorios» (`cifraColgadasEnElPiso`), reglas en
   `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` todavía no tiene pantalla: será el Plan del piso, actividad 12 de
-  ADR-0328) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
+  ADR-0328) y la cabecera con `existencias/CifrasExistencias.tsx` (ADR-0391: las cifras «Colgadas en el piso» y «Guardadas en el
+  almacén» FILTRAN la lista por la URL —`condicion=colgadas|guardadas`, `lib/existencias-filtros.ts`— sobre `ui/ResumenSede`; reemplazó
+  al selector «Piso · Almacén · Ambos» de las tarjetas, que se guardaba por computadora) → `InventarioPanel.tsx` (con el aviso «El piso de
+  esta tienda nunca se ha cuadrado» cuando `plan.enPausa`) →
   `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx` (con los atajos
   `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`; en «Filtros ▸ Vista», «Ver como» —tarjetas, tabla o por talla—, el orden y
   el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`; «Colgar primero» se quitó el 2026-10-06, ADR-0344),
-  `ExistenciasTarjetas.tsx` (un icono por tarjeta y su ventana de acciones: `existencias/AccionesTarjeta.tsx`, `lib/existencias-acciones.ts`; el riel de
-  tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), el anillo «N de M hoy»
-  (`existencias/AnilloMision.tsx`, `lib/existencias-mision.ts`), la pistola sin buscador (`lib/existencias-pistola.ts`), la tabla «Ver detalle» y el
-  panel de la talla `existencias/PanelTalla.tsx` (ADR-0344 cuarta vuelta; reemplaza al cajón de la prenda; las tallas de arriba dicen lo que
-  falta, «otra sede» y el filtro, y el ritmo lleva `existencias/AroSemanas.tsx`, quinta vuelta) con sus pasos `existencias/FlujoTalla.tsx`
+  `ExistenciasTarjetas.tsx` (un icono por tarjeta y su ventana de acciones: `existencias/AccionesTarjeta.tsx`, `lib/existencias-acciones.ts`; desde el
+  2026-10-12, ADR-0391, una columna por talla con el número grande = colgadas y «+N guardadas» debajo —`lineaGuardadas`,
+  `lib/existencias-tarjeta-compacta.ts`—, sin selector de lugar; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo:
+  `lib/existencias-tarjetas.ts`), el anillo «N de M hoy» (`existencias/AnilloMision.tsx`, `lib/existencias-mision.ts`), la pistola sin buscador
+  (`lib/existencias-pistola.ts`), la tabla «Ver detalle» y el **modal de la prenda** `existencias/PanelTalla.tsx` (ADR-0391, «Foto y lista»: un
+  `<Modal variante="hoja">` al centro con la foto grande, la fila Etiquetas · Rótulo · Historial · Catálogo, «Dónde está», «Qué hago» con lo
+  posible y la línea «No ahora», el código copiable y la pestaña «Todas» —colgadas y guardadas por talla con totales y las casillas que filtran
+  la tabla—; reemplazó al cajón lateral de ADR-0344; el ritmo lleva `existencias/AroSemanas.tsx`) con sus pasos `existencias/FlujoTalla.tsx`
   (`lib/existencias-panel-talla.ts`, `lib/existencias-flujos.ts`) → RPC `bajar_al_piso` (Colgar y Colgar varias), `retirar_del_piso` y
   `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar; la ventana completa
   `AjustarInventarioModal.tsx` queda para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en la Ficha del panel y desde Ajustar «Se dañó»:

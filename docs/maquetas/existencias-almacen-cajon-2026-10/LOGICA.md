@@ -254,3 +254,11 @@ mirando: Felipe elige.
 
 Mapeo al código real: `PanelTalla.tsx` ya tiene `capa` y `casillaCapa` para «Todas»; lo nuevo son los totales, la celda ámbar con «falta · +N
 atrás» dentro de la capa, la fila atenuada, la cabecera de la talla abierta en negro y el botón apagado sin nada guardado.
+
+## 10. Implementado (12-10, noche; ADR-0391)
+
+Felipe: «listo, implementa tal cual al sistema». Lo de §9 está en la rama `claude/inventory-display-garment-details-03c3fa`:
+la tarjeta A (`ExistenciasTarjetas.tsx`, `ColumnasTallas`), las cifras que filtran (`existencias/CifrasExistencias.tsx`), el aviso «piso sin
+cuadrar» (`InventarioPanel.tsx`), el modal «Foto y lista» con «Todas» y sus filtros (`existencias/PanelTalla.tsx`). Las decisiones, lo
+descartado y cómo se verificó (tema, guía, `/chaos`, `/formidable`) viven en `docs/adr/0391-existencias-almacen-en-la-tarjeta-y-modal-de-la-prenda.md`;
+este documento queda como la historia de la propuesta y el prototipo (`prototipo.html` conserva las cuatro distribuciones para comparar).
