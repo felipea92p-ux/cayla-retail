@@ -14,7 +14,7 @@ import { NuevaClientaModal } from "@/components/NuevaClientaModal";
 import { ClientaFichaModal } from "@/components/ClientaFichaModal";
 import { BuscadorClientas } from "@/components/clientas/BuscadorClientas";
 import { Chip } from "@/components/ui/Chip";
-import { TABLA, Tabla } from "@/components/ui/Tabla";
+import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
 import { cumpleLegible } from "@/lib/club-clientas-reglas";
 import { celularLegible } from "@/lib/club-caja-reglas";
 import {
@@ -60,6 +60,14 @@ const PLANTILLA =
   "@min-[560px]:grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,0.7fr)_minmax(8rem,1fr)_minmax(7.5rem,0.9fr)] @min-[560px]:items-center " +
   "@min-[800px]:grid-cols-[minmax(8rem,1.7fr)_minmax(6.5rem,0.9fr)_minmax(4.5rem,0.7fr)_minmax(8rem,1.1fr)_minmax(7.5rem,1fr)_minmax(7.5rem,1.2fr)]";
 const SOLO_ANCHA = "hidden @min-[800px]:block";
+const COLUMNAS: Columna[] = [
+  { titulo: "Cliente" },
+  { titulo: "Celular", clase: SOLO_ANCHA },
+  { titulo: "Su sede", ayuda: "Donde más compró en los últimos 12 meses" },
+  { titulo: "Estado", ayuda: "Identificado: tiene ficha y sus compras se ligan. Miembro: dijo que sí al club." },
+  { titulo: "Publicidad", clase: SOLO_ANCHA, ayuda: "Novedades, rebajas y su saludo por WhatsApp: solo si lo pidió." },
+  { titulo: "Última compra" },
+];
 const DESDE_MEDIA = "hidden @min-[560px]:block";
 
 export function ClientasPanel({
@@ -219,26 +227,7 @@ export function ClientasPanel({
 
             ) : (
               <>
-                <div className={`encabezado-tabla-cayla hidden px-5 py-2 @min-[560px]:grid ${PLANTILLA.replace("grid ", "")}`} role="row">
-                  <span className={TABLA.titulo} role="columnheader">
-                    Cliente
-                  </span>
-                  <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader">
-                    Celular
-                  </span>
-                  <span className={TABLA.titulo} role="columnheader" title="Donde más compró en los últimos 12 meses">
-                    Su sede
-                  </span>
-                  <span className={TABLA.titulo} role="columnheader" title="Identificado: tiene ficha y sus compras se ligan. Miembro: dijo que sí al club.">
-                    Estado
-                  </span>
-                  <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader" title="Novedades, rebajas y su saludo por WhatsApp: solo si lo pidió.">
-                    Publicidad
-                  </span>
-                  <span className={TABLA.titulo} role="columnheader">
-                    Última compra
-                  </span>
-                </div>
+                <Encabezado visible="hidden @min-[560px]:grid" plantilla={PLANTILLA.replace("grid ", "")} columnas={COLUMNAS} />
                 {filas.map((c) => (
                   <FilaClienta key={c.id} c={c} hoy={hoy} onAbrir={() => setFichaAbiertaId(c.id)} />
                 ))}

@@ -111,7 +111,7 @@ export function CambioReemplazo({
           </div>
           <Link
             href={`/devoluciones?item=${linea.ventaItemId}`}
-            className="text-sm text-tinta/75 underline decoration-tinta/30 underline-offset-4 transition-colors duration-200 hover:text-tinta hover:decoration-tinta"
+            className="btn-enlace text-sm"
           >
             ¿Nada de su agrado? Pasar a devolución
           </Link>
@@ -243,7 +243,7 @@ export function CambioReemplazo({
             max={disponible}
             value={s.cantidad}
             onChange={(e) => onCambio({ cantidad: Math.max(1, Math.min(disponible, Number(e.target.value) || 1)) })}
-            className="mt-2 h-10 w-24 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+            className="caja-campo-input mt-2 w-24 text-sm"
           />
         </div>
       )}
@@ -277,7 +277,7 @@ export function CambioReemplazo({
             <Desplegable
               ref={refMetodo}
               id={`${idBase}-metodo`}
-              forma="caja"
+              forma="campo"
               className="w-56 max-w-full"
               valor={s.metodo}
               onValor={(metodo) => onCambio({ metodo })}

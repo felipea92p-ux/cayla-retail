@@ -47,6 +47,7 @@ import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCi
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -441,7 +442,7 @@ export function CajaAbiertaPanel({
         {metaVentaDiaria !== null && metaPct !== null && (
           <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
-              <h2 className="font-display text-[22px] leading-tight text-tinta">Meta de hoy · {soles0(metaVentaDiaria)}</h2>
+              <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
               <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
                 <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
@@ -466,7 +467,7 @@ export function CajaAbiertaPanel({
             </div>
             {puedeCerrar && fondoCierre && (
               <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
-                <h2 className="font-display text-[22px] leading-tight text-tinta">Al cerrar</h2>
+                <TituloSeccion>Al cerrar</TituloSeccion>
                 <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
                 <dl className="mt-3 text-[13px] text-tinta">
                   <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">

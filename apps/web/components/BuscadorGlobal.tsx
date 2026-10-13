@@ -221,7 +221,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
                     const i = pantallasFiltradas.length + idx;
                     return (
                       <div key={m.personaId} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${i === marcada ? "bg-hueso" : ""}`}>
-                        <AvatarPersona personaId={m.personaId} nombre={m.nombre} className="h-7 w-7 text-xs" />
+                        <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
                         <span className="flex-1">
                           <span className="block text-tinta">{m.nombre}</span>
                           <span className="block text-[11.5px] text-tinta/55">{textoEstado(m.estado)}</span>

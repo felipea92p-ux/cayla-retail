@@ -10,6 +10,7 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { ETIQUETA_MOTIVO_NOTA, chipEstado, hace, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -98,7 +99,7 @@ export function NotaCreditoVistaRapida({
               <div className="min-w-0 flex-1">
                 <Dialog.Description className="label-cayla truncate text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Nota por reclamar" : `Nota ${f.serieNumero ?? ""}`}</Dialog.Description>
                 <Dialog.Title asChild>
-                  <h2 className="font-display truncate text-[23px] leading-tight text-tinta">{f.proveedorNombre}</h2>
+                  <h2 className="font-display truncate text-[23px] leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{f.proveedorNombre}</h2>
                 </Dialog.Title>
                 <p className="truncate text-[13px] text-tinta/55">{f.documento}</p>
               </div>
@@ -133,7 +134,7 @@ export function NotaCreditoVistaRapida({
               </div>
 
               <section className="mt-[22px]">
-                <h3 className="label-cayla mb-1 text-[11px] text-tinta/65">De dónde sale</h3>
+                <TituloGrupo className="mb-1">De dónde sale</TituloGrupo>
                 <dl className="text-[13px]">
                   <Dato k="Comprobante" v={`${f.documento} · emitido el ${diaMes(f.compraFechaEmision)}`} />
                   <Dato k="Total" v={soles(f.compraTotal)} />

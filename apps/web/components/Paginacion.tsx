@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Cursor } from "@/lib/compras";
-import { numerosDePagina } from "@/lib/paginacion";
+import { Paginas } from "@/components/ui/Paginas";
 
 // Paginación por cursor (keyset). Solo hay "siguiente" y "volver al inicio":
 // un cursor dice "las 50 después de ESTA fila", y eso Postgres lo resuelve
@@ -63,15 +64,18 @@ export function PaginacionCursor({
       <span>
         {mostradas === 0 ? "Sin resultados en esta página." : `${mostradas} ${mostradas === 1 ? sustantivo[0] : sustantivo[1]} en esta página`}
       </span>
-      <span className="flex gap-4">
+      {/* Por cursor no hay números (ver arriba): las dos flechas con el aspecto de <Paginas> (ADR-0358, ronda 8). */}
+      <span className="paginas">
         {hayCursor && (
-          <Link href={enlace(null)} className="label-cayla text-[11px] hover:text-rojo">
-            ← Volver al inicio
+          <Link href={enlace(null)} className="paginas-n paginas-texto atras">
+            <ChevronLeft aria-hidden />
+            Volver al inicio
           </Link>
         )}
         {cursorSiguiente && (
-          <Link href={enlace(cursorSiguiente)} className="label-cayla text-[11px] text-tinta hover:text-rojo">
-            Siguiente página →
+          <Link href={enlace(cursorSiguiente)} className="paginas-n paginas-texto adelante">
+            Siguiente página
+            <ChevronRight aria-hidden />
           </Link>
         )}
       </span>
@@ -114,42 +118,7 @@ export function PaginacionPaginas({
         {totalItems.toLocaleString("es-PE")} {totalItems === 1 ? sustantivo[0] : sustantivo[1]}
         {totalPaginas > 1 && ` · página ${pagina} de ${totalPaginas}`}
       </span>
-      {totalPaginas > 1 && (
-        <nav className="flex items-center gap-1" aria-label="Paginación">
-          <Link
-            href={enlace(Math.max(1, pagina - 1))}
-            aria-disabled={pagina === 1}
-            className={`label-cayla px-1.5 py-1 text-[11px] ${pagina === 1 ? "pointer-events-none text-tinta/30" : "hover:text-rojo"}`}
-          >
-            ‹
-          </Link>
-          {numerosDePagina(totalPaginas, pagina).map((n, i) =>
-            n === null ? (
-              <span key={`gap-${i}`} className="px-1 text-tinta/40">
-                …
-              </span>
-            ) : (
-              <Link
-                key={n}
-                href={enlace(n)}
-                aria-current={n === pagina ? "page" : undefined}
-                className={`label-cayla min-w-[1.5rem] rounded-md px-1.5 py-1 text-center text-[11px] ${
-                  n === pagina ? "bg-tinta text-crema" : "text-tinta/75 hover:text-rojo"
-                }`}
-              >
-                {n}
-              </Link>
-            )
-          )}
-          <Link
-            href={enlace(Math.min(totalPaginas, pagina + 1))}
-            aria-disabled={pagina === totalPaginas}
-            className={`label-cayla px-1.5 py-1 text-[11px] ${pagina === totalPaginas ? "pointer-events-none text-tinta/30" : "hover:text-rojo"}`}
-          >
-            ›
-          </Link>
-        </nav>
-      )}
+      {totalPaginas > 1 && <Paginas pagina={pagina} totalPaginas={totalPaginas} hrefs={Array.from({ length: totalPaginas }, (_, k) => enlace(k + 1))} />}
     </div>
   );
 }

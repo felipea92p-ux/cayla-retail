@@ -8,6 +8,7 @@ import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimien
 import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
 import { Receipt, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Rendimiento (ADR-0219, ADR-0325). Arriba, el PANEL de la meta de la tienda (`PanelRendimiento`, en el
 // navegador): cifras, cómo va cada persona contra su meta —que la líder de la sede o el Admin pueden cambiar—,
@@ -96,11 +97,11 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
   const porVentas = r?.rankingNumeroVentas ?? [];
   return (
     <section className="space-y-4" aria-label="Rankings del mes" data-guia="rendimiento.rankings">
-      <h2 className="label-cayla text-[11px] font-bold text-taupe">Rankings del mes</h2>
+      <TituloSeccion>Rankings del mes</TituloSeccion>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-taupe">
+          <TituloSeccion nivel={3} className="mb-2">
             Vende más por hora
             <Ayuda titulo="Vende más por hora">
               <span className="block">
@@ -112,7 +113,7 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
               </span>
               <span className="mt-2 block">«Muestra chica» es menos de 40 ventas en el mes.</span>
             </Ayuda>
-          </h3>
+          </TituloSeccion>
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
             {porHora.length === 0 && (
@@ -147,13 +148,13 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
         </div>
 
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-taupe">
+          <TituloSeccion nivel={3} className="mb-2">
             Cierra más ventas
             <Ayuda titulo="Cierra más ventas">
               <span className="block">Número de ventas del mes, sin corregir: funciona igual con o sin horas registradas.</span>
               <span className="mt-2 block">«Muestra chica» es menos de 40 ventas en el mes.</span>
             </Ayuda>
-          </h3>
+          </TituloSeccion>
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
             {porVentas.length === 0 && (

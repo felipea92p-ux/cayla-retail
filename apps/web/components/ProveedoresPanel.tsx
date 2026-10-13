@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDown, ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
+import { ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
@@ -17,7 +17,7 @@ import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { Sparkline } from "@/components/ui/Sparkline";
-import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
@@ -617,44 +617,20 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
 }
 
 // Los encabezados de Facturado, Saldo y Última compra ordenan la tabla; el nombre también (clic en
-// «Proveedor»). La flecha dice hacia dónde y GIRA al invertir el orden. `aria-sort` para el lector de pantalla.
-// Las columnas se muestran con los mismos cortes que las celdas de `FilaLider` (COLUMNAS_LIDER).
+// «Proveedor»). Es <Encabezado> con `orden` (ADR-0358, ronda 7): la flecha dice hacia dónde y GIRA al invertir el orden, con
+// `aria-sort` para el lector de pantalla. Las columnas se muestran con los mismos cortes que las celdas de `FilaLider`
+// (COLUMNAS_LIDER), y el encabezado entero solo desde @3xl: más angosta, cada fila se lee sola.
+const COLUMNAS_ENCABEZADO_LIDER: Columna[] = [
+  { titulo: "Proveedor", campo: "nombre" },
+  { titulo: "RUC", clase: "hidden @7xl:block" },
+  { titulo: "Facturado · 12 m", campo: "facturado", alinear: "der", clase: "hidden @3xl:block" },
+  { titulo: "Saldo", campo: "saldo", alinear: "der" },
+  { titulo: "A favor", campo: "favor", alinear: "der", clase: "hidden @5xl:block" },
+  { titulo: "Entregas", alinear: "der", clase: "hidden @5xl:block" },
+  { titulo: "Última compra", campo: "ultima", alinear: "der", clase: "hidden @7xl:block" },
+  { titulo: "", clase: "hidden @3xl:block" },
+];
+
 function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: CampoOrden) => void }) {
-  const col = (titulo: string, campo: CampoOrden | null, opts: { der?: boolean; desde?: "sm" | "lg" | "xl" } = {}) => {
-    const visible = opts.desde === "xl" ? "hidden @7xl:flex" : opts.desde === "lg" ? "hidden @5xl:flex" : opts.desde === "sm" ? "hidden @3xl:flex" : "flex";
-    const alinear = opts.der ? "justify-end text-right" : "text-left";
-    if (!campo) {
-      return (
-        <span key={titulo || "accion"} className={`label-cayla ${visible} ${alinear} whitespace-nowrap text-[11px] text-tinta/55`} role="columnheader">
-          {titulo}
-        </span>
-      );
-    }
-    const activo = orden.campo === campo;
-    return (
-      <button
-        key={titulo}
-        type="button"
-        role="columnheader"
-        aria-sort={activo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
-        onClick={() => onOrden(campo)}
-        className={`label-cayla ${visible} items-center gap-1 whitespace-nowrap text-[11px] transition-colors hover:text-rojo ${alinear} ${activo ? "text-tinta" : "text-tinta/55"}`}
-      >
-        {titulo}
-        <ArrowDown aria-hidden className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${activo ? "opacity-100" : "opacity-0"} ${activo && orden.dir === "asc" ? "rotate-180" : ""}`} />
-      </button>
-    );
-  };
-  return (
-    <div className={`hidden gap-x-4 px-5 py-2 @3xl:grid ${COLUMNAS_LIDER}`} role="row">
-      {col("Proveedor", "nombre")}
-      {col("RUC", null, { desde: "xl" })}
-      {col("Facturado · 12 m", "facturado", { der: true, desde: "sm" })}
-      {col("Saldo", "saldo", { der: true })}
-      {col("A favor", "favor", { der: true, desde: "lg" })}
-      {col("Entregas", null, { der: true, desde: "lg" })}
-      {col("Última compra", "ultima", { der: true, desde: "xl" })}
-      {col("", null, { desde: "sm" })}
-    </div>
-  );
+  return <Encabezado plantilla={`${COLUMNAS_LIDER} @max-3xl:hidden!`} columnas={COLUMNAS_ENCABEZADO_LIDER} orden={orden} onOrden={(c) => onOrden(c as CampoOrden)} />;
 }

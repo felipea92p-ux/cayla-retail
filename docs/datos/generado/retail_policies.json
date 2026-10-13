@@ -272,7 +272,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_adjuntos_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_adjuntos",
@@ -281,7 +281,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_cierres_select",
-  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1\n   FROM retail.compra_items i\n  WHERE ((i.id = compra_item_cierres.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))",
+  "qual": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_cierres",
@@ -290,7 +290,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_destinos_select",
-  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1\n   FROM retail.compra_items i\n  WHERE ((i.id = compra_item_destinos.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))",
+  "qual": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_destinos",
@@ -299,7 +299,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_items_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_items",
@@ -308,7 +308,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_notas_credito_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_notas_credito",
@@ -317,7 +317,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_pagos_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_pagos",
@@ -326,7 +326,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_reasignaciones_select",
-  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
+  "qual": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false) OR COALESCE((hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_reasignaciones",
@@ -344,7 +344,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compras_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compras",

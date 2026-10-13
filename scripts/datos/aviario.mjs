@@ -82,6 +82,10 @@ export const AVIARIO = [
       // ADR-0113: el envío es el padre de los lotes (`lotes.envio_id`); sus extras son movimientos y sus
       // traslados, transferencias — el mismo pájaro que las tablas que agrupa, no el de Compras.
       "envios", "envio_extras", "envio_traslados",
+      // ADR-0362 (fases 3 y 4): el envío de una orden de compra a una sede (ENV-…), sus líneas y lo que se contó al recibirlo. Como
+      // `envios`, es el padre de sus lotes (`lotes.despacho_id`) y cada fila recibida lleva su movimiento: el pájaro del stock, no el de
+      // Compras. Asignadas en el refresco del 2026-10-13, al pegarse en producción.
+      "despachos", "despacho_items", "despacho_recibidos",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
       // Análisis v4 (ADR-0357, 20261006216000): «Liquidar desde», un número para toda la red (lo mueve quien ve Análisis).
@@ -183,6 +187,9 @@ export const AVIARIO = [
       // nunca se cambia. Están en producción y su migración TODAVÍA NO ESTÁ en el repo (ni en `main` ni en una rama): se encontraron en el
       // refresco del volcado del 2026-10-11 (docs/backlog/2026-10-11-diccionario-precios-tienda.md).
       "ordenes_compra", "orden_compra_items", "orden_compra_versiones",
+      // ADR-0362 (fases 4 y 5a): lo que faltó o sobró al recibir un envío de orden y lo resuelto de cada deuda del proveedor («Nos
+      // debe»): es lo que el proveedor le debe a CAYLA, el pájaro de Compras. Asignadas en el refresco del 2026-10-13.
+      "despacho_diferencias", "proveedor_deuda_resoluciones",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
       // Asignadas en el refresco del volcado del 2026-09-23.
       "compra_parte_por_tienda", "compradores_de_tienda",

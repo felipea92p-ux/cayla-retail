@@ -14,7 +14,7 @@
     "components/plan-compra/HistorialCampanas.tsx": [
       "Link «{a}»",
       "Desplegable «)»",
-      "Desplegable «Campaña ·»",
+      "DesplegablePildora «Ordenar por»",
       "button «Borrar la búsqueda»",
       "button «plan-historial.fila»"
     ],

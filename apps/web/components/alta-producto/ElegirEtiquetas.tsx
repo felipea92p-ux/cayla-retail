@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { Search } from "lucide-react";
 import { MuestraEtiqueta, TONOS } from "@/components/MuestraEtiqueta";
 import { GrillaMuestras, TarjetaMuestraBase, TileVerTodos } from "@/components/alta-producto/GrillaMuestras";
 import { Modal } from "@/components/ui/Modal";
@@ -24,7 +23,8 @@ import {
   textoDeDescuento,
 } from "@/lib/etiquetas-alta-reglas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
@@ -328,31 +328,23 @@ function HojaEtiquetas({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <label className="caja-cayla flex h-9 w-full items-center gap-2 px-3 sm:w-72">
-          <Search aria-hidden size={14} className="shrink-0 text-tinta/45" />
-          <span className="sr-only">Buscar o crear una etiqueta</span>
-          <input
-            ref={entrada}
-            value={texto}
-            autoFocus
-            autoComplete="off"
-            placeholder="Buscar o crear una etiqueta…"
-            // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
-            onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === ",") {
-                e.preventDefault();
-                confirmar();
-              } else if (e.key === "Escape" && texto) {
-                // Este Escape lo usó el campo (borró lo escrito): que no cierre también la hoja (Modal usa `useEscapeLibre`).
-                e.preventDefault();
-                e.stopPropagation();
-                setTexto("");
-              }
-            }}
-            className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-          />
-        </label>
+        {/* El buscador del sistema (ADR-0358, ronda 5): su Escape borra lo escrito y no cierra también la hoja (Modal usa `useEscapeLibre`). */}
+        <Buscador
+          ref={entrada}
+          valor={texto}
+          autoFocus
+          etiqueta="Buscar o crear una etiqueta"
+          placeholder="Buscar o crear una etiqueta…"
+          // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
+          onCambio={(v) => setTexto(v.replace(/,+$/, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              confirmar();
+            }
+          }}
+          className="w-full sm:w-72"
+        />
         {hayCrear && significado.tipo === "nueva" && (
           <Boton type="button" onClick={() => pedirCrear(significado.nombre)} className="h-9 whitespace-nowrap py-0">
             + Crear «{significado.nombre}»
@@ -461,19 +453,16 @@ function NuevaEtiquetaModal({
     <Modal variante="hoja" ancho="max-w-md" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
       {(cerrar) => (
         <div className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-tinta">Nombre de la etiqueta</span>
-            <input
-              autoFocus
-              autoComplete="off"
-              value={texto}
-              onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.preventDefault();
-              }}
-              className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
-            />
-          </label>
+          <CampoTexto
+            etiqueta="Nombre de la etiqueta"
+            sinPie
+            autoFocus
+            value={texto}
+            onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+          />
           {nota && (
             <p role="status" className="text-xs text-ambar-profundo">
               {nota}

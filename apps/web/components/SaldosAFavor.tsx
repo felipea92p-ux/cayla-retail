@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { soles } from "@/lib/compras-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «A favor con proveedores» en Por pagar (ADR-0111, corrección 2026-09-18): antes de pagar hay que saber a quién
 // le debemos y quién nos debe a nosotros. Una nota de crédito que superó lo que se le debía a un proveedor (típico:
@@ -29,7 +30,7 @@ export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /*
           return (
             <div key={s.proveedorId} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-3">
               <div className="min-w-0">
-                <Link href={`/compras/proveedores/${s.proveedorId}#saldo-a-favor`} className="text-sm text-tinta hover:text-rojo hover:underline">
+                <Link href={`/compras/proveedores/${s.proveedorId}#saldo-a-favor`} className="btn-enlace text-sm">
                   {s.nombre}
                 </Link>
                 <p className="text-xs text-tinta/60">
@@ -48,13 +49,9 @@ export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /*
                 <span className="text-sm font-semibold tabular-nums text-verde-profundo">{soles(s.saldoFavor)}</span>
                 {/* `marcar=1`: llega con los comprobantes de este proveedor ya marcados y la barra de «Pagar juntos» abierta. */}
                 {s.deuda > 0 ? (
-                  <Link href={`/compras/por-pagar?prov=${s.proveedorId}&marcar=1`} className="label-cayla group text-[11px] text-rojo hover:underline">
-                    Pagar con este saldo <span aria-hidden className="inline-block transition-transform duration-300 ease-cayla group-hover:translate-x-1">→</span>
-                  </Link>
+                  <EnlaceVer href={`/compras/por-pagar?prov=${s.proveedorId}&marcar=1`}>Pagar con este saldo</EnlaceVer>
                 ) : (
-                  <Link href={`/compras/proveedores/${s.proveedorId}#saldo-a-favor`} className="label-cayla text-[11px] text-rojo hover:underline">
-                    Ver →
-                  </Link>
+                  <EnlaceVer href={`/compras/proveedores/${s.proveedorId}#saldo-a-favor`}>Ver</EnlaceVer>
                 )}
               </div>
             </div>

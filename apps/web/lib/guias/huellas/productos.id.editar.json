@@ -65,7 +65,7 @@
     "components/alta-producto/AvisoParecidos.tsx": [
       "Link «Abrir»",
       "Link «{p.referencia}»",
-      "input «Es otro producto distinto, créalo igual.»",
+      "Casilla «Es otro producto distinto, créalo igual.»",
       "Link «{p.referencia}» #2"
     ],
     "components/alta-producto/ElegirColores.tsx": [
@@ -100,17 +100,17 @@
       "ComboBuscable «)»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
-      "input «Textil Andina SAC»",
-      "input «11 dígitos»",
+      "CampoTexto «Razón social»",
+      "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
       "button «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "input «{ejemplo.nombre.texto}»",
-      "Desplegable «Código»",
-      "input «{ejemplo.codigo.texto}»",
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
       "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
