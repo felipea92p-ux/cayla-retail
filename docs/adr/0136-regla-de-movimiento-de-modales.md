@@ -337,3 +337,18 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `prefers-reduced-motion` todo queda quieto, los trazos aparecen dibujados y las veces llegan de una.
 - **Dónde vive:** `apps/web/app/estilos/gasto-rapido.css` (sus `@keyframes gr-*`) y la cuenta de las veces en `useCuenta` del mismo componente.
   No se generaliza.
+
+
+## Actualización 2026-10-13 — el login «El vuelo»: el colibrí que cose las sedes, pedido por Felipe
+
+- **Qué:** en `/login`, en pantalla ancha, el colibrí rojo sale chiquito de Trujillo, pasa por Arequipa y Lima dejando una costura punteada
+  que se revela detrás de él, da la vuelta, sube por detrás del lema y llega a su lugar con su tamaño final; cada sede (un ojal) se rellena
+  cuando el hilo pasa por ella. Se voltea con suavidad cuando vuela a la izquierda y se inclina al subir (nunca más de 22°). Dura 3 s. El lema y
+  el saludo asoman una vez. En el celular no hay panel ni vuelo: el formulario con la marca arriba.
+- **Por qué se admite:** es la única pantalla que ve todo el que entra y la puerta de la marca. Felipe pidió que el login «no sea tan simple»,
+  eligió la maqueta C2 y pidió «que el colibrí haga el recorrido hasta llegar a su posición» (2026-10-13). Es decorativo, y por eso queda
+  escrito como excepción: no corre sobre nada que la persona tenga que leer para trabajar, y el formulario se puede llenar mientras vuela.
+- **Los límites son los de siempre:** una sola vez al entrar, sin rebote (el ritmo entra y llega suave, `ritmoDelVuelo`, probado: nunca se pasa
+  ni retrocede), **nada en bucle**, solo tokens. Con `prefers-reduced-motion`, o si la ventana cambia de tamaño a medio vuelo, se ve terminado.
+- **Dónde vive:** la geometría y el ritmo en `apps/web/lib/login-vuelo.ts` (con su prueba), el panel en `components/login/PanelVuelo.tsx` y los
+  estilos en `app/estilos/login.css`. Maqueta: `docs/maquetas/login-2026-10/` (`?v=C2`). No se generaliza.
