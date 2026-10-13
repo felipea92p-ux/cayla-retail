@@ -24,6 +24,7 @@ import {
   type ConteosFiltros,
   type FiltrosElegidos,
 } from "@/lib/existencias-filtros";
+import { atajoElegido } from "@/lib/existencias-rapidos";
 import { Buscador } from "@/components/ui/Buscador";
 
 /* ====================================================================
@@ -158,8 +159,11 @@ export function FiltrosExistencias({
   }
 
   // Con los atajos a la vista (sede que separa piso y almacén), el atajo encendido ya dice qué «Hoy» o «Condición» está puesto: su chip
-  // repetiría lo mismo en otra fila. Los demás filtros (categoría, talla, color, marca) sí van como chip.
-  const chips = chipsDeFiltros(elegidos).filter((c) => !(separa && c.quitar.every((k) => k === "hoy" || k === "condicion")));
+  // repetiría lo mismo en otra fila. Los demás filtros (categoría, talla, color, marca) sí van como chip. Una condición SIN atajo
+  // («Colgadas en el piso» / «Guardadas en el almacén», que ponen las cifras de la cabecera, ADR-0391) sí lleva chip: si no, lo único que
+  // diría que la lista está filtrada sería la cifra presionada arriba.
+  const conAtajo = atajoElegido(elegidos) !== null;
+  const chips = chipsDeFiltros(elegidos).filter((c) => !(separa && conAtajo && c.quitar.every((k) => k === "hoy" || k === "condicion")));
   const activos = contarFiltrosActivos(elegidos);
   const quitar = (claves: readonly ClaveUrl[]) => onCambiar(Object.fromEntries(claves.map((k) => [k, null])));
   const opcion = (v: string) => ({ valor: v, texto: v });

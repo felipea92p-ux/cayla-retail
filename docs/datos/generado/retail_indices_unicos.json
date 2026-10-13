@@ -390,13 +390,13 @@
   "tablename": "compradores_de_tienda"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)",
-  "indexname": "compras_pkey",
+  "indexdef": "CREATE UNIQUE INDEX compras_papel_vigente_unico ON retail.compras USING btree (proveedor_id, serie, numero) WHERE (estado = 'vigente'::text)",
+  "indexname": "compras_papel_vigente_unico",
   "tablename": "compras"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX compras_proveedor_id_serie_numero_key ON retail.compras USING btree (proveedor_id, serie, numero)",
-  "indexname": "compras_proveedor_id_serie_numero_key",
+  "indexdef": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)",
+  "indexname": "compras_pkey",
   "tablename": "compras"
  },
  {
