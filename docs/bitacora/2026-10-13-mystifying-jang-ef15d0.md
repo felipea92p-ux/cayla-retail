@@ -15,3 +15,16 @@ abierto y no se crean datos en la base compartida para una foto), borrada antes 
 Felipe se lleva: el ERP sin deuda de `/unificar`, las fotos de después en claro y oscuro (`docs/unificar/capturas/*.ronda9.jpg`) y la
 suite entera en verde (449 archivos, 158 150 pruebas). Y una alerta de disco: el `next dev` de esta worktree servía un CSS de hace una
 semana (Turbopack) y su `.next` creció 4 GB en media hora; Felipe lo borró (18 GB).
+
+## 2026-10-13 (/unificar: el censo de después de las rondas 6–9, rastreado al código, y la ronda 10 armada)
+Qué hice: con el disco liberado (Felipe borró el `.next` de esta worktree), corrí el censo completo (Admin, 252 de 277 vistas) y no me
+quedé con sus cifras: seguí cada variante hasta su archivo. Encontró lo que las firmas no veían: 10 títulos a mano (la firma de títulos en
+sans tenía un `\b` después de `text-[15px]`, que nunca coincide), 4 «Ver … →» en versalitas, 2 casillas con cara propia (`peer-checked`),
+5 «+ Agregar …» en versalitas grises y la caja «Producto» de Nueva compra encogida a 78 px (la caja de la ronda 6 se deja encoger y la
+columna de «Talla y color» se quedaba con todo). Todo migrado o arreglado, con tres firmas nuevas o corregidas. La auditoría de modo
+oscuro de las pantallas tocadas encontró 4 textos del detalle del cierre de Caja (de otra rama) que solo fallaban en oscuro: arreglados.
+Las guías de las 22 pantallas tocadas recorren bien (y Cambios, Devoluciones y Apartados a 375 px); dos del plan de compra no tienen datos
+en la base local. Y armé la ronda 10 (descargar, filtros, ver en otra pantalla) con ese censo.
+Por qué así: una firma del CI solo ve lo que alguien supo describir; el censo ve la pantalla. Cruzar los dos es lo único que encuentra lo
+que se escapa, y migrar sin mirar el resultado dejó un campo inservible en Nueva compra que nadie habría visto hasta usarlo.
+Felipe se lleva: el ERP más parejo de lo que decía la deuda, Nueva compra usable otra vez y la página de la ronda 10 para elegir.
