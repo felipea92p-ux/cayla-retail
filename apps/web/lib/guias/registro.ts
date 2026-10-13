@@ -273,6 +273,8 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },
   "/finanzas/reportes/presupuesto": { estado: "aplicada", guia: GUIA_FIN_PRESUPUESTO.id },
   "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
+  // ---- gestion ----
+  "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) lleva a la primera de sus cuatro pantallas que la cuenta ve (Análisis, Frescura del piso, Plan del piso o Rendimiento). La guía es la de la pantalla a la que llega." },
   // ---- global ----
   "/global": { estado: "aplicada", guia: GUIA_GLOBAL.id },
   "/global/elige-sede": { estado: "no-aplica", motivo: "Un paso de paso: pide elegir la sede y vuelve; lo explica la guía de la pantalla de donde se viene." },

@@ -97,6 +97,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/reportes/presupuesto": PENDIENTE,
   "/finanzas/resumen": PENDIENTE,
   // ---- global ----
+  "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) manda a la primera de sus cuatro pantallas que la cuenta ve; no hay campos ni pasos." },
   "/global": PENDIENTE,
   "/global/elige-sede": PENDIENTE,
   // ---- inventario ----
