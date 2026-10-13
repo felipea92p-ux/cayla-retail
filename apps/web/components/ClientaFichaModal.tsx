@@ -36,7 +36,7 @@ import {
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
@@ -667,7 +667,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 {resultadosUnir !== null && (
                   <div className="space-y-2">
                     {resultadosUnir.length === 0 ? (
-                      <p className="text-sm text-tinta/65">Sin coincidencias.</p>
+                      <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<SearchX />}>Sin coincidencias.</Vacio>
                     ) : (
                       resultadosUnir.map((otra) => (
                         <button

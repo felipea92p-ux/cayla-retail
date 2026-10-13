@@ -10,6 +10,8 @@ import { CampoTexto, Boton } from "@/components/ui/campos";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
 // `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
@@ -77,10 +79,9 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
 
   if (resultados.length === 0) {
     return (
-      <p className="text-sm text-tinta/65">
-        Sin coincidencias para &ldquo;{textoOriginal}&rdquo; — revisa la escritura o prueba con menos
-        palabras.
-      </p>
+      <Vacio icono={<SearchX />} titulo={<>Sin coincidencias para «{textoOriginal}»</>}>
+        Revisa la escritura o prueba con menos palabras.
+      </Vacio>
     );
   }
 
