@@ -92,7 +92,7 @@ aprobado (ADR-0195). Lo demás de esta guía (tokens, botones, chips, tablas, no
 
 ## Actualización 2026-10-13 — el login lleva tres rojos (excepción de Felipe)
 
-El login «El vuelo» (`/login`, ADR-0136 act. 2026-10-13) usa tres rojos en pantalla ancha: el colibrí, la palabra «transforma.» del lema y el
+El login «El vuelo vivo» (`/login`, ADR-0136 act. 2026-10-13) usa tres rojos en pantalla ancha: el colibrí, la palabra «transforma.» del lema y el
 hilo de la caja con el cursor. Felipe lo aprobó mirando la maqueta (2026-10-13): es la portada de la marca, no una pantalla de trabajo, y ninguno
 de los tres compite con una acción (el botón «Entrar» sigue en tinta). En el celular quedan dos: el colibrí chico y el hilo. La regla de máximo
 dos rojos sigue igual para todas las demás pantallas.

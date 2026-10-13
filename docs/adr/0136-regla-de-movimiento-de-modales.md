@@ -339,16 +339,20 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   No se generaliza.
 
 
-## Actualización 2026-10-13 — el login «El vuelo»: el colibrí que cose las sedes, pedido por Felipe
+## Actualización 2026-10-13 — el login «El vuelo vivo»: el colibrí que cose las sedes, pedido por Felipe
 
-- **Qué:** en `/login`, en pantalla ancha, el colibrí rojo sale chiquito de Trujillo, pasa por Arequipa y Lima dejando una costura punteada
-  que se revela detrás de él, da la vuelta, sube por detrás del lema y llega a su lugar con su tamaño final; cada sede (un ojal) se rellena
-  cuando el hilo pasa por ella. Se voltea con suavidad cuando vuela a la izquierda y se inclina al subir (nunca más de 22°). Dura 3 s. El lema y
-  el saludo asoman una vez. En el celular no hay panel ni vuelo: el formulario con la marca arriba.
+- **Qué:** en `/login`, en pantalla ancha, el colibrí rojo aparece en Trujillo dibujándose trazo a trazo y aleteando (el ala sube y baja
+  desde el hombro); salta a Arequipa y a Lima, flota un instante en cada una y la «cose» (el ojal se rellena y suelta una onda); da la vuelta,
+  crece, cruza por detrás del lema y tiñe «transforma.» de rojo al pasar; llega a su lugar, flota, da dos aleteos que se apagan hasta quedar
+  en la pose exacta del logo y el hilo punteado da un último tirón. Se voltea con suavidad cuando vuela a la izquierda y se ladea al subir
+  (nunca más de 22°). Dura 4,3 s. En el celular no hay panel ni vuelo: el formulario con la marca arriba.
 - **Por qué se admite:** es la única pantalla que ve todo el que entra y la puerta de la marca. Felipe pidió que el login «no sea tan simple»,
-  eligió la maqueta C2 y pidió «que el colibrí haga el recorrido hasta llegar a su posición» (2026-10-13). Es decorativo, y por eso queda
-  escrito como excepción: no corre sobre nada que la persona tenga que leer para trabajar, y el formulario se puede llenar mientras vuela.
-- **Los límites son los de siempre:** una sola vez al entrar, sin rebote (el ritmo entra y llega suave, `ritmoDelVuelo`, probado: nunca se pasa
-  ni retrocede), **nada en bucle**, solo tokens. Con `prefers-reduced-motion`, o si la ventana cambia de tamaño a medio vuelo, se ve terminado.
-- **Dónde vive:** la geometría y el ritmo en `apps/web/lib/login-vuelo.ts` (con su prueba), el panel en `components/login/PanelVuelo.tsx` y los
-  estilos en `app/estilos/login.css`. Maqueta: `docs/maquetas/login-2026-10/` (`?v=C2`). No se generaliza.
+  eligió la maqueta C2, pidió «que el colibrí haga el recorrido hasta llegar a su posición» y después «una mejor animación», y eligió la C4
+  mirando el video (2026-10-13). Es decorativo, y por eso queda escrito como excepción: no corre sobre nada que la persona tenga que leer
+  para trabajar, y el formulario se puede llenar mientras vuela.
+- **Los límites:** una sola vez al entrar, sin rebote (los ritmos `ritmoDelVuelo` y `ritmoDelSalto` están probados: nunca se pasan ni
+  retroceden). El aleteo y el mecerse se repiten mientras vuela, pero **se detienen al llegar**: nada queda moviéndose. Solo tokens. Con
+  `prefers-reduced-motion`, o si la ventana cambia de tamaño a medio vuelo, se ve terminado (ave en su lugar, hilo y palabra completos).
+- **Dónde vive:** la geometría del ala, el recorrido, la línea de tiempo y el teñido en `apps/web/lib/login-vuelo.ts` (con su prueba, que
+  además exige que el ave sea la misma de `IsotipoCayla`), el panel en `components/login/PanelVuelo.tsx` y los estilos en
+  `app/estilos/login.css`. Maqueta: `docs/maquetas/login-2026-10/` (`?v=C4`; la C2 queda para comparar). No se generaliza.

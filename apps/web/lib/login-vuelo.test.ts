@@ -1,5 +1,50 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { escalaDelAve, poseDelAve, ritmoDelVuelo, saludoDelDia, trazoDelVuelo } from "./login-vuelo";
+import {
+  ALETEO_MAXIMO,
+  DURACION_DEL_VUELO,
+  LINEA_DE_TIEMPO,
+  TRAZOS_DEL_AVE,
+  aleteo,
+  alaDelAve,
+  estadoDelVuelo,
+  poseDelAve,
+  ritmoDelSalto,
+  ritmoDelVuelo,
+  saludoDelDia,
+  tintaDeLaPalabra,
+  trazoDelVuelo,
+} from "./login-vuelo";
+
+const numeros = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+
+describe("el colibrí del login es el de la marca", () => {
+  it("sus trazos son los mismos de IsotipoCayla", () => {
+    const isotipo = readFileSync(join(__dirname, "../components/ui/IsotipoCayla.tsx"), "utf8");
+    for (const d of TRAZOS_DEL_AVE) expect(isotipo).toContain(`d="${d}"`);
+  });
+
+  it("con el ala en reposo, el ala es exactamente la del logo", () => {
+    const [a, b] = alaDelAve(0, 1);
+    expect(numeros(a)).toEqual(numeros(TRAZOS_DEL_AVE[0]));
+    expect(numeros(b)).toEqual(numeros(TRAZOS_DEL_AVE[1]));
+  });
+
+  it("al aletear, la punta del ala sube y baja; el cuerpo no se mueve", () => {
+    const yPunta = (ang: number) => numeros(alaDelAve(ang)[0])[1];
+    expect(yPunta(ALETEO_MAXIMO)).toBeLessThan(yPunta(0)); // arriba = y menor
+    expect(yPunta(-ALETEO_MAXIMO)).toBeGreaterThan(yPunta(0));
+    const cuerpo = (d: string) => d.slice(d.indexOf("118,50"));
+    expect(cuerpo(alaDelAve(ALETEO_MAXIMO)[0])).toBe(cuerpo(TRAZOS_DEL_AVE[0]));
+  });
+
+  it("el escorzo solo aparece cuando el ala sube", () => {
+    expect(aleteo(Math.PI / 2, ALETEO_MAXIMO).largo).toBeLessThan(1);
+    expect(aleteo(-Math.PI / 2, ALETEO_MAXIMO).largo).toBe(1);
+    expect(aleteo(Math.PI / 2, 0)).toEqual({ angulo: 0, largo: 1 });
+  });
+});
 
 describe("trazoDelVuelo", () => {
   const medidas = {
@@ -22,62 +67,115 @@ describe("trazoDelVuelo", () => {
   it("pasa en línea recta por las tres sedes antes de subir", () => {
     const tramoRecto = trazoDelVuelo(medidas).split(" C")[0];
     expect(tramoRecto).toMatch(/^M64,790 L\d+(\.\d)?,790$/);
-    const fin = Number(tramoRecto.split("L")[1].split(",")[0]);
-    expect(fin).toBeGreaterThan(436);
+    expect(Number(tramoRecto.split("L")[1].split(",")[0])).toBeGreaterThan(436);
   });
 
   it("no da números con decimales infinitos", () => {
-    const d = trazoDelVuelo({ ...medidas, ancho: 733.3333, alto: 811.7777 });
-    expect(d).not.toMatch(/\.\d{2,}/);
+    expect(trazoDelVuelo({ ...medidas, ancho: 733.3333, alto: 811.7777 })).not.toMatch(/\.\d{2,}/);
   });
 });
 
-describe("ritmoDelVuelo", () => {
-  it("empieza en 0, termina en 1 y nunca se pasa ni retrocede (sin rebote)", () => {
-    expect(ritmoDelVuelo(0)).toBe(0);
-    expect(ritmoDelVuelo(1)).toBe(1);
-    let previo = 0;
-    for (let i = 1; i <= 100; i++) {
-      const v = ritmoDelVuelo(i / 100);
-      expect(v).toBeGreaterThanOrEqual(previo);
-      expect(v).toBeLessThanOrEqual(1);
-      previo = v;
+describe("los ritmos no rebotan", () => {
+  for (const [nombre, ritmo] of [
+    ["ritmoDelVuelo", ritmoDelVuelo],
+    ["ritmoDelSalto", ritmoDelSalto],
+  ] as const) {
+    it(`${nombre}: de 0 a 1, nunca se pasa ni retrocede`, () => {
+      expect(ritmo(0)).toBe(0);
+      expect(ritmo(1)).toBe(1);
+      let previo = 0;
+      for (let i = 1; i <= 100; i++) {
+        const v = ritmo(i / 100);
+        expect(v).toBeGreaterThanOrEqual(previo);
+        expect(v).toBeLessThanOrEqual(1);
+        previo = v;
+      }
+      expect(ritmo(-1)).toBe(0);
+      expect(ritmo(2)).toBe(1);
+    });
+  }
+});
+
+describe("estadoDelVuelo", () => {
+  const hilo = { largo: 1500, segunda: 200, tercera: 380 };
+
+  it("el ave siempre avanza por el hilo, nunca vuelve atrás", () => {
+    let previo = -1;
+    for (let ms = 0; ms <= DURACION_DEL_VUELO + 200; ms += 10) {
+      const e = estadoDelVuelo(ms, hilo);
+      expect(e.recorrido).toBeGreaterThanOrEqual(previo);
+      previo = e.recorrido;
     }
   });
 
-  it("acota lo que llega fuera de rango", () => {
-    expect(ritmoDelVuelo(-1)).toBe(0);
-    expect(ritmoDelVuelo(2)).toBe(1);
+  it("cose las sedes en orden: Trujillo al aparecer, Arequipa y Lima al llegar a cada una", () => {
+    expect(estadoDelVuelo(0, hilo).cosidas).toBe(1);
+    expect(estadoDelVuelo(LINEA_DE_TIEMPO.flotaSegunda[0] + 1, hilo)).toMatchObject({ cosidas: 2, recorrido: 200, flota: 1 });
+    expect(estadoDelVuelo(LINEA_DE_TIEMPO.flotaTercera[0] + 1, hilo)).toMatchObject({ cosidas: 3, recorrido: 380, flota: 1 });
+  });
+
+  it("solo en el gran vuelo crece y sigue la curva", () => {
+    expect(estadoDelVuelo(500, hilo)).toMatchObject({ escala: 0.3, enGranVuelo: false });
+    const medio = estadoDelVuelo((LINEA_DE_TIEMPO.granVuelo[0] + LINEA_DE_TIEMPO.granVuelo[1]) / 2, hilo);
+    expect(medio.enGranVuelo).toBe(true);
+    expect(medio.escala).toBeGreaterThan(0.3);
+    expect(medio.escala).toBeLessThan(1);
+  });
+
+  it("al terminar queda en su lugar, con su tamaño, quieta y con el ala en reposo", () => {
+    const e = estadoDelVuelo(DURACION_DEL_VUELO, hilo);
+    expect(e).toMatchObject({ recorrido: 1500, escala: 1, flota: 0, amplitud: 0, dibujado: 1, cosidas: 3, terminado: true, tiron: 1 });
+  });
+
+  it("dura algo más de 4 segundos y aparece dibujándose", () => {
+    expect(DURACION_DEL_VUELO).toBe(4300);
+    expect(estadoDelVuelo(0, hilo).dibujado).toBe(0);
+    expect(estadoDelVuelo(LINEA_DE_TIEMPO.aparece[1], hilo).dibujado).toBe(1);
   });
 });
 
 describe("poseDelAve", () => {
-  it("se voltea poco a poco cuando vuela hacia la izquierda", () => {
+  const vuelo = { enGranVuelo: true, inclinacionDelSalto: 0 };
+
+  it("se voltea poco a poco cuando vuela hacia la izquierda en el gran vuelo", () => {
     let pose = { giro: 1, inclinacion: 0 };
-    pose = poseDelAve(pose, { dx: -2, dy: 0 }, 0.5);
+    pose = poseDelAve(pose, { dx: -2, dy: 0 }, vuelo, 0.5);
     expect(pose.giro).toBeLessThan(1);
     expect(pose.giro).toBeGreaterThan(-1);
-    for (let i = 0; i < 60; i++) pose = poseDelAve(pose, { dx: -2, dy: 0 }, 0.5);
+    for (let i = 0; i < 60; i++) pose = poseDelAve(pose, { dx: -2, dy: 0 }, vuelo, 0.5);
     expect(pose.giro).toBeCloseTo(-1, 2);
+  });
+
+  it("en los saltos mira siempre a la derecha y se inclina hacia adelante", () => {
+    let pose = { giro: -1, inclinacion: 0 };
+    for (let i = 0; i < 60; i++) pose = poseDelAve(pose, { dx: -2, dy: 0 }, { enGranVuelo: false, inclinacionDelSalto: 12 }, 0);
+    expect(pose.giro).toBeCloseTo(1, 2);
+    expect(pose.inclinacion).toBeCloseTo(12, 1);
   });
 
   it("nunca se inclina más de 22°", () => {
     let pose = { giro: 1, inclinacion: 0 };
-    for (let i = 0; i < 200; i++) pose = poseDelAve(pose, { dx: 0.01, dy: -5 }, 0);
+    for (let i = 0; i < 200; i++) pose = poseDelAve(pose, { dx: 0.01, dy: -5 }, vuelo, 0);
     expect(Math.abs(pose.inclinacion)).toBeLessThanOrEqual(22);
-  });
-
-  it("al llegar busca quedar derecha", () => {
-    let pose = { giro: 1, inclinacion: 18 };
-    for (let i = 0; i < 80; i++) pose = poseDelAve(pose, { dx: 1, dy: -1 }, 1);
-    expect(pose.inclinacion).toBeCloseTo(0, 1);
   });
 });
 
-describe("escalaDelAve", () => {
-  it("sale chiquita y llega con su tamaño", () => {
-    expect(escalaDelAve(0)).toBeCloseTo(0.3);
-    expect(escalaDelAve(1)).toBe(1);
+describe("tintaDeLaPalabra", () => {
+  const palabra = { x: 100, y: 500, ancho: 200, alto: 60 };
+
+  it("tiñe de derecha a izquierda hasta donde llega el ave, y no se destiñe", () => {
+    let t = tintaDeLaPalabra(0, { x: 250, y: 520 }, palabra, 0.016, false);
+    expect(t).toBeCloseTo(0.25);
+    t = tintaDeLaPalabra(t, { x: 150, y: 520 }, palabra, 0.016, false);
+    expect(t).toBeCloseTo(0.75);
+    expect(tintaDeLaPalabra(t, { x: 290, y: 520 }, palabra, 0.016, false)).toBeCloseTo(0.75);
+  });
+
+  it("lejos de la palabra no tiñe, y al terminar el gran vuelo se completa sola", () => {
+    expect(tintaDeLaPalabra(0, { x: 150, y: 100 }, palabra, 0.016, false)).toBe(0);
+    let t = 0.4;
+    for (let i = 0; i < 30; i++) t = tintaDeLaPalabra(t, { x: 600, y: 100 }, palabra, 0.016, true);
+    expect(t).toBe(1);
   });
 });
 

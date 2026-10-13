@@ -1,14 +1,14 @@
 /* ==================================================================
-   LOGIN — «El vuelo» (Felipe 2026-10-13). Maqueta: docs/maquetas/login-2026-10/ (`?v=C2`). Página: app/login/page.tsx;
+   LOGIN — «El vuelo vivo» (Felipe 2026-10-13). Maqueta: docs/maquetas/login-2026-10/ (`?v=C4`). Página: app/login/page.tsx;
    el panel: components/login/PanelVuelo.tsx; la geometría: lib/login-vuelo.ts.
 
-   Dos mitades en pantalla ancha: a la izquierda la marca (el colibrí en rojo que vuela de Trujillo a su lugar cosiendo las
-   tres sedes, y el lema); a la derecha, el formulario. En el celular solo el formulario, con la marca arriba.
+   Dos mitades en pantalla ancha: a la izquierda la marca (el colibrí en rojo que aletea de Trujillo a su lugar cosiendo las
+   tres sedes y tiñendo «transforma.» al pasar, y el lema); a la derecha, el formulario. En el celular solo el formulario, con la marca arriba.
 
    El panel es oscuro en los dos temas, como una pieza de marca (los textos con `--color-crema-fija`); en oscuro pasa a papel con
    su filo, para no fundirse con el fondo. Rojos (excepción aprobada por Felipe, ADR-0169): el colibrí, «transforma.» y el hilo
-   de la caja con el cursor. Movimiento (ADR-0136 act. 2026-10-13): el vuelo una sola vez, el lema y el saludo que asoman;
-   sin rebote ni bucle, y con prefers-reduced-motion todo se ve terminado.
+   de la caja con el cursor. Movimiento (ADR-0136 act. 2026-10-13): el vuelo una sola vez (el aleteo se detiene al llegar), la onda
+   de cada ojal, el lema y el saludo que asoman; sin rebote, y con prefers-reduced-motion todo se ve terminado.
    ================================================================== */
 
 @layer components {
@@ -55,18 +55,24 @@
     color: color-mix(in srgb, var(--color-crema-fija) 60%, transparent);
   }
 
-  /* El colibrí en su lugar final; mientras vuela, el componente lo mueve con `transform` desde la punta de su cola. */
+  /* El colibrí en su lugar final; mientras vuela, el componente lo mueve con `transform` desde la punta de su cola y le dibuja el ala. */
   .login-ave {
     position: absolute;
-    z-index: 2;
+    z-index: 3;
+    overflow: visible;
     top: 70px;
     right: 40px;
     width: min(330px, 44%);
     aspect-ratio: 223 / 150;
-    color: var(--color-rojo);
+    fill: none;
+    stroke: var(--color-rojo);
+    stroke-width: 4;
+    stroke-linejoin: round;
+    stroke-linecap: round;
     transform-origin: 21.1% 97.3%; /* la cola (47,146 del lienzo de 223×150): ahí se ata el hilo */
     will-change: transform;
   }
+  .login-ave path { stroke-dasharray: 1; } /* con `pathLength=1`: el componente lo dibuja al aparecer */
   /* Hasta que el componente mide, el ave no se ve en su lugar final (si no, aparecería un instante antes de salir de Trujillo). */
   .login-panel:not([data-volando]):not([data-llego]) .login-ave { visibility: hidden; }
   @media (prefers-reduced-motion: reduce) {
@@ -106,9 +112,16 @@
     font-style: italic;
     line-height: 1.02;
     letter-spacing: -0.01em;
-    animation: login-asoma 700ms var(--ease-cayla) 600ms both;
+    animation: login-asoma 700ms var(--ease-cayla) 300ms both;
   }
-  .login-lema em { color: var(--color-rojo); }
+  /* «transforma.» se tiñe de rojo cuando el ave pasa por detrás, de derecha a izquierda (`--login-tinta`, lo mueve el componente). */
+  .login-lema em {
+    --login-tinta: 0%;
+    background: linear-gradient(270deg, var(--color-rojo) var(--login-tinta), var(--color-crema-fija) var(--login-tinta));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 
   .login-sedes {
     position: relative;
@@ -130,6 +143,7 @@
 
   /* Cada sede es un ojal: hueco hasta que el hilo pasa por ella. */
   .login-ojal {
+    position: relative;
     width: 11px;
     height: 11px;
     border-radius: 9999px;
@@ -138,6 +152,17 @@
     transition: background-color 380ms var(--ease-cayla), transform 380ms var(--ease-cayla);
   }
   .login-ojal[data-cosido] { background: var(--color-crema-fija); transform: scale(1.15); }
+  /* Al coserse, una onda sale del ojal una sola vez. */
+  .login-ojal::after {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 9999px;
+    border: 1.5px solid var(--color-crema-fija);
+    opacity: 0;
+  }
+  .login-panel[data-volando]:not([data-llego]) .login-ojal[data-cosido]::after { animation: login-onda 700ms var(--ease-cayla) forwards; }
+  :root[data-tema="oscuro"] .login-ojal::after { border-color: var(--color-taupe); }
   :root[data-tema="oscuro"] .login-ojal { background: var(--color-papel); border-color: var(--color-taupe); }
   :root[data-tema="oscuro"] .login-ojal[data-cosido] { background: var(--color-taupe); }
 
@@ -178,6 +203,10 @@
     .login-marca-chica { display: none; }
   }
 
+  @keyframes login-onda {
+    from { opacity: 0.7; transform: scale(1); }
+    to { opacity: 0; transform: scale(3.2); }
+  }
   @keyframes login-asoma {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
@@ -186,5 +215,6 @@
     .login-lema,
     .login-saludo[data-listo] { animation: none; }
     .login-ojal { transition: none; }
+    .login-ojal::after { animation: none !important; }
   }
 }

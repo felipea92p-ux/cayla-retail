@@ -183,6 +183,29 @@
   #C3 .sello b { display: block; font: italic 400 22px/1 "EB Garamond"; letter-spacing: 0; color: var(--crema-fija); }
   :root[data-tema="oscuro"] #C3 .sello { border-color: var(--sand); }
 
+
+  /* ---------- C4 · El vuelo vivo (2026-10-13): aletea, salta de sede en sede, tiñe «transforma.» y se acomoda ---------- */
+  #C4 .ave4 { position: absolute; z-index: 3; right: 40px; top: 70px; width: 330px; height: 222px; overflow: visible; transform-origin: 21.1% 97.3%; will-change: transform; }
+  #C4 .ave4 path { fill: none; stroke: var(--rojo); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+  #C4 .vuelo { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+  #C4 .vuelo .trazo { fill: none; stroke: color-mix(in srgb, var(--crema-fija) 38%, transparent); stroke-width: 1.4; stroke-dasharray: 6 7; }
+  :root[data-tema="oscuro"] #C4 .vuelo .trazo { stroke: var(--taupe); }
+  #C4 .vuelo .masc { fill: none; stroke: var(--crema-fija); stroke-width: 6; }
+  #C4 .sedesC { border-top: 0; padding-top: 0; }
+  #C4 .sedesC div + div { border-left: 0; }
+  #C4 .ojalC { position: relative; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--crema-fija); background: var(--tinta-fija);
+    transition: background-color 380ms var(--ease), transform 380ms var(--ease); }
+  #C4 .ojalC.cosido { background: var(--crema-fija); transform: scale(1.15); }
+  #C4 .ojalC::after { content: ""; position: absolute; inset: -1.5px; border-radius: 50%; border: 1.5px solid var(--crema-fija); opacity: 0; }
+  #C4 .ojalC.onda::after { animation: onda4 700ms var(--ease) forwards; }
+  @keyframes onda4 { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(3.2); } }
+  :root[data-tema="oscuro"] #C4 .ojalC { background: var(--papel); border-color: var(--taupe); }
+  :root[data-tema="oscuro"] #C4 .ojalC.cosido { background: var(--taupe); }
+  /* «transforma.» se tiñe de rojo cuando el ave pasa por detrás (de derecha a izquierda, como vuela). */
+  #C4 h2 em { --tinta4: 0%; background: linear-gradient(270deg, var(--rojo) var(--tinta4), var(--crema-fija) var(--tinta4));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #C4 .saludo { font: 600 11px/1 "DM Sans"; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin-bottom: 12px; }
+
   /* ---------- D · Etiqueta colgante ---------- */
   #D { align-items: center; justify-content: center; padding: 24px; flex-direction: column; }
   #D .cuelga { position: relative; display: flex; flex-direction: column; align-items: center; }
@@ -302,6 +325,19 @@
     <p class="ayuda pieDer">¿Olvidaste tu contraseña? Pídele a tu líder que la cambie.</p></div>
 </section>
 
+
+<!-- C4 -->
+<section class="vista Cx" id="C4"><span class="rotulo" style="left:auto;right:16px;cursor:pointer" title="Repetir el vuelo">C4 · El vuelo vivo ↻</span>
+  <div class="izq"><div class="top"><span>CAYLA</span><small>RETAIL</small></div>
+    <svg class="vuelo" id="vuelo4"><defs><mask id="masc4" maskUnits="userSpaceOnUse"><path class="masc" id="mascP4" /></mask></defs><path class="trazo" id="hilo4" mask="url(#masc4)" /></svg>
+    <svg class="ave4" id="ave4" viewBox="0 0 223 150"><path id="a4p1" pathLength="1" /><path id="a4p2" pathLength="1" /><path pathLength="1" d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" /><path pathLength="1" d="M172,16 C156,22 144,38 134,62" /></svg>
+    <h2 class="asoma" style="animation-delay:.3s">Donde el estilo <em id="tinta4">transforma.</em></h2>
+    <div class="sedesC">
+      <div><i class="ojalC"></i><small>TRU</small><b>Trujillo</b></div><div><i class="ojalC"></i><small>AQP</small><b>Arequipa</b></div><div><i class="ojalC"></i><small>LIM</small><b>Lima</b></div></div></div>
+  <div class="der"><div class="col"><p class="saludo">Buenos días · martes 13 de octubre</p><h3>Entrar</h3><p class="ayuda sub">Con el correo que te dio tu líder, o el de la terminal de tu tienda.</p><form data-form></form></div>
+    <p class="ayuda pieDer">¿Olvidaste tu contraseña? Avísale a tu líder.</p></div>
+</section>
+
 <!-- D -->
 <section class="vista" id="D"><span class="rotulo">D · Etiqueta colgante</span>
   <div class="cuelga">
@@ -385,6 +421,108 @@
   }
   document.fonts.ready.then(volar);
   document.querySelector("#C2 .rotulo").addEventListener("click", volar); // tocar el rótulo repite el vuelo
+
+  // ===== C4 · El vuelo vivo =====
+  // Coreografía (≈3,8 s, una vez): aparece en Trujillo dibujándose y aleteando → salta a Arequipa, flota y la cose (onda) → salta a Lima
+  // → gran vuelo por la vuelta y detrás del lema (tiñe «transforma.») creciendo → llega, flota, dos aleteos que se apagan → el hilo da un tirón.
+  const RAIZ = { x: 116, y: 62 };            // el hombro: el ala gira desde aquí
+  const ALA = {                               // puntos del ala y cuánto se mueven (1 = la punta, 0 = el hombro)
+    punta: [3, 6, 1], c1: [45, 14, .7], c2: [95, 28, .3], d1: [10, 40, .85], d2: [40, 70, .5], d3: [70, 80, .2],
+  };
+  function ala(theta, largo) {               // theta en grados (+ arriba), largo 0..1 (escorzo)
+    const r = (theta * Math.PI) / 180, P = {};
+    for (const [k, [x, y, w]] of Object.entries(ALA)) {
+      const vx = x - RAIZ.x, vy = y - RAIZ.y, a = r * w, f = 1 - (1 - largo) * w;
+      P[k] = `${(RAIZ.x + (vx * Math.cos(a) - vy * Math.sin(a)) * f).toFixed(1)},${(RAIZ.y + (vx * Math.sin(a) + vy * Math.cos(a)) * f).toFixed(1)}`;
+    }
+    return [
+      `M${P.punta} C${P.c1} ${P.c2} 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102`,
+      `M${P.punta} C${P.d1} ${P.d2} ${P.d3} C85,85 100,87 112,87`,
+    ];
+  }
+  const suave = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+  const dardo = (u) => 1 - Math.pow(1 - u, 3); // sale rápido y frena (sin pasarse)
+  const lim = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+
+  function volar4() {
+    const sec = document.getElementById("C4");
+    if (!sec.classList.contains("activa")) return;
+    cancelAnimationFrame(volar4.cuadro);
+    const izq = sec.querySelector(".izq"), ave = document.getElementById("ave4"), p1 = document.getElementById("a4p1"), p2 = document.getElementById("a4p2");
+    const svg = document.getElementById("vuelo4"), hilo = document.getElementById("hilo4"), masc = document.getElementById("mascP4");
+    const em = document.getElementById("tinta4"), ojales = [...sec.querySelectorAll(".ojalC")];
+    ojales.forEach((o) => o.classList.remove("cosido", "onda"));
+    const caja = izq.getBoundingClientRect(), W = caja.width, H = caja.height;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const rel = (el) => { const r = el.getBoundingClientRect(); return { x: r.left - caja.left, y: r.top - caja.top, w: r.width, h: r.height }; };
+    const centro = (el) => { const r = rel(el); return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; };
+    ave.style.transform = "none";
+    const ra = rel(ave), P = { x: ra.x + ra.w * 0.211, y: ra.y + ra.h * 0.973 };
+    const [T, A, L] = ojales.map(centro), y = T.y;
+    const d = `M${T.x},${y} L${L.x + W * 0.17},${y} C${L.x + W * 0.28},${y} ${L.x + W * 0.27},${y - H * 0.09} ${L.x + W * 0.17},${y - H * 0.13}`
+      + ` C${W * 0.5},${y - H * 0.23} ${W * 0.2},${H * 0.62} ${W * 0.22},${H * 0.48}`
+      + ` C${W * 0.24},${H * 0.36} ${P.x - W * 0.12},${P.y + H * 0.07} ${P.x},${P.y}`;
+    hilo.setAttribute("d", d); masc.setAttribute("d", d);
+    const largo = hilo.getTotalLength(), sA = A.x - T.x, sL = L.x - T.x;
+    const palabra = rel(em);
+    let tinta = 0;
+
+    // La línea de tiempo: [fase, desde ms, hasta ms]
+    const F = { aparece: [0, 380], aA: [380, 760], flotaA: [760, 960], aL: [960, 1340], flotaL: [1340, 1540], grande: [1540, 3340], llega: [3340, 3840], tiron: [3600, 4300] };
+    const en = (f, ms) => lim((ms - F[f][0]) / (F[f][1] - F[f][0]));
+    const fin = F.tiron[1];
+
+    const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let giro = 1, incl = 0, fase = 0, t0, ultimo;
+    const pintar = (s) => { masc.style.strokeDasharray = `${largo} ${largo}`; masc.style.strokeDashoffset = largo * (1 - s / largo); };
+    const coser = (i) => { if (!ojales[i].classList.contains("cosido")) { ojales[i].classList.add("cosido", "onda"); } };
+    if (quieto) { pintar(largo); ojales.forEach((o) => o.classList.add("cosido")); em.style.setProperty("--tinta4", "100%"); [p1.style.strokeDashoffset, p2.style.strokeDashoffset] = [0, 0]; const [a, b] = ala(0, 1); p1.setAttribute("d", a); p2.setAttribute("d", b); return; }
+
+    const paso = (ahora) => {
+      t0 ??= ahora; const ms = ahora - t0, dt = ultimo ? (ahora - ultimo) / 1000 : 0; ultimo = ahora;
+      // ¿Dónde va en el hilo (s, en px) y qué tan grande?
+      let s, esc = 0.3, flota = 0, inclObj = 0, hz = 9, amp = 34;
+      if (ms < F.aA[0]) { s = 0; flota = 1; }
+      else if (ms < F.flotaA[0]) { s = sA * dardo(en("aA", ms)); inclObj = 12 * Math.sin(Math.PI * en("aA", ms)); }
+      else if (ms < F.aL[0]) { s = sA; flota = 1; coser(1); }
+      else if (ms < F.flotaL[0]) { s = sA + (sL - sA) * dardo(en("aL", ms)); inclObj = 12 * Math.sin(Math.PI * en("aL", ms)); }
+      else if (ms < F.grande[0]) { s = sL; flota = 1; coser(2); }
+      else if (ms < F.llega[0]) { const u = suave(en("grande", ms)); s = sL + (largo - sL) * u; esc = 0.3 + 0.7 * u; hz = 9 - 3 * u; }
+      else { s = largo; esc = 1; flota = 1 - en("llega", ms); const v = en("llega", ms); hz = 4; amp = 34 * (1 - v) * (1 - v); }
+      if (ms >= 0) coser(0);
+      // Rumbo e inclinación (solo en el gran vuelo se voltea y se ladea con la curva).
+      const p = hilo.getPointAtLength(s), q = hilo.getPointAtLength(Math.min(largo, s + 2)), dx = q.x - p.x, dy = q.y - p.y;
+      if (ms >= F.grande[0] && ms < F.llega[0]) {
+        giro += ((dx < -0.2 ? -1 : 1) - giro) * 0.14;
+        inclObj = Math.max(-22, Math.min(22, (Math.atan2(dy, Math.abs(dx) + 0.001) * 180) / Math.PI)) * (1 - en("grande", ms) ** 2);
+      } else giro += (1 - giro) * 0.2;
+      incl += (inclObj - incl) * 0.15;
+      // Flotar: un vaivén chico mientras se queda en el aire.
+      const bob = flota * 2.6 * Math.sin(ms / 1000 * 2 * Math.PI * 3.2);
+      // Aleteo: el ala sube y baja desde el hombro, con escorzo arriba; al llegar se apaga en la pose del logo.
+      fase += dt * hz * 2 * Math.PI;
+      const th = amp * Math.sin(fase), lg = 1 - 0.28 * Math.max(0, Math.sin(fase)) * (amp / 34);
+      const [a, b] = ala(th, lg); p1.setAttribute("d", a); p2.setAttribute("d", b);
+      // Aparece dibujándose.
+      const dib = 1 - en("aparece", ms);
+      for (const pp of ave.querySelectorAll("path")) { pp.style.strokeDasharray = 1; pp.style.strokeDashoffset = dib; }
+      // Tinta de «transforma.»: cuando el ave cruza su franja, la palabra se tiñe desde la derecha hasta donde está el ave.
+      const bx = p.x, by = p.y - 60 * esc;
+      if (by > palabra.y - 70 && by < palabra.y + palabra.h + 70) tinta = Math.max(tinta, lim((palabra.x + palabra.w - bx) / palabra.w));
+      if (ms > F.grande[1]) tinta = Math.min(1, tinta + dt * 2.5);
+      em.style.setProperty("--tinta4", `${(tinta * 100).toFixed(1)}%`);
+      // El hilo: hasta donde va el ave; al final un tirón (corre medio patrón y vuelve tenso).
+      pintar(s);
+      hilo.style.strokeDashoffset = ms > F.tiron[0] ? String(-13 * suave(en("tiron", ms))) : "0";
+      const quieta = ms >= fin;
+      ave.style.transform = quieta ? "none" : `translate(${p.x - P.x}px, ${p.y - P.y + bob}px) rotate(${incl * Math.sign(giro)}deg) scale(${esc * giro}, ${esc})`;
+      if (!quieta) volar4.cuadro = requestAnimationFrame(paso);
+      else { const [a2, b2] = ala(0, 1); p1.setAttribute("d", a2); p2.setAttribute("d", b2); }
+    };
+    volar4.cuadro = requestAnimationFrame(paso);
+  }
+  document.fonts.ready.then(volar4);
+  document.querySelector("#C4 .rotulo").addEventListener("click", volar4);
 </script>
 </body>
 </html>
