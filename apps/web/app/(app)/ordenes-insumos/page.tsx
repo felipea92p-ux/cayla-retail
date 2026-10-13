@@ -6,6 +6,7 @@ import { getCifrasOrdenesInsumo, listarOrdenesInsumo } from "@/lib/ordenes-insum
 import {
   ESTADO_ORDEN,
   RUTA_ORDENES_INSUMO,
+  cantidadConUnidad,
   filtrosDeListaInsumo,
   hrefListaInsumo,
   numeroOrdenInsumo,
@@ -177,9 +178,18 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
                           </span>
                         </span>
                         <span className={celda("izq", `${SOLO_ANCHA} tabular-nums text-tinta/80`)}>{diaMes(f.fechaEntregaEstimada)}</span>
-                        {/* Lo pedido, por unidad: puede ocupar dos renglones (nunca se corta a media unidad). */}
+                        {/* Lo pedido, por unidad: puede ocupar dos renglones, pero «2 docenas» nunca se parte entre uno y otro. */}
                         <span className={`${SOLO_ANCHA} min-w-0 text-tinta/80`}>
-                          <span className="block tabular-nums">{textoCantidades(f.cantidades)}</span>
+                          <span className="block tabular-nums">
+                            {f.cantidades.length === 0
+                              ? "—"
+                              : f.cantidades.map((c, k) => (
+                                  <span key={c.unidad}>
+                                    {k > 0 && " · "}
+                                    <span className="whitespace-nowrap">{cantidadConUnidad(c.cantidad, c.unidad)}</span>
+                                  </span>
+                                ))}
+                          </span>
                           <span className="block text-xs text-taupe">{lineas}</span>
                         </span>
                         {/* Una anulada no suma: su total va tachado. */}
