@@ -375,3 +375,20 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `app/layout.tsx`, como el loader, para sobrevivir a la navegación) y los estilos `.entrada-*` en `app/estilos/login.css`. No se generaliza.
 - **Lo que no hace (decidido):** no encoge la pantalla de verdad dentro de la ventana (como sí lo hace la maqueta): se ve a su tamaño, recortada por la
   silueta que crece. Encogerla exigía transformar el contenido real y movería los elementos `fixed` (menú lateral, cabecera) hasta el último cuadro.
+
+## Actualización 2026-10-13 (c) — la salida «El colibrí se abre» al revés (versión B), pedida por Felipe
+
+- **Qué es:** al apretar **Salir**, la entrada pero al revés y más rápido (~2,2 s sin esperas): la ventana con forma de colibrí, que cubre la pantalla que se deja, se
+  encoge sobre el colibrí y se cierra; con el fondo oscuro, el colibrí flota en el centro mientras se cierra la sesión y carga el login; cuando el login está
+  listo, el colibrí vuela a su lugar (se mide en ese momento, no se supone) y el fondo oscuro se va. El login llega ya terminado, con su colibrí en su lugar: el
+  vuelo propio del login no corre (`PanelVuelo` lee `data-entrando`), y la capa aterriza sobre él sin salto.
+- **Por qué se admite:** Felipe pidió «un efecto similar al de iniciar sesión pero al revés», recibió tres versiones en la maqueta (A espejo 3,8 s · B espejo rápido
+  2,2 s · C cortina y vuelo 1,5 s) y eligió la B mirándolas. Una salida se repite a diario: por eso la rápida.
+- **Los límites:** los de la entrada (una vez, sin rebote ni bucle, solo tokens, sin empezar con `prefers-reduced-motion`: `Salir` cierra la sesión como siempre) y
+  además: el loader general se aparta mientras dura; la sesión se cierra RECIÉN con la ventana cerrada (no al hacer clic), con la marca de «salida propia» de
+  ADR-0309; un segundo clic o tecla sobre Salir no inicia otra; si el login no carga en 15 s o no hay colibrí a la vista, el velo se va en 300 ms y la persona queda
+  fuera de sesión como al salir normal.
+- **Dónde vive:** `estadoDeLaSalida` y `msCorridosDeLaSalida` en `lib/login-entrada.ts` (es `estadoDeLaEntrada` con el tiempo corrido hacia atrás: no hay otra
+  coreografía; con su prueba), `iniciarSalida` y `medirAveDelLogin` en `lib/entrada-estado.ts`, la misma capa `components/login/EntradaColibri.tsx` y el botón en
+  `components/LogoutButton.tsx`. Maqueta: `docs/maquetas/login-entrada-2026-10/` (`?modo=salir&s=B`). No se generaliza.
+- **Lo que no hace:** igual que la entrada, la pantalla que se deja no se encoge de verdad: la silueta la va recortando.

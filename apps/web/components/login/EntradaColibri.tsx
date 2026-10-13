@@ -1,26 +1,35 @@
 "use client";
 
 /**
- * La entrada al ERP: «el colibrí se abre» (Felipe 2026-10-13; maqueta `docs/maquetas/login-entrada-2026-10/`).
+ * La entrada y la salida del ERP: «el colibrí se abre» (Felipe 2026-10-13; maqueta `docs/maquetas/login-entrada-2026-10/`; la salida es la B).
  *
- * Una capa a pantalla completa, montada UNA vez en el layout raíz (como el loader, ADR-0149) para que no se pierda cuando el login
- * navega a la pantalla de destino. Al iniciar sesión: el fondo se oscurece, el colibrí del login cruza al centro y flota mientras la
- * pantalla de destino carga debajo; cuando está lista, en el centro se abre una ventana CON LA FORMA DEL COLIBRÍ que deja ver esa
- * pantalla de verdad (un agujero en el velo oscuro, no un dibujo), y el ave se agranda hasta salirse y la ventana cubre todo.
- * Una sola vez, sin rebote ni bucle (ADR-0136 act. 2026-10-13 (b)); con `prefers-reduced-motion` ni empieza (`iniciarEntrada`).
+ * Una capa a pantalla completa, montada UNA vez en el layout raíz (como el loader, ADR-0149) para que no se pierda cuando la página cambia.
+ *
+ * ENTRAR (al iniciar sesión): el fondo se oscurece, el colibrí del login cruza al centro y flota mientras la pantalla de destino carga debajo; cuando está
+ * lista, en el centro se abre una ventana CON LA FORMA DEL COLIBRÍ que deja ver esa pantalla de verdad (un agujero en el velo oscuro, no un dibujo), y el ave
+ * se agranda hasta salirse y la ventana cubre todo.
+ * SALIR (al apretar Salir): lo mismo al revés y más rápido: la ventana, que cubre la pantalla que se deja, se encoge sobre el colibrí; con la ventana
+ * cerrada y el fondo oscuro, el colibrí flota en el centro mientras se cierra la sesión y carga el login (`alLlegarAlCentro`); cuando el login está
+ * listo, el colibrí vuela a su lugar (se mide en ese momento) y el fondo oscuro se va.
+ *
+ * Una sola vez, sin rebote ni bucle (ADR-0136 act. 2026-10-13 (b) y (c)); con `prefers-reduced-motion` ni empieza (`iniciarEntrada`/`iniciarSalida`).
  * La geometría y la línea de tiempo viven en `lib/login-entrada.ts`; el aleteo, en `lib/login-vuelo.ts`; los estilos, en `login.css`.
  */
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { esperaOcupada } from "@/lib/espera-estado";
-import { entradaEnCurso, suscribirEntrada, terminarEntrada, type EntradaEnCurso } from "@/lib/entrada-estado";
+import { entradaEnCurso, medirAveDelLogin, suscribirEntrada, terminarEntrada, type EntradaEnCurso } from "@/lib/entrada-estado";
 import {
   CABEZA_DEL_AVE,
+  MS_DE_LA_SALIDA_EN_EL_CENTRO,
   PECHO_DEL_AVE,
+  TOPE_DE_ESPERA,
   debeCancelarse,
   estadoDeLaEntrada,
+  estadoDeLaSalida,
   msDelVuelo,
   revisarLaPantalla,
+  type Caja,
 } from "@/lib/login-entrada";
 import { TRAZOS_DEL_AVE, alaDelAve } from "@/lib/login-vuelo";
 
@@ -29,8 +38,8 @@ export function EntradaColibri() {
   return entrada ? <Vuelo key={entrada.id} entrada={entrada} /> : null;
 }
 
-/** Cuánto tarda en irse el velo si la entrada se deshace (no se corta de golpe). */
-const MS_SALIDA = 300;
+/** Cuánto tarda en irse el velo si el vuelo se deshace (no se corta de golpe). */
+const MS_SALIDA_DEL_VELO = 300;
 
 function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
   const mascaraId = `entrada-${useId().replace(/:/g, "")}`;
@@ -52,39 +61,60 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
     const alaBajo = alaBajoRef.current;
     if (!lienzo || !velo || !silueta || !siluetaAla || !ave || !ala || !alaBajo) return;
 
+    const saliendo = entrada.modo === "salir";
     let cuadro = 0;
     let inicio: number | null = null;
     let listoEn: number | null = null;
     let libreDesde: number | null = null;
-    let saliendoDesde: number | null = null;
+    let deshaciendoDesde: number | null = null;
     let lista = false;
+    let cerrando = false;
+    let fallo = false;
+    let origen: Caja = entrada.origen; // en la salida se reemplaza por el lugar real cuando el login carga
 
     const paso = (ahora: number) => {
       inicio ??= ahora;
       const ms = ahora - inicio;
 
-      // Deshacer: te devolvieron al login con un motivo, o la pantalla tardó demasiado. El velo se va suave y el login queda como estaba.
-      if (saliendoDesde === null && debeCancelarse({ ruta: location.pathname, busqueda: location.search }, ms, lista)) saliendoDesde = ms;
-      if (saliendoDesde !== null) {
-        const t = (ms - saliendoDesde) / MS_SALIDA;
+      // Deshacer: la entrada, si te devolvieron al login con un motivo o la pantalla tardó demasiado; la salida, si no se pudo cerrar la sesión o el login tardó.
+      if (deshaciendoDesde === null) {
+        const deshacer = saliendo ? fallo || (ms > TOPE_DE_ESPERA && !lista) : debeCancelarse({ ruta: location.pathname, busqueda: location.search }, ms, lista);
+        if (deshacer) deshaciendoDesde = ms;
+      }
+      if (deshaciendoDesde !== null) {
+        const t = (ms - deshaciendoDesde) / MS_SALIDA_DEL_VELO;
         lienzo.style.opacity = String(Math.max(0, 1 - t));
         if (t >= 1) return terminarEntrada();
         cuadro = requestAnimationFrame(paso);
         return;
       }
 
-      // ¿Ya cargó la pantalla de destino? Mientras no, el ave flota en el centro y la ventana no se abre.
-      if (listoEn === null) {
-        const revision = revisarLaPantalla({ ruta: location.pathname, ocupada: esperaOcupada() }, libreDesde, ms);
+      // La salida: con la ventana ya cerrada se cierra la sesión (y se navega al login) UNA vez; si falla, no pasó nada y se deshace.
+      if (saliendo && !cerrando && ms >= MS_DE_LA_SALIDA_EN_EL_CENTRO) {
+        cerrando = true;
+        entrada.alLlegarAlCentro?.().catch(() => {
+          fallo = true;
+        });
+      }
+
+      // ¿Ya cargó la pantalla de destino? Mientras no, el ave flota en el centro y no sigue.
+      if (listoEn === null && (!saliendo || cerrando)) {
+        const revision = revisarLaPantalla({ ruta: location.pathname, ocupada: esperaOcupada() }, libreDesde, ms, saliendo ? entrada.rutaEsperada : undefined);
         libreDesde = revision.libreDesde;
         if (revision.lista) {
-          lista = true;
-          listoEn = ms;
+          // En la salida, el login ya está: se mide dónde quedó su colibrí y ahí aterriza. Sin colibrí a la vista no hay dónde: se deshace.
+          const real = saliendo ? medirAveDelLogin() : origen;
+          if (!real) fallo = true;
+          else {
+            origen = real;
+            lista = true;
+            listoEn = ms;
+          }
         }
       }
 
-      const medidas = { origen: entrada.origen, ancho: window.innerWidth, alto: window.innerHeight };
-      const e = estadoDeLaEntrada(msDelVuelo(ms, listoEn), ms, medidas);
+      const medidas = { origen, ancho: window.innerWidth, alto: window.innerHeight };
+      const e = saliendo ? estadoDeLaSalida(ms, listoEn, medidas) : estadoDeLaEntrada(msDelVuelo(ms, listoEn), ms, medidas);
       if (e.terminado) return terminarEntrada();
 
       const [a, b] = alaDelAve(e.angulo, e.alargue);
@@ -103,10 +133,12 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
     return () => cancelAnimationFrame(cuadro);
   }, [entrada]);
 
-  // El ave nace en la pose del logo y exactamente donde está el del login (el primer cuadro la mueve; sin movimiento, así queda).
+  // Primer cuadro, ya puesto: la entrada nace con el ave en el lugar del login y sin ventana; la salida, con la ventana cubriendo toda la pantalla
+  // (y el ave afuera). Sin esto, un cuadro saldría con el dibujo sin mover.
+  const medidasIniciales = { origen: entrada.origen, ancho: window.innerWidth, alto: window.innerHeight };
+  const e0 = entrada.modo === "salir" ? estadoDeLaSalida(0, null, medidasIniciales) : estadoDeLaEntrada(0, 0, medidasIniciales);
+  const lleva0 = (k: number) => `translate(${e0.pecho.x - PECHO_DEL_AVE.x * k} ${e0.pecho.y - PECHO_DEL_AVE.y * k}) scale(${k})`;
   const [alaInicial, alaBajoInicial] = alaDelAve(0, 1);
-  const e0 = estadoDeLaEntrada(0, 0, { origen: entrada.origen, ancho: window.innerWidth, alto: window.innerHeight });
-  const aveInicial = `translate(${e0.pecho.x - PECHO_DEL_AVE.x * e0.k} ${e0.pecho.y - PECHO_DEL_AVE.y * e0.k}) scale(${e0.k})`;
 
   return (
     <div className="entrada-colibri" aria-hidden>
@@ -115,14 +147,14 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
           {/* Una máscara solo mide luz: lo claro tapa con el velo y lo oscuro lo deja abierto. Por eso aquí sí van blanco y negro. */}
           <mask id={mascaraId} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
             <rect width="100%" height="100%" fill="white" /> {/* tema-fijo: una máscara SVG solo mide luz */}
-            <g ref={siluetaRef} fill="black" style={{ visibility: "hidden" }}> {/* tema-fijo: una máscara SVG solo mide luz */}
+            <g ref={siluetaRef} fill="black" transform={lleva0(Math.max(e0.kVentana, 1e-6))} style={{ visibility: e0.kVentana > 0 ? "visible" : "hidden" }}> {/* tema-fijo: una máscara SVG solo mide luz */}
               <path ref={siluetaAlaRef} d={`${alaInicial} Z`} />
               <path d={CABEZA_DEL_AVE} />
             </g>
           </mask>
         </defs>
-        <rect ref={veloRef} className="entrada-velo" width="100%" height="100%" mask={`url(#${mascaraId})`} style={{ opacity: 0 }} />
-        <g ref={aveRef} className="entrada-ave" transform={aveInicial}>
+        <rect ref={veloRef} className="entrada-velo" width="100%" height="100%" mask={`url(#${mascaraId})`} style={{ opacity: e0.velo }} />
+        <g ref={aveRef} className="entrada-ave" transform={lleva0(e0.k)}>
           <path ref={alaRef} d={alaInicial} />
           <path ref={alaBajoRef} d={alaBajoInicial} />
           <path d={TRAZOS_DEL_AVE[2]} />
