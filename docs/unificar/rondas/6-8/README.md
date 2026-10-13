@@ -25,6 +25,7 @@ modo oscuro. Las fotos de «Existe hoy» salen de los censos (ver abajo).
 | `ronda6/bajar-css.mjs` | baja el CSS real del ERP y sus fuentes (necesita el ERP local arriba) |
 | `ronda6/numeros.json` | los usos contados en el código (los textos «Une: …») |
 | `armar-fotos-r6r7.mjs`, `armar-fotos-r8.mjs` | copian las capturas de los censos a `img/` de cada página y escriben su `fotos.json` |
+| `empaquetar.mjs` | junta las tres rondas en `elegir-rondas-6-8.html`, un solo archivo sin dependencias |
 | `capturar-propuestas.mjs` | las imágenes chicas de `docs/unificar/capturas/*.propuesta.jpg` (P1, claro y oscuro lado a lado) |
 
 ## Regenerar (desde `apps/web`)
@@ -48,4 +49,7 @@ cd unificar/.salida && node armar-fotos-r6r7.mjs && node armar-fotos-r8.mjs
 for r in 6 7 8; do (cd elegir-ronda$r && node construir.mjs); done
 ```
 
-Y se sirven con `preview_start` **`unificar-laminas`**: `/elegir-ronda6/elegir.html`, `/elegir-ronda7/elegir.html` y `/elegir-ronda8/elegir.html`.
+Para un **solo archivo** que se abre sin servidor (doble clic, o mandárselo a alguien), con las tres rondas juntas y todo adentro
+(CSS del ERP, fuentes, demos y fotos): `node empaquetar.mjs` desde `unificar/.salida` → `elegir-rondas-6-8.html` (~6 MB).
+
+O se sirven con `preview_start` **`unificar-laminas`**: `/elegir-ronda6/elegir.html`, `/elegir-ronda7/elegir.html` y `/elegir-ronda8/elegir.html`.
