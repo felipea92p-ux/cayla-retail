@@ -6,6 +6,7 @@ import {
   costoParaTipear,
   destinoDesdeParam,
   esFuncionAusente,
+  fechaCorta,
   hayAlgoQueRecibir,
   MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
   nombreDeLineaSinPrenda,
@@ -344,5 +345,17 @@ describe("hayAlgoQueRecibir", () => {
 
   it("sin líneas, nada que recibir", () => {
     expect(hayAlgoQueRecibir([])).toBe(false);
+  });
+});
+
+describe("fechaCorta: una fecha o un instante, siempre el día de Lima", () => {
+  it("una fecha sola se escribe tal cual", () => {
+    expect(fechaCorta("2026-10-12")).toBe("12/10/2026");
+    expect(fechaCorta(null)).toBe("—");
+  });
+  it("un instante se lee en Lima: las 22:17 del 12/10 en Lima son las 03:17 del 13/10 en UTC", () => {
+    expect(fechaCorta("2026-10-13T03:17:00+00:00")).toBe("12/10/2026");
+    expect(fechaCorta("2026-10-13 03:17:00+00")).toBe("12/10/2026");
+    expect(fechaCorta("2026-10-12T15:00:00.123+00:00")).toBe("12/10/2026");
   });
 });
