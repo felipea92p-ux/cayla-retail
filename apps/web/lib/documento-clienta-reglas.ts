@@ -65,6 +65,32 @@ export function numeroEnmascarado(numero: string | null): string | null {
   return `${n.slice(0, 2)}•••${n.slice(-3)}`;
 }
 
+/** El celular a medias: «9•• ••• 321» si es un celular peruano; otro número, «•••321». null sin número. */
+export function celularEnmascarado(telefono: string | null): string | null {
+  if (!telefono || !telefono.trim()) return null;
+  const d = telefono.replace(/\D/g, "");
+  const nueve = d.length >= 9 ? d.slice(-9) : "";
+  if (nueve.startsWith("9")) return `9•• ••• ${nueve.slice(6)}`;
+  return d.length >= 4 ? `•••${d.slice(-3)}` : "•••";
+}
+
+/**
+ * El DNI y el celular de un cliente como se leen en Clientes (Felipe 2026-10-13, auditoría de 20 puntos, punto 18): completos
+ * para el líder, a medias para los demás. Es lo que se VE: el número completo sigue viajando a la pantalla y queda en la caja de
+ * edición de la ficha, porque hace falta para corregirlo (Felipe eligió enmascarar sabiendo eso). `formatoCelular` es el formato
+ * legible de quien llama (el mismo del resto de la pantalla).
+ */
+export function contactoVisible(
+  c: { documentoTipo: TipoDocumentoClienta; documentoNumero: string | null; telefonoWhatsapp: string | null },
+  verCompleto: boolean,
+  formatoCelular: (telefono: string) => string = (t) => t
+): { documento: string | null; celular: string | null } {
+  return {
+    documento: documentoLegible(c.documentoTipo, c.documentoNumero, !verCompleto),
+    celular: !c.telefonoWhatsapp ? null : verCompleto ? formatoCelular(c.telefonoWhatsapp) : celularEnmascarado(c.telefonoWhatsapp),
+  };
+}
+
 /** «DNI 71•••482», «CE 00•••123», «Pasaporte AB•••456»; null sin número. */
 export function documentoLegible(tipo: TipoDocumentoClienta, numero: string | null, enmascarar = true): string | null {
   if (!numero) return null;
