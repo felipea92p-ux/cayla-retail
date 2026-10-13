@@ -47,8 +47,8 @@ window.Comun = (function () {
     abrir(m) { m.abierto = true; },
     /** Sin aviso: la persona agrega la categoría que va a contar. Si ese proveedor manda esa categoría, la caja tiene contenido real. */
     agregarLinea(m, cat) {
-      const base = FARDO.lineas.find((l) => l.cat === cat && l.prov === m.proveedor);
-      const p = prov(m.proveedor);
+      const base = m.proveedor ? FARDO.lineas.find((l) => l.cat === cat && l.prov === m.proveedor) : null;
+      const p = (m.proveedor && prov(m.proveedor)) || { id: null, marcas: ["Sin marca"] }; // sin proveedor: «por confirmar»
       const l = base ? nuevaLinea({ ...base, dijeron: null }) : nuevaLinea({ id: `${cat.toLowerCase()}-${++uid}`, cat, marca: p.marcas[0], prov: p.id, dijeron: null, desc: "" });
       if (!base) l.cola = [];
       m.lineas.push(l);

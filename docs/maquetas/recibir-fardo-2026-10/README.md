@@ -32,6 +32,20 @@ Lo que cambió en `a-camino.html` (versión 2; B y C quedan como referencia del 
   colores, crear lo nuevo) y la cabecera de Recibir muestra «N pendientes del fardo». Al resolverlos, las prendas entran al stock con la
   cantidad ya contada.
 
+**Segunda ronda del 13-oct (Felipe):** *a veces llega algo de una categoría que no se especificó; a veces cierran el conteo y aparecen las 2
+prendas que faltaban, así que debe poder reabrirse para cuadrar; y el envío sin aviso tiene que estar pulido.* Lo que se agregó:
+
+- **«Agregar categoría» siempre**, también con aviso de Compras. Una categoría que no venía en el fardo nace con «dijeron 0», el chip
+  **No venía en el fardo**, el proveedor elegido entre los del fardo (o «No sé · Compras lo ve») y la causa **«Llegó algo que no se pidió»**
+  ya puesta: la persona solo cuenta.
+- **Reabrir el conteo.** En el fardo cerrado, «¿Encontraste algo más? → Reabrir el conteo»: vuelve a Contar con todo como estaba, una nota
+  dice cuándo se cerró y por quién, lo que ya entró al stock no se toca, y si al corregir la diferencia desaparece, la causa de antes se
+  borra sola. «Cerrar de nuevo» deja el rastro de cada cierre («Cerrado a las 10:58 por Mariana · reabierto después»).
+- **Sin aviso, terminado:** el proveedor se **busca** (en producción son 80), «Agregar proveedor» si no existe y «Proveedor por confirmar» si no
+  se sabe; el total del WhatsApp es opcional y, al contar cada categoría, se puede poner **lo que dijeron de esa categoría** («40 blusas y 24
+  vestidos»): entonces la comparación es por categoría, como con el fardo de Compras. Las categorías se agregan al contar (el elegidor se
+  abre solo al empezar).
+
 **Lo que esto cambia en el contrato (y no estaba en la versión 1):**
 
 1. **El fardo se cierra sin que todo esté en el stock.** Al stock entra lo que ya tiene tallas y colores; el resto son prendas contadas que
@@ -42,7 +56,9 @@ Lo que cambió en `a-camino.html` (versión 2; B y C quedan como referencia del 
    es lo que se compara contra el despacho de Compras y lo que firma quien contó.
 3. **Separar más de lo contado corrige el conteo** (la prenda en la mano manda); el detalle por tallas corrige la cantidad del producto.
 
-**Decisiones que ya quedaron tomadas con esto:** no hay escáner; contar primero; separar y detallar son pendientes, no candados.
+**Decisiones que ya quedaron tomadas con esto:** no hay escáner; contar primero; separar y detallar son pendientes, no candados; una
+categoría no anunciada es sobrante «no pedido»; un fardo cerrado se puede reabrir (queda el rastro de cada cierre; una nueva decisión tuya:
+**¿hasta cuándo?** La maqueta no pone plazo; propongo que sea hasta que Compras resuelva la diferencia, y después se corrija por Compras).
 **Siguen abiertas:** quién crea lo nuevo; si la sede ve el precio de la línea; dañadas a cuarentena; el «dijeron» del WhatsApp; y una nueva:
 **¿puede colgarse en el piso una prenda contada pero sin tallas?** (la maqueta dice que no, hasta resolver el pendiente).
 

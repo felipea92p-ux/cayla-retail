@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="_base.css?v=2">
 </head>
 <body>
-<script src="_datos.js?v=3"></script>
-<script src="_comun.js?v=3"></script>
+<script src="_datos.js?v=4"></script>
+<script src="_comun.js?v=4"></script>
 <script>
 /* A · CAMINO — versión 2 (Felipe, 2026-10-13: «me gusta la A»; nada viene etiquetado, así que no hay pistola).
    Tres paradas: ¿Qué llegó? → Contar → Cerrar. Lo esencial es CONTAR por categoría. Separar es opcional y por nombre: «vi una Blusa
@@ -79,7 +79,8 @@ Comun.iniciar({
   .cat-item .marca{position:absolute;left:-4px}
   .cat-item.agregar{border:1px dashed var(--t25);color:var(--t65);justify-content:center}
   .cat-item.agregar:hover{color:var(--tinta);border-color:var(--t45)}
-  .elige-cat{display:flex;flex-wrap:wrap;gap:6px;padding:8px}
+  .elige-cat{display:flex;flex-wrap:wrap;gap:6px;padding:12px;animation:revelar 240ms var(--ease) both}
+  .elige-cat .pildora{padding:4px 10px;font-size:12.5px}
   .contador{padding:24px;display:flex;flex-direction:column;gap:14px;container:contador/inline-size}
   .contador h2{font-size:30px;line-height:1.05}
   .instr{font-size:14.5px;color:var(--t65);max-width:600px}
@@ -154,9 +155,10 @@ Comun.iniciar({
   montar(escena, api) {
     const { modelo: m, Modelo: M, est } = api;
     const { icono, iconoCat, mini, esc, CATS, prov, SIN_AVISO, PROVEEDORES, CAUSAS, plural, PERSONAS } = RF;
-    let paso = 1, foco = null;
+    let paso = 1, foco = null, eligiendo = false, catElegida = null, provExtra = "";
     const PASOS = [{ n: 1, t: "Qué llegó" }, { n: 2, t: "Contar" }, { n: 3, t: "Cerrar" }];
     // ---------- el modelo de esta cara: separar por NOMBRE (sin etiqueta), detalle opcional, pendientes ----------
+    if (!m.fardo && !m.provElegido) { m.proveedor = null; }
     const prep = (l) => { l.productos ||= {}; l.nuevasSin ||= 0; l.nuevasDesc ||= []; return l; };
     const conocidasDe = (l) => Object.values(prep(l).productos).reduce((a, p) => a + p.n, 0);
     const nuevasDe = (l) => prep(l).nuevasSin + l.nuevasDesc.reduce((a, n) => a + n.cant, 0);
@@ -181,13 +183,28 @@ Comun.iniciar({
       return out;
     }
     const pendientes = () => m.lineas.flatMap(pendientesDe).filter((p) => !(m.resueltos || []).includes(p.titulo));
+    const provNombre = (l) => (l.prov && prov(l.prov) ? prov(l.prov).nombre : "proveedor por confirmar");
+    /** Lo que dijeron en total: el fardo lo trae por línea; sin aviso vale el número del WhatsApp o, si lo pusieron por categoría, su suma. */
+    function totalDijeron() {
+      if (m.fardo) return m.lineas.reduce((a, l) => a + (l.dijeron || 0), 0);
+      if (m.dijeronTotal != null) return m.dijeronTotal;
+      return m.lineas.some((l) => l.dijeron != null) ? m.lineas.reduce((a, l) => a + (l.dijeron || 0), 0) : null;
+    }
+    /** Llegó algo de una categoría que no venía en el fardo (Felipe, 2026-10-13): nace con «dijeron 0» y la causa ya puesta. */
+    let extraN = 0;
+    function agregarLineaExtra(cat, provId) {
+      const p = provId ? prov(provId) : null;
+      const l = { id: `${cat.toLowerCase()}-x${++extraN}`, cat, marca: p ? p.marcas[0] : "Sin marca", prov: provId || null, dijeron: m.fardo ? 0 : null, desc: "", contadas: 0, conocidas: {}, nuevas: [], causa: m.fardo ? "no_pedida" : null, nota: "", cola: [], corregida: false, visitada: false, noAnunciada: !!m.fardo };
+      m.lineas.push(l); return l;
+    }
+    function agregarLineaSin(cat, dijeron = null) { const l = M.agregarLinea(m, cat); l.dijeron = dijeron; return l; }
     const totalEnStock = () => m.lineas.reduce((a, l) => a + enStock(l), 0);
     /** Lo único que frena «Cerrar»: haber contado, las causas y quién contó. Separar y detallar NO (son pendientes). */
     function faltan() {
       const f = [];
       if (M.totalContadas(m) === 0) f.push({ clave: "vacio", texto: "Cuenta lo que llegó" });
       for (const l of m.lineas) { const c = CATS[l.cat]; const d = M.diferencia(l); if (d != null && d !== 0 && l.contadas > 0 && !l.causa) f.push({ clave: "causa", lineaId: l.id, texto: d < 0 ? `Di por qué faltan ${plural(-d, c.una, c.varias)}` : `Di por qué sobran ${plural(d, c.una, c.varias)}` }); }
-      if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) > 0 && M.totalContadas(m) !== m.dijeronTotal && !m.causaTotal) { const d = M.totalContadas(m) - m.dijeronTotal; f.push({ clave: "causa-total", texto: d < 0 ? `Di por qué faltan ${-d} prendas` : `Di por qué sobran ${d} prendas` }); }
+      if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) > 0 && M.totalContadas(m) !== m.dijeronTotal && !m.causaTotal && !m.lineas.some((l) => l.dijeron != null)) { const d = M.totalContadas(m) - m.dijeronTotal; f.push({ clave: "causa-total", texto: d < 0 ? `Di por qué faltan ${-d} prendas` : `Di por qué sobran ${d} prendas` }); }
       if (!m.responsable) f.push({ clave: "responsable", texto: "Elige quién contó" });
       return f;
     }
@@ -196,7 +213,7 @@ Comun.iniciar({
       return `<div class="falta-chips"><span class="label" style="margin-right:4px">Falta</span>${f.map((x) => `<button class="fc" data-falta="${x.clave}" ${x.lineaId ? `data-linea="${x.lineaId}"` : ""}>${icono("der")}${esc(x.texto)}</button>`).join("")}</div>`;
     }
     const frase = "Abre el fardo y cuenta por categoría. Separar cuáles son puede quedar para después: lo esencial es el número.";
-    function chipCabecera() { const n = m.cerrado ? pendientes().length : 0; return n ? `<span class="chip pizarra punto vivo">${n} pendientes del fardo</span>` : m.fardo ? `<span class="chip pizarra punto vivo">1 fardo en camino</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>`; }
+    function chipCabecera() { const n = m.cerrado ? pendientes().length : 0; return n ? `<span class="chip pizarra punto vivo">${n} pendientes del fardo</span>` : m.reabierto ? `<span class="chip ambar punto vivo">Fardo reabierto</span>` : m.fardo ? `<span class="chip pizarra punto vivo">1 fardo en camino</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>`; }
     escena.innerHTML = `<div class="pagina">${api.cabecera({ frase, der: `<span data-chip-cab>${chipCabecera()}</span>` })}
       <nav class="rail" aria-label="Pasos de la recepción"></nav>
       <div class="paso-caja"><section class="paso-pag" id="pag"></section></div></div>`;
@@ -205,7 +222,7 @@ Comun.iniciar({
     // ---------- el riel ----------
     function estadoPaso(n) { if (n === paso) return "ahora"; if (n === 1) return m.abierto ? "hecho" : "falta"; if (n === 2) return m.lineas.length && m.lineas.every((l) => l.visitada && l.contadas > 0) ? "hecho" : "falta"; return m.cerrado ? "hecho" : "falta"; }
     function subPaso(n) {
-      if (n === 1) return m.abierto ? (m.fardo ? `${m.fardo.codigo} · ${M.totalDijeron(m)} prendas` : `${prov(m.proveedor).nombre.split(" ")[0]} · sin aviso`) : "Fardo o sin aviso";
+      if (n === 1) return m.abierto ? (m.fardo ? `${m.fardo.codigo} · ${M.totalDijeron(m)} prendas` : `${m.proveedor && prov(m.proveedor) ? prov(m.proveedor).nombre.split(" ")[0] : "Proveedor por confirmar"} · sin aviso`) : "Fardo o sin aviso";
       if (n === 2) { const t = M.totalContadas(m); if (!t) return "Por categoría"; const p = m.lineas.flatMap(pendientesDe).length; return `${t} contadas${p ? ` · ${p} para después` : ""}`; }
       return m.cerrado ? "Cerrado" : "Lo que no cuadró y quién contó";
     }
@@ -259,12 +276,13 @@ Comun.iniciar({
         <article class="card fardo-card"><div class="fardo-visual">${cajaSvg()}</div><div>
           <p class="label">Sin aviso de Compras</p><h2 class="disp">Llegó mercadería</h2>
           <p class="tenue" style="margin-top:4px">Nadie la despachó desde el sistema. Dime de quién es y, si te lo dijeron, cuántas venían: con eso ya se puede comparar.</p>
-          <p class="label" style="margin-top:14px">¿De quién es?</p>
-          <div class="provs">${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span></button>`).join("")}</div>
-          <p class="label" style="margin-top:14px">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">(si no sabes, deja vacío)</span></p>
-          <div class="caja" style="max-width:220px;margin-top:8px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div>
-          <div class="cita">${icono("mensaje")}<span>${esc(SIN_AVISO.mensaje)}</span></div>
-          <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Empezar a contar${icono("der", "flecha")}</button></div>
+          <div class="campo luz" data-estado="${m.proveedor ? "" : "ahora"}" style="margin-top:14px;padding:12px"><div class="fila entre"><span class="fila" style="gap:8px"><span class="marca" data-estado="${m.proveedor ? "hecho" : "ahora"}">${m.proveedor ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">¿De quién es?</p></span>${m.proveedor ? "" : `<span class="sigue">Sigue aquí</span>`}</div>
+            <div class="caja" style="margin-top:8px"><span style="color:var(--t55)">${icono("buscar")}</span><input data-buscar-prov placeholder="Busca el proveedor por nombre o marca" autocomplete="off"></div>
+            <div class="provs" data-provs>${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span>${x.id === m.proveedor ? `<span class="marca" data-estado="hecho"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>` : ""}</button>`).join("")}</div>
+            <p class="tenue" style="font-size:12.5px;margin-top:8px">¿No está? <button class="btn enlace" data-accion="agregar-proveedor" style="min-height:24px">Agregar proveedor</button> · si no sabes de quién es, elige «Proveedor por confirmar» y Compras lo completa.</p></div>
+          <div class="campo" style="padding:12px 12px 4px"><div class="fila" style="gap:8px"><span class="marca" data-estado="opcional"></span><p class="label">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">· opcional</span></p></div>
+            <div class="fila envuelve" style="gap:12px;margin-top:8px;align-items:flex-start"><div class="caja" style="width:150px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div><div class="cita" style="margin:0;flex:1;min-width:220px">${icono("mensaje")}<span>${esc(SIN_AVISO.mensaje)}<br><span class="tenue">Si el mensaje dice cuántas de cada categoría, lo pones al contar cada una.</span></span></div></div></div>
+          <div class="fila envuelve" style="margin-top:14px;gap:12px"><button class="btn pri grande" data-abrir>${icono("caja")}Empezar a contar${icono("der", "flecha")}</button>${m.proveedor ? "" : `<span class="tenue" style="font-size:12.5px">Sin proveedor queda como «por confirmar»: Compras lo completa.</span>`}</div>
         </div></article>
         <aside class="card otra"><h3 class="disp">Cuando Compras lo despache</h3><p>El fardo aparecerá aquí con lo que dijeron por categoría y marca, y la pantalla comparará sola. Hoy ese dato viaja por WhatsApp; el módulo de Compras lo está cambiando.</p></aside>
       </div>`;
@@ -276,16 +294,22 @@ Comun.iniciar({
         const c = CATS[l.cat]; const d = M.diferencia(l); const estado = l.visitada && l.contadas > 0 ? "hecho" : foco === l.id ? "ahora" : "falta";
         const dif = d != null && d !== 0 && l.contadas > 0 ? ` <span class="chip ambar" style="font-size:10.5px;padding:1px 7px">${d < 0 ? `−${-d}` : `+${d}`}</span>` : "";
         const pend = pendientesDe(l).length;
-        const sub = l.contadas === 0 ? (l.dijeron != null ? `${esc(l.marca)} · dijeron ${l.dijeron}` : esc(l.marca)) : `${separadas(l)} separadas${pend ? ` · <b>${pend} para después</b>` : " · todo al día"}${dif}`;
-        return `<button class="cat-item" data-linea="${l.id}" aria-current="${foco === l.id}" style="position:relative"><span class="marca" data-estado="${estado}">${estado === "hecho" ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><span class="cat-ic">${iconoCat(l.cat)}</span><span class="txt"><b>${esc(c.nombre)}</b><small>${sub}</small></span><b class="num cont">${l.contadas}${l.dijeron != null ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}</b></button>`;
+        const sub = l.contadas === 0 ? (l.noAnunciada ? `${esc(l.marca)} · <b>no venía en el fardo</b>` : l.dijeron != null ? `${esc(l.marca)} · dijeron ${l.dijeron}` : esc(l.marca)) : `${separadas(l)} separadas${pend ? ` · <b>${pend} para después</b>` : " · todo al día"}${dif}`;
+        return `<button class="cat-item" data-linea="${l.id}" aria-current="${foco === l.id}" style="position:relative"><span class="marca" data-estado="${estado}">${estado === "hecho" ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><span class="cat-ic">${iconoCat(l.cat)}</span><span class="txt"><b>${esc(c.nombre)}</b><small>${sub}</small></span><b class="num cont">${l.contadas}${l.dijeron != null && !l.noAnunciada ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}</b></button>`;
       }).join("");
-      const agregar = !m.fardo ? `<button class="cat-item agregar" data-agregar>${icono("plus")} Agregar categoría</button><div class="elige-cat" hidden>${Object.entries(CATS).filter(([k]) => !m.lineas.some((l) => l.cat === k)).map(([k, c]) => `<button class="pildora" data-cat="${k}">${iconoCat(k)}${esc(c.nombre)}</button>`).join("")}</div>` : "";
+      const libres = Object.entries(CATS).filter(([k]) => !m.lineas.some((l) => l.cat === k));
+      const provsFardo = m.fardo ? [...new Set(m.lineas.filter((l) => l.prov).map((l) => l.prov))] : [];
+      const agregar = `<button class="cat-item agregar" data-agregar aria-expanded="${eligiendo}">${icono("plus")} Agregar categoría${m.fardo ? `<small style="font-size:11px;color:var(--t45);margin-left:4px">· no venía en el fardo</small>` : ""}</button>
+        <div class="elige-cat card" ${eligiendo ? "" : "hidden"}><p class="label" style="flex-basis:100%">¿Qué llegó?</p>${libres.map(([k, c]) => `<button class="pildora" data-cat="${k}" aria-pressed="${catElegida === k}">${iconoCat(k)}${esc(c.nombre)}</button>`).join("") || `<span class="tenue" style="font-size:12.5px">No quedan categorías por agregar</span>`}
+          ${m.fardo ? `<p class="label" style="flex-basis:100%;margin-top:6px">¿De qué proveedor?</p>${provsFardo.map((id) => `<button class="pildora" data-prov-extra="${id}" aria-pressed="${provExtra === id}">${esc(prov(id).nombre)}</button>`).join("")}<button class="pildora" data-prov-extra="" aria-pressed="${provExtra === ""}">No sé · Compras lo ve</button>` : ""}
+          <div style="flex-basis:100%;margin-top:6px"><button class="btn pri" data-agregar-ok ${catElegida ? "" : "disabled"}>${icono("plus", "mas")}Agregar${catElegida ? ` ${esc(CATS[catElegida].nombre)}` : ""}</button></div></div>`;
       return `<aside class="lista-cats"><p class="label" style="padding:0 12px 4px">Categorías${m.fardo ? " del fardo" : ""}</p>${items}${agregar}</aside>`;
     }
     function siguienteLinea() { const i = m.lineas.findIndex((l) => l.id === foco); return m.lineas[i + 1] || null; }
     function anteriorLinea() { const i = m.lineas.findIndex((l) => l.id === foco); return m.lineas[i - 1] || null; }
     function veredictoDe(l) {
       const c = CATS[l.cat]; const d = M.diferencia(l);
+      if (l.noAnunciada) return l.contadas ? `${plural(l.contadas, c.una, c.varias)} que no venían en el fardo` : "No venía en el fardo: cuenta y anota";
       return l.dijeron == null ? (l.contadas ? `${plural(l.contadas, c.una, c.varias)} contadas` : "Sin aviso: cuenta y anota") : l.contadas === 0 ? `Dijeron ${l.dijeron}. Cuenta y escribe el número.` : d === 0 ? `Cuadra: llegaron las ${l.dijeron}.` : d < 0 ? `Faltan ${plural(-d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.` : `Sobran ${plural(d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.`;
     }
     /** El bloque «¿Qué blusas son?»: separar por nombre, detalle opcional, nuevas como cantidad. Se usa en Contar y en «Hacer ahora». */
@@ -303,7 +327,7 @@ Comun.iniciar({
           <span class="paso cant-nueva"><button data-nuevas-d="-1" aria-label="Una menos">${icono("minus")}</button><span class="num" data-nuevas-n>${l.nuevasSin}</span><button data-nuevas-d="1" aria-label="Una más">${icono("plus")}</button></span></div>`;
       return `<div class="separar-op" data-separar="${l.id}">
         <div class="fila entre envuelve"><p class="label">¿Qué ${esc(c.varias)} son? <span class="opt">· opcional: puedes dejarlo para después</span></p>${sin > 0 && l.contadas ? `<span class="chip neutro punto">${sin} sin separar</span>` : l.contadas ? `<span class="chip verde punto">Todas separadas</span>` : ""}</div>
-        <div class="caja buscador"><span style="color:var(--t55)">${icono("buscar")}</span><input data-buscar placeholder="Busca una prenda conocida por su nombre (Ej. Blusa Aurora)" autocomplete="off"></div>
+        <div class="caja buscador"><span style="color:var(--t55)">${icono("buscar")}</span><input data-buscar placeholder="${(() => { const ej = RF.PRODUCTOS.find((p) => p.cat === l.cat); return ej ? `Busca una prenda conocida por su nombre (Ej. ${esc(ej.nombre)})` : `Busca ${esc(c.una)} conocida por su nombre`; })()}" autocomplete="off"></div>
         <div class="sugerencias" data-sugerencias hidden></div>
         <div class="filas-sep">${filas}${descritas}${nuevas}</div>
         ${sin > 0 && l.contadas ? `<p class="resto">${icono("info")}<span>Las <b>${sin}</b> que no separes quedan como pendiente del fardo: no frenan el cierre.</span></p>` : ""}${l.corregida ? `<p class="resto"><span class="chip ambar" style="font-size:11px">Separaste más de lo que contaste: corregimos el conteo a ${l.contadas}</span></p>` : ""}
@@ -311,40 +335,43 @@ Comun.iniciar({
     }
     function pasoContar() {
       const l = M.linea(m, foco);
-      if (!l) return `<div class="dos">${listaCats()}<div class="card vacio">${icono("montones")}<h3>Agrega la primera categoría</h3><p>Elige qué vas a contar primero: blusas, vestidos… Una a la vez.</p></div></div>`;
+      if (!l) { eligiendo = true; return `<div class="dos">${listaCats()}<div class="card vacio">${icono("montones")}<h3>¿Qué llegó?</h3><p>Agrega la primera categoría a la izquierda y cuéntala. Una a la vez; después agregas las demás.</p></div></div>`; }
       prep(l); const c = CATS[l.cat]; const d = M.diferencia(l); const sig = siguienteLinea();
       const pct = l.dijeron ? Math.min(100, (l.contadas / l.dijeron) * 100) : (l.contadas ? 100 : 0);
-      const tono = l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
+      const tono = l.noAnunciada ? (l.contadas ? "ambar" : "") : l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
       const todasVistas = m.lineas.every((x) => x.visitada && x.contadas > 0);
       return `<div class="dos">${listaCats()}
         <div class="col" style="gap:14px">
         <section class="card contador luz cascada" data-estado="ahora" data-linea="${l.id}">
-          <div class="fila" style="gap:14px"><span class="cat-ic" style="width:52px;height:52px;border-radius:14px">${iconoCat(l.cat)}</span><div><h2 class="disp">${esc(c.nombre)}</h2><p class="tenue">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}${l.dijeron != null ? ` · Dijeron <b>${l.dijeron}</b>` : ""}</p></div><span class="sigue" style="margin-left:auto">Sigue aquí</span></div>
-          <p class="instr">Cuenta ${c.art} ${c.varias} del fardo y escribe cuántas llegaron. Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</p>
+          ${m.reabierto ? `<div class="nota" data-sin-cascada><span class="i">i</span><span>Reabriste el fardo (se cerró ${esc((m.cierres || []).slice(-1)[0]?.cuando || "antes")}). Corrige lo que haga falta y vuelve a cerrarlo; lo que ya entró al stock no se vuelve a contar y, si Compras ya reclamó una diferencia, el cambio le avisa.</span></div>` : ""}
+          <div class="fila envuelve" style="gap:14px"><span class="cat-ic" style="width:52px;height:52px;border-radius:14px">${iconoCat(l.cat)}</span><div><h2 class="disp">${esc(c.nombre)}</h2><p class="tenue">${esc(l.marca)} · ${esc(provNombre(l))}${m.fardo && !l.noAnunciada ? ` · Dijeron <b>${l.dijeron}</b>` : ""}${l.noAnunciada ? ` · <span class="chip ambar punto" style="font-size:11px">No venía en el fardo</span>` : ""}</p></div>
+            ${!m.fardo ? `<label class="fila" style="gap:8px;margin-left:auto;font-size:12.5px;color:var(--t65)"><span>Dijeron <span class="tenue">(opcional)</span></span><span class="caja" style="min-height:36px;width:90px;padding:0 10px"><input type="number" inputmode="numeric" min="0" data-dijeron-linea value="${l.dijeron ?? ""}" placeholder="—" style="font-size:14px;padding:6px 0"></span></label>` : ""}<span class="sigue" ${!m.fardo ? "" : 'style="margin-left:auto"'}>Sigue aquí</span></div>
+          <p class="instr">Cuenta ${c.art} ${c.varias} del fardo y escribe cuántas llegaron.${l.noAnunciada ? " Como no venían en el fardo, quedan como «llegó algo que no se pidió»: Compras lo ve con el proveedor." : " Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué."}</p>
           <div class="numero"><button class="paso-btn" data-d="-1" aria-label="Una menos">${icono("minus")}</button><input type="number" inputmode="numeric" min="0" value="${l.contadas}" data-contadas aria-label="Cuántas ${c.varias} llegaron"><button class="paso-btn" data-d="1" aria-label="Una más">${icono("plus")}</button></div>
-          <div class="rapidos"><button data-d="5">+5</button><button data-d="10">+10</button>${l.dijeron != null ? `<button data-exacto>Llegaron las ${l.dijeron}</button>` : ""}<button data-cero>Volver a cero</button></div>
+          <div class="rapidos"><button data-d="5">+5</button><button data-d="10">+10</button>${l.dijeron != null && !l.noAnunciada ? `<button data-exacto>Llegaron las ${l.dijeron}</button>` : ""}<button data-cero>Volver a cero</button></div>
           <div class="avance"><div class="barra"><i class="${tono}" style="width:${pct}%"></i></div><p class="veredicto" style="font-size:14px"><span class="chip punto ${tono || "neutro"}">${veredictoDe(l)}</span></p></div>
           ${bloqueSeparar(l)}
           <div class="fila entre pie-paso envuelve"><button class="btn sut" data-ant-linea ${anteriorLinea() ? "" : "disabled"}>${icono("izq")}Anterior</button>
             ${sig ? `<button class="btn pri" data-sig-linea>Listo, sigue ${esc(CATS[sig.cat].nombre)}${icono("der", "flecha")}</button>` : `<button class="btn pri" data-ir-paso="3" ${todasVistas || l.contadas > 0 ? "" : "disabled"}>Pasar a cerrar${icono("der", "flecha")}</button>`}</div>
         </section>
-        ${api.balanza(M.totalDijeron(m), M.totalContadas(m))}
+        ${api.balanza(totalDijeron(), M.totalContadas(m))}
         </div></div>`;
     }
     function refrescarContador(l) {
       const pag = pagina(); const inp = pag.querySelector("[data-contadas]"); if (inp && document.activeElement !== inp) inp.value = l.contadas;
+      const cab = pag.querySelector(".contador > .fila .tenue"); if (cab && m.fardo && !l.noAnunciada) cab.innerHTML = `${esc(l.marca)} · ${esc(provNombre(l))} · Dijeron <b>${l.dijeron}</b>`;
       const d = M.diferencia(l);
       const pct = l.dijeron ? Math.min(100, (l.contadas / l.dijeron) * 100) : (l.contadas ? 100 : 0);
-      const tono = l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
+      const tono = l.noAnunciada ? (l.contadas ? "ambar" : "") : l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
       const barra = pag.querySelector(".avance .barra i"); if (barra) { barra.style.width = pct + "%"; barra.className = tono; }
       const v = pag.querySelector(".avance .veredicto"); if (v) { const texto = veredictoDe(l); const antes = v.textContent.trim(); v.innerHTML = `<span class="chip punto ${tono || "neutro"}">${texto}</span>`; if (antes !== texto) v.firstElementChild.classList.add("anim-asentar"); }
       const sep = pag.querySelector(`[data-separar="${l.id}"]`); if (sep) { const foc = document.activeElement; const txt = foc && foc.matches("[data-buscar]") ? foc.value : null; sep.outerHTML = bloqueSeparar(l); if (txt != null) { const nb = pag.querySelector("[data-buscar]"); nb.value = txt; nb.focus(); } }
       const item = pag.querySelector(`.cat-item[data-linea="${l.id}"]`); if (item) item.outerHTML = listaCats().match(new RegExp(`<button class="cat-item" data-linea="${l.id}"[\\s\\S]*?</button>`))[0];
       const nav = pag.querySelector("[data-ir-paso]"); if (nav) nav.disabled = !(m.lineas.every((x) => x.visitada && x.contadas > 0) || l.contadas > 0);
-      const bal = pag.querySelector(".balanza"); if (bal) bal.outerHTML = api.balanza(M.totalDijeron(m), M.totalContadas(m));
+      const bal = pag.querySelector(".balanza"); if (bal) bal.outerHTML = api.balanza(totalDijeron(), M.totalContadas(m));
       pintarRail();
     }
-    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); ajustar(l); const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
+    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); ajustar(l); if (!l.noAnunciada && M.diferencia(l) === 0) l.causa = null; const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
     function buscarEn(texto, lineaId) {
       const l = M.linea(m, lineaId); const raiz = pagina().querySelector(`[data-separar="${lineaId}"]`) || escena.querySelector(`[data-separar="${lineaId}"]`); const caja = raiz && raiz.querySelector("[data-sugerencias]"); if (!caja || !l) return;
       const r = RF.buscarProductos(texto, l.marca).filter((p) => p.cat === l.cat || true);
@@ -376,12 +403,12 @@ Comun.iniciar({
         const c = CATS[l.cat]; const d = M.diferencia(l); const pend = pendientesDe(l);
         const causas = d == null || d === 0 ? "" : `<div class="causas" style="margin-top:8px">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" data-linea="${l.id}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</div>`;
         return `<tr><td><span class="fila" style="gap:10px"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${iconoCat(l.cat)}</span><span><b>${esc(c.nombre)}</b><br><span class="tenue" style="font-size:12px">${esc(l.marca)}</span></span></span></td>
-          <td class="n tenue">${l.dijeron ?? "—"}</td><td class="n">${l.contadas}</td><td class="n" style="color:var(--verde-p)">${enStock(l)}</td>
+          <td class="n tenue">${l.noAnunciada ? `<span class="chip ambar" style="font-size:10.5px">no venía</span>` : l.dijeron ?? "—"}</td><td class="n">${l.contadas}</td><td class="n" style="color:var(--verde-p)">${enStock(l)}</td>
           <td>${pend.length ? `<span class="chip pizarra punto">${pend.length} para después</span><div class="pend" style="margin-top:4px">${pend.map((x) => esc(x.titulo)).join("<br>")}</div>` : `<span class="chip verde punto">Nada</span>`}</td>
           <td>${d == null ? `<span class="chip neutro">sin aviso</span>` : d === 0 ? `<span class="chip verde punto">Cuadra</span>` : `<span class="chip ambar punto">${d < 0 ? `Faltan ${-d}` : `Sobran ${d}`}</span>`}${causas}</td></tr>`;
       }).join("");
-      const totalDij = M.totalDijeron(m), totalCon = M.totalContadas(m); const difTotal = totalDij == null ? null : totalCon - totalDij;
-      const causaTotal = !m.fardo && difTotal != null && difTotal !== 0 ? `<div class="card bloque-cierre"><p class="label">¿Por qué ${difTotal < 0 ? `faltan ${-difTotal}` : `sobran ${difTotal}`} contra lo que dijeron por WhatsApp?</p><div class="causas" style="margin-top:8px">${(difTotal < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa-total="${k.clave}" aria-pressed="${m.causaTotal === k.clave}">${esc(k.texto)}</button>`).join("")}</div></div>` : "";
+      const totalDij = totalDijeron(), totalCon = M.totalContadas(m); const difTotal = totalDij == null ? null : totalCon - totalDij;
+      const causaTotal = !m.fardo && m.dijeronTotal != null && !m.lineas.some((l) => l.dijeron != null) && difTotal != null && difTotal !== 0 ? `<div class="card bloque-cierre"><p class="label">¿Por qué ${difTotal < 0 ? `faltan ${-difTotal}` : `sobran ${difTotal}`} contra lo que dijeron por WhatsApp?</p><div class="causas" style="margin-top:8px">${(difTotal < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa-total="${k.clave}" aria-pressed="${m.causaTotal === k.clave}">${esc(k.texto)}</button>`).join("")}</div></div>` : "";
       const np = pendientes().length;
       return `<div class="cierre cascada">
         <div class="card" style="overflow:hidden"><table class="cierre"><thead><tr><th>Categoría</th><th class="n">Dijeron</th><th class="n">Contaste</th><th class="n">Al stock</th><th>Para después</th><th>Diferencia y por qué</th></tr></thead><tbody>${filas}</tbody></table></div>
@@ -390,7 +417,7 @@ Comun.iniciar({
         ${causaTotal}
         <div class="card bloque-cierre"><div class="fila" style="gap:8px"><span class="marca" data-estado="opcional"></span><p class="label">Número de guía <span style="letter-spacing:0;text-transform:none;font-weight:500;color:var(--t45)">· opcional</span></p></div><div class="caja" style="max-width:260px;margin-top:8px"><input data-guia value="${esc(m.guia)}" placeholder="Ej. T001-000342"></div></div>
         <div class="card bloque-cierre luz" data-estado="${m.responsable ? "" : "ahora"}"><div class="fila entre"><div class="fila" style="gap:8px"><span class="marca" data-estado="${m.responsable ? "hecho" : "ahora"}">${m.responsable ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">Quién contó</p></div>${m.responsable ? "" : `<span class="sigue">Sigue aquí</span>`}</div><div style="margin-top:10px">${api.responsableHtml(m)}</div></div>
-        <div class="pie-cierre">${faltaChips()}<button class="btn pri grande" data-recibir ${faltan().length ? "disabled" : ""}>${icono("check")}Cerrar el fardo · ${totalCon} contadas en ${esc(RF.SEDE)}</button></div>
+        <div class="pie-cierre">${faltaChips()}<button class="btn pri grande" data-recibir ${faltan().length ? "disabled" : ""}>${icono("check")}${m.reabierto ? "Cerrar de nuevo" : "Cerrar el fardo"} · ${totalCon} contadas en ${esc(RF.SEDE)}</button></div>
       </div>`;
     }
 
@@ -404,10 +431,10 @@ Comun.iniciar({
         <div class="fila arriba" style="gap:20px">
           <div class="sello"><span class="onda"></span><span class="onda dos"></span><svg viewBox="0 0 88 88"><circle class="aro" cx="44" cy="44" r="42"/><path class="visto" d="M27 45l11 11 23-25"/></svg></div>
           <div><p class="label">Fardo cerrado · ${esc(RF.SEDE)} · ${m.hora || "10:58"}</p><h2 class="disp" style="font-size:36px;line-height:1.05;margin-top:4px">${M.totalContadas(m)} prendas contadas</h2>
-            <p class="tenue" style="margin-top:6px">${quien ? `Contó ${esc(quien.nombre)}.` : ""} ${m.fardo ? `Fardo ${esc(m.fardo.codigo)} · guía ${esc(m.guia)}` : `Sin aviso · ${esc(prov(m.proveedor).nombre)}`}. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.</p></div>
+            <p class="tenue" style="margin-top:6px">${quien ? `Contó ${esc(quien.nombre)}.` : ""} ${m.fardo ? `Fardo ${esc(m.fardo.codigo)} · guía ${esc(m.guia)}` : `Sin aviso · ${esc(m.proveedor && prov(m.proveedor) ? prov(m.proveedor).nombre : "proveedor por confirmar")}`}. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.</p></div>
         </div>
         <div class="cifras">
-          <div class="tc"><p class="label"><i></i>Dijeron</p><p class="valor num">${M.totalDijeron(m) ?? "—"}</p></div>
+          <div class="tc"><p class="label"><i></i>Dijeron</p><p class="valor num">${totalDijeron() ?? "—"}</p></div>
           <div class="tc"><p class="label"><i class="verde"></i>Contaste</p><p class="valor num">${M.totalContadas(m)}</p></div>
           <div class="tc"><p class="label"><i class="verde"></i>Ya en el stock</p><p class="valor num">${stock}<small>con tallas y colores</small></p></div>
           <div class="tc"><p class="label"><i class="${pend.length ? "pizarra" : "verde"}"></i>Para después</p><p class="valor num">${pend.length}<small>${pend.length === 1 ? "pendiente" : "pendientes"}</small></p></div>
@@ -425,8 +452,17 @@ Comun.iniciar({
           ${pend.length ? `<div class="fila envuelve" style="margin-top:12px"><button class="btn sut" data-accion="avisar">${icono("campana")}Avisar a Lucía (encargada)</button><span class="tenue" style="font-size:12.5px">Al resolverlos, las prendas entran al stock con la cantidad ya contada.</span></div>` : ""}
         </div>
         ${difs ? `<div class="bloque"><h3 class="disp" style="font-size:22px">Lo que no cuadró</h3><ul class="difs">${difs}</ul><p class="tenue" style="font-size:12.5px">La sede dice qué pasó; Compras decide qué pasa con la plata.</p></div>` : `<div class="bloque"><div class="fila" style="gap:8px"><span class="chip verde punto">Cuadró</span><span class="tenue">Llegó exactamente lo que dijeron.</span></div></div>`}
+        <div class="bloque"><div class="fila entre envuelve"><div><h3 class="disp" style="font-size:20px">¿Encontraste algo más?</h3><p class="tenue" style="font-size:13.5px">Si aparecen las 2 prendas que faltaban o algo quedó mal contado, reabre el fardo, corrige y ciérralo de nuevo. Lo que ya entró al stock no se toca.</p></div><button class="btn sec" data-reabrir>${icono("repetir")}Reabrir el conteo</button></div>
+          ${(m.cierres || []).length ? `<p class="tenue" style="font-size:12.5px;margin-top:8px">${m.cierres.map((c) => `Cerrado ${esc(c.cuando)}${c.por ? ` por ${esc(c.por)}` : ""} · reabierto después`).join(" · ")}.</p>` : ""}</div>
         <div class="fila envuelve" style="gap:10px"><button class="btn pri" data-otro>${icono("caja")}Otro fardo</button><button class="btn sut" data-accion="historial">${icono("lista")}Ver todo lo recibido</button></div>
       </section>`;
+    }
+    /** Reabrir: el conteo vuelve a editarse; queda el rastro de cada cierre; lo que ya entró al stock no cambia. */
+    function reabrir() {
+      const quien = PERSONAS.find((p) => p.id === m.responsable);
+      m.cierres = [...(m.cierres || []), { cuando: `a las ${m.hora || "10:58"}`, por: quien ? quien.nombre : null }];
+      m.cerrado = false; m.reabierto = true; paso = 2; foco = (m.lineas[0] || {}).id || null; pintarPaso(); escena.scrollTop = 0;
+      api.aviso("Fardo reabierto: corrige y ciérralo de nuevo", "ambar");
     }
     /** «Hacer ahora» desde el fardo cerrado: separar en una hoja, detallar en su matriz, crear lo nuevo. */
     function hacerAhora(tipo, lineaId, nombre, descId, titulo) {
@@ -441,20 +477,23 @@ Comun.iniciar({
         api.aviso(`Abre Nuevo producto con ${esc(n.desc)} (${n.cant}) ya puesto; al guardar, el stock entra solo`, "pizarra"); pintarPaso();
       }
     }
-    function cerrar() { M.cerrar(m); paso = 3; pintarPaso(); pintarRail(); escena.scrollTop = 0; }
+    function cerrar() { M.cerrar(m); if (m.reabierto) m.hora = "11:2" + ((m.cierres || []).length % 10); paso = 3; pintarPaso(); pintarRail(); escena.scrollTop = 0; }
 
     // ---------- acciones ----------
     function lineaDe(t) { const r = t.closest("[data-separar]"); return r ? r.dataset.separar : foco; }
     escena.addEventListener("click", (e) => {
-      const t = e.target.closest("[data-paso],[data-abrir],[data-sin-aviso],[data-prov],[data-linea].cat-item,[data-agregar],[data-cat],.paso-btn,.rapidos button,[data-sig-linea],[data-ant-linea],[data-ir-paso],[data-sug-producto],[data-prod-d],[data-quitar-prod],[data-detallar],[data-nuevas-d],[data-describir],[data-nueva-desde-busqueda],[data-quitar-nueva],[data-causa],[data-causa-total],[data-resp],[data-recibir],[data-falta],[data-hacer],[data-otro],[data-accion]");
+      const t = e.target.closest("[data-paso],[data-abrir],[data-sin-aviso],[data-prov],[data-linea].cat-item,[data-agregar],[data-agregar-ok],[data-prov-extra],[data-reabrir],[data-cat],.paso-btn,.rapidos button,[data-sig-linea],[data-ant-linea],[data-ir-paso],[data-sug-producto],[data-prod-d],[data-quitar-prod],[data-detallar],[data-nuevas-d],[data-describir],[data-nueva-desde-busqueda],[data-quitar-nueva],[data-causa],[data-causa-total],[data-resp],[data-recibir],[data-falta],[data-hacer],[data-otro],[data-accion]");
       if (!t) return;
       if (t.matches("[data-paso]")) return irPaso(Number(t.dataset.paso));
       if (t.matches("[data-abrir]")) { if (!m.fardo) { const inp = pagina().querySelector("[data-dijeron]"); m.dijeronTotal = inp && inp.value !== "" ? Number(inp.value) : null; } M.abrir(m); const svg = pagina().querySelector(".caja-svg"); if (svg) svg.classList.add("abierta"); t.disabled = true; setTimeout(() => irPaso(2), api.quieto() ? 0 : 820); return; }
       if (t.matches("[data-sin-aviso]")) { const b = document.querySelector('.spike .op[data-g="caso"][data-v="sin"]'); if (b) b.click(); return; }
-      if (t.matches("[data-prov]")) { m.proveedor = t.dataset.prov; pagina().querySelectorAll("[data-prov]").forEach((x) => x.setAttribute("aria-pressed", x === t)); return; }
-      if (t.matches(".cat-item[data-linea]")) { foco = t.dataset.linea; pintarPaso(); return; }
-      if (t.matches("[data-agregar]")) { const c = pagina().querySelector(".elige-cat"); c.hidden = !c.hidden; return; }
-      if (t.matches("[data-cat]")) { const l = M.agregarLinea(m, t.dataset.cat); foco = l.id; pintarPaso(); return; }
+      if (t.matches("[data-prov]")) { m.proveedor = t.dataset.prov; m.provElegido = true; const dij = pagina().querySelector("[data-dijeron]"); if (dij) m.dijeronTotal = dij.value !== "" ? Number(dij.value) : null; pintarPaso(); return; }
+      if (t.matches(".cat-item[data-linea]")) { foco = t.dataset.linea; eligiendo = false; pintarPaso(); return; }
+      if (t.matches("[data-agregar]")) { eligiendo = !eligiendo; catElegida = null; pintarPaso(); return; }
+      if (t.matches("[data-cat]")) { catElegida = t.dataset.cat; pintarPaso(); return; }
+      if (t.matches("[data-prov-extra]")) { provExtra = t.dataset.provExtra; pintarPaso(); return; }
+      if (t.matches("[data-agregar-ok]")) { if (!catElegida) return; const l = m.fardo ? agregarLineaExtra(catElegida, provExtra || null) : agregarLineaSin(catElegida); foco = l.id; eligiendo = false; catElegida = null; pintarPaso(); api.aviso(`${CATS[l.cat].nombre} agregada${m.fardo ? ": no venía en el fardo" : ""}`, "neutro"); return; }
+      if (t.matches("[data-reabrir]")) return reabrir();
       if (t.matches(".paso-btn")) return contar(foco, { delta: Number(t.dataset.d) });
       if (t.matches(".rapidos button")) { const l = M.linea(m, foco); if (t.dataset.exacto != null) contar(foco, { valor: l.dijeron }); else if (t.dataset.cero != null) contar(foco, { valor: 0 }); else contar(foco, { delta: Number(t.dataset.d) }); return; }
       if (t.matches("[data-sig-linea]")) { const l = M.linea(m, foco); if (l) l.visitada = true; const s = siguienteLinea(); if (s) { foco = s.id; irPaso(paso, { directo: true }); } return; }
@@ -475,7 +514,7 @@ Comun.iniciar({
       if (t.matches("[data-falta]")) { const k = t.dataset.falta; if (k === "vacio") return irPaso(2); const el = pagina().querySelector(k === "responsable" ? ".responsables" : `[data-causa][data-linea="${t.dataset.linea}"]`); if (el) { el.scrollIntoView({ block: "center", behavior: api.quieto() ? "auto" : "smooth" }); api.destello(el.closest(".card") || el); } return; }
       if (t.matches("[data-hacer]")) return hacerAhora(t.dataset.hacer, t.dataset.linea, t.dataset.nombre, t.dataset.desc, t.dataset.titulo);
       if (t.matches("[data-otro]")) { document.querySelector("[data-reiniciar]").click(); return; }
-      if (t.matches("[data-accion]")) { api.aviso({ etiquetas: `Abre Etiquetas de precio con las ${totalEnStock()} prendas cargadas`, colgar: "Abre Colgar en el piso con lo que ya está en stock", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
+      if (t.matches("[data-accion]")) { api.aviso({ "agregar-proveedor": "Abre la hoja «Agregar proveedor» (RUC y nombre), como en Llegó mercadería", etiquetas: `Abre Etiquetas de precio con las ${totalEnStock()} prendas cargadas`, colgar: "Abre Colgar en el piso con lo que ya está en stock", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
     });
     /** Redibuja solo el bloque de separar (en la página o en la hoja) y lo que depende de él. */
     function refrescarSeparar(l) {
@@ -487,6 +526,9 @@ Comun.iniciar({
       if (e.target.matches("[data-contadas]")) { const l = M.linea(m, foco); if (!l) return; M.contar(m, foco, { valor: e.target.value }); ajustar(l); refrescarContador(l); }
       if (e.target.matches("[data-buscar]")) buscarEn(e.target.value, lineaDe(e.target));
       if (e.target.matches("[data-guia]")) m.guia = e.target.value;
+      if (e.target.matches("[data-dijeron]")) m.dijeronTotal = e.target.value !== "" ? Number(e.target.value) : null;
+      if (e.target.matches("[data-dijeron-linea]")) { const l = M.linea(m, foco); if (!l) return; l.dijeron = e.target.value !== "" ? Math.max(0, Math.floor(Number(e.target.value) || 0)) : null; if (M.diferencia(l) === 0) l.causa = null; refrescarContador(l); }
+      if (e.target.matches("[data-buscar-prov]")) { const k = RF.clave(e.target.value); pagina().querySelectorAll("[data-provs] .resp").forEach((b) => { b.hidden = k.length > 0 && !RF.clave(b.textContent).includes(k); }); }
     });
     escena.addEventListener("keydown", (e) => {
       if (e.target.matches("[data-buscar]") && e.key === "Enter") { e.preventDefault(); const raiz = e.target.closest("[data-separar]"); const s = raiz.querySelector(".sug[aria-selected=true]"); if (s) s.click(); else if (e.target.value.trim()) buscarEn(e.target.value, lineaDe(e.target)); }
@@ -501,10 +543,11 @@ Comun.iniciar({
     }
     function saltarA(en) {
       if (!en || en === "inicio") return;
-      if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); }
+      if (!m.fardo) { m.proveedor = SIN_AVISO.prov; m.provElegido = true; m.dijeronTotal = null; agregarLineaSin("CMS", 40); agregarLineaSin("VES", 24); }
       M.abrir(m); foco = (m.lineas[0] || {}).id || null;
       if (en === "contar") { paso = 2; return; }
       m.lineas.forEach((l, i) => { M.contarReal(m, l.id); l.visitada = true; if (i !== 1) separarReal(l); }); // la segunda categoría queda sin separar, a propósito
+      if (m.fardo) { const x = agregarLineaExtra("TOP", "cds"); M.contar(m, x.id, { valor: 3 }); nuevasSinN(x, { valor: 3 }); } // y llegaron 3 tops que nadie anunció
       if (en === "separar") { paso = 2; return; }
       paso = 3; if (en === "cerrar") return;
       for (const l of m.lineas) if (M.diferencia(l)) M.ponerCausa(m, l.id, "proveedor");
@@ -513,16 +556,16 @@ Comun.iniciar({
     }
     saltarA(est.en);
     pintarPaso();
-    ui = { m, irPaso, contar, setFoco: (id) => { foco = id; }, cerrar, pintar: pintarPaso, abrir: () => { const b = pagina().querySelector("[data-abrir]"); if (b) b.click(); }, agregarProducto, detallar, nuevasSinN, refrescar: refrescarContador, separarReal };
+    ui = { m, irPaso, contar, setFoco: (id) => { foco = id; }, cerrar, reabrir, pintar: pintarPaso, abrir: () => { const b = pagina().querySelector("[data-abrir]"); if (b) b.click(); }, agregarProducto, detallar, nuevasSinN, refrescar: refrescarContador, separarReal, agregarLineaExtra, agregarLineaSin };
   },
 
   /** La demo: Mariana cuenta categoría por categoría; separa por nombre lo que reconoce, deja Vestidos para después y cierra. */
   async demo(api, viva) {
     const { modelo: m, Modelo: M, pausa } = api;
     await pausa(900); if (!viva()) return;
-    if (!m.fardo) m.dijeronTotal = RF.SIN_AVISO.dijeronTotal;
+    if (!m.fardo) { m.proveedor = RF.SIN_AVISO.prov; m.provElegido = true; ui.pintar(); await pausa(700); }
     ui.abrir(); await pausa(1500); if (!viva()) return;
-    if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); ui.setFoco(m.lineas[0].id); ui.pintar(); await pausa(600); }
+    if (!m.fardo) { ui.agregarLineaSin("CMS", 40); ui.agregarLineaSin("VES", 24); ui.setFoco(m.lineas[0].id); ui.pintar(); api.aviso("Del WhatsApp: 40 blusas y 24 vestidos", "neutro"); await pausa(900); }
     for (const [i, l] of [...m.lineas].entries()) {
       ui.setFoco(l.id); await ui.irPaso(2, { directo: true }); await pausa(500); if (!viva()) return;
       const real = RF.realPorProducto(l.id); const pasos = Math.min(6, real.total);
@@ -533,6 +576,7 @@ Comun.iniciar({
       if (real.nuevas) { ui.nuevasSinN(l, { valor: real.nuevas }); ui.refrescar(l); api.aviso(`${real.nuevas} ${RF.CATS[l.cat].varias} nuevas: se describen y crean después`, "pizarra"); await pausa(900); }
       await pausa(400);
     }
+    if (m.fardo) { const x = ui.agregarLineaExtra("TOP", "cds"); ui.setFoco(x.id); await ui.irPaso(2, { directo: true }); await pausa(500); ui.contar(x.id, { valor: 3 }); await pausa(400); ui.nuevasSinN(x, { valor: 3 }); ui.refrescar(x); api.aviso("3 tops que no venían en el fardo: Compras lo ve con el proveedor", "ambar"); await pausa(1100); if (!viva()) return; }
     await ui.irPaso(3); await pausa(900); if (!viva()) return;
     for (const l of m.lineas) if (M.diferencia(l) && !l.causa) { M.ponerCausa(m, l.id, "proveedor"); ui.pintar(); await pausa(700); }
     if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) !== m.dijeronTotal) { m.causaTotal = "proveedor"; ui.pintar(); await pausa(600); }

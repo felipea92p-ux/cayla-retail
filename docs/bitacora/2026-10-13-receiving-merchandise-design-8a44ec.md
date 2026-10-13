@@ -10,3 +10,14 @@
 - **Cómo:** solo la maqueta (sin código del ERP ni migración); verificada en el navegador integrado con clics reales y capturas sin ventana.
   Trampa: con `python3 -m http.server` Chrome reusó `_datos.js` viejo (los HTML ahora versionan sus archivos, `?v=2`); y la rueda del
   mouse sobre un `<input type="number">` con foco bajaba el conteo (se le quita el foco antes).
+
+## Segunda ronda, misma tarde
+
+- **Qué:** en `a-camino.html`: «Agregar categoría» también con aviso (nace como «no venía en el fardo», causa «no se pidió» puesta); «Reabrir el
+  conteo» desde el fardo cerrado (nota con el cierre anterior, causa que se borra sola al cuadrar, «Cerrar de nuevo» con rastro); el caso
+  sin aviso pulido (proveedor con buscador y «agregar proveedor», total del WhatsApp opcional, «dijeron» por categoría al contar). Cuatro
+  categorías más en los datos para poder agregar una que no venía (Tops, Polos, Poleras, Chompas).
+- **Por qué:** Felipe: llegan cosas de categorías no especificadas; cierran el conteo y aparecen las 2 que faltaban; el envío sin aviso pasa.
+- **Cómo:** verificado con clics y JS en el navegador integrado: agregar Polos del proveedor Nórdica, reabrir y cuadrar los pantalones (la
+  causa «No vino del proveedor» se borra sola), cerrar de nuevo a las 11:21 con el rastro; sin aviso: buscar «andina», elegir, 64 del
+  WhatsApp, Blusas con «dijeron 40». Demos de los dos casos sin errores.

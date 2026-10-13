@@ -13,6 +13,10 @@ window.RF = (function () {
     FAL: ["M7.6 4h8.8l3.9 16H3.7z", "M7.3 7.6h9.4", "M10.5 7.6 9 20M13.5 7.6 15 20"],
     PAN: ["M7 3h10l3 18h-6.6L12 9.6 10.6 21H4z", "M7.2 6.2h9.6", "M12 6.2v3.4"],
     CAS: ["M8.6 3.8 4.4 6 3 17.6l3.6.6L7.5 11v9.5h9V11l.9 7.2 3.6-.6L19.6 6l-4.2-2.2", "M8.6 3.8v2.4L12 8l3.4-1.8V3.8", "M8.6 3.8c1-.9 2.2-1.3 3.4-1.3s2.4.4 3.4 1.3", "M12 8v12.5", "M7.5 17.6h9"],
+    POL: ["M8.6 3.5 3 6.6l2 4.4 2.5-1.2V20.5h9V9.8L19 11l2-4.4-5.6-3.1a3.6 3.6 0 0 1-6.8 0z"],
+    SUD: ["M9 4.2 4.4 6.4 3 17.6l3.4.6 1.1-6.4v8.7h9v-8.7l1.1 6.4 3.4-.6L19.6 6.4 15 4.2", "M9 4.2C9 2.9 10.3 2 12 2s3 .9 3 2.2c0 2.2-1.4 3.7-3 3.7S9 6.4 9 4.2z", "M11 8v3M13 8v3", "M8.9 15.4h6.2"],
+    TOP: ["M8.6 3 8 8.2l-2.5 2.4V16h13v-5.4L16 8.2 15.4 3", "M8.6 3c.2 3.2 1.6 5 3.4 5s3.2-1.8 3.4-5"],
+    CMP: ["M9 3.7 4.4 6 3 17.6l3.4.6 1.1-6.4v8.7h9v-8.7l1.1 6.4 3.4-.6L19.6 6 15 3.7c-.4 1.8-1.6 2.8-3 2.8s-2.6-1-3-2.8z", "M7.5 18h9", "M10.4 9.6v5M12 9.6v5M13.6 9.6v5"],
   };
   // Lo que cada categoría sugiere (ADR-0290: el ejemplo sigue a lo elegido) y sus tallas habituales.
   const CATS = {
@@ -21,6 +25,10 @@ window.RF = (function () {
     PAN: { nombre: "Pantalones", art: "los", una: "pantalón", varias: "pantalones", tallas: ["26", "28", "30", "32", "34"], ej: "Pantalón wide leg" },
     CAS: { nombre: "Casacas", art: "las", una: "casaca", varias: "casacas", tallas: ["XS", "S", "M", "L", "XL"], ej: "Casaca acolchada con capucha" },
     FAL: { nombre: "Faldas", art: "las", una: "falda", varias: "faldas", tallas: ["XS", "S", "M", "L", "XL"], ej: "Falda plisada" },
+    TOP: { nombre: "Tops", art: "los", una: "top", varias: "tops", tallas: ["XS", "S", "M", "L", "XL"], ej: "Top de tiras" },
+    POL: { nombre: "Polos", art: "los", una: "polo", varias: "polos", tallas: ["XS", "S", "M", "L", "XL"], ej: "Polo básico" },
+    SUD: { nombre: "Poleras", art: "las", una: "polera", varias: "poleras", tallas: ["XS", "S", "M", "L", "XL"], ej: "Polera con capucha" },
+    CMP: { nombre: "Chompas", art: "las", una: "chompa", varias: "chompas", tallas: ["XS", "S", "M", "L", "XL"], ej: "Chompa cuello alto" },
   };
   const COLORES = [
     { n: "Negro", hex: "#1a1a18" }, { n: "Blanco", hex: "#f5f0e8" }, { n: "Beige", hex: "#d8c3a5" }, { n: "Azul marino", hex: "#1f3a5f" },
