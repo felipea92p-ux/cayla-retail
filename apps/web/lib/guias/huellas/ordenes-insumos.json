@@ -1,0 +1,20 @@
+{
+  "guia": "ordenes-insumos",
+  "ruta": "/ordenes-insumos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 8,
+  "controles": {
+    "app/(app)/ordenes-insumos/page.tsx": [
+      "BotonEnlace «oi-lista.nueva»",
+      "Link «{e === \"generada\" ? \"Generadas\" : \"Anuladas\"}»",
+      "Link «oi-lista.fila»",
+      "BotonEnlace «Borrar la búsqueda»",
+      "BotonEnlace «Ver todas las órdenes»",
+      "BotonEnlace «Ver las más nuevas»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
+    ]
+  }
+}

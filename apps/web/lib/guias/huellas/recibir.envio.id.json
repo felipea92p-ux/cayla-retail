@@ -29,9 +29,9 @@
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "input «{ejemplo.nombre.texto}»",
-      "Desplegable «Código»",
-      "input «{ejemplo.codigo.texto}»",
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
       "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
@@ -48,7 +48,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
-      "input «{`Costo por prenda de ${nombreDeLinea(l)}»",
+      "CampoTexto «{`Costo por prenda de ${nombreDeLinea(l)}»",
       "Boton «Contarla»",
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «{error && ( <Aviso ref={avisoError}»",

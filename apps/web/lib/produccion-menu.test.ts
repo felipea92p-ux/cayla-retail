@@ -8,8 +8,11 @@ describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20; regrupado 
     expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["resumenProduccion", "ordenes", "insumos", "abastecimiento"]);
   });
 
-  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación y Recibir, pero no Resumen, Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
-    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "recibirProduccion"]);
+  // Desde ADR-0362 fase 7 (decisión 47), «Órdenes de insumos» vive en Abastecimiento sin pedir el dinero del Taller: con la regla fija de
+  // antes (sin módulos) quien trabaja en el Taller la ve junto a Recibir, y el subgrupo ya no se disuelve en «Recibir». Con los módulos de
+  // su rol la ve solo si lo tiene (`menu.test.ts`, «con módulos: …»).
+  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación y Abastecimiento (Órdenes de insumos y Recibir), pero no Resumen, Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
+    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "abastecimiento"]);
   });
 
   it("un líder que mira desde una tienda o un almacén NO ve Producción", () => {

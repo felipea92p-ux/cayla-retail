@@ -565,7 +565,7 @@ export type AccesoRapido = { href: string; etiqueta: string; icono: ClaveAccesoI
 // acción funcione al final. «Nuevo producto» pide los dos: ver Productos no basta, el rol tiene que poder ESCRIBIR en el
 // catálogo (un rol `limitado_como_hoy` lo ve pero la base rechaza el guardado, y un acceso que termina en un error es peor
 // que no tenerlo).
-const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null; permiso?: Permiso }> = {
+export const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null; permiso?: Permiso }> = {
   caja: { href: "/caja", etiqueta: "Caja", icono: "caja", modulo: "caja" },
   apartados: { href: "/vender/apartados", etiqueta: "Apartados", icono: "apartados", modulo: "apartados" },
   stock: { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },

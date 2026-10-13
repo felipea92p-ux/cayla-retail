@@ -580,9 +580,11 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
       <div ref={tarjetaRef} role="region" aria-label="Contar" className="space-y-3">
         {/* Escanear o buscar: UN campo de ancho completo. La cámara vive en la barra de abajo del celular. */}
-        <div data-guia="contar.escaner" className="relative">
-          <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-rojo-profundo" />
+        {/* La caja que se enciende (ADR-0358, ronda 6), con el código de barras adentro: aquí se escanea (la pistola escribe y da Enter). */}
+        <div data-guia="contar.escaner" className="caja-cayla caja-campo min-h-[42px] [@media(pointer:coarse)]:min-h-12">
+          <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-rojo-profundo" />
           <input
+            className="self-stretch py-0 text-base placeholder:text-ellipsis"
             ref={escanerRef}
             type="text"
             value={texto}
@@ -599,7 +601,6 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
             autoCapitalize="off"
             spellCheck={false}
             enterKeyHint="search"
-            className="h-[42px] w-full min-w-0 rounded-lg border border-taupe/25 bg-papel pl-11 pr-3 text-base text-tinta outline-none transition-colors placeholder:text-taupe placeholder:text-ellipsis focus:border-rojo-profundo/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/40 [@media(pointer:coarse)]:h-12"
           />
         </div>
 

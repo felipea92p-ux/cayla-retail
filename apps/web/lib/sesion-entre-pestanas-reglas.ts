@@ -5,15 +5,25 @@
  * las demás siguen dibujadas con el menú y los datos de la cuenta anterior, aunque cada petición ya viaje como la nueva.
  * Esta regla decide, a partir de quién era el usuario cuando la pestaña se dibujó (`idMio`) y quién es ahora (`idAhora`):
  *  - «nada»: la pestaña no tenía cuenta (login, páginas públicas) o la cuenta es la misma;
- *  - «login»: la cuenta se cerró; se va a /login;
+ *  - «login»: la cuenta se cerró en OTRA pestaña; se va a /login (si fue esta misma, con «Salir», no se avisa: «nada»);
  *  - «inicio»: entró otra cuenta; se va al inicio (no se recarga la misma ruta: la cuenta nueva puede no tener ese módulo).
  */
 export type AccionDeSesion = "nada" | "login" | "inicio";
 
-export function decidirAccionDeSesion(idMio: string | null, idAhora: string | null): AccionDeSesion {
+export function decidirAccionDeSesion(idMio: string | null, idAhora: string | null, salidaPropia = false): AccionDeSesion {
   if (idMio === null) return "nada";
   if (idAhora === idMio) return "nada";
-  return idAhora === null ? "login" : "inicio";
+  // Si la cuenta se cerró porque ESTA pestaña apretó «Salir», no fue «otra pestaña»: ella misma ya va a /login y no hay nada que avisar.
+  if (idAhora === null) return salidaPropia ? "nada" : "login";
+  return "inicio";
+}
+
+/** Cuánto vale la marca de «yo salí»: de sobra para que llegue el aviso de cierre y la navegación a /login; después, un cierre ajeno vuelve a avisar. */
+export const MS_SALIDA_PROPIA = 10_000;
+
+/** ¿Esta pestaña salió hace poco? `marcadaEn` es cuándo apretó «Salir» (ms), o null si no lo hizo. */
+export function esSalidaPropia(marcadaEn: number | null, ahora: number): boolean {
+  return marcadaEn !== null && ahora - marcadaEn >= 0 && ahora - marcadaEn <= MS_SALIDA_PROPIA;
 }
 
 export const DESTINO_DE_ACCION: Record<Exclude<AccionDeSesion, "nada">, string> = {

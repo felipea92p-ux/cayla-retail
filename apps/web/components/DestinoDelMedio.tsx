@@ -23,7 +23,7 @@ export function DestinoDelMedio({ destino, enlaceFicha, className = "" }: { dest
         {enlaceFicha && (
           <>
             {" "}
-            <Link href={enlaceFicha} target="_blank" rel="noopener" className="text-rojo hover:underline">
+            <Link href={enlaceFicha} target="_blank" rel="noopener" className="btn-enlace">
               Agregar en su ficha ↗
             </Link>
           </>

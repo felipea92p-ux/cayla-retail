@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PackageOpen } from "lucide-react";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -75,7 +76,7 @@ export function LlegoSinAviso({
           <PackageOpen className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="font-display text-xl text-tinta">¿Llegó algo sin aviso?</h2>
+          <TituloSeccion>¿Llegó algo sin aviso?</TituloSeccion>
           <p className="text-sm text-taupe">
             Si vino directo del proveedor (o por WhatsApp), se recibe igual: cuentas por categoría, solo que sin con qué comparar. Lo que manda otra sede de
             CAYLA no entra por aquí: se recibe en Traslados.

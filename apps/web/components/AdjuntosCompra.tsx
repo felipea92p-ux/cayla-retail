@@ -191,7 +191,7 @@ export function AdjuntosDeFactura({
             <IconoTipo tipo={a.tipo} />
             <span className="min-w-0 flex-1">
               {a.url ? (
-                <a href={a.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-tinta hover:text-rojo hover:underline">
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn-enlace block truncate text-sm">
                   {a.nombre}
                 </a>
               ) : (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Minus, Plus } from "lucide-react";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -376,7 +377,7 @@ function ContadorDeLinea({
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-display text-2xl text-tinta">{linea.categoria?.nombre ?? "Categoría"}</h2>
+          <TituloSeccion>{linea.categoria?.nombre ?? "Categoría"}</TituloSeccion>
           <p className="text-sm text-taupe">
             {[linea.marca?.nombre, linea.proveedor?.nombre, linea.linea?.descripcion].filter(Boolean).join(" · ")}
             {linea.dijeron != null && (
@@ -405,25 +406,28 @@ function ContadorDeLinea({
           <button type="button" onClick={() => poner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="grid h-12 w-12 place-items-center rounded-2xl border border-sand bg-papel text-tinta hover:border-tinta/40 disabled:opacity-30">
             <Minus aria-hidden className="h-5 w-5" />
           </button>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={texto}
-            placeholder="0"
-            aria-label={`Cuántas ${linea.categoria?.nombre.toLowerCase() ?? "prendas"} llegaron`}
-            onChange={(e) => {
-              // Solo dígitos: la caja muestra lo que se guarda. Vacío es «todavía escribiendo», no 0.
-              const { texto: limpio, contadas: n } = leerContadas(e.target.value);
-              setEscribiendo(limpio);
-              if (n !== null && n >= minimo) onEscribir({ contadas: n });
-            }}
-            onBlur={() => setEscribiendo(null)}
-            onFocus={(e) => {
-              setEscribiendo(e.currentTarget.value);
-              e.currentTarget.select();
-            }}
-            className="font-display h-16 w-32 rounded-2xl border border-sand bg-papel text-center text-4xl tabular-nums text-tinta outline-none focus:border-tinta"
-          />
+          {/* La caja que se enciende, alta (ADR-0358): el número es lo protagonista del conteo, como el monto de una hoja. */}
+          <div className="caja-cayla caja-campo caja-campo-alta w-32">
+            <input
+              type="text"
+              inputMode="numeric"
+              className="font-display w-full self-stretch py-0 text-center text-3xl leading-none tabular-nums"
+              value={texto}
+              placeholder="0"
+              aria-label={`Cuántas ${linea.categoria?.nombre.toLowerCase() ?? "prendas"} llegaron`}
+              onChange={(e) => {
+                // Solo dígitos: la caja muestra lo que se guarda. Vacío es «todavía escribiendo», no 0.
+                const { texto: limpio, contadas: n } = leerContadas(e.target.value);
+                setEscribiendo(limpio);
+                if (n !== null && n >= minimo) onEscribir({ contadas: n });
+              }}
+              onBlur={() => setEscribiendo(null)}
+              onFocus={(e) => {
+                setEscribiendo(e.currentTarget.value);
+                e.currentTarget.select();
+              }}
+            />
+          </div>
           <button type="button" onClick={() => poner(contadas + 1)} aria-label="Una más" className="grid h-12 w-12 place-items-center rounded-2xl border border-sand bg-papel text-tinta hover:border-tinta/40">
             <Plus aria-hidden className="h-5 w-5" />
           </button>

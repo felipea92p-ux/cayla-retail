@@ -7,7 +7,7 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-reglas";
-import { SearchX } from "lucide-react";
+import { Check, ChevronDown, Search, SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
@@ -67,7 +67,6 @@ export function ComboBuscable<T extends string>({
   limite,
   crear,
   crearArriba = false,
-  caja = false,
   alEscribir,
   campoRef,
 }: {
@@ -95,7 +94,7 @@ export function ComboBuscable<T extends string>({
   };
   /** La opción de crear va PRIMERA y fija arriba al desplazar la lista, no al final (spike Nuevo producto v2). */
   crearArriba?: boolean;
-  /** Campo en caja hundida (`caja-cayla`) en vez de línea: el de los formularios con caja. */
+  /** Sin efecto desde la ronda 6 de /unificar (ADR-0358): todo combo es la caja que se enciende. Se acepta para no romper a quien la pasa. */
   caja?: boolean;
   /** Una acción que aparece primera solo cuando lo escrito la pide (ver `OpcionAlEscribir`). */
   alEscribir?: (texto: string) => OpcionAlEscribir | null;
@@ -112,8 +111,10 @@ export function ComboBuscable<T extends string>({
   const lista = useRef<HTMLUListElement>(null);
   // La lista va en `fixed`, medida contra el input: dentro de un <Modal> o de una tabla con scroll, una lista
   // `absolute` queda recortada por esa caja (ver `usePosicionLista`).
-  const posLista = usePosicionLista(input, abierto, 256, 4);
-  const destino = useDestinoFlotante(input, abierto);
+  // La lista se mide contra la CAJA entera (lupa, texto y flecha), no contra el input de adentro (ADR-0358, ronda 6).
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const posLista = usePosicionLista(cajaRef, abierto, 256, 4);
+  const destino = useDestinoFlotante(cajaRef, abierto);
   // En el celular, con el teclado abierto, la hoja sube el campo para que la lista tenga lugar debajo.
   useAireParaLaLista(input, abierto);
 
@@ -257,6 +258,10 @@ export function ComboBuscable<T extends string>({
 
   return (
     <div className={`relative ${className}`}>
+      {/* La caja que se enciende (ADR-0358, ronda 6), con su lupa —aquí se escribe para buscar— y su flecha. Antes, una raya
+          suelta (o la caja sin hilo con `caja`). */}
+      <div ref={cajaRef} className="caja-cayla caja-campo">
+      <Search aria-hidden className="combo-lupa" />
       <input
         ref={(el) => {
           input.current = el;
@@ -287,12 +292,10 @@ export function ComboBuscable<T extends string>({
         }}
         onKeyDown={alTeclado}
         onBlur={() => cerrarSinElegir()}
-        className={
-          caja
-            ? "caja-cayla h-10 w-full min-w-0 px-3 text-sm text-tinta placeholder:text-tinta/45"
-            : "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
-        }
+        className="self-stretch py-0"
       />
+      <ChevronDown aria-hidden className="combo-flecha" />
+      </div>
       {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
@@ -309,7 +312,7 @@ export function ComboBuscable<T extends string>({
             onScroll={limite == null ? alHacerScroll : undefined}
             // `anim-revelar`: la misma entrada que el resto de los combos y que el selector de sede (240 ms, sin espera).
             // Era el único que aparecía de golpe; la lista se monta una vez por apertura, así que tipear no la repite.
-            className="anim-revelar lista-flotante z-50 overflow-y-auto rounded-xl"
+            className="anim-revelar lista-flotante z-50 overflow-y-auto rounded-xl py-1.5"
           >
           {crearArriba && filaCrear}
           {mostradas.length === 0 && (hayCrear || pistaVisible) && texto.trim() === "" ? null : mostradas.length === 0 ? (
@@ -336,12 +339,20 @@ export function ComboBuscable<T extends string>({
                   elegir(o);
                 }}
                 // Con la fila de crear fija arriba, `scroll-mt` deja que la opción resaltada con flechas no quede tapada por ella.
-                className={`cursor-pointer px-3 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "opcion-activa text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
+                // La lista de todo combo (ADR-0358, ronda 6): la elegida con el hilo rojo de canto y su ✓ que se dibuja.
+                className={`relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "opcion-activa text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-medium text-tinta" : ""}`}
               >
-                {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
-                <span className="align-middle">{o.texto}</span>
-                {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
-                {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
+                <span
+                  aria-hidden
+                  className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${o.valor === valor ? "scale-y-100" : "scale-y-0"}`}
+                />
+                <span className="min-w-0 flex-1">
+                  {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
+                  <span className="align-middle">{o.texto}</span>
+                  {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
+                  {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
+                </span>
+                {o.valor === valor && <Check aria-hidden className="combo-tilde" />}
               </li>
               );
             })

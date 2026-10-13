@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 81,
+  "total": 78,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -51,11 +51,8 @@
       "input «{etiqueta}»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ],
     "components/ProductoPiezas.tsx": [
       "button «{c.nombre}»",
@@ -67,7 +64,7 @@
     ],
     "components/ProductosTabla.tsx": [
       "BotonEnlace «Limpiar filtros»",
-      "input «{etiqueta}»",
+      "Casilla «{etiqueta}»",
       "button «productos.tabla-abrir»",
       "Link «{`Editar ${referencia}»",
       "Link «{`Ver ${referencia}»",

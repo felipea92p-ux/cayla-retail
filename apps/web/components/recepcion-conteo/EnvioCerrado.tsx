@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Layers, ListChecks, RotateCcw, Sparkles } from "lucide-react";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -76,10 +77,9 @@ export function EnvioCerrado({
       </div>
 
       <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Ya en el stock">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-xl text-tinta">{cifras.enStock > 0 ? `${textoPrendas(cifras.enStock)} ya están en el stock del almacén` : "Todavía nada entró al stock"}</h2>
-          <Chip tono={cifras.enStock > 0 ? "verde" : "neutro"}>{cifras.enStock > 0 ? "Listas para etiquetar" : "Esperan sus pendientes"}</Chip>
-        </div>
+        <TituloSeccion dato={<Chip tono={cifras.enStock > 0 ? "verde" : "neutro"}>{cifras.enStock > 0 ? "Listas para etiquetar" : "Esperan sus pendientes"}</Chip>}>
+          {cifras.enStock > 0 ? `${textoPrendas(cifras.enStock)} ya están en el stock del almacén` : "Todavía nada entró al stock"}
+        </TituloSeccion>
         <p className="text-sm text-taupe">
           {cifras.enStock > 0
             ? "Son las que ya tienen tallas y colores. Todo llegó sin etiqueta: lo que sigue es imprimir la etiqueta de precio y colgarlas."
@@ -97,12 +97,15 @@ export function EnvioCerrado({
       </section>
 
       <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Para después" data-guia="recepcion.para-despues">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-xl text-tinta">{lista.length ? `Para después · ${lista.length} ${lista.length === 1 ? "pendiente" : "pendientes"}` : "Nada quedó para después"}</h2>
-          <Chip tono={lista.length ? "pizarra" : "verde"} vivo={lista.length > 0}>
-            {lista.length ? "Avisa en Recibir y en el Inicio" : "Todo al día"}
-          </Chip>
-        </div>
+        <TituloSeccion
+          dato={
+            <Chip tono={lista.length ? "pizarra" : "verde"} vivo={lista.length > 0}>
+              {lista.length ? "Avisa en Recibir y en el Inicio" : "Todo al día"}
+            </Chip>
+          }
+        >
+          {lista.length ? `Para después · ${lista.length} ${lista.length === 1 ? "pendiente" : "pendientes"}` : "Nada quedó para después"}
+        </TituloSeccion>
         <p className="text-sm text-taupe">
           {lista.length
             ? "Ya están contadas y en el almacén, pero no en el sistema: hasta terminarlas no se pueden vender ni colgar. Lo puede hacer cualquiera que tenga Recibir, cuando pueda."
@@ -130,7 +133,7 @@ export function EnvioCerrado({
 
       {diferencias.length > 0 && (
         <section className="card-cayla space-y-2 p-4 sm:p-5" aria-label="Lo que no cuadró">
-          <h2 className="font-display text-xl text-tinta">Lo que no cuadró</h2>
+          <TituloSeccion>Lo que no cuadró</TituloSeccion>
           <ul className="space-y-1 text-sm text-tinta">
             {diferencias.map((d, i) => (
               <li key={i}>
@@ -145,7 +148,7 @@ export function EnvioCerrado({
 
       <section className="card-cayla flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5" aria-label="Reabrir" data-guia="recepcion.reabrir">
         <div className="min-w-0 flex-1 basis-72">
-          <h2 className="font-display text-lg text-tinta">¿Encontraste algo más?</h2>
+          <TituloSeccion>¿Encontraste algo más?</TituloSeccion>
           <p className="text-sm text-taupe">
             {reabrir?.sePuede === false
               ? `${textoNoSeReabre(reabrir.porQueNo)}.`

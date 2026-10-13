@@ -114,7 +114,7 @@ export function PanelPrendas({
               <span>
                 {enLasDeArriba > 0 ? "Tócala ahí. " : "Prueba con otra palabra, o con el código. "}
                 ¿No está en el catálogo?{" "}
-                <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                <Link href="/productos/nuevo" className="btn-enlace">
                   Dala de alta
                 </Link>{" "}
                 con su precio oficial y vuelve aquí.

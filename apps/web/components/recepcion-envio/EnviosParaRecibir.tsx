@@ -1,5 +1,6 @@
 import { BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ESTADO_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { detalleDeEnvioPorAbrir, detalleDeOrdenDirecta, TEXTO_LA_RECIBE_OTRA, type EnvioPorAbrir, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
 import { detalleDeEnvioSinAviso, esEnvioSinAviso } from "@/lib/recepcion-conteo-reglas";
@@ -25,12 +26,12 @@ export function EnviosParaRecibir({
   if (envios.length === 0 && ordenes.length === 0) return null;
   return (
     <section data-guia="recibir.envios-oc" className="card-cayla space-y-1 p-4 sm:p-5" aria-labelledby="recibir-envios-oc">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 id="recibir-envios-oc" className="font-display text-xl text-tinta">
-          {porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}
-        </h2>
-        <p className="text-[13px] text-taupe">{porCategoria ? `Se cuentan por categoría y entran al almacén de ${sede}.` : `Se cuentan talla por talla y entran al almacén de ${sede}.`}</p>
-      </div>
+      <TituloSeccion
+        id="recibir-envios-oc"
+        dato={porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}
+      >
+        {porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}
+      </TituloSeccion>
       <ul className="divide-y divide-sand">
         {envios.map((e) => (
           <li key={e.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">

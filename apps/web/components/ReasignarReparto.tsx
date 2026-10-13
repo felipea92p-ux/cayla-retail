@@ -55,7 +55,7 @@ export function BotonReasignar({
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.reasignar" className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:underline">
+      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.reasignar" className="btn-cayla btn-enlace gap-1.5 text-xs">
         <ArrowLeftRight aria-hidden className="h-3.5 w-3.5" />
         {etiqueta}
       </button>
@@ -240,7 +240,7 @@ function ReasignarRepartoModal({
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
                 onFocus={(e) => e.target.select()}
-                className="ml-3 w-20 border-b border-tinta/25 bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                className="caja-campo-input ml-3 w-20 text-center tabular-nums"
               />
               <span className="ml-2 text-xs text-tinta/55">de {origen?.pendiente ?? 0} pendientes en {nombreDe(desdeId)}</span>
               {/* El efecto, antes de confirmar: cómo queda lo que le toca a cada tienda. */}

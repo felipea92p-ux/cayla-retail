@@ -334,7 +334,7 @@ export function DetalleMuestraModal({
                   <MiniaturaPrenda fotoUrl={p.fotoUrl} />
                   <div className="min-w-0 flex-1">
                     {veProductos ? (
-                      <Link href={`/productos/${p.id}/editar`} className="block truncate text-sm text-tinta hover:text-rojo-profundo hover:underline">
+                      <Link href={`/productos/${p.id}/editar`} className="btn-enlace inline-block max-w-full truncate align-bottom text-sm">
                         {p.referencia}
                       </Link>
                     ) : (

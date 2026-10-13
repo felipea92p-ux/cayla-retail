@@ -1,58 +1,24 @@
-import {
-  TicketPercent,
-  Activity, BarChart3, Banknote, Bookmark, CalendarCheck, CalendarRange, ClipboardCheck, ClipboardList, Coins, FileMinus, FileText, Gauge, Globe, History, House,
-  KeyRound, Landmark, LayoutGrid, Leaf, LineChart, ListOrdered, MessageCircle, Package, PackageOpen, Percent, Receipt, Repeat, Scissors, Settings,
-  Shirt, ShoppingCart, Store, Tag, Tags, Truck, Undo2, UserRound, Users, Wallet, type LucideIcon,
-} from "lucide-react";
+import { House, KeyRound, Settings, type LucideIcon } from "lucide-react";
+import { IconoMenu } from "@/components/ui/IconoMenu";
+import { iconoDeModulo } from "@/lib/menu-iconos";
 import type { ClaveModulo } from "@/lib/modulos";
 
 // Un ícono por módulo (Roles y accesos, ADR-0342): las tarjetas de los roles y las baldosas de «Qué ve» se reconocen de un
-// vistazo. Solo decora: el nombre del módulo va siempre al lado o en el `title`. Un módulo nuevo sin ícono sale con el de
-// Inicio hasta que se le asigne uno aquí.
-const ICONOS: Record<ClaveModulo, LucideIcon> = {
-  inicio: House,
-  vender: ShoppingCart,
-  apartados: Bookmark,
-  caja: Banknote,
-  cambios: Repeat,
-  devoluciones: Undo2,
-  historial: History,
-  facturacion: Receipt,
-  clientas: UserRound,
-  avisos_club: MessageCircle,
-  existencias: Package,
-  conteos: ClipboardCheck,
-  traslados: Truck,
-  movimientos: ListOrdered,
-  frescura: Leaf,
-  plan_piso: LayoutGrid,
-  productos: Shirt,
-  atributos: Tags,
-  etiquetas: Tag,
-  ordenes_compra: ClipboardList,
-  liquidacion: TicketPercent,
-  facturas_compra: FileText,
-  recibir: PackageOpen,
-  por_pagar: Wallet,
-  proveedores: Store,
-  notas_credito: FileMinus,
-  plan_compra: CalendarRange,
-  produccion: Scissors,
-  analisis: BarChart3,
-  colaboradores: Users,
+// vistazo. Solo decora: el nombre del módulo va siempre al lado o en el `title`.
+//
+// Desde el 2026-10-13 (Felipe: «alinea los otros dos lugares de íconos») es el MISMO dibujo que el del menú lateral
+// (`iconoDeModulo`, lib/menu-iconos.ts): «Punto de Venta» es la caja registradora acá y en el lateral. Un módulo nuevo que sale en
+// el menú hereda el ícono de su fila sin hacer nada. Quedan con un ícono propio, de lucide, solo los que no tienen trazo en el
+// lateral: Roles y Configuración, que se abren desde los botones de la cabecera (ADR-0306).
+const PROPIOS: Partial<Record<ClaveModulo, LucideIcon>> = {
   roles: KeyRound,
   configuracion: Settings,
-  gastos: Coins,
-  cuentas_dinero: Landmark,
-  reportes_financieros: LineChart,
-  impuestos: Percent,
-  cierre_mes: CalendarCheck,
-  actividad: Activity,
-  cayla_global: Globe,
-  rendimiento: Gauge,
 };
 
 export function IconoModulo({ clave, className = "h-4 w-4" }: { clave: ClaveModulo; className?: string }) {
-  const Icono = ICONOS[clave] ?? House;
+  const delMenu = iconoDeModulo(clave);
+  // 1,7 de grosor, el de siempre en estas piezas chicas (el lateral dibuja a 1,5 a 18-20 px).
+  if (delMenu) return <IconoMenu clave={delMenu} className={className} strokeWidth={1.7} />;
+  const Icono = PROPIOS[clave] ?? House;
   return <Icono aria-hidden className={className} strokeWidth={1.7} />;
 }

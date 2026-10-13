@@ -6,19 +6,28 @@
 //   · Flojo: el mes más bajo de los últimos 6 (ventanas de 30 días completas dentro del ERP), llevado a los días de la campaña. Si una
 //     tienda que vende la categoría todavía no tiene un mes completo en el ERP, el flojo no se propone: escribirlo a ojo es mejor que un
 //     piso inventado.
-//   · Bueno: mientras no haya la misma campaña del año anterior en el ERP, normal × 3. Cuando la hay, el punto medio entre «normal × el
-//     multiplicador real de esa tienda» y «lo que vendió esa categoría en esa campaña» (Felipe: «si en Navidad 2025 vendí 400 y este año
-//     la estimación da 450, el punto medio, 425»). Si esa categoría se agotó el año anterior, NO se promedia: lo vendido quedó corto por
-//     falta de stock, no de clientes, y bajaría el plan justo donde faltó (Felipe 2026-10-12).
+//   · Bueno, en este orden (el primero que exista):
+//       1. La misma campaña del año anterior está en el ERP: el punto medio entre «normal × el multiplicador real de esa tienda» y «lo que
+//          vendió esa categoría en esa campaña» (Felipe: «si en Navidad 2025 vendí 400 y este año la estimación da 450, el punto medio,
+//          425»). Si esa categoría se agotó el año anterior, NO se promedia: lo vendido quedó corto por falta de stock, no de clientes, y
+//          bajaría el plan justo donde faltó (Felipe 2026-10-12).
+//       2. No está en el ERP pero sí en el historial cargado (Sinatra, `retail.ventas_historicas`): normal × el multiplicador de esa tienda
+//          en esa campaña del año anterior, medido con la MISMA regla de la pantalla Historial (`medir`: soles por día de la campaña ÷ soles
+//          por día de sus 60 días de antes). Sinatra sabe soles por tienda, no prendas por categoría: por eso no hay punto medio aquí
+//          (Felipe 2026-10-13: el historial dice ~1,8 en Trujillo y ~1,1 en Arequipa, y el × 3 compraba de más).
+//       3. Ni en el ERP ni en el historial: normal × 3.
 //   · Las cifras se ordenan como las pide la base (flojo ≤ normal ≤ bueno): si un mes bajo quedó por encima del ritmo de 90 días (pasa con
 //     poca historia), el flojo es el normal.
 //
 // CONTRATO: PROMETE una propuesta que se puede guardar tal cual (enteros, ordenados) y, en palabras de tienda, de dónde salió cada cifra.
-// NO decide por nadie: la persona la acepta, la corrige o la ignora.
+// NO decide por nadie: la persona la acepta, la corrige o la ignora. ASUME que el historial que recibe `conHistorial` cubre la campaña del
+// año anterior y sus 60 días de antes (`rangoDeCampana(previa)`); si no llega o no alcanza, esa tienda cae al × 3, como antes.
+
+import { medir, type LecturaHistorial } from "./plan-compra-historial";
 
 export const RPC_PROPUESTA = "fn_plan_compra_propuesta";
 export const RPC_GUARDAR_RECUPERO = "guardar_plan_compra_recupero";
-/** «Diciembre triplica un mes»: el bueno mientras no haya una campaña anterior con qué comparar (R-19, Felipe). */
+/** El bueno cuando la campaña del año anterior no está ni en el ERP ni en el historial cargado (R-19, Felipe: «diciembre triplica un mes»). */
 export const MULTIPLICADOR_SIN_HISTORIA = 3;
 
 export type TiendaPropuesta = {
@@ -32,6 +41,8 @@ export type TiendaPropuesta = {
   previaDisponible: boolean;
   /** Cuántas veces vendió por día en esa campaña lo de un día normal (los 60 días de antes); null si no hay con qué. */
   multiplicador: number | null;
+  /** Lo mismo, medido en el historial cargado (Sinatra) cuando el ERP no cubre esa campaña; null si no hay con qué (lo llena `conHistorial`). */
+  multiplicadorHistorial: number | null;
 };
 export type HechoCategoria = { tienda: string; u90: number; ventanas: number[]; previa: number; agotada: boolean };
 export type LecturaPropuesta = {
@@ -46,6 +57,8 @@ export type LecturaPropuesta = {
   tiendasActivas: { id: string; nombre: string }[];
   /** tienda → el mínimo (0 a 1) que fijó un líder para esta campaña. */
   minimos: Map<string, number>;
+  /** Se pudo leer el historial de la campaña anterior: sin él, «× 3» no puede decir que la campaña no está en el historial. */
+  historialLeido: boolean;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -71,7 +84,7 @@ export function leerPropuesta(v: unknown): LecturaPropuesta | null {
     const nombre = texto(t.nombre);
     if (!id || !nombre) return [];
     const m = num(t.multiplicador);
-    return [{ id, nombre, dias90: Math.max(0, num(t.dias_90) ?? 0), ventanas: Math.max(0, Math.min(6, num(t.ventanas) ?? 0)), previaDisponible: t.previa_disponible === true, multiplicador: m !== null && m > 0 ? m : null }];
+    return [{ id, nombre, dias90: Math.max(0, num(t.dias_90) ?? 0), ventanas: Math.max(0, Math.min(6, num(t.ventanas) ?? 0)), previaDisponible: t.previa_disponible === true, multiplicador: m !== null && m > 0 ? m : null, multiplicadorHistorial: null }];
   });
   const categorias = new Map<string, HechoCategoria[]>();
   for (const c of lista(v.categorias)) {
@@ -95,6 +108,28 @@ export function leerPropuesta(v: unknown): LecturaPropuesta | null {
         return texto(m.u) && pct !== null && pct > 0 && pct <= 100 ? [[m.u as string, pct / 100] as const] : [];
       }),
     ),
+    historialLeido: false,
+  };
+}
+
+/**
+ * La propuesta con el multiplicador de cada tienda medido en su historial, para la misma campaña del año anterior (`l.previa`). Se mide
+ * con `medir`, la regla de la pantalla Historial: así el Plan y el Historial nunca dan dos números distintos para la misma campaña. Sin
+ * historial (no se pudo leer), la lectura vuelve tal cual y cada tienda sin ERP cae al × 3.
+ */
+export function conHistorial(l: LecturaPropuesta, h: LecturaHistorial | null): LecturaPropuesta {
+  if (!h) return l;
+  const porId = new Map(h.tiendas.map((t) => [t.id, t]));
+  return {
+    ...l,
+    historialLeido: true,
+    tiendas: l.tiendas.map((t) => {
+      const th = porId.get(t.id);
+      const m = th ? medir(h, th, l.previa.desde, l.previa.hasta) : null;
+      // Tres decimales, como manda la base el multiplicador del ERP: la misma cifra se redondea igual venga de donde venga.
+      const valor = m?.estado === "medida" && !m.enCurso && m.multiplicador !== null && m.multiplicador > 0 ? Math.round(m.multiplicador * 1000) / 1000 : null;
+      return { ...t, multiplicadorHistorial: valor };
+    }),
   };
 }
 
@@ -104,11 +139,20 @@ export type PorQueTienda = {
   flojo: number | null;
   bueno: number;
   /** Cómo salió el bueno de esta tienda. */
-  como: "x3" | "punto-medio" | "agotada";
+  como: "x3" | "historial" | "punto-medio" | "agotada";
   multiplicador: number | null;
   previa: number;
 };
-export type PropuestaCategoria = { flojo: number | null; normal: number; bueno: number; diasCampana: number; tiendas: PorQueTienda[]; motivoSinFlojo: string | null };
+export type PropuestaCategoria = {
+  flojo: number | null;
+  normal: number;
+  bueno: number;
+  diasCampana: number;
+  tiendas: PorQueTienda[];
+  motivoSinFlojo: string | null;
+  /** Para explicar el × 3: si se leyó el historial, la campaña no estaba en él; si no, no se sabe. */
+  historialLeido: boolean;
+};
 
 /** La propuesta de una categoría; null si no vendió en ninguna tienda en 90 días (no hay de dónde proponer). */
 export function proponer(l: LecturaPropuesta, categoriaId: string): PropuestaCategoria | null {
@@ -126,18 +170,20 @@ export function proponer(l: LecturaPropuesta, categoriaId: string): PropuestaCat
     const completas = h.ventanas.slice(0, t.ventanas);
     const flojo = completas.length > 0 ? Math.round(Math.min(...completas) * aLaCampana) : null;
     if (flojo === null) sinMes.push(t.nombre);
-    const conHistoria = t.previaDisponible && t.multiplicador !== null;
-    const estimado = conHistoria ? normal * t.multiplicador! : normal * MULTIPLICADOR_SIN_HISTORIA;
-    const como: PorQueTienda["como"] = !conHistoria ? "x3" : h.agotada ? "agotada" : "punto-medio";
+    // El multiplicador sale del primero que exista: la campaña en el ERP, la campaña en el historial, o el × 3 (ver las reglas arriba).
+    const enErp = t.previaDisponible && t.multiplicador !== null;
+    const como: PorQueTienda["como"] = enErp ? (h.agotada ? "agotada" : "punto-medio") : t.multiplicadorHistorial !== null ? "historial" : "x3";
+    const multiplicador = enErp ? t.multiplicador! : (t.multiplicadorHistorial ?? MULTIPLICADOR_SIN_HISTORIA);
+    const estimado = normal * multiplicador;
     const bueno = Math.round(como === "punto-medio" ? (estimado + h.previa) / 2 : estimado);
-    partes.push({ tienda: t.nombre, normal, flojo, bueno, como, multiplicador: conHistoria ? t.multiplicador : null, previa: h.previa });
+    partes.push({ tienda: t.nombre, normal, flojo, bueno, como, multiplicador: como === "x3" ? null : multiplicador, previa: h.previa });
   }
   if (partes.length === 0) return null;
   const normal = Math.max(1, Math.round(partes.reduce((s, p) => s + p.normal, 0)));
   const bueno = Math.max(normal, Math.round(partes.reduce((s, p) => s + p.bueno, 0)));
   const flojo = sinMes.length > 0 ? null : Math.min(normal, Math.round(partes.reduce((s, p) => s + (p.flojo ?? 0), 0)));
   const motivoSinFlojo = sinMes.length > 0 ? `${unir(sinMes)} todavía no ${sinMes.length === 1 ? "tiene" : "tienen"} un mes completo de ventas en el ERP: escribe el flojo tú.` : null;
-  return { flojo, normal, bueno, diasCampana: l.diasCampana, tiendas: partes, motivoSinFlojo };
+  return { flojo, normal, bueno, diasCampana: l.diasCampana, tiendas: partes, motivoSinFlojo, historialLeido: l.historialLeido };
 }
 
 const unir = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs.at(-1)}`);
@@ -149,8 +195,10 @@ export function explicarPropuesta(p: PropuestaCategoria): { normal: string; floj
   const normal = `Normal ${entero(p.normal)}: lo que vende a su ritmo de los últimos 90 días, en los ${p.diasCampana} días de la campaña.`;
   const flojo = p.flojo === null ? (p.motivoSinFlojo ?? "Sin un mes completo de ventas: escribe el flojo tú.") : `Flojo ${entero(p.flojo)}: su mes más bajo de los últimos seis.`;
   const porComo = (c: PorQueTienda["como"]) => p.tiendas.filter((t) => t.como === c);
+  const sinCampana = p.historialLeido ? "esa campaña del año pasado no está ni en el ERP ni en su historial" : "todavía no hay la campaña del año pasado en el ERP";
   const partes = [
-    porComo("x3").length > 0 ? `${unir(porComo("x3").map((t) => t.tienda))}: normal × 3 (todavía no hay la campaña del año pasado en el ERP)` : null,
+    porComo("x3").length > 0 ? `${unir(porComo("x3").map((t) => t.tienda))}: normal × 3 (${sinCampana})` : null,
+    ...porComo("historial").map((t) => `${t.tienda}: normal × ${veces(t.multiplicador!).slice(1)} (lo que esa tienda vendió de más en esa campaña el año pasado, según su historial)`),
     ...porComo("punto-medio").map((t) => `${t.tienda}: el punto medio entre normal × ${veces(t.multiplicador!).slice(1)} (lo que esa tienda vendió de más el año pasado) y las ${entero(t.previa)} que vendió en esa campaña`),
     ...porComo("agotada").map((t) => `${t.tienda}: normal × ${veces(t.multiplicador!).slice(1)}, sin promediar, porque el año pasado se agotó`),
   ].filter(Boolean);

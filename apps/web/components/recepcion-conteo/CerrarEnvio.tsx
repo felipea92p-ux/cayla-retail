@@ -7,6 +7,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -47,6 +48,9 @@ import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
 // queda para después—, el costo de cada una (decisión 6: quien cierra lo ve y lo corrige; en un envío sin aviso, solo quien ve el dinero de
 // Compras, y vacío entra sin costo), qué pasó con lo que no cuadró, una nota y quién cierra. Separar y detallar NO frenan: son pendientes.
 // Las reglas son las de `cerrar_conteo_envio` (`camposDelCierre`): la guía de foco enciende lo que falta.
+
+// Las columnas del cierre, una sola vez para el encabezado y cada fila (la pieza <Tabla>, ADR-0358). En celular se apilan.
+const PLANTILLA_CIERRE = "sm:grid-cols-[minmax(0,1.5fr)_8.5rem_4.5rem_4.5rem_6rem_minmax(0,2.5fr)]";
 
 export function CerrarEnvio({
   detalle,
@@ -150,21 +154,18 @@ export function CerrarEnvio({
         </Aviso>
       )}
 
-      <div className="card-cayla overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm" data-guia="recepcion.tabla-cierre">
-          <thead>
-            <tr className="border-b border-sand text-left text-[11px] uppercase tracking-[0.1em] text-taupe">
-              <th className="px-4 py-3 font-semibold">Categoría</th>
-              <th className="px-3 py-3 text-right font-semibold" title="El costo que trae el envío; quien cierra lo corrige si el papel dice otra cosa">
-                Costo c/u
-              </th>
-              <th className="px-3 py-3 text-right font-semibold">Dijeron</th>
-              <th className="px-3 py-3 text-right font-semibold">Contaste</th>
-              <th className="px-3 py-3 text-right font-semibold">Al stock</th>
-              <th className="px-3 py-3 font-semibold">Diferencia y por qué</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-sand">
+      <Tabla guia="recepcion.tabla-cierre">
+        <Encabezado
+          plantilla={PLANTILLA_CIERRE}
+          columnas={[
+            { titulo: "Categoría" },
+            { titulo: "Costo c/u", alinear: "der", ayuda: "El costo que trae el envío; quien cierra lo corrige si el papel dice otra cosa" },
+            { titulo: "Dijeron", alinear: "der" },
+            { titulo: "Contaste", alinear: "der" },
+            { titulo: "Al stock", alinear: "der" },
+            { titulo: "Diferencia y por qué" },
+          ]}
+        />
             {visibles.map((l) => {
               const d = decisionDe(l.clave);
               const dif = diferenciaDe(l);
@@ -174,44 +175,50 @@ export function CerrarEnvio({
               const costo = leerCostoCierre(d.costo);
               const editaCosto = !(sinAviso && !l.linea && !veDinero);
               return (
-                <tr key={l.clave} className="align-top">
-                  <td className="px-4 py-3">
+                <div key={l.clave} className={fila(PLANTILLA_CIERRE, "sm:items-start")} role="row">
+                  <div className="min-w-0" role="cell">
                     <p className="font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</p>
                     <p className="text-xs text-taupe">
                       {[l.marca?.nombre, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
-                  </td>
-                  <td className="px-3 py-3 text-right">
+                  </div>
+                  <div className="min-w-0 sm:text-right" role="cell">
                     {editaCosto ? (
                       <CampoGuiado id={idCampoCierre("costo", l.clave)} guia={guia}>
-                        <label className="inline-flex items-center gap-1 rounded-lg border border-sand bg-papel px-2">
-                          <span className="text-xs text-taupe">S/</span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={d.costo}
-                            // sugerir-fijo: un costo es un monto de soles, no depende de nada elegido antes
-                            placeholder={sinAviso ? "sin costo" : "0.00"}
-                            aria-label={`Costo por prenda de ${nombreDeLinea(l)}`}
-                            onChange={(e) => cambiar(l.clave, { costo: e.target.value, confirmaCosto: false })}
-                            className="w-20 bg-transparent py-1.5 text-right tabular-nums text-tinta outline-none"
-                          />
-                        </label>
-                        {costo.problema && <p className="mt-1 text-[11px] text-ambar">{costo.problema}</p>}
+                        <CampoTexto
+                          caja
+                          etiqueta={`Costo por prenda de ${nombreDeLinea(l)}`}
+                          inputMode="decimal"
+                          value={d.costo}
+                          // sugerir-fijo: un costo es un monto de soles, no depende de nada elegido antes
+                          placeholder={sinAviso ? "S/ sin costo" : "S/ 0.00"}
+                          onChange={(e) => cambiar(l.clave, { costo: e.target.value, confirmaCosto: false })}
+                          tono={costo.problema ? "error" : undefined}
+                          pie={costo.problema ?? undefined}
+                          sinPie={!costo.problema}
+                          className="text-right tabular-nums"
+                        />
                       </CampoGuiado>
                     ) : (
                       <span className="text-xs text-taupe">llega con la factura</span>
                     )}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-taupe">{l.dijeron ?? "—"}</td>
-                  <td className="px-3 py-3 text-right tabular-nums text-tinta">{l.conteo ? contadasDe(l) : <Chip tono="ambar">Sin contar</Chip>}</td>
-                  <td className="px-3 py-3 text-right">
+                  </div>
+                  <div className={celda("der", "text-taupe")} role="cell">
+                    <span className="sm:hidden">Dijeron </span>
+                    {l.dijeron ?? "—"}
+                  </div>
+                  <div className={celda("der", "text-tinta")} role="cell">
+                    <span className="text-taupe sm:hidden">Contaste </span>
+                    {l.conteo ? contadasDe(l) : <Chip tono="ambar">Sin contar</Chip>}
+                  </div>
+                  <div className="min-w-0 sm:text-right" role="cell">
+                    <span className="text-taupe sm:hidden">Al stock </span>
                     <span className="tabular-nums text-verde">{alStock}</span>
                     {para > 0 && <p className="text-[11px] text-taupe">{para} para después</p>}
-                  </td>
-                  <td className="px-3 py-3">
+                  </div>
+                  <div className="min-w-0" role="cell">
                     {!l.conteo ? (
                       <CampoGuiado id={idCampoCierre("contar", l.clave)} guia={guia}>
                         <Boton type="button" peso="discreto" onClick={onVolver}>
@@ -235,13 +242,11 @@ export function CerrarEnvio({
                     ) : (
                       <Chip tono="verde">Cuadra</Chip>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+      </Tabla>
 
       <p className="nota-cayla">
         {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : "El costo de cada línea viene de la orden: si la factura dice otra cosa, corrígelo aquí. "}

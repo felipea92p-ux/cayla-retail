@@ -258,3 +258,65 @@ Spike `docs/maquetas/plan-precios-ordenes-2026-10/`. Decisiones de Felipe:
 - **«A precio lleno» se mide con el precio al que se vendió** (migración `20261012223000`): `fn_unidades_vendidas` comparaba lo cobrado con el
   precio de lista de HOY, así que una tienda con su propio precio contaba como «rebajada» sin descuento y cualquier cambio de precio deformaba
   «Rebajadas» y «Lo que sobró» hacia atrás. Ahora usa `venta_items.precio_unitario` (el precio de la sede al vender; el descuento va aparte).
+
+## Actualización 2026-10-12 (f) — el selector es el calendario, un plan por campaña y por año, y «Campaña nueva» en Etiquetas
+
+**El problema.** El selector solo mostraba los planes ya creados y crear uno pedía elegir la etiqueta, el nombre y las dos fechas. Peor: la base
+dejaba UN plan por etiqueta para siempre (`planes_compra_una_por_etiqueta`), aunque las campañas de Etiquetas vuelven cada año (Historial ya las
+lleva a cualquier año). Con «Halloween 2026» creado, «Halloween 2027» era imposible: en enero el Plan se quedaba sin campañas que armar.
+
+**Lo que se decidió (Felipe, opción A de `docs/maquetas/plan-selector-campanas-2026-10/`; «con el mismo formato»).**
+- Un plan por campaña **y por año** (el del fin, como Historial): índice `planes_compra_una_por_etiqueta_y_anio`.
+- El selector ES el calendario: los planes más cada campaña de Etiquetas sin plan este año o el que viene, con sus fechas de ese año
+  (`ranurasSinPlan`, `calendarioDelSelector`, `fechasDelAnio` = `proyectarCampana` de Historial). Tocarla abre su hoja ya llena (nombre del año,
+  fechas, responsable) y un toque la arma (`crear_plan_compra`). Quien no es líder la ve apagada («sin plan»). Las campañas sin fechas salen al
+  final, solo para el líder, pidiendo que se las pongan en Etiquetas.
+- «Campaña que no está en el calendario» crea la campaña en Catálogo ▸ Etiquetas con el formato de las demás y su plan, en UNA transacción
+  (`crear_campana_con_plan`), por los mismos caminos que Etiquetas: el INSERT pasa por `etiquetas_estado_biut` (aprobada si quien la crea puede
+  editar etiquetas), las fechas las pone `actualizar_campana_etiqueta` (sin descuento ni categorías: no toca ningún precio) y el plan,
+  `crear_plan_compra`. Si algo falla, no queda ni la etiqueta ni el plan.
+
+DECIDÍ: escribir en Etiquetas desde el Plan, con una función que reutiliza las de Etiquetas.
+DESCARTÉ: un plan suelto sin etiqueta (no aparece en Historial ni vuelve al año siguiente) y solo un enlace a Etiquetas (salir y volver en plena
+compra; además, Etiquetas hoy no tiene cómo marcar una etiqueta como «Campaña y festividad»: todas nacen en «General»).
+SE ROMPE SI: dos líderes crean «Cyber Wow» a la vez — la base lo impide (`etiquetas_clave_unica`: entra uno, el otro lee «ya está»); o si alguien
+edita un plan y lo mueve al año de otro de la misma campaña: lo rechaza el índice por año.
+
+Pruebas: `scripts/pruebas/plan_compra.mjs` C5–C7 y D1–D4; `lib/plan-compra-reglas.test.ts` (calendario, selector, hoja en sus dos caras).
+Migración `20261012234000_plan_compra_campana_por_anio_y_campana_nueva.sql` (una sola parte, sin políticas).
+
+## Actualización 2026-10-13 — sin la campaña en el ERP, el bueno sale del historial y no del × 3
+
+**El problema.** Trujillo y Arequipa venden en el ERP desde el 30 de setiembre de 2026, así que para Navidad 2026 ninguna tienda tiene la misma
+campaña del año anterior en el ERP y todas caían en «normal × 3». El historial de Sinatra, cargado el 2026-10-12, dice otra cosa: diciembre vende
+entre ×1,59 y ×2,30 un día normal en Trujillo (mediana ×2,04, 2017–2025; Navidad del 11 al 25, ×2,0) y ×1,16 y ×1,11 en Arequipa (2024 y 2025).
+Con × 3, el bueno salía 1,5 veces el de su historia en Trujillo y 2,6 veces en Arequipa, y la compra de Navidad es la más cara del año.
+
+**Lo que se decidió (Felipe, 2026-10-13: «prepara el cambio del multiplicador en una rama»).** El bueno de cada tienda sale del primero que exista:
+1. la campaña del año anterior en el ERP (punto medio, o solo normal × multiplicador si se agotó), como antes;
+2. si no, la misma campaña del año anterior en el historial: normal × el multiplicador de esa tienda, medido con `medir`, la misma regla de la
+   pestaña Historial (soles por día de la campaña ÷ soles por día de sus 60 días de antes, con al menos 20 días con venta en la base);
+3. si tampoco, normal × 3.
+
+Solo web, sin migración: `conHistorial` en `lib/plan-compra-propuesta.ts` llena `multiplicadorHistorial` por tienda, y `getPlanCompra` lee
+`fn_historial_ventas` para `rangoDeCampana(previa)` justo después de la propuesta, porque las fechas de «la misma campaña del año anterior» las define
+la base (`previa`). La hoja de la categoría lo explica: «Tienda Trujillo: normal × 2.0 (lo que esa tienda vendió de más en esa campaña el año pasado,
+según su historial)». El × 3 dice ahora si la campaña no estaba ni en el ERP ni en el historial, o si el historial no se pudo leer.
+
+DECIDÍ: medir el multiplicador en la web con `medir` de Historial y las fechas `previa` de la base.
+DESCARTÉ: (a) llevar la cuenta a `fn_plan_compra_propuesta`, porque pide migración y pegado en producción para algo que Historial ya calcula en la
+web, y dejaría el multiplicador definido dos veces, en SQL y en TS; (b) la mediana de varios años, que es más estable (Trujillo va de 1,59 a 2,30),
+pero el camino del ERP usa solo el año anterior y dos varas para el mismo bueno se contradirían el año que viene; (c) el punto medio con lo vendido,
+porque Sinatra no sabe de categorías ni de unidades.
+SE ROMPE SI: el año anterior fue raro para una tienda (Trujillo 2021, ×1,59): la propuesta lo hereda tal cual, igual que con el ERP; o si a la carga
+de Sinatra le faltan días en los 60 de la base: con menos de 20 días con venta no hay multiplicador y vuelve el × 3, como dice la explicación.
+
+Si `fn_historial_ventas` no responde, el Plan se ve igual que antes (× 3) y la explicación no afirma que la campaña falte en el historial.
+
+**Verificado.** `lib/plan-compra-propuesta.test.ts` (26, 10 nuevas: el orden ERP → historial → × 3, cada tienda con el suyo, el mismo número que
+`medir`, la base delgada, la tienda sin historial, sin historial leído y las dos explicaciones); suite de la web (461 archivos), `tsc` y `eslint`.
+En el navegador local, Navidad 2026: Casacas (vendida en Trujillo) dice «normal × 2.0 … según su historial» y Vestidos (vendida en Lima, sin
+historial) «normal × 3 (esa campaña del año pasado no está ni en el ERP ni en su historial)».
+
+**Queda para Felipe.** El simulador «¿Y si la campaña vende distinto?» sigue arrancando en ×3.0 (`components/plan-compra/SimuladorPlan.tsx:16`) y su
+mínimo es ×1.5, por debajo del cual está Arequipa: decidir si arranca en el multiplicador de la propuesta.

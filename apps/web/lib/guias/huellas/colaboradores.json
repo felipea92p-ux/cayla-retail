@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 78,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «Cancelar»",
@@ -37,7 +37,6 @@
     "components/RolesPanel.tsx": [
       "ComboResponsable «!!borradores[id] && hayCambios(roles.find((r) => r.id === id»",
       "Boton «{rol.fijo ? \"Asignar a una persona\" : \"Asignar a una cuenta\"}»",
-      "button «→() => setModal({ tipo: \"cuentas\", rol»",
       "Desplegable «)»",
       "button «{todoEncendido ? \"Quitar todos\" : \"Todos\"}»",
       "button «{`${m.nombre}»",
@@ -100,7 +99,6 @@
       "button «{u.nombre}» #2",
       "input «Suspender a»",
       "button «{responsable.motivo ?? undefined}» #2",
-      "button «colaboradores.ficha-ver-rol»",
       "button «Sí, quitar acceso»",
       "button «Volver»",
       "button «Quitar acceso»"

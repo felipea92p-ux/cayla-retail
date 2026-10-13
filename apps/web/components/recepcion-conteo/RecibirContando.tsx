@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
@@ -272,7 +273,7 @@ export function RecibirContando({
           )}
           {detalle.lineas.length > 0 && (
             <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que trae">
-              <h2 className="font-display text-xl text-tinta">Lo que trae</h2>
+              <TituloSeccion>Lo que trae</TituloSeccion>
               <LoQueTrae detalle={detalle} />
             </section>
           )}

@@ -119,6 +119,20 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   Frescura y Facturación con todo el movimiento de Compras, tres altos (12 · 8 · 4), 24 px para el mouse y una sola voz para el lector.
   Migrada «Deuda por vencimiento»; **deuda 14 archivos**, módulo por módulo con su OK; ese mismo día Felipe pidió migrar las otras y **quedó migrada entera, módulo por módulo (deuda 0)**. Las barras de Análisis (ADR-0357) y la del aviso de cierre de
   Caja (ADR-0359) quedan a propósito hasta que Felipe diga. Registro: `docs/unificar/grafico.barra.md`.
+- **2026-10-13 · rondas 6, 7 y 8, tocándolas.** Tres páginas de elegir juntas en un solo archivo, con todo vivo (fuentes en
+  `docs/unificar/rondas/6-8/`). Felipe eligió la recomendada en 12 de 13 preguntas y en el enlace suelto la P2:
+  **formularios** (ronda 6): la **caja que se enciende** para todo campo y todo combo de una hoja (`campo`, `combo`; hueso de 40 px que sube
+  a papel y dibuja el hilo rojo), **una lista para todo combo** (hilo de canto y ✓ que se dibuja), la **píldora que dice su nombre** para el
+  filtro que se abre (`filtro`; reemplaza el panel de versalitas sin caja del 2026-09-17), las **versalitas que se encienden** como título de
+  campo (`etiqueta-campo`) y la **casilla que se dibuja** con el interruptor en tinta (`casilla`); **leer datos** (ronda 7): `<Tabla>` de
+  hoy **con movimiento** (cascada, hilo de canto y «›», fila abierta; lo que Comprobantes ya hacía, para toda tabla) y tres piezas de
+  **título** (`<TituloSeccion>` serif de 21 px con su dato, `<TituloGrupo>` versalitas con raya que se dibuja, `<SeparadorDia>` pegado
+  arriba); **enlaces, páginas y caras** (ronda 8): `btn-enlace` con **el hilo que se llena**, `<EnlaceVer>` en **versalitas rojas con la
+  flecha que avanza** (la P2), `<Paginas>` con **la píldora que se desliza** y `AvatarPersona` en **cuatro tamaños**. Las piezas cambiaron
+  por dentro el mismo día (cientos de usos ya las tienen); quedan **deudas** por familia en `familias.mjs`, para migrar módulo por
+  módulo (`node apps/web/unificar/deuda.mjs`). Finanzas (ADR-0195) y las pantallas decididas a propósito quedan como están, en las
+  `excepciones` de cada decisión. Registros: `docs/unificar/campo-combo.md`, `etiqueta-campo.md`, `casilla.md`, `tabla.md`,
+  `titulo-seccion.md`, `enlace.md`, `paginacion.md`, `avatar.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

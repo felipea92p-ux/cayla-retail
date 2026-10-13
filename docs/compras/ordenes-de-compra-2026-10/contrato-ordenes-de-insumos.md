@@ -1,6 +1,8 @@
-# Contrato · órdenes de insumos del Taller (ADR-0362, fase 7) — BORRADOR, espera a Felipe
+# Contrato · órdenes de insumos del Taller (ADR-0362, fase 7) — parte 1 construida (provisional), el resto espera a Felipe
 
-Escrito la noche del 2026-10-12 para que la fase 7 arranque apenas Felipe responda. **No se construye sin su OK.** El anexo del
+Escrito la noche del 2026-10-12 para que la fase 7 arranque apenas Felipe responda. **La parte 1 (la orden: puntos 1 y 4 de «Lo que se
+construiría») se construyó esa misma noche, con lo no decidido marcado provisional** (ver «Cambios al construir»); el comprobante y la
+recepción del Taller (puntos 2 y 3) esperan sus respuestas. El anexo del
 2026-10-08 (`insumos-por-orden-de-compra.md`) recomendaba UNIR prenda e insumo en una sola orden; **Felipe decidió lo contrario**
 (decisiones 25, 28 y 47) y eso manda.
 
@@ -42,3 +44,19 @@ Escrito la noche del 2026-10-12 para que la fase 7 arranque apenas Felipe respon
    construye en esta fase o después? (a, recomendada) después: primero la orden, el comprobante y la recepción.
 4. **Maquila y flete** (hoy líneas de concepto libre en los comprobantes del Taller): ¿siguen por Gastos de Finanzas o la orden de
    insumos acepta una línea de servicio? (a, recomendada) siguen por Gastos (fase 6 para los del viaje).
+
+## Cambios al construir la parte 1 (2026-10-13, noche)
+
+- **Ruta propia `/ordenes-insumos`** con la entrada en Producción ▸ Abastecimiento (primera: pedir → factura → recibir → pagar): todo lo
+  que cuelga de `/produccion` exige el módulo de Producción (`app/(app)/produccion/layout.tsx`), y quien tiene «Órdenes de insumos» no
+  tiene por qué tenerlo (47). Ojo: la entrada de Producción solo se ve parado en un taller; desde una tienda la pantalla abre por URL.
+- **Lo que el formulario ofrece elegir sale de una lectura propia** (`fn_orden_insumo_opciones`): `proveedores_produccion` solo la lee el
+  líder y trae cuentas bancarias; la lectura da nombre, RUC y rubro de los activos, los insumos sin archivar y los talleres.
+- **Precio con 4 decimales** (`numeric(12,4)`), como `comprobantes_produccion_items` e `insumo_lotes`: un botón puede costar S/ 0.0350. El
+  importe de la línea se redondea a 2: `round(cantidad × precio, 2)`; el descuento, en soles o en %, sobre ese importe.
+- **La unidad del insumo se copia en la línea** (`orden_insumo_items.unidad_medida`): el documento no cambia si alguien cambia la unidad
+  del insumo. Al editar, una línea cuya unidad cambió muestra un aviso y deja la cantidad vacía para escribirla en la unidad nueva.
+- **La lista muestra lo pedido por unidad** («12.5 metros · 4 conos»): nunca suma metros con conos. Sus cifras («Pedido a proveedores»,
+  «Entrega en los próximos 7 días») se calculan leyendo las órdenes generadas de a 100, hasta 1000.
+- Sin cambios a lo de la fase 1: la orden de tienda, sus tablas y sus funciones no se tocan.
+

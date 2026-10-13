@@ -10,19 +10,21 @@ import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
-import { AvisoStock } from "@/components/plan-compra/AvisoStock";
+import { AvisoStock, AvisoStockEnLinea } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
+import { hoyLima } from "@/lib/fechas-lima";
 import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal";
 import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
@@ -40,7 +42,6 @@ import {
   campanasArchivadas,
   diasEntre,
   confianzaDelStock,
-  fechaLargaES,
   leerPlan,
   momentoDeLaCampana,
   siguienteSinPlan,
@@ -50,8 +51,11 @@ import {
   type CategoriaPlan,
   type FiltroPlan,
   type OrdenPlan,
+  ranurasSinPlan,
+  type RanuraCalendario,
 } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
+import { avisoSinPlan, formaDeLaTabla, proximaCampana, queTocaHoy, subtituloDelPlan } from "@/lib/plan-compra-momento";
 import type { LecturaMotor } from "@/lib/motor-demanda";
 
 // Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: su barra de rango (los tres escenarios contra lo que ya hay y lo que hay
@@ -81,6 +85,7 @@ export function PlanCampana({
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
   pedido: pedidoCrudo = null,
+  historia: historiaCruda = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -99,9 +104,14 @@ export function PlanCampana({
   propuesta?: unknown;
   /** Lo ya pedido en órdenes de compra para esta campaña, crudo; null = no se pudo leer (no se muestra). */
   pedido?: unknown;
+  /** La misma campaña del año anterior en el historial (`fn_historial_ventas`), crudo: el multiplicador de las tiendas que el ERP no cubre. */
+  historia?: unknown;
 }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
-  const hechos = useMemo(() => leerPropuesta(propuestaCruda), [propuestaCruda]);
+  const hechos = useMemo(() => {
+    const leida = leerPropuesta(propuestaCruda);
+    return leida ? conHistorial(leida, leerHistorial(historiaCruda)) : null;
+  }, [propuestaCruda, historiaCruda]);
   const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
@@ -122,7 +132,8 @@ export function PlanCampana({
   const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [editandoReparto, setEditandoReparto] = useState(false);
-  const [nuevaCampana, setNuevaCampana] = useState(false);
+  // La hoja de una campaña: una del calendario para armar su plan (`ranura`) o una nueva (`ranura: null`). Act. 2026-10-12 f.
+  const [hojaCampana, setHojaCampana] = useState<{ ranura: RanuraCalendario | null } | null>(null);
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
@@ -176,7 +187,17 @@ export function PlanCampana({
   };
 
   const hayArchivadas = !!campanas && campanasArchivadas(campanas).length > 0;
+  const hoja = hojaCampana && campanas && (
+    <NuevaCampanaModal
+      key={hojaCampana.ranura ? `${hojaCampana.ranura.etiquetaId}|${hojaCampana.ranura.anio}` : "nueva"}
+      etiquetas={campanas.etiquetas}
+      nombresEnUso={campanas.planes.map((c) => c.nombre)}
+      ranura={hojaCampana.ranura}
+      onClose={() => setHojaCampana(null)}
+    />
+  );
   if (!plan) {
+    const proxima = campanas ? (ranurasSinPlan(campanas, hoyLima()).at(0) ?? null) : null;
     return (
       <div className="space-y-6">
         <EncabezadoPagina sede="Todas las tiendas" titulo="Plan de campaña" subtitulo="Cuánto comprar de cada categoría para una campaña." />
@@ -191,9 +212,22 @@ export function PlanCampana({
               acciones={
                 campanas ? (
                   <>
-                    <Boton peso="primario" onClick={() => setNuevaCampana(true)}>
-                      Nueva campaña
-                    </Boton>
+                    {/* Lo primero que ofrece es la próxima campaña del calendario, ya con sus fechas (quien tiene el módulo, ADR-0387);
+                        «Campaña nueva», para lo que no está, sigue siendo de un líder: escribe en Etiquetas. */}
+                    {proxima ? (
+                      <>
+                        <Boton peso="primario" onClick={() => setHojaCampana({ ranura: proxima })}>
+                          Armar el plan de {proxima.nombre}
+                        </Boton>
+                        {esLider && <Boton onClick={() => setHojaCampana({ ranura: null })}>Campaña nueva</Boton>}
+                      </>
+                    ) : (
+                      esLider && (
+                        <Boton peso="primario" onClick={() => setHojaCampana({ ranura: null })}>
+                          Campaña nueva
+                        </Boton>
+                      )
+                    )}
                     {hayArchivadas && <Boton onClick={() => setVerArchivadas(true)}>Ver campañas archivadas</Boton>}
                   </>
                 ) : undefined
@@ -205,7 +239,7 @@ export function PlanCampana({
             </Vacio>
           </div>
         )}
-        {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+        {hoja}
         {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
       </div>
     );
@@ -222,7 +256,10 @@ export function PlanCampana({
     setAbierta(null);
     setHechas([]);
   };
-  const rango = `del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}`;
+  // Qué pregunta responde la pantalla HOY (prompt maestro 2026-10-13): antes, cuánto comprar; empezada o terminada sin plan, cómo va y la
+  // próxima; con plan, lo planificado contra lo vendido. Y qué columnas tienen algo que decir.
+  const forma = formaDeLaTabla(momento.estado, totales.conPlan);
+  const toca = queTocaHoy(momento.estado, totales.conPlan, campanas ? proximaCampana(campanas, plan.hoy, plan.plan.id) : null);
   const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
   const avisos = avisosDelResumen(confianza);
   const sedesDelPlan = [...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"));
@@ -234,9 +271,7 @@ export function PlanCampana({
         titulo="Plan de campaña"
         subtitulo={
           <>
-            {momento.estado === "antes"
-              ? `Cuánto comprar de cada categoría para ${plan.plan.nombre}, ${rango}. `
-              : `${plan.plan.nombre}, ${rango}: lo que planificaste y, al lado, lo que se vendió de verdad. `}
+            {subtituloDelPlan(momento.estado, totales.conPlan, plan.plan.nombre)}{" "}
             {/* «Cómo se calcula», antes una nota al pie, va en el «!» junto a la frase, como en Resultados e Historial (Felipe 2026-10-12). */}
             <span data-guia="plan.como" className="inline-block align-middle">
               <Ayuda titulo="Cómo se calcula">
@@ -292,7 +327,9 @@ export function PlanCampana({
                 actualId={plan.plan.id}
                 hoy={plan.hoy}
                 puedeCrear
-                onNueva={() => setNuevaCampana(true)}
+                puedeCrearNueva={esLider}
+                onNueva={() => setHojaCampana({ ranura: null })}
+                onArmar={(ranura) => setHojaCampana({ ranura })}
                 onEditar={() => setEditandoCampana(true)}
                 onArchivadas={() => setVerArchivadas(true)}
               />
@@ -344,6 +381,34 @@ export function PlanCampana({
           No sale en el selector. La ves tal como quedó; para volver a usarla, restáurala.
         </Aviso>
       )}
+
+      {toca.tipo === "sin-plan" &&
+        (() => {
+          const aviso = avisoSinPlan(toca);
+          return (
+            <Aviso tono="info" guia="plan.sin-plan" titulo={aviso.titulo}>
+              {aviso.texto}
+              {/* Los caminos van bajo la frase, no en `accion`: ese lugar es para UN enlace, y aquí hay dos botones (y a 375 px aplastaban
+                  el texto a una palabra por línea). */}
+              <span className="mt-3 flex flex-wrap gap-2">
+                <BotonEnlace peso="primario" href={`/compras/plan/resultados?plan=${plan.plan.id}`}>
+                  {aviso.verResultados}
+                </BotonEnlace>
+                {toca.proxima?.destino.tipo === "plan" ? (
+                  <BotonEnlace href={`/compras/plan?plan=${toca.proxima.destino.id}`}>Planificar {toca.proxima.nombre}</BotonEnlace>
+                ) : toca.proxima?.destino.tipo === "calendario" ? (
+                  // Una del calendario sin plan se arma desde su hoja, como en el selector (ADR-0372 act. f): cualquiera con el módulo (ADR-0387).
+                  <Boton onClick={() => toca.proxima?.destino.tipo === "calendario" && setHojaCampana({ ranura: toca.proxima.destino.ranura })}>
+                    Planificar {toca.proxima.nombre}
+                  </Boton>
+                ) : (
+                  // «Campaña nueva», para lo que no está en el calendario, sigue siendo de un líder (escribe en Etiquetas).
+                  esLider && campanas && <Boton onClick={() => setHojaCampana({ ranura: null })}>Campaña nueva</Boton>
+                )}
+              </span>
+            </Aviso>
+          );
+        })()}
 
       {planPedidoNoExiste && (
         <Aviso tono="atencion" titulo="No encontramos esa campaña">
@@ -435,6 +500,8 @@ export function PlanCampana({
       <ListaCategorias
         filas={filas}
         estado={momento.estado}
+        forma={forma}
+        avisoStock={<AvisoStockEnLinea confianza={confianza} onVer={() => setResumenAbierto(true)} />}
         familias={familias}
         filtro={filtro}
         onFiltro={setFiltro}
@@ -471,8 +538,7 @@ export function PlanCampana({
       />
 
       {salidaPaso.aviso}
-
-      {nuevaCampana && campanas && <NuevaCampanaModal etiquetas={campanas.etiquetas} nombresEnUso={campanas.planes.map((c) => c.nombre)} onClose={() => setNuevaCampana(false)} />}
+        {hoja}
 
       {editandoCampana && campanaActual && campanas && (
         <EditarCampanaModal

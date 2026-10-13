@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { acumulado, avance, type DiaGrafico } from "@/lib/rendimiento-meta-reglas";
+
+const PLANTILLA_DIAS = "grid-cols-[minmax(0,1fr)_7rem_7rem]";
 
 /* ====================================================================
    «Ventas contra la meta» (ADR-0325, spike docs/maquetas/rendimiento-meta-2026-09/)
@@ -94,7 +98,7 @@ export function GraficoVentasMeta({
   return (
     <section className="space-y-3" aria-label={titulo} data-guia="rendimiento.grafico">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="label-cayla text-[11px] font-bold text-taupe">{titulo}</h2>
+        <TituloSeccion>{titulo}</TituloSeccion>
         <div className="flex flex-wrap items-center gap-2">
           {/* Semana o Mes es el período (píldora); Acumulado o Por día, el mismo mes de otra forma (segmento de modo). ADR-0358. */}
           <div role="group" aria-label="Período del gráfico" className="flex flex-wrap items-center gap-2">
@@ -192,26 +196,29 @@ export function GraficoVentasMeta({
 
         <details className="mt-3 text-xs text-taupe">
           <summary className="cursor-pointer select-none underline underline-offset-2 hover:no-underline">Ver como tabla</summary>
-          <div className="mt-2 max-h-64 overflow-auto">
-            <table className="w-full text-left tabular-nums">
-              <thead>
-                <tr className="text-taupe">
-                  <th className="py-1 pr-3 font-normal">Día</th>
-                  <th className="py-1 pr-3 text-right font-normal">{etiquetas.tooltip}</th>
-                  <th className="py-1 text-right font-normal">Meta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dias.map((d) => (
-                  <tr key={d.fecha} className="border-t border-sand text-tinta">
-                    <td className="py-1 pr-3">{d.titulo}</td>
-                    <td className="py-1 pr-3 text-right">{d.valor === null ? "—" : SOLES.format(d.valor)}</td>
-                    <td className="py-1 text-right">{d.meta === null ? "—" : SOLES.format(d.meta)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* La tabla del sistema (ADR-0358, ronda 7). */}
+          <Tabla className="mt-2 max-h-64 overflow-y-auto">
+            <div role="table" aria-label={`${titulo}, día por día`} className="divide-y divide-sand tabular-nums">
+              <Encabezado
+                siempre
+                plantilla={PLANTILLA_DIAS}
+                columnas={[{ titulo: "Día" }, { titulo: etiquetas.tooltip, alinear: "der" }, { titulo: "Meta", alinear: "der" }]}
+              />
+              {dias.map((d) => (
+                <div key={d.fecha} role="row" className={fila(PLANTILLA_DIAS, "text-tinta")}>
+                  <span role="rowheader" className={celda()}>
+                    {d.titulo}
+                  </span>
+                  <span role="cell" className={celda("der", "text-right")}>
+                    {d.valor === null ? "—" : SOLES.format(d.valor)}
+                  </span>
+                  <span role="cell" className={celda("der", "text-right")}>
+                    {d.meta === null ? "—" : SOLES.format(d.meta)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Tabla>
         </details>
       </div>
     </section>

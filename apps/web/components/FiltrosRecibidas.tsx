@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Calendar, ChevronDown, SearchX } from "lucide-react";
+import { Calendar, ChevronDown, Truck } from "lucide-react";
 import { Popover } from "radix-ui";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
-import { useComboLista } from "@/components/ui/useCombo";
-import { TODOS } from "@/components/ui/FiltrosPildora";
-import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import {
   PERIODOS_RECIBIDAS,
   ajustarRango,
@@ -18,12 +15,10 @@ import {
   periodoDeRango,
   rangoDePeriodo,
   textoFechas,
-  textoProveedor,
   type FiltrosRecibidas as Filtros,
   type PeriodoRecibidas,
   type ResultadoRecibidas,
 } from "@/lib/recibidas-filtros-reglas";
-import { Vacio } from "@/components/ui/Vacio";
 import { Buscador } from "@/components/ui/Buscador";
 
 // Filtros de «Recibidas recientemente» tal como los dibuja la maqueta 06: el buscador y, en la
@@ -42,15 +37,6 @@ import { Buscador } from "@/components/ui/Buscador";
 //
 // Celular: el buscador ocupa su propia línea y las pastillas bajan debajo, apiladas si no caben —
 // nunca hay scroll horizontal; el nombre de un proveedor largo se recorta con «…».
-
-const PILDORA =
-  "label-cayla inline-flex h-9 min-w-0 max-w-full items-center gap-1.5 rounded-lg border px-3 text-[11px] transition-colors " +
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
-const PILDORA_REPOSO = "border-tinta/15 text-tinta/75 hover:border-tinta/30 hover:text-tinta";
-// Activa (hay un filtro aplicado) o abierta: mismo estado que el botón «Filtros» de `FiltrosPildora`.
-const PILDORA_ACTIVA = "border-tinta/30 bg-tinta/[0.04] text-tinta";
-
-const claseDeLaPastilla = (activa: boolean) => `${PILDORA} ${activa ? PILDORA_ACTIVA : PILDORA_REPOSO}`;
 
 export function FiltrosRecibidas({
   proveedores,
@@ -121,7 +107,19 @@ export function FiltrosRecibidas({
         className="w-full min-w-0 sm:w-auto sm:min-w-[16rem] sm:flex-1"
       />
 
-      <PastillaProveedor proveedores={proveedores} proveedorId={filtros.proveedorId} onElegir={(id) => aplicar({ prov: id })} />
+      {/* La píldora de filtro del sistema (ADR-0358, ronda 6). Un proveedor que ya no está entre los activos (archivado, enlace
+          viejo) sigue filtrando en el servidor: la píldora lo dice como «Otro» en vez de mentir con «Todos». */}
+      <DesplegablePildora
+        icono={Truck}
+        etiqueta="Proveedor"
+        valor={filtros.proveedorId ?? TODOS}
+        onValor={(v) => aplicar({ prov: v === TODOS ? "" : v })}
+        opciones={[
+          { valor: TODOS, texto: "Todos" },
+          ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre })),
+          ...(filtros.proveedorId && !proveedores.some((p) => p.id === filtros.proveedorId) ? [{ valor: filtros.proveedorId, texto: "Otro" }] : []),
+        ]}
+      />
       <PastillaFechas desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} hoy={hoy} onCambiar={(desde, hasta) => aplicar({ desde, hasta })} />
 
       {/* Los dos filtros del spike: el periodo de un toque (tocar el activo lo quita) y cómo llegó lo recibido. Dejan menos
@@ -172,193 +170,6 @@ export function FiltrosRecibidas({
   );
 }
 
-/** «Proveedor: Todos ⌄» — hand-rolled (2026-09-25, ADR-0209) y no Radix Select: con más de 8 proveedores
- *  suma un buscador, igual que `DesplegablePildora` — no se usa ese componente tal cual porque esta pastilla
- *  necesita su PROPIA forma (`claseDeLaPastilla`, con borde) para verse igual que su vecina «Fechas». */
-function PastillaProveedor({
-  proveedores,
-  proveedorId,
-  onElegir,
-}: {
-  proveedores: { id: string; nombre: string }[];
-  proveedorId: string | undefined;
-  onElegir: (id: string) => void;
-}) {
-  const [abierta, setAbierta] = useState(false);
-  const [activo, setActivo] = useState(0);
-  const [busqueda, setBusqueda] = useState("");
-  const contenedor = useRef<HTMLDivElement>(null);
-  const disparador = useRef<HTMLButtonElement>(null);
-  const buscador = useRef<HTMLInputElement>(null);
-  const lista = useRef<HTMLUListElement>(null);
-
-  const opciones = useMemo(() => [{ id: TODOS, nombre: "Todos" }, ...proveedores], [proveedores]);
-  const mostrarBuscador = comboNecesitaBuscador(opciones.length);
-  const filtradas = useMemo(() => {
-    if (!mostrarBuscador || !busqueda) return opciones;
-    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.nombre }));
-  }, [opciones, busqueda, mostrarBuscador]);
-  const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
-  const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
-
-  const posLista = usePosicionLista(contenedor, abierta, 288);
-  const listaVisible = abierta && !!posLista;
-  const valor = proveedorId ?? TODOS;
-
-  // El foco vuelve al disparador cuando la lista se cierra — en un efecto, no en el momento del clic o la
-  // tecla que la cierra (Escape, elegir una opción): así ningún manejador dentro de un `.map()` necesita
-  // tocar el ref del botón directamente.
-  const abiertaAntes = useRef(false);
-  useEffect(() => {
-    if (abiertaAntes.current && !abierta) disparador.current?.focus();
-    abiertaAntes.current = abierta;
-  }, [abierta]);
-
-  function abrir() {
-    setBusqueda("");
-    const i = Math.max(0, opciones.findIndex((o) => o.id === valor));
-    setActivo(i);
-    mostrarDesde(i);
-    setAbierta(true);
-  }
-
-  function elegir(o: { id: string; nombre: string }) {
-    onElegir(o.id === TODOS ? "" : o.id);
-    setAbierta(false);
-  }
-
-  useEffect(() => {
-    if (!listaVisible) return;
-    if (mostrarBuscador) buscador.current?.focus();
-    else lista.current?.focus();
-    const afuera = (e: MouseEvent) => {
-      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierta(false);
-    };
-    document.addEventListener("mousedown", afuera);
-    return () => document.removeEventListener("mousedown", afuera);
-  }, [listaVisible, mostrarBuscador]);
-
-  useEffect(() => {
-    if (!listaVisible) return;
-    lista.current?.querySelector<HTMLElement>(`[data-i="${activo}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [activo, listaVisible]);
-
-  function alTeclado(e: React.KeyboardEvent) {
-    if (!abierta) {
-      if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
-        e.preventDefault();
-        abrir();
-      }
-      return;
-    }
-    switch (e.key) {
-      case "Escape":
-        e.preventDefault();
-        e.stopPropagation();
-        setAbierta(false);
-        break;
-      case "Tab":
-        setAbierta(false);
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        setActivo((i) => Math.min(mostradas.length - 1, i + 1));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setActivo((i) => Math.max(0, i - 1));
-        break;
-      case " ":
-        if (mostrarBuscador) break;
-        e.preventDefault();
-        if (mostradas[activo]) elegir(mostradas[activo]);
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (mostradas[activo]) elegir(mostradas[activo]);
-        break;
-    }
-  }
-
-  return (
-    <div className="relative" ref={contenedor}>
-      <button
-        ref={disparador}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={abierta}
-        aria-label="Proveedor"
-        aria-controls="pastilla-proveedor-lista"
-        onClick={() => (abierta ? setAbierta(false) : abrir())}
-        onKeyDown={alTeclado}
-        className={claseDeLaPastilla(abierta || Boolean(proveedorId))}
-      >
-        <span className="min-w-0 truncate">{textoProveedor(proveedorId, proveedores)}</span>
-        <ChevronDown aria-hidden strokeWidth={1.6} className="h-[13px] w-[13px] shrink-0" />
-      </button>
-
-      {listaVisible && (
-        <div
-          style={{ position: "fixed", ...posLista }}
-          className="anim-revelar z-50 flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
-        >
-          {mostrarBuscador && (
-            <input
-              ref={buscador}
-              value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value);
-                setActivo(0);
-                reiniciar();
-              }}
-              onKeyDown={alTeclado}
-              placeholder="Buscar…"
-              aria-label="Buscar proveedor"
-              aria-controls="pastilla-proveedor-lista"
-              autoComplete="off"
-              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
-            />
-          )}
-          <ul
-            id="pastilla-proveedor-lista"
-            ref={lista}
-            role="listbox"
-            aria-label="Proveedor"
-            tabIndex={mostrarBuscador ? undefined : -1}
-            onKeyDown={mostrarBuscador ? undefined : alTeclado}
-            onScroll={alHacerScroll}
-            className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
-          >
-            {mostradas.length === 0 ? (
-              <li>
-                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
-                  Nada coincide con <b>«{busqueda.trim()}»</b>.
-                </Vacio>
-              </li>
-            ) : (
-              mostradas.map((o, i) => (
-                <li
-                  key={o.id}
-                  data-i={i}
-                  role="option"
-                  aria-selected={o.id === valor}
-                  onMouseEnter={() => setActivo(i)}
-                  onClick={() => elegir(o)}
-                  className={`relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors ${
-                    i === activo ? "bg-rojo/8 text-tinta" : "text-tinta"
-                  } ${o.id === valor ? "font-semibold" : ""}`}
-                >
-                  {o.nombre}
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** «Fechas» — períodos de un toque (este mes, últimos 90 días…) y, debajo, un rango a mano. */
 function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta: string; hoy: string; onCambiar: (desde: string, hasta: string) => void }) {
   const [abierta, setAbierta] = useState(false);
@@ -372,12 +183,21 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
 
   return (
     <Popover.Root open={abierta} onOpenChange={setAbierta}>
-      <Popover.Trigger asChild>
-        <button type="button" className={claseDeLaPastilla(abierta || activa)}>
-          <Calendar aria-hidden strokeWidth={1.6} className="h-3.5 w-3.5 shrink-0" />
-          <span className="min-w-0 truncate">{textoFechas(desde || undefined, hasta || undefined, hoy)}</span>
-        </button>
-      </Popover.Trigger>
+      {/* La cara de la píldora de filtro del sistema (ADR-0358, ronda 6), para verse igual que su vecina «Proveedor». */}
+      <div className="pildora-filtro shrink-0" data-puesta={activa || undefined} data-abierta={abierta || undefined}>
+        <Popover.Trigger asChild>
+          <button type="button" className="pildora-filtro-boton" aria-label={activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}` : "Fechas"}>
+            <Calendar aria-hidden className="pildora-filtro-icono" />
+            <span className="pildora-filtro-nombre">Fechas{activa && ":"}</span>
+            {activa && (
+              <span className="pildora-filtro-valor">
+                <span className="truncate">{textoFechas(desde || undefined, hasta || undefined, hoy)}</span>
+              </span>
+            )}
+            <ChevronDown aria-hidden className="pildora-filtro-flecha" />
+          </button>
+        </Popover.Trigger>
+      </div>
       <Popover.Portal>
         <Popover.Content
           align="end"

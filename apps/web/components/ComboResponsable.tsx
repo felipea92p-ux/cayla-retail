@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Clock, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
+import { Check, ChevronDown, Clock, RefreshCw, Search, ShieldCheck, UserRound } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
@@ -199,8 +199,9 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   }
 
   return (
-    <div ref={raiz} className={`relative ${className}`} onKeyDown={alTeclado}>
-      <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-[11px] text-tinta/70">
+    // `campo`: la etiqueta se oscurece con la caja encendida (ADR-0358, ronda 6).
+    <div ref={raiz} className={`campo relative ${className}`} onKeyDown={alTeclado}>
+      <p className="campo-etiqueta mb-1.5 flex items-center gap-1.5">
         Responsable <span className="text-rojo" aria-hidden>*</span>
       </p>
       <button
@@ -212,19 +213,19 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         aria-label={elegido ? `Responsable: ${elegido.nombre.replace(/\.$/, "")}. Cambiar` : "Elegir responsable"}
         disabled={deshabilitado || cargando}
         onClick={abrirOCerrar}
-        className={`flex h-12 w-full items-center gap-2.5 rounded-lg border bg-crema px-3.5 text-left transition-[border-color,box-shadow] duration-200 disabled:cursor-default disabled:opacity-60 ${
-          elegido ? "border-tinta" : "border-dashed border-rojo/55 text-rojo-profundo hover:border-rojo"
-        }`}
+        // La caja que se enciende, de 48 px con su avatar (ADR-0358, ronda 6). Antes, una caja crema propia con borde rojo punteado
+        // mientras faltaba: ahora lo dice el «*», «Obligatorio para guardar» y la guía de foco, como en todo campo.
+        className="caja-cayla caja-campo caja-campo-alta disabled:cursor-default disabled:opacity-60"
       >
         {elegido ? (
-          <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} className="h-7 w-7 text-sm" />
+          <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} tamano={32} />
         ) : (
           <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
         )}
-        <span className="min-w-0 flex-1 truncate text-sm">
+        <span className={`min-w-0 flex-1 truncate text-sm ${elegido ? "" : "text-tinta/65"}`}>
           {cargando ? "Leyendo quién está de turno…" : elegido ? (cortos.get(elegido.nombre) ?? elegido.nombre) : control.pregunta}
         </span>
-        <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
+        <ChevronDown className="combo-flecha" aria-hidden />
       </button>
       {/* Pantalla abierta sin red (ADR-0210): la lista es la última que se leyó aquí. La base confirma al subir. */}
       {control.deMemoria && (
@@ -246,19 +247,21 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
             className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-xl"
           >
           {mostrarBuscador && (
-            <input
-              ref={buscador}
-              value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value);
-                reiniciar();
-              }}
-              placeholder="Buscar…"
-              aria-label={`Buscar en de turno ahora · ${sede}`}
-              aria-controls={idLista}
-              autoComplete="off"
-              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/45"
-            />
+            <div className="combo-buscar">
+              <Search aria-hidden />
+              <input
+                ref={buscador}
+                value={busqueda}
+                onChange={(e) => {
+                  setBusqueda(e.target.value);
+                  reiniciar();
+                }}
+                placeholder="Buscar…"
+                aria-label={`Buscar en de turno ahora · ${sede}`}
+                aria-controls={idLista}
+                autoComplete="off"
+              />
+            </div>
           )}
           <div id={idLista} role="listbox" aria-label={`De turno ahora en ${sede}`} onScroll={alHacerScroll} className="min-h-0 flex-1 overflow-y-auto p-2">
             <p className="label-cayla px-2 pb-2 pt-1.5 text-[11px] text-tinta/60">De turno ahora · {sede}</p>
@@ -273,16 +276,25 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
                   aria-selected={p.personaId === elegidoId}
                   disabled={p.enPausa}
                   onClick={() => elegir(p)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-rojo/10 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-rojo/10 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  <AvatarPersona personaId={p.personaId} nombre={p.nombre} className="h-7 w-7 text-sm" />
+                  {/* La elegida: el hilo rojo de canto, como en toda lista de combo (ADR-0358, ronda 6). */}
+                  <span
+                    aria-hidden
+                    className={`absolute -left-2 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${p.personaId === elegidoId ? "scale-y-100" : "scale-y-0"}`}
+                  />
+                  <AvatarPersona personaId={p.personaId} nombre={p.nombre} tamano={32} />
                   <span className="min-w-0 flex-1">
                     {cortos.get(p.nombre) ?? p.nombre}
                     <small className="block text-[11.5px] text-tinta/60">
                       {p.enPausa ? "En pausa · no puede firmar" : p.deOtraSede ? "De turno · de otra sede" : "De turno"}
                     </small>
                   </span>
-                  <span className={`h-2 w-2 flex-none rounded-full ${p.enPausa ? "bg-ambar" : "bg-verde"}`} aria-hidden />
+                  {p.personaId === elegidoId ? (
+                    <Check aria-hidden className="combo-tilde" />
+                  ) : (
+                    <span className={`h-2 w-2 flex-none rounded-full ${p.enPausa ? "bg-ambar" : "bg-verde"}`} aria-hidden />
+                  )}
                 </button>
               ))
             )}
