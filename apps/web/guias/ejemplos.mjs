@@ -127,7 +127,15 @@ export const EJEMPLOS = {
     sinDatos:
       "select case when count(*) = 0 then 'la base local no tiene fn_historial_ventas (migración 20261012160000, ventas de Sinatra): el Historial no se puede leer' end from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_historial_ventas'",
   },
-  "/compras/proveedores/[id]": { url: () => `/compras/proveedores/${id("select id from retail.proveedores order by created_at desc limit 1")}` },
+  // «Nos debe» (fase 5a): el que más enseña es un proveedor que todavía debe prendas por reponer (un faltante «No vino» sin cerrar): se ven
+  // sus deudas, «Llegó la reposición» y su hoja. Una base sin `proveedor_deuda_resoluciones` se queda con el más reciente.
+  "/compras/proveedores/[id]": {
+    url: () =>
+      `/compras/proveedores/${idConRespaldo(
+        "select p.id from retail.proveedores p order by exists (select 1 from retail.despacho_diferencias dd where dd.proveedor_id = p.id and dd.tipo = 'faltante' and dd.causa = 'no_vino' and dd.cantidad > coalesce((select sum(r.cantidad) from retail.proveedor_deuda_resoluciones r where r.diferencia_id = dd.id), 0)) desc, p.created_at desc limit 1",
+        "select id from retail.proveedores order by created_at desc limit 1",
+      )}`,
+  },
   // Abierto (se cuenta) y, si no hay, uno cerrado (el resultado), antes que uno cancelado: es la cara que más hay que enseñar.
   "/inventario/conteo/[id]": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by (estado = 'abierto') desc, (estado = 'cerrado') desc, created_at desc limit 1")}` },
   "/inventario/conteo/[id]/confirmar": {

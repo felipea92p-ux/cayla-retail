@@ -2,7 +2,7 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 51,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «(sin nombre)»",
@@ -63,6 +63,15 @@
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"
+    ],
+    "components/nos-debe/HojaReposicion.tsx": [
+      "Boton «proveedor-ficha.reposicion»",
+      "CampoTexto «Cuántas llegaron»",
+      "CampoTexto «Cómo llegó»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

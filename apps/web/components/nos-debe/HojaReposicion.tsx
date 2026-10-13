@@ -135,6 +135,8 @@ function HojaReposicion({
     <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA} ancho="max-w-md">
       {(cerrar) => (
         <form
+          // La demo (ADR-0389) abre esta hoja para mostrarla y la cierra sin anotar nada.
+          data-guia="proveedor-ficha.hoja-reposicion"
           noValidate
           onSubmit={(e) => {
             e.preventDefault();
