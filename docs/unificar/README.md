@@ -38,7 +38,7 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| — | ninguna por ahora: las rondas 6, 7 y 8 se decidieron el 2026-10-13 (sus fragmentos siguen en `propuestas/` y sus fuentes en [rondas/6-8](rondas/6-8/README.md)) | — | — |
+| `combo`, `tabla`, `filtro`, `accion.eliminar`, `titulo-seccion`, `enlace` | **Ronda 9:** las seis decisiones abiertas de abajo, en una página de elegir con demos vivas (fuentes en [rondas/9](rondas/9/README.md)) | 2026-10-13 | Espera la elección de Felipe |
 
 **La migración de las rondas 6–8 (2026-10-13):** la deuda bajó de 258 archivos a 4 en un día (Caja, Ventas, Compras, Producción,
 Inventario, Catálogo, Colaboradores y el resto), sin cambiar qué hace ningún botón. Lo que queda, y lo que pide una decisión de Felipe:
