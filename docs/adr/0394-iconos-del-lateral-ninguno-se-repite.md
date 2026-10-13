@@ -84,3 +84,11 @@ Compras, Posventa). Cambiarlos toca pantallas que no se hablaron y puede cambiar
 - Mirado también en el navegador real con la sesión de Felipe (solo lectura): «Gestión» abre con Análisis, Frescura del piso, Plan del
   piso y Rendimiento con sus íconos nuevos.
 - **No se corrió** `tema:auditar` ni `guias:recorrer` (no hay base local en esta máquina): ningún color ni control cambió, solo el trazo.
+
+## Actualización 2026-10-13 (el mapa de trazos se mudó y lo leen tres lugares)
+Donde este ADR dice que los trazos están copiados en `IC` de `AppShell.tsx` (y que un ícono se cambia con una línea de `IC`), léase ahora
+`TRAZOS_MENU` en `lib/menu-iconos.ts`: el mapa salió de `AppShell.tsx` (que solo le suma `chevron`, `menu`, `cerrar` y `buscar`) para que
+lo compartan el lateral, Roles y accesos y los accesos rápidos del Inicio y del Inicio de almacén (ADR-0358, una función, una pieza). Cambiar un
+ícono sigue siendo una línea, ahora en ese archivo, y cambia en los cuatro lugares a la vez. `lib/menu-iconos.test.ts` vigila que ninguno
+vuelva a guardar su propia copia. Lo que decide este ADR (ninguna fila repite dibujo) no cambia.
+
