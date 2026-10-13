@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 
 /* ====================================================================
@@ -48,8 +48,9 @@ export function MiniaturaPrenda({
   // `md` (44 px): la miniatura de las listas de Existencias del diseño aprobado (2026-09-28).
   // `xl` (60 px): la miniatura de la tarjeta de producto de Conteo ▸ Contar (2026-09-29).
   const [clase, px] = tamano === "xl" ? ["h-[60px] w-[60px]", 60] : tamano === "lg" ? ["h-12 w-12", 48] : tamano === "md" ? ["h-11 w-11", 44] : ["h-9 w-9", 36];
-  if (fotoUrl) {
-    return <Image src={fotoUrl} alt="" width={px} height={px} unoptimized className={`${clase} shrink-0 rounded-md border border-tinta/10 object-cover`} />;
-  }
-  return <SinFoto tamano={clase} colorHex={colorHex} prefijo={prefijo} familia={familia} categoria={categoria} />;
+  const sinFoto = <SinFoto tamano={clase} colorHex={colorHex} prefijo={prefijo} familia={familia} categoria={categoria} />;
+  if (!fotoUrl) return sinFoto;
+  // La foto se sirve al tamaño en que se ve (`ImagenDePrenda`, ADR-0168): una miniatura de 36 a 60 px bajaba el original de ~90 KB.
+  // Si no carga, queda la prenda sin foto, no una imagen rota.
+  return <ImagenDePrenda src={fotoUrl} alt="" width={px} height={px} className={`${clase} shrink-0 rounded-md border border-tinta/10 object-cover`} fallback={sinFoto} />;
 }
