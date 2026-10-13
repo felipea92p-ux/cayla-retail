@@ -109,6 +109,26 @@ begin
 end;
 $f$;
 
+-- Si ya está puesta una versión ANTERIOR de este mismo parche (otra lista), se quita primero: si no, el reemplazo anclado de abajo
+-- sumaría el bloque nuevo y dejaría el viejo detrás, que volvería a anular la hora (pasó en la base local el 2026-10-13).
+do $quitar$
+declare
+  v_def text := pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure);
+  v_ini integer := position('  -- Auditoría 2026-10-13, punto 17' in v_def);
+  v_cierre text := '    v_texto := null;' || chr(10) || '  end if;' || chr(10);
+  v_fin integer;
+begin
+  if v_ini = 0 or position('recibir_lote|recibir_envio|crear_producto_con_stock_inicial' in v_def) > 0 then
+    return; -- no hay parche previo, o ya está el de esta versión
+  end if;
+  v_fin := position(v_cierre in substr(v_def, v_ini));
+  if v_fin = 0 then
+    raise exception 'fn_actor_persona_id tiene un parche previo del punto 17 que no se reconoce: revísala a mano.';
+  end if;
+  execute substr(v_def, 1, v_ini - 1) || substr(v_def, v_ini + v_fin - 1 + length(v_cierre));
+end;
+$quitar$;
+
 select pg_temp.reemplazar(
   'retail.fn_actor_persona_id(boolean)',
   $viejo$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
@@ -132,4 +152,8 @@ $nuevo$,
 select '20261013155000 · candados del anticipo y de la hora declarada' as parte,
        case when exists (select 1 from pg_trigger where tgrelid = 'retail.venta_pagos'::regclass and tgname = 'venta_pagos_anticipo_solo_de_apartado')
              and pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) like '%recibir_envio|crear_producto_con_stock_inicial%'
+             -- un solo bloque del punto 17 (ninguna versión vieja apilada)
+             and (length(pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure))
+                  - length(replace(pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure), 'Auditoría 2026-10-13, punto 17', '')))
+                 = length('Auditoría 2026-10-13, punto 17')
             then 'QUEDÓ BIEN' else 'REVISAR: falta el disparador o el parche de fn_actor_persona_id' end as resultado;

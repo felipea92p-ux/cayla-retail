@@ -140,6 +140,24 @@ caso("con un prefijo delante de la ruta sigue reconociendo la función (se mira 
 caso("un nombre que solo EMPIEZA igual no cuela (registrar_venta_falsa ignora la hora)", sinRechazoPorHora(FIRMA("/rpc/registrar_venta_falsa")));
 caso("sin ruta conocida (llamada directa, no por PostgREST) queda como antes", rechaza(FIRMA(null), FUERA_DE_RANGO));
 
+// 3. Re-pegable, también sobre una versión vieja de este mismo parche.
+const PARCHE_VIEJO = `select pg_temp.reemplazar('retail.fn_actor_persona_id(boolean)', $v$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
+$v$, $n$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
+  -- Auditoría 2026-10-13, punto 17: versión vieja de prueba.
+  if v_texto is not null
+     and coalesce(current_setting('request.path', true), '') <> ''
+     and current_setting('request.path', true) not in ('/rpc/registrar_venta', '/rpc/crear_producto_con_stock_inicial') then
+    v_texto := null;
+  end if;
+$n$, 1);`;
+caso(
+  "pegada sobre una versión vieja del parche, la quita y deja un solo bloque: la recepción conserva su hora",
+  rechaza(`${DESHACER}
+${MIGRACION.slice(0, MIGRACION.indexOf("select pg_temp.reemplazar("))}
+${PARCHE_VIEJO}
+${MIGRACION}
+${FIRMA("/rpc/recibir_lote")}`, FUERA_DE_RANGO, { conCandado: false })
+);
 // 3. Re-pegable.
 caso("pegar la migración dos veces no cambia nada la segunda", pasa(`${MIGRACION}\nselect count(*) = 1 from pg_trigger where tgname = 'venta_pagos_anticipo_solo_de_apartado';`));
 
