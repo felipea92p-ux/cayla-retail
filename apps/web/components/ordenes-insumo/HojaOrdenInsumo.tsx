@@ -51,7 +51,9 @@ export function HojaOrdenInsumo({ orden: d, empresa }: { orden: DetalleOrdenInsu
         </div>
       </dl>
 
-      <table className="oc-tabla">
+      <table // unificar-fijo: papel físico (ADR-0336), la hoja de la orden se imprime tal cual, como HojaOrdenCompra
+        className="oc-tabla"
+      >
         <thead>
           <tr>
             <th className="oc-num">#</th>

@@ -10,6 +10,7 @@ import { Boton, BotonEnlace, Campo, CampoSelect, CampoTexto } from "@/components
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -432,13 +433,16 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
         </section>
 
         <section data-guia="oi-form.lineas" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-display text-xl text-tinta">Lo que pides</h2>
-            <p className="text-sm tabular-nums text-taupe">
-              {orden.lineas.length} {orden.lineas.length === 1 ? "línea" : "líneas"}
-              {cantidades.length > 0 && ` · ${textoCantidades(cantidades)}`}
-            </p>
-          </div>
+          <TituloSeccion
+            dato={
+              <span className="tabular-nums">
+                {orden.lineas.length} {orden.lineas.length === 1 ? "línea" : "líneas"}
+                {cantidades.length > 0 && ` · ${textoCantidades(cantidades)}`}
+              </span>
+            }
+          >
+            Lo que pides
+          </TituloSeccion>
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
