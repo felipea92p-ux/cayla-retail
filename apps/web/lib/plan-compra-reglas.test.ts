@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { laDeLaCabeceraPrimero, tiendaDeLaCabecera } from "./plan-compra-reglas";
 import {
   aplicarFiltro,
   argsCrearCampana,
@@ -960,5 +961,22 @@ describe("el número del botón «Resumen y avisos»", () => {
   });
   it("si no se pudo comprobar, uno: no se dice «todo bien» por un error", () => {
     expect(avisosDelResumen({ estado: "sin-dato", sedes: [] })).toBe(1);
+  });
+});
+
+describe("la sede de la cabecera en Resultados e Historial (Felipe 2026-10-12)", () => {
+  const T = [{ id: "aqp" }, { id: "lim" }, { id: "tru" }];
+  it("arranca en la tienda elegida si es de las que se miran", () => {
+    expect(tiendaDeLaCabecera("tru", T)).toBe("tru");
+  });
+  it("CAYLA Global, el Taller o una sede que no está: toda CAYLA", () => {
+    expect(tiendaDeLaCabecera(null, T)).toBeNull();
+    expect(tiendaDeLaCabecera("taller", T)).toBeNull();
+  });
+  it("la de la cabecera primero; las demás en su orden; sin sede, igual", () => {
+    expect(laDeLaCabeceraPrimero(T, "tru").map((t) => t.id)).toEqual(["tru", "aqp", "lim"]);
+    expect(laDeLaCabeceraPrimero(T, "aqp").map((t) => t.id)).toEqual(["aqp", "lim", "tru"]);
+    expect(laDeLaCabeceraPrimero(T, null).map((t) => t.id)).toEqual(["aqp", "lim", "tru"]);
+    expect(laDeLaCabeceraPrimero(T, "taller").map((t) => t.id)).toEqual(["aqp", "lim", "tru"]);
   });
 });

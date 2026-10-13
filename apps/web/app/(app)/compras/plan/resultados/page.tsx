@@ -9,5 +9,7 @@ export default async function ResultadosPlanPage({ searchParams }: { searchParam
   const { plan } = await searchParams;
   const datos = await getResultadosPlan(plan);
   // Los accesos a Análisis (la prenda exacta que se acaba o no se vende) solo se ofrecen a quien ve ese módulo.
-  return <ResultadosCampana {...datos} veAnalisis={veModulo(persona, "analisis")} />;
+  // Arranca en la sede de la cabecera (Felipe 2026-10-12); en CAYLA Global, toda CAYLA. La key remonta al cambiar de sede.
+  const sede = persona.vista === "sede" ? persona.ubicacionId : null;
+  return <ResultadosCampana key={sede ?? "global"} {...datos} veAnalisis={veModulo(persona, "analisis")} sedeDeLaCabecera={sede} />;
 }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   aniosConHistoria,
+  aniosQueCaben,
+  decadaDe,
+  ventanaDeAnios,
   campanasDelAnio,
   crecimiento,
   diasDeLaCampana,
@@ -231,5 +234,38 @@ describe("qué año se abre y qué se lee", () => {
     expect(textoMultiplicador(1.83)).toBe("×1.8");
     expect(textoCrecimiento(0.124)).toBe("+12 %");
     expect(textoCrecimiento(-0.08)).toBe("−8 %");
+  });
+});
+
+describe("la fila de años cuando no caben todos (Felipe 2026-10-12)", () => {
+  const TREINTA = Array.from({ length: 30 }, (_, k) => 2046 - k); // 2046 … 2017
+  it("si caben todos, todos y sin «Más años»", () => {
+    expect(ventanaDeAnios([2026, 2025, 2024], 2025, 9)).toEqual({ visibles: [2026, 2025, 2024], resto: [] });
+  });
+  it("el elegido queda al medio, con sus vecinos a los costados", () => {
+    const v = ventanaDeAnios(TREINTA, 2030, 5);
+    expect(v.visibles).toEqual([2032, 2031, 2030, 2029, 2028]);
+    expect(v.resto).toHaveLength(25);
+    expect(v.resto).not.toContain(2030);
+  });
+  it("en los extremos la ventana se apoya en el borde", () => {
+    expect(ventanaDeAnios(TREINTA, 2046, 5).visibles).toEqual([2046, 2045, 2044, 2043, 2042]);
+    expect(ventanaDeAnios(TREINTA, 2017, 5).visibles).toEqual([2021, 2020, 2019, 2018, 2017]);
+    expect(ventanaDeAnios(TREINTA, 2045, 4).visibles).toEqual([2046, 2045, 2044, 2043]);
+  });
+  it("un año que no está (la URL a mano) cae en el más nuevo; nunca menos de una píldora", () => {
+    expect(ventanaDeAnios(TREINTA, 1999, 3).visibles).toEqual([2046, 2045, 2044]);
+    expect(ventanaDeAnios(TREINTA, 2030, 0).visibles).toEqual([2030]);
+  });
+  it("cuántas caben: todas si entran; si no, dejando lugar a «Más años»", () => {
+    const m = { pildora: 64, separacion: 8, mas: 130 };
+    expect(aniosQueCaben(10, { ...m, ancho: 1000 })).toBe(10);
+    expect(aniosQueCaben(30, { ...m, ancho: 1000 })).toBe(12);
+    expect(aniosQueCaben(30, { ...m, ancho: 343 })).toBe(2);
+    expect(aniosQueCaben(30, { ...m, ancho: 100 })).toBe(1);
+  });
+  it("la década para agrupar la lista", () => {
+    expect(decadaDe(2034)).toBe("2030–2039");
+    expect(decadaDe(2020)).toBe("2020–2029");
   });
 });

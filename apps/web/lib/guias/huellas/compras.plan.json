@@ -51,8 +51,8 @@
     "components/plan-compra/ListaCategorias.tsx": [
       "SegmentoDeslizante «Cómo llenar el plan»",
       "BotonFiltro «{p.texto}»",
+      "Desplegable «(sin nombre)»",
       "Desplegable «)»",
-      "Desplegable «)» #2",
       "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Quitar los filtros\"}»",
       "button «{plegadas.length}»"
     ],
