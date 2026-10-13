@@ -13,6 +13,10 @@ export const RPC_SIGUIENTE_ORDEN = "fn_ordenes_compra_siguiente";
 export const RPC_CREAR_ORDEN = "crear_orden_compra";
 export const RPC_EDITAR_ORDEN = "editar_orden_compra";
 export const RPC_ANULAR_ORDEN = "anular_orden_compra";
+/** Registrar el comprobante (la factura, boleta o nota de venta) de una orden generada (fase 2, actividad 3). */
+export const RPC_REGISTRAR_COMPROBANTE = "registrar_comprobante_orden";
+/** Anular el comprobante de una orden es anular la compra: la misma función que usa Facturas de proveedor. */
+export const RPC_ANULAR_COMPROBANTE = "anular_compra";
 
 /** Hasta cuántas letras lleva el motivo de una anulación (el mismo tope que `anular_orden_compra`). */
 export const MAX_MOTIVO_ANULACION = 300;
@@ -316,6 +320,8 @@ export function vacioDeLista(
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 export type LineaDetalle = {
+  /** El id de la línea pedida: lo que un comprobante nombra para decir «esto es de aquella línea». `null` si la base no lo trae. */
+  id: string | null;
   posicion: number;
   categoriaId: string;
   categoria: string;
@@ -327,6 +333,33 @@ export type LineaDetalle = {
   descuento: number;
   descuentoPct: number | null;
   subtotal: number;
+  /** Unidades que ya llegaron en papel (comprobantes vigentes). `null` = la base todavía no lo dice (no se muestra). */
+  facturado: number | null;
+  /** Lo que falta por llegar en papel, nunca menos de cero. `null` = la base todavía no lo dice. */
+  pendiente: number | null;
+};
+
+/** Cuánto papel tiene la orden: ninguno, el de una parte de lo pedido, o todo lo pedido. */
+export type PapelDeLaOrden = "sin_comprobante" | "en_parte" | "completa";
+const PAPELES: readonly PapelDeLaOrden[] = ["sin_comprobante", "en_parte", "completa"];
+
+/** Un comprobante de la orden, vigente o anulado (el más reciente primero). */
+export type ComprobanteDeOrden = {
+  id: string;
+  /** Serie y número, «B001-123». */
+  documento: string;
+  /** `boleta`, `nota_venta` o `factura`. */
+  tipo: string;
+  /** `credito` o `contado`. */
+  condicion: string;
+  fechaEmision: string | null;
+  total: number;
+  /** Lo que queda por pagar. */
+  saldo: number;
+  /** `vigente` o `anulada`. */
+  estado: string;
+  /** `pendiente`, `parcial`, `pagada` o `anulada`; `null` si la base no lo dice. */
+  estadoPago: string | null;
 };
 
 export type DetalleOrden = {
@@ -349,6 +382,10 @@ export type DetalleOrden = {
   lineas: LineaDetalle[];
   unidades: number;
   total: number;
+  /** Los comprobantes de la orden; vacío si no tiene (o si la base todavía no los cuenta). */
+  comprobantes: ComprobanteDeOrden[];
+  /** `null` = la base todavía no sabe de comprobantes de orden: la pantalla funciona sin esas partes y no ofrece registrarlos. */
+  papel: PapelDeLaOrden | null;
 };
 
 /** Lee `fn_orden_compra_detalle`; null si no llegó una orden (no existe, o la respuesta no se entiende). Una línea rara se descarta. */
@@ -379,8 +416,10 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
       const cantidad = cifra(r.cantidad);
       const precioUnitario = cifra(r.precio_unitario);
       const subtotal = cifra(r.subtotal);
+      const pendiente = cifra(r.pendiente);
       if (posicion == null || !categoriaId || !categoria || !marcaId || !marca || cantidad == null || precioUnitario == null || subtotal == null) return null;
       return {
+        id: texto(r.id),
         posicion,
         categoriaId,
         categoria,
@@ -392,6 +431,8 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
         descuento: cifra(r.descuento) ?? 0,
         descuentoPct: cifra(r.descuento_pct),
         subtotal,
+        facturado: cifra(r.facturado),
+        pendiente: pendiente == null ? null : Math.max(0, pendiente),
       };
     })
     .filter((l): l is LineaDetalle => l !== null);
@@ -415,5 +456,68 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
     lineas,
     unidades: cifra(d.unidades) ?? 0,
     total: cifra(d.total) ?? 0,
+    comprobantes: leerComprobantes(d.comprobantes),
+    papel: PAPELES.find((p) => p === d.papel) ?? null,
   };
+}
+
+/** Lee la lista `comprobantes` del detalle. Una fila sin id o sin documento se descarta; lo demás que falte toma un valor neutro
+ *  (la lista nunca debe tumbar la orden abierta). */
+export function leerComprobantes(data: unknown): ComprobanteDeOrden[] {
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((c): ComprobanteDeOrden | null => {
+      if (!c || typeof c !== "object") return null;
+      const r = c as Record<string, unknown>;
+      const id = texto(r.id);
+      const documento = texto(r.documento);
+      if (!id || !documento) return null;
+      return {
+        id,
+        documento,
+        tipo: texto(r.tipo) ?? "",
+        condicion: texto(r.condicion) ?? "",
+        fechaEmision: texto(r.fecha_emision),
+        total: cifra(r.total) ?? 0,
+        saldo: cifra(r.saldo) ?? 0,
+        estado: texto(r.estado) ?? "vigente",
+        estadoPago: texto(r.estado_pago),
+      };
+    })
+    .filter((c): c is ComprobanteDeOrden => c !== null);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Qué se puede hacer con una orden que ya tiene (o no) papel (fase 2): las mismas reglas que la base, dichas para esconder el botón
+// que ella rechazaría. El candado real sigue en `editar_orden_compra`, `anular_orden_compra` y `registrar_comprobante_orden`.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+type ConPapel = Pick<DetalleOrden, "estado" | "comprobantes">;
+
+/** ¿Tiene algún comprobante, vigente o anulado? Desde entonces la orden no se edita: si el papel está mal, se anula y se registra de nuevo. */
+export const tieneComprobante = (d: Pick<DetalleOrden, "comprobantes">): boolean => d.comprobantes.length > 0;
+
+/** ¿Tiene un comprobante vigente? Mientras lo tenga, la orden no se anula: primero se anula el comprobante. */
+export const tieneComprobanteVigente = (d: Pick<DetalleOrden, "comprobantes">): boolean => d.comprobantes.some((c) => c.estado === "vigente");
+
+/** «Editar»: solo una generada que todavía no tiene ningún comprobante. */
+export const puedeEditarOrden = (d: ConPapel): boolean => d.estado === "generada" && !tieneComprobante(d);
+
+/** «Anular orden»: solo una generada sin comprobante vigente. */
+export const puedeAnularOrden = (d: ConPapel): boolean => d.estado === "generada" && !tieneComprobanteVigente(d);
+
+/**
+ * «Registrar comprobante»: una orden generada y con «Llega a» (una «Por repartir» todavía no registra comprobante: pasa a otra fase) y
+ * cuya base ya sabe de comprobantes de orden (`papel` viene en el detalle). Con `papel = completa` también se ofrece: lo de más se acepta
+ * y la hoja lo avisa. Sin las líneas con su id la pantalla no puede decir de cuál es cada renglón del papel.
+ */
+export function puedeRegistrarComprobante(d: Pick<DetalleOrden, "estado" | "destino" | "papel" | "lineas">): boolean {
+  return d.estado === "generada" && d.destino !== null && d.papel !== null && d.lineas.length > 0 && d.lineas.every((l) => l.id !== null);
+}
+
+/** Cuánto de una línea llegó en papel, dicho como se lee: «8 de 10» o «12 de 10 · 2 de más». `null` si la base no dice cuánto. */
+export function textoPapelDeLinea(l: Pick<LineaDetalle, "cantidad" | "facturado">): string | null {
+  if (l.facturado == null) return null;
+  const base = `${l.facturado.toLocaleString("es-PE")} de ${l.cantidad.toLocaleString("es-PE")}`;
+  return l.facturado > l.cantidad ? `${base} · ${(l.facturado - l.cantidad).toLocaleString("es-PE")} de más` : base;
 }

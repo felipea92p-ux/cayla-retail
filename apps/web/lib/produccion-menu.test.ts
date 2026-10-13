@@ -49,9 +49,12 @@ describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se
     expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" })).toEqual([]);
   });
 
-  it("quien no es líder no ve Compras, esté donde esté", () => {
+  // ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): Plan de campaña y Órdenes de compra piden solo su módulo, no la plata de
+  // Compras. Sin módulos (la forma vieja con que esta vista arma el menú) quien no es líder ve esas dos en una tienda o un almacén;
+  // con módulos, cada cuenta ve solo las de su rol. Las cinco de plata siguen pidiendo `verDineroCompras`. En el Taller, nada.
+  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña y Órdenes de compra); en el Taller, nada", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual([]);
+      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "ordenesCompra"]);
     }
   });
 

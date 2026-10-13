@@ -2,7 +2,7 @@
   "guia": "vender.historial",
   "ruta": "/vender/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 41,
   "controles": {
     "app/(app)/vender/historial/page.tsx": [
       "Link «Volver al período»",
@@ -62,11 +62,8 @@
       "Link «{e.texto}»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ]
   }
 }

@@ -168,21 +168,21 @@ export function EditarMarcaModal({
                   </div>
                   <div className="grid gap-2 sm:grid-cols-[1fr_9.5rem]">
                     <input
+                      className="caja-campo-input"
                       aria-label="Razón social o nombre del proveedor nuevo"
                       placeholder="Razón social o nombre"
                       value={n.nombre}
                       autoFocus={!n.nombre}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm text-tinta"
                     />
                     <input
+                      className="caja-campo-input tabular-nums"
                       aria-label="RUC del proveedor nuevo (opcional)"
                       placeholder="RUC (opcional)"
                       inputMode="numeric"
                       maxLength={11}
                       value={n.ruc}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, ruc: e.target.value.replace(/\D/g, "") } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta"
                     />
                   </div>
                 </li>

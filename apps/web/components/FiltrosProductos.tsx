@@ -692,7 +692,7 @@ function CajaMonto({
   onSalir: () => void;
 }) {
   return (
-    <label className="flex h-7 w-[4.75rem] shrink-0 items-center gap-1 rounded-md border border-tinta/15 bg-papel/70 px-2 focus-within:border-tinta/40">
+    <label className="caja-cayla caja-campo caja-campo-baja h-7 min-h-7 w-[4.75rem] shrink-0 gap-1 px-2">
       <span aria-hidden className="text-[11px] text-tinta/45">
         S/
       </span>
@@ -705,7 +705,7 @@ function CajaMonto({
         inputMode="decimal"
         autoComplete="off"
         aria-label={etiqueta}
-        className="w-full min-w-0 bg-transparent text-[12px] tabular-nums text-tinta outline-none placeholder:text-tinta/35"
+        className="self-stretch py-0 text-[12px] tabular-nums"
       />
     </label>
   );

@@ -24,6 +24,22 @@ describe("órdenes de compra: un segundo clic en el mismo instante no vuelve a g
     expect(candadoAntesDe(f, "crearOrdenCompra")).toEqual({ declara: true, revisaAntes: true, poneAntes: true, suelta: true });
     expect(f.indexOf("enVuelo.current = true;")).toBeLessThan(f.indexOf("await editarOrdenCompra("));
   });
+  it("Registrar comprobante pone el candado antes de registrar (fase 2: registra una deuda en Por pagar)", () => {
+    expect(candadoAntesDe(leer("components/ordenes-compra/RegistrarComprobanteOrden.tsx"), "registrarComprobanteOrden")).toEqual({
+      declara: true,
+      revisaAntes: true,
+      poneAntes: true,
+      suelta: true,
+    });
+  });
+  it("la hoja «Anular comprobante» pone el candado antes de anular", () => {
+    expect(candadoAntesDe(leer("components/ordenes-compra/ComprobantesDeOrden.tsx"), "anularComprobanteDeOrden")).toEqual({
+      declara: true,
+      revisaAntes: true,
+      poneAntes: true,
+      suelta: true,
+    });
+  });
   it("la hoja «Anular orden» pone el candado antes de anular", () => {
     expect(candadoAntesDe(leer("components/ordenes-compra/AccionesOrden.tsx"), "anularOrdenCompra")).toEqual({
       declara: true,

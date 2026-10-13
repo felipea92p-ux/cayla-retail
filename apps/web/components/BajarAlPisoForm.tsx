@@ -838,10 +838,12 @@ export function BajarAlPisoForm({
           Escanear prenda
         </label>
         <div className="mt-2 flex gap-2">
-          <div className="caja-cayla relative min-w-0 flex-1">
-            <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-tinta/45" />
+          {/* La caja que se enciende (ADR-0358, ronda 6), del alto de la pistola y del botón de la cámara. */}
+          <div className="caja-cayla caja-campo min-h-14 min-w-0 flex-1">
+            <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-tinta/45" />
             <input
               ref={escaner}
+              className="self-stretch py-0 text-base disabled:cursor-not-allowed"
               id="bajar-escaner"
               type="text"
               autoFocus
@@ -879,7 +881,6 @@ export function BajarAlPisoForm({
                 }
                 leerEscaneo(texto);
               }}
-              className="h-14 w-full bg-transparent pl-11 pr-4 text-base text-tinta outline-none placeholder:text-tinta/45 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
           {/* La cámara del celular (la misma ráfaga de Conteo): de pie frente al rack, sin pistola. */}
@@ -1098,6 +1099,7 @@ export function BajarAlPisoForm({
                             type="text"
                             inputMode="numeric"
                             aria-label={`Cantidad de ${nombre}`}
+                            className={`caja-campo-input h-11 w-14 px-1 text-center text-base tabular-nums ${enRojo ? "text-rojo-profundo" : ""}`}
                             disabled={listaQuieta}
                             value={edicion[l.varianteId] ?? String(l.cantidad)}
                             onFocus={(e) => e.currentTarget.select()}
@@ -1111,7 +1113,6 @@ export function BajarAlPisoForm({
                               e.preventDefault();
                               volverAlEscaner();
                             }}
-                            className={`caja-cayla h-11 w-14 text-center text-base tabular-nums disabled:opacity-60 ${enRojo ? "text-rojo-profundo" : "text-tinta"}`}
                           />
                           <button
                             type="button"

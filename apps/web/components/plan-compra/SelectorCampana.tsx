@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { calendarioDelSelector, campanasArchivadas, rotuloDeCampana, type CampanasLeidas, type RanuraCalendario } from "@/lib/plan-compra-reglas";
 
-// El selector de campaña del plan (ADR-0372, B3 y B5): pasa entre las campañas activas (`?plan=<id>`) y, solo a quien puede (un líder), ofrece
-// «+ Nueva campaña…», «Editar o quitar esta campaña…» y «Campañas archivadas (N)…», que abren su hoja. Las archivadas no salen en la lista: se
-// ven desde su hoja. Con una sola campaña y nada más que ofrecer, no se dibuja: un control sin nada que elegir es ruido.
+// El selector de campaña del plan (ADR-0372, B3 y B5): pasa entre las campañas activas (`?plan=<id>`) y, donde se gestionan (el Plan, no
+// Resultados), ofrece «+ Nueva campaña…», «Editar o quitar esta campaña…» y «Campañas archivadas (N)…», que abren su hoja. Las archivadas
+// no salen en la lista: se ven desde su hoja. Con una sola campaña y nada más que ofrecer, no se dibuja: un control sin nada que elegir es ruido.
 // Desde C1 (Felipe 2026-10-12) la lista va por momento y por año: «En curso», «Por venir · 2026», «Por venir · 2027»… y «Terminadas» (solo las
 // del último año; las más viejas se miran en el Historial). Las acciones van al final, en su propio grupo.
 // Desde la act. 2026-10-12 f (Felipe: «opción A») el selector ES el calendario de Catálogo ▸ Etiquetas: además de los planes, cada campaña que
@@ -26,6 +26,7 @@ export function SelectorCampana({
   hoy,
   ruta = "/compras/plan",
   puedeCrear,
+  puedeCrearNueva = false,
   onNueva,
   onArmar,
   onEditar,
@@ -38,10 +39,14 @@ export function SelectorCampana({
   hoy: string;
   /** A qué pantalla lleva elegir una campaña: el Plan (por defecto) o sus Resultados. */
   ruta?: string;
-  /** Un líder: crea, edita, quita y restaura campañas (la base lo exige también). */
+  /** Ofrece crear, editar, quitar y restaurar campañas (el Plan sí; Resultados no tiene sus hojas). Las hace quien tiene el módulo, sea
+   *  líder o no (ADR-0387); la base lo vuelve a comprobar. */
   puedeCrear: boolean;
+  /** «+ Campaña que no está en el calendario»: crea la campaña en Catálogo ▸ Etiquetas, así que sigue siendo de un líder
+   *  (`crear_campana_con_plan` lo exige también), aunque el resto del selector sea de quien tiene el módulo. */
+  puedeCrearNueva?: boolean;
   onNueva: () => void;
-  /** Tocar una campaña del calendario que aún no tiene plan: abre su hoja para armarlo (solo un líder). */
+  /** Tocar una campaña del calendario que aún no tiene plan: abre su hoja para armarlo (quien tiene el módulo, ADR-0387). */
   onArmar?: (ranura: RanuraCalendario) => void;
   onEditar: () => void;
   onArchivadas: () => void;
@@ -65,12 +70,12 @@ export function SelectorCampana({
     );
     if (actual && !enLista.some((x) => x.tipo === "plan" && x.campana.id === actual.id)) planes.push({ valor: actual.id, texto: rotuloDeCampana(actual), grupo: "Terminadas" });
     if (!puedeCrear) return planes;
-    const acciones: Opcion<string>[] = [{ valor: NUEVA, texto: "+ Campaña que no está en el calendario…", grupo: "Acciones" }];
+    const acciones: Opcion<string>[] = puedeCrearNueva ? [{ valor: NUEVA, texto: "+ Campaña que no está en el calendario…", grupo: "Acciones" }] : [];
     // Editar y archivar existen desde B5: si la base todavía no lo sabe, no se ofrece.
     if (campanas.edicion && actual) acciones.push({ valor: EDITAR, texto: "Editar o quitar esta campaña…", grupo: "Acciones" });
     if (campanas.edicion && archivadas.length > 0) acciones.push({ valor: ARCHIVADAS, texto: `Campañas archivadas (${archivadas.length})…`, grupo: "Acciones" });
     return [...planes, ...acciones];
-  }, [enLista, actual, archivadas, campanas.edicion, puedeCrear, onArmar]);
+  }, [enLista, actual, archivadas, campanas.edicion, puedeCrear, puedeCrearNueva, onArmar]);
   if (opciones.length < 2) return null;
   return (
     // La caja solo lleva el ancla de la guía (ADR-0389): el desplegable no recibe atributos sueltos.

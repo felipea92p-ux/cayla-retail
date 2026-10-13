@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, ChevronDown, ChevronUp, X } from "lucide-react";
@@ -12,6 +11,8 @@ import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { inicialesProveedor } from "@/lib/envio-reglas";
 import type { LineaRecepcion } from "@/lib/compras-reglas";
 import type { RecepcionDeCompra } from "@/lib/compras-indicadores";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -74,7 +75,7 @@ export function RecepcionVistaRapida({
               </span>
               <div className="min-w-0 flex-1">
                 <Dialog.Title asChild>
-                  <h2 className="font-display text-[23px] leading-tight text-tinta">{r.proveedorNombre}</h2>
+                  <h2 className="font-display text-[23px] leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{r.proveedorNombre}</h2>
                 </Dialog.Title>
                 <Dialog.Description className="mt-0.5 text-[12.5px] text-tinta/65">
                   {diaMes(hoyLima(new Date(r.fechaRecepcion)))} · {r.numeroGuia ? `Guía ${r.numeroGuia}` : "Sin guía"} · {r.ubicacionNombre}
@@ -123,7 +124,7 @@ export function RecepcionVistaRapida({
                 <div className={`anim-crece-x h-full rounded-full ${faltan > 0 ? "bg-ambar" : "bg-verde"}`} style={{ width: `${pct}%` }} />
               </div>
 
-              <h3 className="label-cayla mb-1 text-[10.5px] text-tinta/55">Prenda por prenda</h3>
+              <TituloGrupo className="mb-1">Prenda por prenda</TituloGrupo>
               {detalle.length > 0 ? (
                 <ul className="divide-y divide-tinta/10">
                   {detalle.map((l, i) => (
@@ -144,9 +145,10 @@ export function RecepcionVistaRapida({
 
             <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
               {enlaceAlComprobante ? (
-                <Link href={`/compras/factura/${r.compraId}`} onClick={pedirCierre} className="label-cayla text-[11px] text-rojo hover:underline">
-                  Ver comprobante completo →
-                </Link>
+                // Cierra el cajón en el mismo clic que navega.
+                <EnlaceVer href={`/compras/factura/${r.compraId}`} alNavegar={pedirCierre}>
+                  Ver comprobante completo
+                </EnlaceVer>
               ) : (
                 <span className="text-xs text-tinta/55">El detalle del comprobante es de Compras.</span>
               )}

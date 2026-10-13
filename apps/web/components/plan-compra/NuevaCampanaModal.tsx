@@ -33,10 +33,12 @@ import {
 // La hoja de una campaña del plan (ADR-0372, B3; act. 2026-10-12 f, Felipe: «opción A, con el mismo formato»). Tiene dos caras:
 //   · Una campaña del CALENDARIO (la tocaste en el selector): llega llena —su nombre del año y sus fechas de ese año— y un toque arma el plan
 //     (`crear_plan_compra`). Las fechas del plan se pueden ajustar: una ventana de compra puede ser más ancha que la de venta («Navidad» es del
-//     11 al 25; «Diciembre» del 1 al 31), y si difieren de las de la campaña ese año, la hoja lo dice.
+//     11 al 25; «Diciembre» del 1 al 31), y si difieren de las de la campaña ese año, la hoja lo dice. La abre quien tiene el módulo Plan de
+//     campaña (ADR-0387: en Compras el módulo es la llave; la base lo exige también).
 //   · Una campaña NUEVA (no está en Etiquetas): nombre y fechas. Se crea en Catálogo ▸ Etiquetas con el formato de las demás —«Campaña y
 //     festividad», su ícono por el nombre, sus fechas, aprobada, sin descuento— y con su plan, en una transacción (`crear_campana_con_plan`).
-// Solo un líder la abre (la base lo exige también). Guía de foco (ADR-0284): `camposDeLaCampana` sale de la misma regla que la base.
+//     Esta sigue siendo solo de un líder: escribe en Etiquetas, no solo en Compras (la base lo exige también).
+// Guía de foco (ADR-0284): `camposDeLaCampana` sale de la misma regla que la base.
 
 export function NuevaCampanaModal({
   etiquetas,

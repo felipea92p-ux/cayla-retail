@@ -65,6 +65,9 @@ import type { LecturaMotor } from "@/lib/motor-demanda";
 // Formidable y chaos (2026-10-10, docs/formidable/compras-plan.md): UNA acción principal arriba («Empezar por …»); la vista «Paso a paso»
 // vive en la URL (`?vista=paso`), así «Atrás» vuelve a la tabla en vez de salir de la pantalla; y salir del paso a paso con algo escrito
 // pregunta antes de perderlo (la misma pieza que la hoja: `useSalidaSinGuardar`).
+//
+// Quién gestiona (ADR-0387, Felipe 2026-10-12): quien llega aquí ya tiene el módulo (la página lo exige), y con él crea, edita, quita y
+// restaura campañas y fija el tope, sea líder o no; la base lo vuelve a comprobar. Por eso no hay botones escondidos por rol.
 
 /** Marca, en el historial, la entrada que la pantalla agregó al pasar al paso a paso: volver a la tabla la retira en vez de apilar otra. */
 const MARCA_VISTA = "__planVistaPaso";
@@ -90,6 +93,8 @@ export function PlanCampana({
   puedeContar: boolean;
   /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
   veAnalisis?: boolean;
+  /** Solo para «Fijar un mínimo» por tienda: su función de la base todavía pide ser líder. El resto del plan es de quien tiene el
+   *  módulo (ADR-0387). */
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
@@ -198,20 +203,23 @@ export function PlanCampana({
               icono={<CalendarDays />}
               titulo={hayArchivadas ? "No hay campañas activas" : "Todavía no hay ninguna campaña para planificar"}
               acciones={
-                esLider && campanas ? (
+                campanas ? (
                   <>
-                    {/* Lo primero que ofrece es la próxima campaña del calendario, ya con sus fechas; «Campaña nueva», para lo que no está. */}
+                    {/* Lo primero que ofrece es la próxima campaña del calendario, ya con sus fechas (quien tiene el módulo, ADR-0387);
+                        «Campaña nueva», para lo que no está, sigue siendo de un líder: escribe en Etiquetas. */}
                     {proxima ? (
                       <>
                         <Boton peso="primario" onClick={() => setHojaCampana({ ranura: proxima })}>
                           Armar el plan de {proxima.nombre}
                         </Boton>
-                        <Boton onClick={() => setHojaCampana({ ranura: null })}>Campaña nueva</Boton>
+                        {esLider && <Boton onClick={() => setHojaCampana({ ranura: null })}>Campaña nueva</Boton>}
                       </>
                     ) : (
-                      <Boton peso="primario" onClick={() => setHojaCampana({ ranura: null })}>
-                        Campaña nueva
-                      </Boton>
+                      esLider && (
+                        <Boton peso="primario" onClick={() => setHojaCampana({ ranura: null })}>
+                          Campaña nueva
+                        </Boton>
+                      )
                     )}
                     {hayArchivadas && <Boton onClick={() => setVerArchivadas(true)}>Ver campañas archivadas</Boton>}
                   </>
@@ -219,12 +227,8 @@ export function PlanCampana({
               }
             >
               {hayArchivadas
-                ? esLider
-                  ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Etiquetas."
-                  : "Las campañas que había están archivadas. Cuando un líder restaure o cree una, aquí se arma cuánto comprar."
-                : esLider
-                  ? "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría."
-                  : "Cuando un líder cree una campaña, aquí se arma cuánto comprar de cada categoría."}
+                ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Etiquetas."
+                : "Crea una a partir de una campaña de Catálogo ▸ Etiquetas y aquí armas cuánto comprar de cada categoría."}
             </Vacio>
           </div>
         )}
@@ -314,7 +318,8 @@ export function PlanCampana({
                 campanas={campanas}
                 actualId={plan.plan.id}
                 hoy={plan.hoy}
-                puedeCrear={esLider}
+                puedeCrear
+                puedeCrearNueva={esLider}
                 onNueva={() => setHojaCampana({ ranura: null })}
                 onArmar={(ranura) => setHojaCampana({ ranura })}
                 onEditar={() => setEditandoCampana(true)}
@@ -358,7 +363,7 @@ export function PlanCampana({
           guia="plan.archivada"
           titulo="Esta campaña está archivada"
           accion={
-            esLider && campanas ? (
+            campanas ? (
               <Boton peso="fantasma" onClick={() => setVerArchivadas(true)}>
                 Restaurar…
               </Boton>
@@ -390,7 +395,7 @@ export function PlanCampana({
 
           <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
-          <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={esLider ? () => setEditandoTope(true) : undefined} />
+          <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={() => setEditandoTope(true)} />
 
           {pedido && (
             // Lo ya pedido en órdenes de compra que llegan dentro de las fechas de la campaña (Felipe 2026-10-12). Se muestra, no se resta de
@@ -423,19 +428,18 @@ export function PlanCampana({
           )}
 
           {hechos && hechos.planId === plan.plan.id && (
-            // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva; solo un líder lo fija.
+            // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva, y el botón para fijarlo (quien tiene el módulo, ADR-0387).
             <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
               <span className="min-w-0 basis-full">{fraseDelRecupero(hechos.recupero)}</span>
-              {esLider && (
-                <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
-                  {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
-                </Boton>
-              )}
+              <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
+                {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
+              </Boton>
             </div>
           )}
 
           {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
-            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; un líder fija el mínimo de la que vende poco (Lima).
+            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; el mínimo de la que vende poco (Lima) lo fija, por ahora,
+            // solo un líder: `guardar_plan_compra_minimo` todavía lo exige en la base (pasarlo al módulo, ADR-0387, espera el OK de Felipe).
             <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
               <span className="min-w-0 basis-full">
                 Lo que conviene tener se reparte entre las tiendas según lo que vende cada una

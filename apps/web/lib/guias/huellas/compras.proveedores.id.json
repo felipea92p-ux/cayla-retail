@@ -2,12 +2,11 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 40,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «(sin nombre)»",
-      "Link «{c.documento}»",
-      "Link «Ver todos sus comprobantes →»"
+      "Link «{celdas}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -17,7 +16,6 @@
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
       "button «Editar»",
-      "button «Agregar →»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»"
     ],
     "components/ProveedorAcciones.tsx": [
@@ -48,7 +46,6 @@
       "Boton «(sin nombre)»"
     ],
     "components/SaldoFavorAcciones.tsx": [
-      "button «Registrar reembolso →»",
       "CampoTexto «Monto devuelto»",
       "CampoFecha «Fecha»",
       "button «{t}»",
@@ -57,9 +54,6 @@
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
       "button «{loading ? \"Registrando…\" : \"Registrar reembolso\"}»"
-    ],
-    "components/SaldoFavorProveedor.tsx": [
-      "Link «Usar en un pago →»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

@@ -15,6 +15,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { estadoVisible, etiquetaMetodo, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Detalle de un comprobante de Producción (ADR-0133, F4b): sus líneas, sus pagos y su saldo. Lo leído aquí es del líder por RLS. Anular
 // pide un motivo y solo se puede si no hay pagos (anular dejaría dinero sin respaldo); nunca se borra.
@@ -91,7 +92,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
         {c.estado === "anulada" && c.motivoAnulacion && <p className="rounded-lg bg-sand/60 px-3 py-2.5 text-[13px] text-tinta/80">Anulada: {c.motivoAnulacion}</p>}
 
         <section aria-label="Líneas">
-          <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Qué se compró</h3>
+          <TituloGrupo className="mb-2">Qué se compró</TituloGrupo>
           {fallo ? (
             <p className="text-sm text-tinta/70">No se pudieron leer las líneas. Recarga la pantalla.</p>
           ) : lineas === null ? (
@@ -149,7 +150,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
 
         {pagos && pagos.length > 0 && (
           <section aria-label="Pagos">
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Pagos</h3>
+            <TituloGrupo className="mb-2">Pagos</TituloGrupo>
             <ul>
               {pagos.map((p) => (
                 <li key={p.id} className="flex items-baseline justify-between gap-3 border-b border-tinta/10 py-2 text-[13px]">

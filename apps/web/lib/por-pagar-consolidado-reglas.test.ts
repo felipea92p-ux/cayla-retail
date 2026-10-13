@@ -29,7 +29,6 @@ const fila = (vence: string, saldo: number, extra: Partial<FilaPorPagar> = {}): 
   vence,
   ubicacionId: null,
   unidades: "Tienda Trujillo",
-  parte: false,
   total: saldo,
   pagado: 0,
   saldo,
@@ -121,7 +120,7 @@ describe("ordenarPorVencimiento", () => {
 });
 
 describe("leerFilaPorPagar", () => {
-  it("lee la fila de la base: números, parte y la empresa sin unidad", () => {
+  it("lee la fila de la base: números y la empresa sin unidad; la columna `parte` ya no se lee (decisión 45)", () => {
     const f = leerFilaPorPagar({
       origen: "compras",
       id: "a",
@@ -142,7 +141,9 @@ describe("leerFilaPorPagar", () => {
       pagado: "0.00",
       saldo: "800.00",
     });
-    expect(f).toMatchObject({ naturaleza: "gasto", concepto: "Contador de agosto", unidades: null, parte: false, total: 800, saldo: 800 });
+    expect(f).toMatchObject({ naturaleza: "gasto", concepto: "Contador de agosto", unidades: null, total: 800, saldo: 800 });
+    // La base la sigue mandando (siempre falsa): cada fila es el comprobante entero y la web no la arrastra.
+    expect("parte" in f).toBe(false);
     expect(textoUnidad(f)).toBe("De la empresa");
   });
   it("una naturaleza desconocida no rompe la pantalla, y el Taller se lee como insumo", () => {

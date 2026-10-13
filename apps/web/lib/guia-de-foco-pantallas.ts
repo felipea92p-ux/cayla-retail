@@ -61,6 +61,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/notas-credito": PENDIENTE,
   "/compras/nueva": PENDIENTE,
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
+  "/compras/ordenes/comprobante/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarComprobanteOrden.tsx"] },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
   "/compras/ordenes/nueva": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
   "/compras/ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra en página completa (ADR-0362), lo que se ve al recargar la ventana: se lee, no se llena." },
@@ -197,7 +198,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 56;
+export const MODALES_PENDIENTES_HOY = 55;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -229,7 +230,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar una terminal: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
   "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },
   "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
-  "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
+  "components/CompraDetallePanel.tsx": PENDIENTE, // 7 controles
   "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
   "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
   "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
@@ -272,7 +273,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
-  "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
+  "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
   // ADR-0328 act. 17: «Para enviar» en Traslados. Su ventana «Ya no la envío»: «falta» = el porqué (la base lo exige) y quién lo hace.
   "components/ParaEnviar.tsx": { estado: "aplicada", evidencia: ["components/ParaEnviar.tsx"] },
@@ -315,7 +316,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
-  "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
@@ -347,4 +347,5 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
   "components/ordenes-compra/AccionesOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/AccionesOrden.tsx"] },
+  "components/ordenes-compra/ComprobantesDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/ComprobantesDeOrden.tsx"] },
 };

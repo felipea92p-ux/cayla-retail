@@ -1,17 +1,17 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 545 llamadas `.rpc` de `apps/web` contra 993 funciones del schema `retail` en producción: 439 con los parámetros leídos (se comparan uno por uno), 54 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 52 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-13 03:39 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 545 llamadas `.rpc` de `apps/web` contra 1027 funciones del schema `retail` en producción: 439 con los parámetros leídos (se comparan uno por uno), 54 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 52 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-10-13 16:21 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (703 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (729 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 217 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 486 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 217 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 512 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -94,7 +94,7 @@ foto ni ninguna migración del repo conocen.
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:279` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:410` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/EliminarProductoModal.tsx:82` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `registrar_gasto` · `apps/web/components/GastoRapidoModal.tsx:228` — el objeto se arma con «...», no se puede leer entero
+- `registrar_gasto` · `apps/web/components/GastoRapidoModal.tsx:278` — el objeto se arma con «...», no se puede leer entero
 - `guardar_gasto_fijo` · `apps/web/components/GastosFijosYActivos.tsx:395` — el objeto se arma con «...», no se puede leer entero
 - `registrar_gasto` · `apps/web/components/GastosPanel.tsx:623` — el objeto se arma con «...», no se puede leer entero
 - `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:71` — los parámetros no van escritos ahí mismo
@@ -243,7 +243,7 @@ foto ni ninguna migración del repo conocen.
 - `retirar_del_piso` · `apps/web/lib/retiro-reglas.ts:21` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 56
+## Funciones sin llamada detectada desde `apps/web` — 64
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -265,10 +265,12 @@ select p.proname from pg_proc p
  where p.pronamespace = 'retail'::regnamespace and p.proname <> '<nombre>' and p.prosrc ~ ('\m' || '<nombre>' || '\M');
 ```
 
+- `abrir_despacho`
 - `agregar_colaborador`
 - `agregar_comprador_de_tienda`
 - `agregar_terminal`
 - `ajustar_insumo_por_conteo`
+- `anular_envio`
 - `apartar_prenda`
 - `apartar_stock`
 - `archivar_caja_prueba`
@@ -281,6 +283,8 @@ select p.proname from pg_proc p
 - `catalogo_crear_producto`
 - `confirmar_invitacion_club`
 - `convertir_proforma_a_comprobante`
+- `crear_campana_con_plan`
+- `crear_envio`
 - `crear_invitacion_club`
 - `emitir_comprobante`
 - `emitir_nota`
@@ -288,10 +292,13 @@ select p.proname from pg_proc p
 - `huellas_catalogo`
 - `mover_entre_piso_y_almacen`
 - `mover_interno`
+- `preparar_prenda_al_recibir`
 - `quitar_comprador_de_tienda`
 - `recalcular_compras`
 - `recalcular_stock`
 - `recibir_compras`
+- `recibir_despacho`
+- `recibir_orden_sin_envio`
 - `recibir_y_cerrar_compras`
 - `registrar_comprobante_orden`
 - `registrar_desde_whatsapp`
@@ -300,6 +307,7 @@ select p.proname from pg_proc p
 - `registrar_mensaje_publicidad`
 - `registrar_movimiento`
 - `registrar_pago_compra`
+- `resolver_deuda_proveedor`
 - `resumen_sin_comprobante`
 - `trg_actividad_caja_movimientos`
 - `trg_actividad_caja_traslados`

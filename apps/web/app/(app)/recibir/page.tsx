@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { accionesDeCompraDe, puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
 import type { CompraResumen } from "@/lib/compras-reglas";
@@ -32,6 +32,8 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -49,8 +51,9 @@ import { BotonEnlace } from "@/components/ui/campos";
 //
 // ADR-0161 P2 (Felipe, 2026-09-22, 20260923140000): los MONTOS los ve quien ya ve el dinero de Compras (`verDineroCompras`:
 // Facturas de compra, Por pagar o Notas de crédito), no solo el líder — la base ya se los entrega (vistas compras_resumen y
-// compra_items_resumen con fn_puede_ver_dinero_de_compras). Lo demás que decide `esLider` NO cambia: qué sede se mira
-// («Recibiendo en»), las decisiones sobre lo que faltó y el aviso de la nota por reclamar.
+// compra_items_resumen con fn_puede_ver_dinero_de_compras). ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): las
+// decisiones sobre lo que faltó son de quien recibe, el aviso de la nota por reclamar de quien tiene Notas de crédito y el
+// enlace a los comprobantes con faltante de quien tiene Facturas de proveedor; ya nada de eso es solo del líder.
 //
 // Los cuatro indicadores (ADR-0111) ya no van arriba: se dibujan DEBAJO de «¿Qué llegó?» —lo que se mira
 // mientras no hay nada marcado— y desaparecen apenas se marca un comprobante, para dejarle toda la pantalla
@@ -64,7 +67,7 @@ type VistaRecibir = "llegada" | "factura" | "recibidas";
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
-  const esLider = persona.rol === "lider";
+  const acciones = accionesDeCompraDe(persona); // ADR-0387: cada acción, de su módulo (ya no del líder)
   const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
   const puedeAgregarProveedor = puede(persona, "editarCuentasProveedor"); // dar de alta un proveedor: el módulo Proveedores (fn_puede_gestionar_proveedores)
   const params = await searchParams;
@@ -129,11 +132,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         {encabezado}
 
         <section data-guia="recibidas.sin-factura" className="space-y-2">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Sin factura · {nombreMirada}</h2>
+          <TituloSeccion>Sin factura · {nombreMirada}</TituloSeccion>
           <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
         </section>
 
-        <h2 className="label-cayla -mb-3 text-[11px] text-tinta/65">Contra factura</h2>
+        <TituloSeccion className="-mb-3">Contra factura</TituloSeccion>
         <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
@@ -166,11 +169,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             etiqueta="Faltante abierto"
             valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
             unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
-            // La lista de comprobantes con faltante es de Compras (solo líder): a un colaborador no se le ofrece un enlace que lo devuelve al Inicio.
-            href={esLider && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
+            // La lista de comprobantes con faltante es de Facturas de proveedor: a quien no tiene ese módulo no se le ofrece un enlace
+            // que lo devuelve al Inicio (ADR-0387; antes, solo al líder).
+            href={acciones.facturas && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
           >
             {resumen.faltanteUnidades > 0
-              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · ${esLider ? "cerrar o reclamar" : "un líder decide qué hacer"}`
+              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar`
               : "Nada por reclamar"}
           </TarjetaCifra>
         </div>
@@ -269,12 +273,15 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               }))}
           />
           <section data-guia="recibir.semana" className="space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
-              <Link href="/recibir?vista=recibidas" data-guia="recibir.ver-todo" className="btn-cayla btn-enlace btn-chico">
-                Ver todo lo recibido
-              </Link>
-            </div>
+            <TituloSeccion
+              accion={
+                <EnlaceVer href="/recibir?vista=recibidas" guia="recibir.ver-todo">
+                  Ver todo lo recibido
+                </EnlaceVer>
+              }
+            >
+              Llegó esta semana · {persona.ubicacionEtiqueta}
+            </TituloSeccion>
             <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
           </section>
         </div>
@@ -306,7 +313,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
   const [lineasCompletas, comprasConNotaFaltante, trasladosDeLaSede] = await Promise.all([
     getLineasCompra(compras.map((c) => c.id), { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
-    esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
+    acciones.notas ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
     // El aviso de traslados es secundario: si esta lectura falla, Recibir sigue funcionando sin el aviso (nunca se cae por él).
     getTrasladosEnCurso(ubicacionMirada).catch((e: unknown) => {
       console.error("Aviso de traslados en Recibir mercadería:", e);
@@ -339,16 +346,16 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 acciones={<BotonEnlace href="/recibir?vista=factura" peso="fantasma">Limpiar filtros</BotonEnlace>}
               >
                 Ningún comprobante pendiente de recibir coincide con esos filtros. Si llegó mercadería sin factura,{" "}
-                <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+                <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>
             ) : (
               <Vacio
                 icono={<Receipt />}
                 titulo="No hay nada pendiente de recibir"
-                acciones={esLider ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
+                acciones={acciones.facturas ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
               >
                 No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
-                <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+                <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>
             )}
           </div>
@@ -377,7 +384,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
             ubicacionInicialId={ubicacionMirada}
             compraInicialId={compra ?? null}
-            esLider={esLider}
+            puedeReclamar={acciones.notas}
             verMontos={verMontos}
             comprasConNotaFaltante={comprasConNotaFaltante}
             veTraslados={veModulo(persona, "traslados")}

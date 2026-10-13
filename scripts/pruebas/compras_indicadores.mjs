@@ -1905,15 +1905,15 @@ rollback;
 );
 
 error(
-  "permisos: la ficha de un proveedor (métricas de compras) es solo de líder — Micaela recibe un error, no cifras",
+  "permisos: sin Proveedores ni un módulo de plata de Compras, Micaela recibe un error en la ficha de un proveedor, no cifras (decisión 44)",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_metricas_compras(:'prov1');`),
-  "Los montos de compras de un proveedor necesitan Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
+  "Los montos de compras de un proveedor necesitan Proveedores, Facturas de compra, Por pagar o Notas de crédito" // ADR-0387 (decisión 44, 20261012204000)
 );
 
 error(
-  "permisos: la evolución del costo de un proveedor es solo de líder",
+  "permisos: sin Proveedores ni un módulo de plata de Compras, la evolución del costo de un proveedor no se ve (decisión 44)",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_costo_evolucion(:'prov1');`),
-  "La evolución del costo de un proveedor necesita Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
+  "La evolución del costo de un proveedor necesita Proveedores, Facturas de compra, Por pagar o Notas de crédito" // ADR-0387 (decisión 44)
 );
 
 error(
@@ -2008,9 +2008,9 @@ rollback;
 );
 
 error(
-  "sin sesión: la ficha de un proveedor (métricas) tampoco se entrega — «solo un líder»",
+  "sin sesión: la ficha de un proveedor (métricas) tampoco se entrega",
   comoPersona(FELIPE, `${BASE}set local request.jwt.claim.sub = '';\nselect * from retail.fn_proveedor_metricas_compras(:'prov1');`),
-  "Los montos de compras de un proveedor necesitan Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
+  "Los montos de compras de un proveedor necesitan Proveedores, Facturas de compra, Por pagar o Notas de crédito" // ADR-0387 (decisión 44)
 );
 
 // ===========================================================================
