@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
+import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -199,6 +200,9 @@ instalarInterceptor();
 export function EsperaGlobal() {
   const activas = useSyncExternalStore(suscribir, () => instantanea, () => SIN_FICHAS);
   const hay = activas.length > 0;
+  // Mientras vuela el colibrí de la entrada (components/login/EntradaColibri.tsx) el loader se aparta: el vuelo ocupa su lugar y
+  // la capa del colibrí espera a que el loader no tenga nada en curso (`esperaOcupada`) para abrirse.
+  const entrando = useSyncExternalStore(suscribirEntrada, entradaActiva, () => false);
 
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
@@ -289,7 +293,7 @@ export function EsperaGlobal() {
   // Mientras está a la vista, todo lo demás deja de recibir clics, foco y teclado; al irse, el foco vuelve
   // adonde estaba (un elemento vuelto `inert` lo suelta y sin esto la persona quedaría «en ninguna parte»).
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || entrando) return;
     foco.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const bloqueados = [...document.body.children].filter((el) => !el.hasAttribute("data-espera") && !el.hasAttribute("inert"));
     bloqueados.forEach((el) => el.setAttribute("inert", ""));
@@ -298,9 +302,9 @@ export function EsperaGlobal() {
       const previo = foco.current;
       if (previo?.isConnected && (document.activeElement === document.body || document.activeElement === null)) previo.focus({ preventScroll: true });
     };
-  }, [visible]);
+  }, [visible, entrando]);
 
-  if (!visible) return null;
+  if (!visible || entrando) return null;
 
   const { etiqueta, titulo, resalte, detalle } = mensaje.mensaje;
   const linea = tarda ? DETALLE_TARDA : detalle;
