@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { borrarCopiasSinConexion } from "@/components/SinConexion";
 import { Modal } from "@/components/ui/Modal";
 import { leerPendientesSinSubir } from "@/lib/usePendientesSinSubir";
+import { marcarSalidaPropia } from "@/lib/sesion-salida-propia";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export function LogoutButton() {
     await borrarCopiasSinConexion();
     // «local»: cierra solo este equipo. El valor por defecto («global») revoca la sesión de la cuenta en TODOS
     // los equipos, y las cuentas de caja se comparten entre la tienda y otros dispositivos.
+    // Se marca ANTES de cerrar: el aviso de cierre llega enseguida y, sin la marca, esta pestaña creería que otra cerró la sesión (ADR-0309).
+    marcarSalidaPropia();
     await createClient().auth.signOut({ scope: "local" });
     router.push("/login");
     router.refresh();
