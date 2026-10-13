@@ -37,6 +37,10 @@ import {
   totalesDeRecepcion,
   TOPES_RECEPCION,
   mensajeDeLaRecepcion,
+  costoDeReposicion,
+  opcionesSobrante,
+  proveedorDelExtra,
+  reposicionesDe,
   SIN_CONFIRMAR,
   type BorradorExtra,
   type BorradorLinea,
@@ -103,10 +107,15 @@ export function FormularioRecepcion({
       proveedores,
       categoriasActivas: catalogo ? new Set(catalogo.categorias.map((c) => c.id)) : null,
       marcasActivas: catalogo ? new Set(catalogo.marcas.map((m) => m.id)) : null,
+      // Fase 5a: lo que cada proveedor del envío debe por reponer (para ofrecer «Es la reposición de lo que faltó»).
+      deudas: detalle.deudas,
+      nombres: catalogo,
     }),
-    [detalle.lineas, proveedores, catalogo],
+    [detalle.lineas, detalle.deudas, proveedores, catalogo],
   );
   const campos = camposDeRecepcion(borrador, ctx, { listo: responsable.listo, motivo: responsable.motivo });
+  // Cuántas cubre cada reposición elegida y si la base la aceptaría (la pregunta lo dice en su lugar; la guía, en «Falta»).
+  const reposiciones = reposicionesDe(borrador, ctx);
   const guia = useGuiaCampos(campos, { enModal: false });
   const totales = totalesDeRecepcion(detalle, borrador);
   const colores = catalogo?.colores ?? [];
@@ -326,6 +335,8 @@ export function FormularioRecepcion({
             indice={i}
             borrador={lineaDelBorrador(borrador, l)}
             conProveedor={variosProveedores}
+            opcionesDeMas={opcionesSobrante(ctx, { proveedorId: l.proveedor?.id ?? null, categoriaId: l.categoria.id, marcaId: l.marca.id, categoria: l.categoria.nombre, marca: l.marca.nombre })}
+            problemaDeMas={reposiciones.get(idGuia.sobrante(l.id))?.problema ?? null}
             onCambio={(cambios) => cambiarLinea(l.id, cambios)}
             guia={guia}
             etiqueta={etiqueta}
@@ -344,6 +355,15 @@ export function FormularioRecepcion({
               categorias={catalogo?.categorias ?? []}
               marcas={catalogo?.marcas ?? []}
               vinculos={catalogo?.vinculos ?? []}
+              opcionesDeMas={opcionesSobrante(ctx, {
+                proveedorId: proveedorDelExtra(e, ctx),
+                categoriaId: e.categoriaId,
+                marcaId: e.marcaId,
+                categoria: catalogo?.categorias.find((c) => c.id === e.categoriaId)?.nombre,
+                marca: catalogo?.marcas.find((m) => m.id === e.marcaId)?.nombre,
+              })}
+              problemaDeMas={reposiciones.get(idGuia.extra(e.clave, "sobrante"))?.problema ?? null}
+              costoReposicion={costoDeReposicion(ctx, { proveedorId: proveedorDelExtra(e, ctx), categoriaId: e.categoriaId, marcaId: e.marcaId })}
               onCambio={(cambios) => cambiarExtra(e.clave, cambios)}
               onQuitar={() => cambiar((b) => ({ ...b, extras: b.extras.filter((x) => x.clave !== e.clave) }))}
               guia={guia}

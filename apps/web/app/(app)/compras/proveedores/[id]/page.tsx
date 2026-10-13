@@ -9,6 +9,7 @@ import { ChevronRight, Receipt } from "lucide-react";
 import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
 import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
+import { getNosDebeProveedor } from "@/lib/nos-debe";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -18,6 +19,7 @@ import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
+import { NosDebeProveedor } from "@/components/nos-debe/NosDebeProveedor";
 import { Volver } from "@/components/ui/Volver";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -48,7 +50,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, nosDebe] = await Promise.all([
     getProveedor(id),
     siDinero(() => getProveedorMetricasCompras(id)),
     esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
@@ -58,6 +60,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     getProveedores(),
     siDinero(() => getCreditosProveedor(id)),
     getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
+    // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer. Con los mismos ojos que el saldo a favor (los montos de la ficha); si la base
+    // todavía no lo sabe contar, llega vacío y la ficha sale como antes.
+    siDinero(() => getNosDebeProveedor(id)),
   ]);
   if (!proveedor) notFound();
   const marcas = marcasMapa?.[id] ?? [];
@@ -195,7 +200,15 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       </section>
       )}
 
-      {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
+      {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
+          no cuenta las prendas, el saldo a favor queda solo, como antes. */}
+      {nosDebe && (nosDebe.nosDebe || nosDebe.falla) ? (
+        <NosDebeProveedor nosDebe={nosDebe.nosDebe} falla={nosDebe.falla} proveedorNombre={proveedor.nombre} hoy={hoyLima()}>
+          {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
+        </NosDebeProveedor>
+      ) : (
+        m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />
+      )}
 
       {conCompras && ultimos && (
         <div className="grid gap-3 lg:grid-cols-2">
