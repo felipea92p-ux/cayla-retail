@@ -337,6 +337,11 @@ export const PRUEBAS = [
   // que corregir_pagos_venta. Con control (sin el candado, sí anulaba). Cada caso: ROLLBACK.
   "pruebas:anular-venta-misma-sede",
 
+  // El token sigue al contenido (/chaos 2026-10-13): en las diez funciones de Ventas y Caja con p_token, el mismo token
+  // con otro contenido se rechaza (token_reusado), el resolver dice «hecho» o «no llegó» (definitivo) y espera al envío
+  // que todavía guarda. Con controles. Cada caso: ROLLBACK (la concurrencia, dos sesiones que terminan en ROLLBACK).
+  "pruebas:token-sigue-al-contenido",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.

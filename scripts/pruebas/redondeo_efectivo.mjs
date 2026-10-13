@@ -36,7 +36,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { efectivoACobrar, redondeoDelEfectivo } from "../../apps/web/lib/redondeo-efectivo-reglas.ts";
-import { DESHACER_POSTERIORES, REHACER_POSTERIORES } from "./registrar-venta-antes-de-precio-sede.mjs";
+import { DESHACER_POSTERIORES, REHACER_POSTERIORES, DESHACER_TOKEN_ENTREGA, REHACER_TOKEN } from "./registrar-venta-antes-de-precio-sede.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION_REGLA = "supabase/migrations/20261003100000_redondeo_efectivo_regla.sql";
@@ -578,7 +578,8 @@ rollback;`);
   // ---- 35. La migración: se pega dos veces, deja la huella prometida y UNA firma; aborta si la función cambió o si falta una parte ----
   const entrega = readFileSync(MIGRACION_ENTREGA, "utf8");
   const huellaEntrega = (entrega.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
-  const r35 = correr(`begin;\n${entrega}\n${entrega}
+  // El token que sigue al contenido (20261013201000) es posterior y cambia la huella: se deshace dentro de la transacción.
+  const r35 = correr(`begin;\n${DESHACER_TOKEN_ENTREGA}\n${entrega}\n${entrega}
 select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'entregar_separacion';
 select 'sobrecargas|' || count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'entregar_separacion';
@@ -614,7 +615,11 @@ rollback;`);
   // ---- 36. Cada parte, pegada ENTERA como un solo texto, termina con su fila «QUEDÓ BIEN» ----
   for (const parte of PARTES_A_PEGAR) {
     // La de registrar_venta se pega sobre su punto de partida y después se rehacen los parches posteriores (precio por sede, origen sugerido): la base termina igual.
-    const r = pegarComoEditor(parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_POSTERIORES}\n${textoDe(parte)}\n${REHACER_POSTERIORES}` : textoDe(parte));
+    // La de entregar_separacion, igual: sin el token (posterior) y después se rehace.
+    const r = pegarComoEditor(
+      parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_POSTERIORES}\n${textoDe(parte)}\n${REHACER_POSTERIORES}`
+      : parte === "20261003135000_entregar_separacion_redondeo" ? `${DESHACER_TOKEN_ENTREGA}\n${textoDe(parte)}\n${REHACER_TOKEN}`
+      : textoDe(parte));
     esperar(`${parte.slice(0, 14)} pegada entera (como la pega el editor) termina con su fila «QUEDÓ BIEN»`, r.ok && r.salida.split("\n").filter((l) => l.includes("QUEDÓ BIEN") && l.startsWith(parte.slice(0, 14))).length === 1, r.ok ? r.salida.slice(-400) : r.mensaje);
   }
 
