@@ -473,7 +473,12 @@ export const DECISIONES = {
     "elegida": "P1 · el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón (grande y chico); al no encontrar, dice qué se buscó y deja deshacerlo ahí; elegida tocándola el 2026-10-08",
     "pieza": "components/ui/Vacio.tsx",
     "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 2,
     "firmas": [
+      // La frase gris suelta que dice que no hay nada («Sin ventas todavía.», «No hay separaciones abiertas.», «Ninguna cuenta tiene
+      // este rol»), con el texto en su línea o en la siguiente: el censo de mostrador (2026-10-13) encontró 40 que las firmas de abajo,
+      // atadas a una clase exacta, no veían. «Nada se guarda todavía» explica, no es un vacío; otra frase que explica lleva su unificar-fijo.
+      "<(?:p|div)\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:tinta\\/(?:4|5|6)[05]|taupe(?:\\/\\d+)?)(?![\\w-])[^\"'`]*[\"'`]\\}?[^>]*>\\s*(?:Sin |Ningún|Ninguna|Ninguno|Nada (?!se guard)|Todavía no|No hay|Aún no (?!se guard))",
       // La frase en cursiva serif (B) y su versión «SinCoincidencias».
       "\\bfont-display\\b[^\"'`]*\\bitalic\\b[^\"'`]*\\btext-tinta\\/6[05]\\b",
       // La frase gris suelta de <Tabla> y sus primas (A), la centrada gris clara de Caja y la cursiva chica.

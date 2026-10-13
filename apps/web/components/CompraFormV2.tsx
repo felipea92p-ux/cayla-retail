@@ -849,7 +849,7 @@ export function CompraFormV2({
               />
             </div>
           ) : (
-            <p className="cr-revela text-sm text-tinta/65">Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
+            <p className="cr-revela text-sm text-tinta/65">{/* unificar-fijo: explica qué pasará con el comprobante sin pago, no es un vacío */}Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
         </section>
 

@@ -13,6 +13,8 @@ import { agruparTallas, alternar, curvaCambiada, faltanDeLaCategoria, porOfrecer
 import { compararTallas } from "@/lib/tallas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import { Aviso } from "@/components/ui/Aviso";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La fila «Tallas» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -254,7 +256,11 @@ function HojaTallas({
       </div>
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[46vh] overflow-y-auto px-1 pb-1">
-        {grupos.length === 0 && <p className="py-4 text-[13px] text-taupe">Ninguna talla se llama así.</p>}
+        {grupos.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="px-0 py-4" icono={<SearchX />}>
+            Ninguna talla se llama así.
+          </Vacio>
+        )}
         {grupos.map((g, i) => (
           <section key={g.grupo} className={i > 0 ? "mt-4" : ""}>
             <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{g.grupo}</h3>

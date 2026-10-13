@@ -636,7 +636,7 @@ export function NuevaOrdenProduccionForm({
           <section data-guia="prod-orden-nueva.insumos" aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
             <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
             {rendimiento.length === 0 ? (
-              <p className="text-xs text-tinta/65">
+              <p className="text-xs text-tinta/65">{/* unificar-fijo: explica de dónde sale el rendimiento, no es un vacío */}
                 Todavía no hay órdenes cerradas de este modelo con insumos descontados: el rendimiento se mide desde la primera. Mientras tanto, escribe el costo a mano.
               </p>
             ) : total === 0 ? (

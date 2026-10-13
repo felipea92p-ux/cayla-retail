@@ -80,3 +80,7 @@ ronda 9 son `<Boton peso="discreto">` chico, con el «+» que da su cuarto de vu
 `btn-enlace`. Y al abrir la lista de productos de Nueva compra el auditor no encontró la caja: la caja de la ronda 6 se deja encoger, y en la
 fila de líneas la columna «Talla y color» se quedaba con todo el ancho (78 px para Producto). La plantilla de la fila pasó a
 `minmax(0, …)`. Quedan en versalitas a mano «Limpiar», «Cancelar», «Entendido» y «Descargar reporte»: son de familias todavía sin decidir.
+
+**Ronda 10 (2026-10-13):** en la vista rápida de un proveedor, «Desactivar» era un botón discreto; pasó a `peso="peligro"`, como en la vista
+rápida de un producto («Reactivar» sigue discreto). La firma de `accion.eliminar` ve el enlace teñido, no un botón discreto que dice
+«Desactivar»: se encontró mirando la captura de la ronda 10.

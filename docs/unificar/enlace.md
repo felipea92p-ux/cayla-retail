@@ -61,3 +61,6 @@ Rastreado al código, el censo encontró enlaces sueltos que llevan a ver más d
 `PasoSugerido`. Pasaron a `<EnlaceVer>` (la flecha que avanza la dibuja la pieza). Una firma nueva los atrapa. Queda exento, con su motivo,
 «Ver en Productos →» de Categorías: es el rótulo de una tarjeta que ya es un enlace, y un `<EnlaceVer>` no se anida dentro de otro.
 
+
+**El censo de mostrador (2026-10-13)** encontró tres más en Caja («Ver todos →», «Ver en Finanzas →», «Ver posventa →»): la clase iba en una
+constante (`enlaceVer`) y la firma, que lee la clase escrita, no los veía. Pasaron a `<EnlaceVer>`.
