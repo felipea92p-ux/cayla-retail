@@ -35,7 +35,7 @@ import {
   type ParamsLista,
 } from "@/lib/clientas-lista-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { TIPOS_DOCUMENTO_CLIENTA, documentoLegible } from "@/lib/documento-clienta-reglas";
+import { TIPOS_DOCUMENTO_CLIENTA, contactoVisible } from "@/lib/documento-clienta-reglas";
 import { FunnelX, SearchX, Users } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
@@ -77,6 +77,7 @@ export function ClientasPanel({
   params,
   cifras = null,
   hoy,
+  verCompleto = false,
 }: {
   /** La página de la lista que pidió la URL (`fn_clientas_lista`). */
   filas: ClientaDeLista[];
@@ -85,6 +86,8 @@ export function ClientasPanel({
   /** Si la base no pudo dar la lista (la migración de la tanda 1f sin pegar): la pantalla lo dice y sigue. */
   falla?: string | null;
   params: ParamsLista;
+  /** El DNI y el celular completos (Felipe 2026-10-13: solo el líder); los demás los ven a medias. */
+  verCompleto?: boolean;
   /** Las cifras y las cuentas de las píldoras, de toda la base; `null` = sin cifras. */
   cifras?: CifrasClientas | null;
   /** Hoy en Lima (`aaaa-mm-dd`), para «hace N d»: lo decide el servidor, no el reloj del navegador. */
@@ -229,7 +232,7 @@ export function ClientasPanel({
               <>
                 <Encabezado visible="hidden @min-[560px]:grid" plantilla={PLANTILLA.replace("grid ", "")} columnas={COLUMNAS} />
                 {filas.map((c) => (
-                  <FilaClienta key={c.id} c={c} hoy={hoy} onAbrir={() => setFichaAbiertaId(c.id)} />
+                  <FilaClienta key={c.id} c={c} hoy={hoy} verCompleto={verCompleto} onAbrir={() => setFichaAbiertaId(c.id)} />
                 ))}
               </>
             )}
@@ -276,20 +279,22 @@ export function ClientasPanel({
       )}
 
       {fichaAbiertaId && (
-        <ClientaFichaModal id={fichaAbiertaId} onClose={() => setFichaAbiertaId(null)} onCambiada={refrescar} />
+        <ClientaFichaModal id={fichaAbiertaId} verCompleto={verCompleto} onClose={() => setFichaAbiertaId(null)} onCambiada={refrescar} />
       )}
     </div>
   );
 }
 
 /** Una fila: las seis columnas del spike cuando la tarjeta es ancha; más angosta, lo mismo apilado (ver PLANTILLA). */
-function FilaClienta({ c, hoy, onAbrir }: { c: ClientaDeLista; hoy: string; onAbrir: () => void }) {
+function FilaClienta({ c, hoy, verCompleto, onAbrir }: { c: ClientaDeLista; hoy: string; verCompleto: boolean; onAbrir: () => void }) {
   const estado = estadoDeLaFila(c);
   const publicidad = publicidadDeLaFila(c);
   const ultima = ultimaCompraLegible(c.ultimaCompra, hoy);
   // Como el spike: bajo el nombre, solo el documento (el código de miembro se busca igual en el buscador).
-  const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false) ?? "Sin documento";
-  const celular = c.telefonoWhatsapp ? celularLegible(c.telefonoWhatsapp) : null;
+  // El DNI y el celular completos solo para el líder; los demás, a medias (Felipe 2026-10-13, auditoría punto 18).
+  const contacto = contactoVisible(c, verCompleto, celularLegible);
+  const documento = contacto.documento ?? "Sin documento";
+  const celular = contacto.celular;
   // La guía interactiva escribe en el buscador la primera palabra de un nombre de esta lista: solo sirve una de 3 letras o más.
   const nombreDeEjemplo = (c.nombre ?? "").split(/\s+/).some((p) => p.length >= 3);
   const chipPublicidad = publicidad ? (
