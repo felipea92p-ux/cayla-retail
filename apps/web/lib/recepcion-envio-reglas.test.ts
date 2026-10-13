@@ -955,7 +955,7 @@ describe("la reposición de lo que faltó en la recepción", () => {
   // Textiles Andina debe 2 polos CAYLA de una recepción anterior; nada de chompas.
   const conDeudas = leerDetalleEnvio({ ...DETALLE_FASE4, deudas_del_proveedor: [{ proveedor_id: "prov-a", categoria_id: "cat-polos", marca_id: "m-cayla", pendiente: 2, costo_unitario: 12.5 }] })!;
   const ctx: ContextoRecepcion = { ...CTX, deudas: conDeudas.deudas };
-  const extraPolos: BorradorExtra = { ...extraVacio("x1"), categoriaId: "cat-polos", marcaId: "m-cayla", costo: "12.50", prenda: POLO, cantidades: { "v-polo": "1" }, sobranteCausa: "reposicion" };
+  const extraPolos: BorradorExtra = { ...extraVacio("x1"), categoriaId: "cat-polos", marcaId: "m-cayla", costo: "12.50", prenda: POLO, cantidades: { "v-polo": "1" }, sobranteCausa: "reposicion_faltante" };
 
   it("la base de antes de la fase 5 no manda deudas: no se ofrece", () => {
     expect(detalle.deudas).toBeNull();
@@ -965,27 +965,27 @@ describe("la reposición de lo que faltó en la recepción", () => {
   it("solo si ese proveedor debe esa categoría y marca", () => {
     expect(conDeudas.deudas).toEqual([{ proveedorId: "prov-a", categoriaId: "cat-polos", marcaId: "m-cayla", pendiente: 2, costoUnitario: 12.5 }]);
     const polos = opcionesSobrante(ctx, { proveedorId: "prov-a", categoriaId: "cat-polos", marcaId: "m-cayla" });
-    expect(polos.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion"]);
+    expect(polos.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion_faltante"]);
     expect(polos.at(-1)).toMatchObject({ texto: "Es la reposición de lo que faltó" });
     expect(polos.at(-1)!.aviso).toMatch(/^Textiles Andina te debe 2 prendas de un envío anterior/);
     // Con los nombres de la línea, lo dice en sus palabras.
     const conNombres = opcionesSobrante(ctx, { proveedorId: "prov-a", categoriaId: "cat-polos", marcaId: "m-cayla", categoria: "Polos", marca: "CAYLA" });
     expect(conNombres.at(-1)!.aviso).toBe("Textiles Andina te debe 2 polos CAYLA de un envío anterior. Si es lo que faltó, elige «Es la reposición de lo que faltó».");
-    expect(opcionesSobrante(ctx, { proveedorId: "prov-a", categoriaId: "cat-chompas", marcaId: "m-cayla" }).map((o) => o.valor)).not.toContain("reposicion");
-    expect(opcionesSobrante(ctx, { proveedorId: "prov-b", categoriaId: "cat-polos", marcaId: "m-cayla" }).map((o) => o.valor)).not.toContain("reposicion");
-    expect(opcionesSobrante(ctx, { proveedorId: null, categoriaId: "cat-polos", marcaId: "m-cayla" }).map((o) => o.valor)).not.toContain("reposicion");
+    expect(opcionesSobrante(ctx, { proveedorId: "prov-a", categoriaId: "cat-chompas", marcaId: "m-cayla" }).map((o) => o.valor)).not.toContain("reposicion_faltante");
+    expect(opcionesSobrante(ctx, { proveedorId: "prov-b", categoriaId: "cat-polos", marcaId: "m-cayla" }).map((o) => o.valor)).not.toContain("reposicion_faltante");
+    expect(opcionesSobrante(ctx, { proveedorId: null, categoriaId: "cat-polos", marcaId: "m-cayla" }).map((o) => o.valor)).not.toContain("reposicion_faltante");
   });
 
   it("dentro de lo que debe, la pregunta queda hecha y viaja «reposicion»", () => {
-    const b = conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion" });
+    const b = conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion_faltante" });
     expect(reposicionesDe(b, ctx).get(idGuia.sobrante("di-2"))).toEqual({ disponible: 2, problema: null });
     expect(camposDeRecepcion(b, ctx, { listo: true, motivo: null }).find((c) => c.id === idGuia.sobrante("di-2"))).toMatchObject({ hecho: true });
     expect(primerProblema(b, ctx)).toBeNull();
-    expect(argsRecibirDespacho(conDeudas, b, ctx, { version: 3, token: "t" }).p_lineas[1]).toMatchObject({ despacho_item_id: "di-2", sobrante_causa: "reposicion" });
+    expect(argsRecibirDespacho(conDeudas, b, ctx, { version: 3, token: "t" }).p_lineas[1]).toMatchObject({ despacho_item_id: "di-2", sobrante_causa: "reposicion_faltante" });
   });
 
   it("si pasa de lo que debe, la pregunta lo dice y no deja recibir", () => {
-    const b = conLinea(completo(), "di-2", { cantidades: { "v-polo": "13" }, sobranteCausa: "reposicion" });
+    const b = conLinea(completo(), "di-2", { cantidades: { "v-polo": "13" }, sobranteCausa: "reposicion_faltante" });
     const campo = camposDeRecepcion(b, ctx, { listo: true, motivo: null }).find((c) => c.id === idGuia.sobrante("di-2"))!;
     expect(campo).toMatchObject({ requerido: true, hecho: false });
     expect(campo.pendiente).toBe("Te debe 2 polos CAYLA y aquí hay 3 de más: la reposición cubre hasta 2. Elige otra opción.");
@@ -993,7 +993,7 @@ describe("la reposición de lo que faltó en la recepción", () => {
   });
 
   it("lo que toma una línea ya no está para lo que no estaba en la guía", () => {
-    const b = { ...conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion" as const }), extras: [extraPolos] };
+    const b = { ...conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion_faltante" as const }), extras: [extraPolos] };
     const r = reposicionesDe(b, ctx);
     expect(r.get(idGuia.sobrante("di-2"))!.problema).toBeNull();
     expect(r.get(idGuia.extra("x1", "sobrante"))!.problema).toMatch(/no te debe nada de esta categoría y marca/);
@@ -1017,7 +1017,7 @@ describe("la reposición de lo que faltó en la recepción", () => {
   });
 
   it("textoCausa la nombra en «cómo se cerró»", () => {
-    expect(textoCausa("reposicion")).toBe("Reposición de lo que faltó");
+    expect(textoCausa("reposicion_faltante")).toBe("Reposición de lo que faltó");
     expect(textoCausa("regalo")).toBe("Regalo");
   });
 
@@ -1032,28 +1032,28 @@ describe("la reposición de lo que faltó en la recepción", () => {
       return true;
     };
     for (const l of args.p_lineas) {
-      if (l.sobrante_causa !== "reposicion") continue;
+      if (l.sobrante_causa !== "reposicion_faltante") continue;
       const linea = d.lineas.find((x) => x.id === l.despacho_item_id)!;
       const deMas = l.variantes.reduce((a, v) => a + v.cantidad, 0) - linea.enviado;
-      if (!tomar(`${linea.proveedor?.id}|${linea.categoria.id}|${linea.marca.id}`, deMas)) return "reposicion";
+      if (!tomar(`${linea.proveedor?.id}|${linea.categoria.id}|${linea.marca.id}`, deMas)) return "reposicion_faltante";
     }
     for (const e of args.p_extras) {
-      if (e.sobrante_causa !== "reposicion") continue;
+      if (e.sobrante_causa !== "reposicion_faltante") continue;
       const prov = e.proveedor_id ?? (proveedores.length === 1 ? proveedores[0]!.id : null);
-      if (!tomar(`${prov}|${e.categoria_id}|${e.marca_id}`, e.variantes.reduce((a, v) => a + v.cantidad, 0))) return "reposicion";
+      if (!tomar(`${prov}|${e.categoria_id}|${e.marca_id}`, e.variantes.reduce((a, v) => a + v.cantidad, 0))) return "reposicion_faltante";
     }
     return null;
   }
 
   const escenarios: { nombre: string; b: BorradorRecepcion }[] = [
-    { nombre: "una de más, reposición", b: conLinea(completo(), "di-2", { cantidades: { "v-polo": "11" }, sobranteCausa: "reposicion" }) },
-    { nombre: "justo lo que debe", b: conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion" }) },
-    { nombre: "más de lo que debe", b: conLinea(completo(), "di-2", { cantidades: { "v-polo": "13" }, sobranteCausa: "reposicion" }) },
-    { nombre: "de algo que no debe (chompas)", b: conLinea(completo(), "di-1", { cantidades: { "v-m-ne": "11", "v-s-ne": "5", "v-l-ne": "5" }, sobranteCausa: "reposicion" }) },
+    { nombre: "una de más, reposición", b: conLinea(completo(), "di-2", { cantidades: { "v-polo": "11" }, sobranteCausa: "reposicion_faltante" }) },
+    { nombre: "justo lo que debe", b: conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion_faltante" }) },
+    { nombre: "más de lo que debe", b: conLinea(completo(), "di-2", { cantidades: { "v-polo": "13" }, sobranteCausa: "reposicion_faltante" }) },
+    { nombre: "de algo que no debe (chompas)", b: conLinea(completo(), "di-1", { cantidades: { "v-m-ne": "11", "v-s-ne": "5", "v-l-ne": "5" }, sobranteCausa: "reposicion_faltante" }) },
     { nombre: "fuera de la guía, dentro de lo que debe", b: { ...completo(), extras: [{ ...extraPolos, cantidades: { "v-polo": "2" } }] } },
     { nombre: "fuera de la guía, más de lo que debe", b: { ...completo(), extras: [{ ...extraPolos, cantidades: { "v-polo": "3" } }] } },
-    { nombre: "línea y extra juntos pasan de lo que debe", b: { ...conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion" }), extras: [extraPolos] } },
-    { nombre: "línea y extra juntos dentro de lo que debe", b: { ...conLinea(completo(), "di-2", { cantidades: { "v-polo": "11" }, sobranteCausa: "reposicion" }), extras: [extraPolos] } },
+    { nombre: "línea y extra juntos pasan de lo que debe", b: { ...conLinea(completo(), "di-2", { cantidades: { "v-polo": "12" }, sobranteCausa: "reposicion_faltante" }), extras: [extraPolos] } },
+    { nombre: "línea y extra juntos dentro de lo que debe", b: { ...conLinea(completo(), "di-2", { cantidades: { "v-polo": "11" }, sobranteCausa: "reposicion_faltante" }), extras: [extraPolos] } },
     { nombre: "fuera de la guía de otra categoría", b: { ...completo(), extras: [{ ...extraPolos, categoriaId: "cat-chompas" }] } },
   ];
 

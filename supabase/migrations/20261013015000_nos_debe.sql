@@ -14,10 +14,11 @@
 --      y `deposito` quedan reservadas para la 5b), en qué recepción llegó la reposición, quién y cuándo. Su disparador bloquea la deuda
 --      (`for update`) e impide que lo resuelto pase de lo debido —aunque dos personas lo marquen a la vez— y que se resuelva algo que no
 --      es deuda. Lo pendiente (cantidad − lo resuelto) se calcula, no se guarda: una sola fuente de verdad (principio 4).
---   2. El candado de causas de `despacho_diferencias` suma el sobrante `reposicion` («Es la reposición de lo que faltó»).
---   3. `recibir_despacho` (REEMPLAZOS ANCLADOS sobre su definición viva) acepta `sobrante_causa = 'reposicion'` en una línea con más de
+--   2. El candado de causas de `despacho_diferencias` suma el sobrante `reposicion_faltante` («Es la reposición de lo que faltó»;
+--      no se llama `reposicion` porque esa palabra ya es el motivo de movimiento «Encontré prendas»).
+--   3. `recibir_despacho` (REEMPLAZOS ANCLADOS sobre su definición viva) acepta `sobrante_causa = 'reposicion_faltante'` en una línea con más de
 --      lo enviado o en algo que no estaba en la guía, solo si ese proveedor debe, por envíos ANTERIORES, al menos eso de esa categoría y
---      marca. La prenda entra a stock como todo lo recibido, la diferencia queda `sobrante`/`reposicion`, y cada deuda que cubre (la más
+--      marca. La prenda entra a stock como todo lo recibido, la diferencia queda `sobrante`/`reposicion_faltante`, y cada deuda que cubre (la más
 --      antigua primero) recibe su resolución `repuesta` con el envío de esta recepción. Un disparador diferido exige que lo marcado como
 --      reposición quede repartido entero entre las deudas.
 --   4. Lecturas: `fn_proveedor_nos_debe(p_proveedor_id)` (la ficha: abiertas y cerradas de los últimos 90 días, con el monto pendiente y
@@ -54,7 +55,7 @@
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261013002000 (sus anclas son las que esa deja). Una tabla
 -- NUEVA sin políticas (RLS encendido: solo se lee y escribe por funciones `security definer`); el candado de causas de
--- `despacho_diferencias` (tabla de la fase 4, vacía en producción) se cambia solo si todavía no tiene `reposicion`; un disparador
+-- `despacho_diferencias` (tabla de la fase 4, vacía en producción) se cambia solo si todavía no tiene `reposicion_faltante`; un disparador
 -- diferido nuevo sobre esa tabla (`create constraint trigger`, guardado con «si no existe»: no admite `or replace`); sin `drop trigger`
 -- ni políticas (ADR-0195) y sin `select … into` dentro de textos entre comillas (ADR-0288). Los reemplazos abortan SIN TOCAR NADA si la
 -- función viva cambió y no hacen nada si ya están aplicados: se puede pegar dos veces. El bloque final comprueba que quedó todo.
@@ -91,7 +92,7 @@ create table if not exists retail.proveedor_deuda_resoluciones (
   -- `repuesta`: llegó la prenda (en una recepción o a mano). `saldo_a_favor` y `deposito`: reservadas para la fase 5b (dinero).
   forma text not null,
   cantidad integer not null check (cantidad > 0),
-  -- La recepción (ENV-…) donde llegó la reposición y su sobrante «reposicion» que la trajo; las dos nulas si se marcó a mano.
+  -- La recepción (ENV-…) donde llegó la reposición y su sobrante «reposicion_faltante» que la trajo; las dos nulas si se marcó a mano.
   despacho_id uuid references retail.despachos (id),
   sobrante_id uuid references retail.despacho_diferencias (id),
   nota text,
@@ -164,7 +165,7 @@ begin
       from retail.despacho_diferencias x
      where x.id = new.sobrante_id
        for update;
-    if not found or v_sobrante.tipo <> 'sobrante' or v_sobrante.causa <> 'reposicion'
+    if not found or v_sobrante.tipo <> 'sobrante' or v_sobrante.causa <> 'reposicion_faltante'
        or v_sobrante.despacho_id is distinct from new.despacho_id or v_sobrante.despacho_id = v_deuda.despacho_id
        or v_sobrante.proveedor_id <> v_deuda.proveedor_id or v_sobrante.categoria_id <> v_deuda.categoria_id
        or v_sobrante.marca_id <> v_deuda.marca_id then
@@ -191,17 +192,17 @@ do $do$
 begin
   if not exists (select 1 from pg_constraint c
                   where c.conrelid = 'retail.despacho_diferencias'::regclass and c.conname = 'despacho_diferencias_causa'
-                    and pg_get_constraintdef(c.oid) like '%reposicion%') then
+                    and pg_get_constraintdef(c.oid) like '%reposicion_faltante%') then
     alter table retail.despacho_diferencias drop constraint if exists despacho_diferencias_causa;
     alter table retail.despacho_diferencias add constraint despacho_diferencias_causa check (
       (tipo = 'faltante' and causa in ('no_vino', 'se_perdio', 'otra_sede'))
-      or (tipo = 'sobrante' and causa in ('regalo', 'cobra_aparte', 'proxima_compra', 'reposicion')));
+      or (tipo = 'sobrante' and causa in ('regalo', 'cobra_aparte', 'proxima_compra', 'reposicion_faltante')));
   end if;
 end;
 $do$;
 comment on table retail.despacho_diferencias is
   'ADR-0362 (fases 4 y 5): lo que faltó o sobró al recibir un envío, con su causa (faltante: no_vino, se_perdio, otra_sede; sobrante: '
-  'regalo, cobra_aparte, proxima_compra, reposicion). Un faltante no_vino es una deuda del proveedor: lo resuelto va en '
+  'regalo, cobra_aparte, proxima_compra, reposicion_faltante). Un faltante no_vino es una deuda del proveedor: lo resuelto va en '
   'proveedor_deuda_resoluciones. Solo se agrega, mientras el envío está abierto. Solo se lee y escribe por funciones (RLS sin políticas).';
 
 -- Lo que llegó como reposición se reparte ENTERO entre las deudas que salda (al confirmar la transacción: recibir_despacho escribe el
@@ -231,7 +232,7 @@ begin
     create constraint trigger despacho_diferencias_reposicion_repartida
       after insert on retail.despacho_diferencias
       deferrable initially deferred
-      for each row when (new.causa = 'reposicion')
+      for each row when (new.causa = 'reposicion_faltante')
       execute function retail.fn_reposicion_repartida();
   end if;
 end;
@@ -672,7 +673,7 @@ grant execute on function retail.resolver_deuda_proveedor(uuid, text, integer, t
 select pg_temp.reemplazar(
   'retail.recibir_despacho(uuid,integer,jsonb,jsonb,text,uuid)',
   $v$v_sobr not in ('regalo', 'cobra_aparte', 'proxima_compra')$v$,
-  $v$v_sobr not in ('regalo', 'cobra_aparte', 'proxima_compra', 'reposicion')$v$,
+  $v$v_sobr not in ('regalo', 'cobra_aparte', 'proxima_compra', 'reposicion_faltante')$v$,
   2);
 
 -- 6b. Antes del papel y del stock: lo marcado como reposición cabe en lo que ese proveedor debe, y sus deudas quedan bloqueadas.
@@ -692,7 +693,7 @@ select pg_temp.reemplazar(
         and (x.proveedor_id, x.categoria_id, x.marca_id) in (
               select (u ->> 'proveedor_id')::uuid, (u ->> 'categoria_id')::uuid, (u ->> 'marca_id')::uuid
                 from jsonb_array_elements(v_unidades) u
-               where u ->> 'sobrante_causa' = 'reposicion')
+               where u ->> 'sobrante_causa' = 'reposicion_faltante')
       order by x.id
         for update;
     for v_rep in
@@ -702,7 +703,7 @@ select pg_temp.reemplazar(
                      (u ->> 'marca_id')::uuid as marca_id,
                      sum((u ->> 'contado')::integer - (u ->> 'enviado')::integer)::integer as repuesto
                 from jsonb_array_elements(v_unidades) u
-               where u ->> 'sobrante_causa' = 'reposicion'
+               where u ->> 'sobrante_causa' = 'reposicion_faltante'
                group by 1, 2, 3) g
         join retail.proveedores pr on pr.id = g.proveedor_id
         join retail.categorias c on c.id = g.categoria_id
@@ -744,7 +745,7 @@ select pg_temp.reemplazar(
         left join retail.despacho_items xd on xd.id = x.despacho_item_id
         left join retail.orden_compra_items xi on xi.id = xd.orden_compra_item_id
         left join retail.ordenes_compra xo on xo.id = xi.orden_compra_id
-       where x.despacho_id = p_despacho_id and x.tipo = 'sobrante' and x.causa = 'reposicion'
+       where x.despacho_id = p_despacho_id and x.tipo = 'sobrante' and x.causa = 'reposicion_faltante'
        order by x.extra_posicion nulls first, xo.numero, xi.posicion
     loop
       v_resto := v_sob.cantidad;
@@ -780,7 +781,7 @@ select pg_temp.reemplazar(
 comment on function retail.recibir_despacho(uuid, integer, jsonb, jsonb, text, uuid) is
   'ADR-0362 (fases 4 y 5): cierra la recepción de un envío abierto. Por línea (todas, una vez): lo contado talla por talla (buenas al '
   'almacén, dañadas a la cuarentena con su fila en prendas_danadas), el costo corregido (promedio ponderado), lo que faltó o sobró '
-  'con su causa; y lo que no estaba en la guía. Un sobrante «reposicion» (fase 5) solo vale si ese proveedor debe eso de esa categoría '
+  'con su causa; y lo que no estaba en la guía. Un sobrante «reposicion_faltante» (fase 5) solo vale si ese proveedor debe eso de esa categoría '
   'y marca por envíos anteriores, y salda sus deudas de la más antigua a la más nueva (proveedor_deuda_resoluciones). Un lote por '
   'proveedor; las entradas llevan la línea del papel hasta su cupo. Costo atípico: hint recepcion_costo_atipico con el detalle en '
   'JSON. Módulo Recibir, su sede y la decisión 17. Token + huella; versión vieja: PT409. Devuelve {despacho_id, numero, lotes, '
@@ -848,8 +849,8 @@ begin
   end if;
   if not exists (select 1 from pg_constraint c
                   where c.conrelid = 'retail.despacho_diferencias'::regclass and c.conname = 'despacho_diferencias_causa'
-                    and pg_get_constraintdef(c.oid) like '%reposicion%') then
-    raise exception 'el candado despacho_diferencias_causa no tiene la causa reposicion';
+                    and pg_get_constraintdef(c.oid) like '%reposicion_faltante%') then
+    raise exception 'el candado despacho_diferencias_causa no tiene la causa reposicion_faltante';
   end if;
   foreach v_funcion in array array[
     'retail.fn_proveedor_nos_debe(uuid)',
@@ -878,7 +879,7 @@ begin
     raise exception 'una de las funciones de «Nos debe» quedó con dos versiones';
   end if;
   v_def := pg_get_functiondef('retail.recibir_despacho(uuid,integer,jsonb,jsonb,text,uuid)'::regprocedure);
-  if (length(v_def) - length(replace(v_def, $t$'proxima_compra', 'reposicion')$t$, ''))) / length($t$'proxima_compra', 'reposicion')$t$) <> 2
+  if (length(v_def) - length(replace(v_def, $t$'proxima_compra', 'reposicion_faltante')$t$, ''))) / length($t$'proxima_compra', 'reposicion_faltante')$t$) <> 2
      or position('retail.fn_nos_debe_pendiente(g.proveedor_id' in v_def) = 0
      or position('insert into retail.proveedor_deuda_resoluciones' in v_def) = 0 then
     raise exception 'recibir_despacho no quedó con la reposición';

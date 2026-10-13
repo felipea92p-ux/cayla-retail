@@ -50,7 +50,7 @@ las causas de faltante `no_vino`/`se_perdio`/`otra_sede` y de sobrante `regalo`/
    - `retail.fn_nos_debe_resumen()`: por proveedor, unidades y monto pendientes (para la lista de proveedores, el aviso de la orden
      nueva y, si se quiere, el Inicio).
 2. **«Llegó la reposición» en la recepción** (decisión 14: «se cuenta en la próxima recepción de ese proveedor»): la fase 4 suma la
-   causa de sobrante `reposicion` (en una línea con más de lo enviado o en «algo que no estaba en la guía»). `recibir_despacho` la
+   causa de sobrante `reposicion_faltante` (en una línea con más de lo enviado o en «algo que no estaba en la guía»). `recibir_despacho` la
    acepta solo si ese proveedor tiene deudas abiertas de esa categoría y marca, y escribe una resolución `repuesta` por lo que alcanza
    (las más antiguas primero, con el `despacho_id` de esta recepción). Lo que pase de lo debido se rechaza con un mensaje claro (es un
    sobrante con otra causa). La prenda entra a stock como todo lo recibido.
@@ -102,3 +102,5 @@ no, RLS sin políticas).
 - La Actividad de «Llegó la reposición» marcada a mano va en el módulo Proveedores (o Recibir para quien solo tiene Recibir), sin montos.
 - Pantalla: «Prendas por reponer» va ENCIMA del saldo a favor (al lado se partía en 4 renglones); la cantidad viene sugerida con todo
   lo pendiente; la hoja usa `pie-hoja-fijo`. No se construyó el chip «Te debe S/ X» en la lista de proveedores.
+- **El valor de la causa es `reposicion_faltante`, no `reposicion`:** esa palabra ya es el motivo de movimiento «Encontré prendas», y la
+  prueba que vigila esa puerta (`pruebas:cierre-carga-inicial`) las confundía (CI de la fase 5a, 2026-10-12).

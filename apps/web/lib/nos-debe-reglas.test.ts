@@ -504,7 +504,7 @@ describe("las deudas del envío (fn_envio_detalle.deudas_del_proveedor)", () => 
 
   it("la opción dice cuánto se debe, antes y después de elegirla", () => {
     const o = opcionReposicion(1, "Textiles Andina SAC", { categoria: "Polos", marca: "CAYLA" });
-    expect(o.valor).toBe("reposicion");
+    expect(o.valor).toBe("reposicion_faltante");
     expect(o.texto).toBe("Es la reposición de lo que faltó");
     expect(o.aviso).toBe("Textiles Andina SAC te debe 1 polo CAYLA de un envío anterior. Si es lo que faltó, elige «Es la reposición de lo que faltó».");
     expect(o.ayuda).toBe("Se descuentan de lo que Textiles Andina SAC te debe (1 polo CAYLA por reponer).");

@@ -596,7 +596,7 @@ export function cubrirReposiciones(deudas: readonly DeudaDelEnvio[] | null | und
 }
 
 /** La opción de la recepción, con lo que ese proveedor debe de esto: `aviso` antes de elegir, `ayuda` después. */
-export const VALOR_REPOSICION = "reposicion";
+export const VALOR_REPOSICION = "reposicion_faltante";
 export const TEXTO_REPOSICION = "Es la reposición de lo que faltó";
 export function opcionReposicion(
   pendiente: number,

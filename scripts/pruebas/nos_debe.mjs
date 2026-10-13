@@ -233,7 +233,7 @@ const LIN = (di, vars, { costo = "null::numeric", falt = null, sobr = null, nota
     sobrante_causa: sobr ? `'${sobr}'` : "null::text",
     ...(nota ? { nota: `'${nota}'` } : {}),
   });
-const EXTRA = ({ prov = "null::uuid", cat = ":'cat'", marca = ":'marca'", costo = "20", vars, sobr = "'reposicion'" }) =>
+const EXTRA = ({ prov = "null::uuid", cat = ":'cat'", marca = ":'marca'", costo = "20", vars, sobr = "'reposicion_faltante'" }) =>
   J({ proveedor_id: prov, categoria_id: cat, marca_id: marca, costo_unitario: costo, confirma_costo: "false", variantes: A(...vars), sobrante_causa: sobr });
 
 // Felipe (líder, Admin: firma él sin combo) envía, y la versión queda en :v_<nombre>. `lineas`: [[orden_compra_item, cantidad]].
@@ -566,12 +566,12 @@ caso(
    ${como(MICAELA)}${EN_TIENDA}
    select pg_temp.detalle(:'d3') as antes \\gset
    ${ABRE("d3")}
-   select pg_temp.e(${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 8)], { sobr: "reposicion" }), LIN("di_l2", [V("vc_s", 6)])))}) as de_mas \\gset
-   select pg_temp.e(${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 6)], { sobr: "reposicion" }), LIN("di_l2", [V("vc_s", 7)], { sobr: "reposicion" })))}) as otra_cat \\gset
+   select pg_temp.e(${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 8)], { sobr: "reposicion_faltante" }), LIN("di_l2", [V("vc_s", 6)])))}) as de_mas \\gset
+   select pg_temp.e(${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 6)], { sobr: "reposicion_faltante" }), LIN("di_l2", [V("vc_s", 7)], { sobr: "reposicion_faltante" })))}) as otra_cat \\gset
    reset role;
    select ${STOCK("vp_s")} as stock0 \\gset
    ${como(MICAELA)}${EN_TIENDA}
-   select ${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 4), V("vp_m", 2)], { sobr: "reposicion", nota: "Vino la reposición" }), LIN("di_l2", [V("vc_s", 6)])))} as r \\gset
+   select ${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 4), V("vp_m", 2)], { sobr: "reposicion_faltante", nota: "Vino la reposición" }), LIN("di_l2", [V("vc_s", 6)])))} as r \\gset
    select pg_temp.detalle(:'d3') as despues \\gset
    select pg_temp.debe(:'prov') as f \\gset
    reset role;
@@ -607,11 +607,11 @@ caso(
     "P0001|recepcion_reposicion_sin_deuda|Proveedor Nos Debe Prueba no debe nada de Chompas Nos Debe · Marca Nos Debe Prueba: elige otra causa para lo de más",
     "OK:3:12",
     "4+2",
-    "sobrante:reposicion:3:20.00:Vino la reposición",
+    "sobrante:reposicion_faltante:3:20.00:Vino la reposición",
     "x2 2/2, x1 1/2",
     "x2:2:repuesta:true:true:true:sin nota,x1:1:repuesta:true:true:true:sin nota",
     "Polos Nos Debe=1,Chompas Nos Debe=0",
-    "sobrante:reposicion:3",
+    "sobrante:reposicion_faltante:3",
     "ENV:1:ENV:1",
     "1",
   ].join(" / "),
@@ -622,7 +622,7 @@ caso(
    ${ENVIA("d1", [["l1", 4], ["l3", 4]])}${ITEM("d1", "l1")}${ITEM("d1", "l3")}
    ${como(MICAELA)}${EN_TIENDA}
    ${ABRE("d1")}
-   select pg_temp.e(${RECIBE("d1", A(LIN("di_l1", [V("vp_s", 2)], { falt: "no_vino" }), LIN("di_l3", [V("vp_s", 6)], { sobr: "reposicion" })))}) as r \\gset
+   select pg_temp.e(${RECIBE("d1", A(LIN("di_l1", [V("vp_s", 2)], { falt: "no_vino" }), LIN("di_l3", [V("vp_s", 6)], { sobr: "reposicion_faltante" })))}) as r \\gset
    reset role;
    select :'r' || ' / ' || (select d.estado from retail.despachos d where d.id = :'d1');`,
   "P0001|recepcion_reposicion_sin_deuda|Proveedor Nos Debe Prueba no debe nada de Polos Nos Debe · Marca Nos Debe Prueba: elige otra causa para lo de más / abierto",
@@ -733,7 +733,7 @@ caso(
    reset role;
    -- Con el envío abierto, a mano (sin recibir_despacho): una chompa que llegó como reposición.
    insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por)
-     values (:'d3', :'di_d3_l2', :'prov', :'cat2', :'marca', 'sobrante', 'reposicion', 1, 30, :'micaela_p') returning id as sob \\gset
+     values (:'d3', :'di_d3_l2', :'prov', :'cat2', :'marca', 'sobrante', 'reposicion_faltante', 1, 30, :'micaela_p') returning id as sob \\gset
    select concat_ws(' / ', :'rec_x1', :'rec_x2',
      -- La chompa no salda la deuda de polos.
      pg_temp.intento(format('insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, despacho_id, sobrante_id, creado_por) values (%L, %L, 1, %L, %L, %L)',
@@ -747,15 +747,15 @@ caso(
      -- No reparte más de lo que trajo.
      pg_temp.intento(format('insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, despacho_id, sobrante_id, creado_por) values (%L, %L, 2, %L, %L, %L)',
        :'x2', 'repuesta', :'d3', :'sob', :'micaela_p')),
-     -- «reposicion» es un sobrante, nunca un faltante.
+     -- «reposicion_faltante» es un sobrante, nunca un faltante.
      pg_temp.intento(format('insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por) values (%L, %L, %L, %L, %L, %L, %L, 1, 20, %L)',
-       :'d3', :'di_d3_l1', :'prov', :'cat', :'marca', 'faltante', 'reposicion', :'micaela_p'))) as r \\gset
+       :'d3', :'di_d3_l1', :'prov', :'cat', :'marca', 'faltante', 'reposicion_faltante', :'micaela_p'))) as r \\gset
    -- La chompa salda la deuda de chompas: así queda repartida y el caso cierra limpio.
    insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, despacho_id, sobrante_id, creado_por)
      values (:'x2', 'repuesta', 1, :'d3', :'sob', :'micaela_p');
    -- Un polo que llega como reposición y nadie reparte: al confirmar, el candado diferido lo frena (y se deshace).
    select :'r' || ' / ' || pg_temp.diferido(format('insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por) values (%L, %L, %L, %L, %L, %L, %L, 1, 20, %L)',
-       :'d3', :'di_d3_l1', :'prov', :'cat', :'marca', 'sobrante', 'reposicion', :'micaela_p'))
+       :'d3', :'di_d3_l1', :'prov', :'cat', :'marca', 'sobrante', 'reposicion_faltante', :'micaela_p'))
      || ' / ' || ${ESTADO("x2")} || ' / ' || (select count(*) from retail.despacho_diferencias where despacho_id = :'d3');`,
   [
     "OK", "OK",
