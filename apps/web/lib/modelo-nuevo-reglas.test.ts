@@ -543,7 +543,10 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
   it("#8 cerrar con datos escritos (Escape, clic fuera o Cancelar) pregunta «¿Salir sin guardar?» con el mismo hook que Registrar gasto; guardar bien cierra directo", () => {
     const f = form();
     expect(f).toContain("useSalidaSinGuardar");
-    expect(f).toContain('<Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)}');
+    // Escape, clic fuera y ✕ preguntan por `antesDeCerrar` (la hoja sigue a la vista); `onClose` es solo el cierre de verdad. Pasar la pregunta por `onClose` la hacía con la hoja ya
+    // cerrada y, con «Seguir editando», la pantalla dejaba de responder (/pantalla 2026-10-13; lo vigila también lib/hojas-salida-sin-guardar.test.ts).
+    expect(f).toContain('<Modal titulo="Nueva orden de producción" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}');
+    expect(f).not.toContain("onClose={() => avisoSalida.pedirAccion(onClose)}");
     expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».
     const foto = /fotoFormulario\(\{([^}]*)\}\)/.exec(f)?.[1] ?? "";

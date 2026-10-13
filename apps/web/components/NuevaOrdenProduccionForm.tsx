@@ -264,7 +264,7 @@ export function NuevaOrdenProduccionForm({
   const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total, costos: { tela, avios, maquila } }));
 
   // «¿Salir sin guardar?» (2026-09-28; /chaos NAV-04, 2026-10-10). Escape, el clic fuera y «Cancelar» cerraban la hoja y TODO lo escrito (nombre, tallas, colores, la matriz
-  // de cantidades) se perdía sin avisar. Mismo hook que «Registrar gasto»: la foto cuenta el TRABAJO (lo escrito y lo elegido para el modelo nuevo), no el tipo, el modo ni el modelo de la
+  // de cantidades) se perdía sin avisar. Mismo hook que «Registrar gasto». Escape, el clic fuera y la ✕ preguntan por `antesDeCerrar` y NO por `onClose` (que corre después de animar la salida: con «Seguir editando» la hoja quedaba invisible y la pantalla sin responder; /pantalla 2026-10-13, `lib/hojas-salida-sin-guardar.test.ts`). La foto cuenta el TRABAJO (lo escrito y lo elegido para el modelo nuevo), no el tipo, el modo ni el modelo de la
   // lista: abrir la hoja y mirar «Modelo nuevo» no es nada que perder. Guardar bien cierra directo.
   const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, tela, avios, maquila, fechaEntrega, nota });
   const [fotoAlAbrir] = useState(fotoActual);
@@ -434,7 +434,7 @@ export function NuevaOrdenProduccionForm({
   }
 
   return (
-    <Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)} ancho="max-w-2xl">
+    <Modal titulo="Nueva orden de producción" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
         {/* El modelo primero (ADR-0396, A1): el buscador, o la tarjeta del elegido, o los campos del modelo nuevo. El interruptor del tipo aparece cuando ya hay modelo. */}
         <div data-guia="prod-orden-nueva.modelo" className="space-y-4">
