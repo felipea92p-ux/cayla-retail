@@ -450,6 +450,11 @@
   "src_table": "orden_compra_versiones"
  },
  {
+  "conname": "orden_insumo_versiones_reemplazada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_versiones"
+ },
+ {
   "conname": "ordenes_compra_actualizada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ordenes_compra"
@@ -463,6 +468,21 @@
   "conname": "ordenes_compra_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_insumo_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
  },
  {
   "conname": "parametros_liquidacion_actualizado_por_fkey",

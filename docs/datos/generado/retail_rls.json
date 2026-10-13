@@ -569,7 +569,22 @@
   "relkind": "r",
   "rls": true
  },
+ "orden_insumo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_insumo_versiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ordenes_compra": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ordenes_insumo": {
   "forzado": false,
   "relkind": "r",
   "rls": true

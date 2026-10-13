@@ -211,7 +211,11 @@ export const AVIARIO = [
       "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila",
       // ADR-0161 (act. d): quién movió cada orden de etapa; solo la escribe `set_etapa_produccion`. Asignada en el refresco
       // del volcado del 2026-09-25.
-      "produccion_etapas_historial"] },
+      "produccion_etapas_historial",
+      // ADR-0362 (fase 7, parte 1): la orden de insumos del Taller (OI-000001), sus líneas y lo que decía antes de cada edición.
+      // Son del Taller y no de Compras: otros proveedores, otro correlativo y su propio módulo (decisiones 25, 28 y 47). Asignadas
+      // en el refresco del volcado del 2026-10-13.
+      "ordenes_insumo", "orden_insumo_items", "orden_insumo_versiones"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la

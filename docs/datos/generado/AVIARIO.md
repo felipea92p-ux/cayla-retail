@@ -4,7 +4,7 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 188 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 191 · **Sin pájaro:** 0
 
 ## Por pájaro
 
@@ -19,7 +19,7 @@
 | 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `cierres_cola_arranque` · `clientas` · `clientas_fusiones` · `club_aniversario_escala` · `club_avisos_enviados` · `club_canjes` · `club_etiquetas` · `club_intentos_registro` · `club_invitaciones` · `club_permisos` · `club_textos` · `codigos_descuento` · `cola_arranque_plazo` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `metas_persona_ajustes` · `parametros_liquidacion` · `pedidos_no_atendidos` · `piezas_liquidacion` · `piezas_liquidacion_etiquetas` · `prendas_por_regularizar` · `prendas_por_regularizar_correcciones` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `venta_pagos_correcciones` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobante_anticipos` · `comprobantes` · `configuracion_empresa` · `proformas` · `respaldo_b001_f001_renumeradas_20261007` · `respaldo_b002_renumeradas_20261002` · `series_comprobantes` · `ubicacion_datos_fiscales` |
 | 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_item_destinos` · `compra_item_reparto_resumen` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compra_parte_por_tienda` · `compra_reasignaciones` · `compradores_de_tienda` · `compras` · `compras_resumen` · `despacho_diferencias` · `orden_compra_items` · `orden_compra_versiones` · `ordenes_compra` · `planes_compra` · `planes_compra_lineas` · `planes_compra_reparto` · `proveedor_creditos` · `proveedor_deuda_resoluciones` · `proveedores` · `ventas_historicas` |
-| 10 | **Gallito** | Producción del Taller | `comprobantes_produccion` · `comprobantes_produccion_cierres` · `comprobantes_produccion_items` · `comprobantes_produccion_pagos` · `comprobantes_produccion_recepciones` · `cotizaciones_maquila` · `insumo_lotes` · `insumos` · `movimientos_insumo` · `produccion_etapas_historial` · `produccion_lineas` · `producciones` · `proveedores_produccion` · `v_insumo_saldos` |
+| 10 | **Gallito** | Producción del Taller | `comprobantes_produccion` · `comprobantes_produccion_cierres` · `comprobantes_produccion_items` · `comprobantes_produccion_pagos` · `comprobantes_produccion_recepciones` · `cotizaciones_maquila` · `insumo_lotes` · `insumos` · `movimientos_insumo` · `orden_insumo_items` · `orden_insumo_versiones` · `ordenes_insumo` · `produccion_etapas_historial` · `produccion_lineas` · `producciones` · `proveedores_produccion` · `v_insumo_saldos` |
 | 11 | **Garza** | Finanzas operativas | `categorias_gasto` · `conciliaciones` · `cuentas_asignadas` · `cuentas_dinero` · `dinero_revisados` · `egresos_no_gasto` · `gastos` · `gastos_fijos` · `gastos_fijos_descartados` · `gastos_legado_2026_09` · `medios_de_cobro` · `movimientos_dinero` · `parametros_finanzas` · `planilla_por_sede` · `presupuestos` |
 | 12 | **Urraca** | Contabilidad | `activos_fijos` · `cuentas` · `diario_cerrado` · `parametros_tributarios` · `periodo_cierres` · `periodos` · `saldos_iniciales` · `tipos_activo` |
 | 13 | **Águila** | Inteligencia y reportes | `actividad` |
@@ -145,7 +145,10 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `movimientos_internos_intentos` | 05 · Halcón |
 | `orden_compra_items` | 09 · Pelícano |
 | `orden_compra_versiones` | 09 · Pelícano |
+| `orden_insumo_items` | 10 · Gallito |
+| `orden_insumo_versiones` | 10 · Gallito |
 | `ordenes_compra` | 09 · Pelícano |
+| `ordenes_insumo` | 10 · Gallito |
 | `parametros_analisis` | 05 · Halcón |
 | `parametros_finanzas` | 11 · Garza |
 | `parametros_liquidacion` | 07 · Colibrí |

@@ -4420,6 +4420,91 @@
   "tabla": "retail.orden_compra_versiones"
  },
  {
+  "conname": "orden_insumo_items_cantidad_check",
+  "definicion": "CHECK ((cantidad > (0)::numeric))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_descripcion_check",
+  "definicion": "CHECK (((descripcion IS NULL) OR (btrim(descripcion) <> ''::text)))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_descuento_check",
+  "definicion": "CHECK ((descuento >= (0)::numeric))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_descuento_cuadra",
+  "definicion": "CHECK (((descuento_pct IS NULL) OR (descuento = round(((round((cantidad * precio_unitario), 2) * descuento_pct) / (100)::numeric), 2))))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_descuento_pct_check",
+  "definicion": "CHECK (((descuento_pct IS NULL) OR ((descuento_pct >= (0)::numeric) AND (descuento_pct <= (100)::numeric))))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_descuento_tope",
+  "definicion": "CHECK ((descuento <= round((cantidad * precio_unitario), 2)))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_insumo_id_fkey",
+  "definicion": "FOREIGN KEY (insumo_id) REFERENCES retail.insumos(id)",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_orden_insumo_id_fkey",
+  "definicion": "FOREIGN KEY (orden_insumo_id) REFERENCES retail.ordenes_insumo(id)",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_posicion_check",
+  "definicion": "CHECK ((posicion > 0))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_posicion_unica",
+  "definicion": "UNIQUE (orden_insumo_id, posicion)",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_precio_unitario_check",
+  "definicion": "CHECK ((precio_unitario >= (0)::numeric))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_items_unidad_medida_check",
+  "definicion": "CHECK ((btrim(unidad_medida) <> ''::text))",
+  "tabla": "retail.orden_insumo_items"
+ },
+ {
+  "conname": "orden_insumo_versiones_orden_insumo_id_fkey",
+  "definicion": "FOREIGN KEY (orden_insumo_id) REFERENCES retail.ordenes_insumo(id)",
+  "tabla": "retail.orden_insumo_versiones"
+ },
+ {
+  "conname": "orden_insumo_versiones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.orden_insumo_versiones"
+ },
+ {
+  "conname": "orden_insumo_versiones_reemplazada_por_fkey",
+  "definicion": "FOREIGN KEY (reemplazada_por) REFERENCES personas(id)",
+  "tabla": "retail.orden_insumo_versiones"
+ },
+ {
+  "conname": "orden_insumo_versiones_unica",
+  "definicion": "UNIQUE (orden_insumo_id, version)",
+  "tabla": "retail.orden_insumo_versiones"
+ },
+ {
   "conname": "ordenes_compra_actualizada_por_fkey",
   "definicion": "FOREIGN KEY (actualizada_por) REFERENCES personas(id)",
   "tabla": "retail.ordenes_compra"
@@ -4478,6 +4563,66 @@
   "conname": "ordenes_compra_version_check",
   "definicion": "CHECK ((version > 0))",
   "tabla": "retail.ordenes_compra"
+ },
+ {
+  "conname": "ordenes_insumo_actualizada_por_fkey",
+  "definicion": "FOREIGN KEY (actualizada_por) REFERENCES personas(id)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_anulacion",
+  "definicion": "CHECK (\nCASE\n    WHEN (estado = 'anulada'::text) THEN ((anulada_por IS NOT NULL) AND (anulada_en IS NOT NULL) AND (COALESCE(btrim(motivo_anulacion), ''::text) <> ''::text))\n    ELSE ((anulada_por IS NULL) AND (anulada_en IS NULL) AND (motivo_anulacion IS NULL))\nEND)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_anulada_por_fkey",
+  "definicion": "FOREIGN KEY (anulada_por) REFERENCES personas(id)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_creada_por_fkey",
+  "definicion": "FOREIGN KEY (creada_por) REFERENCES personas(id)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_entrega",
+  "definicion": "CHECK (((fecha_entrega_estimada IS NULL) OR (fecha_entrega_estimada >= fecha_emision)))",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_estado",
+  "definicion": "CHECK ((estado = ANY (ARRAY['generada'::text, 'anulada'::text])))",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_nota_check",
+  "definicion": "CHECK (((nota IS NULL) OR (btrim(nota) <> ''::text)))",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_numero_unico",
+  "definicion": "UNIQUE (numero)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_ubicacion_destino_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_destino_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_version_check",
+  "definicion": "CHECK ((version > 0))",
+  "tabla": "retail.ordenes_insumo"
  },
  {
   "conname": "parametros_analisis_liquidar_desde_rango",
@@ -7283,6 +7428,11 @@
   "conname": "venta_items_venta_id_fkey",
   "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
   "tabla": "retail.venta_items"
+ },
+ {
+  "conname": "venta_pagos_anticipo_solo_de_apartado",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.venta_pagos"
  },
  {
   "conname": "venta_pagos_cuenta_dinero_id_fkey",
