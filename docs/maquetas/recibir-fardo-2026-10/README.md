@@ -77,6 +77,17 @@ categoría no anunciada es sobrante «no pedido»; un fardo cerrado se puede rea
 | 9 | ¿Varias personas a la vez? | **Sí; firma quien cierra; cada categoría guarda quién la contó** | Candado por categoría (gana el último que guarda, con aviso) |
 | 10 | ¿Y «Llegó mercadería»? | **La reemplaza; «sin aviso» sigue siempre** | Una sola puerta; lo sin despacho queda marcado para Compras |
 
+## Cómo sigue (2026-10-13, tarde): la base ya existe, el contrato es ADR-0393
+
+**Lo que cambió al empezar a construir.** La recepción en la sede que este README daba «sin dueño» (fase 3 de ADR-0362) la construyó
+la sesión de Órdenes de compra como su **fase 4**, y su base **está en producción desde el 2026-10-13** (`despachos`, `despacho_recibidos`,
+`despacho_diferencias`, `abrir_despacho`, `recibir_despacho`…; 0 envíos). Pero con otro modelo: detallar talla × color de todo antes de
+cerrar. **El contrato que une las dos cosas es `docs/adr/0393-recibir-contando-primero-sobre-el-envio.md`**: una sola recepción, el envío
+de producción, con lo que la cara A agrega (el conteo guardado por línea, los pendientes y el reabrir). Lo que este README dice de
+`fardos`, `fardo_items_detalle`, `fn_despachos_por_abrir`, `abrir_fardo`/`recibir_fardo`, `recepcion_conteos`, `fardo_pendientes` y
+`prendas_por_crear` **queda superado por ese ADR**, y también las causas de sobrante: mandan las de producción. El plan de 6 actividades
+está al final del ADR (el «Cómo sigue» que se anunció el 13-oct no llegó a este archivo).
+
 ## Qué hay hoy y qué le falta
 
 `/recibir` abre en «Llegó mercadería» (ADR-0330, 2026-10-04): se elige el proveedor, se escanea o busca cada prenda y cada lectura suma
