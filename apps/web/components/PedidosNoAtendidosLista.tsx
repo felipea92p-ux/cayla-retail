@@ -7,6 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { PedidoNoAtendido } from "@/lib/pedidos-no-atendidos";
 import { describirMotivo } from "@/lib/se-probo-reglas";
@@ -37,7 +38,7 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
   return (
     <div className="space-y-7">
       <section data-guia="pedidos.pendientes" className="space-y-3">
-        <h2 className="label-cayla text-tinta/60">Pendientes ({pendientes.length})</h2>
+        <TituloSeccion dato={<b>{pendientes.length}</b>}>Pendientes</TituloSeccion>
         {pendientes.length === 0 ? (
           <p className="text-sm text-tinta/60">Ningún pedido pendiente en esta sede.</p>
         ) : (
@@ -51,7 +52,7 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
 
       {resueltos.length > 0 && (
         <section data-guia="pedidos.resueltos" className="space-y-3">
-          <h2 className="label-cayla text-tinta/60">Resueltos ({resueltos.length})</h2>
+          <TituloSeccion dato={<b>{resueltos.length}</b>}>Resueltos</TituloSeccion>
           <ul className="divide-y divide-tinta/10 rounded-md border border-tinta/10 opacity-60">
             {resueltos.map((pedido) => (
               <FilaPedido key={pedido.id} pedido={pedido} resolviendo={false} onResolver={undefined} />

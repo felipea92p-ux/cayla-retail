@@ -22,6 +22,7 @@ import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, pregunta
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { Volver } from "@/components/ui/Volver";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 /* ====================================================================
    Confirmar conteo · el último paso: lo que va a cambiar, y cerrar
@@ -166,7 +167,7 @@ export function ConfirmarConteo({
   return (
     <>
       <section ref={tarjeta} data-guia="confirmar.lista" className="card-cayla @container scroll-mt-24 space-y-4 p-4 sm:p-5">
-        <h2 className="font-display text-2xl text-tinta">{filas.length === 0 ? "No hay existencias que cambiar." : textoSeActualizaran(filas.length)}</h2>
+        <TituloSeccion>{filas.length === 0 ? "No hay existencias que cambiar." : textoSeActualizaran(filas.length)}</TituloSeccion>
 
         {negativas > 0 && (
           <p role="status" className="flex items-start gap-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">

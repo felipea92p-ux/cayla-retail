@@ -894,7 +894,7 @@ export function InventarioPanel({
             <span key={p.id}>
               {i > 0 && ", "}
               {verProductos ? (
-                <Link href={`/productos?q=${encodeURIComponent(p.referencia)}`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                <Link href={`/productos?q=${encodeURIComponent(p.referencia)}`} className="btn-enlace">
                   {p.referencia}
                 </Link>
               ) : (

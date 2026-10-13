@@ -492,7 +492,7 @@ export function PanelTalla({
             )}
             <div className="min-w-0">
               <Dialog.Title asChild>
-                <h2 className="truncate font-display text-[21px] leading-tight text-tinta">{prenda.referencia}</h2>
+                <h2 className="truncate font-display text-[21px] leading-tight text-tinta">{/* unificar-fijo: el título del cajón (Dialog.Title) con el nombre de la prenda, no de una sección */}{prenda.referencia}</h2>
               </Dialog.Title>
               <Dialog.Description asChild>
                 <p className="truncate text-[13px] text-taupe">
