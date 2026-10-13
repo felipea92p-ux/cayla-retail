@@ -550,7 +550,7 @@ Comun.iniciar({
       if (m.fardo) { const x = agregarLineaExtra("TOP", "cds"); M.contar(m, x.id, { valor: 3 }); nuevasSinN(x, { valor: 3 }); } // y llegaron 3 tops que nadie anunció
       if (en === "separar") { paso = 2; return; }
       paso = 3; if (en === "cerrar") return;
-      for (const l of m.lineas) if (M.diferencia(l)) M.ponerCausa(m, l.id, "proveedor");
+      for (const l of m.lineas) if (M.diferencia(l) && !l.causa) M.ponerCausa(m, l.id, "proveedor"); // la no anunciada ya trae la suya
       if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) !== m.dijeronTotal) m.causaTotal = "proveedor";
       m.responsable = "mari"; M.cerrar(m);
     }
