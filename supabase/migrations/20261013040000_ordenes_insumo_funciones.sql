@@ -29,11 +29,15 @@
 --      (nombre o código), sin tildes ni mayúsculas.
 --   7. `fn_orden_insumo(p_orden_id)`: el detalle (cabecera, quién la creó, la cambió o la anuló, las líneas con el nombre, el código, el
 --      tipo y la unidad del insumo, el total y las versiones archivadas con sus datos). NULL si no existe.
+--   8. `fn_orden_insumo_opciones()` (actividad 2, las pantallas): lo que el formulario ofrece elegir —los proveedores del Taller activos
+--      (id, nombre, RUC y rubro), los insumos sin archivar (con su código, tipo, unidad y proveedor de costumbre) y los talleres activos—.
+--      Hace falta porque `proveedores_produccion` solo la lee el líder por RLS (`proveedores_produccion_select_lider`, con cuentas
+--      bancarias): quien tiene SOLO este módulo no podría llenar la orden. Devuelve lo justo para elegir, NUNCA los datos bancarios.
 --   Piezas internas, que no llama la web: el número como se dice (`fn_orden_insumo_numero_texto`), el descuento en soles
 --   (`fn_orden_insumo_descuento`), la foto de una orden (`fn_orden_insumo_foto`), las reglas (`fn_orden_insumo_validar`, una sola para
 --   crear y editar), las huellas que comparan lo pedido con lo guardado, la escritura de las líneas, el «¿es el mismo pedido?» y la sede
 --   de la línea de Actividad.
---   Las seis de la web exigen el módulo `ordenes_insumos` (42501, hint `ordenes_insumos_sin_modulo`) y nada más: ni `fn_es_lider` ni el
+--   Las siete de la web exigen el módulo `ordenes_insumos` (42501, hint `ordenes_insumos_sin_modulo`) y nada más: ni `fn_es_lider` ni el
 --   candado de dinero del Taller (decisión 47: quien tiene el módulo ve y hace todo en estas órdenes, con sus precios).
 --   «Actividad» (ADR-0207): crear, editar y anular anotan su línea en el módulo `ordenes_insumos`, SIN montos ni cantidades, como la
 --   orden de tienda; se ve en la sede desde donde se operó y en el Taller. Un error al anotar nunca detiene el guardado (deja un WARNING).
@@ -928,20 +932,71 @@ comment on function retail.fn_orden_insumo(uuid) is
   'ADR-0362 fase 7: una orden de insumos con sus líneas (nombre, código, tipo y unidad del insumo), quién la creó, la cambió o la '
   'anuló, el total y las versiones archivadas. NULL si no existe. Exige el módulo ordenes_insumos.';
 
+-- ---------- 8b. Lo que el formulario ofrece elegir (lectura, actividad 2) ----------
+-- Los proveedores del Taller viven tras una política que solo deja leer al líder (y traen cuentas bancarias); quien tiene solo este
+-- módulo no podría elegir a quién se le pide. Esta lectura le da lo justo para llenar una orden —nombre, RUC y rubro del proveedor; el
+-- insumo con su código y su unidad; los talleres— y nada de la plata del Taller (decisión 47). Lo inactivo no se ofrece: elegirlo
+-- terminaría en un rechazo al guardar (`fn_orden_insumo_validar`); lo que una orden ya tenía y hoy está inactivo lo suma la pantalla
+-- de editar desde el detalle de esa orden.
+create or replace function retail.fn_orden_insumo_opciones()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+begin
+  if retail.fn_ve_modulo('ordenes_insumos') is not true then
+    raise exception 'Llenar una orden de insumos necesita el módulo «Órdenes de insumos» en tu rol'
+      using errcode = '42501', hint = 'ordenes_insumos_sin_modulo';
+  end if;
+  return jsonb_build_object(
+    -- Sin banco, cuenta, CCI, billetera ni titular: solo lo que se necesita para elegir y para el papel de la orden.
+    'proveedores', coalesce((
+      select jsonb_agg(jsonb_build_object('id', pr.id, 'nombre', pr.nombre, 'ruc', pr.ruc, 'rubro', pr.rubro) order by pr.nombre, pr.id)
+        from retail.proveedores_produccion pr
+       where pr.activo
+    ), '[]'::jsonb),
+    -- `proveedor_id` es el proveedor de costumbre (la pantalla lo pone primero); no es un candado: cualquier insumo va con cualquier
+    -- proveedor (`fn_orden_insumo_validar`).
+    'insumos', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'id', n.id, 'codigo', n.codigo, 'nombre', n.nombre, 'tipo', n.tipo, 'unidad_medida', n.unidad_medida,
+               'proveedor_id', n.proveedor_id
+             ) order by n.nombre, n.codigo)
+        from retail.insumos n
+       where n.archivado_at is null
+    ), '[]'::jsonb),
+    -- A dónde llega: un taller activo, nunca una tienda (la misma regla que `fn_orden_insumo_validar`).
+    'talleres', coalesce((
+      select jsonb_agg(jsonb_build_object('id', u.id, 'nombre', u.nombre) order by u.nombre, u.id)
+        from retail.ubicaciones u
+       where u.tipo = 'taller'
+         and u.activo
+    ), '[]'::jsonb)
+  );
+end;
+$$;
+comment on function retail.fn_orden_insumo_opciones() is
+  'ADR-0362 fase 7: lo que el formulario de una orden de insumos ofrece elegir (proveedores del Taller activos con id, nombre, RUC y '
+  'rubro, sin datos bancarios; insumos sin archivar; talleres activos). Exige el módulo ordenes_insumos.';
+
 -- ---------- 9. Permisos ----------
--- Las seis de la web: `authenticated` (con el módulo, que cada una exige) y `service_role`; nunca `anon`.
+-- Las siete de la web: `authenticated` (con el módulo, que cada una exige) y `service_role`; nunca `anon`.
 revoke all on function retail.fn_ordenes_insumo_siguiente() from public, anon;
 revoke all on function retail.crear_orden_insumo(uuid, uuid, uuid, date, text, jsonb) from public, anon;
 revoke all on function retail.editar_orden_insumo(uuid, integer, uuid, uuid, date, text, jsonb) from public, anon;
 revoke all on function retail.anular_orden_insumo(uuid, integer, text) from public, anon;
 revoke all on function retail.fn_ordenes_insumo(text, uuid, text, integer, integer) from public, anon;
 revoke all on function retail.fn_orden_insumo(uuid) from public, anon;
+revoke all on function retail.fn_orden_insumo_opciones() from public, anon;
 grant execute on function retail.fn_ordenes_insumo_siguiente() to authenticated, service_role;
 grant execute on function retail.crear_orden_insumo(uuid, uuid, uuid, date, text, jsonb) to authenticated, service_role;
 grant execute on function retail.editar_orden_insumo(uuid, integer, uuid, uuid, date, text, jsonb) to authenticated, service_role;
 grant execute on function retail.anular_orden_insumo(uuid, integer, text) to authenticated, service_role;
 grant execute on function retail.fn_ordenes_insumo(text, uuid, text, integer, integer) to authenticated, service_role;
 grant execute on function retail.fn_orden_insumo(uuid) to authenticated, service_role;
+grant execute on function retail.fn_orden_insumo_opciones() to authenticated, service_role;
 
 -- Las piezas internas no se llaman desde la web.
 revoke all on function retail.fn_orden_insumo_numero_texto(integer) from public, anon, authenticated;

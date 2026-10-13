@@ -14,9 +14,12 @@
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; las dos migraciones se cargan dentro de cada caso: así se prueba que se pueden
  * pegar otra vez y corre igual con la base al día o sin ella).
  *   M  EL MÓDULO: en Producción, orden 205, delegable, no «solo líder»; nace SIN rol y lo ve solo el líder (ni Integrante ni las terminales).
- *   P  PUERTAS: sin el módulo ninguna de las seis responde (42501); con él, una integrante ve la lista y el detalle con precios
+ *   P  PUERTAS: sin el módulo ninguna de las siete responde (42501); con él, una integrante ve la lista y el detalle con precios
  *      (decisión 47); nadie toca las tablas directo (sin permisos, RLS sin políticas).
- *   S  LA FORMA: las seis de la web son security definer con su search_path, `authenticated` sí y `anon` no; las internas, cerradas; cada
+ *   O  LAS OPCIONES DEL FORMULARIO (`fn_orden_insumo_opciones`, actividad 2): sin el módulo no responden; traen solo lo que se puede
+ *      elegir (proveedores del Taller activos, insumos sin archivar, talleres activos) también a una integrante con el módulo, que leyendo
+ *      la tabla de proveedores directo no ve ninguno (su RLS es del líder); y ningún dato del banco ni del contacto del proveedor.
+ *   S  LA FORMA: las siete de la web son security definer con su search_path, `authenticated` sí y `anon` no; las internas, cerradas; cada
  *      una que guarda pregunta UNA vez por el actor (la regla de `actor_firma_las_operaciones.mjs`) y ninguna mira `auth.uid()`.
  *   C  CANDADOS DEL ESQUEMA: descuento mayor que el importe, % que no cuadra (sobre el importe redondeado), cantidad 0, posición repetida,
  *      unidad vacía; cabecera anulada sin motivo, con datos de anulación sin anular, entrega antes de la emisión, estado raro, número
@@ -306,7 +309,7 @@ caso(
 
 // P. PUERTAS --------------------------------------------------------------------------------------------------------------------
 caso(
-  "P1 sin el módulo ninguna de las seis responde (42501 / ordenes_insumos_sin_modulo), aunque mande la clave de la firma",
+  "P1 sin el módulo ninguna de las siete responde (42501 / ordenes_insumos_sin_modulo), aunque mande la clave de la firma",
   `${UNA_ORDEN}
    ${como(MICAELA)}
    ${encabezados({ "x-responsable-omitido": "orden_insumo_crear" })}
@@ -314,10 +317,11 @@ caso(
      pg_temp.eh(pg_temp.intento('select * from retail.fn_ordenes_insumo()')),
      pg_temp.eh(pg_temp.intento(format('select retail.fn_orden_insumo(%L)', :'oc'))),
      pg_temp.eh(pg_temp.intento('select retail.fn_ordenes_insumo_siguiente()')),
+     pg_temp.eh(pg_temp.intento('select retail.fn_orden_insumo_opciones()')),
      pg_temp.eh(${crea()}),
      pg_temp.eh(${edita({ nota: "'x'" })}),
      pg_temp.eh(${anula()}));`,
-  Array(6).fill("42501|ordenes_insumos_sin_modulo").join(",")
+  Array(7).fill("42501|ordenes_insumos_sin_modulo").join(",")
 );
 caso(
   "P2 con el módulo en su rol, una integrante (no líder) ve la lista y el detalle CON precios (decisión 47)",
@@ -346,8 +350,65 @@ caso(
   "f,t,0,f"
 );
 
+// O. LAS OPCIONES DEL FORMULARIO (actividad 2) ----------------------------------------------------------------------------------
+caso(
+  "O1 sin el módulo, las opciones del formulario no responden (42501 / ordenes_insumos_sin_modulo); anon no las ejecuta",
+  `${como(MICAELA)}
+   select pg_temp.eh(pg_temp.intento('select retail.fn_orden_insumo_opciones()')) as micaela \\gset
+   reset role;
+   select :'micaela' || ',' || has_function_privilege('anon', 'retail.fn_orden_insumo_opciones()', 'execute');`,
+  "42501|ordenes_insumos_sin_modulo,false"
+);
+caso(
+  "O2 traen solo lo que se puede elegir —proveedores del Taller activos, insumos sin archivar (con su unidad, tipo y proveedor de " +
+    "costumbre), talleres activos (ni una tienda ni un taller cerrado), por nombre— también a una integrante con el módulo, que leyendo " +
+    "la tabla de proveedores directo no ve ninguno (su RLS es del líder)",
+  `reset role;
+   insert into retail.proveedores_produccion (nombre, rubro, activo) values ('Inactivo OI Prueba', 'tela', false);
+   insert into retail.ubicaciones (nombre, tipo, activo) values ('Taller Cerrado OI Prueba', 'taller', false);
+   update retail.insumos set proveedor_id = :'prov' where id = :'lino';
+   ${MICAELA_CON_MODULO}
+   ${como(MICAELA)}
+   set local role authenticated;
+   select count(*) as directos from retail.proveedores_produccion where nombre like '%OI Prueba' \\gset
+   select retail.fn_orden_insumo_opciones() as o \\gset
+   reset role;
+   select concat_ws(' / ',
+     (select string_agg(p ->> 'nombre', '+' order by n) from jsonb_array_elements(:'o'::jsonb -> 'proveedores') with ordinality x(p, n)
+       where p ->> 'nombre' like '%OI Prueba'),
+     (select string_agg((i ->> 'codigo') || ':' || (i ->> 'unidad_medida') || ':' || (i ->> 'tipo') || ':'
+                        || ${si("(i ->> 'proveedor_id') = :'prov'", "de Telas Peña", "sin proveedor")}, '+' order by n)
+        from jsonb_array_elements(:'o'::jsonb -> 'insumos') with ordinality x(i, n) where i ->> 'codigo' like 'OIP-%'),
+     (select ${si("bool_and(u.tipo = 'taller' and u.activo) and bool_or(u.id = :'taller') and not bool_or(u.nombre like '%OI Prueba')", "solo talleres activos", "otra cosa")}
+        from jsonb_array_elements(:'o'::jsonb -> 'talleres') t join retail.ubicaciones u on u.id = (t ->> 'id')::uuid),
+     (select count(*) from jsonb_array_elements(:'o'::jsonb -> 'proveedores')) = (select count(*) from retail.proveedores_produccion where activo),
+     (select count(*) from jsonb_array_elements(:'o'::jsonb -> 'insumos')) = (select count(*) from retail.insumos where archivado_at is null),
+     'directo: ' || :'directos');`,
+  "Avíos Norte OI Prueba+Telas Peña OI Prueba / OIP-HILO:cono:avio:sin proveedor+OIP-LINO:metro:tela:de Telas Peña / solo talleres activos / t / t / directo: 0"
+);
+caso(
+  "O3 de cada proveedor, solo id, nombre, RUC y rubro: ni el banco, la cuenta, la CCI, la billetera, el titular ni el contacto (la plata del Taller no se abre, decisión 47)",
+  `reset role;
+   update retail.proveedores_produccion
+      set ruc = '20999888771', banco = 'Banco OI Prueba', cuenta_bancaria = '19100000000099', cci = '00219100000000009999',
+          celular_billetera = '987654321', billeteras = array['yape'], titular_cuenta = 'Titular OI Prueba',
+          contacto = 'Contacto OI Prueba', telefono = '911222333'
+    where id = :'prov';
+   ${como(FELIPE)}
+   select retail.fn_orden_insumo_opciones() as o \\gset
+   reset role;
+   select concat_ws(' / ',
+     (select string_agg(distinct k, ',' order by k) from jsonb_array_elements(:'o'::jsonb -> 'proveedores') p, jsonb_object_keys(p) k),
+     (select p ->> 'ruc' from jsonb_array_elements(:'o'::jsonb -> 'proveedores') p where (p ->> 'id')::uuid = :'prov'),
+     ${si(":'o' ~ 'Banco OI Prueba|19100000000099|00219100000000009999|987654321|Titular OI Prueba|Contacto OI Prueba|911222333'", "con datos del banco", "sin datos del banco")});`,
+  "id,nombre,rubro,ruc / 20999888771 / sin datos del banco"
+);
+
 // S. LA FORMA -------------------------------------------------------------------------------------------------------------------
-const PUBLICAS = ["fn_ordenes_insumo_siguiente", "crear_orden_insumo", "editar_orden_insumo", "anular_orden_insumo", "fn_ordenes_insumo", "fn_orden_insumo"];
+const PUBLICAS = [
+  "fn_ordenes_insumo_siguiente", "crear_orden_insumo", "editar_orden_insumo", "anular_orden_insumo", "fn_ordenes_insumo", "fn_orden_insumo",
+  "fn_orden_insumo_opciones",
+];
 const INTERNAS = [
   "fn_orden_insumo_numero_texto", "fn_orden_insumo_descuento", "fn_orden_insumo_foto", "fn_orden_insumo_validar", "fn_orden_insumo_huella",
   "fn_orden_insumo_huella_guardada", "fn_orden_insumo_escribir_lineas", "fn_orden_insumo_sede_actividad", "fn_orden_insumo_exigir_mismo_pedido",
@@ -355,7 +416,7 @@ const INTERNAS = [
 ];
 const DE = (lista) => `from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = any(array[${lista.map((f) => `'${f}'`).join(", ")}])`;
 caso(
-  "S1 la forma: las 6 de la web son security definer con search_path (una versión cada una), authenticated sí y anon no; las 11 internas, cerradas",
+  "S1 la forma: las 7 de la web son security definer con search_path (una versión cada una), authenticated sí y anon no; las 11 internas, cerradas",
   `reset role;
    select concat_ws(',',
      (select count(*) ${DE(PUBLICAS)}),
@@ -365,7 +426,7 @@ caso(
      (select count(*) ${DE(INTERNAS)}),
      (select bool_or(has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')) ${DE(INTERNAS)}),
      (select bool_and(array_to_string(p.proconfig, ',') like '%search_path%') ${DE(INTERNAS)}));`,
-  "6,t,t,f,11,f,t"
+  "7,t,t,f,11,f,t"
 );
 caso(
   "S2 la firma: las tres que guardan preguntan UNA vez por el actor de tienda (true), ninguna con (false) ni mirando auth.uid() (reglas de actor_firma)",
