@@ -6,9 +6,13 @@ import {
   costoParaTipear,
   destinoDesdeParam,
   esFuncionAusente,
+  hayAlgoQueRecibir,
   MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
+  nombreDeLineaSinPrenda,
+  seEnviaLinea,
   textoChipDestino,
   totalesCompra,
+  totalesDeLasLineasQueSeEnvian,
   type FilaOperativa,
   esRelacionAusente,
 } from "./compras-reglas";
@@ -259,5 +263,86 @@ describe("codigoDeLinea", () => {
     expect(codigoDeLinea({ sku: "", codigo: "" })).toBeNull();
     expect(codigoDeLinea(null)).toBeNull();
     expect(codigoDeLinea(undefined)).toBeNull();
+  });
+});
+
+// ---------- el total suma EXACTAMENTE las líneas que se envían ----------
+// El formulario de Facturas arma filas; `registrar_compra` recibe solo las que traen prenda y cantidad. Sumar todas las filas mostraba
+// un total mayor al que de verdad se registraba (la factura salía por menos que el papel) y el pago al contado no cuadraba.
+describe("seEnviaLinea", () => {
+  it("solo se envía la fila con prenda y con cantidad", () => {
+    expect(seEnviaLinea({ productoId: "p1", cantidad: 2 })).toBe(true);
+    expect(seEnviaLinea({ productoId: "", cantidad: 2 })).toBe(false);
+    expect(seEnviaLinea({ productoId: null, cantidad: 2 })).toBe(false);
+    expect(seEnviaLinea({ productoId: "p1", cantidad: 0 })).toBe(false);
+    expect(seEnviaLinea({ productoId: "p1", cantidad: -1 })).toBe(false);
+  });
+});
+
+describe("totalesDeLasLineasQueSeEnvian", () => {
+  const enviadas = [
+    { productoId: "p1", cantidad: 2, costoUnitario: "50" },
+    { productoId: "p2", cantidad: 1, costoUnitario: "30" },
+  ];
+  const aMedias = [
+    { productoId: "", cantidad: 5, costoUnitario: "99" }, // sin prenda: no se manda
+    { productoId: "p3", cantidad: 0, costoUnitario: "40" }, // sin cantidad: no se manda
+  ];
+
+  it("una fila a medio llenar no entra al total", () => {
+    const soloEnviadas = totalesCompra([{ cantidad: 2, costoTipeado: 50 }, { cantidad: 1, costoTipeado: 30 }], 18, false);
+    expect(totalesDeLasLineasQueSeEnvian([...enviadas, ...aMedias], 18, false)).toEqual(soloEnviadas);
+    expect(soloEnviadas).toEqual({ subtotal: 130, igv: 23.4, total: 153.4 });
+    // El error de antes: sumar todo daba 130 + 5 × 99 en el subtotal.
+    expect(totalesCompra([...enviadas, ...aMedias].map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })), 18, false).subtotal).toBe(625);
+  });
+
+  it("con precios con IGV incluido, el total sigue siendo lo que dice el papel de las líneas que van", () => {
+    expect(totalesDeLasLineasQueSeEnvian([{ productoId: "p1", cantidad: 3, costoUnitario: "10" }, ...aMedias], 18, true)).toEqual({ subtotal: 25.41, igv: 4.59, total: 30 });
+  });
+
+  it("sin ninguna línea que se envíe, todo en cero", () => {
+    expect(totalesDeLasLineasQueSeEnvian(aMedias, 18, false)).toEqual({ subtotal: 0, igv: 0, total: 0 });
+    expect(totalesDeLasLineasQueSeEnvian([], 18, false)).toEqual({ subtotal: 0, igv: 0, total: 0 });
+  });
+
+  it("acepta el costo como número y no cuenta un costo vacío o no numérico", () => {
+    expect(totalesDeLasLineasQueSeEnvian([{ productoId: "p1", cantidad: 2, costoUnitario: 10 }, { productoId: "p2", cantidad: 1, costoUnitario: "" }], 0, false).total).toBe(20);
+  });
+});
+
+// ---------- la línea sin prenda (la de un comprobante que sale de una orden de compra, ADR-0362) ----------
+describe("nombreDeLineaSinPrenda", () => {
+  it("«categoría · marca · descripción»", () => {
+    expect(nombreDeLineaSinPrenda({ categoria: "Blusas", marca: "Cayla", descripcion: "lino crudo" })).toBe("Blusas · Cayla · lino crudo");
+  });
+
+  it("lo que falta no se inventa ni deja separadores sueltos", () => {
+    expect(nombreDeLineaSinPrenda({ categoria: "Blusas", marca: "Cayla", descripcion: null })).toBe("Blusas · Cayla");
+    expect(nombreDeLineaSinPrenda({ categoria: "Blusas", marca: null, descripcion: "  " })).toBe("Blusas");
+    expect(nombreDeLineaSinPrenda({ categoria: null, marca: "Cayla", descripcion: "lino" })).toBe("Cayla · lino");
+  });
+
+  it("sin nada que decir, no queda en blanco", () => {
+    expect(nombreDeLineaSinPrenda({})).toBe("Prenda por definir");
+  });
+});
+
+describe("hayAlgoQueRecibir", () => {
+  it("un comprobante con una prenda pendiente se recibe en Recibir", () => {
+    expect(hayAlgoQueRecibir([{ productoId: "p1", pendiente: 4 }])).toBe(true);
+  });
+
+  it("uno hecho solo de líneas sin prenda no tiene nada que recibir ahí: llega por guía", () => {
+    expect(hayAlgoQueRecibir([{ productoId: "", pendiente: 10 }, { productoId: null, pendiente: 3 }])).toBe(false);
+  });
+
+  it("mixto: cuenta lo que queda de la prenda, no lo que llega por guía", () => {
+    expect(hayAlgoQueRecibir([{ productoId: "", pendiente: 10 }, { productoId: "p1", pendiente: 0 }])).toBe(false);
+    expect(hayAlgoQueRecibir([{ productoId: "", pendiente: 10 }, { productoId: "p1", pendiente: 2 }])).toBe(true);
+  });
+
+  it("sin líneas, nada que recibir", () => {
+    expect(hayAlgoQueRecibir([])).toBe(false);
   });
 });

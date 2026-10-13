@@ -16,8 +16,9 @@
  *   4. La confirmación viaja EN CADA EXTRA (`"confirma_costo": true`): con la marca se recibe todo, el costo entra al promedio y la
  *      nota del envío deja constancia SIN montos; si solo marca uno de dos, vuelve a preguntar solo por el otro; marcar un extra
  *      normal no hace nada.
- *   5. Quien NO es líder no puede recibir un extra atípico: `costo_atipico_sin_lider`, sin cifras, y mandar la marca por la API
- *      directa no cambia nada; sin costo, o con uno normal, sí recibe.
+ *   5. Quien NO ve los montos de Compras (un rol sin ningún módulo de Compras) no puede recibir un extra atípico:
+ *      `costo_atipico_sin_lider`, sin cifras, y mandar la marca por la API directa no cambia nada; sin costo, o con uno normal, sí
+ *      recibe. Una integrante que ve los montos por su módulo Recibir confirma igual que el líder (ADR-0387; antes, solo un líder).
  *   6. El token (ADR-0190): el rechazo no lo consume; el reintento con la marca es UN envío, y repetirlo devuelve ese (`ya_registrado`).
  *   7. Las líneas DE comprobante no se vuelven a preguntar: su costo ya se miró al registrar la factura.
  *   8. La firma de 9 parámetros no cambió, sigue habiendo una sola función, y la migración se puede pegar dos veces.
@@ -92,9 +93,16 @@ select count(*) as ext0 from retail.envio_extras \\gset
 select gen_random_uuid() as tok \\gset
 `;
 
+/** Micaela con un rol de prueba SIN ningún módulo de Compras (solo Existencias): no ve los montos. Se va con el ROLLBACK. */
+const SIN_COMPRAS = `insert into retail.roles (nombre) values ('ZZ sin Compras') returning id as rsc \\gset
+insert into retail.rol_modulos (rol_id, modulo) values (:'rsc', 'existencias');
+update retail.colaboradores set rol_id = :'rsc' where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
+`;
+
 /**
  * Corre una escena y devuelve el estado final. `extras`: [{ costo, regalo, confirma }] de la prenda M (costo undefined = sin costo).
- * `como`: 'lider' | 'integrante'. `confirma: true` pone la marca en TODOS los extras (cada uno puede traer la suya). `intentos`: cuántas
+ * `como`: 'lider' | 'integrante' (Micaela con su rol de la semilla, que tiene Recibir) | 'sin_compras' (Micaela con un rol de prueba
+ * sin ningún módulo de Compras: no ve los montos). `confirma: true` pone la marca en TODOS los extras (cada uno puede traer la suya). `intentos`: cuántas
  * veces se llama (mismo token). `facturaA`: el costo con que se registra el comprobante (`facturaConfirmada` para uno atípico).
  */
 function escena({ extras, como = "lider", confirma = false, intentos = 1, facturaA = 32, facturaConfirmada = false }) {
@@ -106,6 +114,7 @@ function escena({ extras, como = "lider", confirma = false, intentos = 1, factur
   const salida = psql(`begin;
 set local request.jwt.claim.sub = '${FELIPE}';
 ${esc}
+${como === "sin_compras" ? SIN_COMPRAS : ""}
 select set_config('prueba.items', jsonb_build_array(jsonb_build_object('compra_item_id', :'linea', 'variante_id', :'var', 'cantidad', 5))::text, true) as _i \\gset
 select set_config('prueba.extras', coalesce((
   select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
@@ -198,7 +207,7 @@ caso("líder con la marca en cada extra: recibe todo, el costo entra al promedio
   const s = escena({ extras: [X(70), X(15)], confirma: true });
   if (!s.r.ok) return JSON.stringify(s.r);
   if (s.envios_nuevos !== 1 || s.extras_nuevos !== 2 || s.stock !== 9 || s.hist_70 !== 1) return JSON.stringify(s);
-  if (s.nota !== "Costo atípico confirmado por un líder (2 ítems fuera de comprobante)") return `nota: ${s.nota}`;
+  if (s.nota !== "Costo atípico confirmado (2 ítems fuera de comprobante)") return `nota: ${s.nota}`;
 });
 
 caso("una marca en un extra que NO es atípico no hace nada: sin constancia, entra como siempre", () => {
@@ -207,22 +216,29 @@ caso("una marca en un extra que NO es atípico no hace nada: sin constancia, ent
   if (s.nota || s.extras_nuevos !== 1) return JSON.stringify(s);
 });
 
-caso("un integrante con un extra atípico NO puede recibir: costo_atipico_sin_lider, sin cifras (sin detail)", () => {
+caso("ADR-0387: una integrante que ve los montos por su módulo Recibir confirma igual que el líder (y la nota no dice «por un líder»)", () => {
   const s = escena({ extras: [X(70)], como: "integrante" });
+  if (s.r.ok || s.r.msg !== "costo_atipico" || !s.r.detail) return JSON.stringify(s.r);
+  const c = escena({ extras: [X(70)], como: "integrante", confirma: true });
+  if (!c.r.ok || c.envios_nuevos !== 1 || c.nota !== "Costo atípico confirmado (1 ítem fuera de comprobante)") return JSON.stringify(c);
+});
+
+caso("quien NO ve los montos de Compras con un extra atípico NO puede recibir: costo_atipico_sin_lider, sin cifras (sin detail)", () => {
+  const s = escena({ extras: [X(70)], como: "sin_compras" });
   if (s.r.ok || s.r.msg !== "costo_atipico_sin_lider") return JSON.stringify(s.r);
   if (s.r.detail) return `no debía llevar cifras: ${s.r.detail}`;
 });
-caso("…y no quedó nada escrito", () => intacto(escena({ extras: [X(70)], como: "integrante" })));
+caso("…y no quedó nada escrito", () => intacto(escena({ extras: [X(70)], como: "sin_compras" })));
 
-caso("un integrante que manda la marca por la API directa recibe lo mismo (lo exige el servidor, no la marca)", () => {
-  const s = escena({ extras: [X(70)], como: "integrante", confirma: true });
+caso("quien no ve los montos y manda la marca por la API directa recibe lo mismo (lo exige el servidor, no la marca)", () => {
+  const s = escena({ extras: [X(70)], como: "sin_compras", confirma: true });
   if (s.r.ok || s.r.msg !== "costo_atipico_sin_lider") return JSON.stringify(s.r);
   return intacto(s);
 });
 
-caso("un integrante sin costo, o con un costo normal, sí recibe (la regla no frena el trabajo de siempre)", () => {
-  const a = escena({ extras: [X(undefined)], como: "integrante" });
-  const b = escena({ extras: [X(32)], como: "integrante" });
+caso("quien no ve los montos, sin costo o con un costo normal, sí recibe (la regla no frena el trabajo de siempre)", () => {
+  const a = escena({ extras: [X(undefined)], como: "sin_compras" });
+  const b = escena({ extras: [X(32)], como: "sin_compras" });
   if (!a.r.ok || !b.r.ok) return JSON.stringify([a.r, b.r]);
   if (a.extras_nuevos !== 1 || b.extras_nuevos !== 1) return JSON.stringify([a, b]);
 });

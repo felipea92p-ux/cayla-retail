@@ -42,6 +42,9 @@ const MIGRACION_B3 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010
 const MIGRACION_B4 = readFileSync(join(RAIZ, "supabase", "migrations", "20261010200000_plan_compra_version_de_linea.sql"), "utf8");
 // ADR-0372 · B5: editar, quitar (borrar si está vacía, archivar si no) y restaurar una campaña.
 const MIGRACION_B5 = readFileSync(join(RAIZ, "supabase", "migrations", "20261012120000_plan_compra_editar_y_quitar.sql"), "utf8");
+// ADR-0387 (Felipe 2026-10-12): el módulo es la llave en Compras. Quita el «y ser líder» de crear, editar, quitar, restaurar y del tope
+// con reemplazos anclados sobre la función viva: va DESPUÉS de B5, o los casos probarían la regla vieja.
+const MIGRACION_LLAVE = readFileSync(join(RAIZ, "supabase", "migrations", "20261012202000_compras_el_modulo_es_la_llave.sql"), "utf8");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -77,6 +80,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B4)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B5)}
+set local search_path = retail, public, extensions;
+${sinControl(MIGRACION_LLAVE)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -274,7 +279,7 @@ caso(
   "borrado,archivado,archivado / 0 / true / t / true / t / Diciembre 2026 / t"
 );
 caso(
-  "E3 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie ejecuta como anon",
+  "E3 sin el módulo, 42501; con el módulo y sin ser líder edita, quita y restaura (ADR-0387); y nadie ejecuta como anon",
   `reset role;
    select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
    ${como(MICAELA)}
@@ -283,12 +288,13 @@ caso(
    insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'plan_compra') on conflict do nothing;
    ${como(MICAELA)}
    select concat_ws(',', :'sin_modulo',
-     split_part(pg_temp.intento(format('select retail.editar_plan_compra(%L, ''ZZ'', date ''2027-01-01'', date ''2027-01-02'')', :'plan')), '|', 2),
-     split_part(pg_temp.intento(format('select retail.quitar_plan_compra(%L)', :'plan')), '|', 2),
-     split_part(pg_temp.intento(format('select retail.restaurar_plan_compra(%L)', :'plan')), '|', 2),
+     pg_temp.intento(format('select retail.editar_plan_compra(%L, ''ZZ'', date ''2027-01-01'', date ''2027-01-02'')', :'plan')),
+     -- Restaurar va antes de quitar: quitar una campaña vacía la BORRA, y después no habría qué restaurar.
+     pg_temp.intento(format('select retail.restaurar_plan_compra(%L)', :'plan')),
+     pg_temp.intento(format('select retail.quitar_plan_compra(%L)', :'plan')),
      has_function_privilege('anon', 'retail.quitar_plan_compra(uuid)', 'execute'),
      has_function_privilege('anon', 'retail.editar_plan_compra(uuid,text,date,date)', 'execute'));`,
-  "42501,Solo un líder edita una campaña del plan,Solo un líder quita una campaña del plan,Solo un líder restaura una campaña del plan,f,f"
+  "42501,SIN_ERROR,SIN_ERROR,SIN_ERROR,f,f"
 );
 caso(
   "E4 el esquema hace imposible una campaña archivada sin autor y borrar una campaña con categorías (aunque alguien escriba la tabla a mano)",
@@ -346,7 +352,7 @@ caso(
   "El tope tiene que ser mayor que cero (o déjalo vacío para quitarlo). / El tope tiene que ser mayor que cero (o déjalo vacío para quitarlo). / El tope tiene que ser mayor que cero (o déjalo vacío para quitarlo)."
 );
 caso(
-  "T3 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie escribe la tabla directo",
+  "T3 sin el módulo, 42501; con el módulo y sin ser líder fija el tope (ADR-0387); y nadie escribe la tabla directo",
   `reset role;
    select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
    ${como(MICAELA)}
@@ -356,7 +362,7 @@ caso(
    ${como(MICAELA)}
    select :'sin_modulo' || ',' || pg_temp.intento(format('select retail.guardar_plan_compra_tope(%L, 100)', :'plan')) || ',' ||
      has_function_privilege('anon', 'retail.guardar_plan_compra_tope(uuid,numeric)', 'execute');`,
-  "42501,42501|Solo un líder fija cuánto invertir en una campaña,false"
+  "42501,SIN_ERROR,false"
 );
 caso(
   "T4 el esquema hace imposible un tope sin autor o no positivo (aunque alguien escriba la tabla a mano)",
@@ -403,7 +409,7 @@ caso(
   "Elige una campaña de Catálogo ▸ Etiquetas que esté aprobada y tenga sus fechas. / Elige una campaña de Catálogo ▸ Etiquetas que esté aprobada y tenga sus fechas. / La campaña no puede terminar antes de empezar. / Ya hay un plan con ese nombre: ponle otro. / t / Esa campaña ya tiene su plan: ábrelo desde el selector."
 );
 caso(
-  "C4 sin el módulo, 42501; con el módulo pero sin ser líder, 42501 con su motivo; y nadie ejecuta como anon",
+  "C4 sin el módulo, 42501; con el módulo y sin ser líder crea la campaña (ADR-0387); y nadie ejecuta como anon",
   `${ETIQUETA_CAMPANA}
    reset role;
    select colab.rol_id as rol from retail.colaboradores colab join public.personas pe on pe.id = colab.persona_id where pe.auth_user_id = '${MICAELA}' \\gset
@@ -412,10 +418,10 @@ caso(
    reset role;
    insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'plan_compra') on conflict do nothing;
    ${como(MICAELA)}
-   select :'sin_modulo' || ',' || split_part(pg_temp.intento(format('select retail.crear_plan_compra(%L)', :'et')), '|', 2) || ',' ||
+   select :'sin_modulo' || ',' || pg_temp.intento(format('select retail.crear_plan_compra(%L)', :'et')) || ',' ||
      has_function_privilege('anon', 'retail.crear_plan_compra(uuid,text,date,date)', 'execute') || ',' ||
      has_function_privilege('anon', 'retail.fn_planes_compra()', 'execute');`,
-  "42501/42501,Solo un líder crea una campaña del plan,false,false"
+  "42501/42501,SIN_ERROR,false,false"
 );
 caso(
   "C5 el esquema impide dos planes de la misma etiqueta (aunque alguien escriba la tabla a mano)",

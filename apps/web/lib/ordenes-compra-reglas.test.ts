@@ -11,6 +11,7 @@ import {
   generadasDe,
   hrefLista,
   hrefOrdenGuardada,
+  leerComprobantes,
   leerDetalleOrden,
   leerFilaOrden,
   leerFilasOrdenes,
@@ -18,10 +19,16 @@ import {
   lugarDeLlegada,
   numeroOrdenCompra,
   paginaDeOrdenes,
+  puedeAnularOrden,
+  puedeEditarOrden,
+  puedeRegistrarComprobante,
   paramsDeLista,
   problemaDeMotivo,
   pildorasDeDestino,
   recienDe,
+  textoPapelDeLinea,
+  tieneComprobante,
+  tieneComprobanteVigente,
   textoDestino,
   vacioDeLista,
 } from "./ordenes-compra-reglas";
@@ -314,5 +321,93 @@ describe("problemaDeMotivo: las reglas de anular_orden_compra", () => {
     expect(problemaDeMotivo("El proveedor no tenía la tela")).toBeNull();
     expect(problemaDeMotivo("a".repeat(300))).toBeNull();
     expect(problemaDeMotivo("a".repeat(301))).toBe("El motivo va hasta 300 letras.");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Fase 2: el papel de la orden (comprobantes). Todo llega con tolerancia: una base que todavía no los cuenta no rompe la orden abierta.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+describe("leerDetalleOrden con comprobantes (fase 2)", () => {
+  const BASE = {
+    id: "0b6f1c2e-0000-4000-8000-000000000001",
+    numero: 12,
+    estado: "generada",
+    proveedor: { id: "p1", nombre: "Confecciones Peña", ruc: "20123456789" },
+    destino: { id: TRU, nombre: "Tienda Trujillo" },
+    fecha_emision: "2026-10-10",
+    creada_en: "2026-10-10T21:50:00+00:00",
+    lineas: [{ id: "i1", posicion: 1, categoria_id: "c1", categoria: "Polos", marca_id: "m1", marca: "Kero", cantidad: 10, precio_unitario: 25.5, subtotal: 255 }],
+  };
+  const NUEVA = {
+    ...BASE,
+    lineas: [{ ...BASE.lineas[0], facturado: 8, pendiente: 2 }, { ...BASE.lineas[0], id: "i2", posicion: 2, facturado: "12", pendiente: -2 }],
+    papel: "en_parte",
+    comprobantes: [
+      { id: "k2", documento: "F001-124", tipo: "factura", condicion: "credito", fecha_emision: "2026-10-12", total: "1486.80", saldo: 1486.8, estado: "vigente", estado_pago: "pendiente" },
+      { id: "k1", documento: "B001-9", tipo: "boleta", condicion: "contado", fecha_emision: "2026-10-11", total: 100, saldo: 0, estado: "anulada", estado_pago: "anulada" },
+      { id: "", documento: "sin id" },
+      "raro",
+    ],
+  };
+  it("lee por línea su id, lo facturado y lo pendiente (nunca menos de cero), y los comprobantes del más reciente al más antiguo", () => {
+    const d = leerDetalleOrden(NUEVA)!;
+    expect(d.papel).toBe("en_parte");
+    expect(d.lineas[0]).toMatchObject({ id: "i1", facturado: 8, pendiente: 2 });
+    expect(d.lineas[1]).toMatchObject({ id: "i2", facturado: 12, pendiente: 0 });
+    expect(d.comprobantes).toEqual([
+      { id: "k2", documento: "F001-124", tipo: "factura", condicion: "credito", fechaEmision: "2026-10-12", total: 1486.8, saldo: 1486.8, estado: "vigente", estadoPago: "pendiente" },
+      { id: "k1", documento: "B001-9", tipo: "boleta", condicion: "contado", fechaEmision: "2026-10-11", total: 100, saldo: 0, estado: "anulada", estadoPago: "anulada" },
+    ]);
+  });
+  it("una base que todavía no los cuenta: la orden se lee igual, sin ids, sin papel y sin comprobantes", () => {
+    const d = leerDetalleOrden(BASE)!;
+    expect(d.papel).toBeNull();
+    expect(d.comprobantes).toEqual([]);
+    expect(d.lineas[0]).toMatchObject({ id: "i1", facturado: null, pendiente: null });
+    const sinId = leerDetalleOrden({ ...BASE, lineas: [{ ...BASE.lineas[0], id: undefined }] })!;
+    expect(sinId.lineas[0]!.id).toBeNull();
+    expect(leerDetalleOrden({ ...BASE, papel: "inventado" })!.papel).toBeNull();
+    expect(leerComprobantes(undefined)).toEqual([]);
+    expect(leerComprobantes({ no: "es lista" })).toEqual([]);
+  });
+});
+
+describe("qué se puede hacer con una orden que ya tiene (o no) papel", () => {
+  const tru = { id: TRU, nombre: "Tienda Trujillo" };
+  const linea = { id: "i1" } as { id: string | null };
+  const vigente = { id: "k1", documento: "F001-1", tipo: "factura", condicion: "credito", fechaEmision: null, total: 1, saldo: 1, estado: "vigente", estadoPago: "pendiente" };
+  const anulado = { ...vigente, id: "k2", estado: "anulada", estadoPago: "anulada" };
+  const orden = (o: object = {}) => ({ estado: "generada" as const, destino: tru, papel: "sin_comprobante" as const, lineas: [linea] as never, comprobantes: [], ...o });
+
+  it("«Registrar comprobante»: una generada con «Llega a» cuya base ya sabe de comprobantes, aun con todo el papel completo", () => {
+    expect(puedeRegistrarComprobante(orden())).toBe(true);
+    expect(puedeRegistrarComprobante(orden({ papel: "en_parte" }))).toBe(true);
+    expect(puedeRegistrarComprobante(orden({ papel: "completa" }))).toBe(true);
+  });
+  it("no se ofrece en una anulada, en una «Por repartir», con una base que no conoce el papel, sin líneas o con líneas sin id", () => {
+    expect(puedeRegistrarComprobante(orden({ estado: "anulada" }))).toBe(false);
+    expect(puedeRegistrarComprobante(orden({ destino: null }))).toBe(false);
+    expect(puedeRegistrarComprobante(orden({ papel: null }))).toBe(false);
+    expect(puedeRegistrarComprobante(orden({ lineas: [] }))).toBe(false);
+    expect(puedeRegistrarComprobante(orden({ lineas: [{ id: null }] }))).toBe(false);
+  });
+  it("con algún comprobante (aun anulado) la orden no se edita; con uno vigente tampoco se anula", () => {
+    expect(puedeEditarOrden(orden())).toBe(true);
+    expect(puedeEditarOrden(orden({ comprobantes: [anulado] }))).toBe(false);
+    expect(puedeEditarOrden(orden({ estado: "anulada" }))).toBe(false);
+    expect(puedeAnularOrden(orden())).toBe(true);
+    expect(puedeAnularOrden(orden({ comprobantes: [anulado] }))).toBe(true);
+    expect(puedeAnularOrden(orden({ comprobantes: [vigente] }))).toBe(false);
+    expect(puedeAnularOrden(orden({ estado: "anulada" }))).toBe(false);
+    expect(tieneComprobante({ comprobantes: [anulado] })).toBe(true);
+    expect(tieneComprobanteVigente({ comprobantes: [anulado] })).toBe(false);
+    expect(tieneComprobanteVigente({ comprobantes: [anulado, vigente] })).toBe(true);
+  });
+  it("cuánto llegó en papel por línea se dice «8 de 10», y «12 de 10 · 2 de más» si pasa lo pedido", () => {
+    expect(textoPapelDeLinea({ cantidad: 10, facturado: 8 })).toBe("8 de 10");
+    expect(textoPapelDeLinea({ cantidad: 10, facturado: 10 })).toBe("10 de 10");
+    expect(textoPapelDeLinea({ cantidad: 10, facturado: 12 })).toBe("12 de 10 · 2 de más");
+    expect(textoPapelDeLinea({ cantidad: 10, facturado: null })).toBeNull();
   });
 });

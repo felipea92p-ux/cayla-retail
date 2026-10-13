@@ -470,7 +470,8 @@ ${PENDIENTES("c1")}`),
 );
 
 exito(
-  "C · con el módulo Notas de crédito, Micaela (Trujillo) ve el pendiente de su sede y NO el de Lima, en el tablero y en la lista",
+  // Decisión 41 (ADR-0387, Felipe 2026-10-12): quien tiene el módulo ve TODAS las tiendas; antes veía solo la suya (ADR-0184).
+  "C · con el módulo Notas de crédito, Micaela (Trujillo) ve el pendiente de su sede Y el de Lima, en el tablero y en la lista",
   comoFelipe(`${MODULOS_DE_COMPRAS("notas_credito")}${compraCerrada(4, { v: "c1", gestora: "lima" })}${compraCerrada(4, { v: "c2", gestora: "trujillo" })}
 set local request.jwt.claim.sub = '${MICAELA}';
 set local role authenticated;
@@ -479,7 +480,7 @@ select (select count(*) from retail.notas_credito_tablero() where compra_id = :'
        (select count(*) from retail.compras_nota_pendiente(array[:'c1'::uuid])),
        (select count(*) from retail.notas_credito_tablero() where compra_id = :'c2' and clase = 'pendiente'),
        (select count(*) from retail.compras_nota_pendiente(array[:'c2'::uuid]));`),
-  ["0", "0", "1", "1"]
+  ["1", "1", "1", "1"]
 );
 
 exito(
