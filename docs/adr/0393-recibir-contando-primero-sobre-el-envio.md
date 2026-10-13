@@ -182,3 +182,24 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
    «Para después» con «Hacer ahora», el aviso en Inicio, en la cabecera de Recibir y en Catálogo ▸ Productos ▸ Por crear.
 6. **Calidad y cierre:** `/guia`, `/focus`, `/sugerir`, `/unificar`, `tema:auditar`, `/chaos` (guarda stock), `/formidable`, 375 px;
    diccionario, ARQUITECTURA, bitácora y backlog. Cada SQL a producción, con el OK de Felipe.
+
+## Construido
+
+### Actividad 2 · contar guardado (2026-10-13)
+
+- **`20261013170000_recepcion_un_solo_camino_de_cierre.sql` (refactor, sin cambio de comportamiento).** Lo que escribe stock salió de
+  `recibir_despacho` a `fn_recepcion_entrar` (interna): candados del papel y las variantes, prendas, costo atípico, lotes, entradas,
+  costo promediado, lo recibido y lo que faltó o sobró. `recibir_despacho` se reescribió entera desde su definición VIVA, con los tres
+  parches anclados de la fase 5a con su texto exacto: re-pegar `20261013015000` encima no hace nada (probado). Dos ajustes que en el
+  formulario de hoy dan lo mismo: el lote es del proveedor que trae entradas, y si el envío ya tiene el suyo se usa ese.
+- **`20261013171000_conteo_de_envio.sql`.** `despacho_conteos` (una fila por línea o por algo fuera de la guía; RLS sin políticas; solo
+  con el envío abierto; no se borra; CHECK «lo separado no pasa de lo contado»), `guardar_conteo` (gana el último y devuelve lo pisado;
+  el envío se toma en modo compartido: varias personas cuentan a la vez y solo esperan por su línea) y `fn_envio_conteos`. Por ancla,
+  `recibir_despacho` deja también el conteo de cada línea todo detallado.
+- **Lo que cambió del plan:** los conteos se leen con `fn_envio_conteos` y no dentro de `fn_envio_detalle` (ya lleva dos anclas de la 5a;
+  la pantalla pide las dos lecturas juntas). Guardar no sube la versión del envío: esa versión es de Compras.
+- **Pruebas:** `pruebas:conteo-de-envio` (16 casos; mutaciones «nunca avisa» y «el disparador deja escribir cerrado» detectadas);
+  `pruebas:recepcion-de-envio` (28) y `pruebas:nos-debe` (16) cargan las dos migraciones y siguen en verde; una mutación de
+  `fn_recepcion_entrar` que no aplica el stock deja 5 casos de la recepción en rojo. Corridas contra una pila propia (`supabase start`,
+  puertos 549xx) con todas las migraciones de la rama.
+- **Nada de esto está en producción.** Se pega con el OK de Felipe, después de 20261013015000.
