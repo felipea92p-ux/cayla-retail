@@ -127,7 +127,7 @@ export function PasoAlta({
     // (en el celular los puntos miden ~56 px y no 104: basta 8rem, 2026-10-09).
     <section aria-labelledby={id} className="scroll-mt-32 rounded-xl sm:scroll-mt-[11.5rem] border border-sand bg-papel">
       <div className="px-4 pt-4 sm:px-5">
-        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">
+        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           {titulo}
         </h2>
       </div>

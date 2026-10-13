@@ -58,6 +58,9 @@ Lo aprendido en esta ronda:
 - **Una animación de `<tr>` que se quita vuelve a correr la de entrada:** el respiro de la fila recién contada vive en sus celdas
   (`tr.fila-cayla[data-recien] > :is(td, th)`), y se quita el atributo solo al terminar ESE respiro (`animationName`), porque el estado de
   adentro también anima.
+- **Una firma con `\b` después de un tamaño entre corchetes no ve nada:** entre «]» y un espacio no hay límite de palabra. La de títulos en
+  sans dejó pasar 10 archivos hasta que el censo de después, rastreado al código, los encontró. Termina un tamaño con `(?![\w-])`.
+  Rastrear el censo al código (el texto de cada variante, con `grep`) es lo que encuentra lo que las firmas no ven.
 - **Al elegir una pieza para «desactivar», busca sus gemelas:** la firma nueva encontró «Desactivar proveedor», el mismo enlace en una frase;
   resultó inalcanzable (ninguna pantalla se lo pasaba a la hoja) y Felipe pidió quitarlo. Antes de migrar una gemela, mira si se ve.
 

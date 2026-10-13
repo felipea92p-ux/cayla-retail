@@ -59,3 +59,14 @@ unidades, «3 de 5 colores con foto»— y la acción. `TituloGrupo` suma `nota`
 borra»). Migrados: Pendientes y Resueltos (Pedidos no atendidos), Pedidos entre tiendas y los grupos de Apartados, Para decidir
 (Producción), las categorías de Frescura, No cargadas y la revisión de Cuadrar, Lo que va en la caja (Traslados), las columnas de Órdenes y
 los grupos de Cambios; y el título de cada grupo de Atributos (● NEUTRO 9). Una firma nueva atrapa un conteo puesto como `dato`.
+
+## El censo de después (2026-10-13): diez archivos que la firma no veía
+
+El censo de después, rastreado hasta el código, mostró títulos dibujados a mano que la firma dejaba pasar: la de «sans seminegrita» pedía
+un límite de palabra (`\b`) después del tamaño, y entre «]» de `text-[15px]` y un espacio no hay límite de palabra; así se escapaba todo
+tamaño entre corchetes. Corregida (`(?![\w-])`), aparecieron 10 archivos y se migraron el mismo día: los grupos del cajón de Movimientos
+(«Ruta», «Qué pasó», «Prendas»…), «¿En qué estado vuelve cada prenda?» de Devoluciones y los bloques de las hojas del plan de compra son
+`<TituloGrupo>`; «Iniciar un cambio», «Iniciar una devolución» y «Tallas que no calzan» (con «últimos 90 días» como su dato) son
+`<TituloSeccion>`; los días del historial de cierres de Caja son `<SeparadorDia>`. Quedan exentos, con su motivo en la línea: el nombre de
+cada asunto de Producción (un dato de la lista) y los títulos de los pasos de Nuevo producto (su diseño aprobado, ADR-0260 y ADR-0284).
+Verificado en escritorio y, en Cambios, Devoluciones y Apartados, a 375 px.

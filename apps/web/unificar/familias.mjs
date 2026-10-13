@@ -674,7 +674,7 @@ export const DECISIONES = {
       // Un título en versalitas a mano (`label-cayla` en un h2/h3/h4): de bloque, <TituloSeccion>; de grupo, <TituloGrupo>.
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\blabel-cayla\\b",
       // Un título en sans seminegrita a mano (13 a 16 px).
-      "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:sm|base|\\[1[3-6](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:semibold|medium|bold)\\b"
+      "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:sm|base|\\[1[3-6](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:semibold|medium|bold)\\b"
     ],
     "deuda": [],
     "excepciones": [

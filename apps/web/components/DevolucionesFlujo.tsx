@@ -50,6 +50,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 import { Casilla } from "@/components/ui/Casilla";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -429,7 +430,7 @@ export function DevolucionesFlujo({
               </fieldset>
 
               <div ref={refEstados} className="space-y-6">
-                <h3 className="text-[15px] font-semibold text-tinta">¿En qué estado vuelve cada prenda?</h3>
+                <TituloGrupo>¿En qué estado vuelve cada prenda?</TituloGrupo>
                 {lineasElegidas.map((l) => (
                   <EstadoDeLaPrenda key={l.ventaItemId} linea={l} item={elegidas[l.ventaItemId]!} onCambio={(c) => cambiarItem(l.ventaItemId, c)} />
                 ))}

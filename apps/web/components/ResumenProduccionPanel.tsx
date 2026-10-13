@@ -119,7 +119,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
                   <path d={ICONO[d.tipo]} />
                 </svg>
                 <div className="min-w-0">
-                  <h3 className="text-[14.5px] font-medium text-tinta">{d.titulo}</h3>
+                  <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
                   <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
                 </div>
                 <Link
