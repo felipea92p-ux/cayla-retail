@@ -298,3 +298,38 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
   `183000` y siguen en verde.
 - **Nada de esto está en producción.** Orden de pegado completo: `170000`, `171000`, `172000`, `173000`, `180000`, `183000`.
 
+
+### Actividad 5 · la cara A en la web (2026-10-13)
+
+- **`/recibir/envio/[id]`** se recibe en tres pasos: **¿Qué llegó?** (en camino: «Empezar a recibir»), **Contar** (una categoría a la
+  vez, el número es lo esencial; cada cambio se guarda solo a los 700 ms sin abrir el loader y dice quién contó; «¿Qué … son?» es
+  opcional) y **Cerrar** (la tabla con lo que dijeron, lo contado, lo que entra al stock y la causa de lo que no cuadró; el costo de lo de
+  fuera de la guía). Cerrado: las cifras, lo que ya entró con «Imprimir etiquetas» y «Bajar al piso», **«Para después»** con «Hacer
+  ahora» / «Crear ahora», lo que no cuadró, el rastro de cierres y reaperturas, y «Reabrir el conteo».
+- **`/recibir`**: «¿Llegó algo sin aviso?» reemplaza a «Llegó mercadería» (si el proveedor tiene una factura por recibir en la sede, ofrece
+  recibir contra ella) y arriba sale el aviso de lo recibido por terminar. El Inicio («Recibido por terminar», urgente pasados 7 días) y
+  Catálogo ▸ Productos («N prendas recibidas por crear», solo lo por crear) leen el mismo `fn_recepcion_pendientes`.
+- **La web se publica antes que el SQL sin romper nada:** si la base no tiene `fn_envio_conteos` / `fn_recepcion_pendientes`, la pantalla
+  del envío sigue con la recepción de la fase 4, `/recibir` con «Llegó mercadería», y los avisos no salen.
+
+DECIDÍ: la pantalla elige su cara por lo que la base sabe (`PGRST202` / `42883` = «todavía no está»), no por una bandera.
+DESCARTÉ: una bandera en `configuracion` porque obliga a pegar SQL y a acordarse de encenderla; con dos caras vivas, la que no
+corresponde a la base fallaría al guardar.
+SE ROMPE SI: alguien pega solo una parte de las migraciones (por ejemplo `171000` sin `172000`): la pantalla vería `fn_envio_conteos`
+y no podría cerrar. Por eso el orden de pegado es uno solo y completo.
+
+- **Lo que la web agrega a lo que la base ya frena (sin reglas nuevas):** la hoja de «Hacer ahora» no deja meter más de lo que queda del
+  pendiente (la base lo rechazaría) y lo dice en palabras; con todas las categorías contadas, el botón principal es «Pasar a cerrar»
+  aunque la persona esté en la primera; en un envío sin aviso la tabla de cierre no pregunta qué pasó con lo contado (nada sobra ni
+  falta); con la lista vacía, la guía de foco enciende «+ Agregar lo que llegó».
+- **Con el envío cerrado, el catálogo (tallas y colores) solo se lee si quedan pendientes** (`necesitaCatalogoAlCerrar`): «Crear ahora»
+  lo necesita, un envío terminado no.
+- **Un envío sin aviso que alguien dejó abierto** sale en la puerta como «Llegó sin aviso: se sigue contando»: `fn_envios_por_recibir`
+  (de Compras) no trae su proveedor y no se tocó. Si Felipe quiere el nombre del proveedor ahí, es una llave más en esa función.
+- **Felipe puede revertir:** el aviso de Productos es por sede (la de quien mira), no de todo CAYLA; al reabrir, la causa de lo que no
+  cuadró se vuelve a elegir (no se precarga la del cierre anterior: quien reabre suele corregir justamente eso).
+- **Verificado en el navegador** contra una base propia con todas las migraciones: contar, separar, tallas y colores, cerrar con causa,
+  «Hacer ahora» (separar y crear la prenda, con la base confirmando el movimiento de entrada y el pendiente resuelto), reabrir y volver a
+  cerrar (rastro cierre → reapertura → cierre, una sola diferencia vigente), el envío sin aviso de punta a punta, los avisos de Recibir,
+  Inicio (cuenta de integrante) y Productos, 375 px sin desbordes y las guías interactivas de `/recibir`, `/recibir/envio/[id]` y
+  `/productos` con `guias:recorrer`. 0 errores de consola.
