@@ -1,4 +1,4 @@
-# Formidable · Inventario ▸ Plan del piso ▸ Propuesta   (`/inventario/plan-del-piso`, pestaña «Propuesta»)
+# Formidable · Gestión ▸ Plan del piso ▸ Propuesta   (`/gestion/plan-del-piso`, pestaña «Propuesta»; Inventario ▸ `/inventario/plan-del-piso` hasta el 2026-10-13, ADR-0392)
 
 - **Fecha / SHA:** 2026-10-10 · `bd5b3c6f` (rama `claude/mix-categorias-question-1950f1`, cambios sin commitear) · **Dispositivo que manda:** escritorio (Mac mini o laptop del líder o la encargada de sede). 375 px se mide, pesa poco.
 - **Pregunta que debería resolver (1 frase):** «¿Qué tan llena está mi tienda y la ropa está repartida como debería?» · **Protagonista:** la prenda (cuánto lugar tiene cada grupo en el riel).

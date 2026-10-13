@@ -2449,7 +2449,8 @@ ${parches(MIGRACION_P4, "s")}`,
   (o) => {
     afirmar("pegada otra vez: ok", json(o.OTRA_VEZ)?.ok === true, `OTRA_VEZ=${o.OTRA_VEZ}`);
     afirmar("…y los seis md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
-    afirmar("…y el módulo sigue siendo UNO, de Inventario, orden 115, delegable, sin rol", o.MODULO === "1,Inventario,115,false,true" && o.SIN_ROL === "0", `MODULO=${o.MODULO} SIN_ROL=${o.SIN_ROL}`);
+    // Grupo «Gestión», orden 212 desde ADR-0392 (20261013134000); nació en «Inventario», 115 (20260929100000).
+    afirmar("…y el módulo sigue siendo UNO, de «Gestión», orden 212, delegable, sin rol", o.MODULO === "1,Gestión,212,false,true" && o.SIN_ROL === "0", `MODULO=${o.MODULO} SIN_ROL=${o.SIN_ROL}`);
     afirmar(
       "la de revisión 9 pegada DESPUÉS del paso 4 aborta («fn_frescura_sede tiene otro cuerpo») y no deshace nada",
       json(o.R9_DESPUES)?.ok === false && (json(o.R9_DESPUES)?.msg ?? "").includes("fn_frescura_sede tiene otro cuerpo") && o.MISMOS_TRAS_R9 === "true",
