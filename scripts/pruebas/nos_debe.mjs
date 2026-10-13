@@ -67,6 +67,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013173000_resolver_pendiente_de_envio.sql",
       // ADR-0393: reabrir un envío recibido; «Nos debe» lee lo que vale.
       "20261013180000_reabrir_envio.sql",
+      // ADR-0393: lo que llega sin aviso, con el mismo conteo.
+      "20261013183000_envio_sin_aviso.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")

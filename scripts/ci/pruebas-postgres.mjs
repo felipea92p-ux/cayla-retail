@@ -989,6 +989,11 @@ export const PRUEBAS = [
   // ROLLBACK, salvo los dos casos de dos sesiones (reabrir y resolver la deuda a la vez): commitean un envío de prueba y lo borran.
   "pruebas:reabrir-envio",
 
+  // El envío sin aviso (ADR-0393, actividad 4; decisiones 2 y 10): la sede lo abre al llegar, lo cuenta por categoría y lo cierra
+  // con los mismos pendientes; nada sobra ni deja deuda; el costo solo lo escribe quien ve el dinero de Compras (ADR-0330) y lo que
+  // entra sin costo no toca el de la prenda. ROLLBACK siempre.
+  "pruebas:envio-sin-aviso",
+
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
