@@ -973,6 +973,18 @@ export const PRUEBAS = [
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
 
+  // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
+  // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
+  // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
+  "pruebas:nos-debe",
+
+  // Órdenes de insumos del Taller (ADR-0362, fase 7): el módulo nace en Producción sin rol (solo el líder); OI- con su propio contador;
+  // proveedor del Taller, destino un taller activo, la línea «insumo + cantidad con hasta 3 decimales» con la unidad copiada; doble clic,
+  // reintento con otro pedido, versión vieja (PT409 con la frase que dice qué pasó), sin cambios, lo que no se tocó no se vuelve a juzgar;
+  // anular con motivo; la firma de la decisión 39 (persona sola, terminal con combo). ROLLBACK, salvo los dos casos de dos sesiones
+  // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
+  "pruebas:ordenes-insumo",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

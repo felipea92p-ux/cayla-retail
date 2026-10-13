@@ -880,12 +880,52 @@ export const GUIA_PROVEEDOR: Guia = {
       titulo: "Cómo cumple",
       texto: "Lo facturado en el año, lo que se le debe, sus entregas atrasadas, cuántas llegaron completas, cuánto tarda en entregar y en cuánto le pagas de verdad.",
     },
+    // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer, encima del saldo a favor. Solo la ve quien ve los montos de la ficha. El piloto
+    // abre la hoja «Llegó la reposición» para mostrarla y la cierra sin anotar nada.
+    {
+      id: "nos-debe",
+      ancla: "proveedor-ficha.nos-debe",
+      opcional: true,
+      titulo: "Lo que te debe",
+      texto: "Lo que este proveedor le debe a CAYLA: arriba, las prendas por reponer (lo que faltó en una recepción y no mandó), con su total; abajo, el saldo a tu favor en plata.",
+    },
+    {
+      id: "deuda",
+      ancla: "proveedor-ficha.deuda",
+      opcional: true,
+      titulo: "Cada prenda por reponer",
+      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda: cuántas y de qué, en qué envío y sede faltaron, hace cuánto y cuánto valen. Se cierra cuando llegan.",
+    },
+    {
+      id: "reposicion",
+      ancla: "proveedor-ficha.reposicion",
+      opcional: true,
+      titulo: "Llegó la reposición",
+      texto: "Si el proveedor ya mandó lo que faltaba y no se marcó al recibirlo, lo anotas aquí (te lo abrimos). Si viene en un envío que todavía no recibiste, márcalo al recibir: se anota solo.",
+    },
+    {
+      id: "hoja-reposicion",
+      ancla: "proveedor-ficha.hoja-reposicion",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.reposicion", siEsta: true }],
+      titulo: "Anotar que cumplió",
+      texto: "Cuántas llegaron (viene puesto todo lo que debía), cómo llegaron y quién lo anota. Solo anota que el proveedor cumplió: no suma prendas al stock. Al anotarlo, queda en el historial de la deuda. En la demo no lo tocamos.",
+    },
+    {
+      // Cierra la hoja aunque este paso se salte (no hay cerradas): `preparar` corre antes de ver si el paso aplica.
+      id: "cerradas",
+      ancla: "proveedor-ficha.nos-debe-cerradas",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Ya repuestas",
+      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo llegó cada reposición. Si son muchas, se pliegan: tócalas para verlas.",
+    },
     {
       id: "saldo-favor",
       ancla: "proveedor-ficha.saldo-favor",
       opcional: true,
-      titulo: "Lo que te debe",
-      texto: "El saldo a tu favor con este proveedor (por notas de crédito) y de dónde viene. Se usa al pagarle o se le pide de vuelta.",
+      titulo: "Saldo a tu favor",
+      texto: "La plata que te debe: el saldo a tu favor con este proveedor (por notas de crédito) y de dónde viene. Se usa al pagarle o se le pide de vuelta.",
     },
     {
       id: "costo",
@@ -1363,6 +1403,14 @@ const PASOS_FORMULARIO_ORDEN = {
     titulo: "Proveedor y a dónde llega",
     texto: "El proveedor (búscalo por nombre, marca o RUC) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
   },
+  // «Nos debe» (ADR-0362, fase 5a): sale al elegir un proveedor que todavía debe prendas por reponer de otra compra.
+  nosDebe: {
+    id: "nos-debe",
+    ancla: "orden-form.nos-debe",
+    opcional: true,
+    titulo: "Si el proveedor te debe algo",
+    texto: "Si este proveedor todavía te debe prendas de otra compra, aquí te lo recuerda, con cuántas y cuánto valen: pídeselas en esta orden o márcalas cuando lleguen.",
+  },
   lineas: {
     id: "lineas",
     ancla: "orden-form.lineas",
@@ -1403,6 +1451,7 @@ export const GUIA_NUEVA_ORDEN: Guia = {
       texto: "El número que tendrá la orden (se confirma al guardar) y el total, que se va sumando mientras escribes las líneas.",
     },
     PASOS_FORMULARIO_ORDEN.datos,
+    PASOS_FORMULARIO_ORDEN.nosDebe,
     PASOS_FORMULARIO_ORDEN.lineas,
     PASOS_FORMULARIO_ORDEN.linea,
     PASOS_FORMULARIO_ORDEN.agregar,
@@ -1563,6 +1612,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
       texto: "El número de la orden está en el título. Aquí, el total, que cambia mientras corriges las líneas.",
     },
     { ...PASOS_FORMULARIO_ORDEN.datos, opcional: true },
+    PASOS_FORMULARIO_ORDEN.nosDebe,
     { ...PASOS_FORMULARIO_ORDEN.lineas, opcional: true },
     PASOS_FORMULARIO_ORDEN.linea,
     { ...PASOS_FORMULARIO_ORDEN.agregar, opcional: true },

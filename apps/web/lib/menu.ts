@@ -117,7 +117,7 @@ export type ClaveIcono =
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
-  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos";
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -262,9 +262,17 @@ export const ARBOL: readonly Nodo[] = [
       // la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras. El pájaro es
       // Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y Recibir escribe `insumo_lotes`,
       // también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
+      // Órdenes de insumos (ADR-0362 fase 7, decisión 47; Felipe 2026-10-12) va PRIMERA: el trabajo empieza al pedir (pedir → factura →
+      // recibir → pagar). Sin `exige`: el módulo es la llave (decisiones 40 y 47) y trae sus precios sin abrir la plata del Taller. Su ruta
+      // NO cuelga de `/produccion` a propósito: ese layout pide el módulo de producción, y quien tiene solo «Órdenes de insumos» no lo
+      // necesita. Aterrizar en `/ordenes-insumos` abre igual el grupo de Producción (`grupoDe` mira las rutas de las hijas, no solo la
+      // `raiz`). Para quien la ve junto a Recibir (sin el dinero del Taller), Abastecimiento ya no se disuelve en «Recibir»: tiene dos.
+      // La `raiz` del subgrupo sigue siendo la de Proveedores: el subgrupo no tiene pantalla propia y esa ruta solo dice de qué grupo es.
+      // [provisional, revisar con Felipe: el lugar (Producción ▸ Abastecimiento) es la opción (a) de la pregunta 1 del contrato]
       {
         id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
         hijos: [
+          { id: "produccion.ordenesInsumos", modulo: "ordenes_insumos", etiqueta: "Órdenes de insumos", estado: "viva", ruta: "/ordenes-insumos", icono: "ordenesInsumos", pajaro: "10 Gallito" },
           { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
           { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Facturas de insumos", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
           // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
