@@ -1,59 +1,65 @@
-# Órdenes de compra — traspaso del 2026-10-13 (9 am): dónde quedó
+# Órdenes de compra — estado vivo (2026-10-13, 13:00)
 
-> Felipe cambia de cuenta de Claude el 2026-10-13 a las 9 am. **Esta sección manda sobre todo lo de abajo** (lo de abajo es el traspaso
-> del 2026-10-10, que queda como historia). Las decisiones 1–64 viven en `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`; las
-> 51–64 son de esta mañana. Avance: **~72 de 100** (pesos 15/20/12/15/10/18/10).
+> Felipe NO cambió de cuenta: la misma sesión siguió (worktree `.claude/worktrees/rediseno-modulo-colaboradores-c962d9`). **Esta sección
+> manda sobre todo lo de abajo.** Las decisiones 1–64 viven en `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`. Avance: **~76 de
+> 100** (pesos 15/20/12/15/10/18/10; la fase 7 parte 1 ya está en producción).
 
-## Estado al 2026-10-13, 12:00 (actualizado al cambiar de cuenta)
+## En producción (pegado y verificado por huella contra el banco)
 
-**En producción (pegado y verificado el 2026-10-13 con el OK de Felipe):** fases 2, 3, 4 y 5a. Fase 7 parte 1: NO.
-Verificación: cada migración pasó su bloque final; además, la huella md5 de las 38 funciones y las columnas de 7 tablas que tocan las
-fases 3–5a coincide con el banco (43 de 45; las 2 restantes son de forma y vienen de antes: `registrar_comprobante_orden` en producción
-no trae los comentarios internos con que se pegó la fase 2 —un reemplazo anclado futuro sobre esa función NO debe anclarse en líneas de
-comentario— y dos columnas viejas de `compras` están en otro orden físico). Versiones en producción: fase 3 `20261013160428`, `160558`,
-`160649`; fase 4 `160945` y `20261013002000` en tres partes (`161225`, `161434`, `161543`); fase 5a `161852`.
-
-| PR | Qué | Estado |
+| Fase | Versiones en producción | Verificación |
 |---|---|---|
-| #1006 | fase 2 | lista; rama al día con `main` (19412d276); «SQL pegado» en ROJO (ver abajo) |
-| #1014 | fase 3 | borrador; su rama TODAVÍA choca con `main` (`lib/modulos.test.ts`) |
-| #1015 | fase 4 | borrador; su rama TODAVÍA choca con `main` (`lib/modulos.test.ts` y `lib/guias/pantallas/inventario.ts`) |
-| #1017 | fase 5a | lista, **base `main`** (se cambió hoy); rama al día con `main` (107cfe810); casilla «después» puesta hoy |
-| #1019 | fase 7, parte 1 | borrador, base rama de la fase 5; rama al día (77d74e8d3); su SQL NO está pegado |
-| #1025 | volcado con las fases 3–5a | lista, CI verde: se puede fusionar ya (solo docs) |
-| #1018 | volcado con la fase 2 | FUSIONADA |
-| #1022 | Plan de campaña «un plan por año» (otra sesión) | su SQL se pegó en producción, la PR sigue abierta; su «SQL pegado» pasa solo cuando la fase 2 esté en `main` |
+| 2 | `20261012223737` … `224301` (6 pegadas) | consulta de solo lectura (2026-10-12) |
+| 3 | `20261013160428`, `160558`, `160649` | 43 de 45 piezas de 3–5a iguales; las 2 restantes son de forma (abajo) |
+| 4 | `160945`; `20261013002000` en tres partes: `161225`, `161434`, `161543` | ídem |
+| 5a | `161852` | ídem |
+| 7, parte 1 | `20261013174954` (esquema), `20261013175242` (funciones) | **30 de 30** piezas iguales al banco |
 
-**Por qué «SQL pegado» falla (y no es un error del SQL).** El control compara producción con `main` + la PR. Las fases se pegaron todas
-juntas y encima de ellas la #1022, así que cada PR ve en producción la versión FINAL de funciones que la PR deja en una versión anterior
-(ADR-0251, «otro PR pegado encima»). Y hay un segundo candado: cada número de migración y de ADR solo entra a `main` por la PR de la rama que
-lo reservó (`scripts/reservar/reservas.mjs`, usa `GITHUB_HEAD_REF`), así que una PR no puede llevar las fases de otras ramas. Por eso:
+Las 2 piezas de forma: `registrar_comprobante_orden` en producción no trae los comentarios internos con que se pegó la fase 2 (un
+reemplazo anclado futuro sobre esa función NO debe anclarse en líneas de comentario) y dos columnas viejas de `compras` están en otro
+orden físico.
 
-**Lo que Felipe aprobó el 2026-10-13 (y falta hacer):** fusionar EN FILA #1006 → #1014 → #1015 → #1017, con la casilla «El SQL se pega
-después de fusionar» y su nota en #1006, #1014 y #1015 (el SQL YA está pegado; la casilla solo evita que el control compare contra una
-producción que ya va más adelante). Pasos:
-1. Poner al día las ramas de las fases 3 y 4: en la de la fase 3, `git merge origin/claude/purchase-order-phase2-9b0c82` (debería entrar
-   limpio: la fase 2 ya resolvió `modulos.test.ts`); en la de la fase 4, `git merge` de la fase 3 ya al día y resolver
-   `lib/guias/pantallas/inventario.ts` IGUAL que se resolvió en la fase 5: queda la guía `GUIA_RECIBIR_ENVIO` y sale la copia vieja de
-   `GUIA_PLAN_DEL_PISO` («Gestión», ADR-0392, la movió a `gestion.ts`); en `modulos.test.ts`, las rutas de `/gestion/…` más lo de la
-   pila. Después, la fase 4 dentro de la 5 y la 5 dentro de la 7. Probar `lib/modulos.test.ts`, `lib/menu.test.ts`, `lib/guias.test.ts`,
-   `lib/guia-de-foco.test.ts` y `tsc` (los errores de `.next/dev/types` son restos del servidor de pruebas, no del código).
-2. En #1006, #1014 y #1015: cambiar `- [x] **SQL pegado en producción.**` por `- [x] **El SQL se pega después de fusionar** — en realidad
-   YA ESTÁ pegado…` con la nota (la de la #1017 sirve de modelo). Que no quede ninguna línea marcada con «SQL pegado en producción»: el
-   control mira primero esa. Pasar #1014 y #1015 a «lista» (`gh pr ready`).
-3. En #1017, volver a la casilla «SQL pegado en producción» (cuando las fases 2–4 estén en `main`, la comparación real le da verde).
-4. Felipe fusiona con «merge commit», una por una, esperando el verde de cada una (~5 min): #1006 → #1014 → #1015 → #1017. Al fusionarse
-   cada una, GitHub apunta la siguiente a `main` sola (el repo borra la rama al fusionar). Después, la #1022 (vuelve a correr su control y
-   pasa) y la #1025.
+## La fila hacia `main` (orden aprobado por Felipe el 2026-10-13)
 
-## Fase 7, parte 1 (#1019): falta el OK de Felipe para pegar
+| PR | Fase | Estado |
+|---|---|---|
+| #1006 | 2 | **FUSIONADA** (12:45) |
+| #1034 | 3 | reemplaza a la #1014; abierta con la fase 2 ya en `main`: se fusiona apenas su CI esté en verde |
+| #1035 | 4 | reemplaza a la #1015; tras la #1034: «Update branch» una vez, verde, fusionar |
+| #1017 | 5a | tras la #1035: «Update branch», verde, fusionar (su «SQL pegado» compara de verdad con producción) |
+| #1019 | 7, parte 1 | base `main`, lista, casilla «SQL pegado»; tras la #1017: «Update branch», verde, fusionar |
 
-Felipe confirmó el menú (decisión 52) y el precio al recibir en el Taller (53). Sigue provisional: destino obligatorio de tipo taller, la
-unidad copiada en la línea, el insumo no restringido al proveedor y las cifras de la lista. Con su OK: pegar `20261013035000` →
-`20261013040000` (una parte cada una; por MCP `apply_migration`, verificar con huellas contra el banco como se hizo con las fases 3–5a), marcar
-«SQL pegado» en #1019 y fusionarla después de la #1017.
+Cada una sale en ROJO a propósito hasta que entra la anterior: el candado de reservas (ADR-0381) no deja pasar números que reservó otra
+rama. #1006, #1034 y #1035 llevan la casilla «El SQL se pega después de fusionar» (su SQL ya está pegado, pero las fases siguientes y la
+#1022 se pegaron encima de sus funciones: ADR-0251, «otro PR pegado encima»); #1017 y #1019, la casilla «SQL pegado en producción».
 
-## Lo que sigue, con las respuestas de Felipe del 2026-10-13 (planes listos; mostrar la lista y esperar su OK antes de codificar, `/construir`)
+**Lo que pasó el 2026-10-13 (para no repetirlo):** la #1015 se fusionó dentro de la rama de la fase 3 y la #1014 dentro de la de la fase
+2 (GitHub ofrece fusionar una PR apilada en su base, no en `main`). La #1006 quedó con las fases 2, 3 y 4 y el candado de reservas la
+bloqueaba. Con el OK de Felipe («Rebobinar la rama»), la rama de la fase 2 volvió a `8b9deeaaf` + `main` (push forzado protegido; la punta
+anterior `e406c630e` quedó en la rama local `respaldo/fase2-con-fusiones-1213`) y las ramas de las fases 3 y 4 se rehicieron desde sus
+puntas de antes (`a6fd08d54`, `87e989b8d`). Esas dos fusiones no traían contenido propio (comprobado por árbol). **Desde entonces toda PR
+de la fila apunta a `main`**: así no hay una base equivocada donde fusionar, y el candado ordena la fila solo.
+
+Al rehacerlas entró #1026 («una función, una pieza», rondas 6–8): las pantallas de las fases 2, 3, 4, 5a y 7 pasaron sus títulos a
+`<TituloSeccion>`; las matrices talla × color y la hoja imprimible de la orden de insumos van marcadas `unificar-fijo` (como sus gemelas
+en `main`); las huellas de las guías se regeneraron. Cambia cómo se ven, no qué hacen.
+
+## Fase 7, parte 1: en producción
+
+Felipe dio el OK explícito el 2026-10-13 («Sí: pega la fase 7 y sigue»). Antes de pegar, nada de la fase 7 existía en producción, ningún
+módulo usaba la clave ni el orden 205, y existían todas las columnas y funciones que usa. Después de pegar, 30 de 30 huellas iguales al
+banco (18 funciones, columnas y restricciones de las 3 tablas, 2 disparadores, el módulo, 3 acciones sin responsable, RLS y permisos).
+Después de fusionar #1019: en Roles y accesos, darle «Órdenes de insumos» a quien compre para el Taller. Sigue provisional: destino
+obligatorio de tipo taller, la unidad copiada en la línea, el insumo de cualquier proveedor, las cifras de la lista.
+
+## /formidable (Felipe 2026-10-13: «Sí, así»), en una PR aparte cuando la fila esté en `main`
+
+- Comprobante de una orden (`docs/formidable/compras-ordenes-comprobante.md`): las 3 — sin valores puestos (factura, crédito, IGV),
+  botón «Registrar la compra», y buscar en todas las sedes (la orden de otra sede aparece con «Está en … · ver en todas las sedes»).
+- Recibir un envío (`docs/formidable/recibir-envio.md`): la fila entera se toca y el botón dice el envío; «Es nueva» sin tallas
+  marcadas; y en vez de guardar lo contado en el navegador (Felipe lo quitó de Recibir en ADR-0129), **un aviso antes de salir** si
+  hay algo contado sin recibir.
+
+## Lo que sigue, con las respuestas de Felipe del 2026-10-13 (la fase 6 con su lista de 9 actividades: APROBADA el 2026-10-13; se construye con `/construir`, una actividad por commit)
 
 **Fase 6 · fondo por rendir y gastos del viaje (18)** — contrato `contrato-fondo-por-rendir.md`; decisiones 16, 20, 26, 29, 30, 32–35, 46 y
 54–57. Nueve actividades: (1) base del fondo: `cuentas_dinero.persona_id`, tipos `entrega_fondo`/`devolucion_fondo`, módulo `fondos`

@@ -10,3 +10,7 @@
   y secuencia) y `20261013040000` (7 funciones, una de ellas la lectura de lo que el formulario ofrece elegir, sin la plata del Taller);
   `pruebas:ordenes-insumo` 55/55 y las vecinas en verde; web con su lógica pura probada (1000 × S/ 0.0350 = S/ 35.00), guía de foco,
   4 guías interactivas, modo oscuro, `tsc` limpio; de punta a punta en el banco a 1440 y 375 px. **Sin pegar en producción.**
+- **Producción y fila (2026-10-13, tarde):** con el OK explícito de Felipe, `20261013035000` y `20261013040000` pegadas por MCP
+  (versiones `20261013174954` y `20261013175242`); 30 de 30 huellas iguales al banco. La #1015 y la #1014 se habían fusionado dentro de
+  las ramas de la fila: la rama de la fase 2 se rebobinó (OK de Felipe) y las fases 3 y 4 volvieron en #1034 y #1035; desde entonces
+  toda PR de la fila apunta a `main`. #1006 fusionada a las 12:45. Las pantallas de las fases 2–7 pasaron a las piezas únicas de #1026.
