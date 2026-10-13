@@ -131,4 +131,4 @@ Migración `20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql` (
 contadas contra producción: 1 y 1). La web no cambia: el conteo «Categorías» baja solo (46 → 45) y el mensaje del rechazo ya se muestra
 tal cual (todo `hint` que empieza por `grupos_mix_`). Lo vigila `pnpm pruebas:motores-familias-apagadas` (casos G1-G3 y R1).
 
-**Pendiente:** pegar la migración en producción (Felipe) y, después, refrescar el diccionario.
+**En producción desde el 2026-10-13** (Felipe la pegó; verificado de solo lectura: las dos funciones preguntan, 45 categorías en el plan, 0 sin grupo). Pendiente: refrescar el diccionario.
