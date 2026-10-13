@@ -987,6 +987,12 @@ export const PRUEBAS = [
   // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
   "pruebas:ordenes-insumo",
 
+  // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
+  // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder
+  // solo lo entrega el líder; no se devuelve más de lo que hay ni se anula una entrega ya usada; el validador, el registro genérico,
+  // «¿De dónde sale la plata?» y el candado de la cuenta no dejan mover un fondo por otro lado. ROLLBACK siempre.
+  "pruebas:fondos",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

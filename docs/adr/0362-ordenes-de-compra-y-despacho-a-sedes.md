@@ -83,6 +83,8 @@
 | 62 | Lista de compras del Taller | **Después**: primero el comprobante y la recepción de la orden de insumos (Felipe 2026-10-13) |
 | 63 | Maquila y flete del Taller | **Siguen como gastos** en Finanzas (los del viaje, en el fondo de la fase 6); la orden de insumos solo lleva insumos (Felipe 2026-10-13) |
 | 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13) |
+| 65 | Dónde va «Fondos por rendir» | **Directo en Compras**, como octava entrada (después de Por pagar), subiendo el tope del menú de Compras. Se le preguntó con el subgrupo «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación y con «Finanzas ▸ Dinero»; dijo que no va en Finanzas y eligió no regrupar (Felipe 2026-10-13) |
+| 66 | Recibir mercadería | **Se mudará a Existencias** (Felipe 2026-10-13, al hablar del menú). Ese día Compras baja de 8 a 7 entradas y la excepción del tope queda solo por Fondos por rendir. No es parte de la fase 6 |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -151,6 +153,30 @@ Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción 
 pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
 obligatorio y es un taller; la unidad del insumo se copia en la línea y, si después cambia, al editar esa línea pide la cantidad de nuevo;
 el insumo no se restringe al proveedor de la orden; una orden lleva hasta 100 líneas.
+
+**Fase 6 · actividad 1 (2026-10-13, rama `claude/purchase-order-phase6-9b0c82`; lista de 8 actividades aprobada por Felipe el
+2026-10-13): la base del fondo y Compras ▸ Fondos por rendir.** Migraciones `20261013181000` (esquema) y `20261013182000` (funciones),
+prueba `pnpm pruebas:fondos`. Contrato: `contrato-fondo-por-rendir.md`; mapa de lo que se rompe: `mapa-dinero-fase6.md`.
+
+```
+DECIDÍ: el fondo de una persona es un TIPO NUEVO de cuenta de dinero, `fondo`, con su dueña en `cuentas_dinero.persona_id` y la
+        cuenta contable 1413 (decisión 57). Una sola cuenta de fondo viva por persona, que nace con la primera entrega. Entregar y
+        devolver son dos movimientos propios (`entrega_fondo`, `devolucion_fondo`); el saldo sale del mismo libro que «Cuentas y
+        dinero». Nadie mueve plata de su propio fondo desde Fondos por rendir (ni con su cuenta ni eligiéndose en el combo).
+DESCARTÉ: darle dueña a la cuenta `por_rendir` («Efectivo entregado al líder»), como decía el mapa de módulos: esa cuenta es la caja
+        de la empresa que el líder recibe de los cierres (101, no un anticipo a rendir), y seis piezas suponen que hay UNA sola (el
+        índice único, el traslado al líder en `fn_dinero_libro` y en `fn_caja_traslados_sellar`, `registrar_ingreso_caja` y tres
+        pruebas). Con un tipo propio, nada de eso cambia.
+SE ROMPE SI: la actividad 2 (pagar desde «Mi fondo») no le enseña a `fn_cuenta_sirve` y `fn_cuentas_para_elegir` el tipo `fondo`
+        solo para su dueña: hoy el fondo no sirve para pagar nada, a propósito.
+```
+
+La 1413 entra en la actividad 1 y no en la 7 (contabilidad) porque la cuenta contable de una cuenta de dinero no cambia nunca
+(`fn_cuentas_dinero_inmutable`): cambiarla después obligaría a tocar fondos ya usados. La actividad 7 sigue con la 609/631 de los gastos
+del viaje y el faltante como cuenta por cobrar. Por defecto *(provisional, revisar con Felipe)*: la plata de un fondo sale de un banco, de
+una caja fuerte o de lo que tiene el líder (esto último, solo el líder, como en todo el ERP); lo que se devuelve lo registra quien recibe
+la plata, nunca la dueña, y no más de lo que tiene; anular una entrega de la que ya salió plata no se puede; en Actividad todavía no se
+anota (el propio tablero dice quién hizo cada movimiento).
 
 ## Fuente: el brief de Felipe
 

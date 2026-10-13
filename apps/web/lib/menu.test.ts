@@ -297,7 +297,11 @@ const TOPE_HIJAS = 6;
 // «Recibir mercadería» siga en Compras. La sesión de Recepción la muda a Inventario (la base ya la tiene en ese grupo desde el
 // 2026-10-07; falta la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete
 // son puertas de uso diario y la mudanza ya está decidida.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
+// COMPRAS, 8 (Felipe, 2026-10-13; ADR-0362, decisión 65): «Fondos por rendir» va DIRECTO en Compras, como octava hija. Se le preguntó
+// con el subgrupo «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. Cuando «Recibir mercadería»
+// se mude a Existencias (Felipe, 2026-10-13: la entrada temporal de arriba), Compras baja a 7 y este número baja a 7 con ella: desde ese
+// día la excepción es solo por Fondos por rendir, y no vuelve a subir.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 8 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -462,7 +466,7 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los siete módulos ve las siete pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los ocho módulos ve las ocho pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → recepción → pago → fondos → notas de crédito", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.plan",
@@ -471,6 +475,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
         "compras.comprobantes",
         "compras.recibir",
         "compras.porPagar",
+        "compras.fondos",
         "compras.notasCredito",
       ]);
     }

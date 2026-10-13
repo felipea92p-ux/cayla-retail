@@ -2017,3 +2017,76 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
   ],
   alSalir: [{ tipo: "escape" }],
 };
+
+// ---- Fondos por rendir (ADR-0362, fase 6 · actividad 1 · ADR-0389) ----
+// Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
+// botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
+// opcional; sin fondos, la guía explica la tarjeta vacía.
+export const GUIA_FONDOS: Guia = {
+  id: "compras.fondos",
+  ruta: "/compras/fondos",
+  titulo: "Fondos por rendir",
+  resumen: "La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "La plata para comprar",
+      texto: "Quien compra para CAYLA paga al proveedor, el flete y sus gastos con plata que le entregas antes. Aquí la entregas y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "entregar",
+      ancla: "fondos.entregar",
+      titulo: "Entregar plata",
+      texto: "Eliges a quién, de qué banco o caja fuerte sale y para qué es («compras en Gamarra»). No es un gasto: la plata sigue siendo de CAYLA mientras la persona la tiene. Nadie se entrega plata a sí mismo.",
+    },
+    {
+      id: "vacio",
+      ancla: "fondos.vacio",
+      opcional: true,
+      titulo: "Todavía nadie tiene fondo",
+      texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
+    },
+    {
+      id: "cifras",
+      ancla: "fondos.cifras",
+      opcional: true,
+      titulo: "Toda la empresa",
+      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto les entregaste desde el primer fondo y cuánto devolvieron.",
+    },
+    {
+      id: "lista",
+      ancla: "fondos.lista",
+      opcional: true,
+      titulo: "Quién tiene plata",
+      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto le entregaste, cuánto devolvió y lo que tiene en la mano, que es lo que tiene que rendir.",
+    },
+    {
+      id: "devolver",
+      ancla: "fondos.devolver",
+      opcional: true,
+      titulo: "Lo que devuelve",
+      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. No puede devolver más de lo que tiene.",
+    },
+    {
+      id: "movimientos",
+      ancla: "fondos.movimientos",
+      opcional: true,
+      titulo: "Entregas y devoluciones",
+      texto: "Cada entrega y cada devolución, la más nueva arriba: de dónde salió o a dónde volvió la plata y para qué. Una anulada queda a la vista, tachada, con quién la anuló y por qué.",
+    },
+    {
+      id: "anular",
+      ancla: "fondos.anular",
+      opcional: true,
+      titulo: "Anular un error",
+      texto: "Si una entrega o una devolución se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata (devuelta o pagada) no se anula, y nadie anula la plata de su propio fondo.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes entregar plata y ver cuánto tiene cada persona. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
+    },
+  ],
+};
