@@ -29,10 +29,10 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
 
-  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar), crear, editar y anular una orden de compra, registrar o anular su comprobante y enviarla a una sede o anular el envío (ADR-0362), crear, editar y anular una orden de insumos del Taller (ADR-0362, fase 7), entregar, devolver y anular la plata de un fondo (ADR-0362, fase 6), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
+  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar), crear, editar y anular una orden de compra, registrar o anular su comprobante y enviarla a una sede o anular el envío (ADR-0362), crear, editar y anular una orden de insumos del Taller (ADR-0362, fase 7), entregar, devolver y anular la plata de un fondo y registrar un gasto del viaje (ADR-0362, fase 6), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(43);
+    expect(DESCRIPCION_VIGENTE.size).toBe(44);
     expect(DESCRIPCION_VIGENTE.has("producto_confirmar_cambios")).toBe(false);
     expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });
@@ -43,8 +43,14 @@ describe("acciones sin responsable", () => {
     }
   });
 
-  it("ninguna acción de dinero, caja ni venta está soltada", () => {
-    for (const clave of Object.keys(ACCIONES_SIN_RESPONSABLE)) expect(clave).not.toMatch(/caja|venta|gasto|cierre_mes|devolucion|pago/);
+  // Una excepción, con su motivo: el gasto del viaje (ADR-0362 fase 6 · actividad 3, provisional hasta que Felipe lo revise) se anota en
+  // Gamarra, lejos de toda tienda, donde nadie puede «marcar su entrada»; con su cuenta firma ella, como las órdenes de compra (decisión 39).
+  const SOLTADAS_LEJOS_DEL_KIOSCO = new Set(["gasto_viaje_registrar"]);
+  it("ninguna acción de dinero, caja ni venta está soltada (salvo el gasto del viaje, que se anota lejos de la tienda)", () => {
+    for (const clave of Object.keys(ACCIONES_SIN_RESPONSABLE)) {
+      if (SOLTADAS_LEJOS_DEL_KIOSCO.has(clave)) continue;
+      expect(clave).not.toMatch(/caja|venta|gasto|cierre_mes|devolucion|pago/);
+    }
   });
 
   it("firmar(consulta, firmaOmitida(clave)) manda solo el encabezado de la clave", () => {

@@ -32,6 +32,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { BotonEnlace } from "@/components/ui/campos";
+import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
 import { PaginacionCursor } from "@/components/Paginacion";
 import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 
@@ -103,7 +104,13 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
         sede={persona.ubicacionEtiqueta}
         titulo="Órdenes de compra"
         subtitulo="Lo que le pides a cada proveedor: qué, a cuánto y a qué tienda llega."
-        acciones={nuevaOrden}
+        acciones={
+          // «+ Gasto del viaje» (fase 6 · actividad 3): lo que costó traer la compra o el viaje, a una o varias órdenes.
+          <div className="flex flex-wrap items-center gap-3">
+            <GastoDelViaje guia="ordenes.gasto-viaje" />
+            {nuevaOrden}
+          </div>
+        }
       />
 
       {falla ? (

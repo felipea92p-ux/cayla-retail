@@ -177,9 +177,11 @@ caso(
 // (`orden_compra_envio`, 20261012225000; ADR-0362 fase 3). Y tres más de Órdenes de insumos del Taller (`orden_insumo_crear`,
 // `orden_insumo_editar` y `orden_insumo_anular`, 20261013040000; ADR-0362 fase 7): la decisión 39 extendida a la orden del Taller.
 // Y tres más de Fondos por rendir (`fondo_entregar`, `fondo_devolver` y `fondo_anular`, 20261013182000; ADR-0362 fase 6): el mismo trato.
-const TOTAL = EN_SECO ? "28" : "43";
+// Y una más: el gasto del viaje (`gasto_viaje_registrar`, 20261013222000; ADR-0362 fase 6 · actividad 3), que se anota lejos de la tienda.
+const TOTAL = EN_SECO ? "28" : "44";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
-caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
+// El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional).
+caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave <> 'gasto_viaje_registrar';`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
   `set local role authenticated;\nselect pg_temp.intento('select * from retail.acciones_sin_responsable') || ',' || pg_temp.intento($$delete from retail.acciones_sin_responsable$$);`,

@@ -1,6 +1,7 @@
 import { FileX } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDetalleOrden, getEmpresaParaOrden } from "@/lib/ordenes-compra";
+import { getGastosDeOrden } from "@/lib/gastos-viaje";
 import { numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -19,7 +20,7 @@ import { AccionesOrden } from "@/components/ordenes-compra/AccionesOrden";
 export default async function OrdenCompraPage({ params }: { params: Promise<{ id: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
   const { id } = await params;
-  const [{ detalle, falla }, empresa] = await Promise.all([getDetalleOrden(id), getEmpresaParaOrden()]);
+  const [{ detalle, falla }, empresa, gastos] = await Promise.all([getDetalleOrden(id), getEmpresaParaOrden(), getGastosDeOrden(id)]);
   const volver = <Volver href="/compras/ordenes" a="Órdenes de compra" />;
 
   if (falla || !detalle) {
@@ -60,7 +61,7 @@ export default async function OrdenCompraPage({ params }: { params: Promise<{ id
         acciones={<AccionesOrden lugar="cabecera" orden={detalle} empresa={empresa} />}
       />
       <div className="card-cayla p-5">
-        <DetalleOrdenCompra orden={detalle} />
+        <DetalleOrdenCompra orden={detalle} gastos={gastos} />
       </div>
     </div>
   );

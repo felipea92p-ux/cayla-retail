@@ -993,6 +993,11 @@ export const PRUEBAS = [
   // «¿De dónde sale la plata?» y el candado de la cuenta no dejan mover un fondo por otro lado. ROLLBACK siempre.
   "pruebas:fondos",
 
+  // Gastos del viaje (ADR-0362, fase 6 · actividad 3): con Órdenes de compra; «Traer la mercadería» (609, fletes) o «Viaje de compra» (631);
+  // desde «Mi fondo» el Diario lo saca de la 1413, desde la caja fuerte de la 101; a una o varias órdenes, repartido según su total; sin
+  // comprobante solo taxi o cargador; un anulado no cuenta y devuelve la plata al fondo; la firma de la decisión 39. ROLLBACK siempre.
+  "pruebas:gastos-viaje",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

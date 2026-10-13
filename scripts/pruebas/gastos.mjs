@@ -275,7 +275,8 @@ select count(*) from retail.fn_categorias_gasto();`);
   esperar("no se le cuelga una nota de crédito de mercadería a un gasto", r.ok && Number(nc) === 0, r);
   esperar("nadie lee `gastos` directo (ni el líder)", r.ok && gastosDirecto.includes("permission denied"), r);
   esperar("nadie lee `categorias_gasto` directo", r.ok && catDirecto.includes("permission denied"), r);
-  esperar("las 11 categorías se leen por su función", r.ok && Number(categorias) === 11, r);
+  // 13 desde los gastos del viaje (ADR-0362 fase 6 · actividad 3, 20261013221000): «Traer la mercadería» (609) y «Viaje de compra» (631).
+  esperar("las 13 categorías se leen por su función", r.ok && Number(categorias) === 13, r);
 }
 
 // 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y

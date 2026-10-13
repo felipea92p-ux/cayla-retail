@@ -85,6 +85,10 @@
 | 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13) |
 | 65 | Dónde va «Fondos por rendir» | **Directo en Compras**, como octava entrada (después de Por pagar), subiendo el tope del menú de Compras. Se le preguntó con el subgrupo «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación y con «Finanzas ▸ Dinero»; dijo que no va en Finanzas y eligió no regrupar (Felipe 2026-10-13) |
 | 66 | Recibir mercadería | **Se mudará a Existencias** (Felipe 2026-10-13, al hablar del menú). Ese día Compras baja de 8 a 7 entradas y la excepción del tope queda solo por Fondos por rendir. No es parte de la fase 6 |
+| 67 | Gastos del viaje: dónde y a qué | **Desde Órdenes de compra**, por quien tiene ese módulo; la plata sale de «Mi fondo» o de una cuenta de siempre. Un gasto va a **una o varias órdenes**: con varias se reparte según el total de cada una («hay que manejar ambos casos») (Felipe 2026-10-13) |
+| 68 | Planilla de movilidad | **Sin tope hasta que el contador lo fije**; cuando exista, lo que pase el tope se deja y se marca «no deducible» (como la 56) (Felipe 2026-10-13) |
+| 69 | Rendición | Un faltante **con explicación lo decide quien aprueba** («Lo asume CAYLA» o «Queda como deuda de la persona»; sin explicación, deuda: 54). Al aprobar, **el fondo puede quedar en cero o conservar plata** para las próximas compras (devolver lo que sobra es opcional). **Foto del papel opcional**, y la rendición avisa cuáles no la tienen (Felipe 2026-10-13, noche) |
+| 70 | Efectivo de S/ 2 000 o más | Se mira **el total del comprobante** (la regla de la bancarización): todo lo pagado en efectivo o desde un fondo (el Yape personal incluido, 57) queda marcado «no deducible», con aviso (Felipe 2026-10-13, noche) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -202,6 +206,30 @@ o en negativo, el efectivo sigue proponiendo la caja de siempre y el fondo queda
 cargado, una transferencia queda por elegir, como antes). Quien no tiene fondo no ve «Mi fondo»: un fondo nace con una entrega de otra
 persona. En el tablero, un fondo en negativo no resta de «Tienen en la mano»: tiene su cifra, «CAYLA les debe». Con la plata en negativo
 ahora posible, anular una entrega dice cuánto salió de ella sin pasar de lo entregado.
+
+**Fase 6 · actividad 3 (2026-10-13, noche): gastos del viaje** (decisiones 20, 26, 55, 57, 67 y 68). Migraciones `20261013221000` (esquema)
+y `20261013222000` (funciones); prueba `pnpm pruebas:gastos-viaje` (11 casos).
+
+```
+DECIDÍ: un gasto del viaje ES un gasto (`retail.gastos`), con dos categorías nuevas: «Traer la mercadería» (609, la línea de fletes
+        del Estado de resultados) y «Viaje de compra» (631). Lo propio del viaje va en una ficha aparte (`gastos_viaje`: concepto y
+        papel) y en su reparto (`gastos_viaje_ordenes`: lo que le toca a cada orden, según su total, a céntimos; lo que sobra va a la de
+        mayor total). Lo registra `registrar_gasto_viaje` (módulo Órdenes de compra) con la MISMA pieza de pago que Finanzas ▸ Gastos
+        (`fn_comprobante_y_pago`): del cajón crea su egreso; de un fondo lo valida el sello de gastos con `fn_fondo_para_pagar`, y el
+        Diario lo saca de la 1413. La sede del gasto es la de quien compra (46). Cada orden dice «Traerla costó S/ X».
+DESCARTÉ: columnas nuevas en `retail.gastos` (tabla en uso de todo Finanzas; lo del viaje es una ficha aparte) y crear la factura de un
+        gasto del viaje como comprobante de compra con su IGV (le pediría a quien está en Gamarra dar de alta al proveedor): se guardan
+        el papel, la serie y el RUC para el contador; el IGV de una factura queda para la actividad de contabilidad.
+SE ROMPE SI: otra pantalla crea gastos de las categorías del viaje sin su ficha (salen en Gastos y en el Estado de resultados, pero no en
+        «Traerla costó»), o el Diario deja de leer la cuenta del gasto: el fondo bajaría en «Cuentas y dinero» y no en el Balance.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: la acción `gasto_viaje_registrar` queda **soltada del combo «Responsable»** (con la cuenta
+de una persona firma ella; desde una terminal, el combo), aunque es de plata: se anota en Gamarra, lejos de toda tienda, donde nadie puede
+marcar su entrada (el mismo motivo de la decisión 39). Las dos pruebas que vigilan «ninguna acción de dinero soltada» la nombran como
+excepción. Las órdenes son opcionales (el cargador se paga a veces antes de saber a qué orden va); la hoja las propone si se abre desde una
+orden. Un gasto del viaje se anula en Finanzas ▸ Gastos, como cualquier gasto (una anulada no cuenta en «Traerla costó» y le devuelve la
+plata al fondo). Con tarjeta de crédito no se anota aquí (va por Finanzas ▸ Gastos). Las fotos del papel llegan con la rendición (69).
 
 ## Fuente: el brief de Felipe
 

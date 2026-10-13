@@ -1355,6 +1355,12 @@ export const GUIA_ORDENES: Guia = {
       texto: "Abre el formulario para pedirle algo a un proveedor: eliges al proveedor, a dónde llega y escribes lo que pides, prenda por prenda. Al guardar, vuelve aquí con la orden marcada como «Recién guardada».",
     },
     {
+      id: "gasto-viaje",
+      ancla: "ordenes.gasto-viaje",
+      titulo: "Lo que costó traer la compra",
+      texto: "«+ Gasto del viaje» anota lo que pagaste para traer la compra (flete, agencia, cargador, embalaje) o en el viaje (pasaje, hotel, comida, taxi), y a qué órdenes va. Sale de tu fondo o de una cuenta de siempre y nunca entra al costo de la prenda. En la demo no lo guardamos.",
+    },
+    {
       id: "cifras",
       ancla: "ordenes.cifras",
       opcional: true,
@@ -1558,6 +1564,13 @@ export const GUIA_ORDEN: Guia = {
       texto: "Si un envío salió mal, «Anular envío» pide el motivo y lo deja sin efecto: lo que llevaba vuelve a quedar por enviar. Solo mientras va «En camino»: cuando la sede lo abre, ya no. No se borra ni se deshace. En la demo no lo tocamos.",
     },
     {
+      id: "gastos-viaje",
+      ancla: "orden.gastos-viaje",
+      opcional: true,
+      titulo: "Traerla costó",
+      texto: "Los gastos del viaje de esta orden (flete, cargador, hotel…) y lo que le tocó a ella: si un gasto se repartió entre varias órdenes, aquí ves su parte. Es lo que costó traerla, aparte del costo de las prendas.",
+    },
+    {
       id: "pie",
       ancla: "orden.pie",
       titulo: "Su estado y quién la hizo",
@@ -1568,6 +1581,13 @@ export const GUIA_ORDEN: Guia = {
       ancla: "orden.acciones",
       titulo: "Lo que haces con ella",
       texto: "«Imprimir o guardar PDF» saca la orden en papel A4, lista para mandársela al proveedor. «Editar» la corrige, solo mientras no tenga comprobante ni envío; «Anular orden» la deja sin efecto, con un motivo, y no se deshace. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "gasto-viaje",
+      ancla: "orden.gasto-viaje",
+      opcional: true,
+      titulo: "Anotar un gasto del viaje",
+      texto: "«+ Gasto del viaje» abre la hoja con esta orden ya elegida: qué pagaste, cuánto, el papel que te dieron y de dónde salió la plata. Puedes sumar otras órdenes y el monto se reparte según el total de cada una. En la demo no lo guardamos.",
     },
     {
       id: "enviar",

@@ -12,6 +12,7 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonEditarOrden } from "@/components/ordenes-compra/BotonEditarOrden";
+import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
 import { HojaOrdenCompra, type EmpresaDeLaOrden } from "@/components/ordenes-compra/HojaOrdenCompra";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { useResponsable } from "@/lib/useResponsable";
@@ -52,6 +53,8 @@ import { textoParaBase } from "@/lib/orden-compra-alta";
 // El PDF (decisión 1: se puede mandar al proveedor) sale del diálogo de impresión, como la guía de traslado: el papel
 // (`HojaOrdenCompra`, A4) queda montado pegado a <body> mientras la orden está a la vista —así Ctrl+P también imprime la orden y no la
 // pantalla— y el documento se llama como la orden, así el archivo se guarda como «OC-000129.pdf» (`useTituloDeImpresion`).
+//
+// «+ Gasto del viaje» (fase 6 · actividad 3): en toda orden que no esté anulada, con ESTA orden ya elegida (lo que costó traerla).
 
 const sinSuscripcion = () => () => {};
 
@@ -87,6 +90,12 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
       </span>
     </BotonEnlace>
   );
+  const gastoViaje = orden.estado !== "anulada" && (
+    <GastoDelViaje
+      orden={{ id: orden.id, numero: numeroOrdenCompra(orden.numero), proveedor: orden.proveedor.nombre, total: orden.total }}
+      guia="orden.gasto-viaje"
+    />
+  );
   const anular = puedeAnular && (
     <Boton
       peso="peligro"
@@ -107,6 +116,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
           {anular}
           <div className="ml-auto flex flex-wrap items-center gap-3">
             {imprimir}
+            {gastoViaje}
             {puedeEditar && <BotonEditarOrden id={orden.id} />}
             {enviar}
             {registrar}
@@ -116,6 +126,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
         <div data-guia="orden.acciones" className="flex flex-wrap items-center gap-3">
           {anular}
           {imprimir}
+          {gastoViaje}
           {puedeEditar && <BotonEditarOrden id={orden.id} />}
           {enviar}
           {registrar}

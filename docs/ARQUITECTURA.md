@@ -1557,6 +1557,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Recibir pase a Inventario (la sesión de Recepción; ver ADR-0362, «Contrato con»).
   - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
     sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
+    **Gastos del viaje** (ADR-0362 fase 6 · actividad 3, `20261013221000`/`222000`): «+ Gasto del viaje» en la cabecera de la lista y en
+    `AccionesOrden` → `components/ordenes-compra/GastoDelViaje.tsx` (hoja con guía de foco; órdenes por `fn_gastos_viaje_ordenes`, «Sale de»
+    con `conMiFondo`) → `lib/gastos-viaje-acciones.ts` (`registrar_gasto_viaje`, firma `gasto_viaje_registrar`); reglas y reparto en
+    `lib/gastos-viaje-reglas.ts`, ejemplos en `lib/sugerencias-gasto-viaje.ts`. «Traerla costó» en el detalle: `lib/gastos-viaje.ts:getGastosDeOrden`
+    (`fn_gastos_viaje_de_orden`) + `components/ordenes-compra/GastosDeOrden.tsx`.
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
     reescritura `beforeFiles`). Con la orden «generada», `components/ordenes-compra/AccionesOrden.tsx` en el pie de la ventana y en la
     cabecera de la página: «Anular orden» (hoja con el motivo → `lib/ordenes-compra-acciones.ts:anularOrdenCompra`, `anular_orden_compra`,

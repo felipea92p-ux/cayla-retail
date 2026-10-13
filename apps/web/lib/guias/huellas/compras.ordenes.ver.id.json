@@ -2,11 +2,14 @@
   "guia": "compras.ordenes.ver.id",
   "ruta": "/compras/ordenes/ver/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 22,
+  "total": 40,
   "controles": {
     "app/(app)/compras/ordenes/ver/[id]/page.tsx": [
       "Volver «; if (falla || !detalle)»",
       "BotonEnlace «Ver las órdenes de compra»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-compra/AccionesOrden.tsx": [
       "Boton «Imprimir o guardar PDF»",
@@ -33,6 +36,25 @@
       "CampoTexto «Por qué se anula»",
       "ComboResponsable «)»",
       "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/ordenes-compra/GastoDelViaje.tsx": [
+      "Boton «{guia}»",
+      "SegmentoDeslizante «Para qué fue»",
+      "SegmentoDeslizante «Qué pagaste»",
+      "CampoSelect «Qué pagaste»",
+      "CampoMonto «¿Cuánto costó?»",
+      "CampoFecha «¿Cuándo?»",
+      "SegmentoDeslizante «Qué papel te dieron»",
+      "CampoSelect «Qué papel te dieron»",
+      "CampoTexto «Serie y número»",
+      "CampoTexto «RUC de quien te lo dio»",
+      "Casilla «{`Elegir ${etiquetaOrdenParaGasto(o)}»",
+      "SegmentoDeslizante «Cómo pagaste»",
+      "CampoSelect «Cómo pagaste»",
+      "CampoTexto «{concepto === \"otro\" ? \"¿Qué se pagó?\" : \"Nota\"}»",
+      "ComboResponsable «)»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ]

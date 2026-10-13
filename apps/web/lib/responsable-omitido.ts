@@ -85,6 +85,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   fondo_entregar: "Entregar plata al fondo de una persona (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_devolver: "Registrar lo que una persona devuelve de su fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_anular: "Anular una entrega o una devolución de fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Gastos del viaje (ADR-0362, fase 6 · actividad 3; migración 20261013222000): quien compra anota lo que pagó con su cuenta.
+  gasto_viaje_registrar: "Registrar un gasto del viaje de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;
