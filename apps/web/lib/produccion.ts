@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, leerTodas, opcional, type Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
+import { categoriasFueraDeMotores } from "@/lib/familias-motores";
 import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
@@ -11,7 +12,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 // se muestra es stock que nadie sabe que existe.
 
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
-import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
+import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -152,27 +153,34 @@ export type ModeloProducible = {
 
 /** Modelos con sus variantes activas, para el formulario de nueva orden. Un
  *  modelo sin variantes activas no se puede producir (no habría a qué talla
- *  sumarle stock), así que no se lista. */
-export async function getModelosProducibles(): Promise<ModeloProducible[]> {
+ *  sumarle stock), así que no se lista.
+ *
+ *  `soloProducibles` (el Resumen de Producción): además deja fuera lo que no se le debe ofrecer a la líder para fabricar —un
+ *  descontinuado, un alta pendiente o rechazada, un producto de prueba, una familia fuera de los motores (`esProducible`)—. «Nueva
+ *  orden» NO lo pide: sigue ofreciendo todo el catálogo hasta que la base cierre la puerta (candado #6 del backlog). */
+export async function getModelosProducibles(opciones: { soloProducibles?: boolean } = {}): Promise<ModeloProducible[]> {
   const supabase = await createClient();
   // Por páginas con orden único (ADR-0192): los modelos crecen con el catálogo y PostgREST corta en 1.000 sin avisar —
   // un modelo fuera de la página no se podría producir. Las variantes embebidas no cuentan para el tope.
-  const filas = exigir(
-    await leerTodas((desde, hasta) =>
+  const [filasLeidas, apagadas] = await Promise.all([
+    leerTodas((desde, hasta) =>
       supabase
         .from("productos")
         .select(
-          `id, referencia, categoria_id, categoria:categorias ( nombre ),
+          `id, referencia, categoria_id, estado, estado_alta, es_prueba, categoria:categorias ( nombre ),
            variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
         )
         .order("referencia")
         .order("id")
         .range(desde, hasta)
     ),
-    "los modelos del catálogo"
-  );
+    // Nunca lanza: si no responde, devuelve vacío y todo cuenta como antes (ADR-0377).
+    opciones.soloProducibles ? categoriasFueraDeMotores(supabase) : Promise.resolve(new Set<string>()),
+  ]);
+  const filas = exigir(filasLeidas, "los modelos del catálogo");
 
   return filas
+    .filter((p) => !opciones.soloProducibles || esProducible(p, apagadas))
     .map((p) => ({
       productoId: p.id,
       referencia: p.referencia,

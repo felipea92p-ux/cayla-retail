@@ -54,7 +54,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "que-producir",
       ancla: "prod-resumen.que-producir",
       titulo: "¿Qué producir?",
-      texto: "Todos los modelos del catálogo, primero los que más urge fabricar. Sirve para decidir la próxima corrida mirando lo que de verdad se vende en las tiendas, no a ojo.",
+      texto: "Los modelos que se pueden fabricar (no salen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias como Empaque), primero los que más urge fabricar. Sirve para decidir la próxima corrida mirando lo que de verdad se vende en las tiendas, no a ojo.",
     },
     {
       id: "modelo",

@@ -28,7 +28,7 @@ export default async function ProduccionPage() {
   const hoy = hoyLima();
   const [ordenes, modelos, datosInsumos, lineas, comprobantes] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: true }),
-    getModelosProducibles(),
+    getModelosProducibles({ soloProducibles: true }),
     getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
     getLineasPorRecibir(taller.id),
     getComprobantesProduccion(),

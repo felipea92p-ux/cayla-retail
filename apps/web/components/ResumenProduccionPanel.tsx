@@ -138,7 +138,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
         <TituloSeccion dato="días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días">¿Qué producir?</TituloSeccion>
         {falloRed && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{falloRed}</p>}
         {modelos.length === 0 ? (
-          <p className="card-cayla p-5 text-sm text-tinta/70">Todavía no hay modelos con variantes en el catálogo para producir.</p>
+          <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora. No se ofrecen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias fuera de los motores (como Empaque).</p>
         ) : (
           <div className="card-cayla overflow-hidden">
             <div className="hidden grid-cols-[minmax(0,1.4fr)_5rem_5.5rem_minmax(9rem,1.2fr)_5rem_9rem] gap-4 border-b border-tinta/10 px-4 py-2.5 md:grid">
