@@ -130,7 +130,7 @@ export function CerrarFaltanteModal({
               value={cantidad}
               onChange={(e) => setCantidad(e.target.value)}
               onFocus={(e) => e.target.select()}
-              className="ml-3 w-20 border-b border-tinta/25 bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+              className="caja-campo-input ml-3 w-20 text-center tabular-nums"
             />
             <span className="ml-2 text-xs text-tinta/55">
               de {tope} pendientes{tienda ? ` en ${tienda.nombre}` : ""}

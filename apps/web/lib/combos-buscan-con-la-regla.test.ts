@@ -22,11 +22,11 @@ const archivos = (readdirSync(RAIZ, { recursive: true }) as string[])
 const combos = archivos.filter((a) => /\bcomboNecesitaBuscador\(/.test(a.fuente) || /export function ComboBuscable\b/.test(a.fuente));
 
 describe("todo combo busca con la regla global (filtrarCombo)", () => {
+  // 2026-10-13: «Proveedor» de Recibidas dejó su combo a mano por la píldora del sistema (ADR-0358, ronda 6).
   it("encuentra los combos que hay hoy (si no, la prueba no está mirando nada)", () => {
     expect(combos.map((c) => c.ruta).sort()).toEqual(
       [
         "components/ComboResponsable.tsx",
-        "components/FiltrosRecibidas.tsx",
         "components/ui/ComboBuscable.tsx",
         "components/ui/FiltrosPildora.tsx",
         "components/ui/campos.tsx",

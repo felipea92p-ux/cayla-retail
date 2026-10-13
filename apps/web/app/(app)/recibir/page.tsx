@@ -34,6 +34,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -135,11 +137,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         {encabezado}
 
         <section data-guia="recibidas.sin-factura" className="space-y-2">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Sin factura · {nombreMirada}</h2>
+          <TituloSeccion>Sin factura · {nombreMirada}</TituloSeccion>
           <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
         </section>
 
-        <h2 className="label-cayla -mb-3 text-[11px] text-tinta/65">Contra factura</h2>
+        <TituloSeccion className="-mb-3">Contra factura</TituloSeccion>
         <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
@@ -282,12 +284,15 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               }))}
           />
           <section data-guia="recibir.semana" className="space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
-              <Link href="/recibir?vista=recibidas" data-guia="recibir.ver-todo" className="btn-cayla btn-enlace btn-chico">
-                Ver todo lo recibido
-              </Link>
-            </div>
+            <TituloSeccion
+              accion={
+                <EnlaceVer href="/recibir?vista=recibidas" guia="recibir.ver-todo">
+                  Ver todo lo recibido
+                </EnlaceVer>
+              }
+            >
+              Llegó esta semana · {persona.ubicacionEtiqueta}
+            </TituloSeccion>
             <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
           </section>
         </div>
@@ -352,7 +357,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 acciones={<BotonEnlace href="/recibir?vista=factura" peso="fantasma">Limpiar filtros</BotonEnlace>}
               >
                 Ningún comprobante pendiente de recibir coincide con esos filtros. Si llegó mercadería sin factura,{" "}
-                <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+                <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>
             ) : (
               <Vacio
@@ -361,7 +366,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 acciones={acciones.facturas ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
               >
                 No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
-                <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+                <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>
             )}
           </div>

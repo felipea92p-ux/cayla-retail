@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { LayoutGrid } from "lucide-react";
 import { ListaActividad, useActividad } from "@/components/actividad/ListaActividad";
 import {
   MODULOS_CON_ACTIVIDAD,
@@ -88,16 +89,15 @@ function PanelActividad({
       {(cerrar) => (
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {/* El combo de las barras de filtros (caja hundida, lista propia), como los demás: no el <select> del navegador. */}
-            <div className="w-full sm:w-56">
-              <Desplegable
-                forma="caja"
-                etiquetaAccesible="Módulo"
-                valor={modulo ?? ""}
-                onValor={(v) => setModulo(v || null)}
-                opciones={opcionesDeModulo(modulo)}
-              />
-            </div>
+            {/* La píldora de filtro del sistema (ADR-0358, ronda 6): dice su nombre y, puesta, lo elegido con su ✕. */}
+            <DesplegablePildora
+              icono={LayoutGrid}
+              etiqueta="Módulo"
+              valor={modulo ?? ""}
+              valorPorDefecto=""
+              onValor={(v) => setModulo((v || null) as ClaveModulo | null)}
+              opciones={opcionesDeModulo(modulo)}
+            />
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Periodo">
               {PERIODOS.map((p) => (
                 <button key={p.clave} type="button" className="pildora-cayla" aria-pressed={periodo === p.clave} onClick={() => setPeriodo(p.clave)}>
@@ -119,9 +119,9 @@ function PanelActividad({
 
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-sand/70 pt-4">
             <p className="text-xs text-taupe">{esLider ? "Ves la sede elegida arriba." : "Ves solo la actividad de tu tienda."}</p>
-            <Link href={verTodo} onClick={cerrar} className="btn-cayla btn-enlace">
-              Ver todo el historial →
-            </Link>
+            <EnlaceVer href={verTodo} alNavegar={cerrar}>
+              Ver todo el historial
+            </EnlaceVer>
           </div>
         </div>
       )}

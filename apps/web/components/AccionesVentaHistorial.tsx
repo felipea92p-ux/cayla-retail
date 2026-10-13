@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeftRight, Ban, BookmarkCheck, FileText, PackageCheck, RefreshCw, RotateCcw, ShoppingBag, UserRound, type LucideIcon } from "lucide-react";
 import { accionesDeVenta, recorridoDeVenta, type ClaveAccion, type ContextoAcciones, type PasoRecorrido } from "@/lib/historial-acciones-reglas";
 import type { FilaHistorial } from "@/lib/ventas-historial-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Lo que Ventas ▸ Historial agrega al detalle de una venta (ADR-0230): su recorrido —apartada, vendida, SUNAT, cambios y
 // devoluciones— y «Qué hacer con esta venta», con cada acción llevando a SU pantalla con la venta ya buscada. Historial no
@@ -38,7 +39,7 @@ export function RecorridoVenta({ fila }: { fila: FilaHistorial }) {
   const pasos = recorridoDeVenta(fila);
   return (
     <section aria-label="Recorrido de la venta">
-      <h3 className="label-cayla mb-2 text-[10.5px] text-taupe">Recorrido</h3>
+      <TituloGrupo className="mb-2">Recorrido</TituloGrupo>
       <ol className="relative space-y-1.5 pl-5 before:absolute before:bottom-1.5 before:left-[4px] before:top-1.5 before:w-[1.5px] before:bg-sand">
         {pasos.map((p, i) => (
           <li key={i} className="relative text-[13px] text-tinta">
@@ -62,7 +63,7 @@ export function AccionesVenta({ fila, contexto }: { fila: FilaHistorial; context
   if (acciones.length === 0) return null;
   return (
     <section aria-label="Qué hacer con esta venta" className="-mx-6 -mb-6 rounded-b-2xl bg-hueso px-6 pb-6 pt-4">
-      <h3 className="label-cayla mb-2.5 text-[10.5px] text-taupe">Qué hacer con esta venta</h3>
+      <TituloGrupo className="mb-2.5">Qué hacer con esta venta</TituloGrupo>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {acciones.map((a) => {
           const Icono = ICONO[a.clave];

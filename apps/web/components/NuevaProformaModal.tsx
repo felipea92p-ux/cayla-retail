@@ -31,7 +31,6 @@ type Fila = { prenda: PrendaParaProforma; cantidad: number; pct: number; motivo:
 
 const PCT_MAX = Math.round(TOPE_DESCUENTO_PROFORMA * 100);
 const descuentoDe = (f: Fila) => descuentoUnitarioPorPorcentaje(f.prenda.precio, f.pct);
-const CONTROL = "rounded-md border border-tinta/15 bg-vidrio/60 px-1.5 py-1 text-xs outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60";
 
 // «Nueva proforma» (spec 2026-09-22): prendas del catálogo con cantidad y descuento (hasta 20 %, con motivo),
 // clienta, validez y nota. La cuenta que se ve es `totalesDeLineas`, la misma que hace `crear_proforma`; la base
@@ -251,7 +250,7 @@ export function NuevaProformaModal({
                         placeholder="0"
                         onChange={(e) => cambiar(id, { pct: Math.min(PCT_MAX, Math.max(0, Math.round(Number(e.target.value) || 0))) })}
                         aria-label={`Descuento en % de ${f.prenda.referencia} (hasta ${PCT_MAX} %)`}
-                        className={`${CONTROL} w-12 text-right tabular-nums`}
+                        className="caja-campo-input min-h-8 w-12 px-2 text-right text-xs tabular-nums"
                       />
                       %
                     </label>
@@ -266,7 +265,7 @@ export function NuevaProformaModal({
                       />
                     )}
                     {f.pct > 0 && f.motivo === "otro" && (
-                      <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className={`${CONTROL} w-32`} />
+                      <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className="caja-campo-input min-h-8 w-32 px-2 text-xs" />
                     )}
                     <p className="ml-auto w-24 text-right tabular-nums">
                       {descuento > 0 && <span className="block text-xs text-tinta/55 line-through">{soles(f.prenda.precio * f.cantidad)}</span>}

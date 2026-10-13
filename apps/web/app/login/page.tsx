@@ -70,33 +70,39 @@ function LoginForm() {
         </div>
 
         <div className="space-y-5">
-          <div className="space-y-2">
-            <label className="label-cayla text-[11px] text-tinta/70">Correo</label>
+          <div className="campo space-y-2">
+            <label htmlFor="login-email" className="campo-etiqueta">
+              Correo
+            </label>
             <input
               id="login-email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none transition-colors focus:border-rojo"
+              className="caja-campo-input"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="label-cayla text-[11px] text-tinta/70">Contraseña</label>
-            <div className="relative flex items-center">
+          <div className="campo space-y-2">
+            <label htmlFor="login-clave" className="campo-etiqueta">
+              Contraseña
+            </label>
+            {/* La caja del sistema (ADR-0358, ronda 6), con el ojo adentro. */}
+            <div className="caja-cayla caja-campo">
               <input
+                id="login-clave"
                 type={mostrarPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 pr-7 text-sm text-tinta outline-none transition-colors focus:border-rojo"
+                className="self-stretch py-0"
               />
               <button
                 type="button"
                 onClick={() => setMostrarPassword((v) => !v)}
                 aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="absolute right-0 text-tinta/65 transition-colors hover:text-rojo"
+                className="-mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
               >
                 {mostrarPassword ? (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">

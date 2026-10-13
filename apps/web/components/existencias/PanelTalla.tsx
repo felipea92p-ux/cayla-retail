@@ -931,7 +931,9 @@ export function PanelTalla({
                             </p>
                           ))}
                         <div data-guia="existencias.cajon-todas-tabla" className="scroll-cayla overflow-x-auto">
-                          <table className="w-full table-fixed border-separate border-spacing-y-1.5 text-center text-sm">
+                          <table // unificar-fijo: la matriz color × talla de «Todas» (ADR-0391), no una lista de registros
+                            className="w-full table-fixed border-separate border-spacing-y-1.5 text-center text-sm"
+                          >
                             <colgroup>
                               <col className="w-[96px]" />
                               {tallasDeTodos.map((t) => (

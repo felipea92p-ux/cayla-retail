@@ -10,6 +10,8 @@ import { Pestanas } from "@/components/ui/Pestanas";
 import { repartoDelGasto, variacion, type EficienciaPeriodo, type PartePlata } from "@/lib/eficiencia-reglas";
 import type { EstadoPlanilla } from "@/lib/eficiencia";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 
 // Eficiencia del Taller (ADR-0133, F7; D-31 y D-33). «Cuánto cuesta de verdad cada prenda que sale del Taller»: materiales de lo que cerró + conversión (la
 // planilla de Dynamic y los gastos generales, repartidos entre las prendas buenas). El período es el de la planilla (29 al 28). Sin planilla visible NO se
@@ -17,6 +19,16 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 const pct = (n: number) => `${Math.round(n * 100)} %`;
+
+// «Período a período» (<Tabla>, ADR-0358): la misma plantilla para el encabezado y cada fila; `min-w` la deja desplazarse en celular.
+const PLANTILLA_PERIODOS = "grid-cols-[minmax(7rem,1.3fr)_repeat(4,minmax(6.5rem,1fr))] min-w-[34rem]";
+const COLUMNAS_PERIODOS: Columna[] = [
+  { titulo: "Período" },
+  { titulo: "Prendas buenas", alinear: "der" },
+  { titulo: "Materiales / prenda", alinear: "der" },
+  { titulo: "Conversión / prenda", alinear: "der" },
+  { titulo: "Costo / prenda", alinear: "der" },
+];
 
 const COLOR_PARTE: Record<PartePlata["clave"], string> = { planilla: "bg-tinta", materiales: "bg-tinta/60", maquila: "bg-tinta/35", gastos: "bg-tinta/18" };
 
@@ -121,7 +133,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
           <section data-guia="prod-eficiencia.reparto" aria-label="En qué se fue la plata" className="card-cayla space-y-3 p-5">
             <div>
-              <h2 className="font-display text-xl text-tinta">¿En qué se fue la plata del Taller?</h2>
+              <TituloSeccion>¿En qué se fue la plata del Taller?</TituloSeccion>
               <p className="text-xs text-tinta/65">Período {actual.ventana.etiqueta}. Lo que gastó el Taller: la planilla, los gastos generales y los materiales y la maquila de lo que cerró.</p>
             </div>
             {reparto.length === 0 ? (
@@ -157,7 +169,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
           </section>
 
           <section data-guia="prod-eficiencia.entregas" aria-label="Entregas" className="card-cayla space-y-2 p-5">
-            <h2 className="font-display text-xl text-tinta">Entregas del período</h2>
+            <TituloSeccion>Entregas del período</TituloSeccion>
             {actual.ordenesCerradas === 0 ? (
               <p className="text-sm text-tinta/70">Ninguna orden se cerró en este período.</p>
             ) : (
@@ -172,31 +184,20 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
           {periodos.length > 1 && (
             <section data-guia="prod-eficiencia.tendencia" aria-label="Tendencia" className="space-y-2">
-              <h2 className="font-display text-xl text-tinta">Período a período</h2>
-              <div className="card-cayla overflow-x-auto">
-                <table className="w-full min-w-[34rem] text-[13px]">
-                  <thead>
-                    <tr className="border-b border-tinta/10 text-left">
-                      <th className="label-cayla px-4 py-2.5 text-[11px] font-normal text-tinta/65">Período</th>
-                      <th className="label-cayla px-3 py-2.5 text-right text-[11px] font-normal text-tinta/65">Prendas buenas</th>
-                      <th className="label-cayla px-3 py-2.5 text-right text-[11px] font-normal text-tinta/65">Materiales / prenda</th>
-                      <th className="label-cayla px-3 py-2.5 text-right text-[11px] font-normal text-tinta/65">Conversión / prenda</th>
-                      <th className="label-cayla px-4 py-2.5 text-right text-[11px] font-normal text-tinta/65">Costo / prenda</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {periodos.map((p) => (
-                      <tr key={p.ventana.clave} className={`border-b border-tinta/10 last:border-b-0 ${p.ventana.clave === actual.ventana.clave ? "bg-sand/40" : ""}`}>
-                        <td className="px-4 py-2.5 text-tinta">{p.ventana.etiqueta}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{p.prendasBuenas || <span className="text-tinta/45">—</span>}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{p.materialesPorPrenda !== null ? soles(p.materialesPorPrenda) : <span className="text-tinta/45">—</span>}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{p.conversionPorPrenda !== null ? soles(p.conversionPorPrenda) : <span className="text-tinta/45">—</span>}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{p.costoPorPrenda !== null ? soles(p.costoPorPrenda) : <span className="font-normal text-tinta/45">—</span>}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TituloSeccion>Período a período</TituloSeccion>
+              {/* La tabla es <Tabla> (ADR-0358, ronda 7). `siempre`: en celular se desplaza dentro de su tarjeta en vez de apilarse, como antes. */}
+              <Tabla>
+                <Encabezado siempre columnas={COLUMNAS_PERIODOS} plantilla={PLANTILLA_PERIODOS} />
+                {periodos.map((p) => (
+                  <div key={p.ventana.clave} role="row" className={fila(PLANTILLA_PERIODOS, `text-[13px] ${p.ventana.clave === actual.ventana.clave ? "bg-sand/40" : ""}`)}>
+                    <span className={celda("izq", "text-tinta")}>{p.ventana.etiqueta}</span>
+                    <span className={celda("der")}>{p.prendasBuenas || <span className="text-tinta/45">—</span>}</span>
+                    <span className={celda("der")}>{p.materialesPorPrenda !== null ? soles(p.materialesPorPrenda) : <span className="text-tinta/45">—</span>}</span>
+                    <span className={celda("der")}>{p.conversionPorPrenda !== null ? soles(p.conversionPorPrenda) : <span className="text-tinta/45">—</span>}</span>
+                    <span className={celda("der", "font-semibold")}>{p.costoPorPrenda !== null ? soles(p.costoPorPrenda) : <span className="font-normal text-tinta/45">—</span>}</span>
+                  </div>
+                ))}
+              </Tabla>
             </section>
           )}
         </>
@@ -204,7 +205,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
       <p data-guia="prod-eficiencia.nota" className="text-xs text-tinta/60">
         Las prendas segundas no se cuentan: el costo de lo que salió mal lo pagan las buenas. Para ver cuánto rinde la tela de cada modelo, mira{" "}
-        <Link href="/produccion" className="underline underline-offset-2 hover:text-rojo">
+        <Link href="/produccion" className="btn-enlace">
           el Resumen
         </Link>{" "}
         y el análisis de insumos al abrir una orden.

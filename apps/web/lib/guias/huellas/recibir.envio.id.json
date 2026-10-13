@@ -28,9 +28,9 @@
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "input «{ejemplo.nombre.texto}»",
-      "Desplegable «Código»",
-      "input «{ejemplo.codigo.texto}»",
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
       "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"

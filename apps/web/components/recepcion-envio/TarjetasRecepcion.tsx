@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -130,7 +131,7 @@ export function TarjetaLinea({
       <header className="flex flex-col gap-3 @min-[40rem]:flex-row @min-[40rem]:items-start @min-[40rem]:justify-between">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombreLineaGuia(indice)}</p>
-          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">{prendaTexto}</h2>
+          <TituloSeccion className="mt-0.5">{prendaTexto}</TituloSeccion>
           {l.descripcion && <p className="text-sm text-tinta/75">{l.descripcion}</p>}
           <p className="mt-1 text-[13px] tabular-nums text-taupe">
             Vienen <span className="font-semibold text-tinta">{l.enviado.toLocaleString("es-PE")}</span>
@@ -244,7 +245,7 @@ export function TarjetaExtra({
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombre}</p>
-          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">No estaba en la guía</h2>
+          <TituloSeccion className="mt-0.5">No estaba en la guía</TituloSeccion>
           <p className="text-[13px] text-taupe">Dile a Compras qué es y qué pasa con ello: entra al stock como todo lo demás.</p>
         </div>
         <button type="button" onClick={onQuitar} className="btn-cayla btn-sutil h-8 w-8 shrink-0 p-0" aria-label={`Quitar ${nombre}`} title="Quitar esto de la recepción">

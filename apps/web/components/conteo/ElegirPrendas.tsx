@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, Plus, Search, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import {
   RESULTADOS_POR_PAGINA,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/conteo-por-prenda";
 import type { EstadoDePrendas } from "@/lib/usePrendasParaContar";
 import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
 
 /* ====================================================================
    ElegirPrendas · «Por prenda» dentro de «¿Qué vas a contar?» (Abrir un conteo, 2026-10-01)
@@ -126,41 +127,31 @@ export function ElegirPrendas({
 
       {listo && (
         <>
-          <label className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-md">
-            <Search className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
-            <span className="sr-only">Buscar prenda para contar</span>
-            <input
-              ref={campo}
-              type="text"
-              autoComplete="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              value={consulta}
-              aria-describedby={idAyuda}
-              onChange={(e) => {
-                setConsulta(e.target.value);
-                setVisibles(RESULTADOS_POR_PAGINA);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && consulta) {
-                  // Un control que usa el Escape (aquí, borra su búsqueda) no lo deja pasar (ADR-0136).
-                  e.stopPropagation();
+          {/* El buscador del sistema (ADR-0358, ronda 5): su Escape borra lo escrito y no cierra la hoja de alrededor (ADR-0136). */}
+          <Buscador
+            ref={campo}
+            valor={consulta}
+            etiqueta="Buscar prenda para contar"
+            autoCapitalize="off"
+            aria-describedby={idAyuda}
+            onCambio={(v) => {
+              setConsulta(v);
+              setVisibles(RESULTADOS_POR_PAGINA);
+            }}
+            onBorrar={() => setConsulta("")}
+            onKeyDown={(e) => {
+              // Un código escrito o escaneado + Enter: si es UNA sola prenda, queda elegida y el campo se vacía para la siguiente.
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (consulta === consultaDiferida && resultados.length === 1 && !elegidasSet.has(resultados[0].varianteId)) {
+                  agregar([resultados[0]]);
                   setConsulta("");
-                  return;
                 }
-                // Un código escrito o escaneado + Enter: si es UNA sola prenda, queda elegida y el campo se vacía para la siguiente.
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (consulta === consultaDiferida && resultados.length === 1 && !elegidasSet.has(resultados[0].varianteId)) {
-                    agregar([resultados[0]]);
-                    setConsulta("");
-                  }
-                }
-              }}
-              placeholder="Buscar prenda, código, color o talla..."
-              className="h-10 w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
-            />
-          </label>
+              }
+            }}
+            placeholder="Buscar prenda, código, color o talla..."
+            className="@[30rem]:max-w-md"
+          />
 
           <p id={idAyuda} className="text-[13px] text-taupe">
             {consultaDiferida.trim() === ""

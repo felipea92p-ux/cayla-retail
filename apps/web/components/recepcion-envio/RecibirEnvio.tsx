@@ -3,6 +3,7 @@
 import { useLayoutEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -124,7 +125,7 @@ export function RecibirEnvio({
             </Aviso>
           )}
           <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que trae">
-            <h2 className="font-display text-xl text-tinta">Lo que trae</h2>
+            <TituloSeccion>Lo que trae</TituloSeccion>
             <LoQueTrae detalle={detalle} />
           </section>
         </>
