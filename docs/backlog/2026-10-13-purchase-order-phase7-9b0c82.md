@@ -15,4 +15,4 @@ ADR-0362 (decisiones 25, 28, 29 y 47). Va encima de la fase 5a (PR #1017). Contr
   Taller contra la orden; al llegar, editar y anular suman el candado «no con un comprobante o una recepción vivos».
 - [ ] `/chaos` completo y `/formidable` de las pantallas (hoy: dos sesiones a la vez y doble clic en la base; dos rechazos con la
   pantalla abierta).
-- [ ] En la fila de escritorio de la orden, el ejemplo de la descripción («Ej. color crudo, ancho 1.50 m») se corta: columna angosta.
+- [x] En la fila de escritorio, el ejemplo de la descripción se cortaba: ahora es corto («Ej. crudo», «Ej. negro») y la cabecera dice solo «Descripción».

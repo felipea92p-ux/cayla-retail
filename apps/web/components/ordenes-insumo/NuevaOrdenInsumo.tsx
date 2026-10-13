@@ -459,8 +459,9 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
             <div aria-hidden className={`hidden gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[60rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Insumo</span>
-              <span className="truncate">
-                Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
+              {/* Sin «opcional» a la vista: en la columna angosta se cortaba; cada caja lo dice con su ejemplo y la línea con su punto. */}
+              <span className="truncate" title="Descripción, opcional">
+                Descripción
               </span>
               <span>Cantidad</span>
               <span>Precio u.</span>

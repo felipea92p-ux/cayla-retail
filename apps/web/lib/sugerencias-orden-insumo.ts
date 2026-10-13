@@ -4,12 +4,13 @@
 //
 // Fuente, en este orden: la UNIDAD del insumo para la cantidad (`insumos.unidad_medida`: lo que se mide —metros, kilos— lleva decimales
 // en el ejemplo; lo que se cuenta —conos, unidades, pares, docenas—, un número entero) y el TIPO para la descripción (`insumos.tipo`:
-// una tela se describe por su color y su ancho; un avío, por su color o su medida). Sin insumo elegido, un texto que no promete nada.
+// una tela se describe por su acabado —crudo, teñido—; un avío, por su color. Corto: la columna de escritorio es angosta). Sin insumo elegido, un texto que no promete nada.
 // Una unidad o un tipo que el catálogo sume mañana cae al neutro, nunca al ejemplo de otro.
 
-/** Lo más largo que entra sin cortarse en la caja de la cantidad (6 rem con su relleno) y en la de la descripción a 375 px. */
+/** Lo más largo que entra sin cortarse en la caja de la cantidad (6 rem con su relleno) y en la de la descripción de la fila de
+ * escritorio (la columna más angosta: ~7.5 rem a 1440 px; a 375 px la caja es ancha y le sobra). */
 export const MAX_CANTIDAD = 9;
-export const MAX_DESCRIPCION = 30;
+export const MAX_DESCRIPCION = 13;
 
 /** El ejemplo de la cantidad según la unidad del insumo elegido. Sin insumo, «0». */
 export function sugerirCantidadInsumo(unidad: string | null): { texto: string } {
@@ -35,10 +36,10 @@ export function sugerirCantidadInsumo(unidad: string | null): { texto: string } 
 export function sugerirDescripcionInsumo(tipo: string | null): { texto: string } {
   switch (tipo) {
     case "tela":
-      return { texto: "Ej. color crudo, ancho 1.50 m" };
+      return { texto: "Ej. crudo" };
     case "avio":
-      // «Avío» es un botón, un hilo, un cierre o una etiqueta: el color y la medida sirven para todos (un «15 mm» no le dice nada a un hilo).
-      return { texto: "Ej. color o medida" };
+      // «Avío» es un botón, un hilo, un cierre o una etiqueta: el color sirve para todos (un «15 mm» no le dice nada a un hilo).
+      return { texto: "Ej. negro" };
     default:
       return { texto: "Opcional" };
   }

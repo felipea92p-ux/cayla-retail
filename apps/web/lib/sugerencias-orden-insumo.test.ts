@@ -45,9 +45,9 @@ describe("la descripción sigue al tipo del insumo", () => {
     expect(sugerirDescripcionInsumo(null).texto).toBe("Opcional");
     expect(sugerirDescripcionInsumo("hilo-nuevo").texto).toBe("Opcional");
   });
-  it("sin contradicción: la tela habla de su ancho; el avío, de su medida, no de un ancho de tela", () => {
-    expect(sugerirDescripcionInsumo("tela").texto).toMatch(/ancho/);
-    expect(sugerirDescripcionInsumo("avio").texto).not.toMatch(/ancho/);
+  it("sin contradicción: la tela habla de su acabado (crudo); el avío, de su color, nunca de una tela", () => {
+    expect(sugerirDescripcionInsumo("tela").texto).toMatch(/crudo/);
+    expect(sugerirDescripcionInsumo("avio").texto).not.toMatch(/crudo|ancho|tela/);
   });
   it("sigue al control, es estable y cabe a 375 px", () => {
     const a = sugerirDescripcionInsumo("tela").texto;
