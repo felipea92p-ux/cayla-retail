@@ -43,15 +43,7 @@ export function PildoraRol({ nombre, lider }: { nombre: string; lider: boolean }
 /** Su foto de Dynamic (o sus iniciales) y, si está de turno hoy, el punto verde. */
 export function CaraPersona({ p, grande = false }: { p: Pick<PersonaEquipo, "id" | "nombre" | "deTurno" | "estado">; grande?: boolean }) {
   return (
-    <span className="relative shrink-0">
-      <AvatarPersona personaId={p.id} nombre={p.nombre} className={grande ? "h-[72px] w-[72px] text-2xl" : "h-9 w-9 text-sm"} />
-      {p.deTurno && p.estado === "activa" && (
-        <span
-          title="De turno hoy"
-          className={`absolute bottom-0 right-0 rounded-full border-papel bg-verde ${grande ? "h-4 w-4 border-[3px]" : "h-3 w-3 border-2"}`}
-        />
-      )}
-    </span>
+    <AvatarPersona personaId={p.id} nombre={p.nombre} tamano={grande ? 80 : 40} deTurno={p.deTurno && p.estado === "activa"} />
   );
 }
 
@@ -168,7 +160,7 @@ function EsperanTuOk({
       <ul className="mt-2.5 space-y-2">
         {pendientes.map((p) => (
           <li key={p.persona_id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-papel px-3 py-2.5 ${ocupadoId === p.persona_id ? "opacity-50" : ""}`}>
-            <AvatarPersona personaId={p.persona_id} nombre={p.nombre} className="h-9 w-9 text-sm" />
+            <AvatarPersona personaId={p.persona_id} nombre={p.nombre} />
             <p className="min-w-0 flex-1 text-sm text-tinta">
               <strong className="font-semibold">{p.nombre}</strong> entra a {p.ubicacion_asignada ?? "retail"}
               <span className="block text-[12.5px] text-tinta/60">

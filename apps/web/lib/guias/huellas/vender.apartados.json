@@ -78,7 +78,7 @@
       "button «Otro cliente»",
       "button «Editar prendas»",
       "Boton «Borrar la búsqueda»",
-      "button «{iniciales(x)}»",
+      "button «{x.nombres}»",
       "button «{`${m}»",
       "CampoMonto «{`Monto en ${pg.metodo}»",
       "button «{`Quitar ${pg.metodo}»",

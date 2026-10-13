@@ -217,7 +217,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         }`}
       >
         {elegido ? (
-          <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} className="h-7 w-7 text-sm" />
+          <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} tamano={32} />
         ) : (
           <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
         )}
@@ -275,7 +275,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
                   onClick={() => elegir(p)}
                   className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-rojo/10 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  <AvatarPersona personaId={p.personaId} nombre={p.nombre} className="h-7 w-7 text-sm" />
+                  <AvatarPersona personaId={p.personaId} nombre={p.nombre} tamano={32} />
                   <span className="min-w-0 flex-1">
                     {cortos.get(p.nombre) ?? p.nombre}
                     <small className="block text-[11.5px] text-tinta/60">

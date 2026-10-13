@@ -119,7 +119,7 @@ export function ListaActividad({
           <ul className="divide-y divide-sand/70 border-t border-sand/70">
             {g.filas.map((f, fi) => (
               <li key={f.id} className="flex items-start gap-3 py-2.5" data-guia={gi === 0 && fi === 0 ? "actividad.fila" : undefined}>
-                <AvatarPersona personaId={f.persona_id} nombre={quien(f)} className="mt-0.5 h-8 w-8 shrink-0 text-xs" />
+                <AvatarPersona personaId={f.persona_id} nombre={quien(f)} tamano={32} className="mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug text-tinta">
                     <span className="font-semibold">{quien(f)}</span> {f.descripcion}

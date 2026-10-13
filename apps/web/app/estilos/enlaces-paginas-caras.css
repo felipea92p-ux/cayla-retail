@@ -74,3 +74,57 @@
     transition-duration: 1ms !important;
   }
 }
+
+@layer components {
+  /* ---------- <AvatarPersona> y <PilaPersonas> (components/ui/AvatarPersona.tsx) ---------- */
+  .avatar {
+    position: relative;
+    display: inline-grid;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--color-sand);
+    color: var(--color-tinta);
+    font-family: var(--font-serif);
+    line-height: 1;
+  }
+  .avatar-recorte {
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+  .avatar-terminal { background: color-mix(in srgb, var(--color-tinta) 10%, transparent); color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+  .avatar-24 { width: 24px; height: 24px; font-size: 10.5px; }
+  .avatar-32 { width: 32px; height: 32px; font-size: 13px; }
+  .avatar-40 { width: 40px; height: 40px; font-size: 15.5px; }
+  .avatar-80 { width: 80px; height: 80px; font-size: 29px; }
+  /* La foto entra con un fundido (no salta sobre las iniciales). */
+  .avatar-foto { opacity: 0; transition: opacity 420ms var(--ease-cayla); }
+  .avatar-foto-lista { opacity: 1; }
+  /* De turno: el punto verde con su borde de papel. */
+  .avatar-punto {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 32%;
+    height: 32%;
+    min-width: 8px;
+    min-height: 8px;
+    border-radius: 999px;
+    background: var(--color-verde);
+    box-shadow: 0 0 0 2px var(--color-papel);
+  }
+  .pila-personas { display: inline-flex; align-items: center; }
+  .pila-personas > .avatar { box-shadow: 0 0 0 2px var(--color-papel); transition: margin-left 240ms var(--ease-cayla); }
+  .pila-personas > .avatar + .avatar { margin-left: -6px; }
+  .pila-personas:hover > .avatar + .avatar { margin-left: 2px; }
+  .pila-personas-mas { margin-left: 6px; font-size: 12.5px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-foto,
+  .pila-personas > .avatar {
+    transition-duration: 1ms !important;
+  }
+}

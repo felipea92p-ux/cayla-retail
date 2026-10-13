@@ -579,6 +579,23 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": []
   },
+  "avatar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/avatar.md",
+    "elegida": "P1 · AvatarPersona en cuatro tamaños fijos (24 · 32 · 40 · 80): iniciales en serif sobre arena, la foto que entra con un fundido, el punto verde de «de turno» y la pila que se abre al pasar el mouse; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/AvatarPersona.tsx",
+    "tambien": ["app/estilos/enlaces-paginas-caras.css"],
+    "ventana": 3,
+    "firmas": [
+      // Un círculo de iniciales dibujado a mano: un `rounded-full` con `{iniciales(…)}` adentro (en la misma línea o en las dos
+      // siguientes). No cuentan los que llevan su propia clase por una decisión (el Observatorio, la página pública del club) ni el
+      // monograma de una empresa (Proveedores): no son la cara de una persona.
+      "rounded-full[^\\n]*(?:\\n[^\\n]*){0,2}\\{\\s*iniciales\\("
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
   "grafico.barra": {
     "fecha": "2026-10-09",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",

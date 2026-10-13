@@ -179,7 +179,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
           <div className="mt-5 space-y-6">
             {/* ---------- avatar ---------- */}
             <div className="flex items-center gap-4">
-              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} className="h-20 w-20 text-2xl" />
+              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} tamano={80} />
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
                 <div className="flex gap-2">
