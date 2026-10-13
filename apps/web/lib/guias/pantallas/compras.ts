@@ -1161,6 +1161,13 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Aquí armas el plan. «Resultados» muestra lo que se vendió de verdad en la campaña y «Historial», lo que vendió cada tienda en cada campaña, año por año. Cada una tiene su demo.",
     },
     {
+      id: "sin-plan",
+      ancla: "plan.sin-plan",
+      opcional: true,
+      titulo: "Una campaña que empezó sin plan",
+      texto: "Si la campaña ya empezó (o terminó) y nadie la planificó, la pantalla no te pide llenarla: te lleva a ver cómo va cada categoría, para reponer o impulsar a tiempo, y a planificar la próxima campaña.",
+    },
+    {
       id: "archivada",
       ancla: "plan.archivada",
       opcional: true,
@@ -1226,10 +1233,17 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Busca una categoría; filtra las que tienen plan, las que no, las que más venden o las que se agotaron; elige una familia y el orden. «Paso a paso» te lleva por las categorías una a una, de la que más vende a la que menos.",
     },
     {
+      id: "stock-linea",
+      ancla: "plan.stock-linea",
+      opcional: true,
+      titulo: "¿Se puede confiar en «Hay hoy»?",
+      texto: "Si una tienda no tiene el piso cuadrado o el almacén contado, esta línea te lo dice: lo que hay hoy puede no ser exacto y el plan pediría comprar de más. «Ver qué falta» abre el detalle, con el acceso a Conteo.",
+    },
+    {
       id: "tabla",
       ancla: "plan.tabla",
       titulo: "Una fila por categoría",
-      texto: "Lo que esperas vender en los tres escenarios, lo que ya hay hoy en todas las tiendas, cuánto comprar y cuánto cuesta. «Sin plan» quiere decir que esa categoría todavía no tiene números.",
+      texto: "Lo que esperas vender en los tres escenarios, lo que ya hay hoy en todas las tiendas, cuánto comprar y cuánto cuesta. «Armar plan» quiere decir que esa categoría todavía no tiene números; las columnas de compra salen cuando alguna ya los tiene.",
     },
     {
       id: "categoria",
