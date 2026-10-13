@@ -1,0 +1,15 @@
+## Existencias: el almacén en la tarjeta, el modal de la prenda y «Todas» con filtros (2026-10-12, ADR-0391)
+- [x] **Propuesta y prototipo** (`docs/maquetas/existencias-almacen-cajon-2026-10/`): tres enfoques, cuatro contenedores, cuatro distribuciones; Felipe eligió A + modal + «Foto y lista» + «Todas» con filtros.
+- [x] **Tarjeta A** (`ColumnasTallas`, `lineaGuardadas`): número grande = colgadas, «+N guardadas»; sin selector Piso·Almacén·Ambos (`existencias-lugar.ts` borrado).
+- [x] **Las cifras de la cabecera filtran** (`existencias/CifrasExistencias.tsx` → `condicion=colgadas|guardadas` en la URL) y el aviso «El piso de esta tienda nunca se ha cuadrado» (`plan.enPausa`).
+- [x] **El modal «Foto y lista»** (`existencias/PanelTalla.tsx`): fila Etiquetas·Rótulo·Historial·Catálogo, foto que cruza, código copiable, «Dónde está», «Qué hago» (posibles + «No ahora»), «Reportar dañada» en la lista, «Eliminar» fuera, ritmo a la vista.
+- [x] **«Todas»**: totales por color y por talla, casillas que filtran la capa, celda ámbar «falta · +N atrás» dentro del filtro, filas atenuadas, talla abierta marcada; el chip del modelo sigue la regla de la tarjeta (`insigniaDelModelo`).
+- [x] **Guardias**: guía interactiva (33 pasos, huella), `/focus`, `/sugerir`, `/unificar`, tema claro/oscuro (3 escenarios nuevos; «Ver detalle» reparado), 375 px.
+- [x] **`/chaos` del modal** (semilla 20261012): 24 ataques, 21 resistieron, 0 estados imposibles; el foco al cerrar, cerrado en la rama.
+- [x] **`/formidable` de Existencias** (primera corrida): informe `docs/formidable/inventario-existencias.md`; el chip «Todo en el piso» falso, cerrado en la rama.
+- [ ] **Felipe: los 3 cambios de `/formidable`** (en el informe) — esperan su OK.
+- [ ] **Felipe: guardia en `ajustar_inventario`** para una sububicación de otra sede (hoy responde con la FK `movimientos_sububicacion_pertenece_fk` cruda; solo por API). RPC.
+- [ ] **Chrome global:** un `SecurityError` sin capturar al arrancar con el almacenamiento bloqueado (modo privado estricto); la pantalla funciona. Un try/catch en el script que lee `localStorage`.
+- [ ] **Repetir `/chaos` con una base al día** para Subir (`retirar_del_piso`), Enviar (`subir_para_enviar`) y Reportar dañada (`reportar_danada`): la base local (migración 20260930010100) no las tiene.
+- [ ] **Ver el aviso «piso sin cuadrar» en un navegador** con una base que tenga `fn_piso_plan_lectura` (en local solo se verificó por tipos y pruebas).
+- [ ] **Prueba con colaboradoras reales** (`/formidable`, pasada 2) sobre la tarjeta y el modal; las fechas «llegó el… / última venta» en el modal quedaron para después.

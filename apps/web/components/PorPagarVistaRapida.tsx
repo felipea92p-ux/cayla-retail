@@ -13,6 +13,7 @@ import { ETIQUETA_METODO_PAGO, soles, type CompraResumen, type PagoCompra } from
 import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
 import type { NotaPendiente } from "@/lib/compras-indicadores";
 import { etiquetaVence, pasosDeComprobante, tramoDe, type PasoDeComprobante } from "@/lib/por-pagar-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -97,7 +98,7 @@ export function PorPagarVistaRapida({
               <div className="min-w-0 flex-1">
                 <Dialog.Description className="label-cayla truncate text-[10.5px] text-tinta/65">{c.proveedorNombre}</Dialog.Description>
                 <Dialog.Title asChild>
-                  <h2 className="font-display text-[23px] leading-tight tabular-nums text-tinta">{c.documento}</h2>
+                  <h2 className="font-display text-[23px] leading-tight tabular-nums text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{c.documento}</h2>
                 </Dialog.Title>
               </div>
               <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="-mr-1 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo">
@@ -143,7 +144,7 @@ export function PorPagarVistaRapida({
               {/* Pagos de este comprobante (como en el spike): cuándo, con qué medio y cuánto. Sin pagos, se dice. */}
               {pagos && (
                 <section className="mt-[22px]">
-                  <h3 className="label-cayla mb-1 text-[11px] text-tinta/65">Pagos de este comprobante</h3>
+                  <TituloGrupo className="mb-1">Pagos de este comprobante</TituloGrupo>
                   {pagos.length === 0 ? (
                     <p className="border-t border-tinta/10 py-2.5 text-[13px] text-tinta/55">Sin pagos todavía.</p>
                   ) : (

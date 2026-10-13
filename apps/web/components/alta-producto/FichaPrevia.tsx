@@ -77,7 +77,7 @@ function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
   }
   return (
     <p role="status" className={`${clase} text-taupe`}>
-      <button type="button" onClick={g.onIr} className="text-left underline decoration-tinta/20 underline-offset-4 transition-colors hover:text-tinta hover:decoration-tinta/50">
+      <button type="button" onClick={g.onIr} className="btn-enlace text-left">
         {g.bloquea ? `Siguiente: ${g.texto}` : `Ya puedes crear. Sin elegir todavía: ${g.nombre.toLocaleLowerCase("es")}.`}
       </button>
     </p>

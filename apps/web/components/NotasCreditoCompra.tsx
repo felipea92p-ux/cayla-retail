@@ -3,6 +3,7 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { ETIQUETA_MOTIVO_NOTA, fechaCorta, soles, type CompraResumen } from "@/lib/compras-reglas";
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 import { estadoNotaFaltante, montoDeCierres, tasaIgv } from "@/lib/recepciones-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0111): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos). Cada nota dice qué hizo: cuánto bajó lo que se
@@ -27,9 +28,7 @@ export function NotasCreditoCompra({ compra, notas, cerrados }: { compra: Compra
       <div className="flex items-baseline justify-between">
         <p className="label-cayla text-[11px] text-tinta/65">Notas de crédito</p>
         {compra.estado === "vigente" && (
-          <Link href="/compras/notas-credito" className="label-cayla text-[11px] text-rojo hover:underline">
-            Registrar en Notas de crédito ↗
-          </Link>
+          <EnlaceVer href="/compras/notas-credito">Registrar en Notas de crédito</EnlaceVer>
         )}
       </div>
       {(disp.estado === "disponible" || (disp.estado === "bloqueada" && unidadesCerradas > 0)) && (
@@ -44,7 +43,7 @@ export function NotasCreditoCompra({ compra, notas, cerrados }: { compra: Compra
       {notas.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/65">
           Sin notas de crédito. Si el proveedor emite una por un faltante o una devolución, se registra en{" "}
-          <Link href="/compras/notas-credito" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+          <Link href="/compras/notas-credito" className="btn-enlace">
             Notas de crédito
           </Link>
           : baja lo que se debe y, si ya estaba pagado, queda a tu favor con ese proveedor. Acá se ven las de este comprobante.

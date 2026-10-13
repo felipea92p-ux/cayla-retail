@@ -67,7 +67,8 @@ function escribe(req) {
   return true;
 }
 
-const navegador = await chromium.launch();
+// Como el auditor de tema (`tema/cli.mjs`): `NAVEGADOR_CANAL=chrome` usa el Chrome del sistema cuando no está el Chromium de Playwright.
+const navegador = await chromium.launch({ channel: process.env.NAVEGADOR_CANAL || undefined });
 let fallas = 0;
 const cobertura = [];
 

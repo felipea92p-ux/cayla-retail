@@ -30,6 +30,19 @@ export function celdaTarjeta(f: FilaCelda, separa: boolean): CeldaTarjeta {
   return { estado: e === "sin_stock" ? "agotada" : e === "por_colgar" ? "falta" : "normal", piso, almacen };
 }
 
+/** La línea chica bajo el número grande de cada columna (ADR-0391, Felipe 2026-10-12): el número grande es lo COLGADO (lo que el
+ *  cliente puede comprar) y debajo va lo del almacén, con las palabras del modal («+2 en almacén»; Felipe, 2026-10-13: antes «+2
+ *  guardadas»). Con 4 tallas o más en la tarjeta las palabras no caben en los 304 px y queda solo el número («+2», «0»): la leyenda del
+ *  pie las pone. Agotada: «se acabó» («acabó» apretado).
+ *  `cero` = no hay nada en el almacén: la línea va toda en taupe y sin negrita, para que un «0 en almacén» no pese lo mismo que un «+3»
+ *  (en taupe pleno, no atenuado: el auditor del tema midió 2,3:1 con `taupe/55` y un 0 también se tiene que leer). */
+export function lineaGuardadas(c: Pick<CeldaTarjeta, "estado" | "almacen">, tallasEnTarjeta: number): { texto: string; cero: boolean } {
+  const apretada = tallasEnTarjeta >= 4;
+  if (c.estado === "agotada") return { texto: apretada ? "acabó" : "se acabó", cero: false };
+  if (c.almacen === 0) return { texto: apretada ? "0" : "0 en almacén", cero: true };
+  return { texto: apretada ? `+${c.almacen}` : `+${c.almacen} en almacén`, cero: false };
+}
+
 /** Tocar una talla de la tarjeta: si hay algo en almacén y la persona puede colgar, el cajón abre LISTO PARA COLGAR esa talla
  *  (Felipe, 2026-10-07); si no, abre la talla para verla. */
 export function destinoDeTalla(f: Pick<FilaPrenda, "almacenDisponible">, o: { separa: boolean; puedeReponer: boolean }): "colgar" | "ver" {
@@ -48,9 +61,13 @@ export function tallasAgotadas(tallas: readonly (FilaCelda & Pick<FilaPrenda, "t
   return tallas.filter((t) => estadoTalla(t as unknown as FilaPrenda) === "sin_stock").map((t) => t.talla ?? "Única");
 }
 
-/** Cuántas tallas (de todos los colores) no tienen NINGUNA colgada libre y sí algo libre en almacén: lo físico, sin el motor. */
-export function tallasSinColgar(colores: readonly { tallas: readonly Pick<FilaPrenda, "pisoDisponible" | "almacenDisponible">[] }[]): number {
-  return colores.reduce((s, c) => s + c.tallas.filter((t) => Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0).length, 0);
+/** Cuántas tallas (de todos los colores) no tienen NINGUNA colgada libre y sí algo libre en almacén: lo físico, sin el motor. Una talla que
+ *  el motor manda «mantener» no cuenta (ya decidió que así está bien), igual que en la línea «Faltan en el piso» (`loQueFaltaEnElPiso`). */
+export function tallasSinColgar(colores: readonly { tallas: readonly (Pick<FilaPrenda, "pisoDisponible" | "almacenDisponible"> & { planPiso?: FilaPrenda["planPiso"] })[] }[]): number {
+  return colores.reduce(
+    (s, c) => s + c.tallas.filter((t) => (t.planPiso?.accion ?? null) !== "mantener" && Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0).length,
+    0
+  );
 }
 
 /** El color que la tarjeta muestra si la persona no eligió otro (Felipe, 2026-10-07: una tarjeta que abría en un color agotado se veía

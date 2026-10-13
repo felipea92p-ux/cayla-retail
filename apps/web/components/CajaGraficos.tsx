@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import type { PuntoTendenciaCierres } from "@/lib/caja-panel-reglas";
+import { Encabezado, celda, fila, type Columna } from "@/components/ui/Tabla";
+
+const PLANTILLA_METODO = "grid-cols-[minmax(0,1fr)_3rem_6rem]";
+const COLUMNAS_METODO: Columna[] = [{ titulo: "Método" }, { titulo: "%", alinear: "der" }, { titulo: "Monto", alinear: "der" }];
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -110,35 +114,27 @@ export function DonaMetodosPago({ porMetodo }: { porMetodo: { metodo: string; mo
           <button
             type="button"
             onClick={() => setTabla((v) => !v)}
-            className="mt-1 text-[11px] text-tinta/55 underline decoration-tinta/30 underline-offset-2 hover:text-tinta"
+            className="btn-cayla btn-enlace mt-1 text-[11px]"
           >
             {tabla ? "Ocultar tabla" : "Ver como tabla"}
           </button>
-          {tabla && (
-            <table className="mt-2 w-full text-xs">
-              <caption className="sr-only">Ventas del día por método de pago exacto</caption>
-              <thead>
-                <tr className="text-left text-tinta/55">
-                  <th scope="col" className="pb-1 font-normal">Método</th>
-                  <th scope="col" className="pb-1 font-normal">%</th>
-                  <th scope="col" className="pb-1 font-normal">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {porMetodo
-                  .filter((p) => p.monto > 0)
-                  .map((p) => (
-                    <tr key={p.metodo} className="border-t border-sand text-tinta/85">
-                      <td className="py-1">{LABEL_METODO[p.metodo] ?? p.metodo}</td>
-                      <td className="py-1 tabular-nums">{Math.round((p.monto / total) * 100)}%</td>
-                      <td className="py-1 tabular-nums">{money(p.monto)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          )}
         </div>
       </div>
+      {tabla && (
+        // La tabla del sistema (ADR-0358, ronda 7), sangrada hasta el borde de la tarjeta.
+        <div className="-mx-5 mt-4 divide-y divide-sand border-y border-sand text-xs" aria-label="Ventas del día por método de pago exacto" role="table">
+          <Encabezado siempre columnas={COLUMNAS_METODO} plantilla={PLANTILLA_METODO} />
+          {porMetodo
+            .filter((p) => p.monto > 0)
+            .map((p) => (
+              <div key={p.metodo} role="row" className={fila(PLANTILLA_METODO)}>
+                <span role="cell" className={celda()}>{LABEL_METODO[p.metodo] ?? p.metodo}</span>
+                <span role="cell" className={celda("der")}>{Math.round((p.monto / total) * 100)}%</span>
+                <span role="cell" className={celda("der")}>{money(p.monto)}</span>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

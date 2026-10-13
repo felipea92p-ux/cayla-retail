@@ -109,6 +109,8 @@ export const CampoContaste = memo(function CampoContaste({
         <Minus aria-hidden strokeWidth={2} className="h-3.5 w-3.5" />
       </button>
       <input
+        // La caja que se enciende (ADR-0358, ronda 6), suelta y del alto de la fila: 26 px con mouse, 36 con dedo.
+        className="caja-campo-input h-[26px] min-h-0 w-11 min-w-0 scroll-my-28 px-1 text-center tabular-nums aria-[invalid=true]:border-rojo-profundo @[26rem]:w-[5.5rem] [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:text-base"
         type="text"
         inputMode="numeric"
         pattern="[0-9]*"
@@ -139,7 +141,6 @@ export const CampoContaste = memo(function CampoContaste({
             paso(e.key === "ArrowUp" ? 1 : -1);
           }
         }}
-        className="h-[26px] w-11 min-w-0 scroll-my-28 rounded-md border border-taupe/25 bg-papel px-1 text-center text-sm tabular-nums text-tinta outline-none focus:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 aria-[invalid=true]:border-rojo-profundo @[26rem]:w-[5.5rem] [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:text-base"
       />
       <button type="button" tabIndex={-1} aria-label={`Sumar uno. ${etiqueta}`} onClick={() => paso(1)} className={BOTON}>
         <Plus aria-hidden strokeWidth={2} className="h-3.5 w-3.5" />

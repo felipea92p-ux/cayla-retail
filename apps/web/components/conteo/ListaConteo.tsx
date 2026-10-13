@@ -148,7 +148,7 @@ const TarjetaPercha = memo(function TarjetaPercha({
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 py-1 pl-[18px] pr-3">
         <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="xl" {...categoriaDe(g)} />
         <div className="min-w-[8rem] flex-1">
-          <h3 className="truncate text-base font-semibold leading-snug text-tinta">{g.referencia}</h3>
+          <h3 className="truncate text-base font-semibold leading-snug text-tinta">{/* unificar-fijo: el nombre de la prenda en su tarjeta, un dato y no un título de sección */}{g.referencia}</h3>
           <p className="mt-1.5 flex items-center gap-2 text-sm text-taupe">
             {g.color ? (
               // `inert`: el nombre ya va en texto; sin esto cada tarjeta sumaría una parada de Tab entre campos de conteo.
