@@ -1,0 +1,5 @@
+## El mostrador relee el stock solo si cambió: la huella de la sede (2026-10-13, auditoría de 20 puntos, punto 20)
+- [x] **`fn_stock_huella` y el sondeo que la pregunta primero** (Vender, Cambios y Apartados). Prueba `pnpm pruebas:stock-huella` en la lista del CI.
+- [x] **Pegado en producción el 2026-10-13** (Felipe; verificación → 32): `supabase/migrations/20261013153000_huella_del_stock_de_la_sede.sql`. Comprobado solo leyendo: el cuerpo de `fn_stock_huella` en producción es idéntico al del repo (md5 `bd08107b…`), `security invoker`, ejecutable por `authenticated` y no por `anon`. Falta refrescar el diccionario (`pnpm datos:generar:produccion`) cuando se renueve el volcado.
+- [ ] **Diccionario:** cuando esté en producción, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) para que `fn_stock_huella` entre a `DICCIONARIO-RETAIL.md`.
+- [ ] **Medir en producción** después de pegar: en TRU con Vender abierto, la pestaña Red debe mostrar `fn_stock_huella` cada 10 s y `stock?select=…` solo cuando alguien vende, repone o aparta.
