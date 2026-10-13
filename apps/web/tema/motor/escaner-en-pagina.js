@@ -1,7 +1,8 @@
 // El escáner que corre DENTRO de la página (lo inyecta `auditar.mjs` con `addScriptTag`). Define `window.__temaEscanear()`.
 // Mide en el tema que esté puesto en <html data-tema>: (1) el contraste WCAG de cada texto contra su fondo REAL —compuesto capa
-// por capa—; (2) «manchas claras»: superficies grandes que en oscuro siguen claras y no son papel fijo ni un relleno invertido
-// a propósito; (3) «velos claros»: una capa fija que cubre la pantalla y en oscuro la aclara en vez de oscurecerla.
+// por capa—, y el de cada símbolo gráfico («›», «·») contra el piso de un gráfico; (2) «manchas claras»: superficies grandes que en
+// oscuro siguen claras y no son papel fijo ni un relleno invertido a propósito; (3) «velos claros»: una capa fija que cubre la pantalla
+// y en oscuro la aclara en vez de oscurecerla.
 // ADR-0336. No lleva `export`: es un script clásico para que `addScriptTag({ content })` lo evalúe tal cual.
 
 (() => {
@@ -108,6 +109,17 @@
   /** Un control deshabilitado queda exento de contraste (WCAG 1.4.3). */
   const deshabilitado = (el) => !!el.closest(":disabled, [aria-disabled='true'], [data-disabled]");
 
+  /**
+   * Un símbolo que el código le ocultó al lector y que no trae ni una letra ni un dígito («›», «→», «·», «×») es un GRÁFICO, no texto:
+   * su piso es 3:1 (WCAG 1.4.11), no el 4.5:1 del texto (un adorno puro ni siquiera tiene exigencia, WCAG 1.4.3). Sigue siendo texto:
+   *  · lo que tiene letras o dígitos, aunque esté oculto. Se mira la pieza entera y no el nodo: React parte «+{n}» en «+» y «30».
+   *  · una tecla (`<kbd>`, el «/» del buscador): dice qué apretar, y se lee.
+   *  · lo que queda detrás de un modal abierto: Radix le pone `aria-hidden` a toda la página de atrás (y la marca con `data-aria-hidden`),
+   *    y ahí un «%» o el «:» de «Ordenar por:» son texto. Solo cuenta el `aria-hidden` que puso el código.
+   */
+  const esGrafico = (el) =>
+    !/[\p{L}\p{N}]/u.test(el.textContent) && !el.closest("kbd") && !!el.closest('[aria-hidden="true"]:not([data-aria-hidden])');
+
   window.__temaEscanear = function escanear({ minimo = 4.5 } = {}) {
     const tema = document.documentElement.getAttribute("data-tema") || "(sin atributo)";
     // Para `elementsFromPoint`: que cuenten también los elementos con `pointer-events: none` (como una píldora decorativa).
@@ -140,14 +152,16 @@
       analizados++;
       const px = parseFloat(cs.fontSize);
       const grande = px >= 24 || (px >= 18.66 && parseInt(cs.fontWeight, 10) >= 700);
-      const umbral = grande ? 3 : minimo;
+      const grafico = esGrafico(el);
+      // El texto grande (WCAG 1.4.3) y el gráfico (WCAG 1.4.11) comparten el piso de 3:1.
+      const umbral = grande || grafico ? 3 : minimo;
       if (ratio >= umbral) continue;
       const donde = camino(el);
       const texto = n.nodeValue.trim().slice(0, 40);
       const clave = `${donde}|${texto}|${hex(tinta)}|${hex(fondo)}`;
       if (vistos.has(clave)) continue;
       vistos.add(clave);
-      contrastes.push({ tipo: "contraste", clave: `${donde}|${texto}`, ratio: +ratio.toFixed(2), umbral, texto, color: hex(tinta), fondo: hex(fondo), imagen: hayImagen, donde });
+      contrastes.push({ tipo: "contraste", clave: `${donde}|${texto}`, ratio: +ratio.toFixed(2), umbral, ...(grafico && { grafico }), texto, color: hex(tinta), fondo: hex(fondo), imagen: hayImagen, donde });
     }
 
     const manchas = [];
