@@ -64,7 +64,80 @@ vale la pena decidirlo antes de que la usen las tiendas.
 - Caída externa: el corte de señal dice «no sabemos si llegó: vuelve a pulsar sin cambiar nada» y el token hace seguro el reintento.
 - Persona sin contexto: ciega ✓ (arriba) · real: sin probar.
 
+---
+
+# Re-análisis · la cara A de ADR-0393: contar primero (2026-10-13 · `69df902e6`)
+
+- **Dispositivo que manda:** escritorio (el de la tienda); 375 px sin desbordes [Medido].
+- **Pregunta que debería resolver:** «¿Cuántas llegaron de cada cosa, y qué falta para poder venderlas?» · **Protagonista:** la prenda contada.
+- **Veredicto en una línea:** «Una persona nueva abre un envío sin aviso, cuenta y cierra en 13 acciones sin retroceder; al final no entiende
+  que sus prendas están guardadas pero todavía no se pueden vender.»
+- **Lo de la fase 4 que esto cierra:** el cambio 3 de arriba (un F5 borraba lo contado) lo resuelve el diseño: cada número se guarda solo. El
+  cambio 1 (de qué envío es cada «Recibir») sigue abierto.
+
+## Notas (0–10)
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 7 | [Observado] ciega (Sonnet): terminó la tarea en 13 acciones, 0 retrocesos, sin trabarse · real: sin probar |
+| 2 Una pregunta, una respuesta | 8 | [Observado] cada paso tiene un botón principal («Empezar a contar», «Agregar y contar», «Pasar a cerrar», «Cerrar el envío»); el ciego no dudó de qué tocar |
+| 3 Simplicidad profunda | 6 | [Observado] al cerrar esperaba «las 5 faldas en el inventario»; la pantalla dice «Todavía nada entró al stock · Esperan sus pendientes» y no lo leyó como «falta esto para venderlas» |
+| 4 Lenguaje de tienda | 6 | [Observado] no entendió «Qué prendas son puede quedar para después», ni «Al stock» en la tabla de cierre, ni «Admin · queda a tu nombre» (pieza común del combo Responsable); «fardo» lo interpretó bien como «la caja» |
+| 5 Contenido primero | 8 | [Observado] la categoría y su número son lo más grande; la persona contó sin buscar |
+| 6 Lo difícil, a un toque | 7 | [Opinión] las causas traen su ayuda; «¿Qué faldas son?» está a un toque y dice que es opcional |
+| 7 Perdonar antes que preguntar | 8 | [Medido] se guarda solo, se reabre, el reintento no repite (chaos, semilla 393) |
+| 8 Quitar antes de agregar | 7 | [Opinión] la tarjeta «Quién cuenta» ocupa una franja entera para una línea de explicación |
+| 9 De punta a punta | 8 | [Medido] vacíos que dicen qué hacer, errores en palabras (tras el chaos), modo oscuro sin hallazgos, 375 px sin desbordes |
+| **Leyes (promedio)** | **7,2** | ley 3 y ley 4 en 6 |
+| **Oficio visual** | **8** | [Medido] lo que falla es del marco común («Salir» 37×16, el atajo «Ctrl K» en 3,3:1); de la recepción: etiquetas de 11 px del sistema, bordes a 1–2 px y «4 líneas» en 3,8:1 (pieza de «Llegó esta semana», heredada) |
+
+## Los 3 cambios de mayor impacto (esperan tu OK)
+1. **Antes →** cerrado sin nada en el stock: «Todavía nada entró al stock · Esperan sus pendientes · Al stock entra lo que tiene tallas y
+   colores: resuelve los pendientes de abajo y entra solo». **Después →** un veredicto y una acción: «Las 5 faldas están guardadas en el
+   almacén, pero todavía no se pueden vender. Falta decir qué modelo es cada una, con su talla y su color.» y el botón «Separarlas ahora»
+   (abre el primer pendiente). **Ley:** 3 y 2. **Se verifica:** el ciego, al terminar, dice qué le falta para venderlas. **Esfuerzo:** S.
+   **Decide:** Felipe (presentación).
+2. **Antes →** «Abre el fardo y cuenta por categoría. Qué prendas son puede quedar para después: lo esencial es el número.» **Después →**
+   «Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.» (mismo texto
+   en la puerta de Recibir). **Ley:** 4. **Se verifica:** ninguna duda sobre esa frase en la ciega. **Esfuerzo:** S. **Decide:** Felipe.
+3. **Antes →** la tabla de cierre dice «Al stock 0 · 5 para después». **Después →** la columna se llama «Se pueden vender» y el pie, sobre
+   el botón, dice «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después». **Ley:** 1 y 3. **Se verifica:** la ciega no
+   duda en la tabla. **Esfuerzo:** S. **Decide:** Felipe.
+
+## Lo que sobra (ley 8)
+- La tarjeta «Quién cuenta» con su explicación larga: se propone dejar el combo y una línea («Cada categoría guarda quién la contó»).
+
+## Lo que no pediste y importa más
+Las prendas guardadas sin separar están en el almacén y no en el sistema: si alguien vende una antes de separarla, Vender no la encuentra y
+termina en «Prenda sin registrar». El aviso del Inicio se vuelve urgente a los 7 días; vale mirar en la primera semana real cuántos días
+pasan entre cerrar y terminar, y si hace falta que el aviso llegue antes.
+
+## Lista aparte (no se ejecuta)
+- «Admin · queda a tu nombre» en el combo Responsable confunde a quien se ve como «Líder» abajo (pieza común: decisión aparte).
+- La lista de marcas al agregar una categoría: en el banco solo hay «CAYLA»; con 75 marcas en producción, mirar que las del proveedor
+  salgan primero (ya lo hace por `marca_proveedores`).
+
+## Prueba ciega (2026-10-13, Sonnet, cuenta de Sandra en Tienda Trujillo, banco propio)
+Tarea: «Llegó una caja de Confecciones del Sur que nadie avisó; trae 5 faldas; regístrala y termina de recibirla». La maneja por un arnés que
+da captura + lista numerada de lo que se toca (sin leer el repositorio).
+
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | ✓ «Recibir mercadería, donde se anota lo que llega»; eligió «¿Llegó algo sin aviso?» porque nadie avisó |
+| Primer intento | ✓ cerró el envío sin retroceder |
+| Pasos | 13 (mínimo ≈ 11) |
+| Dudas | «CAYLA SAC» como proveedor; «La marca» solo con CAYLA; «Admin» vs «Líder»; costo «sin costo»; «Al stock 0 / 5 para después»; si tenía que tocar «Hacer ahora» al final |
+| Palabras no entendidas | «Qué prendas son puede quedar para después»; «Al stock»; «Tallas y colores» como requisito del stock; «Admin» |
+| Errores evitables | 0 |
+
+## Antes de decir «listo»
+- **Concurrencia:** dos personas contando la misma categoría: gana la última con aviso; dos cerrando: un solo cierre (pruebas de la base con
+  dos sesiones reales; doble clic en el navegador, chaos 393).
+- **Caída externa:** sin la base de ADR-0393 la pantalla sigue con la fase 4; con la red caída, el mensaje dice que se puede reintentar sin
+  repetir (chaos 393).
+- **Persona sin contexto:** ciega ✓ (arriba); real: sin probar.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-12 | fase 5a | 5,8 (provisional, 4 leyes) | sin medir | — |
+| 2026-10-13 | `69df902e6` (cara A, ADR-0393) | 7,2 (9 leyes) · leyes 3 y 4: 6 | 8 | el 3 de la fase 4 (un F5 borraba lo contado), por diseño |
