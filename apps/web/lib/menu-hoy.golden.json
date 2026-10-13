@@ -29,12 +29,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -156,7 +156,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Órdenes de compra",
@@ -227,12 +227,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -352,7 +352,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Órdenes de compra",
@@ -485,12 +485,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -612,7 +612,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -750,12 +750,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -875,7 +875,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -1075,12 +1075,12 @@
          {
           "etiqueta": "Órdenes de insumos",
           "href": "/ordenes-insumos",
-          "icono": "ordenes"
+          "icono": "ordenesInsumos"
          },
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          }
         ]
        }
@@ -1099,12 +1099,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1290,12 +1290,12 @@
          {
           "etiqueta": "Órdenes de insumos",
           "href": "/ordenes-insumos",
-          "icono": "ordenes"
+          "icono": "ordenesInsumos"
          },
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          }
         ]
        }
@@ -1314,12 +1314,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1565,7 +1565,7 @@
          {
           "etiqueta": "Órdenes de insumos",
           "href": "/ordenes-insumos",
-          "icono": "ordenes"
+          "icono": "ordenesInsumos"
          },
          {
           "etiqueta": "Proveedores",
@@ -1580,7 +1580,7 @@
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          },
          {
           "etiqueta": "Por pagar",
@@ -1609,12 +1609,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1842,7 +1842,7 @@
          {
           "etiqueta": "Órdenes de insumos",
           "href": "/ordenes-insumos",
-          "icono": "ordenes"
+          "icono": "ordenesInsumos"
          },
          {
           "etiqueta": "Proveedores",
@@ -1857,7 +1857,7 @@
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          },
          {
           "etiqueta": "Por pagar",
@@ -1886,12 +1886,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -2159,12 +2159,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -2286,7 +2286,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Órdenes de compra",
@@ -2357,12 +2357,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -2482,7 +2482,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Órdenes de compra",
@@ -2615,12 +2615,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -2742,7 +2742,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -2880,12 +2880,12 @@
        {
         "etiqueta": "Plan del piso",
         "href": "/gestion/plan-del-piso",
-        "icono": "resumen"
+        "icono": "planPiso"
        },
        {
         "etiqueta": "Rendimiento",
         "href": "/rendimiento",
-        "icono": "resumen"
+        "icono": "rendimiento"
        }
       ]
      },
@@ -3005,7 +3005,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",

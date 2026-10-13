@@ -242,6 +242,26 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   });
 });
 
+// Ningún ícono se repite en el lateral de un mismo perfil (Felipe, 2026-10-13, ADR-0394): «los más referenciales, directos, más
+// entendibles, y que ninguno se repita». Plan del piso y Rendimiento compartían «resumen», y Plan de campaña (Compras) compartía
+// «analisis» con Análisis, dos pantallas que el líder ve a la vez. Se mira POR PERFIL, no en el árbol: Compras y Producción
+// (Abastecimiento) reusan íconos a propósito porque nunca salen juntas (Compras no se ve parado en el Taller, Producción solo
+// ahí), y «Recibir mercadería» sale en Compras o en Inventario, nunca en las dos. Lo que esta prueba cuida es que un perfil
+// real no vea dos filas con el mismo dibujo. La lectura visual (dos íconos distintos que se parecen) se mira en el navegador.
+describe("ningún ícono se repite en el lateral de un mismo perfil", () => {
+  const iconosDe = (f: FilaMenu): { id: string; icono: string }[] => [{ id: f.id, icono: f.icono }, ...(esGrupoMenu(f) ? f.hijos.flatMap(iconosDe) : [])];
+
+  it("ni en las cabeceras ni en las pantallas, a cualquier profundidad", () => {
+    const repetidos = new Map<string, Set<string>>();
+    for (const { menu } of MENUS) {
+      const porIcono = new Map<string, string[]>();
+      for (const { id, icono } of menu.riel.flatMap(iconosDe)) porIcono.set(icono, [...(porIcono.get(icono) ?? []), id]);
+      for (const [icono, ids] of porIcono) if (ids.length > 1) repetidos.set(`${icono}: ${[...ids].sort().join(" + ")}`, new Set());
+    }
+    expect([...repetidos.keys()].sort()).toEqual([]);
+  });
+});
+
 describe("las rutas del menú existen", () => {
   it("toda ruta viva del árbol (pantallas y puertas de módulo) tiene su page.tsx", () => {
     const rutas = VIVOS.flatMap((n) => (n.estado === "viva" && "ruta" in n ? [n.ruta] : n.estado === "viva" && esGrupo(n) ? [n.raiz] : []));
