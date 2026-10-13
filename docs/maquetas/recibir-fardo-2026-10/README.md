@@ -62,6 +62,21 @@ categoría no anunciada es sobrante «no pedido»; un fardo cerrado se puede rea
 **Siguen abiertas:** quién crea lo nuevo; si la sede ve el precio de la línea; dañadas a cuarentena; el «dijeron» del WhatsApp; y una nueva:
 **¿puede colgarse en el piso una prenda contada pero sin tallas?** (la maqueta dice que no, hasta resolver el pendiente).
 
+## Las 10 decisiones de Felipe antes de construir (2026-10-13)
+
+| # | Pregunta | Decisión | Qué implica |
+|---|---|---|---|
+| 1 | ¿Qué entra al stock al cerrar? | **Solo lo detallado con talla y color** | Lo contado sin detalle queda invisible para Vender y Colgar hasta resolver su pendiente |
+| 2 | ¿Se cuenta la guía o cada fardo? | **La guía, todo junto** (ADR-0362 d.13) | Un solo cierre por envío; varios bultos de una guía se cuentan como uno |
+| 3 | ¿Quién resuelve pendientes y crea lo nuevo? | **Todo quien tenga Recibir** | Crear exige precio y foto: quien tenga Recibir los pone (sin pasar por Catálogo) |
+| 4 | ¿Dónde vive el aviso? | **Inicio + cabecera de Recibir + Catálogo ▸ Productos ▸ Por crear** | Tres lugares con el mismo número, calculado, nunca guardado |
+| 5 | ¿Hasta cuándo se reabre? | **Hasta que Compras resuelva la diferencia** | La pantalla dice si Compras ya la tomó; después la corrección pasa por Compras |
+| 6 | ¿La sede ve y corrige el costo? | **Al cerrar, quien cierra ve y corrige** (se mantiene ADR-0362 d.18) | La tabla de Cerrar trae el costo de cada línea del despacho, editable; sin aviso, vacío |
+| 7 | ¿Dañadas al contar? | **Se cuentan y se reportan en Existencias** | «Llegó dañada» deja de ser causa de faltante; el cierre recuerda reportarlas |
+| 8 | ¿Mínimo de una prenda nueva? | **Solo la cantidad** | Describirla (nombre, color, tallas) es parte del pendiente «crear» |
+| 9 | ¿Varias personas a la vez? | **Sí; firma quien cierra; cada categoría guarda quién la contó** | Candado por categoría (gana el último que guarda, con aviso) |
+| 10 | ¿Y «Llegó mercadería»? | **La reemplaza; «sin aviso» sigue siempre** | Una sola puerta; lo sin despacho queda marcado para Compras |
+
 ## Qué hay hoy y qué le falta
 
 `/recibir` abre en «Llegó mercadería» (ADR-0330, 2026-10-04): se elige el proveedor, se escanea o busca cada prenda y cada lectura suma

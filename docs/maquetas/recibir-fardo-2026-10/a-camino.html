@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="_base.css?v=2">
 </head>
 <body>
-<script src="_datos.js?v=4"></script>
-<script src="_comun.js?v=4"></script>
+<script src="_datos.js?v=5"></script>
+<script src="_comun.js?v=5"></script>
 <script>
 /* A · CAMINO — versión 2 (Felipe, 2026-10-13: «me gusta la A»; nada viene etiquetado, así que no hay pistola).
    Tres paradas: ¿Qué llegó? → Contar → Cerrar. Lo esencial es CONTAR por categoría. Separar es opcional y por nombre: «vi una Blusa
@@ -150,7 +150,7 @@ Comun.iniciar({
   .pend-item.hecho{opacity:.6}
   @container escena (max-width:900px){.llego{grid-template-columns:1fr}.fardo-card{grid-template-columns:1fr}.dos{grid-template-columns:1fr}.lista-cats{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}.cat-item{min-width:200px}}
   @container escena (max-width:640px){.rail .txt small{display:none}.rail .txt b{font-size:11.5px}.rail-linea{left:calc(16.67% + 10px);right:calc(16.67% + 10px);top:18px}.parada .punto{width:28px;height:28px;font-size:12px}
-    .contador{padding:16px}.numero input{font-size:64px;width:130px}.cat-item{min-width:160px}.fardo-card h2{font-size:26px}table.cierre th:nth-child(4),table.cierre td:nth-child(4){display:none}}
+    .contador{padding:16px}.numero input{font-size:64px;width:130px}.cat-item{min-width:160px}.fardo-card h2{font-size:26px}table.cierre th:nth-child(2),table.cierre td:nth-child(2),table.cierre th:nth-child(5),table.cierre td:nth-child(5){display:none}}
   `,
   montar(escena, api) {
     const { modelo: m, Modelo: M, est } = api;
@@ -205,7 +205,7 @@ Comun.iniciar({
       if (M.totalContadas(m) === 0) f.push({ clave: "vacio", texto: "Cuenta lo que llegó" });
       for (const l of m.lineas) { const c = CATS[l.cat]; const d = M.diferencia(l); if (d != null && d !== 0 && l.contadas > 0 && !l.causa) f.push({ clave: "causa", lineaId: l.id, texto: d < 0 ? `Di por qué faltan ${plural(-d, c.una, c.varias)}` : `Di por qué sobran ${plural(d, c.una, c.varias)}` }); }
       if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) > 0 && M.totalContadas(m) !== m.dijeronTotal && !m.causaTotal && !m.lineas.some((l) => l.dijeron != null)) { const d = M.totalContadas(m) - m.dijeronTotal; f.push({ clave: "causa-total", texto: d < 0 ? `Di por qué faltan ${-d} prendas` : `Di por qué sobran ${d} prendas` }); }
-      if (!m.responsable) f.push({ clave: "responsable", texto: "Elige quién contó" });
+      if (!m.responsable) f.push({ clave: "responsable", texto: "Elige quién cierra" });
       return f;
     }
     function faltaChips() {
@@ -262,7 +262,7 @@ Comun.iniciar({
           <article class="card fardo-card"><div class="fardo-visual">${cajaSvg()}</div><div>
             <p class="label">En camino hacia ${esc(RF.SEDE)}</p>
             <h2 class="disp">Fardo ${esc(f.codigo)} <span class="chip pizarra punto vivo">Llega hoy</span></h2>
-            <p class="tenue" style="margin-top:4px">Lo despachó ${esc(f.por)} desde ${esc(f.desde)} · ${esc(f.cuando)} · guía ${esc(f.guia)} · ${f.ordenes.join(", ")}</p>
+            <p class="tenue" style="margin-top:4px">Lo despachó ${esc(f.por)} desde ${esc(f.desde)} · ${esc(f.cuando)} · guía ${esc(f.guia)} · 2 bultos, se cuentan juntos · ${f.ordenes.join(", ")}</p>
             <ul class="manifiesto">${m.lineas.map((l) => `<li><span class="cat-ic">${iconoCat(l.cat)}</span><b>${esc(CATS[l.cat].nombre)}</b><span class="det">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}</span><b class="num">${l.dijeron}</b></li>`).join("")}</ul>
             <p style="margin-top:12px;font-size:14.5px">Dijeron <b class="num disp" style="font-size:22px">${M.totalDijeron(m)}</b> prendas · ${m.lineas.length} categorías · ${new Set(m.lineas.map((l) => l.prov)).size} proveedores · <span class="tenue">todo viene sin etiqueta</span></p>
             <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Abrir este fardo${icono("der", "flecha")}</button></div>
@@ -371,7 +371,8 @@ Comun.iniciar({
       const bal = pag.querySelector(".balanza"); if (bal) bal.outerHTML = api.balanza(totalDijeron(), M.totalContadas(m));
       pintarRail();
     }
-    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); ajustar(l); if (!l.noAnunciada && M.diferencia(l) === 0) l.causa = null; const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
+    const CUENTA = "Mariana Quispe"; // la cuenta con la que se entró (simulada): cada categoría guarda quién la contó
+    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); ajustar(l); l.contoPor = CUENTA; if (!l.noAnunciada && M.diferencia(l) === 0) l.causa = null; const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
     function buscarEn(texto, lineaId) {
       const l = M.linea(m, lineaId); const raiz = pagina().querySelector(`[data-separar="${lineaId}"]`) || escena.querySelector(`[data-separar="${lineaId}"]`); const caja = raiz && raiz.querySelector("[data-sugerencias]"); if (!caja || !l) return;
       const r = RF.buscarProductos(texto, l.marca).filter((p) => p.cat === l.cat || true);
@@ -402,7 +403,8 @@ Comun.iniciar({
       const filas = m.lineas.map((l) => {
         const c = CATS[l.cat]; const d = M.diferencia(l); const pend = pendientesDe(l);
         const causas = d == null || d === 0 ? "" : `<div class="causas" style="margin-top:8px">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" data-linea="${l.id}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</div>`;
-        return `<tr><td><span class="fila" style="gap:10px"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${iconoCat(l.cat)}</span><span><b>${esc(c.nombre)}</b><br><span class="tenue" style="font-size:12px">${esc(l.marca)}</span></span></span></td>
+        return `<tr><td><span class="fila" style="gap:10px"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${iconoCat(l.cat)}</span><span><b>${esc(c.nombre)}</b><br><span class="tenue" style="font-size:12px">${esc(l.marca)}${l.contoPor ? ` · contó ${esc(l.contoPor.split(" ")[0])}` : ""}</span></span></span></td>
+          <td class="n">${m.fardo && !l.noAnunciada ? `<span class="caja" style="min-height:34px;width:96px;padding:0 8px;display:inline-flex"><span class="tenue" style="font-size:12px">S/</span><input type="number" inputmode="decimal" min="0" step="0.5" data-costo-linea="${l.id}" value="${l.costo ?? ""}" style="font-size:14px;padding:4px 0;width:60px;text-align:right"></span>` : `<span class="tenue" style="font-size:12px">${m.fardo ? "sin costo" : "lo pone Compras"}</span>`}</td>
           <td class="n tenue">${l.noAnunciada ? `<span class="chip ambar" style="font-size:10.5px">no venía</span>` : l.dijeron ?? "—"}</td><td class="n">${l.contadas}</td><td class="n" style="color:var(--verde-p)">${enStock(l)}</td>
           <td>${pend.length ? `<span class="chip pizarra punto">${pend.length} para después</span><div class="pend" style="margin-top:4px">${pend.map((x) => esc(x.titulo)).join("<br>")}</div>` : `<span class="chip verde punto">Nada</span>`}</td>
           <td>${d == null ? `<span class="chip neutro">sin aviso</span>` : d === 0 ? `<span class="chip verde punto">Cuadra</span>` : `<span class="chip ambar punto">${d < 0 ? `Faltan ${-d}` : `Sobran ${d}`}</span>`}${causas}</td></tr>`;
@@ -411,12 +413,13 @@ Comun.iniciar({
       const causaTotal = !m.fardo && m.dijeronTotal != null && !m.lineas.some((l) => l.dijeron != null) && difTotal != null && difTotal !== 0 ? `<div class="card bloque-cierre"><p class="label">¿Por qué ${difTotal < 0 ? `faltan ${-difTotal}` : `sobran ${difTotal}`} contra lo que dijeron por WhatsApp?</p><div class="causas" style="margin-top:8px">${(difTotal < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa-total="${k.clave}" aria-pressed="${m.causaTotal === k.clave}">${esc(k.texto)}</button>`).join("")}</div></div>` : "";
       const np = pendientes().length;
       return `<div class="cierre cascada">
-        <div class="card" style="overflow:hidden"><table class="cierre"><thead><tr><th>Categoría</th><th class="n">Dijeron</th><th class="n">Contaste</th><th class="n">Al stock</th><th>Para después</th><th>Diferencia y por qué</th></tr></thead><tbody>${filas}</tbody></table></div>
+        <div class="card" style="overflow:hidden"><table class="cierre"><thead><tr><th>Categoría</th><th class="n" title="El costo que trae el despacho; quien cierra lo corrige si el papel dice otra cosa">Costo c/u</th><th class="n">Dijeron</th><th class="n">Contaste</th><th class="n">Al stock</th><th>Para después</th><th>Diferencia y por qué</th></tr></thead><tbody>${filas}</tbody></table></div>
+        <div class="nota"><span class="i">i</span><span>${m.fardo ? "El <b>costo</b> de cada línea viene del despacho de Compras: si la factura o el proveedor dicen otra cosa, corrígelo aquí (lo ve quien cierra). " : ""}¿Alguna llegó <b>dañada</b>? Cuéntala igual y repórtala después en Existencias ▸ Dañadas: ahí entra a cuarentena.</span></div>
         ${np ? `<div class="nota"><span class="i">i</span><span>Cerrar el fardo deja el conteo oficial y ${np === 1 ? "un pendiente" : `${np} pendientes`} para después (separar, poner tallas y colores, crear lo nuevo). Al stock entra hoy lo que ya tiene tallas y colores; el resto entra cuando se resuelva cada pendiente.</span></div>` : ""}
         ${api.balanza(totalDij, totalCon)}
         ${causaTotal}
         <div class="card bloque-cierre"><div class="fila" style="gap:8px"><span class="marca" data-estado="opcional"></span><p class="label">Número de guía <span style="letter-spacing:0;text-transform:none;font-weight:500;color:var(--t45)">· opcional</span></p></div><div class="caja" style="max-width:260px;margin-top:8px"><input data-guia value="${esc(m.guia)}" placeholder="Ej. T001-000342"></div></div>
-        <div class="card bloque-cierre luz" data-estado="${m.responsable ? "" : "ahora"}"><div class="fila entre"><div class="fila" style="gap:8px"><span class="marca" data-estado="${m.responsable ? "hecho" : "ahora"}">${m.responsable ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">Quién contó</p></div>${m.responsable ? "" : `<span class="sigue">Sigue aquí</span>`}</div><div style="margin-top:10px">${api.responsableHtml(m)}</div></div>
+        <div class="card bloque-cierre luz" data-estado="${m.responsable ? "" : "ahora"}"><div class="fila entre"><div class="fila" style="gap:8px"><span class="marca" data-estado="${m.responsable ? "hecho" : "ahora"}">${m.responsable ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">Quién cierra el conteo</p></div>${m.responsable ? "" : `<span class="sigue">Sigue aquí</span>`}</div><div style="margin-top:10px">${api.responsableHtml(m)}</div></div>
         <div class="pie-cierre">${faltaChips()}<button class="btn pri grande" data-recibir ${faltan().length ? "disabled" : ""}>${icono("check")}${m.reabierto ? "Cerrar de nuevo" : "Cerrar el fardo"} · ${totalCon} contadas en ${esc(RF.SEDE)}</button></div>
       </div>`;
     }
@@ -431,7 +434,7 @@ Comun.iniciar({
         <div class="fila arriba" style="gap:20px">
           <div class="sello"><span class="onda"></span><span class="onda dos"></span><svg viewBox="0 0 88 88"><circle class="aro" cx="44" cy="44" r="42"/><path class="visto" d="M27 45l11 11 23-25"/></svg></div>
           <div><p class="label">Fardo cerrado · ${esc(RF.SEDE)} · ${m.hora || "10:58"}</p><h2 class="disp" style="font-size:36px;line-height:1.05;margin-top:4px">${M.totalContadas(m)} prendas contadas</h2>
-            <p class="tenue" style="margin-top:6px">${quien ? `Contó ${esc(quien.nombre)}.` : ""} ${m.fardo ? `Fardo ${esc(m.fardo.codigo)} · guía ${esc(m.guia)}` : `Sin aviso · ${esc(m.proveedor && prov(m.proveedor) ? prov(m.proveedor).nombre : "proveedor por confirmar")}`}. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.</p></div>
+            <p class="tenue" style="margin-top:6px">${quien ? `Cerró ${esc(quien.nombre)}.` : ""} ${m.fardo ? `Fardo ${esc(m.fardo.codigo)} · guía ${esc(m.guia)}` : `Sin aviso · ${esc(m.proveedor && prov(m.proveedor) ? prov(m.proveedor).nombre : "proveedor por confirmar")}`}. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.</p></div>
         </div>
         <div class="cifras">
           <div class="tc"><p class="label"><i></i>Dijeron</p><p class="valor num">${totalDijeron() ?? "—"}</p></div>
@@ -452,7 +455,7 @@ Comun.iniciar({
           ${pend.length ? `<div class="fila envuelve" style="margin-top:12px"><button class="btn sut" data-accion="avisar">${icono("campana")}Avisar a Lucía (encargada)</button><span class="tenue" style="font-size:12.5px">Al resolverlos, las prendas entran al stock con la cantidad ya contada.</span></div>` : ""}
         </div>
         ${difs ? `<div class="bloque"><h3 class="disp" style="font-size:22px">Lo que no cuadró</h3><ul class="difs">${difs}</ul><p class="tenue" style="font-size:12.5px">La sede dice qué pasó; Compras decide qué pasa con la plata.</p></div>` : `<div class="bloque"><div class="fila" style="gap:8px"><span class="chip verde punto">Cuadró</span><span class="tenue">Llegó exactamente lo que dijeron.</span></div></div>`}
-        <div class="bloque"><div class="fila entre envuelve"><div><h3 class="disp" style="font-size:20px">¿Encontraste algo más?</h3><p class="tenue" style="font-size:13.5px">Si aparecen las 2 prendas que faltaban o algo quedó mal contado, reabre el fardo, corrige y ciérralo de nuevo. Lo que ya entró al stock no se toca.</p></div><button class="btn sec" data-reabrir>${icono("repetir")}Reabrir el conteo</button></div>
+        <div class="bloque"><div class="fila entre envuelve"><div><h3 class="disp" style="font-size:20px">¿Encontraste algo más?</h3><p class="tenue" style="font-size:13.5px">Si aparecen las 2 prendas que faltaban o algo quedó mal contado, reabre el fardo, corrige y ciérralo de nuevo. Lo que ya entró al stock no se toca. Se puede hasta que Compras resuelva la diferencia; después, la corrección la hace Compras.</p></div><button class="btn sec" data-reabrir>${icono("repetir")}Reabrir el conteo</button></div>
           ${(m.cierres || []).length ? `<p class="tenue" style="font-size:12.5px;margin-top:8px">${m.cierres.map((c) => `Cerrado ${esc(c.cuando)}${c.por ? ` por ${esc(c.por)}` : ""} · reabierto después`).join(" · ")}.</p>` : ""}</div>
         <div class="fila envuelve" style="gap:10px"><button class="btn pri" data-otro>${icono("caja")}Otro fardo</button><button class="btn sut" data-accion="historial">${icono("lista")}Ver todo lo recibido</button></div>
       </section>`;
@@ -526,6 +529,7 @@ Comun.iniciar({
       if (e.target.matches("[data-contadas]")) { const l = M.linea(m, foco); if (!l) return; M.contar(m, foco, { valor: e.target.value }); ajustar(l); refrescarContador(l); }
       if (e.target.matches("[data-buscar]")) buscarEn(e.target.value, lineaDe(e.target));
       if (e.target.matches("[data-guia]")) m.guia = e.target.value;
+      if (e.target.matches("[data-costo-linea]")) { const l = M.linea(m, e.target.dataset.costoLinea); if (l) l.costo = e.target.value !== "" ? Number(e.target.value) : null; }
       if (e.target.matches("[data-dijeron]")) m.dijeronTotal = e.target.value !== "" ? Number(e.target.value) : null;
       if (e.target.matches("[data-dijeron-linea]")) { const l = M.linea(m, foco); if (!l) return; l.dijeron = e.target.value !== "" ? Math.max(0, Math.floor(Number(e.target.value) || 0)) : null; if (M.diferencia(l) === 0) l.causa = null; refrescarContador(l); }
       if (e.target.matches("[data-buscar-prov]")) { const k = RF.clave(e.target.value); pagina().querySelectorAll("[data-provs] .resp").forEach((b) => { b.hidden = k.length > 0 && !RF.clave(b.textContent).includes(k); }); }
@@ -546,7 +550,7 @@ Comun.iniciar({
       if (!m.fardo) { m.proveedor = SIN_AVISO.prov; m.provElegido = true; m.dijeronTotal = null; agregarLineaSin("CMS", 40); agregarLineaSin("VES", 24); }
       M.abrir(m); foco = (m.lineas[0] || {}).id || null;
       if (en === "contar") { paso = 2; return; }
-      m.lineas.forEach((l, i) => { M.contarReal(m, l.id); l.visitada = true; if (i !== 1) separarReal(l); }); // la segunda categoría queda sin separar, a propósito
+      m.lineas.forEach((l, i) => { M.contarReal(m, l.id); l.visitada = true; l.contoPor = CUENTA; if (i !== 1) separarReal(l); }); // la segunda categoría queda sin separar, a propósito
       if (m.fardo) { const x = agregarLineaExtra("TOP", "cds"); M.contar(m, x.id, { valor: 3 }); nuevasSinN(x, { valor: 3 }); } // y llegaron 3 tops que nadie anunció
       if (en === "separar") { paso = 2; return; }
       paso = 3; if (en === "cerrar") return;

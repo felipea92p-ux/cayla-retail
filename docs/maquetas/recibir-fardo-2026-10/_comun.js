@@ -34,7 +34,7 @@ window.Comun = (function () {
   // =====================================================================================
   let uid = 0;
   function nuevaLinea(l) {
-    return { id: l.id, cat: l.cat, marca: l.marca, prov: l.prov, dijeron: l.dijeron ?? null, desc: l.desc || "", contadas: 0, conocidas: {}, nuevas: [], causa: null, nota: "", cola: unidades(l.id), corregida: false, visitada: false };
+    return { id: l.id, cat: l.cat, marca: l.marca, prov: l.prov, dijeron: l.dijeron ?? null, desc: l.desc || "", costo: l.costo ?? null, contadas: 0, conocidas: {}, nuevas: [], causa: null, nota: "", cola: unidades(l.id), corregida: false, visitada: false };
   }
   const Modelo = {
     crear(caso) {

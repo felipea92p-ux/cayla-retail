@@ -51,11 +51,11 @@ window.RF = (function () {
     codigo: "F-0007", guia: "T001-000342", desde: "Lima · Compras", por: "Rosa Delgado", cuando: "ayer 17:20", llega: "hoy",
     ordenes: ["OC-000129", "OC-000131", "OC-000134"],
     lineas: [
-      { id: "blu", cat: "CMS", marca: "Dulce", prov: "cds", dijeron: 40, desc: "Blusas manga globo y clásicas" },
-      { id: "ves", cat: "VES", marca: "Dulce", prov: "cds", dijeron: 24, desc: "Vestidos midi" },
-      { id: "pan", cat: "PAN", marca: "Andina Denim", prov: "tan", dijeron: 30, desc: "Pantalones wide leg y capri" },
-      { id: "cas", cat: "CAS", marca: "Nórdica", prov: "mgi", dijeron: 16, desc: "Casacas acolchadas" },
-      { id: "fal", cat: "FAL", marca: "Nórdica", prov: "mgi", dijeron: 10, desc: "Faldas plisadas" },
+      { id: "blu", cat: "CMS", marca: "Dulce", prov: "cds", dijeron: 40, desc: "Blusas manga globo y clásicas", costo: 38 },
+      { id: "ves", cat: "VES", marca: "Dulce", prov: "cds", dijeron: 24, desc: "Vestidos midi", costo: 62 },
+      { id: "pan", cat: "PAN", marca: "Andina Denim", prov: "tan", dijeron: 30, desc: "Pantalones wide leg y capri", costo: 55 },
+      { id: "cas", cat: "CAS", marca: "Nórdica", prov: "mgi", dijeron: 16, desc: "Casacas acolchadas", costo: 90 },
+      { id: "fal", cat: "FAL", marca: "Nórdica", prov: "mgi", dijeron: 10, desc: "Faldas plisadas", costo: 42 },
     ],
   };
   // El caso SIN aviso (hoy: un WhatsApp). Solo Confecciones del Sur; dijeron «64» por mensaje.
@@ -112,7 +112,6 @@ window.RF = (function () {
       { clave: "proveedor", texto: "No vino del proveedor", luego: "Compras se lo reclama al proveedor" },
       { clave: "separacion", texto: "Lima lo mandó a otra sede", luego: "Se avisa a Lima; la otra sede lo recibe donde está" },
       { clave: "transporte", texto: "Se perdió en el camino", luego: "Compras y la encargada deciden si se reclama" },
-      { clave: "danada", texto: "Llegó dañada", luego: "Entra a cuarentena, no se vende" },
     ],
     sobrante: [
       { clave: "proveedor", texto: "Vino de más", luego: "Compras decide: regalo, se paga o se descuenta" },

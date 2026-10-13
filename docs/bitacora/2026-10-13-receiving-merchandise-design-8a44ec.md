@@ -21,3 +21,13 @@
 - **Cómo:** verificado con clics y JS en el navegador integrado: agregar Polos del proveedor Nórdica, reabrir y cuadrar los pantalones (la
   causa «No vino del proveedor» se borra sola), cerrar de nuevo a las 11:21 con el rastro; sin aviso: buscar «andina», elegir, 64 del
   WhatsApp, Blusas con «dijeron 40». Demos de los dos casos sin errores.
+
+## Tercera ronda: las 10 preguntas antes de construir
+
+- **Qué:** Felipe pidió diez preguntas sobre lo que pudiera no estar claro del flujo; las respondió todas (tabla en el README). Cambian la
+  maqueta en tres cosas: el costo por línea se ve y se corrige al cerrar (d.18 se mantiene), «Llegó dañada» deja de ser causa (se cuenta y se
+  reporta en Existencias) y el combo del cierre es «Quién cierra el conteo», con «contó …» por categoría.
+- **Por qué:** construir «tal cual» sin esas respuestas habría dejado al criterio del código quién crea lo nuevo, qué entra al stock y hasta
+  cuándo se reabre.
+- **Cómo:** `AskUserQuestion` en tres tandas con Ganas/Pagas; la recomendada primero. Dos respuestas fueron distintas de lo recomendado
+  (quién crea lo nuevo: todo Recibir; costo: al cerrar).
