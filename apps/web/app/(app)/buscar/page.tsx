@@ -28,7 +28,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           Búsqueda
           <Ayuda titulo="Búsqueda">
             Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
-            prenda para vender y en qué tienda: no cuenta lo apartado ni lo que está en
+            prenda para vender y en qué sede: no cuenta lo apartado ni lo que está en
             Cuarentena. Puedes escribir la referencia, el SKU, la talla o el color, o escanear
             la etiqueta con la pistola: es lo mismo, la pistola solo escribe el código por ti.
           </Ayuda>
@@ -96,6 +96,10 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
         ...(persona.rol === "lider" ? {} : { p_ubicacion_id: persona.ubicacionId }),
         p_producto_ids: [...new Set(resultados.map((r) => r.productoId).filter(Boolean))],
       })
+      // La base filtra ANTES de responder: solo las prendas que coincidieron y con algo disponible. Sin esto, 30 productos con
+      // todas sus tallas en todas las sedes pasan de 1.000 filas y la API corta en silencio: una prenda que hay diría «agotada».
+      .in("variante_id", [...pedidas])
+      .gt("disponible", 0)
       .then((r) => exigir(r, "lo disponible de estos resultados")),
     supabase
       .from("ubicaciones")
