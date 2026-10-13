@@ -126,7 +126,7 @@ ${atrapa(
 ${atrapa(
   "guarda",
   "p_d uuid, p_item uuid, p_cont integer, p_sep jsonb, p_ver integer, p_extra integer, p_prov uuid, p_cat uuid, p_marca uuid",
-  "retail.guardar_conteo(p_d, p_item, p_cont, p_sep, p_ver, p_extra, p_prov, p_cat, p_marca)",
+  "retail.guardar_conteo_envio(p_d, p_item, p_cont, p_sep, p_ver, p_extra, p_prov, p_cat, p_marca)",
 )}
 ${atrapa("conteos", "p_d uuid", "retail.fn_envio_conteos(p_d)")}
 
@@ -469,16 +469,16 @@ caso(
      (select string_agg(p.proname || ':' || p.prosecdef || ':' || has_function_privilege('authenticated', p.oid, 'execute') || ':'
                         || has_function_privilege('anon', p.oid, 'execute'), ',' order by p.proname)
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'retail' and p.proname in ('guardar_conteo', 'fn_envio_conteos', 'fn_conteo_leer_separado', 'fn_conteo_json',
-                                                     'fn_conteo_separado_con_nombres', 'fn_conteo_persona', 'fn_recepcion_conteos_detallados',
+       where n.nspname = 'retail' and p.proname in ('guardar_conteo_envio', 'fn_envio_conteos', 'fn_envio_leer_separado', 'fn_envio_conteo_json',
+                                                     'fn_envio_separado_con_nombres', 'fn_envio_persona', 'fn_recepcion_conteos_detallados',
                                                      'fn_recepcion_entrar')),
      (select c.relrowsecurity from pg_class c where c.oid = 'retail.despacho_conteos'::regclass),
      (select count(*) from pg_policies p where p.schemaname = 'retail' and p.tablename = 'despacho_conteos'),
      has_table_privilege('authenticated', 'retail.despacho_conteos', 'select'));`,
   [
-    "fn_conteo_json:true:false:false,fn_conteo_leer_separado:false:false:false,fn_conteo_persona:true:false:false,"
-      + "fn_conteo_separado_con_nombres:true:false:false,fn_envio_conteos:true:true:false,fn_recepcion_conteos_detallados:true:false:false,"
-      + "fn_recepcion_entrar:true:false:false,guardar_conteo:true:true:false",
+    "fn_envio_conteo_json:true:false:false,fn_envio_conteos:true:true:false,fn_envio_leer_separado:false:false:false,"
+      + "fn_envio_persona:true:false:false,fn_envio_separado_con_nombres:true:false:false,fn_recepcion_conteos_detallados:true:false:false,"
+      + "fn_recepcion_entrar:true:false:false,guardar_conteo_envio:true:true:false",
     "t",
     "0",
     "f",

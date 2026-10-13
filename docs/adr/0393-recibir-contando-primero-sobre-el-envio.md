@@ -118,7 +118,7 @@ La 1 y la 3 las cuida la función bajo un solo candado (la fila del conteo de es
 
 ### Funciones
 
-- **`guardar_conteo`** (contar y separar una línea; también agrega lo que no estaba en la guía): con el envío `abierto`, el módulo Recibir y
+- **`guardar_conteo_envio`** (contar y separar una línea; también agrega lo que no estaba en la guía): con el envío `abierto`, el módulo Recibir y
   la sede. Si otra persona guardó esa línea después de lo que viste, guarda lo tuyo y te devuelve lo que pisaste («Lucía había puesto 38»).
 - **`cerrar_conteo`** (firma quien cierra, combo «Responsable»): costo por línea (decisión 6 y la 18 de ADR-0362), causas de lo que no
   cuadró (contadas contra enviadas), nota. Lo separado con tallas y colores entra al stock como hoy (lote por proveedor, movimientos al
@@ -172,7 +172,7 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
 ## Plan de construcción (reemplaza el «Cómo sigue» que no llegó al README de la maqueta)
 
 1. **Contrato** (este ADR) y OK de Felipe; mensaje a la sesión de Órdenes de compra con «La frontera» y los cambios en sus tablas.
-2. **Base · contar guardado:** refactor de `recibir_despacho` (un solo camino de cierre) y `despacho_conteos` + `guardar_conteo` + lecturas;
+2. **Base · contar guardado:** refactor de `recibir_despacho` (un solo camino de cierre) y `despacho_conteos` + `guardar_conteo_envio` + lecturas;
    pruebas en Postgres (permisos, sede, quien compró, gana el último con aviso, envío anulado o cerrado).
 3. **Base · cerrar con pendientes:** `cerrar_conteo`, `despacho_pendientes`, `resolver_pendiente`, la lectura del número de pendientes;
    la invariante 1 como prueba y como invariante de `/chaos`.
@@ -193,7 +193,7 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
   parches anclados de la fase 5a con su texto exacto: re-pegar `20261013015000` encima no hace nada (probado). Dos ajustes que en el
   formulario de hoy dan lo mismo: el lote es del proveedor que trae entradas, y si el envío ya tiene el suyo se usa ese.
 - **`20261013171000_conteo_de_envio.sql`.** `despacho_conteos` (una fila por línea o por algo fuera de la guía; RLS sin políticas; solo
-  con el envío abierto; no se borra; CHECK «lo separado no pasa de lo contado»), `guardar_conteo` (gana el último y devuelve lo pisado;
+  con el envío abierto; no se borra; CHECK «lo separado no pasa de lo contado»), `guardar_conteo_envio` (gana el último y devuelve lo pisado;
   el envío se toma en modo compartido: varias personas cuentan a la vez y solo esperan por su línea) y `fn_envio_conteos`. Por ancla,
   `recibir_despacho` deja también el conteo de cada línea todo detallado.
 - **Lo que cambió del plan:** los conteos se leen con `fn_envio_conteos` y no dentro de `fn_envio_detalle` (ya lleva dos anclas de la 5a;

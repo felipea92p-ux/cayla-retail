@@ -11,7 +11,7 @@
 --      (`contadas`), el borrador de «¿Qué blusas son?» (`separado`: prendas conocidas, con o sin sus tallas y colores, y nuevas por
 --      cantidad), quién la contó, cuándo y su versión. El costo se fija al cerrar. Se escribe solo con el envío ABIERTO y no se borra
 --      nunca (quitar algo es dejarlo en 0); lo separado nunca pasa de lo contado (un CHECK, no una validación).
---   2. `guardar_conteo`: guarda una línea. Si otra persona la guardó después de lo que viste, guarda lo tuyo y te devuelve lo que
+--   2. `guardar_conteo_envio`: guarda una línea. Si otra persona la guardó después de lo que viste, guarda lo tuyo y te devuelve lo que
 --      pisaste («Lucía había puesto 38»): gana el último, con aviso (decisión 9). Agrega también lo que no estaba en la guía.
 --   3. `fn_envio_conteos`: lo contado de un envío, con quién contó cada línea y los nombres de lo separado.
 --   4. `recibir_despacho` (REEMPLAZO ANCLADO sobre su definición de 20261013170000): lo que se recibe con el formulario de la fase 4
@@ -23,10 +23,10 @@
 --   · Un conteo en un envío en camino, cerrado o anulado, o con una línea de otro envío → disparador `despacho_conteos_fija`.
 --   · Dos conteos de la misma línea → únicos parciales (línea; posición de lo de fuera de la guía).
 --   · Un conteo borrado, o que cambia de línea → disparador `despacho_conteos_fija`.
---   · Una prenda de otra categoría o marca, o una talla y color de otra prenda → `guardar_conteo` (con la prenda a la vista) y, al
+--   · Una prenda de otra categoría o marca, o una talla y color de otra prenda → `guardar_conteo_envio` (con la prenda a la vista) y, al
 --     cerrar, otra vez `fn_recepcion_entrar`.
 --
--- CONTRATO de guardar_conteo
+-- CONTRATO de guardar_conteo_envio
 --   PROMETE: con el módulo Recibir, la sede del envío y quien firma (el responsable, que no hizo ninguna de sus órdenes, decisión 17),
 --            deja la línea con lo que mandaste y te dice si pisaste otra cosa. Repetir lo mismo no avisa nada.
 --   ASUME:   el envío está abierto («Empezar a recibir» es `abrir_despacho`). La pantalla manda lo contado ya corregido (si separaste
@@ -71,8 +71,8 @@ begin
 end;
 $f$;
 
--- ---------- 1. Cuánto se separó de una línea (para el CHECK; la forma la valida guardar_conteo antes) ----------
-create or replace function retail.fn_conteo_total_separado(p_separado jsonb)
+-- ---------- 1. Cuánto se separó de una línea (para el CHECK; la forma la valida guardar_conteo_envio antes) ----------
+create or replace function retail.fn_envio_total_separado(p_separado jsonb)
 returns integer
 language sql
 immutable
@@ -81,10 +81,10 @@ as $$
   select coalesce((select sum((x ->> 'cantidad')::integer) from jsonb_array_elements(coalesce(p_separado -> 'prendas', '[]'::jsonb)) x), 0)::integer
        + coalesce((select sum((x ->> 'cantidad')::integer) from jsonb_array_elements(coalesce(p_separado -> 'nuevas', '[]'::jsonb)) x), 0)::integer;
 $$;
-comment on function retail.fn_conteo_total_separado(jsonb) is
+comment on function retail.fn_envio_total_separado(jsonb) is
   'ADR-0393: cuántas prendas de una línea ya se separaron (conocidas + nuevas) en el borrador de despacho_conteos.separado.';
-revoke all on function retail.fn_conteo_total_separado(jsonb) from public, anon;
-grant execute on function retail.fn_conteo_total_separado(jsonb) to authenticated, service_role;
+revoke all on function retail.fn_envio_total_separado(jsonb) from public, anon;
+grant execute on function retail.fn_envio_total_separado(jsonb) to authenticated, service_role;
 
 -- ---------- 2. Lo contado, línea por línea ----------
 create table if not exists retail.despacho_conteos (
@@ -100,7 +100,7 @@ create table if not exists retail.despacho_conteos (
   -- Cuántas llegaron (el número de la cara A). 0 es «no llegó nada» (o, fuera de la guía, «quité esto»).
   contadas integer not null check (contadas between 0 and 99999),
   -- El borrador de «¿Qué … son?»: {prendas: [{producto_id, cantidad, variantes: null | [{variante_id, cantidad, danadas,
-  -- danada_solucion}]}], nuevas: [{cantidad, descripcion}]}. Lo valida guardar_conteo; el CHECK de abajo, que no pase de lo contado.
+  -- danada_solucion}]}], nuevas: [{cantidad, descripcion}]}. Lo valida guardar_conteo_envio; el CHECK de abajo, que no pase de lo contado.
   separado jsonb not null default '{"prendas": [], "nuevas": []}'::jsonb,
   -- El costo con el que se cierra (decisión 6 de Felipe y 18 de ADR-0362): lo fija el cierre, no el conteo.
   costo_unitario numeric(12, 2) check (costo_unitario is null or costo_unitario >= 0),
@@ -114,7 +114,7 @@ create table if not exists retail.despacho_conteos (
     despacho_item_id is null or (proveedor_id is null and categoria_id is null and marca_id is null)),
   constraint despacho_conteos_separado_forma check (
     jsonb_typeof(separado) = 'object' and jsonb_typeof(separado -> 'prendas') = 'array' and jsonb_typeof(separado -> 'nuevas') = 'array'),
-  constraint despacho_conteos_separado_cabe check (retail.fn_conteo_total_separado(separado) <= contadas)
+  constraint despacho_conteos_separado_cabe check (retail.fn_envio_total_separado(separado) <= contadas)
 );
 create unique index if not exists despacho_conteos_linea_unica on retail.despacho_conteos (despacho_id, despacho_item_id)
   where despacho_item_id is not null;
@@ -163,8 +163,8 @@ create or replace trigger despacho_conteos_fija
 -- ---------- 3. La forma del borrador de lo separado ----------
 -- Devuelve el borrador limpio {prendas: [{producto_id, cantidad, variantes}], nuevas: [{cantidad, descripcion}]}: sin repetir una
 -- prenda, con cantidades enteras y, si una prenda trae sus tallas y colores, que sumen lo que dice. Solo la forma: si la prenda existe
--- y es de la línea lo mira guardar_conteo, con la línea a la vista.
-create or replace function retail.fn_conteo_leer_separado(p_separado jsonb, p_donde text)
+-- y es de la línea lo mira guardar_conteo_envio, con la línea a la vista.
+create or replace function retail.fn_envio_leer_separado(p_separado jsonb, p_donde text)
 returns jsonb
 language plpgsql
 immutable
@@ -251,12 +251,12 @@ begin
   return jsonb_build_object('prendas', v_prendas, 'nuevas', v_nuevas);
 end;
 $$;
-comment on function retail.fn_conteo_leer_separado(jsonb, text) is
+comment on function retail.fn_envio_leer_separado(jsonb, text) is
   'ADR-0393: valida la forma del borrador de lo separado de una línea y lo devuelve limpio. Interna.';
-revoke all on function retail.fn_conteo_leer_separado(jsonb, text) from public, anon, authenticated;
+revoke all on function retail.fn_envio_leer_separado(jsonb, text) from public, anon, authenticated;
 
 -- Una persona como la lee la pantalla: {id, nombre}.
-create or replace function retail.fn_conteo_persona(p_persona uuid)
+create or replace function retail.fn_envio_persona(p_persona uuid)
 returns jsonb
 language sql
 stable
@@ -268,12 +268,12 @@ as $$
                        'nombre', (select nullif(btrim(concat_ws(' ', p.nombres, p.apellidos)), '') from public.personas p where p.id = p_persona))
   end;
 $$;
-comment on function retail.fn_conteo_persona(uuid) is 'ADR-0393: {id, nombre} de una persona, para las lecturas del conteo. Interna.';
-revoke all on function retail.fn_conteo_persona(uuid) from public, anon, authenticated;
+comment on function retail.fn_envio_persona(uuid) is 'ADR-0393: {id, nombre} de una persona, para las lecturas del conteo. Interna.';
+revoke all on function retail.fn_envio_persona(uuid) from public, anon, authenticated;
 
--- ---------- 4. Lecturas internas (las usa guardar_conteo para responder) ----------
+-- ---------- 4. Lecturas internas (las usa guardar_conteo_envio para responder) ----------
 -- Lo separado con los nombres que muestra la pantalla: cada prenda con su nombre y código, cada talla y color con su etiqueta.
-create or replace function retail.fn_conteo_separado_con_nombres(p_separado jsonb)
+create or replace function retail.fn_envio_separado_con_nombres(p_separado jsonb)
 returns jsonb
 language sql
 stable
@@ -298,12 +298,12 @@ as $$
         left join retail.productos pr on pr.id = (x ->> 'producto_id')::uuid), '[]'::jsonb),
     'nuevas', coalesce(p_separado -> 'nuevas', '[]'::jsonb));
 $$;
-comment on function retail.fn_conteo_separado_con_nombres(jsonb) is
+comment on function retail.fn_envio_separado_con_nombres(jsonb) is
   'ADR-0393: el borrador de lo separado con nombre y código de cada prenda y talla, color y hex de cada variante. Interna.';
-revoke all on function retail.fn_conteo_separado_con_nombres(jsonb) from public, anon, authenticated;
+revoke all on function retail.fn_envio_separado_con_nombres(jsonb) from public, anon, authenticated;
 
--- Un conteo como lo lee la pantalla (y lo devuelve guardar_conteo).
-create or replace function retail.fn_conteo_json(p_fila retail.despacho_conteos)
+-- Un conteo como lo lee la pantalla (y lo devuelve guardar_conteo_envio).
+create or replace function retail.fn_envio_conteo_json(p_fila retail.despacho_conteos)
 returns jsonb
 language sql
 stable
@@ -319,21 +319,21 @@ as $$
                     from retail.categorias c where c.id = p_fila.categoria_id),
     'marca', (select jsonb_build_object('id', m.id, 'nombre', m.nombre) from retail.marcas m where m.id = p_fila.marca_id),
     'contadas', p_fila.contadas,
-    'separadas', retail.fn_conteo_total_separado(p_fila.separado),
-    'separado', retail.fn_conteo_separado_con_nombres(p_fila.separado),
+    'separadas', retail.fn_envio_total_separado(p_fila.separado),
+    'separado', retail.fn_envio_separado_con_nombres(p_fila.separado),
     'costo_unitario', p_fila.costo_unitario,
     'version', p_fila.version,
-    'contado_por', retail.fn_conteo_persona(p_fila.contado_por),
+    'contado_por', retail.fn_envio_persona(p_fila.contado_por),
     'contado_en', p_fila.contado_en);
 $$;
-comment on function retail.fn_conteo_json(retail.despacho_conteos) is 'ADR-0393: un conteo con sus nombres, como lo lee la pantalla. Interna.';
-revoke all on function retail.fn_conteo_json(retail.despacho_conteos) from public, anon, authenticated;
+comment on function retail.fn_envio_conteo_json(retail.despacho_conteos) is 'ADR-0393: un conteo con sus nombres, como lo lee la pantalla. Interna.';
+revoke all on function retail.fn_envio_conteo_json(retail.despacho_conteos) from public, anon, authenticated;
 
 -- ---------- 5. Guardar lo contado de una línea ----------
 -- `p_despacho_item_id`: la línea del envío. Para lo que no estaba en la guía va null y: `p_extra_posicion` para corregir uno ya
 -- anotado, o nada para anotar uno nuevo (con `p_proveedor_id` —null = el único del envío—, `p_categoria_id` y `p_marca_id`).
 -- `p_version`: la versión de esa línea que viste (null si todavía no tenía conteo).
-create or replace function retail.guardar_conteo(
+create or replace function retail.guardar_conteo_envio(
   p_despacho_id uuid,
   p_despacho_item_id uuid,
   p_contadas integer,
@@ -451,8 +451,8 @@ begin
   end if;
 
   -- ---- Lo separado: la forma, que no pase de lo contado, y que cada prenda sea de esta línea. ----
-  v_sep := retail.fn_conteo_leer_separado(p_separado, v_donde);
-  v_total := retail.fn_conteo_total_separado(v_sep);
+  v_sep := retail.fn_envio_leer_separado(p_separado, v_donde);
+  v_total := retail.fn_envio_total_separado(v_sep);
   if v_total > p_contadas then
     raise exception 'De % separaste % y contaste %: si llegaron más, corrige cuántas llegaron', v_donde, v_total, p_contadas
       using hint = 'conteo_separado_de_mas';
@@ -521,8 +521,8 @@ begin
     -- Lo que había, si no es lo que viste y no es lo mismo que mandas: es lo que vas a pisar.
     if p_version is distinct from v_fila.version
        and (v_fila.contadas, v_fila.separado) is distinct from (p_contadas, v_sep) then
-      v_pisaste := jsonb_build_object('contadas', v_fila.contadas, 'separado', retail.fn_conteo_separado_con_nombres(v_fila.separado),
-                                      'contado_por', retail.fn_conteo_persona(v_fila.contado_por), 'contado_en', v_fila.contado_en,
+      v_pisaste := jsonb_build_object('contadas', v_fila.contadas, 'separado', retail.fn_envio_separado_con_nombres(v_fila.separado),
+                                      'contado_por', retail.fn_envio_persona(v_fila.contado_por), 'contado_en', v_fila.contado_en,
                                       'version', v_fila.version);
     end if;
     update retail.despacho_conteos k
@@ -538,16 +538,16 @@ begin
     returning * into v_fila;
   end if;
 
-  return retail.fn_conteo_json(v_fila) || jsonb_build_object('pisaste', v_pisaste);
+  return retail.fn_envio_conteo_json(v_fila) || jsonb_build_object('pisaste', v_pisaste);
 end;
 $$;
-comment on function retail.guardar_conteo(uuid, uuid, integer, jsonb, integer, integer, uuid, uuid, uuid) is
+comment on function retail.guardar_conteo_envio(uuid, uuid, integer, jsonb, integer, integer, uuid, uuid, uuid) is
   'ADR-0393: guarda lo contado de una línea de un envío abierto (cuántas llegaron y el borrador de lo separado: prendas conocidas, con '
   'o sin sus tallas y colores, y nuevas por cantidad), o de algo que no estaba en la guía. Gana el último: si otra persona la guardó '
   'después de la versión que viste, guarda lo tuyo y devuelve lo pisado en «pisaste». Módulo Recibir, la sede del envío y la '
   'decisión 17; firma el responsable. No mueve stock. Devuelve el conteo (como fn_envio_conteos) con «pisaste».';
-revoke all on function retail.guardar_conteo(uuid, uuid, integer, jsonb, integer, integer, uuid, uuid, uuid) from public, anon;
-grant execute on function retail.guardar_conteo(uuid, uuid, integer, jsonb, integer, integer, uuid, uuid, uuid) to authenticated, service_role;
+revoke all on function retail.guardar_conteo_envio(uuid, uuid, integer, jsonb, integer, integer, uuid, uuid, uuid) from public, anon;
+grant execute on function retail.guardar_conteo_envio(uuid, uuid, integer, jsonb, integer, integer, uuid, uuid, uuid) to authenticated, service_role;
 
 -- ---------- 6. Lo contado de un envío: las líneas del envío primero (en el orden de sus órdenes) y después lo de fuera de la guía ----------
 create or replace function retail.fn_envio_conteos(p_despacho_id uuid)
@@ -572,7 +572,7 @@ begin
     'despacho_id', p_despacho_id,
     'estado', v_estado,
     'conteos', coalesce((
-      select jsonb_agg(retail.fn_conteo_json(k) order by k.extra_posicion nulls first, o.numero, i.posicion)
+      select jsonb_agg(retail.fn_envio_conteo_json(k) order by k.extra_posicion nulls first, o.numero, i.posicion)
         from retail.despacho_conteos k
         left join retail.despacho_items di on di.id = k.despacho_item_id
         left join retail.orden_compra_items i on i.id = di.orden_compra_item_id
@@ -703,7 +703,7 @@ begin
     raise exception 'falta el candado despacho_conteos_separado_cabe';
   end if;
   foreach v_funcion in array array[
-    'retail.guardar_conteo(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)',
+    'retail.guardar_conteo_envio(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)',
     'retail.fn_envio_conteos(uuid)'] loop
     if not (select p.prosecdef from pg_proc p where p.oid = v_funcion::regprocedure) then
       raise exception '% tiene que ser security definer', v_funcion;
@@ -713,17 +713,17 @@ begin
     end if;
   end loop;
   foreach v_funcion in array array[
-    'retail.fn_conteo_leer_separado(jsonb,text)', 'retail.fn_conteo_persona(uuid)', 'retail.fn_conteo_separado_con_nombres(jsonb)',
-    'retail.fn_conteo_json(retail.despacho_conteos)', 'retail.fn_recepcion_conteos_detallados(uuid,jsonb,uuid)',
+    'retail.fn_envio_leer_separado(jsonb,text)', 'retail.fn_envio_persona(uuid)', 'retail.fn_envio_separado_con_nombres(jsonb)',
+    'retail.fn_envio_conteo_json(retail.despacho_conteos)', 'retail.fn_recepcion_conteos_detallados(uuid,jsonb,uuid)',
     'retail.fn_despacho_conteos_fija()'] loop
     if has_function_privilege('authenticated', v_funcion, 'execute') or has_function_privilege('anon', v_funcion, 'execute') then
       raise exception '% es interna: ni authenticated ni anon la ejecutan', v_funcion;
     end if;
   end loop;
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-              where n.nspname = 'retail' and p.proname in ('guardar_conteo', 'fn_envio_conteos')
+              where n.nspname = 'retail' and p.proname in ('guardar_conteo_envio', 'fn_envio_conteos')
               group by p.proname having count(*) > 1) then
-    raise exception 'guardar_conteo o fn_envio_conteos quedó con dos versiones';
+    raise exception 'guardar_conteo_envio o fn_envio_conteos quedó con dos versiones';
   end if;
   if position('perform retail.fn_recepcion_conteos_detallados(' in
               pg_get_functiondef('retail.recibir_despacho(uuid,integer,jsonb,jsonb,text,uuid)'::regprocedure)) = 0 then
