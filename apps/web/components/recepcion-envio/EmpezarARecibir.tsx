@@ -16,7 +16,20 @@ import { LoQueTrae } from "./PiezasEnvio";
 // (`abrir_despacho`). Abrirlo es el primer paso: desde ahí la compradora ya no lo puede anular y se cuenta lo que llegó. Antes se lee lo que
 // trae. Firma quien recibe (el combo «Responsable»); si ya estaba abierto, la base devuelve lo mismo sin tocar nada.
 
-export function EmpezarARecibir({ detalle, sede, responsable, onAbierto }: { detalle: DetalleEnvio; sede: string; responsable: ControlResponsable; onAbierto: (r: ResultadoApertura | null) => void }) {
+export function EmpezarARecibir({
+  detalle,
+  sede,
+  responsable,
+  porCategoria = false,
+  onAbierto,
+}: {
+  detalle: DetalleEnvio;
+  sede: string;
+  responsable: ControlResponsable;
+  /** ADR-0393: se cuenta por categoría y lo demás puede quedar para después (la fase 4 contaba talla por talla). */
+  porCategoria?: boolean;
+  onAbierto: (r: ResultadoApertura | null) => void;
+}) {
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState<{ texto: string; recargar: boolean } | null>(null);
   const enVuelo = useRef(false);
@@ -69,7 +82,8 @@ export function EmpezarARecibir({ detalle, sede, responsable, onAbierto }: { det
 
       <section data-guia="recepcion.empezar" className="space-y-3" aria-label="Empezar a recibir">
         <p className="max-w-2xl text-sm text-tinta/75">
-          Ábrelo cuando la caja esté en {sede}. Desde ese momento la compra ya no se puede anular y cuentas lo que llegó, talla por talla y color por color.
+          Ábrelo cuando la caja esté en {sede}. Desde ese momento la compra ya no se puede anular y cuentas lo que llegó,{" "}
+          {porCategoria ? "categoría por categoría: qué prendas son puede quedar para después." : "talla por talla y color por color."}
         </p>
         <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe" className="max-w-sm">
           <ComboResponsable control={responsable} deshabilitado={abriendo} />

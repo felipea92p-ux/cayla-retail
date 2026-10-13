@@ -2,11 +2,12 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 59,
+  "total": 102,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «(sin nombre)»",
-      "BotonEnlace «Ir a Recibir mercadería»"
+      "BotonEnlace «Ir a Recibir mercadería»",
+      "Volver «(sin nombre)» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -38,6 +39,64 @@
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
       "button «›»"
+    ],
+    "components/recepcion-conteo/AgregarFueraDeGuia.tsx": [
+      "CampoSelect «{guia.etiqueta(\"fuera-proveedor\", \"De qué proveedor\")}»",
+      "CampoSelect «{guia.etiqueta(\"fuera-categoria\", \"Qué llegó\")}»",
+      "CampoSelect «{guia.etiqueta(\"fuera-marca\", \"La marca\")}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/CerrarEnvio.tsx": [
+      "input «{`Costo por prenda de ${nombreDeLinea(l)}»",
+      "Boton «Contarla»",
+      "CampoTexto «Nota (opcional)»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Volver «→onVolver»",
+      "Boton «recepcion.cerrar-boton»"
+    ],
+    "components/recepcion-conteo/ContarEnvio.tsx": [
+      "ComboResponsable «Cada categoría guarda quién la contó. Varias personas pueden»",
+      "button «→() => elegir(l)»",
+      "Boton «recepcion.agregar»",
+      "Boton «Anterior»",
+      "Boton «Listo, sigue»",
+      "Boton «recepcion.pasar-a-cerrar»",
+      "button «Una menos»",
+      "input «{`Cuántas ${linea.categoria?.nombre.toLowerCase() ?? \"prendas\"}»",
+      "button «Una más»",
+      "Boton «+5»",
+      "Boton «+10»",
+      "Boton «Llegaron las»",
+      "Boton «No llegó nada»"
+    ],
+    "components/recepcion-conteo/EnvioCerrado.tsx": [
+      "BotonEnlace «{a.texto}»",
+      "Boton «{p.tipo === \"crear\" ? \"+ Crear ahora\" : \"Hacer ahora\"}»",
+      "Boton «Reabrir el conteo»"
+    ],
+    "components/recepcion-conteo/HacerAhora.tsx": [
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/HojaTallas.tsx": [
+      "Boton «Dejar para después»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/ReabrirEnvio.tsx": [
+      "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/SepararPrendas.tsx": [
+      "button «{`Una menos de ${etiqueta}»",
+      "button «{`Una más de ${etiqueta}»",
+      "Boton «Una que ya está en el catálogo»",
+      "Boton «Es nueva»",
+      "Boton «Cambiar»",
+      "Boton «Tallas y colores»",
+      "button «{`Quitar ${p.nombre ?? \"esta prenda\"}»"
     ],
     "components/recepcion-envio/BloquePrenda.tsx": [
       "Boton «+ talla o color»",

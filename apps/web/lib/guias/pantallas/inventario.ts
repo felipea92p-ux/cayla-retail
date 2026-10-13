@@ -1345,13 +1345,13 @@ export const GUIA_RECIBIR: Guia = {
   id: "recibir",
   ruta: "/recibir",
   titulo: "Recibir mercadería",
-  resumen: "Lo que llega de un proveedor: escanearlo y que entre al almacén de tu sede.",
+  resumen: "Lo que llega de un proveedor: contarlo y que entre al almacén de tu sede.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "Llegó mercadería",
-      texto: "Cuando un proveedor trae prendas, las recibes aquí: dices de quién es, escaneas lo que llegó y entra al almacén de tu sede. Aunque no venga con factura. Es una demo: no se recibe nada.",
+      texto: "Cuando un proveedor trae prendas, las recibes aquí: dices de quién es, cuentas lo que llegó y entra al almacén de tu sede. Aunque no venga con factura. Es una demo: no se recibe nada.",
     },
     {
       id: "aviso-traslados",
@@ -1366,7 +1366,23 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, lo que Compras mandó a tu sede: cada envío con «Recibir» («Seguir recibiendo» si ya se abrió) y cada orden que llegó sin guía con «Recibir sin guía», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
+      texto: "Arriba, lo que Compras mandó a tu sede: cada envío con «Recibir» («Seguir recibiendo» si ya se abrió, también uno que llegó sin aviso) y cada orden que llegó sin guía con «Recibir sin guía», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
+    },
+    {
+      // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
+      id: "pendientes",
+      ancla: "recibir.pendientes",
+      opcional: true,
+      titulo: "Lo recibido por terminar",
+      texto: "Prendas que ya se contaron y están en el almacén, pero no en el sistema: falta separarlas, ponerles tallas y colores o crearlas. Cada envío te lleva a su «Para después». Si lo más antiguo pasa de una semana, el aviso cambia de color.",
+    },
+    {
+      // ADR-0393: con la base al día, la puerta es «Llegó sin aviso» (reemplaza a «Llegó mercadería»).
+      id: "sin-aviso",
+      ancla: "recibir.sin-aviso",
+      opcional: true,
+      titulo: "¿Llegó algo sin aviso?",
+      texto: "Lo que vino directo del proveedor se recibe igual: eliges de quién es, la guía si la trae y quién recibe, y se abre para contarlo por categoría. Si ese proveedor tiene una factura por recibir aquí, te ofrece recibir contra ella. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
@@ -1505,8 +1521,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "Recibir lo que llegó de una orden",
-      texto: "Aquí recibes en tu sede lo que te mandaron de una orden de compra: dices qué prenda es cada línea, la cuentas talla por talla y color por color, y entra al almacén. Lo que faltó o vino de más queda anotado para Compras. Es una demo: no se recibe nada.",
+      titulo: "Recibir lo que llegó",
+      texto: "Aquí recibes en tu sede lo que llegó: abres el fardo, cuentas por categoría y cierras. Qué prendas son, sus tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
     },
     {
       id: "cifra",
@@ -1543,6 +1559,68 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.empezar"],
       titulo: "Empezar a recibir",
       texto: "Cuando la caja está en tu sede, eliges quién recibe y tocas «Empezar a recibir»: se abre el conteo y la compra ya no se puede anular. En la demo no lo tocamos.",
+    },
+    // ---- Abierto, contando primero (ADR-0393): un número por categoría, lo demás para después ----
+    {
+      id: "quien-cuenta",
+      ancla: "recepcion.quien-cuenta",
+      requiere: ["recepcion.categorias"],
+      titulo: "Quién cuenta",
+      texto: "Elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra.",
+    },
+    {
+      id: "categorias",
+      ancla: "recepcion.categorias",
+      requiere: ["recepcion.categorias"],
+      titulo: "Las categorías del envío",
+      texto: "Lo que dijeron que venía, por categoría y marca, con cuántas. Tocas una para contarla; la que sigue sin número se enciende. Con su ✓ ya tiene su número.",
+    },
+    {
+      id: "numero",
+      ancla: "recepcion.numero",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Cuántas llegaron",
+      texto: "Cuenta las de esa categoría y escribe el número, o súmalas con + y −. Se guarda solo, al dejar de tocar. Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.",
+    },
+    {
+      id: "separar",
+      ancla: "recepcion.separar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "¿Qué prendas son? (opcional)",
+      texto: "Si te da tiempo: busca una prenda que ya está en el catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. Lo nuevo es solo cuántas. Lo que no separes queda para después y no frena el cierre.",
+    },
+    {
+      id: "agregar",
+      ancla: "recepcion.agregar",
+      requiere: ["recepcion.categorias"],
+      titulo: "Algo que no estaba en la guía",
+      texto: "Si llegó una categoría que no venía, la agregas aquí con su marca y la cuentas como las demás; al cerrar dirás qué pasa con ella. En un envío sin aviso, todo lo que llega entra por aquí. En la demo no la agregamos.",
+    },
+    {
+      // Solo con la última categoría a la vista: antes, el botón dice «Listo, sigue …».
+      id: "pasar-a-cerrar",
+      ancla: "recepcion.pasar-a-cerrar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Pasar a cerrar",
+      texto: "Cuando todas las categorías tienen su número, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. En la demo no avanzamos.",
+    },
+    {
+      id: "tabla-cierre",
+      ancla: "recepcion.tabla-cierre",
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Lo que se cierra",
+      texto: "Una fila por categoría: el costo (corrígelo si la factura dice otro), lo que dijeron, lo que contaste, lo que entra hoy al stock y lo que queda para después. Si no cuadró, eliges qué pasó: queda anotado para Compras.",
+    },
+    {
+      id: "cerrar-boton",
+      ancla: "recepcion.cerrar-boton",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Cerrar el envío",
+      texto: "Firma quien cierra. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. Encima, lo que todavía falta decidir. En la demo no lo tocamos.",
     },
     // ---- Abierto: el formulario ----
     {
@@ -1657,7 +1735,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.cerrado",
       requiere: ["recepcion.cerrado"],
       titulo: "Cómo se cerró",
-      texto: "Lo que entró: cuántas al almacén y cuántas a la cuarentena, qué faltó o vino de más, quién lo recibió y cuándo. Más abajo, línea por línea, qué prenda entró en cada talla y color, y a qué costo.",
+      texto: "Cuántas se contaron y cuántas ya están en el stock, quién lo cerró y cuándo, y qué faltó o vino de más. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.",
     },
     {
       id: "despues",
@@ -1666,6 +1744,20 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.cerrado"],
       titulo: "Lo que sigue",
       texto: "El primer botón imprime las etiquetas de precio de lo que llegó y «Bajar al piso» lleva lo bueno al piso de venta. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+    },
+    {
+      id: "para-despues",
+      ancla: "recepcion.para-despues",
+      requiere: ["recepcion.para-despues"],
+      titulo: "Para después",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. «Hacer ahora» lo termina con la cantidad ya contada; lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
+    },
+    {
+      id: "reabrir",
+      ancla: "recepcion.reabrir",
+      requiere: ["recepcion.para-despues"],
+      titulo: "¿Encontraste algo más?",
+      texto: "Si aparecen las que faltaban, reabres el conteo, corriges y lo cierras de nuevo: lo que ya entró al stock no se toca. Se puede hasta que Compras resuelva lo que faltó; después la corrección la hace Compras.",
     },
     {
       id: "fin",

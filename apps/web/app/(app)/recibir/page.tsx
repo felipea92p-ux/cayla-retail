@@ -34,6 +34,9 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { recibirContandoDisponible } from "@/lib/recepcion-conteo";
+import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
+import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -90,13 +93,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const nombreMirada = persona.ubicacionEtiqueta;
 
   // Sin pestañas (ADR-0330): la puerta es UNA. Recibir contra una factura y el historial se abren desde ella y vuelven a ella.
-  const encabezado = (
+  const conEncabezado = (fraseLlegada?: string) => (
     <div data-voz="cabecera" className="anim-entra">
       <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       <p className="mt-1 max-w-3xl text-sm text-tinta/65">
         {vista === "llegada"
-          ? `Escanea lo que llegó y recíbelo: entra al almacén de ${nombreMirada}. Si no tiene factura todavía, igual se recibe.`
+          ? (fraseLlegada ?? `Escanea lo que llegó y recíbelo: entra al almacén de ${nombreMirada}. Si no tiene factura todavía, igual se recibe.`)
           : vista === "factura"
             ? `Marca la factura con la que vino la mercadería, cuenta lo que llegó y recibe. Solo ves lo que le toca a ${nombreMirada}; lo de otras tiendas lo recibe cada una.`
             : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`}
@@ -108,6 +111,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       )}
     </div>
   );
+  const encabezado = conEncabezado();
 
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {
@@ -208,7 +212,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes] = await Promise.all([
+    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
@@ -236,7 +240,43 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         console.error("Envíos de órdenes de compra en Recibir mercadería:", e);
         return null;
       }),
+      // ADR-0393: si la base ya cuenta primero (llega con sus migraciones), la puerta es «Llegó sin aviso» y avisa lo que quedó por terminar.
+      recibirContandoDisponible(persona.ubicacionId),
     ]);
+    const facturasDeLaSede = porRecibir.filas.map((c) => ({
+      id: c.id,
+      proveedorId: c.proveedorId,
+      documento: c.documento,
+      fechaEmision: c.fechaEmision,
+      // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
+      pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
+    }));
+    if (contando.disponible) {
+      return (
+        <div className="space-y-6">
+          {conEncabezado(`Abre el fardo y cuenta por categoría. Qué prendas son puede quedar para después: lo esencial es el número. Entra al almacén de ${nombreMirada}.`)}
+          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
+          <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+          {deOrdenes && <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria />}
+          <LlegoSinAviso
+            key={claveDeLaRecepcion(persona.ubicacionId)}
+            ubicacionId={persona.ubicacionId}
+            ubicacionEtiqueta={persona.ubicacionEtiqueta}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
+            facturas={facturasDeLaSede}
+          />
+          <section data-guia="recibir.semana" className="space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
+              <Link href="/recibir?vista=recibidas" data-guia="recibir.ver-todo" className="btn-cayla btn-enlace btn-chico">
+                Ver todo lo recibido
+              </Link>
+            </div>
+            <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
+          </section>
+        </div>
+      );
+    }
     return (
       // Lo escaneado es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`, sin
       // cambiar la ruta, y con la misma key React conservaba lo escaneado en una sede y lo recibía en la otra. La sede va en la key
@@ -256,14 +296,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
             rubrosEnUso={rubrosEnUso}
             puedeAgregarProveedor={puedeAgregarProveedor}
-            facturas={porRecibir.filas.map((c) => ({
-              id: c.id,
-              proveedorId: c.proveedorId,
-              documento: c.documento,
-              fechaEmision: c.fechaEmision,
-              // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
-              pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
-            }))}
+            facturas={facturasDeLaSede}
             recientes={recientes.map((r) => ({ proveedorId: r.proveedorId, fecha: r.fecha, unidades: r.unidades, recibidoPor: r.recibidoPor }))}
             prendas={catalogo
               .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)

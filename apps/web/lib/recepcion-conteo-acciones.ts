@@ -1,0 +1,74 @@
+import { createClient } from "@/lib/supabase/client";
+import { firmar, type Firma } from "@/lib/responsable-reglas";
+import type { ErrorDeBase } from "@/lib/recepcion-envio-acciones";
+import {
+  leerConteosDelEnvio,
+  leerEnvioAbierto,
+  leerGuardado,
+  leerResuelto,
+  RPC_CERRAR_CONTEO,
+  RPC_CONTEOS_ENVIO,
+  RPC_GUARDAR_CONTEO,
+  RPC_REABRIR_ENVIO,
+  RPC_RESOLVER_PENDIENTE,
+  RPC_SIN_AVISO,
+  type ArgsGuardarConteo,
+  type ArgsResolverPendiente,
+  type ConteosDelEnvio,
+  type LineaParaCerrar,
+} from "@/lib/recepcion-conteo-reglas";
+import { leerResultadoRecepcion, type ResultadoRecepcion } from "@/lib/recepcion-envio-reglas";
+
+// Recibir contando primero (ADR-0393): lo que la cara A le pide a la base. Las reglas viven en cada función (el módulo Recibir, la sede, quien
+// hizo la orden no cuenta ni cierra, los candados de stock); aquí solo se arma la llamada con su firma. TODAS las que escriben firman con el
+// combo «Responsable» (`fn_actor_persona_id(true)`).
+
+type Respuesta = { data: unknown; error: ErrorDeBase };
+
+/**
+ * Guarda lo contado de una línea. Va con `x-espera: no`: contar es de cada toque, y el loader a pantalla completa (ADR-0149) taparía la caja
+ * donde se está escribiendo. La pantalla dice «Guardando…» al lado del número.
+ */
+export async function guardarConteo(args: ArgsGuardarConteo, firma: Firma | null): Promise<{ guardado: ReturnType<typeof leerGuardado>; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_GUARDAR_CONTEO as never, args as never), firma).setHeader("x-espera", "no")) as Respuesta;
+  return { guardado: error ? null : leerGuardado(data), error: error ?? null };
+}
+
+/** Vuelve a leer lo contado (después de cerrar, reabrir o «Hacer ahora»). Lectura: no abre el loader. */
+export async function leerConteos(despachoId: string): Promise<{ conteos: ConteosDelEnvio | null; error: ErrorDeBase }> {
+  const { data, error } = (await createClient().rpc(RPC_CONTEOS_ENVIO as never, { p_despacho_id: despachoId } as never)) as unknown as Respuesta;
+  return { conteos: error ? null : leerConteosDelEnvio(data), error: error ?? null };
+}
+
+/** Cierra lo contado: lo detallado entra al stock, lo demás queda pendiente. */
+export async function cerrarConteo(
+  args: { p_despacho_id: string; p_version: number; p_lineas: LineaParaCerrar[]; p_nota: string | null; p_token: string },
+  firma: Firma | null,
+): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_CERRAR_CONTEO as never, args as never), firma)) as Respuesta;
+  return { resultado: error ? null : leerResultadoRecepcion(data), error: error ?? null };
+}
+
+/** «Hacer ahora»: termina un pendiente o separa lo que quedó sin separar. */
+export async function resolverPendiente(args: ArgsResolverPendiente, firma: Firma | null): Promise<{ resuelto: ReturnType<typeof leerResuelto>; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_RESOLVER_PENDIENTE as never, args as never), firma)) as Respuesta;
+  return { resuelto: error ? null : leerResuelto(data), error: error ?? null };
+}
+
+/** Reabre un envío cerrado para cuadrarlo (decisión 5). */
+export async function reabrirEnvio(
+  args: { p_despacho_id: string; p_version: number; p_motivo: string; p_token: string },
+  firma: Firma | null,
+): Promise<{ abierto: ReturnType<typeof leerEnvioAbierto>; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_REABRIR_ENVIO as never, args as never), firma)) as Respuesta;
+  return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
+}
+
+/** «Llegó sin aviso»: abre en la sede un envío sin guía de ese proveedor. */
+export async function abrirEnvioSinAviso(
+  args: { p_ubicacion_id: string; p_proveedor_id: string; p_numero_guia: string | null; p_nota: string | null; p_token: string },
+  firma: Firma | null,
+): Promise<{ abierto: ReturnType<typeof leerEnvioAbierto>; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_SIN_AVISO as never, args as never), firma)) as Respuesta;
+  return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
+}

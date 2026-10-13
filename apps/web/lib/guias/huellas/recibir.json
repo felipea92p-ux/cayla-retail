@@ -2,11 +2,12 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 134,
+  "total": 141,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
       "Link «recibir.ver-todo»",
+      "Link «recibir.ver-todo» #2",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
       "BotonEnlace «Registrar un comprobante»",
@@ -164,6 +165,16 @@
       "ComboResponsable «(sin nombre)»",
       "Volver «Confirmar y recibir»",
       "Boton «Confirmar y recibir»"
+    ],
+    "components/recepcion-conteo/LlegoSinAviso.tsx": [
+      "CampoSelect «{campos.etiqueta(\"sin-aviso-proveedor\", \"¿De quién es?\")}»",
+      "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
+      "Link «Sí, viene con la»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{campos.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/PendientesDeRecibir.tsx": [
+      "Link «{e.numero ?? \"Envío\"}»"
     ],
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
       "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
