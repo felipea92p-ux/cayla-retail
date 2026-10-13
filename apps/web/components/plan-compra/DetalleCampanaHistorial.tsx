@@ -21,6 +21,8 @@ import {
   type Medida,
 } from "@/lib/plan-compra-historial";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { History } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El detalle de una campaña del Historial (ADR-0372, C3 · Felipe 2026-10-12: «al darle clic a una fila, los detalles»). Solo lee.
 // Sinatra no sabe qué prendas se vendieron: antes del ERP, el detalle es el día a día de la campaña (contra un día normal) y la MISMA
@@ -160,7 +162,7 @@ export function DetalleCampanaHistorial({
           {anuales === undefined ? (
             <p className="mt-2 text-sm text-taupe">Buscando los otros años…</p>
           ) : anuales.length === 0 ? (
-            <p className="mt-2 text-sm text-taupe">No hay otros años con datos de esta tienda.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="mt-1 px-0" icono={<History />}>No hay otros años con datos de esta tienda.</Vacio>
           ) : (
             <ol className="mt-2 space-y-1.5">
               {anuales.map((x, i) => {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowUpRight, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronUp, X, Banknote } from "lucide-react";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -14,6 +14,7 @@ import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
 import type { NotaPendiente } from "@/lib/compras-indicadores";
 import { etiquetaVence, pasosDeComprobante, tramoDe, type PasoDeComprobante } from "@/lib/por-pagar-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -146,7 +147,7 @@ export function PorPagarVistaRapida({
                 <section className="mt-[22px]">
                   <TituloGrupo className="mb-1">Pagos de este comprobante</TituloGrupo>
                   {pagos.length === 0 ? (
-                    <p className="border-t border-tinta/10 py-2.5 text-[13px] text-tinta/55">Sin pagos todavía.</p>
+                    <Vacio tamano="chico" alinear="izquierda" className="border-t border-tinta/10 px-0" icono={<Banknote />}>Sin pagos todavía.</Vacio>
                   ) : (
                     <ul>
                       {pagos.map((p, i) => (

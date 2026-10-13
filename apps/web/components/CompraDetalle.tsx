@@ -40,6 +40,8 @@ import { getSaldosFavor } from "@/lib/saldo-favor";
 import { accionesDeCompraDe, requirePersonaActualV2 } from "@/lib/persona-actual";
 import type { AccionesDeCompra } from "@/lib/modulos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { PackageOpen } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Detalle de una factura (ADR-0035): qué se compró, qué llegó y qué se pagó,
 // todo calculado desde movimientos y pagos. Desde acá se registra un pago
@@ -348,7 +350,11 @@ export function CompraDetalle({
               )}
             </div>
             {recepciones.length === 0 ? (
-              <p className="card-cayla p-5 text-sm text-tinta/65">Todavía no llegó mercadería de este comprobante.</p>
+              <div className="card-cayla">
+                <Vacio tamano="chico" alinear="izquierda" className="px-5 py-4" icono={<PackageOpen />}>
+                  Todavía no llegó mercadería de este comprobante.
+                </Vacio>
+              </div>
             ) : (
               <Tabla>
                 <Encabezado plantilla={PLANTILLA_RECEPCIONES} columnas={[{ titulo: "Fecha" }, { titulo: "Guía · Destino" }, { titulo: "Unidades", alinear: "der" }]} />
