@@ -973,6 +973,11 @@ export const PRUEBAS = [
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
 
+  // El conteo guardado de un envío (ADR-0393): lo contado queda en la base línea por línea; gana el último con aviso de lo que pisó;
+  // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
+  // envío cerrado no se cuenta. ROLLBACK siempre.
+  "pruebas:conteo-de-envio",
+
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.

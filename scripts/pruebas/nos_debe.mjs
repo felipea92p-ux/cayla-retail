@@ -58,6 +58,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013015000_nos_debe.sql",
       // ADR-0393: recibir_despacho reescrita con la reposición adentro; re-pegar la 5a encima no hace nada.
       "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+      // ADR-0393: el conteo guardado; recibir_despacho deja también el conteo de cada línea.
+      "20261013171000_conteo_de_envio.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")

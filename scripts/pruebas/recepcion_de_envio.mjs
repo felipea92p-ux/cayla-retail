@@ -61,6 +61,8 @@ const MIGRACIONES = SIN_MIGRACION
       // ADR-0393: el refactor que deja una sola puerta al stock (fn_recepcion_entrar). Va después: así cada caso prueba el
       // recibir_despacho de hoy, no el de la fase 4.
       "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+      // ADR-0393: el conteo guardado; recibir_despacho deja también el conteo de cada línea.
+      "20261013171000_conteo_de_envio.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
