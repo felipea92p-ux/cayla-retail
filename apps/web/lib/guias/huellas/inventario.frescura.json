@@ -1,6 +1,6 @@
 {
   "guia": "inventario.frescura",
-  "ruta": "/inventario/frescura",
+  "ruta": "/gestion/frescura",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 51,
   "controles": {
