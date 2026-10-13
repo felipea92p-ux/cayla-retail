@@ -321,10 +321,14 @@ export function autoprobar(inv, ejecutar = psql) {
   const antes = evaluar(inv, ejecutar);
   if (antes.estado === "error") return { estado: "error", mensaje: antes.mensaje };
   try {
-    const salida = ejecutar(`begin; ${preludioDe(inv)}\n${inv.corrompe}\n${comoJson(inv.sql)}\nrollback;`);
+    // `:ROW_COUNT` (psql) = cuántas filas tocó la última sentencia de `corrompe` (todas terminan en un UPDATE o un INSERT … SELECT).
+    // Cero = no había con qué corromper en ESTA base (p. ej. una recién sembrada sin piezas de liquidación): la prueba no se pudo
+    // hacer, que no es lo mismo que un detector ciego (2026-10-13: INV-13 salía «CIEGA» en una base nueva sin piezas).
+    const salida = ejecutar(`begin; ${preludioDe(inv)}\n${inv.corrompe}\nselect 'chaos:filas_corrompidas=' || :ROW_COUNT;\n${comoJson(inv.sql)}\nrollback;`);
     const filas = salida.split("\n").filter((l) => l.trim().startsWith("{")).map((l) => JSON.parse(l));
     const nuevas = filas.filter((f) => !antes.filas.some((a) => huellaDe(a) === huellaDe(f)));
     if (nuevas.length) return { estado: "detecta", mensaje: `${nuevas.length} violación(es) nueva(s) tras corromper` };
+    if (/chaos:filas_corrompidas=0\b/.test(salida)) return { estado: "sin-datos", mensaje: "la corrupción no encontró ninguna fila que romper en esta base: no se pudo probar" };
     return { estado: "ciega", mensaje: "se corrompió el dato y el detector NO gritó" };
   } catch (e) {
     const msg = String(e.stderr || e.message || e);
