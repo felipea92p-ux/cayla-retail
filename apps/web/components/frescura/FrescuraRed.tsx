@@ -4,7 +4,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, porcentajes, type FamiliaPiso } from "@/lib/frescura-piso";
+import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, lineaDelPiso, segmentosDelPiso } from "@/lib/frescura-piso";
 import { trozosRicos } from "@/lib/frescura-pantalla";
 import { cuadricula, enlaceATienda, familiasDeCayla, razonDeLaTienda, resumenCayla } from "@/lib/frescura-red";
 import { Chip } from "@/components/ui/Chip";
@@ -27,17 +27,6 @@ const PLANTILLAS: Record<number, string> = {
   3: "sm:grid-cols-[minmax(160px,1.6fr)_repeat(3,minmax(0,1fr))]",
   4: "sm:grid-cols-[minmax(160px,1.6fr)_repeat(4,minmax(0,1fr))]",
 };
-
-function segmentos(f: FamiliaPiso) {
-  return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
-}
-
-function linea(f: FamiliaPiso): string {
-  const pct = porcentajes(f.unidades);
-  return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
-    .map((t) => `${pct[t]} % ${NOMBRE_TRAMO_PISO[t].toLowerCase()}`)
-    .join(" · ");
-}
 
 function Negritas({ texto }: { texto: string }) {
   return (
@@ -81,9 +70,9 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         </TituloSeccion>
         {principal && (
           <>
-            <BarraApilada segmentos={segmentos(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
+            <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
             <p className="mt-2 text-[13px] tabular-nums text-taupe">
-              {linea(principal)}
+              {lineaDelPiso(principal)}
               {respuesta.antes && (
                 <>
                   {" "}
@@ -100,8 +89,8 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 <span className="text-[13.5px] font-semibold leading-tight">
                   {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
                 </span>
-                <BarraApilada segmentos={segmentos(f)} alto={8} unidad="unidades colgadas" />
-                <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{linea(f)}</span>
+                <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />
+                <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
               </li>
             ))}
           </ul>
@@ -121,9 +110,9 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 <span className="text-[13px] text-taupe sm:col-span-2">{t.fallo}</span>
               ) : t.principal && t.principal.total > 0 ? (
                 <>
-                  <BarraApilada segmentos={segmentos(t.principal)} alto={8} unidad="unidades colgadas" />
+                  <BarraApilada segmentos={segmentosDelPiso(t.principal)} alto={8} unidad="unidades colgadas" />
                   <span className="text-[12.5px] leading-snug tabular-nums text-taupe">
-                    {linea(t.principal)}
+                    {lineaDelPiso(t.principal)}
                     {razonDeLaTienda(t.puerta) && <span className="block text-ambar-profundo">{razonDeLaTienda(t.puerta)}</span>}
                   </span>
                 </>
