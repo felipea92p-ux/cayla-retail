@@ -55,7 +55,7 @@ export function BotonReasignar({
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.reasignar" className="btn-cayla btn-enlace gap-1.5 text-xs">
+      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.reasignar" className="btn-cayla btn-sutil btn-chico gap-1.5">
         <ArrowLeftRight aria-hidden className="h-3.5 w-3.5" />
         {etiqueta}
       </button>

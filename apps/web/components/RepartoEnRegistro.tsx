@@ -201,7 +201,7 @@ export function RepartoDeLinea({
             <button
               type="button"
               onClick={() => onReparto(repartirEnPartesIguales(cantidad, tiendas.map((t) => t.id)))}
-              className="btn-cayla btn-enlace text-xs"
+              className="btn-cayla btn-sutil btn-chico"
             >
               Partes iguales
             </button>

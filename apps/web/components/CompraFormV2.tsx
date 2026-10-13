@@ -712,7 +712,7 @@ export function CompraFormV2({
               <p className="text-xs text-tinta/55">Costo unitario tal como figura en el documento: ya es el costo.</p>
             )}
             {repartir && tiendasReparto.length > 1 && (
-              <button type="button" onClick={partesIgualesEnTodas} className="btn-cayla btn-enlace ml-auto text-xs">
+              <button type="button" onClick={partesIgualesEnTodas} className="btn-cayla btn-sutil btn-chico ml-auto">
                 Repartir todas en partes iguales
               </button>
             )}

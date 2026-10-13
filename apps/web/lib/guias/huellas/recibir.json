@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 121,
+  "total": 119,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -60,7 +60,6 @@
       "Link «Sí, viene con la»",
       "Link «Ver las»",
       "button «No, recibir sin factura»",
-      "button «{p.referencia}»",
       "button «Deshacer»",
       "Link «Crearla en Nuevo producto»",
       "button «Una menos»",
@@ -92,7 +91,7 @@
       "button «{ETIQUETA_BILLETERA[b]}»",
       "button «Usar el teléfono de contacto (»",
       "CampoTexto «Titular de la cuenta»",
-      "button «Desactivar proveedor»",
+      "Boton «Desactivar proveedor»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
@@ -113,7 +112,6 @@
       "button «{c.proveedorNombre}»",
       "button «{`Quitar ${c.documento}»",
       "Pestanas «(sin nombre)»",
-      "button «{l.referencia}»",
       "button «Deshacer»",
       "button «Agregar»",
       "button «→() => setAbiertos((a) => ({ ...a, [c.id]: !abierto»",

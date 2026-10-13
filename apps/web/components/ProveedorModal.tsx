@@ -602,16 +602,18 @@ export function ProveedorModal({
 
                 {onDesactivar && (
                   <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-                    ¿Ya no se le compra?{" "}
-                    <button type="button" onClick={onDesactivar} disabled={fase !== "reposo"} className="btn-enlace">
-                      Desactivar proveedor
-                    </button>
-                    . Deja de aparecer al registrar comprobantes; su historial se conserva.
+                    ¿Ya no se le compra? Desactívalo (abajo): deja de aparecer al registrar comprobantes y su historial se conserva.
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
+              <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
+                {/* Lo peligroso, rojo desde el principio y en el pie, como en Categorías, Familias y Colores (ADR-0358, ronda 9). */}
+                {onDesactivar && (
+                  <Boton type="button" peso="peligro" onClick={onDesactivar} disabled={fase !== "reposo"} className="mr-auto">
+                    Desactivar proveedor
+                  </Boton>
+                )}
                 <Boton type="button" peso="fantasma" onClick={pedirCierre} disabled={fase !== "reposo"}>
                   Cancelar
                 </Boton>
