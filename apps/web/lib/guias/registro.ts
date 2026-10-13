@@ -20,7 +20,6 @@ import {
   GUIA_SERIES,
 } from "./pantallas/ventas-posventa";
 import {
-  GUIA_ANALISIS,
   GUIA_BAJAR_AL_PISO,
   GUIA_CONTEO,
   GUIA_CONTEO_CONFIRMAR,
@@ -28,11 +27,9 @@ import {
   GUIA_CONTEO_REVISAR,
   GUIA_CUADRAR_PISO,
   GUIA_EXISTENCIAS,
-  GUIA_FRESCURA,
   GUIA_MOVIMIENTOS,
   GUIA_NUEVO_TRASLADO,
   GUIA_PEDIDOS_NO_ATENDIDOS,
-  GUIA_PLAN_DEL_PISO,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
   GUIA_TRASLADO,
@@ -104,8 +101,8 @@ import {
   GUIA_CONFIGURACION,
   GUIA_GLOBAL,
   GUIA_INICIO,
-  GUIA_RENDIMIENTO,
 } from "./pantallas/general";
+import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
 import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import type { Guia } from "./tipos";
 
