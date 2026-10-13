@@ -228,17 +228,27 @@ export function ElegirOpcion({
   onValor,
 }: {
   etiqueta: string;
-  opciones: readonly { valor: string; texto: string }[];
+  /** `guia`: el ancla de la guía interactiva de esa opción (la reposición, fase 5a). Va en una caja alrededor del chip, que es de todos. */
+  opciones: readonly { valor: string; texto: string; guia?: string }[];
   valor: string | null;
   onValor: (valor: string) => void;
 }) {
   return (
     <div role="group" aria-label={etiqueta} className="flex flex-wrap gap-1.5">
-      {opciones.map((o) => (
-        <ChipOpcion key={o.valor} elegido={valor === o.valor} onClick={() => onValor(o.valor)}>
-          {o.texto}
-        </ChipOpcion>
-      ))}
+      {opciones.map((o) => {
+        const chip = (
+          <ChipOpcion key={o.valor} elegido={valor === o.valor} onClick={() => onValor(o.valor)}>
+            {o.texto}
+          </ChipOpcion>
+        );
+        return o.guia ? (
+          <span key={o.valor} data-guia={o.guia} className="inline-flex">
+            {chip}
+          </span>
+        ) : (
+          chip
+        );
+      })}
     </div>
   );
 }

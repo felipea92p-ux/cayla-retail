@@ -5,15 +5,16 @@ import { X } from "lucide-react";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip } from "@/components/ui/Chip";
+import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
+import { VALOR_REPOSICION } from "@/lib/nos-debe-reglas";
 import {
   CAUSAS_FALTANTE,
-  CAUSAS_SOBRANTE,
   conPrenda,
   contadoDeLinea,
   costoComoTexto,
@@ -38,6 +39,10 @@ import { BloquePrenda, ElegirOpcion } from "./BloquePrenda";
 // costo por unidad (quien recibe lo ve y lo corrige, decisión 18), la prenda y lo que llegó de ella; y debajo, solo si hace falta, qué pasó
 // con lo que faltó (decisión 14) o qué pasa con lo que vino de más (decisión 15). Y una por «algo que no estaba en la guía» (decisión 13), que
 // además dice su categoría, su marca, su costo y, si el envío trae dos o más proveedores, de cuál es. Todo vive en el borrador de la pantalla.
+//
+// Fase 5a: lo de más (o lo que no estaba en la guía) puede ser «la reposición de lo que faltó» en una recepción anterior. Esa opción sale
+// SOLO si el proveedor debe algo de esa categoría y marca (`opcionesSobrante`, que la pantalla calcula y pasa en `opcionesDeMas`); si se
+// elige y pasa de lo que debe, la pregunta lo dice (`problemaDeMas`) y la base lo rechazaría igual.
 
 const TITULO = "mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta";
 
@@ -74,6 +79,10 @@ function CampoCosto({ id, guia, etiqueta, valor, onValor, original, obligatorio 
   );
 }
 
+/** Una opción de «¿qué pasó?» / «¿qué pasa con lo de más?». La de la reposición trae `aviso` (lo que se debe, antes de elegir) y `guia` (su
+ *  ancla para la guía interactiva). */
+type OpcionDiferencia = { valor: string; texto: string; ayuda: string; aviso?: string; guia?: string };
+
 /** «Faltan 2: ¿qué pasó?» o «Vinieron 2 de más: ¿qué pasa con ellas?», con sus opciones y la frase de la que se eligió. */
 function PreguntaDiferencia({
   id,
@@ -83,21 +92,37 @@ function PreguntaDiferencia({
   opciones,
   valor,
   onValor,
+  problema = null,
 }: {
   id: string;
   guia: GuiaCampos;
   etiqueta: (id: string, texto: ReactNode) => ReactNode;
   pregunta: string;
-  opciones: readonly { valor: string; texto: string; ayuda: string }[];
+  opciones: readonly OpcionDiferencia[];
   valor: string | null;
   onValor: (v: string) => void;
+  /** Lo que la base rechazaría de la opción elegida (una reposición que pasa de lo que el proveedor debe). */
+  problema?: string | null;
 }) {
+  // Una opción que ya no se ofrece (la reposición, si se cambió la categoría o la marca) no se ve elegida.
+  const elegida = opciones.find((o) => o.valor === valor) ?? null;
+  const reposicion = opciones.find((o) => o.valor === VALOR_REPOSICION) ?? null;
+  // La reposición lleva su ancla para la guía interactiva (ADR-0389).
+  const conAncla = opciones.map((o) => (o.valor === VALOR_REPOSICION ? { ...o, guia: "recepcion.reposicion" } : o));
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="anim-revelar rounded-xl border border-sand bg-hueso/50 p-3">
       <div data-guia="recepcion.diferencia">
         <p className={TITULO}>{etiqueta(id, pregunta)}</p>
-        <ElegirOpcion etiqueta={pregunta} opciones={opciones} valor={valor} onValor={onValor} />
-        <p className="mt-1.5 text-xs text-taupe">{valor ? opciones.find((o) => o.valor === valor)?.ayuda : "Elige una: queda anotado para Compras."}</p>
+        <ElegirOpcion etiqueta={pregunta} opciones={conAncla} valor={elegida?.valor ?? null} onValor={onValor} />
+        {problema ? (
+          <Aviso tono="atencion" chico className="mt-2">
+            {problema}
+          </Aviso>
+        ) : (
+          <p className="mt-1.5 text-xs text-taupe">
+            {elegida ? elegida.ayuda : (reposicion?.aviso ?? "Elige una: queda anotado para Compras.")}
+          </p>
+        )}
       </div>
     </CampoGuiado>
   );
@@ -108,6 +133,8 @@ export function TarjetaLinea({
   indice,
   borrador: b,
   conProveedor,
+  opcionesDeMas,
+  problemaDeMas,
   onCambio,
   guia,
   etiqueta,
@@ -119,6 +146,10 @@ export function TarjetaLinea({
   borrador: BorradorLinea;
   /** El envío trae dos o más proveedores: cada línea dice el suyo. */
   conProveedor: boolean;
+  /** Qué puede pasar con lo de más: las de siempre y, si el proveedor debe esto, la reposición (fase 5a). */
+  opcionesDeMas: readonly OpcionDiferencia[];
+  /** Lo que la base rechazaría de la reposición elegida. */
+  problemaDeMas: string | null;
   onCambio: (cambios: Partial<BorradorLinea>) => void;
 }) {
   const s = sumasDe(b, b.prenda);
@@ -200,8 +231,9 @@ export function TarjetaLinea({
           guia={guia}
           etiqueta={etiqueta}
           pregunta={preguntaSobrante(dif.cantidad)}
-          opciones={CAUSAS_SOBRANTE}
+          opciones={opcionesDeMas}
           valor={b.sobranteCausa}
+          problema={problemaDeMas}
           onValor={(v) => onCambio({ sobranteCausa: v as CausaSobrante })}
         />
       ) : b.prenda && s.contado > 0 ? (
@@ -218,6 +250,9 @@ export function TarjetaExtra({
   categorias,
   marcas,
   vinculos,
+  opcionesDeMas,
+  problemaDeMas,
+  costoReposicion,
   onCambio,
   onQuitar,
   guia,
@@ -231,10 +266,18 @@ export function TarjetaExtra({
   categorias: readonly CategoriaParaRecibir[];
   marcas: readonly { id: string; nombre: string }[];
   vinculos: readonly { marcaId: string; proveedorId: string }[];
+  /** Qué puede pasar con esto: las de siempre y, si el proveedor debe esa categoría y marca, la reposición (fase 5a). */
+  opcionesDeMas: readonly OpcionDiferencia[];
+  /** Lo que la base rechazaría de la reposición elegida. */
+  problemaDeMas: string | null;
+  /** El costo de la deuda que esto repone: si se marca como reposición sin costo escrito, se pone ese. */
+  costoReposicion: number | null;
   onCambio: (cambios: Partial<BorradorExtra>) => void;
   onQuitar: () => void;
 }) {
   const nombre = nombreExtraGuia(indice);
+  // Cambiar de proveedor, categoría o marca cambia lo que se debe: una reposición elegida antes ya no es de esto, se vuelve a elegir.
+  const sinReposicion: Partial<BorradorExtra> = e.sobranteCausa === VALOR_REPOSICION ? { sobranteCausa: null } : {};
   const categoria = categorias.find((c) => c.id === e.categoriaId) ?? null;
   const marca = marcas.find((m) => m.id === e.marcaId) ?? null;
   // Con dos o más proveedores, la prenda nueva se registra con el suyo: primero se dice de cuál es.
@@ -257,7 +300,7 @@ export function TarjetaExtra({
         {proveedores.length >= 2 && (
           <CampoGuiado id={idGuia.extra(e.clave, "proveedor")} guia={guia}>
             <p className={TITULO}>{etiqueta(idGuia.extra(e.clave, "proveedor"), "De qué proveedor")}</p>
-            <CampoSelect caja etiqueta="Proveedor" marcador="Elige el proveedor" valor={e.proveedorId} onValor={(proveedorId) => onCambio({ proveedorId })} opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))} />
+            <CampoSelect caja etiqueta="Proveedor" marcador="Elige el proveedor" valor={e.proveedorId} onValor={(proveedorId) => onCambio({ ...sinReposicion, proveedorId })} opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))} />
           </CampoGuiado>
         )}
         <CampoGuiado id={idGuia.extra(e.clave, "categoria")} guia={guia}>
@@ -267,7 +310,7 @@ export function TarjetaExtra({
             etiquetaAccesible={`Categoría de ${nombre}`}
             marcador="Elige la categoría"
             valor={e.categoriaId}
-            onValor={(categoriaId) => onCambio({ ...conPrenda(e, null), categoriaId })}
+            onValor={(categoriaId) => onCambio({ ...conPrenda(e, null), ...sinReposicion, categoriaId })}
             opciones={categorias.map((c) => ({ valor: c.id, texto: c.nombre }))}
           />
         </CampoGuiado>
@@ -278,7 +321,7 @@ export function TarjetaExtra({
             etiquetaAccesible={`Marca de ${nombre}`}
             marcador="Elige la marca"
             valor={e.marcaId}
-            onValor={(marcaId) => onCambio({ ...conPrenda(e, null), marcaId })}
+            onValor={(marcaId) => onCambio({ ...conPrenda(e, null), ...sinReposicion, marcaId })}
             // Primero las marcas que trae el proveedor de esto (el elegido, o el único del envío), con quién trae cada una.
             opciones={opcionesDeMarca(marcas, proveedores, vinculos, e.proveedorId || (proveedores.length === 1 ? proveedores[0]!.id : ""))}
           />
@@ -312,9 +355,16 @@ export function TarjetaExtra({
         guia={guia}
         etiqueta={etiqueta}
         pregunta="¿Qué pasa con esto?"
-        opciones={CAUSAS_SOBRANTE}
+        opciones={opcionesDeMas}
         valor={e.sobranteCausa}
-        onValor={(v) => onCambio({ sobranteCausa: v as CausaSobrante })}
+        problema={problemaDeMas}
+        // La reposición entra al costo de la línea que faltó: si todavía no se escribió el costo, se pone el de la deuda (y se ve arriba).
+        onValor={(v) =>
+          onCambio({
+            sobranteCausa: v as CausaSobrante,
+            ...(v === VALOR_REPOSICION && e.costo.trim() === "" && costoReposicion != null ? { costo: costoComoTexto(costoReposicion) } : {}),
+          })
+        }
       />
     </article>
   );

@@ -1599,6 +1599,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Si contaste menos, eliges qué pasó: no vino (el proveedor lo debe), se perdió en el camino o llegó a otra sede. Si contaste más: regalo, se cobra aparte o se arregla en la próxima compra. Queda anotado para Compras.",
     },
     {
+      // «Nos debe» (ADR-0362, fase 5a): la causa sale solo si el proveedor debe algo de esa categoría y marca, en una línea con de más o en algo
+      // que no estaba en la guía. El piloto no la elige: se explica si está.
+      id: "reposicion",
+      ancla: "recepcion.reposicion",
+      opcional: true,
+      titulo: "Es la reposición de lo que faltó",
+      texto: "Si lo de más es lo que este proveedor debía de una recepción anterior (de esa categoría y marca), elige «Es la reposición de lo que faltó»: la deuda se cierra sola y las prendas entran al stock como todo lo demás.",
+    },
+    {
       // Abre la hoja de la primera línea que todavía no tiene prenda (si todas la tienen, no hay botón y el paso se salta). El paso que
       // sigue la cierra con Escape, y al volver atrás el motor la cierra solo. Va DESPUÉS de los pasos opcionales del conteo: el «Paso 3 de
       // N» cuenta todo paso opcional que viene detrás de un toque (lo que el toque podría mostrar), y antes de él solo cuenta los que están.

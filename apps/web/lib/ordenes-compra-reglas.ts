@@ -6,6 +6,7 @@
 
 import type { TonoChip } from "@/components/ui/Chip";
 import type { MarcaOpcion, ProveedorOpcion, Vinculo } from "./marcas";
+import type { ResumenNosDebe } from "./nos-debe-reglas";
 
 export const RPC_LISTA_ORDENES = "fn_ordenes_compra";
 /** Vista previa del número de la próxima orden (no lo gasta). Empieza con `fn_`: lectura, no abre el loader (`espera-reglas.ts`). */
@@ -69,6 +70,9 @@ export type DatosNuevaOrden = {
   /** El número que le tocaría; null si la vista previa no respondió (se numera igual al guardar). */
   siguiente: number | null;
   falla: string | null;
+  /** Lo que cada proveedor debe por reponer (ADR-0362, fase 5a: `fn_nos_debe_resumen`), para avisarlo al elegirlo. `null` o ausente = no se
+   *  pudo leer: la orden se llena igual, sin el aviso. */
+  nosDebe?: Readonly<Record<string, ResumenNosDebe>> | null;
 };
 
 export type EstadoOrdenCompra = "generada" | "anulada";
