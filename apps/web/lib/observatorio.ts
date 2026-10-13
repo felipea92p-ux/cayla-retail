@@ -262,9 +262,9 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       n,
       icono: "alerta",
       titulo: "Cuentas de proveedor que cambiaron",
-      corto: "cuentas",
+      corto: "cuentas bancarias",
       porTienda: null,
-      edad: c?.ultimoEn ? diasDesde(c.ultimoEn, ahora) : null,
+      edad: c?.primeroEn ? diasDesde(c.primeroEn, ahora) : null, // el aro mide lo que más lleva esperando
       href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
       detalle: null,
     });

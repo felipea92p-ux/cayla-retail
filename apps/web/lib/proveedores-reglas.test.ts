@@ -444,16 +444,22 @@ describe("cambioBancarioLegible (historial de cuentas, Felipe 2026-10-13)", () =
       dato: "CCI",
       antes: "002-193-••••••••••••-12",
       despues: "002-193-••••••••••••-99",
+      cambioOculto: false,
     });
   });
   it("una cuenta nueva (antes no había) dice «vacío»", () => {
-    expect(cambioBancarioLegible("cuenta_bancaria", null, "193-1234567-0-45")).toEqual({ dato: "Cuenta", antes: "vacío", despues: "193-•••••••-•-45" });
+    expect(cambioBancarioLegible("cuenta_bancaria", null, "193-1234567-0-45")).toEqual({ dato: "Cuenta", antes: "vacío", despues: "193-•••••••-•-45", cambioOculto: false });
   });
   it("el Yape se enmascara como celular", () => {
     expect(cambioBancarioLegible("celular_billetera", "987654321", "912345678").despues).toBe("9•• ••• 678");
   });
   it("el banco y el titular no son secretos: se muestran tal cual", () => {
-    expect(cambioBancarioLegible("titular_cuenta", "Ana Pérez", "Luis Díaz")).toEqual({ dato: "Titular", antes: "Ana Pérez", despues: "Luis Díaz" });
-    expect(cambioBancarioLegible("banco", "BCP", "")).toEqual({ dato: "Banco", antes: "BCP", despues: "vacío" });
+    expect(cambioBancarioLegible("titular_cuenta", "Ana Pérez", "Luis Díaz")).toEqual({ dato: "Titular", antes: "Ana Pérez", despues: "Luis Díaz", cambioOculto: false });
+    expect(cambioBancarioLegible("banco", "BCP", "")).toEqual({ dato: "Banco", antes: "BCP", despues: "vacío", cambioOculto: false });
+  });
+  it("un CCI que cambió solo en los dígitos tapados no se lee «igual → igual»: lo marca", () => {
+    const c = cambioBancarioLegible("cci", "00219300123456789012", "00219300999999999912");
+    expect(c.antes).toBe(c.despues);
+    expect(c.cambioOculto).toBe(true);
   });
 });

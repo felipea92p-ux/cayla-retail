@@ -223,6 +223,17 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   ]);
   const ficha = exigirOpcional(general, "la ficha del proveedor");
   if (!ficha) return null;
+  // La web se publica ANTES de pegar la migración (20261013161000): mientras la función no exista en esa base (PGRST202), la cuenta
+  // se lee de la tabla como siempre. Nunca `SIN_DATOS_BANCARIOS` por un error: la edición mandaría la cuenta en blanco al guardar
+  // y `actualizar_proveedor` borraría la real.
+  if (bancarios.error?.code === "PGRST202") {
+    const comoAntes = await supabase
+      .from("proveedores")
+      .select("banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta")
+      .eq("id", id)
+      .maybeSingle();
+    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS) };
+  }
   return { ...ficha, ...(exigir(bancarios, "los datos para pagar del proveedor")[0] ?? SIN_DATOS_BANCARIOS) };
 }
 
@@ -230,17 +241,27 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
  * Lo que necesita el aviso del Inicio del líder (Felipe 2026-10-13): cuántos proveedores cambiaron su cuenta bancaria en los
  * últimos 7 días y cuál fue el último. `null` si no se pudo leer (el aviso dice «no se pudo leer», nunca «al día»).
  */
-export async function getCuentasBancariasCambiadas(): Promise<{ cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn: string | null } | null> {
+export async function getCuentasBancariasCambiadas(): Promise<{
+  cambios: number;
+  proveedores: number;
+  ultimoProveedorId: string | null;
+  ultimoProveedor: string | null;
+  ultimoEn: string | null;
+  primeroEn: string | null;
+} | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_cuentas_bancarias_cambiadas", { p_dias: 7 });
+  // Sin la migración todavía (PGRST202) no hay historial: nada cambió que se haya podido anotar.
+  if (error?.code === "PGRST202") return { cambios: 0, proveedores: 0, ultimoProveedorId: null, ultimoProveedor: null, ultimoEn: null, primeroEn: null };
   if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
-  const d = data as { cambios?: number; proveedores?: number; ultimo_proveedor_id?: string | null; ultimo_proveedor?: string | null; ultimo_en?: string | null };
+  const d = data as { cambios?: number; proveedores?: number; ultimo_proveedor_id?: string | null; ultimo_proveedor?: string | null; ultimo_en?: string | null; primero_en?: string | null };
   return {
     cambios: Number(d.cambios ?? 0),
     proveedores: Number(d.proveedores ?? 0),
     ultimoProveedorId: d.ultimo_proveedor_id ?? null,
     ultimoProveedor: d.ultimo_proveedor ?? null,
     ultimoEn: d.ultimo_en ?? null,
+    primeroEn: d.primero_en ?? null,
   };
 }
 

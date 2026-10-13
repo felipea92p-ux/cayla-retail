@@ -1,6 +1,6 @@
 -- Datos bancarios de proveedores: solo quien paga los ve, y cada cambio deja rastro (2026-10-13, auditoría de 20 puntos,
--- punto 18; decisiones de Felipe del mismo día). PARTE 1 de 2: sin políticas. La parte 2 (`20261013162000`) es la política de
--- los códigos de descuento, sola, como pide la regla de deadlocks de CLAUDE.md.
+-- punto 18; decisiones de Felipe del mismo día). Una sola parte, sin políticas. (La política de los códigos de descuento que se
+-- pensó como parte 2 se descartó: `registrar_venta` ya no usa códigos desde 20261002100000, «descuento sin código».)
 --
 -- EL PROBLEMA. El CCI, la cuenta, el Yape o Plin y el titular de cada proveedor los podía leer CUALQUIER cuenta con sesión del
 -- proyecto, también las de Dynamic (planilla, asistencia): la tabla tenía `select` para `authenticated` y `fn_proveedores()`,
@@ -9,7 +9,8 @@
 --
 -- LO QUE DECIDIÓ FELIPE (2026-10-13):
 --   · Los datos bancarios los ve solo quien ve Proveedores, Por pagar (Compras) o Cuentas y dinero (Finanzas):
---     `fn_puede_ver_datos_bancarios()`, la única regla; el líder los ve por `fn_ve_modulo` como todo módulo.
+--     `fn_puede_ver_datos_bancarios()`, la única regla; también quien puede editar un proveedor (la llave de su ficha), para que
+--     guardar una edición nunca borre una cuenta que no se veía.
 --   · Cada cambio de cuenta queda en un historial y al líder le aparece un aviso en el Inicio (no se bloquea el pago).
 --
 -- LA SALIDA.
@@ -25,7 +26,8 @@
 --   5. `proveedores_cambios_bancarios`: una fila por campo que cambió (antes, después, quién, cuándo), escrita por un disparador
 --      en la misma transacción que el cambio, venga de la función que venga. Solo se lee por funciones: RLS encendido sin
 --      políticas y sin permisos para las cuentas.
---   6. `fn_cuentas_bancarias_cambiadas(dias)`: lo que el aviso del Inicio necesita, solo para el líder.
+--   6. `fn_cuentas_bancarias_cambiadas(dias)`: lo que el aviso del Inicio necesita, solo para el líder; cuenta solo una cuenta que
+--      ya existía y cambió, hecha por otra persona (la primera carga y los cambios propios no encienden el aviso).
 --      `fn_proveedor_cambios_bancarios(id)`: el detalle en la ficha, para quien puede ver datos bancarios.
 --
 -- DECIDÍ: permisos por columna sobre la tabla de siempre.
@@ -35,9 +37,10 @@
 -- SE ROMPE SI: alguien vuelve a dar `grant select on retail.proveedores to authenticated` (tabla entera) en una migración de
 -- permisos: las seis columnas volverían a estar a la vista. Lo vigila `pnpm pruebas:datos-sensibles-proveedores`.
 --
--- PRODUCCIÓN. Pegar SOLA y ANTES de publicar la web (la web nueva ya no lee las columnas bancarias de la tabla). Re-pegable. El
--- `revoke`/`grant` y el disparador toman un candado breve sobre `proveedores` (87 filas, se usa poco): `lock_timeout = 3s`.
--- La última línea dice «QUEDÓ BIEN».
+-- PRODUCCIÓN. PRIMERO se publica la web y DESPUÉS se pega esto, solo. La web nueva tolera que las funciones todavía no existan
+-- (lee la cuenta como antes); la web vieja, en cambio, se caería en la ficha del proveedor si el permiso por columna llega antes
+-- que ella. Re-pegable. El `revoke`/`grant` y el disparador toman un candado breve sobre `proveedores` (87 filas, se usa poco):
+-- `lock_timeout = 3s`. La última línea dice «QUEDÓ BIEN».
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -51,7 +54,10 @@ stable
 security definer
 set search_path to 'retail', 'public', 'extensions'
 as $$
-  select retail.fn_ve_modulo('proveedores') or retail.fn_ve_modulo('por_pagar') or retail.fn_ve_modulo('cuentas_dinero');
+  -- Quien puede EDITAR un proveedor también ve su cuenta (`fn_puede_gestionar_proveedores`, la llave de la ficha): si no, al
+  -- guardar cualquier cambio la edición mandaría banco y cuenta en blanco y `actualizar_proveedor` borraría los datos reales.
+  select retail.fn_puede_gestionar_proveedores()
+      or retail.fn_ve_modulo('proveedores') or retail.fn_ve_modulo('por_pagar') or retail.fn_ve_modulo('cuentas_dinero');
 $$;
 revoke all on function retail.fn_puede_ver_datos_bancarios() from public, anon;
 grant execute on function retail.fn_puede_ver_datos_bancarios() to authenticated;
@@ -74,7 +80,7 @@ begin
   end if;
   if (select count(*) from regexp_matches(v_def, 'p\.banco AS proveedor_banco', 'g')) <> 1
      or (select count(*) from regexp_matches(v_def, 'p\.cuenta_bancaria AS proveedor_cuenta_bancaria', 'g')) <> 1 then
-    raise exception 'compras_resumen cambió desde que se escribió esta migración (md5 de la vista 81c27bae… el 2026-10-13): regenera este reemplazo.';
+    raise exception 'compras_resumen cambió desde que se escribió esta migración (no encuentra banco y cuenta del proveedor una vez cada uno): regenera este reemplazo.';
   end if;
   v_def := replace(v_def, 'p.banco AS proveedor_banco', 'NULL::text AS proveedor_banco');
   v_def := replace(v_def, 'p.cuenta_bancaria AS proveedor_cuenta_bancaria', 'NULL::text AS proveedor_cuenta_bancaria');
@@ -129,9 +135,10 @@ select pg_temp.reemplazar(
   $viejo$  select p.id, p.nombre, p.ruc, p.contacto, p.telefono, p.banco, p.cuenta_bancaria, p.activo,
 $viejo$,
   $nuevo$  select p.id, p.nombre, p.ruc, p.contacto, p.telefono,
-         -- Datos bancarios solo para quien paga (Felipe 2026-10-13, auditoría punto 18).
-         case when retail.fn_puede_ver_datos_bancarios() then p.banco end,
-         case when retail.fn_puede_ver_datos_bancarios() then p.cuenta_bancaria end,
+         -- Datos bancarios solo para quien paga (Felipe 2026-10-13, auditoría punto 18). `(select …)`: Postgres calcula el permiso
+         -- UNA vez por consulta, no seis por fila (medido en local: 1,3 ms contra 462 ms con 87 proveedores).
+         case when (select retail.fn_puede_ver_datos_bancarios()) then p.banco end,
+         case when (select retail.fn_puede_ver_datos_bancarios()) then p.cuenta_bancaria end,
          p.activo,
 $nuevo$,
   1
@@ -142,10 +149,10 @@ select pg_temp.reemplazar(
   $viejo$         p.cci, p.celular_billetera, p.billeteras, p.titular_cuenta
   from retail.proveedores p
 $viejo$,
-  $nuevo$         case when retail.fn_puede_ver_datos_bancarios() then p.cci end,
-         case when retail.fn_puede_ver_datos_bancarios() then p.celular_billetera end,
-         case when retail.fn_puede_ver_datos_bancarios() then p.billeteras end,
-         case when retail.fn_puede_ver_datos_bancarios() then p.titular_cuenta end
+  $nuevo$         case when (select retail.fn_puede_ver_datos_bancarios()) then p.cci end,
+         case when (select retail.fn_puede_ver_datos_bancarios()) then p.celular_billetera end,
+         case when (select retail.fn_puede_ver_datos_bancarios()) then p.billeteras end,
+         case when (select retail.fn_puede_ver_datos_bancarios()) then p.titular_cuenta end
   from retail.proveedores p
 $nuevo$,
   1
@@ -233,18 +240,23 @@ stable
 security definer
 set search_path to 'retail', 'public', 'extensions'
 as $$
-  -- El aviso es para el líder (Felipe 2026-10-13): a cualquier otra cuenta le responde null.
+  -- El aviso es para el líder (Felipe 2026-10-13): a cualquier otra cuenta le responde null. Cuenta solo lo que merece una
+  -- llamada al proveedor: una cuenta que YA EXISTÍA y cambió (`antes` no vacío), y no la que cambió la propia persona que mira.
+  -- La primera carga de datos de un proveedor queda en el historial de su ficha, pero no enciende el aviso: al cargar los 87
+  -- proveedores, un aviso fijo de una semana se aprendería a ignorar.
   select case when not retail.fn_es_lider() then null else (
     select jsonb_build_object(
              'cambios', count(*),
              'proveedores', count(distinct x.proveedor_id),
              'ultimo_proveedor_id', (array_agg(x.proveedor_id order by x.cambiado_en desc))[1],
              'ultimo_proveedor', (array_agg(p.nombre order by x.cambiado_en desc))[1],
-             'ultimo_en', max(x.cambiado_en))
+             'ultimo_en', max(x.cambiado_en),
+             'primero_en', min(x.cambiado_en))
       from retail.proveedores_cambios_bancarios x
       join retail.proveedores p on p.id = x.proveedor_id
      where x.cambiado_en > now() - make_interval(days => greatest(coalesce(p_dias, 7), 1))
-       -- Darle la cuenta por primera vez a un proveedor recién creado también avisa: es «una cuenta nueva».
+       and nullif(x.antes, '') is not null
+       and x.cambiado_por is distinct from retail.fn_actor_persona_id(false)
   ) end;
 $$;
 revoke all on function retail.fn_cuentas_bancarias_cambiadas(integer) from public, anon;
@@ -270,10 +282,10 @@ revoke all on function retail.fn_proveedor_cambios_bancarios(uuid) from public, 
 grant execute on function retail.fn_proveedor_cambios_bancarios(uuid) to authenticated;
 
 -- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si no ves «QUEDÓ BIEN», es seguro volver a pegarlo completo.
-select '20261013161000 · datos bancarios de proveedores (parte 1 de 2)' as parte,
+select '20261013161000 · datos bancarios de proveedores' as parte,
        case when not has_column_privilege('authenticated', 'retail.proveedores', 'cci', 'select')
              and has_column_privilege('authenticated', 'retail.proveedores', 'nombre', 'select')
-             and pg_get_functiondef('retail.fn_proveedores()'::regprocedure) like '%fn_puede_ver_datos_bancarios() then p.titular_cuenta%'
+             and pg_get_functiondef('retail.fn_proveedores()'::regprocedure) like '%fn_puede_ver_datos_bancarios()) then p.titular_cuenta%'
              and exists (select 1 from pg_trigger where tgrelid = 'retail.proveedores'::regclass and tgname = 'proveedores_anotar_cambio_bancario')
              and pg_get_viewdef('retail.compras_resumen'::regclass) like '%NULL::text AS proveedor_cuenta_bancaria%'
             then 'QUEDÓ BIEN' else 'REVISAR: falta algún paso' end as resultado;

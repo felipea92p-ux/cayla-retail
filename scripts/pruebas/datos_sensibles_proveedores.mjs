@@ -3,7 +3,6 @@
  * Prueba del punto 18 de la auditoría del 2026-10-13 (decisiones de Felipe del mismo día):
  *   · `20261013161000_datos_bancarios_de_proveedores.sql`: el CCI, la cuenta, el Yape y el titular de un proveedor solo los ve
  *     quien ve Proveedores, Por pagar o Cuentas y dinero; cada cambio de cuenta queda en un historial y avisa al líder.
- *   · `20261013162000_codigos_descuento_lider_y_caja.sql`: los códigos de descuento los lee el líder y quien ve Caja.
  *
  * Cuentas del seed: el líder (…001) y una integrante (…003) cuyo rol ve Caja y NO ve Proveedores, Por pagar ni Cuentas y
  * dinero. Cada caso corre en una transacción que TERMINA EN ROLLBACK con las dos migraciones aplicadas dentro (o sin ellas, en
@@ -20,13 +19,10 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
-const MIGRACIONES = leer("20261013161000_datos_bancarios_de_proveedores.sql") + "\n" + leer("20261013162000_codigos_descuento_lider_y_caja.sql");
-// Lo que deshacen los controles (que prueban que el hueco existía), dentro de su transacción: la lectura de la tabla entera y la
-// política de antes de los códigos. En el CI las migraciones ya están aplicadas, así que «sin migración» se arma deshaciendo.
-const DESHACER = `
-grant select on retail.proveedores to authenticated;
-drop policy if exists codigos_descuento_select on retail.codigos_descuento;
-create policy codigos_descuento_select on retail.codigos_descuento for select using ((select auth.role()) = 'authenticated');`;
+const MIGRACIONES = leer("20261013161000_datos_bancarios_de_proveedores.sql");
+// Lo que deshace el control (que prueba que el hueco existía), dentro de su transacción: la lectura de la tabla entera. En el CI
+// la migración ya está aplicada, así que «sin migración» se arma deshaciendo.
+const DESHACER = `grant select on retail.proveedores to authenticated;`;
 const LIDER = "22222222-2222-4222-8222-000000000001";
 const INTEGRANTE = "22222222-2222-4222-8222-000000000003";
 
@@ -38,12 +34,11 @@ function psql(sql) {
   ).trim();
 }
 
-/** Un proveedor con cuenta cargada y un código de descuento vigente; deja `:prov` y `:rol_integrante`. */
+/** Un proveedor con cuenta cargada (primera carga: antes no tenía); deja `:prov` y `:rol_integrante`. */
 const ESCENA = `
 select id as prov from retail.proveedores order by nombre limit 1 \\gset
 select c.rol_id as rol_integrante from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${INTEGRANTE}' \\gset
 update retail.proveedores set banco = 'BCP', cci = '00219300123456789012', titular_cuenta = 'Proveedor de prueba' where id = :'prov';
-insert into retail.codigos_descuento (codigo, porcentaje) values ('PRUEBA-SENSIBLE', 30);
 `;
 
 /** Ejecuta `cuerpo` con la sesión de `quien` (rol authenticated: aplican permisos y políticas). */
@@ -110,6 +105,12 @@ caso(
 ${como(INTEGRANTE, "select count(*) >= 0 from retail.compras_resumen;")}`)
 );
 
+caso(
+  "un líder con Proveedores, Por pagar y Cuentas y dinero ocultos igual ve la cuenta que puede editar (si no, guardar la borraría)",
+  pasa(`insert into retail.lider_modulos_ocultos (modulo) select m from unnest(array['proveedores', 'por_pagar', 'cuentas_dinero']) m on conflict do nothing;
+${como(LIDER, `select cci = '00219300123456789012' from retail.fn_proveedor_datos_bancarios(:'prov');`)}`)
+);
+
 // Historial y aviso.
 caso(
   "cambiar el CCI deja una fila con antes y después",
@@ -130,25 +131,28 @@ caso(
 select count(*) = 1 from retail.proveedores_cambios_bancarios where proveedor_id = :'nuevo' and campo = 'cci' and antes is null;`)
 );
 caso("las cuentas de tienda no pueden leer el historial directo", rechaza(como(INTEGRANTE, `select count(*) from retail.proveedores_cambios_bancarios;`), /permission denied/));
-caso("el aviso del Inicio cuenta el cambio para el líder", pasa(como(LIDER, `select (retail.fn_cuentas_bancarias_cambiadas(7) ->> 'cambios')::int >= 1;`)));
+caso(
+  "la primera carga de una cuenta queda en el historial pero no enciende el aviso",
+  pasa(como(LIDER, `select (retail.fn_cuentas_bancarias_cambiadas(7) ->> 'cambios')::int = 0;`))
+);
+caso(
+  "una cuenta que ya existía y otra persona cambió enciende el aviso del líder",
+  pasa(`update retail.proveedores set cci = '00219300999999999999' where id = :'prov';
+${como(LIDER, `select (retail.fn_cuentas_bancarias_cambiadas(7) ->> 'cambios')::int = 1;`)}`)
+);
+caso(
+  "el cambio que hizo la propia líder no la avisa a ella",
+  pasa(`set local request.jwt.claim.sub = '${LIDER}';
+set local request.jwt.claim.role = 'authenticated';
+update retail.proveedores set cci = '00219300888888888888' where id = :'prov';
+reset request.jwt.claim.sub;
+select (select count(*) from retail.proveedores_cambios_bancarios where proveedor_id = :'prov' and cambiado_por is not null) >= 1 as _firmado \\gset
+${como(LIDER, `select (retail.fn_cuentas_bancarias_cambiadas(7) ->> 'cambios')::int = 0;`)}`)
+);
 caso("el aviso no le responde a la integrante (es para el líder)", pasa(como(INTEGRANTE, `select retail.fn_cuentas_bancarias_cambiadas(7) is null;`)));
 
-// Códigos de descuento.
-caso(
-  "CONTROL: sin la migración, una integrante SIN Caja lee los códigos (el hueco existía)",
-  pasa(`delete from retail.rol_modulos where rol_id = :'rol_integrante' and modulo = 'caja';
-${como(INTEGRANTE, `select count(*) > 0 from retail.codigos_descuento where codigo = 'PRUEBA-SENSIBLE';`)}`, { conMigracion: false })
-);
-caso(
-  "una integrante sin Caja ya no ve los códigos",
-  pasa(`delete from retail.rol_modulos where rol_id = :'rol_integrante' and modulo = 'caja';
-${como(INTEGRANTE, `select count(*) = 0 from retail.codigos_descuento;`)}`)
-);
-caso("quien ve Caja sí los ve", pasa(como(INTEGRANTE, `select count(*) > 0 from retail.codigos_descuento where codigo = 'PRUEBA-SENSIBLE';`)));
-caso("el líder los ve", pasa(como(LIDER, `select count(*) > 0 from retail.codigos_descuento where codigo = 'PRUEBA-SENSIBLE';`)));
-
 // Re-pegable.
-caso("pegar las dos migraciones dos veces no cambia nada la segunda", pasa(`${MIGRACIONES}\nselect not has_column_privilege('authenticated', 'retail.proveedores', 'cci', 'select');`));
+caso("pegar la migración dos veces no cambia nada la segunda", pasa(`${MIGRACIONES}\nselect not has_column_privilege('authenticated', 'retail.proveedores', 'cci', 'select');`));
 
 console.log(`\n${total - fallas}/${total} casos pasan.`);
 process.exit(fallas ? 1 : 0);

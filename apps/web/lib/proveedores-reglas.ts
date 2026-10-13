@@ -616,9 +616,14 @@ const DATO_BANCARIO: Record<string, string> = {
 /**
  * Un cambio de cuenta del historial (20261013161000, Felipe 2026-10-13) dicho para la ficha: qué dato cambió y de qué a qué.
  * Los números salen enmascarados igual que en «Datos para pagar» (la ficha se mira en la tienda); el banco, las billeteras y el
- * titular no son secretos y se muestran tal cual. Un dato que no estaba (o se borró) se lee «vacío».
+ * titular no son secretos y se muestran tal cual. Un dato que no estaba (o se borró) se lee «vacío». Si el cambio cae justo en los
+ * dígitos tapados, las dos máscaras salen iguales: `cambioOculto` lo dice para que la pantalla no muestre un «cambio» invisible.
  */
-export function cambioBancarioLegible(campo: string, antes: string | null, despues: string | null): { dato: string; antes: string; despues: string } {
+export function cambioBancarioLegible(
+  campo: string,
+  antes: string | null,
+  despues: string | null
+): { dato: string; antes: string; despues: string; cambioOculto: boolean } {
   const mostrar = (v: string | null): string => {
     if (!v || !v.trim()) return "vacío";
     if (campo === "cci") return enmascararCci(v);
@@ -626,5 +631,8 @@ export function cambioBancarioLegible(campo: string, antes: string | null, despu
     if (campo === "celular_billetera") return enmascararCelular(v);
     return v;
   };
-  return { dato: DATO_BANCARIO[campo] ?? campo, antes: mostrar(antes), despues: mostrar(despues) };
+  const a = mostrar(antes);
+  const d = mostrar(despues);
+  // Un CCI que cambió solo en los dígitos que la máscara tapa se leería «igual → igual»: `cambioOculto` lo avisa.
+  return { dato: DATO_BANCARIO[campo] ?? campo, antes: a, despues: d, cambioOculto: a === d && (antes ?? "") !== (despues ?? "") };
 }

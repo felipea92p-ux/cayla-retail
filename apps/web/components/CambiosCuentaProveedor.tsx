@@ -8,9 +8,9 @@ import type { CambioBancario } from "@/lib/proveedores";
 export function CambiosCuentaProveedor({ cambios }: { cambios: CambioBancario[] }) {
   if (cambios.length === 0) return null;
   return (
-    <section className="card-cayla p-5">
+    <section className="card-cayla p-5" data-guia="proveedor-ficha.cambios-cuenta">
       <h2 className="label-cayla text-[11px] text-tinta/65">Cambios de la cuenta</h2>
-      <p className="mt-1 max-w-prose text-sm text-tinta/65">
+      <p className="nota-cayla mt-2 max-w-prose text-sm">
         Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono: cambiar la cuenta justo antes de un pago es
         la forma más común de desviarlo.
       </p>
@@ -25,9 +25,10 @@ export function CambiosCuentaProveedor({ cambios }: { cambios: CambioBancario[] 
                 <span className="tabular-nums text-tinta/65">: {l.antes}</span>
                 <span className="text-tinta/65"> → </span>
                 <span className="tabular-nums text-tinta">{l.despues}</span>
+                {l.cambioOculto && <span className="text-tinta/65"> (cambió en los dígitos que no se muestran)</span>}
               </span>
               <span className="text-xs text-tinta/65">
-                {dia} · {hora} · {c.cambiadoPor ?? "sin firma"}
+                {dia} · {hora} · {c.cambiadoPor ?? "no se sabe quién"}
               </span>
             </li>
           );
