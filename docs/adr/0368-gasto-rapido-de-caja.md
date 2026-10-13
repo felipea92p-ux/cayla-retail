@@ -61,6 +61,13 @@ de la tienda, el mismo donde pagan las clientas. La hoja solo registraba efectiv
 peor, se anotaba como efectivo: el cierre esperaba menos plata de la que había y salía un sobrante que no existía.
 
 **Decisión.** Bajo el monto, **«¿Cómo lo pagaste?»: Efectivo · Yape · Plin**, con Efectivo de fábrica (es lo que pasa casi siempre).
+- **Se dibuja con las fichas de medio de la hoja de cobro de Vender, acostadas** (`hoja-cobro-medio es-acostada`, 50 px): el mismo ícono de
+  Yape y Plin, la franja del color del medio arriba (el de la dona de Caja) y la ficha que se rellena con su color al elegir. Felipe lo eligió
+  mirando una lámina el 2026-10-12: primero pidió algo «más visual» que el segmento de texto, y de cuatro versiones compactas de las fichas de
+  Cobrar se quedó con la acostada con franja arriba («similar al de cobrar, sin ocupar tanto espacio»). Descartadas: la ficha de Cobrar tal
+  cual (96 px, demasiado alta bajo el monto), tarjetas con la consecuencia escrita (una pieza nueva), las baldosas del mosaico (el medio
+  parecía otro concepto y perdía su color) y píldoras (poco visuales). Si la ficha se angosta (375 px), el ícono vuelve arriba del nombre
+  por una regla de contenedor de la ficha.
 - **Efectivo:** igual que antes: sale del cajón abierto, su egreso descuenta el cierre.
 - **Yape o Plin:** se guarda con ese medio, **sin caja y sin cuenta elegida**. La base ya sabía qué hacer (ADR-0195 F3b, `fn_cuenta_sellada`):
   sella la cuenta donde cae el Yape o el Plin de esa tienda según Configuración ▸ Cuentas y cobros. Si la tienda no lo configuró, el gasto
