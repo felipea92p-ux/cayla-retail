@@ -21,20 +21,66 @@ import type { Vinculo } from "./marcas";
 import type { DatosPagoProveedor } from "./proveedores-reglas";
 import type { DetalleOrden, LineaDetalle } from "./ordenes-compra-reglas";
 
-export type TipoComprobante = "boleta" | "nota_venta" | "factura";
+export type TipoComprobante = "boleta" | "nota_venta" | "factura" | "sin_comprobante";
 export type CondicionComprobante = "credito" | "contado";
 
-/** En el orden que lo pide la pantalla (Boleta | Nota de venta | Factura). */
+/** En el orden que lo pide la pantalla (Boleta | Nota de venta | Factura | Sin comprobante). «Sin comprobante» (decisión 50, Felipe
+ *  2026-10-12: «Debe existir 4 tipos de comprobantes»): el proveedor no dio ningún papel; la base le pone un número interno, SC-000001. */
 export const TIPOS_COMPROBANTE: readonly { valor: TipoComprobante; texto: string }[] = [
   { valor: "boleta", texto: "Boleta" },
   { valor: "nota_venta", texto: "Nota de venta" },
   { valor: "factura", texto: "Factura" },
+  { valor: "sin_comprobante", texto: "Sin comprobante" },
 ];
 
 export const textoDeTipo = (tipo: TipoComprobante | ""): string => TIPOS_COMPROBANTE.find((t) => t.valor === tipo)?.texto ?? "Comprobante";
 
-/** Solo la factura discrimina IGV; en boleta y nota de venta el costo del papel ya es el costo y el IGV va en cero. */
+/** Solo la factura discrimina IGV; en boleta y nota de venta el costo del papel ya es el costo y el IGV va en cero (sin comprobante,
+ *  igual: no hay papel que dé crédito fiscal). */
 export const discriminaIgv = (tipo: TipoComprobante | ""): boolean => tipo === "factura";
+
+/** Boleta, nota de venta y factura traen su serie y su número; sin comprobante no hay papel que copiar: la base pone el número interno. */
+export const pidePapel = (tipo: TipoComprobante | ""): boolean => tipo !== "sin_comprobante";
+
+/** Las palabras de la pantalla según el tipo: sin comprobante no hay «papel» que copiar, hay una compra (ley 4: decir lo que es). */
+export function palabrasDelTipo(tipo: TipoComprobante | ""): {
+  total: string;
+  seccion: string;
+  copia: string;
+  emision: string;
+  /** Por qué el interruptor del IGV está apagado (null en una factura, que sí lo usa). */
+  sinIgv: string | null;
+  vacio: string;
+  vacioConOrden: string;
+  sinPoner: string;
+  poner: string;
+  boton: string;
+} {
+  const papel = pidePapel(tipo);
+  return {
+    total: papel ? "Total del papel" : "Total de la compra",
+    seccion: papel ? "Lo que dice el papel" : "Lo que compraste",
+    copia: papel ? "Copia el papel tal como llegó" : "Pon lo que compraste",
+    emision: papel ? "Fecha de emisión" : "Fecha de la compra",
+    vacio: papel ? "Agrega lo que trae el papel para poder registrarlo." : "Agrega lo que compraste para poder registrarlo.",
+    vacioConOrden: papel
+      ? "Pon lo que trae el papel: elige de la orden aquí abajo, o agrega algo que no estaba."
+      : "Pon lo que compraste: elige de la orden aquí abajo, o agrega algo que no estaba.",
+    sinPoner: papel ? "De la orden, sin poner en este papel" : "De la orden, sin poner en esta compra",
+    poner: papel ? "Poner en el papel" : "Poner en la compra",
+    boton: papel ? "Registrar comprobante" : "Registrar sin comprobante",
+    sinIgv: discriminaIgv(tipo)
+      ? null
+      : papel
+        ? `Una ${textoDeTipo(tipo).toLowerCase()} no lleva IGV aparte: el costo del papel es el costo.`
+        : "Sin comprobante no hay IGV: lo que pagaste es el costo.",
+  };
+}
+
+/** El título del aviso al registrar: «B001-123 registrado», o «Compra sin comprobante SC-000001 registrada». */
+export function tituloDeRegistro(tipo: TipoComprobante | "", documento: string): string {
+  return pidePapel(tipo) ? `${documento} registrado` : `Compra sin comprobante ${documento} registrada`;
+}
 
 export const IGV_PORCENTAJE = 18;
 
@@ -402,12 +448,17 @@ export function camposDelComprobante(
     requerido: !tipoValido,
     sugerido: tipoValido && !elegido.tipo,
     hecho: tipoValido && elegido.tipo,
-    pendiente: tipoValido ? "Confirma qué papel te dieron: boleta, nota de venta o factura." : "Elige qué papel te dieron: boleta, nota de venta o factura.",
+    pendiente: tipoValido
+      ? "Confirma qué papel te dieron: boleta, nota de venta, factura o sin comprobante."
+      : "Elige qué papel te dieron: boleta, nota de venta, factura o sin comprobante.",
   });
-  campos.push({ id: "serie", nombre: "Serie", requerido: true, hecho: b.serie.trim() !== "", pendiente: "Escribe la serie que dice el papel." });
-  campos.push({ id: "numero", nombre: "Número", requerido: true, hecho: b.numero.trim() !== "", pendiente: "Escribe el número que dice el papel." });
+  // Sin comprobante no hay serie ni número que escribir: la base le pone su número interno (lo mismo que exige la base).
+  if (pidePapel(b.tipo)) {
+    campos.push({ id: "serie", nombre: "Serie", requerido: true, hecho: b.serie.trim() !== "", pendiente: "Escribe la serie que dice el papel." });
+    campos.push({ id: "numero", nombre: "Número", requerido: true, hecho: b.numero.trim() !== "", pendiente: "Escribe el número que dice el papel." });
+  }
   const problemaEmision = problemaDeEmision(b.emision, ctx.hoy);
-  campos.push({ id: "emision", nombre: "Fecha de emisión", requerido: true, hecho: problemaEmision === null, pendiente: problemaEmision ?? "" });
+  campos.push({ id: "emision", nombre: palabrasDelTipo(b.tipo).emision, requerido: true, hecho: problemaEmision === null, pendiente: problemaEmision ?? "" });
   const condicionValida = b.condicion !== "";
   campos.push({
     id: "condicion",
@@ -606,8 +657,9 @@ export function argsRegistrarComprobante(
   return {
     p_orden_id: ordenId,
     p_tipo: tipo,
-    p_serie: textoParaBase(b.serie).toUpperCase(),
-    p_numero: textoParaBase(b.numero),
+    // Sin comprobante no viaja serie ni número: la base pone el número interno (y los ignoraría igual).
+    p_serie: pidePapel(b.tipo) ? textoParaBase(b.serie).toUpperCase() : "",
+    p_numero: pidePapel(b.tipo) ? textoParaBase(b.numero) : "",
     p_lineas: lineasParaBase(b.lineas),
     p_fecha_emision: b.emision,
     p_condicion: condicion,

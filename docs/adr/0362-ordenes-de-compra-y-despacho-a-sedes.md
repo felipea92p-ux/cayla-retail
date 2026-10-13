@@ -64,6 +64,25 @@
 | 43 | Más de lo pedido | Si el papel del proveedor trae más unidades o una línea que no estaba en la orden, **se acepta y se avisa** (Felipe 2026-10-12) |
 | 44 | Proveedores ve sus montos | Quien tiene el módulo Proveedores ve, dentro de Proveedores, lo que la empresa le compra y le debe a cada uno y su saldo a favor («Sí, que los vea»); revierte ADR-0161 P3. No abre los tableros de Facturas ni Por pagar. ADR-0387 (Felipe 2026-10-12) |
 | 45 | De quién es la deuda | **La deuda de una factura es 100 % de la tienda que hizo el pedido** (la gestora, la que guarda el papel): «Trujillo y Lima, si no hicieron el pedido, no tienen nada que pagar, sino quien realizó el pedido»; si otra tienda recibió parte, se compensan entre ellas, fuera del sistema. El pago de la empresa baja la deuda de esa factura. Finanzas (Por pagar por tienda y Balance por tienda) deja de sumar «partes», y su Por pagar se paga igual que Compras. ADR-0387 (Felipe 2026-10-12) |
+| 46 | Quién paga una orden | **La deuda de una orden es de la sede de QUIEN HIZO LA ORDEN** (no de quien registra el papel ni de «Llega a»), y la paga ella desde su fondo por rendir (fase 6); mientras el fondo no exista, se paga desde Por pagar. «Si la encargada compra, ella paga»: la general de Lima compra para repartir y la deuda es de Lima aunque las prendas terminen en Trujillo (Felipe 2026-10-12). En la base: la gestora del comprobante es la sede asignada de quien creó la orden (si no, «Llega a»; si no, la de quien registra) |
+| 47 | Órdenes de insumos | **Entrada nueva «Órdenes de insumos»** (módulo propio, nace solo para el líder): quien la tiene ve y hace todo en esas órdenes, sin ver el resto de la plata del Taller (Felipe 2026-10-12; resuelve el «Por decidir» de la fase 7) |
+| 48 | Envío de una orden «directo» | **Con guía, pero opcional:** quien compra puede registrar el envío; si no, la tienda recibe directo contra la orden (Felipe 2026-10-12) |
+| 49 | La prenda al recibir | **La crea quien recibe, en la tienda**, con las tallas y colores que llegaron y el precio sugerido ya puesto (Felipe 2026-10-12; confirma la 21) |
+| 50 | Cuatro tipos de comprobante | **«Debe existir 4 tipos de comprobantes: boleta, nota de venta, factura y sin comprobante»** (Felipe 2026-10-12). Una compra de una orden sin ningún papel se registra igual que las otras: sin serie ni número (la base le pone uno interno, `SC-000001`, único para la empresa), sin IGV, al crédito o al contado; no entra al Registro de Compras de Impuestos. Migración `20261012235000`. Por defecto *(provisional)*: si después llega el papel, se anula la compra sin comprobante y se registra el papel (mientras no tenga pagos); la factura suelta de Facturas de proveedor no cambia |
+| 51 | Terminales con la plata de Compras | **Se deja así** (Felipe 2026-10-13): las 6 terminales de tienda tienen Facturas de proveedor (las de Almacén, también Por pagar y Notas de crédito) y, por la decisión 41, leen las de las tres tiendas. Medido en producción ese día: 0 facturas, 0 pagos, 0 órdenes |
+| 52 | Dónde viven las órdenes de insumos | **Producción ▸ Abastecimiento, primera** (pedir → factura → recibir → pagar), con ruta propia `/ordenes-insumos` para que quien solo tenga ese módulo no necesite el de Producción (Felipe 2026-10-13, confirma lo provisional de la fase 7) |
+| 53 | Precio al recibir en el Taller | **Quien recibe ve y corrige el precio de ESA orden**, como en las tiendas (18), sin ver el resto de la plata del Taller (Felipe 2026-10-13) |
+| 54 | Faltante al rendir el fondo | **Queda como deuda de la persona**, a la vista hasta que se salde; se le descuenta del sueldo solo con su autorización escrita (Felipe 2026-10-13) |
+| 55 | Gastos del viaje sin comprobante | **Solo taxi y cargador**, con planilla de movilidad y un tope diario que fija el contador; hotel y comida, solo con comprobante (Felipe 2026-10-13) |
+| 56 | Efectivo de S/ 2 000 o más | **Se deja pagar, marcado «no deducible»** (no se frena): Felipe eligió esto sobre frenarlo y sugerir transferir (2026-10-13). El sistema avisa que ese gasto no cuenta para impuestos y que su IGV se pierde |
+| 57 | Contabilidad del fondo, provisional | **Fondo en la 1413** (entregas a rendir) y **el Yape personal de la compradora no cuenta como pago bancarizado de CAYLA**, hasta que el contador diga otra cosa (Felipe 2026-10-13) |
+| 58 | Saldo a favor con factura | **Interno ya, su nota de crédito después:** se registra al toque con un documento interno que baja lo que se le debe al proveedor en el próximo pago, marcado «falta su nota de crédito» con el aviso del IGV (61) hasta que llegue; al llegar, se adjunta (Felipe 2026-10-13). Con boleta, nota de venta o sin comprobante: documento interno sin IGV |
+| 59 | «Depositó» | **Lo registra quien tiene Proveedores**, desde la ficha del proveedor (Felipe 2026-10-13; el módulo es la llave, 40) |
+| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13) |
+| 61 | Aviso del IGV | **Aviso en Inicio que no se puede ocultar**, para quien ve la plata de Compras, mientras un proveedor deba prendas de una factura (Felipe 2026-10-13) |
+| 62 | Lista de compras del Taller | **Después**: primero el comprobante y la recepción de la orden de insumos (Felipe 2026-10-13) |
+| 63 | Maquila y flete del Taller | **Siguen como gastos** en Finanzas (los del viaje, en el fondo de la fase 6); la orden de insumos solo lleva insumos (Felipe 2026-10-13) |
+| 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -71,7 +90,67 @@ se ven bien en todo el ERP · 4 · registrar el comprobante de una orden · 5 ·
 de venta sugerido · 8 · entregas parciales · 9 · órdenes «Por repartir» · 10 · revisión de calidad · 11 · cierre. Por defecto: la
 factura suelta de hoy sigue igual; la casilla del IGV arranca marcada; corregir un comprobante es anularlo y registrarlo de nuevo; firma
 como la decisión 39; el precio sugerido es opcional; la tienda que gestiona el comprobante es la de «Llega a» (o la de quien lo registra
-si es «Por repartir»).
+si es «Por repartir»). *(La 46 reemplazó esta última regla y la 50 sumó «Sin comprobante» como cuarto tipo: ver la fase 3.)*
+
+**Fase 3 (2026-10-12, rama `claude/purchase-order-phase3-9b0c82`; Felipe pidió avanzar de corrido y respondió las decisiones 46–49
+antes de irse; la 50 la mandó mientras se construía).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-envio-a-sede.md`.
+Lo construido:
+- **«Enviar a una sede»** desde la orden abierta (`crear_envio`, página `/compras/ordenes/envio/[id]`): una guía, una sede (12 y 22); el
+  número de guía es opcional (48); nace «en camino» con un número `ENV-000001` único para toda la empresa; cada línea congela su
+  categoría, marca, descripción y el precio neto por unidad (quien recibe lo ve y lo corrige: fase 4, decisión 18). **Un envío no mueve
+  stock:** el stock entra cuando la sede recibe (fase 4).
+- **Una orden «directo»** solo va a su «Llega a»; **una «Por repartir»** se reparte en varias guías a varias sedes. La base ya acepta una
+  guía con líneas de varias órdenes y proveedores; la pantalla arranca desde una orden.
+- **Tope (candado de esquema, diferido):** lo enviado de una línea nunca pasa del mayor entre lo pedido y lo facturado; lo de más que
+  el papel facturó sí sale, y avisa (43). Dos personas mandando lo mismo a la vez: sale una y la otra lee «quedan 0 por enviar».
+- **Anular un envío:** solo mientras va en camino, con motivo (hasta 300) y la versión que se vio; libera lo enviado. Una orden con algún
+  envío ya no se edita; con uno vigente, no se anula.
+- **La deuda (46):** `fn_orden_compra_gestora` — la sede asignada de quien creó la orden (si no, «Llega a»; si no, la de quien registra);
+  con eso, una «Por repartir» ya registra su comprobante, y la hoja dice «la deuda queda en …».
+- **«Sin comprobante» (50):** cuarto tipo al registrar el comprobante de una orden (número interno `SC-000001`, sin IGV). En el
+  celular, el tipo se elige con un desplegable: los cuatro no caben en el segmento a 375 px.
+
+Por defecto *(provisional, revisar con Felipe)*: al enviar se vuelve a la lista con la orden marcada y el aviso «ENV-… en camino a …»
+con «Ver la orden» (como crear y editar); la píldora «Por enviar» cuenta las órdenes generadas con algo que todavía no salió; la guía
+impresa (guía de remisión) queda para después; sin guía, la sede recibe directo contra la orden (fase 4).
+
+**Fase 4 (2026-10-12, rama `claude/purchase-order-phase4-9b0c82`; la sesión de Recepción no tenía rama y la tomó esta línea).**
+Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-recepcion-de-envio.md` (con «Cambios al construir»). Lo construido:
+- **Recibir un envío en la sede** (`/recibir/envio/[id]`, módulo Recibir): «Empezar a recibir» (`abrir_despacho`: el envío pasa a
+  `abierto` y ya no se anula); por línea, el costo que se ve y se corrige (18), la prenda —nueva, creada ahí con las tallas y colores que
+  llegaron y el precio sugerido (21, 49), o una que ya existe, con la talla o el color que faltaba— y la matriz talla × color; lo dañado
+  va a la cuarentena con su fila en `prendas_danadas` (23); lo que faltó lleva su causa y lo que vino de más su motivo (14, 15); lo que
+  no estaba en la guía se agrega (13). Al cerrar (`recibir_despacho`), un lote por proveedor, el costo promediado, lo recibido cargado
+  al papel hasta su cupo y la recepción a la vista («cómo se cerró»).
+- **Una orden «directo» sin guía** se recibe igual (48): `recibir_orden_sin_envio` crea su envío y lo deja abierto.
+- **Quien hizo la orden no la recibe, sin excepción (17):** la base lo frena (`recibir_quien_compro`) y la pantalla lo dice antes.
+- **El alta al recibir (49):** `crear_producto_con_variantes` deja crear la prenda a quien tiene Recibir, solo dentro de
+  `preparar_prenda_al_recibir`; si no edita el catálogo, la prenda nace «pendiente» y un líder la revisa.
+
+Por defecto *(provisional, revisar con Felipe)*: las causas del faltante son «No vino» (deuda del proveedor, fase 5), «Se perdió en el
+camino» y «Llegó a otra sede»; todo lo contado entra al costo de la línea, también un regalo; la pareja marca–proveedor se registra
+sola al crear la prenda; un costo de 0 pide confirmar; sin cola sin conexión en esta pantalla.
+
+**Fase 5a (2026-10-12, rama `claude/purchase-order-phase5-9b0c82`).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`.
+Lo construido (no mueve plata): **la deuda** es el faltante «No vino» de una recepción (14); se ve en la ficha del proveedor («Prendas
+por reponer») y al crear o editar su próxima orden (14); se salda con **la prenda** —en la próxima recepción, «Es la reposición de lo que
+faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido. **Fase 5b, sin construir:**
+«Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
+tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
+
+**Fase 7, parte 1 (2026-10-13, rama `claude/purchase-order-phase7-9b0c82`; construida de noche, provisional).** Contrato:
+`docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md` (con «Cambios al construir»). Lo construido: **la orden de
+insumos del Taller** (`OI-000001`, su propio correlativo: 28) con su **módulo propio `ordenes_insumos`** (47; nace solo para el líder y es
+delegable: quien lo tiene ve y hace todo en estas órdenes, con sus precios, sin ver el resto de la plata del Taller). Proveedor de
+`proveedores_produccion`, destino un taller y líneas de insumo con la cantidad en su unidad (hasta 3 decimales) y el precio con hasta 4
+decimales, como los comprobantes y los lotes del Taller. Crear, ver, editar, anular e imprimir o guardar el PDF, con las mismas reglas que
+la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **Sin construir (espera a
+Felipe):** el comprobante de la orden y la recepción en el Taller (las preguntas 2 a 4 del contrato).
+
+Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción ▸ Abastecimiento (la opción recomendada de la pregunta 1),
+pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
+obligatorio y es un taller; la unidad del insumo se copia en la línea y, si después cambia, al editar esa línea pide la cantidad de nuevo;
+el insumo no se restringe al proveedor de la orden; una orden lleva hasta 100 líneas.
 
 ## Fuente: el brief de Felipe
 

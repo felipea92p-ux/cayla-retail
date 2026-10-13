@@ -150,7 +150,8 @@ export async function getHistorialPlan(anioPedido?: string): Promise<{
   ]);
   if (planes.error) console.error(`${RPC_PLANES} (historial): ${planes.error.message}`);
   const leidas = planes.error ? null : leerCampanas(planes.data);
-  const etiquetas = leidas?.etiquetas ?? [];
+  // Historial lleva cada campaña a otros años: una sin fechas (act. 2026-10-12 f, el selector ya las trae) no tiene qué llevar.
+  const etiquetas = (leidas?.etiquetas ?? []).flatMap((e) => (e.desde && e.hasta ? [{ id: e.id, nombre: e.nombre, desde: e.desde, hasta: e.hasta }] : []));
   const conPlan = leidas?.planes ?? [];
   if (historia.error) {
     console.error(`${RPC_HISTORIAL}: ${historia.error.message}`);

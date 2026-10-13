@@ -258,3 +258,29 @@ Spike `docs/maquetas/plan-precios-ordenes-2026-10/`. Decisiones de Felipe:
 - **«A precio lleno» se mide con el precio al que se vendió** (migración `20261012223000`): `fn_unidades_vendidas` comparaba lo cobrado con el
   precio de lista de HOY, así que una tienda con su propio precio contaba como «rebajada» sin descuento y cualquier cambio de precio deformaba
   «Rebajadas» y «Lo que sobró» hacia atrás. Ahora usa `venta_items.precio_unitario` (el precio de la sede al vender; el descuento va aparte).
+
+## Actualización 2026-10-12 (f) — el selector es el calendario, un plan por campaña y por año, y «Campaña nueva» en Etiquetas
+
+**El problema.** El selector solo mostraba los planes ya creados y crear uno pedía elegir la etiqueta, el nombre y las dos fechas. Peor: la base
+dejaba UN plan por etiqueta para siempre (`planes_compra_una_por_etiqueta`), aunque las campañas de Etiquetas vuelven cada año (Historial ya las
+lleva a cualquier año). Con «Halloween 2026» creado, «Halloween 2027» era imposible: en enero el Plan se quedaba sin campañas que armar.
+
+**Lo que se decidió (Felipe, opción A de `docs/maquetas/plan-selector-campanas-2026-10/`; «con el mismo formato»).**
+- Un plan por campaña **y por año** (el del fin, como Historial): índice `planes_compra_una_por_etiqueta_y_anio`.
+- El selector ES el calendario: los planes más cada campaña de Etiquetas sin plan este año o el que viene, con sus fechas de ese año
+  (`ranurasSinPlan`, `calendarioDelSelector`, `fechasDelAnio` = `proyectarCampana` de Historial). Tocarla abre su hoja ya llena (nombre del año,
+  fechas, responsable) y un toque la arma (`crear_plan_compra`). Quien no es líder la ve apagada («sin plan»). Las campañas sin fechas salen al
+  final, solo para el líder, pidiendo que se las pongan en Etiquetas.
+- «Campaña que no está en el calendario» crea la campaña en Catálogo ▸ Etiquetas con el formato de las demás y su plan, en UNA transacción
+  (`crear_campana_con_plan`), por los mismos caminos que Etiquetas: el INSERT pasa por `etiquetas_estado_biut` (aprobada si quien la crea puede
+  editar etiquetas), las fechas las pone `actualizar_campana_etiqueta` (sin descuento ni categorías: no toca ningún precio) y el plan,
+  `crear_plan_compra`. Si algo falla, no queda ni la etiqueta ni el plan.
+
+DECIDÍ: escribir en Etiquetas desde el Plan, con una función que reutiliza las de Etiquetas.
+DESCARTÉ: un plan suelto sin etiqueta (no aparece en Historial ni vuelve al año siguiente) y solo un enlace a Etiquetas (salir y volver en plena
+compra; además, Etiquetas hoy no tiene cómo marcar una etiqueta como «Campaña y festividad»: todas nacen en «General»).
+SE ROMPE SI: dos líderes crean «Cyber Wow» a la vez — la base lo impide (`etiquetas_clave_unica`: entra uno, el otro lee «ya está»); o si alguien
+edita un plan y lo mueve al año de otro de la misma campaña: lo rechaza el índice por año.
+
+Pruebas: `scripts/pruebas/plan_compra.mjs` C5–C7 y D1–D4; `lib/plan-compra-reglas.test.ts` (calendario, selector, hoja en sus dos caras).
+Migración `20261012234000_plan_compra_campana_por_anio_y_campana_nueva.sql` (una sola parte, sin políticas).

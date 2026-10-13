@@ -3,17 +3,21 @@ import { createClient } from "@/lib/supabase/server";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getProveedor } from "@/lib/proveedores";
 import { getSaldosFavor } from "@/lib/saldo-favor";
+import { getNosDebeResumen } from "@/lib/nos-debe";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
 import type { DatosDelComprobante, ProveedorDelComprobante } from "@/lib/comprobante-orden-reglas";
 import {
   argsLista,
   leerDetalleOrden,
   leerFilasOrdenes,
+  leerPorEnviar,
   leerResumen,
   RPC_DETALLE_ORDEN,
   RPC_LISTA_ORDENES,
+  RPC_ORDENES_POR_ENVIAR,
   RPC_RESUMEN_ORDENES,
   RPC_SIGUIENTE_ORDEN,
+  TAMANO_PAGINA_ORDENES,
   type DatosNuevaOrden,
   type DetalleOrden,
   type FiltrosLista,
@@ -24,14 +28,56 @@ import {
 // Órdenes de compra (ADR-0362, fase 1): lectura del servidor, por `fn_ordenes_compra` (20261010214500). Quien tiene el módulo ve las
 // órdenes de todas las sedes (decisiones 34 y 37); el candado vive en la función. Si la lectura falla —la web publicada antes que la
 // migración, o la base caída—, lo dice (principio 9): nunca una lista vacía que parezca «no hay órdenes».
-export async function listarOrdenesCompra(filtros: FiltrosLista): Promise<{ filas: OrdenCompraFila[]; falla: string | null }> {
+export async function listarOrdenesCompra(
+  filtros: FiltrosLista,
+  porEnviar: ReadonlyMap<string, number> | null = null,
+): Promise<{ filas: OrdenCompraFila[]; falla: string | null }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc(RPC_LISTA_ORDENES as never, argsLista(filtros) as never);
-  if (error) {
-    console.error(`${RPC_LISTA_ORDENES}: ${error.message}`);
-    return { filas: [], falla: "No se pudieron leer las órdenes de compra. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder." };
+  const fallaDeLectura = "No se pudieron leer las órdenes de compra. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder.";
+  if (!filtros.porEnviar) {
+    const { data, error } = await supabase.rpc(RPC_LISTA_ORDENES as never, argsLista(filtros) as never);
+    if (error) {
+      console.error(`${RPC_LISTA_ORDENES}: ${error.message}`);
+      return { filas: [], falla: fallaDeLectura };
+    }
+    return { filas: leerFilasOrdenes(data), falla: null };
   }
-  return { filas: leerFilasOrdenes(data), falla: null };
+
+  // «Por enviar» (fase 3): la base no filtra por lo que falta enviar, solo dice cuáles órdenes lo tienen (`fn_ordenes_compra_por_enviar`).
+  // Sin esa lista no hay forma de filtrar, y mostrar «todas» o «ninguna» sería mentir: se dice (principio 9).
+  if (!porEnviar) return { filas: [], falla: "No se pudo saber qué órdenes tienen algo por enviar. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder." };
+  // Se pide la lista de las generadas por tandas del tope de la base (100) y se queda con las que tienen algo por enviar hasta llenar la página
+  // (+1 para saber si hay otra): la paginación sigue siendo por número de orden, así que «Siguiente página» no salta ni repite ninguna.
+  const TANDA = 100;
+  const MAX_TANDAS = 10;
+  const filas: OrdenCompraFila[] = [];
+  let antesDe = filtros.antesDe;
+  for (let i = 0; i < MAX_TANDAS && filas.length <= TAMANO_PAGINA_ORDENES; i++) {
+    const { data, error } = await supabase.rpc(RPC_LISTA_ORDENES as never, { ...argsLista(filtros), p_limite: TANDA, p_antes_de: antesDe } as never);
+    if (error) {
+      console.error(`${RPC_LISTA_ORDENES}: ${error.message}`);
+      return { filas: [], falla: fallaDeLectura };
+    }
+    const tanda = leerFilasOrdenes(data);
+    for (const f of tanda) if (porEnviar.has(f.id) && filas.length <= TAMANO_PAGINA_ORDENES) filas.push(f);
+    const ultima = tanda[tanda.length - 1];
+    if (tanda.length < TANDA || !ultima) break;
+    antesDe = ultima.numero;
+  }
+  return { filas, falla: null };
+}
+
+/** Las órdenes generadas que todavía tienen algo por enviar, con cuántas unidades (`fn_ordenes_compra_por_enviar`, fase 3): la cifra de la
+ *  píldora «Por enviar» y su filtro. Es un adorno de la lista: si la función no responde (la web publicada antes que la migración), la
+ *  lista se muestra igual, sin esa píldora (`null`). */
+export async function getOrdenesPorEnviar(): Promise<ReadonlyMap<string, number> | null> {
+  const supabase = await createClient();
+  const { data, error } = (await (supabase.rpc(RPC_ORDENES_POR_ENVIAR as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>));
+  if (error) {
+    console.error(`${RPC_ORDENES_POR_ENVIAR}: ${error.message}`);
+    return null;
+  }
+  return leerPorEnviar(data);
 }
 
 /** Cuántas órdenes hay en cada destino (`fn_ordenes_compra_resumen`, 20261010231500): las cifras y el número de cada píldora. Es un
@@ -74,7 +120,7 @@ export async function getDestinosOrden(): Promise<{ id: string; nombre: string }
 // dice (principio 9): un formulario sin proveedores que parezca «no hay proveedores» haría crear uno repetido.
 export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
   const supabase = await createClient();
-  const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente] = await Promise.all([
+  const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente, nosDebe] = await Promise.all([
     supabase.from("proveedores").select("id, nombre, ruc").eq("activo", true).order("nombre"),
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
@@ -82,6 +128,8 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     getDestinosOrden(),
     // La RPC es nueva y los tipos generados todavía no la conocen: se lee como `unknown` y se valida abajo.
     supabase.rpc(RPC_SIGUIENTE_ORDEN as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>,
+    // Lo que cada proveedor debe por reponer (fase 5a): un adorno. Si no responde, la orden se llena igual, sin el aviso.
+    getNosDebeResumen().catch(() => null),
   ]);
   const falla =
     resProveedores.error || resMarcas.error || resVinculos.error || resCategorias.error || !destinos
@@ -103,6 +151,7 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     // La vista previa es un adorno: si no responde, el formulario dice «se numera al guardar» (no se cae).
     siguiente: typeof resSiguiente.data === "number" ? resSiguiente.data : null,
     falla,
+    nosDebe,
   };
 }
 
@@ -136,6 +185,21 @@ export async function getEmpresaParaOrden(): Promise<{ razonSocial: string | nul
   const { data, error } = await supabase.from("configuracion_empresa").select("ruc, razon_social, nombre_comercial").maybeSingle();
   if (error || !data) return null;
   return { razonSocial: data.razon_social ?? null, ruc: data.ruc ?? null, nombreComercial: data.nombre_comercial ?? null };
+}
+
+export type DatosEnvioOrden = {
+  detalle: DetalleOrden | null;
+  /** Por qué no se pudo leer la orden (la base no respondió). `null` con `detalle` vacío = esa orden no existe. */
+  falla: string | null;
+  /** Las sedes a las que se puede enviar (tiendas y almacenes activos); `null` si no se pudieron leer. */
+  sedes: { id: string; nombre: string }[] | null;
+};
+
+/** Lo que necesita «Enviar a una sede» (fase 3): la orden con lo que le queda por enviar y las sedes activas. Las sedes solo se eligen en
+ *  una «Por repartir»: en una «directo» la sede es la de la orden y una lista que no cargó no impide enviar. */
+export async function getDatosEnvioOrden(id: string): Promise<DatosEnvioOrden> {
+  const [{ detalle, falla }, sedes] = await Promise.all([getDetalleOrden(id), getDestinosOrden()]);
+  return { detalle, falla, sedes };
 }
 
 export type DatosComprobanteOrden = DatosDelComprobante & {

@@ -3,8 +3,9 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { ESTADO_ORDEN, lugarDeLlegada, textoPapelDeLinea, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import { ESTADO_ORDEN, estadoDeEnvioDeOrden, lugarDeLlegada, textoEnvioDeLinea, textoPapelDeLinea, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 import { ComprobantesDeOrden } from "@/components/ordenes-compra/ComprobantesDeOrden";
+import { EnviosDeOrden } from "@/components/ordenes-compra/EnviosDeOrden";
 
 // Una orden de compra por dentro (ADR-0362, fase 1 · actividad 3): lo mismo en la ventana que se abre sobre la lista y en la página
 // completa que se ve al recargar o compartir el enlace. Sin estado: lo dibuja el servidor.
@@ -15,6 +16,9 @@ import { ComprobantesDeOrden } from "@/components/ordenes-compra/ComprobantesDeO
 //
 // Con papel (fase 2): cada línea dice cuánto llegó ya en comprobantes («Llegó en papel: 8 de 10») y, bajo la tabla, van los comprobantes de
 // la orden con su «Anular». Todo con tolerancia: una base que todavía no los cuenta no trae nada de esto y la orden se ve como siempre.
+//
+// Con envíos (fase 3): cada línea dice cuánto salió ya hacia las sedes («Enviado: 8 de 10») y, bajo los comprobantes, van los envíos de la
+// orden con su estado y su «Anular envío». Igual de tolerante: una base que todavía no los cuenta no trae nada de esto.
 //
 // # · Categoría y marca (+ descripción) · Cantidad · Precio · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: la misma pieza vive en una ventana de 896 px y en una página con el menú abierto, donde con una
@@ -35,6 +39,9 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
   const anulada = d.anuladaEn ? diaYHoraLima(d.anuladaEn) : null;
   // «Llegó en papel» solo cuando la orden ya tiene algún comprobante: en una sin papel, «0 de 10» en cada línea sería ruido.
   const conPapel = d.papel === "en_parte" || d.papel === "completa";
+  // «Enviado» igual: solo cuando ya salió algo. Con envíos sin salir (o todos anulados), «0 de 10» en cada línea sería ruido.
+  const envioDeLaOrden = estadoDeEnvioDeOrden(d);
+  const conEnvio = envioDeLaOrden === "en_parte" || envioDeLaOrden === "completo";
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -94,6 +101,11 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
                   Llegó en papel: {textoPapelDeLinea(l)}
                 </span>
               )}
+              {conEnvio && textoEnvioDeLinea(l) && (
+                <span data-guia="orden.envio-linea" className={`mt-0.5 block text-xs tabular-nums ${(l.porEnviar ?? 1) === 0 ? "text-verde-profundo" : "text-taupe"}`}>
+                  Enviado: {textoEnvioDeLinea(l)}
+                </span>
+              )}
               {/* Sin columnas: la cuenta entera en un renglón. */}
               <span className="mt-1 block text-sm tabular-nums text-tinta/80 @min-[40rem]:hidden">
                 {l.cantidad.toLocaleString("es-PE")} × {soles(l.precioUnitario)}
@@ -128,6 +140,8 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
 
       <ComprobantesDeOrden orden={d} />
 
+      <EnviosDeOrden orden={d} />
+
       {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado (Formidable, 2026-10-10). */}
       {d.nota && (
         <p className="nota-cayla sin-i whitespace-pre-line">
@@ -138,6 +152,7 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
       <p data-guia="orden.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {conPapel && <Chip tono={d.papel === "completa" ? "verde" : "ambar"}>{d.papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
+        {conEnvio && <Chip tono={envioDeLaOrden === "completo" ? "verde" : "ambar"}>{envioDeLaOrden === "completo" ? "Todo enviado" : "Enviado en parte"}</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
           {/* La última edición (actividad 4): quién y cuándo. Lo que decía antes queda en el archivo y en la Actividad. */}

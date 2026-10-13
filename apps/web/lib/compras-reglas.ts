@@ -4,6 +4,7 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
+import { hoyLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
 
@@ -13,7 +14,8 @@ export { nombreDeLineaSinPrenda };
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
 export type EstadoRecepcion = "sin_recibir" | "parcial" | "recibida" | "anulada";
 export type Condicion = "contado" | "credito";
-export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta";
+/** «Sin comprobante» (ADR-0362, decisión 50): una compra de una orden sin ningún papel; la base le pone el número interno SC-000001. */
+export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
 export type CompraResumen = {
   id: string;
@@ -218,6 +220,7 @@ export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumentoCompra, string> = {
   factura: "Factura",
   boleta: "Boleta",
   nota_venta: "Nota de venta",
+  sin_comprobante: "Sin comprobante",
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
@@ -290,7 +293,11 @@ export function soles(n: number): string {
 
 export function fechaCorta(iso: string | null): string {
   if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
+  // Un INSTANTE (con hora: la llegada de un lote, un pago) se lee en Lima: de 7 pm a medianoche de Lima, en UTC ya es «mañana», y
+  // cortar los 10 primeros caracteres ponía la recepción de las 22:17 del 12/10 con fecha 13/10 (prueba ciega del 2026-10-12).
+  // Una FECHA sola (`aaaa-mm-dd`) se usa tal cual.
+  const dia = /^\d{4}-\d{2}-\d{2}[T ]\d/.test(iso) && !Number.isNaN(Date.parse(iso)) ? hoyLima(new Date(iso)) : iso.slice(0, 10);
+  const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
 }
 
