@@ -9,7 +9,8 @@ import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { opcional } from "@/lib/resultado";
-import { presentacionesDeModelos } from "@/lib/produccion-presentacion";
+import { coloresDeModelos, presentacionesDeModelos } from "@/lib/produccion-presentacion";
+import { hojaDelModelo } from "@/lib/produccion-hoja-modelo";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cifrasResumen, resumenDeDecisiones, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
@@ -67,13 +68,17 @@ export default async function ProduccionPage() {
     ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId), variantes: m.variantes.map((v) => ({ varianteId: v.varianteId, talla: v.talla, color: v.color, colorHex: v.colorHex })) })), datos.enProduccion)
     : [];
 
+  // La hoja «Ver el modelo» de cada fila: se arma aquí con lo que la página ya leyó (sin una lectura más) y viaja al navegador con la página.
+  const coloresPorModelo = coloresDeModelos(catalogo ?? []);
+  const hojas = Object.fromEntries(filasModelo.map((f) => [f.productoId, hojaDelModelo(f, coloresPorModelo[f.productoId] ?? [], taller.id)]));
+
   const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas);
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} tallerId={taller.id} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { VarianteCatalogo } from "./catalogo-v2";
-import { presentacionesDeModelos } from "./produccion-presentacion";
+import { coloresDeModelos, presentacionesDeModelos } from "./produccion-presentacion";
 
 const v = (extra: Partial<VarianteCatalogo> = {}): VarianteCatalogo => ({
   varianteId: "v",
@@ -70,5 +70,34 @@ describe("presentacionesDeModelos (la foto de cada modelo en el Resumen de Produ
   });
   it("un modelo que el catálogo no trae no tiene presentación", () => {
     expect(presentacionesDeModelos([]).p1).toBeUndefined();
+  });
+});
+
+describe("coloresDeModelos (la foto de cada color en la hoja «Ver el modelo»)", () => {
+  it("cada color trae su foto, en el orden en que llegan; una talla sin foto no le quita la foto a su color", () => {
+    const c = coloresDeModelos([
+      v({ varianteId: "a", talla: "S", color: "Negro", colorHex: "#111111", fotoUrl: null }),
+      v({ varianteId: "b", talla: "M", color: "Negro", colorHex: "#111111", fotoUrl: "https://x/negro.jpg" }),
+      v({ varianteId: "c", talla: "S", color: "Rojo", colorHex: "#aa0000", fotoUrl: null }),
+    ]);
+    expect(c.p1).toEqual([
+      { nombre: "Negro", hex: "#111111", fotoUrl: "https://x/negro.jpg" },
+      { nombre: "Rojo", hex: "#aa0000", fotoUrl: null },
+    ]);
+  });
+  it("sin hex en el catálogo queda null: no se inventa el gris de relleno", () => {
+    expect(coloresDeModelos([v({ color: "Sin nombre conocido", colorHex: null })]).p1).toEqual([{ nombre: "Sin nombre conocido", hex: null, fotoUrl: null }]);
+  });
+  it("separa un modelo de otro y no mezcla sus colores", () => {
+    const c = coloresDeModelos([v({ productoId: "p1", color: "Negro" }), v({ productoId: "p2", color: "Verde", colorHex: "#00aa00" })]);
+    expect(c.p1.map((x) => x.nombre)).toEqual(["Negro"]);
+    expect(c.p2.map((x) => x.nombre)).toEqual(["Verde"]);
+  });
+  it("una variante desactivada no aporta color mientras haya otras activas", () => {
+    const c = coloresDeModelos([v({ varianteId: "a", color: "Negro" }), v({ varianteId: "b", color: "Viejo", activo: false })]);
+    expect(c.p1.map((x) => x.nombre)).toEqual(["Negro"]);
+  });
+  it("un modelo sin colores en sus variantes devuelve una lista vacía, no se cae", () => {
+    expect(coloresDeModelos([v({ color: null, colorHex: null })]).p1).toEqual([]);
   });
 });

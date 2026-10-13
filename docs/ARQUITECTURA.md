@@ -917,8 +917,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/produccion` (Resumen, solo líder; F6) → `app/(app)/produccion/page.tsx` junta órdenes, insumos, lo por recibir, comprobantes, los modelos que se pueden fabricar (`getModelosProducibles({ soloProducibles: true })`:
   `esProducible` de `lib/produccion-reglas.ts` + `categoriasFueraDeMotores` de `lib/familias-motores.ts`, ADR-0377 act. 2026-10-13), la decisión de la red (`getDecisionProduccion`) y, como dato secundario, las fotos
   (`getCatalogo()` → `lib/produccion-presentacion.ts:presentacionesDeModelos`), y calcula con `lib/produccion-decisiones.ts` (puro: `resumenDeDecisiones` = tarjetas con tope por clase y lo que no cupo, demanda de insumos
-  de las órdenes abiertas, filas por modelo con su base de ventas, filas por tela, cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` / `?nueva=` de Órdenes; dibuja cada modelo con
-  `components/ui/FotoPrenda.tsx`, ADR-0333). El análisis y las tareas que siguen: `docs/pantallas/produccion.md`.
+  de las órdenes abiertas, filas por modelo con su base de ventas y su detalle por talla y color —lo que falta se reparte en «trasladar» y «producir», `repartirFalta` en `lib/produccion-decision-reglas.ts`—, filas por tela,
+  cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` de Órdenes; dibuja cada modelo con `components/ui/FotoPrenda.tsx`, ADR-0333). Cada fila de «¿Qué producir?» es un botón
+  (`components/produccion-resumen/FilaQueAbreLaHoja.tsx`) que abre la hoja «Ver el modelo» (`HojaModelo.tsx`, `<Modal variante="hoja">`): su dato lo arma la página con lo que ya leyó
+  (`lib/produccion-hoja-modelo.ts:hojaDelModelo` + `lib/produccion-presentacion.ts:coloresDeModelos`) y viaja con ella, sin una lectura más; la orden (`?nueva=`) y el traslado (`/inventario/mover`) salen de la hoja.
+  El análisis y las tareas que siguen: `docs/pantallas/produccion.md`.
 - **Nueva orden con decisión (F5, solo líder):** `app/(app)/produccion/ordenes/page.tsx` → `lib/decision-produccion.ts:getDecisionProduccion` (ritmo y stock de cada sede por `getFilasRecientesDeSede` →
   `fn_resumen_variantes`; consumo real de órdenes cerradas; saldo de Insumos; lo facturado por llegar) + `lib/produccion-decision-reglas.ts` (puro: demanda de la red, curva sugerida, rendimiento medido, ¿alcanza?) →
   `OrdenesTablero.tsx` → `NuevaOrdenProduccionForm.tsx`. Sin esquema nuevo.

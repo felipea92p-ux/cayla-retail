@@ -238,6 +238,9 @@ export function nombreDeVariante(v: Pick<RotuloDeVariante, "talla" | "color">): 
   return [v.talla, v.color].filter(Boolean).join(" · ") || "una variante";
 }
 
+/** «Se vendió y ya no hay en tiendas»: más ventas que el umbral de poca base (con menos es ruido, ADR-0346) y nada en tiendas. La única definición: la fila, el aviso y la hoja «Ver el modelo». */
+export const seVendioYYaNoHay = (ventas: number, stockRed: number): boolean => stockRed <= 0 && ventas > UMBRAL_POCA_BASE_VENTAS;
+
 /**
  * Las tallas y colores de un modelo que SÍ tiene stock en alguna otra, y que ya se agotaron en las tiendas pero se vendían (más de `UMBRAL_POCA_BASE_VENTAS` ventas
  * en la ventana: con menos es ruido, ADR-0346). Es solo un AVISO: el consejo del modelo («Alcanza», «Sobrestock»…) no cambia por esto. Si TODO el modelo está
@@ -245,7 +248,7 @@ export function nombreDeVariante(v: Pick<RotuloDeVariante, "talla" | "color">): 
  */
 export function agotadasQueSeVendian(f: Pick<FilaModelo, "stockRed" | "variantes">): VarianteDeFila[] {
   if (f.stockRed <= 0) return [];
-  return f.variantes.filter((v) => v.stockRed <= 0 && v.ventasNetas > UMBRAL_POCA_BASE_VENTAS).sort((a, b) => b.ventasNetas - a.ventasNetas);
+  return f.variantes.filter((v) => seVendioYYaNoHay(v.ventasNetas, v.stockRed)).sort((a, b) => b.ventasNetas - a.ventasNetas);
 }
 
 /** «Se vendían y ya no hay en tiendas: S · Negro, M · Negro y 2 más». Vacío si no hay ninguna. */
@@ -310,7 +313,7 @@ const OCULTAS: Record<Decision["tipo"], { uno: string; varios: string; href: str
 };
 
 /** «5,1»: lo que se vende por semana (el ritmo es por día). */
-const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 10).toLocaleString("es-PE");
+export const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 10).toLocaleString("es-PE");
 
 /** «y no hay orden abierta», o, si ya hay una que no alcanza, cuánto falta de verdad: la tarjeta nunca dice «no hay orden» delante de una orden. */
 const frasePorOrden = (m: FilaModelo) => (m.enProduccion > 0 ? `la orden abierta de ${m.enProduccion} no alcanza (faltan ${m.producir})` : "no hay orden abierta");
