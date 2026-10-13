@@ -4,19 +4,23 @@
 // El problema: en una tienda los gastos son chicos y se repiten —el agua, unas bolsas, el mototaxi, los S/ 0.80 del baño— y el
 // formulario de Finanzas ▸ Gastos pedía comprobante, proveedor, categoría contable, tienda, cuenta y condición para cada uno.
 // Aquí la colaboradora toca un CONCEPTO en palabras de tienda («Baño», «Bolsas») y el monto; el concepto ya trae su categoría
-// contable de `categorias_gasto` (nadie la elige) y el dinero sale del cajón abierto.
+// contable de `categorias_gasto` (nadie la elige) y el dinero sale del cajón abierto o, desde el 2026-10-12, del Yape o el Plin de la
+// tienda (las tiendas pagan el mototaxi o las bolsas con el Yape donde les pagan las clientas; ADR-0368, actualización 2026-10-12).
 //
 // CONTRATO
 //   PROMETE: (1) a cada concepto, su categoría contable existente; (2) reconocer el concepto de un gasto YA registrado por su
 //            descripción y su categoría —también los de antes de esta pantalla («Luz de septiembre»)—, para contar cuántas
 //            veces se usó cada uno en la sede; (3) el orden por frecuencia, con «Otro» siempre al final y la ★ en los 4 primeros
-//            que se usaron al menos una vez; (4) armar el borrador que `validarGasto` (la misma regla de Finanzas) valida.
+//            que se usaron al menos una vez; (4) armar el borrador que `validarGasto` (la misma regla de Finanzas) valida: en
+//            efectivo, con la caja abierta (su egreso descuenta el cajón); con Yape o Plin, sin caja y sin cuenta elegida (la base sella
+//            la cuenta donde cae el Yape o el Plin de esa tienda, `fn_cuenta_sellada`; si la tienda no lo configuró, queda «sin cuenta»
+//            y el líder la dice en Cuentas y dinero).
 //   ASUME:   el gasto rápido se guarda con la descripción que empieza por el nombre del concepto («Baño — llave del local»): así se
 //            reconoce después sin columna nueva en `retail.gastos`. Un gasto que no calza con ningún concepto cuenta como «Otro».
 //   NO HACE: no inventa categorías contables (sin «Otros» en la base: «Otro» pide escribir qué fue Y elegir a qué se parece), no
 //            paga a crédito (eso sigue en Finanzas ▸ Gastos) ni suma proveedores.
 
-import { parsearMonto, type BorradorGasto, type CategoriaGasto, type TipoComprobante } from "./gastos-reglas";
+import { parsearMonto, TEXTO_MEDIO, type BorradorGasto, type CategoriaGasto, type TipoComprobante } from "./gastos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 
 /** Cuántos días hacia atrás se cuentan para ordenar por frecuencia. */
@@ -192,6 +196,11 @@ export const textoVeces = (n: number) => (n === 1 ? "1 vez" : `${n} veces`);
 
 export type ComprobanteRapido = Exclude<TipoComprobante, "sin_comprobante">;
 
+/** Cómo se pagó: del cajón, o con el Yape o el Plin de la tienda. Transferencia y tarjeta siguen en Finanzas ▸ Gastos. */
+export type MedioRapido = "efectivo" | "yape" | "plin";
+export const MEDIOS_RAPIDOS: readonly MedioRapido[] = ["efectivo", "yape", "plin"];
+export const TEXTO_MEDIO_RAPIDO: Record<MedioRapido, string> = { efectivo: TEXTO_MEDIO.efectivo, yape: TEXTO_MEDIO.yape, plin: TEXTO_MEDIO.plin };
+
 export type EstadoGastoRapido = {
   /** Una clave de concepto, «otro», o "" si aún no se eligió. */
   concepto: string;
@@ -207,6 +216,10 @@ export type EstadoGastoRapido = {
   /** Serie y número ya partidos (`partirSerieNumero`). */
   serie: string;
   numero: string;
+  /** Cómo se pagó. De fábrica, efectivo: es lo que pasa casi siempre. */
+  medio: MedioRapido;
+  /** Tocó «¿Cómo lo pagaste?» (aunque dejara Efectivo): un valor de fábrica que importa pasa por la guía (ADR-0284 act. h). */
+  medioElegido: boolean;
 };
 
 export const GASTO_RAPIDO_VACIO: EstadoGastoRapido = {
@@ -220,6 +233,8 @@ export const GASTO_RAPIDO_VACIO: EstadoGastoRapido = {
   proveedorId: "",
   serie: "",
   numero: "",
+  medio: "efectivo",
+  medioElegido: false,
 };
 
 /** «Otro» necesita al menos esto para decir qué fue. */
@@ -236,7 +251,10 @@ export function categoriaDe(e: Pick<EstadoGastoRapido, "concepto" | "otroCategor
   return e.concepto === CLAVE_OTRO ? e.otroCategoria : (conceptoPorClave(e.concepto)?.categoria ?? "");
 }
 
-/** El borrador de Finanzas ▸ Gastos: sale del cajón abierto (`cajaId`), al contado, con fecha de hoy. */
+/**
+ * El borrador de Finanzas ▸ Gastos, al contado y con fecha de hoy. En efectivo sale del cajón abierto (`cajaId`: la base crea su egreso
+ * y el cierre lo descuenta). Con Yape o Plin no lleva caja ni cuenta: la base sella la de ese medio en la tienda y el cajón no cambia.
+ */
 export function borradorDeGastoRapido(e: EstadoGastoRapido, caja: { id: string; ubicacionId: string }, hoy: string): BorradorGasto {
   return {
     ubicacion: caja.ubicacionId,
@@ -250,8 +268,8 @@ export function borradorDeGastoRapido(e: EstadoGastoRapido, caja: { id: string; 
     numero: e.conComprobante ? e.numero : "",
     condicion: "contado",
     vence: "",
-    medio: "efectivo",
-    cajaId: caja.id,
+    medio: e.medio,
+    cajaId: e.medio === "efectivo" ? caja.id : "",
     egresoId: "",
     referencia: "",
   };
@@ -285,6 +303,14 @@ export function camposDeGastoRapido(e: EstadoGastoRapido): CampoDeGuia[] {
     );
   }
   campos.push({ id: "monto", nombre: "Cuánto", requerido: true, hecho: montoValido(e.monto), pendiente: "Escribe cuánto fue." });
+  campos.push({
+    id: "medio",
+    nombre: "Cómo lo pagaste",
+    requerido: false,
+    sugerido: true,
+    hecho: e.medioElegido,
+    pendiente: "Di si salió del cajón o se pagó con Yape o Plin.",
+  });
   if (e.conComprobante) {
     campos.push(
       { id: "proveedor", nombre: "Proveedor", requerido: true, hecho: e.proveedorId !== "", pendiente: "Elige el proveedor." },
@@ -299,6 +325,28 @@ export function camposDeGastoRapido(e: EstadoGastoRapido): CampoDeGuia[] {
   }
   campos.push({ id: "nota", nombre: "Nota", requerido: false, hecho: e.nota.trim() !== "", pendiente: "" });
   return campos;
+}
+
+/**
+ * Lo que la hoja dice de dónde sale la plata: sigue a lo elegido en «¿Cómo lo pagaste?» (ADR-0290). Con efectivo, el cajón y su caja;
+ * con Yape o Plin, que el cajón no cambia (un gasto por Yape anotado como efectivo hace sobrar plata en el cierre).
+ */
+export function textosDelMedio(medio: MedioRapido, sede: string): { subtitulo: string; ayuda: string; listo: string; sello: string } {
+  if (medio === "efectivo") {
+    return {
+      subtitulo: `Sale del cajón de ${sede}, que está abierto.`,
+      ayuda: "Del cajón: la caja lo descuenta.",
+      listo: "Todo listo: sale del cajón.",
+      sello: "Salió del cajón: la caja ya lo descuenta.",
+    };
+  }
+  const nombre = TEXTO_MEDIO_RAPIDO[medio];
+  return {
+    subtitulo: `Se paga con el ${nombre} de ${sede}: el cajón no cambia.`,
+    ayuda: `Del ${nombre} de la tienda: no lo saques del cajón.`,
+    listo: `Todo listo: se paga con ${nombre}.`,
+    sello: `Se pagó con ${nombre}: el cajón no cambia.`,
+  };
 }
 
 /** Las categorías contables para «Otro»: cada una con sus ejemplos, que es lo que la persona reconoce. */

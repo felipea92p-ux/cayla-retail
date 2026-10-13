@@ -193,7 +193,10 @@ export function IngresoRapidoModal({
           Entra al cajón de {ubicacionNombre}, que está abierto.
         </span>
       }
-      onClose={() => avisoSalida.pedirAccion(onCerrar)}
+      // «¿Salir sin guardar?» se pregunta ANTES de animar la salida (Escape, el velo), y `onClose` ya no pregunta: pasado por
+      // `onClose`, «Cancelar» preguntaba dos veces y «Seguir editando» tras un Escape dejaba la hoja montada e invisible.
+      antesDeCerrar={avisoSalida.pedirAccion}
+      onClose={onCerrar}
       bloqueado={guardando}
       ancho="max-w-[560px]"
     >

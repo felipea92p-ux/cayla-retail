@@ -493,7 +493,7 @@ export const GUIA_CAJA: Guia = {
       ancla: "caja.gasto",
       opcional: true,
       titulo: "Registrar gasto",
-      texto: "Para un gasto de la tienda pagado con la plata del cajón (movilidad, limpieza, un arreglo). Abre una hoja corta: tocas uno de los gastos de siempre, el monto y, si te dieron boleta o factura, sus datos. Sale de la caja y queda en Finanzas. En la demo no lo tocamos.",
+      texto: "Para un gasto de la tienda (movilidad, limpieza, un arreglo). Abre una hoja corta: tocas uno de los gastos de siempre, el monto y cómo lo pagaste: del cajón, o con el Yape o el Plin de la tienda, que no tocan el cajón. Queda en Finanzas. En la demo no lo tocamos.",
     },
     {
       id: "ingreso",
