@@ -2,7 +2,10 @@
 
 import { avisar } from "@/components/ui/Avisos";
 import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
-import { Suspense, useEffect, useState } from "react";
+import { PanelVuelo } from "@/components/login/PanelVuelo";
+import { saludoDelDia } from "@/lib/login-vuelo";
+import { iniciarEntrada } from "@/lib/entrada-estado";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +19,8 @@ const MENSAJES_ERROR: Record<string, string> = {
   // ADR-0162: la cuenta de un APARATO (terminal de tienda) que un líder desactivó en Colaboradores ▸ Terminales.
   terminal_desactivada: "Esta terminal está desactivada. Pide a un Líder que la reactive en Colaboradores ▸ Terminales.",
 };
+
+const sinSuscripcion = () => () => {};
 
 export default function LoginPage() {
   return (
@@ -33,6 +38,8 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  // El saludo depende de la hora: lo pone el navegador (en el servidor no se sabe cuándo se abrirá la página).
+  const saludo = useSyncExternalStore(sinSuscripcion, () => saludoDelDia(new Date()), () => null);
   // El motivo por el que te mandaron al login (sesión vencida, sin acceso)
   // viene por la URL: se avisa una vez al entrar.
   useEffect(() => {
@@ -45,93 +52,106 @@ function LoginForm() {
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }
+    // «El colibrí se abre» (Felipe 2026-10-13): el colibrí cruza al centro y se abre sobre la pantalla de destino mientras carga.
+    // Si la persona pidió menos movimiento, o no hay colibrí a la vista, el login entra como siempre. Con la entrada en curso el
+    // botón sigue en «Entrando…» (la capa frena los clics): no se inicia sesión dos veces.
+    if (!iniciarEntrada()) setLoading(false);
     router.push("/");
     router.refresh();
   }
 
+  // «El vuelo» (Felipe 2026-10-13): la marca a la izquierda y el formulario a la derecha; en el celular, solo el formulario.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-crema px-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm">
-        <div className="mb-10 flex flex-col items-center text-center">
-          <IsotipoCayla className="h-14 w-auto" />
-          <h1 className="font-display mt-5 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
-            CAYLA
-          </h1>
-          {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
-          <p className="label-cayla text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
-            Retail
+    <div className="login-pagina">
+      <PanelVuelo />
+
+      <main className="login-lado">
+        <form onSubmit={onSubmit} className="login-form">
+          <div className="login-marca-chica">
+            <IsotipoCayla className="h-12 w-auto" />
+            <p className="font-display mt-4 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
+              CAYLA
+            </p>
+            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
+            <p className="label-cayla text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
+              Retail
+            </p>
+          </div>
+
+          <p className="login-saludo" data-listo={saludo ? "" : undefined}>
+            {saludo ?? "\u00a0"}
           </p>
-          <p className="font-display mt-1 text-base italic text-taupe-profundo">Donde el estilo transforma.</p>
-        </div>
+          <h1 className="login-titulo">Entrar</h1>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-tinta/65">
+            Con el correo que te dio tu líder, o el de la terminal de tu tienda.
+          </p>
 
-        <div className="space-y-5">
-          <div className="campo space-y-2">
-            <label htmlFor="login-email" className="campo-etiqueta">
-              Correo
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="caja-campo-input"
-            />
-          </div>
-
-          <div className="campo space-y-2">
-            <label htmlFor="login-clave" className="campo-etiqueta">
-              Contraseña
-            </label>
-            {/* La caja del sistema (ADR-0358, ronda 6), con el ojo adentro. */}
-            <div className="caja-cayla caja-campo">
+          <div className="mt-8 space-y-5">
+            <div className="campo space-y-2">
+              <label htmlFor="login-email" className="campo-etiqueta">
+                Correo
+              </label>
               <input
-                id="login-clave"
-                type={mostrarPassword ? "text" : "password"}
+                id="login-email"
+                type="email"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="self-stretch py-0"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="caja-campo-input"
               />
-              <button
-                type="button"
-                onClick={() => setMostrarPassword((v) => !v)}
-                aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="-mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
-              >
-                {mostrarPassword ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-                    <path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.6 5.2A10.6 10.6 0 0112 5c6.5 0 10 7 10 7a15.5 15.5 0 01-3.2 4.2M6.6 6.6C4 8.3 2 12 2 12s3.5 7 10 7a9.7 9.7 0 004.4-1" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                    <circle cx="12" cy="12" r="2.5" />
-                  </svg>
-                )}
-              </button>
             </div>
+
+            <div className="campo space-y-2">
+              <label htmlFor="login-clave" className="campo-etiqueta">
+                Contraseña
+              </label>
+              {/* La caja del sistema (ADR-0358, ronda 6), con el ojo adentro. */}
+              <div className="caja-cayla caja-campo">
+                <input
+                  id="login-clave"
+                  type={mostrarPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="self-stretch py-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPassword((v) => !v)}
+                  aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="-mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
+                >
+                  {mostrarPassword ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+                      <path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.6 5.2A10.6 10.6 0 0112 5c6.5 0 10 7 10 7a15.5 15.5 0 01-3.2 4.2M6.6 6.6C4 8.3 2 12 2 12s3.5 7 10 7a9.7 9.7 0 004.4-1" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                      <circle cx="12" cy="12" r="2.5" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-cayla btn-primario mt-2 w-full"
+            >
+              {loading ? "Entrando…" : "Entrar"}
+            </button>
           </div>
+        </form>
 
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-cayla btn-primario mt-2 w-full"
-          >
-            {loading ? "Entrando…" : "Entrar"}
-          </button>
-        </div>
-
-        <p className="mt-10 text-center label-cayla text-[11px] text-tinta/65">
-          Trujillo · Arequipa · Lima
-        </p>
-      </form>
+        <p className="login-pie text-[12.5px] text-tinta/65">¿Olvidaste tu contraseña? Avísale a tu líder.</p>
+      </main>
     </div>
   );
 }
