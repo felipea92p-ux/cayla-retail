@@ -58,6 +58,25 @@ const MAX = 64 * 1024 * 1024;
  * `sql`: devuelve UNA FILA POR VIOLACIÓN (vacío = limpia). `corrompe`: SQL que rompe a propósito el dato que vigila (solo para la
  * autoprueba, siempre revertido). `sinAutoprueba`: por qué no se puede corromper (se dice en voz alta).
  */
+/** Las columnas de dinero de Ventas y Caja que vigila INV-16 (todas las `numeric` de esas tablas, 2026-10-13). */
+const COLUMNAS_DE_DINERO = [
+  ["cajas", ["monto_apertura", "monto_cierre_sistema", "monto_cierre_real", "diferencia", "monto_fondo", "monto_apertura_esperado", "fondo_requerido"]],
+  ["caja_movimientos", ["monto"]],
+  ["caja_traslados", ["monto"]],
+  ["venta_pagos", ["monto", "recibido"]],
+  ["venta_items", ["precio_unitario", "descuento_unitario", "costo_unitario", "descuento_club_unitario"]],
+  ["ventas", ["descuento_pct"]],
+  ["cambios", ["diferencia"]],
+  ["devoluciones", ["reembolso_monto"]],
+  ["separaciones", ["total", "adelanto"]],
+  ["separacion_items", ["precio_unitario", "descuento_unitario"]],
+  ["separacion_pagos", ["monto", "recibido"]],
+  ["separacion_abonos", ["monto"]],
+  ["separacion_ediciones", ["total_antes", "total_despues"]],
+  ["comprobantes", ["subtotal", "igv", "total", "anticipo_deducido"]],
+  ["proformas", ["subtotal", "igv", "total"]],
+];
+
 export const INVARIANTES = [
   {
     id: "INV-01",
@@ -300,6 +319,36 @@ select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(m.cantidad)
     corrompe: `update retail.compras set estado = 'anulada', motivo_anulacion = 'autoprueba chaos', anulada_at = now()
  where ctid = (select c.ctid from retail.compras c where c.estado = 'vigente'
                 and exists (select 1 from retail.compra_items ci join retail.movimientos m on m.compra_item_id = ci.id where ci.compra_id = c.id) limit 1);`,
+  },
+  {
+    id: "INV-15",
+    nombre: "caja_abierta_con_efectivo",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una caja abierta nunca espera menos de cero en el cajón: no se puede sacar plata que no está (egresos, reembolsos, vueltos de un cambio, ventas anuladas). Se calcula con `fn_calcular_esperado_caja`, la misma cuenta que usa `cerrar_caja`. Nació de /chaos 2026-10-13.",
+    sql: `
+select c.id as caja_id, c.ubicacion_id, e.esperado
+  from retail.cajas c
+  cross join lateral retail.fn_calcular_esperado_caja(c.id) e
+ where c.estado = 'abierta' and e.esperado < 0`,
+    // Un ingreso de una caja abierta pasa a ser un egreso enorme: el esperado cae bajo cero. Es un UPDATE, que el candado
+    // de la base (un disparador al insertar) no mira: así se prueba el detector y no el candado.
+    corrompe: `update retail.caja_movimientos set tipo = 'egreso', monto = monto + 1000000
+ where ctid = (select m.ctid from retail.caja_movimientos m join retail.cajas c on c.id = m.caja_id where c.estado = 'abierta' limit 1);`,
+  },
+  {
+    id: "INV-16",
+    nombre: "montos_de_ventas_sin_nan",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Ningún monto de Ventas o de Caja es `NaN`. En Postgres `'NaN'::numeric` es mayor que cualquier número: pasa los CHECK `>= 0` y, una vez dentro, cualquier suma que lo toque (el esperado de la caja, el total del día) también da NaN. Nació de /chaos 2026-10-13.",
+    sql: COLUMNAS_DE_DINERO.map(([tabla, columnas]) =>
+      `select '${tabla}' as tabla, id::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where 'NaN'::numeric in (${columnas.join(", ")})`
+    ).join("\nunion all\n"),
+    // El candado de la base (`venta_pagos_montos_sin_nan`) se quita dentro de la transacción revertida: sin eso, la
+    // corrupción misma rebota y no se puede probar que el detector la ve.
+    corrompe: `alter table retail.venta_pagos drop constraint if exists venta_pagos_montos_sin_nan;
+update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retail.venta_pagos limit 1);`,
   },
 ];
 
