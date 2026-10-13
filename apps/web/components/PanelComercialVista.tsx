@@ -1,4 +1,8 @@
+import { Receipt } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { VentasPorHoraChart } from "@/components/CajaGraficos";
 import { soles } from "@/lib/compras-reglas";
@@ -56,9 +60,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
     <div className="space-y-8">
       {/* ---------- Todo CAYLA ---------- */}
       <section aria-labelledby="titulo-total" className="space-y-3" data-guia="comercial.total">
-        <h2 id="titulo-total" className="label-cayla text-[11px] text-tinta/65">
-          Todas las tiendas
-        </h2>
+        <TituloSeccion id="titulo-total">Todas las tiendas</TituloSeccion>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <TarjetaCifra
             etiqueta="Ventas de hoy"
@@ -129,9 +131,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       {/* ---------- Una tarjeta por tienda ---------- */}
       <section aria-labelledby="titulo-tiendas" className="space-y-3" data-guia="comercial.tiendas">
         <div>
-          <h2 id="titulo-tiendas" className="label-cayla text-[11px] text-tinta/65">
-            Por tienda
-          </h2>
+          <TituloSeccion id="titulo-tiendas">Por tienda</TituloSeccion>
           <p className="mt-1 text-xs text-tinta/60">La tienda que más necesita atención, primero.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -144,9 +144,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       {/* ---------- Ventas por hora, una por tienda ---------- */}
       <section aria-labelledby="titulo-horas" className="space-y-3" data-guia="comercial.horas">
         <div>
-          <h2 id="titulo-horas" className="label-cayla text-[11px] text-tinta/65">
-            Ventas por hora, hoy
-          </h2>
+          <TituloSeccion id="titulo-horas">Ventas por hora, hoy</TituloSeccion>
           <p className="mt-1 text-xs text-tinta/60">Hora de Lima. Desde la primera venta del día hasta la hora actual.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -174,9 +172,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       {/* ---------- Colaboradoras ---------- */}
       <section aria-labelledby="titulo-colab" className="space-y-3" data-guia="comercial.colaboradoras">
         <div>
-          <h2 id="titulo-colab" className="label-cayla text-[11px] text-tinta/65">
-            Ventas por colaboradora, este mes
-          </h2>
+          <TituloSeccion id="titulo-colab">Ventas por colaboradora, este mes</TituloSeccion>
           <p className="mt-1 max-w-2xl text-xs text-tinta/60">
             El descuento va al lado a propósito: vender más regalando precio no es vender mejor. Es una foto de un mes, no
             una evaluación: una colaboradora que cubre menos turnos vende menos sin hacerlo peor.
@@ -265,57 +261,49 @@ function Fila({ k, v }: { k: string; v: string }) {
   );
 }
 
+const PLANTILLA_COLABORADORAS = "grid-cols-[minmax(8rem,1.6fr)_5.5rem_6rem_4rem_6rem_5.5rem]";
+
 function TablaColaboradoras({ sede, filas }: { sede: SedeComercial; filas: ColaboradoraComercial[] }) {
   return (
-    <div className="card-cayla overflow-x-auto p-4">
-      <p className="text-sm font-semibold text-tinta">{sede.nombre}</p>
+    // La tabla del sistema (ADR-0358, ronda 7): el nombre de la tienda arriba, en su tarjeta.
+    <Tabla>
+      <p className="px-5 pt-4 pb-3 text-sm font-semibold text-tinta">{sede.nombre}</p>
       {filas.length === 0 ? (
-        <p className="mt-3 text-sm text-tinta/65">Sin ventas este mes.</p>
+        <Vacio tamano="chico" icono={<Receipt />}>
+          Sin ventas este mes.
+        </Vacio>
       ) : (
-        <table className="mt-3 w-full min-w-[26rem] text-xs tabular-nums">
-          <caption className="sr-only">Ventas por colaboradora en {sede.nombre}, este mes</caption>
-          <thead>
-            <tr className="border-b border-tinta/10 text-left text-tinta/60">
-              <th scope="col" className="py-1.5 pr-3 font-normal">
-                Colaboradora
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Hoy
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Mes
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Tickets
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Ticket prom.
-              </th>
-              <th scope="col" className="py-1.5 pl-2 text-right font-normal">
-                Descuento
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-tinta/10">
-            {filas.map((c) => {
-              const tk = ticketPromedio(c.ventasMes, c.ticketsMes);
-              const d = descuentoPct(c.brutoMes, c.descuentoMes);
-              return (
-                <tr key={c.personaId ?? "sin-colaboradora"}>
-                  <th scope="row" className={`py-1.5 pr-3 text-left font-normal ${c.personaId === null ? "italic text-tinta/60" : "text-tinta"}`}>
-                    {c.nombre}
-                  </th>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta/85">{c.ventasHoy > 0 ? soles(c.ventasHoy) : "—"}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta">{soles(c.ventasMes)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta/85">{c.ticketsMes}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta/85">{tk === null ? "—" : soles(tk)}</td>
-                  <td className="whitespace-nowrap py-1.5 pl-2 text-right text-tinta/85">{d === null ? "—" : pct(d)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div role="table" aria-label={`Ventas por colaboradora en ${sede.nombre}, este mes`} className="min-w-[26rem] divide-y divide-sand text-xs tabular-nums">
+          <Encabezado
+            siempre
+            plantilla={PLANTILLA_COLABORADORAS}
+            columnas={[
+              { titulo: "Colaboradora" },
+              { titulo: "Hoy", alinear: "der" },
+              { titulo: "Mes", alinear: "der" },
+              { titulo: "Tickets", alinear: "der" },
+              { titulo: "Ticket prom.", alinear: "der" },
+              { titulo: "Descuento", alinear: "der" },
+            ]}
+          />
+          {filas.map((c) => {
+            const tk = ticketPromedio(c.ventasMes, c.ticketsMes);
+            const d = descuentoPct(c.brutoMes, c.descuentoMes);
+            return (
+              <div key={c.personaId ?? "sin-colaboradora"} role="row" className={fila(PLANTILLA_COLABORADORAS)}>
+                <span role="rowheader" className={celda("izq", c.personaId === null ? "italic text-tinta/60" : "text-tinta")}>
+                  {c.nombre}
+                </span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{c.ventasHoy > 0 ? soles(c.ventasHoy) : "—"}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta")}>{soles(c.ventasMes)}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{c.ticketsMes}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{tk === null ? "—" : soles(tk)}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{d === null ? "—" : pct(d)}</span>
+              </div>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </Tabla>
   );
 }

@@ -3,6 +3,7 @@
 import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ConNumero, Control, FotoConMarcas, Renglon, RutaDeClics, Ventana, type Marca } from "@/components/GuiaImpresionVisuales";
 import { MEDIDAS, sistemaDelEquipo, type Sistema } from "@/lib/guia-impresion-reglas";
 import { COMANDO_INSTALAR } from "@/lib/mac-etiquetas";
@@ -389,10 +390,10 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
             <div className="min-w-0">{paso.visual({ activa, onActiva: setActiva })}</div>
 
             <div className="min-w-0 space-y-4">
-              <h3 className="font-display text-xl leading-snug text-tinta">
+              <TituloSeccion nivel={3}>
                 <span className="mr-2 text-taupe-profundo tabular-nums">{indice + 1}.</span>
                 {paso.titulo}
-              </h3>
+              </TituloSeccion>
               <ol className="space-y-1.5">
                 {paso.acciones.map((a, i) => {
                   const encendida = a.marca !== undefined && activa === a.marca;

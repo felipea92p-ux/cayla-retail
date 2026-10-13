@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -56,13 +57,16 @@ export function EmpezarARecibir({ detalle, sede, responsable, onAbierto }: { det
   return (
     <div className="space-y-6">
       <section data-guia="recepcion.trae" className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que trae">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-xl text-tinta">Lo que trae</h2>
-          <p className="text-[13px] text-taupe">
-            {detalle.numeroGuia ? `Guía ${detalle.numeroGuia} · ` : ""}
-            {detalle.despachadoPor ? `lo envió ${detalle.despachadoPor}` : "en camino"}
-          </p>
-        </div>
+        <TituloSeccion
+          dato={
+            <>
+              {detalle.numeroGuia ? `Guía ${detalle.numeroGuia} · ` : ""}
+              {detalle.despachadoPor ? `lo envió ${detalle.despachadoPor}` : "en camino"}
+            </>
+          }
+        >
+          Lo que trae
+        </TituloSeccion>
         <LoQueTrae detalle={detalle} />
         {detalle.nota && <p className="nota-cayla">Nota de quien lo envió: {detalle.nota}</p>}
       </section>

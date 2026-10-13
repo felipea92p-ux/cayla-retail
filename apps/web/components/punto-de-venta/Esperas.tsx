@@ -86,7 +86,7 @@ export function DejarEnEsperaModal({
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Ej. Probador 2, señora del abrigo…"
             autoComplete="off"
-            className="h-11 w-full rounded-lg border border-sand bg-crema px-3 text-sm text-tinta outline-none placeholder:text-tinta/40 focus:border-rojo focus:ring-2 focus:ring-rojo/20"
+            className="caja-campo-input h-11 w-full text-sm"
           />
           {libres.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">

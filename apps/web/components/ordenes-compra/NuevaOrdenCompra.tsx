@@ -53,6 +53,7 @@ import {
   type DatosNuevaOrden,
 } from "@/lib/ordenes-compra-reglas";
 import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-acciones";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
 // tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, precio y descuento), con el total al pie. Se usa
@@ -428,12 +429,15 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
         )}
 
         <section data-guia="orden-form.lineas" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-display text-xl text-tinta">Lo que pides</h2>
-            <p className="text-sm tabular-nums text-taupe">
-              {orden.lineas.length} {orden.lineas.length === 1 ? "línea" : "líneas"} · {cuantas.toLocaleString("es-PE")} {cuantas === 1 ? "unidad" : "unidades"}
-            </p>
-          </div>
+          <TituloSeccion
+            dato={
+              <>
+                {orden.lineas.length} {orden.lineas.length === 1 ? "línea" : "líneas"} · <b>{cuantas.toLocaleString("es-PE")}</b> {cuantas === 1 ? "unidad" : "unidades"}
+              </>
+            }
+          >
+            Lo que pides
+          </TituloSeccion>
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>

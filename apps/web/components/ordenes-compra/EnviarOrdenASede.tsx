@@ -6,6 +6,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { Boton, BotonEnlace, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -259,19 +260,22 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
         </section>
 
         <section data-guia="envio.lineas" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Qué lleva">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-display text-xl text-tinta">Qué lleva</h2>
-            {enviables.length > 1 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setCantidades(precargarCantidades(orden))}>
-                  Todo lo que queda
-                </Boton>
-                <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setCantidades(vaciarCantidades(orden))}>
-                  Dejar todas en 0
-                </Boton>
-              </div>
-            )}
-          </div>
+          <TituloSeccion
+            accion={
+              enviables.length > 1 ? (
+                <span className="flex flex-wrap items-center gap-2">
+                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setCantidades(precargarCantidades(orden))}>
+                    Todo lo que queda
+                  </Boton>
+                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setCantidades(vaciarCantidades(orden))}>
+                    Dejar todas en 0
+                  </Boton>
+                </span>
+              ) : undefined
+            }
+          >
+            Qué lleva
+          </TituloSeccion>
 
           {!destino && enviables.length > 1 && (
             <p className="nota-cayla">Esta orden se reparte: deja en cada línea solo lo que va a esta sede. Lo que sobre lo envías después, en otra guía.</p>

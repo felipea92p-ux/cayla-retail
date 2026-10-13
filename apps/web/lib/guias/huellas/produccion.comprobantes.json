@@ -35,7 +35,7 @@
       "BotonEnlace «Ir a Proveedores»",
       "Boton «Registrar la primera»",
       "button «{o.etiqueta}»",
-      "Desplegable «(sin nombre)»",
+      "DesplegablePildora «Proveedor»",
       "Boton «Borrar la búsqueda»",
       "Boton «Limpiar filtros»",
       "button «{diaMes(c.fechaEmision)}»"
