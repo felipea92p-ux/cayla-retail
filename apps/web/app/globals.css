@@ -475,16 +475,33 @@ body {
     color: var(--color-tinta);
     background: color-mix(in oklab, var(--color-sand) 30%, transparent);
   }
+  /* El enlace dentro de una frase (ADR-0358, ronda 8: Felipe lo eligió tocándolo el 2026-10-13): en reposo, la palabra en tinta con
+     un subrayado tenue; al pasar el mouse, un HILO ROJO de 1,5 px corre de izquierda a derecha sobre el subrayado y el texto pasa a
+     rojo profundo. El subrayado es una imagen de fondo para poder dibujarse: va a 0,7 em bajo el centro de la línea, así queda pegado al
+     texto también en un `btn-chico` de 44 px, y con `box-decoration-break` cada renglón lleva el suyo. Antes: tinta subrayada que al
+     pasar el mouse se ponía taupe (parecía apagado). */
   .btn-enlace {
-    background: none;
+    background-color: transparent;
     border: none;
     padding: 0;
     color: var(--color-tinta);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    text-decoration: none;
+    background-image:
+      linear-gradient(var(--color-rojo), var(--color-rojo)),
+      linear-gradient(color-mix(in srgb, var(--color-tinta) 32%, transparent), color-mix(in srgb, var(--color-tinta) 32%, transparent));
+    background-size: 0% 1.5px, 100% 1px;
+    background-position: 0 calc(50% + 0.7em), 0 calc(50% + 0.7em);
+    background-repeat: no-repeat;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla);
   }
-  .btn-enlace:hover:not(:disabled) {
-    color: var(--color-taupe);
+  .btn-enlace:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-size: 100% 1.5px, 100% 1px;
+    color: var(--color-rojo-profundo);
+  }
+  .btn-enlace:active:not(:disabled):not([aria-disabled="true"]) {
+    color: var(--color-rojo);
   }
 
   /* Píldora de filtro (Todos · Entradas · Salidas…): la activa se rellena de tinta. */
