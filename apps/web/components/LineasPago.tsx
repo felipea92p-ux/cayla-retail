@@ -211,7 +211,8 @@ export function LineasPago({
                       type="button"
                       role="radio"
                       aria-checked={l.metodo === m}
-                      tabIndex={l.metodo === m ? 0 : -1}
+                      // Sin medio elegido (una pantalla que no lo trae puesto), la primera ficha recibe el Tab: si no, el grupo no se alcanza.
+                      tabIndex={l.metodo === m || (!metodos.includes(l.metodo) && m === metodos[0]) ? 0 : -1}
                       data-preferido={preferido === m}
                       onClick={() => actualizar(i, { metodo: m })}
                       onKeyDown={(e) => alTeclado(e, i, actual)}

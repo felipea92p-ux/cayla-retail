@@ -345,6 +345,26 @@ export function vacioDeLista(
   return { titulo, frase: f.destino === TODAS ? "Quita el filtro para ver todas." : "Mira las de todas las sedes, o crea una nueva.", filtros };
 }
 
+/** Lo buscado no está en la sede filtrada pero sí en otra (Felipe 2026-10-13, /formidable): la lista arranca en la sede donde se trabaja
+ *  (decisión 37) y buscar «OC-002783», que llega a Trujillo, decía «Ninguna orden coincide» aunque la orden existía. En vez de un «no
+ *  existe» falso, dice dónde está y lleva a verla en todas las sedes, con la misma búsqueda. `otras` son las filas de la misma búsqueda
+ *  en TODAS las sedes; null si no corresponde (sin búsqueda, ya en todas, «Por enviar» o nada en otras sedes). */
+export function vacioEnOtrasSedes(
+  f: FiltrosLista,
+  otras: readonly { destinoNombre: string | null }[],
+): { titulo: string; frase: string; href: string } | null {
+  if (!f.q || f.destino === TODAS || f.porEnviar || otras.length === 0) return null;
+  const sedes = [...new Set(otras.map((o) => o.destinoNombre ?? "por repartir"))];
+  const lugar = sedes.length === 1 ? (sedes[0] === "por repartir" ? "por repartir" : `en ${sedes[0]}`) : "en otras sedes";
+  const titulo =
+    otras.length === 1 ? `«${f.q}» está ${lugar}` : sedes.length === 1 ? `Las ${otras.length} órdenes con «${f.q}» están ${lugar}` : `Hay ${otras.length} órdenes con «${f.q}» en otras sedes`;
+  const frase =
+    sedes.length === 1
+      ? "Aquí solo ves las de la sede elegida: míralas en todas las sedes."
+      : `Están en ${sedes.slice(0, -1).join(", ")} y ${sedes[sedes.length - 1]}. Aquí solo ves las de la sede elegida.`;
+  return { titulo, frase, href: hrefLista(f, { destino: TODAS }) };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Una orden (la ventana de detalle)
 // ---------------------------------------------------------------------------------------------------------------------------------

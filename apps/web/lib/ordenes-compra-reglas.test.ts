@@ -40,6 +40,7 @@ import {
   tieneEnvioVivo,
   textoDestino,
   vacioDeLista,
+  vacioEnOtrasSedes,
 } from "./ordenes-compra-reglas";
 
 const LIMA = "0b6f1c2e-0000-4000-8000-0000000000b2";
@@ -149,6 +150,26 @@ describe("las píldoras de «Llega a» y lo que dice la lista vacía", () => {
       titulo: "No hay ninguna orden generada",
       frase: "Quita el filtro para ver todas.",
     });
+  });
+  it("lo buscado está en otra sede: dice dónde y lleva a todas las sedes con la misma búsqueda (Felipe 2026-10-13)", () => {
+    const f = filtrosDeLista({ destino: TRU, q: "OC-002783" }, CTX_LISTA);
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: "Tienda Arequipa" }])).toEqual({
+      titulo: "«OC-002783» está en Tienda Arequipa",
+      frase: "Aquí solo ves las de la sede elegida: míralas en todas las sedes.",
+      href: "/compras/ordenes?destino=todas&q=OC-002783",
+    });
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: "Tienda Arequipa" }, { destinoNombre: "Tienda Arequipa" }])?.titulo).toBe(
+      "Las 2 órdenes con «OC-002783» están en Tienda Arequipa",
+    );
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: "Tienda Arequipa" }, { destinoNombre: "Tienda Lima" }, { destinoNombre: null }])).toMatchObject({
+      titulo: "Hay 3 órdenes con «OC-002783» en otras sedes",
+      frase: "Están en Tienda Arequipa, Tienda Lima y por repartir. Aquí solo ves las de la sede elegida.",
+    });
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: null }])?.titulo).toBe("«OC-002783» está por repartir");
+    // No corresponde: nada en otras sedes, sin búsqueda, ya en todas o en «Por enviar».
+    expect(vacioEnOtrasSedes(f, [])).toBeNull();
+    expect(vacioEnOtrasSedes(filtrosDeLista({ destino: TRU }, CTX_LISTA), [{ destinoNombre: "Tienda Lima" }])).toBeNull();
+    expect(vacioEnOtrasSedes(filtrosDeLista({ destino: TODAS, q: "Zara" }, CTX_LISTA), [{ destinoNombre: "Tienda Lima" }])).toBeNull();
   });
   it("sin resultados por la búsqueda: nombra lo buscado; la búsqueda no va entre los filtros (se borra con su botón)", () => {
     const v = vacioDeLista(filtrosDeLista({ destino: TODAS, q: "Zara" }, CTX_LISTA), null);

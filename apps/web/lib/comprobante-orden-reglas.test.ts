@@ -164,7 +164,7 @@ describe("«Sin comprobante», el cuarto tipo (decisión 50, Felipe 2026-10-12)"
       boton: "Registrar sin comprobante",
       sinIgv: "Sin comprobante no hay IGV: lo que pagaste es el costo.",
     });
-    expect(palabrasDelTipo("boleta")).toMatchObject({ total: "Total del papel", seccion: "Lo que dice el papel", boton: "Registrar comprobante" });
+    expect(palabrasDelTipo("boleta")).toMatchObject({ total: "Total del papel", seccion: "Lo que dice el papel", boton: "Registrar la compra" });
     expect(palabrasDelTipo("boleta").sinIgv).toBe("Una boleta no lleva IGV aparte: el costo del papel es el costo.");
     expect(palabrasDelTipo("factura").sinIgv).toBeNull();
   });
@@ -423,10 +423,22 @@ describe("fechas y pago", () => {
     expect(problemaDePago([{ ...efectivo, monto: "" }], 15050)).toMatch(/mayor a cero/);
     expect(problemaDePago([{ ...efectivo, monto: "0" }], 15050)).toMatch(/mayor a cero/);
     expect(problemaDePago([{ ...efectivo, monto: "10.555" }], 15050)).toMatch(/dos decimales/);
+    // El medio no viene puesto (Felipe 2026-10-13, /formidable): sin elegirlo, el pago no está listo aunque el monto cuadre.
+    expect(problemaDePago([{ monto: "150.50", metodo: "", referencia: "" }], 15050)).toMatch(/Elige con qué se pagó/);
   });
 });
 
 describe("la guía de foco sale de las reglas de la función", () => {
+  it("la pantalla arranca el tipo y la condición VACÍOS: son lo que falta y bloquean hasta elegirlos (Felipe 2026-10-13)", () => {
+    const vacio = camposDelComprobante(borrador({ tipo: "", condicion: "" }), CTX, { tipo: false, condicion: false }, SIN_TERMINAL);
+    expect(vacio.find((c) => c.id === "tipo")).toMatchObject({ requerido: true, hecho: false, pendiente: expect.stringMatching(/^Elige qué papel/) });
+    expect(vacio.find((c) => c.id === "condicion")).toMatchObject({ requerido: true, hecho: false, pendiente: expect.stringMatching(/^Elige si lo pagas/) });
+    // Sin condición no entran ni el vencimiento ni el pago; sin tipo, el total no suma IGV (es el de la orden).
+    expect(vacio.map((c) => c.id)).not.toContain("vencimiento");
+    expect(vacio.map((c) => c.id)).not.toContain("pago");
+    expect(primerProblema(borrador({ tipo: "", condicion: "" }), CTX)).toMatch(/^Elige qué papel/);
+    expect(totalesComprobante(borrador().lineas, { tipo: "", sumaIgv: true }).igvCentimos).toBe(0);
+  });
   it("tipo y condición traen un valor que importa: son «sugeridos» hasta que la persona los elige, y nunca bloquean", () => {
     const sinElegir = camposDelComprobante(borrador(), CTX, { tipo: false, condicion: false }, SIN_TERMINAL);
     const tipo = sinElegir.find((c) => c.id === "tipo")!;
@@ -527,6 +539,7 @@ describe("lo que viaja a la base", () => {
     expect(pagoParaBase([{ monto: "0", metodo: "efectivo", referencia: "" }])).toBeNull();
     expect(pagoParaBase([{ monto: "10.555", metodo: "efectivo", referencia: "" }])).toBeNull();
     expect(pagoParaBase([{ monto: "10", metodo: "efectivo", referencia: "" }, { monto: "x", metodo: "yape", referencia: "" }])).toBeNull();
+    expect(pagoParaBase([{ monto: "10", metodo: "", referencia: "" }])).toBeNull();
   });
   it("a crédito: con vencimiento y sin pago; el IGV se suma solo en una factura que lo pide", () => {
     const args = argsRegistrarComprobante(borrador({ serie: " f001 ", numero: " 123 ", nota: " Llegó en bolsa " }), { ordenId: ORDEN, token: TOKEN, pago: [{ monto: 1, metodo: "efectivo" }] });
