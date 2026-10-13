@@ -15,6 +15,7 @@ import type { CategoriaParaCotizar, CotizacionMaquila } from "@/lib/cotizaciones
 import { chipDeCotizacion, detalleDeCotizacion, masRecientePorCategoria, ordenarCotizaciones, textoDeVigencia } from "@/lib/cotizaciones-maquila-reglas";
 import { sumarDias } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // D-82: cotización real de un taller externo para maquilar cada tipo de prenda — sin RPC de
 // escritura, mismo criterio que `codigos_descuento` (CodigosDescuentoPanel.tsx): la RLS de la
@@ -35,7 +36,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0 flex-1 basis-80">
             <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-            <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Cotizaciones de maquila externa</h2>
+            <TituloSeccion className="mt-0.5">Cotizaciones de maquila externa</TituloSeccion>
             <p className="mt-0.5 max-w-[46rem] text-xs text-tinta/65">
               Lo que cobraría un taller externo por maquilar cada tipo de prenda — la referencia contra la que se mide el Taller (D-31). Una fila por tipo de
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.

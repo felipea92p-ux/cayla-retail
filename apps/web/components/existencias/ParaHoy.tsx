@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowRight, ChevronDown } from "lucide-react";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { resumenPlegado, TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, type TonoTareaHoy } from "@/lib/existencias-para-hoy";
 
 /* ====================================================================
@@ -81,9 +82,7 @@ export function ParaHoy({
   return (
     <section data-guia="existencias.pendientes-lista" aria-labelledby="para-hoy-titulo" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-5 pb-2 pt-4 max-sm:px-4">
-        <h2 id="para-hoy-titulo" className="font-display text-[22px] leading-tight text-tinta">
-          Para hoy
-        </h2>
+        <TituloSeccion id="para-hoy-titulo">Para hoy</TituloSeccion>
         {extra && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">{extra}</div>}
       </div>
 
@@ -146,7 +145,7 @@ export function ParaHoy({
                             alElegir?.();
                             alVer();
                           }}
-                          className="font-medium text-tinta underline decoration-tinta/30 underline-offset-[3px] hover:decoration-tinta">
+                          className="btn-enlace font-medium">
                           Ver cuáles
                         </button>
                       </>

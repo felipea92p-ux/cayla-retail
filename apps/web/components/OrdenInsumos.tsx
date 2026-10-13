@@ -17,6 +17,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Insumos de una orden (ADR-0133, F3): qué tela y qué avíos se descontaron de qué lote, y el formulario para descontar más.
 // Descontar reemplaza el «costo de tela / avíos» que se tecleó al abrir la orden por lo que de verdad salió del estante
@@ -176,7 +177,7 @@ export function OrdenInsumos({
 
   return (
     <section aria-label="Insumos descontados">
-      <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">Insumos descontados</h3>
+      <TituloGrupo className="mb-3">Insumos descontados</TituloGrupo>
 
       {grupos.length === 0 ? (
         <p className="rounded-xl border border-dashed border-ambar/45 bg-ambar/[0.06] px-3.5 py-3 text-[13px] text-ambar-profundo">
@@ -214,7 +215,7 @@ export function OrdenInsumos({
                       setCantidadDev("");
                       if (!abierto) setInsumoId(null);
                     }}
-                    className="mt-1.5 text-xs text-tinta/70 underline underline-offset-2 outline-none hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
+                    className="btn-cayla btn-enlace mt-1.5 text-xs"
                   >
                     {abierto ? "Cancelar devolución" : "Devolver al estante"}
                   </button>
@@ -229,13 +230,13 @@ export function OrdenInsumos({
                         value={cantidadDev}
                         onChange={(e) => setCantidadDev(e.target.value)}
                         placeholder="0"
-                        className="w-28 rounded-lg border border-tinta/25 bg-papel px-3 py-2 text-center text-lg tabular-nums text-tinta outline-none focus:border-rojo"
+                        className="caja-campo-input w-28 text-center text-lg tabular-nums"
                       />
                       <span className="text-sm text-tinta/65">{UNIDADES_INSUMO[insumoDev.unidad].corta}</span>
                       <button
                         type="button"
                         onClick={() => setCantidadDev(String(previsionDev?.ok ? previsionDev.netoLote : g.neto))}
-                        className="ml-auto text-xs text-tinta/70 underline underline-offset-2 hover:text-rojo"
+                        className="btn-cayla btn-enlace ml-auto text-xs"
                       >
                         Devolver todo
                       </button>
@@ -295,7 +296,7 @@ export function OrdenInsumos({
           {insumos.length === 0 ? (
             <p className="mt-2 text-[13px] text-tinta/75">
               Todavía no hay insumos en el catálogo.{" "}
-              <Link href="/produccion/insumos" className="underline underline-offset-2 hover:text-rojo">
+              <Link href="/produccion/insumos" className="btn-enlace">
                 Cárgalos en Insumos
               </Link>{" "}
               para descontar tela y avíos desde aquí.
@@ -335,7 +336,7 @@ export function OrdenInsumos({
                       value={cantidad}
                       onChange={(e) => setCantidad(e.target.value)}
                       placeholder="0"
-                      className="w-28 rounded-lg border border-tinta/25 bg-papel px-3 py-2.5 text-center text-lg tabular-nums text-tinta outline-none focus:border-rojo"
+                      className="caja-campo-input caja-campo-alta w-28 text-center text-lg tabular-nums"
                     />
                     <span className="text-sm text-tinta/65">{UNIDADES_INSUMO[insumo.unidad].corta}</span>
                   </label>

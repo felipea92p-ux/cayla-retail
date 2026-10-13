@@ -260,7 +260,6 @@ export function RegistrarPagoModal({
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta/75";
   const enBanco = un && (lineas[0].metodo === "transferencia" || lineas[0].metodo === "deposito");
   const editarMonto = (t: string) => setLineas((ls) => [{ ...ls[0], monto: t }]);
-  const CAMPO_MONTO = `w-full rounded-lg border bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums outline-none transition-colors duration-200 focus:border-rojo ${excede ? "border-rojo text-rojo" : "border-tinta/25 text-tinta"}`;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -359,17 +358,20 @@ export function RegistrarPagoModal({
                     {compra.saldo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   {un ? (
-                    <input
-                      id="pago-monto-0"
-                      inputMode="decimal"
-                      value={lineas[0].monto}
-                      onChange={(e) => editarMonto(e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                      autoFocus
-                      aria-label={`Monto a pagar de ${compra.documento}`}
-                      aria-invalid={excede || undefined}
-                      className={CAMPO_MONTO}
-                    />
+                    // El monto de la fila va en la caja que se enciende (ADR-0358, ronda 6): con el pago de más, su borde rojo y la cifra en rojo.
+                    <div className="caja-cayla caja-campo" data-tono={excede ? "error" : undefined}>
+                      <input
+                        id="pago-monto-0"
+                        inputMode="decimal"
+                        value={lineas[0].monto}
+                        onChange={(e) => editarMonto(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        autoFocus
+                        aria-label={`Monto a pagar de ${compra.documento}`}
+                        aria-invalid={excede || undefined}
+                        className={`self-stretch py-0 text-right tabular-nums ${excede ? "text-rojo" : ""}`}
+                      />
+                    </div>
                   ) : (
                     <span className={`text-sm tabular-nums sm:text-right ${excede ? "text-rojo" : "text-tinta"}`}>
                       <CifraQueCuenta valor={suma} formato="monto" />
@@ -399,15 +401,16 @@ export function RegistrarPagoModal({
                 <div className="grid items-center gap-x-4 bg-tinta/[0.04] px-5 py-3 sm:grid-cols-[1fr_auto]">
                   <span className="label-cayla text-[11px] text-tinta">Total del pago</span>
                   {un ? (
-                    <label className="flex items-baseline justify-end gap-1">
-                      <span className="font-display text-[22px] text-tinta">S/</span>
+                    // El monto en la caja que se enciende, de 48 px (como `CampoMonto`; aquí sin su etiqueta: la fila ya dice «Total del pago»).
+                    <label className="caja-cayla caja-campo caja-campo-alta justify-self-end">
+                      <span className="font-display select-none text-base leading-none text-tinta/55">S/</span>
                       <input
                         inputMode="decimal"
                         value={lineas[0].monto}
                         onChange={(e) => editarMonto(e.target.value)}
                         onFocus={(e) => e.target.select()}
                         aria-label="Total del pago"
-                        className="font-display w-36 border-b border-tinta/25 bg-transparent text-right text-[22px] tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-b-2 focus:border-rojo"
+                        className="font-display w-36 self-stretch py-0 text-right text-[22px] tabular-nums"
                       />
                     </label>
                   ) : (

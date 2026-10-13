@@ -126,15 +126,16 @@ export function DescripcionColorCampo({ valor, onValor }: { valor: string; onVal
             : "Opcional · qué transmite y dónde funciona. Lo lee la asesora para recomendar."
       }
     >
-      <div className="caja-cayla">
+      {/* La caja que se enciende (ADR-0358, ronda 6), en su forma de texto largo. */}
+      <div className="caja-cayla caja-campo caja-campo-texto-largo" data-tono={restantes < 0 ? "error" : undefined}>
         <textarea
+          className="self-stretch resize-none"
           value={valor}
           onChange={(e) => onValor(e.target.value)}
           rows={3}
           aria-label="Descripción del color"
           // sugerir-fijo: no depende de nada elegido antes; dice qué escribir, no da un ejemplo de otro color
           placeholder="Qué transmite y dónde funciona"
-          className="w-full resize-none bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
         />
       </div>
     </Campo>
