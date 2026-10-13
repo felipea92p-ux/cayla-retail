@@ -1,5 +1,6 @@
 /* ==================================================================
-   La orden de compra en papel (ADR-0362, fase 1 · actividad 6; `components/ordenes-compra/HojaOrdenCompra.tsx`)
+   La orden de compra en papel (ADR-0362, fase 1 · actividad 6; `components/ordenes-compra/HojaOrdenCompra.tsx`), y la orden de insumos
+   del Taller (fase 7; `components/ordenes-insumo/HojaOrdenInsumo.tsx`), que es el mismo papel
 
    Lo que se imprime o se guarda en PDF para mandarle al proveedor. A4, tinta sobre blanco, sin grises ni fondos —Chrome no imprime
    fondos—, como la guía de traslado: la jerarquía sale del tamaño, del peso y de las reglas. Colores, solo los fijos del papel
@@ -152,22 +153,29 @@
   font-size: 8.5pt;
 }
 
-/* ---- Impresión ---- */
-#orden-compra-print {
+/* ---- Impresión ----
+   La orden de insumos del Taller (ADR-0362, fase 7: `components/ordenes-insumo/HojaOrdenInsumo.tsx`) es el MISMO papel: usa estas
+   clases y su propio contenedor, `#orden-insumo-print`, con las mismas reglas. */
+#orden-compra-print,
+#orden-insumo-print {
   display: none;
 }
 @media print {
-  body:has(#orden-compra-print) > *:not(#orden-compra-print) {
+  body:has(#orden-compra-print) > *:not(#orden-compra-print),
+  body:has(#orden-insumo-print) > *:not(#orden-insumo-print) {
     display: none !important;
   }
   html:has(#orden-compra-print),
-  body:has(#orden-compra-print) {
+  body:has(#orden-compra-print),
+  html:has(#orden-insumo-print),
+  body:has(#orden-insumo-print) {
     height: auto !important;
     overflow: visible !important;
     background: none !important;
     margin: 0 !important;
   }
-  #orden-compra-print {
+  #orden-compra-print,
+  #orden-insumo-print {
     display: block;
     page: a4;
   }

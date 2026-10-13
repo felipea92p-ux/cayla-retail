@@ -69,6 +69,20 @@
 | 48 | Envío de una orden «directo» | **Con guía, pero opcional:** quien compra puede registrar el envío; si no, la tienda recibe directo contra la orden (Felipe 2026-10-12) |
 | 49 | La prenda al recibir | **La crea quien recibe, en la tienda**, con las tallas y colores que llegaron y el precio sugerido ya puesto (Felipe 2026-10-12; confirma la 21) |
 | 50 | Cuatro tipos de comprobante | **«Debe existir 4 tipos de comprobantes: boleta, nota de venta, factura y sin comprobante»** (Felipe 2026-10-12). Una compra de una orden sin ningún papel se registra igual que las otras: sin serie ni número (la base le pone uno interno, `SC-000001`, único para la empresa), sin IGV, al crédito o al contado; no entra al Registro de Compras de Impuestos. Migración `20261012235000`. Por defecto *(provisional)*: si después llega el papel, se anula la compra sin comprobante y se registra el papel (mientras no tenga pagos); la factura suelta de Facturas de proveedor no cambia |
+| 51 | Terminales con la plata de Compras | **Se deja así** (Felipe 2026-10-13): las 6 terminales de tienda tienen Facturas de proveedor (las de Almacén, también Por pagar y Notas de crédito) y, por la decisión 41, leen las de las tres tiendas. Medido en producción ese día: 0 facturas, 0 pagos, 0 órdenes |
+| 52 | Dónde viven las órdenes de insumos | **Producción ▸ Abastecimiento, primera** (pedir → factura → recibir → pagar), con ruta propia `/ordenes-insumos` para que quien solo tenga ese módulo no necesite el de Producción (Felipe 2026-10-13, confirma lo provisional de la fase 7) |
+| 53 | Precio al recibir en el Taller | **Quien recibe ve y corrige el precio de ESA orden**, como en las tiendas (18), sin ver el resto de la plata del Taller (Felipe 2026-10-13) |
+| 54 | Faltante al rendir el fondo | **Queda como deuda de la persona**, a la vista hasta que se salde; se le descuenta del sueldo solo con su autorización escrita (Felipe 2026-10-13) |
+| 55 | Gastos del viaje sin comprobante | **Solo taxi y cargador**, con planilla de movilidad y un tope diario que fija el contador; hotel y comida, solo con comprobante (Felipe 2026-10-13) |
+| 56 | Efectivo de S/ 2 000 o más | **Se deja pagar, marcado «no deducible»** (no se frena): Felipe eligió esto sobre frenarlo y sugerir transferir (2026-10-13). El sistema avisa que ese gasto no cuenta para impuestos y que su IGV se pierde |
+| 57 | Contabilidad del fondo, provisional | **Fondo en la 1413** (entregas a rendir) y **el Yape personal de la compradora no cuenta como pago bancarizado de CAYLA**, hasta que el contador diga otra cosa (Felipe 2026-10-13) |
+| 58 | Saldo a favor con factura | **Interno ya, su nota de crédito después:** se registra al toque con un documento interno que baja lo que se le debe al proveedor en el próximo pago, marcado «falta su nota de crédito» con el aviso del IGV (61) hasta que llegue; al llegar, se adjunta (Felipe 2026-10-13). Con boleta, nota de venta o sin comprobante: documento interno sin IGV |
+| 59 | «Depositó» | **Lo registra quien tiene Proveedores**, desde la ficha del proveedor (Felipe 2026-10-13; el módulo es la llave, 40) |
+| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13) |
+| 61 | Aviso del IGV | **Aviso en Inicio que no se puede ocultar**, para quien ve la plata de Compras, mientras un proveedor deba prendas de una factura (Felipe 2026-10-13) |
+| 62 | Lista de compras del Taller | **Después**: primero el comprobante y la recepción de la orden de insumos (Felipe 2026-10-13) |
+| 63 | Maquila y flete del Taller | **Siguen como gastos** en Finanzas (los del viaje, en el fondo de la fase 6); la orden de insumos solo lleva insumos (Felipe 2026-10-13) |
+| 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -123,6 +137,20 @@ por reponer») y al crear o editar su próxima orden (14); se salda con **la pre
 faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido. **Fase 5b, sin construir:**
 «Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
 tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
+
+**Fase 7, parte 1 (2026-10-13, rama `claude/purchase-order-phase7-9b0c82`; construida de noche, provisional).** Contrato:
+`docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md` (con «Cambios al construir»). Lo construido: **la orden de
+insumos del Taller** (`OI-000001`, su propio correlativo: 28) con su **módulo propio `ordenes_insumos`** (47; nace solo para el líder y es
+delegable: quien lo tiene ve y hace todo en estas órdenes, con sus precios, sin ver el resto de la plata del Taller). Proveedor de
+`proveedores_produccion`, destino un taller y líneas de insumo con la cantidad en su unidad (hasta 3 decimales) y el precio con hasta 4
+decimales, como los comprobantes y los lotes del Taller. Crear, ver, editar, anular e imprimir o guardar el PDF, con las mismas reglas que
+la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **Sin construir (espera a
+Felipe):** el comprobante de la orden y la recepción en el Taller (las preguntas 2 a 4 del contrato).
+
+Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción ▸ Abastecimiento (la opción recomendada de la pregunta 1),
+pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
+obligatorio y es un taller; la unidad del insumo se copia en la línea y, si después cambia, al editar esa línea pide la cantidad de nuevo;
+el insumo no se restringe al proveedor de la orden; una orden lleva hasta 100 líneas.
 
 ## Fuente: el brief de Felipe
 
