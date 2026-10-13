@@ -16,6 +16,8 @@ import {
   lineasParaBase,
   nombreDeLinea,
   pagoParaBase,
+  palabrasDelTipo,
+  pidePapel,
   pedidasSinRenglon,
   pendienteDe,
   precargarLineas,
@@ -32,6 +34,8 @@ import {
   sugerirSerie,
   sumaDePago,
   textoDeTipo,
+  tituloDeRegistro,
+  TIPOS_COMPROBANTE,
   toleranciaDelTotalDecimas,
   totalesComprobante,
   unidadesDelPapel,
@@ -70,6 +74,8 @@ function pedida(over: Partial<LineaDetalle> = {}): LineaDetalle {
     subtotal: 255,
     facturado: 0,
     pendiente: 10,
+    enviado: null,
+    porEnviar: null,
     ...over,
   };
 }
@@ -129,6 +135,42 @@ describe("sugerirSerie: el ejemplo de la serie sigue al tipo (ADR-0290)", () => 
     expect(discriminaIgv("boleta")).toBe(false);
     expect(discriminaIgv("nota_venta")).toBe(false);
     expect(discriminaIgv("")).toBe(false);
+  });
+});
+
+describe("«Sin comprobante», el cuarto tipo (decisión 50, Felipe 2026-10-12)", () => {
+  const SIN = borrador({ tipo: "sin_comprobante", serie: "", numero: "" });
+  it("son cuatro tipos, en el orden de la pantalla; sin comprobante no pide papel ni lleva IGV", () => {
+    expect(TIPOS_COMPROBANTE.map((t) => t.texto)).toEqual(["Boleta", "Nota de venta", "Factura", "Sin comprobante"]);
+    expect(pidePapel("sin_comprobante")).toBe(false);
+    expect((["boleta", "nota_venta", "factura", ""] as const).every(pidePapel)).toBe(true);
+    expect(discriminaIgv("sin_comprobante")).toBe(false);
+    expect(totalesComprobante([renglon({ cantidad: "3", costo: "10" })], { tipo: "sin_comprobante", sumaIgv: true }).totalCentimos).toBe(3000);
+  });
+  it("la guía no pide serie ni número, y la fecha es la de la compra", () => {
+    const campos = camposDelComprobante(SIN, CTX, ELEGIDO, SIN_TERMINAL);
+    expect(campos.map((c) => c.id)).toEqual(["tipo", "emision", "condicion", "vencimiento", "linea-l1", "nota"]);
+    expect(campos.find((c) => c.id === "emision")?.nombre).toBe("Fecha de la compra");
+    expect(primerProblema(SIN, CTX)).toBeNull();
+  });
+  it("a la base no viaja serie ni número aunque hayan quedado escritos de antes (la base pone SC-000001)", () => {
+    const args = argsRegistrarComprobante(borrador({ tipo: "sin_comprobante", serie: "b001", numero: "77" }), { ordenId: ORDEN, token: TOKEN, pago: null });
+    expect(args).toMatchObject({ p_tipo: "sin_comprobante", p_serie: "", p_numero: "", p_suma_igv: false });
+  });
+  it("las palabras de la pantalla dicen «compra», no «papel»; con papel no cambian", () => {
+    expect(palabrasDelTipo("sin_comprobante")).toMatchObject({
+      total: "Total de la compra",
+      seccion: "Lo que compraste",
+      boton: "Registrar sin comprobante",
+      sinIgv: "Sin comprobante no hay IGV: lo que pagaste es el costo.",
+    });
+    expect(palabrasDelTipo("boleta")).toMatchObject({ total: "Total del papel", seccion: "Lo que dice el papel", boton: "Registrar comprobante" });
+    expect(palabrasDelTipo("boleta").sinIgv).toBe("Una boleta no lleva IGV aparte: el costo del papel es el costo.");
+    expect(palabrasDelTipo("factura").sinIgv).toBeNull();
+  });
+  it("el aviso al guardar nombra el número interno", () => {
+    expect(tituloDeRegistro("sin_comprobante", "SC-000004")).toBe("Compra sin comprobante SC-000004 registrada");
+    expect(tituloDeRegistro("boleta", "B001-123")).toBe("B001-123 registrado");
   });
 });
 

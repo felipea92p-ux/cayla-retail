@@ -40,6 +40,22 @@ describe("órdenes de compra: un segundo clic en el mismo instante no vuelve a g
       suelta: true,
     });
   });
+  it("Enviar a una sede pone el candado antes de crear el envío (fase 3: deja mercadería en camino hacia una sede)", () => {
+    expect(candadoAntesDe(leer("components/ordenes-compra/EnviarOrdenASede.tsx"), "crearEnvioDeOrden")).toEqual({
+      declara: true,
+      revisaAntes: true,
+      poneAntes: true,
+      suelta: true,
+    });
+  });
+  it("la hoja «Anular envío» pone el candado antes de anular", () => {
+    expect(candadoAntesDe(leer("components/ordenes-compra/EnviosDeOrden.tsx"), "anularEnvioDeOrden")).toEqual({
+      declara: true,
+      revisaAntes: true,
+      poneAntes: true,
+      suelta: true,
+    });
+  });
   it("la hoja «Anular orden» pone el candado antes de anular", () => {
     expect(candadoAntesDe(leer("components/ordenes-compra/AccionesOrden.tsx"), "anularOrdenCompra")).toEqual({
       declara: true,

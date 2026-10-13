@@ -13,7 +13,8 @@ export { nombreDeLineaSinPrenda };
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
 export type EstadoRecepcion = "sin_recibir" | "parcial" | "recibida" | "anulada";
 export type Condicion = "contado" | "credito";
-export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta";
+/** «Sin comprobante» (ADR-0362, decisión 50): una compra de una orden sin ningún papel; la base le pone el número interno SC-000001. */
+export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
 export type CompraResumen = {
   id: string;
@@ -218,6 +219,7 @@ export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumentoCompra, string> = {
   factura: "Factura",
   boleta: "Boleta",
   nota_venta: "Nota de venta",
+  sin_comprobante: "Sin comprobante",
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {

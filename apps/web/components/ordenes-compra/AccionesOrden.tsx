@@ -3,7 +3,7 @@
 import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban, Printer, ReceiptText } from "lucide-react";
+import { Ban, Printer, ReceiptText, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -26,6 +26,7 @@ import {
   problemaDeMotivo,
   puedeAnularOrden,
   puedeEditarOrden,
+  puedeEnviarOrden,
   puedeRegistrarComprobante,
   type DetalleOrden,
 } from "@/lib/ordenes-compra-reglas";
@@ -36,6 +37,11 @@ import { textoParaBase } from "@/lib/orden-compra-alta";
 // solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar comprobante» —la acción principal— mientras la orden esté
 // generada y con «Llega a». Y desde que tiene un comprobante «Editar» se va (la base no edita una orden con comprobante); mientras tenga uno
 // vigente también se va «Anular orden» (primero se anula el comprobante; la orden abierta lo explica).
+//
+// Con envíos (fase 3, actividad «Enviar a una sede»): mientras la orden esté generada y tenga algo por enviar se suma «Enviar a una sede» (la
+// pantalla `envio/[id]`). Es la acción principal si «Registrar comprobante» no está; si está, queda a su lado en segundo plano: el comprobante no
+// bloquea (decisión 9) y cualquiera de los dos puede ir primero. Y desde que la orden tiene un envío se va «Editar» (aun anulado: la guía
+// cuelga de sus líneas), y con uno vigente también «Anular orden» (primero se anula el envío; la orden abierta lo explica).
 //
 // Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda, como «Anular comprobante» en una factura; imprimir, editar y la
 // acción principal a la derecha, donde la mano ya está al terminar de leer) y en la cabecera de su página (`lugar="cabecera"`).
@@ -58,6 +64,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   // Las mismas reglas que la base, dichas para no ofrecer un botón que ella rechazaría (`ordenes-compra-reglas.ts`).
   const puedeEditar = puedeEditarOrden(orden);
   const puedeAnular = puedeAnularOrden(orden);
+  const puedeEnviar = puedeEnviarOrden(orden);
 
   const imprimir = (
     <Boton onClick={() => window.print()}>
@@ -70,6 +77,13 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
     <BotonEnlace href={`/compras/ordenes/comprobante/${orden.id}`} peso="primario" data-guia="orden.registrar-comprobante">
       <span className="inline-flex items-center gap-2">
         <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar comprobante
+      </span>
+    </BotonEnlace>
+  );
+  const enviar = puedeEnviar && (
+    <BotonEnlace href={`/compras/ordenes/envio/${orden.id}`} peso={registrar ? "fantasma" : "primario"} data-guia="orden.enviar">
+      <span className="inline-flex items-center gap-2">
+        <Truck aria-hidden className="h-3.5 w-3.5" /> Enviar a una sede
       </span>
     </BotonEnlace>
   );
@@ -94,6 +108,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
           <div className="ml-auto flex flex-wrap items-center gap-3">
             {imprimir}
             {puedeEditar && <BotonEditarOrden id={orden.id} />}
+            {enviar}
             {registrar}
           </div>
         </div>
@@ -102,6 +117,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
           {anular}
           {imprimir}
           {puedeEditar && <BotonEditarOrden id={orden.id} />}
+          {enviar}
           {registrar}
         </div>
       )}

@@ -2,7 +2,7 @@
   "guia": "compras.ordenes.comprobante.id",
   "ruta": "/compras/ordenes/comprobante/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 37,
   "controles": {
     "app/(app)/compras/ordenes/comprobante/[id]/page.tsx": [
       "Volver «; const subtitulo = \"El papel que te dio el proveedor por»",
@@ -28,13 +28,14 @@
     "components/ordenes-compra/RegistrarComprobanteOrden.tsx": [
       "Volver «(sin nombre)»",
       "SegmentoDeslizante «Tipo de papel»",
+      "CampoSelect «Tipo de papel»",
       "CampoTexto «Serie»",
       "CampoTexto «Número»",
-      "CampoFecha «Fecha de emisión»",
+      "CampoFecha «{palabras.emision}»",
       "SegmentoDeslizante «Cómo se paga»",
       "CampoFecha «Vence el»",
       "button «Volver al sugerido (»",
-      "Boton «Poner en el papel»",
+      "Boton «{palabras.poner}»",
       "Boton «comprobante.fuera»",
       "CampoTexto «Total que dice el papel, en soles»",
       "CampoTexto «Nota»",
