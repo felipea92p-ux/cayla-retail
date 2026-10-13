@@ -258,6 +258,9 @@ export function PlanCampana({
                 al pasar el mouse (y para el lector de pantalla); el número dice cuántas tiendas tienen el stock sin cuadrar, para que el aviso
                 no se olvide aunque no se vea. */}
             <TooltipProvider delayDuration={150}>
+              {/* Resumen, campaña y Exportar en UNA fila también en el celular (Felipe 2026-10-12): ahí la campaña ocupa lo que sobra y su
+                  nombre se corta con «…»; antes cada uno caía en su propia fila y la tabla quedaba a media pantalla. */}
+              <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3">
               {/* El número va FUERA del botón, encima de su esquina (Felipe 2026-10-12): el botón recorta lo que se le sale (su onda). */}
               <span className="relative inline-flex">
                 <Tooltip>
@@ -283,6 +286,7 @@ export function PlanCampana({
               </span>
             {campanas && (
               <SelectorCampana
+                estirarEnCelular
                 campanas={campanas}
                 actualId={plan.plan.id}
                 hoy={plan.hoy}
@@ -302,6 +306,7 @@ export function PlanCampana({
                   <TooltipContent sideOffset={6}>Exportar</TooltipContent>
                 </Tooltip>
               )}
+              </div>
             </TooltipProvider>
             {primera && (
               <Boton peso="primario" className="whitespace-nowrap" data-guia="plan.empezar" onClick={() => setAbierta(primera.c)}>
