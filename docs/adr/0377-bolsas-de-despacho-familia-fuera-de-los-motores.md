@@ -114,3 +114,21 @@ apagada y el script (62 movidas, 62 con rastro, 0 mal anotadas después). Falta 
   `frescura_vara_cayla` 11/12 (datos sucios de la base local compartida).
 - **El volcado del diccionario** (`docs/datos/generado/`) entra con `familias.entra_a_motores` al refrescarlo después de pegar.
 - Una venta anotada de «Anillos · Blanco · Talla 6» a S/ 1.00 quedó fuera del script a propósito.
+
+## Actualización 2026-10-13: la pestaña Grupos del Plan del piso también pregunta
+
+**Lo que se vio.** En Tienda TRU, Plan del piso ▸ Grupos mostraba «Bolsas · Sin grupo · Elegir grupo», la tarjeta «Sin grupo: 1
+categoría nueva por ubicar» en rojo y «Siguiente por revisar: Bolsas». La familia «Empaque» SÍ estaba apagada en producción
+(`entra_a_motores = false`, verificado de solo lectura), y el reparto del plan (`fn_piso_plan_lectura`) ya la ignoraba. Pero la
+pestaña Grupos lee de `fn_categorias_grupo_mix`, que listaba TODA categoría activa, y `fijar_grupos_de_categorias` aceptaba darle
+grupo. Era la séptima lectura que tenía que preguntar y no preguntaba: una categoría que por decisión no va al riel le pedía al líder
+un lugar en el riel.
+
+**Lo que se decidió.** La categoría de una familia apagada **no aparece** en Grupos (no es «Sin grupo»: no tiene grupo que elegir) y la
+base **rechaza** darle uno (`grupos_mix_categoria_fuera_del_plan`, 22023). Se descartó mostrarla en una sección «Fuera del plan»: la
+pantalla ya tiene mucho y esa información vive en Catálogo ▸ Familias, donde se apaga. Es en vivo: al encender la familia reaparece.
+Migración `20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql` (dos reemplazos anclados, una parte, re-ejecutable; anclas
+contadas contra producción: 1 y 1). La web no cambia: el conteo «Categorías» baja solo (46 → 45) y el mensaje del rechazo ya se muestra
+tal cual (todo `hint` que empieza por `grupos_mix_`). Lo vigila `pnpm pruebas:motores-familias-apagadas` (casos G1-G3 y R1).
+
+**Pendiente:** pegar la migración en producción (Felipe) y, después, refrescar el diccionario.
