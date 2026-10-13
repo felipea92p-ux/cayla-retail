@@ -12,12 +12,15 @@ export function Casilla({
   aMedias = false,
   onCambio,
   etiqueta,
+  disabled = false,
   className = "",
 }: {
   marcada: boolean;
   aMedias?: boolean;
   onCambio: () => void;
   etiqueta: string;
+  /** No se puede marcar (la prenda no es devolvible): se ve atenuada y no responde. */
+  disabled?: boolean;
   className?: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
@@ -30,6 +33,7 @@ export function Casilla({
         ref={ref}
         type="checkbox"
         checked={marcada}
+        disabled={disabled}
         onChange={onCambio}
         onClick={(e) => e.stopPropagation()}
         aria-label={etiqueta}

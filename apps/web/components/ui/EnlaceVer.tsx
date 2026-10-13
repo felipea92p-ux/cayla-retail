@@ -16,7 +16,17 @@ import { ArrowRight } from "lucide-react";
 type Comun = { children: ReactNode; className?: string; /** Ancla de la guía (ADR-0389). */ guia?: string };
 
 export function EnlaceVer(
-  props: Comun & ({ href: string; onClick?: never; target?: string } | { onClick: () => void; href?: never; disabled?: boolean })
+  props: Comun &
+    (
+      | {
+          href: string;
+          /** Lo que pasa además de navegar (cerrar la hoja desde donde se fue: Actividad). */
+          alNavegar?: () => void;
+          onClick?: never;
+          target?: string;
+        }
+      | { onClick: () => void; href?: never; disabled?: boolean }
+    )
 ) {
   const contenido = (
     <>
@@ -27,7 +37,7 @@ export function EnlaceVer(
   const clase = `enlace-ver ${props.className ?? ""}`;
   if ("href" in props && props.href !== undefined) {
     return (
-      <Link href={props.href} target={props.target} data-guia={props.guia} className={clase}>
+      <Link href={props.href} target={props.target} onClick={props.alNavegar} data-guia={props.guia} className={clase}>
         {contenido}
       </Link>
     );
