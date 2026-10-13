@@ -1,4 +1,4 @@
-# ADR-0396 · Ventas después de /chaos: el envío sigue a su contenido, el efectivo no baja de cero y los montos son de verdad
+# ADR-0397 · Ventas después de /chaos: el envío sigue a su contenido, el efectivo no baja de cero y los montos son de verdad
 
 - **Fecha:** 2026-10-13 · **Estado:** construido y verificado en local (pruebas de base, vitest y re-ataque en el navegador); migraciones por
   pegar en producción (la primera, `20261013195000`, ya está). Rama `claude/chaos-skill-all-screens-5c56e1`.
