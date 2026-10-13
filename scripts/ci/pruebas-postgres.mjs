@@ -959,6 +959,20 @@ export const PRUEBAS = [
   // lecturas que nombran la prenda de una línea no se rompen. ROLLBACK siempre.
   "pruebas:compras-lineas-sin-prenda",
 
+  // Envíos a una sede (ADR-0362, fase 3): una guía a una sola sede, desde una orden «directo» (solo a su tienda) o «Por repartir» (a
+  // varias); no se envía más de lo pedido o facturado; se anula solo en camino; una orden con envío no se edita; la deuda del comprobante
+  // es de la sede de quien hizo la orden (decisión 46). ROLLBACK siempre.
+  "pruebas:ordenes-compra-envios",
+
+  // La compra «Sin comprobante» de una orden (ADR-0362, decisión 50): el cuarto tipo, sin serie ni número (la base le pone SC-000001),
+  // sin IGV, al crédito o al contado, y fuera del Registro de Compras de Impuestos. ROLLBACK siempre.
+  "pruebas:ordenes-compra-sin-comprobante",
+
+  // Recibir en la sede un envío de orden de compra (ADR-0362, fase 4): con solo Recibir se abre, se crea la prenda que llegó y se
+  // cuenta talla por talla (buenas al almacén, dañadas a la cuarentena), con el costo corregido promediado, un lote por proveedor y el
+  // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
+  "pruebas:recepcion-de-envio",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

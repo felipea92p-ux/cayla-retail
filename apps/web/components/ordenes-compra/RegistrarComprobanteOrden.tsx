@@ -6,7 +6,7 @@ import { ReceiptText, X } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
-import { Boton, BotonEnlace, CampoTexto, Interruptor } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoSelect, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Aviso } from "@/components/ui/Aviso";
@@ -41,6 +41,8 @@ import {
   deMasPorLinea,
   detalleDeRegistro,
   discriminaIgv,
+  palabrasDelTipo,
+  pidePapel,
   esEnvioConOtrosDatos,
   lineasDePedida,
   nombreDeLinea,
@@ -52,7 +54,7 @@ import {
   problemaDeEmision,
   resumenDeAvisos,
   sugerirSerie,
-  textoDeTipo,
+  tituloDeRegistro,
   totalesComprobante,
   vencimientoSugerido,
   unidadesDelPapel,
@@ -276,7 +278,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
       setGuardando(false);
       const nombreOrden = numeroOrdenCompra(orden.numero);
       if (resultado) {
-        avisar.exito(`${resultado.documento} registrado`, {
+        avisar.exito(tituloDeRegistro(tipo, resultado.documento), {
           detalle: detalleDeRegistro(nombreOrden, resultado),
           // «Vuelve a la orden»: la lista la deja marcada y desde aquí se abre encima de ella (abrirla desde esta pantalla la dejaría
           // debajo de la ventana, con el formulario detrás).
@@ -299,18 +301,23 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
   const problemaEmision = emision ? problemaDeEmision(emision, hoy) : null;
   const cuantas = unidadesDelPapel(lineas);
   const conIgv = discriminaIgv(tipo) && sumaIgv;
-  const nombreTipo = textoDeTipo(tipo);
+  const palabras = palabrasDelTipo(tipo);
+
+  function elegirTipo(t: TipoComprobante) {
+    setTipo(t);
+    setTipoElegido(true);
+  }
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina
         sede={sede}
         titulo={`Comprobante de ${numeroOrdenCompra(orden.numero)}`}
-        subtitulo={`${orden.proveedor.nombre}${destino ? ` · llega a ${destino.nombre}` : ""}. Copia el papel tal como llegó: lo que falta de la orden ya viene puesto.`}
+        subtitulo={`${orden.proveedor.nombre}${destino ? ` · llega a ${destino.nombre}` : " · por repartir"}${orden.deudaDe ? ` · la deuda queda en ${orden.deudaDe.nombre}` : ""}. ${palabras.copia}: lo que falta de la orden ya viene puesto.`}
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
         <div data-guia="comprobante.cifras" className="anim-sube text-right" style={{ ["--i" as string]: 1 }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Total del papel</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">{palabras.total}</p>
           <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
             {soles(totalSoles)}
           </p>
@@ -346,49 +353,69 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
             <CampoGuiado id="tipo" guia={guia} className="@min-[28rem]:col-span-2">
               <p className={TITULO_FIJO}>{etiqueta("tipo", "Qué papel te dieron")}</p>
-              <SegmentoDeslizante
-                etiqueta="Tipo de papel"
-                valor={tipo}
-                onCambio={(t) => {
-                  setTipo(t as TipoComprobante);
-                  setTipoElegido(true);
-                }}
-                opciones={TIPOS_COMPROBANTE.map((t) => ({ clave: t.valor, etiqueta: t.texto }))}
-              />
+              {/* Los cuatro tipos en un segmento piden 448 px: en la sección angosta (el celular, en Gamarra) «Sin comprobante» quedaba
+                  fuera de la vista, así que ahí se elige con el desplegable. Un solo valor; el que no se ve no existe para el lector. */}
+              <div className="@max-[28rem]:hidden">
+                <SegmentoDeslizante
+                  etiqueta="Tipo de papel"
+                  valor={tipo}
+                  onCambio={(t) => elegirTipo(t as TipoComprobante)}
+                  opciones={TIPOS_COMPROBANTE.map((t) => ({ clave: t.valor, etiqueta: t.texto }))}
+                />
+              </div>
+              <div className="@min-[28rem]:hidden">
+                <CampoSelect
+                  id="oc-tipo"
+                  caja
+                  etiqueta="Tipo de papel"
+                  valor={tipo}
+                  onValor={(t) => elegirTipo(t as TipoComprobante)}
+                  opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t.valor, texto: t.texto }))}
+                />
+              </div>
             </CampoGuiado>
-            <CampoGuiado id="serie" guia={guia}>
-              <p className={TITULO_FIJO}>{etiqueta("serie", "Serie")}</p>
-              <CampoTexto
-                id="oc-serie"
-                caja
-                mono
-                etiqueta="Serie"
-                placeholder={sugerirSerie(tipo)}
-                maxLength={TOPES_COMPROBANTE.serie}
-                value={serie}
-                onChange={(e) => setSerie(e.target.value.toUpperCase())}
-              />
-            </CampoGuiado>
-            <CampoGuiado id="numero" guia={guia}>
-              <p className={TITULO_FIJO}>{etiqueta("numero", "Número")}</p>
-              <CampoTexto
-                id="oc-numero"
-                caja
-                mono
-                etiqueta="Número"
-                placeholder="000123"
-                maxLength={TOPES_COMPROBANTE.numero}
-                inputMode="numeric"
-                value={numero}
-                onChange={(e) => setNumero(e.target.value)}
-              />
-            </CampoGuiado>
+            {pidePapel(tipo) ? (
+              <>
+                <CampoGuiado id="serie" guia={guia}>
+                  <p className={TITULO_FIJO}>{etiqueta("serie", "Serie")}</p>
+                  <CampoTexto
+                    id="oc-serie"
+                    caja
+                    mono
+                    etiqueta="Serie"
+                    placeholder={sugerirSerie(tipo)}
+                    maxLength={TOPES_COMPROBANTE.serie}
+                    value={serie}
+                    onChange={(e) => setSerie(e.target.value.toUpperCase())}
+                  />
+                </CampoGuiado>
+                <CampoGuiado id="numero" guia={guia}>
+                  <p className={TITULO_FIJO}>{etiqueta("numero", "Número")}</p>
+                  <CampoTexto
+                    id="oc-numero"
+                    caja
+                    mono
+                    etiqueta="Número"
+                    placeholder="000123"
+                    maxLength={TOPES_COMPROBANTE.numero}
+                    inputMode="numeric"
+                    value={numero}
+                    onChange={(e) => setNumero(e.target.value)}
+                  />
+                </CampoGuiado>
+              </>
+            ) : (
+              // Sin comprobante (decisión 50): no hay serie ni número que copiar; la base le pone su número interno al guardar.
+              <p data-guia="comprobante.sin-papel" className="nota-cayla self-end @min-[28rem]:col-span-2">
+                Sin serie ni número: se guarda con un número interno (SC-…) para que el contador sepa que esta compra no tiene comprobante.
+              </p>
+            )}
             <CampoGuiado id="emision" guia={guia}>
-              <p className={TITULO_FIJO}>{etiqueta("emision", "Fecha de emisión")}</p>
+              <p className={TITULO_FIJO}>{etiqueta("emision", palabras.emision)}</p>
               <CampoFecha
                 id="oc-emision"
                 caja
-                etiqueta="Fecha de emisión"
+                etiqueta={palabras.emision}
                 valor={emision}
                 onValor={setEmision}
                 required
@@ -451,17 +478,13 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 onActivo={setSumaIgv}
                 disabled={!discriminaIgv(tipo)}
                 etiqueta="Sumar IGV (18 %)"
-                pie={
-                  discriminaIgv(tipo)
-                    ? "Los costos de abajo son sin IGV: se suma el 18 % al total."
-                    : `Una ${nombreTipo.toLowerCase()} no lleva IGV aparte: el costo del papel es el costo.`
-                }
+                pie={palabras.sinIgv ?? "Los costos de abajo son sin IGV: se suma el 18 % al total."}
               />
             </div>
           </div>
         </section>
 
-        <section data-guia="comprobante.renglones" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que dice el papel">
+        <section data-guia="comprobante.renglones" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label={palabras.seccion}>
           <TituloSeccion
             dato={
               <span className="tabular-nums">
@@ -469,13 +492,13 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
               </span>
             }
           >
-            Lo que dice el papel
+            {palabras.seccion}
           </TituloSeccion>
 
           {lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
               <Vacio tamano="chico" icono={<ReceiptText />}>
-                {sinRenglon.length > 0 ? "Pon lo que trae el papel: elige de la orden aquí abajo, o agrega algo que no estaba." : "Agrega lo que trae el papel para poder registrarlo."}
+                {sinRenglon.length > 0 ? palabras.vacioConOrden : palabras.vacio}
               </Vacio>
             </CampoGuiado>
           )}
@@ -524,7 +547,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
 
           {sinRenglon.length > 0 && (
             <div data-guia="comprobante.sin-poner" className="space-y-2 border-t border-sand pt-3">
-              <p className={TITULO}>De la orden, sin poner en este papel</p>
+              <p className={TITULO}>{palabras.sinPoner}</p>
               <ul className="space-y-1.5">
                 {sinRenglon.map((l) => (
                   <li key={l.id ?? l.posicion} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-sm">
@@ -537,7 +560,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                       </span>
                     </span>
                     <Boton type="button" className="px-3 py-1.5 text-[11px]" onClick={() => ponerPedida(l)}>
-                      Poner en el papel
+                      {palabras.poner}
                     </Boton>
                   </li>
                 ))}
@@ -632,7 +655,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           <div className="flex flex-wrap justify-end gap-2.5">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} disabled={registrado} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {registrado ? "Registrado" : guardando ? "Registrando…" : "Registrar comprobante"}
+              {registrado ? "Registrado" : guardando ? "Registrando…" : palabras.boton}
             </Boton>
           </div>
         </section>

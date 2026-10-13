@@ -1,0 +1,99 @@
+{
+  "guia": "recibir.envio.id",
+  "ruta": "/recibir/envio/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 59,
+  "controles": {
+    "app/(app)/recibir/envio/[id]/page.tsx": [
+      "Volver «(sin nombre)»",
+      "BotonEnlace «Ir a Recibir mercadería»"
+    ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «setCarta((v) => !v)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «);»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
+      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/recepcion-envio/BloquePrenda.tsx": [
+      "Boton «+ talla o color»",
+      "Boton «Cambiar»",
+      "Boton «recepcion.es-nueva»",
+      "Boton «Ya la tengo»",
+      "button «(sin nombre)»"
+    ],
+    "components/recepcion-envio/ComoSeCerro.tsx": [
+      "BotonEnlace «{a.texto}»"
+    ],
+    "components/recepcion-envio/ElegirPrendaExistente.tsx": [
+      "button «{p.nombre}»"
+    ],
+    "components/recepcion-envio/EmpezarARecibir.tsx": [
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Recargar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-envio/FormularioRecepcion.tsx": [
+      "CampoTexto «Nota de la recepción»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Recargar»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-envio/HojaPrenda.tsx": [
+      "CampoTexto «{guia.etiqueta(\"prenda-nombre\", \"Nombre de la prenda\")}»",
+      "button «Usar ese nombre»",
+      "CampoMonto «{guia.etiqueta(\"prenda-precio\", \"Precio de venta\")}»",
+      "CampoSelect «Tejido»",
+      "CampoSelect «Patrón»",
+      "CampoTexto «{guia.etiqueta(\"prenda-descripcion\", \"Descripción (opcional)\")}»",
+      "ComboResponsable «)»",
+      "Boton «Usar esa prenda»",
+      "Boton «Es otra: crearla igual»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-envio/MatrizRecepcion.tsx": [
+      "button «{`Restar a ${nombre}»",
+      "input «{`${pregunta}»",
+      "button «{`Sumar a ${nombre}»"
+    ],
+    "components/recepcion-envio/PiezasEnvio.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/recepcion-envio/TarjetasRecepcion.tsx": [
+      "CampoTexto «Costo por unidad, en soles»",
+      "button «Sí llegó: elegir la prenda»",
+      "button «No llegó nada de esto»",
+      "button «{`Quitar ${nombre}»",
+      "CampoSelect «Proveedor»",
+      "ComboBuscable «{etiqueta(idGuia.extra(e.clave, \"marca\"), \"Marca\")}»",
+      "ComboBuscable «onCambio(»",
+      "Boton «recepcion.agregar-extra»"
+    ]
+  }
+}

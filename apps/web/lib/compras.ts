@@ -149,7 +149,7 @@ export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: 
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
-const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta"];
+const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta", "sin_comprobante"];
 const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no sea válido. */

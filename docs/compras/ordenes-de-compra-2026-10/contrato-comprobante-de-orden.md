@@ -16,7 +16,7 @@ quien construye una de las dos partes no inventa lo que la otra espera. Decision
 ```sql
 retail.registrar_comprobante_orden(
   p_orden_id uuid,
-  p_tipo text,                           -- 'boleta' | 'nota_venta' | 'factura'
+  p_tipo text,                           -- 'boleta' | 'nota_venta' | 'factura' | 'sin_comprobante' (decisión 50, migración 20261012235000)
   p_serie text,
   p_numero text,
   p_lineas jsonb,                        -- ver abajo
@@ -53,9 +53,10 @@ retail.registrar_comprobante_orden(
    comprobante hoy: pasa a la fase 3 (Felipe 2026-10-12).
 4. Proveedor = el de la orden; tienda gestora = «Llega a» (`ubicacion_destino_id`); naturaleza `mercaderia`; llegada estimada = la de
    la orden.
-5. Tipo válido; serie y número no vacíos; emisión ≤ hoy; crédito con vencimiento ≥ emisión; contado con pago que suma el total.
+5. Tipo válido; serie y número no vacíos (salvo «sin comprobante»: no se piden, se ignoran y la base pone `SC` + un número interno de
+   la secuencia `compras_sin_comprobante_seq`, justo antes de escribir); emisión ≤ hoy; crédito con vencimiento ≥ emisión; contado con pago que suma el total.
 6. Totales: subtotal = Σ cantidad × costo_unitario; IGV = factura y `p_suma_igv` → `round(subtotal × 0.18, 2)` (o lo que pida
-   `p_total` dentro de la tolerancia de `registrar_compra`); boleta y nota → 0 y el total es exactamente el subtotal.
+   `p_total` dentro de la tolerancia de `registrar_compra`); boleta, nota y sin comprobante → 0 y el total es exactamente el subtotal.
 7. Escribe `compras` (con `orden_compra_id`, `huella_envio`, `token_cliente`), `compra_items` (sin prenda), `compra_item_destinos`
    (todo a la gestora) y, al contado, `compra_pagos` **sin tienda** (a nombre de la empresa, decisión 41) con su `cuenta_dinero_id`
    (la sella `fn_compra_pagos_sellar`); el saldo a favor como medio, igual que `registrar_compra`. NO toca stock ni `movimientos`: la

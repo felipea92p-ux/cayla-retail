@@ -248,7 +248,7 @@ export function FiltrosCompras({
               onValor={(v) => aplicar({ tipo: v === TODOS ? "" : v })}
               opciones={[
                 { valor: TODOS, texto: "Todos" },
-                ...(["factura", "boleta", "nota_venta"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
+                ...(["factura", "boleta", "nota_venta", "sin_comprobante"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
               ]}
             />
           )}
