@@ -96,6 +96,23 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
   });
 
+  // Felipe 2026-10-13 (auditoría, punto 18): la cuenta bancaria de un proveedor cambió esta semana.
+  it("una cuenta de proveedor que cambió avisa al líder, lleva a su ficha y no se puede ocultar", () => {
+    const uno = avisosInicio({ cuentasBancarias: { cambios: 2, proveedores: 1, ultimoProveedorId: "p1", ultimoProveedor: "Textiles Andina SAC" } })[0]!;
+    expect(uno.clave).toBe("cuentasBancarias");
+    expect(uno.nivel).toBe("toca");
+    expect(uno.ocultable).toBe(false);
+    expect(uno.href).toBe("/compras/proveedores/p1");
+    expect(uno.detalle).toContain("Textiles Andina SAC");
+    expect(uno.ahora).toBe("Confirma la cuenta nueva antes de pagar");
+  });
+  it("varios proveedores con cuenta nueva llevan al directorio; ninguno queda al día; sin leer no se finge «al día»", () => {
+    expect(avisosInicio({ cuentasBancarias: { cambios: 3, proveedores: 3, ultimoProveedorId: "p9", ultimoProveedor: "X" } })[0]!.href).toBe("/compras/proveedores");
+    expect(avisosInicio({ cuentasBancarias: { cambios: 0, proveedores: 0, ultimoProveedorId: null, ultimoProveedor: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ cuentasBancarias: null })[0]!.nivel).toBe("sinleer");
+    expect(avisosInicio({})).toEqual([]);
+  });
+
   // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
   // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Baja al piso», nunca «Sube» (en Existencias «Subir» es del piso al
   // almacén). Que la cifra sea la misma que la de «Para hoy» y la del filtro «Hoy» lo prueba `inicio-almacen-reglas.test.ts`.

@@ -603,3 +603,28 @@ export function cuentaLocalVisible(cuenta: string | null, cci: string | null): s
   if (!c) return null;
   return cci && soloDigitos(c) === cci ? null : c;
 }
+
+const DATO_BANCARIO: Record<string, string> = {
+  banco: "Banco",
+  cuenta_bancaria: "Cuenta",
+  cci: "CCI",
+  celular_billetera: "Yape / Plin",
+  billeteras: "Billeteras",
+  titular_cuenta: "Titular",
+};
+
+/**
+ * Un cambio de cuenta del historial (20261013161000, Felipe 2026-10-13) dicho para la ficha: qué dato cambió y de qué a qué.
+ * Los números salen enmascarados igual que en «Datos para pagar» (la ficha se mira en la tienda); el banco, las billeteras y el
+ * titular no son secretos y se muestran tal cual. Un dato que no estaba (o se borró) se lee «vacío».
+ */
+export function cambioBancarioLegible(campo: string, antes: string | null, despues: string | null): { dato: string; antes: string; despues: string } {
+  const mostrar = (v: string | null): string => {
+    if (!v || !v.trim()) return "vacío";
+    if (campo === "cci") return enmascararCci(v);
+    if (campo === "cuenta_bancaria") return enmascararCuenta(v);
+    if (campo === "celular_billetera") return enmascararCelular(v);
+    return v;
+  };
+  return { dato: DATO_BANCARIO[campo] ?? campo, antes: mostrar(antes), despues: mostrar(despues) };
+}

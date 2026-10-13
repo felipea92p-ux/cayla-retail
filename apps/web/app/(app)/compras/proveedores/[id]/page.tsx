@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
+import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight, Receipt } from "lucide-react";
@@ -16,6 +16,7 @@ import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
+import { CambiosCuentaProveedor } from "@/components/CambiosCuentaProveedor";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 import { Volver } from "@/components/ui/Volver";
 import { Vacio } from "@/components/ui/Vacio";
@@ -44,7 +45,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta] = await Promise.all([
     getProveedor(id),
     siDinero(() => getProveedorMetricasCompras(id)),
     esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
@@ -54,6 +55,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     getProveedores(),
     siDinero(() => getCreditosProveedor(id)),
     getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
+    // Cambios de cuenta (Felipe 2026-10-13): opcional como las marcas; si falla, la ficha se pinta sin el historial.
+    getCambiosBancarios(id).catch(() => []),
   ]);
   if (!proveedor) notFound();
   const marcas = marcasMapa?.[id] ?? [];
@@ -120,6 +123,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       )}
 
       <ProveedorCuentasFicha proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
+
+      <CambiosCuentaProveedor cambios={cambiosCuenta} />
 
       {m && (
       <section className="space-y-3">

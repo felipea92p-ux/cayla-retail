@@ -6,6 +6,7 @@
 // ASUME: quien llama ya comprobó que la cuenta es Admin (la página y las rutas de API); la base lo vuelve a preguntar.
 
 import { createClient } from "@/lib/supabase/server";
+import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { exigir } from "@/lib/resultado";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getPorRegularizar } from "@/lib/por-regularizar";
@@ -84,7 +85,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas, cuentasBancarias] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -121,6 +122,8 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
         })
       )
     ),
+    // Felipe 2026-10-13 (auditoría, punto 18): proveedores que cambiaron su cuenta bancaria esta semana (null si no se leyó).
+    getCuentasBancariasCambiadas(),
   ]);
 
   const contarPor = (ids: readonly string[]) => {
@@ -246,6 +249,24 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       detalle: tramos && n
         ? { tipo: "tramos", vencidas: { n: tramos.vencidas.comprobantes, monto: tramos.vencidas.saldo }, semana: { n: tramos.semana.comprobantes, monto: tramos.semana.saldo } }
         : null,
+    });
+  }
+  // Felipe 2026-10-13 (auditoría, punto 18): un proveedor cambió su cuenta bancaria esta semana. El pago no se bloquea: se
+  // avisa para confirmarla con el proveedor antes de pagar. Es de toda la empresa, no de una tienda.
+  {
+    const c = cuentasBancarias;
+    const n = c === null ? null : c.proveedores;
+    avisos.push({
+      clave: "cuentas",
+      nivel: nivelPorCuenta(n, "hoy"),
+      n,
+      icono: "alerta",
+      titulo: "Cuentas de proveedor que cambiaron",
+      corto: "cuentas",
+      porTienda: null,
+      edad: c?.ultimoEn ? diasDesde(c.ultimoEn, ahora) : null,
+      href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
+      detalle: null,
     });
   }
   {
