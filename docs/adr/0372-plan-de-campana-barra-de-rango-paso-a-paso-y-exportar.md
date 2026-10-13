@@ -351,7 +351,8 @@ que viene en camino no se resta hasta que llega y entra al stock; o si la fase 5
 hoy toda resolución saca la deuda de «por llegar».
 
 Si la base todavía no manda `por_llegar` (la web publicada antes de pegar el SQL), `porLlegar` es null y el Plan no resta nada: se ve como
-antes. El SQL se puede pegar antes o después de publicar la web.
+antes. **Migración `20261013213000` EN PRODUCCIÓN desde el 2026-10-13** (orden de Felipe; ensayo revertido antes; después, el cuerpo vivo tiene la
+huella del archivo, `bd7ca122bda0933b1de184b920f2e653`, con los mismos permisos).
 
 **Verificado.** `lib/plan-compra-pedido.test.ts` y `lib/plan-compra-reglas.test.ts` (9 casos nuevos: leer `por_llegar` con la base nueva y la vieja,
 un total que no se inventa a medias, la resta en `armarFilas`, lo que llegó que no se resta dos veces, nunca negativo y las frases); suite de la
