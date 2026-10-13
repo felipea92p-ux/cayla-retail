@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 104,
+  "total": 101,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -36,9 +36,6 @@
       "button «{on ? <Check size={13}»",
       "button «Volver a lo predeterminado»",
       "Link «Ver»",
-      "Link «Ver todos →»",
-      "Link «Ver en Finanzas →»",
-      "Link «Ver posventa →»",
       "SegmentoDeslizante «(predeterminada)»",
       "Link «Ver historial completo»",
       "button «Volver a la predeterminada»"

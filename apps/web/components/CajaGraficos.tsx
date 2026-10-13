@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ChartColumn } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 import type { PuntoTendenciaCierres } from "@/lib/caja-panel-reglas";
 import { Encabezado, celda, fila, type Columna } from "@/components/ui/Tabla";
 
@@ -40,7 +42,7 @@ export function DonaMetodosPago({ porMetodo }: { porMetodo: { metodo: string; mo
       <div className="card-cayla p-5">
         <p className="text-sm font-semibold text-tinta">Métodos de pago</p>
         <p className="mt-1 text-xs text-tinta/60">Distribución de ventas del día</p>
-        <p className="mt-6 text-sm text-tinta/50">Todavía no hay ventas hoy.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-4 px-0" icono={<ChartColumn />}>Todavía no hay ventas hoy.</Vacio>
       </div>
     );
   }
