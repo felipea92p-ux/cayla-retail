@@ -1,3 +1,12 @@
+<!-- Propuesta de /unificar · familia «enlace» (ADR-0358) · ronda 8, 2026-10-12. Esperando la elección de Felipe.
+     Fragmento: la lámina lo envuelve con el CSS real del ERP, en claro y en oscuro. Solo tokens (var(--color-…)); lo propio va con
+     prefijo (pe-/pv- enlace, pg2-/vermas paginación, av-/pila avatar). Lleva su guion para que se pueda tocar. La página de elegir
+     (apps/web/unificar/.salida/elegir-ronda8/, fuera de git) tiene además las formas de hoy vivas y las fotos reales.
+     La pieza (P1): en una frase, tinta con subrayado tenue; al pasar el mouse un hilo rojo de 1,5 px corre de izquierda a derecha y
+     el texto pasa a rojo profundo. Suelto («Ver las 9 →»): tinta de 13 px con la flecha que avanza 3 px y todo en rojo al pasar el
+     mouse (la misma acción del título de bloque, ronda 7). P2: btn-enlace con rojo al pasar el mouse / versalitas rojas.
+-->
+<style>
 /* Ronda 6 de /unificar (2026-10-12): las demos VIVAS de la página de elegir.
    Solo tokens del ERP (var(--color-…)), así «Ver en oscuro» las invierte como al ERP. Lo que ya es del ERP (caja-cayla, lista-flotante,
    opcion-activa, btn-cayla, fila-cayla, encabezado-tabla-cayla, fin-control) se usa tal cual desde app.css.
@@ -427,3 +436,454 @@ button.pf-caja, button.pf-hilo, button.h-hilo, button.h-caja { cursor: pointer; 
 .h-busc .ic, .h-hilo .ic { width: 16px; height: 16px; }
 /* La guía de foco que «enciende» la caja que sigue (ADR-0284): en la demo, la caja del Monto */
 .pf .pf-caja.sigue-aqui { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent), 0 0 0 6px color-mix(in srgb, var(--color-tinta) 5%, transparent); }
+
+/* =================================================================================================
+   RONDA 8 · ENLACES DE TEXTO
+   ================================================================================================= */
+.dz-parrafo { font-size: 14px; line-height: 1.7; color: color-mix(in srgb, var(--color-tinta) 85%, transparent); max-width: 62ch; margin: 0; }
+.dz-parrafo + .dz-parrafo { margin-top: 10px; }
+/* Hoy A · btn-enlace: tinta subrayada; al pasar el mouse, taupe */
+.h-en-a { color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.h-en-a:hover { color: var(--color-taupe); }
+/* Hoy B · subrayado tenue que se pone rojo */
+.h-en-b { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 2px; transition: color 150ms; cursor: pointer; }
+.h-en-b:hover { color: var(--color-rojo); }
+/* Hoy C · rojo que se subraya al pasar el mouse */
+.h-en-c { color: var(--color-rojo); text-decoration: none; cursor: pointer; }
+.h-en-c:hover { text-decoration: underline; }
+/* P1 · el hilo que se llena: subrayado tenue; al pasar el mouse un hilo rojo de 1,5 px corre de izquierda a derecha encima */
+.pe { color: var(--color-tinta); text-decoration: none; cursor: pointer; padding-bottom: 1px;
+  background-image: linear-gradient(var(--color-rojo), var(--color-rojo)), linear-gradient(color-mix(in srgb, var(--color-tinta) 30%, transparent), color-mix(in srgb, var(--color-tinta) 30%, transparent));
+  background-size: 0% 1.5px, 100% 1px; background-position: 0 100%, 0 100%; background-repeat: no-repeat;
+  transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+.pe:hover { background-size: 100% 1.5px, 100% 1px; color: var(--color-rojo-profundo); }
+.pe:active { color: var(--color-rojo); }
+.pe:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; border-radius: 2px; }
+/* P2 · btn-enlace de hoy, con el rojo al pasar el mouse */
+.pe2 { color: var(--color-tinta); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; transition: color 180ms, text-decoration-color 180ms; }
+.pe2:hover { color: var(--color-rojo-profundo); text-decoration-color: var(--color-rojo); }
+/* «Ver más» · hoy A: versalitas rojas que se subrayan */
+.h-vm-a { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-rojo); text-decoration: none; cursor: pointer; }
+.h-vm-a:hover { text-decoration: underline; }
+/* «Ver más» · hoy B: btn-enlace con «→» escrito */
+.h-vm-b { font-size: 12.5px; color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.h-vm-b:hover { color: var(--color-taupe); }
+/* P1 · «Ver las 9 →»: tinta de 13 px; la flecha avanza 3 px y todo se pone rojo (la misma acción del título de bloque, ronda 7) */
+.pv { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--color-tinta); text-decoration: none; cursor: pointer; transition: color 200ms var(--ease-cayla); }
+.pv svg { width: 14px; height: 14px; transition: transform 220ms var(--ease-cayla); }
+.pv:hover { color: var(--color-rojo); }
+.pv:hover svg { transform: translateX(3px); }
+.pv:active svg { transform: translateX(5px); }
+.pv:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; border-radius: 4px; }
+/* P2 · versalitas rojas con la flecha que avanza */
+.pv2 { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-rojo); text-decoration: none; cursor: pointer; }
+.pv2 svg { width: 12px; height: 12px; transition: transform 220ms var(--ease-cayla); }
+.pv2:hover svg { transform: translateX(3px); }
+.dz-tarjeta-ver { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 18px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 14px; }
+.dz-tarjeta-ver b { font-weight: 600; }
+
+/* =================================================================================================
+   RONDA 8 · PAGINACIÓN
+   ================================================================================================= */
+.dz-lista-pag { border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); overflow: hidden; }
+.dz-lista-pag .filas .item { display: flex; justify-content: space-between; gap: 12px; padding: 11px 20px; font-size: 14px; border-top: 1px solid var(--color-sand); }
+.dz-lista-pag .filas .item:first-child { border-top: 0; }
+.dz-lista-pag .filas .item span:last-child { color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+.dz-lista-pag .filas .item.entra { animation: pt-entra 320ms var(--ease-cayla) both; animation-delay: calc(min(var(--i, 0), 12) * 28ms); }
+.pie-pag { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px 10px 20px; border-top: 1px solid var(--color-sand); font-size: 12.5px; color: var(--color-taupe); }
+.pie-pag b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Hoy A · PaginacionLocal: versalitas de 11 px, la actual rellena de tinta, ‹ › */
+.h-pag { display: flex; align-items: center; gap: 4px; }
+.h-pag button { font: inherit; font-size: 11px; letter-spacing: .13em; font-weight: 600; min-width: 24px; padding: 4px 6px; border: 0; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); cursor: pointer; }
+.h-pag button:hover:not(:disabled) { color: var(--color-rojo); }
+.h-pag button[aria-current="page"] { background: var(--color-tinta); color: var(--color-crema); }
+.h-pag button:disabled { color: color-mix(in srgb, var(--color-tinta) 30%, transparent); cursor: default; }
+/* Hoy C · el enlace «SIGUIENTE PÁGINA →» */
+.h-pag-sig { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-tinta); cursor: pointer; background: none; border: 0; }
+.h-pag-sig:hover { color: var(--color-rojo); }
+/* P1 · las páginas con la píldora que se desliza (como las pestañas de modo) */
+.pg2 { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+.pg2 .pista { position: absolute; top: 0; left: 0; width: 32px; height: 32px; border-radius: 9px; background: var(--color-tinta); transition: transform 320ms var(--ease-cayla); pointer-events: none; }
+.pg2 button { position: relative; z-index: 1; width: 32px; height: 32px; border: 0; border-radius: 9px; background: transparent; font: 500 13px/1 var(--font-sans); font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); cursor: pointer; transition: color 200ms, background-color 150ms; }
+.pg2 button:hover:not([aria-current="page"]):not(:disabled) { background: color-mix(in srgb, var(--color-tinta) 6%, transparent); color: var(--color-tinta); }
+.pg2 button[aria-current="page"] { color: var(--color-crema); }
+.pg2 button.flecha svg { width: 16px; height: 16px; margin: auto; transition: transform 200ms var(--ease-cayla); }
+.pg2 button.flecha:hover:not(:disabled) .der { transform: translateX(2px); }
+.pg2 button.flecha:hover:not(:disabled) .izq { transform: translateX(-2px); }
+.pg2 button:disabled { color: color-mix(in srgb, var(--color-tinta) 28%, transparent); cursor: default; }
+.pg2 button:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.pg2 .gap { width: 20px; text-align: center; color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+/* P2 · «Ver 10 más»: el botón y una línea que se llena con lo ya mostrado */
+.vermas { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 20px 16px; border-top: 1px solid var(--color-sand); }
+.vermas .barra-v { width: 180px; height: 3px; border-radius: 3px; background: var(--color-hueso); overflow: hidden; }
+.vermas .barra-v span { display: block; height: 100%; border-radius: 3px; background: var(--color-tinta); transition: width 420ms var(--ease-cayla); }
+.vermas .cuenta { font-size: 12.5px; color: var(--color-taupe); }
+.vermas .cuenta b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* =================================================================================================
+   RONDA 8 · AVATARES
+   ================================================================================================= */
+.dz-gente { display: flex; flex-direction: column; gap: 16px; }
+.dz-gente .fila-g { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dz-gente .persona { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.dz-gente .persona small { display: block; font-size: 12px; color: var(--color-taupe); }
+.dz-gente .et { font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-taupe); width: 100%; }
+/* Hoy · AvatarPersona: serif sobre sand, el tamaño lo pone quien lo usa (28, 32, 36, 80…) */
+.h-av { display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: var(--color-sand); color: var(--color-tinta); font-family: var(--font-serif); }
+.h-av2 { display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: color-mix(in srgb, var(--color-sand) 70%, transparent); color: var(--color-tinta); font-family: var(--font-serif); }
+.h-av3 { display: inline-grid; place-items: center; flex: none; border-radius: 999px; border: 2px solid var(--color-papel); font-size: 10px; font-weight: 600; background: var(--color-sand); color: var(--color-tinta); }
+.h-av3 + .h-av3 { margin-left: -8px; }
+/* P1 · AvatarPersona en cuatro tamaños fijos; la pila se abre al pasar el mouse; el punto de «de turno» */
+.av { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: var(--color-sand); color: var(--color-tinta); font-family: var(--font-serif); line-height: 1; transition: transform 220ms var(--ease-cayla), margin 240ms var(--ease-cayla); }
+.av.s24 { width: 24px; height: 24px; font-size: 10.5px; }
+.av.s32 { width: 32px; height: 32px; font-size: 13px; }
+.av.s40 { width: 40px; height: 40px; font-size: 15.5px; }
+.av.s80 { width: 80px; height: 80px; font-size: 29px; }
+.av .punto { position: absolute; right: -1px; bottom: -1px; width: 32%; height: 32%; min-width: 8px; min-height: 8px; border-radius: 999px; background: var(--color-verde); box-shadow: 0 0 0 2px var(--color-papel); }
+.av.foto { background: linear-gradient(160deg, color-mix(in srgb, var(--color-taupe) 55%, var(--color-sand)), color-mix(in srgb, var(--color-tinta) 35%, var(--color-sand))); color: transparent; }
+.av.foto::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: av-foto 420ms var(--ease-cayla) both; }
+@keyframes av-foto { from { opacity: 0; } }
+.pila { display: inline-flex; align-items: center; }
+.pila .av { box-shadow: 0 0 0 2px var(--color-papel); }
+.pila .av + .av { margin-left: -6px; }
+.pila:hover .av + .av { margin-left: 2px; }
+.pila .mas { margin-left: 6px; font-size: 12.5px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+/* P2 · el tono de cada persona (de Historial de la prenda, ADR-0354): iniciales en sans sobre su tinte */
+.av.tono { font-family: var(--font-sans); font-weight: 700; color: var(--tono); background: color-mix(in srgb, var(--tono) 16%, var(--color-papel)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tono) 45%, transparent); }
+.pila .av.tono { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tono) 45%, transparent), 0 0 0 2px var(--color-papel); }
+.av.s24.tono { font-size: 9.5px; } .av.s32.tono { font-size: 11.5px; } .av.s40.tono { font-size: 14px; } .av.s80.tono { font-size: 26px; }
+
+</style>
+<h3 style="font:500 20px/1.2 var(--font-serif);margin:24px 0 8px">En una frase · P1</h3>
+<p style="font-size:13px;color:var(--color-taupe);max-width:90ch">Al pasar el mouse: el hilo rojo se dibuja de izquierda a derecha (300 ms) y el texto pasa a rojo profundo (200 ms). Al salir, el hilo se recoge. Al presionar, rojo. Foco con teclado: el anillo del sistema.</p>
+<div class="dz"><div class="dz-barra"><span class="dz-et">Pasa el mouse por los enlaces</span><button type="button" class="dz-repetir">↻ Repetir la entrada</button></div><p class="dz-parrafo">Este proveedor todavía no tiene cuenta para pagarle. <a class="pe" href="#">Regístrala en Proveedores</a> y vuelve a esta factura: el pago queda listo para el viernes.</p>
+<p class="dz-parrafo">Las metas de cada tienda se ponen en <a class="pe" href="#">Configuración ▸ Presupuesto</a>; el reporte las toma de ahí.</p></div>
+<h3 style="font:500 20px/1.2 var(--font-serif);margin:24px 0 8px">En una frase · P2</h3>
+<p style="font-size:13px;color:var(--color-taupe);max-width:90ch">El color pasa a rojo profundo (180 ms). Nada más.</p>
+<div class="dz"><div class="dz-barra"><span class="dz-et">Pasa el mouse por los enlaces</span><button type="button" class="dz-repetir">↻ Repetir la entrada</button></div><p class="dz-parrafo">Este proveedor todavía no tiene cuenta para pagarle. <a class="pe2" href="#">Regístrala en Proveedores</a> y vuelve a esta factura: el pago queda listo para el viernes.</p>
+<p class="dz-parrafo">Las metas de cada tienda se ponen en <a class="pe2" href="#">Configuración ▸ Presupuesto</a>; el reporte las toma de ahí.</p></div>
+<h3 style="font:500 20px/1.2 var(--font-serif);margin:24px 0 8px">Suelto · P1</h3>
+<p style="font-size:13px;color:var(--color-taupe);max-width:90ch">Al pasar el mouse, todo pasa a rojo (200 ms) y la flecha avanza 3 px (220 ms); al presionar, 5 px. Foco: el anillo del sistema.</p>
+<div class="dz"><div class="dz-barra"><span class="dz-et">Pasa el mouse por las acciones</span><button type="button" class="dz-repetir">↻ Repetir la entrada</button></div><div class="dz-lienzo" style="gap:10px">
+  <div class="dz-tarjeta-ver"><span><b>3 facturas</b> vencen esta semana · S/ 6,510.00</span><a class="pv" href="#">Pagar vencido<svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M5 12h14" pathLength="1"/><path d="m12 5 7 7-7 7" pathLength="1"/></svg></a></div>
+  <div class="dz-tarjeta-ver"><span><b>9 prendas</b> están por acabarse en Tienda Lima</span><a class="pv" href="#">Ver las 9<svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M5 12h14" pathLength="1"/><path d="m12 5 7 7-7 7" pathLength="1"/></svg></a></div>
+  <div class="dz-tarjeta-ver"><span><b>2 comprobantes</b> esperan respuesta de SUNAT</span><a class="pv" href="#">En cola: se reintenta solo<svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M5 12h14" pathLength="1"/><path d="m12 5 7 7-7 7" pathLength="1"/></svg></a></div>
+</div></div>
+
+<script>
+// Ronda 6 de /unificar: el comportamiento de las demos vivas (todo delegado; sobrevive a «Repetir»).
+// Combos que se abren, eligen y buscan; campos que se encienden, consultan y avisan; casillas e interruptores; tablas que se
+// ordenan y abren su fila; títulos que entran. Nada guarda ni navega.
+(() => {
+  const sinTildes = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const abiertoAhora = () => document.querySelector("[data-combo].abierto");
+
+  function cerrar(combo, devolverFoco = false) {
+    if (!combo || !combo.classList.contains("abierto")) return;
+    combo.classList.remove("abierto");
+    combo.classList.add("cierra");
+    const disp = combo.querySelector("[data-disparador]");
+    disp?.setAttribute("aria-expanded", "false");
+    setTimeout(() => combo.classList.remove("cierra"), 170);
+    if (devolverFoco) disp?.focus();
+  }
+
+  function abrir(combo) {
+    const otro = abiertoAhora();
+    if (otro && otro !== combo) cerrar(otro);
+    combo.classList.remove("cierra");
+    combo.classList.add("abierto");
+    combo.querySelector("[data-disparador]")?.setAttribute("aria-expanded", "true");
+    const lista = combo.querySelector(".pf-lista, .h-lista");
+    // La cascada vuelve a correr cada vez que se abre (como en el ERP: la lista se monta de nuevo)
+    if (lista) { const c = lista.cloneNode(true); lista.replaceWith(c); }
+    const ops = opciones(combo);
+    const elegida = ops.findIndex((o) => o.getAttribute("aria-selected") === "true");
+    marcarActiva(combo, elegida >= 0 ? elegida : 0);
+    const busca = combo.querySelector(".pf-lista .busca input");
+    if (busca) { busca.value = ""; filtrar(combo, ""); setTimeout(() => busca.focus(), 20); }
+  }
+
+  const opciones = (combo) => [...combo.querySelectorAll(".opc:not([hidden])")];
+
+  function marcarActiva(combo, i) {
+    const ops = opciones(combo);
+    ops.forEach((o, k) => o.classList.toggle("activa", k === i));
+    ops[i]?.scrollIntoView({ block: "nearest" });
+  }
+
+  function elegir(combo, op) {
+    if (!op || op.getAttribute("aria-disabled") === "true") return;
+    combo.querySelectorAll(".opc").forEach((o) => o.setAttribute("aria-selected", String(o === op)));
+    const texto = op.dataset.texto ?? op.querySelector(".t")?.textContent ?? op.textContent.trim();
+    const valor = combo.querySelector(".pf-valor, .val-combo");
+    if (valor) {
+      valor.textContent = texto;
+      valor.classList.remove("marcador");
+      valor.classList.remove("entra"); void valor.offsetWidth; valor.classList.add("entra");
+    }
+    const ava = combo.querySelector("[data-disparador] .ava");
+    if (ava && op.querySelector(".ava")) { ava.textContent = op.querySelector(".ava").textContent; }
+    const input = combo.querySelector("[data-disparador] input");
+    if (input) input.value = texto;
+    // Píldora de filtro: queda puesta con su valor, salvo que se elija «Todas»
+    const pildora = combo.querySelector(".pp, .pp2");
+    if (pildora) {
+      const todas = op.dataset.todas === "1";
+      pildora.classList.toggle("puesta", !todas);
+      const v = pildora.querySelector(".val");
+      if (v) { v.textContent = todas ? (v.dataset.base ?? "") : texto; v.classList.remove("entra"); void v.offsetWidth; v.classList.add("entra"); }
+      const dos = pildora.querySelector(".dos"); if (dos) dos.hidden = todas;
+    }
+    // Una elección hecha deja el campo «hecho» en la guía de foco (si la demo la trae)
+    const campo = combo.closest(".pf");
+    campo?.querySelector(".pf-marca.falta")?.replaceWith(Object.assign(document.createElement("span"), { className: "pf-marca hecho", innerHTML: VISTO + "listo" }));
+    cerrar(combo, true);
+  }
+
+  function filtrar(combo, q) {
+    const ops = [...combo.querySelectorAll(".opc")];
+    const nq = sinTildes(q.trim());
+    let n = 0;
+    ops.forEach((o) => { const ver = !nq || sinTildes(o.textContent).includes(nq); o.hidden = !ver; if (ver) n++; });
+    combo.querySelectorAll(".og").forEach((g) => {
+      let s = g.nextElementSibling, alguna = false;
+      while (s && !s.classList.contains("og")) { if (s.classList.contains("opc") && !s.hidden) alguna = true; s = s.nextElementSibling; }
+      g.hidden = !alguna;
+    });
+    const vacio = combo.querySelector(".vacio");
+    if (vacio) { vacio.hidden = n > 0; const b = vacio.querySelector("b"); if (b) b.textContent = `«${q.trim()}»`; }
+    const crear = combo.querySelector(".crear");
+    if (crear) {
+      crear.hidden = !nq;
+      const b = crear.querySelector("b"); if (b) b.textContent = `«${q.trim()}»`;
+    }
+    marcarActiva(combo, 0);
+  }
+
+  const VISTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" pathLength="1"/></svg>';
+
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    // Quitar el filtro de una píldora puesta (la ✕), sin abrir la lista
+    const quitar = t.closest?.(".pp .quitar");
+    if (quitar) {
+      e.preventDefault(); e.stopPropagation();
+      const combo = quitar.closest("[data-combo]");
+      const todas = combo.querySelector('.opc[data-todas="1"]');
+      if (todas) { combo.classList.add("abierto"); elegir(combo, todas); }
+      return;
+    }
+    const disp = t.closest?.("[data-disparador]");
+    if (disp) {
+      const combo = disp.closest("[data-combo]");
+      if (disp.matches("button")) { e.preventDefault(); combo.classList.contains("abierto") ? cerrar(combo) : abrir(combo); }
+      else if (!combo.classList.contains("abierto")) abrir(combo);
+      return;
+    }
+    const op = t.closest?.("[data-combo] .opc");
+    if (op) { e.preventDefault(); elegir(op.closest("[data-combo]"), op); return; }
+    const crear = t.closest?.("[data-combo] .crear");
+    if (crear) { e.preventDefault(); cerrar(crear.closest("[data-combo]"), true); return; }
+    if (!t.closest?.("[data-combo]")) { const a = abiertoAhora(); if (a) cerrar(a); }
+
+    // Tocar la caja (no el texto) pone el cursor adentro, como un <label>
+    const caja = t.closest?.(".pf-caja, .pf-hilo, .h-hilo, .h-caja, .h-busc, .h-monto, .dz-busq");
+    if (caja && !t.closest("input, textarea, button")) { caja.querySelector("input, textarea")?.focus(); }
+    // Una fila de casilla: tocar el texto marca la casilla (o mueve el interruptor)
+    const fc = t.closest?.(".fila-cas");
+    if (fc && !t.closest("input, button")) { const c = fc.querySelector("input, button"); if (c?.matches("input")) c.checked = !c.checked; else c?.click(); return; }
+    // Interruptores
+    const sw = t.closest?.(".pi, .h-int");
+    if (sw) { e.preventDefault(); sw.setAttribute("aria-checked", String(sw.getAttribute("aria-checked") !== "true")); return; }
+
+    // Tablas: ordenar por una columna (la flecha gira; las filas entran en cascada en el nuevo orden)
+    const orden = t.closest?.(".pt .cab button[data-campo]");
+    if (orden) {
+      e.preventDefault();
+      const tabla = orden.closest(".pt");
+      const antes = orden.getAttribute("aria-sort");
+      const dir = antes === "descending" ? "ascending" : "descending";
+      tabla.querySelectorAll(".cab button[data-campo]").forEach((b) => b.setAttribute("aria-sort", b === orden ? dir : "none"));
+      const campo = orden.dataset.campo;
+      const filas = [...tabla.querySelectorAll(".fila")];
+      const padre = filas[0].parentElement;
+      const val = (f) => { const v = f.dataset[campo]; return v != null && !isNaN(+v) ? +v : (v ?? ""); };
+      filas.sort((a, b) => { const x = val(a), y = val(b); const r = x > y ? 1 : x < y ? -1 : 0; return dir === "ascending" ? r : -r; });
+      const pie = tabla.querySelector(".pie-t");
+      filas.forEach((f, i) => { f.style.setProperty("--i", i); f.classList.remove("entra"); void f.offsetWidth; f.classList.add("entra"); padre.insertBefore(f, pie); });
+      return;
+    }
+    // Tablas: una fila que lleva a su detalle queda marcada mientras su cajón está abierto
+    const fila = t.closest?.(".pt.clic .fila");
+    if (fila) {
+      e.preventDefault();
+      const ya = fila.getAttribute("aria-current") === "true";
+      fila.closest(".pt").querySelectorAll(".fila").forEach((f) => f.removeAttribute("aria-current"));
+      if (!ya) fila.setAttribute("aria-current", "true");
+      const cajon = fila.closest(".dz")?.querySelector(".dz-cajon");
+      if (cajon) { cajon.hidden = ya; if (!ya) { cajon.querySelector(".nom").textContent = fila.dataset.nombre ?? ""; reiniciar(cajon); } }
+      return;
+    }
+    // Demo de «guardar» un formulario: marca lo que falta (sin guardar nada)
+    const guardar = t.closest?.("[data-probar-guardar]");
+    if (guardar) {
+      e.preventDefault();
+      const hoja = guardar.closest(".dz-hoja");
+      let falta = false;
+      hoja.querySelectorAll("[data-obligatorio]").forEach((c) => {
+        const caja = c.querySelector(".pf-caja, .pf-hilo, .h-hilo, .h-caja, .h-busc");
+        const input = c.querySelector("input");
+        const combo = c.querySelector("[data-combo]");
+        const vacio = input ? !input.value.trim() : combo ? !combo.querySelector('.opc[aria-selected="true"]') : false;
+        const pie = c.querySelector(".pie");
+        caja?.classList.toggle("mal", vacio);
+        if (pie) {
+          pie.className = vacio ? "pie err" : "pie";
+          pie.innerHTML = vacio ? `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" pathLength="1"/><path d="M12 8v4" pathLength="1"/><path d="M12 16h.01" pathLength="1"/></svg>${c.dataset.obligatorio}` : "";
+        }
+        if (vacio) falta = true;
+      });
+      if (!falta) { guardar.classList.add("listo"); setTimeout(() => guardar.classList.remove("listo"), 1200); }
+      return;
+    }
+    // Elegir un estado / escena
+    const sel = t.closest?.("[data-ver]");
+    if (sel) {
+      e.preventDefault();
+      const dz = sel.closest(".dz");
+      dz.querySelectorAll("[data-ver]").forEach((b) => b.setAttribute("aria-pressed", String(b === sel)));
+      dz.querySelectorAll("[data-escena]").forEach((s) => { const ver = s.dataset.escena === sel.dataset.ver; s.hidden = !ver; if (ver) reiniciar(s); });
+      return;
+    }
+    // Repetir: vuelve a correr las animaciones de entrada
+    const rep = t.closest?.(".dz-repetir");
+    if (rep) { e.preventDefault(); rep.closest(".dz").querySelectorAll("[data-escena]:not([hidden]), .dz-repite").forEach(reiniciar); return; }
+    if (t.closest?.(".dz a, .dz button")) e.preventDefault();
+  });
+
+  // Un campo que se quita la marca de error en cuanto se escribe (la persona ya lo está arreglando)
+  document.addEventListener("input", (e) => {
+    const input = e.target;
+    const combo = input.closest?.("[data-combo]");
+    if (combo) {
+      if (!combo.classList.contains("abierto")) abrir(combo);
+      filtrar(combo, input.value);
+      if (input.closest(".pf-lista")) return;
+    }
+    const campo = input.closest?.("[data-obligatorio]");
+    if (campo && input.value.trim()) {
+      campo.querySelector(".mal")?.classList.remove("mal");
+      const pie = campo.querySelector(".pie.err"); if (pie) { pie.className = "pie"; pie.innerHTML = ""; }
+    }
+    // RUC: con 11 dígitos «consulta al padrón» (el hilo barre) y queda bien (verde)
+    const ruc = input.closest?.("[data-ruc]");
+    if (ruc) {
+      const caja = ruc.querySelector(".pf-caja, .pf-hilo, .h-hilo, .h-caja");
+      const pie = ruc.querySelector(".pie");
+      caja?.classList.remove("bien", "trabaja");
+      if (pie) { pie.className = "pie"; pie.textContent = ""; }
+      clearTimeout(ruc._t);
+      if (/^\d{11}$/.test(input.value)) {
+        caja?.classList.add("trabaja");
+        if (pie) pie.textContent = "Buscando en SUNAT…";
+        ruc._t = setTimeout(() => { caja?.classList.remove("trabaja"); caja?.classList.add("bien"); if (pie) pie.textContent = "Textiles Andinos S.A.C. · activo y habido"; }, 1300);
+      }
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    const combo = e.target.closest?.("[data-combo]");
+    if (!combo) return;
+    const abierto = combo.classList.contains("abierto");
+    if (!abierto) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key) && e.target.matches("button")) { e.preventDefault(); abrir(combo); }
+      return;
+    }
+    const ops = opciones(combo);
+    const i = ops.findIndex((o) => o.classList.contains("activa"));
+    if (e.key === "ArrowDown") { e.preventDefault(); marcarActiva(combo, Math.min(ops.length - 1, i + 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); marcarActiva(combo, Math.max(0, i - 1)); }
+    else if (e.key === "Enter") { e.preventDefault(); elegir(combo, ops[i]); }
+    else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cerrar(combo, true); }
+    else if (e.key === "Tab") cerrar(combo);
+  });
+  document.addEventListener("mouseover", (e) => {
+    const op = e.target.closest?.("[data-combo] .opc");
+    if (!op) return;
+    const combo = op.closest("[data-combo]");
+    marcarActiva(combo, opciones(combo).indexOf(op));
+  });
+  // Fila de tabla con teclado: Enter la abre
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const fila = e.target.closest?.(".pt.clic .fila");
+    if (fila) { e.preventDefault(); fila.click(); }
+  });
+
+  function reiniciar(nodo) { const copia = nodo.cloneNode(true); nodo.replaceWith(copia); }
+})();
+
+// La onda que nace donde tocas un btn-cayla (copia de components/ui/OndaBotones.tsx, ronda 4).
+document.addEventListener("pointerdown", (e) => {
+  const boton = e.target.closest?.(".mov-boton, .btn-cayla:not(.btn-enlace)");
+  if (!boton) return;
+  const r = boton.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  boton.style.setProperty("--onda-x", x + "px"); boton.style.setProperty("--onda-y", y + "px");
+  boton.style.setProperty("--onda-d", 2 * Math.hypot(Math.max(x, r.width - x), Math.max(y, r.height - y)) + "px");
+  boton.removeAttribute("data-onda"); void boton.offsetWidth; boton.setAttribute("data-onda", "");
+  setTimeout(() => boton.removeAttribute("data-onda"), 500);
+}, { capture: true, passive: true });
+
+// ---------- Ronda 8: paginación (páginas que se deslizan · «Ver más») ----------
+(() => {
+  const NOMBRES = ["Blusa Aurora", "Camisa Olmo", "Falda Nazca", "Vestido Brisa", "Polo Ica", "Pantalón Inca", "Casaca Andes", "Top Paracas", "Short Mancora", "Chaleco Colca"];
+  const filas = (desde, n) => Array.from({ length: n }, (_, k) => {
+    const i = desde + k;
+    return `<div class="item entra" style="--i:${k}"><span>${NOMBRES[i % NOMBRES.length]} · ${["S", "M", "L"][i % 3]}</span><span>#${String(1040 - i).padStart(4, "0")}</span></div>`;
+  }).join("");
+  function irAPagina(nav, p) {
+    const total = +nav.dataset.total, porPag = +nav.dataset.por, paginas = Math.ceil(total / porPag);
+    p = Math.max(1, Math.min(paginas, p));
+    nav.dataset.pagina = p;
+    const nums = [...nav.querySelectorAll("button[data-p]")];
+    nums.forEach((b) => { if (+b.dataset.p === p) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const actual = nums.find((b) => +b.dataset.p === p);
+    const pista = nav.querySelector(".pista");
+    if (pista && actual) pista.style.transform = `translateX(${actual.offsetLeft}px)`;
+    nav.querySelector(".ant").disabled = p === 1;
+    nav.querySelector(".sig").disabled = p === paginas;
+    const lista = nav.closest(".dz-lista-pag");
+    lista.querySelector(".filas").innerHTML = filas((p - 1) * porPag, Math.min(porPag, total - (p - 1) * porPag));
+    const rango = lista.querySelector(".rango");
+    if (rango) rango.innerHTML = `<b>${(p - 1) * porPag + 1}–${Math.min(total, p * porPag)}</b> de <b>${total}</b>`;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-paginas] button");
+    if (b) {
+      e.preventDefault();
+      const nav = b.closest("[data-paginas]");
+      const p = +nav.dataset.pagina;
+      irAPagina(nav, b.classList.contains("ant") ? p - 1 : b.classList.contains("sig") ? p + 1 : +b.dataset.p);
+      return;
+    }
+    const vm = e.target.closest?.("[data-vermas]");
+    if (vm) {
+      e.preventDefault();
+      const lista = vm.closest(".dz-lista-pag");
+      const total = +vm.dataset.total, mostradas = lista.querySelectorAll(".filas .item").length, n = Math.min(+vm.dataset.por, total - mostradas);
+      lista.querySelectorAll(".filas .item").forEach((f) => f.classList.remove("entra"));
+      lista.querySelector(".filas").insertAdjacentHTML("beforeend", filas(mostradas, n));
+      const ya = mostradas + n;
+      lista.querySelector(".barra-v span").style.width = `${(100 * ya) / total}%`;
+      lista.querySelector(".cuenta").innerHTML = `Ves <b>${ya}</b> de <b>${total}</b>`;
+      if (ya >= total) vm.hidden = true; else vm.textContent = `Ver ${Math.min(+vm.dataset.por, total - ya)} más`;
+    }
+  });
+  // Al cargar (y al «Repetir»), la píldora se ubica en la página actual
+  const ubicar = () => document.querySelectorAll("[data-paginas]").forEach((nav) => { const a = nav.querySelector('[aria-current="page"]'); const pista = nav.querySelector(".pista"); if (a && pista) pista.style.transform = `translateX(${a.offsetLeft}px)`; });
+  window.addEventListener("load", ubicar);
+  new MutationObserver(ubicar).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
+</script>

@@ -15,6 +15,10 @@ const casos = [
   ["elegir-ronda7", "titulo-seccion::bloque", "P1", "titulo-seccion.propuesta", null],
   ["elegir-ronda7", "titulo-seccion::grupo", "P1", "titulo-seccion.grupo.propuesta", null],
   ["elegir-ronda7", "titulo-seccion::dia", "P1", "titulo-seccion.dia.propuesta", async (p, op) => { await op.locator(".dz-scroll").evaluate((e) => (e.scrollTop = 150)); }],
+  ["elegir-ronda8", "enlace::frase", "P1", "enlace.propuesta", async (p, op) => { await op.locator(".pe").first().hover(); }],
+  ["elegir-ronda8", "enlace::ver", "P1", "enlace.ver.propuesta", async (p, op) => { await op.locator(".pv").nth(1).hover(); }],
+  ["elegir-ronda8", "paginacion::pagina", "P1", "paginacion.propuesta", async (p, op) => { await op.locator('button[data-p="3"]').click(); await p.waitForTimeout(500); }],
+  ["elegir-ronda8", "avatar::avatar", "P1", "avatar.propuesta", null],
 ];
 const nav = await chromium.launch();
 const p = await nav.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });

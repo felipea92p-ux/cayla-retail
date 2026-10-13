@@ -439,6 +439,122 @@ button.pf-caja, button.pf-hilo, button.h-hilo, button.h-caja { cursor: pointer; 
 /* La guía de foco que «enciende» la caja que sigue (ADR-0284): en la demo, la caja del Monto */
 .pf .pf-caja.sigue-aqui { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent), 0 0 0 6px color-mix(in srgb, var(--color-tinta) 5%, transparent); }
 
+/* =================================================================================================
+   RONDA 8 · ENLACES DE TEXTO
+   ================================================================================================= */
+.dz-parrafo { font-size: 14px; line-height: 1.7; color: color-mix(in srgb, var(--color-tinta) 85%, transparent); max-width: 62ch; margin: 0; }
+.dz-parrafo + .dz-parrafo { margin-top: 10px; }
+/* Hoy A · btn-enlace: tinta subrayada; al pasar el mouse, taupe */
+.h-en-a { color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.h-en-a:hover { color: var(--color-taupe); }
+/* Hoy B · subrayado tenue que se pone rojo */
+.h-en-b { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 2px; transition: color 150ms; cursor: pointer; }
+.h-en-b:hover { color: var(--color-rojo); }
+/* Hoy C · rojo que se subraya al pasar el mouse */
+.h-en-c { color: var(--color-rojo); text-decoration: none; cursor: pointer; }
+.h-en-c:hover { text-decoration: underline; }
+/* P1 · el hilo que se llena: subrayado tenue; al pasar el mouse un hilo rojo de 1,5 px corre de izquierda a derecha encima */
+.pe { color: var(--color-tinta); text-decoration: none; cursor: pointer; padding-bottom: 1px;
+  background-image: linear-gradient(var(--color-rojo), var(--color-rojo)), linear-gradient(color-mix(in srgb, var(--color-tinta) 30%, transparent), color-mix(in srgb, var(--color-tinta) 30%, transparent));
+  background-size: 0% 1.5px, 100% 1px; background-position: 0 100%, 0 100%; background-repeat: no-repeat;
+  transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+.pe:hover { background-size: 100% 1.5px, 100% 1px; color: var(--color-rojo-profundo); }
+.pe:active { color: var(--color-rojo); }
+.pe:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; border-radius: 2px; }
+/* P2 · btn-enlace de hoy, con el rojo al pasar el mouse */
+.pe2 { color: var(--color-tinta); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; transition: color 180ms, text-decoration-color 180ms; }
+.pe2:hover { color: var(--color-rojo-profundo); text-decoration-color: var(--color-rojo); }
+/* «Ver más» · hoy A: versalitas rojas que se subrayan */
+.h-vm-a { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-rojo); text-decoration: none; cursor: pointer; }
+.h-vm-a:hover { text-decoration: underline; }
+/* «Ver más» · hoy B: btn-enlace con «→» escrito */
+.h-vm-b { font-size: 12.5px; color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.h-vm-b:hover { color: var(--color-taupe); }
+/* P1 · «Ver las 9 →»: tinta de 13 px; la flecha avanza 3 px y todo se pone rojo (la misma acción del título de bloque, ronda 7) */
+.pv { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--color-tinta); text-decoration: none; cursor: pointer; transition: color 200ms var(--ease-cayla); }
+.pv svg { width: 14px; height: 14px; transition: transform 220ms var(--ease-cayla); }
+.pv:hover { color: var(--color-rojo); }
+.pv:hover svg { transform: translateX(3px); }
+.pv:active svg { transform: translateX(5px); }
+.pv:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; border-radius: 4px; }
+/* P2 · versalitas rojas con la flecha que avanza */
+.pv2 { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-rojo); text-decoration: none; cursor: pointer; }
+.pv2 svg { width: 12px; height: 12px; transition: transform 220ms var(--ease-cayla); }
+.pv2:hover svg { transform: translateX(3px); }
+.dz-tarjeta-ver { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 18px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 14px; }
+.dz-tarjeta-ver b { font-weight: 600; }
+
+/* =================================================================================================
+   RONDA 8 · PAGINACIÓN
+   ================================================================================================= */
+.dz-lista-pag { border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); overflow: hidden; }
+.dz-lista-pag .filas .item { display: flex; justify-content: space-between; gap: 12px; padding: 11px 20px; font-size: 14px; border-top: 1px solid var(--color-sand); }
+.dz-lista-pag .filas .item:first-child { border-top: 0; }
+.dz-lista-pag .filas .item span:last-child { color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+.dz-lista-pag .filas .item.entra { animation: pt-entra 320ms var(--ease-cayla) both; animation-delay: calc(min(var(--i, 0), 12) * 28ms); }
+.pie-pag { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px 10px 20px; border-top: 1px solid var(--color-sand); font-size: 12.5px; color: var(--color-taupe); }
+.pie-pag b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Hoy A · PaginacionLocal: versalitas de 11 px, la actual rellena de tinta, ‹ › */
+.h-pag { display: flex; align-items: center; gap: 4px; }
+.h-pag button { font: inherit; font-size: 11px; letter-spacing: .13em; font-weight: 600; min-width: 24px; padding: 4px 6px; border: 0; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); cursor: pointer; }
+.h-pag button:hover:not(:disabled) { color: var(--color-rojo); }
+.h-pag button[aria-current="page"] { background: var(--color-tinta); color: var(--color-crema); }
+.h-pag button:disabled { color: color-mix(in srgb, var(--color-tinta) 30%, transparent); cursor: default; }
+/* Hoy C · el enlace «SIGUIENTE PÁGINA →» */
+.h-pag-sig { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-tinta); cursor: pointer; background: none; border: 0; }
+.h-pag-sig:hover { color: var(--color-rojo); }
+/* P1 · las páginas con la píldora que se desliza (como las pestañas de modo) */
+.pg2 { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+.pg2 .pista { position: absolute; top: 0; left: 0; width: 32px; height: 32px; border-radius: 9px; background: var(--color-tinta); transition: transform 320ms var(--ease-cayla); pointer-events: none; }
+.pg2 button { position: relative; z-index: 1; width: 32px; height: 32px; border: 0; border-radius: 9px; background: transparent; font: 500 13px/1 var(--font-sans); font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); cursor: pointer; transition: color 200ms, background-color 150ms; }
+.pg2 button:hover:not([aria-current="page"]):not(:disabled) { background: color-mix(in srgb, var(--color-tinta) 6%, transparent); color: var(--color-tinta); }
+.pg2 button[aria-current="page"] { color: var(--color-crema); }
+.pg2 button.flecha svg { width: 16px; height: 16px; margin: auto; transition: transform 200ms var(--ease-cayla); }
+.pg2 button.flecha:hover:not(:disabled) .der { transform: translateX(2px); }
+.pg2 button.flecha:hover:not(:disabled) .izq { transform: translateX(-2px); }
+.pg2 button:disabled { color: color-mix(in srgb, var(--color-tinta) 28%, transparent); cursor: default; }
+.pg2 button:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.pg2 .gap { width: 20px; text-align: center; color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+/* P2 · «Ver 10 más»: el botón y una línea que se llena con lo ya mostrado */
+.vermas { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 20px 16px; border-top: 1px solid var(--color-sand); }
+.vermas .barra-v { width: 180px; height: 3px; border-radius: 3px; background: var(--color-hueso); overflow: hidden; }
+.vermas .barra-v span { display: block; height: 100%; border-radius: 3px; background: var(--color-tinta); transition: width 420ms var(--ease-cayla); }
+.vermas .cuenta { font-size: 12.5px; color: var(--color-taupe); }
+.vermas .cuenta b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* =================================================================================================
+   RONDA 8 · AVATARES
+   ================================================================================================= */
+.dz-gente { display: flex; flex-direction: column; gap: 16px; }
+.dz-gente .fila-g { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dz-gente .persona { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.dz-gente .persona small { display: block; font-size: 12px; color: var(--color-taupe); }
+.dz-gente .et { font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-taupe); width: 100%; }
+/* Hoy · AvatarPersona: serif sobre sand, el tamaño lo pone quien lo usa (28, 32, 36, 80…) */
+.h-av { display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: var(--color-sand); color: var(--color-tinta); font-family: var(--font-serif); }
+.h-av2 { display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: color-mix(in srgb, var(--color-sand) 70%, transparent); color: var(--color-tinta); font-family: var(--font-serif); }
+.h-av3 { display: inline-grid; place-items: center; flex: none; border-radius: 999px; border: 2px solid var(--color-papel); font-size: 10px; font-weight: 600; background: var(--color-sand); color: var(--color-tinta); }
+.h-av3 + .h-av3 { margin-left: -8px; }
+/* P1 · AvatarPersona en cuatro tamaños fijos; la pila se abre al pasar el mouse; el punto de «de turno» */
+.av { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: var(--color-sand); color: var(--color-tinta); font-family: var(--font-serif); line-height: 1; transition: transform 220ms var(--ease-cayla), margin 240ms var(--ease-cayla); }
+.av.s24 { width: 24px; height: 24px; font-size: 10.5px; }
+.av.s32 { width: 32px; height: 32px; font-size: 13px; }
+.av.s40 { width: 40px; height: 40px; font-size: 15.5px; }
+.av.s80 { width: 80px; height: 80px; font-size: 29px; }
+.av .punto { position: absolute; right: -1px; bottom: -1px; width: 32%; height: 32%; min-width: 8px; min-height: 8px; border-radius: 999px; background: var(--color-verde); box-shadow: 0 0 0 2px var(--color-papel); }
+.av.foto { background: linear-gradient(160deg, color-mix(in srgb, var(--color-taupe) 55%, var(--color-sand)), color-mix(in srgb, var(--color-tinta) 35%, var(--color-sand))); color: transparent; }
+.av.foto::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: av-foto 420ms var(--ease-cayla) both; }
+@keyframes av-foto { from { opacity: 0; } }
+.pila { display: inline-flex; align-items: center; }
+.pila .av { box-shadow: 0 0 0 2px var(--color-papel); }
+.pila .av + .av { margin-left: -6px; }
+.pila:hover .av + .av { margin-left: 2px; }
+.pila .mas { margin-left: 6px; font-size: 12.5px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+/* P2 · el tono de cada persona (de Historial de la prenda, ADR-0354): iniciales en sans sobre su tinte */
+.av.tono { font-family: var(--font-sans); font-weight: 700; color: var(--tono); background: color-mix(in srgb, var(--tono) 16%, var(--color-papel)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tono) 45%, transparent); }
+.pila .av.tono { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tono) 45%, transparent), 0 0 0 2px var(--color-papel); }
+.av.s24.tono { font-size: 9.5px; } .av.s32.tono { font-size: 11.5px; } .av.s40.tono { font-size: 14px; } .av.s80.tono { font-size: 26px; }
+
 </style>
 <h3 style="font:500 20px/1.2 var(--font-serif);margin:24px 0 8px">P1</h3>
 <p style="font-size:13px;color:var(--color-taupe);max-width:90ch">Al cargar o filtrar: las filas entran en cascada (sube 6 px, 28 ms entre cada una, hasta 12; después, todas juntas). Al pasar el mouse: tinte crema (180 ms), el hilo crece de canto (220 ms) y la «›» asoma desde 4 px (200 ms). Al ordenar: la flecha gira media vuelta (300 ms) y las filas vuelven a entrar en el nuevo orden. La fila abierta: hueso firme + hilo quieto. Una fila recién guardada respira en verde una vez (1,4 s). Foco con teclado: el anillo hacia adentro (ADR-0351); Enter la abre.</p>
@@ -711,5 +827,56 @@ document.addEventListener("pointerdown", (e) => {
   boton.removeAttribute("data-onda"); void boton.offsetWidth; boton.setAttribute("data-onda", "");
   setTimeout(() => boton.removeAttribute("data-onda"), 500);
 }, { capture: true, passive: true });
+
+// ---------- Ronda 8: paginación (páginas que se deslizan · «Ver más») ----------
+(() => {
+  const NOMBRES = ["Blusa Aurora", "Camisa Olmo", "Falda Nazca", "Vestido Brisa", "Polo Ica", "Pantalón Inca", "Casaca Andes", "Top Paracas", "Short Mancora", "Chaleco Colca"];
+  const filas = (desde, n) => Array.from({ length: n }, (_, k) => {
+    const i = desde + k;
+    return `<div class="item entra" style="--i:${k}"><span>${NOMBRES[i % NOMBRES.length]} · ${["S", "M", "L"][i % 3]}</span><span>#${String(1040 - i).padStart(4, "0")}</span></div>`;
+  }).join("");
+  function irAPagina(nav, p) {
+    const total = +nav.dataset.total, porPag = +nav.dataset.por, paginas = Math.ceil(total / porPag);
+    p = Math.max(1, Math.min(paginas, p));
+    nav.dataset.pagina = p;
+    const nums = [...nav.querySelectorAll("button[data-p]")];
+    nums.forEach((b) => { if (+b.dataset.p === p) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const actual = nums.find((b) => +b.dataset.p === p);
+    const pista = nav.querySelector(".pista");
+    if (pista && actual) pista.style.transform = `translateX(${actual.offsetLeft}px)`;
+    nav.querySelector(".ant").disabled = p === 1;
+    nav.querySelector(".sig").disabled = p === paginas;
+    const lista = nav.closest(".dz-lista-pag");
+    lista.querySelector(".filas").innerHTML = filas((p - 1) * porPag, Math.min(porPag, total - (p - 1) * porPag));
+    const rango = lista.querySelector(".rango");
+    if (rango) rango.innerHTML = `<b>${(p - 1) * porPag + 1}–${Math.min(total, p * porPag)}</b> de <b>${total}</b>`;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-paginas] button");
+    if (b) {
+      e.preventDefault();
+      const nav = b.closest("[data-paginas]");
+      const p = +nav.dataset.pagina;
+      irAPagina(nav, b.classList.contains("ant") ? p - 1 : b.classList.contains("sig") ? p + 1 : +b.dataset.p);
+      return;
+    }
+    const vm = e.target.closest?.("[data-vermas]");
+    if (vm) {
+      e.preventDefault();
+      const lista = vm.closest(".dz-lista-pag");
+      const total = +vm.dataset.total, mostradas = lista.querySelectorAll(".filas .item").length, n = Math.min(+vm.dataset.por, total - mostradas);
+      lista.querySelectorAll(".filas .item").forEach((f) => f.classList.remove("entra"));
+      lista.querySelector(".filas").insertAdjacentHTML("beforeend", filas(mostradas, n));
+      const ya = mostradas + n;
+      lista.querySelector(".barra-v span").style.width = `${(100 * ya) / total}%`;
+      lista.querySelector(".cuenta").innerHTML = `Ves <b>${ya}</b> de <b>${total}</b>`;
+      if (ya >= total) vm.hidden = true; else vm.textContent = `Ver ${Math.min(+vm.dataset.por, total - ya)} más`;
+    }
+  });
+  // Al cargar (y al «Repetir»), la píldora se ubica en la página actual
+  const ubicar = () => document.querySelectorAll("[data-paginas]").forEach((nav) => { const a = nav.querySelector('[aria-current="page"]'); const pista = nav.querySelector(".pista"); if (a && pista) pista.style.transform = `translateX(${a.offsetLeft}px)`; });
+  window.addEventListener("load", ubicar);
+  new MutationObserver(ubicar).observe(document.documentElement, { childList: true, subtree: true });
+})();
 
 </script>

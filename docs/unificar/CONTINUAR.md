@@ -6,10 +6,10 @@ al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6 (formularios) y 7 (tablas y
-> títulos) están armadas y esperan mi elección: regenera las páginas de elegir con `docs/unificar/rondas/6-7/README.md` (o ábrelas si
-> la worktree `aqp-sede-pricing-105ed0` sigue viva), y cuando te pegue mi elección, regístrala, construye las piezas y migra módulo por
-> módulo.
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6 (formularios), 7 (tablas y
+> títulos) y 8 (enlaces, paginación y avatares) están armadas y esperan mi elección: regenera las páginas de elegir con
+> `docs/unificar/rondas/6-8/README.md` (o ábrelas si la worktree `aqp-sede-pricing-105ed0` sigue viva), y cuando te pegue mi elección,
+> regístrala, construye las piezas y migra módulo por módulo.
 
 ## Dónde quedó
 
@@ -34,9 +34,9 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
-## Rondas 6 y 7 (2026-10-12): armadas, esperando la elección de Felipe
+## Rondas 6, 7 y 8 (2026-10-12): armadas, esperando la elección de Felipe
 
-Dos páginas de elegir con TODO vivo (el CSS real del ERP, claro y oscuro) y las fotos de hoy; fuentes en `rondas/6-7/` (se regeneran
+Tres páginas de elegir con TODO vivo (el CSS real del ERP, claro y oscuro) y las fotos de hoy; fuentes en `rondas/6-8/` (se regeneran
 desde ahí), fragmentos en `propuestas/` e imágenes chicas en `capturas/*.propuesta.jpg`. **Nada se migró.**
 
 - **Ronda 6 · formularios** (5 preguntas): (1) dónde se escribe y se elige —`campo` y `combo` en UNA pregunta, porque hoy una misma hoja
@@ -47,6 +47,12 @@ desde ahí), fragmentos en `propuestas/` e imágenes chicas en `capturas/*.propu
 - **Ronda 7 · leer datos** (4 preguntas): (1) la tabla —`<Tabla>` de hoy con movimiento: cascada al cargar, hilo de canto y «›» al
   apuntar, la fila abierta marcada, la flecha de ordenar—; (2) el título de un bloque (serif 21 con su dato a la derecha); (3) el título
   de un grupo dentro de una hoja (versalitas con raya que se dibuja); (4) el separador de día (pegado arriba, con el total del día).
+- **Ronda 8 · enlaces, páginas y caras** (4 preguntas, familias cortas): (1) el enlace dentro de una frase —el hilo rojo que se llena
+  al pasar el mouse—; (2) el enlace suelto que lleva a ver más —«Ver las 9 →» con la flecha que avanza, la misma acción del título de
+  bloque de la ronda 7—; (3) el pie de una lista larga —la página actual como una píldora que se desliza, o «Ver 8 más»—; (4) la cara de
+  una persona —AvatarPersona en cuatro tamaños fijos, o con el tono de cada persona de la vista rápida (ADR-0354)—. Fotos de los censos
+  del 6 y 7 de octubre (sin base no se pudo medir de nuevo). El `contador` quedó para la ronda de las píldoras-etiqueta (cierra el
+  candado de `estado`).
 - **Depuración:** combo, de 42 formas a 7 reales (las 23 píldoras de filtro son una sola pieza con otro ícono; dos caras de «papel con borde
   tinta» son la guía de foco encendida, ADR-0284; dos eran buscadores, decididos en la ronda 5); tabla, de 39 a 4 + `fin-tabla` (la
   matriz de tallas de Existencias y el calendario no son tablas); título de sección, de 46 a tres familias —serif en 8 tamaños, versalitas
@@ -55,7 +61,8 @@ desde ahí), fragmentos en `propuestas/` e imágenes chicas en `capturas/*.propu
   tabla de Catálogo ▸ Productos (ADR-0254). Con la P1 de la ronda 6, Finanzas queda a 4 px de ser igual al resto (36 contra 40).
 - **Falta, después de la elección:** registrar cada familia (`docs/unificar/<familia>.md`, `DECISIONES` con firmas y deuda), construir
   las piezas (la caja con hilo en `campos.tsx`, la lista con ✓, la píldora de filtro, `Casilla` e `Interruptor`, el movimiento de
-  `Tabla`, un `<TituloSeccion>`), y migrar módulo por módulo con un censo de después. Y la pasada del mostrador (`terminal-ventas`).
+  `Tabla`, un `<TituloSeccion>`; en la ronda 8, el enlace en `btn-enlace`, la píldora que se desliza en `PaginacionLocal` y los cuatro
+  tamaños de `AvatarPersona`), y migrar módulo por módulo con un censo de después. Y la pasada del mostrador (`terminal-ventas`).
 
 Lo aprendido en estas rondas:
 - **El disco lleno apaga Docker y el censo sigue «midiendo» el login.** El 2026-10-12 a las 18:41 el disco llegó al 100 %, Docker
@@ -115,8 +122,8 @@ fuera de git) y un archivo por agente: funcionó sin choques. Lo aprendido:
 El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo que la colaboradora lee o toca en más pantallas.
 
 1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, decididas y migradas (deuda 0). **Rondas 6 y 7 armadas el 2026-10-12** (ver
-   arriba): `combo`, `campo`, `etiqueta-campo`, `casilla`, `tabla` y `titulo-seccion` esperan la elección de Felipe; después, registrar,
-   construir y migrar. Falta la pasada del mostrador (`terminal-ventas`).
+   arriba): `combo`, `campo`, `etiqueta-campo`, `casilla`, `tabla`, `titulo-seccion`, `enlace`, `paginacion` y `avatar` esperan la
+   elección de Felipe; después, registrar, construir y migrar. Falta la pasada del mostrador (`terminal-ventas`).
 4. **`combo`** (ronda 6, armada; 42 formas sin depurar, 7 reales) — la regla de buscar y paginar ya es una (ADR-0209); `SelectFin` es de Finanzas (ADR-0195, decidida a propósito).
 5. **`tabla`** (ronda 7, armada; 39 formas sin depurar, 4 reales) — `fin-tabla` de Finanzas queda aparte por ADR-0195.
 6. **`campo` + `etiqueta-campo`** (ronda 6, armada) — viven en las hojas: el censo de después, con `--escenarios`.

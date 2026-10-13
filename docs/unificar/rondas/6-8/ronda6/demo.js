@@ -261,3 +261,54 @@ document.addEventListener("pointerdown", (e) => {
   boton.removeAttribute("data-onda"); void boton.offsetWidth; boton.setAttribute("data-onda", "");
   setTimeout(() => boton.removeAttribute("data-onda"), 500);
 }, { capture: true, passive: true });
+
+// ---------- Ronda 8: paginación (páginas que se deslizan · «Ver más») ----------
+(() => {
+  const NOMBRES = ["Blusa Aurora", "Camisa Olmo", "Falda Nazca", "Vestido Brisa", "Polo Ica", "Pantalón Inca", "Casaca Andes", "Top Paracas", "Short Mancora", "Chaleco Colca"];
+  const filas = (desde, n) => Array.from({ length: n }, (_, k) => {
+    const i = desde + k;
+    return `<div class="item entra" style="--i:${k}"><span>${NOMBRES[i % NOMBRES.length]} · ${["S", "M", "L"][i % 3]}</span><span>#${String(1040 - i).padStart(4, "0")}</span></div>`;
+  }).join("");
+  function irAPagina(nav, p) {
+    const total = +nav.dataset.total, porPag = +nav.dataset.por, paginas = Math.ceil(total / porPag);
+    p = Math.max(1, Math.min(paginas, p));
+    nav.dataset.pagina = p;
+    const nums = [...nav.querySelectorAll("button[data-p]")];
+    nums.forEach((b) => { if (+b.dataset.p === p) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const actual = nums.find((b) => +b.dataset.p === p);
+    const pista = nav.querySelector(".pista");
+    if (pista && actual) pista.style.transform = `translateX(${actual.offsetLeft}px)`;
+    nav.querySelector(".ant").disabled = p === 1;
+    nav.querySelector(".sig").disabled = p === paginas;
+    const lista = nav.closest(".dz-lista-pag");
+    lista.querySelector(".filas").innerHTML = filas((p - 1) * porPag, Math.min(porPag, total - (p - 1) * porPag));
+    const rango = lista.querySelector(".rango");
+    if (rango) rango.innerHTML = `<b>${(p - 1) * porPag + 1}–${Math.min(total, p * porPag)}</b> de <b>${total}</b>`;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-paginas] button");
+    if (b) {
+      e.preventDefault();
+      const nav = b.closest("[data-paginas]");
+      const p = +nav.dataset.pagina;
+      irAPagina(nav, b.classList.contains("ant") ? p - 1 : b.classList.contains("sig") ? p + 1 : +b.dataset.p);
+      return;
+    }
+    const vm = e.target.closest?.("[data-vermas]");
+    if (vm) {
+      e.preventDefault();
+      const lista = vm.closest(".dz-lista-pag");
+      const total = +vm.dataset.total, mostradas = lista.querySelectorAll(".filas .item").length, n = Math.min(+vm.dataset.por, total - mostradas);
+      lista.querySelectorAll(".filas .item").forEach((f) => f.classList.remove("entra"));
+      lista.querySelector(".filas").insertAdjacentHTML("beforeend", filas(mostradas, n));
+      const ya = mostradas + n;
+      lista.querySelector(".barra-v span").style.width = `${(100 * ya) / total}%`;
+      lista.querySelector(".cuenta").innerHTML = `Ves <b>${ya}</b> de <b>${total}</b>`;
+      if (ya >= total) vm.hidden = true; else vm.textContent = `Ver ${Math.min(+vm.dataset.por, total - ya)} más`;
+    }
+  });
+  // Al cargar (y al «Repetir»), la píldora se ubica en la página actual
+  const ubicar = () => document.querySelectorAll("[data-paginas]").forEach((nav) => { const a = nav.querySelector('[aria-current="page"]'); const pista = nav.querySelector(".pista"); if (a && pista) pista.style.transform = `translateX(${a.offsetLeft}px)`; });
+  window.addEventListener("load", ubicar);
+  new MutationObserver(ubicar).observe(document.documentElement, { childList: true, subtree: true });
+})();
