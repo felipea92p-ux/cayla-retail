@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones } from "./existencias-panel-talla";
+import { accionesDeTalla, insigniaDelModelo, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
 import { mejorOrigen } from "./existencias-flujos";
 import { esObjetivo } from "./existencias-mision";
 import { sedesParaPedir } from "./pedidos-entre-sedes-reglas";
@@ -244,5 +244,27 @@ describe("el modal separa lo posible de lo que no (ADR-0391)", () => {
     const sin = Object.fromEntries(accionesDeTalla(talla({}), TODO, true).map((x) => [x.clave, x]));
     expect(sin.danada).toMatchObject({ ok: false, sub: "Nada que reportar" });
     expect(accionesDeTalla(talla({ disponible: 4 }), { ...TODO, puedeReportarDanada: false }, true).map((x) => x.clave)).not.toContain("danada");
+  });
+});
+
+describe("el chip de «Todas» (el modelo entero) sigue la regla de la tarjeta, no solo al motor (ADR-0391, /formidable 2026-10-12)", () => {
+  it("lo que marca el motor gana, en ámbar", () => {
+    expect(insigniaDelModelo({ porColgar: 2, sinColgar: 4, agotadas: 1 })).toEqual({ tono: "ambar", texto: "2 tallas por colgar" });
+    expect(insigniaDelModelo({ porColgar: 1, sinColgar: 0, agotadas: 0 })).toEqual({ tono: "ambar", texto: "1 talla por colgar" });
+  });
+  it("con el piso en pausa (el motor no marca nada) y tallas a 0 colgadas con stock atrás: nunca «Todo en el piso»; se dice en neutro", () => {
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 3, agotadas: 0 })).toEqual({ tono: "pizarra", texto: "3 tallas sin colgar" });
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 1, agotadas: 2 })).toEqual({ tono: "pizarra", texto: "1 talla sin colgar" });
+  });
+  it("«Todo en el piso» solo cuando nada falta ni se acabó; con algo agotado, el chip rojo va solo", () => {
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 0, agotadas: 0 })).toEqual({ tono: "verde", texto: "Todo en el piso" });
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 0, agotadas: 1 })).toBeNull();
+  });
+  it("la línea de «Colgar varias» cuenta lo mismo que el chip", () => {
+    expect(subtituloColgarVarias({ porColgar: 2, sinColgar: 5, almacen: 9 })).toBe("2 tallas faltan en el piso");
+    expect(subtituloColgarVarias({ porColgar: 1, sinColgar: 0, almacen: 9 })).toBe("1 talla falta en el piso");
+    expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 4, almacen: 9 })).toBe("4 tallas sin colgar");
+    expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 9 })).toBe("Elige cuántas de cada una");
+    expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 0 })).toBe("Nada guardado para colgar");
   });
 });

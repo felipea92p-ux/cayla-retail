@@ -289,6 +289,26 @@ export function queTocaConLaTalla(
 
 export type TonoInsignia = "verde" | "ambar" | "pizarra" | "rojo";
 
+/** El chip de «Todas» (el modelo entero, ADR-0391): la MISMA regla que el pie de la tarjeta (`botonDeTarjeta`, `existencias-acciones.ts`).
+ *  Lo que marca el motor del piso gana (ámbar, «por colgar»); si el motor no marcó nada pero hay tallas con 0 colgadas y stock atrás (el
+ *  piso en pausa, o un plan que no se pudo leer) se dice en neutro («sin colgar»); «Todo en el piso» solo cuando cada talla con algo libre
+ *  tiene al menos una colgada. Lo agotado va en su propio chip (rojo). Antes el chip solo miraba al motor y, con el piso en pausa, decía
+ *  «Todo en el piso» con tres tallas a 0: lo encontró /formidable el 2026-10-12 (el filtro «Por colgar 0» y el modal «Falta colgar» se
+ *  contradecían en la misma pantalla). */
+export function insigniaDelModelo(x: { porColgar: number; sinColgar: number; agotadas: number }): { tono: "ambar" | "pizarra" | "verde"; texto: string } | null {
+  if (x.porColgar > 0) return { tono: "ambar", texto: `${plural(x.porColgar, "talla", "tallas")} por colgar` };
+  if (x.sinColgar > 0) return { tono: "pizarra", texto: `${plural(x.sinColgar, "talla", "tallas")} sin colgar` };
+  if (x.agotadas === 0) return { tono: "verde", texto: "Todo en el piso" };
+  return null;
+}
+
+/** La línea chica de «Colgar varias tallas y colores» en «Todas»: cuenta lo mismo que el chip del modelo. */
+export function subtituloColgarVarias(x: { porColgar: number; sinColgar: number; almacen: number }): string {
+  if (x.porColgar > 0) return `${plural(x.porColgar, "talla falta", "tallas faltan")} en el piso`;
+  if (x.sinColgar > 0) return `${plural(x.sinColgar, "talla", "tallas")} sin colgar`;
+  return x.almacen > 0 ? "Elige cuántas de cada una" : "Nada guardado para colgar";
+}
+
 export function insigniaDeTalla(queToca: readonly RespuestaQueToca[]): { tono: TonoInsignia; texto: string; frase: string } {
   const de = (t: RespuestaQueToca["tema"]) => queToca.find((q) => q.tema === t);
   const hay = de("hay");

@@ -120,3 +120,14 @@ describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su
     expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 5)).toEqual({ texto: "acabó", cero: false });
   });
 });
+
+describe("tallasSinColgar no cuenta lo que el motor manda «mantener» (afinado 2026-10-12 tras /formidable)", () => {
+  it("una talla a 0 con stock atrás cuenta, salvo que el motor diga mantener", () => {
+    const colores = [{ tallas: [
+      { pisoDisponible: 0, almacenDisponible: 3, planPiso: null },
+      { pisoDisponible: 0, almacenDisponible: 2, planPiso: { accion: "mantener" } as never },
+      { pisoDisponible: 1, almacenDisponible: 2, planPiso: null },
+    ] }];
+    expect(tallasSinColgar(colores)).toBe(1);
+  });
+});

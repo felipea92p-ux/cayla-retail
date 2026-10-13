@@ -60,9 +60,13 @@ export function tallasAgotadas(tallas: readonly (FilaCelda & Pick<FilaPrenda, "t
   return tallas.filter((t) => estadoTalla(t as unknown as FilaPrenda) === "sin_stock").map((t) => t.talla ?? "Única");
 }
 
-/** Cuántas tallas (de todos los colores) no tienen NINGUNA colgada libre y sí algo libre en almacén: lo físico, sin el motor. */
-export function tallasSinColgar(colores: readonly { tallas: readonly Pick<FilaPrenda, "pisoDisponible" | "almacenDisponible">[] }[]): number {
-  return colores.reduce((s, c) => s + c.tallas.filter((t) => Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0).length, 0);
+/** Cuántas tallas (de todos los colores) no tienen NINGUNA colgada libre y sí algo libre en almacén: lo físico, sin el motor. Una talla que
+ *  el motor manda «mantener» no cuenta (ya decidió que así está bien), igual que en la línea «Faltan en el piso» (`loQueFaltaEnElPiso`). */
+export function tallasSinColgar(colores: readonly { tallas: readonly (Pick<FilaPrenda, "pisoDisponible" | "almacenDisponible"> & { planPiso?: FilaPrenda["planPiso"] })[] }[]): number {
+  return colores.reduce(
+    (s, c) => s + c.tallas.filter((t) => (t.planPiso?.accion ?? null) !== "mantener" && Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0).length,
+    0
+  );
 }
 
 /** El color que la tarjeta muestra si la persona no eligió otro (Felipe, 2026-10-07: una tarjeta que abría en un color agotado se veía

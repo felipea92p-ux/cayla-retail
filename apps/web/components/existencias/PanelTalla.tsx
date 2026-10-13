@@ -18,11 +18,11 @@ import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
-import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
+import { accionesDeTalla, insigniaDelModelo, insigniaDeTalla, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, subtituloColgarVarias, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
 import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { celdaTarjeta } from "@/lib/existencias-tarjeta-compacta";
+import { celdaTarjeta, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
@@ -213,6 +213,21 @@ export function PanelTalla({
   const ultimaTecla = useRef(0);
   // Al abrir, el teclado entra al modal (como la maqueta): ← → ↑ ↓ y 1–7 funcionan sin tocar el mouse.
   const raiz = useRef<HTMLDivElement>(null);
+  // Quien tenía el foco al abrir (el botón de la talla, la miniatura, «Más»): al cerrar, el foco vuelve ahí y no al inicio de la página.
+  // Radix solo lo devuelve si el modal se abrió desde su propio disparador, y este se abre por estado (/chaos TEC-06, 2026-10-12).
+  // Se toma UNA vez, al montar (un `useState` perezoso: leer un ref durante el render lo prohíbe el compilador de React).
+  const [abridor] = useState<{ readonly current: HTMLElement | null }>(() => {
+    const inicial = typeof document !== "undefined" && document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    return {
+      // Se resuelve al CERRAR: si quien abrió ya no está (el ítem del menú «Más ⌄» se desmonta al abrir el modal), vuelve al botón «Más» de esa
+      // tarjeta; si tampoco, a la tarjeta.
+      get current() {
+        if (inicial?.isConnected) return inicial;
+        const tarjeta = fotoDesde?.closest("article") ?? null;
+        return tarjeta?.querySelector<HTMLElement>("button[aria-label^='Más acciones de']") ?? (tarjeta as HTMLElement | null);
+      },
+    };
+  });
   useEffect(() => {
     // El portal de Radix monta el contenido un instante después: el foco espera a que exista (la maqueta espera 80 ms).
     const t = window.setTimeout(() => raiz.current?.focus({ preventScroll: true }), 80);
@@ -337,7 +352,11 @@ export function PanelTalla({
     { piso: 0, almacen: 0, apartado: 0, danado: 0, total: 0 }
   );
   const porColgarModelo = separa ? tallasModelo.filter((t) => celdaTarjeta(t, separa).estado === "falta").length : 0;
+  // Lo físico, sin el motor: tallas con 0 colgadas y algo en almacén. Con el piso en pausa el motor no marca nada y decir «Todo en el
+  // piso» sería falso (la tarjeta ya cuenta así, `botonDeTarjeta`).
+  const sinColgarModelo = separa ? tallasSinColgar(colores) : 0;
   const agotadasModelo = tallasModelo.filter((t) => celdaTarjeta(t, separa).estado === "agotada").length;
+  const chipModelo = insigniaDelModelo({ porColgar: porColgarModelo, sinColgar: sinColgarModelo, agotadas: agotadasModelo });
   // Lo de la prenda (fila de arriba): las etiquetas de las tallas de ESTE color, el rótulo del modelo, el historial y Catálogo.
   const hrefEtiquetas = urlEtiquetas(prenda.tallas);
   const hrefRotulo = urlRotulos([prenda.productoId], { desde: "existencias" });
@@ -523,6 +542,7 @@ export function PanelTalla({
   return (
     <>
       <Modal
+        alCerrarEnfocar={abridor}
         variante="hoja"
         ancho="max-w-[62rem]"
         conCerrar
@@ -673,8 +693,8 @@ export function PanelTalla({
                     </div>
                     {/* Lo que falta en el piso, en UNA línea y sin volver a nombrar las tallas: el fondo ámbar de arriba ya dice cuáles. */}
                     {lineaFalta && (
-                      <p className="flex flex-wrap items-center gap-x-1.5 text-[12.5px] text-taupe">
-                        {!falta?.enPausa && <span aria-hidden className="inline-block h-3 w-3.5 shrink-0 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />}
+                      <p className="text-[12.5px] leading-snug text-taupe">
+                        {!falta?.enPausa && <span aria-hidden className="mr-1.5 inline-block h-3 w-3.5 translate-y-px rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />}
                         {lineaFalta}
                       </p>
                     )}
@@ -772,7 +792,7 @@ export function PanelTalla({
                               En camino: <b className="font-semibold text-tinta">{Math.max(0, fila.enTransito ?? 0)}</b>
                             </span>
                             <span>
-                              Otras tiendas: <b className="font-semibold text-tinta">{otrasSedes || "ninguna la tiene"}</b>
+                              Otras sedes: <b className="font-semibold text-tinta">{otrasSedes || "ninguna la tiene"}</b>
                             </span>
                           </p>
                         </div>
@@ -844,15 +864,11 @@ export function PanelTalla({
                             sede» de 46 px: era la suma de las casillas. */}
                         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                           <span className="label-cayla text-[11px] text-taupe">Todo el modelo</span>
-                          {porColgarModelo > 0 ? (
-                            <Chip tono="ambar" versalitas={false}>
-                              {porColgarModelo} {porColgarModelo === 1 ? "talla" : "tallas"} por colgar
+                          {chipModelo && (
+                            <Chip tono={chipModelo.tono} versalitas={false}>
+                              {chipModelo.texto}
                             </Chip>
-                          ) : agotadasModelo === 0 ? (
-                            <Chip tono="verde" versalitas={false}>
-                              Todo en el piso
-                            </Chip>
-                          ) : null}
+                          )}
                           {agotadasModelo > 0 && (
                             <Chip tono="rojo" versalitas={false}>
                               {agotadasModelo} {agotadasModelo === 1 ? "talla se acabó" : "tallas se acabaron"}
@@ -1028,7 +1044,7 @@ export function PanelTalla({
                             <span className="min-w-0 flex-1">
                               <b className="block text-[14px] font-semibold text-tinta">Colgar varias tallas y colores</b>
                               <small className="block text-xs text-taupe">
-                                {porColgarModelo > 0 ? `${porColgarModelo} ${porColgarModelo === 1 ? "talla falta" : "tallas faltan"} en el piso` : sumaModelo.almacen > 0 ? "Elige cuántas de cada una" : "Nada guardado para colgar"}
+                                {subtituloColgarVarias({ porColgar: porColgarModelo, sinColgar: sinColgarModelo, almacen: sumaModelo.almacen })}
                               </small>
                             </span>
                             <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" strokeWidth={1.8} />
