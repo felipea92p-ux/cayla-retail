@@ -23,6 +23,8 @@ import {
   type FilaPpto,
 } from "@/lib/presupuesto-reglas";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CalendarX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Presupuesto (ADR-0195, capa «para decidir»), dibujado como el spike aprobado
 // (docs/maquetas/finanzas-2026-09/, `vista-reportes.js` → `vistaPresupuesto`): cabecera «¿Vamos según lo planeado?» con
@@ -189,7 +191,7 @@ export function PresupuestoPanel({
               </table>
             </div>
           ) : (
-            <p className="px-5 py-8 text-sm text-taupe">No hay nada que mostrar para este mes.</p>
+            <Vacio tamano="chico" className="py-8" icono={<CalendarX />}>No hay nada que mostrar para este mes.</Vacio>
           )}
 
           {(libres.length > 0 || (!conTope && bloques.length > 0)) && (

@@ -28,6 +28,8 @@ import {
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { ChartColumn } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Escenarios (ADR-0195 F6), dibujado como el spike aprobado (`vistaEscenarios`, «¿Qué pasa si…?»): a
 // la izquierda las palancas; a la derecha qué pasaría, la utilidad de cada unidad y la caja de las próximas semanas. Es la
@@ -287,7 +289,9 @@ export function EscenariosPanel({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-taupe">Sin la proyección de la caja no hay con qué comparar.</p>
+                <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ChartColumn />}>
+                  Sin la proyección de la caja no hay con qué comparar.
+                </Vacio>
               )}
             </Superficie>
           </div>
