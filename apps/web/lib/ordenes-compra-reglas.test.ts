@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  ESTADO_ENVIO,
   ESTADO_ORDEN,
   POR_REPARTIR_LISTA,
   TODAS,
   argsLista,
   avisoDeCorte,
   conteoDeDestino,
+  estadoDeEnvioDeOrden,
   filtrosDeLista,
   fraseDestino,
   generadasDe,
@@ -13,22 +15,29 @@ import {
   hrefOrdenGuardada,
   leerComprobantes,
   leerDetalleOrden,
+  leerEnvios,
   leerFilaOrden,
   leerFilasOrdenes,
+  leerPorEnviar,
   leerResumen,
   lugarDeLlegada,
+  numeroEnvio,
   numeroOrdenCompra,
   paginaDeOrdenes,
   puedeAnularOrden,
   puedeEditarOrden,
+  puedeEnviarOrden,
   puedeRegistrarComprobante,
   paramsDeLista,
   problemaDeMotivo,
   pildorasDeDestino,
   recienDe,
+  textoEnvioDeLinea,
   textoPapelDeLinea,
   tieneComprobante,
   tieneComprobanteVigente,
+  tieneEnvio,
+  tieneEnvioVivo,
   textoDestino,
   vacioDeLista,
 } from "./ordenes-compra-reglas";
@@ -378,14 +387,18 @@ describe("qué se puede hacer con una orden que ya tiene (o no) papel", () => {
   const linea = { id: "i1" } as { id: string | null };
   const vigente = { id: "k1", documento: "F001-1", tipo: "factura", condicion: "credito", fechaEmision: null, total: 1, saldo: 1, estado: "vigente", estadoPago: "pendiente" };
   const anulado = { ...vigente, id: "k2", estado: "anulada", estadoPago: "anulada" };
-  const orden = (o: object = {}) => ({ estado: "generada" as const, destino: tru, papel: "sin_comprobante" as const, lineas: [linea] as never, comprobantes: [], ...o });
+  const orden = (o: object = {}) => ({ estado: "generada" as const, destino: tru, papel: "sin_comprobante" as const, lineas: [linea] as never, comprobantes: [], deudaDe: null, ...o });
 
   it("«Registrar comprobante»: una generada con «Llega a» cuya base ya sabe de comprobantes, aun con todo el papel completo", () => {
     expect(puedeRegistrarComprobante(orden())).toBe(true);
     expect(puedeRegistrarComprobante(orden({ papel: "en_parte" }))).toBe(true);
     expect(puedeRegistrarComprobante(orden({ papel: "completa" }))).toBe(true);
   });
-  it("no se ofrece en una anulada, en una «Por repartir», con una base que no conoce el papel, sin líneas o con líneas sin id", () => {
+  it("una «Por repartir» se ofrece solo si la base ya dice de qué sede queda la deuda (decisión 46: la de quien hizo la orden)", () => {
+    expect(puedeRegistrarComprobante(orden({ destino: null, deudaDe: { id: "lim", nombre: "Tienda Lima" } }))).toBe(true);
+    expect(puedeRegistrarComprobante(orden({ destino: null, deudaDe: null }))).toBe(false);
+  });
+  it("no se ofrece en una anulada, en una «Por repartir» con una base de la fase 2, con una base que no conoce el papel, sin líneas o con líneas sin id", () => {
     expect(puedeRegistrarComprobante(orden({ estado: "anulada" }))).toBe(false);
     expect(puedeRegistrarComprobante(orden({ destino: null }))).toBe(false);
     expect(puedeRegistrarComprobante(orden({ papel: null }))).toBe(false);
@@ -409,5 +422,203 @@ describe("qué se puede hacer con una orden que ya tiene (o no) papel", () => {
     expect(textoPapelDeLinea({ cantidad: 10, facturado: 10 })).toBe("10 de 10");
     expect(textoPapelDeLinea({ cantidad: 10, facturado: 12 })).toBe("12 de 10 · 2 de más");
     expect(textoPapelDeLinea({ cantidad: 10, facturado: null })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Fase 3: los envíos a las sedes. Todo llega con tolerancia: una base que todavía no los cuenta no rompe la orden abierta ni la lista.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+describe("la píldora «Por enviar» de la lista (fase 3)", () => {
+  it("es una vista de TODAS las sedes y solo de las generadas: la sede y el estado de la URL no cuentan", () => {
+    const f = filtrosDeLista({ enviar: "1", destino: TRU, estado: "anulada", q: " pena " }, CTX_LISTA);
+    expect(f).toMatchObject({ porEnviar: true, destino: TODAS, estado: null, q: "pena" });
+    expect(filtrosDeLista({ destino: TRU }, CTX_LISTA).porEnviar).toBe(false);
+    expect(filtrosDeLista({ enviar: "si" }, CTX_LISTA).porEnviar).toBe(false);
+  });
+  it("a la base le pide las generadas y deja el resto (qué órdenes tienen algo por enviar) a quien cruza", () => {
+    expect(argsLista(filtrosDeLista({ enviar: "1" }, CTX_LISTA))).toEqual({ p_destino: null, p_estado: "generada", p_busqueda: null, p_antes_de: null, p_limite: 51 });
+  });
+  it("hrefLista: tocarla enciende la vista (todas las sedes, sin estado) y vuelve a tocarla la apaga; buscar y pasar de página la conservan", () => {
+    const f = filtrosDeLista({ destino: TRU, estado: "generada", q: "pena" }, CTX_LISTA);
+    expect(hrefLista(f, { porEnviar: true })).toBe("/compras/ordenes?destino=todas&enviar=1&q=pena");
+    const v = filtrosDeLista({ enviar: "1", q: "pena" }, CTX_LISTA);
+    expect(hrefLista(v, { porEnviar: false })).toBe("/compras/ordenes?destino=todas&q=pena");
+    expect(hrefLista(v, { q: "" })).toBe("/compras/ordenes?destino=todas&enviar=1");
+    expect(hrefLista(v, { antesDe: 12 })).toBe("/compras/ordenes?destino=todas&enviar=1&q=pena&cursor=12");
+  });
+  it("elegir una sede o un estado saca de la vista (su cifra cuenta todas las sedes)", () => {
+    const v = filtrosDeLista({ enviar: "1" }, CTX_LISTA);
+    expect(hrefLista(v, { destino: TRU })).toBe(`/compras/ordenes?destino=${TRU}`);
+    expect(hrefLista(v, { estado: "generada" })).toBe("/compras/ordenes?destino=todas&estado=generada");
+  });
+  it("la paginación conserva la vista", () => {
+    expect(paramsDeLista(filtrosDeLista({ enviar: "1" }, CTX_LISTA))).toMatchObject({ destino: TODAS, enviar: "1" });
+    expect(paramsDeLista(filtrosDeLista({ destino: TRU }, CTX_LISTA)).enviar).toBeUndefined();
+  });
+  it("vacía no es un problema: todo lo que se pidió ya salió; con una búsqueda, dice qué se buscó", () => {
+    const v = filtrosDeLista({ enviar: "1" }, CTX_LISTA);
+    expect(vacioDeLista(v, null)).toEqual({
+      titulo: "No hay nada por enviar",
+      frase: "Todo lo que se pidió ya salió hacia su sede.",
+      filtros: [{ texto: "Por enviar", href: "/compras/ordenes?destino=todas" }],
+    });
+    expect(vacioDeLista(filtrosDeLista({ enviar: "1", q: "Zara" }, CTX_LISTA), null).titulo).toBe("Ninguna orden por enviar coincide con «Zara»");
+  });
+});
+
+describe("leerPorEnviar: fn_ordenes_compra_por_enviar", () => {
+  it("deja las órdenes con algo por enviar y cuántas unidades (los numeric llegan como texto)", () => {
+    const m = leerPorEnviar([
+      { orden_compra_id: "o1", unidades_por_enviar: 14 },
+      { orden_compra_id: "o2", unidades_por_enviar: "3" },
+      { orden_compra_id: "o3", unidades_por_enviar: 0 },
+      { orden_compra_id: "", unidades_por_enviar: 5 },
+      { orden_compra_id: "o5" },
+      "raro",
+      null,
+    ]);
+    expect([...m!.entries()]).toEqual([
+      ["o1", 14],
+      ["o2", 3],
+    ]);
+  });
+  it("sin lista (la base todavía no tiene la función) no hay nada que filtrar: null, no «ninguna»", () => {
+    expect(leerPorEnviar(null)).toBeNull();
+    expect(leerPorEnviar({ filas: [] })).toBeNull();
+    expect(leerPorEnviar([])?.size).toBe(0);
+  });
+});
+
+describe("numeroEnvio y leerEnvios", () => {
+  it("«ENV-000012»: ya escrito, o armado desde la cifra", () => {
+    expect(numeroEnvio("ENV-000012")).toBe("ENV-000012");
+    expect(numeroEnvio(" env-12 ")).toBe("ENV-12");
+    expect(numeroEnvio(12)).toBe("ENV-000012");
+    expect(numeroEnvio("12")).toBe("ENV-000012");
+    expect(numeroEnvio("doce")).toBeNull();
+    expect(numeroEnvio(null)).toBeNull();
+  });
+  it("lee la lista de envíos de la orden; una fila sin id, sin número o con un estado que no se conoce se descarta", () => {
+    const envios = leerEnvios([
+      { id: "e2", numero: "ENV-000012", sede: "Tienda Trujillo", numero_guia: "001-123", estado: "en_camino", despachado_en: "2026-10-12T21:00:00+00:00", unidades: "14", version: 1 },
+      { id: "e1", numero: 11, sede: { id: "s", nombre: "Tienda Lima" }, estado: "anulado", unidades: 3 },
+      { id: "e0", numero: "ENV-000010", estado: "perdido" },
+      { id: "", numero: "ENV-000009", estado: "cerrado" },
+      { id: "e9", estado: "abierto" },
+      "raro",
+    ]);
+    expect(envios).toEqual([
+      { id: "e2", numero: "ENV-000012", sede: "Tienda Trujillo", numeroGuia: "001-123", estado: "en_camino", despachadoEn: "2026-10-12T21:00:00+00:00", unidades: 14, version: 1 },
+      { id: "e1", numero: "ENV-000011", sede: "Tienda Lima", numeroGuia: null, estado: "anulado", despachadoEn: null, unidades: 3, version: null },
+    ]);
+  });
+  it("sin lista (la base no los cuenta) es null; una lista vacía es «sin envíos»", () => {
+    expect(leerEnvios(undefined)).toBeNull();
+    expect(leerEnvios({ no: "es lista" })).toBeNull();
+    expect(leerEnvios([])).toEqual([]);
+  });
+  it("cada estado tiene su texto y su tono (el de camino es informativo, no semáforo)", () => {
+    expect(ESTADO_ENVIO.en_camino).toEqual({ texto: "En camino", tono: "pizarra" });
+    expect(ESTADO_ENVIO.abierto).toEqual({ texto: "Abierto", tono: "ambar" });
+    expect(ESTADO_ENVIO.cerrado).toEqual({ texto: "Cerrado", tono: "verde" });
+    expect(ESTADO_ENVIO.anulado).toEqual({ texto: "Anulado", tono: "apagado" });
+  });
+});
+
+describe("leerDetalleOrden con envíos (fase 3)", () => {
+  const BASE = {
+    id: "0b6f1c2e-0000-4000-8000-000000000001",
+    numero: 12,
+    estado: "generada",
+    proveedor: { id: "p1", nombre: "Confecciones Peña", ruc: null },
+    destino: { id: TRU, nombre: "Tienda Trujillo" },
+    fecha_emision: "2026-10-10",
+    creada_en: "2026-10-10T21:50:00+00:00",
+    lineas: [{ id: "i1", posicion: 1, categoria_id: "c1", categoria: "Polos", marca_id: "m1", marca: "Kero", cantidad: 10, precio_unitario: 25.5, subtotal: 255 }],
+  };
+  it("lee por línea lo enviado y lo que queda (nunca menos de cero) y la lista de envíos", () => {
+    const d = leerDetalleOrden({
+      ...BASE,
+      lineas: [{ ...BASE.lineas[0], enviado: 4, por_enviar: 6 }, { ...BASE.lineas[0], id: "i2", posicion: 2, enviado: "10", por_enviar: -1 }],
+      envios: [{ id: "e1", numero: "ENV-000001", sede: "Tienda Trujillo", estado: "en_camino", unidades: 14 }],
+    })!;
+    expect(d.lineas[0]).toMatchObject({ enviado: 4, porEnviar: 6 });
+    expect(d.lineas[1]).toMatchObject({ enviado: 10, porEnviar: 0 });
+    expect(d.envios).toHaveLength(1);
+  });
+  it("una base que todavía no los cuenta: la orden se lee igual, sin envíos y sin saber qué queda", () => {
+    const d = leerDetalleOrden(BASE)!;
+    expect(d.envios).toBeNull();
+    expect(d.lineas[0]).toMatchObject({ enviado: null, porEnviar: null });
+  });
+  it("una base que sabe de envíos pero todavía no hay ninguno: la lista vacía, no «no sabe»", () => {
+    const d = leerDetalleOrden({ ...BASE, lineas: [{ ...BASE.lineas[0], enviado: 0, por_enviar: 10 }] })!;
+    expect(d.envios).toEqual([]);
+  });
+});
+
+describe("qué se puede hacer con una orden que tiene (o no) envíos", () => {
+  const linea = (over: object = {}) => ({ id: "i1", posicion: 1, enviado: 0, porEnviar: 10, ...over }) as never;
+  const vivo = (estado: "en_camino" | "abierto" | "cerrado" | "anulado" = "en_camino") => ({
+    id: "e1",
+    numero: "ENV-000001",
+    sede: "Tienda Trujillo",
+    numeroGuia: null,
+    estado,
+    despachadoEn: null,
+    unidades: 5,
+    version: 1,
+  });
+  const orden = (o: object = {}) => ({ estado: "generada" as const, comprobantes: [], envios: [], lineas: [linea()], ...o });
+
+  it("«Enviar a una sede»: una generada con algo por enviar cuya base ya sabe de envíos, con o sin papel", () => {
+    expect(puedeEnviarOrden(orden())).toBe(true);
+    expect(puedeEnviarOrden(orden({ envios: [vivo()] }))).toBe(true);
+  });
+  it("no se ofrece en una anulada, con una base que no conoce los envíos, sin nada por enviar ni con líneas sin id", () => {
+    expect(puedeEnviarOrden(orden({ estado: "anulada" }))).toBe(false);
+    expect(puedeEnviarOrden(orden({ envios: null }))).toBe(false);
+    expect(puedeEnviarOrden(orden({ lineas: [linea({ porEnviar: 0 })] }))).toBe(false);
+    expect(puedeEnviarOrden(orden({ lineas: [linea({ porEnviar: null })] }))).toBe(false);
+    expect(puedeEnviarOrden(orden({ lineas: [linea({ id: null })] }))).toBe(false);
+    expect(puedeEnviarOrden(orden({ lineas: [] }))).toBe(false);
+  });
+  it("un envío vivo (en camino, abierto o cerrado) cuenta; uno anulado, no", () => {
+    expect(tieneEnvioVivo({ envios: [vivo("en_camino")] })).toBe(true);
+    expect(tieneEnvioVivo({ envios: [vivo("abierto")] })).toBe(true);
+    expect(tieneEnvioVivo({ envios: [vivo("cerrado")] })).toBe(true);
+    expect(tieneEnvioVivo({ envios: [vivo("anulado")] })).toBe(false);
+    expect(tieneEnvioVivo({ envios: [] })).toBe(false);
+    expect(tieneEnvioVivo({ envios: null })).toBe(false);
+    expect(tieneEnvioVivo({})).toBe(false);
+  });
+  it("con un envío vivo la orden no se edita ni se anula; con uno solo anulado no se edita (la guía cuelga de sus líneas) pero sí se anula", () => {
+    expect(puedeEditarOrden(orden())).toBe(true);
+    expect(puedeAnularOrden(orden())).toBe(true);
+    for (const estado of ["en_camino", "abierto", "cerrado"] as const) {
+      expect(puedeEditarOrden(orden({ envios: [vivo(estado)] })), estado).toBe(false);
+      expect(puedeAnularOrden(orden({ envios: [vivo(estado)] })), estado).toBe(false);
+    }
+    expect(puedeEditarOrden(orden({ envios: [vivo("anulado")] }))).toBe(false);
+    expect(puedeAnularOrden(orden({ envios: [vivo("anulado")] }))).toBe(true);
+    // Una base que no cuenta envíos no esconde nada: se queda como en la fase 2.
+    expect(puedeEditarOrden({ estado: "generada", comprobantes: [] })).toBe(true);
+    expect(puedeAnularOrden({ estado: "generada", comprobantes: [] })).toBe(true);
+    expect(tieneEnvio({ envios: [vivo("anulado")] })).toBe(true);
+    expect(tieneEnvio({ envios: [] })).toBe(false);
+    expect(tieneEnvio({ envios: null })).toBe(false);
+  });
+  it("cuánto de una línea salió se dice «8 de 10»; el total es lo que se llegó a pedir o a facturar", () => {
+    expect(textoEnvioDeLinea({ cantidad: 10, enviado: 8, porEnviar: 2 })).toBe("8 de 10");
+    expect(textoEnvioDeLinea({ cantidad: 10, enviado: 12, porEnviar: 0 })).toBe("12 de 12");
+    expect(textoEnvioDeLinea({ cantidad: 10, enviado: 0, porEnviar: null })).toBe("0 de 10");
+    expect(textoEnvioDeLinea({ cantidad: 10, enviado: null, porEnviar: null })).toBeNull();
+  });
+  it("de la orden entera: nada, una parte o todo enviado", () => {
+    expect(estadoDeEnvioDeOrden({ envios: null, lineas: [] })).toBeNull();
+    expect(estadoDeEnvioDeOrden({ envios: [], lineas: [linea({ enviado: 0 })] })).toBe("ninguno");
+    expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 4, porEnviar: 6 })] })).toBe("en_parte");
+    expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 10, porEnviar: 0 }), linea({ id: "i2", enviado: 0, porEnviar: 0 })] })).toBe("completo");
   });
 });

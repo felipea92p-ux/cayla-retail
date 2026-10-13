@@ -51,6 +51,7 @@ import {
 import {
   GUIA_COMPROBANTE_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FACTURA,
   GUIA_FACTURAS,
   GUIA_MI_PARTE,
@@ -170,6 +171,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_ORDEN,
   GUIA_EDITAR_ORDEN,
   GUIA_COMPROBANTE_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FIN_RESUMEN,
   GUIA_FIN_GASTOS,
   GUIA_FIN_CUENTAS,
@@ -242,6 +244,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/ordenes": { estado: "aplicada", guia: GUIA_ORDENES.id },
   "/compras/ordenes/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN.id },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN.id },
+  "/compras/ordenes/envio/[id]": { estado: "aplicada", guia: GUIA_ENVIO_ORDEN.id },
   "/compras/ordenes/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN.id },
   "/compras/ordenes/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN.id },
   "/compras/parte/[compraId]": { estado: "aplicada", guia: GUIA_MI_PARTE.id },
