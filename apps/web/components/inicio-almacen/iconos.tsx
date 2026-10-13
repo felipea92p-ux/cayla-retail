@@ -1,5 +1,8 @@
-// Íconos del Inicio de Almacén: el mismo trazo de 1.6 que el lateral y el resto del Inicio (los de `AppShell` son privados de
-// ese archivo). Un solo lugar para los trazos.
+import { TRAZOS_MENU } from "@/lib/menu-iconos";
+
+// Íconos del Inicio de Almacén, a 1.6 como el resto del Inicio. Los que llevan a una pantalla del menú (Stock, Traslados, Recibir,
+// Conteo) son los MISMOS trazos que dibuja el lateral (`TRAZOS_MENU`, lib/menu-iconos.ts; 2026-10-13, Felipe: «alinea los otros
+// lugares de íconos»); el resto son acciones o piezas de esta pantalla y conservan el suyo.
 
 const TRAZOS = {
   plus: "M12 5v14M5 12h14",
@@ -13,12 +16,14 @@ const TRAZOS = {
   warn: "M12 3l10 17H2zM12 10v5M12 17.5h.01",
   refresh: "M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6",
   eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
-  truck: "M3 7h13v10H3zM16 10h3l2 3v4h-5M7 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M18 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
-  stock: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
-  traslados: "M5 12h14M13 6l6 6-6 6",
+  // El camión que avanza por la ruta de un traslado en curso: el mismo de «Traslados» en el lateral.
+  truck: TRAZOS_MENU.traslados,
+  recibir: TRAZOS_MENU.recibir,
+  stock: TRAZOS_MENU.existencias,
+  traslados: TRAZOS_MENU.traslados,
   tag: "M3 12V4h8l10 10-8 8zM7.5 8.5h.01",
   rotulo: "M12 3v3M12 14v7M8 21h8M4 6h13l3 4-3 4H4z",
-  conteo: "M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4",
+  conteo: TRAZOS_MENU.conteo,
   scan: "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16",
 } as const;
 

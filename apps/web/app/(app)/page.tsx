@@ -24,6 +24,7 @@ import {
   type NivelAviso,
 } from "@/lib/inicio-avisos";
 import { aterrizajeDe } from "@/lib/menu";
+import { ICONO_DEL_ACCESO, TRAZOS_MENU } from "@/lib/menu-iconos";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
@@ -454,18 +455,21 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
   );
 }
 
-// ── Íconos (trazo 1.6, como el lateral; los de AppShell son privados de ese archivo) ────────────────────────────────
+// ── Íconos (trazo 1.6) ───────────────────────────────────────────────────────────────────────────────────────────────
+// Un acceso que lleva a una pantalla del menú dibuja el MISMO ícono que esa pantalla en el lateral (`ICONO_DEL_ACCESO`,
+// lib/menu-iconos.ts; 2026-10-13, Felipe: «alinea los otros dos lugares de íconos»). «Buscar» y «Nuevo producto» son acciones,
+// no pantallas: conservan su trazo propio.
 
 const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check", string> = {
-  vender: "M6 7h12l1 14H5zM9 7a3 3 0 0 1 6 0",
-  caja: "M12 3v18M16 7c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 2.6 4 3 4 1.3 4 3-1.8 3-4 3-4-1.3-4-3",
-  apartados: "M7 3h10v18l-5-4-5 4z",
-  stock: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
-  traslados: "M5 12h14M13 6l6 6-6 6",
-  cambios: "M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3",
-  recibir: "M3 7h13v10H3zM16 10h3l2 3v4h-5M7 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M18 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
-  conteo: "M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4",
-  produccion: "M4 20V9l5 3V9l5 3V6l6 3v11z",
+  vender: TRAZOS_MENU[ICONO_DEL_ACCESO.vender],
+  caja: TRAZOS_MENU[ICONO_DEL_ACCESO.caja],
+  apartados: TRAZOS_MENU[ICONO_DEL_ACCESO.apartados],
+  stock: TRAZOS_MENU[ICONO_DEL_ACCESO.stock],
+  traslados: TRAZOS_MENU[ICONO_DEL_ACCESO.traslados],
+  cambios: TRAZOS_MENU[ICONO_DEL_ACCESO.cambios],
+  recibir: TRAZOS_MENU[ICONO_DEL_ACCESO.recibir],
+  conteo: TRAZOS_MENU[ICONO_DEL_ACCESO.conteo],
+  produccion: TRAZOS_MENU[ICONO_DEL_ACCESO.produccion],
   buscar: "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5",
   nuevoProducto: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 8v8M8 12h8",
   chevron: "M9 6l6 6-6 6",
