@@ -7,6 +7,7 @@ import {
   ESTABLE_DURANTE,
   FIN_DE_LA_ENTRADA,
   MS_DE_LA_SALIDA_EN_EL_CENTRO,
+  MS_TOPE_DEL_VELO,
   PECHO_DEL_AVE,
   TIEMPOS,
   TOPE_DE_ESPERA,
@@ -18,6 +19,7 @@ import {
   msCorridosDeLaSalida,
   msDelVuelo,
   revisarLaPantalla,
+  veloCubre,
   type MedidasDeLaEntrada,
   type Punto,
 } from "./login-entrada";
@@ -207,6 +209,35 @@ describe("¿ya se puede abrir la ventana?", () => {
     expect(debeCancelarse({ ruta: "/", busqueda: "" }, 1000, false)).toBe(false);
     expect(debeCancelarse({ ruta: "/login", busqueda: "" }, TOPE_DE_ESPERA + 1, false)).toBe(true);
     expect(debeCancelarse({ ruta: "/", busqueda: "" }, TOPE_DE_ESPERA + 1, true)).toBe(false);
+  });
+});
+
+describe("¿cuándo se muestra la pantalla de destino? (Felipe 2026-10-13: «se ve el inicio» antes de que el colibrí lo abra)", () => {
+  const medidas: MedidasDeLaEntrada = { origen: { x: 360, y: 70, ancho: 330, alto: 222 }, ancho: 1440, alto: 900 };
+
+  it("recién cuando el velo tapa toda la pantalla: antes, se vería a través de él", () => {
+    for (let vms = 0; vms < TIEMPOS.velo[1]; vms += 10) {
+      expect(veloCubre(vms), `${vms} ms`).toBe(false);
+      expect(estadoDeLaEntrada(vms, vms, medidas).velo, `${vms} ms`).toBeLessThan(1);
+    }
+    for (const vms of [TIEMPOS.velo[1], ESPERA_EN, FIN_DE_LA_ENTRADA]) {
+      expect(veloCubre(vms), `${vms} ms`).toBe(true);
+      expect(estadoDeLaEntrada(vms, vms, medidas).velo, `${vms} ms`).toBe(1);
+    }
+  });
+
+  it("cuando el velo tapa, la ventana todavía no se abrió: la pantalla de destino carga debajo y solo se ve por la ventana", () => {
+    expect(estadoDeLaEntrada(TIEMPOS.velo[1], TIEMPOS.velo[1], medidas).kVentana).toBe(0);
+    expect(TIEMPOS.velo[1]).toBeLessThanOrEqual(TIEMPOS.abre[0]);
+  });
+
+  it("el velo tapa antes de que el ave llegue al centro: esperarlo no retrasa la ventana, que nunca se abre antes de que el ave flote ahí", () => {
+    expect(TIEMPOS.velo[1]).toBeLessThanOrEqual(ESPERA_EN);
+  });
+
+  it("si la capa no avisa (pestaña en segundo plano), la pantalla no espera mucho más de lo que tarda el velo", () => {
+    expect(MS_TOPE_DEL_VELO).toBeGreaterThan(TIEMPOS.velo[1]);
+    expect(MS_TOPE_DEL_VELO).toBeLessThan(ESPERA_EN + 1000);
   });
 });
 

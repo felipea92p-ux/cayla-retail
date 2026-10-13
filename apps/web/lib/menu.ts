@@ -20,6 +20,7 @@
 // lateral se pliega: los grupos cuentan como cerrados) y ADR-0133 (Producción y Compras son dos módulos distintos).
 
 import type { ClaveModulo } from "./modulos";
+import type { Vista } from "./vista-global";
 
 /* ------------------------------------------------------------------
    Vocabulario del árbol
@@ -485,11 +486,24 @@ function primeraRutaDe(modulos: readonly ClaveModulo[], preferido?: string | nul
  * principal» ni de que Inicio se apague. Una PERSONA: la pantalla principal de su rol si todavía la ve; si no (o su
  * rol nunca eligió una), la primera pantalla que ve, en el orden del menú (Inicio sale primero si la tiene, como
  * antes); si no le queda NINGUNA (ni Inicio ni ningún otro módulo), «Sin acceso» — nunca queda sin saber a dónde ir.
+ * En CAYLA Global (ADR-0275) el Inicio de una sede no tiene sentido: quien iba a quedarse en él va al tablero, salvo
+ * el Admin, cuyo Inicio es el Observatorio de toda la empresa (ADR-0322; si el Observatorio no se puede leer, el Inicio
+ * lo manda igual al tablero al dibujarse).
+ *
+ * La usan el Inicio, al abrirse, y el login, ANTES de navegar (`app/api/aterrizaje`): así la cuenta entra directo a su
+ * pantalla, sin pasar por `/` (Felipe 2026-10-13: al entrar «se ve el inicio» un instante). Una sola regla para los dos.
  */
-export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null; pantallaPrincipal?: string | null }): string {
+export function aterrizajeDe(perfil: {
+  terminal?: boolean;
+  modulos?: readonly ClaveModulo[] | null;
+  pantallaPrincipal?: string | null;
+  esAdmin?: boolean;
+  vista?: Vista;
+}): string {
   const modulos = perfil.modulos ?? [];
   if (perfil.terminal) return esMostrador(perfil) ? "/vender" : "/";
-  return primeraRutaDe(modulos, perfil.pantallaPrincipal) ?? "/sin-acceso";
+  const destino = primeraRutaDe(modulos, perfil.pantallaPrincipal) ?? "/sin-acceso";
+  return destino === "/" && perfil.vista === "global" && !perfil.esAdmin ? "/global" : destino;
 }
 
 /**

@@ -103,7 +103,11 @@ flowchart TB
 
 **Inicio (`/`)**
 - **«Tu piso» (ADR-0395, 2026-10-13):** en el Inicio de una TIENDA (no terminal), `<Suspense>` con `components/inicio/PisoDelInicio.tsx` (Server Component async; sin módulo nuevo: cada tarjeta la ve quien ve `frescura` o `plan_piso`). Qué se dice vive en `lib/inicio-piso-reglas.ts` (`pisoQueSeVe`, `vistaFrescuraInicio`, `vistaPlanInicio`, `vistaPisoInicio`; pura, con su prueba). Lecturas que nunca lanzan (`LecturaParaElInicio`: ok / no aplica / falló): `getPisoDeFrescuraParaElInicio` (`lib/frescura.ts`: `rpcFrescura` + `armarFrescuraSede` + `puertaDelPiso`, una sola tienda, sin caché) y `getPisoDelPlanParaElInicio` (`lib/plan-piso-servidor.ts`: `armarPropuesta` + `getCapacidadPisoConEstado`). La barra y la línea de porcentajes (`segmentosDelPiso`, `lineaDelPiso`) viven en `lib/frescura-piso.ts` y las usan también `FrescuraPiso` y `FrescuraRed`. Lleva a `/gestion/frescura` y `/gestion/plan-del-piso`. Guía: paso `piso` de `GUIA_INICIO`.
-- `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
+- **Entrar sin pasar por el Inicio (2026-10-13, ADR-0136 act. e):** el login (`app/login/page.tsx`) pregunta a `/api/aterrizaje` a qué pantalla entra la
+  cuenta y navega UNA vez ahí (`router.replace`, sin `router.refresh()`); con el colibrí, la app recién abierta no se muestra hasta que el velo tapa la
+  pantalla (`EsperaAlVelo` de `components/login/EntradaColibri.tsx`, montada en `app/(app)/layout.tsx`; la espera vive en `lib/entrada-estado.ts`,
+  `veloPendiente`). Lo que hace el login con la respuesta, en `lib/login-aterrizaje.ts` (si no sabe, va a `/`).
+- `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`, la misma regla del login: pantalla principal, terminal, CAYLA Global salvo el Admin) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
   (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
   puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
   catálogo», pulso, en camino, por colgar y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
@@ -1599,6 +1603,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.
+- `/api/aterrizaje` → `GET`, solo lectura: `{ destino }`, la pantalla a la que entra quien acaba de iniciar sesión (`aterrizajeDe` de `lib/menu.ts`
+  con `requirePersonaActualV2`, la misma regla del Inicio). La llama el login antes de navegar, para ir directo sin pintar `/` (Felipe 2026-10-13,
+  «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
+  fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
 
 Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
 a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
