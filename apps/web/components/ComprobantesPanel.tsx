@@ -31,6 +31,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -99,7 +100,7 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
     // En una tarjeta angosta (celular) no se dibujan: viven en «Opciones», con botones del tamaño de un dedo.
     <div className="mt-0.5 hidden flex-wrap gap-x-3 text-[12.5px] @min-[640px]:flex">
       {c.pdfUrl && (
-        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="font-medium text-rojo-profundo hover:underline">
+        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="btn-enlace font-medium">
           Ver PDF
         </a>
       )}
@@ -109,18 +110,18 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
           target="_blank"
           rel="noreferrer"
           aria-label={`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`}
-          className="text-tinta/65 hover:text-rojo-profundo hover:underline"
+          className="btn-enlace"
         >
           WhatsApp
         </a>
       )}
       {c.xmlUrl && (
-        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="btn-enlace">
           XML
         </a>
       )}
       {c.cdrUrl && (
-        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="btn-enlace">
           CDR
         </a>
       )}
@@ -302,7 +303,7 @@ export function ComprobantesPanel({
               cuando el sistema apunta al ambiente de producción.
             </Ayuda>
           </p>
-          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todos los comprobantes</h2>
+          <TituloSeccion className="mt-0.5">Todos los comprobantes</TituloSeccion>
           <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
           {comprobantes.length > 0 && (
             <div data-guia="comprobantes.filtros" className="mt-3 flex">

@@ -83,7 +83,7 @@ export function ModeloNuevoCampos({
           <>
             {" "}
             ¿Prefieres cargarlo completo, con fotos?{" "}
-            <Link href={hrefAltaDesdeProduccion(tipo)} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+            <Link href={hrefAltaDesdeProduccion(tipo)} className="btn-enlace">
               Créalo en Productos
             </Link>{" "}
             y vuelves aquí con la orden lista.

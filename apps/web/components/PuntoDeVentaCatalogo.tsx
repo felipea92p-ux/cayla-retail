@@ -14,6 +14,7 @@ import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
 import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
+import { Interruptor } from "@/components/ui/campos";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -234,7 +235,7 @@ export function PuntoDeVentaCatalogo({
               onKeyDown={onTeclado}
               placeholder="Escanea la etiqueta o busca la prenda"
               etiqueta="Escanea la etiqueta o busca la prenda"
-              role="combobox"
+              role="combobox" // unificar-fijo: la búsqueda del mostrador (pistola y fotos), que la pieza no hace
               aria-expanded={resultados.length > 0}
               aria-controls="venta-resultados"
               aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
@@ -243,7 +244,7 @@ export function PuntoDeVentaCatalogo({
             {q && (
               <ul
                 id="venta-resultados"
-                role="listbox"
+                role="listbox" // unificar-fijo: la lista con fotos y stock de la búsqueda del mostrador
                 data-guia="vender.resultados"
                 aria-label="Prendas encontradas"
                 className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
@@ -383,30 +384,15 @@ export function PuntoDeVentaCatalogo({
               cuántas tarjetas esconde: sin ese número, una prenda que no aparece parece que
               no existe. */}
           <div className="mt-3 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              role="switch"
-              data-guia="vender.solo-stock"
-              aria-checked={soloConStock}
-              onClick={() => onSoloConStock(!soloConStock)}
-              disabled={bloqueado}
-              // `shrink-0`: con el contador largo de al lado, el interruptor se partía en dos líneas y la fila crecía.
-              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1"
-            >
-              <span
-                aria-hidden
-                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-300 ease-[var(--ease-cayla)] ${
-                  soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform duration-300 ease-[var(--ease-cayla)] ${
-                    soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
-                  }`}
-                />
-              </span>
-              <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
-            </button>
+            {/* El interruptor del sistema (ADR-0358, ronda 6). `shrink-0`: con el contador largo de al lado, se partía en dos líneas. */}
+            <div data-guia="vender.solo-stock" className="shrink-0 py-1">
+              <Interruptor
+                activo={soloConStock}
+                onActivo={onSoloConStock}
+                disabled={bloqueado}
+                etiqueta={<span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>}
+              />
+            </div>
             {soloConStock && ocultasSinStock > 0 && (
               // Un color escondido porque su piso está en 0 no está «agotado» si tiene prendas en el almacén de esta sede
               // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de

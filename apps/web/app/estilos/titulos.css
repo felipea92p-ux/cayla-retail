@@ -1,0 +1,85 @@
+/* =====================================================================
+   TÍTULOS DE SECCIÓN — las piezas de la ronda 7 de /unificar (ADR-0358, Felipe 2026-10-13): components/ui/TituloSeccion.tsx.
+   · Título de bloque: serif de 21 px con su dato o su acción a la derecha.
+   · Título de grupo: versalitas de 11 px con una raya fina que se dibuja hasta el borde.
+   · Separador de día: versalitas con el total del día, pegado arriba al bajar; «Hoy» con su punto rojo.
+   Solo tokens; movimiento de ADR-0136 (la raya se dibuja una vez, sin bucle).
+   ===================================================================== */
+
+@layer components {
+  .titulo-seccion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.375rem 1rem;
+  }
+  .titulo-seccion-texto {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--color-tinta);
+  }
+  .titulo-seccion-lado { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; }
+  .titulo-seccion-dato { font-size: 13px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+  .titulo-seccion-dato :is(b, strong) { color: var(--color-tinta); font-weight: 600; }
+
+  .titulo-grupo {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    line-height: 1.3;
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+  }
+  .titulo-grupo-texto { display: flex; align-items: center; gap: 0.75rem; }
+  .titulo-grupo-texto::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-sand);
+    transform-origin: left;
+    animation: cayla-raya-dibuja 520ms var(--ease-cayla) backwards;
+    animation-delay: var(--retraso, 120ms);
+  }
+  .titulo-grupo-cuenta { margin-left: -0.5rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); font-variant-numeric: tabular-nums; }
+
+  .separador-dia {
+    position: sticky;
+    top: var(--separador-tope, 0);
+    z-index: 2;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.625rem 1.25rem 0.5rem;
+    border-bottom: 1px solid var(--color-sand);
+    background: color-mix(in srgb, var(--color-papel) 92%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    line-height: 1.3;
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+  }
+  .separador-dia-hoy { color: var(--color-tinta); }
+  .separador-dia-texto { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .separador-dia-hoy .separador-dia-texto::before { content: ""; width: 6px; height: 6px; flex-shrink: 0; border-radius: 999px; background: var(--color-rojo); }
+  .separador-dia-total { font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+  .separador-dia-total :is(b, strong) { color: var(--color-tinta); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .titulo-grupo-texto::after { animation-duration: 1ms; animation-delay: 0ms; }
+  }
+}
+
+@keyframes cayla-raya-dibuja {
+  from { transform: scaleX(0); }
+}

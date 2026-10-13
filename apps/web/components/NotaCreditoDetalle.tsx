@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, Check, Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -19,6 +18,8 @@ import {
   type FilaVista,
   type MovimientoFavor,
 } from "@/lib/notas-credito-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 /* ====================================================================
    Detalle de una nota de crédito (2026-09-19)
@@ -94,7 +95,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
           </dl>
 
           <section>
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Recorrido</h3>
+            <TituloGrupo className="mb-2">Recorrido</TituloGrupo>
             <div className="grid">
               {pasos.map((p, i) => (
                 <div key={p.clave} className="nc-paso" data-estado={p.estado} data-hilo={p.estado === "hecho" && pasos[i + 1] && pasos[i + 1].estado !== "pendiente" ? "true" : "false"} style={{ ["--i" as string]: i }}>
@@ -110,7 +111,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
           </section>
 
           <section>
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Comprobante de origen</h3>
+            <TituloGrupo className="mb-2">Comprobante de origen</TituloGrupo>
             <div className="flex flex-wrap items-center gap-3.5 rounded-xl border border-sand px-3.5 py-3">
               <span className="min-w-0 flex-1">
                 <b className="font-semibold tabular-nums text-tinta">{f.documento}</b>
@@ -126,14 +127,12 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
                   Se debe<b className="font-display block text-[17px] font-normal tabular-nums text-tinta">{soles(f.compraSaldo)}</b>
                 </span>
               </span>
-              <Link href={`/compras/factura/${f.compraId}`} className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:underline">
-                Ver comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
-              </Link>
+              <EnlaceVer href={`/compras/factura/${f.compraId}`}>Ver comprobante</EnlaceVer>
             </div>
           </section>
 
           <section>
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">{f.clase === "pendiente" ? "Qué pasará con el dinero cuando llegue la nota" : "Qué pasó con el dinero"}</h3>
+            <TituloGrupo className="mb-2">{f.clase === "pendiente" ? "Qué pasará con el dinero cuando llegue la nota" : "Qué pasó con el dinero"}</TituloGrupo>
             <div className="grid gap-3">
               {f.clase === "pendiente" ? (
                 <Parte
@@ -162,7 +161,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
 
           {f.clase === "pendiente" && !f.bloqueada && (
             <section>
-              <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Mensaje para el proveedor</h3>
+              <TituloGrupo className="mb-2">Mensaje para el proveedor</TituloGrupo>
               <p className="whitespace-pre-line rounded-xl border border-dashed border-tinta/25 px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{mensajeParaProveedor(f)}</p>
               <button type="button" onClick={copiar} className={`label-cayla mt-1.5 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors ${copiado ? "bg-verde/10 text-verde-profundo" : "text-tinta/55 hover:text-rojo"}`}>
                 {copiado ? (
@@ -179,9 +178,9 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
           )}
 
           <section>
-            <h3 className="label-cayla mb-1 text-[11px] text-tinta/65">
-              Historial <span className="font-normal normal-case tracking-normal text-tinta/45">· no se edita ni se borra</span>
-            </h3>
+            <TituloGrupo className="mb-1" cuenta="no se edita ni se borra">
+              Historial
+            </TituloGrupo>
             <ul className="border-t border-tinta/10">
               {f.clase === "pendiente" ? (
                 <Movimiento fecha={f.cerradoEn?.slice(0, 10) ?? f.fecha} titulo="Cierre por faltante" detalle={`${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad" : "unidades"} en ${f.documento}`} monto={soles(f.monto)} />
