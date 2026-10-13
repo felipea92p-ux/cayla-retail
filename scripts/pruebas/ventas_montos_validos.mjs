@@ -70,9 +70,10 @@ set local request.jwt.claim.sub = '${quien}';
 `;
 }
 
+// Sin comprobante: una devolución no se aprueba mientras la boleta no esté aceptada por SUNAT (PR #1004), y aquí no se transmite nada.
 const venta = (pagos, como = "venta") =>
   `select retail.registrar_venta(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 1, 'precio_unitario', :'precio'::numeric, 'descuento_unitario', 0)),
-    ${pagos}, null, gen_random_uuid(), 'boleta') as ${como} \\gset\n`;
+    ${pagos}, null, gen_random_uuid(), null) as ${como} \\gset\n`;
 const efectivo = (recibido) => `jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', :'precio'::numeric, 'recibido', ${recibido}))`;
 const devolucionPendiente = `${venta(`jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric))`)}
 select id as item from retail.venta_items where venta_id = :'venta' \\gset

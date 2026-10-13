@@ -75,9 +75,10 @@ set local request.jwt.claim.sub = '${quien}';
 }
 
 const egreso = (monto, como = "_e") => `select retail.registrar_movimiento_caja(:'caja', 'egreso', ${monto}, 'Retiro de efectivo', null, false, gen_random_uuid()) as ${como} \\gset\n`;
+// Sin comprobante: una devolución no se aprueba mientras la boleta no esté aceptada por SUNAT (PR #1004), y aquí no se transmite nada.
 const vender = (como, metodo = "efectivo") =>
   `select retail.registrar_venta(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 1, 'precio_unitario', :'precio'::numeric, 'descuento_unitario', 0)),
-    jsonb_build_array(jsonb_build_object('metodo', '${metodo}', 'monto', :'precio'::numeric)), null, gen_random_uuid(), 'boleta') as ${como} \\gset\n`;
+    jsonb_build_array(jsonb_build_object('metodo', '${metodo}', 'monto', :'precio'::numeric)), null, gen_random_uuid(), null) as ${como} \\gset\n`;
 const esperado = `select 'esperado|' || (select e.esperado from retail.fn_calcular_esperado_caja(:'caja') e);`;
 const confirmar = "set constraints all immediate;";
 
