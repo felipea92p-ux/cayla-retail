@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 161,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «{AYUDA[tipo]}»"
@@ -106,11 +106,10 @@
       "button «Soltar visibles»",
       "Casilla «{`${p.referencia}»",
       "button «{p.referencia}»",
-      "input «{[v.talla, v.color].filter(Boolean).join(\" · \") || \"Única\"}»",
+      "Casilla «{[v.talla, v.color].filter(Boolean).join(\" · \") || \"Única\"}»",
       "ComboResponsable «)»",
       "Boton «Cancelar»",
-      "Boton «{vista ? \"Revisar y aplicar\" : \"Aplicar\"}»",
-      "input «{etiqueta}»"
+      "Boton «{vista ? \"Revisar y aplicar\" : \"Aplicar\"}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -167,7 +166,7 @@
       "Desplegable «Ponérsela a la categoría»",
       "button «{eleccion ? undefined : \"Elige primero la temporada.\"}»",
       "Link «{p.nombre}»",
-      "input «{`Marcar ${p.nombre}»"
+      "Casilla «{`Marcar ${p.nombre}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
@@ -181,9 +180,9 @@
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "input «{ejemplo.nombre.texto}»",
-      "Desplegable «Código»",
-      "input «{ejemplo.codigo.texto}»",
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
       "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"

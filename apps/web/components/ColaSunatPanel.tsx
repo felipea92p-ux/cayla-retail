@@ -17,6 +17,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ConfirmarTransmision } from "@/components/ConfirmarTransmision";
 import { Check } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // «Por reintentar» (D-60): lo que Lucode/SUNAT no aceptó al cobrar y espera en la cola. Se reintenta
 // solo (el trabajo programado cada 5 minutos durante 4 horas, también en producción desde el 2026-10-12; y cada
@@ -94,7 +95,7 @@ export function ColaSunatPanel({
       )}
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div className="min-w-0">
-          <h2 className="font-display text-xl leading-tight text-tinta">Por enviar a SUNAT</h2>
+          <TituloSeccion>Por enviar a SUNAT</TituloSeccion>
           <p className="mt-0.5 text-xs text-tinta/65">
             Todo lo que todavía no llegó: lo que nunca se intentó, lo que falló y lo que SUNAT rechazó. No pierden su número; si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.
           </p>

@@ -23,6 +23,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -117,7 +118,7 @@ export function ProformasPanel({
                 las prendas en el carrito, y ahí nace la venta con su boleta o factura.
               </Ayuda>
             </p>
-            <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todas las proformas</h2>
+            <TituloSeccion className="mt-0.5">Todas las proformas</TituloSeccion>
             <p className="mt-0.5 text-xs text-tinta/65">Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.</p>
             {conversion.porcentaje !== null && (
               <p className="mt-1.5 text-[13px] text-tinta/75">

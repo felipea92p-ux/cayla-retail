@@ -65,7 +65,7 @@ export function RitmoRecientePopover({
         onClick={() => setAbierto((a) => !a)}
         // Diseño aprobado de Existencias (2026-09-28): la cifra se lee como texto llano («1 ud/día», «Sin datos suficientes»,
         // en dos líneas si no cabe); sigue siendo un botón que abre el detalle, y lo dice con un subrayado punteado al pasar.
-        className={`max-w-full whitespace-normal rounded text-[13px] leading-tight tabular-nums underline decoration-transparent decoration-dotted underline-offset-2 transition-colors hover:decoration-tinta/40 focus-visible:decoration-tinta/40 ${tono}`}
+        className={`max-w-full whitespace-normal rounded text-[13px] leading-tight tabular-nums underline decoration-transparent decoration-dotted underline-offset-2 transition-colors hover:decoration-tinta/40 focus-visible:decoration-tinta/40 ${tono}`} // unificar-fijo: diseño aprobado de Existencias, la cifra se lee como texto llano
       >
         {textoRitmoRecienteCelda(ritmo)}
       </button>

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Flag, Package, Search } from "lucide-react";
+import { Flag, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -26,6 +25,9 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
 import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -257,9 +259,7 @@ export function AbrirConteo({
       <div className="grid @[46rem]:grid-cols-[minmax(0,1fr)_19.5rem]">
         <div inert={abriendo} className={`min-w-0 space-y-7 p-5 transition-opacity duration-200 @[46rem]:p-8 ${abriendo ? "opacity-60" : ""}`}>
           <div className="space-y-1">
-            <h2 id={idTitulo} className="font-display text-2xl text-tinta">
-              Abrir un conteo
-            </h2>
+            <TituloSeccion id={idTitulo}>Abrir un conteo</TituloSeccion>
             <p className="text-sm text-taupe">
               {separaPisoAlmacen ? "Tres respuestas y empiezas a escanear." : "Aquí se cuenta toda la ubicación: no hay piso y almacén por separado."}
             </p>
@@ -273,9 +273,7 @@ export function AbrirConteo({
                 <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
                 atender. Recíbelos primero, o esas prendas saldrán como diferencia.
               </span>
-              <Link href="/inventario/traslados" className="btn-cayla btn-enlace text-sm">
-                Ver traslados →
-              </Link>
+              <EnlaceVer href="/inventario/traslados">Ver traslados</EnlaceVer>
             </div>
           )}
 
@@ -585,26 +583,16 @@ function ElegirCategoria({
 
   return (
     <div className="space-y-3 pt-3">
-      <label data-guia="conteo.categoria-buscador" className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-sm">
-        <Search className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
-        <span className="sr-only">Buscar categoría</span>
-        <input
-          ref={buscador}
-          type="text"
-          autoComplete="off"
-          value={consulta}
-          onChange={(e) => setConsulta(e.target.value)}
-          onKeyDown={(e) => {
-            // Un control que usa el Escape (aquí, borra su búsqueda) no lo deja pasar (ADR-0136).
-            if (e.key === "Escape" && consulta) {
-              e.stopPropagation();
-              setConsulta("");
-            }
-          }}
-          placeholder="Buscar categoría"
-          className="h-10 w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
-        />
-      </label>
+      {/* El buscador del sistema (ADR-0358, ronda 5): su Escape borra lo escrito y no cierra la hoja de alrededor (ADR-0136). */}
+      <Buscador
+        guia="conteo.categoria-buscador"
+        ref={buscador}
+        valor={consulta}
+        onCambio={setConsulta}
+        etiqueta="Buscar categoría"
+        placeholder="Buscar categoría"
+        className="@[30rem]:max-w-sm"
+      />
       <div data-guia="conteo.categoria-lista" role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
         {visibles.length === 0 && <p className="py-1.5 text-[13px] text-taupe">Ninguna categoría se llama así.</p>}
         {visibles.map((c, i) => {

@@ -22,6 +22,7 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 type Tienda = { id: string; nombre: string };
 
@@ -110,7 +111,7 @@ export function SeriesPanel({
     <div className="space-y-6">
       <div className="anim-sube flex flex-wrap items-end justify-between gap-3" style={{ "--i": 3 } as CSSProperties}>
         <div data-guia="series.titulo" className="min-w-0">
-          <h2 className="font-display text-xl leading-tight text-tinta">
+          <TituloSeccion>
             Series registradas
             <Ayuda titulo="Series de comprobantes">
               La serie identifica desde qué tienda salió el comprobante: una letra según el tipo (B para boleta, F para factura) más tres
@@ -119,7 +120,7 @@ export function SeriesPanel({
               documento que corrigen: BC.. si corrigen boletas y FC.. si corrigen facturas, así que cada tienda lleva las dos. El correlativo
               lo lleva el sistema.
             </Ayuda>
-          </h2>
+          </TituloSeccion>
           <p className="mt-0.5 text-xs text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>
         </div>
         {esLider && (

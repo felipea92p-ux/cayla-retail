@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import { Check, ChevronRight, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
-import { Tabla, fila, celda } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { RecepcionVistaRapida } from "@/components/RecepcionVistaRapida";
 import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { useFlip } from "@/lib/useFlip";
@@ -33,6 +33,16 @@ import { Vacio } from "@/components/ui/Vacio";
 // de 1024 px deja ~670 px a la tabla, y las 7 columnas dejaban al proveedor en «Textiles Andin…» (ADR-0128). Angosta: sin
 // «Recibió» ni la flecha (lo menos decisivo); ancha: completa.
 const PLANTILLA = "sm:grid-cols-[5rem_1fr_8.5rem_6rem_5.5rem] @5xl:grid-cols-[6rem_1fr_9.5rem_5.75rem_7.5rem_6.25rem_1rem]";
+// Los títulos (<Encabezado>, ADR-0358): «Recibió» y la columna de la flecha solo caben desde @5xl, como sus celdas.
+const COLUMNAS: Columna[] = [
+  { titulo: "Fecha" },
+  { titulo: "Proveedor · comprobante · guía" },
+  { titulo: "Llegó / facturado", alinear: "der" },
+  { titulo: "Resultado" },
+  { titulo: "Demora", alinear: "der" },
+  { titulo: "Recibió", clase: "hidden @5xl:block" },
+  { titulo: "", clase: "hidden @5xl:block" },
+];
 const SOLO_ANCHA = "hidden max-sm:block @5xl:block";
 
 export function RecepcionesCompraLista({
@@ -100,6 +110,7 @@ export function RecepcionesCompraLista({
         type="button"
         data-guia="recibidas.fila"
         onClick={() => setAbierta(r)}
+        aria-current={abierta && idFila(abierta) === id ? "true" : undefined}
         className={`${fila(PLANTILLA)} group relative w-full text-left transition-colors before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""} ${nuevaId === id ? "anim-destello-fila" : ""}`}
       >
         <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(hoyLima(new Date(r.fechaRecepcion)))}</span>
@@ -168,21 +179,7 @@ export function RecepcionesCompraLista({
   return (
     <>
       <Tabla className="@container">
-        <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
-          {[
-            ["Fecha", "", ""],
-            ["Proveedor · comprobante · guía", "", ""],
-            ["Llegó / facturado", "text-right", ""],
-            ["Resultado", "", ""],
-            ["Demora", "text-right", ""],
-            ["Recibió", "", "hidden @5xl:block"],
-            ["", "", "hidden @5xl:block"],
-          ].map(([t, alinea, ancha], i) => (
-            <span key={i} role="columnheader" className={`label-cayla text-[11px] text-tinta/55 ${alinea} ${ancha}`}>
-              {t}
-            </span>
-          ))}
-        </div>
+        <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
         {filtradas.length === 0 && (
           <Vacio icono={<FunnelX />} titulo={`Ninguna recepción ${resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista`}>
             Cambia «Con faltante / Completas» arriba para ver el resto.

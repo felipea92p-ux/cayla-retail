@@ -139,6 +139,7 @@ import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajad
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
+import { Casilla } from "@/components/ui/Casilla";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -2177,7 +2178,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               </p>
               {proformaActiva.confirmacion && (
                 <label className="flex cursor-pointer items-start gap-2 text-ambar-profundo">
-                  <input type="checkbox" checked={confirmoVencida} onChange={(e) => setConfirmoVencida(e.target.checked)} className="mt-0.5 accent-tinta" />
+                  <Casilla
+                    marcada={confirmoVencida}
+                    onCambio={() => setConfirmoVencida(!confirmoVencida)}
+                    etiqueta={`${proformaActiva.confirmacion.titulo} ${proformaActiva.confirmacion.casilla}`}
+                    className="shrink-0"
+                  />
                   <span>
                     <b className="font-semibold">{proformaActiva.confirmacion.titulo}</b> {proformaActiva.confirmacion.casilla}
                   </span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
 import { TextoConPartes } from "@/components/alta-producto/AlertaParecidas";
 import { TarjetaParecida } from "@/components/alta-producto/TarjetaParecida";
 import { Modal } from "@/components/ui/Modal";
@@ -151,24 +152,17 @@ function CuerpoHoja({ tactil, resultado, marca, categoria, alcance, revisadas, f
     <>
       {/* El buscador y el contador se quedan arriba mientras se baja por la lista. */}
       <div className="parecidas-busqueda" ref={raiz}>
-        <div className="caja-cayla parecidas-caja">
-          <input
-            type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            // En el celular el campo va a 16 px (Safari hace zoom con menos) y el texto largo no cabe: se usa el corto. El nombre accesible es siempre el mismo.
-            placeholder={tactil ? vista.placeholderCorto : vista.placeholder}
-            aria-label={TEXTO.buscadorAria}
-            autoComplete="off"
-            // Escape en dos tiempos: con algo escrito, el primero lo borra (y se queda con el Escape: `stopPropagation`, ver useEscapeLibre); el segundo cierra la hoja.
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && q) {
-                e.stopPropagation();
-                setQ("");
-              }
-            }}
-          />
-        </div>
+        {/* El buscador del sistema (ADR-0358, ronda 5). Escape en dos tiempos: con algo escrito, el primero lo borra (el buscador se queda
+            con el Escape, ver useEscapeLibre); el segundo cierra la hoja. La letra va a 16 px (`[&_input]:text-base`): con menos, Safari
+            en el iPhone agranda la hoja al enfocarlo. */}
+        <Buscador
+          valor={q}
+          onCambio={setQ}
+          // En el celular el texto largo no cabe: se usa el corto. El nombre accesible es siempre el mismo.
+          placeholder={tactil ? vista.placeholderCorto : vista.placeholder}
+          etiqueta={TEXTO.buscadorAria}
+          className="max-w-[448px] [&_input]:text-base"
+        />
         <p role="status" aria-live="polite" className="parecidas-cuenta">
           {vista.cuenta}
         </p>

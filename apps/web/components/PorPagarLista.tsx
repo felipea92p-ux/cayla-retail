@@ -9,7 +9,7 @@ import { BarraFija } from "@/components/ui/BarraFija";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Tabla } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, type Columna } from "@/components/ui/Tabla";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { PagoJuntosModal, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoJuntosModal";
@@ -53,6 +53,16 @@ import { Vacio } from "@/components/ui/Vacio";
 //   · ≥ 40rem  → tabla de 5 columnas: [casilla] Proveedor · comprobante · Vence · Saldo · Pagar. «Pagado» baja bajo el saldo.
 //   · ≥ 56rem  → tabla de 6 columnas: la de las maquetas, con «Pagado» y su barra en columna propia.
 const PLANTILLA = "@[40rem]:grid-cols-[1.875rem_1fr_9.5rem_8.25rem_6.5rem] @[56rem]:grid-cols-[1.875rem_1fr_11rem_9.5rem_8.25rem_6.5rem]";
+// Los títulos (<Encabezado>, ADR-0358) solo con la tabla ancha (@[40rem]), como antes: angosta, cada fila se lee sola.
+const PLANTILLA_ENCABEZADO = `${PLANTILLA} @max-[40rem]:hidden!`;
+const COLUMNAS: Columna[] = [
+  { titulo: "" },
+  { titulo: "Proveedor · Comprobante" },
+  { titulo: "Vence" },
+  { titulo: "Pagado", alinear: "der", clase: "hidden @[56rem]:block" },
+  { titulo: "Saldo", alinear: "der" },
+  { titulo: "" },
+];
 
 const ESTILO_BANDA = {
   vencidas: "bg-rojo/[0.05] text-rojo",
@@ -316,20 +326,7 @@ export function PorPagarLista({
       </div>
 
       <Tabla className={`@container anim-entra ${hayEco ? "[&_[data-fila]:not([data-eco])]:opacity-50" : ""}`} style={{ ["--i" as string]: indice }}>
-        <div className={`hidden gap-x-4 px-5 py-2 @[40rem]:grid ${PLANTILLA}`} role="row">
-          {[
-            { t: "", c: "" },
-            { t: "Proveedor · Comprobante", c: "" },
-            { t: "Vence", c: "" },
-            { t: "Pagado", c: "hidden text-right @[56rem]:block" },
-            { t: "Saldo", c: "text-right" },
-            { t: "", c: "" },
-          ].map((h, i) => (
-            <span key={i} role="columnheader" className={`label-cayla text-[11px] text-tinta/55 ${h.c}`}>
-              {h.t}
-            </span>
-          ))}
-        </div>
+        <Encabezado plantilla={PLANTILLA_ENCABEZADO} columnas={COLUMNAS} />
         {bloques.length === 0 && (
           <Vacio
             icono={<FunnelX />}
@@ -652,7 +649,7 @@ function FilaPorPagar({
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         <span className="block truncate text-sm text-tinta">
           <Resaltar texto={c.proveedorNombre} q={busqueda} />{" "}
-          <Link href={`/compras/factura/${c.id}`} className="relative z-10 ml-1 text-xs tabular-nums text-tinta/65 underline-offset-4 transition-colors hover:text-rojo hover:underline">
+          <Link href={`/compras/factura/${c.id}`} className="btn-enlace relative z-10 ml-1 text-xs tabular-nums">
             <Resaltar texto={c.documento} q={busqueda} />
           </Link>
         </span>

@@ -107,7 +107,7 @@ export function CambiarEnBloque({
         )}
         <span>de</span>
         <Desplegable
-          forma="caja"
+          forma="campo"
           className="w-auto min-w-[11rem]"
           etiquetaAccesible="A cuáles variantes"
           valor={alcanceVigente}
@@ -118,11 +118,13 @@ export function CambiarEnBloque({
           opciones={alcances}
         />
         <span>a</span>
-        <span className="caja-cayla flex h-10 w-28 items-center gap-1 px-2.5">
+        {/* La caja que se enciende (ADR-0358, ronda 6), con su «S/» adentro. */}
+        <span className="caja-cayla caja-campo w-28 gap-1 px-2.5">
           <span aria-hidden className="text-xs text-taupe">
             S/
           </span>
           <input
+            className="self-stretch py-0 tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             type="number"
             min={0}
             step="0.01"
@@ -140,7 +142,6 @@ export function CambiarEnBloque({
                 aplicar();
               }
             }}
-            className="w-full min-w-0 bg-transparent text-sm tabular-nums text-tinta outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </span>
         <button type="button" onClick={aplicar} disabled={deshabilitado || monto.trim() === ""} className="btn-cayla btn-secundario">

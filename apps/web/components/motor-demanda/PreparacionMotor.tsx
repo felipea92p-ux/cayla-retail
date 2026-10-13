@@ -1,5 +1,6 @@
 import { Check, Circle } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { DIAS_SOSTENIDOS, fraseDelMotor, porciento, type PreparacionSede } from "@/lib/motor-demanda-reglas";
 
 // Motor de demanda, etapa 0 (ADR-0346): una tarjeta por tienda que dice si el sistema ya puede recomendar ahí y, si no, qué le
@@ -22,9 +23,9 @@ function TarjetaSede({ p }: { p: PreparacionSede }) {
   return (
     <article className="card-cayla p-5" aria-labelledby={`motor-${p.ubicacionId}`}>
       <div className="flex items-start justify-between gap-3">
-        <h3 id={`motor-${p.ubicacionId}`} className="font-display text-lg text-tinta">
+        <TituloSeccion nivel={3} id={`motor-${p.ubicacionId}`}>
           {p.nombre}
-        </h3>
+        </TituloSeccion>
         <Chip tono={p.puedeHablar ? "verde" : "ambar"}>{p.puedeHablar ? "Puede recomendar" : "Todavía no"}</Chip>
       </div>
       {/* El veredicto en una línea, la misma que verá la columna «Sugerencias» de Tareas (ADR-0345). */}

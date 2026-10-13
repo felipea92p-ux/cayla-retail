@@ -179,7 +179,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
           <div className="mt-5 space-y-6">
             {/* ---------- avatar ---------- */}
             <div className="flex items-center gap-4">
-              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} className="h-20 w-20 text-2xl" />
+              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} tamano={80} />
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
                 <div className="flex gap-2">
@@ -286,7 +286,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               <button
                 type="button"
                 onClick={() => setClaveAbierta(true)}
-                className="label-cayla text-[11px] text-tinta/70 underline decoration-tinta/30 underline-offset-2 hover:text-rojo"
+                className="btn-cayla btn-enlace text-[13px]"
               >
                 Cambiar contraseña
               </button>
@@ -334,8 +334,8 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
 
   return (
     <form onSubmit={onSubmit} className="card-cayla space-y-3 p-4">
-      <div>
-        <label className="label-cayla text-[11px] text-tinta/70" htmlFor="clave-nueva">
+      <div className="campo">
+        <label className="campo-etiqueta" htmlFor="clave-nueva">
           Contraseña nueva
         </label>
         <input
@@ -344,11 +344,11 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           autoComplete="new-password"
           value={nueva}
           onChange={(e) => setNueva(e.target.value)}
-          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
+          className="caja-campo-input mt-1.5"
         />
       </div>
-      <div>
-        <label className="label-cayla text-[11px] text-tinta/70" htmlFor="clave-confirmar">
+      <div className="campo">
+        <label className="campo-etiqueta" htmlFor="clave-confirmar">
           Confirmar contraseña
         </label>
         <input
@@ -357,7 +357,7 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           autoComplete="new-password"
           value={confirmar}
           onChange={(e) => setConfirmar(e.target.value)}
-          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
+          className="caja-campo-input mt-1.5"
         />
       </div>
       <div className="flex gap-2">
