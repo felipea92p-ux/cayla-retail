@@ -31,3 +31,10 @@ la A (el cambio de color, el deslizar de la perilla) se queda; se suma el trazo 
 
 18 archivos con casillas del navegador o interruptores a mano (`node apps/web/unificar/deuda.mjs casilla`); `<Casilla>` e `<Interruptor>`
 ya cambiaron en todas las pantallas que los usaban (Existencias, Productos, Compras, Catálogo, Clientes, Historial de ventas, Cuadre de piso).
+
+## Migración (2026-10-13)
+
+**Migrada el 2026-10-13: deuda 18 → 0.** `<Casilla>` aprendió `disabled` (la prenda que no se puede devolver, la que hereda su
+etiqueta por categoría) y su «a medias» cubre la casilla de tres estados de Etiquetas. Los interruptores que van en una fila con su título
+a la izquierda (Opciones de apartados, Ajustar Inicio, Pago junto) usan la cara de la pieza (`interruptor` + `interruptor-perilla`) con su
+`unificar-fijo`. **Excepciones:** las casillas de Finanzas (Escenarios, Estado de resultados), que se dibujan como su spike (ADR-0195).

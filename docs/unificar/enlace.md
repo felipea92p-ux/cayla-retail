@@ -40,3 +40,10 @@ subrayado es una imagen de fondo para poder dibujarse: va a 0,7 em bajo el centr
 58 archivos dibujan un enlace a mano (`node apps/web/unificar/deuda.mjs enlace`): el rojo que se subraya, las versalitas rojas, el
 subrayado tenue y la flecha escrita al final de un `btn-enlace`. Al migrar, cada uno se decide por lo que hace: si lleva a ver más,
 `<EnlaceVer>`; si va dentro de una frase o es una acción de texto, `btn-enlace`.
+
+## Migración (2026-10-13)
+
+**Migrada el 2026-10-13: deuda 58 → 0.** Dentro de una frase o como acción chica, `btn-enlace`; para ir a ver más, `<EnlaceVer>` sin la
+flecha escrita a mano. `<EnlaceVer>` aprendió `alNavegar` (cerrar la hoja o el cajón en el mismo clic que navega). «Todo el historial»
+de Historial y de Apartados no era un enlace sino un período que se elige: pasó a `pildora-cayla`. El ritmo de Existencias conserva su
+texto llano (diseño aprobado, `unificar-fijo`).

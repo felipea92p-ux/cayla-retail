@@ -60,3 +60,13 @@ Traslados (ADR-0355), Análisis (ADR-0357), el Observatorio (ADR-0322), el busca
 
 Todas las pantallas que usan las piezas ya cambiaron (cientos de campos y combos). Verificado en Compras ▸ Nueva compra (cajas, fechas,
 combo de tienda con su lista y ✓, proveedor con su lupa) y en Catálogo ▸ Productos (el panel de filtros con las píldoras, una puesta).
+
+## Migración (2026-10-13)
+
+**`campo` 63 → 0, `filtro` 11 → 0, `combo` 7 → 3.** Una caja suelta es `caja-campo-input` (también `campoTexto` de `Modal.tsx`); una
+caja con algo adentro (S/, un ícono, un botón) es `caja-cayla caja-campo` con el input `self-stretch`; un monto, `caja-campo-alta`. Los
+filtros de una barra son `<DesplegablePildora>` (Actividad, Recibidas, Por regularizar, el plan de compra, las facturas del taller); un
+`forma="caja"` dentro de un formulario pasó a `forma="campo"`. La firma de `filtro` se cortaba en la flecha de un `onValor={(v) => …}`
+y dejaba escapar seis: ya no. **Excepciones:** el monto del gasto rápido y de Registrar ingreso (ADR-0368, ADR-0375), las celdas de las
+matrices, el billete «Otro» de la hoja de cobro, el club público, los dos filtros de Frescura (su «Estado» tiene grupos con título) y el
+combo de cada fila de Grupos del mix. **Quedan** tres combos con fotos o pistola: ver el tablero.

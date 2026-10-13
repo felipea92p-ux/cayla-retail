@@ -42,3 +42,10 @@ Las guías interactivas (ADR-0389), la página pública del club y una pantalla 
 83 archivos dibujan un título de sección a mano (`node apps/web/unificar/deuda.mjs titulo-seccion`): serif de 18 a 24 px, versalitas o
 sans seminegrita en un `h2`/`h3`/`h4`. Se migran módulo por módulo; cada uno se decide por lo que es: título de un bloque (`<TituloSeccion>`),
 de un grupo dentro de una hoja (`<TituloGrupo>`) o un día de una lista (`<SeparadorDia>`).
+
+## Migración (2026-10-13)
+
+**Migrada el 2026-10-13: deuda 83 → 0.** Los conteos que iban pegados al título pasaron a `dato` (a la derecha) en los bloques y a
+`cuenta` (al lado) en los grupos de una hoja. Actividad usa `<SeparadorDia>`. Eximidos con su `unificar-fijo`: el nombre de una prenda o
+de una orden (es un dato), el título del paso que recibe el foco en `FlujoGuiado`, la cabeza numerada de un paso del cobro y los títulos
+de hoja (`Dialog.Title`).

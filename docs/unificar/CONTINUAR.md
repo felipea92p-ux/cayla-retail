@@ -1,15 +1,14 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), y el 2026-10-12 con las rondas 6 y 7 armadas y esperando la elección (rama `claude/unificar-componentes-animaciones-f811a1`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas y el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6 (formularios), 7 (tablas y
-> títulos) y 8 (enlaces, paginación y avatares) están armadas y esperan mi elección: regenera las páginas de elegir con
-> `docs/unificar/rondas/6-8/README.md` (o ábrelas si la worktree `aqp-sede-pricing-105ed0` sigue viva), y cuando te pegue mi elección,
-> regístrala, construye las piezas y migra módulo por módulo.
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6, 7 y 8 están decididas y
+> migradas (deuda 258 → 4). Muéstrame las seis decisiones que quedaron abiertas (README, «La migración de las rondas 6–8») y, cuando
+> responda, ciérralas; después arma la ronda siguiente del tablero («Por analizar»).
 
 ## Dónde quedó
 
@@ -34,7 +33,18 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
-## Rondas 6, 7 y 8 (2026-10-12): armadas, esperando la elección de Felipe
+## Rondas 6, 7 y 8: decididas el 2026-10-13 y migradas el mismo día
+
+Felipe eligió tocando las demos: P1 en todo salvo el enlace suelto (P2, versalitas rojas con la flecha que avanza). Diez piezas nuevas o
+rehechas (la caja que se enciende, la lista de todo combo, la píldora de filtro, el título de campo, la casilla y el interruptor, la tabla
+con movimiento, `TituloSeccion` / `TituloGrupo` / `SeparadorDia`, `btn-enlace` y `EnlaceVer`, `<Paginas>`, `AvatarPersona`) y la
+migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con
+`apps/web/unificar/.salida/INSTRUCCIONES-MIGRAR-R678.md` y la sesión principal), nueve commits por módulo, la suite entera en verde y
+Vender, el ticket, el descuento y Devoluciones probados a 375 px. Lo que quedó abierto está en el README («La migración de las rondas
+6–8»): tres combos con fotos o pistola, la tabla de Conteo, los filtros de Frescura, «Desactivar color», los conteos que pasaron a la
+derecha y las acciones chicas que dejaron de ser versalitas rojas.
+
+### Cómo se armaron (2026-10-12)
 
 Tres páginas de elegir con TODO vivo (el CSS real del ERP, claro y oscuro) y las fotos de hoy; fuentes en `rondas/6-8/` (se regeneran
 desde ahí), fragmentos en `propuestas/` e imágenes chicas en `capturas/*.propuesta.jpg`. **Nada se migró.**
@@ -121,13 +131,11 @@ fuera de git) y un archivo por agente: funcionó sin choques. Lo aprendido:
 
 El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo que la colaboradora lee o toca en más pantallas.
 
-1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, decididas y migradas (deuda 0). **Rondas 6 y 7 armadas el 2026-10-12** (ver
-   arriba): `combo`, `campo`, `etiqueta-campo`, `casilla`, `tabla`, `titulo-seccion`, `enlace`, `paginacion` y `avatar` esperan la
-   elección de Felipe; después, registrar, construir y migrar. Falta la pasada del mostrador (`terminal-ventas`).
-4. **`combo`** (ronda 6, armada; 42 formas sin depurar, 7 reales) — la regla de buscar y paginar ya es una (ADR-0209); `SelectFin` es de Finanzas (ADR-0195, decidida a propósito).
-5. **`tabla`** (ronda 7, armada; 39 formas sin depurar, 4 reales) — `fin-tabla` de Finanzas queda aparte por ADR-0195.
-6. **`campo` + `etiqueta-campo`** (ronda 6, armada) — viven en las hojas: el censo de después, con `--escenarios`.
-7. **`titulo-seccion`** (ronda 7, armada; 46 formas, sin pieza del sistema).
+1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, decididas y migradas (deuda 0). ~~`combo`, `campo`, `etiqueta-campo`, `casilla`,
+   `tabla`, `titulo-seccion`, `enlace`, `paginacion`, `avatar`~~: rondas 6–8, decididas y migradas el 2026-10-13 (deuda 258 → 4; lo
+   abierto, en el README). Falta la pasada del mostrador (`terminal-ventas`).
+2. **Las seis decisiones abiertas de las rondas 6–8** (README): los tres combos con fotos o pistola, la tabla de Conteo, los filtros de
+   Frescura (grupos con título en la píldora), «Desactivar color», los conteos a la derecha y las acciones chicas.
 8. **`accion.ver`, `accion.filtrar`, `accion.exportar`** — botones de una función.
 9. **`casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar`** — pocas formas: rondas cortas. De los gráficos, **la barra apilada ya está decidida (ronda 5b)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357).
 10. **`icono`** (250 huellas: casi todo tamaño y trazo de lucide; depurar mucho antes de mostrar).
@@ -230,6 +238,20 @@ variante y no pierdas ninguna al migrar.
 - El registro de la familia, `README.md`, `CLAUDE.md`, ADR-0358, y la bitácora y el backlog de la rama.
 
 ## Lo que se aprendió (y conviene no repetir)
+
+- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta
+  (`.salida/lote-A.md`, `lote-B.md`), las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las
+  huellas). La sesión principal rehace la deuda, acepta las huellas y commitea al final.
+- **Un rellenador de deuda que corta en el primer «]» rompe `familias.mjs`:** una ruta como `[compraId]` lleva «]» adentro. El cierre de
+  la lista es «]» al empezar una línea (`.salida/rellenar-deuda.mjs`, ya corregido). Prueba `node -e 'import("./unificar/familias.mjs")'`
+  después de escribirlo.
+- **Una clave repetida en un objeto de JS gana la última:** un `"excepciones": []` olvidado al final de la decisión borraba las
+  excepciones de arriba sin error. Revisa que cada decisión tenga una sola `deuda`, `excepciones` y `firmas`.
+- **Una firma con `[^>]*` se corta en la flecha de un `onValor={(v) => …}`:** la de `filtro` dejó escapar seis. Usa `(?:[^>]|=>)*?`.
+- **`// unificar-fijo:` vale solo en la MISMA línea que la firma** (la del `<input`, la del `role=`): dentro de un tag, como comentario de
+  JS después del atributo; dentro de un `<h3>`, como `{/* … */}` antes del texto. Nunca un `{/* */}` entre `&& (` y su elemento.
+- **Una pieza aprende lo que pide la migración, no se esquiva:** `Casilla disabled`, `Encabezado visible`, `EnlaceVer alNavegar` nacieron
+  porque tres pantallas los necesitaban; dibujar la cara a mano «porque la pieza no acepta X» deja deuda escondida.
 
 - **Elegir por descripción falla; mirando y tocando, no.** El 2026-10-06 Felipe eligió tres por su texto y, al verlas, no le gustaron.
 - **Una firma del CI puede volverse falsa cuando cambia la pieza.** La de la ronda 2 trataba `btn-cayla` como copia a mano, y en la

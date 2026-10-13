@@ -50,3 +50,10 @@ compra, el plan para imprimir) y las matrices de tallas y colores o de tiendas (
 Conteo y las «Ver como tabla» de dos gráficos) y 7 encabezados escritos a mano con `role="columnheader"` (Clientes, Por pagar,
 Proveedores, Recepciones, Plan de compra, Historia del espacio). Verificado en Clientes: la cascada al entrar y, al pasar el mouse, el hilo
 y la «›».
+
+## Migración (2026-10-13)
+
+**Migrada el 2026-10-13: deuda 14 → 1.** Caja (cierres anteriores, «Ver como tabla»), Comercial, Calidad, Clientes, Eficiencia del
+taller, Rendimiento y las listas de Compras pasaron a `<Tabla>` + `<Encabezado>` + `fila()`. `<Encabezado>` aprendió `visible` (desde qué
+ancho se ve: Clientes decide por su tarjeta con `@container`). Las tablas con columnas que cambian (tienda × mes, campañas) pasan su
+plantilla en una variable CSS (`grid-cols-[var(--cols)]`). **Queda:** `ListaConteo` (sus `<tr>` memorizadas de `FilaConteo`).

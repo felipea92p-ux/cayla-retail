@@ -24,13 +24,13 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 0 | [aviso.md](aviso.md) |
 | Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 0 | [buscador.md](buscador.md) |
 | Barra apilada (`grafico.barra`) | `<BarraApilada>` (`components/ui/BarraApilada.tsx`): la píldora con pista de arena, el movimiento de Compras (entra tramo a tramo, se reacomoda, el tramo apuntado se estira y los demás bajan), tres altos (12 · 8 · 4 px), 24 px para el mouse y, si responde, cada tramo es un botón con su nombre | 2026-10-09 (tocando) | 0 | [grafico.barra.md](grafico.barra.md) |
-| Campos y combos (`campo`, `combo`) | La caja que se enciende (`caja-cayla caja-campo`): `CampoTexto`, `CampoMonto`, `CampoFecha`, `Desplegable`, `ComboBuscable`, `ComboResponsable`; la lista de todo combo con hilo de canto y ✓ | 2026-10-13 (tocando) | 63 · 7 | [campo-combo.md](campo-combo.md) |
-| Filtro que se abre (`filtro`) | `<DesplegablePildora>`: la píldora con su nombre; puesta, rellena de tinta con su ✕ | 2026-10-13 (tocando) | 11 | [campo-combo.md](campo-combo.md) |
-| Título de campo (`etiqueta-campo`) | La de `<Campo>`: versalitas que se oscurecen con su caja | 2026-10-13 (tocando) | 4 | [etiqueta-campo.md](etiqueta-campo.md) |
-| Casillas (`casilla`) | `<Casilla>` (el ✓ se dibuja) e `<Interruptor>` (en tinta) | 2026-10-13 (tocando) | 18 | [casilla.md](casilla.md) |
-| Tablas (`tabla`) | `<Tabla>` con movimiento: cascada, hilo de canto y «›», fila abierta, recién guardada | 2026-10-13 (tocando) | 14 | [tabla.md](tabla.md) |
-| Títulos de sección (`titulo-seccion`) | `<TituloSeccion>`, `<TituloGrupo>`, `<SeparadorDia>` | 2026-10-13 (tocando) | 83 | [titulo-seccion.md](titulo-seccion.md) |
-| Enlaces (`enlace`) | `btn-enlace` con el hilo que se llena; `<EnlaceVer>` en versalitas rojas con la flecha que avanza | 2026-10-13 (tocando) | 58 | [enlace.md](enlace.md) |
+| Campos y combos (`campo`, `combo`) | La caja que se enciende (`caja-cayla caja-campo`): `CampoTexto`, `CampoMonto`, `CampoFecha`, `Desplegable`, `ComboBuscable`, `ComboResponsable`; la lista de todo combo con hilo de canto y ✓ | 2026-10-13 (tocando) | 0 · 3 | [campo-combo.md](campo-combo.md) |
+| Filtro que se abre (`filtro`) | `<DesplegablePildora>`: la píldora con su nombre; puesta, rellena de tinta con su ✕ | 2026-10-13 (tocando) | 0 | [campo-combo.md](campo-combo.md) |
+| Título de campo (`etiqueta-campo`) | La de `<Campo>`: versalitas que se oscurecen con su caja | 2026-10-13 (tocando) | 0 | [etiqueta-campo.md](etiqueta-campo.md) |
+| Casillas (`casilla`) | `<Casilla>` (el ✓ se dibuja) e `<Interruptor>` (en tinta) | 2026-10-13 (tocando) | 0 | [casilla.md](casilla.md) |
+| Tablas (`tabla`) | `<Tabla>` con movimiento: cascada, hilo de canto y «›», fila abierta, recién guardada | 2026-10-13 (tocando) | 1 | [tabla.md](tabla.md) |
+| Títulos de sección (`titulo-seccion`) | `<TituloSeccion>`, `<TituloGrupo>`, `<SeparadorDia>` | 2026-10-13 (tocando) | 0 | [titulo-seccion.md](titulo-seccion.md) |
+| Enlaces (`enlace`) | `btn-enlace` con el hilo que se llena; `<EnlaceVer>` en versalitas rojas con la flecha que avanza | 2026-10-13 (tocando) | 0 | [enlace.md](enlace.md) |
 | Paginación (`paginacion`) | `<Paginas>`: la píldora que se desliza | 2026-10-13 (tocando) | 0 | [paginacion.md](paginacion.md) |
 | Avatares (`avatar`) | `<AvatarPersona>` en cuatro tamaños y `<PilaPersonas>` | 2026-10-13 (tocando) | 0 | [avatar.md](avatar.md) |
 
@@ -39,6 +39,23 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
 | — | ninguna por ahora: las rondas 6, 7 y 8 se decidieron el 2026-10-13 (sus fragmentos siguen en `propuestas/` y sus fuentes en [rondas/6-8](rondas/6-8/README.md)) | — | — |
+
+**La migración de las rondas 6–8 (2026-10-13):** la deuda bajó de 258 archivos a 4 en un día (Caja, Ventas, Compras, Producción,
+Inventario, Catálogo, Colaboradores y el resto), sin cambiar qué hace ningún botón. Lo que queda, y lo que pide una decisión de Felipe:
+
+1. **Tres combos que la pieza no sabe hacer** (`combo`): las sugerencias de la pistola en Llegó mercadería y en Recepción del taller (con su
+   muestra de color y el Enter del lector) y el buscador de facturas de Registrar nota de crédito (chips, montos y filtros). ¿Se les hace
+   una variante de la lista con fotos, o se declaran excepción?
+2. **La tabla de Conteo** (`tabla`, `ListaConteo`): sus filas son `<tr>` memorizadas de `FilaConteo` con `colgroup`; pasarla a la rejilla
+   obliga a reescribir la fila. Pendiente de una tanda propia.
+3. **Los filtros de Frescura** (marcados `unificar-fijo`): «Estado» usa grupos con título que `DesplegablePildora` no dibuja. ¿Se le
+   enseña a la píldora a dibujar grupos, o Frescura se queda con su caja?
+4. **«Desactivar color»** en Colores va dentro de una frase: quedó en `btn-enlace` (sin el rojo de `accion.eliminar`). Si se quiere rojo,
+   hay que sacarlo de la frase. En Categorías sí pasó a `btn-peligro` (va en el pie, junto a Guardar).
+5. **Los conteos de los títulos pasaron a la derecha** («Pendientes (3)» → «Pendientes» con «3» a la derecha, `dato` de `TituloSeccion`);
+   en las columnas del tablero de Órdenes y en los grupos de las hojas, el número queda al lado del nombre (`cuenta` de `TituloGrupo`).
+6. **Las acciones chicas que eran versalitas rojas** de 10–11 px («Agregar…», «Cambiar», «Repartir…») son ahora `btn-enlace` de 12 px en
+   letra normal. Si alguna debía llamar más la atención, es un `<Boton>`, no un enlace.
 
 ## Por analizar (las próximas rondas)
 

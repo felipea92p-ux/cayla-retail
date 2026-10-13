@@ -27,3 +27,8 @@ Cuando la caja se enciende, el título pasa de tinta 62 % a tinta (200 ms); al s
 
 4 archivos con un título de campo a mano (`node apps/web/unificar/deuda.mjs etiqueta-campo`): Nuevo color, Devoluciones (dos) y el
 modal de Proveedor.
+
+## Migración (2026-10-13)
+
+**Migrada el 2026-10-13: deuda 4 → 0.** Los títulos de campo de Devoluciones, Nuevo color, el perfil y el login usan
+`campo-etiqueta` dentro de un `campo`, o la pieza `<Campo>`.
