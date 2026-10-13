@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 146,
+  "total": 136,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -25,12 +25,8 @@
       "button «Sonido al confirmar:»",
       "button «Sonido al confirmar»"
     ],
-    "components/EliminarProductoModal.tsx": [
-      "ComboResponsable «(sin nombre)»",
-      "Boton «{puede ? \"Cancelar\" : \"Cerrar\"}»",
-      "Link «Editar»",
-      "Boton «Desactivar»",
-      "Boton «{responsable.motivo ?? undefined}»"
+    "components/EnlaceEtiquetas.tsx": [
+      "Link «{children}»"
     ],
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
@@ -77,9 +73,7 @@
       "button «Ver todas»",
       "Link «{p.referencia}»",
       "Link «Cuadrar el piso»",
-      "SegmentoDeslizante «Ver unidades en»",
-      "Boton «Ver ambos»",
-      "button «Ver ambos»",
+      "Link «Cuadrar el piso» #2",
       "button «Exportar CSV»",
       "button «Exportar CSV» #2",
       "Casilla «Marcar todas las tallas de esta página»",
@@ -160,22 +154,18 @@
     "components/existencias/PanelTalla.tsx": [
       "button «{`${valor}»",
       "button «{valor}»",
-      "button «{`Ver la foto de ${prenda.referencia}»",
-      "button «Cerrar»",
-      "button «{v === \"talla\" ? \"existencias.cajon-esta-talla\" : \"existencias.cajon-todas\"}»",
+      "Link «El rótulo del anaquel de este modelo (no depende del stock)»",
+      "Link «Los movimientos de esta prenda en esta sede»",
+      "Link «La ficha completa en Catálogo: tejido, patrón, proveedor, fotos»",
+      "Pestanas «(sin nombre)»",
       "button «{`${c.color ?? \"Sin color\"}»",
       "button «{lectura}»",
+      "button «existencias.cajon-codigo»",
       "button «→() => alAccionar(a.clave)»",
-      "button «Ver ficha»",
-      "button «existencias.cajon-como-se-vende»",
       "button «Ver piso y almacén»",
       "button «{lectura}» #2",
       "button «{lectura}» #3",
-      "button «existencias.cajon-colgar-varias»",
-      "Link «Ver historial en esta sede»",
-      "Link «Imprimir etiquetas»",
-      "button «Reportar dañada»",
-      "button «Eliminar el producto»"
+      "button «existencias.cajon-colgar-varias»"
     ],
     "components/existencias/ParaHoy.tsx": [
       "Link «{contenido}»",

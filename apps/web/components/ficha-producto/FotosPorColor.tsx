@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import type { ColorAlta } from "@/lib/alta-producto";
 import {
@@ -103,10 +104,7 @@ export function FotosPorColor({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 className="label-cayla text-[11px] text-tinta/65">Fotos por color</h2>
-        {cuenta && <p className="text-[12.5px] text-taupe">{cuenta}</p>}
-      </div>
+      <TituloSeccion dato={cuenta || undefined}>Fotos por color</TituloSeccion>
       <p className="max-w-[72ch] text-[13px] text-taupe">
         {vista.general.sinColores ? (
           <>Toca el rectángulo para <b className="font-semibold text-tinta">agregar la foto de la prenda</b>, o para ver, cambiar o quitar las que ya tiene.</>
@@ -169,7 +167,7 @@ export function FotosPorColor({
                 Era de <b className="font-semibold">{nombreColor(f.colorCodigo)}</b>
               </p>
               <Desplegable
-                forma="cajaBaja"
+                forma="campo"
                 className="w-52"
                 valor=""
                 onValor={(v) => v && pasar(f.clientKey, v)}
@@ -369,7 +367,7 @@ function HojaDeFotos({
                     )}
                     {opcionesPasar.length > 0 && (
                       <Desplegable
-                        forma="cajaBaja"
+                        forma="campo"
                         valor=""
                         onValor={(v) => v && onPasar(f.clientKey, v)}
                         opciones={opcionesPasar}

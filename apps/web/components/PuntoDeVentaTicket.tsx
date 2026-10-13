@@ -45,6 +45,7 @@ import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
 import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -440,10 +441,12 @@ export function PuntoDeVentaTicket({
       <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
         {momentoMostrado === "armar" ? (
           <>
-            <h2 className="flex items-center gap-2.5 font-display text-2xl leading-none text-tinta">
-              <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
-              Ticket actual
-            </h2>
+            <TituloSeccion>
+              <span className="inline-flex items-center gap-2.5">
+                <ShoppingBag className="h-5 w-5 text-tinta/70" aria-hidden />
+                Ticket actual
+              </span>
+            </TituloSeccion>
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
             {enHoja && onCerrarHoja && (
               <button
@@ -473,16 +476,18 @@ export function PuntoDeVentaTicket({
           <>
             <Volver onClick={onVolverATicket} deshabilitado={bloqueado} a="Volver al ticket" />
             <div key={momentoMostrado} className={saliendo ? "anim-revelar-salida text-right" : "anim-revelar text-right"}>
-              <h2 className="flex items-center justify-end gap-2.5 font-display text-2xl leading-none text-tinta">
-                {cobrando ? (
-                  <Wallet className="h-6 w-6 text-tinta/70" aria-hidden />
-                ) : enLaEspera ? (
-                  <CirclePause className="h-6 w-6 text-tinta/70" aria-hidden />
-                ) : (
-                  <BadgePercent className="h-6 w-6 text-tinta/70" aria-hidden />
-                )}
-                {cobrando ? "Cobro" : enLaEspera ? "En espera" : "Descuento"}
-              </h2>
+              <TituloSeccion className="justify-end">
+                <span className="inline-flex items-center gap-2.5">
+                  {cobrando ? (
+                    <Wallet className="h-5 w-5 text-tinta/70" aria-hidden />
+                  ) : enLaEspera ? (
+                    <CirclePause className="h-5 w-5 text-tinta/70" aria-hidden />
+                  ) : (
+                    <BadgePercent className="h-5 w-5 text-tinta/70" aria-hidden />
+                  )}
+                  {cobrando ? "Cobro" : enLaEspera ? "En espera" : "Descuento"}
+                </span>
+              </TituloSeccion>
               <p className="mt-1 text-xs text-tinta/60">
                 {cobrando
                   ? etiquetaPrendas
@@ -584,7 +589,7 @@ export function PuntoDeVentaTicket({
                     </button>
                   ))}
                 </div>
-                <label className={`flex h-11 items-center gap-2 rounded-lg border bg-crema px-3 transition-[border-color,box-shadow] focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("valor") ? LUZ_CAMPO : "border-sand"}`}>
+                <label className={`caja-cayla caja-campo h-11 gap-2 ${luz("valor") ? LUZ_CAMPO : ""}`}>
                   <span className="text-[11px] text-tinta/50">Otro</span>
                   <input
                     aria-label="Porcentaje de descuento"
@@ -597,7 +602,7 @@ export function PuntoDeVentaTicket({
                     onKeyDown={siguienteConEnter}
                     placeholder="0"
                     disabled={bloqueado}
-                    className={`min-w-0 flex-1 bg-transparent text-right text-lg font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
+                    className={`self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
                   />
                   <span className="text-sm text-tinta/60">%</span>
                 </label>
@@ -637,7 +642,7 @@ export function PuntoDeVentaTicket({
                     onKeyDown={siguienteConEnter}
                     placeholder="¿Por qué se descuenta?"
                     disabled={bloqueado}
-                    className={`anim-revelar h-11 w-full rounded-lg border bg-crema px-3 text-sm text-tinta outline-none transition-[border-color,box-shadow] placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("motivoOtro") ? LUZ_CAMPO : "border-sand"}`}
+                    className={`caja-campo-input anim-revelar h-11 w-full text-sm ${luz("motivoOtro") ? LUZ_CAMPO : ""}`}
                   />
                 )}
               </fieldset>
@@ -661,7 +666,7 @@ export function PuntoDeVentaTicket({
                     placeholder="Por qué se autoriza este descuento"
                     disabled={bloqueado}
                     rows={2}
-                    className={`w-full resize-none rounded-lg border bg-crema px-3 py-2 text-sm text-tinta outline-none transition-[border-color,box-shadow] placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("argumento") ? LUZ_CAMPO : "border-sand"}`}
+                    className={`caja-campo-input w-full resize-none text-sm ${luz("argumento") ? LUZ_CAMPO : ""}`}
                   />
                 </fieldset>
               )}
@@ -778,7 +783,7 @@ export function PuntoDeVentaTicket({
                     placeholder="Lo recoge el sábado, va con arreglo de bastilla…"
                     autoComplete="off"
                     disabled={bloqueado}
-                    className="mt-1.5 h-10 w-full rounded-lg border border-sand bg-crema px-3 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/35 focus:border-rojo focus:ring-2 focus:ring-rojo/20"
+                    className="caja-campo-input mt-1.5 w-full text-sm"
                   />
                 </label>
                 {/* Mismo truco de `grid-template-rows` que el motivo bajo el botón: el

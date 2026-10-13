@@ -1059,7 +1059,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
                 <AvatarPersona
                   personaId={persona.personaId}
                   nombre={persona.nombre}
-                  className="h-9 w-9 text-sm transition-colors group-hover:bg-rojo/15"
+                  className="transition-colors group-hover:bg-rojo/15"
                 />
                 <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
                   <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>

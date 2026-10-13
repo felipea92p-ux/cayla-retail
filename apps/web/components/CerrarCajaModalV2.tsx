@@ -388,8 +388,8 @@ export function CerrarCajaModalV2({
                 <label htmlFor="cierre-monto" className={campoEtiqueta}>
                   Contado en físico
                 </label>
-                <div className="mt-1 flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-                  <span className="font-display text-xl text-tinta/50">S/</span>
+                <div className="mt-1 caja-cayla caja-campo caja-campo-alta">
+                  <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
                   <input
                     id="cierre-monto"
                     inputMode="decimal"
@@ -398,7 +398,7 @@ export function CerrarCajaModalV2({
                     placeholder="0.00"
                     value={contadoTexto}
                     onChange={(e) => setContadoTexto(e.target.value)}
-                    className="font-display w-full bg-transparent py-1 text-3xl tabular-nums text-tinta outline-none"
+                    className="font-display self-stretch py-0 text-2xl tabular-nums"
                   />
                 </div>
                 <details className="mt-3 rounded-lg border border-dashed border-sand px-3 py-2">
@@ -417,7 +417,7 @@ export function CerrarCajaModalV2({
                             value={billetes[d] ?? ""}
                             onChange={(e) => cambiarBillete(d, e.target.value.replace(/\D/g, ""))}
                             aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
-                            className="w-full rounded border border-sand bg-vidrio px-2 py-1 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                            className="caja-campo-input min-h-8 px-2 text-right tabular-nums"
                           />
                           <span className={`text-right tabular-nums ${cantidad > 0 ? "text-tinta" : "text-tinta/35"}`}>
                             {money(cantidad * d)}
@@ -474,8 +474,8 @@ export function CerrarCajaModalV2({
             <label className={campoEtiqueta} htmlFor="traslado-monto">
               ¿Cuánto vas a trasladar?
             </label>
-            <div className="flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-              <span className="font-display text-xl text-tinta/50">S/</span>
+            <div className="caja-cayla caja-campo caja-campo-alta">
+              <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
               <input
                 id="traslado-monto"
                 inputMode="decimal"
@@ -487,7 +487,7 @@ export function CerrarCajaModalV2({
                   setTrasladoTexto(e.target.value);
                   setPideConfirmar(false);
                 }}
-                className="font-display w-full bg-transparent py-1 text-3xl tabular-nums text-tinta outline-none"
+                className="font-display self-stretch py-0 text-2xl tabular-nums"
               />
             </div>
           </div>

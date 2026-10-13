@@ -61,6 +61,8 @@ import {
   type VistaTemporadas,
 } from "@/lib/temporadas-pantalla";
 import { Buscador } from "@/components/ui/Buscador";
+import { Casilla } from "@/components/ui/Casilla";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 
 /**
@@ -246,7 +248,7 @@ function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; ba
       <div className="min-w-0 space-y-1">
         <div data-guia="temporadas.volver" className="flex items-center gap-3">
           {alLista && <Volver onClick={alLista} a="Las nueve temporadas" />}
-          <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+          <TituloSeccion>{titulo}</TituloSeccion>
         </div>
         <p className="max-w-3xl text-sm text-taupe">{bajada}</p>
       </div>
@@ -822,7 +824,7 @@ function VistaCategorias({
                       valor={valor}
                       onValor={(v) => pedirCambio(c, v)}
                       opciones={opciones}
-                      forma="caja"
+                      forma="campo"
                       etiquetaAccesible={`Temporada por defecto de ${c.nombre}`}
                     />
                   ) : (
@@ -1082,7 +1084,7 @@ function VistaPorCompletar({
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-full sm:w-56">
-              <Desplegable valor={temporada} onValor={setTemporada} opciones={opciones} forma="caja" marcador="Elegir temporada" etiquetaAccesible="Temporada que se les pone" />
+              <Desplegable valor={temporada} onValor={setTemporada} opciones={opciones} forma="campo" marcador="Elegir temporada" etiquetaAccesible="Temporada que se les pone" />
             </div>
             <button type="button" className="btn-cayla btn-primario h-10" disabled={!!motivo} title={motivo ?? undefined} onClick={pedirAsignar}>
               Asignar a {elegidas.length}
@@ -1168,7 +1170,7 @@ function GrupoPorCompletar({
               {puedeEditar && g.activa && (
                 <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   <div className="w-full sm:w-52">
-                    <Desplegable valor={eleccion} onValor={onEleccion} opciones={opciones} forma="caja" marcador="Elegir temporada" etiquetaAccesible={`Temporada para toda la categoría ${g.categoria}`} />
+                    <Desplegable valor={eleccion} onValor={onEleccion} opciones={opciones} forma="campo" marcador="Elegir temporada" etiquetaAccesible={`Temporada para toda la categoría ${g.categoria}`} />
                   </div>
                   <button type="button" className="btn-cayla btn-secundario btn-chico w-full sm:w-auto" disabled={!eleccion} title={eleccion ? undefined : "Elige primero la temporada."} onClick={onPonerCategoria}>
                     Ponérsela a la categoría
@@ -1189,7 +1191,7 @@ function GrupoPorCompletar({
                 <>
                   <span className={celda()}>
                     {abreFicha ? (
-                      <Link href={`/productos/${p.productoId}/editar`} className="block truncate text-tinta hover:text-rojo-profundo hover:underline">
+                      <Link href={`/productos/${p.productoId}/editar`} className="btn-enlace inline-block max-w-full truncate align-bottom">
                         {p.nombre}
                       </Link>
                     ) : (
@@ -1238,13 +1240,7 @@ function GrupoPorCompletar({
                   )}
                 >
                   <span className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={marcada}
-                      onChange={() => onAlternar(p.productoId)}
-                      aria-label={`Marcar ${p.nombre}`}
-                      className="h-[18px] w-[18px] cursor-pointer accent-tinta"
-                    />
+                    <Casilla marcada={marcada} onCambio={() => onAlternar(p.productoId)} etiqueta={`Marcar ${p.nombre}`} />
                   </span>
                   {contenido}
                 </label>

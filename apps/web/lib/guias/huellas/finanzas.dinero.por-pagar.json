@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.por-pagar",
   "ruta": "/finanzas/dinero/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 39,
   "controles": {
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -36,7 +36,6 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/PagoPiezas.tsx": [
-      "Link «Agregarlo en su ficha →»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",

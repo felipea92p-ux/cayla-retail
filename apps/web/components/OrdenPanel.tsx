@@ -36,6 +36,7 @@ import {
 import type { OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -180,7 +181,7 @@ export function OrdenPanel({
             {/* -------- etapas (una orden terminada ya no las necesita: importa lo que salió) -------- */}
             {orden.estado !== "terminada" && (
               <section aria-label="Etapas">
-                <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">Etapas</h3>
+                <TituloGrupo className="mb-3">Etapas</TituloGrupo>
                 {abierta && <ComboResponsable control={responsable} deshabilitado={ocupada} className="mb-4" />}
                 <ol className="grid grid-cols-3">
                   {etapas.map((e, i) => {
@@ -279,18 +280,18 @@ export function OrdenPanel({
 
             {/* -------- qué se fabrica -------- */}
             <section aria-label="Qué se fabrica">
-              <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">
+              <TituloGrupo className="mb-3">
                 {orden.estado === "terminada" ? "Lo que salió · talla × color" : "Qué se fabrica · talla × color"}
-              </h3>
+              </TituloGrupo>
               <MatrizOrdenTabla matriz={matriz} modo={orden.estado === "terminada" ? "resultado" : "plan"} />
             </section>
 
             {/* -------- costo (solo el líder) -------- */}
             {esLider && (
               <section aria-label="Costo de la corrida">
-                <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">
+                <TituloGrupo className="mb-3">
                   {orden.estado === "terminada" ? "Costo real de la corrida" : "Costo de la corrida"}
-                </h3>
+                </TituloGrupo>
                 <div className="flex items-end justify-between gap-4">
                   <div>
                     <p className="font-display text-4xl leading-none tabular-nums text-tinta">

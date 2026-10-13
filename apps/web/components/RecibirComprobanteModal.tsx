@@ -14,6 +14,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { MOTIVOS_CIERRE, armarRecepcion, cantidadLlegada, entradaInicial, type ComprobantePorRecibir, type EntradaLinea } from "@/lib/recibir-produccion-reglas";
+import { Casilla } from "@/components/ui/Casilla";
 
 // Recibir una entrega (ADR-0133, F4d). Por cada línea pendiente: cuánto llegó (en blanco = todo lo pendiente) y, si el resto no va a llegar,
 // se marca «no llegará» con su motivo. Cada línea que llega abre UN lote con el costo de la línea, que la base pone sola: aquí no aparece
@@ -85,7 +86,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
                       placeholder={String(l.pendiente)}
                       value={e.llego}
                       onChange={(ev) => cambiar(l.itemId, { llego: ev.target.value })}
-                      className="h-9 w-28 rounded-md border border-tinta/25 bg-papel px-2 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                      className="caja-campo-input w-28 text-right tabular-nums"
                     />
                     <span className="text-sm text-tinta/65">{UNIDADES_INSUMO[l.unidad].corta}</span>
                   </label>
@@ -94,13 +95,13 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
                     placeholder="Código de lote (opcional)"
                     value={e.codigoLote}
                     onChange={(ev) => cambiar(l.itemId, { codigoLote: ev.target.value })}
-                    className="h-9 min-w-0 flex-1 rounded-md border border-tinta/25 bg-papel px-2 font-mono text-sm text-tinta outline-none focus:border-rojo"
+                    className="caja-campo-input min-w-0 flex-1 font-mono"
                   />
                 </div>
                 {resto > 0 && !Number.isNaN(q) && (
                   <div className="mt-2.5 space-y-2">
                     <label className="flex items-center gap-2 text-[13px] text-tinta/80">
-                      <input type="checkbox" checked={e.noLlegara} onChange={(ev) => cambiar(l.itemId, { noLlegara: ev.target.checked })} />
+                      <Casilla marcada={e.noLlegara} onCambio={() => cambiar(l.itemId, { noLlegara: !e.noLlegara })} etiqueta={`El resto (${cantidadTexto(resto, l.unidad)}) no va a llegar`} />
                       El resto ({cantidadTexto(resto, l.unidad)}) no va a llegar
                     </label>
                     {e.noLlegara && (
