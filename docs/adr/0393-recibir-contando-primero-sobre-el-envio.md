@@ -65,7 +65,7 @@ SE ROMPE SI: los pendientes se vuelven el cajón donde se olvida la mercadería.
 | Pieza | Dueña | La otra |
 |---|---|---|
 | Crear, editar y anular un envío; `despacho_items`; estados `en_camino` y `anulado` | Órdenes de compra | Recibir solo lee |
-| Abrir, contar, separar, cerrar y reabrir; estados `abierto` y `cerrado`; `despacho_recibidos`, `despacho_diferencias` (escritura), `abrir_despacho`, `recibir_despacho`, `preparar_prenda_al_recibir`, la pantalla `/recibir/envio/[id]` | **Recibir (ADR-0393)**, desde este contrato. La fase 4 los escribió «porque Recepción no tenía rama» (ADR-0362) | Órdenes de compra los lee |
+| Abrir, contar, separar, cerrar y reabrir; estados `abierto` y `cerrado`; abrir un envío sin aviso (`despachos_sin_aviso`); `despacho_recibidos`, `despacho_diferencias` (escritura), `abrir_despacho`, `recibir_despacho`, `preparar_prenda_al_recibir`, la pantalla `/recibir/envio/[id]` | **Recibir (ADR-0393)**, desde este contrato. La fase 4 los escribió «porque Recepción no tenía rama» (ADR-0362) | Órdenes de compra los lee |
 | «Nos debe» (`proveedor_deuda_resoluciones`, `fn_proveedor_nos_debe`, `resolver_deuda_proveedor`) | Órdenes de compra (5a, 5b) | Recibir escribe la resolución `repuesta` desde la recepción, como hoy |
 | Las causas de faltante y sobrante | Las de producción mandan: `no_vino`, `se_perdio`, `otra_sede`; `regalo`, `cobra_aparte`, `proxima_compra`, `reposicion_faltante` | Una causa nueva se acuerda entre las dos |
 
@@ -274,5 +274,27 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
   el rastro; y **dos casos de dos sesiones reales**: reabrir y resolver la deuda a la vez, en los dos órdenes). Mutaciones detectadas:
   el borrador solo de las líneas con pendientes, reabrir sin mirar a Compras y mirar sin tomar antes las deudas (con dos sesiones,
   reabre un envío cuya deuda ya se resolvió). Las otras cuatro pruebas siguen en verde con `180000` cargada dos veces.
-- **Sigue en la actividad 4:** el envío sin aviso (decisión 2 del ADR).
+- **Sigue en la actividad 4:** el envío sin aviso (abajo).
+
+### Actividad 4, segunda parte · el envío sin aviso (2026-10-13)
+
+- **`20261013183000_envio_sin_aviso.sql`.** `abrir_envio_sin_aviso(sede, proveedor, guía, nota, token)`: la sede abre al llegar un envío
+  **sin guía**, ya abierto, y su proveedor queda en `despachos_sin_aviso` (tabla de Recibir). Todo lo que se cuenta en él es «lo que no
+  estaba en la guía» (categoría, marca y el proveedor del envío), y como no hubo guía nada falta ni sobra: no deja diferencias ni deudas.
+  El costo sigue ADR-0330: `cerrar_conteo_envio` no lo pide en un envío sin aviso y solo lo acepta de quien ve el dinero de Compras
+  (`recepcion_costo_sin_permiso`); `fn_recepcion_entrar` deja entrar sin costo sin promediar el de la prenda
+  (`despacho_recibidos.costo_unitario` puede quedar vacío). `guardar_conteo_envio` y `preparar_prenda_al_recibir` aceptan el proveedor
+  del envío; `recibir_despacho` no lo cierra (`envio_sin_aviso`); `fn_envio_conteos` dice su `origen` y sus `proveedores`.
+- **Lo que cambió de la decisión 2 (recomendada y aceptada), y por qué:**
+  - **Sin líneas de envío sin orden:** `despacho_items.orden_compra_item_id` sigue obligatorio. Lo que el ADR proponía tocaba tablas de
+    Compras y una docena de lecturas suyas que unen la línea con su orden; «lo que no estaba en la guía» ya es exactamente esto.
+  - **Sin «por confirmar» como proveedor:** la puerta de hoy pregunta «¿de quién?» primero, y un lote o una factura sin proveedor no se
+    unen después. Si nadie en la tienda sabe, lo elige el líder. **Decisión de negocio que Felipe puede revertir.**
+  - **Sin «lo que dijeron» por categoría:** sin orden no hay deuda que anotar; cabe en la nota. **Felipe puede pedirlo** (sería una
+    columna en `despacho_conteos` y, si debe volverse deuda, un faltante «no vino» contra un proveedor sin orden).
+- **Pruebas:** `pruebas:envio-sin-aviso` (6 casos: abrir con permisos y token, contar y cerrar sin costo, la regla del costo, lo pendiente
+  con la prenda nueva del proveedor del envío, el freno al formulario de la fase 4 y reabrir sin freno). Mutaciones detectadas: promediar
+  sin costo, aceptar el costo de quien no ve el dinero y medir el envío sin aviso contra una guía vacía. Las otras cinco pruebas cargan
+  `183000` y siguen en verde.
+- **Nada de esto está en producción.** Orden de pegado completo: `170000`, `171000`, `172000`, `173000`, `180000`, `183000`.
 
