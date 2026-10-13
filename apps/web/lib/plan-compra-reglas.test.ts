@@ -8,7 +8,14 @@ import {
   avanceDelPaso,
   armarFilas,
   borradorDe,
-  borradorDeCampana,
+  borradorDeRanura,
+  borradorNuevo,
+  argsCampanaNueva,
+  calendarioDelSelector,
+  campanasSinFechas,
+  fechasDelAnio,
+  nombreDelPlanNuevo,
+  ranurasSinPlan,
   calcular,
   colaDelPaso,
   comoTextoDeExcel,
@@ -703,59 +710,117 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
         { id: "malo", nombre: "Sin fechas", desde: "ayer", hasta: "2026-12-31" },
       ],
       etiquetas: [
-        { id: "e1", nombre: "Día de la Madre", desde: "2027-05-01", hasta: "2027-05-10", plan_id: "p2" },
+        { id: "e1", nombre: "Día de la Madre", desde: "2027-05-01", hasta: "2027-05-10", plan_id: "p2", planes: [{ id: "p2", anio: 2027 }] },
         { id: "e2", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", plan_id: null },
         { id: "e3", nombre: "Sin fechas", desde: null, hasta: null, plan_id: null },
       ],
     })!;
-  it("lee los planes y las etiquetas; una fila que no calza se descarta, una forma rara es null", () => {
+  it("lee los planes y las campañas de Etiquetas (también las sin fechas, con sus planes por año); una fila que no calza se descarta", () => {
     const l = leida();
     expect(l.planes.map((p) => [p.nombre, p.etiquetaId, p.conPlan])).toEqual([["Día de la Madre 2027", "e1", 3], ["Diciembre 2026", null, 0]]);
-    expect(l.etiquetas.map((e) => [e.nombre, e.planId])).toEqual([["Día de la Madre", "p2"], ["Navidad", null]]);
+    expect(l.etiquetas.map((e) => [e.nombre, e.planId, e.planes.map((x) => x.anio).join("/"), e.desde])).toEqual([
+      ["Día de la Madre", "p2", "2027", "2027-05-01"],
+      ["Navidad", null, "", "2026-12-11"],
+      ["Sin fechas", null, "", null],
+    ]);
     expect(leerCampanas(null)).toBeNull();
     expect(leerCampanas([])).toBeNull();
     expect(leerCampanas({})).toEqual({ planes: [], etiquetas: [], edicion: false });
   });
-  it("el rótulo y el nombre con que nace el plan, como los pone la base", () => {
+  it("el rótulo y el nombre con que nace el plan de un año, como los pone la base", () => {
     expect(rotuloDeCampana({ nombre: "Diciembre 2026", desde: "2026-12-01", hasta: "2026-12-31" })).toBe("Diciembre 2026 · 1 dic – 31 dic");
-    expect(nombreDeLaCampana({ nombre: "Día de la Madre", desde: "2027-05-01" })).toBe("Día de la Madre 2027");
+    expect(nombreDeLaCampana({ nombre: "Día de la Madre" }, 2027)).toBe("Día de la Madre 2027");
     expect(fechaCortaES("2026-09-07")).toBe("7 set");
   });
-  it("elegir una etiqueta arranca el borrador con su nombre y sus fechas; sin etiqueta, vacío", () => {
-    const e = leida().etiquetas[1];
-    expect(borradorDeCampana(e)).toEqual({ etiquetaId: "e2", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25" });
-    expect(borradorDeCampana(null).etiquetaId).toBe("");
+  it("las fechas de una campaña en otro año siguen la regla de Historial (Día de la Madre, su segundo domingo); sin fechas, null", () => {
+    expect(fechasDelAnio({ desde: "2026-11-09", hasta: "2026-11-30" }, 2027)).toEqual({ desde: "2027-11-09", hasta: "2027-11-30" });
+    expect(fechasDelAnio({ desde: "2026-04-26", hasta: "2026-05-10" }, 2027)).toEqual({ desde: "2027-04-25", hasta: "2027-05-09" });
+    expect(fechasDelAnio({ desde: "2026-01-31", hasta: "2026-02-14" }, 2027)).toEqual({ desde: "2027-01-31", hasta: "2027-02-14" });
+    expect(fechasDelAnio({ desde: null, hasta: null }, 2027)).toBeNull();
   });
-  it("lo que impide crear: sin etiqueta, etiqueta que ya tiene plan, nombre vacío o repetido, fechas que faltan o al revés", () => {
+  it("el calendario sin plan: este año y el que viene, sin las que ya tienen plan ese año (aunque esté archivado) ni las que terminaron", () => {
+    const l = leida();
+    const r = ranurasSinPlan(l, "2026-10-12");
+    expect(r.map((x) => [x.nombre, x.desde, x.hasta])).toEqual([
+      ["Navidad 2026", "2026-12-11", "2026-12-25"],
+      ["Navidad 2027", "2027-12-11", "2027-12-25"],
+    ]);
+    // Día de la Madre 2026 ya terminó y la de 2027 ya tiene plan; «Sin fechas» no se puede armar.
+    const conArchivado = { ...l, planes: [...l.planes, { id: "x", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25", etiquetaId: "e2", conPlan: 0, archivado: true, conTope: false }] };
+    expect(ranurasSinPlan(conArchivado, "2026-10-12").map((x) => x.nombre)).toEqual(["Navidad 2027"]);
+    // En plena Navidad sigue ofreciéndose (está en curso); el 26 de diciembre ya no.
+    expect(ranurasSinPlan(l, "2026-12-20").map((x) => x.nombre)).toContain("Navidad 2026");
+    expect(ranurasSinPlan(l, "2026-12-26").map((x) => x.nombre)).not.toContain("Navidad 2026");
+    expect(campanasSinFechas(l).map((e) => e.nombre)).toEqual(["Sin fechas"]);
+  });
+  it("el selector como calendario: planes y campañas sin plan juntos en su grupo, por fecha; las sin fechas, solo si se pueden armar", () => {
+    const l = leida();
+    const cal = calendarioDelSelector(l, "2026-10-12", true);
+    expect(cal.map((x) => [x.tipo, x.grupo, x.tipo === "plan" ? x.campana.nombre : x.tipo === "calendario" ? x.ranura.nombre : x.etiqueta.nombre])).toEqual([
+      ["plan", "Por venir · 2026", "Diciembre 2026"],
+      ["calendario", "Por venir · 2026", "Navidad 2026"],
+      ["plan", "Por venir · 2027", "Día de la Madre 2027"],
+      ["calendario", "Por venir · 2027", "Navidad 2027"],
+      ["sin-fechas", "Sin fechas en Etiquetas", "Sin fechas"],
+    ]);
+    expect(calendarioDelSelector(l, "2026-10-12", false).some((x) => x.tipo === "sin-fechas")).toBe(false);
+    expect(calendarioDelSelector(l, "2026-12-20", false).filter((x) => x.grupo === "En curso").map((x) => x.tipo)).toEqual(["plan", "calendario"]);
+  });
+  it("tocar una del calendario arranca la hoja con su nombre y sus fechas de ese año; una nueva, vacía", () => {
+    const [navidad] = ranurasSinPlan(leida(), "2026-10-12");
+    expect(borradorDeRanura(navidad)).toEqual({ etiquetaId: "e2", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25" });
+    expect(borradorNuevo()).toEqual({ etiquetaId: null, nombre: "", desde: "", hasta: "" });
+  });
+  it("lo que impide armar una del calendario: que ya tenga su plan ese año, nombre vacío o repetido, fechas que faltan o al revés", () => {
     const { etiquetas } = leida();
-    const ok = borradorDeCampana(etiquetas[1]);
+    const ok = borradorDeRanura(ranurasSinPlan(leida(), "2026-10-12")[0]);
     expect(problemasDeLaCampana(ok, etiquetas, ["Diciembre 2026"])).toEqual({});
-    expect(problemasDeLaCampana({ ...ok, etiquetaId: "" }, etiquetas).etiqueta).toMatch(/Elige la campaña/);
-    expect(problemasDeLaCampana({ ...ok, etiquetaId: "e1" }, etiquetas).etiqueta).toMatch(/ya tiene su plan/);
+    expect(problemasDeLaCampana({ ...ok, etiquetaId: "nada" }, etiquetas).etiqueta).toMatch(/ya no está en Etiquetas/);
+    expect(problemasDeLaCampana({ ...ok, etiquetaId: "e1", desde: "2027-04-25", hasta: "2027-05-09" }, etiquetas).etiqueta).toMatch(/ya tiene su plan de 2027/);
+    expect(problemasDeLaCampana({ ...ok, etiquetaId: "e1", desde: "2028-04-30", hasta: "2028-05-14" }, etiquetas).etiqueta).toBeUndefined();
     expect(problemasDeLaCampana({ ...ok, nombre: "  " }, etiquetas).nombre).toMatch(/Ponle un nombre/);
     expect(problemasDeLaCampana({ ...ok, nombre: " diciembre 2026 " }, etiquetas, ["Diciembre 2026"]).nombre).toMatch(/Ya hay un plan/);
     expect(problemasDeLaCampana({ ...ok, desde: "" }, etiquetas).desde).toMatch(/desde cuándo/);
     expect(problemasDeLaCampana({ ...ok, hasta: "2026-12-01" }, etiquetas).hasta).toMatch(/antes de empezar/);
   });
-  it("los argumentos van como los espera la base (el nombre vacío va como null: la base pone el suyo)", () => {
+  it("lo que impide una campaña nueva: sin nombre, uno que ya está en el calendario (sin tildes ni mayúsculas) o cuyo plan ya existe", () => {
+    const { etiquetas } = leida();
+    const ok = { etiquetaId: null, nombre: "Cyber Wow", desde: "2026-11-03", hasta: "2026-11-05" };
+    expect(problemasDeLaCampana(ok, etiquetas, [])).toEqual({});
+    expect(problemasDeLaCampana({ ...ok, nombre: " " }, etiquetas).nombre).toMatch(/Escribe el nombre de la campaña/);
+    expect(problemasDeLaCampana({ ...ok, nombre: "NAVIDAD" }, etiquetas).nombre).toMatch(/ya está en el calendario/);
+    expect(problemasDeLaCampana({ ...ok, nombre: "sin fechas" }, etiquetas).nombre).toMatch(/«Sin fechas» ya está en Etiquetas, sin fechas: pónselas/);
+    expect(problemasDeLaCampana(ok, etiquetas, ["cyber wow 2026"]).nombre).toMatch(/Ya hay un plan «Cyber Wow 2026»/);
+    expect(nombreDelPlanNuevo({ nombre: "  Cyber   Wow ", hasta: "2027-01-02" })).toBe("Cyber Wow 2027");
+  });
+  it("los argumentos van como los espera la base (el nombre vacío del plan va como null: la base pone el suyo)", () => {
     expect(argsCrearCampana({ etiquetaId: "e2", nombre: " Navidad 2026 ", desde: "2026-12-11", hasta: "2026-12-25" })).toEqual({ p_etiqueta_id: "e2", p_nombre: "Navidad 2026", p_desde: "2026-12-11", p_hasta: "2026-12-25" });
     expect(argsCrearCampana({ etiquetaId: "e2", nombre: "  ", desde: "a", hasta: "b" }).p_nombre).toBeNull();
+    expect(argsCampanaNueva({ etiquetaId: null, nombre: "  Cyber   Wow ", desde: "2026-11-03", hasta: "2026-11-05" })).toEqual({ p_nombre: "Cyber Wow", p_desde: "2026-11-03", p_hasta: "2026-11-05" });
   });
-  it("si las fechas del plan no son las de su etiqueta, lo dice (nunca en silencio); si coinciden, nada", () => {
+  it("si las fechas del plan no son las de su campaña ESE AÑO, lo dice (nunca en silencio); si coinciden, nada", () => {
     const e = leida().etiquetas[1];
     expect(diferenciaConLaEtiqueta({ desde: "2026-12-11", hasta: "2026-12-25" }, e)).toBeNull();
+    expect(diferenciaConLaEtiqueta({ desde: "2027-12-11", hasta: "2027-12-25" }, e)).toBeNull();
     expect(diferenciaConLaEtiqueta({ desde: "2026-12-01", hasta: "2026-12-31" }, e)).toMatch(/del 11 dic al 25 dic/);
     expect(diferenciaConLaEtiqueta({ desde: "x", hasta: "y" }, undefined)).toBeNull();
+    expect(diferenciaConLaEtiqueta({ desde: "2026-12-01", hasta: "2026-12-31" }, leida().etiquetas[2])).toBeNull();
   });
-  it("la guía de «Nueva campaña» dice lo mismo que la validación", () => {
+  it("la guía de la hoja dice lo mismo que la validación, en sus dos caras", () => {
     const { etiquetas } = leida();
-    const ok = borradorDeCampana(etiquetas[1]);
+    const ok = borradorDeRanura(ranurasSinPlan(leida(), "2026-10-12")[0]);
     const listo = { listo: true, motivo: null };
     expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, [], listo))).toBe(true);
     expect(sePuedeConfirmar(camposDeLaCampana({ ...ok, hasta: "2026-12-01" }, etiquetas, [], listo))).toBe(false);
     expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, ["navidad 2026"], listo))).toBe(false);
     expect(sePuedeConfirmar(camposDeLaCampana(ok, etiquetas, [], { listo: false, motivo: "Elige quién" }))).toBe(false);
-    expect(camposDeLaCampana(borradorDeCampana(null), etiquetas, [], listo)[0].pendiente).toMatch(/Elige la campaña/);
+    // Una del calendario no pide elegir campaña; solo aparece «Campaña» si mientras tanto alguien le armó el plan de ese año.
+    expect(camposDeLaCampana(ok, etiquetas, [], listo).map((c) => c.id)).toEqual(["nombre", "desde", "hasta", "responsable"]);
+    const yaArmada = { ...ok, etiquetaId: "e1", desde: "2027-04-25", hasta: "2027-05-09" };
+    expect(camposDeLaCampana(yaArmada, etiquetas, [], listo)[0].pendiente).toMatch(/ya tiene su plan de 2027/);
+    const nueva = camposDeLaCampana(borradorNuevo(), etiquetas, [], listo);
+    expect(nueva.map((c) => c.nombre)).toEqual(["Nombre de la campaña", "Desde", "Hasta", "Quién crea la campaña"]);
+    expect(nueva[0].pendiente).toMatch(/Escribe el nombre de la campaña/);
   });
 });
 
@@ -831,7 +896,7 @@ describe("Formidable y chaos, 2026-10-10: lo que la hoja dice y lo que acepta", 
 
   it("nombres de campaña casi iguales son el mismo (sin tildes, mayúsculas ni espacios dobles)", () => {
     expect(nombreComparable("Navídad  2026 ")).toBe(nombreComparable("navidad 2026"));
-    const etiquetas = [{ id: "e1", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", planId: null }];
+    const etiquetas = [{ id: "e1", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", planId: null, planes: [] }];
     const b = { etiquetaId: "e1", nombre: "Navídad  2026", desde: "2026-12-11", hasta: "2026-12-25" };
     expect(problemasDeLaCampana(b, etiquetas, ["Navidad 2026"]).nombre).toMatch(/Ya hay un plan/);
     expect(argsCrearCampana({ ...b, nombre: "  Fiestas   Patrias 2026 " }).p_nombre).toBe("Fiestas Patrias 2026");

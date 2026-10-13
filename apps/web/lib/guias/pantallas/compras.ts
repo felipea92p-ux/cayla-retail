@@ -1151,7 +1151,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.selector",
       opcional: true,
       titulo: "Qué campaña planificas",
-      texto: "Elige la campaña: en curso, por venir o terminadas. Un líder ve al final «+ Nueva campaña», «Editar o quitar esta campaña» (nombre y fechas; si ya tiene algo armado, se archiva en vez de borrarse) y «Campañas archivadas», donde se miran y se restauran.",
+      texto: "Es el calendario de Etiquetas: las campañas de este año y el que viene. Las que dicen «armar plan» todavía no tienen el suyo; tócala y se arma con sus fechas. Al final, un líder crea una campaña que no está en el calendario, edita o quita la abierta y ve las archivadas.",
     },
     {
       id: "vistas",
