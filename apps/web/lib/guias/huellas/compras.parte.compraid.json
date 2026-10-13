@@ -2,7 +2,7 @@
   "guia": "compras.parte.compraid",
   "ruta": "/compras/parte/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 30,
+  "total": 29,
   "controles": {
     "app/(app)/compras/parte/[compraId]/page.tsx": [
       "Volver «(sin nombre)»"
@@ -16,7 +16,6 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "CampoSelect «Pagas desde»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
       "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",

@@ -943,6 +943,41 @@ export const PRUEBAS = [
   // anulada sin motivo, entrega antes de la emisión, número repetido). ROLLBACK siempre.
   "pruebas:ordenes-compra",
 
+  // Compras: el módulo es la llave (ADR-0387, fase 2 de ADR-0362): en Compras nada es «solo del líder» si se tiene el módulo (Plan,
+  // tienda gestora, costo atípico al recibir); quien tiene un módulo de plata ve y paga las facturas de TODAS las tiendas a nombre de
+  // la empresa, y Proveedores ve los montos de la empresa; sin módulo, nada; Recibir sigue viendo solo su sede. Carga sus migraciones
+  // dentro de cada caso (dos veces: se pueden pegar de nuevo). ROLLBACK siempre.
+  "pruebas:compras-llave",
+
+  // El comprobante de una orden de compra (ADR-0362, fase 2, actividades 4 a 8): solo con el módulo Órdenes de compra; boleta,
+  // nota de venta y factura con IGV, al crédito o al contado a nombre de la empresa; lo de más y lo que no estaba en la orden se acepta
+  // y se avisa; varias entregas; el mismo token no duplica; anular y registrar de nuevo el mismo papel; una orden con comprobante no se
+  // edita ni se anula. ROLLBACK siempre.
+  "pruebas:ordenes-compra-comprobante",
+
+  // Líneas de comprobante sin prenda (ADR-0362, fase 2, actividad 3): Recibir no las ofrece ni las recibe (llegan por guía) y las
+  // lecturas que nombran la prenda de una línea no se rompen. ROLLBACK siempre.
+  "pruebas:compras-lineas-sin-prenda",
+
+  // Envíos a una sede (ADR-0362, fase 3): una guía a una sola sede, desde una orden «directo» (solo a su tienda) o «Por repartir» (a
+  // varias); no se envía más de lo pedido o facturado; se anula solo en camino; una orden con envío no se edita; la deuda del comprobante
+  // es de la sede de quien hizo la orden (decisión 46). ROLLBACK siempre.
+  "pruebas:ordenes-compra-envios",
+
+  // La compra «Sin comprobante» de una orden (ADR-0362, decisión 50): el cuarto tipo, sin serie ni número (la base le pone SC-000001),
+  // sin IGV, al crédito o al contado, y fuera del Registro de Compras de Impuestos. ROLLBACK siempre.
+  "pruebas:ordenes-compra-sin-comprobante",
+
+  // Recibir en la sede un envío de orden de compra (ADR-0362, fase 4): con solo Recibir se abre, se crea la prenda que llegó y se
+  // cuenta talla por talla (buenas al almacén, dañadas a la cuarentena), con el costo corregido promediado, un lote por proveedor y el
+  // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
+  "pruebas:recepcion-de-envio",
+
+  // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
+  // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
+  // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
+  "pruebas:nos-debe",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

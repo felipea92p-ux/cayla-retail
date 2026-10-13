@@ -25,7 +25,8 @@ const BORDE: Record<PasoDeComprobante["tono"], string> = { rojo: "border-l-rojo"
 // lista, perdiendo el orden, el filtro y lo marcado. Acá la lista queda detrás, intacta, y con ↑ ↓ se pasa de un
 // comprobante al siguiente sin cerrar.
 //
-// Es solo de líder (el dinero de Compras solo llega a un líder, ADR-0126). El detalle completo sigue siendo la
+// Lo ve quien tiene Por pagar (antes solo el líder, ADR-0126); desde ADR-0387, con el comprobante entero de cualquier tienda y
+// pagando a nombre de la empresa, sin elegir tienda. El detalle completo sigue siendo la
 // pantalla de referencia: esto es el vistazo, no la reemplaza. El historial de pagos vive allí: `CompraResumen`
 // no lo trae y pedirlo en cada clic sería una consulta más por fila; aquí van el total, lo pagado y el plazo.
 //
@@ -41,7 +42,6 @@ export function PorPagarVistaRapida({
   onCerrar,
   onNavegar,
   onPagado,
-  misTiendas,
 }: {
   compra: CompraResumen;
   /** Los demás comprobantes con saldo del mismo proveedor (los que la lista tiene a la vista). */
@@ -56,8 +56,6 @@ export function PorPagarVistaRapida({
   onNavegar: (delta: 1 | -1) => void;
   /** El pago que se registra desde el cajón avisa a la lista, que hace reaccionar la pantalla y cierra el cajón. */
   onPagado: (r: ResultadoPago) => void;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   const [cerrando, setCerrando] = useState(false);
   const pedirCierre = useCallback(() => setCerrando(true), []);
@@ -165,7 +163,7 @@ export function PorPagarVistaRapida({
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="por-pagar.vista-acciones">
-              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono misTiendas={misTiendas} />
+              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono />
               <Link
                 href={`/compras/factura/${c.id}`}
                 className="btn-cayla btn-secundario inline-flex items-center gap-2"

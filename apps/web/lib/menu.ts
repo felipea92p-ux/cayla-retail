@@ -372,7 +372,8 @@ export const ARBOL: readonly Nodo[] = [
   // Compras (ADR-0126): dinero de proveedores. Cada puerta exige `verDineroCompras` (quien ve Facturas de compra, Por pagar
   // o Notas de crédito, 20260923130000) Y su propio módulo; el grupo sale solo cuando no queda ninguna.
   // Proveedores es la excepción (ADR-0161 P3, 20260923140000): exige su módulo (`editarCuentasProveedor`), no el dinero —
-  // quien lo tiene sin los montos ve el directorio y la ficha sin cifras.
+  // quien lo tiene sin los montos ve el directorio y la ficha sin cifras. Plan de campaña y Órdenes de compra, también: piden solo
+  // su módulo (ADR-0387, Felipe 2026-10-12: «el módulo es la llave»; sus funciones no piden más que eso).
   // Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21), del mismo
   // modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de los dos. Solo visibilidad: las
   // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia
@@ -386,7 +387,7 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
       // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
-      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "analisis", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "analisis", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
       // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
       // módulo es la llave y trae sus precios (decisión 34). Es la 7.ª hija de Compras, TEMPORAL (decisión 38): la excepción vive en

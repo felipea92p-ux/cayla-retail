@@ -32,6 +32,7 @@ import {
   GUIA_PEDIDOS_NO_ATENDIDOS,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_TRASLADO,
   GUIA_TRASLADOS,
 } from "./pantallas/inventario";
@@ -49,7 +50,9 @@ import {
   GUIA_ROTULOS,
 } from "./pantallas/catalogo";
 import {
+  GUIA_COMPROBANTE_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FACTURA,
   GUIA_FACTURAS,
   GUIA_MI_PARTE,
@@ -142,6 +145,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_TRASLADO,
   GUIA_NUEVO_TRASLADO,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_PRODUCTOS,
   GUIA_EDITAR_PRODUCTO,
   GUIA_HISTORIAL_PRENDA,
@@ -168,6 +172,8 @@ export const GUIAS: readonly Guia[] = [
   GUIA_NUEVA_ORDEN,
   GUIA_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_COMPROBANTE_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FIN_RESUMEN,
   GUIA_FIN_GASTOS,
   GUIA_FIN_CUENTAS,
@@ -238,7 +244,9 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/notas-credito": { estado: "aplicada", guia: GUIA_NOTAS_CREDITO.id },
   "/compras/nueva": { estado: "aplicada", guia: GUIA_NUEVA_FACTURA.id },
   "/compras/ordenes": { estado: "aplicada", guia: GUIA_ORDENES.id },
+  "/compras/ordenes/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN.id },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN.id },
+  "/compras/ordenes/envio/[id]": { estado: "aplicada", guia: GUIA_ENVIO_ORDEN.id },
   "/compras/ordenes/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN.id },
   "/compras/ordenes/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN.id },
   "/compras/parte/[compraId]": { estado: "aplicada", guia: GUIA_MI_PARTE.id },
@@ -322,6 +330,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
+  "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },
   // ---- rendimiento ----
   "/rendimiento": { estado: "aplicada", guia: GUIA_RENDIMIENTO.id },
   // ---- rotulos ----

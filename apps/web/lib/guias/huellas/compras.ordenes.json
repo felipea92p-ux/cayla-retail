@@ -2,14 +2,16 @@
   "guia": "compras.ordenes",
   "ruta": "/compras/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 11,
+  "total": 13,
   "controles": {
     "app/(app)/compras/ordenes/page.tsx": [
       "BotonEnlace «ordenes.nueva»",
       "Link «{p.texto}»",
       "Link «{e === \"generada\" ? \"Generadas\" : \"Anuladas\"}»",
+      "Link «ordenes.por-enviar»",
       "Link «ordenes.fila»",
       "BotonEnlace «Borrar la búsqueda»",
+      "BotonEnlace «Ver todas las órdenes»",
       "BotonEnlace «Ver todas las sedes»"
     ],
     "components/Paginacion.tsx": [

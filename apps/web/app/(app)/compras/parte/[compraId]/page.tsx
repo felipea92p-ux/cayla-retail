@@ -3,7 +3,7 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { getCompra } from "@/lib/compras";
 import { getMiParteDeCompra } from "@/lib/compras-mi-parte";
 import { compraParaPagarMiParte, parteDelDetalle } from "@/lib/compras-mi-parte-reglas";
-import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, soles } from "@/lib/compras-reglas";
+import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, nombreDeLineaSinPrenda, soles } from "@/lib/compras-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -14,6 +14,10 @@ import { Volver } from "@/components/ui/Volver";
 // montos del comprobante entero, lo que le toca a mi tienda (subtotal, IGV, total, pagado, saldo), mis líneas con mis unidades
 // y los pagos de mi tienda — todo sale de `fn_mi_parte_de_compra`, que no devuelve nada de la otra tienda. Quien ve el
 // comprobante entero (líder o tienda gestora) va al detalle de siempre.
+//
+// ADR-0387 (Felipe 2026-10-12, con su decisión 45): quien tiene un módulo de plata de Compras ve el comprobante entero (así que
+// esta página lo manda al detalle) y la deuda es toda de la tienda que lo pidió. Ya no tiene enlaces; su «Pagar» va a nombre de
+// la empresa, sin tienda. Queda hasta que se retire junto con `MisPartesDeCompras` y `lib/compras-mi-parte*.ts`.
 export default async function MiParteDeCompraPage({ params }: { params: Promise<{ compraId: string }> }) {
   const persona = await exigirPermiso("verDineroCompras");
   const { compraId } = await params;
@@ -58,7 +62,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
                 <p className={`mt-0.5 text-sm tabular-nums ${p.saldo > 0 ? "text-tinta" : "text-verde"}`}>{p.saldo > 0 ? `Por pagar ${soles(p.saldo)}` : "Pagada"}</p>
               </div>
               <span data-guia="parte.pagar">
-                <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} misTiendas={[{ id: p.ubicacionId, nombre: p.ubicacionNombre }]} />
+                <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} />
               </span>
             </div>
           }
@@ -76,7 +80,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
           {lineas.map((l, i) => (
             <li key={i} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2.5">
               <span className="min-w-0 text-tinta">
-                {l.referencia || l.descripcion || "—"}
+                {l.referencia || (l.categoria || l.marca || l.descripcion ? nombreDeLineaSinPrenda(l) : "—")}
                 {l.talla || l.color ? <span className="text-tinta/65"> · {[l.talla, l.color].filter(Boolean).join(" · ")}</span> : null}
                 {varias ? <span className="text-taupe"> · {nombreTienda[l.ubicacionId]}</span> : null}
               </span>

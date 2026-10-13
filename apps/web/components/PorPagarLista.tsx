@@ -83,7 +83,6 @@ export function PorPagarLista({
   pagos = {},
   seleccionInicial = [],
   indice = 0,
-  misTiendas,
 }: {
   compras: CompraResumen[];
   totales: TotalesTramosPorPagar;
@@ -97,8 +96,6 @@ export function PorPagarLista({
   seleccionInicial?: string[];
   /** Posición de la lista en la entrada escalonada de la pantalla. */
   indice?: number;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const q = useSearchParams().get("q") ?? "";
@@ -399,7 +396,6 @@ export function PorPagarLista({
                   busqueda={q}
                   entrada={llegando ? { indice: Math.min(i, 14) + indice + 1 } : null}
                   posicion={i}
-                  misTiendas={misTiendas}
                 />
               );
             })}
@@ -459,7 +455,6 @@ export function PorPagarLista({
           datos={datosProveedores[seleccionadas[0].proveedorId]}
           onClose={() => setPagando(false)}
           onPagado={alPagar}
-          misTiendas={misTiendas}
         />
       )}
 
@@ -475,7 +470,6 @@ export function PorPagarLista({
           onCerrar={() => setVistaId(null)}
           onNavegar={navegarVista}
           onPagado={alPagar}
-          misTiendas={misTiendas}
         />
       )}
     </div>
@@ -552,7 +546,6 @@ function FilaPorPagar({
   busqueda,
   entrada,
   posicion,
-  misTiendas,
 }: {
   c: CompraResumen;
   refFila: (el: HTMLElement | null) => void;
@@ -577,8 +570,6 @@ function FilaPorPagar({
   /** Entrada escalonada de la pantalla; `null` cuando la fila aparece después (un filtro que la muestra). */
   entrada: { indice: number } | null;
   posicion: number;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   // Cómo entra esta fila se decide UNA vez, al montarse: con la pantalla (escalonada) o, si aparece después (un filtro que la muestra), con
   // el gesto corto SIN retener el estado final. Si la clase cambiara al terminar la entrada, la animación se repetiría en toda la tabla y,
@@ -664,8 +655,6 @@ function FilaPorPagar({
           </span>
         )}
         <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
-        {/* ADR-0187: el comprobante es de varias tiendas y los montos de la fila son los de la mía. */}
-        {c.totalComprobante !== undefined && <span className="block text-xs tabular-nums text-tinta/55">Tu parte · total <span className="whitespace-nowrap">{soles(c.totalComprobante)}</span></span>}
         <span className={`mt-1 block text-xs @[40rem]:hidden ${colorVence}`}>{vence}</span>
         {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
             hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,
@@ -701,11 +690,11 @@ function FilaPorPagar({
         {/* Donde la columna «Pagado» no cabe (< 56rem), lo pagado se dice aquí, bajo el saldo. */}
         {c.pagado > 0 && <span className="block text-xs tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
         <span data-guia="por-pagar.pagar" className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
-          <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} misTiendas={misTiendas} />
+          <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
         </span>
       </div>
       <div data-guia="por-pagar.pagar" className={`relative z-10 hidden items-center justify-end gap-2 text-right @[40rem]:flex ${sellada ? "opacity-55" : ""}`}>
-        <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} misTiendas={misTiendas} />
+        <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
         {/* La flecha aparece al pasar el mouse: dice «esta fila se abre», sin ocupar sitio en reposo. */}
         <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
       </div>

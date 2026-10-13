@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { campanasArchivadas, campanasDelSelector, rotuloDeCampana, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 
-// El selector de campaña del plan (ADR-0372, B3 y B5): pasa entre las campañas activas (`?plan=<id>`) y, solo a quien puede (un líder), ofrece
-// «+ Nueva campaña…», «Editar o quitar esta campaña…» y «Campañas archivadas (N)…», que abren su hoja. Las archivadas no salen en la lista: se
-// ven desde su hoja. Con una sola campaña y nada más que ofrecer, no se dibuja: un control sin nada que elegir es ruido.
+// El selector de campaña del plan (ADR-0372, B3 y B5): pasa entre las campañas activas (`?plan=<id>`) y, donde se gestionan (el Plan, no
+// Resultados), ofrece «+ Nueva campaña…», «Editar o quitar esta campaña…» y «Campañas archivadas (N)…», que abren su hoja. Las archivadas
+// no salen en la lista: se ven desde su hoja. Con una sola campaña y nada más que ofrecer, no se dibuja: un control sin nada que elegir es ruido.
 // Desde C1 (Felipe 2026-10-12) la lista va por momento y por año: «En curso», «Por venir · 2026», «Por venir · 2027»… y «Terminadas» (solo las
 // del último año; las más viejas se miran en el Historial). Las acciones van al final, en su propio grupo.
 
@@ -32,7 +32,8 @@ export function SelectorCampana({
   hoy: string;
   /** A qué pantalla lleva elegir una campaña: el Plan (por defecto) o sus Resultados. */
   ruta?: string;
-  /** Un líder: crea, edita, quita y restaura campañas (la base lo exige también). */
+  /** Ofrece crear, editar, quitar y restaurar campañas (el Plan sí; Resultados no tiene sus hojas). Las hace quien tiene el módulo, sea
+   *  líder o no (ADR-0387); la base lo vuelve a comprobar. */
   puedeCrear: boolean;
   onNueva: () => void;
   onEditar: () => void;

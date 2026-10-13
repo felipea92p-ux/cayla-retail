@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ClipboardList, FunnelX, SearchX } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getDestinosOrden, getResumenOrdenes, listarOrdenesCompra } from "@/lib/ordenes-compra";
+import { getDestinosOrden, getOrdenesPorEnviar, getResumenOrdenes, listarOrdenesCompra } from "@/lib/ordenes-compra";
 import {
   ESTADO_ORDEN,
   POR_REPARTIR_LISTA,
@@ -48,6 +48,10 @@ import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 // Cada fila abre la orden en una ventana sobre la lista (ruta interceptada `@modal/(.)ordenes/ver/[id]`): la lista no se desmonta y al
 // cerrar se vuelve donde se estaba. La «›» del final dice que se abre.
 //
+// «Por enviar» (fase 3) es una píldora más, al final: las órdenes generadas que todavía tienen algo por enviar a una sede, en TODAS las
+// sedes (la cifra cuenta todas, así que elegir una sede o un estado la apaga). La base no filtra por eso: `listarOrdenesCompra` cruza la lista
+// con `fn_ordenes_compra_por_enviar`. Si esa función no responde (la web publicada antes que la migración), la píldora no sale.
+//
 // Las columnas las decide el ANCHO DE LA TABLA, no el de la ventana (container queries: `@container` en <Tabla>, como
 // Proveedores). Con el menú abierto la tabla es ~370 px más angosta que la ventana, y una tabla que decidía por la ventana
 // aplastaba al proveedor hasta dejarlo en cero. El proveedor es la única columna flexible y nunca se sacrifica:
@@ -70,12 +74,12 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 
 export default async function OrdenesCompraPage({ searchParams }: { searchParams: Promise<ParamsLista> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [params, destinosLeidos, resumen] = await Promise.all([searchParams, getDestinosOrden(), getResumenOrdenes()]);
+  const [params, destinosLeidos, resumen, porEnviar] = await Promise.all([searchParams, getDestinosOrden(), getResumenOrdenes(), getOrdenesPorEnviar()]);
   const destinos = destinosLeidos ?? [];
   // Una sede inactiva que todavía tiene órdenes también se puede elegir (sale en las píldoras).
   const idsElegibles = [...destinos.map((d) => d.id), ...(resumen ?? []).flatMap((r) => (r.destinoId ? [r.destinoId] : []))];
   const filtros = filtrosDeLista(params, { sedeActual: persona.ubicacionId, destinos: idsElegibles });
-  const { filas: leidas, falla } = await listarOrdenesCompra(filtros);
+  const { filas: leidas, falla } = await listarOrdenesCompra(filtros, porEnviar);
   const { filas, cursorSiguiente } = paginaDeOrdenes(leidas);
 
   const nuevaOrden = (
@@ -83,7 +87,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
       + Nueva orden de compra
     </BotonEnlace>
   );
-  const sinFiltros = filtros.destino === TODAS && !filtros.estado && !filtros.q && !filtros.antesDe;
+  const sinFiltros = filtros.destino === TODAS && !filtros.estado && !filtros.q && !filtros.antesDe && !filtros.porEnviar;
   // Ninguna orden en ninguna sede: la primera vez no hay nada que filtrar, solo invitar a crear la primera.
   const primeraVez = !falla && (resumen ? conteoDeDestino(resumen, TODAS, null) === 0 : sinFiltros && filas.length === 0);
 
@@ -172,6 +176,19 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                     </Link>
                   );
                 })}
+                {/* «Por enviar»: tocarla pone la vista de todas las sedes con lo que falta enviar; tocarla de nuevo la quita. */}
+                {porEnviar && (
+                  <Link
+                    href={hrefLista(filtros, { porEnviar: !filtros.porEnviar })}
+                    aria-current={filtros.porEnviar ? "page" : undefined}
+                    title="Órdenes con algo por enviar a una sede, de todas las sedes"
+                    data-guia="ordenes.por-enviar"
+                    className="pildora-cayla shrink-0"
+                  >
+                    Por enviar
+                    <span className="pildora-cayla__n">{porEnviar.size.toLocaleString("es-PE")}</span>
+                  </Link>
+                )}
               </nav>
             </div>
 
@@ -201,6 +218,8 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                     const estado = ESTADO_ORDEN[f.estado];
                     const anulada = f.estado === "anulada";
                     const esRecien = f.id === recien;
+                    // En la vista «Por enviar», cuántas unidades le quedan por enviar a ESA orden.
+                    const porEnviarDe = filtros.porEnviar ? (porEnviar?.get(f.id) ?? null) : null;
                     return (
                       <Link
                         key={f.id}
@@ -234,11 +253,16 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                         </span>
                         <span className={celda("izq", `${SOLO_ANCHA} text-tinta/80`)}>{textoDestino(f.destinoNombre)}</span>
                         <span className={celda("izq", `${SOLO_ANCHA} tabular-nums text-tinta/80`)}>{diaMes(f.fechaEntregaEstimada)}</span>
-                        <span className={`${CIFRA} ${SOLO_ANCHA} text-tinta/80`}>{f.unidades.toLocaleString("es-PE")}</span>
+                        <span className={`${CIFRA} ${SOLO_ANCHA} text-tinta/80`}>
+                          {f.unidades.toLocaleString("es-PE")}
+                          {porEnviarDe != null && <span className="block text-xs font-normal text-taupe">{porEnviarDe.toLocaleString("es-PE")} por enviar</span>}
+                        </span>
                         {/* Una anulada no suma: su total va tachado. */}
                         <span className={`${CIFRA} cmp-total font-medium`}>
                           <span className={anulada ? "text-tinta/45 line-through" : "text-tinta"}>{soles(f.total)}</span>
-                          <span className={`${SEGUNDA_LINEA} font-normal`}>{plural(f.unidades, "unidad", "unidades")}</span>
+                          <span className={`${SEGUNDA_LINEA} font-normal`}>
+                            {porEnviarDe != null ? `${porEnviarDe.toLocaleString("es-PE")} por enviar` : plural(f.unidades, "unidad", "unidades")}
+                          </span>
                         </span>
                         <span className={celda("izq", CON_COLUMNAS)}>
                           <Chip tono={estado.tono}>{estado.texto}</Chip>
@@ -303,10 +327,14 @@ function VacioFiltrado({ filtros, nombreDestino, nuevaOrden }: { filtros: Filtro
         filtros.q ? (
           <BotonEnlace href={hrefLista(filtros, { q: "" })}>Borrar la búsqueda</BotonEnlace>
         ) : (
-          <>
-            {filtros.destino !== TODAS && <BotonEnlace href={hrefLista(filtros, { destino: TODAS })}>Ver todas las sedes</BotonEnlace>}
-            {nuevaOrden}
-          </>
+          filtros.porEnviar ? (
+            <BotonEnlace href={hrefLista(filtros, { porEnviar: false })}>Ver todas las órdenes</BotonEnlace>
+          ) : (
+            <>
+              {filtros.destino !== TODAS && <BotonEnlace href={hrefLista(filtros, { destino: TODAS })}>Ver todas las sedes</BotonEnlace>}
+              {nuevaOrden}
+            </>
+          )
         )
       }
     >
