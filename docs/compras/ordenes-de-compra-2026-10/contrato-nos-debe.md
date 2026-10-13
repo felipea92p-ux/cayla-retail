@@ -87,3 +87,18 @@ las causas de faltante `no_vino`/`se_perdio`/`otra_sede` y de sobrante `regalo`/
 resolver a mano con nota; no pasa de lo debido (dos sesiones a la vez); la reposición en la recepción cierra la más antigua primero y no
 pasa de lo debido; permisos (Proveedores o Recibir sí; sin módulos, 42501); 5b responde «todavía no»; la forma (security definer, anon
 no, RLS sin políticas).
+
+## Cambios al construir la 5a (2026-10-12, noche)
+
+- `proveedor_deuda_resoluciones` suma `sobrante_id` (qué sobrante trajo la reposición) y `token_cliente` (único) + `huella`, para que
+  un reintento no duplique. Un disparador diferido exige que lo que llegó como reposición quede repartido ENTERO entre las deudas.
+- La reposición salda deudas de envíos ANTERIORES, nunca una de la misma recepción (lo que falta en una línea y sobra en otra del
+  mismo envío es un cruce, no una reposición). «La más antigua» = la que se anotó primero; a igual fecha, el envío de menor número.
+- Una causa por línea: lo de más de una línea lleva una sola; si viene reposición mezclada con otra cosa, va como «algo que no estaba
+  en la guía».
+- `deudas_del_proveedor` trae también `costo_unitario` (el de la deuda más antigua, para precargar el costo) y no cuenta las del propio
+  envío; `fn_nos_debe_resumen` detalla por categoría y marca (el aviso de la orden dice «2 chompas»).
+- Leer también se permite con Recibir. El monto con IGV usa `fn_tasa_igv` a la fecha del papel; sin tasa, queda nulo y nada se cae.
+- La Actividad de «Llegó la reposición» marcada a mano va en el módulo Proveedores (o Recibir para quien solo tiene Recibir), sin montos.
+- Pantalla: «Prendas por reponer» va ENCIMA del saldo a favor (al lado se partía en 4 renglones); la cantidad viene sugerida con todo
+  lo pendiente; la hoja usa `pie-hoja-fijo`. No se construyó el chip «Te debe S/ X» en la lista de proveedores.
