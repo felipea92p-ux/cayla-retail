@@ -60,8 +60,8 @@ versalita copiada a mano, un enlace o un botón sutil teñido de rojo para borra
 
 **«Desactivar color» · P1, como Categorías.** Iba dentro de una frase como enlace (`btn-enlace`, sin rojo): ahora es `<Boton
 peso="peligro">` a la izquierda del pie, con Cancelar y Guardar a la derecha y, debajo, la nota de cuándo se bloquea. Conserva sus dos
-toques («¿Seguro? Confirmar»). Lo mismo con «Desactivar proveedor» en la hoja de Proveedor (hoy ninguna pantalla le pasa esa acción a la
-hoja con un proveedor existente: ver el backlog). Una firma nueva de `accion.eliminar` atrapa desactivar, eliminar, anular, borrar o
+toques («¿Seguro? Confirmar»). La hoja de Proveedor tenía el mismo enlace en una frase, pero ninguna pantalla se lo mostraba (la lista solo
+la abre para un proveedor nuevo); Felipe: «no se desactivan proveedores desde esa hoja», así que se quitó. Una firma nueva de `accion.eliminar` atrapa desactivar, eliminar, anular, borrar o
 archivar escrito como enlace (con su texto hasta tres líneas más abajo; «Archivados (3)», que muestra lo archivado, no cuenta).
 
 **Las acciones chicas dentro de una hoja · P2, según lo que hacen.** Eran versalitas rojas de 10–11 px; en la migración de las rondas 6–8

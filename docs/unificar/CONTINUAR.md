@@ -1,19 +1,20 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas y el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— decidida y migrada (rama `claude/mystifying-jang-ef15d0`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 6, 7
-> y 8 están decididas y migradas (deuda 258 → 4, PR #1026 fusionado). Muéstrame las seis decisiones que quedaron abiertas (README, «La
-> migración de las rondas 6–8») y, cuando responda, ciérralas; después arma la ronda siguiente del tablero («Por analizar»).
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 9
+> están decididas y migradas (deuda 0 en todas las familias). Arma la ronda siguiente del tablero («Por analizar»: `accion.ver`,
+> `accion.filtrar`, `accion.exportar`) con el censo nuevo, y cierra lo que quedó de «Lo que falta, en orden».
 
 ## Dónde quedó
 
-Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las once con candado están en deuda 0** (la de la ronda 5b, `grafico.barra`, se migró entera el mismo día en que se decidió).
+Veintidós familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
+`lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** desde la ronda 9 (2026-10-13). La tabla de abajo es la de las
+rondas 1–5b; las de las rondas 6–9 están en el tablero (`README.md`) y en «Piezas únicas» de `CLAUDE.md`.
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -32,6 +33,33 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 | 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 0**; migrada entera (Compras, Vender, Caja y Producción) | [grafico.barra.md](grafico.barra.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
+
+## Ronda 9 (2026-10-13): las seis que quedaron abiertas, decididas y migradas
+
+Una página de elegir con las seis preguntas (fuentes en `rondas/9/`): **lo de hoy copiado del DOM real del ERP** (`piezas-vivas.mjs` guarda
+el `outerHTML` de cada pieza ya dibujada) y las propuestas con las clases reales; todo vivo. Felipe eligió P1 · P1 · P1 · P1 · P2 · P2 (en la
+1 tomó P1, «una lista para las tres», en vez de la recomendada). Piezas nuevas: `<ListaSugerencias>` (+ `ariaDelBuscador`), `apartado` en
+`DesplegablePildora`, `cuenta` y `nota` en los títulos (el globito de las pestañas, `titulo-cuenta`). Migrado: Llegó mercadería, Recibir
+contra factura, Registrar nota de crédito, Contar, Frescura, Colores, ocho acciones chicas y doce títulos con número. **Deuda
+4 → 0.** Firmas nuevas: desactivar escrito como enlace (`accion.eliminar`) y un conteo puesto como `dato` (`titulo-seccion`).
+
+Lo aprendido en esta ronda:
+- **Turbopack puede servir un CSS de hace una semana.** El `next dev` de esta worktree arrancó con un `.next/dev` del 6 de octubre y servía
+  el CSS sin NINGUNA pieza de las rondas 6–8 (sin `titulo-seccion`, sin `caja-campo`): la pantalla parecía rota y no lo estaba. Si una foto
+  sale con títulos en sans o cajas sin estilo, mira si el CSS servido trae la clase (`curl` del `.css` del `<link>` + `grep`); se arregla
+  tocando `app/globals.css` con el servidor arriba (sumar y quitar una línea).
+- **El `.next` crece 4 GB en media hora con un censo.** Con el disco al 96 % hay que liberarlo antes (Felipe borró el de esta worktree: 18 GB)
+  y correr el censo con un vigía que lo detenga si el disco baja de 8 GB (ver `rondas/9/README.md`). `pkill -f "unificar/cli.mjs"` mata
+  también al vigía si su línea de comandos nombra el censo: guarda el pid.
+- **`pnpm` reescribe `pnpm-lock.yaml`** al levantar el servidor y en el gancho de commit (quita `@pnpm/exe`): `git checkout -- pnpm-lock.yaml`
+  antes de cada commit, o viaja un cambio que nadie pidió.
+- **Lo que el seed no tiene se mira en una página de ensayo** con datos en memoria (`app/(app)/ensayo-r9/page.tsx` para Contar, sin un conteo
+  abierto en la base local), borrada antes del commit. No se crean datos en la base compartida para una foto.
+- **Una animación de `<tr>` que se quita vuelve a correr la de entrada:** el respiro de la fila recién contada vive en sus celdas
+  (`tr.fila-cayla[data-recien] > :is(td, th)`), y se quita el atributo solo al terminar ESE respiro (`animationName`), porque el estado de
+  adentro también anima.
+- **Al elegir una pieza para «desactivar», busca sus gemelas:** la firma nueva encontró «Desactivar proveedor», el mismo enlace en una frase;
+  resultó inalcanzable (ninguna pantalla se lo pasaba a la hoja) y Felipe pidió quitarlo. Antes de migrar una gemela, mira si se ve.
 
 ## Rondas 6, 7 y 8: decididas el 2026-10-13 y migradas el mismo día
 
@@ -134,8 +162,7 @@ El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo
 1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, decididas y migradas (deuda 0). ~~`combo`, `campo`, `etiqueta-campo`, `casilla`,
    `tabla`, `titulo-seccion`, `enlace`, `paginacion`, `avatar`~~: rondas 6–8, decididas y migradas el 2026-10-13 (deuda 258 → 4; lo
    abierto, en el README). Falta la pasada del mostrador (`terminal-ventas`).
-2. **Las seis decisiones abiertas de las rondas 6–8** (README): los tres combos con fotos o pistola, la tabla de Conteo, los filtros de
-   Frescura (grupos con título en la píldora), «Desactivar color», los conteos a la derecha y las acciones chicas.
+2. ~~Las seis decisiones abiertas de las rondas 6–8~~: ronda 9, decididas y migradas el 2026-10-13 (deuda 0).
 8. **`accion.ver`, `accion.filtrar`, `accion.exportar`** — botones de una función.
 9. **`casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar`** — pocas formas: rondas cortas. De los gráficos, **la barra apilada ya está decidida (ronda 5b)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357).
 10. **`icono`** (250 huellas: casi todo tamaño y trazo de lucide; depurar mucho antes de mostrar).

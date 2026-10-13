@@ -48,7 +48,7 @@ familias:**
    `<ListaSugerencias>` ([campo-combo.md](campo-combo.md)).
 2. La planilla de Contar: **P1, con la cara de la tabla del sistema** y la talla recién contada que respira en verde ([tabla.md](tabla.md)).
 3. Los filtros de Frescura: **P1, píldoras** cuya lista dibuja apartados con título ([campo-combo.md](campo-combo.md)).
-4. «Desactivar color»: **P1, rojo en el pie** como Categorías (también «Desactivar proveedor») ([boton.md](boton.md)).
+4. «Desactivar color»: **P1, rojo en el pie** como Categorías; la hoja de Proveedor pierde su «Desactivar» (no se desactiva desde ahí) ([boton.md](boton.md)).
 5. El número de un título: **P2, pegado al nombre en el globito** de las pestañas ([titulo-seccion.md](titulo-seccion.md)).
 6. Las acciones chicas: **P2, según lo que hacen**: las que cambian varias cosas, botón sutil chico; las que corrigen una, enlace
    ([boton.md](boton.md)).

@@ -140,8 +140,8 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   «Enter» en la activa; Llegó mercadería y Recibir contra factura flotan, las facturas de la nota de crédito van en línea); **Contar con la
   cara de la tabla del sistema** (P1: cabecera arena, rayado hueso, cascada, la talla recién contada respira en verde; sigue siendo un
   `<table>` por rendimiento, exento con su motivo); **Frescura con píldoras** cuya lista dibuja **apartados con título** (P1:
-  `DesplegablePildora` aprende `apartado`); **«Desactivar color» rojo en el pie** como Categorías y Familias (P1; también «Desactivar
-  proveedor»), y una firma nueva de `accion.eliminar` para que desactivar no vuelva a ser un enlace; **el número de un título pegado al
+  `DesplegablePildora` aprende `apartado`); **«Desactivar color» rojo en el pie** como Categorías y Familias (P1; la hoja de Proveedor, que tenía el mismo enlace
+  sin ninguna pantalla que lo mostrara, lo perdió: Felipe, «no se desactivan proveedores desde esa hoja»), y una firma nueva de `accion.eliminar` para que desactivar no vuelva a ser un enlace; **el número de un título pegado al
   nombre en el globito de las pestañas** (P2: `cuenta` en `TituloSeccion` y `TituloGrupo`; a la derecha queda solo lo que resume, y una
   firma nueva atrapa un conteo puesto como `dato`); y **las acciones chicas según lo que hacen** (P2: lo que cambia varias cosas de un
   toque —repartir, marcar todas, usar un saldo, cerrar con faltante, reasignar— es `btn-sutil btn-chico`; lo que corrige una sola

@@ -45,3 +45,13 @@ B=http://localhost:<puerto del ERP> node unificar/.salida/elegir-ronda9/fotos-ho
 **Ojo con el caché de Turbopack:** el 2026-10-13 el `next dev` de esta worktree servía un CSS sin las piezas de las rondas 6–8 (el
 `.next/dev` era del 6 de octubre). Si `bajar-css.mjs` trae un `app.css` sin `titulo-seccion`, toca `app/globals.css` con el servidor
 arriba (una línea en blanco y quitarla) y vuelve a bajarlo. Y mira el disco (`df -h ~`): ese `.next` creció 4 GB en media hora.
+
+## El censo con un vigía de disco (2026-10-13)
+
+Un censo completo hace crecer el `.next` unos 4 GB por media hora. Con el disco justo, córrelo así (desde `apps/web`): guarda el pid del
+censo y lo detiene si quedan menos de 8 GB (un `pkill -f` que nombre el censo mataría también al vigía).
+
+```bash
+node unificar/cli.mjs --base-url http://localhost:3110 --todas --escenarios --salida unificar/.salida/<carpeta> > unificar/.salida/<carpeta>.log 2>&1 &
+CENSO=$!; while kill -0 $CENSO 2>/dev/null; do [ "$(df -g ~ | tail -1 | awk '{print $4}')" -lt 8 ] && kill $CENSO; sleep 30; done
+```
