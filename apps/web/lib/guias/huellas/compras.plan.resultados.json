@@ -25,7 +25,7 @@
     "components/plan-compra/ResultadosCampana.tsx": [
       "button «Todas»",
       "button «Piden atención»",
-      "Desplegable «(sin nombre)»",
+      "DesplegablePildora «Ordenar por»",
       "button «Borrar la búsqueda»",
       "button «plan-resultados.fila»"
     ],

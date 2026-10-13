@@ -63,7 +63,7 @@
     ],
     "components/ProductosTabla.tsx": [
       "BotonEnlace «Limpiar filtros»",
-      "input «{etiqueta}»",
+      "Casilla «{etiqueta}»",
       "button «productos.tabla-abrir»",
       "Link «{`Editar ${referencia}»",
       "Link «{`Ver ${referencia}»",
