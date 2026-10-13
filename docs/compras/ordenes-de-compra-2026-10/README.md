@@ -4,36 +4,54 @@
 > del 2026-10-10, que queda como historia). Las decisiones 1–64 viven en `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`; las
 > 51–64 son de esta mañana. Avance: **~72 de 100** (pesos 15/20/12/15/10/18/10).
 
-## La pila de ramas y PR (se fusionan EN ESTE ORDEN; cada una va encima de la anterior)
+## Estado al 2026-10-13, 12:00 (actualizado al cambiar de cuenta)
 
-| Fase | PR | Rama | Base | En producción |
-|---|---|---|---|---|
-| 1 · orden de tienda | #973 fusionada | — | — | sí |
-| 2 · de la orden al comprobante | **#1006, lista** (CI verde) | `claude/purchase-order-phase2-9b0c82` | `main` | **la base sí** (pegada el 2026-10-12) |
-| — · diccionario con la fase 2 | **#1018, lista** (solo docs) | `claude/volcado-fase2-oc-9b0c82` | `main` | — |
-| 3 · envío a la sede + «Sin comprobante» | #1014, borrador | `claude/purchase-order-phase3-9b0c82` | rama de la fase 2 | no |
-| 4 · recepción en la sede | #1015, borrador | `claude/purchase-order-phase4-9b0c82` | rama de la fase 3 | no |
-| 5a · «Nos debe» sin plata | #1017, borrador | `claude/purchase-order-phase5-9b0c82` | rama de la fase 4 | no |
-| 7 (parte 1) · órdenes de insumos | #1019, borrador | `claude/purchase-order-phase7-9b0c82` | rama de la fase 5 | no |
+**En producción (pegado y verificado el 2026-10-13 con el OK de Felipe):** fases 2, 3, 4 y 5a. Fase 7 parte 1: NO.
+Verificación: cada migración pasó su bloque final; además, la huella md5 de las 38 funciones y las columnas de 7 tablas que tocan las
+fases 3–5a coincide con el banco (43 de 45; las 2 restantes son de forma y vienen de antes: `registrar_comprobante_orden` en producción
+no trae los comentarios internos con que se pegó la fase 2 —un reemplazo anclado futuro sobre esa función NO debe anclarse en líneas de
+comentario— y dos columnas viejas de `compras` están en otro orden físico). Versiones en producción: fase 3 `20261013160428`, `160558`,
+`160649`; fase 4 `160945` y `20261013002000` en tres partes (`161225`, `161434`, `161543`); fase 5a `161852`.
 
-Las cuatro en borrador tienen el CI en verde salvo «SQL pegado» (esperado: sus migraciones no están en producción). El repo borra la rama al
-fusionar, así que al fusionar #1006 GitHub apunta #1014 a `main` solo, y así en cadena. Fusionar con «merge commit» (no squash).
+| PR | Qué | Estado |
+|---|---|---|
+| #1006 | fase 2 | lista; rama al día con `main` (19412d276); «SQL pegado» en ROJO (ver abajo) |
+| #1014 | fase 3 | borrador; su rama TODAVÍA choca con `main` (`lib/modulos.test.ts`) |
+| #1015 | fase 4 | borrador; su rama TODAVÍA choca con `main` (`lib/modulos.test.ts` y `lib/guias/pantallas/inventario.ts`) |
+| #1017 | fase 5a | lista, **base `main`** (se cambió hoy); rama al día con `main` (107cfe810); casilla «después» puesta hoy |
+| #1019 | fase 7, parte 1 | borrador, base rama de la fase 5; rama al día (77d74e8d3); su SQL NO está pegado |
+| #1025 | volcado con las fases 3–5a | lista, CI verde: se puede fusionar ya (solo docs) |
+| #1018 | volcado con la fase 2 | FUSIONADA |
+| #1022 | Plan de campaña «un plan por año» (otra sesión) | su SQL se pegó en producción, la PR sigue abierta; su «SQL pegado» pasa solo cuando la fase 2 esté en `main` |
 
-## Lo primero que falta: pegar en producción (Felipe dijo «Sí, pégalas tú» el 2026-10-13 ~08:40 para las fases 3, 4 y 5a)
+**Por qué «SQL pegado» falla (y no es un error del SQL).** El control compara producción con `main` + la PR. Las fases se pegaron todas
+juntas y encima de ellas la #1022, así que cada PR ve en producción la versión FINAL de funciones que la PR deja en una versión anterior
+(ADR-0251, «otro PR pegado encima»). Y hay un segundo candado: cada número de migración y de ADR solo entra a `main` por la PR de la rama que
+lo reservó (`scripts/reservar/reservas.mjs`, usa `GITHUB_HEAD_REF`), así que una PR no puede llevar las fases de otras ramas. Por eso:
 
-**No se pegó todavía** (Felipe cambió de cuenta). La sesión nueva **vuelve a pedirle el OK** antes de pegar (el permiso se dio en la
-sesión anterior). Orden y archivos:
-1. Fase 3: `20261012225000_compras_envios.sql` → `20261012230000_compras_por_repartir.sql` → `20261012235000_compras_sin_comprobante.sql`
-2. Fase 4: `20261013001000_recepcion_de_envio_esquema.sql` → `20261013002000_recepcion_de_envio.sql`
-3. Fase 5a: `20261013015000_nos_debe.sql`
-4. Fase 7 parte 1 (Felipe confirmó el menú —decisión 52—; pegar cuando él diga): `20261013035000_ordenes_insumo_esquema.sql` → `20261013040000_ordenes_insumo_funciones.sql`
+**Lo que Felipe aprobó el 2026-10-13 (y falta hacer):** fusionar EN FILA #1006 → #1014 → #1015 → #1017, con la casilla «El SQL se pega
+después de fusionar» y su nota en #1006, #1014 y #1015 (el SQL YA está pegado; la casilla solo evita que el control compare contra una
+producción que ya va más adelante). Pasos:
+1. Poner al día las ramas de las fases 3 y 4: en la de la fase 3, `git merge origin/claude/purchase-order-phase2-9b0c82` (debería entrar
+   limpio: la fase 2 ya resolvió `modulos.test.ts`); en la de la fase 4, `git merge` de la fase 3 ya al día y resolver
+   `lib/guias/pantallas/inventario.ts` IGUAL que se resolvió en la fase 5: queda la guía `GUIA_RECIBIR_ENVIO` y sale la copia vieja de
+   `GUIA_PLAN_DEL_PISO` («Gestión», ADR-0392, la movió a `gestion.ts`); en `modulos.test.ts`, las rutas de `/gestion/…` más lo de la
+   pila. Después, la fase 4 dentro de la 5 y la 5 dentro de la 7. Probar `lib/modulos.test.ts`, `lib/menu.test.ts`, `lib/guias.test.ts`,
+   `lib/guia-de-foco.test.ts` y `tsc` (los errores de `.next/dev/types` son restos del servidor de pruebas, no del código).
+2. En #1006, #1014 y #1015: cambiar `- [x] **SQL pegado en producción.**` por `- [x] **El SQL se pega después de fusionar** — en realidad
+   YA ESTÁ pegado…` con la nota (la de la #1017 sirve de modelo). Que no quede ninguna línea marcada con «SQL pegado en producción»: el
+   control mira primero esa. Pasar #1014 y #1015 a «lista» (`gh pr ready`).
+3. En #1017, volver a la casilla «SQL pegado en producción» (cuando las fases 2–4 estén en `main`, la comparación real le da verde).
+4. Felipe fusiona con «merge commit», una por una, esperando el verde de cada una (~5 min): #1006 → #1014 → #1015 → #1017. Al fusionarse
+   cada una, GitHub apunta la siguiente a `main` sola (el repo borra la rama al fusionar). Después, la #1022 (vuelve a correr su control y
+   pasa) y la #1025.
 
-Cómo se hizo con la fase 2 (receta): proyecto de producción `vovjyyiafkxteijimpuy` (el de Dynamic; todo en el schema `retail`), cada
-archivo ENTERO por MCP `apply_migration`, uno a la vez y en orden, y después de cada uno una consulta de solo lectura que compruebe lo
-creado (funciones y tablas nuevas). Todas son de UNA parte, sin políticas, re-ejecutables (CLAUDE.md «Cómo aplicar SQL a producción»).
-Los reemplazos anclados de las fases 3 (15) y 4 (1) se simularon contra producción, solo leyendo, el 2026-10-12: entran. Luego, en el
-cuerpo de cada PR, la casilla `- [x] **SQL pegado en producción.**` con la tabla «Pegada | Archivo | Versión en producción» (como en
-#1006): el check «SQL pegado» la comprueba contra producción. Y refrescar el diccionario (`datos:refrescar`, como en #1018).
+## Fase 7, parte 1 (#1019): falta el OK de Felipe para pegar
+
+Felipe confirmó el menú (decisión 52) y el precio al recibir en el Taller (53). Sigue provisional: destino obligatorio de tipo taller, la
+unidad copiada en la línea, el insumo no restringido al proveedor y las cifras de la lista. Con su OK: pegar `20261013035000` →
+`20261013040000` (una parte cada una; por MCP `apply_migration`, verificar con huellas contra el banco como se hizo con las fases 3–5a), marcar
+«SQL pegado» en #1019 y fusionarla después de la #1017.
 
 ## Lo que sigue, con las respuestas de Felipe del 2026-10-13 (planes listos; mostrar la lista y esperar su OK antes de codificar, `/construir`)
 
