@@ -284,6 +284,23 @@ select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.
     or (p.estado <> 'disponible' and exists (select 1 from retail.piezas_liquidacion_etiquetas e where e.pieza_id = p.id and e.vigente and p.estado = 'retirada'))`,
     corrompe: `update retail.piezas_liquidacion_etiquetas set vigente = false where ctid = (select e.ctid from retail.piezas_liquidacion_etiquetas e join retail.piezas_liquidacion p on p.id = e.pieza_id where e.vigente and p.estado = 'disponible' limit 1);`,
   },
+  {
+    id: "INV-14",
+    nombre: "compra_anulada_sin_mercaderia",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una factura de proveedor anulada no tiene mercadería ingresada: `anular_compra` lo prohíbe («dejaría stock o dinero sin respaldo»). Si la tiene, hay prendas en el stock que ya no le deben nada a nadie. Nació de /chaos 2026-10-13 (recibir y anular a la vez: las dos pasaban).",
+    sql: `
+select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(m.cantidad) as unidades_ingresadas
+  from retail.compras c
+  join retail.compra_items ci on ci.compra_id = c.id
+  join retail.movimientos m on m.compra_item_id = ci.id
+ where c.estado = 'anulada'
+ group by c.id, c.serie, c.numero`,
+    corrompe: `update retail.compras set estado = 'anulada', motivo_anulacion = 'autoprueba chaos', anulada_at = now()
+ where ctid = (select c.ctid from retail.compras c where c.estado = 'vigente'
+                and exists (select 1 from retail.compra_items ci join retail.movimientos m on m.compra_item_id = ci.id where ci.compra_id = c.id) limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
