@@ -1085,7 +1085,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             )}
             {/* Plegado «Salir» no cabe: se apaga y sale del tabulador (`inert`); el perfil sigue a un clic. */}
             <span className={`transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`} inert={compacto}>
-              <LogoutButton />
+              <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} />
             </span>
           </div>
         </div>

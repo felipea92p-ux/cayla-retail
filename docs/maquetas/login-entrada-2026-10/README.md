@@ -49,3 +49,14 @@ En Inicio, arriba a la derecha, está **Salir**; el selector de abajo cambia el 
 
 **Para el ERP real (si se elige):** el cierre de sesión es `LogoutButton` → `signOut` → `/login`. La capa de la entrada (`EntradaColibri`) se reutilizaría: A y B cierran el agujero sobre la pantalla real que se está dejando y recién ahí navegan a `/login`, escondido bajo el velo
 oscuro; C solo oscurece, hace volar al ave y navega. Igual que la entrada: una vez, sin rebote, sin empezar con `prefers-reduced-motion`, y el aviso de «otra pestaña» (PR #1045) tiene que seguir sin salir.
+
+## El saludo (pedido de Felipe, 2026-10-13) — eligió el texto corto y el diseño B; ya está en el ERP
+
+Mientras el colibrí flota en el centro, un saludo con el nombre de la persona o de la terminal: al **entrar**, «Bienvenido(a), Camila»; al **salir**, «Hasta luego, Camila» (el texto corto que pidió Felipe).
+Se elige con los selectores de abajo (o `?sd=A|B&cuenta=persona|terminal`):
+
+- **Diseño A · una línea:** frase en serif cursiva, el nombre en rojo, una sola línea bajo el colibrí.
+- **Diseño B · dos líneas:** la frase pequeña en versalitas y el nombre grande debajo (más de «marca»).
+- **Cuenta:** una persona se saluda por su nombre de pila (Camila); una terminal, por el nombre completo del aparato («Terminal Ventas TRU»).
+
+La maqueta pone una pausa de 0,45 s con el colibrí quieto en el centro para que alcance a leerse; en el ERP real esa pausa es lo que tarde en cargar la pantalla (con ese mínimo).

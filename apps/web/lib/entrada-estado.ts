@@ -6,10 +6,16 @@
  */
 
 import type { Caja } from "./login-entrada";
+import { saludoDe, type SaludoDeLaEntrada } from "./login-saludo";
 
 export type EntradaEnCurso = {
   id: number;
   modo: "entrar" | "salir";
+  /**
+   * Lo que dice el saludo bajo el colibrí («Bienvenido(a)» / «Hasta luego» y el nombre). Se MUTA: al entrar, el nombre llega de la base un poco después de empezar
+   * (`ponerNombreDelSaludo`) y la capa lo lee en cada cuadro, sin volver a dibujar.
+   */
+  saludo: SaludoDeLaEntrada;
   /** Entrar: dónde está el colibrí del login al empezar. Salir: provisional, hasta que el login carga y se mide el lugar real. */
   origen: Caja;
   /** Solo en la salida: lo que cierra la sesión y lleva a `rutaEsperada`; la capa lo llama cuando la ventana ya se cerró. */
@@ -61,7 +67,7 @@ export function iniciarEntrada(): boolean {
   if (typeof window === "undefined" || actual || sinMovimiento()) return false;
   const origen = medirAveDelLogin();
   if (!origen) return false;
-  actual = { id: ++contador, modo: "entrar", origen };
+  actual = { id: ++contador, modo: "entrar", saludo: saludoDe("entrar", null, false), origen };
   document.documentElement.setAttribute("data-entrando", "");
   avisar();
   return true;
@@ -72,14 +78,26 @@ export function iniciarEntrada(): boolean {
  * espera a que esa ruta cargue para hacer volar al colibrí a su lugar. Devuelve false —y no hace nada— si la persona pidió menos movimiento o ya hay
  * otra en curso: quien llama cierra la sesión como siempre.
  */
-export function iniciarSalida(cerrar: () => Promise<void>, rutaEsperada = "/login"): boolean {
+export function iniciarSalida(cerrar: () => Promise<void>, cuenta: { nombre: string; terminal: boolean }, rutaEsperada = "/login"): boolean {
   if (typeof window === "undefined" || actual || sinMovimiento()) return false;
   // El lugar real del colibrí se mide cuando el login carga; mientras tanto, uno provisional (el vuelo solo depende de su tamaño al flotar).
   const ancho = Math.min(330, window.innerWidth * 0.2);
-  actual = { id: ++contador, modo: "salir", origen: { x: 0, y: 70, ancho, alto: (ancho * 150) / 223 }, alLlegarAlCentro: cerrar, rutaEsperada };
+  actual = {
+    id: ++contador,
+    modo: "salir",
+    saludo: saludoDe("salir", cuenta.nombre, cuenta.terminal),
+    origen: { x: 0, y: 70, ancho, alto: (ancho * 150) / 223 },
+    alLlegarAlCentro: cerrar,
+    rutaEsperada,
+  };
   document.documentElement.setAttribute("data-entrando", "");
   avisar();
   return true;
+}
+
+/** Al entrar, el nombre de la cuenta llega de la base cuando llega: si la entrada sigue en curso, el saludo lo dice; si ya terminó, no hace nada. */
+export function ponerNombreDelSaludo(id: number, nombre: string, terminal: boolean) {
+  if (actual?.id === id) actual.saludo = saludoDe(actual.modo, nombre, terminal);
 }
 
 /** La entrada o la salida terminó (ya cubrió la pantalla / ya llegó el colibrí) o se deshizo. */
