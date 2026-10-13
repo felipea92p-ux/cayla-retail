@@ -57,6 +57,11 @@ describe("el catálogo de la web es el de la base", () => {
     for (const del of sql.matchAll(/^delete from retail\.modulos where clave in \(([^)]*)\);/gim)) {
       for (const c of del[1]!.matchAll(/'([a-z_]+)'/g)) porClave.delete(c[1]!);
     }
+    // Un módulo que cambia de grupo y de lugar (ADR-0392, 20261013134000: Frescura y Plan del piso pasan a «Gestión», tras Análisis).
+    for (const up of sql.matchAll(/update retail\.modulos set grupo = '[^']+',\s*orden = (\d+)\s+where clave = '([a-z_]+)'/gi)) {
+      const fila = porClave.get(up[2]!);
+      if (fila) fila.orden = Number(up[1]);
+    }
     for (const up of sql.matchAll(/update retail\.modulos set (?:solo_lider = (true|false),\s*)?delegable = (true|false)\s+where clave in \(([^)]*)\)/gi)) {
       for (const c of up[3]!.matchAll(/'([a-z_]+)'/g)) {
         const fila = porClave.get(c[1]!);
