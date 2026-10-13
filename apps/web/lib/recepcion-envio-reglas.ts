@@ -1591,6 +1591,9 @@ export function argsPrepararPrenda(
 
 /** «Se crean 4: M y L en Negro y en Blanco»: lo que la hoja va a crear, para leerlo antes de pulsar. */
 export function textoDeLoQueSeCrea(b: BorradorPrenda, ctx: ContextoPrenda, nombreColor: (codigo: string) => string): string | null {
+  // Sin tallas marcadas en una categoría que las tiene, todavía no se crea nada: «1 combinación: Única» decía algo que no iba a pasar
+  // (la talla es obligatoria). Aparece apenas se marca la primera (las tallas arrancan sin marcar, Felipe 2026-10-13).
+  if (ctx.modo === "nueva" && ctx.tallas.length > 0 && tallasElegidas(b, ctx).length === 0) return null;
   const combinaciones = combinacionesDeLaHoja(b, ctx);
   if (combinaciones.length === 0) return null;
   const tallas = [...new Set(combinaciones.map((c) => c.talla_id))].map((id) => (id ? (ctx.tallas.find((t) => t.id === id)?.valor ?? "?") : "Única"));

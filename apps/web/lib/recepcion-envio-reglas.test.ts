@@ -799,6 +799,10 @@ describe("la hoja «Es nueva»", () => {
     ]);
     const nombres: Record<string, string> = { NE: "Negro", BL: "Blanco" };
     expect(textoDeLoQueSeCrea(b, CTX_NUEVA, (c) => nombres[c] ?? c)).toBe("Se crean 4 combinaciones: S y M en Negro y Blanco.");
+    // Sin tallas marcadas no dice «1 combinación: Única» (la talla es obligatoria): no dice nada hasta que se marque una.
+    expect(textoDeLoQueSeCrea({ ...b, tallaIds: [] }, CTX_NUEVA, (c) => nombres[c] ?? c)).toBeNull();
+    // Una categoría sin tallas (un accesorio) sí: «Única».
+    expect(textoDeLoQueSeCrea({ ...b, tallaIds: [], colorCodigos: [] }, { ...CTX_NUEVA, tallas: [] }, (c) => c)).toBe("Se crea 1 combinación: Única.");
   });
 
   it("los argumentos: una línea del envío no manda categoría ni marca; algo fuera de la guía sí", () => {

@@ -165,6 +165,8 @@ describe("«Sin comprobante», el cuarto tipo (decisión 50, Felipe 2026-10-12)"
       sinIgv: "Sin comprobante no hay IGV: lo que pagaste es el costo.",
     });
     expect(palabrasDelTipo("boleta")).toMatchObject({ total: "Total del papel", seccion: "Lo que dice el papel", boton: "Registrar la compra" });
+    // Sin papel elegido todavía (la pantalla arranca así): no habla de «una comprobante», dice que elija.
+    expect(palabrasDelTipo("").sinIgv).toBe("Solo una factura suma el IGV aparte: elige qué papel te dieron.");
     expect(palabrasDelTipo("boleta").sinIgv).toBe("Una boleta no lleva IGV aparte: el costo del papel es el costo.");
     expect(palabrasDelTipo("factura").sinIgv).toBeNull();
   });

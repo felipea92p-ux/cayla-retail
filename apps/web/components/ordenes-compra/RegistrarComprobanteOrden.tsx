@@ -463,8 +463,10 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 />
               </fieldset>
               <p className="mt-1.5 text-xs text-taupe">
-                {condicion !== "credito" ? (
+                {condicion === "contado" ? (
                   "Al contado no hay vencimiento."
+                ) : condicion === "" ? (
+                  "Solo a crédito hay vencimiento."
                 ) : vencimientoEditado === null ? (
                   `Sugerido: emisión + ${plazoDias ?? 30} días${plazoDias != null ? `, el plazo de ${orden.proveedor.nombre}` : ""}.`
                 ) : (

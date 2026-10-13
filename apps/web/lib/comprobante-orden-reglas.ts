@@ -71,9 +71,11 @@ export function palabrasDelTipo(tipo: TipoComprobante | ""): {
     boton: papel ? "Registrar la compra" : "Registrar sin comprobante",
     sinIgv: discriminaIgv(tipo)
       ? null
-      : papel
-        ? `Una ${textoDeTipo(tipo).toLowerCase()} no lleva IGV aparte: el costo del papel es el costo.`
-        : "Sin comprobante no hay IGV: lo que pagaste es el costo.",
+      : tipo === ""
+        ? "Solo una factura suma el IGV aparte: elige qué papel te dieron."
+        : papel
+          ? `Una ${textoDeTipo(tipo).toLowerCase()} no lleva IGV aparte: el costo del papel es el costo.`
+          : "Sin comprobante no hay IGV: lo que pagaste es el costo.",
   };
 }
 
