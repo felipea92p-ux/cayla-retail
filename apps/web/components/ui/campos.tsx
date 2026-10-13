@@ -1,7 +1,7 @@
 "use client";
 
 import { Children, Fragment, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
-import { CircleAlert, Plus, SearchX } from "lucide-react";
+import { Check, ChevronDown, CircleAlert, Plus, Search, SearchX } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
@@ -113,8 +113,9 @@ const TONO_PIE = {
 
 export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
-    <div>
-      <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "label-cayla block text-[11px] text-tinta/65"}>
+    // `campo`: la etiqueta se oscurece mientras su caja está encendida (ADR-0358, ronda 6; app/estilos/campos-y-casillas.css).
+    <div className="campo">
+      <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "campo-etiqueta"}>
         {etiqueta}
         {ayuda}
       </label>
@@ -137,9 +138,12 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
 }
 
 /* ------------------------------------------------------------------
-   CampoTexto — input de una línea sobre el hilo vivo.
-   Acepta todas las props nativas de <input>: quien lo use sigue
-   controlando type, required, maxLength, inputMode, etc.
+   CampoTexto — input de una línea en la CAJA QUE SE ENCIENDE (ADR-0358,
+   ronda 6: Felipe la eligió tocándola el 2026-10-13): hueso de 40 px que,
+   con el cursor adentro, sube a papel y dibuja el hilo rojo en su borde de
+   abajo. Antes era una línea suelta (el hilo vivo) y, en las barras de
+   filtros, la caja sin hilo. Acepta todas las props nativas de <input>:
+   quien lo use sigue controlando type, required, maxLength, inputMode, etc.
    ------------------------------------------------------------------ */
 type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiqueta: ReactNode;
@@ -153,7 +157,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   trabajando?: boolean;
   /** El valor ya está bien: el hilo de abajo se queda en verde. */
   valido?: boolean;
-  /** Guía oficial: caja hundida en hueso, sin hilo, y la etiqueta solo para lectores de pantalla (barras de filtros). */
+  /** La etiqueta solo para lectores de pantalla: la caja ya dice qué es (una barra de filtros, un bloque con su título). Desde la
+   *  ronda 6 toda caja se ve igual; esto ya solo esconde la etiqueta. */
   caja?: boolean;
   /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
   sinPie?: boolean;
@@ -179,10 +184,16 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
-  const [enfocado, setEnfocado] = useState(false);
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja} sinPie={sinPie}>
-      <div className={caja ? "caja-cayla relative px-3" : "relative"}>
+      {/* El hilo y el encendido son CSS (`caja-campo`, app/estilos/campos-y-casillas.css): verde si el dato ya está bien, barre mientras
+          consulta, borde rojo suave si el dato falta o está mal. */}
+      <div
+        className="caja-cayla caja-campo"
+        data-valido={valido || undefined}
+        data-trabajando={trabajando || undefined}
+        data-tono={tono === "error" ? "error" : undefined}
+      >
         <input
           id={id}
           // Sin esto, Safari lee la etiqueta («Nombre», «Dirección», «Teléfono») y ofrece llenar el campo con la ficha
@@ -190,19 +201,10 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
           // propio en un campo de catálogo o de clienta. Un campo que sí quiera autocompletar pasa su `autoComplete`.
           autoComplete="off"
           {...props}
-          onFocus={(e) => {
-            setEnfocado(true);
-            props.onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setEnfocado(false);
-            props.onBlur?.(e);
-          }}
-          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${caja ? "h-10" : ALTO_CONTROL} ${
-            mono ? "font-mono tabular-nums tracking-wider" : ""
-          } ${props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""} ${className}`}
+          className={`self-stretch py-0 ${mono ? "font-mono tabular-nums tracking-wider" : ""} ${
+            props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""
+          } ${className}`}
         />
-        {!caja && <Hilo activo={enfocado} trabajando={trabajando} valido={valido} />}
       </div>
     </Campo>
   );
@@ -226,28 +228,19 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
 
 export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, className = "", ...props }: CampoMontoProps) {
   const id = useId();
-  const [enfocado, setEnfocado] = useState(false);
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta}>
-      <div className="relative flex items-baseline gap-2">
-        <span aria-hidden className="font-display select-none pb-1 text-lg leading-none text-tinta/65">
+      {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
+      <div className="caja-cayla caja-campo caja-campo-alta" data-tono={tono === "error" ? "error" : undefined}>
+        <span aria-hidden className="font-display select-none text-base leading-none text-tinta/55">
           {moneda}
         </span>
         <input
           id={id}
           {...props}
-          onFocus={(e) => {
-            setEnfocado(true);
-            props.onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setEnfocado(false);
-            props.onBlur?.(e);
-          }}
           // Las flechitas del type=number rompen la lectura de instrumento.
-          className={`font-display w-full bg-transparent pb-1 text-[1.75rem] leading-none tabular-nums text-tinta outline-none placeholder:text-tinta/55 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
+          className={`font-display self-stretch py-0 text-2xl leading-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
         />
-        <Hilo activo={enfocado} />
       </div>
     </Campo>
   );
@@ -473,12 +466,8 @@ type FormaDesplegable = {
 
 const FORMA_DESPLEGABLE = {
   /** Dentro de un formulario, sobre el hilo vivo. */
-  campo: {
-    boton: "w-full justify-between rounded-t-md bg-transparent px-0.5 py-2 text-sm text-tinta hover:bg-tinta/[0.03] disabled:hover:bg-transparent",
-    flecha: true,
-    hilo: true,
-    comoNativo: false,
-  },
+  /** Dentro de un formulario: la caja que se enciende (ADR-0358, ronda 6). Hasta el 2026-10-13 iba sobre el hilo vivo. */
+  campo: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
   /** La `pildora-cayla` de una fila de píldoras que eligen un período (Historial: «Más años», 2026-10-12): la última píldora de la
    *  fila abre la lista de lo que no cupo. */
   pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
@@ -486,9 +475,9 @@ const FORMA_DESPLEGABLE = {
   pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
-  caja: { boton: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm text-tinta", flecha: true, hilo: false, comoNativo: false },
+  caja: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
   /** La misma caja hundida, de 36 px y con la letra un punto más grande: los filtros de Existencias del diseño aprobado (2026-09-28). */
-  cajaBaja: { boton: "caja-cayla h-9 w-full justify-between gap-3 px-3.5 text-[13px] text-tinta", flecha: true, hilo: false, comoNativo: false },
+  cajaBaja: { boton: "caja-cayla caja-campo caja-campo-baja", flecha: true, hilo: false, comoNativo: false },
   /** Finanzas (ADR-0195): cerrado, el control en caja de su spike (`fin-control`, app/estilos/finanzas.css). */
   fin: { boton: "fin-control fin-desplegable", flecha: false, hilo: false, comoNativo: true },
   /** Finanzas, dentro de un sobretítulo («Lo que ya pasó · SETIEMBRE DE 2026»): sin caja, hereda la letra. El contorno de
@@ -612,9 +601,13 @@ export function Desplegable<T extends string>({
     if (devolverFoco) disparador.current?.focus();
   }
 
+  // Cuántas veces se eligió algo distinto: el valor nuevo entra subiendo (ADR-0358, ronda 6). Al cargar no anima.
+  const [cambio, setCambio] = useState(0);
+
   function elegir(o: Opcion<T> | undefined) {
     // Una opción bloqueada se ve, pero ni el clic ni Enter la eligen (el <option disabled> del navegador).
     if (!o || o.deshabilitada) return;
+    if (o.valor !== valor) setCambio((c) => c + 1);
     onValor(o.valor);
     cerrar();
   }
@@ -726,14 +719,15 @@ export function Desplegable<T extends string>({
         o.deshabilitada ? "cursor-not-allowed text-tinta/40" : i === activo ? "cursor-pointer bg-rojo/10 text-tinta" : "cursor-pointer text-tinta/80"
       }`}
     >
-      {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
+      {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto, y su ✓ que se dibuja (ADR-0358, ronda 6). */}
       <span
         aria-hidden
         className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
           o.valor === valor ? "scale-y-100" : "scale-y-0"
         }`}
       />
-      {o.texto}
+      <span className="min-w-0 flex-1">{o.texto}</span>
+      {o.valor === valor && <Check aria-hidden className="combo-tilde" />}
     </li>
   );
 
@@ -750,6 +744,7 @@ export function Desplegable<T extends string>({
         aria-label={idEtiqueta ? undefined : etiquetaAccesible}
         aria-controls={`${id}-lista`}
         disabled={deshabilitado}
+        data-trabajando={trabajando && !esPastilla ? "" : undefined}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
         className={`flex items-center text-left transition-colors disabled:cursor-not-allowed ${f.boton} ${
@@ -769,17 +764,23 @@ export function Desplegable<T extends string>({
             ))}
           </span>
         ) : (
-          <span className={elegida || f.marcadorComoTexto ? "" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
+          <span key={cambio} className={`combo-valor ${cambio ? "combo-valor-entra" : ""} ${elegida || f.marcadorComoTexto ? "" : "text-tinta/65"}`}>
+            {elegida?.texto ?? marcador}
+          </span>
         )}
-        {f.flecha && (
-          <svg
-            aria-hidden
-            viewBox="0 0 10 6"
-            className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
-          >
-            <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
-          </svg>
-        )}
+        {f.flecha &&
+          (esPastilla ? (
+            <svg
+              aria-hidden
+              viewBox="0 0 10 6"
+              className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
+            >
+              <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+            </svg>
+          ) : (
+            // La caja que se enciende: el chevron gira media vuelta y se pone rojo al abrir (CSS, por `aria-expanded`).
+            <ChevronDown aria-hidden className="combo-flecha" />
+          ))}
         {/* La pastilla no se para sobre el hilo, así que el "estoy trabajando"
             se dibuja adentro, igual que en `Boton cargando`. Es lo que le dice
             a quien está en el mostrador que el sistema no se colgó. */}
@@ -819,22 +820,25 @@ export function Desplegable<T extends string>({
             }`}
           >
           {mostrarBuscador && (
-            <input
-              ref={buscador}
-              value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value);
-                setActivo(0);
-                reiniciar();
-              }}
-              onKeyDown={alTeclado}
-              placeholder="Buscar…"
-              aria-label={etiquetaAccesible ?? "Buscar"}
-              aria-controls={`${id}-lista`}
-              aria-activedescendant={mostradas[activo] ? `${id}-op-${activo}` : undefined}
-              autoComplete="off"
-              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
-            />
+            // El buscador de la lista (más de 8 opciones, ADR-0209), con su lupa (ADR-0358, ronda 6).
+            <div className="combo-buscar">
+              <Search aria-hidden />
+              <input
+                ref={buscador}
+                value={busqueda}
+                onChange={(e) => {
+                  setBusqueda(e.target.value);
+                  setActivo(0);
+                  reiniciar();
+                }}
+                onKeyDown={alTeclado}
+                placeholder="Buscar…"
+                aria-label={etiquetaAccesible ?? "Buscar"}
+                aria-controls={`${id}-lista`}
+                aria-activedescendant={mostradas[activo] ? `${id}-op-${activo}` : undefined}
+                autoComplete="off"
+              />
+            </div>
           )}
           <ul
             id={`${id}-lista`}

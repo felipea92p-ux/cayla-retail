@@ -852,6 +852,181 @@ export const DECISIONES = {
       { "archivo": "app/(app)/vender/comprobantes/error.tsx", "motivo": "una pantalla de error: su título es el de la pantalla, no el de un bloque" }
     ]
   },
+  "campo": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/campo-combo.md",
+    "elegida": "P1 · la caja que se enciende: todo campo de una hoja es la caja hundida de 40 px que, con el cursor adentro, sube a papel y dibuja el hilo rojo desde el centro (verde si el dato está bien, barre mientras consulta); el monto, 48 px con su cifra en serif; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["components/ui/CampoFecha.tsx", "components/ui/CampoMonto.tsx", "components/ComboResponsable.tsx", "components/ui/Buscador.tsx", "components/ui/ComboBuscable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/Casilla.tsx", "app/estilos/campos-y-casillas.css"],
+    "ventana": 8,
+    "firmas": [
+      // Una caja de texto dibujada a mano: un <input> (ni casilla, ni radio, ni oculto, ni archivo, ni rango) fuera de las piezas. Es
+      // `CampoTexto` / `CampoMonto` / `CampoFecha`, o la caja `caja-cayla caja-campo` si el campo no lleva su etiqueta.
+      "<input\\b(?![^>]*\\btype=(?:\"|\\{\")(?:checkbox|radio|hidden|file|range|color)\\b)(?![^>]*\\bsr-only\\b)",
+      "<textarea\\b"
+    ],
+    "deuda": [
+      "app/login/page.tsx",
+      "components/AbrirCajaFormV2.tsx",
+      "components/AbrirConteo.tsx",
+      "components/alta-producto/ElegirEtiquetas.tsx",
+      "components/alta-producto/HojaParecidas.tsx",
+      "components/alta-producto/NuevaMarcaForm.tsx",
+      "components/alta-producto/NuevoColorAlta.tsx",
+      "components/alta-producto/ProponerValor.tsx",
+      "components/AnularVentaForm.tsx",
+      "components/apartados/ApartarVista.tsx",
+      "components/apartados/ModalesApartado.tsx",
+      "components/BajarAlPisoForm.tsx",
+      "components/CambioReemplazo.tsx",
+      "components/CategoriasLista.tsx",
+      "components/CerrarCajaModalV2.tsx",
+      "components/CerrarFaltanteModal.tsx",
+      "components/clientas/BeneficiosClubModal.tsx",
+      "components/colaboradores/FichaColaborador.tsx",
+      "components/CombinaConCampo.tsx",
+      "components/CompraDetallePanel.tsx",
+      "components/CompraFormV2.tsx",
+      "components/ComprobanteProduccionForm.tsx",
+      "components/conteo/CampoContaste.tsx",
+      "components/conteo/ContarConteo.tsx",
+      "components/conteo/ElegirPrendas.tsx",
+      "components/cuadre-piso/CuadrarPisoForm.tsx",
+      "components/DevolucionesFlujo.tsx",
+      "components/DevolucionesPendientes.tsx",
+      "components/EditarMarcaModal.tsx",
+      "components/ficha-producto/CambiarEnBloque.tsx",
+      "components/FiltrosProductos.tsx",
+      "components/FiltrosRecibidas.tsx",
+      "components/frescura/FrescuraPanel.tsx",
+      "components/GastoRapidoModal.tsx",
+      "components/IngresoRapidoModal.tsx",
+      "components/LlegoMercaderia.tsx",
+      "components/MediosDePago.tsx",
+      "components/MoverMercaderiaFormV2.tsx",
+      "components/MovimientoCajaModal.tsx",
+      "components/NuevaOrdenProduccionForm.tsx",
+      "components/NuevaProformaModal.tsx",
+      "components/OrdenInsumos.tsx",
+      "components/OrdenModales.tsx",
+      "components/PagoJuntosModal.tsx",
+      "components/PagoPiezas.tsx",
+      "components/ParaEnviar.tsx",
+      "components/PedirAOtraSedeModal.tsx",
+      "components/PedirYApartarModal.tsx",
+      "components/PerfilModal.tsx",
+      "components/PrendaSinRegistrarModal.tsx",
+      "components/punto-de-venta/Esperas.tsx",
+      "components/punto-de-venta/HojaDeCobro.tsx",
+      "components/punto-de-venta/LineaDelTicket.tsx",
+      "components/PuntoDeVentaTicket.tsx",
+      "components/ReasignarReparto.tsx",
+      "components/RecepcionEnvio.tsx",
+      "components/RecibirComprobanteModal.tsx",
+      "components/RegistrarNotaCreditoModal.tsx",
+      "components/RepartoEnRegistro.tsx",
+      "components/RolesModales.tsx",
+      "components/SalidasDeCaja.tsx",
+      "components/SelectorDeAjuste.tsx",
+      "components/TrasladoEnviado.tsx"
+    ],
+    "excepciones": [
+      { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "components/finanzas/ConfiguracionPresupuesto.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "components/ConfiguracionTiendas.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "app/estilos/alta-guia.css", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },
+      { "archivo": "components/alta-producto/MatrizCantidades.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
+      { "archivo": "components/MatrizOrden.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
+      { "archivo": "components/ficha-producto/MatrizStockFicha.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
+      { "archivo": "components/ficha-producto/piezas.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
+      { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
+      { "archivo": "components/rotulos/TiraBrother.tsx", "motivo": "papel físico (ADR-0336): la tira que se imprime en la Brother" },
+      { "archivo": "components/ImprimirEtiquetasPrecio.tsx", "motivo": "papel físico (ADR-0336): la vista de la etiqueta que se imprime" },
+      { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "ADR-0355: los pases de Traslados tienen su diseño por decisión" },
+      { "archivo": "components/analisis/PestanaQuieta.tsx", "motivo": "ADR-0357: Análisis tiene su diseño y su movimiento por decisión" },
+      { "archivo": "components/BuscadorGlobal.tsx", "motivo": "el buscador de la cabecera (Ctrl K) es parte del marco, fuera del censo" },
+      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club (club-publico.css): la ve el cliente, tiene su propio diseño" }
+    ]
+  },
+  "combo": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/campo-combo.md",
+    "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css"],
+    "firmas": [
+      // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
+      "role=\"combobox\"",
+      "role=\"listbox\"",
+      "\\blista-flotante\\b"
+    ],
+    "deuda": [
+      "components/apartados/ApartarVista.tsx",
+      "components/FiltrosRecibidas.tsx",
+      "components/LlegoMercaderia.tsx",
+      "components/PrendaSinRegistrarModal.tsx",
+      "components/PuntoDeVentaCatalogo.tsx",
+      "components/RecepcionEnvio.tsx",
+      "components/RegistrarNotaCreditoModal.tsx"
+    ],
+    "excepciones": [
+      { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "app/estilos/alta-guia.css", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },
+      { "archivo": "components/alta-producto/useGuiaAlta.ts", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },
+      { "archivo": "components/observatorio/Observatorio.tsx", "motivo": "ADR-0322: el Observatorio del Admin tiene su diseño y su movimiento por decisión" }
+    ]
+  },
+  "filtro": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/campo-combo.md",
+    "elegida": "P1 · la píldora que dice su nombre: borde arena con su ícono y su nombre en letra normal; puesta, rellena de tinta con lo elegido y su ✕ (como el filtro por clic de la ronda 1); elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/FiltrosPildora.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "ventana": 6,
+    "firmas": [
+      // Un filtro que se abre dibujado como caja en una barra de filtros (`Desplegable forma="caja"`): es <DesplegablePildora>.
+      "<Desplegable\\b[^>]*\\bforma=\"(?:caja|cajaBaja)\""
+    ],
+    "deuda": [
+      "components/actividad/BotonActividad.tsx",
+      "components/actividad/PantallaActividad.tsx",
+      "components/alta-producto/NuevoColorAlta.tsx",
+      "components/CambioReemplazo.tsx",
+      "components/ficha-producto/CambiarEnBloque.tsx",
+      "components/ficha-producto/FotosPorColor.tsx",
+      "components/LlegoMercaderia.tsx",
+      "components/MediosDePago.tsx",
+      "components/plan-compra/ListaCategorias.tsx",
+      "components/RolesPanel.tsx",
+      "components/TemporadasLista.tsx"
+    ],
+    "excepciones": []
+  },
+  "etiqueta-campo": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/etiqueta-campo.md",
+    "elegida": "P1 · versalitas que se encienden: el título de Campo (11 px, tinta al 62 %, * rojo si es obligatorio, «· opcional» tenue) que se oscurece mientras su caja está encendida, con las marcas de la guía de foco al lado; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "firmas": [
+      // El título de Campo copiado a mano (versalitas sobre una caja): es <Campo> o la clase `campo-etiqueta`.
+      "\\blabel-cayla block text-\\[11px\\] text-tinta\\/(?:6\\d|7\\d)\\b",
+      // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
+      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:medium|semibold)\\b"
+    ],
+    "deuda": [
+      "components/alta-producto/NuevoColorAlta.tsx",
+      "components/DevolucionesFlujo.tsx",
+      "components/DevolucionesPendientes.tsx",
+      "components/ProveedorModal.tsx"
+    ],
+    "excepciones": []
+  },
   "grafico.barra": {
     "fecha": "2026-10-09",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
