@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Volver } from "@/components/ui/Volver";
 import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -77,7 +78,7 @@ export function EncabezadoFlujo({
         </p>
       </div>
       <Pasos pasos={pasos} actual={actual} onIr={onIrAPaso} />
-      <h2 ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-2xl text-tinta outline-none">
+      <h2 ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-2xl text-tinta outline-none">{/* unificar-fijo: el título del paso, que recibe el foco al avanzar */}
         {titulo}
       </h2>
     </>
@@ -191,7 +192,7 @@ export function PanelValidaciones({ validaciones, impacto, guia }: { validacione
             </span>
           </div>
           <div className="min-w-0 space-y-1.5">
-            <h3 className="font-display text-[22px] leading-tight text-tinta">Lo que revisa el sistema</h3>
+            <TituloSeccion nivel={3}>Lo que revisa el sistema</TituloSeccion>
             {plazo &&
               (plazo.tono === "rojo" ? (
                 <Chip tono="rojo" versalitas={false}>
@@ -210,7 +211,7 @@ export function PanelValidaciones({ validaciones, impacto, guia }: { validacione
       </div>
       {impacto && (
         <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
-          <h3 className="font-display mb-4 text-xl text-tinta">Impacto</h3>
+          <TituloSeccion nivel={3} className="mb-4">Impacto</TituloSeccion>
           <ImpactoVista impacto={impacto} compacto />
         </div>
       )}

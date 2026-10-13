@@ -54,6 +54,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona, PilaPersonas } from "@/components/ui/AvatarPersona";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Roles y accesos» (ADR-0161 B). Desde el 2026-10-05 (ADR-0342, propuesta de Felipe): los roles en tarjetas (quiénes lo tienen y
 // los íconos de lo que ve) y, abajo, el rol elegido con sus módulos como baldosas (negra = la ve; tocarla dice qué incluye),
@@ -300,9 +302,9 @@ export function RolesPanel({
                         <AvatarPersona key={`${c.tipo}:${c.id}`} personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />
                       ))}
                     </PilaPersonas>
-                    <button type="button" onClick={() => setModal({ tipo: "cuentas", rol })} className="text-[13px] text-tinta/75 underline decoration-tinta/20 underline-offset-2 hover:text-tinta">
-                      {cuentasDelElegido.length === 1 ? "1 cuenta tiene este rol" : `${cuentasDelElegido.length} cuentas tienen este rol`} →
-                    </button>
+                    <EnlaceVer onClick={() => setModal({ tipo: "cuentas", rol })}>
+                      {cuentasDelElegido.length === 1 ? "1 cuenta tiene este rol" : `${cuentasDelElegido.length} cuentas tienen este rol`}
+                    </EnlaceVer>
                   </>
                 )}
               </div>
@@ -350,7 +352,7 @@ export function RolesPanel({
               <Desplegable
                 id={`pantalla-principal-${rol.id}`}
                 idEtiqueta={`pantalla-principal-${rol.id}-etiqueta`}
-                forma="caja"
+                forma="campo"
                 className="min-w-[200px]"
                 valor={pantallaPrincipalBorrador ?? ""}
                 onValor={(v) => setPantallaPrincipalBorradores((b) => ({ ...b, [rol.id]: v ? (v as ClaveModulo) : null }))}
@@ -714,7 +716,7 @@ function VistaPreviaMenu({
     c === "suma" ? "anim-revelar rounded bg-verde/15 text-verde-profundo" : c === "quita" ? "text-tinta/40 line-through" : "";
   return (
     <section className="card-cayla px-5 py-4">
-      <h3 className="font-display text-lg text-tinta">Así queda su menú</h3>
+      <TituloSeccion nivel={3}>Así queda su menú</TituloSeccion>
       <p className="mt-0.5 text-xs text-tinta/60">
         {todo && !conCambios ? "Ve todo el menú." : conCambios ? "Así quedará al guardar. Lo marcado es lo que cambia." : "Lo que verá en el lateral al entrar."}
       </p>

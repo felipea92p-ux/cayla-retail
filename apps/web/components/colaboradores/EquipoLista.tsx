@@ -21,6 +21,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Colaboradores ▸ Equipo (propuesta de Felipe del 2026-10-05): UNA lista agrupada por sede, como se piensa el negocio
 // («el equipo de Trujillo»). El estado (suspendido, baja en Dynamic) es una marca sobre la persona, no una pestaña. Arriba,
@@ -305,15 +306,20 @@ export function EquipoLista({
             </div>
             {grupos.map((g) => (
               <section key={g.clave} aria-label={g.nombre}>
-                <h3 className="font-display flex flex-wrap items-baseline gap-x-2.5 px-2.5 text-[21px] leading-tight text-tinta">
+                <TituloSeccion
+                  nivel={3}
+                  className="px-2.5"
+                  dato={
+                    <>
+                      {[g.personas > 0 || g.terminales === 0 ? plural(g.personas, "persona", "personas") : null, g.terminales > 0 ? plural(g.terminales, "terminal", "terminales") : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      {g.deTurno > 0 && ` · ${g.deTurno} de turno hoy`}
+                    </>
+                  }
+                >
                   {g.nombre}
-                  <span className="font-sans text-[13px] text-tinta/60">
-                    {[g.personas > 0 || g.terminales === 0 ? plural(g.personas, "persona", "personas") : null, g.terminales > 0 ? plural(g.terminales, "terminal", "terminales") : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                    {g.deTurno > 0 && ` · ${g.deTurno} de turno hoy`}
-                  </span>
-                </h3>
+                </TituloSeccion>
                 <ul className="mt-1.5">
                   {g.miembros.map((m) => (
                     <FilaMiembro
