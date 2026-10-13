@@ -289,12 +289,14 @@ caso(
 );
 caso(
   "C2 fn_origen_producto y fn_producto_historia ignoran la línea sin prenda (la cuenta de «líneas de compra» de la prenda no cambia)",
+  // Con `coalesce`: en una base recién sembrada (la del CI) la prenda no tiene origen todavía, y un NULL deja la variable de psql sin
+  // definir (\\gset no la crea) y la comparación de abajo sería un error de sintaxis en vez de una respuesta.
   `reset role;
-   select (select tipo || '/' || origen_id from retail.fn_origen_producto(:'prod', retail.fn_hoy_lima())) as origen0,
-          (select n from retail.fn_producto_historia(:'prod') where concepto = 'líneas de compra') as lineas0 \\gset
+   select coalesce((select tipo || '/' || origen_id from retail.fn_origen_producto(:'prod', retail.fn_hoy_lima())), 'sin origen') as origen0,
+          coalesce((select n from retail.fn_producto_historia(:'prod') where concepto = 'líneas de compra'), 0) as lineas0 \\gset
    ${COMPROBANTE("sp", SOLO_SIN_PRENDA, { prov: "prov2" })}
-   select ((select tipo || '/' || origen_id from retail.fn_origen_producto(:'prod', retail.fn_hoy_lima())) = :'origen0') || ',' ||
-          ((select n from retail.fn_producto_historia(:'prod') where concepto = 'líneas de compra') = :'lineas0'::bigint);`,
+   select (coalesce((select tipo || '/' || origen_id from retail.fn_origen_producto(:'prod', retail.fn_hoy_lima())), 'sin origen') = :'origen0') || ',' ||
+          (coalesce((select n from retail.fn_producto_historia(:'prod') where concepto = 'líneas de compra'), 0) = :'lineas0'::bigint);`,
   "true,true"
 );
 caso(
