@@ -111,7 +111,7 @@ export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly Cla
   return !!perfil.terminal && !terminalVeInicio(perfil.modulos ?? []);
 }
 
-/** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
+/** Claves de los íconos. Los trazos viven en `lib/menu-iconos.ts` (`TRAZOS_MENU`), que comparten el lateral, Roles y accesos y el Inicio; acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
