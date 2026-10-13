@@ -1,0 +1,3 @@
+{ "campoTexto": 165, "campoSelect": 55, "desplegable": 81, "comboBuscable": 22, "comboResponsable": 163, "campoMonto": 23, "inputsMano": 207,
+  "selectFin": 43, "selectFinArchivos": 18, "pildora": 32, "pildoraArchivos": 5, "casilla": 26, "interruptor": 6, "nativa": 24,
+  "etqA": "Todo CampoTexto, CampoSelect y CampoMonto (~240 campos)", "etqB": "Las hojas hechas a mano (sobre todo las de los ~200 inputs sueltos)" }

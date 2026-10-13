@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { textoDeResultado, type RespuestaCuadre } from "@/lib/cuadre-piso-reglas";
 import { AntesDespues, CifrasCuadre } from "./RevisarCuadre";
 
@@ -28,7 +29,7 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
       {respuesta.noCargado.length > 0 && (
         <section className="card-cayla overflow-hidden" aria-label="No cargadas">
           <header className="border-b border-tinta/10 px-4 py-3 sm:px-5">
-            <h2 className="font-display text-lg text-tinta">No cargadas · {respuesta.noCargado.length}</h2>
+            <TituloSeccion dato={<b>{respuesta.noCargado.length}</b>}>No cargadas</TituloSeccion>
             <p className="mt-0.5 text-xs text-taupe">
               Se escanearon como guardadas pero el sistema no las tiene en {sede}. El cuadre no las creó: cárgalas con «Ajustar stock» en
               Existencias, o revisa si vinieron de otra sede.

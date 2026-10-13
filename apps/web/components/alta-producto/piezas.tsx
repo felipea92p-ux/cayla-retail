@@ -2,6 +2,7 @@
 
 import { useContext, type ReactNode } from "react";
 import { EtiquetaAhora, MarcaCampo, VozDelEstado } from "@/components/alta-producto/guia";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { RetencionLuzContexto, useRetenerLuz, type ModoRetencion } from "@/components/guia-de-foco/useRetenerLuz";
 import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 
@@ -49,9 +50,7 @@ export function Bloque({
             {listo ? "✓" : numero}
           </span>
           <div>
-            <h2 id={`bloque-${numero}`} className="label-cayla text-[11px] text-tinta/80">
-              {titulo}
-            </h2>
+            <TituloSeccion id={`bloque-${numero}`}>{titulo}</TituloSeccion>
             {ayuda && !bloqueado && <p className="mt-1 text-xs text-tinta/60">{ayuda}</p>}
             {bloqueado && bloqueadoTexto && <p className="mt-1 text-xs text-tinta/60">{bloqueadoTexto}</p>}
           </div>

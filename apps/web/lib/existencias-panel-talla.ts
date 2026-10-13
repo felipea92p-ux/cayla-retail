@@ -15,7 +15,7 @@ import { estadoTalla, type FilaPrenda } from "./existencias-prendas";
 import { fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
 import { cantidadEnSede, nombreCortoSede, type SedeConStockId } from "./stock-por-sede";
 
-export type ClaveAccionTalla = "colgar" | "subir" | "enviar" | "apartar" | "pedir" | "ajustar" | "ficha";
+export type ClaveAccionTalla = "colgar" | "subir" | "enviar" | "apartar" | "pedir" | "ajustar" | "danada";
 
 export type AccionTalla = {
   clave: ClaveAccionTalla;
@@ -29,15 +29,17 @@ export type AccionTalla = {
   tecla: number;
 };
 
-const TECLA: Record<ClaveAccionTalla, number> = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, ficha: 7 };
+// «Ficha» (7) dejó de ser una acción el 2026-10-12 (ADR-0391): lo suyo vive en la fila de la prenda del modal. Su tecla pasa a
+// «Reportar dañada», que antes estaba escondida en esa ficha.
+const TECLA: Record<ClaveAccionTalla, number> = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, danada: 7 };
 
 /** En qué orden conviene ofrecerlas según dónde está la prenda (2026-10-06, pedido de uso: «que el orden cambie según lo que necesita esa
  *  prenda y se muestren primero las que puede usar»): con algo en el piso, venderla (apartar) es lo primero; sin nada colgado pero algo
  *  atrás, colgarla; sin nada en la sede, pedirla. */
 const ORDEN_SEGUN_LUGAR: Record<"conPiso" | "sinPiso" | "sinStock", readonly ClaveAccionTalla[]> = {
-  conPiso: ["apartar", "colgar", "subir", "enviar", "pedir", "ajustar", "ficha"],
-  sinPiso: ["colgar", "apartar", "enviar", "pedir", "subir", "ajustar", "ficha"],
-  sinStock: ["pedir", "ajustar", "ficha", "apartar", "colgar", "subir", "enviar"],
+  conPiso: ["apartar", "colgar", "subir", "enviar", "pedir", "danada", "ajustar"],
+  sinPiso: ["colgar", "apartar", "enviar", "pedir", "subir", "danada", "ajustar"],
+  sinStock: ["pedir", "ajustar", "apartar", "colgar", "subir", "enviar", "danada"],
 };
 
 export type PermisosDeTalla = {
@@ -50,6 +52,8 @@ export type PermisosDeTalla = {
   puedePedir?: boolean;
   /** Las otras tiendas a las que se les puede pedir, con lo que tiene cada una de esta talla. */
   origenes?: readonly { nombre: string; cantidad: number }[];
+  /** Puede mandar una unidad a cuarentena («Reportar dañada», ADR-0391: entra a la lista; antes vivía detrás de «Ver ficha»). */
+  puedeReportarDanada?: boolean;
 };
 
 type FilaDeTalla = FilaPrenda & { enRed?: readonly SedeConStockId[] };
@@ -100,12 +104,24 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
     filas.push({ clave: "pedir", texto: "Pedir a otra sede", ok: tienen !== null, sub: tienen ?? "Ninguna tienda tiene", sugerida: pidePedir && !!p.puedePedir }); // al Taller no se le pide por aquí
   }
   if (p.puedeAjustar) filas.push({ clave: "ajustar", texto: "Ajustar stock", ok: true, sub: "Corregir el número", sugerida: false });
-  filas.push({ clave: "ficha", texto: "Ficha", ok: true, sub: "Precio, descripción, historial", sugerida: false });
+  if (p.puedeReportarDanada) filas.push({ clave: "danada", texto: "Reportar dañada", ok: aqui > 0, sub: aqui > 0 ? "Pasa a cuarentena" : "Nada que reportar", sugerida: false });
 
   // Primero la que la talla necesita; después las que se pueden, en el orden de su lugar; al final las que no se pueden ahora.
   const orden = ORDEN_SEGUN_LUGAR[aqui === 0 ? "sinStock" : separa && piso === 0 ? "sinPiso" : "conPiso"];
   const peso = (a: Omit<AccionTalla, "tecla">) => (a.sugerida ? 0 : a.ok ? 100 : 200) + orden.indexOf(a.clave);
   return filas.map((a) => ({ ...a, tecla: TECLA[a.clave] })).sort((a, b) => peso(a) - peso(b));
+}
+
+/** El modal (ADR-0391) dibuja como filas SOLO lo que hoy se puede hacer; lo que no, va en una línea «No ahora: Colgar (nada en
+ *  almacén) · …» con su motivo, en vez de seis filas con tres apagadas. `noAhora` conserva el orden y el `sub` ya dice el porqué. */
+export function separarAcciones(acciones: readonly AccionTalla[]): { posibles: AccionTalla[]; noAhora: AccionTalla[] } {
+  return { posibles: acciones.filter((a) => a.ok), noAhora: acciones.filter((a) => !a.ok) };
+}
+
+/** «No ahora: Colgar (nada en almacén) · Pedir (ninguna tienda tiene).» El nombre corto es la primera palabra del texto. */
+export function lineaNoAhora(noAhora: readonly AccionTalla[]): string | null {
+  if (noAhora.length === 0) return null;
+  return `No ahora: ${noAhora.map((a) => `${a.texto.split(" ")[0]} (${a.sub.charAt(0).toLocaleLowerCase("es")}${a.sub.slice(1)})`).join(" · ")}.`;
 }
 
 /* ====================================================================
@@ -272,6 +288,26 @@ export function queTocaConLaTalla(
    ==================================================================== */
 
 export type TonoInsignia = "verde" | "ambar" | "pizarra" | "rojo";
+
+/** El chip de «Todas» (el modelo entero, ADR-0391): la MISMA regla que el pie de la tarjeta (`botonDeTarjeta`, `existencias-acciones.ts`).
+ *  Lo que marca el motor del piso gana (ámbar, «por colgar»); si el motor no marcó nada pero hay tallas con 0 colgadas y stock atrás (el
+ *  piso en pausa, o un plan que no se pudo leer) se dice en neutro («sin colgar»); «Todo en el piso» solo cuando cada talla con algo libre
+ *  tiene al menos una colgada. Lo agotado va en su propio chip (rojo). Antes el chip solo miraba al motor y, con el piso en pausa, decía
+ *  «Todo en el piso» con tres tallas a 0: lo encontró /formidable el 2026-10-12 (el filtro «Por colgar 0» y el modal «Falta colgar» se
+ *  contradecían en la misma pantalla). */
+export function insigniaDelModelo(x: { porColgar: number; sinColgar: number; agotadas: number }): { tono: "ambar" | "pizarra" | "verde"; texto: string } | null {
+  if (x.porColgar > 0) return { tono: "ambar", texto: `${plural(x.porColgar, "talla", "tallas")} por colgar` };
+  if (x.sinColgar > 0) return { tono: "pizarra", texto: `${plural(x.sinColgar, "talla", "tallas")} sin colgar` };
+  if (x.agotadas === 0) return { tono: "verde", texto: "Todo en el piso" };
+  return null;
+}
+
+/** La línea chica de «Colgar varias tallas y colores» en «Todas»: cuenta lo mismo que el chip del modelo. */
+export function subtituloColgarVarias(x: { porColgar: number; sinColgar: number; almacen: number }): string {
+  if (x.porColgar > 0) return `${plural(x.porColgar, "talla falta", "tallas faltan")} en el piso`;
+  if (x.sinColgar > 0) return `${plural(x.sinColgar, "talla", "tallas")} sin colgar`;
+  return x.almacen > 0 ? "Elige cuántas de cada una" : "Nada guardado para colgar";
+}
 
 export function insigniaDeTalla(queToca: readonly RespuestaQueToca[]): { tono: TonoInsignia; texto: string; frase: string } {
   const de = (t: RespuestaQueToca["tema"]) => queToca.find((q) => q.tema === t);

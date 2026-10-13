@@ -1,0 +1,49 @@
+# Enlaces de texto — dos piezas (ADR-0358, ronda 8)
+
+**Decidido:** 2026-10-13, Felipe, **tocándolos** (página de elegir con demos vivas; fuentes en [rondas/6-8](rondas/6-8/README.md)).
+**Elegidas:** en una frase, **P1**; suelto, **P2**. **Piezas:** `btn-enlace` (`app/globals.css`) y `<EnlaceVer>` (`components/ui/EnlaceVer.tsx`,
+CSS en `app/estilos/enlaces-paginas-caras.css`).
+
+## Qué se comparó
+
+| Forma | Usos | Cómo se veía |
+|---|---:|---|
+| A · `btn-enlace` | 136 | tinta subrayada; al pasar el mouse, taupe (parecía apagado) |
+| B · el subrayado tenue | ~24 | subrayado al 30 % que se pone rojo; en Cambios y Devoluciones, más grande |
+| C · el rojo que se subraya | ~15 | rojo sin subrayado; el subrayado aparece de golpe |
+| Suelto · versalitas con «→» escrito | ~15 | «PAGAR VENCIDO →», «VER TODAS»: la flecha es un carácter y no se mueve |
+
+![en una frase](capturas/enlace.propuesta.jpg) ![suelto](capturas/enlace.ver.propuesta.jpg)
+
+## Lo que eligió
+
+1. **Un enlace dentro de una frase · P1, el hilo que se llena.** En reposo, la palabra en tinta con un subrayado tenue; al pasar el mouse,
+   un hilo rojo de 1,5 px corre de izquierda a derecha sobre el subrayado y el texto pasa a rojo profundo: el mismo hilo de los campos y las
+   listas, diciendo «esto te lleva». Es `btn-enlace` (cambió por dentro: sus 136 usos ya lo tienen).
+2. **El enlace suelto que lleva a ver más · P2, versalitas rojas con la flecha que avanza** (Felipe eligió la P2, no la recomendada).
+   `<EnlaceVer href|onClick>`: VERSALITAS de 11 px en rojo con la flecha de lucide, que avanza 3 px al pasar el mouse. Es también la acción
+   de un título de bloque (ronda 7). **Ojo:** gasta el rojo, el acento de la pantalla (máximo 2, ADR-0169): una pantalla con muchos
+   resúmenes lleva su «ver más» solo en los que piden algo.
+
+Lo que no es enlace: un botón que guarda (`<Boton>`); una acción chica dentro de un formulario («Deshacer», «Quitar») sigue siendo un
+botón (`btn-cayla btn-enlace` si va como texto).
+
+## El movimiento de la pieza
+
+En una frase: el hilo rojo se dibuja (300 ms) y el texto pasa a rojo profundo (200 ms); al salir, se recoge; al presionar, rojo. Suelto:
+la flecha avanza 3 px (220 ms), 5 al presionar, y el rojo se oscurece. Foco: el anillo común. Con «reducir movimiento», sin el viaje. El
+subrayado es una imagen de fondo para poder dibujarse: va a 0,7 em bajo el centro de la línea (queda pegado al texto también en un
+`btn-chico` de 44 px) y cada renglón lleva el suyo.
+
+## Deuda al decidir
+
+58 archivos dibujan un enlace a mano (`node apps/web/unificar/deuda.mjs enlace`): el rojo que se subraya, las versalitas rojas, el
+subrayado tenue y la flecha escrita al final de un `btn-enlace`. Al migrar, cada uno se decide por lo que hace: si lleva a ver más,
+`<EnlaceVer>`; si va dentro de una frase o es una acción de texto, `btn-enlace`.
+
+## Migración (2026-10-13)
+
+**Migrada el 2026-10-13: deuda 58 → 0.** Dentro de una frase o como acción chica, `btn-enlace`; para ir a ver más, `<EnlaceVer>` sin la
+flecha escrita a mano. `<EnlaceVer>` aprendió `alNavegar` (cerrar la hoja o el cajón en el mismo clic que navega). «Todo el historial»
+de Historial y de Apartados no era un enlace sino un período que se elige: pasó a `pildora-cayla`. El ritmo de Existencias conserva su
+texto llano (diseño aprobado, `unificar-fijo`).

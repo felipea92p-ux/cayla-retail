@@ -349,7 +349,7 @@ export function CuentasPanel({
             <>
               {" "}
               <button type="button" className="btn-enlace" onClick={() => setDecirCuenta(true)} aria-haspopup="dialog" data-guia="fin-dinero.decir-cuenta">
-                Decir de qué cuenta fue →
+                Decir de qué cuenta fue
               </button>
             </>
           )}

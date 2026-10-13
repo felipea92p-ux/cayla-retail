@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Aviso } from "@/components/ui/Aviso";
+import { Casilla } from "@/components/ui/Casilla";
 
 // El aviso en vivo de "¿ya existe algo así?" (buscar_productos_parecidos,
 // 20260918230000). Tres niveles con tres consecuencias distintas — y la
@@ -55,7 +56,7 @@ export function AvisoParecidos({
             {unaLetra.map((p, i) => (
               <span key={p.id}>
                 {i > 0 && ", "}
-                <Link href={`/productos/${p.id}/editar`} className="font-semibold underline underline-offset-4">
+                <Link href={`/productos/${p.id}/editar`} className="btn-enlace font-semibold">
                   {p.referencia}
                 </Link>
               </span>
@@ -63,7 +64,7 @@ export function AvisoParecidos({
             (una letra de diferencia). Si es el mismo producto, ábrelo en vez de crearlo otra vez.
           </p>
           <label className="mt-2 flex items-start gap-2">
-            <input type="checkbox" checked={confirmo} onChange={(e) => onConfirmo(e.target.checked)} className="mt-0.5 accent-tinta" />
+            <Casilla marcada={confirmo} onCambio={() => onConfirmo(!confirmo)} etiqueta="Es otro producto distinto, créalo igual." className="mt-0.5" />
             <span>Es otro producto distinto, créalo igual.</span>
           </label>
         </Aviso>
@@ -75,7 +76,7 @@ export function AvisoParecidos({
           {parecidosSuaves.map((p, i) => (
             <span key={p.id}>
               {i > 0 && ", "}
-              <Link href={`/productos/${p.id}/editar`} className="underline underline-offset-4">
+              <Link href={`/productos/${p.id}/editar`} className="btn-enlace">
                 {p.referencia}
               </Link>
             </span>

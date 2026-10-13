@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { compraParaPagarMiParte, type ParteDeCompra } from "@/lib/compras-mi-parte-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona OTRA tienda. La tienda que registró tiene el papel; esta
 // tienda recibe su mercadería y paga lo suyo desde aquí. Se muestran SU monto y SU saldo, nunca los del comprobante entero
@@ -25,16 +26,18 @@ export function MisPartesDeCompras({
   const nuevas = partes.filter((p) => p.parteNueva).length;
   return (
     <section data-guia="mis-partes.panel" className="card-cayla anim-entra p-5" style={{ ["--i" as string]: indice }} aria-labelledby="mis-partes-titulo">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="mis-partes-titulo" className="font-display text-lg text-tinta">
-          Tu parte en comprobantes de otras tiendas
-        </h2>
-        {nuevas > 0 && (
-          <Chip tono="rojo">
-            {nuevas === 1 ? "1 parte nueva" : `${nuevas} partes nuevas`}
-          </Chip>
-        )}
-      </div>
+      <TituloSeccion
+        id="mis-partes-titulo"
+        dato={
+          nuevas > 0 ? (
+            <Chip tono="rojo">
+              {nuevas === 1 ? "1 parte nueva" : `${nuevas} partes nuevas`}
+            </Chip>
+          ) : undefined
+        }
+      >
+        Tu parte en comprobantes de otras tiendas
+      </TituloSeccion>
       <p className="mt-1 text-sm text-taupe">
         Otra tienda registró el comprobante y tiene el papel. Tu tienda paga solo lo suyo; lo recibes, como siempre, en Recibir mercadería.
       </p>
@@ -43,7 +46,7 @@ export function MisPartesDeCompras({
           <li key={`${p.compraId}-${p.ubicacionId}`} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3">
             <div className="min-w-0">
               <p className="flex flex-wrap items-center gap-2 text-sm text-tinta">
-                <Link href={`/compras/parte/${p.compraId}`} className="font-medium hover:text-rojo hover:underline">
+                <Link href={`/compras/parte/${p.compraId}`} className="btn-enlace font-medium">
                   {p.documento}
                 </Link>
                 <span className="text-tinta/65">· {p.proveedorNombre}</span>

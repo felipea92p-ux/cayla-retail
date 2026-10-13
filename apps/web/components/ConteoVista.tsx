@@ -11,6 +11,7 @@ import { AccionesEnCurso } from "@/components/conteo/AccionesEnCurso";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 import { ClipboardList } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // El INICIO de Conteo (Inventario ▸ Conteo, rediseño 2026-09-29). Responde una sola pregunta: «¿qué hago ahora?».
 //   · Hay un conteo abierto en esta sede → la tarjeta «Conteo N en curso» (cuántas variantes lleva, seguir o cancelar).
@@ -83,9 +84,7 @@ export function ConteoVista({
         {abierto ? (
           <section data-guia="conteo.en-curso" className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
             <div className="space-y-1">
-              <h2 id="conteo-en-curso" className="font-display text-xl text-tinta">
-                Conteo {abierto.numero} en curso
-              </h2>
+              <TituloSeccion id="conteo-en-curso">Conteo {abierto.numero} en curso</TituloSeccion>
               <p className="text-sm text-taupe">
                 {textoLugar(abierto)} · {textoAlcance(abierto)}
               </p>
@@ -116,9 +115,7 @@ export function ConteoVista({
         {/* Título y filtro en UNA fila (se acomodan en dos cuando no caben). El total de conteos ya no va arriba a la derecha: cada
             día dice cuántos trae y el pie dice qué se está viendo; aquí queda solo para el lector de pantalla, que oye el cambio. */}
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 pb-4 pt-4 @[36rem]:px-5">
-          <h2 id="conteos-recientes" className="font-display text-lg text-tinta">
-            Conteos recientes
-          </h2>
+          <TituloSeccion id="conteos-recientes">Conteos recientes</TituloSeccion>
           {recientes.mostrados.length > 0 && (
             <p className="sr-only" aria-live="polite">
               {textoTotalRecientes(recientes)}

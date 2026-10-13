@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 /* ====================================================================
    Revisar conteo · lo que no coincide, antes de tocar las existencias
@@ -213,7 +214,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
 
           <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
-              <h2 className="font-display text-lg text-tinta">Pendientes de contar</h2>
+              <TituloSeccion>Pendientes de contar</TituloSeccion>
               <p className="text-sm text-taupe">Estas variantes todavía no fueron verificadas.</p>
             </div>
             <ul className="divide-y divide-sand">
@@ -266,9 +267,10 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
       {diferencias.length > 0 ? (
         <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-24 overflow-hidden">
           <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
-            <h2 id="revisar-diferencias" tabIndex={-1} className="font-display text-lg text-tinta outline-none">
-              Diferencias
-            </h2>
+            {/* Aquí vuelve el foco cuando la fila tocada se va (ver `actuar`): el id y el tabIndex van en la caja del título. */}
+            <div id="revisar-diferencias" tabIndex={-1} className="outline-none">
+              <TituloSeccion>Diferencias</TituloSeccion>
+            </div>
             <p className="text-sm text-taupe">Confirma lo que contaste, o vuelve a contar la variante.</p>
           </div>
           <ul className="divide-y divide-sand">

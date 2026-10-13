@@ -841,7 +841,7 @@ function ColorEditarModal({
                 <div className="mt-1.5 flex items-center gap-3">
                   <MuestraEditable hex={hex} />
                   <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>
-                  <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
+                  <button type="button" onClick={() => setHexAbierto(true)} className="btn-cayla btn-enlace text-xs">
                     Cambiar color
                   </button>
                 </div>
@@ -880,7 +880,8 @@ function ColorEditarModal({
               onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
               disabled={ocupado || !responsable.listo}
               title={responsable.motivo ?? undefined}
-              className={confirmandoDesactivar ? "font-medium text-rojo underline" : "text-rojo hover:underline"}
+              // El enlace dentro de una frase (ADR-0358, ronda 8); el segundo toque, ya armado, en seminegrita.
+              className={`btn-cayla btn-enlace text-xs ${confirmandoDesactivar ? "font-semibold" : ""}`}
             >
               {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
             </button>

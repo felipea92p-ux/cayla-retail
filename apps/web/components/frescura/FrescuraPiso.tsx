@@ -1,6 +1,7 @@
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonEnlace } from "@/components/ui/campos";
 import { CifraSinSaber } from "./CifraSinSaber";
 import {
@@ -75,17 +76,24 @@ export function FrescuraPiso({
   const paso = pasoDeLaPuerta(puerta, acceso);
   return (
     <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="card-cayla px-4 py-4 sm:px-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 id="frescura-piso-titulo" className="flex items-center gap-2 font-display text-[22px] leading-tight">
-          {principal.nombre}
-          {(cerrada || pocasVentas) && <Chip tono="pizarra">Aproximado</Chip>}
-        </h2>
-        <span className="text-[13px] tabular-nums text-taupe">
-          {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
-          {/* Los soles van en la misma línea (antes, una franja propia de 45 px): el total arriba, lo que envejece en su cifra. */}
-          {principal.soles && <> · {solesEnteros(TRAMOS_DEL_100.reduce((s, t) => s + principal.soles![t], 0))} a precio de venta</>}
-        </span>
-      </div>
+      <TituloSeccion
+        id="frescura-piso-titulo"
+        dato={
+          <>
+            {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
+            {/* Los soles van en la misma línea (antes, una franja propia de 45 px): el total arriba, lo que envejece en su cifra. */}
+            {principal.soles && <> · {solesEnteros(TRAMOS_DEL_100.reduce((s, t) => s + principal.soles![t], 0))} a precio de venta</>}
+          </>
+        }
+      >
+        {principal.nombre}
+        {(cerrada || pocasVentas) && (
+          <>
+            {" "}
+            <Chip tono="pizarra">Aproximado</Chip>
+          </>
+        )}
+      </TituloSeccion>
 
       <BarraApilada segmentos={segmentos(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
 

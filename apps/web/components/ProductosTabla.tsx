@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2, X, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
@@ -45,6 +45,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
 import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
+import { Casilla } from "@/components/ui/Casilla";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -336,22 +337,9 @@ function Th({ children, className = "", title }: { children: ReactNode; classNam
   );
 }
 
-/** Casilla nativa (teclado y lector de pantalla gratis) en tinta: el rojo queda para lo urgente. */
+/** La casilla del sistema (ADR-0358, ronda 6): sigue siendo una casilla nativa, con su «a medias» para la página. */
 function CasillaMarca({ marcada, parcial = false, onCambiar, etiqueta }: { marcada: boolean; parcial?: boolean; onCambiar: () => void; etiqueta: string }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = parcial;
-  }, [parcial]);
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={marcada}
-      onChange={onCambiar}
-      aria-label={etiqueta}
-      className="h-[18px] w-[18px] shrink-0 cursor-pointer accent-tinta"
-    />
-  );
+  return <Casilla marcada={marcada} aMedias={parcial} onCambio={onCambiar} etiqueta={etiqueta} className="shrink-0" />;
 }
 
 /** El color que se está mirando: el que tiene el mouse encima, si no el fijado, si no el primero (como la Grilla). */

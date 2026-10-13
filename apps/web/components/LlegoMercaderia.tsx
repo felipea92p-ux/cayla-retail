@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ScanLine, X } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -48,6 +48,7 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { BORRADOR_VACIO, ProveedorModal } from "@/components/ProveedorModal";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
+import { Buscador } from "@/components/ui/Buscador";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -355,7 +356,7 @@ export function LlegoMercaderia({
             <div data-guia="recibir.proveedor">
             <CampoGuiado id="llegada-proveedor" guia={guia} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
               <Desplegable
-                forma="caja"
+                forma="campo"
                 etiquetaAccesible="Proveedor"
                 marcador="Elige el proveedor"
                 valor={proveedorId}
@@ -378,7 +379,7 @@ export function LlegoMercaderia({
               <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
                 Guía <span className="font-normal text-taupe">opcional</span>
               </span>
-              <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-cayla h-10 w-full px-3 text-sm text-tinta" />
+              <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-campo-input" />
             </label>
           </div>
 
@@ -392,7 +393,7 @@ export function LlegoMercaderia({
             (sinFactura.includes(proveedorId) ? (
               <p className="-mt-2 text-[13px] text-taupe">
                 Se recibe sin factura.{" "}
-                <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="text-tinta/80 underline underline-offset-2 hover:text-rojo">
+                <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="btn-enlace">
                   Ver sus facturas pendientes
                 </button>
               </p>
@@ -432,12 +433,14 @@ export function LlegoMercaderia({
           <div data-guia="recibir.prendas">
           <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
             <div className="relative">
-              <ScanLine aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" />
-              <input
+              {/* El buscador de la pistola (<Buscador icono="barras">, ADR-0358, como el de «Contra factura»). La lista que se abre debajo,
+                  con la muestra de cada prenda, es propia: la pieza de combos no dibuja fotos. */}
+              <Buscador
                 id={ID_BUSCADOR}
                 ref={buscador}
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
+                valor={busqueda}
+                onCambio={setBusqueda}
+                icono="barras"
                 onFocus={() => setEnBuscador(true)}
                 onBlur={() => setEnBuscador(false)}
                 onKeyDown={(e) => {
@@ -451,9 +454,7 @@ export function LlegoMercaderia({
                   }
                 }}
                 placeholder={PLACEHOLDER_BUSCADOR}
-                autoComplete="off"
                 aria-describedby="llegada-lectura"
-                className="caja-cayla h-11 w-full pl-9 pr-3 text-sm text-tinta"
               />
               {listaAbierta &&
                 posLista &&
@@ -495,12 +496,12 @@ export function LlegoMercaderia({
                   {lectura.bueno ? "✓ " : ""}
                   {lectura.texto}{" "}
                   {lectura.varianteId && (
-                    <button type="button" onClick={deshacer} className="text-tinta/70 underline underline-offset-2 hover:text-rojo">
+                    <button type="button" onClick={deshacer} className="btn-enlace">
                       Deshacer
                     </button>
                   )}
                   {lectura.crear && (
-                    <Link href="/productos/nuevo" target="_blank" onClick={() => (fueACrear.current = true)} className="text-tinta/80 underline underline-offset-2 hover:text-rojo">
+                    <Link href="/productos/nuevo" target="_blank" onClick={() => (fueACrear.current = true)} className="btn-enlace">
                       Crearla en Nuevo producto
                     </Link>
                   )}
@@ -539,7 +540,7 @@ export function LlegoMercaderia({
                           aria-label="Cantidad"
                           value={l.cantidad}
                           onChange={(e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value)))}
-                          className="caja-cayla h-8 w-14 px-1 text-center text-sm tabular-nums text-tinta"
+                          className="caja-campo-input h-8 min-h-8 w-14 px-1 text-center tabular-nums"
                         />
                         <button type="button" aria-label="Una más" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
                           <Plus aria-hidden className="h-3.5 w-3.5" />
@@ -556,7 +557,7 @@ export function LlegoMercaderia({
                           data-campo={`llegada-costo-${l.varianteId}`}
                           value={l.costo}
                           onChange={(e) => cambiarLineas(fijarCosto(lineas, l.varianteId, e.target.value))}
-                          className="caja-cayla h-8 w-32 px-2 text-right text-sm tabular-nums text-tinta"
+                          className="caja-campo-input h-8 min-h-8 w-32 px-2 text-right tabular-nums"
                         />
                       )}
                       <button type="button" aria-label={`Quitar ${p.referencia}`} onClick={() => cambiarLineas(fijarCantidad(lineas, l.varianteId, 0))} className="text-taupe hover:text-rojo">
