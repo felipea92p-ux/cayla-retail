@@ -260,7 +260,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.cajon-todas" }],
       titulo: "Todas las tallas y colores",
-      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba lo colgado, abajo lo guardado; en ámbar lo que falta colgar. Toca una casilla y vuelves a esa talla.",
+      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba lo colgado, abajo lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «colgadas» o «guardadas» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
     },
     {
       id: "cajon-colgar-varias",

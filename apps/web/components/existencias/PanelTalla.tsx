@@ -62,11 +62,6 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
 /** El tono del veredicto (`insigniaDeTalla`), en la pieza de estado del sistema (`<Chip>`): rojo = se acabó, ámbar = falta colgar,
  *  pizarra = informativo, verde = bien. */
 const TONO_CHIP: Record<TonoQueToca | "rojo", "rojo" | "ambar" | "pizarra" | "verde"> = { rojo: "rojo", ambar: "ambar", pizarra: "pizarra", verde: "verde" };
-/** La insignia de «Todas» (por colgar / se acabó), hasta que la actividad 3 la unifique. */
-const TONO_INSIGNIA_TALLA: Record<"rojo" | "ambar", string> = {
-  rojo: "bg-rojo/[0.11] text-rojo-profundo",
-  ambar: "bg-ambar/[0.13] text-ambar-profundo",
-};
 
 const CLASE_TALLA = {
   normal: "border-sand bg-crema",
@@ -491,6 +486,25 @@ export function PanelTalla({
     );
   };
 
+  /** La celda de totales de «Todas» (ADR-0391): en hueso, sin borde, no se toca; sigue a la capa (una cifra) o apila las dos. */
+  const totalCelda = (pisoN: number, almacenN: number) => {
+    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[15px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[17px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[17px] font-semibold tabular-nums text-tinta">{almacenN}</div>;
+    return (
+      <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] bg-hueso tabular-nums text-tinta">
+        <span className="flex items-center justify-center gap-1 text-[13.5px] font-semibold">
+          <IconoPercha aria-hidden className="h-3 w-3 text-taupe" strokeWidth={1.8} />
+          {pisoN}
+        </span>
+        <span className="flex items-center justify-center gap-1 border-t border-sand text-[13.5px] font-semibold">
+          <Archive aria-hidden className="h-3 w-3 text-taupe" strokeWidth={1.8} />
+          {almacenN}
+        </span>
+      </div>
+    );
+  };
+
   const subtitulo = (
     <>
       {[prenda.marca, prenda.categoria].filter(Boolean).join(" · ")}
@@ -822,28 +836,32 @@ export function PanelTalla({
 
                     {vista === "todas" && (
                       <>
-                        {/* «Todas», opción B (Felipe, 2026-10-07): el número del modelo con sus avisos y las cuatro casillas sumadas; después la tabla
-                            tallas × colores, cada celda partida en dos —arriba lo colgado (verde, con la percha), abajo lo guardado (con la caja)—.
-                            Ámbar = falta colgar; rojo entera = se acabó; marco negro = la talla que se estaba viendo. Tocar una celda vuelve a «Esta
-                            talla» en esa talla. */}
-                        <div>
-                          <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                            <b className="font-display text-[46px] font-medium leading-[0.9] tabular-nums text-tinta">{sumaModelo.total}</b>
-                            <span className="text-sm text-taupe">en esta sede</span>
-                            {porColgarModelo > 0 && (
-                              <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA.ambar}`}>
-                                <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
-                                {porColgarModelo} por colgar
-                              </span>
-                            )}
-                            {agotadasModelo > 0 && (
-                              <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA.rojo}`}>
-                                <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
-                                {agotadasModelo} se acabó
-                              </span>
-                            )}
-                          </p>
-                        </div>
+                        {/* «Todas» (opción B del 2026-10-07, afinada el 2026-10-12, ADR-0391): el modelo entero. Las casillas «colgadas» y
+                            «guardadas» FILTRAN la tabla (tocas una: solo esa capa, con el número grande; tocas otra vez: las dos). Dentro de la
+                            capa del piso la celda que falta colgar sigue en ámbar y dice «falta · +N atrás»: el filtro no esconde el problema.
+                            Totales por color y por talla que siguen al filtro; la talla abierta en negro en la cabecera, el color abierto en
+                            hueso, la celda abierta con marco; un color sin nada en la capa se atenúa, no desaparece. Se fue el «N en esta
+                            sede» de 46 px: era la suma de las casillas. */}
+                        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          <span className="label-cayla text-[11px] text-taupe">Todo el modelo</span>
+                          {porColgarModelo > 0 ? (
+                            <Chip tono="ambar" versalitas={false}>
+                              {porColgarModelo} {porColgarModelo === 1 ? "talla" : "tallas"} por colgar
+                            </Chip>
+                          ) : agotadasModelo === 0 ? (
+                            <Chip tono="verde" versalitas={false}>
+                              Todo en el piso
+                            </Chip>
+                          ) : null}
+                          {agotadasModelo > 0 && (
+                            <Chip tono="rojo" versalitas={false}>
+                              {agotadasModelo} {agotadasModelo === 1 ? "talla se acabó" : "tallas se acabaron"}
+                            </Chip>
+                          )}
+                          <span className="text-[12.5px] text-taupe">
+                            {colores.length} {colores.length === 1 ? "color" : "colores"} · {tallasDeTodos.length} {tallasDeTodos.length === 1 ? "talla" : "tallas"}
+                          </span>
+                        </p>
                         <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
                           {separa ? casillaCapa("piso", sumaModelo.piso) : casilla(sumaModelo.piso, "disponibles", IconoPercha)}
                           {separa && casillaCapa("almacen", sumaModelo.almacen)}
@@ -857,6 +875,7 @@ export function PanelTalla({
                               {capa === "piso" ? <IconoPercha aria-hidden className="h-3.5 w-3.5 text-verde" strokeWidth={1.8} /> : <Archive aria-hidden className="h-3.5 w-3.5 text-pizarra" strokeWidth={1.8} />}
                               <span>
                                 Solo lo <b className="font-semibold">{capa === "piso" ? "colgado en el piso" : "guardado en el almacén"}</b>
+                                {capa === "piso" ? " · en ámbar, lo que falta colgar" : ""}
                               </span>
                               <button type="button" onClick={() => setCapa(null)} className="btn-cayla btn-enlace text-[12.5px]">
                                 Ver colgadas y guardadas
@@ -876,96 +895,141 @@ export function PanelTalla({
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.22]" />
                                 Falta colgar
                               </span>
+                              <span>Toca una celda para abrir esa talla</span>
                             </p>
                           ))}
                         <div data-guia="existencias.cajon-todas-tabla" className="scroll-cayla overflow-x-auto">
-                          <table className="w-full table-fixed border-separate border-spacing-y-2 text-center text-sm">
+                          <table className="w-full table-fixed border-separate border-spacing-y-1.5 text-center text-sm">
                             <colgroup>
-                              <col className="w-[88px]" />
+                              <col className="w-[96px]" />
                               {tallasDeTodos.map((t) => (
                                 <col key={t} />
                               ))}
+                              <col className="w-[58px]" />
                             </colgroup>
                             <thead>
                               <tr>
-                                <th aria-hidden />
+                                <th scope="col" className="text-left text-[10.5px] font-medium text-taupe">
+                                  color \ talla
+                                </th>
                                 {tallasDeTodos.map((t) => (
-                                  <th key={t} scope="col" className="text-xs font-semibold text-taupe">
-                                    {t}
+                                  <th key={t} scope="col" className="px-[3px] text-xs font-semibold text-taupe">
+                                    {/* La talla que se estaba viendo, en negro: la tabla responde «¿y las demás?» sin perder cuál era la mía. */}
+                                    <span className={`inline-block rounded-full px-2 py-0.5 ${t === (fila.talla ?? "Única") ? "bg-tinta text-crema" : ""}`}>{t}</span>
                                   </th>
                                 ))}
+                                <th scope="col" className="text-xs font-semibold text-taupe">
+                                  Total
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
-                              {colores.map((c) => (
-                                <tr key={c.clave}>
-                                  <th scope="row" className="truncate pr-1.5 text-left text-[13px] font-semibold text-tinta">
-                                    <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
-                                    {c.color ?? "Sin color"}
-                                  </th>
-                                  {tallasDeTodos.map((t) => {
-                                    const f = c.tallas.find((x) => (x.talla ?? "Única") === t);
-                                    if (!f) return <td key={t} aria-hidden className="text-taupe/40">·</td>;
-                                    const sel = c.clave === prenda.clave && f.varianteId === fila.varianteId;
-                                    const celda = celdaTarjeta(f, separa);
-                                    const ir = () => {
-                                      irA(c, f);
-                                      setVista("talla");
-                                    };
-                                    const lectura = `${c.color ?? "Sin color"} ${t}: ${
-                                      celda.estado === "agotada"
-                                        ? "se acabó"
-                                        : !separa
-                                          ? `${celda.piso} disponibles`
-                                          : capa === "piso"
-                                            ? `${celda.piso} colgadas`
-                                            : capa === "almacen"
-                                              ? `${celda.almacen} guardadas`
-                                              : `${celda.piso} colgadas, ${celda.almacen} guardadas`
-                                    }. Ver esta talla`;
-                                    // Con una capa elegida, la celda muestra SOLO esa mitad, a todo el alto y con el número más grande.
-                                    const verPiso = !separa || capa !== "almacen";
-                                    const verAlmacen = separa && capa !== "piso";
-                                    const grande = separa && capa !== null;
-                                    return (
-                                      <td key={t} className="px-[3px]">
-                                        {celda.estado === "agotada" ? (
-                                          <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[46px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-xs font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
-                                            Se acabó
-                                          </button>
-                                        ) : (
-                                          <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[46px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
-                                            {verPiso && (
-                                              <span className={`flex w-full flex-1 items-center justify-center gap-1 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[13.5px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe/70"}`}>
-                                                <IconoPercha aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
-                                                {celda.piso}
-                                              </span>
-                                            )}
-                                            {verAlmacen && (
-                                              <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-[17px] font-bold" : "border-t border-sand text-[13.5px] font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
-                                                <Archive aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
-                                                {celda.almacen}
-                                              </span>
-                                            )}
-                                          </button>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
+                              {colores.map((c) => {
+                                const celdasColor = c.tallas.map((t) => celdaTarjeta(t, separa));
+                                const sumaColor = { piso: celdasColor.reduce((n, x) => n + x.piso, 0), almacen: celdasColor.reduce((n, x) => n + x.almacen, 0) };
+                                // Un color sin nada en la capa elegida se atenúa (no desaparece: sigue diciendo que no hay).
+                                const vacioEnCapa = capa === "piso" ? sumaColor.piso === 0 : capa === "almacen" ? sumaColor.almacen === 0 : false;
+                                const colorAbierto = c.clave === prenda.clave;
+                                return (
+                                  <tr key={c.clave} className={vacioEnCapa ? "opacity-40" : ""}>
+                                    <th scope="row" className={`truncate rounded-lg pl-1.5 pr-1.5 text-left text-[13px] font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
+                                      <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
+                                      {c.color ?? "Sin color"}
+                                    </th>
+                                    {tallasDeTodos.map((t) => {
+                                      const f = c.tallas.find((x) => (x.talla ?? "Única") === t);
+                                      if (!f) return <td key={t} aria-hidden className="text-taupe/40">·</td>;
+                                      const sel = colorAbierto && f.varianteId === fila.varianteId;
+                                      const celda = celdaTarjeta(f, separa);
+                                      const ir = () => {
+                                        irA(c, f);
+                                        setVista("talla");
+                                      };
+                                      const lectura = `${c.color ?? "Sin color"} ${t}: ${
+                                        celda.estado === "agotada"
+                                          ? "se acabó"
+                                          : !separa
+                                            ? `${celda.piso} disponibles`
+                                            : capa === "piso"
+                                              ? `${celda.piso} colgadas${celda.estado === "falta" ? `, falta colgar (hay ${celda.almacen} guardadas)` : ""}`
+                                              : capa === "almacen"
+                                                ? `${celda.almacen} guardadas`
+                                                : `${celda.piso} colgadas, ${celda.almacen} guardadas`
+                                      }. Ver esta talla`;
+                                      // Con una capa elegida, la celda muestra SOLO esa mitad, a todo el alto y con el número más grande.
+                                      const verPiso = !separa || capa !== "almacen";
+                                      const verAlmacen = separa && capa !== "piso";
+                                      const grande = separa && capa !== null;
+                                      return (
+                                        <td key={t} className="px-[3px]">
+                                          {celda.estado === "agotada" ? (
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-xs font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
+                                              Se acabó
+                                            </button>
+                                          ) : (
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
+                                              {verPiso && (
+                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[13.5px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe/70"}`}>
+                                                  <span className="inline-flex items-center gap-1">
+                                                    <IconoPercha aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
+                                                    {celda.piso}
+                                                  </span>
+                                                  {/* Dentro de la capa del piso, la que falta colgar dice cuántas hay atrás: el filtro subraya el problema, no lo esconde. */}
+                                                  {grande && capa === "piso" && celda.estado === "falta" && <small className="text-[10px] font-semibold leading-none">falta · +{celda.almacen} atrás</small>}
+                                                </span>
+                                              )}
+                                              {verAlmacen && (
+                                                <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-[17px] font-bold" : "border-t border-sand text-[13.5px] font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
+                                                  <Archive aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
+                                                  {celda.almacen}
+                                                </span>
+                                              )}
+                                            </button>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="px-[3px]">{totalCelda(sumaColor.piso, sumaColor.almacen)}</td>
+                                  </tr>
+                                );
+                              })}
+                              {/* La fila de totales por talla: cuántas de cada talla hay en el modelo (en la capa elegida, solo esa). */}
+                              <tr>
+                                <th scope="row" className="pl-1.5 text-left text-[12px] font-semibold text-taupe">
+                                  Total
+                                </th>
+                                {tallasDeTodos.map((t) => {
+                                  const col = colores.flatMap((c) => c.tallas.filter((x) => (x.talla ?? "Única") === t)).map((x) => celdaTarjeta(x, separa));
+                                  return (
+                                    <td key={t} className="px-[3px]">
+                                      {totalCelda(
+                                        col.reduce((n, x) => n + x.piso, 0),
+                                        col.reduce((n, x) => n + x.almacen, 0)
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-[3px]">{totalCelda(sumaModelo.piso, sumaModelo.almacen)}</td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>
-                        <p className="-mt-1 text-xs text-taupe">Toca una talla para verla.</p>
                         {separa && puedeReponer && (
-                          <button type="button" data-guia="existencias.cajon-colgar-varias" onClick={() => lanzar("colgarVarias", { cant: {} })} className="flex w-full items-center gap-3 rounded-2xl border border-sand bg-ambar/[0.10] px-3 py-2.5 text-left transition-colors hover:bg-ambar/[0.16]">
+                          <button
+                            type="button"
+                            data-guia="existencias.cajon-colgar-varias"
+                            disabled={sumaModelo.almacen === 0}
+                            onClick={() => lanzar("colgarVarias", { cant: {} })}
+                            className="flex w-full items-center gap-3 rounded-2xl border border-sand bg-ambar/[0.10] px-3 py-2.5 text-left transition-colors hover:bg-ambar/[0.16] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-ambar/[0.10]"
+                          >
                             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ambar/[0.18] text-ambar-profundo">
                               <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
                             </span>
                             <span className="min-w-0 flex-1">
                               <b className="block text-[14px] font-semibold text-tinta">Colgar varias tallas y colores</b>
-                              <small className="block text-xs text-taupe">{porColgarModelo > 0 ? `${porColgarModelo} ${porColgarModelo === 1 ? "talla falta" : "tallas faltan"} en el piso` : "Elige cuántas de cada una"}</small>
+                              <small className="block text-xs text-taupe">
+                                {porColgarModelo > 0 ? `${porColgarModelo} ${porColgarModelo === 1 ? "talla falta" : "tallas faltan"} en el piso` : sumaModelo.almacen > 0 ? "Elige cuántas de cada una" : "Nada guardado para colgar"}
+                              </small>
                             </span>
                             <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" strokeWidth={1.8} />
                           </button>
