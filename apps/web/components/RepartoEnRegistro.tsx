@@ -25,10 +25,11 @@ const NUMERO = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance
 
 const TONO_DEL_REPARTO: Record<"ok" | "falta" | "sobra", TonoChip> = { ok: "verde", falta: "ambar", sobra: "rojo" };
 
-/** «Mercadería destinada a»: una tienda (el flujo de siempre) o repartida entre varias, con cuáles participan. */
+/** «Mercadería destinada a»: una tienda (el flujo de siempre) o repartida entre varias, con cuáles participan. Cualquier tienda
+ *  activa, sea líder o no quien registra (ADR-0387, Felipe 2026-10-12: deshace aquí la restricción a «sus tiendas» de ADR-0184);
+ *  repartiendo, solo tiene que quedar al menos una. */
 export function DestinoDeLaMercaderia({
   ubicaciones,
-  ubicacionesPropia,
   puedeRepartir = true,
   repartir,
   onRepartir,
@@ -38,11 +39,6 @@ export function DestinoDeLaMercaderia({
   onTiendas,
 }: {
   ubicaciones: Tienda[];
-  /** ADR-0184: solo para un comprador de tienda. Con esto, «Mercadería destinada a» (una tienda) ofrece SOLO estas —
-   *  la tienda gestora tiene que ser una de las suyas, la base lo exige — y repartir no permite dejar el reparto sin
-   *  ninguna de ellas (la gestora, sea cual sea, tiene que conservar parte). `undefined` = sin restricción, como hoy
-   *  para el líder: puede elegir cualquiera de `ubicaciones` y el reparto puede quedar sin ella. */
-  ubicacionesPropia?: Tienda[];
   /** `false` cuando la base todavía no tiene el reparto: solo el selector de siempre, sin «Repartir entre tiendas». */
   puedeRepartir?: boolean;
   repartir: boolean;
@@ -54,14 +50,11 @@ export function DestinoDeLaMercaderia({
   tiendas: string[];
   onTiendas: (ids: string[]) => void;
 }) {
-  const propiaIds = ubicacionesPropia?.map((u) => u.id);
-  // La tienda del comprador siempre disponible en el selector de «una tienda», aunque `ubicaciones` (todas) no la
-  // tuviera por algún motivo — no debería pasar, pero mejor no dejarlo sin ninguna opción.
-  const opcionesUna = ubicacionesPropia ?? ubicaciones;
+  const opcionesUna = ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }));
 
   function alternar(id: string) {
     const activa = tiendas.includes(id);
-    if (activa && !puedeQuitarseDelReparto(id, tiendas, propiaIds)) return;
+    if (activa && !puedeQuitarseDelReparto(id, tiendas)) return;
     const nuevas = activa ? tiendas.filter((t) => t !== id) : [...tiendas, id];
     onTiendas(ubicaciones.filter((u) => nuevas.includes(u.id)).map((u) => u.id));
   }
@@ -73,7 +66,7 @@ export function DestinoDeLaMercaderia({
         etiqueta="Mercadería destinada a"
         valor={ubicacionId}
         onValor={(v) => onUbicacionId(v)}
-        opciones={opcionesUna.map((u) => ({ valor: u.id, texto: u.nombre }))}
+        opciones={opcionesUna}
       />
     );
   }
@@ -96,15 +89,14 @@ export function DestinoDeLaMercaderia({
           <div role="group" aria-label="Tiendas entre las que se reparte" className="flex flex-wrap gap-1.5">
             {ubicaciones.map((u) => {
               const activa = tiendas.includes(u.id);
-              const bloqueada = activa && !puedeQuitarseDelReparto(u.id, tiendas, propiaIds);
-              const esUltimaPropia = bloqueada && !!propiaIds?.includes(u.id);
+              const bloqueada = activa && !puedeQuitarseDelReparto(u.id, tiendas);
               return (
                 <button
                   key={u.id}
                   type="button"
                   aria-pressed={activa}
                   onClick={() => alternar(u.id)}
-                  title={bloqueada ? (esUltimaPropia ? "Tu tienda tiene que quedar en el reparto: es la que gestiona la factura" : "Tiene que quedar al menos una tienda") : undefined}
+                  title={bloqueada ? "Tiene que quedar al menos una tienda" : undefined}
                   className={`label-cayla inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] transition-colors ${
                     activa ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
                   }`}
@@ -117,7 +109,6 @@ export function DestinoDeLaMercaderia({
           </div>
           <p className="text-xs leading-snug text-tinta/55">
             Marca las tiendas que reciben mercadería de este comprobante. Abajo, en cada línea, dices cuántas unidades le toca a cada una.
-            {propiaIds && " Tu tienda tiene que quedar en el reparto: es la que gestiona la factura."}
           </p>
         </div>
       ) : (
@@ -125,7 +116,7 @@ export function DestinoDeLaMercaderia({
           <Desplegable
             valor={ubicacionId}
             onValor={(v) => onUbicacionId(v)}
-            opciones={opcionesUna.map((u) => ({ valor: u.id, texto: u.nombre }))}
+            opciones={opcionesUna}
             etiquetaAccesible="Tienda que recibe la mercadería"
           />
         </div>
@@ -180,7 +171,7 @@ export function RepartoDeLinea({
               value={reparto[t.id] ? reparto[t.id] : ""}
               onChange={(e) => cambiar(t.id, e.target.value)}
               onFocus={(e) => e.target.select()}
-              className={`${NUMERO} w-16 border-b border-tinta/25 bg-transparent px-0.5 py-1 text-center text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/35 focus:border-b-2 focus:border-rojo`}
+              className={`${NUMERO} caja-campo-input w-16 text-center tabular-nums`}
             />
           </label>
         ))}
@@ -201,7 +192,7 @@ export function RepartoDeLinea({
             <button
               type="button"
               onClick={() => onReparto(repartirEnPartesIguales(cantidad, tiendas.map((t) => t.id)))}
-              className="label-cayla text-[10.5px] text-rojo hover:underline"
+              className="btn-cayla btn-enlace text-xs"
             >
               Partes iguales
             </button>

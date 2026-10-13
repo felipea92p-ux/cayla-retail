@@ -7,7 +7,7 @@
     "components/RecibirComprobanteModal.tsx": [
       "input «{`Cantidad que llegó de ${l.insumo}»",
       "input «{`Código de lote de ${l.insumo}»",
-      "input «El resto (»",
+      "Casilla «{`El resto (${cantidadTexto(resto, l.unidad)}»",
       "Desplegable «)»",
       "CampoTexto «Nota de la entrega»",
       "ComboResponsable «{cargando ? \"Registrando…\" : \"Registrar recepción\"}»",

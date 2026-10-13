@@ -34,15 +34,19 @@ import { claveDeTarjeta } from "./existencias-tarjetas";
 export const CLAVES_FILTRO = ["q", "cat", "marca", "talla", "color", "familia", "hoy", "condicion", "orden"] as const;
 export type ClaveUrl = (typeof CLAVES_FILTRO)[number];
 
-/** Las opciones de «Condición»: las dos del inventario (dañadas, apartadas) y, desde 2026-10-05, las dos del ritmo de lo que está en el
- *  piso (se acaban, sin ventas). Como las otras, una talla puede tener varias a la vez y no excluyen a «Hoy». */
-export const CONDICIONES = ["danadas", "apartadas", "se_acaban", "sin_ventas"] as const;
+/** Las opciones de «Condición»: las dos del inventario (dañadas, apartadas), desde 2026-10-05 las dos del ritmo de lo que está en el
+ *  piso (se acaban, sin ventas) y, desde el 2026-10-12 (ADR-0391), los dos LUGARES: con algo colgado en el piso, con algo guardado en el
+ *  almacén. Las cifras de la cabecera las ponen de un toque; reemplazan al selector «Piso · Almacén · Ambos» de las tarjetas, que se
+ *  guardaba por computadora y escondía el otro lugar. Como las otras, una talla puede tener varias a la vez y no excluyen a «Hoy». */
+export const CONDICIONES = ["danadas", "apartadas", "se_acaban", "sin_ventas", "colgadas", "guardadas"] as const;
 export type Condicion = (typeof CONDICIONES)[number];
 export const ROTULO_CONDICION: Record<Condicion, string> = {
   danadas: "Dañadas / cuarentena",
   apartadas: "Apartadas",
   se_acaban: "Se acaban",
   sin_ventas: "Sin ventas esta semana",
+  colgadas: "Colgadas en el piso",
+  guardadas: "Guardadas en el almacén",
 };
 
 /** «Se acaban»: lo que hay colgado dura una semana o menos al Ritmo reciente (`coberturaPiso`, solo cuando el ritmo es una tasa
@@ -221,6 +225,12 @@ export function tieneCondicion(f: FilaFiltrable, c: Condicion): boolean {
       // Con jornadas suficientes en el piso y NINGUNA venta en la ventana (decisión de Felipe, 2026-09-25: se dice «sin ventas esta semana»,
       // nunca «nunca vende»). Con pocas jornadas (`insuficiente`) no se dice nada.
       return (f.pisoDisponible ?? 0) > 0 && f.ritmoReciente?.tipo === "sin_salida";
+    case "colgadas":
+      // Algo LIBRE colgado en el piso (lo apartado y lo dañado no cuentan): la cifra «Colgadas en el piso» de la cabecera.
+      return (f.pisoDisponible ?? 0) > 0;
+    case "guardadas":
+      // Algo LIBRE guardado en el almacén de la tienda: la cifra «Guardadas en el almacén».
+      return (f.almacenDisponible ?? 0) > 0;
   }
 }
 

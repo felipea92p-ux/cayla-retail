@@ -55,6 +55,8 @@ import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Casilla } from "@/components/ui/Casilla";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -81,7 +83,6 @@ const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
   "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
-const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
 // Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0302).
@@ -597,14 +598,14 @@ export function ApartarVista({
               onKeyDown={teclado}
               placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
               etiqueta="Escanea la etiqueta o busca la prenda por nombre"
-              role="combobox"
+              role="combobox" // unificar-fijo: la búsqueda del mostrador (pistola y fotos), que la pieza no hace
               aria-expanded={abierta}
               aria-controls="apt-resultados"
               aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
               aria-autocomplete="list"
             />
             {abierta && (
-              <ul id="apt-resultados" role="listbox" aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
+              <ul id="apt-resultados" role="listbox" /* unificar-fijo: la lista con fotos y stock del mostrador */ aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
                 {disponibles.length + agotadas.length === 0 ? (
                   <li>
                     <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
@@ -651,7 +652,7 @@ export function ApartarVista({
             <div className="flex min-w-0 flex-col">
               <div className="text-center @lg:text-left">
                 <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
-                <h3 className="font-display mt-1 text-2xl text-tinta">{p.referencia}</h3>
+                <h3 className="font-display mt-1 text-2xl text-tinta">{/* unificar-fijo: el nombre de la prenda es un dato, no un título */}{p.referencia}</h3>
                 <p className="text-sm text-tinta/60">{p.color ?? "Sin color"}</p>
               </div>
               <div className="mt-3 flex flex-wrap justify-center gap-1.5 @lg:justify-start" role="group" aria-label="Tallas">
@@ -730,9 +731,11 @@ export function ApartarVista({
         {paso === "ticket" ? (
           <>
             <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-              <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
-                <Bookmark className="h-6 w-6 text-tinta/70" aria-hidden /> Por apartar
-              </h2>
+              <TituloSeccion>
+                <span className="inline-flex items-center gap-2.5">
+                  <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Por apartar
+                </span>
+              </TituloSeccion>
               {prendasEnTicket > 0 && <span className="text-xs text-tinta/60">{prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"}</span>}
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
@@ -785,7 +788,7 @@ export function ApartarVista({
                     <span className="mb-2 flex items-center gap-1.5 text-[11.5px] text-tinta/60">
                       <StickyNote className="h-3.5 w-3.5" aria-hidden /> Nota del apartado (opcional)
                     </span>
-                    <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Viene el sábado, quiere probársela otra vez…" className="h-11 w-full rounded-xl border border-sand bg-transparent px-3 text-sm outline-none focus:border-taupe" />
+                    <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Viene el sábado, quiere probársela otra vez…" className="caja-campo-input h-11 w-full text-sm" />
                   </label>
                 </>
               )}
@@ -815,9 +818,11 @@ export function ApartarVista({
                 ← {apilado ? "Atrás" : "Ticket"}
               </button>
               <div className="anim-revelar text-right">
-                <h2 className="font-display flex items-center justify-end gap-2.5 text-2xl leading-none text-tinta">
-                  <Bookmark className="h-6 w-6 text-tinta/70" aria-hidden /> Apartado
-                </h2>
+                <TituloSeccion className="justify-end">
+                  <span className="inline-flex items-center gap-2.5">
+                    <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Apartado
+                  </span>
+                </TituloSeccion>
                 <p className="mt-1 text-xs text-tinta/60">
                   {prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"} · recoger hasta el {fechaCorta(vence)}
                 </p>
@@ -874,10 +879,10 @@ export function ApartarVista({
                     )}
                   </div>
                   <div className="grid gap-3.5 sm:grid-cols-2">
-                    <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
-                    <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
-                    <Campo etiqueta="Celular · WhatsApp (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${CAMPO} font-mono`} /></Campo>
-                    <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
+                    <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
+                    <Campo etiqueta="Celular · WhatsApp (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                    <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   </div>
                   <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
                     {(["boleta", "factura"] as const).map((k) => (
@@ -889,8 +894,8 @@ export function ApartarVista({
                   </div>
                   {f.comprobante === "factura" && (
                     <div className="grid gap-3.5 sm:grid-cols-2">
-                      <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className={`${CAMPO} font-mono`} /></Campo>
-                      <Campo etiqueta="Razón social" error={ver("razonSocial")} onBlur={tocar("razonSocial")}><input value={f.razonSocial} onChange={(e) => cambiar("razonSocial", e.target.value)} className={CAMPO} /></Campo>
+                      <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                      <Campo etiqueta="Razón social" error={ver("razonSocial")} onBlur={tocar("razonSocial")}><input value={f.razonSocial} onChange={(e) => cambiar("razonSocial", e.target.value)} className="caja-campo-input mt-1.5" /></Campo>
                     </div>
                   )}
                 </fieldset>
@@ -963,15 +968,15 @@ export function ApartarVista({
                     ))}
                   </div>
                   {f.devolucionMedio === "transferencia" ? (
-                    <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   ) : (
-                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   )}
                   <p className="text-xs text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
                 </fieldset>
 
                 <label className={`flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <input type="checkbox" checked={f.acepta} onChange={(e) => cambiar("acepta", e.target.checked)} className="mt-1 accent-tinta" />
+                  <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
                   <span>
                     Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su boleta o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
                     {ver("acepta") && <span className="block text-xs text-rojo-profundo">{ver("acepta")}</span>}
@@ -1092,8 +1097,8 @@ export function ApartarVista({
 
 function Campo({ etiqueta, error, onBlur, children }: { etiqueta: string; error?: string; onBlur?: () => void; children: React.ReactNode }) {
   return (
-    <label className="block" onBlur={onBlur}>
-      <span className="label-cayla text-[10.5px] text-tinta/70">{etiqueta}</span>
+    <label className="campo block" onBlur={onBlur}>
+      <span className="campo-etiqueta">{etiqueta}</span>
       {children}
       {error && <span className="mt-0.5 block text-xs text-rojo-profundo">{error}</span>}
     </label>

@@ -129,7 +129,7 @@ export function AyudaCostoLinea({ ayuda, onUsar }: { ayuda: AyudaCosto | null; o
     contenido = (
       <>
         Costo actual {soles(ayuda.ultimo)} ·{" "}
-        <button type="button" onClick={onUsar} className="text-rojo underline-offset-2 hover:underline">
+        <button type="button" onClick={onUsar} className="btn-enlace">
           Usar
         </button>
       </>

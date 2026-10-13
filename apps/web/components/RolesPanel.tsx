@@ -51,8 +51,11 @@ import {
   type RolVista,
 } from "@/lib/roles-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { AvatarPersona, PilaPersonas } from "@/components/ui/AvatarPersona";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Roles y accesos» (ADR-0161 B). Desde el 2026-10-05 (ADR-0342, propuesta de Felipe): los roles en tarjetas (quiénes lo tienen y
 // los íconos de lo que ve) y, abajo, el rol elegido con sus módulos como baldosas (negra = la ve; tocarla dice qué incluye),
@@ -71,14 +74,6 @@ type Modal =
   | { tipo: "asignar"; rol: RolVista }
   | { tipo: "cuentas"; rol: RolVista };
 
-const iniciales = (n: string) =>
-  n
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 function sinBorrador<T>(b: Record<string, T>, id: string): Record<string, T> {
   const copia = { ...b };
@@ -302,24 +297,14 @@ export function RolesPanel({
                   <p className="text-[13px] text-tinta/60">Ninguna cuenta tiene este rol todavía.</p>
                 ) : (
                   <>
-                    <span className="flex" aria-hidden>
+                    <PilaPersonas mas={Math.max(0, cuentasDelElegido.length - 5)}>
                       {cuentasDelElegido.slice(0, 5).map((c) => (
-                        <span
-                          key={`${c.tipo}:${c.id}`}
-                          className={`-ml-2 grid h-7 w-7 place-items-center rounded-full border-2 border-papel text-[10px] font-semibold first:ml-0 ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}
-                        >
-                          {iniciales(c.nombre)}
-                        </span>
+                        <AvatarPersona key={`${c.tipo}:${c.id}`} personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />
                       ))}
-                      {cuentasDelElegido.length > 5 && (
-                        <span className="-ml-2 grid h-7 w-7 place-items-center rounded-full border-2 border-papel bg-tinta text-[10px] font-semibold text-crema">
-                          +{cuentasDelElegido.length - 5}
-                        </span>
-                      )}
-                    </span>
-                    <button type="button" onClick={() => setModal({ tipo: "cuentas", rol })} className="text-[13px] text-tinta/75 underline decoration-tinta/20 underline-offset-2 hover:text-tinta">
-                      {cuentasDelElegido.length === 1 ? "1 cuenta tiene este rol" : `${cuentasDelElegido.length} cuentas tienen este rol`} →
-                    </button>
+                    </PilaPersonas>
+                    <EnlaceVer onClick={() => setModal({ tipo: "cuentas", rol })}>
+                      {cuentasDelElegido.length === 1 ? "1 cuenta tiene este rol" : `${cuentasDelElegido.length} cuentas tienen este rol`}
+                    </EnlaceVer>
                   </>
                 )}
               </div>
@@ -367,7 +352,7 @@ export function RolesPanel({
               <Desplegable
                 id={`pantalla-principal-${rol.id}`}
                 idEtiqueta={`pantalla-principal-${rol.id}-etiqueta`}
-                forma="caja"
+                forma="campo"
                 className="min-w-[200px]"
                 valor={pantallaPrincipalBorrador ?? ""}
                 onValor={(v) => setPantallaPrincipalBorradores((b) => ({ ...b, [rol.id]: v ? (v as ClaveModulo) : null }))}
@@ -698,16 +683,11 @@ function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolV
         <span className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`} style={{ width: `${Math.round((n / de) * 100)}%` }} />
       </span>
       <span className="flex items-center justify-between gap-2 text-[12.5px] text-tinta/60">
-        <span className="flex" aria-hidden>
+        <PilaPersonas>
           {(cuentas ?? []).slice(0, 4).map((c) => (
-            <span
-              key={`${c.tipo}:${c.id}`}
-              className={`-ml-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-papel text-[9.5px] font-semibold first:ml-0 ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}
-            >
-              {iniciales(c.nombre)}
-            </span>
+            <AvatarPersona key={`${c.tipo}:${c.id}`} personaId={null} nombre={c.nombre} tamano={24} terminal={c.tipo === "terminal"} />
           ))}
-        </span>
+        </PilaPersonas>
         <span>
           {rol.fijo && n === de ? "Ve todo" : `${n} de ${de} módulos`}
           {cuentas !== null && ` · ${cuentas.length === 0 ? "sin cuentas" : cuentas.length === 1 ? "1 cuenta" : `${cuentas.length} cuentas`}`}
@@ -736,7 +716,7 @@ function VistaPreviaMenu({
     c === "suma" ? "anim-revelar rounded bg-verde/15 text-verde-profundo" : c === "quita" ? "text-tinta/40 line-through" : "";
   return (
     <section className="card-cayla px-5 py-4">
-      <h3 className="font-display text-lg text-tinta">Así queda su menú</h3>
+      <TituloSeccion nivel={3}>Así queda su menú</TituloSeccion>
       <p className="mt-0.5 text-xs text-tinta/60">
         {todo && !conCambios ? "Ve todo el menú." : conCambios ? "Así quedará al guardar. Lo marcado es lo que cambia." : "Lo que verá en el lateral al entrar."}
       </p>
@@ -805,9 +785,7 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
         <ul className="h-[320px] overflow-y-auto">
           {filtradas.slice(0, MAX).map((c) => (
             <li key={`${c.tipo}:${c.id}`} className="flex items-center gap-3 border-b border-tinta/5 px-1 py-2.5 text-sm">
-              <span className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}>
-                {iniciales(c.nombre)}
-              </span>
+              <AvatarPersona personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />
               <span className="min-w-0">
                 <span className="block truncate text-tinta">{c.nombre}</span>
                 <span className="block text-xs text-tinta/60">

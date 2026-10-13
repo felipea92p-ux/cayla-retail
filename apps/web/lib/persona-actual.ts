@@ -68,10 +68,9 @@ export type PersonaActualV2 = {
    *  la puerta `exigirModulo`. Si la base aún no tiene la función, son los de hoy (`modulosDeHoy`): nada cambia.
    *  Ya filtrados por la vista (ADR-0275, `modulosEnLaVista`): lo que la cuenta usa AHORA, parada donde está. */
   modulos: readonly ModuloDeCuenta[];
-  /** ADR-0184 (Compras por tienda): las tiendas cuyas Compras ve, registra y paga esta cuenta — `fn_compras_ubicaciones()`:
-   *  su tienda si su rol ve un módulo de Compras, más las que el líder le sumó en `compradores_de_tienda` (la persona de
-   *  Compras que atiende varias, R-10). Vacía para el líder (ve todas, no necesita la lista) y para quien no ve Compras. */
-  tiendasCompra: { id: string; nombre: string }[];
+  // `tiendasCompra` (ADR-0184, `fn_compras_ubicaciones()`) se fue con ADR-0387 y su decisión 45 (Felipe 2026-10-12): quien tiene
+  // un módulo de plata de Compras ve todas las tiendas y paga a nombre de la empresa, en Compras y en Finanzas, así que ninguna
+  // pantalla pregunta ya «con qué tienda pagas» ni la pide (era una RPC y una lectura más en cada carga de quien no es líder).
   /** A qué módulo aterriza esta cuenta al abrir `/` (20260925220000): lo que su rol eligió, o `null` sin preferencia
    *  (la web calcula la primera pantalla que ve, `aterrizajeDe` en `lib/menu.ts`). `null` también si la base todavía
    *  no tiene `fn_mi_pantalla_principal()`: nada cambia, sigue como hoy. Ausente para una terminal (no participa). */
@@ -176,17 +175,6 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   const permisos = permisosDeModulos(rol, modulosDeLaCuenta);
   const modulos = modulosEnLaVista(vista, modulosDeLaCuenta);
 
-  // ADR-0184: solo para quien no es líder y su rol ve un módulo de Compras (el líder ve todas; el resto, ninguna): una
-  // llamada menos en el camino más transitado de la app. Quién entra lo dice el rol; de QUÉ TIENDAS, la base.
-  let tiendasCompra: PersonaActualV2["tiendasCompra"] = [];
-  if (!data.es_lider && permisos.includes("verDineroCompras")) {
-    const { data: ids } = await supabase.rpc("fn_compras_ubicaciones");
-    if (ids && ids.length > 0) {
-      const { data: tiendas } = await supabase.from("ubicaciones").select("id, nombre").in("id", ids).eq("activo", true).order("nombre");
-      tiendasCompra = tiendas ?? [];
-    }
-  }
-
   return {
     nombre: data.nombre ?? "",
     rol,
@@ -202,7 +190,6 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     esAdmin: !terminal && soyAdmin === true,
     permisos,
     modulos,
-    tiendasCompra,
     pantallaPrincipal: !terminal && !errorPantallaPrincipal && typeof pantallaPrincipal === "string" ? pantallaPrincipal : null,
   };
 });

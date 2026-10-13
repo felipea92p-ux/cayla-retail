@@ -14,6 +14,9 @@
  *     definiciones fijas del ADR-0160. La integrante es la ÚNICA que cambia, a propósito (B2d): cierra caja, ajusta stock
  *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor. El descuento por etiqueta lo da quien
  *     ve el módulo Etiquetas (ADR-0293, 20261001130000; antes solo el líder): el rol sembrado de Integrante no lo ve.
+ *   · Las 6 decisiones de Compras (P1–P6, ADR-0161), con lo que cambió ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»):
+ *     con el módulo Proveedores se ven los montos de compras del proveedor (P3; antes no) y el saldo a favor de un proveedor
+ *     lo lee la plata de Proveedores, ya no la llave de los tres (P1).
  *   · Terminales sin tipo (20260923040000): se crean con tienda + nombre + rol; el tipo es legado.
  *   · Suspender y reactivar conservan el rol.
  *
@@ -820,11 +823,12 @@ caso(
   }
 );
 caso(
-  "P1 · las ESCRITURAS de Compras ya no usan la llave de los tres; la de los tres queda solo para leer (faltantes sin nota, saldo a favor)",
+  "P1 · las ESCRITURAS de Compras ya no usan la llave de los tres; la de los tres queda solo para leer los faltantes sin nota; ADR-0387 (Felipe 2026-10-12): el saldo a favor de un proveedor lo lee la plata de Proveedores (fn_ve_plata_de_proveedores), ya no la llave de los tres",
   `select string_agg(proname, ',' order by proname) from pg_proc
     where pronamespace = 'retail'::regnamespace and prokind = 'f' and proname <> 'fn_puede_registrar_compras'
-      and pg_get_functiondef(oid) like '%fn_puede_registrar_compras()%';`,
-  "compras_nota_pendiente,fn_proveedor_creditos"
+      and pg_get_functiondef(oid) like '%fn_puede_registrar_compras()%';
+   select (pg_get_functiondef('retail.fn_proveedor_creditos(uuid,integer)'::regprocedure) like '%fn_ve_plata_de_proveedores()%')::text;`,
+  "compras_nota_pendiente\ntrue"
 );
 caso(
   "P2 · Recibir: quien ve el dinero de Compras lee los montos de lo que recibe; quien solo recibe, no; y ninguno mira otra sede",
@@ -846,7 +850,7 @@ caso(
   "t,t,t,t,t\n0,t"
 );
 caso(
-  "P3 · Proveedores: con el módulo da de alta, edita, archiva, reactiva y ve devoluciones; NO los montos ni lo del Taller; sin el módulo, nada",
+  "P3 · Proveedores: con el módulo da de alta, edita, archiva, reactiva, ve devoluciones y —ADR-0387 (Felipe 2026-10-12; antes NO)— los montos de compras del proveedor; NO lo del Taller; sin el módulo, nada (tampoco los montos)",
   conRol("Proveedores", ["proveedores"]) +
     como(MICAELA_AUTH) +
     `select retail.registrar_proveedor('ZZ Proveedor del rol') as prov \\gset\n` +
@@ -862,16 +866,19 @@ caso(
     como(FELIPE_AUTH) + `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` +
     como(MICAELA_AUTH) +
     `select pg_temp.intento(format('select retail.desactivar_proveedor(%L)', :'prov'));\n` +
+    `select pg_temp.intento(format('select * from retail.fn_proveedor_metricas_compras(%L)', :'prov'));\n` +
     `set local role authenticated;\n` +
     `with u as (update retail.proveedores set contacto = 'Eva' where id = :'prov' returning 1) select count(*) from u;`,
   (s) => {
     const l = s.split("\n");
     return (
       l[0] === "SIN_ERROR" && l[1] === "SIN_ERROR" && l[2] === "SIN_ERROR" && l[3] === "0" &&
-      l[4].startsWith("42501|") && l[4].includes("Por pagar") && // montos de Compras: no
+      l[4] === "SIN_ERROR" && // ADR-0387 (Felipe 2026-10-12): los montos de compras del proveedor, con su módulo (antes: 42501 «Por pagar»)
       !l[5].startsWith("SIN_ERROR") && l[5].includes("líder") && // insumos del Taller: solo el líder
       l[6] === "1" &&
-      l[7].startsWith("42501|") && l[7].includes("Proveedores") && l[8] === "0"
+      l[7].startsWith("42501|") && l[7].includes("Proveedores") &&
+      l[8].startsWith("42501|") && l[8].includes("Proveedores") && // sin el módulo, tampoco los montos (el aviso nombra Proveedores)
+      l[9] === "0"
     );
   }
 );

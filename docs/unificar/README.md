@@ -24,16 +24,42 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 0 | [aviso.md](aviso.md) |
 | Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 0 | [buscador.md](buscador.md) |
 | Barra apilada (`grafico.barra`) | `<BarraApilada>` (`components/ui/BarraApilada.tsx`): la píldora con pista de arena, el movimiento de Compras (entra tramo a tramo, se reacomoda, el tramo apuntado se estira y los demás bajan), tres altos (12 · 8 · 4 px), 24 px para el mouse y, si responde, cada tramo es un botón con su nombre | 2026-10-09 (tocando) | 0 | [grafico.barra.md](grafico.barra.md) |
+| Campos y combos (`campo`, `combo`) | La caja que se enciende (`caja-cayla caja-campo`): `CampoTexto`, `CampoMonto`, `CampoFecha`, `Desplegable`, `ComboBuscable`, `ComboResponsable`; la lista de todo combo con hilo de canto y ✓ | 2026-10-13 (tocando) | 0 · 3 | [campo-combo.md](campo-combo.md) |
+| Filtro que se abre (`filtro`) | `<DesplegablePildora>`: la píldora con su nombre; puesta, rellena de tinta con su ✕ | 2026-10-13 (tocando) | 0 | [campo-combo.md](campo-combo.md) |
+| Título de campo (`etiqueta-campo`) | La de `<Campo>`: versalitas que se oscurecen con su caja | 2026-10-13 (tocando) | 0 | [etiqueta-campo.md](etiqueta-campo.md) |
+| Casillas (`casilla`) | `<Casilla>` (el ✓ se dibuja) e `<Interruptor>` (en tinta) | 2026-10-13 (tocando) | 0 | [casilla.md](casilla.md) |
+| Tablas (`tabla`) | `<Tabla>` con movimiento: cascada, hilo de canto y «›», fila abierta, recién guardada | 2026-10-13 (tocando) | 1 | [tabla.md](tabla.md) |
+| Títulos de sección (`titulo-seccion`) | `<TituloSeccion>`, `<TituloGrupo>`, `<SeparadorDia>` | 2026-10-13 (tocando) | 0 | [titulo-seccion.md](titulo-seccion.md) |
+| Enlaces (`enlace`) | `btn-enlace` con el hilo que se llena; `<EnlaceVer>` en versalitas rojas con la flecha que avanza | 2026-10-13 (tocando) | 0 | [enlace.md](enlace.md) |
+| Paginación (`paginacion`) | `<Paginas>`: la píldora que se desliza | 2026-10-13 (tocando) | 0 | [paginacion.md](paginacion.md) |
+| Avatares (`avatar`) | `<AvatarPersona>` en cuatro tamaños y `<PilaPersonas>` | 2026-10-13 (tocando) | 0 | [avatar.md](avatar.md) |
 
 ## Propuestas esperando decisión
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| — | ninguna por ahora (la barra apilada se decidió el 2026-10-09) | — | — |
+| — | ninguna por ahora: las rondas 6, 7 y 8 se decidieron el 2026-10-13 (sus fragmentos siguen en `propuestas/` y sus fuentes en [rondas/6-8](rondas/6-8/README.md)) | — | — |
+
+**La migración de las rondas 6–8 (2026-10-13):** la deuda bajó de 258 archivos a 4 en un día (Caja, Ventas, Compras, Producción,
+Inventario, Catálogo, Colaboradores y el resto), sin cambiar qué hace ningún botón. Lo que queda, y lo que pide una decisión de Felipe:
+
+1. **Tres combos que la pieza no sabe hacer** (`combo`): las sugerencias de la pistola en Llegó mercadería y en Recepción del taller (con su
+   muestra de color y el Enter del lector) y el buscador de facturas de Registrar nota de crédito (chips, montos y filtros). ¿Se les hace
+   una variante de la lista con fotos, o se declaran excepción?
+2. **La tabla de Conteo** (`tabla`, `ListaConteo`): sus filas son `<tr>` memorizadas de `FilaConteo` con `colgroup`; pasarla a la rejilla
+   obliga a reescribir la fila. Pendiente de una tanda propia.
+3. **Los filtros de Frescura** (marcados `unificar-fijo`): «Estado» usa grupos con título que `DesplegablePildora` no dibuja. ¿Se le
+   enseña a la píldora a dibujar grupos, o Frescura se queda con su caja?
+4. **«Desactivar color»** en Colores va dentro de una frase: quedó en `btn-enlace` (sin el rojo de `accion.eliminar`). Si se quiere rojo,
+   hay que sacarlo de la frase. En Categorías sí pasó a `btn-peligro` (va en el pie, junto a Guardar).
+5. **Los conteos de los títulos pasaron a la derecha** («Pendientes (3)» → «Pendientes» con «3» a la derecha, `dato` de `TituloSeccion`);
+   en las columnas del tablero de Órdenes y en los grupos de las hojas, el número queda al lado del nombre (`cuenta` de `TituloGrupo`).
+6. **Las acciones chicas que eran versalitas rojas** de 10–11 px («Agregar…», «Cambiar», «Repartir…») son ahora `btn-enlace` de 12 px en
+   letra normal. Si alguna debía llamar más la atención, es un `<Boton>`, no un enlace.
 
 ## Por analizar (las próximas rondas)
 
-El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 12 decididas y 29 por analizar (el 2026-10-09). Las cifras son del censo del 2026-10-06 **sin
+El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 22 decididas y 19 por analizar (el 2026-10-13). Las cifras son del censo del 2026-10-06 **sin
 depurar**: en la ronda 1 la depuración las bajó mucho (pestañas, de 25 formas a 18 reales; cifras, de 17 a 7), así que sirven para ordenar,
 no como veredicto. El orden es la recomendación de Claude: primero lo que la colaboradora lee o toca en más pantallas.
 
@@ -50,12 +76,12 @@ en la página de elegir, nunca por una descripción.
 | ~~3~~ | ~~`vacio`~~ | Decidida el 2026-10-08 (ronda 5): `<Vacio>` | | |
 | ~~4~~ | ~~`aviso`~~ | Decidida el 2026-10-08 (ronda 5): `<Aviso>` en franja, la «i» de la nota, el error en su lugar | | |
 | ~~5~~ | ~~`buscador`~~ | Decidida el 2026-10-08 (ronda 5): `<Buscador>` | | |
-| 6 | `combo` | Desplegables | 26 · 39 | La regla de buscar y paginar ya es una (ADR-0209); falta la cara. `SelectFin` es de Finanzas (ADR-0195) |
-| 7 | `tabla` | Tablas | 30 · 36 | `<Tabla>` existe; la de Finanzas (`fin-tabla`) queda aparte por ADR-0195 |
-| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 12 · 18 / 10 · 34 | Se corre con `--escenarios`: viven en las hojas |
-| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 33 · 54 | Muchas formas; sin pieza del sistema hoy |
+| 6 | `combo` | Desplegables | 42 sin depurar → **7 reales** (las 23 píldoras de filtro son una sola pieza) | **Decidida el 2026-10-13 (ronda 6)** |
+| 7 | `tabla` | Tablas | 39 sin depurar → **4 reales** + `fin-tabla` | **Decidida el 2026-10-13 (ronda 7)** |
+| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 8 / 5 (censo parcial del 2026-10-12) + el código: 5 caras de campo en una misma hoja | **Decidida el 2026-10-13 (ronda 6)**: campo y combo en UNA pregunta |
+| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Decidida el 2026-10-13 (ronda 7)**: bloque, grupo y separador de día |
 | 10 | `accion.ver`, `accion.filtrar`, `accion.exportar`, `accion.eliminar` | Ver el detalle, filtrar, exportar, quitar o anular | 13 / 4 / 4 / 4 | `accion.eliminar` toca dinero y comprobantes cuando anula: migrar no cambia qué hace |
-| 11 | `casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
+| 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
 | 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
 | — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
@@ -75,6 +101,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `1b5ac53a`, cuenta `terminal-ventas` (el mostrador), con escenarios, familias `vacio,aviso,buscador` | 60 de 122 (las demás: sin acceso) | 3 | 6 buscadores en 24 pantallas (Facturación, Historial, Cambios/Devoluciones, Clientes, Proforma), 8 avisos (el de Facturación «más de 1 hora sin llegar a SUNAT», Caja, Sin conexión) y 5 vacíos |
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `63b64ba7`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion` (adelanto de la ronda 6, sin depurar) | 243 de 250 | 3 | 42 formas de combo en 118 pantallas, 39 de tabla en 70, 46 de título de sección en 151. Falta depurar y la pasada del mostrador; queda en `apps/web/unificar/.salida/r6-admin/` (fuera de git) |
 | 2026-10-09 | `claude/keen-feistel-35a4cb` @ `ef8e017e`, cuentas Admin y Admin-Taller, todo el ERP con los escenarios de Compras, familia `grafico` (el motor aprendió a ver una barra apilada hecha con cajas: antes solo veía SVG) | 180 de 188 | 1 | 10 formas de gráfico en el censo; la barra apilada son 4 huellas (dos de ellas, la misma barra vista tras un modal). Quince archivos la dibujan a mano: Notas de crédito, Proformas, Producción, Caja, el cierre y Eficiencia no salen con el seed y se contaron leyendo el código (Facturación e Historial sí salen). Frescura (otra rama) se midió aparte contra su worktree (`--otra-obra`). Después de migrar «Deuda por vencimiento», el censo la muestra con la huella de P; «Deuda por proveedor» sigue a mano |
+| 2026-10-12 | `claude/unificar-componentes-animaciones-f811a1` @ `6bffcd43c`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion,campo,etiqueta-campo,casilla` (rondas 6 y 7) | **47 de 274** (incompleto) | 6 | **Se cortó a la mitad:** el disco se llenó, Docker se apagó solo (`no space left on device`) y la base local cayó; desde ahí todas las rutas mandaban al login. Las rondas 6 y 7 se armaron con este censo parcial (campo, etiqueta-campo, casilla) y con el completo del 2026-10-07 (combo, tabla, titulo-seccion). La pasada de `terminal-ventas` no alcanzó a correr (la cuenta no existía en la base local y `tema:cuentas` necesita Docker) |
 
 ## Cómo se agrega una fila
 

@@ -122,7 +122,7 @@ export function MatrizVariantes({
                             type="button"
                             onClick={() => setViendo(color)}
                             aria-label={`Ver o quitar las fotos de ${nombreDe(color)}`}
-                            className="w-fit text-left text-[11px] font-normal text-taupe underline decoration-tinta/20 underline-offset-2 hover:text-tinta"
+                            className="btn-enlace w-fit text-left text-[11px] font-normal"
                           >
                             {textoFotosDeFila(suyas.length, false)}
                           </button>

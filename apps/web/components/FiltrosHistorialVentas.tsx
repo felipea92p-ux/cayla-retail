@@ -231,7 +231,7 @@ export function FiltrosHistorialVentas({
             type="button"
             onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
             aria-pressed={periodo === "todo"}
-            className={`label-cayla pb-2 text-[11px] underline-offset-2 hover:text-rojo hover:underline ${periodo === "todo" ? "text-tinta" : "text-tinta/65"}`}
+            className="pildora-cayla mb-1"
           >
             Todo el historial
           </button>

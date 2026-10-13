@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { PieTarjeta } from "@/components/existencias/PieTarjeta";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { celdaTarjeta, destinoDeTalla, colorDeEntrada, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar, type CeldaTarjeta } from "@/lib/existencias-tarjeta-compacta";
+import { celdaTarjeta, destinoDeTalla, colorDeEntrada, lineaGuardadas, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { textoHoyDePrenda } from "@/lib/existencias-hoy";
 import { botonDeTarjeta, opcionesDeMas, type ClaveAccion } from "@/lib/existencias-acciones";
@@ -13,7 +13,6 @@ import { mejorOrigen } from "@/lib/existencias-flujos";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import type { MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
-import { filasDelLugar, type LugarVista } from "@/lib/existencias-lugar";
 
 /* ====================================================================
    Existencias en tarjetas (maqueta `docs/maquetas/existencias-tarjetas-2026-09/`)
@@ -25,11 +24,13 @@ import { filasDelLugar, type LugarVista } from "@/lib/existencias-lugar";
    sus pastillas tiene que dar la cifra de «Para hoy» (`lib/existencias-tarjetas.ts`, ADR-0331 act. c). Qué junta cada tarjeta y en
    qué orden van lo decide esa lógica, no este componente.
 
-   LA TARJETA COMPACTA (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`, contrato en su `LOGICA.md`): una tabla con una
-   columna por talla y dos filas, «En el piso» y «Almacén» (lo LIBRE). La columna que falta colgar lleva el piso en ámbar; la AGOTADA
-   (nada libre en la sede) va entera en rojo suave. Lo dañado y lo apartado van en dos insignias junto al color. TODA la tarjeta abre
-   el cajón en la talla de entrada; tocar una talla con algo en almacén lo abre listo para colgar esa talla (`lib/existencias-tarjeta-compacta.ts`).
-   Reemplaza los botones de talla con «N piso» (ADR-0344, 2026-10-05), que no decían cuánto quedaba atrás.
+   LA TARJETA COMPACTA (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`, contrato en su `LOGICA.md`): una columna por talla
+   con lo LIBRE. Desde el 2026-10-12 (ADR-0391, maqueta `existencias-almacen-cajon-2026-10`) cada columna lleva lo COLGADO en grande
+   y debajo «+N guardadas» (`lineaGuardadas`): antes eran dos filas de 13 px con rótulos a la izquierda, y para que se leyeran nació
+   un selector «Piso · Almacén · Ambos» que se guardaba por computadora y escondía el otro lugar; se fue. La columna que falta colgar va
+   en ámbar; la AGOTADA (nada libre en la sede) en rojo suave. Lo dañado y lo apartado van en dos insignias junto al color. TODA la
+   tarjeta abre el cajón en la talla de entrada; tocar una talla con algo en almacén lo abre listo para colgar esa talla
+   (`lib/existencias-tarjeta-compacta.ts`). Reemplaza los botones de talla con «N piso» (ADR-0344, 2026-10-05), que no decían cuánto quedaba atrás.
 
    EL PIE (2026-10-07): lo que toca con su NOMBRE a la vista («Colgar en el piso», que abre siempre «Colgar varias»; «Se acabó: L»;
    «✓ Todo en el piso») y «Más ⌄», un menú que se abre con un clic (`PieTarjeta`, `lib/existencias-acciones.ts`). Reemplaza la percha
@@ -66,115 +67,93 @@ const TONO_PUNTO = { ambar: "bg-ambar", pizarra: "bg-pizarra", tinta: "bg-tinta"
 const TONO_INSIGNIA = { ambar: "text-ambar", pizarra: "text-pizarra", tinta: "text-tinta" } as const;
 type SimboloFiltro = NonNullable<MarcaDelFiltro["simbolo"]>;
 
-/** El fondo de cada celda según el estado de su columna (`celdaTarjeta`): la agotada entera en rojo suave, la que falta solo en la
- *  fila del piso en ámbar. Un 0 que no es problema se ve tenue. */
-function claseCelda(c: CeldaTarjeta, fila: "piso" | "almacen"): string {
-  if (c.estado === "agotada") return "bg-rojo/[0.11] font-semibold text-rojo-profundo";
-  if (fila === "piso" && c.estado === "falta") return "rounded-md bg-ambar/[0.14] font-semibold text-ambar-profundo";
-  return (fila === "piso" ? c.piso : c.almacen) === 0 ? "font-normal text-taupe/55" : "font-semibold text-tinta";
-}
-
-/** La tabla de la tarjeta: una columna por talla y dos filas, «En el piso» y «Almacén» (lo LIBRE). Cada columna es tocable: su
- *  cabecera es el botón (teclado y lector de pantalla); las celdas responden al mismo toque. */
-function TablaTallas({
+/** Las columnas de la tarjeta (ADR-0391): una por talla, con el nombre, lo COLGADO en grande y debajo «+N en almacén»
+ *  (`lineaGuardadas`). Ámbar = falta colgar (0 colgadas, algo guardado); rojo = se acabó en la sede. Cada columna es un botón: abre la
+ *  talla (lista para colgar si tiene algo guardado). Donde la sede no separa piso y almacén, el número grande es lo disponible y no hay
+ *  línea chica. */
+function ColumnasTallas({
   tallas,
   separa,
-  lugar,
   marcaDe,
   marcaDelFiltro,
   onTalla,
 }: {
   tallas: readonly FilaExistencias[];
   separa: boolean;
-  /** «Piso» o «Almacén» dejan UNA fila con los números grandes; «Ambos», las dos de siempre (`lib/existencias-lugar.ts`). */
-  lugar: LugarVista;
   marcaDe: (f: FilaExistencias) => MarcaTalla;
   marcaDelFiltro: MarcaDelFiltro | null;
   onTalla: (f: FilaExistencias) => void;
 }) {
-  const celdas = tallas.map((f) => celdaTarjeta(f, separa));
-  // La columna bajo el mouse se ilumina entera, apenas y con un fundido suave (Felipe, 2026-10-07: «sutil y no brusco»): toda la columna es la talla y toda abre su «Colgar».
-  const [sobre, setSobre] = useState<string | null>(null);
-  const entra = (id: string) => ({ onMouseEnter: () => setSobre(id), onMouseLeave: () => setSobre((s) => (s === id ? null : s)) });
-  const luz = (f: FilaExistencias, c: CeldaTarjeta) => (sobre === f.varianteId ? (c.estado === "agotada" ? "!bg-rojo/[0.15]" : "bg-hueso/45") : "");
   const Simbolo: SimboloFiltro | undefined = marcaDelFiltro?.simbolo;
   const tono = marcaDelFiltro?.tono ?? "ambar";
-  const atenua = (f: FilaExistencias) => (marcaDe(f) === "tenue" ? "opacity-40" : "");
-  const filas = filasDelLugar(lugar, separa);
-  // Una sola fila (un lugar elegido): la cifra se lee de lejos, en el piso de venta, sin acercarse a la pantalla.
-  const grande = separa && filas.length === 1;
   return (
-    <table data-guia="existencias.tallas" className="w-full table-fixed border-collapse text-center text-[13px] tabular-nums">
-      <thead>
-        <tr>
-          <th className="w-[54px]" aria-hidden />
-          {tallas.map((f, i) => {
-            const c = celdas[i];
-            const nombre = f.talla ?? "Única";
-            const marca = marcaDe(f);
-            const lectura = separa
-              ? `Talla ${nombre}: ${c.piso} en el piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
-              : `Talla ${nombre}: ${c.piso} disponibles`;
-            return (
-              <th key={f.varianteId} scope="col" {...entra(f.varianteId)} className={`h-5 rounded-t-[7px] border-b border-sand p-0 transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${c.estado === "agotada" ? "bg-rojo/[0.11]" : ""} ${luz(f, c)} ${atenua(f)}`}>
-                <button
-                  type="button"
-                  onClick={() => onTalla(f)}
-                  title={lectura}
-                  aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${marcaDelFiltro?.etiqueta ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}`}
-                  className={`relative inline-flex h-5 w-full cursor-pointer items-center justify-center text-[11px] font-semibold hover:text-tinta ${c.estado === "agotada" ? "text-rojo-profundo" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}
-                >
-                  {nombre}
-                  {(marca === "cumple" || marca === "principal") &&
-                    (Simbolo ? (
-                      <span aria-hidden className={`ml-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.25px_currentColor] ${TONO_INSIGNIA[tono]}`}>
-                        <Simbolo aria-hidden className="h-2.5 w-2.5" strokeWidth={2.6} />
-                      </span>
-                    ) : (
-                      <i aria-hidden className={`ml-1 h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
-                    ))}
-                </button>
-              </th>
-            );
-          })}
-        </tr>
-      </thead>
-      <tbody>
-        {filas.map((fila, r) => (
-          <tr key={fila.clave} className={r > 0 ? "border-t border-sand/60" : ""}>
-            <th scope="row" className={`whitespace-nowrap text-left text-[10.5px] font-medium text-taupe ${grande ? "h-10" : "h-[22px]"}`}>
-              {fila.texto}
-            </th>
-            {tallas.map((f, i) => {
-              const c = celdas[i];
-              const ultima = r === filas.length - 1;
-              return (
-                <td
-                  key={f.varianteId}
-                  {...entra(f.varianteId)}
-                  // La celda abre la talla y el clic no sigue a la tarjeta (que abriría otra talla encima).
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTalla(f);
-                  }}
-                  title={`Talla ${f.talla ?? "Única"}`}
-                  className={`cursor-pointer px-0.5 ${grande ? "h-10 text-[19px] leading-none" : "h-[22px]"} transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${claseCelda(c, fila.clave)} ${ultima ? "rounded-b-[7px]" : ""} ${luz(f, c)} ${atenua(f)}`}
-                >
-                  {c.estado === "agotada" && (fila.clave === "piso" || grande) ? "—" : fila.clave === "piso" ? c.piso : c.almacen}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div data-guia="existencias.tallas" role="group" aria-label="Tallas" className="grid auto-cols-fr grid-flow-col gap-1">
+      {tallas.map((f) => {
+        const c = celdaTarjeta(f, separa);
+        const nombre = f.talla ?? "Única";
+        const marca = marcaDe(f);
+        const linea = lineaGuardadas(c, tallas.length);
+        const lectura = separa
+          ? `Talla ${nombre}: ${c.piso} en piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
+          : `Talla ${nombre}: ${c.piso} disponibles`;
+        // La columna entera dice su estado: rojo suave si se acabó, ámbar si falta colgar; las demás, sin fondo.
+        const fondo =
+          c.estado === "agotada"
+            ? "border-rojo/25 bg-rojo/[0.10] text-rojo-profundo"
+            : c.estado === "falta"
+              ? "border-ambar/30 bg-ambar/[0.13] text-ambar-profundo"
+              : "border-transparent text-tinta";
+        // «+2 en almacén»: el número en negrita, las palabras en taupe; en ámbar y en rojo toda la línea lleva el color de la columna.
+        const [numero, ...palabra] = linea.texto.split(" ");
+        return (
+          <button
+            key={f.varianteId}
+            type="button"
+            onClick={(e) => {
+              // La columna abre la talla y el clic no sigue a la tarjeta (que abriría otra talla encima).
+              e.stopPropagation();
+              onTalla(f);
+            }}
+            title={lectura}
+            aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${marcaDelFiltro?.etiqueta ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}`}
+            className={`grid cursor-pointer gap-px rounded-[9px] border px-0.5 pb-1.5 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
+          >
+            <span className={`inline-flex items-center justify-center gap-1 text-[11px] font-semibold tracking-[0.02em] ${c.estado === "agotada" ? "" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
+              {nombre}
+              {(marca === "cumple" || marca === "principal") &&
+                (Simbolo ? (
+                  <span aria-hidden className={`grid h-3.5 w-3.5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.25px_currentColor] ${TONO_INSIGNIA[tono]}`}>
+                    <Simbolo aria-hidden className="h-2.5 w-2.5" strokeWidth={2.6} />
+                  </span>
+                ) : (
+                  <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
+                ))}
+            </span>
+            <span className={`mt-0.5 text-[22px] leading-[1.05] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe" : "font-semibold"}`}>
+              {c.estado === "agotada" ? "—" : c.piso}
+            </span>
+            {separa && (
+              <span className={`whitespace-nowrap text-[10.5px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
+                {c.estado === "normal" && !linea.cero ? (
+                  <>
+                    <b className="font-bold text-tinta">{numero}</b>
+                    {palabra.length > 0 ? ` ${palabra.join(" ")}` : ""}
+                  </>
+                ) : (
+                  linea.texto
+                )}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 export function ExistenciasTarjetas({
   modelos,
   separa,
-  lugar = "ambos",
   puedeReponer,
   mostrarMarca,
   tallasDePrenda,
@@ -195,8 +174,6 @@ export function ExistenciasTarjetas({
 }: {
   modelos: ModeloPrendas<FilaExistencias>[];
   separa: boolean;
-  /** Qué lugar muestra la tabla de cada tarjeta: el piso, el almacén o ambos (de entrada). */
-  lugar?: LugarVista;
   puedeReponer: boolean;
   mostrarMarca: boolean;
   /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
@@ -207,8 +184,8 @@ export function ExistenciasTarjetas({
   /** «Ajustar stock» del menú «Más», solo si el rol puede: abre el panel de la talla de entrada ya en su paso. */
   puedeAjustar?: boolean;
   onAjustar?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
-  /** «Ver ficha» del menú «Más»: el panel en su ficha. */
-  onFicha?: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** «Ver ficha» del menú «Más»: abre el modal de la prenda (la foto cruza desde la miniatura, `origen`). */
+  onFicha?: (prenda: PrendaAgrupada<FilaExistencias>, origen?: HTMLElement | null) => void;
   /** «Subir a almacén»: igual, del lado contrario. */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   /** «Enviar a otra sede», solo para quien ve Traslados. */
@@ -224,10 +201,10 @@ export function ExistenciasTarjetas({
   /** Con solo «Hoy» o «Condición» puestos, TODAS las tallas del color (las que no cumplen se atenúan, como la maqueta) en vez de
    *  solo las que cumplen. Sin ella, la tarjeta muestra las tallas que dejan los filtros. */
   tallasCompletas?: (prenda: PrendaAgrupada<FilaExistencias>) => FilaExistencias[];
-  /** Tocar la tarjeta (o una talla sin nada en almacén): abre el panel de ESA talla. */
-  onAbrirTalla: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
-  /** Tocar una talla con algo en almacén: abre el panel de ESA talla ya en el paso «Colgar en el piso». */
-  onColgarTalla?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
+  /** Tocar la tarjeta (o una talla sin nada en almacén): abre el modal de ESA talla. `origen` es la miniatura, para que la foto cruce. */
+  onAbrirTalla: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias, origen?: HTMLElement | null) => void;
+  /** Tocar una talla con algo en almacén: abre el modal de ESA talla ya en el paso «Colgar en el piso». */
+  onColgarTalla?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias, origen?: HTMLElement | null) => void;
 }) {
   // El color que se ve en cada tarjeta. Sin elegir, el primero de la lista; si el elegido ya no está (un filtro, un guardado), también.
   const [elegida, setElegida] = useState<Record<string, string>>({});
@@ -259,6 +236,8 @@ export function ExistenciasTarjetas({
               tallasDePrenda?.get(p.clave) ?? p.tallas.length
             );
         const origen = () => tarjetas.current.get(m.clave) ?? document.body;
+        // La miniatura de la tarjeta: la foto del modal cruza desde ahí (ADR-0391).
+        const miniatura = () => tarjetas.current.get(m.clave)?.querySelector<HTMLElement>("[data-miniatura]") ?? null;
         // Algo libre en el almacén de algún color para mandar a otra sede (el traslado sale del almacén; `lineasParaTrasladar`).
         const tallasDelModelo = m.colores.flatMap((c) => c.tallas);
         const hayEnAlmacen = tallasDelModelo.some((t) => (t.almacenDisponible ?? t.disponible) > 0);
@@ -284,7 +263,7 @@ export function ExistenciasTarjetas({
           hayEnAlmacen,
           pedible: agotadaPedible ? (agotadaPedible.talla ?? "Única") : null,
         });
-        const alBoton = () => (boton.tipo === "colgar" ? onColgarVarias(p) : cumplen[0] && onAbrirTalla(p, cumplen[0]));
+        const alBoton = () => (boton.tipo === "colgar" ? onColgarVarias(p) : cumplen[0] && onAbrirTalla(p, cumplen[0], miniatura()));
         const alElegir = (clave: ClaveAccion) => {
           switch (clave) {
             case "subir":
@@ -296,14 +275,14 @@ export function ExistenciasTarjetas({
             case "ajustar":
               return entrada && onAjustar?.(p, entrada);
             case "ficha":
-              return onFicha?.(p);
+              return onFicha?.(p, miniatura());
           }
         };
         // Un toque en cualquier parte de la tarjeta abre el cajón en la talla que más importa (la del filtro, o la primera que falta
         // en el piso, o la primera agotada, o la primera). Tocar una TALLA abre el cajón listo para colgar esa talla (`destinoDeTalla`).
-        const abrirEntrada = () => entrada && onAbrirTalla(p, entrada);
+        const abrirEntrada = () => entrada && onAbrirTalla(p, entrada, miniatura());
         const alTocarTalla = (f: FilaExistencias) =>
-          destinoDeTalla(f, { separa, puedeReponer }) === "colgar" && onColgarTalla ? onColgarTalla(p, f) : onAbrirTalla(p, f);
+          destinoDeTalla(f, { separa, puedeReponer }) === "colgar" && onColgarTalla ? onColgarTalla(p, f, miniatura()) : onAbrirTalla(p, f, miniatura());
         return (
           <article
             key={m.clave}
@@ -331,7 +310,7 @@ export function ExistenciasTarjetas({
           >
             {/* Foto (o su categoría sobre su color), nombre, los colores con el nombre del que se ve (y lo dañado o apartado) y el precio. */}
             <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5">
-              <span className="block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
+              <span data-miniatura className="block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
                 {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={80} height={92} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} />}
               </span>
               <span className="min-w-0">
@@ -379,8 +358,8 @@ export function ExistenciasTarjetas({
             </div>
             <span className="sr-only">{separa && <EstadoParaLector prenda={p} />}</span>
 
-            {/* La tabla: una columna por talla, «En el piso» y «Almacén». Ámbar = falta colgar; rojo = se acabó. */}
-            <TablaTallas tallas={tallasVista} separa={separa} lugar={lugar} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
+            {/* Las columnas: una por talla, lo colgado en grande y «+N en almacén» debajo. Ámbar = falta colgar; rojo = se acabó. */}
+            <ColumnasTallas tallas={tallasVista} separa={separa} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
 
             {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
             {recortada && (

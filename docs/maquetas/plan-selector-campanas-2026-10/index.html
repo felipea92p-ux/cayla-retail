@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campañas del Plan</title>
+<style>
+  /* Spike: el selector de campañas del Plan como el CALENDARIO de Etiquetas, con «Armar plan» a un toque, y «Campaña nueva» para lo que no está.
+     Tokens de la paleta CAYLA (globals.css / tema.css). Datos: las campañas de Etiquetas de la base local (fechas de feriados, nada privado). */
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #ddd2c0; --tinta: #1a1a18; --taupe: #805c4c;
+    --rojo: #b8412d; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --sombra: #1a1a18;
+  }
+  :root[data-tema="oscuro"] {
+    --crema: #1a1a18; --papel: #22211e; --hueso: #2a2925; --sand: #3a3732; --tinta: #f5f0e8; --taupe: #c9a998;
+    --rojo: #d9654f; --verde: #93b384; --ambar: #d6a861; --pizarra: #9db0c2; --sombra: #000;
+  }
+  * { box-sizing: border-box }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "DM Sans", sans-serif }
+  button, input { font: inherit; color: inherit }
+  button { cursor: pointer }
+  :focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px }
+  h1, h2, h3 { font-family: "EB Garamond", ui-serif, Georgia, serif; font-weight: 600; margin: 0; line-height: 1.1 }
+  p { margin: 0 }
+  .etq { font: 600 11px/1.3 ui-sans-serif, system-ui; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe) }
+  .suave { color: color-mix(in srgb, var(--tinta) 64%, transparent) }
+  .envoltura { max-width: 1180px; margin: 0 auto; padding: 28px 16px 72px; display: grid; gap: 22px }
+  .mandos { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center }
+  .mandos .grupo { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
+  .pildora { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid var(--sand); padding: 5px 14px; font-size: 13px; font-weight: 600; color: var(--taupe); background: transparent; white-space: nowrap }
+  .pildora[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema) }
+  .tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 18px 20px }
+  .dos { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start }
+  @media (max-width: 900px) { .dos { grid-template-columns: 1fr } }
+
+  /* El disparador: la pastilla de la cabecera del Plan */
+  .pastilla { display: inline-flex; align-items: center; gap: 10px; height: 40px; border: 1px solid var(--sand); border-radius: 8px; padding: 0 12px; background: transparent;
+    font: 600 11px ui-sans-serif; letter-spacing: .14em; text-transform: uppercase }
+  .pastilla[aria-expanded="true"] { border-color: var(--rojo) }
+  .lista { margin-top: 8px; width: min(520px, 100%); background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; box-shadow: 0 16px 40px color-mix(in srgb, var(--sombra) 30%, transparent); overflow: hidden }
+  .lista .buscar { padding: 10px; border-bottom: 1px solid var(--sand) }
+  .lista .buscar input { width: 100%; border: 1px solid var(--sand); background: var(--hueso); border-radius: 8px; padding: 8px 10px }
+  .lista .cuerpo { max-height: 470px; overflow: auto; padding: 6px }
+  .grupo-t { padding: 12px 10px 4px; font: 600 11px ui-sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe) }
+  .fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 10px; border-radius: 10px }
+  .fila:hover { background: var(--hueso) }
+  .fila.actual { background: var(--hueso); box-shadow: inset 3px 0 0 var(--rojo) }
+  .fila .nombre { font-size: 15px }
+  .fila .fechas { font-size: 12.5px; grid-column: 1 }
+  .fila .lado { grid-row: 1 / span 2; grid-column: 2; display: flex; align-items: center; gap: 8px }
+  .fila.sin-plan .nombre { color: color-mix(in srgb, var(--tinta) 72%, transparent) }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; white-space: nowrap }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor }
+  .c-verde { background: color-mix(in srgb, var(--verde) 16%, var(--papel)); color: var(--verde) }
+  .c-pizarra { background: color-mix(in srgb, var(--pizarra) 16%, var(--papel)); color: var(--pizarra) }
+  .c-ambar { background: color-mix(in srgb, var(--ambar) 16%, var(--papel)); color: var(--ambar) }
+  .armar { border: 1px solid var(--tinta); background: var(--tinta); color: var(--crema); border-radius: 8px; padding: 5px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap }
+  .armar:hover { background: var(--rojo); border-color: var(--rojo) }
+  .pie-lista { border-top: 1px solid var(--sand); padding: 6px }
+  .pie-lista button { width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 10px; font-weight: 600 }
+  .pie-lista button:hover { background: var(--hueso) }
+  .aviso { border-radius: 12px; padding: 10px 14px; font-size: 13.5px; background: color-mix(in srgb, var(--verde) 12%, var(--papel)); color: var(--verde) }
+
+  /* La hoja «Campaña nueva» */
+  .hoja { display: grid; gap: 14px }
+  .campo { display: grid; gap: 6px }
+  .campo label { font-weight: 600 }
+  .campo input { border: 1px solid var(--sand); background: var(--hueso); border-radius: 10px; padding: 10px 12px; width: 100% }
+  .fechas2 { display: grid; gap: 12px; grid-template-columns: 1fr 1fr }
+  .resultado { border: 1px dashed var(--sand); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; font-size: 13.5px }
+  .boton { border: 1px solid var(--tinta); background: var(--tinta); color: var(--crema); border-radius: 10px; padding: 10px 16px; font-weight: 600 }
+  .boton:disabled { opacity: .45; cursor: not-allowed }
+  .boton2 { border: 1px solid var(--sand); background: transparent; border-radius: 10px; padding: 10px 16px; font-weight: 600 }
+
+  .opciones { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+  .opciones h3 { font-size: 21px; margin-bottom: 6px }
+  .rec { display: inline-flex; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--verde) 16%, var(--papel)); color: var(--verde); margin-bottom: 8px }
+  ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 5px }
+</style>
+</head>
+<body>
+<div class="envoltura">
+  <header style="display:grid;gap:8px">
+    <span class="etq">Spike · Compras ▸ Plan de campaña ▸ el selector</span>
+    <h1 style="font-size:clamp(30px,5vw,44px)">Las campañas salen del calendario</h1>
+    <p class="suave" style="max-width:76ch">Hoy el selector solo muestra los planes ya creados, y crear uno pide elegir la etiqueta, el nombre y las dos fechas. Propuesta: el selector
+      ES el calendario de Catálogo ▸ Etiquetas, este año y el que viene. La que ya tiene plan se abre; la que no, se arma con un toque, con su nombre y sus fechas
+      de ese año. «Campaña nueva» queda solo para lo que no está en el calendario, y la deja en Etiquetas para todos.</p>
+  </header>
+
+  <div class="mandos">
+    <div class="grupo"><span class="etq">Quién mira</span><button class="pildora" data-rol="lider" aria-pressed="true">Líder</button><button class="pildora" data-rol="colab" aria-pressed="false">Colaborador</button></div>
+    <div class="grupo"><span class="etq">Tema</span><button class="pildora" data-t="claro" aria-pressed="false">Claro</button><button class="pildora" data-t="oscuro" aria-pressed="true">Oscuro</button></div>
+    <div class="grupo"><span class="etq">Hoy</span><span>lunes 12 oct 2026</span></div>
+  </div>
+
+  <section class="dos">
+    <div class="tarjeta" style="display:grid;gap:12px">
+      <span class="etq">1 · El selector (cabecera del Plan)</span>
+      <div>
+        <button class="pastilla" id="disparador" aria-expanded="true"><span id="actualTxt"></span><span aria-hidden="true">▾</span></button>
+        <div class="lista" id="lista">
+          <div class="buscar"><input id="buscar" placeholder="Busca por nombre o año («madre», «2027»)" autocomplete="off"></div>
+          <div class="cuerpo" id="cuerpo"></div>
+          <div class="pie-lista" id="pieLista"></div>
+        </div>
+      </div>
+      <p id="avisoArmar" class="aviso" hidden></p>
+    </div>
+
+    <div style="display:grid;gap:18px">
+      <div class="tarjeta hoja" id="hoja">
+        <span class="etq">2 · «Campaña nueva» — solo lo que no está en el calendario</span>
+        <h2 style="font-size:26px">Campaña nueva</h2>
+        <p class="suave">Una fecha propia de CAYLA que no está en Etiquetas. Queda en el calendario para todos y se repite cada año, como las demás.</p>
+        <div class="campo"><label for="nNombre">Nombre</label><input id="nNombre" placeholder="Ej. Cyber Wow" autocomplete="off"></div>
+        <div class="fechas2">
+          <div class="campo"><label for="nDesde">Desde</label><input id="nDesde" type="date" value="2026-11-03"></div>
+          <div class="campo"><label for="nHasta">Hasta</label><input id="nHasta" type="date" value="2026-11-05"></div>
+        </div>
+        <div class="resultado" id="resultado"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="boton2" type="button" id="cancelar">Cancelar</button>
+          <button class="boton" type="button" id="crear">Crear y armar su plan</button>
+        </div>
+      </div>
+      <div class="tarjeta">
+        <span class="etq">Lo que hace cada cosa</span>
+        <ul class="suave" style="font-size:13.5px">
+          <li><b>Con plan:</b> se abre, con cuántas categorías tienen plan.</li>
+          <li><b>Sin plan:</b> «Armar plan» lo crea con un toque: «Black Friday 2026», del 9 al 30 nov. Las fechas se ajustan después con «Editar campaña».</li>
+          <li><b>El año que viene:</b> la misma etiqueta da «Halloween 2027» con sus fechas de 2027 (Día de la Madre se mueve a su segundo domingo).</li>
+          <li><b>Colaborador:</b> ve el calendario y abre los planes; armar uno es del líder.</li>
+          <li><b>Terminadas:</b> plegadas al fondo; sus Resultados siguen a un toque.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <h2 style="font-size:28px">Tu pregunta: ¿crear una campaña desde aquí, sí o no?</h2>
+    <div class="opciones">
+      <div class="tarjeta">
+        <span class="rec">Recomendada</span>
+        <h3>A · Sí, y queda en Etiquetas</h3>
+        <ul class="suave">
+          <li><b>Ganas:</b> un solo calendario. Historial, Etiquetas y el Plan ven la misma campaña, sin ir a otro módulo.</li>
+          <li><b>Pagas:</b> el Plan escribe en Etiquetas: nace aprobada, sin descuento y sin tocar precios. Solo un líder.</li>
+        </ul>
+      </div>
+      <div class="tarjeta">
+        <h3>B · No, solo un enlace a Etiquetas</h3>
+        <ul class="suave">
+          <li><b>Ganas:</b> cada módulo hace lo suyo; nada nuevo en la base.</li>
+          <li><b>Pagas:</b> salir, crear la etiqueta y volver para armar el plan. En plena compra, es el desvío que nadie hace.</li>
+        </ul>
+      </div>
+      <div class="tarjeta">
+        <h3>C · Sí, un plan suelto, sin etiqueta</h3>
+        <ul class="suave">
+          <li><b>Ganas:</b> lo más rápido de construir.</li>
+          <li><b>Pagas:</b> no aparece en Historial ni se repite al año siguiente: el año que viene no hay con qué compararlo.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  // Las campañas de Etiquetas (fechas de la base local, 2026). Cada una se repite cada año: la fecha de fin manda el año.
+  var ETIQUETAS = [
+    ["sanvalentin", "San Valentín", "01-31", "02-14"], ["galentine", "Galentine's Day", "02-06", "02-13"], ["mujer", "Día de la Mujer", "02-22", "03-08"],
+    ["tierra", "Día de la Tierra", "04-08", "04-22"], ["madre", "Día de la Madre", null, null], ["patrias", "Fiestas Patrias", "07-14", "07-29"],
+    ["gato", "Día Internacional del Gato", "07-25", "08-08"], ["perro", "Día Internacional del Perro", "08-12", "08-26"],
+    ["aniversario", "Aniversario CAYLA", "10-01", "10-14"], ["halloween", "Halloween", "10-17", "10-31"], ["black", "Black Friday", "11-09", "11-30"],
+    ["navidad", "Navidad", "12-11", "12-25"]
+  ];
+  var HOY = "2026-10-12";
+  var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+  // Los planes que ya existen (como en la base local), por campaña y año: cuántas categorías tienen plan de 42.
+  var planes = { "aniversario|2026": 12, "halloween|2026": 3, "navidad|2026": 0, "sanvalentin|2027": 0, "tierra|2027": 0, "madre|2026": 42 };
+  var estado = { rol: "lider", actual: "aniversario|2026", q: "", nuevas: [] };
+
+  function segundoDomingoDeMayo(a) { var d = new Date(Date.UTC(a, 4, 1)); var dom = (7 - d.getUTCDay()) % 7; return a + "-05-" + String(1 + dom + 7).padStart(2, "0"); }
+  function menosDias(iso, n) { var d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
+  function corta(iso) { return Number(iso.slice(8)) + " " + MESES[Number(iso.slice(5, 7)) - 1]; }
+  function fechas(e, anio) {
+    if (e[0] === "madre") { var h = segundoDomingoDeMayo(anio); return { desde: menosDias(h, 14), hasta: h }; }
+    return { desde: (e[2] > e[3] ? anio - 1 : anio) + "-" + e[2], hasta: anio + "-" + e[3] };
+  }
+  function calendario() {
+    var r = [];
+    ETIQUETAS.concat(estado.nuevas).forEach(function (e) { [2026, 2027].forEach(function (a) { var f = fechas(e, a); r.push({ id: e[0] + "|" + a, nombre: e[1] + " " + a, desde: f.desde, hasta: f.hasta }); }); });
+    return r.sort(function (a, b) { return a.desde.localeCompare(b.desde); });
+  }
+  function momento(c) { return c.hasta < HOY ? "terminada" : c.desde <= HOY ? "curso" : "viene"; }
+
+  function fila(c) {
+    var p = planes[c.id], tiene = p !== undefined, lider = estado.rol === "lider";
+    var lado = tiene
+      ? '<span class="chip ' + (p >= 42 ? "c-verde" : p > 0 ? "c-ambar" : "c-pizarra") + '">' + (momento(c) === "terminada" ? "Ver resultados" : p + " de 42 con plan") + "</span>"
+      : lider && momento(c) !== "terminada" ? '<button class="armar" data-armar="' + c.id + '">Armar plan</button>' : '<span class="suave" style="font-size:12.5px">Sin plan</span>';
+    return '<div class="fila' + (c.id === estado.actual ? " actual" : "") + (tiene ? "" : " sin-plan") + '"' + (tiene ? ' role="button" tabindex="0" data-abrir="' + c.id + '"' : "") + '>' +
+      '<span class="nombre">' + c.nombre + '</span><span class="fechas suave">' + corta(c.desde) + " – " + corta(c.hasta) + '</span><span class="lado">' + lado + "</span></div>";
+  }
+
+  function pintar() {
+    var cal = calendario().filter(function (c) {
+      var q = estado.q.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      return !q || c.nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").indexOf(q) >= 0;
+    });
+    var grupos = [
+      ["En curso", cal.filter(function (c) { return momento(c) === "curso"; })],
+      ["Por venir · 2026", cal.filter(function (c) { return momento(c) === "viene" && c.hasta.slice(0, 4) === "2026"; })],
+      ["Por venir · 2027", cal.filter(function (c) { return momento(c) === "viene" && c.hasta.slice(0, 4) === "2027"; })],
+      ["Terminadas · 2026", cal.filter(function (c) { return momento(c) === "terminada"; }).reverse()]
+    ];
+    document.getElementById("cuerpo").innerHTML = grupos.filter(function (g) { return g[1].length; }).map(function (g) {
+      return '<div class="grupo-t">' + g[0] + "</div>" + g[1].map(fila).join("");
+    }).join("") || '<p class="suave" style="padding:12px">Ninguna campaña se llama «' + estado.q + '».</p>';
+    var actual = calendario().find(function (c) { return c.id === estado.actual; });
+    document.getElementById("actualTxt").textContent = actual ? actual.nombre + " · " + corta(actual.desde) + " – " + corta(actual.hasta) : "Campaña";
+    document.getElementById("pieLista").innerHTML = estado.rol === "lider" ? '<button type="button" id="irNueva">+ Campaña que no está en el calendario</button>' : "";
+    document.getElementById("hoja").style.display = estado.rol === "lider" ? "" : "none";
+    pintarResultado();
+  }
+
+  function pintarResultado() {
+    var n = document.getElementById("nNombre").value.trim(), d = document.getElementById("nDesde").value, h = document.getElementById("nHasta").value;
+    var ok = n && d && h && d <= h;
+    var ya = n && ETIQUETAS.concat(estado.nuevas).some(function (e) { return e[1].toLowerCase() === n.toLowerCase(); });
+    document.getElementById("resultado").innerHTML = !n
+      ? '<span class="suave">Escribe el nombre y sus fechas: aquí ves lo que se va a crear.</span>'
+      : ya ? '<span style="color:var(--ambar)">«' + n + '» ya está en el calendario: elígela en la lista y arma su plan.</span>'
+      : !ok ? '<span class="suave">«Hasta» tiene que ser igual o después de «Desde».</span>'
+      : "<span><b>En Catálogo ▸ Etiquetas:</b> la campaña «" + n + "», aprobada y <b>sin descuento</b> (no cambia ningún precio).</span>" +
+        "<span><b>En el Plan:</b> «" + n + " " + h.slice(0, 4) + "», del " + corta(d) + " al " + corta(h) + ", lista para armar.</span>" +
+        '<span class="suave">El año que viene vuelve sola al calendario, con las mismas fechas.</span>';
+    document.getElementById("crear").disabled = !ok || ya;
+  }
+
+  function avisar(t) { var a = document.getElementById("avisoArmar"); a.hidden = false; a.textContent = t; }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button, [data-abrir]");
+    if (!b) return;
+    if (b.dataset.rol) { estado.rol = b.dataset.rol; document.querySelectorAll("[data-rol]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); pintar(); }
+    if (b.dataset.t) { document.documentElement.dataset.tema = b.dataset.t; document.querySelectorAll("[data-t]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); }
+    if (b.id === "disparador") { var l = document.getElementById("lista"); var abierta = b.getAttribute("aria-expanded") === "true"; b.setAttribute("aria-expanded", String(!abierta)); l.hidden = abierta; }
+    if (b.dataset.armar) {
+      planes[b.dataset.armar] = 0; estado.actual = b.dataset.armar;
+      var c = calendario().find(function (x) { return x.id === b.dataset.armar; });
+      avisar("Plan creado: " + c.nombre + ", del " + corta(c.desde) + " al " + corta(c.hasta) + ". Ya estás en él; las fechas se ajustan en «Editar campaña».");
+      pintar();
+    }
+    if (b.dataset.abrir) { estado.actual = b.dataset.abrir; pintar(); }
+    if (b.id === "irNueva") { document.getElementById("nNombre").focus(); document.getElementById("hoja").scrollIntoView({ behavior: "smooth", block: "center" }); }
+    if (b.id === "cancelar") { document.getElementById("nNombre").value = ""; pintarResultado(); }
+    if (b.id === "crear" && !b.disabled) {
+      var n = document.getElementById("nNombre").value.trim(), d = document.getElementById("nDesde").value, h = document.getElementById("nHasta").value;
+      var clave = "nueva" + estado.nuevas.length;
+      estado.nuevas.push([clave, n, d.slice(5), h.slice(5)]);
+      planes[clave + "|" + h.slice(0, 4)] = 0; estado.actual = clave + "|" + h.slice(0, 4);
+      document.getElementById("nNombre").value = "";
+      avisar("«" + n + "» quedó en Etiquetas y su plan " + h.slice(0, 4) + " está listo para armar.");
+      pintar();
+    }
+  });
+  document.getElementById("buscar").addEventListener("input", function (e) { estado.q = e.target.value; pintar(); });
+  ["nNombre", "nDesde", "nHasta"].forEach(function (id) { document.getElementById(id).addEventListener("input", pintarResultado); });
+  pintar();
+})();
+</script>
+</body>
+</html>

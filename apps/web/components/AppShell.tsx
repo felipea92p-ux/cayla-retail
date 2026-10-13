@@ -227,10 +227,10 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   // Línea en subida: la decisión de inventario (rotación, alertas, ADR-0245),
   // 2026-09-27 — antes tomaba prestados los cuadros de "Resumen", que es otra
   // pantalla con otro nombre.
-  analisis: "M3 17l6-6 4 4 8-8M15 6h6v6",
+  analisis: "M6 18h8M3 22h18M14 22a7 7 0 1 0 0-14h-1M9 14h2M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2ZM12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3", // lucide «microscope»
   // Un brote: lo nuevo del piso (Frescura del piso, ADR-0208 paso 4). No la percha de «Existencias» (lo que hay
   // colgado) ni la línea de «Análisis» (cómo se vendió): cuánto lleva lo colgado y qué se está quedando.
-  frescura: "M12 20v-8M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5zM12 14c0-3-2.3-5-5.5-5 0 3 2.3 5 5.5 5z",
+  frescura: "M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13", // lucide «leaf»
   // Aguja de velocímetro: el panorama que mezcla ventas de la red y dinero
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
@@ -239,7 +239,12 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
   // Gestión (ADR-0392, 2026-10-13): la diana —mirar y decidir—. Distinta de los trazos de sus cuatro hijas (analisis,
   // frescura, resumen) para que la cabecera no repita el dibujo de una fila que vive justo debajo.
-  gestion: "M12 21a9 9 0 100-18 9 9 0 000 18zM12 17a5 5 0 100-10 5 5 0 000 10zM12 13a1 1 0 100-2 1 1 0 000 2z",
+  gestion: "M12 12h.01M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M22 13a18.15 18.15 0 0 1-20 0M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2z", // lucide «briefcase-business»
+  planPiso: "M12 12V9a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3M16 20v-3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3M20 22V2M4 12h16M4 20h16M4 2v20M4 4h16", // lucide «shelving-unit»
+  recibirInsumos: "M12 22v-9M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36zM20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z", // lucide «package-open»
+  campana: "M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14M8 6v8", // lucide «megaphone»
+  ordenesInsumos: "M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01", // lucide «clipboard-list»
+  rendimiento: "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", // lucide «trophy»
   // Etiqueta colgante con una flecha que baja: la prenda que se liquida y su precio que se va bajando (ADR-0371).
   liquidacion: "M3.5 12.5l8-8H20v8.5l-8 8zM15.5 8.5h.01M10 12v5m-2-2l2 2 2-2",
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
@@ -1059,7 +1064,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
                 <AvatarPersona
                   personaId={persona.personaId}
                   nombre={persona.nombre}
-                  className="h-9 w-9 text-sm transition-colors group-hover:bg-rojo/15"
+                  className="transition-colors group-hover:bg-rojo/15"
                 />
                 <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
                   <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>

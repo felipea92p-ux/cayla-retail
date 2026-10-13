@@ -7,6 +7,7 @@ import { soles } from "@/lib/compras-reglas";
 import { NOMBRE_METODO_HISTORIAL, agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // El pulso del período (Ventas ▸ Historial, ADR-0147), en la columna lateral: lo importante son las ventas y esto las
 // acompaña, no las tapa. Cada día es un HILO vertical —la urdimbre del textil— y una curva de tendencia lo cruza —la
@@ -77,7 +78,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
 
   return (
     <section aria-label="Ventas por día" className="anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]" style={{ "--i": 3 } as CSSProperties}>
-      <h2 className="text-sm font-bold text-tinta">{porSemana ? "Ventas por semana" : "Ventas por día"}</h2>
+      <TituloSeccion>{porSemana ? "Ventas por semana" : "Ventas por día"}</TituloSeccion>
       <p className="mt-0.5 text-xs text-tinta/60">{periodo}</p>
 
       {parcial ? (

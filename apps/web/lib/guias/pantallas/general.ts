@@ -403,7 +403,7 @@ export const GUIA_ACTIVIDAD: Guia = {
       id: "sede",
       ancla: "actividad.sede",
       titulo: "La sede",
-      texto: "El líder elige una sede o todas. Si no eres líder, ves la tuya: la caja dice cuál.",
+      texto: "El líder elige una sede o todas. Si no eres líder, ves la tuya: el filtro dice cuál.",
     },
     {
       id: "persona",
@@ -506,7 +506,7 @@ export const GUIA_BUSCAR: Guia = {
       ancla: "buscar.stock",
       opcional: true,
       titulo: "Cuánto hay y a qué precio",
-      texto: "El número grande es cuánto hay entre todas las sedes que puedes ver; si dice «agotada», no queda ninguna. Debajo, el precio.",
+      texto: "El número grande es cuánto hay para vender entre todas las sedes que puedes ver: no cuenta lo apartado ni lo que está en Cuarentena. Si dice «agotada», no queda ninguna libre. Debajo, el precio.",
     },
     {
       id: "sedes",
@@ -810,7 +810,7 @@ export const GUIA_COMERCIAL: Guia = {
       ancla: "comercial.horas",
       opcional: true,
       titulo: "Ventas por hora",
-      texto: "Cuánto vendió cada tienda en cada hora de hoy, y cuál fue su hora fuerte. Sirve para repartir turnos. «Ver como tabla» muestra los mismos números en filas.",
+      texto: "Cuánto vendió cada tienda en cada hora de hoy, y cuál fue su hora fuerte. Sirve para repartir turnos.",
     },
     {
       id: "colaboradoras",

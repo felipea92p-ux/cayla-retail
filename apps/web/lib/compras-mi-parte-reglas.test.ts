@@ -61,6 +61,20 @@ describe("mi parte en un comprobante de otra tienda (ADR-0184, F3-b)", () => {
     expect(p).toMatchObject({ compraId: "c1", ubicacionId: "tru", saldo: 708, gestoraNombre: "Tienda Lima" });
     expect(compraParaPagarMiParte(p).estadoPago).toBe("pendiente");
   });
+
+  it("una línea sin prenda (comprobante de orden) trae su categoría y su marca, y la referencia vacía", () => {
+    const d = detalleMiParteDeJson({
+      compra: { id: "c1", documento: "B001-9", tipo: "boleta", fecha_emision: "2026-10-12", fecha_vencimiento: null, estado: "vigente", proveedor_id: "p1", proveedor_nombre: "Textiles", gestora_nombre: "Tienda Lima" },
+      partes: [],
+      lineas: [
+        { ubicacion_id: "lima", producto_id: null, referencia: null, categoria: "Blusas", marca: "Cayla", talla: null, color: null, descripcion: "lino crudo", costo_unitario: 20, cantidad: 10, subtotal: 200 },
+        { ubicacion_id: "lima", producto_id: "p1", referencia: "EMMA", categoria: null, marca: null, talla: "M", color: "Negro", descripcion: null, costo_unitario: 50, cantidad: 5, subtotal: 250 },
+      ],
+      pagos: [],
+    });
+    expect(d.lineas[0]).toMatchObject({ referencia: "", categoria: "Blusas", marca: "Cayla", descripcion: "lino crudo" });
+    expect(d.lineas[1]).toMatchObject({ referencia: "EMMA", categoria: null, marca: null });
+  });
 });
 
 describe("Por pagar con la parte de MI tienda (ADR-0187)", () => {

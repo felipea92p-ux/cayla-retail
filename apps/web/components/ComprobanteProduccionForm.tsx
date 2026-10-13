@@ -235,7 +235,7 @@ export function ComprobanteProduccionForm({
                         ...insumos.map((x) => ({ valor: x.id, texto: `${x.nombre} · ${UNIDADES_INSUMO[x.unidad].corta}` })),
                       ]}
                       etiquetaAccesible={`Línea ${i + 1}: insumo`}
-                      forma="caja"
+                      forma="campo"
                     />
                     {!l.insumoId && (
                       <input
@@ -243,7 +243,7 @@ export function ComprobanteProduccionForm({
                         placeholder="Qué se compró"
                         value={l.descripcion}
                         onChange={(e) => cambiarLinea(i, { descripcion: e.target.value })}
-                        className="h-9 w-full rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
+                        className="caja-campo-input"
                       />
                     )}
                     {subtotalLinea !== null && <p className="text-xs tabular-nums text-tinta/65">Línea: {soles(subtotalLinea)}</p>}
@@ -254,7 +254,7 @@ export function ComprobanteProduccionForm({
                     placeholder={insumo ? UNIDADES_INSUMO[insumo.unidad].corta : "Cant."}
                     value={l.cantidad}
                     onChange={(e) => cambiarLinea(i, { cantidad: e.target.value })}
-                    className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                    className="caja-campo-input text-right tabular-nums"
                   />
                   <input
                     aria-label={`Línea ${i + 1}: costo unitario sin IGV`}
@@ -262,7 +262,7 @@ export function ComprobanteProduccionForm({
                     placeholder="S/ c/u"
                     value={l.costo}
                     onChange={(e) => cambiarLinea(i, { costo: e.target.value })}
-                    className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                    className="caja-campo-input text-right tabular-nums"
                   />
                   <button
                     type="button"
@@ -280,7 +280,7 @@ export function ComprobanteProduccionForm({
           <button
             type="button"
             onClick={() => setLineas((ls) => [...ls, { ...LINEA_VACIA }])}
-            className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-tinta/75 underline-offset-2 outline-none hover:text-rojo hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
+            className="btn-cayla btn-enlace mt-2 gap-1.5 text-[13px]"
           >
             <Plus size={14} aria-hidden /> Agregar línea
           </button>

@@ -504,14 +504,14 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       id: "lista",
       ancla: "fin-por-pagar.lista",
       titulo: "La lista de lo que se debe",
-      texto: "Cada factura con su vencimiento, el proveedor, de qué es (mercadería, gasto, activo o insumo), el total, lo pagado y el saldo. Mirando una tienda, de una factura repartida solo aparece su parte. Si no se debe nada, aquí lo dice.",
+      texto: "Cada factura con su vencimiento, el proveedor, de qué es (mercadería, gasto, activo o insumo), el total, lo pagado y el saldo. Mirando una tienda, cada factura cuenta entera para la tienda que la pidió, aunque parte de la mercadería vaya a otra. Si no se debe nada, aquí lo dice.",
     },
     {
       id: "pagar",
       ancla: "fin-por-pagar.pagar",
       opcional: true,
       titulo: "Pagar una factura",
-      texto: "Abre el mismo pago de Compras (o de Producción, si es tela del Taller): cuánto, con qué medio y desde qué cuenta. El pago queda en su factura y baja la deuda. En la demo no lo tocamos.",
+      texto: "Abre el mismo pago de Compras (o de Producción, si es tela del Taller): cuánto, con qué medio y desde qué cuenta, sin elegir tienda. El pago queda en su factura y baja la deuda. En la demo no lo tocamos.",
     },
     {
       id: "varias",

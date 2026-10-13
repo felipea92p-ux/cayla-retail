@@ -2,7 +2,7 @@
   "guia": "compras",
   "ruta": "/compras",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 22,
   "controles": {
     "app/(app)/compras/page.tsx": [
       "BotonAncla «compras.exportar»",
@@ -10,24 +10,6 @@
       "Link «{`compras.vista-${p.clave}»",
       "SegmentoEnlaces «(sin nombre)»",
       "Link «{diaMes(c.fechaEmision)}»"
-    ],
-    "components/CompraDetallePanel.tsx": [
-      "button «Anular comprobante»",
-      "Boton «Ir a recibir»",
-      "Boton «factura.registrar-pago»",
-      "button «Pagado»",
-      "Boton «→() => setAbierto(true)»",
-      "input «{`Monto a pagar de ${compra.documento}»",
-      "input «Total del pago»",
-      "button «Todo ·»",
-      "CampoSelect «Pagas desde»",
-      "ComboResponsable «(sin nombre)»",
-      "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
-      "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
-      "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
     ],
     "components/ComprobantesListaVacia.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -48,32 +30,9 @@
       "CampoFecha «Emitida desde»",
       "CampoFecha «Emitida hasta»"
     ],
-    "components/MisPartesDeCompras.tsx": [
-      "Link «{p.documento}»"
-    ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
-    ],
-    "components/PagoPiezas.tsx": [
-      "Link «Agregarlo en su ficha →»",
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
-      "Boton «Listo»",
-      "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
-      "CampoFecha «Fecha del pago»",
-      "CampoTexto «Referencia»",
-      "input «{`Monto del medio ${i + 1}»",
-      "CampoTexto «Referencia» #2",
-      "button «{`Quitar el medio ${i + 1}»",
-      "button «＋»",
-      "button «Usar»",
-      "button «Completar con el último medio»"
-    ],
-    "components/finanzas/CampoCuenta.tsx": [
-      "CampoSelect «{etiqueta}»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ]
   }
 }

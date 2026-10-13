@@ -15,6 +15,7 @@ import type { OrdenProduccion } from "@/lib/produccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Cerrar una orden (ADR-0133, F2): cuántas salieron buenas POR TALLA Y COLOR —así las espera `cerrar_produccion`— y
 // el costo REAL de la corrida. La base recalcula el costo unitario sobre las buenas (la merma se absorbe sola) y, si
@@ -120,7 +121,7 @@ export function OrdenCierre({
 
   return (
     <section ref={seccion} aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
-      <h3 className="label-cayla text-[11px] text-verde-profundo">Cuántas salieron buenas · talla × color</h3>
+      <TituloGrupo>Cuántas salieron buenas · talla × color</TituloGrupo>
       <div className="mt-3">
         <MatrizOrdenTabla
           matriz={matriz}

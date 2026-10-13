@@ -304,8 +304,22 @@ export function motivoDeReasignacion(x: unknown): MotivoReasignacion {
   return x === "llego_de_mas" || x === "error_de_tienda" ? x : "otro";
 }
 
-/** «Blusa Emma · Arena / M» (o solo «Blusa Emma» si la línea no detalla talla y color): cómo se nombra una línea en el reparto. */
-export function etiquetaDeLinea(l: Pick<LineaCompra, "referencia" | "varianteId" | "talla" | "color">): string {
+/**
+ * Cómo se nombra una línea que todavía NO tiene prenda —la de un comprobante que sale de una orden de compra (ADR-0362): se pidió por
+ * «categoría + marca» y la prenda se crea cuando llega la mercadería—: «Blusas · Cayla · lino crudo». Lo que falte no se inventa.
+ */
+export function nombreDeLineaSinPrenda(l: { categoria?: string | null; marca?: string | null; descripcion?: string | null }): string {
+  return [l.categoria, l.marca, l.descripcion].map((x) => x?.trim()).filter(Boolean).join(" · ") || "Prenda por definir";
+}
+
+/**
+ * «Blusa Emma · Arena / M» (o solo «Blusa Emma» si la línea no detalla talla y color): cómo se nombra una línea en el reparto. Una línea
+ * sin prenda (sin referencia, con categoría y marca) se nombra «Blusas · Cayla · lino crudo».
+ */
+export function etiquetaDeLinea(
+  l: Pick<LineaCompra, "referencia" | "varianteId" | "talla" | "color"> & Partial<Pick<LineaCompra, "categoria" | "marca" | "descripcion">>,
+): string {
+  if (!l.referencia && (l.categoria || l.marca)) return nombreDeLineaSinPrenda(l);
   const variante = l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") : "";
   return variante ? `${l.referencia} · ${variante}` : l.referencia;
 }

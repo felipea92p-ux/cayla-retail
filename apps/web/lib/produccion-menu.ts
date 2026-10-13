@@ -28,10 +28,11 @@ export type PerfilMenu = {
  *  (`lib/menu.ts`) — esta lista ya NO las nombra una por una: quien quiera vive «dentro» de Abastecimiento se disuelve
  *  a esta misma clave cuando a un perfil solo le queda una hija visible ahí (Recibir, para quien no ve el dinero). La
  *  clave es lo que sigue al punto del id del nodo (`produccion.ordenes`, `produccion.abastecimiento`…). Eficiencia se
- *  suma en `lib/menu.ts` cuando exista (fase F7). */
-export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion";
+ *  suma en `lib/menu.ts` cuando exista (fase F7). «Órdenes de insumos» (ADR-0362 fase 7) vive dentro de Abastecimiento: a quien
+ *  solo le queda ella ahí, se disuelve a `ordenesInsumos`. */
+export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion" | "ordenesInsumos";
 
-export type ClaveMenuCompras = "proveedores" | "ordenesCompra" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
+export type ClaveMenuCompras = "plan" | "proveedores" | "ordenesCompra" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
 
 /** Compras es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra (decisión de Felipe, 2026-09-21), del
  *  mismo modo que Producción no se muestra parado en una tienda. Se decide por el TIPO de la ubicación activa, no por su

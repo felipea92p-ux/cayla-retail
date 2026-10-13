@@ -1,0 +1,32 @@
+{
+  "guia": "ordenes-insumos.editar.id",
+  "ruta": "/ordenes-insumos/editar/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 20,
+  "controles": {
+    "app/(app)/ordenes-insumos/editar/[id]/page.tsx": [
+      "Volver «; if (falla || !detalle)»",
+      "BotonEnlace «Ver las órdenes de insumos»",
+      "BotonEnlace «Ver la orden»"
+    ],
+    "components/ordenes-insumo/NuevaOrdenInsumo.tsx": [
+      "Volver «(sin nombre)»",
+      "ComboBuscable «(sin nombre)»",
+      "CampoSelect «Llega a»",
+      "CampoFecha «Entrega estimada»",
+      "CampoTexto «Nota»",
+      "Boton «oi-form.agregar»",
+      "ComboResponsable «)»",
+      "Boton «{errorHoja.accion.texto}»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{`Quitar la línea ${numero}»",
+      "ComboBuscable «Descripción»",
+      "CampoTexto «{`Descripción de la línea ${numero}»",
+      "CampoTexto «{`Cantidad de la línea ${numero}»",
+      "CampoTexto «{`Precio por ${porUnidad}»",
+      "CampoTexto «{`Descuento de la línea ${numero}»",
+      "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
+    ]
+  }
+}

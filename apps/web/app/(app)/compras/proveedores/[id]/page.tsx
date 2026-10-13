@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { usaModulo } from "@/lib/modulos";
 import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
@@ -8,6 +9,7 @@ import { ChevronRight, Receipt } from "lucide-react";
 import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
 import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
+import { getNosDebeProveedor } from "@/lib/nos-debe";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -17,8 +19,11 @@ import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
+import { NosDebeProveedor } from "@/components/nos-debe/NosDebeProveedor";
 import { Volver } from "@/components/ui/Volver";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -34,17 +39,20 @@ import { Vacio } from "@/components/ui/Vacio";
 //
 // ADR-0161 P3 (20260923140000, Felipe): la ficha se abre a quien tiene el módulo Proveedores (`editarCuentasProveedor` =
 // `fn_puede_gestionar_proveedores`): datos, marcas, cuentas, devoluciones y editar/desactivar. Lo demás se pinta por partes,
-// cada una con su llave: los MONTOS de Compras (métricas, saldo a favor, costo, últimos comprobantes) con `verDineroCompras`;
+// cada una con su llave: los MONTOS de Compras (métricas, saldo a favor, costo, últimos comprobantes) con `verDineroCompras` o,
+// desde ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»), con el módulo Proveedores completo; abrir un comprobante sigue
+// siendo de Facturas de proveedor (su detalle pide `verDineroCompras`), así que sin ese permiso la lista se ve sin enlaces;
 // los INSUMOS del Taller, solo el líder (es dinero de Producción). Quien no tiene la llave ni siquiera los pide a la base.
 export default async function ProveedorPage({ params }: { params: Promise<{ id: string }> }) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCuentasProveedor")) redirect("/compras/proveedores");
   const esLider = persona.rol === "lider";
-  const verMontos = puede(persona, "verDineroCompras");
+  const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
+  const abreComprobantes = puede(persona, "verDineroCompras"); // el detalle y la lista de comprobantes son de Facturas de proveedor
   const { id } = await params;
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, nosDebe] = await Promise.all([
     getProveedor(id),
     siDinero(() => getProveedorMetricasCompras(id)),
     esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
@@ -54,6 +62,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     getProveedores(),
     siDinero(() => getCreditosProveedor(id)),
     getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
+    // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer. Con los mismos ojos que el saldo a favor (los montos de la ficha); si la base
+    // todavía no lo sabe contar, llega vacío y la ficha sale como antes.
+    siDinero(() => getNosDebeProveedor(id)),
   ]);
   if (!proveedor) notFound();
   const marcas = marcasMapa?.[id] ?? [];
@@ -123,7 +134,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {m && (
       <section className="space-y-3">
-        <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
+        <TituloSeccion>Prendas terminadas · últimos 12 meses</TituloSeccion>
         {!conCompras ? (
           <div className="card-cayla">
             <Vacio icono={<Receipt />} titulo="Todavía no hay comprobantes de este proveedor">
@@ -191,7 +202,15 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       </section>
       )}
 
-      {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
+      {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
+          no cuenta las prendas, el saldo a favor queda solo, como antes. */}
+      {nosDebe && (nosDebe.nosDebe || nosDebe.falla) ? (
+        <NosDebeProveedor nosDebe={nosDebe.nosDebe} falla={nosDebe.falla} proveedorNombre={proveedor.nombre} hoy={hoyLima()}>
+          {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
+        </NosDebeProveedor>
+      ) : (
+        m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />
+      )}
 
       {conCompras && ultimos && (
         <div className="grid gap-3 lg:grid-cols-2">
@@ -206,8 +225,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                 const p = celdaPago(c, ahora);
                 // Lo más urgente de la fila: una entrega atrasada pesa más que un pago pendiente.
                 const estado = r.tono === "ambar" && r.texto.startsWith("Atrasada") ? r : p;
-                return (
-                  <Link key={c.id} href={`/compras/factura/${c.id}`} className="group grid grid-cols-[6.5rem_1fr_auto_1rem] items-center gap-x-4 px-5 py-3 transition-colors hover:bg-tinta/[0.03]">
+                const celdas = (
+                  <>
                     <span>
                       <span className="block text-sm tabular-nums text-tinta">{c.documento}</span>
                       <span className="block text-xs text-tinta/55">{diaMes(c.fechaEmision)}</span>
@@ -217,14 +236,27 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                       <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{estado.sub}</span>
                     </span>
                     <span className="text-right text-sm tabular-nums text-tinta">{soles(c.total)}</span>
+                  </>
+                );
+                // Sin Facturas de proveedor, la fila se lee pero no se abre: su detalle lo devolvería al Inicio.
+                return abreComprobantes ? (
+                  <Link key={c.id} href={`/compras/factura/${c.id}`} className="group grid grid-cols-[6.5rem_1fr_auto_1rem] items-center gap-x-4 px-5 py-3 transition-colors hover:bg-tinta/[0.03]">
+                    {celdas}
                     <ChevronRight aria-hidden className="h-4 w-4 text-tinta/40 transition-[transform,color] duration-300 ease-cayla group-hover:translate-x-1 group-hover:text-rojo" />
                   </Link>
+                ) : (
+                  <div key={c.id} className="grid grid-cols-[6.5rem_1fr_auto_1rem] items-center gap-x-4 px-5 py-3">
+                    {celdas}
+                    <span aria-hidden />
+                  </div>
                 );
               })}
             </div>
-            <Link href={`/compras?prov=${id}`} className="label-cayla block border-t border-tinta/10 px-5 py-3 text-[11px] text-rojo hover:underline">
-              Ver todos sus comprobantes →
-            </Link>
+            {abreComprobantes && (
+              <div className="border-t border-tinta/10 px-5 py-3">
+                <EnlaceVer href={`/compras?prov=${id}`}>Ver todos sus comprobantes</EnlaceVer>
+              </div>
+            )}
           </div>
         </div>
       )}

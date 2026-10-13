@@ -14,6 +14,7 @@ import { Chip } from "@/components/ui/Chip";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -81,7 +82,7 @@ export function ProveedorVistaRapida({
               </span>
               <div className="min-w-0 flex-1">
                 <Dialog.Title asChild>
-                  <h2 className="font-display text-[23px] leading-tight text-tinta">{p.nombre}</h2>
+                  <h2 className="font-display text-[23px] leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{p.nombre}</h2>
                 </Dialog.Title>
                 <Dialog.Description className="mt-0.5 text-[13px] text-tinta/65">
                   {p.ruc ?? "Sin RUC"} · {p.contacto ?? "Sin contacto"}
@@ -127,7 +128,7 @@ export function ProveedorVistaRapida({
 
               {serie && serie.some((v) => v > 0) && (
                 <section className="mt-6">
-                  <h3 className="label-cayla mb-2.5 text-[11px] text-tinta/65">Facturado por mes</h3>
+                  <TituloGrupo className="mb-2.5">Facturado por mes</TituloGrupo>
                   <BarrasMensuales serie={serie} iniciales={inicialesMeses(hoyLima())} />
                 </section>
               )}

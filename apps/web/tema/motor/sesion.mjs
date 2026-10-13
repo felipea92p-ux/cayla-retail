@@ -18,14 +18,20 @@ export function exigirLocal(baseUrl) {
 
 const archivoDe = (correo) => join(DIR, `${correo}.json`);
 
+// La base local compartida vive en el contenedor `supabase_db_cayla-retail`. Una rama que levanta su PROPIA base de pruebas (otro puerto,
+// otro contenedor, p. ej. `supabase_db_cayla-oc`) lo dice con `TEMA_DB_CONTENEDOR=<nombre>`, para que los ids de las pantallas salgan de la
+// base que de verdad lee su servidor. Sin la variable, nada cambia. Solo lectura, y solo contenedores `supabase_db_*` de esta máquina.
+const CONTENEDOR_DB = process.env.TEMA_DB_CONTENEDOR || "supabase_db_cayla-retail";
+if (!/^supabase_db_[A-Za-z0-9_.-]+$/.test(CONTENEDOR_DB)) throw new Error(`TEMA_DB_CONTENEDOR=«${CONTENEDOR_DB}» no es un contenedor de base local (supabase_db_…).`);
+
 /** Una consulta de SOLO LECTURA a la base local (para armar la URL de un escenario con un id real). */
 export function consultarLocal(sql) {
-  return execFileSync("docker", ["exec", "supabase_db_cayla-retail", "psql", "-U", "postgres", "-At", "-c", sql], { encoding: "utf8" }).trim();
+  return execFileSync("docker", ["exec", CONTENEDOR_DB, "psql", "-U", "postgres", "-At", "-c", sql], { encoding: "utf8" }).trim();
 }
 
 /** El id de una ubicación por su nombre, para la cookie de la sede activa (solo base local). */
 function idDeUbicacion(nombre) {
-  const id = execFileSync("docker", ["exec", "supabase_db_cayla-retail", "psql", "-U", "postgres", "-At", "-c", `select id from retail.ubicaciones where nombre ilike '%${nombre.replace(/'/g, "")}%' limit 1`], { encoding: "utf8" }).trim();
+  const id = execFileSync("docker", ["exec", CONTENEDOR_DB, "psql", "-U", "postgres", "-At", "-c", `select id from retail.ubicaciones where nombre ilike '%${nombre.replace(/'/g, "")}%' limit 1`], { encoding: "utf8" }).trim();
   if (!id) throw new Error(`No hay una ubicación que se llame «${nombre}» en la base local.`);
   return id;
 }

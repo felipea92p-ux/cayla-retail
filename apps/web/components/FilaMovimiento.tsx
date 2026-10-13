@@ -303,15 +303,14 @@ function BotonReferencia({ texto, onClick }: { texto: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="relative z-10 inline-block max-w-full truncate text-left align-bottom text-[13px] text-tinta underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+      className="btn-enlace relative z-10 inline-block max-w-full truncate text-left align-bottom text-[13px]"
     >
       {texto}
     </button>
   );
 }
 
-/** La referencia: texto, o enlace (tinta subrayado, como los demás enlaces de acción del
- *  sistema — ADR-0105) cuando lleva a algo. `relative z-10` para quedar por encima del botón
+/** La referencia: texto, o enlace (`btn-enlace`, el enlace dentro de una frase: ADR-0358, ronda 8) cuando lleva a algo. `relative z-10` para quedar por encima del botón
  *  que cubre la fila. El enlace lleva el camino de vuelta a esta lista. */
 export function Referencia({ r, volverA }: { r: ReferenciaMovimiento; volverA: string }) {
   return (
@@ -320,7 +319,7 @@ export function Referencia({ r, volverA }: { r: ReferenciaMovimiento; volverA: s
         <Link
           href={conVuelta(r.href, volverA)}
           title={`Abrir ${r.texto}`}
-          className="relative z-10 inline-block max-w-full truncate align-bottom text-[13px] text-tinta underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+          className="btn-enlace relative z-10 inline-block max-w-full truncate align-bottom text-[13px]"
         >
           {r.texto}
         </Link>
