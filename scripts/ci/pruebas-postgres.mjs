@@ -357,6 +357,10 @@ export const PRUEBAS = [
   // crédito. Con control. Cada caso: ROLLBACK.
   "pruebas:comprobante-documento-valido",
 
+  // Candados de Apartados y Proformas (/chaos 2026-10-13): el celular «abcdefghi» ya no se descarta en silencio, una proforma
+  // no nace vencida y no se marca con una venta de otras prendas. Con controles. Cada caso: ROLLBACK.
+  "pruebas:apartados-proformas-candados",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
