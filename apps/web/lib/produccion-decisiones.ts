@@ -104,6 +104,14 @@ export const ETIQUETA_ESTADO_MODELO: Record<EstadoModelo, string> = {
   sin_ritmo: "Sin ritmo medido",
 };
 
+/** Cuánto dura el stock, dicho como se lee: «agotado» con 0 en tiendas (nunca «0 días» ni «se agota en 1 día»), «1 día» en singular y «N días»
+ *  redondeado hacia lo cercano, con un mínimo de 1 mientras quede algo. */
+export function textoDiasDeStock(stockRed: number, diasRed: number): string {
+  if (stockRed <= 0) return "agotado";
+  const n = Math.max(1, Math.round(diasRed));
+  return n === 1 ? "1 día" : `${n} días`;
+}
+
 /** Suma la red por modelo y lo clasifica con los umbrales de cobertura de Inventario (7, 30 y 60 días). Sin ritmo medido no se opina. */
 export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDecidir[], enProduccionPorVariante: Record<string, number>): FilaModelo[] {
   const porVariante = new Map(demanda.map((d) => [d.varianteId, d]));
@@ -132,7 +140,15 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
     return { productoId: m.productoId, referencia: m.referencia, stockRed, stockTaller, enCamino, enProduccion, ritmoDia, diasRed, estado };
   });
   const orden: Record<EstadoModelo, number> = { producir_ya: 0, en_produccion: 1, vigilar: 2, alcanza: 3, sobrestock: 4, sin_ritmo: 5 };
-  return filas.sort((a, b) => orden[a.estado] - orden[b.estado] || (a.diasRed ?? Infinity) - (b.diasRed ?? Infinity) || a.referencia.localeCompare(b.referencia, "es"));
+  // Con el stock en 0 todos empatan en 0 días: entre iguales va primero el que más se vende (lo que se pierde por día) y, si también empatan, el
+  // nombre. Antes decidía el alfabeto cuál de los agotados llegaba a tener tarjeta.
+  return filas.sort(
+    (a, b) =>
+      orden[a.estado] - orden[b.estado] ||
+      (a.diasRed ?? Infinity) - (b.diasRed ?? Infinity) ||
+      (b.ritmoDia ?? 0) - (a.ritmoDia ?? 0) ||
+      a.referencia.localeCompare(b.referencia, "es")
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -239,7 +255,10 @@ export function decisionesDeProduccion(c: ContextoDecisiones): Decision[] {
         id: `producir-${m.productoId}`,
         severidad: 3,
         tipo: "producir",
-        titulo: `«${m.referencia}» se agota en ~${Math.max(1, Math.round(m.diasRed ?? 0))} ${Math.round(m.diasRed ?? 0) <= 1 ? "día" : "días"} y no hay orden abierta`,
+        titulo:
+          m.stockRed <= 0
+            ? `«${m.referencia}» ya se agotó en las tiendas y no hay orden abierta`
+            : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y no hay orden abierta`,
         detalle: `Se vende ${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")} por semana y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
         accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
       });

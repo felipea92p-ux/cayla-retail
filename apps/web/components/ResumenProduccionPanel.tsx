@@ -6,7 +6,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -171,13 +171,13 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
                           <span className="text-xs text-tinta/55">Sin ventas medidas</span>
                         ) : (
                           <>
-                            <span className="relative block h-2 rounded-full bg-sand" role="img" aria-label={`${Math.round(m.diasRed)} días de stock`}>
+                            <span className="relative block h-2 rounded-full bg-sand" role="img" aria-label={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}>
                               <span className="absolute inset-y-0 left-0 rounded-full bg-tinta" style={{ width: `${pct}%` }} />
                               <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(7 / maxDias) * 100}%` }} />
                               <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(30 / maxDias) * 100}%` }} />
                             </span>
                             <span className="mt-1 block text-xs tabular-nums text-tinta/65">
-                              {Math.round(m.diasRed)} días{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
+                              {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
                             </span>
                           </>
                         )}

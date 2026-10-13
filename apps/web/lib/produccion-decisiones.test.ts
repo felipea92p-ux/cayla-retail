@@ -7,6 +7,7 @@ import {
   demandaDeInsumos,
   filasDeTela,
   filasPorModelo,
+  textoDiasDeStock,
   type ContextoDecisiones,
   type InsumoParaDecidir,
   type OrdenParaDecidir,
@@ -125,6 +126,36 @@ describe("decisionesDeProduccion", () => {
     expect(d[0].accion.href).toBe("/produccion/ordenes?nueva=p1");
   });
 
+  describe("el título de «producir» dice la verdad sobre el stock (/pantalla produccion, tarea #2)", () => {
+    const tarjeta = (stockRed: number, ritmoDia: number, extra: Partial<DemandaVariante> = {}) =>
+      decisionesDeProduccion(
+        contexto({
+          modelos: filasPorModelo(
+            [{ varianteId: "v1", productoId: "p1", stockRed, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, cobertura: { tipo: "medida", dias: 1 }, banda: "critica", ...extra }],
+            [{ productoId: "p1", referencia: "Blusa Encaje", variantesIds: ["v1"] }],
+            {}
+          ),
+        })
+      )[0];
+
+    it("con 0 en tiendas dice «ya se agotó», no «se agota en ~1 día» (que contradecía su propio detalle «quedan 0»)", () => {
+      const d = tarjeta(0, 0.73);
+      expect(d.titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas y no hay orden abierta");
+      expect(d.titulo).not.toContain("se agota en");
+      expect(d.detalle).toContain("quedan 0 en tiendas");
+    });
+    it("con 3 en tiendas y 3 por día quedan ~1 día, en singular", () => {
+      expect(tarjeta(3, 3).titulo).toBe("«Blusa Encaje» se agota en ~1 día y no hay orden abierta");
+    });
+    it("con 7 en tiendas y 1 por día quedan ~7 días (el límite de «Producir ya»); con 8 ya no hay tarjeta", () => {
+      expect(tarjeta(7, 1).titulo).toBe("«Blusa Encaje» se agota en ~7 días y no hay orden abierta");
+      expect(tarjeta(8, 1)).toBeUndefined();
+    });
+    it("con menos de medio día de stock (1 en tiendas, 3 por día) sigue siendo «~1 día»: queda algo", () => {
+      expect(tarjeta(1, 3).titulo).toBe("«Blusa Encaje» se agota en ~1 día y no hay orden abierta");
+    });
+  });
+
   it("insumos bajo el mínimo sin pedido: una tarjeta; no repite el que ya tiene tarjeta de falta ni el que ya viene facturado", () => {
     const d = decisionesDeProduccion(
       contexto({
@@ -177,6 +208,44 @@ describe("filasPorModelo", () => {
   });
   it("sin stock y con ritmo, hay que producir ya", () => {
     expect(filasPorModelo([dem("a1", { stockRed: 0 })], [modelos[0]], {})[0].estado).toBe("producir_ya");
+  });
+  it("entre varios agotados va primero el que más se vende, no el de nombre más temprano; si también empatan, el nombre", () => {
+    const agotados = [
+      { productoId: "z", referencia: "Zeta", variantesIds: ["z1"] },
+      { productoId: "a", referencia: "Alfa", variantesIds: ["a1"] },
+      { productoId: "m", referencia: "Mica", variantesIds: ["m1"] },
+      { productoId: "b", referencia: "Beta", variantesIds: ["b1"] },
+    ];
+    const demandaAgotada = [
+      dem("z1", { stockRed: 0, ritmoDia: 2 }), // 14 por semana: lo que más se pierde
+      dem("a1", { stockRed: 0, ritmoDia: 0.5 }),
+      dem("m1", { stockRed: 0, ritmoDia: 0.5 }), // empata con Alfa: manda el nombre
+      dem("b1", { stockRed: 0, ritmoDia: 1 }),
+    ];
+    expect(filasPorModelo(demandaAgotada, agotados, {}).map((x) => x.referencia)).toEqual(["Zeta", "Beta", "Alfa", "Mica"]);
+  });
+  it("lo que se agota antes sigue yendo antes aunque venda menos: el ritmo solo desempata", () => {
+    const f = filasPorModelo(
+      [dem("a1", { stockRed: 1, ritmoDia: 1 }), dem("b1", { stockRed: 0, ritmoDia: 0.2 })],
+      [modelos[0], modelos[1]].map((m, i) => ({ ...m, variantesIds: [i === 0 ? "a1" : "b1"] })),
+      {}
+    );
+    expect(f.map((x) => x.referencia)).toEqual(["B", "A"]);
+  });
+});
+
+describe("textoDiasDeStock", () => {
+  it("«agotado» con 0 en tiendas, nunca «0 días»", () => {
+    expect(textoDiasDeStock(0, 0)).toBe("agotado");
+  });
+  it("«1 día» en singular; con algo de stock nunca baja de 1", () => {
+    expect(textoDiasDeStock(3, 1)).toBe("1 día");
+    expect(textoDiasDeStock(1, 0.3)).toBe("1 día");
+    expect(textoDiasDeStock(5, 1.4)).toBe("1 día");
+  });
+  it("«N días» redondeado a lo cercano", () => {
+    expect(textoDiasDeStock(7, 1.6)).toBe("2 días");
+    expect(textoDiasDeStock(40, 40)).toBe("40 días");
   });
 });
 
