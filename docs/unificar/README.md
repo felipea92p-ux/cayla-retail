@@ -24,26 +24,25 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 0 | [aviso.md](aviso.md) |
 | Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 0 | [buscador.md](buscador.md) |
 | Barra apilada (`grafico.barra`) | `<BarraApilada>` (`components/ui/BarraApilada.tsx`): la píldora con pista de arena, el movimiento de Compras (entra tramo a tramo, se reacomoda, el tramo apuntado se estira y los demás bajan), tres altos (12 · 8 · 4 px), 24 px para el mouse y, si responde, cada tramo es un botón con su nombre | 2026-10-09 (tocando) | 0 | [grafico.barra.md](grafico.barra.md) |
+| Campos y combos (`campo`, `combo`) | La caja que se enciende (`caja-cayla caja-campo`): `CampoTexto`, `CampoMonto`, `CampoFecha`, `Desplegable`, `ComboBuscable`, `ComboResponsable`; la lista de todo combo con hilo de canto y ✓ | 2026-10-13 (tocando) | 63 · 7 | [campo-combo.md](campo-combo.md) |
+| Filtro que se abre (`filtro`) | `<DesplegablePildora>`: la píldora con su nombre; puesta, rellena de tinta con su ✕ | 2026-10-13 (tocando) | 11 | [campo-combo.md](campo-combo.md) |
+| Título de campo (`etiqueta-campo`) | La de `<Campo>`: versalitas que se oscurecen con su caja | 2026-10-13 (tocando) | 4 | [etiqueta-campo.md](etiqueta-campo.md) |
+| Casillas (`casilla`) | `<Casilla>` (el ✓ se dibuja) e `<Interruptor>` (en tinta) | 2026-10-13 (tocando) | 18 | [casilla.md](casilla.md) |
+| Tablas (`tabla`) | `<Tabla>` con movimiento: cascada, hilo de canto y «›», fila abierta, recién guardada | 2026-10-13 (tocando) | 14 | [tabla.md](tabla.md) |
+| Títulos de sección (`titulo-seccion`) | `<TituloSeccion>`, `<TituloGrupo>`, `<SeparadorDia>` | 2026-10-13 (tocando) | 83 | [titulo-seccion.md](titulo-seccion.md) |
+| Enlaces (`enlace`) | `btn-enlace` con el hilo que se llena; `<EnlaceVer>` en versalitas rojas con la flecha que avanza | 2026-10-13 (tocando) | 58 | [enlace.md](enlace.md) |
+| Paginación (`paginacion`) | `<Paginas>`: la píldora que se desliza | 2026-10-13 (tocando) | 0 | [paginacion.md](paginacion.md) |
+| Avatares (`avatar`) | `<AvatarPersona>` en cuatro tamaños y `<PilaPersonas>` | 2026-10-13 (tocando) | 0 | [avatar.md](avatar.md) |
 
 ## Propuestas esperando decisión
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| `campo` + `combo` (ronda 6) | [campo-combo.html](propuestas/campo-combo.html) · [foto](capturas/campo-combo.propuesta.jpg) | 2026-10-12 | UNA pregunta para las dos familias: la recomendada (P1) es la caja hundida de 40 px que se enciende (sube a papel y dibuja el hilo rojo) para todo campo y todo combo de una hoja; P2, el hilo para todo. Incluye la lista del combo ([lista.propuesta.jpg](capturas/lista.propuesta.jpg)): la de Desplegable + ✓ que se dibuja + buscador con lupa |
-| `filtro` (el combo que filtra, ronda 6) | [filtro.html](propuestas/filtro.html) · [foto](capturas/filtro.propuesta.jpg) | 2026-10-12 | P1: la píldora de la ronda 1 con su nombre; puesta, negra con lo elegido y su ✕. P2: la caja con el nombre adentro |
-| `etiqueta-campo` (ronda 6) | [etiqueta-campo.html](propuestas/etiqueta-campo.html) · [foto](capturas/etiqueta-campo.propuesta.jpg) | 2026-10-12 | P1: las versalitas de `Campo` que se oscurecen con su caja, con las marcas de la guía de foco. P2: letra normal de 13 px |
-| `casilla` (ronda 6) | [casilla.html](propuestas/casilla.html) · [foto](capturas/casilla.propuesta.jpg) | 2026-10-12 | P1: la casilla cuyo ✓ se dibuja y el interruptor en tinta (no en rojo) |
-| `tabla` (ronda 7) | [tabla.html](propuestas/tabla.html) · [foto](capturas/tabla.propuesta.jpg) | 2026-10-12 | P1: `<Tabla>` de hoy con movimiento (cascada al cargar, hilo de canto y «›» al apuntar, la fila abierta marcada, la flecha de ordenar). P2: «libro de cuentas», sin banda ni zebra |
-| `titulo-seccion` (ronda 7) | [titulo-seccion.html](propuestas/titulo-seccion.html) · [foto](capturas/titulo-seccion.propuesta.jpg) | 2026-10-12 | Bloque: serif de 21 px con su dato a la derecha (P1) o todo en versalitas (P2). Grupo dentro de una hoja: versalitas con una raya que se dibuja ([grupo](capturas/titulo-seccion.grupo.propuesta.jpg)). Día de una lista: versalitas con su total, pegado arriba ([día](capturas/titulo-seccion.dia.propuesta.jpg)) |
-| `enlace` (ronda 8) | [enlace.html](propuestas/enlace.html) · [foto](capturas/enlace.propuesta.jpg) · [suelto](capturas/enlace.ver.propuesta.jpg) | 2026-10-12 | En una frase: el hilo rojo que se llena al pasar el mouse (P1) o btn-enlace con rojo (P2). Suelto: «Ver las 9 →» con la flecha que avanza, la misma acción del título de bloque |
-| `paginacion` (ronda 8) | [paginacion.html](propuestas/paginacion.html) · [foto](capturas/paginacion.propuesta.jpg) | 2026-10-12 | P1: «1–8 de 64» y la página actual como una píldora que se desliza. P2: «Ver 8 más» con la línea que se llena |
-| `avatar` (ronda 8) | [avatar.html](propuestas/avatar.html) · [foto](capturas/avatar.propuesta.jpg) | 2026-10-12 | P1: AvatarPersona en cuatro tamaños fijos, la pila que se abre y el punto de «de turno». P2: el tono de cada persona (ADR-0354) para todos |
-
-Las páginas para elegir (con todo vivo y las fotos de hoy) se regeneran con [rondas/6-8/](rondas/6-8/README.md).
+| — | ninguna por ahora: las rondas 6, 7 y 8 se decidieron el 2026-10-13 (sus fragmentos siguen en `propuestas/` y sus fuentes en [rondas/6-8](rondas/6-8/README.md)) | — | — |
 
 ## Por analizar (las próximas rondas)
 
-El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 12 decididas y 29 por analizar (el 2026-10-09). Las cifras son del censo del 2026-10-06 **sin
+El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 22 decididas y 19 por analizar (el 2026-10-13). Las cifras son del censo del 2026-10-06 **sin
 depurar**: en la ronda 1 la depuración las bajó mucho (pestañas, de 25 formas a 18 reales; cifras, de 17 a 7), así que sirven para ordenar,
 no como veredicto. El orden es la recomendación de Claude: primero lo que la colaboradora lee o toca en más pantallas.
 
@@ -60,12 +59,12 @@ en la página de elegir, nunca por una descripción.
 | ~~3~~ | ~~`vacio`~~ | Decidida el 2026-10-08 (ronda 5): `<Vacio>` | | |
 | ~~4~~ | ~~`aviso`~~ | Decidida el 2026-10-08 (ronda 5): `<Aviso>` en franja, la «i» de la nota, el error en su lugar | | |
 | ~~5~~ | ~~`buscador`~~ | Decidida el 2026-10-08 (ronda 5): `<Buscador>` | | |
-| 6 | `combo` | Desplegables | 42 sin depurar → **7 reales** (las 23 píldoras de filtro son una sola pieza) | **Propuesta lista (ronda 6, 2026-10-12)**: esperando la elección |
-| 7 | `tabla` | Tablas | 39 sin depurar → **4 reales** + `fin-tabla` | **Propuesta lista (ronda 7, 2026-10-12)**: esperando la elección |
-| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 8 / 5 (censo parcial del 2026-10-12) + el código: 5 caras de campo en una misma hoja | **Propuesta lista (ronda 6)**: campo y combo se eligen en UNA pregunta |
-| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Propuesta lista (ronda 7)**: bloque, grupo dentro de una hoja y separador de día |
+| 6 | `combo` | Desplegables | 42 sin depurar → **7 reales** (las 23 píldoras de filtro son una sola pieza) | **Decidida el 2026-10-13 (ronda 6)** |
+| 7 | `tabla` | Tablas | 39 sin depurar → **4 reales** + `fin-tabla` | **Decidida el 2026-10-13 (ronda 7)** |
+| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 8 / 5 (censo parcial del 2026-10-12) + el código: 5 caras de campo en una misma hoja | **Decidida el 2026-10-13 (ronda 6)**: campo y combo en UNA pregunta |
+| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Decidida el 2026-10-13 (ronda 7)**: bloque, grupo y separador de día |
 | 10 | `accion.ver`, `accion.filtrar`, `accion.exportar`, `accion.eliminar` | Ver el detalle, filtrar, exportar, quitar o anular | 13 / 4 / 4 / 4 | `accion.eliminar` toca dinero y comprobantes cuando anula: migrar no cambia qué hace |
-| 11 | ~~`casilla`~~ (propuesta lista, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (propuestas listas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
+| 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
 | 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
 | — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
