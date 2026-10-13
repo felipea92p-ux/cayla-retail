@@ -41,8 +41,8 @@
 -- REGLAS (en palabras de la pantalla, hint `orden_insumo_*`): un proveedor del Taller activo; el destino, un taller activo y nunca una
 -- tienda; la entrega estimada desde hoy y hasta un año (opcional); la nota hasta 500 letras; de 1 a 100 líneas, cada una con un insumo
 -- del catálogo sin archivar, una descripción opcional de hasta 200 letras, la cantidad de 0.001 a 99 999.999 en la unidad del insumo con
--- hasta tres decimales, el precio de S/ 0 a S/ 99 999.99 con hasta dos, y un descuento en % (0 a 100) o en soles que no pase del importe
--- de la línea. Al editar, lo que no se tocó no se vuelve a juzgar: un proveedor o un taller desactivados después, un insumo archivado
+-- hasta tres decimales, el precio de S/ 0 a S/ 99 999.9999 con hasta cuatro (como el costo de los comprobantes y los lotes del Taller),
+-- y un descuento en % (0 a 100) o en soles (con céntimos) que no pase del importe de la línea. Al editar, lo que no se tocó no se vuelve a juzgar: un proveedor o un taller desactivados después, un insumo archivado
 -- después o una entrega que ya pasó no impiden corregir la nota; elegirlos de nuevo, sí se rechaza.
 -- Lo que se decidió sin Felipe va marcado en su lugar con [provisional, revisar con Felipe]:
 --   · Que el insumo NO se restrinja al proveedor de la orden: `insumos.proveedor_id` es el proveedor de costumbre, no un candado (en
@@ -274,8 +274,10 @@ begin
         end
         using hint = 'orden_insumo_cantidad';
     end if;
-    if v_precio is null or v_precio < 0 or v_precio > 99999.99 or v_precio <> round(v_precio, 2) then
-      raise exception 'El precio de la línea % va de S/ 0 a S/ 99 999.99, con hasta dos decimales', v_pos using hint = 'orden_insumo_precio';
+    -- Hasta 4 decimales, como el costo de los comprobantes y los lotes del Taller (un botón de S/ 0.0350).
+    if v_precio is null or v_precio < 0 or v_precio > 99999.9999 or v_precio <> round(v_precio, 4) then
+      raise exception 'El precio de la línea % va de S/ 0 a S/ 99 999.9999, con hasta cuatro decimales', v_pos
+        using hint = 'orden_insumo_precio';
     end if;
     v_importe := round(v_cantidad * v_precio, 2);
     if v_pct is not null and (v_pct < 0 or v_pct > 100 or v_pct <> round(v_pct, 4)) then

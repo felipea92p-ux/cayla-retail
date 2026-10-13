@@ -21,8 +21,9 @@
  *   C  CANDADOS DEL ESQUEMA: descuento mayor que el importe, % que no cuadra (sobre el importe redondeado), cantidad 0, posición repetida,
  *      unidad vacía; cabecera anulada sin motivo, con datos de anulación sin anular, entrega antes de la emisión, estado raro, número
  *      repetido, sin destino; la versión sube sola; el archivo no se edita ni se borra.
- *   CR CREAR: el número que anunciaba la vista previa (OI-…); la unidad copiada del insumo; tres decimales entran, cuatro no; el % se
- *      vuelve soles; el mismo id con el mismo pedido es la misma orden (doble clic) y con otro avisa `orden_insumo_ya_guardada`; cada
+ *   CR CREAR: el número que anunciaba la vista previa (OI-…); la unidad copiada del insumo; en la cantidad tres decimales entran, cuatro
+ *      no; el precio lleva hasta cuatro, como los comprobantes y los lotes del Taller (mil botones a S/ 0.0350 = S/ 35.00), y cinco no; el %
+ *      se vuelve soles sobre el importe redondeado a céntimos; el mismo id con el mismo pedido es la misma orden (doble clic) y con otro avisa `orden_insumo_ya_guardada`; cada
  *      regla rechaza con su motivo SIN gastar número (proveedor de tienda o inactivo, destino que no es un taller activo, insumo archivado…);
  *      la firma: una persona con «orden_insumo_crear» firma ella, una terminal no crea sin elegir a alguien y, si elige, firma el responsable.
  *   D  VER: el detalle (cabecera, quién, líneas con nombre, código, tipo y unidad, cantidades por unidad, total, versiones; NULL si no
@@ -327,7 +328,7 @@ caso(
      (select total from retail.fn_ordenes_insumo() where id = :'o1'),
      (select string_agg(l ->> 'precio_unitario', '+') from jsonb_array_elements(retail.fn_orden_insumo(:'o1') -> 'lineas') l),
      retail.fn_orden_insumo(:'o1') ->> 'total');`,
-  "O3,O2,O1 / 627.75 / 25.50+100.00 / 627.75"
+  "O3,O2,O1 / 627.75 / 25.5000+100.0000 / 627.75"
 );
 caso(
   "P3 nadie toca las tablas directo: ni anon ni authenticated tienen permisos, las tres con RLS encendido y sin políticas",
@@ -463,7 +464,7 @@ caso(
         from retail.orden_insumo_items i where i.orden_insumo_id = :'oc'),
      (select f.total || ' ' || f.cantidades::text from retail.fn_ordenes_insumo() f where f.id = :'oc'));`,
   "numero anunciado / OI- / generada:taller:3:Llega en rollo:felipe:1 / " +
-    "1:12.505 metro x 13.33-16.67(10.00%)=150.02 2:4.000 cono x 5.50-1.50=20.50 3:0.125 metro x 1.00-0.07(50.00%)=0.06 4:99999.999 cono x 0.00-0.00=0.00 / " +
+    "1:12.505 metro x 13.3300-16.67(10.00%)=150.02 2:4.000 cono x 5.5000-1.50=20.50 3:0.125 metro x 1.0000-0.07(50.00%)=0.06 4:99999.999 cono x 0.0000-0.00=0.00 / " +
     '170.58 {"cono": 100003.999, "metro": 12.630}'
 );
 caso(
@@ -520,7 +521,7 @@ caso(
   ].join(",")
 );
 caso(
-  "CR4 cada regla de una línea rechaza con su motivo y SIN gastar número: insumo (vacío, archivado, que no existe), cantidad (4 decimales, 0, negativa, de más, NaN), precio y descuento",
+  "CR4 cada regla de una línea rechaza con su motivo y SIN gastar número: insumo (vacío, archivado, que no existe), cantidad (4 decimales, 0, negativa, de más, NaN), precio (5 decimales, letras) y descuento",
   `select retail.fn_ordenes_insumo_siguiente() as antes \\gset
    select concat_ws(',',
      split_part(${crea({ ls: lineas({ insumo_id: "" }) })}, '|', 2),
@@ -533,7 +534,7 @@ caso(
      split_part(${crea({ ls: lineas({ cantidad: "-1" }) })}, '|', 2),
      split_part(${crea({ ls: lineas({ cantidad: "100000" }) })}, '|', 2),
      split_part(${crea({ ls: lineas({ cantidad: "NaN" }) })}, '|', 2),
-     split_part(${crea({ ls: lineas({ precio_unitario: "10.555" }) })}, '|', 2),
+     split_part(${crea({ ls: lineas({ precio_unitario: "10.55555" }) })}, '|', 2),
      split_part(${crea({ ls: lineas({ precio_unitario: "diez" }) })}, '|', 2),
      split_part(${crea({ ls: lineas({ cantidad: "2", precio_unitario: "10", descuento: "20.01" }) })}, '|', 2),
      split_part(${crea({ ls: lineas({ descuento_pct: "101" }) })}, '|', 2),
@@ -545,13 +546,48 @@ caso(
   ].join(",")
 );
 caso(
-  "CR5 la cantidad dice su unidad al rechazarse (metros, conos) y los extremos 0.001 y 99 999.999 entran",
+  "CR5 la cantidad dice su unidad al rechazarse (metros, conos) y los extremos entran: 0.001 metros, y 99 999.999 conos a S/ 99 999.9999",
   `select concat_ws(' / ',
      split_part(${crea({ ls: lineas({ cantidad: "0.0005" }) })}, '|', 3),
      split_part(${crea({ ls: lineas({ insumo_id: "@hilo", cantidad: "1.2345" }) })}, '|', 3),
-     split_part(${crea({ ls: lineas({ cantidad: "0.001" }, { insumo_id: "@hilo", cantidad: "99999.999", precio_unitario: "99999.99" }) })}, ':', 1));`,
+     split_part(${crea({ ls: lineas({ cantidad: "0.001" }, { insumo_id: "@hilo", cantidad: "99999.999", precio_unitario: "99999.9999" }) })}, ':', 1));`,
   "La cantidad de la línea 1 va de 0.001 a 99 999.999 metros, con hasta tres decimales / " +
     "La cantidad de la línea 1 va de 0.001 a 99 999.999 conos, con hasta tres decimales / OK"
+);
+caso(
+  "CR5b el precio lleva hasta 4 decimales, como los comprobantes y los lotes del Taller: 1000 botones a S/ 0.0350 son S/ 35.00 (no S/ 40.00); " +
+    "el reintento con «0.035» es el mismo pedido; con 5 decimales se rechaza y lo dice",
+  `reset role;
+   insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('OIP-BOTON', 'Botón Nácar OI Prueba', 'avio', 'unidad') returning id as boton \\gset
+   ${como(FELIPE)}
+   select gen_random_uuid() as pid \\gset
+   select id as oc, numero as na from retail.crear_orden_insumo(${args({ id: ":'pid'", ls: lineas({ insumo_id: "@boton", cantidad: "1000", precio_unitario: "0.0350" }) })}) \\gset
+   select ${crea({ id: ":'pid'", ls: lineas({ insumo_id: "@boton", cantidad: "1000.000", precio_unitario: "0.035" }) })} as reintento \\gset
+   select ${crea({ ls: lineas({ insumo_id: "@boton", cantidad: "1000", precio_unitario: "0.03505" }) })} as cinco \\gset
+   reset role;
+   select concat_ws(' / ',
+     (select i.cantidad || ' ' || i.unidad_medida || ' x ' || i.precio_unitario || ' = ' || i.subtotal from retail.orden_insumo_items i where i.orden_insumo_id = :'oc'),
+     (select f.total from retail.fn_ordenes_insumo() f where f.id = :'oc'),
+     retail.fn_orden_insumo(:'oc') -> 'lineas' -> 0 ->> 'precio_unitario',
+     ${si(":'reintento' = 'OK:' || :'na'", "mismo pedido", "otro")},
+     split_part(:'cinco', '|', 2) || ':' || split_part(:'cinco', '|', 3));`,
+  "1000.000 unidad x 0.0350 = 35.00 / 35.00 / 0.0350 / mismo pedido / " +
+    "orden_insumo_precio:El precio de la línea 1 va de S/ 0 a S/ 99 999.9999, con hasta cuatro decimales"
+);
+caso(
+  "CR5c el descuento en % sobre un importe con precio de 4 decimales cuadra con el candado: 12.5 m a S/ 13.3333 = S/ 166.67 y el 15 % es S/ 25.00 " +
+    "(no 25.0005); el candado rechaza 25.01 con el 15 % y un descuento mayor que el importe redondeado",
+  `select id as oc from retail.crear_orden_insumo(${args({ ls: lineas({ cantidad: "12.5", precio_unitario: "13.3333", descuento_pct: "15" }) })}) \\gset
+   reset role;
+   select concat_ws(',',
+     split_part(pg_temp.intento(format('insert into retail.orden_insumo_items (orden_insumo_id, posicion, insumo_id, cantidad, unidad_medida, precio_unitario, descuento, descuento_pct) values (%L, 2, %L, 12.5, ''metro'', 13.3333, 25.01, 15)', :'oc', :'lino')), '|', 1),
+     split_part(pg_temp.intento(format('insert into retail.orden_insumo_items (orden_insumo_id, posicion, insumo_id, cantidad, unidad_medida, precio_unitario, descuento) values (%L, 3, %L, 12.5, ''metro'', 13.3333, 166.68)', :'oc', :'lino')), '|', 1))
+     as candados \\gset
+   select :'candados' || ' / ' ||
+     (select i.cantidad || ' x ' || i.precio_unitario || ' = ' || round(i.cantidad * i.precio_unitario, 2) || ' - ' || i.descuento
+             || ' (' || i.descuento_pct::numeric(7, 2) || '%) = ' || i.subtotal
+        from retail.orden_insumo_items i where i.orden_insumo_id = :'oc' and i.posicion = 1);`,
+  "23514,23514 / 12.500 x 13.3333 = 166.67 - 25.00 (15.00%) = 141.67"
 );
 caso(
   "CR6 una persona que no es Admin, con el responsable obligatorio encendido: sin la clave le pide el combo; con «orden_insumo_crear» firma ella",
@@ -642,7 +678,7 @@ caso(
      (:'d'::jsonb -> 'cantidades')::text || ':' || (:'d'::jsonb ->> 'total') || ':' || (:'d'::jsonb -> 'versiones')::text,
      coalesce(retail.fn_orden_insumo(gen_random_uuid())::text, 'no existe'));`,
   "generada:Telas Peña OI Prueba:tela:Taller:felipe / " +
-    "1:Lino Crudo OI Prueba:OIP-LINO:tela:10.500 metro/metro:25.50-0.00=267.75 2:Hilo Algodón OI Prueba:OIP-HILO:avio:4.000 cono/cono:100.00-40.00=360.00 / " +
+    "1:Lino Crudo OI Prueba:OIP-LINO:tela:10.500 metro/metro:25.5000-0.00=267.75 2:Hilo Algodón OI Prueba:OIP-HILO:avio:4.000 cono/cono:100.0000-40.00=360.00 / " +
     '{"cono": 4.000, "metro": 10.500}:627.75:[] / no existe'
 );
 caso(
@@ -722,7 +758,7 @@ caso(
     return (
       p[0] === "OK:2" &&
       p[1] === "2:5:Nota nueva:felipe" &&
-      p[2] === "12.250 metro x 25.50 4.000 cono x 100.00 2.000 cono x 30.00" &&
+      p[2] === "12.250 metro x 25.5000 4.000 cono x 100.0000 2.000 cono x 30.0000" &&
       p[3] === "1:2:627.75:Nota inicial:10.500 metro" &&
       p[4] === "1:1:felipe:627.75" &&
       p[5] === "1+1" &&

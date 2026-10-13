@@ -16,11 +16,13 @@
 --   2. `retail.orden_insumo_items`: las líneas. El insumo del catálogo (`insumos`), una descripción opcional, la cantidad con hasta tres
 --      decimales EN LA UNIDAD DEL INSUMO (`numeric(12,3)`, como `comprobantes_produccion_items` e `insumo_lotes`), y `unidad_medida`
 --      COPIADA del insumo al guardar: así el documento no cambia de sentido si después alguien cambia la unidad del insumo (50 metros no
---      pasan a ser 50 kilos en una orden ya mandada) [provisional, revisar con Felipe]. Precio y descuento con la misma precisión y los
---      mismos candados que `orden_compra_items` [provisional, revisar con Felipe: los comprobantes del Taller aceptan un costo unitario
---      con 4 decimales; aquí el precio va con 2, como en la orden de tienda]. Como la cantidad trae decimales, el IMPORTE de la línea es
---      `round(cantidad × precio, 2)` —lo que diría el papel—, el descuento en % se calcula sobre ese importe, y el subtotal (columna
---      calculada) es importe − descuento: el total de una orden no puede dejar de ser la suma de sus líneas, y ninguna línea queda negativa.
+--      pasan a ser 50 kilos en una orden ya mandada) [provisional, revisar con Felipe]. El PRECIO UNITARIO lleva 4 decimales
+--      (`numeric(12,4)`), los mismos que el costo de `comprobantes_produccion_items` y de `insumo_lotes`: un botón o un cono puede costar
+--      S/ 0.0350, y con 2 decimales mil botones darían S/ 40.00 en vez de S/ 35.00; y cuando la línea pase al comprobante y al lote del
+--      Taller (PEPS) no habrá una diferencia de redondeo. El descuento en soles y los candados son los de `orden_compra_items`. Como cantidad
+--      y precio traen decimales, el IMPORTE de la línea es `round(cantidad × precio, 2)` —lo que diría el papel, en céntimos—, el descuento
+--      en % se calcula sobre ese importe, y el subtotal (columna calculada) es importe − descuento: el total de una orden no puede dejar
+--      de ser la suma de sus líneas, y ninguna línea queda negativa.
 --   3. `retail.orden_insumo_versiones`: el ARCHIVO de lo que la orden decía antes de cada edición (con precios). Solo se agrega: un
 --      disparador impide editarlo o borrarlo. Al editar se reemplazan las líneas, pero lo de antes no se pierde («nunca borres datos»).
 --   4. La versión que sube SOLA en cada escritura de la cabecera (disparador, como `ordenes_compra` y `productos`, ADR-0193): lo que
@@ -104,8 +106,9 @@ create table if not exists retail.orden_insumo_items (
   cantidad numeric(12, 3) not null check (cantidad > 0),
   -- La unidad del insumo el día que se guardó la línea (la copia la función al guardar).
   unidad_medida text not null check (btrim(unidad_medida) <> ''),
-  -- Mismo tipo que `orden_compra_items.precio_unitario`.
-  precio_unitario numeric(12, 2) not null check (precio_unitario >= 0),
+  -- Con 4 decimales, como el costo de los comprobantes y de los lotes de insumo del Taller (`numeric(12,4)`): un botón de S/ 0.0350
+  -- por mil da S/ 35.00, no S/ 40.00, y la línea pasa al comprobante y al lote sin redondear nada.
+  precio_unitario numeric(12, 4) not null check (precio_unitario >= 0),
   -- Lo que se descuenta, en soles. Si se escribió como porcentaje, `descuento_pct` lo recuerda para volver a mostrarlo así.
   descuento numeric(12, 2) not null default 0 check (descuento >= 0),
   descuento_pct numeric(7, 4) check (descuento_pct is null or (descuento_pct >= 0 and descuento_pct <= 100)),
