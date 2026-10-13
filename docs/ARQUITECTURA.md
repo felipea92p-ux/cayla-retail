@@ -1547,6 +1547,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     el tipo `fondo`, `ayudaDelFondo` («CAYLA te debe») y `usadoDelFondo` (lo pasan `LineasPago` y `MediosDePago`). En la base, el sello de
     los pagos (`fn_compra_pagos_sellar`) deriva el fondo a `fn_fondo_para_pagar` (solo su dueña, con su cuenta) y `fn_asientos` lo saca de
     la 1413.
+    **«Tu fondo»** (actividad 4, `20261013231000`): `components/fondos/TarjetaTuFondo.tsx` (la pieza de cifra, con `caraTuFondo`,
+    `mostrarTuFondo` y `hrefTuFondo` de `lib/fondos-reglas.ts`) ← `lib/fondos.ts:getResumenMiFondo` (`fn_mi_fondo_resumen`: saldo,
+    entregado, devuelto, pagado, gastos, desde y para qué, en una pasada por `fn_dinero_libro`). La dibujan `/compras/ordenes` (en la fila
+    de cifras) y el Inicio (`app/(app)/page.tsx`, después de «Tu día»; en el de almacén, `InicioAlmacen` → arriba de la columna derecha).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;

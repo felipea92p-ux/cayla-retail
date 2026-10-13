@@ -3,21 +3,26 @@ import { faltanDe, sePuedeConfirmar } from "./guia-campos";
 import {
   camposDevolver,
   camposEntregar,
+  caraTuFondo,
   cifrasDeFondos,
   conMiFondo,
   cuentaDeMiFondo,
   fraseDevolver,
   fraseEntregar,
+  hrefTuFondo,
   leerFondos,
   leerMiFondo,
   leerMovimientosFondos,
   leerOpcionesFondos,
+  leerResumenMiFondo,
+  mostrarTuFondo,
   opcionesDeCuentas,
   opcionesDePersonas,
   problemaDeMonto,
   problemaDeMotivo,
   problemaDePersona,
   type OpcionesFondos,
+  type ResumenMiFondo,
 } from "./fondos-reglas";
 
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1). Lo que falta en cada hoja tiene que ser lo MISMO que rechaza la base
@@ -102,6 +107,79 @@ describe("«Mi fondo» en los pagos de Compras (actividad 2)", () => {
     const banco = { id: "b1", nombre: "BCP", tipo: "banco" as const, ubicacionId: null, ubicacionNombre: null, cajaAbierta: false, propuestaPara: [] };
     expect(conMiFondo([banco], { cuentaId: "f1", nombre: "x", saldo: 10 }).map((c) => c.id)).toEqual(["f1", "b1"]);
     expect(conMiFondo([banco], null)).toEqual([banco]);
+  });
+});
+
+describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Inicio", () => {
+  const fecha = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  const BASE: ResumenMiFondo = {
+    cuentaId: "f1",
+    saldo: 500,
+    entregado: 500,
+    devuelto: 0,
+    pagado: 0,
+    gastos: 0,
+    otros: 0,
+    desde: "2026-10-13",
+    paraQue: "Compras Gamarra",
+    ultimaEntrega: "2026-10-13",
+  };
+  const cara = (r: Partial<ResumenMiFondo>) => caraTuFondo({ ...BASE, ...r }, fecha);
+
+  it("lee la fila de fn_mi_fondo_resumen (los números llegan como texto); sin fila o sin cuenta, nada", () => {
+    expect(
+      leerResumenMiFondo([
+        { cuenta_id: "f1", saldo: "-194.40", entregado: "300.00", devuelto: "0", pagado: "414.40", gastos: "80.00", otros: "0", desde: "2026-10-13", para_que: "Gamarra", ultima_entrega: "2026-10-13" },
+      ]),
+    ).toEqual({ cuentaId: "f1", saldo: -194.4, entregado: 300, devuelto: 0, pagado: 414.4, gastos: 80, otros: 0, desde: "2026-10-13", paraQue: "Gamarra", ultimaEntrega: "2026-10-13" });
+    expect(leerResumenMiFondo([{ cuenta_id: "f1" }])).toEqual({ cuentaId: "f1", saldo: 0, entregado: 0, devuelto: 0, pagado: 0, gastos: 0, otros: 0, desde: null, paraQue: null, ultimaEntrega: null });
+    expect(leerResumenMiFondo([])).toBeNull();
+    expect(leerResumenMiFondo([{ saldo: 10 }])).toBeNull();
+    expect(leerResumenMiFondo("basura")).toBeNull();
+  });
+
+  it("sale con un fondo que tiene o tuvo plata; sin fondo, o con su única entrega anulada, no", () => {
+    expect(mostrarTuFondo(BASE)).toBe(true);
+    expect(mostrarTuFondo({ ...BASE, saldo: 0 })).toBe(true); // lo gastó todo: igual le dice cuánto
+    expect(mostrarTuFondo({ ...BASE, saldo: -20, entregado: 0 })).toBe(true);
+    expect(mostrarTuFondo({ ...BASE, saldo: 0, entregado: 0 })).toBe(false);
+    expect(mostrarTuFondo(null)).toBe(false);
+  });
+
+  it("con todo en la mano: lo que le entregaron y que aún no gasta", () => {
+    expect(cara({})).toEqual({
+      valor: "S/ 500.00",
+      unidad: "te queda",
+      debe: false,
+      contexto: "Te entregaron S/ 500.00; aún no gastas nada",
+      pie: "Desde el 13/10 · para «Compras Gamarra»",
+    });
+  });
+
+  it("después de pagar y anotar gastos: «te queda» y cuánto gastó de lo entregado (proveedores y viaje juntos)", () => {
+    const c = cara({ saldo: 200, pagado: 220, gastos: 80 });
+    expect([c.valor, c.unidad, c.contexto]).toEqual(["S/ 200.00", "te queda", "Gastaste S/ 300.00 de S/ 500.00"]);
+    expect(cara({ saldo: 100, devuelto: 100, pagado: 300 }).contexto).toBe("Gastaste S/ 300.00 y devolviste S/ 100.00 de S/ 500.00");
+    expect(cara({ saldo: 0, devuelto: 500 }).contexto).toBe("Devolviste S/ 500.00 de S/ 500.00");
+    expect(cara({ saldo: 0, pagado: 500 })).toMatchObject({ valor: "S/ 0.00", unidad: "te queda", contexto: "Gastaste S/ 500.00 de S/ 500.00" });
+  });
+
+  it("si pagó de su bolsillo, el número es lo que CAYLA le debe (nunca negativo), en ámbar, y el contexto lo dice", () => {
+    const c = cara({ saldo: -194.4, entregado: 300, pagado: 414.4, gastos: 80 });
+    expect(c).toMatchObject({ valor: "S/ 194.40", unidad: null, debe: true });
+    expect(c.contexto).toBe("CAYLA te debe: gastaste S/ 494.40 de S/ 300.00");
+  });
+
+  it("el pie dice desde cuándo y para qué, con lo que haya", () => {
+    expect(cara({ paraQue: null }).pie).toBe("Desde el 13/10");
+    expect(cara({ desde: null }).pie).toBe("Para «Compras Gamarra»");
+    expect(cara({ paraQue: null, desde: null }).pie).toBeNull();
+  });
+
+  it("lleva a Órdenes de compra si la ve; si no, a Por pagar; si no ve ninguna, no lleva", () => {
+    expect(hrefTuFondo(() => true)).toBe("/compras/ordenes");
+    expect(hrefTuFondo((m) => m === "por_pagar")).toBe("/compras/por-pagar");
+    expect(hrefTuFondo(() => false)).toBeUndefined();
   });
 });
 

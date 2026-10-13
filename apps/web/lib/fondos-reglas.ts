@@ -9,6 +9,7 @@ import type { Opcion } from "../components/ui/campos";
 // falta en cada hoja. Lo que falta sale de lo MISMO que rechazan `entregar_fondo`, `devolver_fondo` y `anular_movimiento_fondo`
 // (20261013182000): la guía no agrega reglas (ADR-0284). Sin Supabase: lo importan el servidor y las hojas.
 // Actividad 2 (20261013212000): «Mi fondo» en los pagos de Compras (`leerMiFondo`, `conMiFondo`) y lo que CAYLA debe en el tablero.
+// Actividad 4 (20261013231000): la tarjeta «Tu fondo» de Órdenes de compra y del Inicio (`leerResumenMiFondo`, `caraTuFondo`).
 
 export const RUTA_FONDOS = "/compras/fondos";
 // Cada llamada nombra su constante (`.rpc(RPC_X as never, …)`): así la lee la prueba de cobertura de roles.
@@ -19,6 +20,7 @@ export const RPC_ENTREGAR_FONDO = "entregar_fondo";
 export const RPC_DEVOLVER_FONDO = "devolver_fondo";
 export const RPC_ANULAR_MOVIMIENTO_FONDO = "anular_movimiento_fondo";
 export const RPC_MI_FONDO = "fn_mi_fondo";
+export const RPC_MI_FONDO_RESUMEN = "fn_mi_fondo_resumen";
 
 /** El «para qué» de una entrega y la nota de una devolución: lo mismo que acepta `movimientos_dinero.referencia`. */
 export const MAX_TEXTO_FONDO = 200;
@@ -179,6 +181,104 @@ export function cuentaDeMiFondo(f: MiFondo): CuentaElegible {
 /** Las cuentas de un pago de Compras con «Mi fondo» delante (si la persona tiene uno). */
 export function conMiFondo(cuentas: readonly CuentaElegible[], fondo: MiFondo | null): CuentaElegible[] {
   return fondo ? [cuentaDeMiFondo(fondo), ...cuentas.filter((c) => c.id !== fondo.cuentaId)] : [...cuentas];
+}
+
+// ---------- «Tu fondo» (actividad 4, 20261013231000) ----------
+
+/** La fila de `fn_mi_fondo_resumen`: todo sale del mismo libro que el saldo, así que el desglose cuadra con él. */
+export type ResumenMiFondo = {
+  cuentaId: string;
+  /** Lo que tiene en la mano. Negativo = CAYLA le debe (pagó de su bolsillo, decisión 32). */
+  saldo: number;
+  entregado: number;
+  devuelto: number;
+  /** Lo que pagó a proveedores desde el fondo. */
+  pagado: number;
+  /** Lo que salió como gasto (los del viaje). */
+  gastos: number;
+  /** Lo que falta para cuadrar si algún día otra cosa mueve el fondo: hoy siempre 0. */
+  otros: number;
+  /** La primera entrega vigente: desde cuándo tiene plata. */
+  desde: string | null;
+  /** El «para qué» de la última entrega. */
+  paraQue: string | null;
+  ultimaEntrega: string | null;
+};
+
+/** La fila de `fn_mi_fondo_resumen`, o nada si no tiene fondo, si es una terminal o si la base no la mandó entera. */
+export function leerResumenMiFondo(data: unknown): ResumenMiFondo | null {
+  const f = filas(data)[0];
+  const cuentaId = f ? texto(f.cuenta_id) : null;
+  if (!f || !cuentaId) return null;
+  return {
+    cuentaId,
+    saldo: numero(f.saldo) ?? 0,
+    entregado: numero(f.entregado) ?? 0,
+    devuelto: numero(f.devuelto) ?? 0,
+    pagado: numero(f.pagado) ?? 0,
+    gastos: numero(f.gastos) ?? 0,
+    otros: numero(f.otros) ?? 0,
+    desde: texto(f.desde),
+    paraQue: texto(f.para_que),
+    ultimaEntrega: texto(f.ultima_entrega),
+  };
+}
+
+const CENTAVO = 0.005;
+
+/** Si la tarjeta sale: con un fondo que tiene o tuvo plata en este ciclo. Un fondo cuya única entrega se anuló no dice nada. */
+export function mostrarTuFondo(r: ResumenMiFondo | null): r is ResumenMiFondo {
+  return r !== null && (Math.abs(r.saldo) > CENTAVO || r.entregado > CENTAVO);
+}
+
+/** Lo que dice la tarjeta «Tu fondo» (la misma en Órdenes de compra y en el Inicio). Medida en la fila de cuatro cifras de Órdenes
+ *  de compra (225 px por tarjeta con el menú abierto en 1280): el nombre es siempre «Tu fondo» y la deuda se dice en el contexto; un
+ *  nombre o una unidad más largos bajaban de renglón y estiraban la fila entera. */
+export type CaraTuFondo = {
+  /** El número grande: lo que le queda o, si pagó de su bolsillo, lo que CAYLA le debe (nunca un número negativo). */
+  valor: string;
+  /** «te queda» junto al número; con deuda, nada (lo dice el contexto). */
+  unidad: "te queda" | null;
+  /** Pagó de su bolsillo: el número y el contexto van en ámbar (a medias: se salda al rendir), nunca en rojo. */
+  debe: boolean;
+  /** De dónde sale ese número: «Gastaste S/ 300.00 de S/ 500.00»; con deuda, «CAYLA te debe: gastaste S/ 574.40 de S/ 300.00». */
+  contexto: string;
+  /** Desde cuándo y para qué: «Desde el 13/10 · para «Compras Gamarra»» (en un renglón: el «para qué» admite 200 letras). */
+  pie: string | null;
+};
+
+/** `fecha` escribe un día (`diaMes` de `fechas-lima`): se recibe para que esta lógica no dependa del reloj ni del formato. */
+export function caraTuFondo(r: ResumenMiFondo, fecha: (iso: string) => string): CaraTuFondo {
+  const debe = r.saldo < -CENTAVO;
+  // Lo que salió del fondo: le entregaron − devolvió − tiene (como el tablero de Fondos). Cuadra siempre con el saldo, aunque «otros»
+  // no fuera 0 algún día.
+  const gastado = Math.max(redondo(r.entregado - r.devuelto - r.saldo), 0);
+  const devolvio = r.devuelto > CENTAVO;
+  let contexto: string;
+  if (gastado <= CENTAVO) {
+    contexto = devolvio ? `Devolviste ${soles(r.devuelto)} de ${soles(r.entregado)}` : `Te entregaron ${soles(r.entregado)}; aún no gastas nada`;
+  } else {
+    contexto = devolvio
+      ? `Gastaste ${soles(gastado)} y devolviste ${soles(r.devuelto)} de ${soles(r.entregado)}`
+      : `Gastaste ${soles(gastado)} de ${soles(r.entregado)}`;
+  }
+  if (debe) contexto = `CAYLA te debe: ${contexto.charAt(0).toLowerCase()}${contexto.slice(1)}`;
+  const partes = [r.desde ? `desde el ${fecha(r.desde)}` : null, r.paraQue ? `para «${r.paraQue}»` : null].filter((p): p is string => p !== null);
+  const pie = partes.length ? partes.join(" · ") : null;
+  return {
+    valor: soles(debe ? -r.saldo : Math.max(r.saldo, 0)),
+    unidad: debe ? null : "te queda",
+    debe,
+    contexto,
+    pie: pie ? pie.charAt(0).toUpperCase() + pie.slice(1) : null,
+  };
+}
+
+/** A dónde lleva la tarjeta del Inicio: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla. */
+export function hrefTuFondo(ve: (modulo: "ordenes_compra" | "por_pagar") => boolean): string | undefined {
+  if (ve("ordenes_compra")) return "/compras/ordenes";
+  if (ve("por_pagar")) return "/compras/por-pagar";
+  return undefined;
 }
 
 // ---------- Las cifras de arriba ----------

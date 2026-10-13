@@ -231,6 +231,32 @@ excepción. Las órdenes son opcionales (el cargador se paga a veces antes de sa
 orden. Un gasto del viaje se anula en Finanzas ▸ Gastos, como cualquier gasto (una anulada no cuenta en «Traerla costó» y le devuelve la
 plata al fondo). Con tarjeta de crédito no se anota aquí (va por Finanzas ▸ Gastos). Las fotos del papel llegan con la rendición (69).
 
+**Fase 6 · actividad 4 (2026-10-13, noche): «Tu fondo» en Órdenes de compra y en el Inicio** (decisiones 26 y 32). Migración
+`20261013231000`; prueba `pnpm pruebas:gastos-viaje` (un caso nuevo, 12 en total), que junta todo lo que mueve un fondo.
+
+```
+DECIDÍ: «Tu fondo» es una cifra, así que es LA pieza de cifra (`TarjetaCifra`, ADR-0358), la misma en los dos lugares
+        (`TarjetaTuFondo`): «S/ 200.00 te queda», debajo «Gastaste S/ 300.00 de S/ 500.00» y al pie desde cuándo y para qué. Si
+        pagó de su bolsillo, el número es lo que CAYLA le debe, en ámbar, y el contexto empieza con «CAYLA te debe:»; nunca un número
+        negativo. En Órdenes de compra es una cifra más de la fila de arriba (con cuatro, en fila desde 56 rem de ancho disponible); en
+        el Inicio, después de «Tu día» y antes de «Te toca» (es una cifra suya), y en el de almacén arriba de su columna derecha. Los
+        números salen de `fn_mi_fondo_resumen`, en UNA pasada por el mismo libro que el saldo (`fn_dinero_libro`), así que el
+        desglose cuadra siempre con él. Una lectura que falla no pinta nada (la mayoría no tiene fondo), pero queda en el registro.
+DESCARTÉ: sumar cada cosa desde su tabla (`compra_pagos`, `gastos`, `movimientos_dinero`): serían dos verdades. Y ampliar
+        `fn_mi_fondo`: cambiar lo que devuelve obliga a borrarla, y el combo de los pagos solo necesita el saldo.
+SE ROMPE SI: otra cosa mueve un fondo sin pasar por el libro (el saldo de la tarjeta dejaría de ser el de «Cuentas y dinero»); el
+        resumen lo delataría en «otros», que hoy siempre es 0.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: la tarjeta sale mientras el fondo tenga o haya tenido plata en este ciclo (todavía no hay
+rendición: el ciclo es desde la primera entrega; la actividad 5 lo hará empezar en la última rendición aprobada, cambiando la función por
+dentro y no la pantalla). En el Inicio lleva a Órdenes de compra, o a Por pagar si la persona solo ve esa; si no ve ninguna, informa. En
+Órdenes de compra informa (la actividad 5 le suma «Rendir»). **El Observatorio del Admin no la lleva**: su diseño es una decisión
+(ADR-0322); un Admin con fondo lo ve en Órdenes de compra. Lo que pagó a proveedores y lo que se fue en gastos del viaje viene separado de
+la base, pero la tarjeta los muestra juntos («Gastaste»): el detalle, pago por pago, es de la hoja de la rendición. **No se construyó
+«Lo recibí»** (la compradora confirma la entrega en su tarjeta, del mapa de módulos): no está en la lista de 8 actividades aprobada y
+pediría guardar algo nuevo; queda anotado en el backlog para que Felipe decida.
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe

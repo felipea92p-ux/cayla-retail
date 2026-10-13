@@ -2,14 +2,17 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
   RPC_FONDOS,
+  RPC_MI_FONDO_RESUMEN,
   RPC_MOVIMIENTOS_FONDOS,
   RPC_OPCIONES_FONDOS,
   leerFondos,
   leerMovimientosFondos,
   leerOpcionesFondos,
+  leerResumenMiFondo,
   type FondoFila,
   type MovimientoFondo,
   type OpcionesFondos,
+  type ResumenMiFondo,
 } from "@/lib/fondos-reglas";
 
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1): lectura del servidor, por las funciones de 20261013182000. Todas piden el módulo
@@ -42,4 +45,19 @@ export async function getDatosFondos(): Promise<DatosFondos> {
     return { fondos: [], movimientos: [], opciones: { yo: null, personas: [], cuentas: [] }, falla: FALLA };
   }
   return { fondos: leerFondos(f.data), movimientos: leerMovimientosFondos(m.data), opciones: leerOpcionesFondos(o.data), falla: null };
+}
+
+/**
+ * «Tu fondo» de quien mira (actividad 4, `fn_mi_fondo_resumen`): sin módulo, es lo suyo. `null` si no tiene fondo, si es una terminal o
+ * si la lectura falló. Una falla se registra y la tarjeta no sale: la mayoría de las personas no tiene fondo, y pintarles a todos «no se
+ * pudo leer tu fondo» por una base caída sería avisar de algo que no tienen (principio 9: se degrada, nunca muestra un número falso).
+ */
+export async function getResumenMiFondo(): Promise<ResumenMiFondo | null> {
+  const supabase = await createClient();
+  const r = await (supabase.rpc(RPC_MI_FONDO_RESUMEN as never) as unknown as Respuesta);
+  if (r.error) {
+    console.error(`tu fondo: ${r.error.message}`);
+    return null;
+  }
+  return leerResumenMiFondo(r.data);
 }

@@ -1368,6 +1368,13 @@ export const GUIA_ORDENES: Guia = {
       texto: "Lo pedido a proveedores en todas las sedes, lo que llega a la sede donde trabajas y lo que llega a Lima «por repartir» entre las tiendas. Solo cuentan las órdenes generadas: una anulada no suma. No cambian con los filtros.",
     },
     {
+      id: "tu-fondo",
+      ancla: "ordenes.tu-fondo",
+      opcional: true,
+      titulo: "Tu fondo",
+      texto: "La plata que CAYLA te entregó para comprar: cuánto te queda, cuánto gastaste y para qué era. Baja sola cuando pagas a un proveedor o anotas un gasto del viaje desde «Mi fondo». Si pagaste de tu bolsillo, dice cuánto te debe CAYLA. Solo la ves tú.",
+    },
+    {
       id: "buscador",
       ancla: "ordenes.buscador",
       opcional: true,

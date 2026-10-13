@@ -315,6 +315,13 @@ export const GUIA_INICIO: Guia = {
       texto: "Cuánto llevas vendido en el mes contra tu meta del mes, y cuántos días de trabajo te quedan.",
     },
     {
+      id: "tu-fondo",
+      ancla: "inicio.tu-fondo",
+      opcional: true,
+      titulo: "Tu fondo",
+      texto: "Si CAYLA te entregó plata para comprar, aquí ves cuánto te queda, cuánto gastaste y para qué era; si pagaste de tu bolsillo, cuánto te debe CAYLA. Al tocarla vas a donde compras. Solo la ves tú.",
+    },
+    {
       id: "vender",
       ancla: "inicio.vender",
       opcional: true,

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Prueba de los gastos del viaje (ADR-0362, fase 6 · actividad 3): `20261013221000_gastos_del_viaje_esquema.sql` y
- * `20261013222000_gastos_del_viaje_funciones.sql` (sobre las del fondo: 20261013181000, 182000 y 212000).
+ * `20261013222000_gastos_del_viaje_funciones.sql` (sobre las del fondo: 20261013181000, 182000 y 212000). Y de «Tu fondo» (actividad 4,
+ * `20261013231000_tu_fondo_resumen.sql`), que junta todo lo que mueve el fondo.
  *
  * QUÉ PROMETE
  *   · El módulo Órdenes de compra es la llave: sin él no se registra ni se leen los gastos de una orden (42501).
@@ -14,6 +15,9 @@
  *   · Desde un fondo paga solo su dueña (tampoco el líder); el mismo token no duplica; lo inválido no se guarda.
  *   · La firma de la decisión 39: con el responsable obligatorio, una persona sin la clave `gasto_viaje_registrar` no guarda; con ella,
  *     firma ella.
+ *   · «Tu fondo» (`fn_mi_fondo_resumen`): lo que le entregaron, lo que pagó a proveedores, lo que salió en gastos del viaje y lo que le
+ *     queda, del mismo libro que el saldo (cuadra con él, «otros» en 0); si pagó de su bolsillo, el saldo en negativo. Solo lo suyo:
+ *     otra persona no ve su fondo, una terminal no tiene.
  *
  * CÓMO. Como `fondos.mjs`: carga las migraciones dentro de cada caso (se pueden pegar dos veces), sesión simulada con
  * `request.jwt.claim.sub` y ROLLBACK siempre: nada queda escrito.
@@ -41,14 +45,16 @@ const MIGRACION = [
   "20261013212000_fondos_pagar_desde_mi_fondo.sql",
   "20261013221000_gastos_del_viaje_esquema.sql",
   "20261013222000_gastos_del_viaje_funciones.sql",
+  "20261013231000_tu_fondo_resumen.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
-// Solo de esta prueba: la cuenta de Ana, que compra y paga desde su fondo.
+// Solo de esta prueba: la cuenta de Ana, que compra y paga desde su fondo, y una terminal de Trujillo (no tiene fondo).
 const ANA = "44444444-4444-4444-8444-0000000000a2";
+const TERMINAL = "44444444-4444-4444-8444-0000000000f2";
 
 function psql(sql) {
   return execFileSync(
@@ -323,6 +329,38 @@ select 'clave|' || count(*) from retail.acciones_sin_responsable where clave = '
       !/^sin_clave\|42501\|responsable_requerido\|/m.test(s) && `sin la clave debía pedir el responsable — ${linea("sin_clave")(s)}`,
       !/^firma\|true$/m.test(s) && `el gasto debía quedar firmado por Ana — ${linea("firma")(s)}`,
       !/^clave\|1$/m.test(s) && `falta la clave gasto_viaje_registrar — ${linea("clave")(s)}`,
+    ].filter(Boolean),
+  },
+  {
+    nombre: "«Tu fondo»: le entregaron, pagó a proveedores, gastos del viaje y le queda, del mismo libro que el saldo; solo lo suyo",
+    sql: `-- Un comprobante a crédito de Trujillo que Ana paga desde su fondo (Por pagar en su rol), y un flete del viaje.
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'por_pagar') on conflict do nothing;
+insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total, naturaleza, ubicacion_gestion_id)
+  values (:'prov', 'factura', 'FGV', substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), retail.fn_hoy_lima() - 2, 'credito',
+          retail.fn_hoy_lima() + 20, 1000, 180, 1180, 'mercaderia', :'tru') returning id as compra \\gset
+select (retail.registrar_pagos_compra(:'compra', jsonb_build_array(jsonb_build_object('monto', 300, 'metodo', 'efectivo', 'cuenta_id', :'fondo')),
+                                      null, gen_random_uuid()))[1] as pago \\gset
+select retail.registrar_gasto_viaje('mercaderia', 'flete', 80, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', array[:'o1']::uuid[],
+  null, null, null, null) as g \\gset
+select 'tu|' || r.saldo || '|' || r.entregado || '|' || r.devuelto || '|' || r.pagado || '|' || r.gastos || '|' || r.otros || '|' || r.para_que
+  || '|' || (r.desde = retail.fn_hoy_lima())::text || '|' || (r.saldo = pg_temp.saldo(:'fondo'))::text || '|' || (r.cuenta_id = :'fondo')::text
+  from retail.fn_mi_fondo_resumen() r;
+-- De su bolsillo: otros 300 con 120 en el fondo → el saldo queda en −180 (CAYLA le debe).
+select (retail.registrar_pagos_compra(:'compra', jsonb_build_array(jsonb_build_object('monto', 300, 'metodo', 'efectivo', 'cuenta_id', :'fondo')),
+                                      null, gen_random_uuid()))[1] as pago2 \\gset
+select 'debe|' || r.saldo || '|' || r.pagado || '|' || r.otros from retail.fn_mi_fondo_resumen() r;
+${como(FELIPE)}${sinFirma}
+select 'otra|' || count(*) from retail.fn_mi_fondo_resumen() r where r.cuenta_id = :'fondo';
+insert into auth.users (id, aud, role, email) values ('${TERMINAL}', 'authenticated', 'authenticated', 'terminal-gastos-viaje@prueba.local');
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (:'tru', 'ZZ Terminal gastos del viaje', retail.fn_rol_por_clave('terminal_administrativa'), '${TERMINAL}');
+${como(TERMINAL)}${sinFirma}
+select 'terminal|' || count(*) from retail.fn_mi_fondo_resumen() r;`,
+    revisa: (s) => [
+      !/^tu\|120\.00\|500\.00\|0\|300\.00\|80\.00\|0\.00\|Viaje a Gamarra\|true\|true\|true$/m.test(s) &&
+        `le entregaron 500, pagó 300 y gastó 80: le quedan 120, igual que el saldo — ${linea("tu")(s)}`,
+      !/^debe\|-180\.00\|600\.00\|0\.00$/m.test(s) && `pagando de su bolsillo el saldo queda en −180 — ${linea("debe")(s)}`,
+      !/^otra\|0$/m.test(s) && `otra persona no ve el fondo de Ana — ${linea("otra")(s)}`,
+      !/^terminal\|0$/m.test(s) && `una terminal no tiene fondo — ${linea("terminal")(s)}`,
     ].filter(Boolean),
   },
   {
