@@ -190,7 +190,7 @@ export function LineasPago({
             Tienes <b className="font-semibold">{soles(saldoFavor)}</b> a favor con este proveedor.
           </p>
           {!conFavor && (
-            <button type="button" onClick={usarSaldoFavor} className="label-cayla text-[11px] text-rojo hover:underline">
+            <button type="button" onClick={usarSaldoFavor} className="btn-cayla btn-enlace text-xs">
               Usar {soles(Math.min(saldoFavor, objetivo))}
             </button>
           )}
@@ -238,7 +238,7 @@ export function LineasPago({
                   <CampoTexto etiqueta="N.° de operación" mono value={l.referencia} onChange={(e) => actualizar(i, { referencia: e.target.value })} placeholder="Opcional" autoComplete="off" />
                   {lineas.length > 1 && (
                     <div className="pb-[1.15rem] sm:justify-self-end">
-                      <button type="button" onClick={() => quitar(i)} className="text-xs text-rojo hover:underline">
+                      <button type="button" onClick={() => quitar(i)} className="btn-cayla btn-enlace text-xs">
                         Quitar
                       </button>
                     </div>
