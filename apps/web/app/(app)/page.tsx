@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -6,6 +7,7 @@ import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
 import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import { pisoQueSeVe } from "@/lib/inicio-piso-reglas";
 import type { MiMeta } from "@/lib/mi-meta-reglas";
 import {
   accesosRapidos,
@@ -33,6 +35,7 @@ import { getInicioAlmacen } from "@/lib/inicio-almacen";
 import { getAvisosObservatorio, getDatosObservatorio, getDatosTienda, getTallerObservatorio } from "@/lib/observatorio";
 import { Observatorio } from "@/components/observatorio/Observatorio";
 import { Etiqueta } from "@/components/inicio/TarjetasInicio";
+import { EsqueletoPiso, PisoDelInicio } from "@/components/inicio/PisoDelInicio";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
 
@@ -87,6 +90,10 @@ export default async function InicioPage() {
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
   const vende = persona.ubicacionTipo === "tienda" && ve("vender") && !persona.terminal;
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
+  // «Tu piso» (ADR-0395): solo en una tienda y a quien ve Frescura o el Plan del piso; cada mitad, solo si ve SU módulo (`pisoQueSeVe`, con su prueba). No va
+  // en el `Promise.all` de abajo: leer Frescura es lo más lento del Inicio y va en un `Suspense`, para que «Hoy» y «Te toca» no esperen en una carga en frío
+  // (en una navegación interna el velo del loader espera la respuesta completa: ver `PisoDelInicio.tsx`).
+  const piso = pisoQueSeVe({ ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos });
   const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
   const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
@@ -194,6 +201,18 @@ export default async function InicioPage() {
             </>
           )}
           <TeToca visibles={visibles} ajustar={ajustar} />
+          {piso.alguno && (
+            // Es un estado, no una urgencia: va DESPUÉS de «Te toca», que trae plazos legales y lo que no puede esperar.
+            <Suspense fallback={<EsqueletoPiso mitades={Number(piso.frescura) + Number(piso.plan)} />}>
+              <PisoDelInicio
+                ubicacionId={persona.ubicacionId}
+                ubicacionEtiqueta={persona.ubicacionEtiqueta}
+                ubicacionTipo={persona.ubicacionTipo}
+                terminal={persona.terminal}
+                modulos={modulos}
+              />
+            </Suspense>
+          )}
         </div>
         <div className="space-y-6">
           {accesos.length > 0 && <Accesos accesos={accesos} />}
