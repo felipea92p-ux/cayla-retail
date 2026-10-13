@@ -1,6 +1,7 @@
 import { cambioBancarioLegible } from "@/lib/proveedores-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { CambioBancario } from "@/lib/proveedores";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // «Cambios de la cuenta» en la ficha del proveedor (20261013161000, Felipe 2026-10-13): cada vez que alguien cambió el CCI, la
 // cuenta, el Yape o el titular, quién y cuándo. El historial lo escribe la base en la misma transacción que el cambio, así que no
@@ -9,7 +10,7 @@ export function CambiosCuentaProveedor({ cambios }: { cambios: CambioBancario[] 
   if (cambios.length === 0) return null;
   return (
     <section className="card-cayla p-5" data-guia="proveedor-ficha.cambios-cuenta">
-      <h2 className="label-cayla text-[11px] text-tinta/65">Cambios de la cuenta</h2>
+      <TituloSeccion>Cambios de la cuenta</TituloSeccion>
       <p className="nota-cayla mt-2 max-w-prose text-sm">
         Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono: cambiar la cuenta justo antes de un pago es
         la forma más común de desviarlo.
