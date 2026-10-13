@@ -3,7 +3,8 @@
 - **Fecha / SHA:** 2026-10-12 · fase 5a (`claude/purchase-order-phase5-9b0c82`) · **Dispositivo que manda:** escritorio (el de la tienda)
 - **Pregunta que debería resolver (1 frase):** «¿Qué llegó en esta caja, está completo y ya puedo venderlo?» · **Protagonista:** la prenda
 - **Veredicto en una línea:** «Una colaboradora nueva la termina sola —crea las prendas, cuenta, marca la dañada y el faltante— pero le cuesta
-  encontrar el botón de SU envío, y si sale de la pantalla a medio contar pierde lo hecho (y podría crear la prenda dos veces).»
+  encontrar el botón de SU envío, y si sale de la pantalla a medio contar pierde lo contado (la prenda que creó sigue en el catálogo,
+  pero la tiene que volver a elegir).»
 
 > Informe parcial, hecho de noche sin el panel del navegador visible: **prueba ciega** con un agente (Opus) que maneja la pantalla real del banco
 > por una ventana que devuelve texto y captura (sin memoria entre llamadas: cada llamada repite los pasos), **sin medir el oficio visual** ni
@@ -55,7 +56,7 @@ vale la pena decidirlo antes de que la usen las tiendas.
 | Pasos | 20 |
 | Dudas | 18 prendas en la guía contra 17 en la mano; cinco «Recibir»; el formulario a mano encendido; «la compra ya no se puede anular»; tallas marcadas y «faltan tallas»; 6 combinaciones para 3 que llegaron; si la dañada va arriba y abajo; «No vino» o «Se perdió en el camino» |
 | Palabras no entendidas | «Abierto» (entendió «alguien ya empezó a contar»), «Patrón» (creyó que era el molde), «Admin», la «—» de la matriz |
-| Errores evitables | la prenda creada se «olvidó» al volver (habría podido crearla dos veces); quitar la L tocando «✓ L» no respondió |
+| Errores evitables | la prenda creada se «olvidó» al volver; quitar la L tocando «✓ L» no respondió. [Medido] crearla otra vez con el mismo nombre no se puede: la base lo frena en la misma marca (`nombre_duplicado`, también entre dos sedes a la vez) y la hoja ofrece elegir la que ya existe; con un nombre distinto sí quedarían dos |
 | ¿Terminó? | sí: «ENV-000401 recibido · 16 prendas al almacén, 1 a cuarentena · falta 1», con «cómo se cerró» y su nota |
 
 ## Antes de decir «listo»
