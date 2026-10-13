@@ -42,6 +42,15 @@ describe("demandaDeLaRed", () => {
     expect(d.sedesConRitmo).toBe(2);
     expect(d.cobertura).toEqual({ tipo: "medida", dias: expect.closeTo(10 / 1.5, 5) });
   });
+  it("ventasBase cuenta solo las ventas de las sedes con las que SE MIDIÓ el ritmo; ventasNetas, las de toda la red", () => {
+    const d = demandaDeLaRed([
+      { tipo: "tienda", filas: [fila("v1", { utilizable: 6, ventas: 30 })] }, // 30 días de venta: mide ritmo
+      { tipo: "tienda", filas: [fila("v1", { utilizable: 1, ventas: 5, diasConStock: 2, diasObservables: 2 })] }, // 2 días: poco historial, sin ritmo
+    ]).get("v1")!;
+    expect(d.sedesConRitmo).toBe(1);
+    expect(d.ventasNetas).toBe(35);
+    expect(d.ventasBase).toBe(30);
+  });
   it("sin stock en la red está agotado; sin ventas medidas no hay cobertura", () => {
     const d = demandaDeLaRed([{ tipo: "tienda", filas: [fila("v1", { utilizable: 0, ventas: 20 }), fila("v2", { utilizable: 5, ventas: 0, diasConStock: 5, diasObservables: 5 })] }]);
     expect(d.get("v1")!.banda).toBe("agotado");
@@ -58,6 +67,7 @@ const demanda = (extra: Partial<DemandaVariante> = {}): DemandaVariante => ({
   ritmoDia: 1,
   sedesConRitmo: 1,
   ventasNetas: 30,
+  ventasBase: 30,
   cobertura: { tipo: "agotado", dias: 0 },
   banda: "agotado",
   ...extra,

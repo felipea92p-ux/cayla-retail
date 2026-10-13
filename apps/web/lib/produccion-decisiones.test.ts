@@ -7,6 +7,7 @@ import {
   demandaDeInsumos,
   filasDeTela,
   filasPorModelo,
+  baseDelRitmo,
   resumenDeDecisiones,
   textoDiasDeStock,
   type ContextoDecisiones,
@@ -117,7 +118,7 @@ describe("decisionesDeProduccion", () => {
 
   it("qué producir: un modelo que se agota sin orden abierta sugiere abrir la orden, con el modelo ya elegido", () => {
     const modelos = filasPorModelo(
-      [{ varianteId: "v1", productoId: "p1", stockRed: 6, stockTaller: 0, enCamino: 0, ritmoDia: 2, sedesConRitmo: 1, ventasNetas: 60, cobertura: { tipo: "medida", dias: 3 }, banda: "critica" }],
+      [{ varianteId: "v1", productoId: "p1", stockRed: 6, stockTaller: 0, enCamino: 0, ritmoDia: 2, sedesConRitmo: 1, ventasNetas: 60, ventasBase: 60, cobertura: { tipo: "medida", dias: 3 }, banda: "critica" }],
       [{ productoId: "p1", referencia: "Short Kuntur", variantesIds: ["v1"] }],
       {}
     );
@@ -132,7 +133,7 @@ describe("decisionesDeProduccion", () => {
       decisionesDeProduccion(
         contexto({
           modelos: filasPorModelo(
-            [{ varianteId: "v1", productoId: "p1", stockRed, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, cobertura: { tipo: "medida", dias: 1 }, banda: "critica", ...extra }],
+            [{ varianteId: "v1", productoId: "p1", stockRed, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, ventasBase: 30, cobertura: { tipo: "medida", dias: 1 }, banda: "critica", ...extra }],
             [{ productoId: "p1", referencia: "Blusa Encaje", variantesIds: ["v1"] }],
             {}
           ),
@@ -207,7 +208,7 @@ describe("decisionesDeProduccion", () => {
   });
 
   describe("muchos modelos por producir se juntan en UNA tarjeta (/pantalla produccion, tarea #3)", () => {
-    const agotado = (i: number, ritmoDia = 1) => ({ d: { varianteId: `v${i}`, productoId: `p${i}`, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, cobertura: { tipo: "medida" as const, dias: 0 }, banda: "critica" as const }, m: { productoId: `p${i}`, referencia: `Modelo ${i}`, variantesIds: [`v${i}`] } });
+    const agotado = (i: number, ritmoDia = 1) => ({ d: { varianteId: `v${i}`, productoId: `p${i}`, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, ventasBase: 30, cobertura: { tipo: "medida" as const, dias: 0 }, banda: "critica" as const }, m: { productoId: `p${i}`, referencia: `Modelo ${i}`, variantesIds: [`v${i}`] } });
     const conAgotados = (n: number) => {
       const xs = Array.from({ length: n }, (_, i) => agotado(i, 1 + i)); // el 0 se vende menos; el último, más
       return filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {});
@@ -222,7 +223,7 @@ describe("decisionesDeProduccion", () => {
       const d = decisionesDeProduccion(contexto({ modelos: conAgotados(9) }));
       expect(d).toHaveLength(1);
       expect(d[0]).toMatchObject({ id: "producir-grupo", tipo: "producir", severidad: 3, titulo: "9 modelos por producir y ninguno tiene orden abierta" });
-      expect(d[0].detalle).toBe("Los más urgentes: «Modelo 8» (ya se agotó, 63 por semana), «Modelo 7» (ya se agotó, 56 por semana), «Modelo 6» (ya se agotó, 49 por semana); y 6 más.");
+      expect(d[0].detalle).toBe("Los más urgentes (ventas de los últimos 30 días): «Modelo 8» (ya se agotó, 63 por semana, 30 ventas), «Modelo 7» (ya se agotó, 56 por semana, 30 ventas), «Modelo 6» (ya se agotó, 49 por semana, 30 ventas); y 6 más.");
       expect(d[0].accion).toEqual({ texto: "Ver los 9 modelos", href: "#produce" });
     });
     it("9 modelos por producir y un pago por vencer en 5 días: el pago SÍ aparece, y no queda nada oculto", () => {
@@ -235,7 +236,7 @@ describe("decisionesDeProduccion", () => {
       const xs = [agotado(0, 3), agotado(1, 2), agotado(2, 2), agotado(3, 1)];
       xs.forEach((x) => (x.d.stockRed = 1)); // 1 en tiendas cada uno: se agota antes el que más vende (1/3 de día)
       const d = decisionesDeProduccion(contexto({ modelos: filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {}) }));
-      expect(d[0].detalle).toContain("«Modelo 0» (quedan 1, 21 por semana)");
+      expect(d[0].detalle).toContain("«Modelo 0» (quedan 1, 21 por semana,");
       expect(d[0].detalle).not.toContain("ya se agotó");
     });
   });
@@ -245,7 +246,7 @@ describe("decisionesDeProduccion", () => {
 });
 
 describe("filasPorModelo", () => {
-  const dem = (id: string, extra: Partial<DemandaVariante>): DemandaVariante => ({ varianteId: id, productoId: "p", stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: 1, sedesConRitmo: 1, ventasNetas: 30, cobertura: { tipo: "agotado", dias: 0 }, banda: "agotado", ...extra });
+  const dem = (id: string, extra: Partial<DemandaVariante>): DemandaVariante => ({ varianteId: id, productoId: "p", stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: 1, sedesConRitmo: 1, ventasNetas: 30, ventasBase: 30, cobertura: { tipo: "agotado", dias: 0 }, banda: "agotado", ...extra });
   const modelos = [
     { productoId: "a", referencia: "A", variantesIds: ["a1", "a2"] },
     { productoId: "b", referencia: "B", variantesIds: ["b1"] },
@@ -295,6 +296,47 @@ describe("filasPorModelo", () => {
       {}
     );
     expect(f.map((x) => x.referencia)).toEqual(["B", "A"]);
+  });
+});
+
+describe("cada cifra dice su base (/pantalla produccion, tarea #4)", () => {
+  const fila1 = (ventasBase: number, stockRed = 0, extra: Partial<DemandaVariante> = {}) =>
+    filasPorModelo(
+      [{ varianteId: "v1", productoId: "p1", stockRed, stockTaller: 0, enCamino: 0, ritmoDia: ventasBase / 30, sedesConRitmo: 1, ventasNetas: ventasBase, ventasBase, cobertura: { tipo: "medida", dias: 0 }, banda: "critica", ...extra }],
+      [{ productoId: "p1", referencia: "Blusa Encaje", variantesIds: ["v1"] }],
+      {}
+    );
+
+  it("baseDelRitmo: con 2 ventas o menos dice «poca base»; con 3 o más, solo cuántas", () => {
+    expect(baseDelRitmo(1)).toEqual({ pocaBase: true, largo: "solo 1 venta en 30 días: poca base", corto: "solo 1 venta: poca base" });
+    expect(baseDelRitmo(2)).toEqual({ pocaBase: true, largo: "solo 2 ventas en 30 días: poca base", corto: "solo 2 ventas: poca base" });
+    expect(baseDelRitmo(3)).toEqual({ pocaBase: false, largo: "3 ventas en 30 días", corto: "3 ventas" });
+    expect(baseDelRitmo(36)).toEqual({ pocaBase: false, largo: "36 ventas en 30 días", corto: "36 ventas" });
+  });
+  it("el modelo suma la base de sus variantes", () => {
+    const f = filasPorModelo(
+      [
+        { varianteId: "a", productoId: "p", stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: 0.1, sedesConRitmo: 1, ventasNetas: 9, ventasBase: 3, cobertura: { tipo: "agotado", dias: 0 }, banda: "agotado" },
+        { varianteId: "b", productoId: "p", stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: 0.2, sedesConRitmo: 1, ventasNetas: 6, ventasBase: 6, cobertura: { tipo: "agotado", dias: 0 }, banda: "agotado" },
+      ],
+      [{ productoId: "p", referencia: "M", variantesIds: ["a", "b"] }],
+      {}
+    );
+    expect(f[0].ventasBase).toBe(9);
+  });
+  it("la tarjeta de «producir» dice en cuántas ventas se apoya: «36 ventas en 30 días»", () => {
+    const d = decisionesDeProduccion(contexto({ modelos: fila1(36) }));
+    expect(d[0].detalle).toBe("Se vende 8,4 por semana (36 ventas en 30 días) y quedan 0 en tiendas.".replace("8,4", (Math.round((36 / 30) * 7 * 10) / 10).toLocaleString("es-PE")));
+  });
+  it("con poca base la tarjeta lo dice con todas las letras, y sigue apareciendo (solo avisa, no esconde)", () => {
+    const d = decisionesDeProduccion(contexto({ modelos: fila1(2) }));
+    expect(d).toHaveLength(1);
+    expect(d[0].detalle).toContain("(solo 2 ventas en 30 días: poca base)");
+  });
+  it("la tarjeta de «sobrestock» también dice su base: un «no produzcas más» con 1 venta es casi ruido", () => {
+    const d = decisionesDeProduccion(contexto({ modelos: fila1(1, 100, { ritmoDia: 1 / 30 }) }));
+    expect(d[0].tipo).toBe("sobrestock");
+    expect(d[0].detalle).toContain("(solo 1 venta en 30 días: poca base)");
   });
 });
 

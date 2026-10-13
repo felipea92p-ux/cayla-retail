@@ -70,6 +70,12 @@ export const MIN_DIAS_CON_STOCK_VELOCIDAD = 3;
  *  quince días sin venta es una señal; cinco, una racha. */
 export const MIN_DIAS_CON_STOCK_AFIRMAR = 14;
 
+/** Con tan pocas ventas netas en la ventana (`DIAS_RITMO_RECIENTE`), el «se vende X por semana» es casi ruido: el Resumen de Producción lo dice
+ *  («poca base») en vez de pintarlo con la misma voz que uno de 40 ventas. 2 o menos: lo eligió Felipe el 2026-10-13 sobre la lectura de ADR-0346
+ *  (una sugerencia sobre datos flacos «sería ruido»). Es el primer número razonable, NO ajustado todavía con meses de venta: se cambia tocando
+ *  esta constante. Solo AVISA; no cambia ningún estado ni oculta ninguna tarjeta. */
+export const UMBRAL_POCA_BASE_VENTAS = 2;
+
 // --- Lectura de la demanda ---------------------------------------------------
 
 /** «Ritmo reciente» de Existencias: los últimos N días de venta con que se mide cuánto dura el

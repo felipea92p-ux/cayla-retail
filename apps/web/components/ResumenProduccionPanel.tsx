@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
+import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -197,7 +198,18 @@ export function ResumenProduccionPanel({
                         </span>
                       </span>
                       <span className="hidden text-right text-[13px] tabular-nums text-tinta md:block">{m.stockRed}</span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta md:block">{m.ritmoDia ? (Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE") : <span className="text-tinta/45">—</span>}</span>
+                      <span className="hidden text-right text-[13px] tabular-nums text-tinta md:block">
+                        {m.ritmoDia ? (
+                          <>
+                            {(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}
+                            <span className="mt-0.5 block text-[11px] leading-tight text-tinta/65">
+                              {baseDelRitmo(m.ventasBase).pocaBase ? <Chip tono="pizarra">Poca base</Chip> : `${m.ventasBase} en ${DIAS_RITMO_RECIENTE} d`}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-tinta/45">—</span>
+                        )}
+                      </span>
                       <span className="col-span-2 md:col-span-1">
                         {m.diasRed === null ? (
                           <span className="text-xs text-tinta/55">Sin ventas medidas</span>

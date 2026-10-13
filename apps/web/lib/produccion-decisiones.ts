@@ -4,7 +4,7 @@
 // se paga, se cierra la orden). Solo HECHOS y cuentas sobre datos medidos: no hay plazos por etapa, ni «días de trabajo que faltan», ni tiempo de una corrida
 // inventados (contrato del plan). Donde no hay base honesta —sin ritmo de venta, sin rendimiento medido— la tarjeta no se dibuja, en vez de adivinar.
 
-import { UMBRAL_COBERTURA_ALTA_DIAS, UMBRAL_COBERTURA_RIESGO_DIAS, UMBRAL_COBERTURA_SALUDABLE_DIAS } from "./inventario-reglas";
+import { DIAS_RITMO_RECIENTE, UMBRAL_COBERTURA_ALTA_DIAS, UMBRAL_COBERTURA_RIESGO_DIAS, UMBRAL_COBERTURA_SALUDABLE_DIAS, UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import { redondear2, type ComprobanteProduccion } from "./comprobantes-produccion-reglas";
 import { cantidadTexto, type UnidadInsumo } from "./insumos-reglas";
 import { DIAS_ENTREGA_PRONTO, estadoEntrega, etapaActual, etapasDe, type EtapaClave, type EstadoEtapa } from "./produccion-reglas";
@@ -90,6 +90,8 @@ export type FilaModelo = {
   enProduccion: number;
   /** Unidades por día de toda la red; `null` sin ritmo medido. */
   ritmoDia: number | null;
+  /** Las ventas netas en que se apoya ese ritmo (las de las sedes con las que se midió): lo que «se vende X por semana» tiene detrás. */
+  ventasBase: number;
   /** Días que dura el stock de la red al ritmo medido; `null` sin ritmo. */
   diasRed: number | null;
   estado: EstadoModelo;
@@ -112,11 +114,23 @@ export function textoDiasDeStock(stockRed: number, diasRed: number): string {
   return n === 1 ? "1 día" : `${n} días`;
 }
 
+/** En cuántas ventas se apoya el «se vende X por semana», dicho para quien lee. Con `UMBRAL_POCA_BASE_VENTAS` ventas o menos dice «poca base»: la
+ *  cifra existe, pero con tan pocas ventas es casi ruido. `largo` va en el texto de una tarjeta; `corto` entre paréntesis, en una lista. */
+export function baseDelRitmo(ventas: number): { pocaBase: boolean; largo: string; corto: string } {
+  const n = ventas === 1 ? "1 venta" : `${ventas} ventas`;
+  const pocaBase = ventas <= UMBRAL_POCA_BASE_VENTAS;
+  return {
+    pocaBase,
+    largo: pocaBase ? `solo ${n} en ${DIAS_RITMO_RECIENTE} días: poca base` : `${n} en ${DIAS_RITMO_RECIENTE} días`,
+    corto: pocaBase ? `solo ${n}: poca base` : n,
+  };
+}
+
 /** Suma la red por modelo y lo clasifica con los umbrales de cobertura de Inventario (7, 30 y 60 días). Sin ritmo medido no se opina. */
 export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDecidir[], enProduccionPorVariante: Record<string, number>): FilaModelo[] {
   const porVariante = new Map(demanda.map((d) => [d.varianteId, d]));
   const filas: FilaModelo[] = modelos.map((m) => {
-    let stockRed = 0, stockTaller = 0, enCamino = 0, enProduccion = 0, ritmo = 0, hayRitmo = false;
+    let stockRed = 0, stockTaller = 0, enCamino = 0, enProduccion = 0, ritmo = 0, hayRitmo = false, ventasBase = 0;
     for (const id of m.variantesIds) {
       enProduccion += enProduccionPorVariante[id] ?? 0;
       const d = porVariante.get(id);
@@ -128,6 +142,7 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
         ritmo += d.ritmoDia;
         hayRitmo = true;
       }
+      ventasBase += d.ventasBase;
     }
     const ritmoDia = hayRitmo ? ritmo : null;
     const diasRed = ritmoDia ? stockRed / ritmoDia : null;
@@ -137,7 +152,7 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
     else if (diasRed <= UMBRAL_COBERTURA_SALUDABLE_DIAS) estado = enProduccion > 0 ? "en_produccion" : "vigilar";
     else if (diasRed <= UMBRAL_COBERTURA_ALTA_DIAS) estado = "alcanza";
     else estado = "sobrestock";
-    return { productoId: m.productoId, referencia: m.referencia, stockRed, stockTaller, enCamino, enProduccion, ritmoDia, diasRed, estado };
+    return { productoId: m.productoId, referencia: m.referencia, stockRed, stockTaller, enCamino, enProduccion, ritmoDia, ventasBase, diasRed, estado };
   });
   const orden: Record<EstadoModelo, number> = { producir_ya: 0, en_produccion: 1, vigilar: 2, alcanza: 3, sobrestock: 4, sin_ritmo: 5 };
   // Con el stock en 0 todos empatan en 0 días: entre iguales va primero el que más se vende (lo que se pierde por día) y, si también empatan, el
@@ -207,21 +222,21 @@ function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
       m.stockRed <= 0
         ? `«${m.referencia}» ya se agotó en las tiendas y no hay orden abierta`
         : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y no hay orden abierta`,
-    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
+    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
     accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
   };
 }
 
 /** Una sola tarjeta para cuando son muchos: nombra a los más urgentes (la lista ya viene ordenada) y manda a la tabla, donde está cada uno con su botón. */
 function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Decision {
-  const nombrados = ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => `«${m.referencia}» (${m.stockRed <= 0 ? "ya se agotó" : `quedan ${m.stockRed}`}, ${porSemana(m.ritmoDia)} por semana)`);
+  const nombrados = ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => `«${m.referencia}» (${m.stockRed <= 0 ? "ya se agotó" : `quedan ${m.stockRed}`}, ${porSemana(m.ritmoDia)} por semana, ${baseDelRitmo(m.ventasBase).corto})`);
   const resto = ms.length - nombrados.length;
   return {
     id: "producir-grupo",
     severidad: 3,
     tipo: "producir",
     titulo: `${ms.length} modelos por producir y ninguno tiene orden abierta`,
-    detalle: `Los más urgentes: ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
+    detalle: `Los más urgentes (ventas de los últimos ${DIAS_RITMO_RECIENTE} días): ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
     accion: { texto: `Ver los ${ms.length} modelos`, href: "#produce" },
   };
 }
@@ -323,7 +338,7 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         severidad: 1,
         tipo: "sobrestock",
         titulo: `«${m.referencia}» tiene ${Math.round(m.diasRed ?? 0)} días de stock: no produzcas más`,
-        detalle: `Se vende ${porSemana(m.ritmoDia)} por semana y hay ${m.stockRed} en tiendas y almacenes.`,
+        detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y hay ${m.stockRed} en tiendas y almacenes.`,
         accion: { texto: "Ver qué producir", href: "#produce" },
       });
   }

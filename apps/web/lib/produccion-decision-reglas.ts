@@ -31,7 +31,10 @@ export type DemandaVariante = {
   /** Suma del ritmo de cada sede con ritmo medido (unidades por día); `null` si ninguna lo tiene. */
   ritmoDia: number | null;
   sedesConRitmo: number;
+  /** Ventas netas de TODAS las sedes de la red en la ventana (sostengan o no el ritmo). */
   ventasNetas: number;
+  /** Las ventas netas de las sedes con las que SE MIDIÓ el ritmo: es la base honesta de «se vende X por semana». Menor o igual a `ventasNetas`. */
+  ventasBase: number;
   cobertura: Cobertura;
   banda: BandaCobertura;
 };
@@ -43,7 +46,7 @@ export function demandaDeLaRed(sedes: FilasDeSede[]): Map<string, DemandaVariant
     for (const f of s.filas) {
       const d =
         mapa.get(f.varianteId) ??
-        ({ varianteId: f.varianteId, productoId: f.productoId, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: null, sedesConRitmo: 0, ventasNetas: 0 } as DemandaVariante);
+        ({ varianteId: f.varianteId, productoId: f.productoId, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: null, sedesConRitmo: 0, ventasNetas: 0, ventasBase: 0 } as DemandaVariante);
       if (s.tipo === "taller") d.stockTaller += f.utilizable;
       else {
         d.stockRed += f.utilizable;
@@ -53,6 +56,7 @@ export function demandaDeLaRed(sedes: FilasDeSede[]): Map<string, DemandaVariant
         if (v.estado === "ok" && v.unidadesDia) {
           d.ritmoDia = (d.ritmoDia ?? 0) + v.unidadesDia;
           d.sedesConRitmo++;
+          d.ventasBase += v.ventasNetas;
         }
       }
       mapa.set(f.varianteId, d);
