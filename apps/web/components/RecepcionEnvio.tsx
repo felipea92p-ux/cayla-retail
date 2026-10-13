@@ -90,13 +90,13 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 // · Los cuatro indicadores viven DEBAJO de «¿Qué llegó?» y desaparecen al marcar un comprobante.
 // · Escaneo: cada lectura suma 1 al comprobante que trae esa prenda, sea del proveedor que sea.
 // · Fuera de comprobante lleva ORIGEN: de qué proveedor viene y si es regalo.
-// · Cuenta CUALQUIER colaborador de la sede. Quien no es líder no ve dinero (llega en cero desde el
-//   servidor) y no decide qué pasa con lo que faltó: lo deja pendiente y un líder lo cierra después.
+// · Cuenta CUALQUIER colaborador de la sede. Quien no ve el dinero de Compras no ve montos (llegan en cero desde el
+//   servidor). Qué pasa con lo que faltó lo decide quien recibe (ADR-0387; antes, solo un líder).
 //
 // La NOTA DE CRÉDITO ya no se registra acá (2026-09-19, módulo `/compras/notas-credito`): contar prendas y
 // mover dinero eran dos cosas en la misma pantalla, y una de ellas no es de dinero. Lo que queda es contar y
 // decidir qué pasó con lo que faltó; cuando un cierre deja al proveedor debiendo el documento, un aviso
-// discreto lo dice y apunta al módulo («Se reclama en Notas de crédito ↗», solo líder). El faltante se cierra
+// discreto lo dice y apunta al módulo («Se reclama en Notas de crédito ↗», a quien tiene ese módulo). El faltante se cierra
 // igual acá: eso es operación, no dinero. La RPC `recibir_envio` sigue aceptando `p_notas_credito` —la base
 // no se tocó—, pero esta pantalla lo manda siempre vacío.
 //
@@ -161,8 +161,8 @@ export function RecepcionEnvio({
   ubicaciones,
   ubicacionInicialId,
   compraInicialId,
-  esLider,
-  verMontos = esLider,
+  puedeReclamar,
+  verMontos = false,
   comprasConNotaFaltante,
   veTraslados,
   resumen,
@@ -174,9 +174,11 @@ export function RecepcionEnvio({
   ubicaciones: Ubicacion[];
   ubicacionInicialId: string;
   compraInicialId: string | null;
-  esLider: boolean;
+  /** ¿Ve el aviso de lo que el proveedor queda debiendo? Lleva montos y apunta a Notas de crédito: quien tiene ese módulo
+   *  (ADR-0387, Felipe 2026-10-12: el módulo es la llave; antes, solo el líder). */
+  puedeReclamar: boolean;
   /** Los montos de cada comprobante (ADR-0161 P2): quien ve el dinero de Compras, no solo el líder. Las DECISIONES sobre lo que
-   *  faltó siguen siendo `esLider`. */
+   *  faltó son de quien recibe (ADR-0387; antes, solo del líder): la base ya solo pedía poder operar la sede. */
   verMontos?: boolean;
   /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante): esos no se avisan. */
   comprasConNotaFaltante: string[];
@@ -261,7 +263,8 @@ export function RecepcionEnvio({
   const menuRef = useRef<HTMLDivElement>(null);
   // El resumen previo a recibir: el pedido ya armado y validado, a la espera del «Confirmar».
   const [pedidoListo, setPedidoListo] = useState<{ pedido: PedidoEnvio; movimientos: MovimientoDelEnvio[] } | null>(null);
-  // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que el líder debe confirmar; el
+  // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que hay que confirmar (quien ve los
+  // costos al recibir, ADR-0387; antes, solo el líder); el
   // resumen previo sigue abierto mientras tanto. Se borra al volver, al armar otro pedido y al registrar.
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   // Un token por envío: reintentar (un doble toque, una red lenta) no duplica el stock. Se renueva al terminar.
@@ -269,7 +272,7 @@ export function RecepcionEnvio({
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<Resultado | null>(null);
   const [quitarPendiente, setQuitarPendiente] = useState<CompraResumen | null>(null);
-  // Qué se hace con lo que faltó, por línea (solo líder): ausente = todavía sin decidir (bloquea el confirmar).
+  // Qué se hace con lo que faltó, por línea: ausente = todavía sin decidir (bloquea el confirmar).
   const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>(guardado?.decisiones ?? {});
 
   // «¿Salir sin guardar?» (2026-09-28). El conteo de un envío (caja por caja, a veces de un cargamento grande) vive solo
@@ -590,7 +593,7 @@ export function RecepcionEnvio({
     setUbicacionId(id);
   }
 
-  // ---- lo que faltó (D2, solo líder) --------------------------------------------------------------
+  // ---- lo que faltó (D2; desde ADR-0387, lo decide quien recibe) -----------------------------------
   function guardarDecision(lineaId: string, d: Decision) {
     setDecisiones((m) => ({ ...m, [lineaId]: d }));
     setEditando(null);
@@ -604,23 +607,23 @@ export function RecepcionEnvio({
   function esperarTodas() {
     setDecisiones((m) => ({ ...m, ...Object.fromEntries(porDecidir.map((f) => [f.lineaId, "espero" as Decision])) }));
   }
-  const mostrarEditor = (lineaId: string) => esLider && (editando === lineaId || (!decisiones[lineaId] && enfocada !== lineaId));
+  const mostrarEditor = (lineaId: string) => editando === lineaId || (!decisiones[lineaId] && enfocada !== lineaId);
   // El foco «dentro de la línea»: pasar de una celda a otra de la misma línea no cuenta como salir.
   const alEnfocar = (lineaId: string) => () => setEnfocada(lineaId);
   const alDesenfocar = (lineaId: string) => (e: React.FocusEvent<HTMLElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setEnfocada((actual) => (actual === lineaId ? null : actual));
   };
-  // Lo que llegó corto: solo las líneas CONTADAS con menos de lo pendiente. Un colaborador no decide qué pasa
-  // con lo que faltó (queda pendiente y un líder lo cierra), así que para él no hay decisiones ni cierres.
+  // Lo que llegó corto: solo las líneas CONTADAS con menos de lo pendiente. Quien recibe decide qué pasa con lo que faltó
+  // (ADR-0387: el módulo es la llave; antes, solo un líder): `cerrar_linea_compra` solo pide poder operar la sede.
   const lineasCortas = lineasActivas.filter((l) => estadoLinea(llegoLinea(l, reparto), l.pendiente) === "faltan");
   const faltantes = lineasCortas.map((l) => ({ lineaId: l.id, compraId: l.compraId, faltan: faltanteDeLinea(llegoLinea(l, reparto), l.pendiente), costoUnitario: l.costoUnitario }));
-  const cierres = esLider ? cierresElegidos(faltantes, decisiones) : [];
-  const porDecidir = esLider ? sinDecidir(faltantes, decisiones) : [];
+  const cierres = cierresElegidos(faltantes, decisiones);
+  const porDecidir = sinDecidir(faltantes, decisiones);
 
   // Qué le va a quedar debiendo el proveedor: lo cerrado en esta guía más lo que ya estaba cerrado, por
-  // comprobante. No se registra nada acá — es un aviso que apunta a `/compras/notas-credito` (solo líder,
-  // porque lleva monto y va a una pantalla de dinero que a un integrante le daría un error de permiso).
-  const reclamos = esLider
+  // comprobante. No se registra nada acá — es un aviso que apunta a `/compras/notas-credito` (quien tiene Notas de crédito,
+  // porque lleva monto y va a una pantalla de dinero que a quien no la tiene le daría un error de permiso).
+  const reclamos = puedeReclamar
     ? notasPorReclamar(
         bloques.map(({ compra }) => ({
           compra,
@@ -693,7 +696,7 @@ export function RecepcionEnvio({
   }
 
   // «Confirmar y recibir» del resumen: UNA llamada, UNA transacción, con el mismo token (reintentar no duplica).
-  // `confirmadas`: los extras (posición en `p_extras`, desde 1) que el líder confirmó por costo atípico; `null` en el primer intento.
+  // `confirmadas`: los extras (posición en `p_extras`, desde 1) que se confirmaron por costo atípico; `null` en el primer intento.
   async function registrar(confirmadas: number[] | null = null) {
     if (!pedidoListo || loading) return;
     const { movimientos } = pedidoListo;
@@ -749,11 +752,12 @@ export function RecepcionEnvio({
         return;
       }
       setPedidoListo(null);
-      // A quien no es líder la base le dice, sin cifras, que solo un líder confirma: su salida es quitar ese costo (es opcional).
+      // A quien no ve los costos al recibir la base le dice, sin cifras, que no puede confirmarlo: su salida es quitar ese costo
+      // (es opcional) o pedírselo a quien los vea (ADR-0387; antes, solo un líder confirmaba).
       if (error.message === "costo_atipico_sin_lider") {
         setPestana("fuera");
-        avisar.error("El costo de una prenda fuera de comprobante está fuera de lo normal y solo un líder puede confirmarlo.", {
-          detalle: "Borra ese costo (es opcional) y recibe la prenda sin costo, o pídele a un líder que lo confirme. No se registró nada.",
+        avisar.error("El costo de una prenda fuera de comprobante está fuera de lo normal y tu rol no ve los costos para confirmarlo.", {
+          detalle: "Borra ese costo (es opcional) y recibe la prenda sin costo, o pídele a quien los vea que lo confirme. No se registró nada.",
         });
         return;
       }
@@ -769,7 +773,7 @@ export function RecepcionEnvio({
       lotes: (r.lotes ?? []).map((l) => l.lote_id),
       extras: r.extras ?? 0,
       cierres: r.cierres ?? 0,
-      // Lo que el proveedor queda debiendo en documentos: se reclama en el módulo, no acá (0 = nada, o no es líder).
+      // Lo que el proveedor queda debiendo en documentos: se reclama en el módulo, no acá (0 = nada, o no tiene Notas de crédito).
       porReclamar: reclamos.reduce((a, x) => a + x.monto, 0),
       yaRegistrado: r.ya_registrado === true,
       movimientos,
@@ -887,10 +891,10 @@ export function RecepcionEnvio({
               {dif === null ? "—" : dif === 0 ? "0" : dif < 0 ? `−${-dif}` : `+${dif}`}
             </span>
             <span className="justify-self-end text-right @[46rem]:justify-self-start @[46rem]:text-left">
-              <EstadoDeLinea key={estado} estado={estado} faltan={l.pendiente - recibiendoLinea} decision={decision} onEditar={() => setEditando(l.id)} esLider={esLider} />
+              <EstadoDeLinea key={estado} estado={estado} faltan={l.pendiente - recibiendoLinea} decision={decision} onEditar={() => setEditando(l.id)} />
             </span>
           </div>
-          {esLider && estado === "faltan" && (
+          {estado === "faltan" && (
             <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
               <div className="min-h-0 overflow-hidden">
                 <EditorDecision
@@ -935,7 +939,7 @@ export function RecepcionEnvio({
         ) : (
           <CurvaVariantes referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
         )}
-        {esLider && estado === "faltan" && (
+        {estado === "faltan" && (
           <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
             <div className="min-h-0 overflow-hidden">
               <EditorDecision
@@ -1386,18 +1390,13 @@ export function RecepcionEnvio({
                           <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla ${abierto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!abierto}>
                             <div className="min-h-0 overflow-hidden">
                             <div className="divide-y divide-tinta/10">
-                              {esLider && cortasC.length >= 2 && (
+                              {cortasC.length >= 2 && (
                                 <div className="px-5 py-2.5">
                                   <DecidirTodas cuantas={cortasC.length} onDecidir={(d) => decidirTodas(c.id, d)} />
                                 </div>
                               )}
                               {ordenadas.map((l) => renderLinea(l))}
                               {ordenadas.length === 0 && <p className="px-5 py-4 text-sm text-tinta/65">Este comprobante ya no tiene nada pendiente.</p>}
-                              {!esLider && cortasC.length > 0 && (
-                                <p className="bg-ambar/[0.05] px-5 py-2.5 text-xs text-ambar-profundo">
-                                  Lo que faltó queda pendiente en el comprobante. Un líder decide después si se espera o se cierra.
-                                </p>
-                              )}
                             </div>
                             </div>
                           </div>
@@ -1405,7 +1404,7 @@ export function RecepcionEnvio({
                       );
                     })}
 
-                    {/* al final, lo que el proveedor va a quedar debiendo — un aviso, no un formulario (solo líder) */}
+                    {/* al final, lo que el proveedor va a quedar debiendo — un aviso, no un formulario (quien tiene Notas de crédito) */}
                     {reclamos.length > 0 && (
                       <div className="space-y-2.5 p-5">
                         {reclamos.map((r) => (
@@ -1662,16 +1661,14 @@ export function RecepcionEnvio({
         <ResumenPrevioEnvio
           filas={resumenPorComprobante(bloques, reparto).map((f) => ({
             ...f,
-            decisiones: esLider
-              ? [...new Set(f.lineasCortas.map((id) => (decisiones[id] ? etiquetaDecision(decisiones[id]!).replace("Lo espero: sigue pendiente", "los espero").replace("Se cierra: ", "se cierra: ") : "sin decidir")))]
-              : ["sigue pendiente"],
+            decisiones: [...new Set(f.lineasCortas.map((id) => (decisiones[id] ? etiquetaDecision(decisiones[id]!).replace("Lo espero: sigue pendiente", "los espero").replace("Se cierra: ", "se cierra: ") : "sin decidir")))],
           }))}
           fuera={totales.fueraDeComprobante}
           fueraDetalle={extras
             .filter(extraCompleto)
             .map((e) => `${variantePorId.get(e.varianteId)?.referencia ?? "Prenda"} ×${e.cantidad}${e.esRegalo ? " (regalo)" : ""}`)
             .join(" · ")}
-          cierresMonto={esLider && cierres.length > 0 ? faltantes.filter((f) => cierres.some((c) => c.lineaId === f.lineaId)).reduce((a, f) => a + f.faltan * f.costoUnitario, 0) : null}
+          cierresMonto={verMontos && cierres.length > 0 ? faltantes.filter((f) => cierres.some((c) => c.lineaId === f.lineaId)).reduce((a, f) => a + f.faltan * f.costoUnitario, 0) : null}
           ubicacionNombre={ubicacionNombre}
           numeroGuia={numeroGuia}
           unidades={unidadesRecibiendo}
@@ -1768,9 +1765,8 @@ function Anillo({ pct }: { pct: number }) {
   );
 }
 
-// El estado de la fila y, si llegó corta y ya se decidió qué pasó, esa decisión a la vista. Quien no es líder
-// no decide: la fila solo dice «Sigue pendiente».
-function EstadoDeLinea({ estado, faltan, decision, onEditar, esLider }: { estado: EstadoLinea; faltan: number; decision?: Decision; onEditar: () => void; esLider: boolean }) {
+// El estado de la fila y, si llegó corta y ya se decidió qué pasó, esa decisión a la vista.
+function EstadoDeLinea({ estado, faltan, decision, onEditar }: { estado: EstadoLinea; faltan: number; decision?: Decision; onEditar: () => void }) {
   return (
     <span className="anim-asentar flex flex-col items-start gap-1">
       <Chip tono={CHIP_ESTADO[estado]}>
@@ -1778,7 +1774,6 @@ function EstadoDeLinea({ estado, faltan, decision, onEditar, esLider }: { estado
         {ETIQUETA_ESTADO[estado](faltan)}
       </Chip>
       {decision && <ResumenDecision decision={decision} onEditar={onEditar} />}
-      {!esLider && estado === "faltan" && <span className="text-[11px] leading-tight text-tinta/65">Sigue pendiente</span>}
     </span>
   );
 }

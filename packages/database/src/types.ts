@@ -7894,6 +7894,24 @@ export type Database = {
         }[]
       }
       fn_stock_por_sede_json: { Args: never; Returns: Json }
+      // ADR-0270: la fórmula única de «cuánto hay» por prenda y sede (sin sede = todas; sin productos = todos).
+      fn_existencias: {
+        Args: { p_ubicacion_id?: string; p_producto_ids?: string[] }
+        Returns: {
+          variante_id: string
+          producto_id: string
+          ubicacion_id: string
+          fisico: number
+          danado: number
+          apartado: number
+          disponible: number
+          piso_libre: number
+          almacen_libre: number
+          sin_lugar: number
+          en_camino: number
+          talla_retirada: boolean
+        }[]
+      }
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string

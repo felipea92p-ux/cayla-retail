@@ -67,7 +67,7 @@
     "components/RepartoEnRegistro.tsx": [
       "CampoSelect «Mercadería destinada a»",
       "SegmentoDeslizante «Destino de la mercadería»",
-      "button «{activa && <Check aria-hidden className=\"h-3 w-3\" />}»",
+      "button «{bloqueada ? \"Tiene que quedar al menos una tienda\" : undefined}»",
       "Desplegable «)»",
       "input «{`Unidades para ${t.nombre}»",
       "button «Partes iguales»"

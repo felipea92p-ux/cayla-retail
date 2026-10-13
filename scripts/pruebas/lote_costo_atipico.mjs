@@ -9,17 +9,20 @@
  * QUÉ CUBRE (cada caso en su transacción con ROLLBACK: el Postgres local compartido no cambia)
  *   1. Un lote con costos normales, sin costo, o con un costo de 0 (un OBSEQUIO: decisión explícita en Compras), entra sin preguntar
  *      nada, con los SEIS parámetros de siempre (por nombre, como los manda la web).
- *   2. Un líder que recibe con costos atípicos recibe `costo_atipico` con TODAS las líneas atípicas en `detail`
+ *   2. Quien ve los montos de Compras (el líder, o desde ADR-0387 un rol con cualquier módulo de Compras, como el integrante de la
+ *      semilla con Recibir) que recibe con costos atípicos recibe `costo_atipico` con TODAS las líneas atípicas en `detail`
  *      (`{"items":[…]}`, en el orden del lote) y ninguna de las normales; con un motivo por línea.
  *   3. TODO O NADA: tras el rechazo no hay lote, ni movimientos (tampoco de las líneas normales), ni filas de historial de
  *      costo, ni stock nuevo, y el costo de las prendas queda intacto.
  *   4. El token (ADR-0190): el rechazo no lo consume; el reintento con el MISMO token y las marcas es el mismo intento
  *      (un solo lote), y repetirlo devuelve ese lote, no uno nuevo.
- *   5. La confirmación viaja EN CADA LÍNEA (`"confirma_costo": true`): con la marca el líder recibe, los costos entran al
+ *   5. La confirmación viaja EN CADA LÍNEA (`"confirma_costo": true`): con la marca quien ve los montos recibe, los costos entran al
  *      promedio ponderado exacto y el lote deja constancia en su nota SIN montos (conservando la nota que ya traía). Si solo
  *      marca una de dos atípicas, vuelve a preguntar solo por la otra y no se escribe nada; marcar una línea normal no hace nada.
- *   6. Un integrante (no ve montos) con un costo atípico NO puede recibir esa línea: `costo_atipico_sin_lider`, sin cifras,
- *      y mandar la confirmación por la API directa no cambia nada. Sin costo, o con uno normal, sí recibe.
+ *   6. Quien NO ve los montos de Compras (un rol sin ningún módulo de Compras) con un costo atípico NO puede recibir esa línea:
+ *      `costo_atipico_sin_lider`, sin cifras, y mandar la confirmación por la API directa no cambia nada. Sin costo, o con uno
+ *      normal, sí recibe. Y una integrante que ve los montos por su módulo Recibir confirma igual que el líder (ADR-0387: el
+ *      módulo es la llave; antes, solo un líder).
  *   7. Una sola función `recibir_lote` (la firma de seis parámetros no cambió), `authenticated` la sigue ejecutando, y la
  *      migración se puede pegar dos veces.
  *
@@ -92,7 +95,8 @@ select gen_random_uuid() as tok \\gset
 
 /**
  * Corre una escena y devuelve el estado final. `lineas`: [{ prenda: 'M'|'S', cantidad, costo }] (costo null = sin costo).
- * `como`: 'lider' | 'integrante'. `confirma: true` pone la marca `confirma_costo` en TODAS las líneas (cada línea puede traer
+ * `como`: 'lider' | 'integrante' (Micaela con su rol de la semilla, que tiene Recibir) | 'sin_compras' (Micaela con un rol de prueba
+ * sin ningún módulo de Compras: no ve los montos). `confirma: true` pone la marca `confirma_costo` en TODAS las líneas (cada línea puede traer
  * la suya: `{ …, confirma: true }`). `intentos`: cuántas veces se llama (mismo token). `nota`: la nota que trae el lote.
  */
 function escena({ lineas, como = "lider", confirma = false, intentos = 1, nota = null }) {
@@ -105,6 +109,7 @@ function escena({ lineas, como = "lider", confirma = false, intentos = 1, nota =
   const salida = psql(`begin;
 set local request.jwt.claim.sub = '${FELIPE}';
 ${ESCENA}
+${como === "sin_compras" ? SIN_COMPRAS : ""}
 -- Los items se arman con los ids de la escena: cada prenda 'M'/'S' es su variante.
 select set_config('prueba.items', (
   select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
@@ -136,6 +141,12 @@ select jsonb_build_object(
 rollback;`);
   return JSON.parse(salida.split("\n").filter(Boolean).at(-1));
 }
+
+/** Micaela con un rol de prueba SIN ningún módulo de Compras (solo Existencias): no ve los montos. Se va con el ROLLBACK. */
+const SIN_COMPRAS = `insert into retail.roles (nombre) values ('ZZ sin Compras') returning id as rsc \\gset
+insert into retail.rol_modulos (rol_id, modulo) values (:'rsc', 'existencias');
+update retail.colaboradores set rol_id = :'rsc' where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
+`;
 
 /** Nada escrito: como si nunca se hubiera intentado recibir. */
 const intacto = (s) =>
@@ -241,27 +252,34 @@ caso("líder con la marca en cada línea: recibe y los costos entran al promedio
 
 caso("…y el lote deja constancia en su nota, sin montos, conservando la nota que traía", () => {
   const s = escena({ lineas: [M(5, 70), S(3, 15)], confirma: true, nota: "llegó por Olva" });
-  if (s.nota !== "llegó por Olva · Costo atípico confirmado por un líder (2 líneas)") return `nota: ${s.nota}`;
+  if (s.nota !== "llegó por Olva · Costo atípico confirmado (2 líneas)") return `nota: ${s.nota}`;
   const una = escena({ lineas: [M(5, 70)], confirma: true });
-  if (una.nota !== "Costo atípico confirmado por un líder (1 línea)") return `nota: ${una.nota}`;
+  if (una.nota !== "Costo atípico confirmado (1 línea)") return `nota: ${una.nota}`;
 });
 
-caso("un integrante con un costo atípico NO puede recibir: costo_atipico_sin_lider, sin cifras (sin detail)", () => {
+caso("ADR-0387: una integrante que ve los montos por su módulo Recibir confirma igual que el líder (y la nota no dice «por un líder»)", () => {
   const s = escena({ lineas: [M(5, 70)], como: "integrante" });
+  if (s.r.ok || s.r.msg !== "costo_atipico" || !s.r.detail) return JSON.stringify(s.r);
+  const c = escena({ lineas: [M(5, 70)], como: "integrante", confirma: true });
+  if (!c.r.ok || c.lotes_nuevos !== 1 || c.nota !== "Costo atípico confirmado (1 línea)") return JSON.stringify(c);
+});
+
+caso("quien NO ve los montos de Compras con un costo atípico NO puede recibir: costo_atipico_sin_lider, sin cifras (sin detail)", () => {
+  const s = escena({ lineas: [M(5, 70)], como: "sin_compras" });
   if (s.r.ok || s.r.msg !== "costo_atipico_sin_lider") return JSON.stringify(s.r);
   if (s.r.detail) return `no debía llevar cifras: ${s.r.detail}`;
 });
-caso("…y no quedó nada escrito", () => intacto(escena({ lineas: [M(5, 70)], como: "integrante" })));
+caso("…y no quedó nada escrito", () => intacto(escena({ lineas: [M(5, 70)], como: "sin_compras" })));
 
-caso("un integrante que manda las marcas por la API directa recibe lo mismo (lo exige el servidor, no la marca)", () => {
-  const s = escena({ lineas: [M(5, 70)], como: "integrante", confirma: true });
+caso("quien no ve los montos y manda las marcas por la API directa recibe lo mismo (lo exige el servidor, no la marca)", () => {
+  const s = escena({ lineas: [M(5, 70)], como: "sin_compras", confirma: true });
   if (s.r.ok || s.r.msg !== "costo_atipico_sin_lider") return JSON.stringify(s.r);
   return intacto(s);
 });
 
-caso("un integrante sin costo, o con un costo normal, sí recibe (la regla no frena el trabajo de siempre)", () => {
-  const a = escena({ lineas: [M(5, null)], como: "integrante" });
-  const b = escena({ lineas: [M(5, 32)], como: "integrante" });
+caso("quien no ve los montos, sin costo o con un costo normal, sí recibe (la regla no frena el trabajo de siempre)", () => {
+  const a = escena({ lineas: [M(5, null)], como: "sin_compras" });
+  const b = escena({ lineas: [M(5, 32)], como: "sin_compras" });
   if (!a.r.ok || !b.r.ok) return JSON.stringify([a.r, b.r]);
   if (a.stock_m !== 5 || b.stock_m !== 5 || b.hist_m !== 1) return JSON.stringify([a, b]);
 });
