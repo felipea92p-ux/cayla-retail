@@ -6,9 +6,11 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { CifraSinSaber } from "./CifraSinSaber";
 import {
   avisoDeLaPuerta,
+  lineaDelPiso,
   CLASE_TRAMO_PISO,
   NOMBRE_TRAMO_PISO,
   pasoDeLaPuerta,
+  segmentosDelPiso,
   TRAMOS_DEL_100,
   porcentajes,
   solesEnteros,
@@ -30,18 +32,6 @@ const tramosConNumero = (f: FamiliaPiso): TramoPiso[] => TRAMOS_DEL_100.filter((
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 const colgadas = (n: number) => `${n} ${n === 1 ? "unidad colgada" : "unidades colgadas"}`;
-
-function segmentos(f: FamiliaPiso) {
-  return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
-}
-
-/** «58 % fresca · 20 % envejeciendo»: lo que dice una familia, en una línea (sin los estados vacíos). */
-function lineaDeFamilia(f: FamiliaPiso): string {
-  const pct = porcentajes(f.unidades);
-  return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
-    .map((t) => `${pct[t]} % ${NOMBRE_TRAMO_PISO[t].toLowerCase()}`)
-    .join(" · ");
-}
 
 export function FrescuraPiso({
   tienda,
@@ -95,7 +85,7 @@ export function FrescuraPiso({
         )}
       </TituloSeccion>
 
-      <BarraApilada segmentos={segmentos(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
+      <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
         {tramosConNumero(principal).map((t) =>
@@ -134,8 +124,8 @@ export function FrescuraPiso({
               <span className="text-[14px] font-semibold leading-tight">
                 {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
               </span>
-              <BarraApilada segmentos={segmentos(f)} alto={8} unidad="unidades colgadas" />
-              <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDeFamilia(f)}</span>
+              <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />
+              <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
             </li>
           ))}
         </ul>
