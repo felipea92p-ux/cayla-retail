@@ -4,6 +4,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { PanelVuelo } from "@/components/login/PanelVuelo";
 import { saludoDelDia } from "@/lib/login-vuelo";
+import { iniciarEntrada } from "@/lib/entrada-estado";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -51,11 +52,15 @@ function LoginForm() {
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }
+    // «El colibrí se abre» (Felipe 2026-10-13): el colibrí cruza al centro y se abre sobre la pantalla de destino mientras carga.
+    // Si la persona pidió menos movimiento, o no hay colibrí a la vista, el login entra como siempre. Con la entrada en curso el
+    // botón sigue en «Entrando…» (la capa frena los clics): no se inicia sesión dos veces.
+    if (!iniciarEntrada()) setLoading(false);
     router.push("/");
     router.refresh();
   }

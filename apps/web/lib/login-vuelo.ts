@@ -71,8 +71,11 @@ export function aleteo(fase: number, amplitud: number): { angulo: number; largo:
 
 /**
  * El recorrido, como un `d` de SVG en las medidas del panel. Va en línea recta por las sedes (de la primera a la última y un
- * poco más), sube en una vuelta, cruza el panel en diagonal por detrás del lema y entra al destino desde abajo a la izquierda.
- * Las proporciones salen de la maqueta (un panel de 756×900); el principio y el final son siempre los puntos medidos.
+ * poco más), sube en una vuelta, sigue en DIAGONAL RECTA por detrás del lema (siguiendo la misma dirección con la que sale de la
+ * vuelta, sin barriga) y da un solo arco ancho que lo trae al destino subiendo hacia la derecha. En cada empalme la dirección es
+ * la misma de un lado y del otro: no hay quiebres ni tramos que se «doblen» (Felipe 2026-10-13: «¿por qué se ve doblada la línea?»;
+ * antes eran tres curvas encadenadas que ondulaban). Las proporciones salen de la maqueta (un panel de 756×900); el principio y el
+ * final son siempre los puntos medidos.
  */
 export function trazoDelVuelo({ ancho: W, alto: H, sedes, destino: P }: MedidasDelVuelo): string {
   const primera = sedes[0];
@@ -80,12 +83,18 @@ export function trazoDelVuelo({ ancho: W, alto: H, sedes, destino: P }: MedidasD
   const y = primera.y;
   const fin = ultima.x + W * 0.17;
   const n = (v: number) => Math.round(v * 10) / 10;
+  // La vuelta termina en `salida`, yendo hacia la izquierda y un poco arriba: esa es la dirección que sigue la diagonal.
+  const salida = { x: fin, y: y - H * 0.13 };
+  const rumbo = { x: -0.1 * W, y: -0.04 * H };
+  const punto = (desde: Punto, veces: number): Punto => ({ x: desde.x + rumbo.x * veces, y: desde.y + rumbo.y * veces });
+  const giro = punto(salida, 4.2); // dónde termina la diagonal y empieza el arco
+  const control = punto(giro, 2.3); // sigue en la misma dirección un trecho antes de doblar
   return [
     `M${n(primera.x)},${n(y)}`,
     `L${n(fin)},${n(y)}`,
-    `C${n(ultima.x + W * 0.28)},${n(y)} ${n(ultima.x + W * 0.27)},${n(y - H * 0.09)} ${n(fin)},${n(y - H * 0.13)}`,
-    `C${n(W * 0.5)},${n(y - H * 0.23)} ${n(W * 0.2)},${n(H * 0.62)} ${n(W * 0.22)},${n(H * 0.48)}`,
-    `C${n(W * 0.24)},${n(H * 0.36)} ${n(P.x - W * 0.12)},${n(P.y + H * 0.07)} ${n(P.x)},${n(P.y)}`,
+    `C${n(ultima.x + W * 0.28)},${n(y)} ${n(ultima.x + W * 0.27)},${n(y - H * 0.09)} ${n(salida.x)},${n(salida.y)}`,
+    `L${n(giro.x)},${n(giro.y)}`,
+    `C${n(control.x)},${n(control.y)} ${n(P.x - W * 0.23)},${n(P.y + H * 0.11)} ${n(P.x)},${n(P.y)}`,
   ].join(" ");
 }
 
