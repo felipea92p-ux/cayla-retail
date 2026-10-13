@@ -69,8 +69,8 @@ export function numeroEnmascarado(numero: string | null): string | null {
 
 /**
  * El DNI y el celular de un cliente como se leen en Clientes (Felipe 2026-10-13, auditoría de 20 puntos, punto 18): completos
- * para el líder, a medias para los demás. Es lo que se VE: el número completo sigue viajando a la pantalla y queda en la caja de
- * edición de la ficha, porque hace falta para corregirlo (Felipe eligió enmascarar sabiendo eso). `formatoCelular` es el formato
+ * para el líder, a medias para los demás. Es lo que se VE en la lista y en la ficha; la caja de edición muestra el número
+ * completo porque hace falta para corregirlo. `formatoCelular` es el formato
  * legible de quien llama (el mismo del resto de la pantalla).
  */
 export function contactoVisible(
