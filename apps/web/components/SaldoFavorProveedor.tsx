@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { BotonReembolso } from "@/components/SaldoFavorAcciones";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras-reglas";
 import { ETIQUETA_MOVIMIENTO_CREDITO, type MovimientoCredito } from "@/lib/saldo-favor";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Saldo a favor» en la ficha del proveedor (ADR-0111, corrección 2026-09-18): lo que el proveedor le debe a
 // CAYLA porque una nota de crédito superó lo que se le debía de su comprobante (típico: un faltante en una factura
@@ -41,9 +41,7 @@ export function SaldoFavorProveedor({
         {hay && (tieneDeuda || puedeReembolsar) && (
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
             {tieneDeuda && (
-              <Link href={`/compras/por-pagar?prov=${proveedorId}`} className="label-cayla text-[11px] text-rojo hover:underline">
-                Usar en un pago →
-              </Link>
+              <EnlaceVer href={`/compras/por-pagar?prov=${proveedorId}`}>Usar en un pago</EnlaceVer>
             )}
             {puedeReembolsar && <BotonReembolso proveedorId={proveedorId} proveedorNombre={proveedorNombre} saldoFavor={saldo} />}
           </div>

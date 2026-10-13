@@ -60,7 +60,9 @@ export function MatrizRecepcion({
 
   return (
     <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
-      <table className="w-full border-separate border-spacing-0 text-[13px]">
+      <table // unificar-fijo: la matriz talla × color de la recepción, no una lista de registros
+        className="w-full border-separate border-spacing-0 text-[13px]"
+      >
         <thead>
           <tr>
             <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
@@ -129,7 +131,7 @@ export function MatrizRecepcion({
                           <button type="button" tabIndex={-1} disabled={deshabilitada || sinNada || texto === ""} aria-label={`Restar a ${nombre}`} onClick={() => onValor(v.id, pasoCantidad(texto, -1))} className={BOTON_PASO}>
                             <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
                           </button>
-                          <input
+                          <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"

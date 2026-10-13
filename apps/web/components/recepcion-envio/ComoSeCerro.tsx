@@ -1,4 +1,5 @@
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { soles } from "@/lib/compras-reglas";
@@ -107,19 +108,23 @@ export function ComoSeCerro({
 
       {hayDetalle && (
         <section className="space-y-3" aria-label="Cómo se cerró">
-          <h2 className="font-display text-xl text-tinta">Cómo se cerró</h2>
+          <TituloSeccion>Cómo se cerró</TituloSeccion>
           {detalle.lineas.map((l) => {
             const suyos = recibidos.filter((r) => r.despachoItemId === l.id);
             const llegaron = suyos.reduce((a, r) => a + r.cantidad, 0);
             return (
               <article key={l.id} className="card-cayla space-y-2 p-4 sm:p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-[15px] font-semibold text-tinta">{nombreDeLinea(l)}</h3>
-                  <p className="text-[13px] tabular-nums text-taupe">
-                    Venían {l.enviado.toLocaleString("es-PE")} · llegaron {llegaron.toLocaleString("es-PE")}
-                    {l.orden.numero ? ` · ${l.orden.numero}` : ""}
-                  </p>
-                </div>
+                <TituloSeccion
+                  nivel={3}
+                  dato={
+                    <>
+                      Venían {l.enviado.toLocaleString("es-PE")} · llegaron {llegaron.toLocaleString("es-PE")}
+                      {l.orden.numero ? ` · ${l.orden.numero}` : ""}
+                    </>
+                  }
+                >
+                  {nombreDeLinea(l)}
+                </TituloSeccion>
                 {suyos.length > 0 ? <ul className="divide-y divide-sand">{suyos.map((r, i) => <Recibido key={i} r={r} />)}</ul> : <p className="text-sm text-taupe">No llegó ninguna.</p>}
                 <Diferencias difs={diferencias.filter((d) => d.despachoItemId === l.id)} />
               </article>
@@ -127,7 +132,7 @@ export function ComoSeCerro({
           })}
           {(extras.length > 0 || difsExtras.length > 0) && (
             <article className="card-cayla space-y-2 p-4 sm:p-5">
-              <h3 className="text-[15px] font-semibold text-tinta">Lo que no estaba en la guía</h3>
+              <TituloSeccion nivel={3}>Lo que no estaba en la guía</TituloSeccion>
               <ul className="divide-y divide-sand">
                 {extras.map((r, i) => (
                   <Recibido key={i} r={r} />

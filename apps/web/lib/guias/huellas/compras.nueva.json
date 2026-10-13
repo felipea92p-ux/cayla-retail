@@ -47,7 +47,7 @@
       "input «Costo unitario»",
       "button «Quitar»",
       "button «+ Agregar línea»",
-      "input «Registrar un pago ahora»",
+      "Casilla «Registrar un pago ahora»",
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»"

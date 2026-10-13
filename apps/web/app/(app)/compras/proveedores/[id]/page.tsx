@@ -22,6 +22,8 @@ import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 import { NosDebeProveedor } from "@/components/nos-debe/NosDebeProveedor";
 import { Volver } from "@/components/ui/Volver";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -132,7 +134,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {m && (
       <section className="space-y-3">
-        <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
+        <TituloSeccion>Prendas terminadas · últimos 12 meses</TituloSeccion>
         {!conCompras ? (
           <div className="card-cayla">
             <Vacio icono={<Receipt />} titulo="Todavía no hay comprobantes de este proveedor">
@@ -251,9 +253,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               })}
             </div>
             {abreComprobantes && (
-              <Link href={`/compras?prov=${id}`} className="label-cayla block border-t border-tinta/10 px-5 py-3 text-[11px] text-rojo hover:underline">
-                Ver todos sus comprobantes →
-              </Link>
+              <div className="border-t border-tinta/10 px-5 py-3">
+                <EnlaceVer href={`/compras?prov=${id}`}>Ver todos sus comprobantes</EnlaceVer>
+              </div>
             )}
           </div>
         </div>

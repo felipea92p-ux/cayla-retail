@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { avisar, enfocar } from "@/components/ui/Avisos";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { enlaceWhatsAppA, numeroWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
@@ -125,9 +126,10 @@ export function TrasladoEnviado({
 
       {/* Para revisar la caja antes de cerrarla: quien envía sí ve las cantidades. */}
       <section aria-labelledby="caja-enviada" className="space-y-2">
-        <h3 id="caja-enviada" className="label-cayla text-[11px] text-tinta/70">
-          Lo que va en la caja · {unidades} {unidades === 1 ? "prenda" : "prendas"}
-        </h3>
+        {/* El id va en la caja de afuera: `TituloGrupo` no lleva id, y la sección se nombra con su título entero (con la cuenta). */}
+        <div id="caja-enviada">
+          <TituloGrupo cuenta={`${unidades} ${unidades === 1 ? "prenda" : "prendas"}`}>Lo que va en la caja</TituloGrupo>
+        </div>
         <ul className="divide-y divide-sand rounded-xl border border-sand">
           {prendas.map((p, i) => (
             <li key={`${p.etiqueta}-${i}`} className="flex items-baseline justify-between gap-3 px-3.5 py-2.5">
@@ -139,9 +141,9 @@ export function TrasladoEnviado({
       </section>
 
       <section aria-labelledby="avisar-sede" className="space-y-2.5">
-        <h3 id="avisar-sede" className="label-cayla text-[11px] text-tinta/70">
-          Avísale a {destino}
-        </h3>
+        <div id="avisar-sede">
+          <TituloGrupo>Avísale a {destino}</TituloGrupo>
+        </div>
         <p className="text-sm leading-relaxed text-taupe">
           El mensaje ya está escrito. No dice cuántas prendas van.
         </p>
@@ -151,7 +153,7 @@ export function TrasladoEnviado({
           value={mensaje}
           rows={4}
           aria-label={`Mensaje para ${destino}`}
-          className="w-full resize-none overflow-hidden rounded-xl border border-sand bg-hueso px-3.5 py-3 text-sm leading-relaxed text-tinta outline-none focus:border-rojo"
+          className="caja-campo-input resize-none overflow-hidden"
         />
         <div className="flex flex-wrap gap-2">
           <a href={enlaceWhatsAppA(whatsappDestino, mensaje)} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-primario">

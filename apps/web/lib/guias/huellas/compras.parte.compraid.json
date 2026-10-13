@@ -25,7 +25,6 @@
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/PagoPiezas.tsx": [
-      "Link «Agregarlo en su ficha →»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -25,6 +25,7 @@ import {
   vistaPrevia,
   type ProductoEtiquetable,
 } from "@/lib/etiquetar-prendas";
+import { Casilla as CasillaSistema } from "@/components/ui/Casilla";
 
 /**
  * «Prendas de una etiqueta»: elegir qué prendas llevan, por ejemplo, «Black Friday».
@@ -304,11 +305,10 @@ export function PrendasDeEtiquetaModal({
                               {p.variantes.map((v) => (
                                 <li key={v.id}>
                                   <label className={`flex items-center gap-2.5 py-1 text-sm ${heredada ? "text-tinta/50" : "cursor-pointer text-tinta/80"}`}>
-                                    <input
-                                      type="checkbox"
-                                      className="h-4 w-4 accent-tinta"
-                                      checked={heredada || marcadas.has(v.id)}
+                                    <Casilla
+                                      estado={heredada || marcadas.has(v.id) ? "todas" : "ninguna"}
                                       disabled={heredada || guardando}
+                                      etiqueta={[v.talla, v.color].filter(Boolean).join(" · ") || "Única"}
                                       onChange={() => setMarcadas(alternarVariante(v.id, marcadas))}
                                     />
                                     {[v.talla, v.color].filter(Boolean).join(" · ") || "Única"}
@@ -360,21 +360,8 @@ export function PrendasDeEtiquetaModal({
   );
 }
 
-/** Casilla con estado «a medias» (el atributo `indeterminate` solo existe por script). */
+/** La casilla del sistema (`components/ui/Casilla.tsx`, ADR-0358 ronda 6) con los tres estados de un producto: todas, algunas
+ *  (a medias) o ninguna. Desactivada cuando la prenda ya hereda la etiqueta por su categoría (no se toca). */
 function Casilla({ estado, disabled, etiqueta, onChange }: { estado: "todas" | "algunas" | "ninguna"; disabled: boolean; etiqueta: string; onChange: () => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = estado === "algunas";
-  }, [estado]);
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      aria-label={etiqueta}
-      className="h-4 w-4 shrink-0 accent-tinta"
-      checked={estado === "todas"}
-      disabled={disabled}
-      onChange={onChange}
-    />
-  );
+  return <CasillaSistema marcada={estado === "todas"} aMedias={estado === "algunas"} disabled={disabled} onCambio={onChange} etiqueta={etiqueta} />;
 }

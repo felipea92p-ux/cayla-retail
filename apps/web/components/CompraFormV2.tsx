@@ -31,6 +31,7 @@ import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedore
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
 import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
+import { Casilla } from "@/components/ui/Casilla";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -526,7 +527,7 @@ export function CompraFormV2({
               pie={
                 <>
                   ¿No está en la lista?{" "}
-                  <Link href="/compras/proveedores" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                  <Link href="/compras/proveedores" className="btn-enlace">
                     Regístralo en Proveedores
                   </Link>
                   .
@@ -637,7 +638,7 @@ export function CompraFormV2({
                   ) : (
                     <>
                       Lo cambiaste.{" "}
-                      <button type="button" onClick={() => setVencimientoEditado(null)} className="text-rojo hover:underline">
+                      <button type="button" onClick={() => setVencimientoEditado(null)} className="btn-enlace">
                         Volver al sugerido ({fechaCorta(vencimientoSugerido).slice(0, 5)})
                       </button>
                     </>
@@ -652,7 +653,7 @@ export function CompraFormV2({
                   ) : (
                     <>
                       Lo cambiaste.{" "}
-                      <button type="button" onClick={() => setLlegadaEditada(null)} className="text-rojo hover:underline">
+                      <button type="button" onClick={() => setLlegadaEditada(null)} className="btn-enlace">
                         Volver a la sugerida ({fechaCorta(llegadaSugerida).slice(0, 5)})
                       </button>
                     </>
@@ -705,7 +706,7 @@ export function CompraFormV2({
               <p className="text-xs text-tinta/55">Costo unitario tal como figura en el documento: ya es el costo.</p>
             )}
             {repartir && tiendasReparto.length > 1 && (
-              <button type="button" onClick={partesIgualesEnTodas} className="label-cayla ml-auto text-[10.5px] text-rojo hover:underline">
+              <button type="button" onClick={partesIgualesEnTodas} className="btn-cayla btn-enlace ml-auto text-xs">
                 Repartir todas en partes iguales
               </button>
             )}
@@ -752,7 +753,7 @@ export function CompraFormV2({
                     aria-label="Cantidad"
                     value={l.cantidad}
                     onChange={(e) => actualizarLinea(i, { cantidad: Math.min(999999, Math.max(1, Number(e.target.value) || 1)) })}
-                    className={`${NUMERO} border-b border-tinta/25 bg-transparent px-0.5 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo`}
+                    className={`${NUMERO} caja-campo-input text-center tabular-nums`}
                   />
                   <div className="min-w-0">
                     <input
@@ -765,7 +766,7 @@ export function CompraFormV2({
                       value={l.costoUnitario}
                       onChange={(e) => actualizarLinea(i, { costoUnitario: e.target.value })}
                       onKeyDown={(e) => enterEnCosto(e, i)}
-                      className={`${NUMERO} border-b border-tinta/25 bg-transparent px-0.5 py-2 text-right text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo`}
+                      className={`${NUMERO} caja-campo-input text-right tabular-nums`}
                     />
                     <AyudaCostoLinea ayuda={ayudaDeCosto(conocido, l.costoUnitario)} onUsar={() => conocido !== null && actualizarLinea(i, { costoUnitario: String(conocido) })} />
                   </div>
@@ -812,14 +813,13 @@ export function CompraFormV2({
             </p>
             {condicion === "credito" && (
               <label className="flex items-center gap-2 text-sm text-tinta/75">
-                <input
-                  type="checkbox"
-                  checked={pagarAhora}
-                  onChange={(e) => {
-                    setPagarAhora(e.target.checked);
+                <Casilla
+                  marcada={pagarAhora}
+                  onCambio={() => {
+                    setPagarAhora(!pagarAhora);
                     setPagoTocado(true);
                   }}
-                  className="accent-rojo"
+                  etiqueta="Registrar un pago ahora"
                 />
                 Registrar un pago ahora
               </label>

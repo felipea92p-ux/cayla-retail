@@ -2,7 +2,7 @@
   "guia": "caja.historial",
   "ruta": "/caja/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 14,
+  "total": 11,
   "controles": {
     "app/(app)/caja/historial/page.tsx": [
       "Volver «(sin nombre)»",
@@ -20,11 +20,8 @@
       "button «{`Ver el detalle del cierre de ${c.ubicacionNombre}»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ]
   }
 }

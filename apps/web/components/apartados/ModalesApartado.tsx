@@ -47,6 +47,7 @@ import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@
 import { CampoSelect } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { Casilla } from "@/components/ui/Casilla";
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -165,7 +166,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
             <p className="label-cayla text-[11px] text-tinta/60">Ahora, con la prenda en la mano</p>
             {pasos.map((t, i) => (
               <label key={i} className="flex cursor-pointer items-start gap-2.5 text-sm">
-                <input type="checkbox" checked={hechos[i]} onChange={(e) => setHechos((h) => h.map((x, j) => (j === i ? e.target.checked : x)))} className="mt-1 accent-tinta" />
+                <Casilla marcada={hechos[i]} onCambio={() => setHechos((h) => h.map((x, j) => (j === i ? !x : x)))} etiqueta={t} className="mt-0.5 shrink-0" />
                 <span className={hechos[i] ? "text-tinta/50 line-through" : "text-tinta"}>{t}</span>
               </label>
             ))}
@@ -699,7 +700,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
           </p>
           {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
           <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
-            <input type="checkbox" checked={esperar} onChange={(e) => setEsperar(e.target.checked)} className="mt-1 accent-tinta" />
+            <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
             <span>
               Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
               <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
@@ -975,13 +976,13 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
                       </span>
                       <button
                         type="button"
-                        role="switch"
+                        role="switch" // unificar-fijo: la cara del interruptor del sistema, con su texto a la izquierda en la fila
                         aria-checked={on}
                         aria-label={f.titulo}
                         onClick={() => alternar(f.clave)}
-                        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-tinta" : "bg-sand"}`}
+                        className="interruptor"
                       >
-                        <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-papel shadow-sm transition-transform duration-200 ease-[var(--ease-cayla)] ${on ? "translate-x-4" : ""}`} />
+                        <span aria-hidden className="interruptor-perilla" />
                       </button>
                     </li>
                   );

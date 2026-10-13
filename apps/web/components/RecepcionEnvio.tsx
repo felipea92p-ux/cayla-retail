@@ -75,6 +75,7 @@ import {
 } from "@/lib/envio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -855,7 +856,7 @@ export function RecepcionEnvio({
                 >
                   −
                 </button>
-                <input
+                <input /* unificar-fijo: el contador entre − y + que tiñe su borde según lo que llegó; otra función, no un campo */
                   type="number"
                   min={0}
                   max={l.pendiente}
@@ -968,14 +969,18 @@ export function RecepcionEnvio({
       <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
         {/* ================= izquierda: lo que falta llegar ================= */}
         <aside className="card-cayla anim-entra overflow-hidden lg:sticky lg:top-24" style={{ "--i": 3 } as CSSProperties}>
-          <div className="flex items-center justify-between gap-3 px-4 pt-4">
-            <h2 className="font-display text-[21px] text-tinta">Pendientes de llegar</h2>
-            {hayEnvio && (
-              <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-[10.5px] text-tinta/65 hover:text-rojo lg:hidden">
-                {listaPlegada ? "Cambiar" : "Ocultar"}
-              </button>
-            )}
-          </div>
+          <TituloSeccion
+            className="px-4 pt-4"
+            accion={
+              hayEnvio ? (
+                <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-[10.5px] text-tinta/65 hover:text-rojo lg:hidden">
+                  {listaPlegada ? "Cambiar" : "Ocultar"}
+                </button>
+              ) : undefined
+            }
+          >
+            Pendientes de llegar
+          </TituloSeccion>
           {/* el cuerpo de la lista: en celular, con un envío armado, se pliega por altura (grid 0fr → 1fr) */}
           <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla lg:grid-rows-[1fr] ${hayEnvio && listaPlegada ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} inert={hayEnvio && listaPlegada}>
           <div className="min-h-0 overflow-hidden">
@@ -1018,7 +1023,7 @@ export function RecepcionEnvio({
               </span>
             ) : (
               nAtrasadas > 0 && (
-                <button type="button" onClick={marcarAtrasadas} className="label-cayla whitespace-nowrap text-[10px] text-rojo hover:underline">
+                <button type="button" onClick={marcarAtrasadas} className="btn-cayla btn-enlace whitespace-nowrap text-xs">
                   Marcar las {nAtrasadas} atrasadas
                 </button>
               )
@@ -1288,12 +1293,12 @@ export function RecepcionEnvio({
                       {ultimaLectura.texto}
                     </span>
                     {ultimaLectura.deshacer && (
-                      <button type="button" onClick={deshacerLectura} className="label-cayla text-[10px] text-rojo hover:underline">
+                      <button type="button" onClick={deshacerLectura} className="btn-cayla btn-enlace text-xs">
                         Deshacer
                       </button>
                     )}
                     {ultimaLectura.agregar && (
-                      <button type="button" onClick={agregarYReleer} className="label-cayla text-[10px] text-rojo hover:underline">
+                      <button type="button" onClick={agregarYReleer} className="btn-cayla btn-enlace text-xs">
                         Agregar {ultimaLectura.agregar.documento} al envío
                       </button>
                     )}
@@ -1468,7 +1473,7 @@ export function RecepcionEnvio({
                               value={ex.cantidad}
                               onChange={(e) => actualizarExtra(i, { cantidad: Math.max(1, Number(e.target.value) || 1) })}
                               onFocus={(e) => e.target.select()}
-                              className="w-16 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                              className="caja-campo-input w-16 shrink-0 text-center tabular-nums"
                             />
                             <div className="w-48 shrink-0">
                               <Desplegable
@@ -1497,7 +1502,7 @@ export function RecepcionEnvio({
                                 const v = e.target.value;
                                 actualizarExtra(i, { costoUnitario: v === "" ? "" : String(Math.max(0, Number(v) || 0)) });
                               }}
-                              className="w-24 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-right text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo disabled:opacity-40"
+                              className="caja-campo-input w-24 shrink-0 text-right tabular-nums"
                             />
                             <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-[10px] text-tinta/55 hover:text-rojo">
                               Quitar
@@ -1518,7 +1523,7 @@ export function RecepcionEnvio({
                       <p className="text-xs text-tinta/65">
                         Eso no se recibe en este envío: se cuenta y se confirma en{" "}
                         {veTraslados ? (
-                          <Link href="/inventario/traslados" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                          <Link href="/inventario/traslados" className="btn-enlace">
                             Traslados
                           </Link>
                         ) : (
@@ -1542,7 +1547,7 @@ export function RecepcionEnvio({
                       onChange={(e) => setNota(e.target.value)}
                       rows={3}
                       placeholder="Llegó una caja abierta, el transportista dejó dos bultos menos…"
-                      className="w-full rounded-lg border border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/45 focus:border-rojo"
+                      className="caja-campo-input"
                     />
                     {/* frases de todos los días: un toque las agrega a la nota (se puede editar después) */}
                     <div className="flex flex-wrap gap-1.5">
@@ -1593,7 +1598,7 @@ export function RecepcionEnvio({
                   <span key="dec" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {porDecidir.length === 1 ? "1 fila llegó con faltante y falta decidir qué pasó" : `${porDecidir.length} filas llegaron con faltante y falta decidir qué pasó`}.
-                    <button type="button" onClick={esperarTodas} className="label-cayla text-[10px] text-rojo hover:underline">
+                    <button type="button" onClick={esperarTodas} className="btn-cayla btn-enlace text-xs">
                       Los espero todas
                     </button>
                   </span>
@@ -1606,7 +1611,7 @@ export function RecepcionEnvio({
                   <span key="ext" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     Elige de qué proveedor viene cada prenda fuera de comprobante.
-                    <button type="button" onClick={() => setPestana("fuera")} className="label-cayla text-[10px] text-rojo hover:underline">
+                    <button type="button" onClick={() => setPestana("fuera")} className="btn-cayla btn-enlace text-xs">
                       Revisar
                     </button>
                   </span>
@@ -1807,7 +1812,7 @@ function CurvaVariantes({
   const celda = (v: Variante, etiqueta: string, ancho = "w-14 sm:w-16") => {
     const n = valores[v.varianteId];
     return (
-      <input
+      <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
         type="number"
         min={0}
         inputMode="numeric"

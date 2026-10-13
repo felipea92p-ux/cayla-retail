@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ChevronDown, PackageCheck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { soles } from "@/lib/compras-reglas";
 import {
   avanceDeDeuda,
@@ -46,9 +47,7 @@ export function NosDebeProveedor({
   const unidades = nosDebe?.unidadesPendientes ?? 0;
   return (
     <section id="nos-debe" aria-labelledby="nos-debe-titulo" data-guia="proveedor-ficha.nos-debe" className="scroll-mt-24 space-y-3">
-      <h2 id="nos-debe-titulo" className="label-cayla text-[11px] text-tinta/65">
-        Nos debe
-      </h2>
+      <TituloSeccion id="nos-debe-titulo">Nos debe</TituloSeccion>
       <div className="space-y-3">
         <div className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 10 }}>
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 pb-3 pt-4">

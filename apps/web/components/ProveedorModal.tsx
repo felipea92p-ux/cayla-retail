@@ -356,7 +356,7 @@ export function ProveedorModal({
                 <div>
                   <p className="label-cayla text-[11px] text-tinta/65">Compras · Proveedores</p>
                   <Dialog.Title asChild>
-                    <h2 className="font-display mt-0.5 text-2xl leading-tight text-tinta">{editando ? "Editar proveedor" : "Registrar proveedor"}</h2>
+                    <h2 className="font-display mt-0.5 text-2xl leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{editando ? "Editar proveedor" : "Registrar proveedor"}</h2>
                   </Dialog.Title>
                 </div>
                 <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="-mr-1 -mt-1 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo">
@@ -560,7 +560,7 @@ export function ProveedorModal({
                     />
                     {/* «Yape» y «Plin» no son un banco ni un teléfono: son la app que hay que abrir. Un celular sin app (o al revés) no puede existir en la base. */}
                     <div>
-                      <span id="proveedor-billeteras-etiqueta" className="label-cayla block text-[11px] text-tinta/65">
+                      <span id="proveedor-billeteras-etiqueta" className="campo-etiqueta">
                         Lo recibe en
                       </span>
                       <div id="proveedor-billeteras" tabIndex={-1} className="mt-1.5 flex flex-wrap items-center gap-1.5 py-1.5 outline-none" role="group" aria-labelledby="proveedor-billeteras-etiqueta">
@@ -579,7 +579,7 @@ export function ProveedorModal({
                   {ofrecerTelefono && (
                     <p className="anim-revelar -mt-1 text-xs text-tinta/65">
                       ¿Es el mismo del contacto?{" "}
-                      <button type="button" onClick={() => setCelular(celularDelTelefono ?? "")} className="text-rojo hover:underline">
+                      <button type="button" onClick={() => setCelular(celularDelTelefono ?? "")} className="btn-enlace">
                         Usar el teléfono de contacto ({celularDelTelefono})
                       </button>
                     </p>
@@ -603,7 +603,7 @@ export function ProveedorModal({
                 {onDesactivar && (
                   <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
                     ¿Ya no se le compra?{" "}
-                    <button type="button" onClick={onDesactivar} disabled={fase !== "reposo"} className="text-rojo hover:underline">
+                    <button type="button" onClick={onDesactivar} disabled={fase !== "reposo"} className="btn-enlace">
                       Desactivar proveedor
                     </button>
                     . Deja de aparecer al registrar comprobantes; su historial se conserva.

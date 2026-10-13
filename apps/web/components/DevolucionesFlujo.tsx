@@ -49,6 +49,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
+import { Casilla } from "@/components/ui/Casilla";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -321,12 +322,12 @@ export function DevolucionesFlujo({
                           estado.devolvible ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
                         }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={!!item}
+                        <Casilla
+                          marcada={!!item}
                           disabled={!estado.devolvible}
-                          onChange={() => alternarPrenda(l)}
-                          className="h-4 w-4 shrink-0 accent-tinta"
+                          onCambio={() => alternarPrenda(l)}
+                          etiqueta={`Devolver ${l.referencia} ${varianteLegible(l)}`}
+                          className="shrink-0"
                         />
                         <MiniaturaPrenda fotoUrl={l.fotoUrl} colorHex={l.colorHex} tamano="lg" />
                         <span className={`min-w-0 flex-1 ${estado.devolvible ? "" : "opacity-60"}`}>
@@ -350,7 +351,7 @@ export function DevolucionesFlujo({
                             max={disponibles}
                             value={item.cantidad}
                             onChange={(e) => cambiarItem(l.ventaItemId, { cantidad: Math.max(1, Math.min(disponibles, Number(e.target.value) || 1)) })}
-                            className="h-10 w-20 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+                            className="caja-campo-input w-20 text-sm"
                           />
                         </div>
                       )}
@@ -369,7 +370,7 @@ export function DevolucionesFlujo({
             </p>
             <Link
               href={enlaceCambios}
-              className="inline-flex items-center gap-1.5 font-semibold text-tinta underline decoration-tinta/30 underline-offset-4 transition-colors duration-200 hover:decoration-tinta"
+              className="btn-enlace inline-flex items-center gap-1.5 font-semibold"
             >
               Cambiar por otra prenda
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -408,8 +409,8 @@ export function DevolucionesFlujo({
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 max-w-md">
-                  <label htmlFor="devolucion-detalle" className="text-xs font-semibold text-tinta/70">
+                <div className="campo mt-4 max-w-md">
+                  <label htmlFor="devolucion-detalle" className="campo-etiqueta">
                     {motivo === "otro" ? "¿Cuál es el motivo?" : "Algo más que anotar (opcional)"}
                   </label>
                   <input
@@ -422,7 +423,7 @@ export function DevolucionesFlujo({
                       setDetalle(e.target.value);
                     }}
                     placeholder={motivo === "defecto" ? "Ej. costura abierta en la manga" : "Lo que el cliente cuente"}
-                    className="mt-1.5 h-10 w-full rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 placeholder:text-tinta/55 focus:border-tinta"
+                    className="caja-campo-input mt-1.5 w-full text-sm"
                   />
                 </div>
               </fieldset>

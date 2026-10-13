@@ -9,6 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Volver } from "@/components/ui/Volver";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // ADR-0184 (F3-b): el detalle de la parte de MI tienda en un comprobante que gestiona OTRA tienda. Muestra la cabecera sin los
 // montos del comprobante entero, lo que le toca a mi tienda (subtotal, IGV, total, pagado, saldo), mis líneas con mis unidades
@@ -75,7 +76,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
       </div>
 
       <section className="card-cayla p-5" data-guia="parte.lineas">
-        <h2 className="font-display text-lg text-tinta">Lo que llega para tu tienda</h2>
+        <TituloSeccion>Lo que llega para tu tienda</TituloSeccion>
         <ul className="mt-3 divide-y divide-tinta/10 text-sm">
           {lineas.map((l, i) => (
             <li key={i} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2.5">
@@ -94,7 +95,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
       </section>
 
       <section className="card-cayla p-5" data-guia="parte.pagos">
-        <h2 className="font-display text-lg text-tinta">Pagos de tu tienda</h2>
+        <TituloSeccion>Pagos de tu tienda</TituloSeccion>
         {pagos.length === 0 ? (
           <p className="mt-2 text-sm text-taupe">Tu tienda todavía no pagó nada de este comprobante.</p>
         ) : (
