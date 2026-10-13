@@ -51,7 +51,7 @@ export default async function PlanDelPisoPage() {
                 <p className="mt-1 text-[13px] text-tinta/70">
                   {propuesta.motivo} No se perdió nada, y los grupos se pueden revisar igual en su pestaña. Vuelve a intentarlo en un momento.
                 </p>
-                <Link href="/inventario/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
+                <Link href="/gestion/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
                   Reintentar
                 </Link>
               </div>
@@ -66,7 +66,7 @@ export default async function PlanDelPisoPage() {
               <div className="card-cayla p-5" role="alert">
                 <p className="text-sm font-semibold text-tinta">No se pudo leer la historia del espacio.</p>
                 <p className="mt-1 text-[13px] text-tinta/70">{fotos.motivo} Las fotos ya tomadas siguen guardadas. Vuelve a intentarlo en un momento.</p>
-                <Link href="/inventario/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
+                <Link href="/gestion/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
                   Reintentar
                 </Link>
               </div>
@@ -80,7 +80,7 @@ export default async function PlanDelPisoPage() {
           <p className="mt-1 text-[13px] text-tinta/70">
             {lectura.ok ? "" : lectura.motivo} No se perdió nada. Vuelve a intentarlo en un momento; si sigue igual, avisa a quien administra el sistema.
           </p>
-          <Link href="/inventario/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
+          <Link href="/gestion/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
             Reintentar
           </Link>
         </div>

@@ -4,8 +4,9 @@
 - [x] Guía de foco: el medio es «sugerido» (ADR-0284 act. h); textos que siguen al medio (ADR-0290); guía interactiva de Caja al día y huella aceptada.
 - [x] «Gastos del turno» muestra los gastos por Yape o Plin de hoy, con su total aparte.
 - [x] «Cancelar» con algo escrito preguntaba dos veces «¿Salir sin guardar?»: corregido en esta hoja.
+- [x] (PR #1009 fusionado.) Segunda vuelta: «¿Cómo lo pagaste?» con las fichas de Cobrar acostadas (50 px), elegidas por Felipe en una lámina de cuatro versiones. Verificado en el navegador: escritorio, 375 px (el ícono sube sobre el nombre, nada se corta), modo oscuro y teclado (las flechas cambian de medio). `etiquetaOculta` de `Segmentado`, que solo usaba el diseño anterior, se quitó.
 - [x] Navegador (página de prueba sin sesión, con datos inventados): escritorio 1280, 375 px y modo oscuro; Efectivo → Yape → Plin → Efectivo cambia la bajada, el punto y la ayuda.
 - [ ] **Sin probar con una cuenta real:** registrar un gasto por Yape desde `/caja` con sesión de colaboradora y ver que aparece en «Gastos del turno» y en Finanzas ▸ Gastos, y que el cierre no lo descuenta.
-- [ ] **«Registrar ingreso» (`IngresoRapidoModal.tsx`) pregunta dos veces «¿Salir sin guardar?» al cancelar:** mismo patrón (`pedirAccion(cerrar)` + `onClose` que vuelve a preguntar); el arreglo es el de esta hoja (`soltar()` antes de `cerrar()`).
+- [ ] **«Registrar ingreso» (`IngresoRapidoModal.tsx`) pregunta dos veces «¿Salir sin guardar?» al cancelar:** mismo patrón (`pedirAccion(cerrar)` + `onClose` que vuelve a preguntar); ~~el arreglo es el de esta hoja (`soltar()` antes de `cerrar()`)~~ → el arreglo es `antesDeCerrar` de `<Modal>` (PR #1011): `soltar()` dejaba el primer «atrás» sin efecto y no cubría Escape. Esta hoja pasó a `antesDeCerrar` en `claude/musing-wilson-d9dcae`.
 - [ ] Sin `/formidable` ni `/chaos` en esta pasada (el cambio no toca la regla de guardado: el mismo `validarGasto` → `registrar_gasto`).
 - [ ] La base local compartida no tiene la categoría «Atención al personal» (`20261009235900`): por eso falla el caso 8 de `gastos.mjs` en local (en el CI pasa). Ajeno a este cambio.

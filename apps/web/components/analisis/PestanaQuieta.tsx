@@ -300,7 +300,7 @@ export function PestanaQuieta() {
       {acceso.frescura && (
         <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 3 }}>
           <span className="b-nota">¿Cambiar de lugar lo colgado sin rebajar?</span>
-          <Link href="/inventario/frescura" className="btn-cayla btn-sutil btn-s">
+          <Link href="/gestion/frescura" className="btn-cayla btn-sutil btn-s">
             Frescura del piso <Icono nombre="sigue" />
           </Link>
         </div>

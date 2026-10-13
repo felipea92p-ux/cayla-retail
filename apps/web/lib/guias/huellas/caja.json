@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 105,
+  "total": 106,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -83,6 +83,7 @@
     ],
     "components/GastoRapidoModal.tsx": [
       "button «{frecuente ? `${nombre}»",
+      "button «→() => onValor(m)»",
       "CampoTexto «Qué fue»",
       "CampoSelect «¿A qué se parece?»",
       "input «Monto en soles»",
@@ -93,7 +94,7 @@
       "CampoTexto «Serie y número»",
       "button «Usa el formulario completo»",
       "button «Retiro o depósito»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «avisoSalida.pedirAccion(ce»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
