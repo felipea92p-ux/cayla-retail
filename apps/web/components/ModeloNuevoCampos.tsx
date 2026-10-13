@@ -40,6 +40,7 @@ export function ModeloNuevoCampos({
   esMuestra,
   puedeEditarCatalogo,
   tipo,
+  onElegirExistente,
 }: {
   guia: GuiaCampos;
   /** `null` = no se pudieron leer las tallas y los colores. */
@@ -60,6 +61,8 @@ export function ModeloNuevoCampos({
   esMuestra: boolean;
   puedeEditarCatalogo: boolean;
   tipo: "produccion" | "muestra";
+  /** «Mejor elegir uno que ya existe»: vuelve al buscador (ADR-0396). Sin él (el catálogo está vacío) no se ofrece. */
+  onElegirExistente?: () => void;
 }) {
   const grupos = useMemo(() => agruparPorFamilia(colores, (c) => c.familiaColor), [colores]);
   const nombreDeFamilia = useMemo(() => new Map((vocabulario?.familias ?? []).map((f) => [f.codigo, f.nombre])), [vocabulario]);
@@ -77,20 +80,6 @@ export function ModeloNuevoCampos({
 
   return (
     <section aria-label="Modelo nuevo" className="space-y-4 rounded-2xl border border-sand bg-crema p-3.5">
-      <Aviso tono="info" chico>
-        Se crea en el catálogo al abrir la orden, con su código y su precio. Marca, proveedor, tejido, patrón y fotos los completa quien edita el catálogo.
-        {puedeEditarCatalogo && (
-          <>
-            {" "}
-            ¿Prefieres cargarlo completo, con fotos?{" "}
-            <Link href={hrefAltaDesdeProduccion(tipo)} className="btn-enlace">
-              Créalo en Productos
-            </Link>{" "}
-            y vuelves aquí con la orden lista.
-          </>
-        )}
-      </Aviso>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <CampoGuiado id="nombre" guia={guia}>
           <CampoTexto
@@ -154,6 +143,23 @@ export function ModeloNuevoCampos({
         </p>
         <ElegirColores colores={colores} grupos={grupos} elegidos={colorCodigos} onAlternar={onAlternarColor} onCreado={onColorCreado} cartaAbierta={false} />
       </div>
+      {(onElegirExistente || puedeEditarCatalogo) && (
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-tinta/70">
+          {onElegirExistente && (
+            <button type="button" onClick={onElegirExistente} className="btn-cayla btn-enlace text-[12.5px]">
+              Mejor elegir uno que ya existe
+            </button>
+          )}
+          {puedeEditarCatalogo && (
+            <span>
+              ¿Cargarlo completo, con fotos?{" "}
+              <Link href={hrefAltaDesdeProduccion(tipo)} className="btn-enlace">
+                Créalo en Productos
+              </Link>
+            </span>
+          )}
+        </p>
+      )}
     </section>
   );
 }

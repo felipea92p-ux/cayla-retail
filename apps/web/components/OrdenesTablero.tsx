@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -15,6 +15,7 @@ import { OrdenTarjeta, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { useFlipCajas } from "@/lib/useFlipCajas";
 import { COLUMNAS_TABLERO, etapaActual, resumenTablero } from "@/lib/produccion-reglas";
 import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
+import { ordenesParaLaLista } from "@/lib/orden-modelo-reglas";
 import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
@@ -73,6 +74,8 @@ export function OrdenesTablero({
   const terminadas = ordenes.filter((o) => o.estado === "terminada");
   const anuladas = ordenes.filter((o) => o.estado === "anulada");
   const resumen = resumenTablero(ordenes, hoy);
+  // Para la lista de «Nueva orden»: cuántas órdenes abiertas tiene cada modelo y cuáles fueron los últimos (ADR-0396).
+  const paraLaLista = useMemo(() => ordenesParaLaLista(ordenes), [ordenes]);
 
   const porColumna = (clave: string) => produccion.filter((o) => etapaActual(o.etapas, false) === clave);
   // Firma de «qué tarjeta está en qué columna»: solo cuando cambia se anima el viaje.
@@ -281,6 +284,8 @@ export function OrdenesTablero({
           tipoInicial={tipoInicial}
           puedeEditarCatalogo={puedeEditarCatalogo}
           vocabulario={vocabulario}
+          abiertas={paraLaLista.abiertas}
+          recientes={paraLaLista.recientes}
           onClose={() => setNuevaAbierta(false)}
         />
       )}

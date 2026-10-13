@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoMonto, CampoSelect, CampoTexto, Desplegable, Segmentado, Boton } from "@/components/ui/campos";
+import { CampoMonto, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
@@ -27,6 +28,8 @@ import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type S
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
+import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
+import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
 import type { ColorAlta } from "@/lib/alta-producto";
 import {
@@ -62,21 +65,26 @@ import {
 // El margen y el semáforo los ve el líder aunque la lectura de la red falle, y un modelo sin precio lo dice.
 // La guía de foco (ADR-0284) sale de `camposDeGuiaOrden`, que coincide con lo que la base rechaza (lo prueba `modelo-nuevo-reglas.test.ts`).
 //
+// ADR-0396 (A1, «el modelo primero»): la primera pregunta es QUÉ se fabrica y se contesta buscando (`ElegirModelo`: arriba los que se están acabando, para el líder; abajo
+// «Crear un modelo nuevo»). Ya no hay dos selectores de pestañas (Tipo y Modelo): el tipo SE DEDUCE de lo que la persona hizo —un modelo que existe es un lote, uno nuevo
+// arranca como muestra (`tipoAlElegir`)— y se corrige con un interruptor que dice qué cambia. Lo que se manda a la base no cambia.
+//
 // El token de idempotencia nace con el formulario (useRef): si el Taller
 // pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
 // en vez de abrir dos. Mismo mecanismo que `registrar_venta` (p_token).
 
 type Tipo = "produccion" | "muestra";
-const TIPOS = [
-  { valor: "produccion", texto: "Producción" },
-  { valor: "muestra", texto: "Muestra" },
-] as const;
+const OPCIONES_TIPO = [
+  { clave: "produccion", etiqueta: "Lote de producción" },
+  { clave: "muestra", etiqueta: "Muestra" },
+];
+const CONSECUENCIA_DEL_TIPO: Record<Tipo, string> = {
+  produccion: "Fabrica el lote. Al cerrarlo entra al stock del Taller.",
+  muestra: "Desarrolla el modelo: patronaje, aprobación y escalado. No entra al stock.",
+};
 
+/** «existe» sin `productoId` = todavía no se eligió (se muestra el buscador); «nuevo» = se está creando uno. */
 type ModoModelo = "existe" | "nuevo";
-const MODOS = [
-  { valor: "existe", texto: "Ya existe" },
-  { valor: "nuevo", texto: "Modelo nuevo" },
-] as const;
 
 const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"; texto: string }> = {
   gana: { tono: "verde", texto: TEXTO_SEMAFORO.gana },
@@ -96,6 +104,8 @@ export function NuevaOrdenProduccionForm({
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
   vocabulario = null,
+  abiertas,
+  recientes = [],
   onClose,
 }: {
   tallerId: string;
@@ -110,12 +120,19 @@ export function NuevaOrdenProduccionForm({
   puedeEditarCatalogo?: boolean;
   /** Tallas, colores y categorías que ofrece «Modelo nuevo» (dato secundario: si no se pudo leer, «Modelo nuevo» lo dice y el resto sigue igual). */
   vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
+  /** Cuántas órdenes en proceso tiene cada modelo («1 orden abierta» en la lista). */
+  abiertas?: ReadonlyMap<string, number>;
+  /** Los modelos de las últimas órdenes, la más reciente primero. */
+  recientes?: readonly string[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
-  const [tipo, setTipo] = useState<Tipo>(tipoInicial);
-  const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? modelos[0]?.productoId ?? "");
+  // El tipo con que arranca: un `?tipo=muestra` de la URL (al volver de Nuevo producto) es una elección de la persona y no se pisa (`aMano`).
+  const tipoAMano = useRef(tipoInicial === "muestra");
+  const [tipo, setTipo] = useState<Tipo>(() => tipoAlElegir({ eleccion: modelos.length === 0 ? "nuevo" : "existente", tipoActual: tipoInicial, aMano: tipoInicial === "muestra" }));
+  // Sin modelo elegido (`""`) se ve el buscador: ya no se preselecciona «el primero» (ADR-0396).
+  const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? "");
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   // Modelo nuevo (ADR-0361): sin modelos en el catálogo, el primero nace acá.
   const [modoModelo, setModoModelo] = useState<ModoModelo>(modelos.length === 0 ? "nuevo" : "existe");
@@ -141,6 +158,13 @@ export function NuevaOrdenProduccionForm({
   const [diasObjetivo, setDiasObjetivo] = useState<number>(DIAS_OBJETIVO_PRODUCCION);
 
   const modeloExistente = useMemo(() => modelos.find((m) => m.productoId === productoId) ?? null, [modelos, productoId]);
+
+  // Elegido el modelo, el cursor pasa a la primera celda de la tabla: el campo donde se buscaba desaparece (la lista se vuelve una tarjeta) y, sin esto, el cursor quedaba en
+  // el aire y la guía de foco seguía diciendo «Sigue aquí» en Modelo (retiene la luz mientras la persona «está» en un campo). Sin desplazar la hoja.
+  useEffect(() => {
+    if (!productoId) return;
+    document.querySelector<HTMLInputElement>('[data-guia="prod-orden-nueva.matriz"] input')?.focus({ preventScroll: true });
+  }, [productoId]);
 
   // ----- Modelo nuevo: el borrador, sus celdas y un modelo VIRTUAL para que la matriz, el costo por prenda y el margen lo traten como a cualquier otro -----
   const esNuevo = modoModelo === "nuevo";
@@ -214,6 +238,8 @@ export function NuevaOrdenProduccionForm({
 
   // ----- La decisión (solo líder) -----
   const datos = decision?.datos ?? null;
+  // «Se están acabando»: los MISMOS modelos que el Resumen sugiere abrir (`filasPorModelo`); quien no ve la red no trae datos y la lista sale sin ese grupo.
+  const urgentes = useMemo(() => (datos ? urgentesDeLaRed({ modelos, demanda: datos.demanda, enProduccion: datos.enProduccion }) : new Map<string, { dias: number }>()), [datos, modelos]);
   const demandaPorVariante = useMemo(() => new Map((datos?.demanda ?? []).map((d) => [d.varianteId, d])), [datos]);
   const enProduccion = useMemo(() => new Map(Object.entries(datos?.enProduccion ?? {})), [datos]);
   const curva = useMemo(() => sugerirCurva(modelo?.variantes ?? [], demandaPorVariante, enProduccion, diasObjetivo), [modelo, demandaPorVariante, enProduccion, diasObjetivo]);
@@ -260,16 +286,27 @@ export function NuevaOrdenProduccionForm({
     setAvios(materialesPorTipo.avio > 0 ? materialesPorTipo.avio.toFixed(2) : "");
   }
 
-  function cambiarModelo(id: string) {
+  // Las cantidades de un modelo nuevo van por celda del borrador y las de uno existente por variante: al cambiar de modelo o de modo no se arrastran.
+  /** Elegir un modelo que ya existe (o `""` para volver al buscador). El tipo vuelve a «lote», salvo que la persona ya hubiera tocado el interruptor. */
+  function elegirModelo(id: string) {
+    setModoModelo("existe");
     setProductoId(id);
     setCantidades({});
+    setChoque(null);
+    setTipo((actual) => tipoAlElegir({ eleccion: "existente", tipoActual: actual, aMano: tipoAMano.current }));
   }
-  // Las cantidades de un modelo nuevo van por celda del borrador y las de uno existente por variante: al cambiar de modo no se arrastran.
-  function cambiarModo(m: ModoModelo) {
-    if (m === modoModelo) return;
-    setModoModelo(m);
+  /** «Crear un modelo nuevo»: lo escrito en el buscador pasa a ser su nombre, y la orden arranca como muestra (se desarrolla antes de fabricarlo). */
+  function crearModelo(nombre: string) {
+    setModoModelo("nuevo");
+    setProductoId("");
     setCantidades({});
     setChoque(null);
+    if (nombre) setNombreNuevo(nombre);
+    setTipo((actual) => tipoAlElegir({ eleccion: "nuevo", tipoActual: actual, aMano: tipoAMano.current }));
+  }
+  function cambiarTipo(clave: string) {
+    tipoAMano.current = true;
+    setTipo(clave === "muestra" ? "muestra" : "produccion");
   }
   function cambiarCategoria(id: string) {
     setCategoriaNuevaId(id);
@@ -285,10 +322,7 @@ export function NuevaOrdenProduccionForm({
   }
   /** «Ya existe un modelo con ese nombre»: se pasa a ese modelo (las cantidades se escriben otra vez: sus celdas son otras). */
   function usarExistente(id: string) {
-    setModoModelo("existe");
-    setProductoId(id);
-    setCantidades({});
-    setChoque(null);
+    elegirModelo(id);
   }
 
   /** Modelo nuevo + orden en UNA llamada. `confirmoDistinto`: la persona dijo que un nombre casi igual es otro modelo de verdad. */
@@ -402,70 +436,54 @@ export function NuevaOrdenProduccionForm({
   return (
     <Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)} ancho="max-w-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div data-guia="prod-orden-nueva.tipo">
-          <Segmentado<Tipo>
-            etiqueta="Tipo"
-            valor={tipo}
-            onValor={setTipo}
-            opciones={TIPOS}
-            pie={tipo === "muestra" ? "Desarrollar el modelo: patrón y prototipo. No entra al stock." : "Fabricar el lote. Al cerrar entra al stock del Taller."}
-          />
-          </div>
-          <div data-guia="prod-orden-nueva.modo">
-          {modelos.length > 0 ? (
-            <Segmentado<ModoModelo>
-              etiqueta="Modelo"
-              valor={modoModelo}
-              onValor={cambiarModo}
-              opciones={MODOS}
-              pie={esNuevo ? "Se crea en el catálogo al abrir la orden." : "Uno que ya está en el catálogo."}
-            />
-          ) : (
-            <div className="space-y-1.5">
-              <span className={campoEtiqueta}>Modelo</span>
-              <p className="text-sm text-tinta/70">Todavía no hay modelos en el catálogo: este será el primero.</p>
+        {/* El modelo primero (ADR-0396, A1): el buscador, o la tarjeta del elegido, o los campos del modelo nuevo. El interruptor del tipo aparece cuando ya hay modelo. */}
+        <div data-guia="prod-orden-nueva.modelo" className="space-y-4">
+          {!esNuevo && (
+            <CampoGuiado id="modelo" guia={guia}>
+              <span className={`${campoEtiqueta} mb-1.5 block`}>{guia.etiqueta("modelo", "Modelo")}</span>
+              {modeloExistente ? (
+                <TarjetaModelo modelo={modeloExistente} precio={Math.max(0, ...modeloExistente.variantes.map((v) => v.precio))} onCambiar={() => elegirModelo("")} />
+              ) : (
+                <ElegirModelo modelos={modelos} urgentes={urgentes} abiertas={abiertas ?? new Map()} recientes={recientes} onElegir={elegirModelo} onCrear={crearModelo} />
+              )}
+            </CampoGuiado>
+          )}
+
+          {(modeloExistente || esNuevo) && (
+            <div data-guia="prod-orden-nueva.tipo" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className={campoEtiqueta}>Tipo de orden</span>
+              <SegmentoDeslizante etiqueta="Tipo de orden" valor={tipo} onCambio={cambiarTipo} opciones={OPCIONES_TIPO} />
+              <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{CONSECUENCIA_DEL_TIPO[tipo]}</p>
             </div>
           )}
-          </div>
-        </div>
 
-        {esNuevo ? (
-          <ModeloNuevoCampos
-            guia={guia}
-            vocabulario={vocab}
-            fallo={vocabulario?.fallo ?? null}
-            colores={coloresDisponibles}
-            nombre={nombreNuevo}
-            onNombre={(v) => {
-              setNombreNuevo(v);
-              setChoque(null);
-            }}
-            categoria={categoriaNueva}
-            onCategoria={cambiarCategoria}
-            tallaIds={tallasNuevas}
-            onTallas={setTallasNuevas}
-            colorCodigos={coloresNuevos}
-            onAlternarColor={alternarColor}
-            onColorCreado={colorCreado}
-            precio={precioNuevo}
-            onPrecio={setPrecioNuevo}
-            esMuestra={tipo === "muestra"}
-            puedeEditarCatalogo={puedeEditarCatalogo}
-            tipo={tipo}
-          />
-        ) : (
-          <CampoGuiado id="modelo" guia={guia}>
-            <div data-guia="prod-orden-nueva.modelo">
-            <CampoSelect
-              etiqueta={guia.etiqueta("modelo", "Modelo")}
-              valor={productoId}
-              onValor={(v) => cambiarModelo(v)}
-              opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
+          {esNuevo && (
+            <ModeloNuevoCampos
+              guia={guia}
+              vocabulario={vocab}
+              fallo={vocabulario?.fallo ?? null}
+              colores={coloresDisponibles}
+              nombre={nombreNuevo}
+              onNombre={(v) => {
+                setNombreNuevo(v);
+                setChoque(null);
+              }}
+              categoria={categoriaNueva}
+              onCategoria={cambiarCategoria}
+              tallaIds={tallasNuevas}
+              onTallas={setTallasNuevas}
+              colorCodigos={coloresNuevos}
+              onAlternarColor={alternarColor}
+              onColorCreado={colorCreado}
+              precio={precioNuevo}
+              onPrecio={setPrecioNuevo}
+              esMuestra={tipo === "muestra"}
+              puedeEditarCatalogo={puedeEditarCatalogo}
+              tipo={tipo}
+              onElegirExistente={modelos.length > 0 ? () => elegirModelo("") : undefined}
             />
-            </div>
-          </CampoGuiado>
-        )}
+          )}
+        </div>
 
         {modelo && (
           <div data-guia="prod-orden-nueva.matriz">

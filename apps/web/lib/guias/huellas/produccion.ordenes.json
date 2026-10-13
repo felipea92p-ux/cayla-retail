@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 84,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -12,13 +12,14 @@
       "input «{`Buenas de ${c.nombre}»"
     ],
     "components/ModeloNuevoCampos.tsx": [
-      "Link «Créalo en Productos»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
       "CampoSelect «{guia.etiqueta(\"categoria\", \"Categoría\")}»",
-      "CampoMonto «{guia.etiqueta(\"precio\", \"Precio a tienda (c/u)\")}»"
+      "CampoMonto «{guia.etiqueta(\"precio\", \"Precio a tienda (c/u)\")}»",
+      "button «Mejor elegir uno que ya existe»",
+      "Link «Créalo en Productos»"
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
-      "CampoSelect «{guia.etiqueta(\"modelo\", \"Modelo\")}»",
+      "SegmentoDeslizante «Tipo de orden»",
       "input «{`${color}»",
       "Link «Editar producto»",
       "Desplegable «(sin nombre)»",
@@ -115,6 +116,11 @@
     ],
     "components/motor-demanda/MotorEnProduccion.tsx": [
       "button «{curva.total > 0 ? `Usar la del motor · ${curva.total}»"
+    ],
+    "components/orden-produccion/ElegirModelo.tsx": [
+      "button «prod-orden-nueva.modelo-fila»",
+      "button «→() => onCrear(escrito)»",
+      "button «Cambiar»"
     ]
   }
 }
