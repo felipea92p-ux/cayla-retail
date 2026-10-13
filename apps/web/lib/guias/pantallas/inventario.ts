@@ -231,7 +231,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.cajon-donde",
       opcional: true,
       titulo: "Dónde está",
-      texto: "El veredicto de esta talla (todo bien, cuelga una, se acabó…) y sus cuatro números: colgadas en el piso, guardadas en el almacén, apartadas y dañadas. Debajo, cuántas vienen en camino y qué tienen las otras tiendas.",
+      texto: "El veredicto de esta talla (todo bien, cuelga una, se acabó…) y sus cuatro números: en piso, en almacén, apartadas y dañadas. Toca «En piso» o «En almacén» y pasas a «Todas» con ese filtro puesto. Debajo, cuántas vienen en camino y qué tienen las otras sedes.",
     },
     {
       id: "cajon-acciones",
@@ -260,7 +260,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.cajon-todas" }],
       titulo: "Todas las tallas y colores",
-      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba lo colgado, abajo lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «colgadas» o «guardadas» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
+      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba lo colgado, abajo lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «En piso» o «En almacén» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
     },
     {
       id: "cajon-colgar-varias",

@@ -445,8 +445,17 @@ export function PanelTalla({
     }
   }
 
-  /** Una de las cuatro casillas (colgadas · guardadas · apartadas · dañadas), con su ícono: en 0 se apaga (borde punteado), salvo las
-   *  colgadas que faltan (ámbar). Apartadas y dañadas con algo se tocan: abren su lista (las mismas ventanas de siempre). */
+  /** «En piso» y «En almacén» de «Dónde está» llevan a «Todas» con esa capa ya puesta (Felipe, 2026-10-13): la pregunta «¿y en las otras
+   *  tallas y colores?» se contesta con un toque, sin cambiar de pestaña y volver a filtrar. */
+  const irATodas = (c: "piso" | "almacen") => {
+    setVista("todas");
+    setCapa(c);
+    setHecho(null);
+  };
+
+  /** Una de las cuatro casillas (en piso · en almacén · apartadas · dañadas), con su ícono: en 0 se apaga (borde punteado), salvo las
+   *  del piso que faltan (ámbar). Las dos primeras llevan a «Todas» con su capa; apartadas y dañadas con algo abren su lista (las mismas
+   *  ventanas de siempre). Los rótulos son «En piso / En almacén» (Felipe, 2026-10-13: antes «colgadas / guardadas»). */
   const casilla = (valor: number, rotulo: string, Ico: Icono, clase?: "falta" | "apartada" | "danada", abre?: () => void, queHace = "ver cuáles") => {
     const fondo =
       clase === "falta"
@@ -483,14 +492,14 @@ export function PanelTalla({
     const elegida = capa === cual;
     const apagada = capa !== null && !elegida;
     const Icono = cual === "piso" ? IconoPercha : Archive;
-    const rotulo = cual === "piso" ? "colgadas" : "guardadas";
+    const rotulo = cual === "piso" ? "En piso" : "En almacén";
     const tono = cual === "piso" ? "bg-verde/[0.12] text-verde" : "bg-pizarra/[0.12] text-pizarra";
     return (
       <button
         type="button"
         aria-pressed={elegida}
         onClick={() => setCapa(elegida ? null : cual)}
-        title={elegida ? "Ver colgadas y guardadas" : `Ver solo lo ${cual === "piso" ? "colgado en el piso" : "guardado en el almacén"}`}
+        title={elegida ? "Ver piso y almacén" : `Ver solo lo que está ${cual === "piso" ? "en el piso" : "en el almacén"}`}
         className={`relative grid gap-1 rounded-[11px] border px-2 py-2 text-left transition-[opacity,box-shadow,border-color] ${tono} ${
           elegida ? "border-tinta shadow-[0_0_0_1px_var(--color-tinta)]" : "border-transparent hover:border-tinta/30"
         } ${apagada ? "opacity-45" : ""}`}
@@ -784,8 +793,8 @@ export function PanelTalla({
                             {insignia.frase && <span className="text-[12.5px] text-taupe">{insignia.frase}</span>}
                           </p>
                           <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
-                            {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? ((fila.pisoDisponible ?? 0) === 1 ? "colgada" : "colgadas") : "disponibles", IconoPercha, separa && insignia.tono === "ambar" ? "falta" : undefined)}
-                            {separa && casilla(fila.almacenDisponible ?? 0, (fila.almacenDisponible ?? 0) === 1 ? "guardada" : "guardadas", Archive)}
+                            {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "En piso" : "disponibles", IconoPercha, separa && insignia.tono === "ambar" ? "falta" : undefined, separa ? () => irATodas("piso") : undefined, "ver todas las tallas y colores en el piso")}
+                            {separa && casilla(fila.almacenDisponible ?? 0, "En almacén", Archive, undefined, () => irATodas("almacen"), "ver todas las tallas y colores en el almacén")}
                             {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
                             {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", Bandage, "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
                           </div>
@@ -893,22 +902,22 @@ export function PanelTalla({
                             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-tinta">
                               {capa === "piso" ? <IconoPercha aria-hidden className="h-3.5 w-3.5 text-verde" strokeWidth={1.8} /> : <Archive aria-hidden className="h-3.5 w-3.5 text-pizarra" strokeWidth={1.8} />}
                               <span>
-                                Solo lo <b className="font-semibold">{capa === "piso" ? "colgado en el piso" : "guardado en el almacén"}</b>
+                                Solo lo que está <b className="font-semibold">{capa === "piso" ? "en el piso" : "en el almacén"}</b>
                                 {capa === "piso" ? " · en ámbar, lo que falta colgar" : ""}
                               </span>
                               <button type="button" onClick={() => setCapa(null)} className="btn-cayla btn-enlace text-[12.5px]">
-                                Ver colgadas y guardadas
+                                Ver piso y almacén
                               </button>
                             </p>
                           ) : (
                             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-taupe">
                               <span className="inline-flex items-center gap-1.5">
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-verde/[0.22]" />
-                                Arriba: colgadas
+                                Arriba: en piso
                               </span>
                               <span className="inline-flex items-center gap-1.5">
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-pizarra/[0.16]" />
-                                Abajo: guardadas
+                                Abajo: en almacén
                               </span>
                               <span className="inline-flex items-center gap-1.5">
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.22]" />

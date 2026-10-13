@@ -97,6 +97,19 @@ Catálogo.
 - **`/formidable`** (primera corrida de Existencias): medición a 1440, 1024 y 375, prueba ciega sobre capturas y escéptico; informe en
   `docs/formidable/inventario-existencias.md` y su fila en el tablero. Los tres cambios propuestos esperan el OK de Felipe.
 
+## Actualización 2026-10-13 (Felipe, probando en local)
+
+1. **Las casillas de «Dónde está» dicen «En piso» y «En almacén»** (no «colgadas / guardadas») **y las dos se tocan: llevan a «Todas» con esa
+   capa ya puesta** (`irATodas`). Las casillas de «Todas» y su leyenda («Arriba: en piso · Abajo: en almacén», «Ver piso y almacén») usan las
+   mismas palabras, así que dentro del modal hay un solo vocabulario, el de las fichas de talla («0 piso») y de las acciones («4 unidades en
+   almacén»). Resuelve de paso el cambio 3 que proponía `/formidable`. **Queda abierto:** la tarjeta sigue diciendo «+N guardadas» (la A que
+   Felipe eligió el 12-oct) mientras el modal dice «N En almacén» para el mismo número; alinear la tarjeta es decisión suya.
+2. **Las pestañas «Esta talla / Todas» van centradas y del ancho de su contenido:** la pieza del sistema ya lo hace, pero como ítem de la
+   grilla de la columna izquierda se estiraba a las 17 rem enteras («ocupa más espacio del que debería»).
+3. Para probar con varios colores y tallas se creó en la base LOCAL «Vestido Prueba Colores» (4 colores × 5 tallas, stock repartido entre
+   piso y almacén de Lima y un color solo en Trujillo). No va en el repo. Se aprendió que la web **excluye de Existencias los productos con
+   `es_prueba = true`** (`lib/inventario-v2.ts`), así que la prenda quedó sin esa marca.
+
 ## Lo que no se hizo (a propósito) y lo que queda
 
 - Subir, Enviar y Reportar dañada **no se atacaron**: la base local (migración `20260930010100`) no tiene `retirar_del_piso`,

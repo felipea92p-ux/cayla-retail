@@ -162,7 +162,7 @@
       "button «{lectura}»",
       "button «existencias.cajon-codigo»",
       "button «→() => alAccionar(a.clave)»",
-      "button «Ver colgadas y guardadas»",
+      "button «Ver piso y almacén»",
       "button «{lectura}» #2",
       "button «{lectura}» #3",
       "button «existencias.cajon-colgar-varias»"
