@@ -280,9 +280,10 @@ export function Interruptor({ activo, onActivo, etiqueta, pie, disabled = false 
           aria-checked={activo}
           disabled={disabled}
           onClick={() => onActivo(!activo)}
-          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300 ease-cayla ${activo ? "bg-rojo" : "bg-tinta/25"}`}
+          // Se prende en TINTA y la perilla se estira al presionar (ADR-0358, ronda 6): `app/estilos/campos-y-casillas.css`.
+          className="interruptor"
         >
-          <span aria-hidden className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-crema shadow-sm transition-transform duration-300 ease-cayla ${activo ? "translate-x-4" : "translate-x-0"}`} />
+          <span aria-hidden className="interruptor-perilla" />
         </button>
         <span>{etiqueta}</span>
       </label>

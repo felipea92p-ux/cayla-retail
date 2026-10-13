@@ -1,0 +1,76 @@
+/* =====================================================================
+   ENLACES, PÁGINAS Y CARAS — las piezas de la ronda 8 de /unificar (ADR-0358, Felipe 2026-10-13).
+
+   Felipe eligió tocándolas en la página de elegir (docs/unificar/enlace.md, paginacion.md, avatar.md):
+   · <Paginas> (components/ui/Paginas.tsx): números de 13 px en cuadrados de 32 px y la página actual como una píldora de tinta que se
+     DESLIZA de un número al otro; las flechas se corren hacia donde llevan.
+
+   Movimiento de ADR-0136: sin rebote ni bucle; con `prefers-reduced-motion` se ve el resultado, no el viaje. Solo tokens.
+   ===================================================================== */
+
+@layer components {
+  /* ---------- <Paginas> ---------- */
+  .paginas {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .paginas-pista {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 9px;
+    background: var(--color-tinta);
+    pointer-events: none;
+    transition: translate 320ms var(--ease-cayla), width 320ms var(--ease-cayla);
+  }
+  .paginas[data-quieta] .paginas-pista { transition: none; }
+  .paginas-n {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+    transition: color 200ms var(--ease-cayla), background-color 150ms;
+  }
+  .paginas-n:hover:not([aria-current="page"]):not([aria-disabled="true"]):not(:disabled) {
+    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+    color: var(--color-tinta);
+  }
+  .paginas-n[aria-current="page"] { color: var(--color-crema); }
+  /* Antes de medir la píldora (el HTML del servidor, sin JavaScript), el número actual se pinta él mismo. */
+  .paginas:not([data-pista]) .paginas-n[aria-current="page"] { background: var(--color-tinta); }
+  .paginas-n:is(:disabled, [aria-disabled="true"]) {
+    color: color-mix(in srgb, var(--color-tinta) 28%, transparent);
+    pointer-events: none;
+  }
+  .paginas-n svg { width: 16px; height: 16px; flex-shrink: 0; transition: translate 200ms var(--ease-cayla); }
+  .paginas-n.atras:hover svg { translate: -2px 0; }
+  .paginas-n.adelante:hover svg { translate: 2px 0; }
+  .paginas-corte { width: 20px; text-align: center; color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+  .paginas-grande .paginas-n { min-width: 36px; height: 36px; border-radius: 10px; }
+  .paginas-grande .paginas-pista { border-radius: 10px; }
+  /* La paginación por cursor (sin números): las mismas flechas, con su texto. */
+  .paginas-texto { padding: 0 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paginas-pista,
+  .paginas-n,
+  .paginas-n svg {
+    transition-duration: 1ms !important;
+  }
+}

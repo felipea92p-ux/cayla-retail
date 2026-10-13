@@ -526,6 +526,59 @@ export const DECISIONES = {
     ],
     "excepciones": []
   },
+  "casilla": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/casilla.md",
+    "elegida": "P1 · la casilla que se dibuja (el fondo de tinta crece desde el centro y el ✓ se traza) y el interruptor que se prende en tinta, con la perilla que se estira al presionar; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/Casilla.tsx",
+    "tambien": ["components/ui/campos.tsx", "app/estilos/campos-y-casillas.css"],
+    "firmas": [
+      // Una casilla del navegador o dibujada a mano (la pieza ya es un <input type="checkbox"> por dentro). No cuentan un selector de
+      // CSS (`[type="checkbox"]`) ni el input escondido que solo guarda un estado (`sr-only`, el «ver más» del Inicio).
+      "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})(?![^\\n]*\\bsr-only\\b)",
+      // Un interruptor hecho a mano (la pieza es <Interruptor>).
+      "(?<!\\[)role=\"switch\""
+    ],
+    "deuda": [
+      "components/alta-producto/AvisoParecidos.tsx",
+      "components/apartados/ApartarVista.tsx",
+      "components/apartados/ModalesApartado.tsx",
+      "components/apartados/TodosVista.tsx",
+      "components/CompraFormV2.tsx",
+      "components/DevolucionesFlujo.tsx",
+      "components/finanzas/EscenariosPanel.tsx",
+      "components/finanzas/EstadoResultadosPanel.tsx",
+      "components/inicio/AjustarInicio.tsx",
+      "components/PagoJuntosModal.tsx",
+      "components/PrendasDeEtiquetaModal.tsx",
+      "components/ProductosTabla.tsx",
+      "components/ProveedoresProduccionPanel.tsx",
+      "components/PuntoDeVenta.tsx",
+      "components/PuntoDeVentaCatalogo.tsx",
+      "components/RecibirComprobanteModal.tsx",
+      "components/SugerenciasColaModal.tsx",
+      "components/TemporadasLista.tsx"
+    ],
+    "excepciones": []
+  },
+  "paginacion": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/paginacion.md",
+    "elegida": "P1 · las páginas con la píldora que se desliza: números de 13 px en cuadrados de 32 px y la página actual como una píldora de tinta que viaja de un número al otro; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/Paginas.tsx",
+    "tambien": ["components/ui/PaginacionLocal.tsx", "components/Paginacion.tsx", "app/estilos/enlaces-paginas-caras.css"],
+    "firmas": [
+      // Una paginación dibujada a mano: su propia barra de números (la pieza la arma con `numerosDePagina`).
+      "aria-label=\"Paginación\"",
+      "\\bnumerosDePagina\\(",
+      // El «Siguiente página →» o «← Volver al inicio» escrito a mano (la paginación por cursor ya lo dibuja con la pieza).
+      "Siguiente página →|← Volver al inicio"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
   "grafico.barra": {
     "fecha": "2026-10-09",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",

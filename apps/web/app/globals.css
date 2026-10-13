@@ -34,6 +34,8 @@
 @import "./estilos/ventas-sin-registrar.css";
 /* Pestaña de vista, píldora de filtro y segmento de modo: una pieza por función (ADR-0358, «Pestañas y segmentos»). */
 @import "./estilos/pestanas-y-segmentos.css";
+@import "./estilos/campos-y-casillas.css";
+@import "./estilos/enlaces-paginas-caras.css";
 @import "./estilos/traslados-pases.css";
 @import "./estilos/traslados-guia.css";
 /* La orden de compra en papel (ADR-0362, actividad 6): A4 para imprimir o guardar en PDF. */

@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 129,
+  "total": 126,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -75,11 +75,8 @@
       "button «{guia.frase ?? undefined}»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ],
     "components/ProveedorModal.tsx": [
       "button «Cerrar»",

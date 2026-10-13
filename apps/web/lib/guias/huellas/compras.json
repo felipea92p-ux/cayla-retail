@@ -2,7 +2,7 @@
   "guia": "compras",
   "ruta": "/compras",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 52,
   "controles": {
     "app/(app)/compras/page.tsx": [
       "BotonAncla «compras.exportar»",
@@ -52,11 +52,8 @@
       "Link «{p.documento}»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ],
     "components/PagoPiezas.tsx": [
       "Link «Agregarlo en su ficha →»",
