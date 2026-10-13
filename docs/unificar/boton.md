@@ -55,3 +55,19 @@ Verificado en el ERP: la onda corre en las hojas de Clientes y Caja y el botón 
 
 `boton`: 0 tras la pasada del mostrador (al decidir eran 14). `accion.eliminar` y `accion.cerrar`: 0. Las firmas (`apps/web/unificar/familias.mjs`) atrapan la
 versalita copiada a mano, un enlace o un botón sutil teñido de rojo para borrar, y un «Cerrar» escrito al pie de una hoja.
+
+## Ronda 9 (2026-10-13): «Desactivar color» y las acciones chicas
+
+**«Desactivar color» · P1, como Categorías.** Iba dentro de una frase como enlace (`btn-enlace`, sin rojo): ahora es `<Boton
+peso="peligro">` a la izquierda del pie, con Cancelar y Guardar a la derecha y, debajo, la nota de cuándo se bloquea. Conserva sus dos
+toques («¿Seguro? Confirmar»). Lo mismo con «Desactivar proveedor» en la hoja de Proveedor (hoy ninguna pantalla le pasa esa acción a la
+hoja con un proveedor existente: ver el backlog). Una firma nueva de `accion.eliminar` atrapa desactivar, eliminar, anular, borrar o
+archivar escrito como enlace (con su texto hasta tres líneas más abajo; «Archivados (3)», que muestra lo archivado, no cuenta).
+
+**Las acciones chicas dentro de una hoja · P2, según lo que hacen.** Eran versalitas rojas de 10–11 px; en la migración de las rondas 6–8
+pasaron todas a enlace. Ahora: lo que **cambia varias cosas de un toque** es `btn-cayla btn-sutil btn-chico` (Repartir todas en partes
+iguales, Partes iguales, Marcar las N atrasadas, Los espero todas, Agregar … al envío, Usar S/ …, Cerrar con faltante, Reasignar), con el
+movimiento de todo botón y la onda al clic; lo que **corrige una sola cosa** sigue `btn-enlace` (Cambiar, Editar, Deshacer, Revisar,
+Cambiar contraseña). No hay firma: la diferencia es lo que hace, no cómo está escrito.
+
+![El pie de Colores y una acción chica](capturas/pie-y-acciones.ronda9.jpg)

@@ -1,16 +1,18 @@
 # Ronda 9 de `/unificar`: las seis decisiones que dejaron abiertas las rondas 6–8 (fuentes)
 
-Armada el 2026-10-13 (rama `claude/mystifying-jang-ef15d0`), después de la migración de las rondas 6–8 (PR #1026). **Espera la elección de
-Felipe.** La página de elegir vive en `apps/web/unificar/.salida/elegir-ronda9/` (fuera de git); estas son sus fuentes.
+Armada el 2026-10-13 (rama `claude/mystifying-jang-ef15d0`), después de la migración de las rondas 6–8 (PR #1026). **Decidida el mismo día**
+(Felipe, tocando las demos): P1 · P1 · P1 · P1 · P2 · P2 —todas las recomendadas salvo la 1, donde eligió P1 (una lista también para las
+facturas)— y **migrada entera** (deuda 0). La página de elegir vive en `apps/web/unificar/.salida/elegir-ronda9/` (fuera de git); estas
+son sus fuentes.
 
 | # | Familia | La pregunta | Opciones |
 |---|---|---|---|
-| 1 | `combo` | La lista que sugiere mientras escaneas o buscas (Llegó mercadería, Recibir contra factura, Registrar nota de crédito) | P2 (recomendada) · P1 · A |
-| 2 | `tabla` | La planilla de Contar (`ListaConteo` + `FilaConteo`) | P1 (recomendada) · A |
-| 3 | `filtro` | Los filtros de Frescura («Estado» con grupos con título) | P1 (recomendada) · P2 · A |
-| 4 | `accion.eliminar` | «Desactivar color» en `ColoresLista` | P1 (recomendada) · P2 · A |
-| 5 | `titulo-seccion` | El número de un título de bloque o de grupo | P2 (recomendada) · P1 · A · B |
-| 6 | `enlace` | Las acciones chicas dentro de una hoja | P2 (recomendada) · P1 · A · B |
+| 1 | `combo` | La lista que sugiere mientras escaneas o buscas (Llegó mercadería, Recibir contra factura, Registrar nota de crédito) | P2 (recomendada) · **P1 (elegida)** · A |
+| 2 | `tabla` | La planilla de Contar (`ListaConteo` + `FilaConteo`) | **P1 (elegida)** · A |
+| 3 | `filtro` | Los filtros de Frescura («Estado» con grupos con título) | **P1 (elegida)** · P2 · A |
+| 4 | `accion.eliminar` | «Desactivar color» en `ColoresLista` | **P1 (elegida)** · P2 · A |
+| 5 | `titulo-seccion` | El número de un título de bloque o de grupo | **P2 (elegida)** · P1 · A · B |
+| 6 | `enlace` | Las acciones chicas dentro de una hoja | **P2 (elegida)** · P1 · A · B |
 
 Lo que dice «Existe hoy» o «Lo aplicado ahora» es **HTML copiado del DOM real** del ERP (`vivas.json`, de `piezas-vivas.mjs`), así que
 se ve y se mueve igual que en la app. Las propuestas usan las clases reales del ERP (`lista-flotante`, `pildora-filtro`, `titulo-seccion`,
@@ -28,6 +30,7 @@ se ve y se mueve igual que en la app. Las propuestas usan las clases reales del 
 | `demo9.css`, `demo9.js` | el estilo (solo tokens) y el comportamiento de las demos |
 | `construir.mjs` | arma `spec.json` y llama a `apps/web/unificar/elegir.mjs` |
 | `ver-demos.mjs`, `probar.mjs` | fotografían cada tarjeta (claro u oscuro) y prueban las interacciones |
+| `verificar.mjs` | después de migrar: fotografía cada pieza migrada en el ERP local (claro u oscuro). La de Contar usaba una página de ensayo con datos en memoria (`/ensayo-r9`, borrada antes del commit: la base local no tenía un conteo abierto) |
 | `empaquetar.mjs` | la página en un solo archivo que se abre sin servidor (`elegir-ronda9-un-archivo.html`, ~4 MB) |
 
 ## Regenerar (desde `apps/web`)

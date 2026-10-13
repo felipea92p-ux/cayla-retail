@@ -47,3 +47,9 @@ subrayado tenue y la flecha escrita al final de un `btn-enlace`. Al migrar, cada
 flecha escrita a mano. `<EnlaceVer>` aprendió `alNavegar` (cerrar la hoja o el cajón en el mismo clic que navega). «Todo el historial»
 de Historial y de Apartados no era un enlace sino un período que se elige: pasó a `pildora-cayla`. El ritmo de Existencias conserva su
 texto llano (diseño aprobado, `unificar-fijo`).
+
+## Ronda 9 (2026-10-13)
+
+Las acciones chicas dentro de una hoja que eran versalitas rojas y la migración pasó a `btn-enlace` se repartieron **según lo que hacen**
+(Felipe, P2): las que cambian varias cosas de un toque son ahora un botón sutil chico; las que corrigen una sola siguen siendo este
+enlace. Detalle y lista: [boton.md](boton.md), «Ronda 9».
