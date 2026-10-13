@@ -81,7 +81,8 @@ export function partesPorPagar(partes: readonly ParteDeCompra[]): ParteDeCompra[
 
 /**
  * La parte con la forma de un comprobante, para reusar el modal de pago tal cual: el saldo y el total son los de MI tienda
- * (el modal no deja pagar más que eso) y el pago va con `p_ubicacion_id` = mi tienda. Los campos que el modal no usa
+ * (el modal no deja pagar más que eso). Hasta ADR-0387 el pago iba con `p_ubicacion_id` = mi tienda; desde su decisión 45 el
+ * modal ya no manda tienda (el pago es de la empresa) y esto queda sin pantalla, hasta retirarlo. Los campos que el modal no usa
  * quedan en valores neutros: esto NO es el comprobante, y no debe pintarse como tal en ningún otro lado.
  */
 export function compraParaPagarMiParte(p: ParteDeCompra): CompraResumen {
@@ -130,7 +131,8 @@ export type DetalleMiParte = {
     gestoraNombre: string;
   };
   partes: { ubicacionId: string; ubicacionNombre: string; unidades: number; subtotal: number; igv: number; total: number; pagado: number; saldo: number }[];
-  lineas: { ubicacionId: string; referencia: string; talla: string | null; color: string | null; descripcion: string | null; costoUnitario: number; cantidad: number; subtotal: number }[];
+  // `categoria` y `marca` solo en una línea sin prenda (la de un comprobante que sale de una orden de compra, ADR-0362): con ellas se nombra.
+  lineas: { ubicacionId: string; referencia: string; categoria: string | null; marca: string | null; talla: string | null; color: string | null; descripcion: string | null; costoUnitario: number; cantidad: number; subtotal: number }[];
   pagos: { id: string; fecha: string; monto: number; metodo: string; referencia: string | null; ubicacionId: string }[];
 };
 
@@ -171,6 +173,8 @@ export function detalleMiParteDeJson(j: JsonDetalle): DetalleMiParte {
     lineas: (j.lineas ?? []).map((l) => ({
       ubicacionId: String(l.ubicacion_id),
       referencia: String(l.referencia ?? ""),
+      categoria: texto(l.categoria),
+      marca: texto(l.marca),
       talla: texto(l.talla),
       color: texto(l.color),
       descripcion: texto(l.descripcion),

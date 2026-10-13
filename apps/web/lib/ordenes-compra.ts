@@ -1,6 +1,10 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getProveedor } from "@/lib/proveedores";
+import { getSaldosFavor } from "@/lib/saldo-favor";
+import { datosPagoDe } from "@/lib/proveedores-reglas";
+import type { DatosDelComprobante, ProveedorDelComprobante } from "@/lib/comprobante-orden-reglas";
 import {
   argsLista,
   leerDetalleOrden,
@@ -132,4 +136,50 @@ export async function getEmpresaParaOrden(): Promise<{ razonSocial: string | nul
   const { data, error } = await supabase.from("configuracion_empresa").select("ruc, razon_social, nombre_comercial").maybeSingle();
   if (error || !data) return null;
   return { razonSocial: data.razon_social ?? null, ruc: data.ruc ?? null, nombreComercial: data.nombre_comercial ?? null };
+}
+
+export type DatosComprobanteOrden = DatosDelComprobante & {
+  detalle: DetalleOrden | null;
+  /** Por qué no se pudo leer la orden (la base no respondió). `null` con `detalle` vacío = esa orden no existe. */
+  falla: string | null;
+};
+
+/** Lo que necesita «Registrar comprobante» (fase 2): la orden con lo que ya llegó en papel, las categorías y marcas para lo que no estaba
+ *  en la orden, y la ficha de pago de su proveedor. Lo del proveedor es un adorno: si no se puede leer, el formulario se abre igual. */
+export async function getDatosComprobanteOrden(id: string): Promise<DatosComprobanteOrden> {
+  const supabase = await createClient();
+  const [{ detalle, falla }, resCategorias, resMarcas, resVinculos] = await Promise.all([
+    getDetalleOrden(id),
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
+    supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
+  ]);
+  const fallaListas =
+    resCategorias.error || resMarcas.error || resVinculos.error
+      ? "No se pudieron leer las categorías o las marcas. Lo que viene en la orden se puede registrar igual; para agregar algo que no estaba, vuelve a intentarlo en un momento."
+      : null;
+  if (fallaListas) console.error("[ordenes-compra] registrar comprobante:", resCategorias.error?.message ?? resMarcas.error?.message ?? resVinculos.error?.message);
+  const marcas = (resMarcas.data ?? []).map((m) => ({ id: m.id, nombre: m.nombre }));
+  const activas = new Set(marcas.map((m) => m.id));
+  return {
+    detalle,
+    falla,
+    categorias: (resCategorias.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo ?? null, familia: c.familia ?? null })),
+    marcas,
+    vinculos: (resVinculos.data ?? []).filter((v) => activas.has(v.marca_id)).map((v) => ({ marcaId: v.marca_id, proveedorId: v.proveedor_id })),
+    proveedor: detalle ? await leerProveedorDelComprobante(detalle.proveedor.id) : null,
+    fallaListas,
+  };
+}
+
+async function leerProveedorDelComprobante(proveedorId: string): Promise<ProveedorDelComprobante | null> {
+  try {
+    const [ficha, saldos] = await Promise.all([getProveedor(proveedorId), getSaldosFavor([proveedorId]).catch(() => ({}) as Record<string, number>)]);
+    if (!ficha) return null;
+    const saldoFavor = saldos[proveedorId] ?? 0;
+    return { plazoCreditoDias: ficha.plazo_credito_dias, datosPago: datosPagoDe(ficha, saldoFavor), saldoFavor };
+  } catch (e) {
+    console.error("[ordenes-compra] ficha del proveedor para el comprobante:", e instanceof Error ? e.message : e);
+    return null;
+  }
 }

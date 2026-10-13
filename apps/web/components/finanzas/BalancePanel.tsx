@@ -125,7 +125,7 @@ export function BalancePanel({
         bajada={
           verCayla
             ? "Lo que CAYLA tiene, contra lo que debe y lo que es tuyo."
-            : "Lo que es de la tienda: su caja, su mercadería, sus muebles y su parte de lo que se debe. El banco y el capital son de CAYLA entera."
+            : "Lo que es de la tienda: su caja, su mercadería, sus muebles y lo que debe por las facturas que pidió. El banco y el capital son de CAYLA entera."
         }
         acciones={
           <>
@@ -269,7 +269,7 @@ function VistaCayla({
       <div {...entra(4, "nota-cayla")} data-guia="fin-balance.nota">
         El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
         calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por tienda se
-        muestra <b>lo que es suyo</b> (su cajón, su mercadería, sus muebles y su parte de las facturas); el banco, el capital y el IGV
+        muestra <b>lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV
         son de CAYLA entera y no se reparten.
       </div>
     </>
@@ -607,8 +607,8 @@ function VistaTienda({
                 <li>
                   <span>421</span>
                   <span>
-                    Su parte de las facturas por pagar
-                    <small>el reparto de cada factura entre las tiendas</small>
+                    Las facturas por pagar que pidió
+                    <small>enteras, aunque parte de la mercadería vaya a otra tienda</small>
                   </span>
                   <span>{solesBalance(unidad.facturasPorPagar)}</span>
                 </li>

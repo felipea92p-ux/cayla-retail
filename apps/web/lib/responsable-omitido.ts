@@ -71,6 +71,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_compra_editar: "Editar una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Y anularla (actividad 5, migración 20261010235500).
   orden_compra_anular: "Anular una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Registrar el comprobante de una orden y anularlo (fase 2, migración 20261012211000): una sola clave para las dos acciones.
+  orden_compra_comprobante: "Registrar o anular el comprobante de una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

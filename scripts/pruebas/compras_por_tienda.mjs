@@ -1,23 +1,33 @@
 #!/usr/bin/env node
 /**
- * Pruebas de Compras POR TIENDA (ADR-0184, reescrito sobre los roles por módulo de ADR-0161) contra el Postgres local.
+ * Pruebas de Compras POR TIENDA (ADR-0184, reescrito sobre los roles por módulo de ADR-0161) contra el Postgres local, pasadas a
+ * «el módulo es la llave» (ADR-0387, Felipe 2026-10-12): quien tiene un módulo de plata de Compras (Facturas de proveedor, Por
+ * pagar o Notas de crédito) ve y paga las facturas de TODAS las tiendas, como el líder. Deshace en Compras la decisión del
+ * 2026-09-23 («con un módulo de Compras se ve y se paga SOLO lo de su tienda»); cada caso que se invirtió lo dice en su nombre
+ * (misma situación, el resultado nuevo).
  *
- * QUÉ PRUEBA (decisión de Felipe, 2026-09-23: con un módulo de Compras se ve y se paga SOLO lo de su tienda; el líder, todo):
- *   · QUIÉN: sin módulo de Compras no se llega a ninguna tienda, aunque haya fila en `compradores_de_tienda`;
- *   · DÓNDE: con módulo, su tienda; con fila extra, además esa; el líder, todas;
- *   · lectura: una factura que gestiona OTRA tienda no se ve (ni cabecera, ni líneas, ni pagos) aunque tenga parte en ella;
- *     la que gestiona su tienda, sí; la serie de 12 meses de proveedores solo suma las suyas;
- *   · F3-b: la parte en una factura ajena sale por `fn_mis_partes_de_compras` / `fn_mi_parte_de_compra` con SU monto y SU
- *     saldo, nunca el total de la factura;
- *   · pagar: desde su tienda, hasta su parte; sin tienda o con tienda ajena, no; el líder puede pagar sin tienda y ninguna
- *     tienda queda con deuda fantasma; el candado de esquema no deja pagar más que la parte ni escribiendo directo;
- *   · escribir: anular / registrar sobre la gestora ajena, no; registrar exige gestora propia y con parte; pagar al
- *     registrar exige el módulo Por pagar; la gestora no puede quedarse sin parte; cambiarla es del líder;
+ * QUÉ PRUEBA
+ *   · QUIÉN: sin módulo de plata de Compras no se llega a ninguna tienda, aunque haya fila en `compradores_de_tienda`;
+ *   · DÓNDE: con módulo, cualquier tienda activa (no una que no existe ni una inactiva); la fila extra ya no hace falta
+ *     (`fn_compras_ubicaciones`, que no cambió, la sigue sumando, pero en Compras ya no decide nada); el líder, todas; sumar
+ *     tiendas extra sigue siendo del líder;
+ *   · lectura: con módulo, la factura que gestiona OTRA tienda se ve entera (cabecera, líneas y pagos), igual que la de su
+ *     tienda; sin módulo, nada; la serie de 12 meses de proveedores suma las de todas las tiendas;
+ *   · F3-b: ya no hay «partes ajenas» (`fn_mis_partes_de_compras` sale vacía para quien tiene el módulo: la deuda la ve
+ *     entera); `fn_mi_parte_de_compra`, que no cambió y queda sin efecto en Compras hasta que se retire, sigue dando SU parte
+ *     con SU monto, nunca el total de la factura;
+ *   · pagar (con Por pagar): sin tienda, a nombre de la EMPRESA; o desde cualquier tienda activa con parte, hasta lo que le
+ *     queda a esa tienda; desde una tienda inactiva o sin parte, no; sin el módulo, no; si el líder paga la factura entera sin
+ *     tienda, ninguna tienda queda con deuda fantasma; el candado de esquema no deja pagar más que la parte ni escribiendo directo;
+ *   · escribir: con Facturas de proveedor anula y registra con cualquier gestora activa (no una inactiva); anular sigue
+ *     pidiendo Facturas de proveedor; la gestora tiene que recibir parte y no puede quedarse sin ella; pagar al registrar exige
+ *     el módulo Por pagar y el contado queda a nombre de la empresa; cambiar la gestora, de quien tiene Facturas de proveedor
+ *     (ADR-0387; antes, del líder);
  *   · una sola firma por función y nada abierto a anon.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK: los módulos del rol «integrante» y las facturas se crean dentro, así
- * que nunca se commitea nada. Las migraciones 20260923180000–180400 tienen que estar aplicadas (el CI las aplica con
- * `supabase start`; en local, con `migration up`).
+ * que nunca se commitea nada. Las migraciones 20260923180000–180400, 20261012202000 y 20261012204000 (ADR-0387) tienen que
+ * estar aplicadas (el CI las aplica con `supabase start`; en local, con `migration up`).
  *
  * USO   pnpm pruebas:compras-por-tienda
  */
@@ -106,15 +116,18 @@ ${COMO_MICAELA}select cardinality(retail.fn_compras_ubicaciones()), retail.fn_pu
   ["0|f"]
 );
 exito(
-  "con Por pagar llega a SU tienda (Trujillo) y a ninguna otra",
-  escenario(`${MODULOS("por_pagar")}${COMO_MICAELA}select retail.fn_puede_comprar_en(:'trujillo'), retail.fn_puede_comprar_en(:'lima'), cardinality(retail.fn_compras_ubicaciones());`),
-  ["t|f|1"]
+  "ADR-0387 (Felipe 2026-10-12): con Por pagar llega a cualquier tienda activa (Trujillo y también Lima), no a una que no existe ni a Lima inactiva; fn_compras_ubicaciones, que no cambió, sigue siendo solo la suya (antes: solo Trujillo)",
+  escenario(`${MODULOS("por_pagar")}${COMO_MICAELA}select retail.fn_puede_comprar_en(:'trujillo'), retail.fn_puede_comprar_en(:'lima'), retail.fn_puede_comprar_en(gen_random_uuid()), cardinality(retail.fn_compras_ubicaciones());
+${COMO_POSTGRES}update retail.ubicaciones set activo = false where id = :'lima';
+${COMO_MICAELA}select retail.fn_puede_comprar_en(:'lima');`),
+  ["t|t|f|1", "f"]
 );
 exito(
-  "con una fila extra (R-10) llega también a Lima",
-  escenario(`${MODULOS("facturas_compra")}select retail.agregar_comprador_de_tienda(:'micaela', :'lima');
-${COMO_MICAELA}select retail.fn_puede_comprar_en(:'trujillo'), retail.fn_puede_comprar_en(:'lima');`),
-  ["t|t"]
+  "ADR-0387 (Felipe 2026-10-12): la fila extra (R-10) ya no hace falta para llegar a Lima — sin ella llega igual; con ella, fn_compras_ubicaciones (que no cambió) la suma, sin cambiar nada en Compras (antes: solo con la fila)",
+  escenario(`${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.fn_puede_comprar_en(:'lima'), cardinality(retail.fn_compras_ubicaciones());
+${COMO_FELIPE}select retail.agregar_comprador_de_tienda(:'micaela', :'lima');
+${COMO_MICAELA}select retail.fn_puede_comprar_en(:'trujillo'), retail.fn_puede_comprar_en(:'lima'), cardinality(retail.fn_compras_ubicaciones());`),
+  ["t|1", "t|t|2"]
 );
 exito(
   "el líder llega a todas las ubicaciones activas",
@@ -129,14 +142,17 @@ error(
 
 // ===================================================================== 2. lectura
 exito(
-  "una factura que gestiona Lima (con parte de Trujillo) NO se ve desde Trujillo: ni cabecera, ni líneas, ni pagos; la que gestiona Trujillo sí",
+  "ADR-0387 (Felipe 2026-10-12): una factura que gestiona Lima (con parte de Trujillo) SÍ se ve entera desde Trujillo con Facturas de proveedor y Por pagar —cabecera, líneas y pagos—, igual que la que gestiona Trujillo; sin módulo de plata, ninguna de las tres (antes: no se veía)",
   escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${compra("f2", { gestora: "trujillo", dest: { trujillo: 5 } })}
 ${PAGAR("f1", "100.00", "lima")} as _p \\gset
 ${MODULOS("facturas_compra", "por_pagar")}${COMO_MICAELA}
 select (select count(*) from retail.compras where id = :'f1'), (select count(*) from retail.compra_items where compra_id = :'f1'),
        (select count(*) from retail.compra_pagos where compra_id = :'f1'), (select count(*) from retail.compras where id = :'f2'),
-       retail.fn_compra_es_de_mis_tiendas(:'f1'), retail.fn_compra_es_de_mis_tiendas(:'f2');`),
-  ["0|0|0|1|f|t"]
+       retail.fn_compra_es_de_mis_tiendas(:'f1'), retail.fn_compra_es_de_mis_tiendas(:'f2');
+${COMO_FELIPE}${MODULOS()}${COMO_MICAELA}
+select (select count(*) from retail.compras where id = :'f1'), (select count(*) from retail.compra_items where compra_id = :'f1'),
+       (select count(*) from retail.compra_pagos where compra_id = :'f1'), retail.fn_compra_es_de_mis_tiendas(:'f1');`),
+  ["1|1|1|1|t|t", "0|0|0|f"]
 );
 exito(
   "la gestora se guarda al registrar (Lima) y el líder ve todo",
@@ -145,12 +161,12 @@ select ubicacion_gestion_id = :'lima', retail.fn_compra_es_de_mis_tiendas(:'f1')
   ["t|t"]
 );
 exito(
-  "la serie de 12 meses de proveedores desde Trujillo no suma la factura que gestiona Lima; sí la que gestiona Trujillo (590.00)",
+  "ADR-0387 (Felipe 2026-10-12): la serie de 12 meses de proveedores desde Trujillo suma también la factura que gestiona Lima: 1,416.00 + 590.00 = 2,006.00 (antes: solo la de Trujillo, 590.00)",
   escenario(`${MODULOS("facturas_compra")}${COMO_MICAELA}
 select coalesce(sum(monto), 0) as antes from retail.fn_proveedores_serie_12m() where proveedor_id = :'prov1' \\gset
 ${COMO_FELIPE}${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${compra("f2", { gestora: "trujillo", dest: { trujillo: 10 } })}
 ${COMO_MICAELA}select coalesce(sum(monto), 0) - :'antes' from retail.fn_proveedores_serie_12m() where proveedor_id = :'prov1';`),
-  ["590.00"]
+  ["2006.00"]
 );
 exito(
   "sin módulo, el indicador de Compras sigue cerrado (candado de dinero)",
@@ -158,16 +174,17 @@ exito(
   ["0"]
 );
 
-// ===================================================================== 3. F3-b: mi parte
+// ===================================================================== 3. F3-b: mi parte (ADR-0387: ya no hay partes ajenas)
 exito(
-  "Trujillo ve SU parte de la factura que gestiona Lima: 12 u, 708.00, saldo 708.00, «parte nueva», gestiona Tienda Lima",
+  "ADR-0387 (Felipe 2026-10-12): con Por pagar, la factura que gestiona Lima ya no sale como «parte ajena» (fn_mis_partes_de_compras, vacía): Trujillo la ve entera en su deuda (1,416.00, 708.00 pagados por Lima, saldo 708.00) y lo que le queda a su parte sigue siendo 708.00 (antes: solo su parte, 12 u y 708.00)",
   escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${PAGAR("f1", "708.00", "lima")} as _p \\gset
 ${MODULOS("por_pagar")}${COMO_MICAELA}
-select unidades, total, pagado, saldo, parte_nueva, gestora_nombre from retail.fn_mis_partes_de_compras() where compra_id = :'f1';`),
-  ["12|708.00|0.00|708.00|t|Tienda Lima"]
+select count(*) from retail.fn_mis_partes_de_compras() where compra_id = :'f1';
+select total, pagado, saldo, gestionada, retail.fn_saldo_de_tienda(:'f1', :'trujillo') from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
+  ["0", "1416.00|708.00|708.00|t|708.00"]
 );
 exito(
-  "el detalle de la parte trae SUS líneas (12 u) y ningún monto de la factura entera",
+  "el detalle de la parte (fn_mi_parte_de_compra, que ADR-0387 no cambió) trae SUS líneas (12 u) y ningún monto de la factura entera",
   escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}
 ${MODULOS("por_pagar")}${COMO_MICAELA}
 select retail.fn_mi_parte_de_compra(:'f1') as d \\gset
@@ -188,7 +205,7 @@ error(
   "Ninguna de tus tiendas tiene parte"
 );
 
-// ===================================================================== 4. pagar por tienda
+// ===================================================================== 4. pagar: a nombre de la empresa, o por tienda si se nombra una
 exito(
   "Trujillo paga exactamente su parte de la factura que gestiona Lima y su saldo queda en 0; el de Lima sigue en 708.00",
   escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "708.00", "trujillo")} as _p \\gset
@@ -200,15 +217,25 @@ error(
   escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "708.01", "trujillo")} as _p \\gset`),
   "supera lo que le queda por pagar a esa tienda"
 );
-error(
-  "quien no es líder no puede pagar sin decir desde qué tienda",
-  escenario(`${compra("f1", { gestora: "trujillo", dest: { trujillo: 24 } })}${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "10.00", null)} as _p \\gset`),
-  "Elige desde qué tienda pagas"
+exito(
+  "ADR-0387 (Felipe 2026-10-12): quien no es líder, con Por pagar, paga SIN decir desde qué tienda: el pago queda a nombre de la EMPRESA (sin tienda) y baja el saldo de la factura (antes: «Elige desde qué tienda pagas»)",
+  escenario(`${compra("f1", { gestora: "trujillo", dest: { trujillo: 24 } })}${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "10.00", null)} as _p \\gset
+${COMO_FELIPE}select count(*) filter (where ubicacion_id is null), count(*) filter (where ubicacion_id is not null), sum(monto) from retail.compra_pagos where compra_id = :'f1';
+select saldo from retail.compras where id = :'f1';`),
+  ["1|0|10.00", "1406.00"]
+);
+exito(
+  "ADR-0387 (Felipe 2026-10-12): también paga desde Lima, que no es su tienda: el pago queda a nombre de Lima (está activa, tiene parte y no pasa de lo que le queda) y baja solo la parte de Lima (antes: «Solo puedes pagar desde una de tus tiendas»)",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "10.00", "lima")} as _p \\gset
+${COMO_FELIPE}select count(*), sum(monto) from retail.compra_pagos where compra_id = :'f1' and ubicacion_id = :'lima';
+select retail.fn_saldo_de_tienda(:'f1', :'lima'), retail.fn_saldo_de_tienda(:'f1', :'trujillo');`),
+  ["1|10.00", "698.00|708.00"]
 );
 error(
-  "tampoco desde una tienda que no es suya",
-  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "10.00", "lima")} as _p \\gset`),
-  "Solo puedes pagar desde una de tus tiendas"
+  "ADR-0387 (Felipe 2026-10-12): pero no desde una tienda inactiva, aunque tenga parte (Lima, cerrada después de registrar la factura)",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}update retail.ubicaciones set activo = false where id = :'lima';
+${MODULOS("por_pagar")}${COMO_MICAELA}${PAGAR("f1", "10.00", "lima")} as _p \\gset`),
+  "Esa tienda no existe o no está activa"
 );
 error(
   "sin el módulo Por pagar no paga (la puerta de ADR-0161 sigue)",
@@ -242,10 +269,16 @@ ${COMO_FELIPE}select count(*), sum(monto) from retail.compra_pagos where pago_gr
 );
 
 // ===================================================================== 5. escribir sobre la factura
+exito(
+  "ADR-0387 (Felipe 2026-10-12): con Facturas de proveedor, Trujillo anula también la factura que gestiona Lima (antes: «la gestiona otra tienda»)",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.anular_compra(:'f1', 'prueba');
+${COMO_FELIPE}select estado from retail.compras where id = :'f1';`),
+  ["anulada"]
+);
 error(
-  "Trujillo no anula la factura que gestiona Lima",
-  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.anular_compra(:'f1', 'prueba');`),
-  "la gestiona otra tienda"
+  "ADR-0387 (Felipe 2026-10-12): con solo Por pagar no la anula: anular sigue pidiendo Facturas de proveedor",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}select retail.anular_compra(:'f1', 'prueba');`),
+  "necesita el módulo Facturas de compra"
 );
 exito(
   "Trujillo sí anula la que gestiona su tienda",
@@ -253,10 +286,17 @@ exito(
 ${COMO_FELIPE}select estado from retail.compras where id = :'f2';`),
   ["anulada"]
 );
+exito(
+  "ADR-0387 (Felipe 2026-10-12): Trujillo registra una factura con Lima como gestora: sirve cualquier tienda activa (antes: «tiene que ser una de las tuyas»)",
+  escenario(`${MODULOS("facturas_compra")}${COMO_MICAELA}${compra("f3", { gestora: "lima", dest: { lima: 5 } })}
+${COMO_FELIPE}select ubicacion_gestion_id = :'lima' from retail.compras where id = :'f3';`),
+  ["t"]
+);
 error(
-  "Trujillo no registra una factura con Lima como gestora",
-  escenario(`${MODULOS("facturas_compra")}${COMO_MICAELA}${compra("f3", { gestora: "lima", dest: { lima: 5 } })}`),
-  "tiene que ser una de las tuyas"
+  "ADR-0387 (Felipe 2026-10-12): pero no con una gestora inactiva (Lima cerrada)",
+  escenario(`update retail.ubicaciones set activo = false where id = :'lima';
+${MODULOS("facturas_compra")}${COMO_MICAELA}${compra("f3", { gestora: "lima", dest: { trujillo: 5 } })}`),
+  "La tienda que gestiona el comprobante no existe o no está activa"
 );
 error(
   "la gestora tiene que recibir parte de la mercadería",
@@ -275,10 +315,10 @@ error(
   "Pagar al registrar necesita el módulo Por pagar"
 );
 exito(
-  "con los dos módulos, el pago al contado queda a nombre de la gestora (Trujillo)",
+  "ADR-0387 (Felipe 2026-10-12): con los dos módulos, el pago al contado queda a nombre de la EMPRESA (sin tienda), como el del líder (antes: de la gestora, Trujillo)",
   escenario(`${MODULOS("facturas_compra", "por_pagar")}${COMO_MICAELA}${compra("f3", { gestora: "trujillo", dest: { trujillo: 5 }, pago: "jsonb_build_array(jsonb_build_object('monto', 295, 'metodo', 'efectivo'))" })}
-${COMO_FELIPE}select count(*) from retail.compra_pagos where compra_id = :'f3' and ubicacion_id = :'trujillo';`),
-  ["1"]
+${COMO_FELIPE}select count(*) filter (where ubicacion_id is null), count(*) filter (where ubicacion_id is not null), sum(monto) from retail.compra_pagos where compra_id = :'f3';`),
+  ["1|0|295.00"]
 );
 error(
   "la gestora no puede quedarse sin parte (reasignar todo lo de Lima a Trujillo falla al cerrar)",
@@ -288,16 +328,23 @@ select retail.reasignar_reparto_compra(:'item', :'lima', :'trujillo', 12, 'otro'
 set constraints all immediate;`),
   "tiene que conservar parte de la mercadería"
 );
+exito(
+  "cambiar la tienda gestora: quien tiene Facturas de proveedor la cambia sin ser líder (ADR-0387: el módulo es la llave), y Trujillo la ve",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');
+select count(*) from retail.compras where id = :'f1';`),
+  ["1"]
+);
 error(
-  "cambiar la tienda gestora es solo del líder",
-  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');`),
-  "Solo un líder"
+  "sin Facturas de proveedor no se cambia la tienda gestora (el error nombra el módulo)",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');`),
+  "Facturas de proveedor"
 );
 exito(
-  "el líder cambia la gestora a Trujillo y desde ese momento Trujillo la ve entera",
-  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');
-${MODULOS("facturas_compra")}${COMO_MICAELA}select count(*) from retail.compras where id = :'f1';`),
-  ["1"]
+  "el líder cambia la gestora a Trujillo y queda guardada; ADR-0387 (Felipe 2026-10-12): Trujillo la ve entera antes y después, la gestora ya no decide quién la ve (antes: la veía «desde ese momento»)",
+  escenario(`${compra("f1", { gestora: "lima", dest: { lima: 12, trujillo: 12 } })}${MODULOS("facturas_compra")}${COMO_MICAELA}select count(*) from retail.compras where id = :'f1';
+${COMO_FELIPE}select retail.cambiar_tienda_gestora_compra(:'f1', :'trujillo');
+${COMO_MICAELA}select count(*), bool_and(ubicacion_gestion_id = :'trujillo') from retail.compras where id = :'f1';`),
+  ["1", "1|t"]
 );
 
 // ===================================================================== 6. firmas y permisos

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { accionesDeCompraDe, puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
 import type { CompraResumen } from "@/lib/compras-reglas";
@@ -51,8 +51,9 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 //
 // ADR-0161 P2 (Felipe, 2026-09-22, 20260923140000): los MONTOS los ve quien ya ve el dinero de Compras (`verDineroCompras`:
 // Facturas de compra, Por pagar o Notas de crédito), no solo el líder — la base ya se los entrega (vistas compras_resumen y
-// compra_items_resumen con fn_puede_ver_dinero_de_compras). Lo demás que decide `esLider` NO cambia: qué sede se mira
-// («Recibiendo en»), las decisiones sobre lo que faltó y el aviso de la nota por reclamar.
+// compra_items_resumen con fn_puede_ver_dinero_de_compras). ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): las
+// decisiones sobre lo que faltó son de quien recibe, el aviso de la nota por reclamar de quien tiene Notas de crédito y el
+// enlace a los comprobantes con faltante de quien tiene Facturas de proveedor; ya nada de eso es solo del líder.
 //
 // Los cuatro indicadores (ADR-0111) ya no van arriba: se dibujan DEBAJO de «¿Qué llegó?» —lo que se mira
 // mientras no hay nada marcado— y desaparecen apenas se marca un comprobante, para dejarle toda la pantalla
@@ -66,7 +67,7 @@ type VistaRecibir = "llegada" | "factura" | "recibidas";
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
-  const esLider = persona.rol === "lider";
+  const acciones = accionesDeCompraDe(persona); // ADR-0387: cada acción, de su módulo (ya no del líder)
   const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
   const puedeAgregarProveedor = puede(persona, "editarCuentasProveedor"); // dar de alta un proveedor: el módulo Proveedores (fn_puede_gestionar_proveedores)
   const params = await searchParams;
@@ -168,11 +169,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             etiqueta="Faltante abierto"
             valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
             unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
-            // La lista de comprobantes con faltante es de Compras (solo líder): a un colaborador no se le ofrece un enlace que lo devuelve al Inicio.
-            href={esLider && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
+            // La lista de comprobantes con faltante es de Facturas de proveedor: a quien no tiene ese módulo no se le ofrece un enlace
+            // que lo devuelve al Inicio (ADR-0387; antes, solo al líder).
+            href={acciones.facturas && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
           >
             {resumen.faltanteUnidades > 0
-              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · ${esLider ? "cerrar o reclamar" : "un líder decide qué hacer"}`
+              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar`
               : "Nada por reclamar"}
           </TarjetaCifra>
         </div>
@@ -311,7 +313,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
   const [lineasCompletas, comprasConNotaFaltante, trasladosDeLaSede] = await Promise.all([
     getLineasCompra(compras.map((c) => c.id), { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
-    esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
+    acciones.notas ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
     // El aviso de traslados es secundario: si esta lectura falla, Recibir sigue funcionando sin el aviso (nunca se cae por él).
     getTrasladosEnCurso(ubicacionMirada).catch((e: unknown) => {
       console.error("Aviso de traslados en Recibir mercadería:", e);
@@ -350,7 +352,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               <Vacio
                 icono={<Receipt />}
                 titulo="No hay nada pendiente de recibir"
-                acciones={esLider ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
+                acciones={acciones.facturas ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
               >
                 No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
                 <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
@@ -382,7 +384,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
             ubicacionInicialId={ubicacionMirada}
             compraInicialId={compra ?? null}
-            esLider={esLider}
+            puedeReclamar={acciones.notas}
             verMontos={verMontos}
             comprasConNotaFaltante={comprasConNotaFaltante}
             veTraslados={veModulo(persona, "traslados")}

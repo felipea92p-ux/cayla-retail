@@ -2,7 +2,7 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 77,
+  "total": 74,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -17,7 +17,6 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "CampoSelect «Pagas desde»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
       "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
@@ -44,9 +43,6 @@
       "CampoFecha «Emitida desde»",
       "CampoFecha «Emitida hasta»"
     ],
-    "components/MisPartesDeCompras.tsx": [
-      "Link «{p.documento}»"
-    ],
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",
       "Link «Siguiente página»"
@@ -58,7 +54,6 @@
       "button «Todo ·»",
       "button «Solo lo vencido ·»",
       "button «{`Descontar mi saldo a favor con ${proveedorNombre}»",
-      "CampoSelect «Pagas desde»",
       "CampoFecha «Fecha del pago»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",

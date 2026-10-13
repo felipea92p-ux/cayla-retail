@@ -16,8 +16,10 @@
  *   · LA PANTALLA COMPLETA. Lo que la web deja ver (módulo `proveedores`) y lo que la base responde coinciden: la terminal
  *     administrativa recibe TODOS los proveedores y UNA fila de resumen (la fila que faltaba); la de ventas recibe el
  *     directorio pero el dinero le llega en NULL; la desactivada y la de afuera no reciben nada.
- *   · EL DINERO NO SE ABRE DE MÁS. Con módulos de Compras, cada terminal ve la deuda de SU tienda y no la de otra (el
- *     líder, toda). Es la comprobación que no se pudo hacer contra producción (hoy tiene 0 compras).
+ *   · EL DINERO NO SE ABRE DE MÁS. La de ventas, sin Proveedores ni módulos de plata, recibe el dinero en NULL (arriba). Con
+ *     módulos de Compras, cada terminal ve la deuda de la EMPRESA, la de todas las tiendas, exactamente la que ve el líder: ni
+ *     más ni menos (ADR-0387, Felipe 2026-10-12; antes, ADR-0184/0187, cada una solo la de SU tienda). Es la comprobación que
+ *     no se pudo hacer contra producción (hoy tiene 0 compras).
  *   · EXISTENCIAS. `fn_existencias` y `fn_existencias_productos` le devuelven a la terminal lo mismo que el núcleo.
  *   · EL BARRIDO. Toda lectura que se puede llamar sin argumentos y usa la puerta devuelve filas a la terminal cuando se
  *     las devuelve al líder (con el módulo `plan_piso` dado a la terminal dentro del escenario: una lectura que además pide un módulo no
@@ -223,7 +225,7 @@ caso(
 );
 
 // ===========================================================================
-// 3. EL DINERO NO SE ABRE DE MÁS: cada terminal ve la deuda de SU tienda
+// 3. EL DINERO NO SE ABRE DE MÁS: cada terminal ve la deuda de la empresa, la misma que el líder (ADR-0387; antes, la de SU tienda)
 // ===========================================================================
 
 const FOTO = (auth, sufijo) =>
@@ -240,21 +242,23 @@ const DESPUES = (auth, sufijo) =>
   `select (coalesce(max(facturas), 0) - :f_${sufijo}) || '/' || (coalesce(max(saldo), 0) - :s_${sufijo})::numeric(12, 2) as d_${sufijo} from retail.fn_proveedores() where id = :'prov' \\gset\n`;
 
 caso(
-  "DINERO POR TIENDA: dos comprobantes (TRU S/118 y Lima S/59) → la terminal de TRU ve solo el suyo, la de Lima solo el suyo, el líder los dos",
+  "ADR-0387 (Felipe 2026-10-12): DINERO DE LA EMPRESA: dos comprobantes (TRU S/118 y Lima S/59) → la terminal de TRU, la de Lima y el líder ven los dos, ni más ni menos (antes: cada terminal solo el de su tienda)",
   MODULOS_DE_DINERO +
     FOTO(T_ADMIN_TRU, "tru") + FOTO(T_ADMIN_LIM, "lim") + FOTO(FELIPE, "lid") +
     como(FELIPE) + COMPRA("A", "tru", 10) + COMPRA("B", "lim", 5) +
     DESPUES(T_ADMIN_TRU, "tru") + DESPUES(T_ADMIN_LIM, "lim") + DESPUES(FELIPE, "lid") +
     `select :'d_tru' || ' ' || :'d_lim' || ' ' || :'d_lid';`,
-  "1/118.00 1/59.00 2/177.00"
+  "2/177.00 2/177.00 2/177.00"
 );
 caso(
-  "DINERO POR TIENDA en el resumen: la deuda total que ve la terminal de TRU sube solo lo de su tienda (S/118)",
+  "ADR-0387 (Felipe 2026-10-12): DINERO DE LA EMPRESA en el resumen: la deuda total que ve la terminal de TRU sube los dos comprobantes (S/177), lo mismo que la del líder (antes: solo lo de su tienda, S/118)",
   MODULOS_DE_DINERO +
     como(T_ADMIN_TRU) + `select coalesce(max(deuda_total), 0) as r0 from retail.fn_proveedores_resumen() \\gset\n` +
-    como(FELIPE) + COMPRA("A", "tru", 10) + COMPRA("B", "lim", 5) +
-    como(T_ADMIN_TRU) + `select ((select deuda_total from retail.fn_proveedores_resumen()) - :r0)::numeric(12, 2)::text;`,
-  "118.00"
+    como(FELIPE) + `select coalesce(max(deuda_total), 0) as l0 from retail.fn_proveedores_resumen() \\gset\n` +
+    COMPRA("A", "tru", 10) + COMPRA("B", "lim", 5) +
+    como(T_ADMIN_TRU) + `select ((select deuda_total from retail.fn_proveedores_resumen()) - :r0)::numeric(12, 2) as r1 \\gset\n` +
+    como(FELIPE) + `select :'r1' || ' ' || ((select deuda_total from retail.fn_proveedores_resumen()) - :l0)::numeric(12, 2);`,
+  "177.00 177.00"
 );
 
 // ===========================================================================

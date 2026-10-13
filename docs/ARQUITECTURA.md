@@ -1194,7 +1194,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (solo líder) → `lib/notas-credito.ts`
+- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
   partes del dinero, filtros y buscador) → `NotasCreditoPanel` (+ `NotaCreditoVistaRapida`, `NotaCreditoDetalle`,
   `RegistrarNotaCreditoModal`) → RPC `notas_credito_tablero()` (notas + notas pendientes en una llamada),
@@ -1244,6 +1244,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
   montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
   de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
+- **El comprobante de una orden** (ADR-0362, fase 2, 2026-10-12; migraciones `20261012205000`, `20261012210000` y `20261012211000`, **en
+  producción desde el 2026-10-12**): `/compras/ordenes/comprobante/[id]` → `components/ordenes-compra/RegistrarComprobanteOrden.tsx` +
+  `lib/comprobante-orden-reglas.ts` (puro: precarga, centavos, totales, avisos) → RPC `registrar_comprobante_orden` (solo el módulo
+  Órdenes de compra; boleta, nota o factura con IGV; crédito o contado a nombre de la empresa; devuelve los avisos de «de más» y «fuera de
+  la orden»). La orden abierta (`DetalleOrdenCompra`, `ComprobantesDeOrden`) lee de `fn_orden_compra_detalle` `facturado`, `pendiente`,
+  `comprobantes` y `papel`, y anula con `anular_compra` (también con Órdenes de compra si el comprobante sale de una orden).
+  `compra_items` acepta líneas sin prenda (`categoria_id` + `marca_id`, `orden_compra_item_id`, `precio_venta_sugerido`); Recibir no
+  las ofrece (`lineas_compra_operativo`, `listar_compras_operativo`, `resumen_recepciones`) y `recibir_compras`, `recibir_envio` y
+  `cerrar_linea_compra` las rechazan. El papel es único entre los vigentes (`compras_papel_vigente_unico`).
 - **Compras por tienda** (ADR-0184, 2026-09-23; migraciones `20260923180000`–`180400`, **no en producción todavía**). QUIÉN usa Compras
   lo dice el rol (ADR-0161, `fn_capacidad_por_modulos`); DE QUÉ TIENDAS, `fn_compras_ubicaciones()` → `uuid[]`: el líder todas; con módulo,
   su tienda (`fn_ubicacion_actual_persona`) más las extra de `compradores_de_tienda` (R-10; la tabla sola no da acceso). Cada factura tiene
@@ -1254,18 +1263,27 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   al centavo. `compra_pagos.ubicacion_id` + `fn_saldo_de_tienda` + candado diferido: cada tienda paga su parte; las tres RPC de pago ganan
   `p_ubicacion_id` (obligatorio para quien no es líder). **F3-b:** la tienda con parte en una factura ajena no ve la tabla: lee su parte con
   `fn_mis_partes_de_compras()` / `fn_mi_parte_de_compra(compra)` (`lib/compras-mi-parte.ts`, `components/MisPartesDeCompras.tsx`,
-  ruta `/compras/parte/[compraId]`). `cambiar_tienda_gestora_compra`: solo líder.
+  ruta `/compras/parte/[compraId]`). `cambiar_tienda_gestora_compra`: quien tiene Facturas de proveedor (ADR-0387; antes, solo líder).
   **ADR-0187 (`20260924100000`):** «cuánto debo» sale de `fn_deuda_visible(p_ids)` (líder: saldo de la factura; tienda: suma de
   `fn_saldo_de_tienda` de sus tiendas, gestione quien gestione). La usan `resumen_compras`, `resumen_compras_extra`,
   `deuda_por_vencimiento`, `salidas_caja_30d`, `por_pagar_tramos` (solo `gestionada`) y el saldo de `fn_proveedores`; la página
   `/compras/por-pagar` reemplaza los montos de sus filas con `porPagarConMiParte` (`lib/compras-mi-parte.ts`).
+  **DESHECHO en Compras por ADR-0387 (actividad 2, `20261012204000`, en producción desde el 2026-10-12):** quien tiene un módulo de plata de
+  Compras ve y maneja las facturas de TODAS las tiendas, como el líder: las políticas preguntan `(select fn_puede_ver_dinero_de_compras())`
+  (ya no `fn_compras_visibles`), `fn_compra_es_de_mis_tiendas` = `fn_puede_ver_dinero_de_compras()`, `fn_puede_comprar_en` = cualquier
+  tienda activa, `fn_deuda_visible` da la factura entera y `fn_mis_partes_de_compras` sale vacía. Se paga a nombre de la empresa: las
+  tres RPC de pago ya no exigen `p_ubicacion_id` (si llega, se valida como antes) y el contado de `registrar_compra` va sin tienda. La web
+  de Compras no muestra «Pagas desde» ni «Tu parte…» (Finanzas ▸ Por pagar tampoco). Proveedores ve los montos de la empresa con su
+  módulo (`fn_ve_plata_de_proveedores`). Decisión 45: la deuda es de la tienda que hizo el pedido (la gestora): `fn_por_pagar_consolidado`
+  mirando una tienda y `fn_bal_facturas_de_tienda` suman por gestora, sin partes. `compradores_de_tienda`, `fn_compras_ubicaciones`,
+  `fn_compras_visibles`, `fn_mi_parte_de_compra`, `MisPartesDeCompras` y `/compras/parte/[compraId]` quedan sin efecto (se retiran).
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su
   suma por línea = la cantidad lo exige un constraint trigger diferido). Lo recibido por tienda no se guarda: sale de
   `movimientos` (`compra_item_id` + `ubicacion_id`) y lo cruza la vista `compra_item_reparto_resumen`
   (`pendiente = asignado − recibido − cerrado`). `recibir_compras` topa **por tienda**; `cerrar_linea_compra` lleva
-  `p_ubicacion_id`; `reasignar_reparto_compra` (solo líder) mueve lo que aún no llegó y deja rastro en `compra_reasignaciones`;
+  `p_ubicacion_id`; `reasignar_reparto_compra` (quien tiene Facturas de proveedor, de cualquier tienda: ADR-0387) mueve lo que aún no llegó y deja rastro en `compra_reasignaciones`;
   `fn_puede_ver_compra` reemplaza al candado por el destino de la cabecera; `compras_resumen.ubicaciones_destino` trae las
   tiendas. Web: `lib/reparto-reglas.ts` (reglas puras: validar y explicar un reparto, «Te toca 12 de 24»), `lib/compras-reparto.ts`
   (lee el reparto y las reasignaciones de un comprobante, tolerante), `lib/compras.ts` (`listarCompras`/`getLineasCompra` reciben la
@@ -1465,7 +1483,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `components/motor-demanda/MotorEnProduccion.tsx`.
     Venta perdida con la prenda exacta (ADR-0348): `AnotarNoHabia` (Vender) y `CambioSalidas` (Cambios) mandan `p_variante_id` a
     `registrar_pedido_no_atendido` (`lib/se-probo-reglas.ts` → `argsRegistrarPedido`); `fn_demanda_sede` la suma a su grupo.
-  - `/compras/plan` («Plan de campaña», ADR-0349 y ADR-0372, módulo `plan_compra`, pide `verDineroCompras`) → `lib/plan-compra.ts`
+  - `/compras/plan` («Plan de campaña», ADR-0349 y ADR-0372, módulo `plan_compra`; desde ADR-0387 pide solo su módulo, también para crear, editar, quitar, restaurar y el tope) → `lib/plan-compra.ts`
     (`fn_plan_compra` + la tabla `familias` para el nombre del filtro + `getPreparacionMotor` para el aviso de stock; los tres leen en
     paralelo y solo el plan es obligatorio) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación;
     desde ADR-0372 también filas, las que más venden, filtros, plegado, momento de la campaña, escala de la barra, paso a paso,
