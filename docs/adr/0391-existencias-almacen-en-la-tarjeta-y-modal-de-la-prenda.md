@@ -102,8 +102,12 @@ Catálogo.
 1. **Las casillas de «Dónde está» dicen «En piso» y «En almacén»** (no «colgadas / guardadas») **y las dos se tocan: llevan a «Todas» con esa
    capa ya puesta** (`irATodas`). Las casillas de «Todas» y su leyenda («Arriba: en piso · Abajo: en almacén», «Ver piso y almacén») usan las
    mismas palabras, así que dentro del modal hay un solo vocabulario, el de las fichas de talla («0 piso») y de las acciones («4 unidades en
-   almacén»). Resuelve de paso el cambio 3 que proponía `/formidable`. **Queda abierto:** la tarjeta sigue diciendo «+N guardadas» (la A que
-   Felipe eligió el 12-oct) mientras el modal dice «N En almacén» para el mismo número; alinear la tarjeta es decisión suya.
+   almacén»). Resuelve de paso el cambio 3 que proponía `/formidable`. **Y la tarjeta se alineó el mismo día (Felipe):** la línea chica dice
+   «+N en almacén» (`lineaGuardadas`), la leyenda del pie «2 en piso · +1 en almacén», y la lectura de cada columna «Talla S: 0 en piso y 6 en
+   almacén». En toda Existencias el lugar se nombra igual: «en piso / en almacén»; «colgadas / guardadas» quedan solo como las cifras de la
+   cabecera que filtran («Colgadas en el piso», «Guardadas en el almacén»), que son frases.
+   **El efecto al pasar el mouse es uno solo** para las dos parejas de casillas («Esta talla» y «Todas»): el filo fino de tinta
+   (`HOVER_CASILLA`), sin cambiar fondo ni borde (antes «Todas» cambiaba el color del borde).
 2. **Las pestañas «Esta talla / Todas» van centradas y del ancho de su contenido:** la pieza del sistema ya lo hace, pero como ítem de la
    grilla de la columna izquierda se estiraba a las 17 rem enteras («ocupa más espacio del que debería»).
 3. Para probar con varios colores y tallas se creó en la base LOCAL «Vestido Prueba Colores» (4 colores × 5 tallas, stock repartido entre

@@ -67,7 +67,7 @@ const TONO_PUNTO = { ambar: "bg-ambar", pizarra: "bg-pizarra", tinta: "bg-tinta"
 const TONO_INSIGNIA = { ambar: "text-ambar", pizarra: "text-pizarra", tinta: "text-tinta" } as const;
 type SimboloFiltro = NonNullable<MarcaDelFiltro["simbolo"]>;
 
-/** Las columnas de la tarjeta (ADR-0391): una por talla, con el nombre, lo COLGADO en grande y debajo «+N guardadas»
+/** Las columnas de la tarjeta (ADR-0391): una por talla, con el nombre, lo COLGADO en grande y debajo «+N en almacén»
  *  (`lineaGuardadas`). Ámbar = falta colgar (0 colgadas, algo guardado); rojo = se acabó en la sede. Cada columna es un botón: abre la
  *  talla (lista para colgar si tiene algo guardado). Donde la sede no separa piso y almacén, el número grande es lo disponible y no hay
  *  línea chica. */
@@ -94,7 +94,7 @@ function ColumnasTallas({
         const marca = marcaDe(f);
         const linea = lineaGuardadas(c, tallas.length);
         const lectura = separa
-          ? `Talla ${nombre}: ${c.piso} colgadas y ${c.almacen} guardadas${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
+          ? `Talla ${nombre}: ${c.piso} en piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
           : `Talla ${nombre}: ${c.piso} disponibles`;
         // La columna entera dice su estado: rojo suave si se acabó, ámbar si falta colgar; las demás, sin fondo.
         const fondo =
@@ -103,7 +103,7 @@ function ColumnasTallas({
             : c.estado === "falta"
               ? "border-ambar/30 bg-ambar/[0.13] text-ambar-profundo"
               : "border-transparent text-tinta";
-        // «+2 guardadas»: el número en negrita, la palabra en taupe; en ámbar y en rojo toda la línea lleva el color de la columna.
+        // «+2 en almacén»: el número en negrita, las palabras en taupe; en ámbar y en rojo toda la línea lleva el color de la columna.
         const [numero, ...palabra] = linea.texto.split(" ");
         return (
           <button
@@ -358,7 +358,7 @@ export function ExistenciasTarjetas({
             </div>
             <span className="sr-only">{separa && <EstadoParaLector prenda={p} />}</span>
 
-            {/* Las columnas: una por talla, lo colgado en grande y «+N guardadas» debajo. Ámbar = falta colgar; rojo = se acabó. */}
+            {/* Las columnas: una por talla, lo colgado en grande y «+N en almacén» debajo. Ámbar = falta colgar; rojo = se acabó. */}
             <ColumnasTallas tallas={tallasVista} separa={separa} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
 
             {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}

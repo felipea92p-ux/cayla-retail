@@ -960,7 +960,7 @@ export function InventarioPanel({
                 </Link>
               }
             >
-              Lo que dice «guardada» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
+              Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
             </Aviso>
           )}
           <ExistenciasTarjetas
@@ -1008,10 +1008,10 @@ export function InventarioPanel({
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <b className="text-[15px] font-semibold text-tinta">2</b> colgadas en el piso
+                  <b className="text-[15px] font-semibold text-tinta">2</b> en piso
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <b className="text-[11px] font-bold text-tinta">+1</b> guardadas en el almacén
+                  <b className="text-[11px] font-bold text-tinta">+1</b> en almacén
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.14]" />

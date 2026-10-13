@@ -31,15 +31,16 @@ export function celdaTarjeta(f: FilaCelda, separa: boolean): CeldaTarjeta {
 }
 
 /** La línea chica bajo el número grande de cada columna (ADR-0391, Felipe 2026-10-12): el número grande es lo COLGADO (lo que el
- *  cliente puede comprar) y debajo va lo guardado, con la palabra de la cabecera («+2 guardadas»). Con 4 tallas o más en la tarjeta la
- *  palabra no cabe en los 304 px y queda solo el número («+2», «0»): la leyenda del pie la pone. Agotada: «se acabó» («acabó» apretado).
- *  `cero` = no hay nada guardado: la línea va toda en taupe y sin negrita, para que un «0 guardadas» no pese lo mismo que un «+3»
+ *  cliente puede comprar) y debajo va lo del almacén, con las palabras del modal («+2 en almacén»; Felipe, 2026-10-13: antes «+2
+ *  guardadas»). Con 4 tallas o más en la tarjeta las palabras no caben en los 304 px y queda solo el número («+2», «0»): la leyenda del
+ *  pie las pone. Agotada: «se acabó» («acabó» apretado).
+ *  `cero` = no hay nada en el almacén: la línea va toda en taupe y sin negrita, para que un «0 en almacén» no pese lo mismo que un «+3»
  *  (en taupe pleno, no atenuado: el auditor del tema midió 2,3:1 con `taupe/55` y un 0 también se tiene que leer). */
 export function lineaGuardadas(c: Pick<CeldaTarjeta, "estado" | "almacen">, tallasEnTarjeta: number): { texto: string; cero: boolean } {
   const apretada = tallasEnTarjeta >= 4;
   if (c.estado === "agotada") return { texto: apretada ? "acabó" : "se acabó", cero: false };
-  if (c.almacen === 0) return { texto: apretada ? "0" : "0 guardadas", cero: true };
-  return { texto: apretada ? `+${c.almacen}` : `+${c.almacen} ${c.almacen === 1 ? "guardada" : "guardadas"}`, cero: false };
+  if (c.almacen === 0) return { texto: apretada ? "0" : "0 en almacén", cero: true };
+  return { texto: apretada ? `+${c.almacen}` : `+${c.almacen} en almacén`, cero: false };
 }
 
 /** Tocar una talla de la tarjeta: si hay algo en almacén y la persona puede colgar, el cajón abre LISTO PARA COLGAR esa talla

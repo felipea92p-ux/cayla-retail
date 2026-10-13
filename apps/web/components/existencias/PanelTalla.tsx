@@ -106,6 +106,10 @@ const MS_FOTO_CRUZA = 420;
 
    Teclado: ← → cambian la talla, ↑ ↓ el color, 1–7 eligen la acción; Escape cierra (con «¿Salir sin guardar?» si hay un paso a medias).
    ==================================================================== */
+/** El mismo efecto al pasar el mouse en toda casilla que se toca («En piso / En almacén» de «Esta talla» y de «Todas»; Felipe,
+ *  2026-10-13): un filo fino de tinta, sin cambiar el fondo ni el borde. */
+const HOVER_CASILLA = "hover:outline hover:outline-1 hover:outline-tinta/25";
+
 export function PanelTalla({
   colores,
   claveInicial,
@@ -477,7 +481,7 @@ export function PanelTalla({
     );
     const base = `relative grid gap-1 rounded-[11px] px-2.5 py-2 text-left ${fondo}`;
     return abre ? (
-      <button type="button" onClick={abre} aria-label={`${valor} ${rotulo}: ${queHace}`} title={queHace.charAt(0).toLocaleUpperCase("es") + queHace.slice(1)} className={`${base} transition-[outline] hover:outline hover:outline-1 hover:outline-tinta/25`}>
+      <button type="button" onClick={abre} aria-label={`${valor} ${rotulo}: ${queHace}`} title={queHace.charAt(0).toLocaleUpperCase("es") + queHace.slice(1)} className={`${base} transition-[outline] ${HOVER_CASILLA}`}>
         {cuerpo}
       </button>
     ) : (
@@ -500,8 +504,8 @@ export function PanelTalla({
         aria-pressed={elegida}
         onClick={() => setCapa(elegida ? null : cual)}
         title={elegida ? "Ver piso y almacén" : `Ver solo lo que está ${cual === "piso" ? "en el piso" : "en el almacén"}`}
-        className={`relative grid gap-1 rounded-[11px] border px-2 py-2 text-left transition-[opacity,box-shadow,border-color] ${tono} ${
-          elegida ? "border-tinta shadow-[0_0_0_1px_var(--color-tinta)]" : "border-transparent hover:border-tinta/30"
+        className={`relative grid gap-1 rounded-[11px] border px-2 py-2 text-left transition-[opacity,box-shadow,border-color,outline] ${HOVER_CASILLA} ${tono} ${
+          elegida ? "border-tinta shadow-[0_0_0_1px_var(--color-tinta)]" : "border-transparent"
         } ${apagada ? "opacity-45" : ""}`}
       >
         <span className="flex items-center gap-1.5">

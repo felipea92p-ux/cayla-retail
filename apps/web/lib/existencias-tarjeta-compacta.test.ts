@@ -106,10 +106,10 @@ describe("colorDeEntrada", () => {
 });
 
 describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su palabra)", () => {
-  it("con 3 tallas o menos dice la palabra: «+2 guardadas», «+1 guardada», «0 guardadas» tenue", () => {
-    expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 3)).toEqual({ texto: "+2 guardadas", cero: false });
-    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 2)).toEqual({ texto: "+1 guardada", cero: false });
-    expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 1)).toEqual({ texto: "0 guardadas", cero: true });
+  it("con 3 tallas o menos dice las palabras del modal: «+2 en almacén», «+1 en almacén», «0 en almacén» tenue", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 3)).toEqual({ texto: "+2 en almacén", cero: false });
+    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 2)).toEqual({ texto: "+1 en almacén", cero: false });
+    expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 1)).toEqual({ texto: "0 en almacén", cero: true });
   });
   it("con 4 tallas o más no cabe la palabra: solo el número (la leyenda del pie la pone)", () => {
     expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 4)).toEqual({ texto: "+3", cero: false });
