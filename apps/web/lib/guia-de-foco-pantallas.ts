@@ -175,6 +175,11 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
   // (`RecepcionEnvio`) sigue declarada como modal pendiente más abajo.
   "/recibir": { estado: "aplicada", evidencia: ["components/LlegoMercaderia.tsx"] },
+  // ADR-0362 (fase 4): recibir un envío de orden de compra. Falta lo que `abrir_despacho` y `recibir_despacho` rechazarían: quién recibe, y
+  // por línea qué prenda es (o que no llegó), el costo bien escrito, las cantidades, las dañadas con su arreglo y la causa de lo que faltó o
+  // vino de más; en lo que no estaba en la guía, además categoría, marca, costo y (con dos proveedores) de cuál. Contar es lo que SIGUE, pero
+  // no bloquea: la base acepta una línea con todo faltante si dice por qué.
+  "/recibir/envio/[id]": { estado: "aplicada", evidencia: ["components/recepcion-envio/FormularioRecepcion.tsx", "components/recepcion-envio/EmpezarARecibir.tsx"] },
   // ---- rendimiento ----
   "/rendimiento": { estado: "no-aplica", motivo: "La pantalla solo lee: cifras, tabla, gráfico y rankings, sin campos ni pasos. El único formulario es el modal «Meta de…», que sí trae su guía." },
   // ---- sin-acceso ----
@@ -353,4 +358,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ordenes-compra/ComprobantesDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/ComprobantesDeOrden.tsx"] },
   // ADR-0362 (fase 3): «Anular envío». Falta lo que `anular_envio` rechazaría: el motivo y, desde una terminal, quién lo anula.
   "components/ordenes-compra/EnviosDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/EnviosDeOrden.tsx"] },
+  // ADR-0362 (fase 4): la hoja de la prenda al recibir («Es nueva» y «+ talla o color»). Falta lo que `crear_producto_con_variantes` rechazaría
+  // (nombre con una letra o un número, precio mayor que 0, tejido y patrón si la familia los pide) más lo que Nuevo producto exige (al menos
+  // una talla si la categoría las tiene); al sumar, que haya algo nuevo que crear. Los colores son opcionales.
+  "components/recepcion-envio/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/recepcion-envio/HojaPrenda.tsx"] },
+  // ADR-0362 (fase 4, decisión 48): «Recibir sin guía». Lo único que falta es quién recibe (lo mismo que apaga el botón).
+  "components/recepcion-envio/RecibirSinGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-envio/RecibirSinGuia.tsx"] },
 };

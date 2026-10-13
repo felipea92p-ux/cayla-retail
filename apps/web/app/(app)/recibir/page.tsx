@@ -32,6 +32,8 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
+import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -56,6 +58,9 @@ import { BotonEnlace } from "@/components/ui/campos";
 // Los cuatro indicadores (ADR-0111) ya no van arriba: se dibujan DEBAJO de «¿Qué llegó?» —lo que se mira
 // mientras no hay nada marcado— y desaparecen apenas se marca un comprobante, para dejarle toda la pantalla
 // a quien cuenta. Se arman acá (servidor) y entran al formulario como un nodo.
+//
+// ADR-0362 (fase 4, 2026-10-12): arriba de «Llegó mercadería», los envíos de órdenes de compra en camino a esta sede (y las órdenes
+// «directo» que llegaron sin guía), cada uno con su «Recibir» → `/recibir/envio/[id]`. Solo sale si hay algo; si la lectura falla, no sale.
 //
 // `?vista=recibidas`: lo que ya se recibió contra comprobante, con su resultado y su demora. Sus filtros
 // (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
@@ -203,7 +208,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos] = await Promise.all([
+    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
@@ -226,6 +231,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         return [];
       }),
       costosDeLotes(verMontos, persona.ubicacionId),
+      // Lo que viene de una orden de compra (ADR-0362, fase 4). Secundario: si falla, la tarjeta no sale y la puerta recibe igual.
+      getPorRecibirEnLaSede(persona.ubicacionId).catch((e: unknown) => {
+        console.error("Envíos de órdenes de compra en Recibir mercadería:", e);
+        return null;
+      }),
     ]);
     return (
       // Lo escaneado es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`, sin
@@ -236,6 +246,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           {encabezado}
           {/* Si lo que llegó es de otra sede de CAYLA, no se recibe aquí: se cuenta en Traslados (ADR-0299). */}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+          {deOrdenes && <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} />}
           <LlegoMercaderia
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}

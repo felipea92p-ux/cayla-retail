@@ -100,6 +100,23 @@ Por defecto *(provisional, revisar con Felipe)*: al enviar se vuelve a la lista 
 con «Ver la orden» (como crear y editar); la píldora «Por enviar» cuenta las órdenes generadas con algo que todavía no salió; la guía
 impresa (guía de remisión) queda para después; sin guía, la sede recibe directo contra la orden (fase 4).
 
+**Fase 4 (2026-10-12, rama `claude/purchase-order-phase4-9b0c82`; la sesión de Recepción no tenía rama y la tomó esta línea).**
+Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-recepcion-de-envio.md` (con «Cambios al construir»). Lo construido:
+- **Recibir un envío en la sede** (`/recibir/envio/[id]`, módulo Recibir): «Empezar a recibir» (`abrir_despacho`: el envío pasa a
+  `abierto` y ya no se anula); por línea, el costo que se ve y se corrige (18), la prenda —nueva, creada ahí con las tallas y colores que
+  llegaron y el precio sugerido (21, 49), o una que ya existe, con la talla o el color que faltaba— y la matriz talla × color; lo dañado
+  va a la cuarentena con su fila en `prendas_danadas` (23); lo que faltó lleva su causa y lo que vino de más su motivo (14, 15); lo que
+  no estaba en la guía se agrega (13). Al cerrar (`recibir_despacho`), un lote por proveedor, el costo promediado, lo recibido cargado
+  al papel hasta su cupo y la recepción a la vista («cómo se cerró»).
+- **Una orden «directo» sin guía** se recibe igual (48): `recibir_orden_sin_envio` crea su envío y lo deja abierto.
+- **Quien hizo la orden no la recibe, sin excepción (17):** la base lo frena (`recibir_quien_compro`) y la pantalla lo dice antes.
+- **El alta al recibir (49):** `crear_producto_con_variantes` deja crear la prenda a quien tiene Recibir, solo dentro de
+  `preparar_prenda_al_recibir`; si no edita el catálogo, la prenda nace «pendiente» y un líder la revisa.
+
+Por defecto *(provisional, revisar con Felipe)*: las causas del faltante son «No vino» (deuda del proveedor, fase 5), «Se perdió en el
+camino» y «Llegó a otra sede»; todo lo contado entra al costo de la línea, también un regalo; la pareja marca–proveedor se registra
+sola al crear la prenda; un costo de 0 pide confirmar; sin cola sin conexión en esta pantalla.
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe
