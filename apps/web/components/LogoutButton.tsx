@@ -9,7 +9,8 @@ import { leerPendientesSinSubir } from "@/lib/usePendientesSinSubir";
 import { marcarSalidaPropia } from "@/lib/sesion-salida-propia";
 import { entradaActiva, iniciarSalida } from "@/lib/entrada-estado";
 
-export function LogoutButton() {
+/** `nombre` y `terminal`: a quién despide el colibrí («Hasta luego, Camila»; una terminal, por el nombre del aparato). */
+export function LogoutButton({ nombre, terminal }: { nombre: string; terminal: boolean }) {
   const router = useRouter();
   const [preguntando, setPreguntando] = useState<{ pendientes: number; rechazadas: number } | null>(null);
 
@@ -33,7 +34,7 @@ export function LogoutButton() {
     setPreguntando(null);
     // «El colibrí se abre» al revés (Felipe 2026-10-13): la pantalla se encoge en la silueta del colibrí y él vuela de vuelta al login; la capa cierra la
     // sesión cuando la ventana ya se cerró. Con «reducir movimiento» no hay vuelo: se cierra la sesión como siempre.
-    if (!iniciarSalida(cerrarSesion)) await cerrarSesion();
+    if (!iniciarSalida(cerrarSesion, { nombre, terminal })) await cerrarSesion();
   }
 
   return (

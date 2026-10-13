@@ -392,3 +392,18 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   coreografía; con su prueba), `iniciarSalida` y `medirAveDelLogin` en `lib/entrada-estado.ts`, la misma capa `components/login/EntradaColibri.tsx` y el botón en
   `components/LogoutButton.tsx`. Maqueta: `docs/maquetas/login-entrada-2026-10/` (`?modo=salir&s=B`). No se generaliza.
 - **Lo que no hace:** igual que la entrada, la pantalla que se deja no se encoge de verdad: la silueta la va recortando.
+
+## Actualización 2026-10-13 (d) — el saludo de la entrada y la salida, pedido por Felipe
+
+- **Qué es:** mientras el colibrí flota en el centro, un saludo bajo él: **«Bienvenido(a)» y el nombre** al entrar, **«Hasta luego» y el nombre** al salir. Una persona se saluda por su
+  nombre de pila; una terminal (ADR-0162), por el nombre completo del aparato («Terminal Ventas TRU»). Es el diseño B de la maqueta: la frase pequeña en versalitas y el nombre grande en
+  serif cursiva y rojo, sobre el velo oscuro (crema fija en los dos temas).
+- **Por qué se admite:** Felipe lo pidió como un «plus», eligió el texto corto y el diseño B mirando la maqueta (`docs/maquetas/login-entrada-2026-10/`). Es texto que se lee en una pausa, no
+  movimiento continuo: asoma, se queda y se va una sola vez (misma curva `ritmoDelVuelo`, sin rebote). No es un aviso (no pide nada ni se cierra).
+- **La pausa:** para que alcance a leerse, el colibrí flota en el centro **al menos 450 ms** (`PAUSA_MINIMA_EN_EL_CENTRO`) aunque la pantalla de destino cargue al instante: la entrada y la salida
+  duran ese tiempo más. Es un mínimo: si la pantalla tarda, flota lo que haga falta. El aleteo NO se detiene en la pausa (corre con el tiempo real).
+- **De dónde sale el nombre:** al salir, de `persona.nombre` que el menú ya tiene (`AppShell` → `LogoutButton`); al entrar, de `fn_persona_actual_resumen()` y `fn_mi_terminal()` pedidas apenas se abre la
+  sesión, con un tope de 4 s (si falla o tarda, el saludo va sin nombre y la entrada no se retrasa). El nombre se escribe con `textContent`, nunca como HTML.
+- **El texto:** «Bienvenido(a)» lo pidió Felipe literal; no se adivina el género a partir del nombre (regla del vocabulario del ERP).
+- **Dónde vive:** el texto y las curvas en `lib/login-saludo.ts` y `lib/login-entrada.ts` (`instanteParaSeguir`, `opacidadDelSaludo`; con su prueba), el nombre en `lib/entrada-estado.ts`
+  (`ponerNombreDelSaludo`), el dibujo en `components/login/EntradaColibri.tsx` y los estilos `.entrada-saludo*` en `app/estilos/login.css`.
