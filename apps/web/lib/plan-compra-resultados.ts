@@ -186,7 +186,7 @@ export type Senal = "pedir" | "impulsar" | "bien";
  * vean sus prendas y no toda la tienda (Felipe 2026-10-12). Análisis mira la sede elegida arriba, no toda CAYLA.
  */
 export function enlaceAnalisis(senal: Exclude<Senal, "bien">, categoria: string): string {
-  return `/inventario/resumen?vista=${senal === "pedir" ? "acaba" : "nose"}&q=${encodeURIComponent(categoria)}`;
+  return `/gestion/analisis?vista=${senal === "pedir" ? "acaba" : "nose"}&q=${encodeURIComponent(categoria)}`;
 }
 export type SenalCategoria = { id: string; nombre: string; vendidas: number; diferencia: number | null; alcanzaDias: number | null; senal: Senal };
 
