@@ -54,7 +54,11 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const DOS_SESIONES = Boolean(process.env.CI) || CONTENEDOR !== COMPARTIDO || process.argv.includes("--dos-sesiones");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : ["20261013015000_nos_debe.sql"]
+  : [
+      "20261013015000_nos_debe.sql",
+      // ADR-0393: recibir_despacho reescrita con la reposición adentro; re-pegar la 5a encima no hace nada.
+      "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+    ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/m, "")

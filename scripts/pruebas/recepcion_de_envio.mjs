@@ -55,7 +55,13 @@ const BASE = arg("--base", "postgres");
 const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : ["20261013001000_recepcion_de_envio_esquema.sql", "20261013002000_recepcion_de_envio.sql"]
+  : [
+      "20261013001000_recepcion_de_envio_esquema.sql",
+      "20261013002000_recepcion_de_envio.sql",
+      // ADR-0393: el refactor que deja una sola puerta al stock (fn_recepcion_entrar). Va después: así cada caso prueba el
+      // recibir_despacho de hoy, no el de la fase 4.
+      "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+    ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/m, "")
