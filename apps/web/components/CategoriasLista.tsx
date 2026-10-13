@@ -922,7 +922,7 @@ function VistaRapidaCategoria({
             <span className="text-sm text-tinta">
               {productos === 0 ? "Sin productos todavía" : `${productos} ${productos === 1 ? "producto activo" : "productos activos"}`}
             </span>
-            <span className="label-cayla text-[10px] text-tinta/55 group-hover:text-rojo">Ver en Productos →</span>
+            <span className="label-cayla text-[10px] text-tinta/55 group-hover:text-rojo">{/* unificar-fijo: el rótulo de una tarjeta que ya es enlace (no se anida un <EnlaceVer> en un <Link>) */}Ver en Productos →</span>
           </Link>
 
           {padre && (

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -10,6 +9,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { CampoTexto, Boton } from "@/components/ui/campos";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
 // `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
@@ -166,9 +166,9 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
           pantalla también depende del catálogo V1. La tarjeta ya responde la
           pregunta que motiva la búsqueda (cuánto hay y dónde) sin necesitar
           ese detalle. */}
-      <Link href="/productos" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo" data-guia="buscar.catalogo">
-        Ver catálogo completo →
-      </Link>
+      <EnlaceVer href="/productos" guia="buscar.catalogo">
+        Ver catálogo completo
+      </EnlaceVer>
     </div>
   );
 }

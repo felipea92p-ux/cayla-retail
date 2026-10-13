@@ -600,7 +600,9 @@ export const DECISIONES = {
       "\\bunderline\\b[^\"'`]*\\bdecoration-tinta\\/\\d+",
       "\\bhover:text-rojo(?:-profundo)?\\b[^\"'`]*\\bhover:underline\\b|\\bhover:underline\\b[^\"'`]*\\bhover:text-rojo",
       // La flecha escrita a mano al final de un `btn-enlace` («Ver traslados →»): un enlace que lleva a ver más es <EnlaceVer>.
-      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)"
+      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)",
+      // Lo mismo en versalitas a mano («Ver los 11 →», «Ver todas las sedes →»): encontradas por el censo de después (2026-10-13).
+      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)"
     ],
     "ventana": 4,
     "deuda": [],
