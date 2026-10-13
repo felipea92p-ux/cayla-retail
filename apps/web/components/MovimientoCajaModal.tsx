@@ -134,8 +134,8 @@ export function MovimientoCajaModal({
           <label className={campoEtiqueta} htmlFor="mov-monto">
             Monto
           </label>
-          <div className="relative">
-            <span aria-hidden className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-sm text-tinta/55">
+          <div className="caja-cayla caja-campo caja-campo-alta">
+            <span aria-hidden className="font-display text-base leading-none text-tinta/55">
               S/
             </span>
             <input
@@ -149,7 +149,7 @@ export function MovimientoCajaModal({
               placeholder="0.00"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              className={`${campoTexto} pl-7 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+              className="font-display self-stretch py-0 text-2xl tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>

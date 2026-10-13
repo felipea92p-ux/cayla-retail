@@ -13,6 +13,7 @@ import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes 
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -78,12 +79,15 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
         <div data-guia="prod-por-pagar.lista" className="space-y-5">
           {tramos.map((t) => (
             <section key={t.clave} className="space-y-2" aria-label={t.etiqueta}>
-              <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-lg text-tinta">
+              <TituloSeccion
+                dato={
+                  <>
+                    <b>{soles(t.monto)}</b> · {plural(t.comprobantes.length, "comprobante", "comprobantes")}
+                  </>
+                }
+              >
                 {t.etiqueta}
-                <small className="font-sans text-xs tabular-nums text-tinta/65">
-                  {soles(t.monto)} · {plural(t.comprobantes.length, "comprobante", "comprobantes")}
-                </small>
-              </h2>
+              </TituloSeccion>
               <ul className="card-cayla overflow-hidden">
                 {t.comprobantes.map((c) => {
                   const d = c.fechaVencimiento ? diasHasta(c.fechaVencimiento, hoy) : null;
@@ -118,7 +122,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
       <section data-guia="prod-por-pagar.deuda-total" aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
         <div>
-          <h2 className="font-display text-xl text-tinta">Deuda total de CAYLA</h2>
+          <TituloSeccion>Deuda total de CAYLA</TituloSeccion>
           <p className="text-xs text-tinta/65">Compras y Producción juntos, en un solo lugar. Solo se lee: cada deuda se paga en su propio módulo.</p>
         </div>
 
@@ -179,7 +183,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
         {igv && (
           <div data-guia="prod-por-pagar.igv" className="border-t border-tinta/10 pt-4">
-            <h3 className="label-cayla text-[11px] text-tinta/65">IGV crédito fiscal · {nombreDeMes(igv.mes)}</h3>
+            <TituloGrupo>IGV crédito fiscal · {nombreDeMes(igv.mes)}</TituloGrupo>
             <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
               <div className="flex justify-between gap-3 px-3 py-2">
                 <dt>Comprobantes de Compras</dt>

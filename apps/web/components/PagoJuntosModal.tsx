@@ -278,16 +278,19 @@ export function PagoJuntosModal({
                       <span className="text-xs text-tinta/55 sm:hidden">Saldo </span>
                       {c.saldo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <input
-                      inputMode="decimal"
-                      value={montos[c.id] ?? ""}
-                      onChange={(e) => alCambiarMonto(c.id, e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                      autoFocus={c.id === ordenados[0].id}
-                      aria-label={`Monto a pagar de ${c.documento}`}
-                      aria-invalid={pasa || invalido || undefined}
-                      className={`w-full rounded-lg border bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-rojo ${pasa || invalido ? "border-rojo text-rojo" : "border-tinta/25"}`}
-                    />
+                    {/* La caja que se enciende (ADR-0358, ronda 6): con el monto mal, su borde rojo (`data-tono`) y la cifra en rojo. */}
+                    <div className="caja-cayla caja-campo" data-tono={pasa || invalido ? "error" : undefined}>
+                      <input
+                        inputMode="decimal"
+                        value={montos[c.id] ?? ""}
+                        onChange={(e) => alCambiarMonto(c.id, e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        autoFocus={c.id === ordenados[0].id}
+                        aria-label={`Monto a pagar de ${c.documento}`}
+                        aria-invalid={pasa || invalido || undefined}
+                        className={`self-stretch py-0 text-right tabular-nums ${pasa || invalido ? "text-rojo" : ""}`}
+                      />
+                    </div>
                     {/* La cascada: cuánto del pago recibe este comprobante. Verde = queda en cero; rojo = se pasa del saldo. */}
                     <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
                       <div
@@ -316,15 +319,16 @@ export function PagoJuntosModal({
               <div className="grid items-center gap-x-4 bg-tinta/[0.04] px-5 py-3 sm:grid-cols-[1fr_auto]">
                 <span className="label-cayla text-[11px] text-tinta">Total del pago</span>
                 {modo === "vencida" ? (
-                  <label className="flex items-baseline justify-end gap-1">
-                    <span className="font-display text-[22px] text-tinta">S/</span>
+                  // El monto en la caja que se enciende, de 48 px (como `CampoMonto`; aquí sin su etiqueta: la fila ya dice «Total del pago»).
+                  <label className="caja-cayla caja-campo caja-campo-alta justify-self-end">
+                    <span className="font-display select-none text-base leading-none text-tinta/55">S/</span>
                     <input
                       inputMode="decimal"
                       value={totalTxt}
                       onChange={(e) => alCambiarTotal(e.target.value)}
                       onFocus={(e) => e.target.select()}
                       aria-label="Total del pago"
-                      className="font-display w-36 border-b border-tinta/25 bg-transparent text-right text-[22px] tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                      className="font-display w-36 self-stretch py-0 text-right text-[22px] tabular-nums"
                     />
                   </label>
                 ) : (
@@ -368,13 +372,13 @@ export function PagoJuntosModal({
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  role="switch"
+                  role="switch" /* unificar-fijo: la cara de la pieza (interruptor) sin su etiqueta al lado; el texto va en su bloque */
                   aria-checked={usarFavor}
                   aria-label={`Descontar mi saldo a favor con ${proveedorNombre}`}
                   onClick={() => setUsarFavor((v) => !v)}
-                  className={`relative h-[23px] w-10 shrink-0 rounded-full transition-colors duration-[260ms] ease-cayla ${usarFavor ? "bg-tinta" : "bg-tinta/25"}`}
+                  className="interruptor shrink-0"
                 >
-                  <span aria-hidden className={`absolute left-[3px] top-[3px] h-[17px] w-[17px] rounded-full bg-crema transition-transform duration-300 ease-cayla ${usarFavor ? "translate-x-[17px]" : ""}`} />
+                  <span aria-hidden className="interruptor-perilla" />
                 </button>
                 <div>
                   <p className="text-sm font-semibold text-tinta">Tienes {soles(saldoFavor)} a favor con {proveedorNombre}</p>

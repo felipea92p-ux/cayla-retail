@@ -21,6 +21,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { CaraPersona, EstadoPersona, PildoraRol } from "@/components/colaboradores/EquipoLista";
 import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 import { Aviso } from "@/components/ui/Aviso";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // La ficha de una persona del equipo (propuesta del 2026-10-05): lo que hoy estaba en un menú «⋯» pasa a botones a la
 // vista, y cada uno abre su panel aquí mismo, sin otra ventana encima. Abajo, su menú tal como lo ve. Lo reversible
@@ -286,16 +287,16 @@ export function FichaColaborador({
                         if (listo) void acciones.suspender(motivo);
                       }}
                     >
-                      <label className="block space-y-1 text-[13px] text-tinta/70" htmlFor={`motivo-${persona.id}`}>
-                        <span>Motivo (opcional)</span>
-                        <span className="caja-cayla block px-3">
+                      <label className="campo block space-y-1" htmlFor={`motivo-${persona.id}`}>
+                        <span className="campo-etiqueta">Motivo (opcional)</span>
+                        <span className="caja-cayla caja-campo">
                           <input
                             id={`motivo-${persona.id}`}
                             value={motivo}
                             onChange={(e) => setMotivo(e.target.value)}
                             maxLength={200}
                             autoComplete="off"
-                            className="w-full bg-transparent py-2 text-sm text-tinta outline-none"
+                            className="self-stretch py-0 text-sm"
                           />
                         </span>
                       </label>
@@ -315,9 +316,9 @@ export function FichaColaborador({
                   </h3>
                   <MenuQueVe filas={menu} />
                   {onVerRol && !destino && (
-                    <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={onVerRol} data-guia="colaboradores.ficha-ver-rol">
-                      Ver el rol {persona.rolNombre} en Roles y accesos →
-                    </button>
+                    <EnlaceVer onClick={onVerRol} guia="colaboradores.ficha-ver-rol">
+                      Ver el rol {persona.rolNombre} en Roles y accesos
+                    </EnlaceVer>
                   )}
                 </section>
               )}

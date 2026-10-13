@@ -572,12 +572,12 @@ export function CategoriasLista({
 
             <Campo etiqueta="Notas internas (opcional)">
               <textarea
+                className="caja-campo-input resize-none"
                 value={borrador.notas}
                 onChange={(e) => setBorrador({ ...borrador, notas: e.target.value })}
                 rows={2}
                 maxLength={2000}
                 placeholder="Solo la ve el equipo — nunca el cliente."
-                className="w-full resize-none rounded-md border border-tinta/15 bg-papel px-2.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-rojo/50"
               />
             </Campo>
 
@@ -585,7 +585,7 @@ export function CategoriasLista({
               <p className="text-xs text-tinta/65">
                 Temporada por defecto: <span className="font-medium text-tinta">{temporadaPorCategoria[borrador.id] ?? "sin temporada"}</span>.{" "}
                 Se elige en{" "}
-                <Link href={HREF_TEMPORADAS} className="underline underline-offset-2 hover:text-rojo">
+                <Link href={HREF_TEMPORADAS} className="btn-enlace">
                   Atributos ▸ Temporadas
                 </Link>
                 .
@@ -751,18 +751,19 @@ export function CategoriasLista({
           <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
           <div data-guia="categorias.form-pie" className="mt-5 flex items-center justify-between gap-2">
             {editando ? (
-              <button
+              // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
+              <Boton
                 type="button"
+                peso="peligro"
                 onClick={() => {
                   const c = categorias.find((x) => x.id === borrador.id);
                   if (c) cambiarEstado(c);
                 }}
                 disabled={cambiandoId === borrador.id || !responsable.listo}
                 title={responsable.motivo ?? undefined}
-                className="text-xs text-rojo hover:underline disabled:opacity-50 disabled:no-underline"
               >
                 {cambiandoId === borrador.id ? "Desactivando…" : "Desactivar categoría"}
-              </button>
+              </Boton>
             ) : (
               <span />
             )}
@@ -964,7 +965,7 @@ function VistaRapidaCategoria({
                 {puedeEditar && (
                   <>
                     {" "}
-                    <Link href={HREF_TEMPORADAS} className="underline underline-offset-2 hover:text-rojo">
+                    <Link href={HREF_TEMPORADAS} className="btn-enlace">
                       {temporada.nombre ? "Cambiarla" : "Elegirla"} en Atributos ▸ Temporadas
                     </Link>
                   </>

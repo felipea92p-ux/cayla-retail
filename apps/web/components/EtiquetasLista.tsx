@@ -719,7 +719,7 @@ function CampanaModal({
                 {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
               </p>
               {elegidas.size > 0 && (
-                <button type="button" onClick={() => setElegidas(new Set())} className="text-xs text-rojo hover:underline">
+                <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
                   Quitar todas
                 </button>
               )}

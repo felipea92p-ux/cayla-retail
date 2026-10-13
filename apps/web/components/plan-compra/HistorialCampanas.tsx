@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, History, SearchX } from "lucide-react";
+import { ArrowUpDown, ChevronRight, History, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
@@ -12,7 +12,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BarraCifras } from "@/components/plan-compra/BarraCifras";
-import { Tabla, celda } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { fechaCortaES, laDeLaCabeceraPrimero, tiendaDeLaCabecera, type CampanaPlan } from "@/lib/plan-compra-reglas";
@@ -36,10 +36,15 @@ import {
   type EtiquetaHistorial,
   type LecturaHistorial,
 } from "@/lib/plan-compra-historial";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 // Plan de campaña ▸ Historial (ADR-0372, C3): un año a la vez (píldoras de año), una fila por campaña, una columna por tienda. Cada celda
 // dice cuánto se vendió, cuántas veces lo de un día normal y cuánto creció contra el año anterior. Solo lee: no hay nada que guardar.
 // Las cifras de antes del ERP salen de Sinatra (C2) y son solo soles: la nota del pie lo dice.
+
+// La plantilla de la tabla (<Tabla>, ADR-0358): la campaña y una columna por tienda. Cuántas tiendas hay se sabe al dibujar, así que
+// las columnas viajan en una variable que pone la <Tabla> (`--columnas-historial`); en celular también (cada celda dice su tienda).
+const PLANTILLA_HISTORIAL = "grid-cols-[var(--columnas-historial)]";
 
 const solesSinCentimos = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
 
@@ -246,22 +251,17 @@ export function HistorialCampanas({
         ]}
       />
 
-      <Tabla guia="plan-historial.tabla">
+      {/* Las columnas dependen de cuántas tiendas hay: la plantilla de <Tabla> (ADR-0358) las lee de esta variable, la misma para el
+          encabezado y cada fila. */}
+      <Tabla guia="plan-historial.tabla" style={{ ["--columnas-historial" as string]: columnas }}>
         {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}
         <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
-          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+          <div className="ml-auto">
+            <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} valorPorDefecto="ahora" />
+          </div>
         </div>
-        <div className="encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid" role="row" style={{ gridTemplateColumns: columnas }}>
-          <span className="text-xs font-normal text-taupe" role="columnheader">
-            Campaña · {anio}
-          </span>
-          {tiendas.map((t) => (
-            <span key={t.id} className="text-xs font-normal text-taupe" role="columnheader">
-              {t.nombre}
-            </span>
-          ))}
-        </div>
+        <Encabezado plantilla={PLANTILLA_HISTORIAL} columnas={[{ titulo: `Campaña · ${anio}` }, ...tiendas.map((t) => ({ titulo: t.nombre }))]} />
         {visibles.length === 0 && (
           <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna campaña de ${anio} se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
             Prueba con otra palabra o borra la búsqueda.
@@ -274,9 +274,9 @@ export function HistorialCampanas({
             type="button"
             onClick={() => setAbierta(campana)}
             data-guia="plan-historial.fila"
-            className="fila-cayla grid w-full cursor-pointer gap-x-4 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline"
-            style={{ gridTemplateColumns: columnas }}
+            className={fila(PLANTILLA_HISTORIAL, "w-full cursor-pointer text-left transition-colors hover:bg-hueso")}
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}
+            aria-current={abierta?.clave === campana.clave ? "true" : undefined}
           >
             <span className={celda("izq", "col-span-full sm:col-span-1")}>
               <span className="flex items-center gap-1.5 font-semibold text-tinta">

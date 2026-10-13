@@ -16,6 +16,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Reembolso de un proveedor (ADR-0111, corrección 2026-09-18): en vez de dejar el saldo a favor para descontarlo
 // de un próximo pago, el proveedor devuelve el dinero. Baja el saldo a favor y, desde ADR-0195 F3b, dice a qué cuenta
@@ -26,9 +27,7 @@ export function BotonReembolso({ proveedorId, proveedorNombre, saldoFavor }: { p
   if (saldoFavor <= 0) return null;
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className="label-cayla text-[11px] text-rojo hover:underline">
-        Registrar reembolso →
-      </button>
+      <EnlaceVer onClick={() => setAbierto(true)}>Registrar reembolso</EnlaceVer>
       {abierto && <ReembolsoModal proveedorId={proveedorId} proveedorNombre={proveedorNombre} saldoFavor={saldoFavor} onClose={() => setAbierto(false)} />}
     </>
   );
