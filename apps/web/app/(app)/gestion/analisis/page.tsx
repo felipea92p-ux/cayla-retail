@@ -9,7 +9,7 @@ import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
 
 // Análisis v4 (ADR-0357, Felipe 2026-10-06; reemplaza Desempeño y Comparar de ADR-0138/ADR-0277): cuatro preguntas de la
 // tienda —¿qué hago hoy?, ¿qué se acaba?, ¿qué no se vende?, ¿qué pido?— respondidas con gráficos, cada prenda con su acción.
-// La ruta sigue siendo `/inventario/resumen` (renombrarla rompería enlaces y marcadores por nada).
+// La ruta fue `/inventario/resumen` hasta el 2026-10-13; desde ADR-0392 es `/gestion/analisis` (la vieja redirige en `next.config`).
 //
 // La tienda es SIEMPRE la del selector de sede del ERP (`persona.ubicacionId`). La encargada y el líder ven lo mismo (decisión
 // 8): las tres tiendas, el dinero y el costo por prenda. Cuando la tienda no cumple las tres condiciones del motor de demanda

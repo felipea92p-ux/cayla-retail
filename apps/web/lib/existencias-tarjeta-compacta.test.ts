@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaPrenda } from "./existencias-prendas";
-import { celdaTarjeta, colorDeEntrada, destinoDeTalla, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
+import { celdaTarjeta, colorDeEntrada, destinoDeTalla, lineaGuardadas, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
 import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
@@ -102,5 +102,32 @@ describe("colorDeEntrada", () => {
   });
   it("uno con foto pero agotado no le gana a uno con algo libre", () => {
     expect(colorDeEntrada([{ ...celeste, fotoUrl: "celeste.jpg" }, rosado])?.color).toBe("Rosado");
+  });
+});
+
+describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su palabra)", () => {
+  it("con 3 tallas o menos dice las palabras del modal: «+2 en almacén», «+1 en almacén», «0 en almacén» tenue", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 3)).toEqual({ texto: "+2 en almacén", cero: false });
+    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 2)).toEqual({ texto: "+1 en almacén", cero: false });
+    expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 1)).toEqual({ texto: "0 en almacén", cero: true });
+  });
+  it("con 4 tallas o más no cabe la palabra: solo el número (la leyenda del pie la pone)", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 4)).toEqual({ texto: "+3", cero: false });
+    expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 6)).toEqual({ texto: "0", cero: true });
+  });
+  it("agotada: «se acabó», apretado «acabó»; nunca tenue (es un aviso, no un cero)", () => {
+    expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 3)).toEqual({ texto: "se acabó", cero: false });
+    expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 5)).toEqual({ texto: "acabó", cero: false });
+  });
+});
+
+describe("tallasSinColgar no cuenta lo que el motor manda «mantener» (afinado 2026-10-12 tras /formidable)", () => {
+  it("una talla a 0 con stock atrás cuenta, salvo que el motor diga mantener", () => {
+    const colores = [{ tallas: [
+      { pisoDisponible: 0, almacenDisponible: 3, planPiso: null },
+      { pisoDisponible: 0, almacenDisponible: 2, planPiso: { accion: "mantener" } as never },
+      { pisoDisponible: 1, almacenDisponible: 2, planPiso: null },
+    ] }];
+    expect(tallasSinColgar(colores)).toBe(1);
   });
 });

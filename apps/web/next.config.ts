@@ -76,6 +76,12 @@ const nextConfig: NextConfig = {
       { source: "/inventario/recibir", destination: "/recibir", permanent: false },
       // ADR-0113: Recibir mercadería salió de Compras (solo líder) para que cuente cualquier colaborador de la sede.
       { source: "/compras/recibir", destination: "/recibir", permanent: false },
+      // ADR-0392 (2026-10-13): Análisis, Frescura del piso y Plan del piso salieron de Inventario al grupo «Gestión»; los marcadores
+      // y enlaces viejos siguen llegando, con su query (`?vista=`, `?cat=`) intacta. `permanent: false` por la misma razón que arriba.
+      { source: "/inventario/resumen", destination: "/gestion/analisis", permanent: false },
+      { source: "/inventario/frescura", destination: "/gestion/frescura", permanent: false },
+      { source: "/inventario/frescura/tienda", destination: "/gestion/frescura/tienda", permanent: false },
+      { source: "/inventario/plan-del-piso", destination: "/gestion/plan-del-piso", permanent: false },
       // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/
       // Tallas/Tejidos/Patrones/Etiquetas eran 5 pantallas y 5 filas de menú
       // separadas para lo que en el fondo es un solo tipo de pantalla

@@ -11,7 +11,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function GET(request: NextRequest) {
   const tienda = request.nextUrl.searchParams.get("tienda") ?? "";
   const cat = request.nextUrl.searchParams.get("cat");
-  const destino = new URL("/inventario/frescura", request.url);
+  const destino = new URL("/gestion/frescura", request.url);
   const entro = UUID.test(tienda) && (await cambiarUbicacionActiva(tienda));
   // La categoría solo si se entró a la tienda: en CAYLA Global, `cat` no filtra nada.
   if (entro && cat && UUID.test(cat)) destino.searchParams.set("cat", cat);
