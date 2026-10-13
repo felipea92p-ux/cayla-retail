@@ -73,6 +73,25 @@ describe("trazoDelVuelo", () => {
   it("no da números con decimales infinitos", () => {
     expect(trazoDelVuelo({ ...medidas, ancho: 733.3333, alto: 811.7777 })).not.toMatch(/\.\d{2,}/);
   });
+
+  // «¿Por qué se ve doblada la línea?» (Felipe 2026-10-13): la dirección tiene que ser la misma a un lado y al otro de cada empalme.
+  it("no se dobla: la dirección es la misma a los dos lados de cada empalme", () => {
+    for (const [ancho, alto] of [[756, 900], [640, 720], [900, 600], [1100, 1000]]) {
+      const d = trazoDelVuelo({ ...medidas, ancho, alto, destino: { x: ancho * 0.6, y: alto * 0.32 } });
+      const [, vuelta, diagonal, arco] = d.split(/ (?=[CL])/).slice(1).map((t) => numeros(t)) as number[][];
+      // La vuelta (C: c1, c2, fin) acaba donde empieza la diagonal (L), y el arco (C) sale de donde ella termina.
+      const salida = { x: vuelta[4], y: vuelta[5] };
+      const giro = { x: diagonal[0], y: diagonal[1] };
+      const aLaSalida = { x: salida.x - vuelta[2], y: salida.y - vuelta[3] }; // cómo llega la vuelta
+      const diag = { x: giro.x - salida.x, y: giro.y - salida.y };
+      const alArco = { x: arco[0] - giro.x, y: arco[1] - giro.y }; // cómo sale el arco
+      const angulo = (v: { x: number; y: number }) => Math.atan2(v.y, v.x);
+      expect(Math.abs(angulo(aLaSalida) - angulo(diag))).toBeLessThan(0.02); // < 1,2°
+      expect(Math.abs(angulo(diag) - angulo(alArco))).toBeLessThan(0.02);
+      expect(diag.x).toBeLessThan(0); // la diagonal va hacia la izquierda y sube
+      expect(diag.y).toBeLessThan(0);
+    }
+  });
 });
 
 describe("los ritmos no rebotan", () => {
