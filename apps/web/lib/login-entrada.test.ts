@@ -6,12 +6,16 @@ import {
   ESPERA_EN,
   ESTABLE_DURANTE,
   FIN_DE_LA_ENTRADA,
+  MS_DE_LA_SALIDA_EN_EL_CENTRO,
   PECHO_DEL_AVE,
   TIEMPOS,
   TOPE_DE_ESPERA,
+  VELOCIDAD_DE_LA_SALIDA,
   debeCancelarse,
   estadoDeLaEntrada,
+  estadoDeLaSalida,
   geometriaDeLaEntrada,
+  msCorridosDeLaSalida,
   msDelVuelo,
   revisarLaPantalla,
   type MedidasDeLaEntrada,
@@ -203,5 +207,96 @@ describe("¿ya se puede abrir la ventana?", () => {
     expect(debeCancelarse({ ruta: "/", busqueda: "" }, 1000, false)).toBe(false);
     expect(debeCancelarse({ ruta: "/login", busqueda: "" }, TOPE_DE_ESPERA + 1, false)).toBe(true);
     expect(debeCancelarse({ ruta: "/", busqueda: "" }, TOPE_DE_ESPERA + 1, true)).toBe(false);
+  });
+});
+
+describe("la salida: el mismo vuelo al revés y más rápido", () => {
+  const medidas: MedidasDeLaEntrada = { origen: { x: 360, y: 70, ancho: 330, alto: 222 }, ancho: 1440, alto: 900 };
+  const g = geometriaDeLaEntrada(medidas);
+
+  it("empieza donde terminó la entrada: la ventana cubre toda la pantalla (se ve la pantalla que se deja) y el ave está afuera", () => {
+    const e = estadoDeLaSalida(0, null, medidas);
+    const radio = BORDE_MINIMO * e.kVentana; // píxeles desde el pecho hasta el borde más cercano de la silueta
+    expect(radio).toBeGreaterThanOrEqual(Math.hypot(1440, 900) / 2);
+    expect(e.k).toBeCloseTo(g.k0 * g.escalaFinal, 9);
+    expect(e.pecho.x).toBeCloseTo(720, 6);
+    expect(e.pecho.y).toBeCloseTo(450, 6);
+    expect(e.terminado).toBe(false);
+    expect(e.angulo).toBeCloseTo(0, 9); // el ave enorme no aletea
+  });
+
+  it("la ventana se encoge sin volver a crecer, hasta cerrarse cuando el ave llega al centro", () => {
+    let anterior = Infinity;
+    for (let ms = 0; ms <= MS_DE_LA_SALIDA_EN_EL_CENTRO; ms += 20) {
+      const k = estadoDeLaSalida(ms, null, medidas).kVentana;
+      expect(k).toBeLessThanOrEqual(anterior + 1e-9);
+      anterior = k;
+    }
+    expect(estadoDeLaSalida(MS_DE_LA_SALIDA_EN_EL_CENTRO, null, medidas).kVentana).toBeCloseTo(0, 9); // justo al llegar al centro, ya cerrada
+  });
+
+  it("al llegar al centro flota con el fondo oscuro y NO sigue hasta que el login esté listo", () => {
+    const flotando = estadoDeLaSalida(MS_DE_LA_SALIDA_EN_EL_CENTRO + 5000, null, medidas);
+    expect(flotando.terminado).toBe(false);
+    expect(flotando.velo).toBe(1);
+    expect(flotando.kVentana).toBe(0);
+    expect(Math.abs(flotando.pecho.x - 720)).toBeLessThan(3);
+    expect(Math.abs(flotando.pecho.y - 450)).toBeLessThan(3);
+    expect(Math.abs(flotando.angulo)).toBeGreaterThanOrEqual(0); // sigue aleteando (no se congela mientras espera)
+  });
+
+  it("flotando, el ave está al tamaño con el que flota la entrada (no salta cuando se mide el lugar real del login)", () => {
+    const flotando = estadoDeLaSalida(MS_DE_LA_SALIDA_EN_EL_CENTRO + 100, null, medidas);
+    expect(flotando.k).toBeCloseTo(g.k0 * g.escalaAlFlotar, 9);
+    // un colibrí de otro tamaño en el login (p. ej. 300 px) flota IGUAL: lo que cambia es de dónde parte y a dónde llega, no cómo flota
+    const otro = { ...medidas, origen: { ...medidas.origen, ancho: 300, alto: 202 } };
+    expect(estadoDeLaSalida(MS_DE_LA_SALIDA_EN_EL_CENTRO + 100, null, otro).k).toBeCloseTo(flotando.k, 9);
+  });
+
+  it("cuando el login está listo, vuela a su lugar y termina exactamente ahí, sin velo ni ventana y en la pose del logo", () => {
+    const listo = MS_DE_LA_SALIDA_EN_EL_CENTRO + 600;
+    const largo = 1000 + (FIN_DE_LA_ENTRADA - 1150) / VELOCIDAD_DE_LA_SALIDA;
+    const casi = estadoDeLaSalida(listo + 2000, listo, medidas);
+    expect(casi.terminado).toBe(true);
+    expect(largo).toBeGreaterThan(0);
+    // el instante justo antes de terminar: el ave está sobre su lugar, a su tamaño, sin aletear
+    const f = estadoDeLaSalida(listo + (1150 / VELOCIDAD_DE_LA_SALIDA) - 1, listo, medidas);
+    expect(f.terminado).toBe(false);
+    expect(f.velo).toBeLessThan(0.01);
+    expect(f.kVentana).toBe(0);
+    expect(Math.abs(f.pecho.x - g.pechoInicial.x)).toBeLessThan(1);
+    expect(Math.abs(f.pecho.y - g.pechoInicial.y)).toBeLessThan(1);
+    expect(f.k).toBeCloseTo(g.k0, 2);
+    expect(Math.abs(f.angulo)).toBeLessThan(1); // aterriza en la pose del logo
+  });
+
+  it("el reloj de la salida corre igual hasta el centro, espera, y sigue desde donde se quedó (nunca retrocede)", () => {
+    expect(msCorridosDeLaSalida(500, null)).toBe(500);
+    expect(msCorridosDeLaSalida(MS_DE_LA_SALIDA_EN_EL_CENTRO + 9000, null)).toBe(MS_DE_LA_SALIDA_EN_EL_CENTRO);
+    const listo = MS_DE_LA_SALIDA_EN_EL_CENTRO + 3000;
+    expect(msCorridosDeLaSalida(listo, listo)).toBe(MS_DE_LA_SALIDA_EN_EL_CENTRO);
+    expect(msCorridosDeLaSalida(listo + 400, listo)).toBe(MS_DE_LA_SALIDA_EN_EL_CENTRO + 400);
+    let previo = -1;
+    for (let ms = 0; ms <= 9000; ms += 50) {
+      const v = msCorridosDeLaSalida(ms, listo);
+      expect(v).toBeGreaterThanOrEqual(previo);
+      previo = v;
+    }
+  });
+
+  it("sin esperar, dura unos 2,2 s", () => {
+    const total = FIN_DE_LA_ENTRADA / VELOCIDAD_DE_LA_SALIDA;
+    expect(total).toBeGreaterThan(2000);
+    expect(total).toBeLessThan(2500);
+  });
+});
+
+describe("¿ya cargó el login? (la salida)", () => {
+  it("solo está lista en la ruta esperada, y no mientras el loader tenga algo en curso", () => {
+    expect(revisarLaPantalla({ ruta: "/vender", ocupada: false }, null, 1000, "/login").lista).toBe(false);
+    expect(revisarLaPantalla({ ruta: "/login", ocupada: true }, null, 1000, "/login").lista).toBe(false);
+    const a = revisarLaPantalla({ ruta: "/login", ocupada: false }, null, 1000, "/login");
+    expect(a).toEqual({ libreDesde: 1000, lista: false });
+    expect(revisarLaPantalla({ ruta: "/login", ocupada: false }, a.libreDesde, 1000 + ESTABLE_DURANTE, "/login").lista).toBe(true);
   });
 });

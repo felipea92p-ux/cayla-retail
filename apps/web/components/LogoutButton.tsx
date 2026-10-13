@@ -7,22 +7,33 @@ import { borrarCopiasSinConexion } from "@/components/SinConexion";
 import { Modal } from "@/components/ui/Modal";
 import { leerPendientesSinSubir } from "@/lib/usePendientesSinSubir";
 import { marcarSalidaPropia } from "@/lib/sesion-salida-propia";
+import { entradaActiva, iniciarSalida } from "@/lib/entrada-estado";
 
 export function LogoutButton() {
   const router = useRouter();
   const [preguntando, setPreguntando] = useState<{ pendientes: number; rechazadas: number } | null>(null);
 
-  async function salir() {
+  // Lo que de verdad cierra la sesión. Con el colibrí (`iniciarSalida`) lo llama la capa cuando la ventana ya se cerró y el fondo está oscuro.
+  async function cerrarSesion() {
     // Las copias de pantallas para usar sin internet (ADR-0210) tienen datos de esta cuenta: se van con ella. Lo que
     // espera en las colas sin conexión NO se borra: es trabajo de la tienda que todavía no subió.
     await borrarCopiasSinConexion();
-    // «local»: cierra solo este equipo. El valor por defecto («global») revoca la sesión de la cuenta en TODOS
-    // los equipos, y las cuentas de caja se comparten entre la tienda y otros dispositivos.
     // Se marca ANTES de cerrar: el aviso de cierre llega enseguida y, sin la marca, esta pestaña creería que otra cerró la sesión (ADR-0309).
     marcarSalidaPropia();
+    // «local»: cierra solo este equipo. El valor por defecto («global») revoca la sesión de la cuenta en TODOS
+    // los equipos, y las cuentas de caja se comparten entre la tienda y otros dispositivos.
     await createClient().auth.signOut({ scope: "local" });
     router.push("/login");
     router.refresh();
+  }
+
+  async function salir() {
+    // Con el vuelo del colibrí en curso (o un segundo clic/tecla sobre «Salir»), no se inicia otra salida.
+    if (entradaActiva()) return;
+    setPreguntando(null);
+    // «El colibrí se abre» al revés (Felipe 2026-10-13): la pantalla se encoge en la silueta del colibrí y él vuela de vuelta al login; la capa cierra la
+    // sesión cuando la ventana ya se cerró. Con «reducir movimiento» no hay vuelo: se cierra la sesión como siempre.
+    if (!iniciarSalida(cerrarSesion)) await cerrarSesion();
   }
 
   return (
