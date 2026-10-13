@@ -124,6 +124,20 @@ faltó», la más antigua primero, o a mano con «Llegó la reposición» y una 
 «Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
 tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
 
+**Fase 7, parte 1 (2026-10-13, rama `claude/purchase-order-phase7-9b0c82`; construida de noche, provisional).** Contrato:
+`docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md` (con «Cambios al construir»). Lo construido: **la orden de
+insumos del Taller** (`OI-000001`, su propio correlativo: 28) con su **módulo propio `ordenes_insumos`** (47; nace solo para el líder y es
+delegable: quien lo tiene ve y hace todo en estas órdenes, con sus precios, sin ver el resto de la plata del Taller). Proveedor de
+`proveedores_produccion`, destino un taller y líneas de insumo con la cantidad en su unidad (hasta 3 decimales) y el precio con hasta 4
+decimales, como los comprobantes y los lotes del Taller. Crear, ver, editar, anular e imprimir o guardar el PDF, con las mismas reglas que
+la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **Sin construir (espera a
+Felipe):** el comprobante de la orden y la recepción en el Taller (las preguntas 2 a 4 del contrato).
+
+Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción ▸ Abastecimiento (la opción recomendada de la pregunta 1),
+pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
+obligatorio y es un taller; la unidad del insumo se copia en la línea y, si después cambia, al editar esa línea pide la cantidad de nuevo;
+el insumo no se restringe al proveedor de la orden; una orden lleva hasta 100 líneas.
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe
