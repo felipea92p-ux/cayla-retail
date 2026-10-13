@@ -192,3 +192,29 @@ export function estadoDeLaSalida(ms: number, listoEn: number | null, medidas: Me
   const aterriza = acotar(f / 150);
   return { ...e, angulo: e.angulo * aterriza, alargue: 1 - (1 - e.alargue) * aterriza, terminado: f <= 0 };
 }
+
+// ---------------------------------------------------------------- la pausa y el saludo
+
+/**
+ * Lo mínimo que el colibrí se queda flotando en el centro, en ms reales (Felipe 2026-10-13: el saludo tiene que alcanzar a leerse aunque la pantalla de destino
+ * cargue al instante). Es un mínimo: si la pantalla tarda más, flota lo que haga falta.
+ */
+export const PAUSA_MINIMA_EN_EL_CENTRO = 450;
+
+/** Cuándo (ms reales) el vuelo puede seguir: cuando la pantalla de destino está lista (`ms`) pero nunca antes de que haya flotado `PAUSA_MINIMA_EN_EL_CENTRO` en el centro. */
+export function instanteParaSeguir(ms: number, modo: "entrar" | "salir"): number {
+  const llegaAlCentro = modo === "salir" ? MS_DE_LA_SALIDA_EN_EL_CENTRO : ESPERA_EN;
+  return Math.max(ms, llegaAlCentro + PAUSA_MINIMA_EN_EL_CENTRO);
+}
+
+/**
+ * Cuánto se ve el saludo (0 a 1). `avance` es el tiempo del vuelo ya corregido por la espera: en la entrada, `msDelVuelo`; en la salida, `msCorridosDeLaSalida`. Asoma
+ * mientras el colibrí llega al centro, se queda mientras flota (ahí el tiempo está detenido) y se va cuando el vuelo sigue: la ventana empieza a abrirse (entrada) o el
+ * colibrí empieza a volar de vuelta (salida).
+ */
+export function opacidadDelSaludo(modo: "entrar" | "salir", avance: number): number {
+  const llegaAlCentro = modo === "salir" ? MS_DE_LA_SALIDA_EN_EL_CENTRO : ESPERA_EN;
+  const entra = ritmoDelVuelo(acotar((avance - (llegaAlCentro - 320)) / 320));
+  const sale = ritmoDelVuelo(acotar((avance - llegaAlCentro) / 300));
+  return entra * (1 - sale);
+}

@@ -21,13 +21,18 @@ import { esperaOcupada } from "@/lib/espera-estado";
 import { entradaEnCurso, medirAveDelLogin, suscribirEntrada, terminarEntrada, type EntradaEnCurso } from "@/lib/entrada-estado";
 import {
   CABEZA_DEL_AVE,
+  LIENZO_DEL_AVE,
   MS_DE_LA_SALIDA_EN_EL_CENTRO,
   PECHO_DEL_AVE,
   TOPE_DE_ESPERA,
   debeCancelarse,
   estadoDeLaEntrada,
   estadoDeLaSalida,
+  geometriaDeLaEntrada,
+  instanteParaSeguir,
+  msCorridosDeLaSalida,
   msDelVuelo,
+  opacidadDelSaludo,
   revisarLaPantalla,
   type Caja,
 } from "@/lib/login-entrada";
@@ -50,6 +55,9 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
   const aveRef = useRef<SVGGElement>(null);
   const alaRef = useRef<SVGPathElement>(null);
   const alaBajoRef = useRef<SVGPathElement>(null);
+  const saludoRef = useRef<HTMLParagraphElement>(null);
+  const fraseRef = useRef<HTMLSpanElement>(null);
+  const nombreRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const lienzo = lienzoRef.current;
@@ -59,7 +67,10 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
     const ave = aveRef.current;
     const ala = alaRef.current;
     const alaBajo = alaBajoRef.current;
-    if (!lienzo || !velo || !silueta || !siluetaAla || !ave || !ala || !alaBajo) return;
+    const saludo = saludoRef.current;
+    const frase = fraseRef.current;
+    const nombre = nombreRef.current;
+    if (!lienzo || !velo || !silueta || !siluetaAla || !ave || !ala || !alaBajo || !saludo || !frase || !nombre) return;
 
     const saliendo = entrada.modo === "salir";
     let cuadro = 0;
@@ -84,6 +95,7 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
       if (deshaciendoDesde !== null) {
         const t = (ms - deshaciendoDesde) / MS_SALIDA_DEL_VELO;
         lienzo.style.opacity = String(Math.max(0, 1 - t));
+        saludo.style.opacity = "0";
         if (t >= 1) return terminarEntrada();
         cuadro = requestAnimationFrame(paso);
         return;
@@ -108,7 +120,8 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
           else {
             origen = real;
             lista = true;
-            listoEn = ms;
+            // Aunque la pantalla ya esté lista, el colibrí flota un mínimo en el centro para que el saludo alcance a leerse.
+            listoEn = instanteParaSeguir(ms, entrada.modo);
           }
         }
       }
@@ -127,6 +140,14 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
       silueta.setAttribute("transform", lleva(Math.max(e.kVentana, 1e-6)));
       silueta.style.visibility = e.kVentana > 0 ? "visible" : "hidden";
       velo.style.opacity = String(e.velo);
+
+      // El saludo (diseño B): bajo el colibrí cuando flota en el centro; asoma al llegar, se queda mientras espera y se va cuando el vuelo sigue.
+      const g = geometriaDeLaEntrada(medidas);
+      saludo.style.top = `${window.innerHeight / 2 + (LIENZO_DEL_AVE.alto - PECHO_DEL_AVE.y) * g.k0 * g.escalaAlFlotar + 30}px`;
+      saludo.style.opacity = String(opacidadDelSaludo(entrada.modo, saliendo ? msCorridosDeLaSalida(ms, listoEn) : msDelVuelo(ms, listoEn)));
+      if (frase.textContent !== entrada.saludo.frase) frase.textContent = entrada.saludo.frase;
+      const textoNombre = entrada.saludo.nombre ?? "";
+      if (nombre.textContent !== textoNombre) nombre.textContent = textoNombre;
       cuadro = requestAnimationFrame(paso);
     };
     cuadro = requestAnimationFrame(paso);
@@ -142,6 +163,11 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
 
   return (
     <div className="entrada-colibri" aria-hidden>
+      {/* El saludo se escribe con textContent (nunca como HTML): el nombre viene de la base. */}
+      <p ref={saludoRef} className="entrada-saludo" style={{ opacity: 0 }}>
+        <span ref={fraseRef} className="entrada-saludo-frase" />
+        <em ref={nombreRef} className="entrada-saludo-nombre" />
+      </p>
       <svg ref={lienzoRef}>
         <defs>
           {/* Una máscara solo mide luz: lo claro tapa con el velo y lo oscuro lo deja abierto. Por eso aquí sí van blanco y negro. */}

@@ -4,7 +4,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { PanelVuelo } from "@/components/login/PanelVuelo";
 import { saludoDelDia } from "@/lib/login-vuelo";
-import { iniciarEntrada } from "@/lib/entrada-estado";
+import { entradaEnCurso, iniciarEntrada, ponerNombreDelSaludo } from "@/lib/entrada-estado";
+import { cuentaParaSaludar } from "@/lib/login-saludo";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -21,6 +22,21 @@ const MENSAJES_ERROR: Record<string, string> = {
 };
 
 const sinSuscripcion = () => () => {};
+
+/** Quién acaba de entrar, para saludarla: la fila de la persona (o del aparato) y si es una terminal. Cualquier fallo es «no sé». */
+async function leerCuentaParaSaludar(supabase: ReturnType<typeof createClient>) {
+  try {
+    const [resumen, miTerminal] = await Promise.all([supabase.rpc("fn_persona_actual_resumen"), supabase.rpc("fn_mi_terminal")]);
+    return cuentaParaSaludar(resumen.data, miTerminal.data);
+  } catch {
+    return null;
+  }
+}
+
+/** El resultado de `promesa` o null si pasan `ms` sin respuesta: el saludo no espera a la base más de lo que dura el vuelo. */
+function conTope<T>(promesa: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([promesa, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+}
 
 export default function LoginPage() {
   return (
@@ -61,6 +77,15 @@ function LoginForm() {
     // Si la persona pidió menos movimiento, o no hay colibrí a la vista, el login entra como siempre. Con la entrada en curso el
     // botón sigue en «Entrando…» (la capa frena los clics): no se inicia sesión dos veces.
     if (!iniciarEntrada()) setLoading(false);
+    else {
+      // El saludo de la entrada («Bienvenido(a), Camila»): el nombre llega de la base enseguida, con la sesión recién abierta. Si tarda o falla, el saludo va sin nombre.
+      const id = entradaEnCurso()?.id;
+      if (id !== undefined) {
+        void conTope(leerCuentaParaSaludar(supabase), 4000).then((cuenta) => {
+          if (cuenta) ponerNombreDelSaludo(id, cuenta.nombre, cuenta.terminal);
+        });
+      }
+    }
     router.push("/");
     router.refresh();
   }
