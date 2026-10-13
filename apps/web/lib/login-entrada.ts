@@ -8,6 +8,11 @@
  * Aquí vive solo la geometría y la línea de tiempo (lógica pura, con su prueba): `components/login/EntradaColibri.tsx` mide la pantalla y
  * pinta; `lib/entrada-estado.ts` guarda si hay una entrada en curso. El aleteo y la forma del ala son los de `lib/login-vuelo.ts`.
  *
+ * LA SALIDA («Salir», Felipe 2026-10-13, la versión B de la maqueta): el mismo vuelo AL REVÉS y más rápido (`VELOCIDAD_DE_LA_SALIDA`). La ventana, que cubre
+ * la pantalla que se deja, se encoge sobre el colibrí; con la ventana cerrada y el fondo oscuro el colibrí flota en el centro mientras se cierra la sesión y
+ * carga el login; cuando el login está listo vuela de vuelta a su lugar y el fondo oscuro se va. `estadoDeLaSalida` es `estadoDeLaEntrada` con el tiempo
+ * corrido hacia atrás; no hay una segunda coreografía que mantener.
+ *
  * LA ESPERA. La ventana solo se abre cuando la pantalla de destino ya está lista (si no, mostraría un vacío). Mientras no lo está, el
  * colibrí flota en el centro: `msDelVuelo` congela la línea de tiempo en `ESPERA_EN` hasta que se sabe que ya cargó.
  */
@@ -143,8 +148,10 @@ export function revisarLaPantalla(
   { ruta, ocupada }: { ruta: string; ocupada: boolean },
   libreDesde: number | null,
   ms: number,
+  /** Si se da, la pantalla solo está lista en ESA ruta (la salida espera `/login`); si no, en cualquiera que no sea el login (la entrada). */
+  rutaEsperada?: string,
 ): { libreDesde: number | null; lista: boolean } {
-  const cumple = ruta !== "/login" && !ocupada;
+  const cumple = (rutaEsperada === undefined ? ruta !== "/login" : ruta === rutaEsperada) && !ocupada;
   if (!cumple) return { libreDesde: null, lista: false };
   const desde = libreDesde ?? ms;
   return { libreDesde: desde, lista: ms - desde >= ESTABLE_DURANTE };
@@ -157,4 +164,57 @@ export function revisarLaPantalla(
 export function debeCancelarse({ ruta, busqueda }: { ruta: string; busqueda: string }, ms: number, lista: boolean): boolean {
   if (ms > TOPE_DE_ESPERA && !lista) return true;
   return ms > 400 && ruta === "/login" && new URLSearchParams(busqueda).has("error");
+}
+
+// ---------------------------------------------------------------- la salida
+
+/** La salida corre el vuelo al revés a esta velocidad: 3,2 s de entrada → ~2,2 s de salida (cuando no hay que esperar al login). */
+export const VELOCIDAD_DE_LA_SALIDA = 1.45;
+/** Cuándo (ms reales desde que se aprieta «Salir») la ventana ya se cerró y el colibrí flota en el centro: ahí se cierra la sesión y se espera al login. */
+export const MS_DE_LA_SALIDA_EN_EL_CENTRO = (FIN_DE_LA_ENTRADA - ESPERA_EN) / VELOCIDAD_DE_LA_SALIDA;
+
+/** Los ms de la salida que ya corrieron: igual al tiempo real hasta el centro; ahí espera (con el ave flotando) hasta que el login esté listo (`listoEn`, ms reales). */
+export function msCorridosDeLaSalida(ms: number, listoEn: number | null): number {
+  if (ms <= MS_DE_LA_SALIDA_EN_EL_CENTRO) return ms;
+  if (listoEn === null) return MS_DE_LA_SALIDA_EN_EL_CENTRO;
+  const espera = Math.max(0, listoEn - MS_DE_LA_SALIDA_EN_EL_CENTRO);
+  return MS_DE_LA_SALIDA_EN_EL_CENTRO + Math.max(0, ms - MS_DE_LA_SALIDA_EN_EL_CENTRO - espera);
+}
+
+/**
+ * La salida en un instante (`ms` reales desde «Salir»). Es el estado de la ENTRADA en el tiempo espejo `FIN − corridos × velocidad`: empieza con la ventana
+ * cubriendo toda la pantalla y termina con el ave en su lugar del login, sin velo ni ventana. El aleteo se apaga en los últimos 150 ms para que el ave
+ * aterrice en la pose del logo (la entrada lo enciende al empezar; aquí es al revés). `terminado` es true cuando ya llegó.
+ */
+export function estadoDeLaSalida(ms: number, listoEn: number | null, medidas: MedidasDeLaEntrada): EstadoDeLaEntrada {
+  const f = Math.max(0, FIN_DE_LA_ENTRADA - msCorridosDeLaSalida(ms, listoEn) * VELOCIDAD_DE_LA_SALIDA);
+  const e = estadoDeLaEntrada(f, ms, medidas);
+  const aterriza = acotar(f / 150);
+  return { ...e, angulo: e.angulo * aterriza, alargue: 1 - (1 - e.alargue) * aterriza, terminado: f <= 0 };
+}
+
+// ---------------------------------------------------------------- la pausa y el saludo
+
+/**
+ * Lo mínimo que el colibrí se queda flotando en el centro, en ms reales (Felipe 2026-10-13: el saludo tiene que alcanzar a leerse aunque la pantalla de destino
+ * cargue al instante). Es un mínimo: si la pantalla tarda más, flota lo que haga falta.
+ */
+export const PAUSA_MINIMA_EN_EL_CENTRO = 450;
+
+/** Cuándo (ms reales) el vuelo puede seguir: cuando la pantalla de destino está lista (`ms`) pero nunca antes de que haya flotado `PAUSA_MINIMA_EN_EL_CENTRO` en el centro. */
+export function instanteParaSeguir(ms: number, modo: "entrar" | "salir"): number {
+  const llegaAlCentro = modo === "salir" ? MS_DE_LA_SALIDA_EN_EL_CENTRO : ESPERA_EN;
+  return Math.max(ms, llegaAlCentro + PAUSA_MINIMA_EN_EL_CENTRO);
+}
+
+/**
+ * Cuánto se ve el saludo (0 a 1). `avance` es el tiempo del vuelo ya corregido por la espera: en la entrada, `msDelVuelo`; en la salida, `msCorridosDeLaSalida`. Asoma
+ * mientras el colibrí llega al centro, se queda mientras flota (ahí el tiempo está detenido) y se va cuando el vuelo sigue: la ventana empieza a abrirse (entrada) o el
+ * colibrí empieza a volar de vuelta (salida).
+ */
+export function opacidadDelSaludo(modo: "entrar" | "salir", avance: number): number {
+  const llegaAlCentro = modo === "salir" ? MS_DE_LA_SALIDA_EN_EL_CENTRO : ESPERA_EN;
+  const entra = ritmoDelVuelo(acotar((avance - (llegaAlCentro - 320)) / 320));
+  const sale = ritmoDelVuelo(acotar((avance - llegaAlCentro) / 300));
+  return entra * (1 - sale);
 }

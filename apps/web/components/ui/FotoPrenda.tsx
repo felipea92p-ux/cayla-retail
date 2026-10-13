@@ -1,9 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
-import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 
 // Vivía en `components/apartados/piezas.tsx` (ADR-0168). Se mudó acá, sin cambiar su lógica, para que Producción (un Server Component) la use
 // sin arrastrar al navegador el punto de venta que ese archivo importa (`money`). `apartados/piezas.tsx` la re-exporta: ningún otro archivo cambió.
@@ -14,8 +12,8 @@ import { MosaicoPrenda } from "@/components/MosaicoPrenda";
  * producción: 31 fotos, promedio 90 KB y la mayor 199 KB; una miniatura de 44 px pesa unos 5 KB. Sin esto, la lista
  * del buscador bajaba ~0,7 MB por búsqueda. Si no hay foto o no carga (404, host no permitido), queda el ícono de su
  * categoría sobre el color de la prenda (`MosaicoPrenda`, ADR-0333; antes el ícono sobre el tono de su familia, sin color):
- * nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
- * rechazaría tumbando la pantalla.
+ * nunca una imagen rota. Cómo se sirve la foto (optimizada o tal cual, según su host) y qué hacer si no carga lo decide
+ * `ImagenDePrenda`, la misma pieza de `MiniaturaPrenda` y `TilePrenda` (ADR-0168, «Actualización 2026-10-13»).
  */
 export function FotoPrenda({
   fotoUrl,
@@ -39,26 +37,15 @@ export function FotoPrenda({
   categoriaFamilia?: string | null;
   className?: string;
 }) {
-  const [rota, setRota] = useState(false);
-  const conFoto = Boolean(fotoUrl) && !rota;
+  // La capa absoluta es de este contenedor: el mosaico trae su propio `relative`.
+  const sinFoto = (
+    <div className="absolute inset-0">
+      <MosaicoPrenda forma="relleno" conNombre={ancho >= 64} colorHex={colorHex} prefijo={categoriaPrefijo} familia={categoriaFamilia} categoria={categoria} className="h-full w-full !rounded-none" />
+    </div>
+  );
   return (
-    <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg ${conFoto ? "bg-sand/40" : ""} ${className}`}>
-      {fotoUrl && conFoto ? (
-        <Image
-          src={fotoUrl}
-          alt={referencia}
-          fill
-          sizes={`${ancho}px`}
-          unoptimized={!fotoOptimizable(fotoUrl, process.env.NEXT_PUBLIC_SUPABASE_URL)}
-          className="object-cover"
-          onError={() => setRota(true)}
-        />
-      ) : (
-        // La capa absoluta es de este contenedor: el mosaico trae su propio `relative`.
-        <div className="absolute inset-0">
-          <MosaicoPrenda forma="relleno" conNombre={ancho >= 64} colorHex={colorHex} prefijo={categoriaPrefijo} familia={categoriaFamilia} categoria={categoria} className="h-full w-full !rounded-none" />
-        </div>
-      )}
+    <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg ${className}`}>
+      {fotoUrl ? <ImagenDePrenda src={fotoUrl} alt={referencia} fill sizes={`${ancho}px`} className="bg-sand/40 object-cover" fallback={sinFoto} /> : sinFoto}
     </div>
   );
 }
