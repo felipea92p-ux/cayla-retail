@@ -82,7 +82,7 @@ export function ExportarPlan({ planNombre, filas, confianza, onClose }: { planNo
             </div>
           ) : (
             <p className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
-              Con tus escenarios no hay nada que comprar: lo que ya hay en la red alcanza para lo que conviene tener. Corrige los escenarios o espera a que baje el stock.
+              Con tus escenarios no hay nada que comprar: lo que ya hay en la red y lo que viene en órdenes alcanzan para lo que conviene tener. Corrige los escenarios o espera a que baje el stock.
             </p>
           )}
           <div className="flex flex-wrap justify-end gap-3">

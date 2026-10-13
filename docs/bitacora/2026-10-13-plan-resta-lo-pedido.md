@@ -1,0 +1,4 @@
+## 2026-10-13 (Plan de campaña: lo que ya viene en órdenes de compra se resta de «Comprar»)
+Qué hice: el Plan resta de lo que hay que comprar lo pedido en órdenes que todavía no llegó a ninguna tienda: lo que no salió, lo que va en un envío sin recibir y lo que el proveedor debe reponer. Lo que ya llegó está en «Hay hoy» y no se resta dos veces. La fila, la hoja, la barra y el simulador dicen lo mismo.
+Por qué así: la regla del 12-10 esperaba a que Órdenes supiera cuándo llega la mercadería; con los envíos, la recepción y «Nos debe» en producción, ya lo sabe. Sin restar, al armar Navidad con órdenes hechas, el Plan pide comprar de nuevo lo que ya viene en camino.
+Felipe se lleva: la rama `claude/plan-resta-lo-pedido` (sobre la del multiplicador), con la migración `20261013213000` sin pegar en producción, 9 pruebas web nuevas y los casos de base O2 y O3; la actualización 2026-10-13 (b) de ADR-0372.
