@@ -10,7 +10,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
-import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
@@ -403,6 +403,8 @@ export function MediosDePago({
     onLineas([{ monto: usar.toFixed(2), metodo: METODO_SALDO_A_FAVOR, referencia: "" }, ...(resto > 0 ? [{ monto: resto.toFixed(2), metodo: lineas[0]?.metodo === METODO_SALDO_A_FAVOR ? "transferencia" : (lineas[0]?.metodo ?? "transferencia"), referencia: "" }] : [])]);
   };
   const fechaCampo = <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={onFecha} required />;
+  // Lo que de verdad sale por cada línea: en «Pagar juntos» con un solo medio el monto no se escribe, es todo el pago.
+  const conMontos = exacto && !varios ? [{ ...lineas[0], monto: objetivo.toFixed(2) }] : lineas;
   // «Sale de» (F3b). Con saldo a favor no sale de ninguna cuenta: el campo queda invisible y conserva su alto (ADR-0185).
   const saleDe = (l: LineaPago, i: number) =>
     cuentas ? (
@@ -417,6 +419,7 @@ export function MediosDePago({
           valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
           onValor={(v) => cambiar(i, { cuentaId: v })}
           deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+          montoDelFondo={usadoDelFondo(conMontos, cuentas.lista, i)}
         />
       </div>
     ) : null;

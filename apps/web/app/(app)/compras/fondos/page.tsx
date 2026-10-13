@@ -19,8 +19,9 @@ import { AnularMovimientoFondo, DevolverFondo, EntregarFondo } from "@/component
 //
 // Cabecera de Compras (`EncabezadoPagina`, como Órdenes de compra) con «+ Entregar plata». Debajo, tres cifras de toda la empresa; después,
 // una fila por persona con fondo (le entregaste · devolvió · tiene en la mano) y su «Registrar devolución»; al final, cada entrega y
-// devolución, con su «Anular». La columna «Gastó» (lo que falta para cuadrar) aparece sola el día que alguien pague desde su fondo
-// (actividad 2): mientras sea cero en todos, es ruido.
+// devolución, con su «Anular». La columna «Gastó» (lo que pagó desde su fondo, actividad 2) aparece sola cuando alguien pagó: mientras
+// sea cero en todos, es ruido. Un fondo en negativo es lo que CAYLA le debe a quien pagó de su bolsillo (decisión 32): no resta de
+// «Tienen en la mano», tiene su propia cifra y su fila lo dice.
 //
 // Lo que la persona no puede hacer con su propio fondo (entregárselo, registrar su devolución, anularlo) no se le ofrece; la base igual
 // lo impide (20261013182000).
@@ -28,9 +29,10 @@ import { AnularMovimientoFondo, DevolverFondo, EntregarFondo } from "@/component
 const PLANTILLA_FONDOS_BASE = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_8.5rem_11rem]";
 const PLANTILLA_FONDOS_GASTO = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_7.5rem_8.5rem_11rem]";
 const PLANTILLA_MOVIMIENTOS = "sm:grid-cols-[4rem_minmax(0,0.9fr)_7rem_minmax(0,1.1fr)_7.5rem_6.5rem]";
-// En celular cada fila se apila: lo que en escritorio es columna aparte va en la segunda línea de la primera celda.
+// En celular cada fila se apila: lo que en escritorio es columna aparte va en la segunda línea de la primera celda (que puede partirse:
+// con «gastó» ya no cabe en una sola a 375 px).
 const SOLO_ESCRITORIO = "hidden sm:block";
-const SEGUNDA_LINEA = "block text-xs text-taupe sm:hidden";
+const SEGUNDA_LINEA = "block whitespace-normal text-xs text-taupe sm:hidden";
 
 const TONO_MOVIMIENTO: Record<MovimientoFondo["tipo"], TonoChip> = { entrega_fondo: "pizarra", devolucion_fondo: "neutro" };
 const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
@@ -40,6 +42,7 @@ export default async function FondosPage() {
   const { fondos, movimientos, opciones, falla } = await getDatosFondos();
   const cifras = cifrasDeFondos(fondos);
   const conGasto = cifras.gastado !== 0;
+  const conDeuda = cifras.teDebe > 0;
   const plantillaFondos = conGasto ? PLANTILLA_FONDOS_GASTO : PLANTILLA_FONDOS_BASE;
   const entregar = <EntregarFondo opciones={opciones} />;
 
@@ -65,10 +68,19 @@ export default async function FondosPage() {
       ) : (
         <>
           <div className="@container" data-guia="fondos.cifras">
-            <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3">
-              <TarjetaCifra etiqueta="Tienen en la mano" valor={soles(cifras.enMano)} className="col-span-2 @min-[40rem]:col-span-1">
+            <div className={`grid grid-cols-2 gap-3 ${conDeuda ? "@min-[48rem]:grid-cols-4" : "@min-[40rem]:grid-cols-3"}`}>
+              <TarjetaCifra
+                etiqueta="Tienen en la mano"
+                valor={soles(cifras.enMano)}
+                className={conDeuda ? undefined : "col-span-2 @min-[40rem]:col-span-1"}
+              >
                 {plural(cifras.conPlata, "persona con plata", "personas con plata")}
               </TarjetaCifra>
+              {conDeuda && (
+                <TarjetaCifra etiqueta="CAYLA les debe" valor={soles(cifras.teDebe)}>
+                  {plural(cifras.conDeuda, "pagó de su bolsillo", "pagaron de su bolsillo")}
+                </TarjetaCifra>
+              )}
               <TarjetaCifra etiqueta="Les entregaste" valor={soles(cifras.entregado)}>
                 desde el primer fondo
               </TarjetaCifra>
@@ -109,7 +121,14 @@ export default async function FondosPage() {
                   {conGasto && <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(f.gastado)}</span>}
                   <span className={celda("der", "font-medium text-tinta")}>
                     <span className="text-xs font-normal text-taupe sm:hidden">Tiene en la mano </span>
-                    {soles(f.saldo)}
+                    {soles(Math.max(f.saldo, 0))}
+                    {/* Pagó de su bolsillo (decisión 32): el negativo no es plata en la mano, es lo que CAYLA le debe. */}
+                    {/* La celda de una cifra no parte su texto: esta línea sí, pero nunca dentro de la cifra. */}
+                    {f.saldo < -0.005 && (
+                      <span className="block whitespace-normal text-xs font-normal text-ambar-profundo">
+                        {f.esMio ? "CAYLA te debe" : "CAYLA le debe"} <span className="whitespace-nowrap">{soles(-f.saldo)}</span>
+                      </span>
+                    )}
                   </span>
                   <span className="flex min-w-0 justify-start sm:justify-end">
                     {f.esMio ? (

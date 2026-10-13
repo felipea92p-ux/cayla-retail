@@ -314,11 +314,13 @@ begin
   perform retail.fn_fondo_exigir_otra_persona(v_duena, v_actor, 'La plata de tu propio fondo no la anulas tú');
 
   perform pg_advisory_xact_lock(hashtextextended('fondo:' || v_duena::text, 0));
-  -- Una entrega de la que ya salió plata (devuelta o pagada) no se «des-entrega»: dejaría a la persona debiendo plata que sí recibió.
+  -- Una entrega de la que ya salió plata (devuelta o pagada) no se «des-entrega»: el fondo quedaría diciendo que CAYLA le debe a la
+  -- persona una plata que sí recibió. Desde la actividad 2 el fondo puede estar en negativo (pagó de su bolsillo): de una entrega
+  -- nunca «salió» más de lo que se entregó.
   if v_m.tipo = 'entrega_fondo' then
     v_saldo := retail.fn_fondo_saldo(v_fondo);
     if v_saldo - v_m.monto < 0 then
-      raise exception 'De esa entrega ya salieron S/ % (lo que se devolvió o se pagó con ella): anularla dejaría el fondo en S/ %.', to_char(v_m.monto - v_saldo, 'FM999G999G990D00'),
+      raise exception 'De esa entrega ya salieron S/ % (lo que se devolvió o se pagó con ella): anularla dejaría el fondo en S/ %.', to_char(least(v_m.monto, v_m.monto - v_saldo), 'FM999G999G990D00'),
         to_char(v_saldo - v_m.monto, 'FM999G999G990D00') using errcode = 'P0001', hint = 'fondo_insuficiente';
     end if;
   end if;

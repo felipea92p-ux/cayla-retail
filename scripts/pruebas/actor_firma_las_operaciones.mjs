@@ -182,6 +182,13 @@ const MIRAN_LA_CUENTA = [
   // ADR-0362 fase 4: «quién mira» en Recibir (la persona de la cuenta, null en una terminal) para avisar «tú hiciste la orden» antes
   // de que la base lo frene; es identidad, no firma: quien recibe firma con fn_actor_persona_id(true).
   "fn_recepcion_quien_mira",
+  // ADR-0362 fase 6 (20261013182000 y 20261013212000): el fondo por rendir es de UNA persona, y estas preguntan por la cuenta que
+  // entró, no por el responsable del combo. Es permiso o identidad, no firma (entregar, devolver y anular firman con
+  // fn_actor_persona_id(true)): nadie se entrega plata, registra su devolución ni anula lo de su propio fondo
+  // (fn_fondo_exigir_otra_persona); la pantalla marca «tu fondo» y quién es «yo» (fn_fondos, fn_fondos_movimientos,
+  // fn_fondos_opciones); desde un fondo paga solo su dueña, con su cuenta, nunca una terminal (fn_fondo_para_pagar); y «Mi fondo»
+  // es el de quien mira (fn_mi_fondo).
+  "fn_fondo_exigir_otra_persona", "fn_fondos", "fn_fondos_movimientos", "fn_fondos_opciones", "fn_fondo_para_pagar", "fn_mi_fondo",
 ].sort();
 // Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
 // cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo

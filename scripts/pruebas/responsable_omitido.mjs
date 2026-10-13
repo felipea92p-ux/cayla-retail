@@ -176,7 +176,8 @@ caso(
 // (`orden_compra_comprobante`, 20261012211000; ADR-0362 fase 2, decisión 42), con el mismo trato. Y una más: enviar una orden a una sede
 // (`orden_compra_envio`, 20261012225000; ADR-0362 fase 3). Y tres más de Órdenes de insumos del Taller (`orden_insumo_crear`,
 // `orden_insumo_editar` y `orden_insumo_anular`, 20261013040000; ADR-0362 fase 7): la decisión 39 extendida a la orden del Taller.
-const TOTAL = EN_SECO ? "28" : "40";
+// Y tres más de Fondos por rendir (`fondo_entregar`, `fondo_devolver` y `fondo_anular`, 20261013182000; ADR-0362 fase 6): el mismo trato.
+const TOTAL = EN_SECO ? "28" : "43";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
 caso(

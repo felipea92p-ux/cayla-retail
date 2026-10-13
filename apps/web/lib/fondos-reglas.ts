@@ -1,12 +1,14 @@
 import { leerMonto } from "./caja-cierre-reglas";
 import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import type { CuentaElegible } from "./cuenta-sellada-reglas";
 import type { Opcion } from "../components/ui/campos";
 
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1): las reglas puras de la pantalla. Leer lo que manda la base (que puede venir de una
 // versión vieja o rota: nunca se cae, descarta lo ilegible), sumar las cifras de arriba, armar las opciones de los combos y decir qué
 // falta en cada hoja. Lo que falta sale de lo MISMO que rechazan `entregar_fondo`, `devolver_fondo` y `anular_movimiento_fondo`
 // (20261013182000): la guía no agrega reglas (ADR-0284). Sin Supabase: lo importan el servidor y las hojas.
+// Actividad 2 (20261013212000): «Mi fondo» en los pagos de Compras (`leerMiFondo`, `conMiFondo`) y lo que CAYLA debe en el tablero.
 
 export const RUTA_FONDOS = "/compras/fondos";
 // Cada llamada nombra su constante (`.rpc(RPC_X as never, …)`): así la lee la prueba de cobertura de roles.
@@ -16,6 +18,7 @@ export const RPC_OPCIONES_FONDOS = "fn_fondos_opciones";
 export const RPC_ENTREGAR_FONDO = "entregar_fondo";
 export const RPC_DEVOLVER_FONDO = "devolver_fondo";
 export const RPC_ANULAR_MOVIMIENTO_FONDO = "anular_movimiento_fondo";
+export const RPC_MI_FONDO = "fn_mi_fondo";
 
 /** El «para qué» de una entrega y la nota de una devolución: lo mismo que acepta `movimientos_dinero.referencia`. */
 export const MAX_TEXTO_FONDO = 200;
@@ -29,7 +32,7 @@ export type FondoFila = {
   saldo: number;
   entregado: number;
   devuelto: number;
-  /** Lo que falta para cuadrar: le entregaron − devolvió − tiene. Hoy 0; lo llenan los pagos desde el fondo (actividad 2). */
+  /** Lo que salió del fondo: le entregaron − devolvió − tiene. Lo llenan los pagos desde el fondo (actividad 2). */
   gastado: number;
   primeraEntrega: string | null;
   ultimaEntrega: string | null;
@@ -143,17 +146,64 @@ export function leerOpcionesFondos(data: unknown): OpcionesFondos {
   return { yo: texto(o.yo), personas, cuentas };
 }
 
+// ---------- «Mi fondo» en los pagos de Compras (actividad 2) ----------
+
+/** El fondo de quien mira (`fn_mi_fondo`): su cuenta y lo que tiene en la mano (en negativo, lo que CAYLA le debe). */
+export type MiFondo = { cuentaId: string; nombre: string; saldo: number };
+
+/** La fila de `fn_mi_fondo`, o nada si no tiene fondo, si es una terminal o si la base no la mandó entera. */
+export function leerMiFondo(data: unknown): MiFondo | null {
+  const f = filas(data)[0];
+  const cuentaId = f ? texto(f.cuenta_id) : null;
+  if (!f || !cuentaId) return null;
+  return { cuentaId, nombre: texto(f.nombre) ?? "Mi fondo", saldo: numero(f.saldo) ?? 0 };
+}
+
+/**
+ * «Mi fondo» como una cuenta más del combo «Sale de» (el grupo «Tu fondo por rendir», primero). Se propone para el efectivo solo si
+ * tiene plata: con el fondo vacío o en negativo, el efectivo sigue proponiendo la caja de siempre y el fondo queda a un toque.
+ */
+export function cuentaDeMiFondo(f: MiFondo): CuentaElegible {
+  return {
+    id: f.cuentaId,
+    nombre: "Mi fondo",
+    tipo: "fondo",
+    ubicacionId: null,
+    ubicacionNombre: null,
+    cajaAbierta: false,
+    propuestaPara: f.saldo > 0.005 ? ["efectivo"] : [],
+    saldo: f.saldo,
+  };
+}
+
+/** Las cuentas de un pago de Compras con «Mi fondo» delante (si la persona tiene uno). */
+export function conMiFondo(cuentas: readonly CuentaElegible[], fondo: MiFondo | null): CuentaElegible[] {
+  return fondo ? [cuentaDeMiFondo(fondo), ...cuentas.filter((c) => c.id !== fondo.cuentaId)] : [...cuentas];
+}
+
 // ---------- Las cifras de arriba ----------
 
-export type CifrasFondos = { enMano: number; conPlata: number; entregado: number; devuelto: number; gastado: number };
+export type CifrasFondos = {
+  /** Lo que tienen en la mano las personas con plata (un fondo en negativo no resta: es otra cosa, lo que CAYLA les debe). */
+  enMano: number;
+  conPlata: number;
+  /** Lo que CAYLA les debe a quienes pagaron de su bolsillo (decisión 32): los fondos en negativo. */
+  teDebe: number;
+  conDeuda: number;
+  entregado: number;
+  devuelto: number;
+  gastado: number;
+};
 
 const redondo = (n: number) => Math.round(n * 100) / 100;
 
 export function cifrasDeFondos(fondos: readonly FondoFila[]): CifrasFondos {
   const suma = (f: (x: FondoFila) => number) => redondo(fondos.reduce((a, x) => a + f(x), 0));
   return {
-    enMano: suma((x) => x.saldo),
-    conPlata: fondos.filter((x) => x.saldo !== 0).length,
+    enMano: suma((x) => Math.max(x.saldo, 0)),
+    conPlata: fondos.filter((x) => x.saldo > 0.005).length,
+    teDebe: suma((x) => Math.max(-x.saldo, 0)),
+    conDeuda: fondos.filter((x) => x.saldo < -0.005).length,
     entregado: suma((x) => x.entregado),
     devuelto: suma((x) => x.devuelto),
     gastado: suma((x) => x.gastado),

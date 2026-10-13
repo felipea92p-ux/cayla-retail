@@ -168,7 +168,8 @@ DESCARTÉ: darle dueña a la cuenta `por_rendir` («Efectivo entregado al líder
         índice único, el traslado al líder en `fn_dinero_libro` y en `fn_caja_traslados_sellar`, `registrar_ingreso_caja` y tres
         pruebas). Con un tipo propio, nada de eso cambia.
 SE ROMPE SI: la actividad 2 (pagar desde «Mi fondo») no le enseña a `fn_cuenta_sirve` y `fn_cuentas_para_elegir` el tipo `fondo`
-        solo para su dueña: hoy el fondo no sirve para pagar nada, a propósito.
+        solo para su dueña: hoy el fondo no sirve para pagar nada, a propósito. (La actividad 2 lo resolvió por otro camino, sin
+        tocar esas dos: ver abajo.)
 ```
 
 La 1413 entra en la actividad 1 y no en la 7 (contabilidad) porque la cuenta contable de una cuenta de dinero no cambia nunca
@@ -177,6 +178,30 @@ del viaje y el faltante como cuenta por cobrar. Por defecto *(provisional, revis
 una caja fuerte o de lo que tiene el líder (esto último, solo el líder, como en todo el ERP); lo que se devuelve lo registra quien recibe
 la plata, nunca la dueña, y no más de lo que tiene; anular una entrega de la que ya salió plata no se puede; en Actividad todavía no se
 anota (el propio tablero dice quién hizo cada movimiento).
+
+**Fase 6 · actividad 2 (2026-10-13): pagar desde «Mi fondo»** en el comprobante de una orden al contado y en Por pagar (pagar un
+comprobante y «Pagar juntos»). Migración `20261013212000`; prueba `pnpm pruebas:fondos` (6 casos nuevos, 16 en total).
+
+```
+DECIDÍ: el fondo no entra por las reglas generales de cuentas: `fn_cuenta_sirve` y `fn_cuentas_para_elegir` siguen sin conocerlo.
+        Los pagos de Compras lo suman en la pantalla (`fn_mi_fondo`, el fondo de QUIEN MIRA, y `conMiFondo`: primero en «Sale de»,
+        «Mi fondo · tienes S/ X») y, en la base, el sello de los pagos (`fn_compra_pagos_sellar`) lo deriva a `fn_fondo_para_pagar`:
+        solo su dueña, con SU cuenta (nunca desde una terminal, donde el combo elige un nombre que no prueba quién tiene la plata) y
+        firmando ella; en efectivo, Yape, Plin, transferencia, depósito u «otro»; sin mirar el saldo (decisión 32: si no alcanza, paga
+        de su bolsillo y el negativo es «CAYLA te debe»). El Diario saca ese pago de la 1413, no de la cuenta de su medio.
+DESCARTÉ: que `fn_cuenta_sirve` acepte el tipo `fondo` (lo que la actividad 1 había previsto): esa tabla la usan las 13 pantallas de
+        «¿De dónde sale la plata?» y los sellos de gastos, activos y Producción, cuyos asientos van por el medio (101 en efectivo): un
+        gasto pagado desde el fondo habría restado de la caja en el Diario y el Balance de la 101 no cuadraría. Los gastos del viaje
+        (actividad 4) llegan al fondo con su propia regla.
+SE ROMPE SI: alguien escribe `compra_pagos` sin pasar por su disparador (hoy las 4 funciones que pagan insertan y el disparador
+        sella), o el Diario deja de leer `cuenta_dinero_id` en los pagos: el fondo bajaría en «Cuentas y dinero» y no en el Balance.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: «Mi fondo» se **propone** solo para el efectivo y solo si tiene plata; con el fondo vacío
+o en negativo, el efectivo sigue proponiendo la caja de siempre y el fondo queda a un toque; nunca se propone «por descarte» (sin banco
+cargado, una transferencia queda por elegir, como antes). Quien no tiene fondo no ve «Mi fondo»: un fondo nace con una entrega de otra
+persona. En el tablero, un fondo en negativo no resta de «Tienen en la mano»: tiene su cifra, «CAYLA les debe». Con la plata en negativo
+ahora posible, anular una entrega dice cuánto salió de ella sin pasar de lo entregado.
 
 ## Fuente: el brief de Felipe
 

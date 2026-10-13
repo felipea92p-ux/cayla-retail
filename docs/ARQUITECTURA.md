@@ -1540,6 +1540,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `lib/fondos-acciones.ts` (`entregar_fondo`, `devolver_fondo`, `anular_movimiento_fondo`; firmas `fondo_entregar`, `fondo_devolver`,
     `fondo_anular`; token por hoja). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
     y su saldo sale del mismo libro que «Cuentas y dinero» (`fn_dinero_libro`). Cabecera `EncabezadoPagina`.
+    **Pagar desde «Mi fondo»** (actividad 2, `20261013212000`): `useCuentasParaElegir("pago", …, { conMiFondo: true })`
+    (`components/finanzas/CampoCuenta.tsx`, con `useMiFondo` → `fn_mi_fondo`) en `RegistrarComprobanteOrden`, `RegistrarPagoModal`
+    (`CompraDetallePanel`) y `PagoJuntosModal`; `conMiFondo`/`leerMiFondo` en `lib/fondos-reglas.ts`, y en `lib/cuenta-sellada-reglas.ts`
+    el tipo `fondo`, `ayudaDelFondo` («CAYLA te debe») y `usadoDelFondo` (lo pasan `LineasPago` y `MediosDePago`). En la base, el sello de
+    los pagos (`fn_compra_pagos_sellar`) deriva el fondo a `fn_fondo_para_pagar` (solo su dueña, con su cuenta) y `fn_asientos` lo saca de
+    la 1413.
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;

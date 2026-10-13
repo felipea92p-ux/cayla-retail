@@ -4,9 +4,12 @@ import {
   camposDevolver,
   camposEntregar,
   cifrasDeFondos,
+  conMiFondo,
+  cuentaDeMiFondo,
   fraseDevolver,
   fraseEntregar,
   leerFondos,
+  leerMiFondo,
   leerMovimientosFondos,
   leerOpcionesFondos,
   opcionesDeCuentas,
@@ -70,7 +73,7 @@ describe("leer lo que manda la base", () => {
 });
 
 describe("las cifras de arriba", () => {
-  it("suman lo de todos y cuentan a quien tiene plata en la mano (o a quien CAYLA le debe)", () => {
+  it("suman lo de todos; un fondo en negativo no resta de lo que tienen en la mano: es lo que CAYLA le debe (actividad 2)", () => {
     const base = { cuentaId: "c", sede: null, primeraEntrega: null, ultimaEntrega: null, ultimoMotivo: null, esMio: false };
     expect(
       cifrasDeFondos([
@@ -78,7 +81,27 @@ describe("las cifras de arriba", () => {
         { ...base, personaId: "b", persona: "B", saldo: 0, entregado: 100, devuelto: 100, gastado: 0 },
         { ...base, personaId: "c", persona: "C", saldo: -10.1, entregado: 50, devuelto: 0, gastado: 60.1 },
       ]),
-    ).toEqual({ enMano: 369.9, conPlata: 2, entregado: 650, devuelto: 220, gastado: 60.1 });
+    ).toEqual({ enMano: 380, conPlata: 1, teDebe: 10.1, conDeuda: 1, entregado: 650, devuelto: 220, gastado: 60.1 });
+  });
+});
+
+describe("«Mi fondo» en los pagos de Compras (actividad 2)", () => {
+  it("lee la fila de fn_mi_fondo; sin fila, sin cuenta o con basura, no hay fondo", () => {
+    expect(leerMiFondo([{ cuenta_id: "f1", nombre: "Fondo · Ana", saldo: "380.00" }])).toEqual({ cuentaId: "f1", nombre: "Fondo · Ana", saldo: 380 });
+    expect(leerMiFondo([{ cuenta_id: "f1", saldo: "-120.5" }])).toEqual({ cuentaId: "f1", nombre: "Mi fondo", saldo: -120.5 });
+    expect(leerMiFondo([])).toBeNull();
+    expect(leerMiFondo([{ nombre: "sin cuenta" }])).toBeNull();
+    expect(leerMiFondo(null)).toBeNull();
+  });
+
+  it("es una cuenta más del combo, primero; con plata se propone para el efectivo, sin plata no", () => {
+    const conPlata = cuentaDeMiFondo({ cuentaId: "f1", nombre: "Fondo · Ana", saldo: 380 });
+    expect(conPlata).toEqual({ id: "f1", nombre: "Mi fondo", tipo: "fondo", ubicacionId: null, ubicacionNombre: null, cajaAbierta: false, propuestaPara: ["efectivo"], saldo: 380 });
+    expect(cuentaDeMiFondo({ cuentaId: "f1", nombre: "x", saldo: 0 }).propuestaPara).toEqual([]);
+    expect(cuentaDeMiFondo({ cuentaId: "f1", nombre: "x", saldo: -50 }).propuestaPara).toEqual([]);
+    const banco = { id: "b1", nombre: "BCP", tipo: "banco" as const, ubicacionId: null, ubicacionNombre: null, cajaAbierta: false, propuestaPara: [] };
+    expect(conMiFondo([banco], { cuentaId: "f1", nombre: "x", saldo: 10 }).map((c) => c.id)).toEqual(["f1", "b1"]);
+    expect(conMiFondo([banco], null)).toEqual([banco]);
   });
 });
 

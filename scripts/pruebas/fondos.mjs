@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prueba de los fondos por rendir (ADR-0362, fase 6 · actividad 1): `20261013181000_fondos_por_rendir_esquema.sql` y
- * `20261013182000_fondos_por_rendir_funciones.sql`.
+ * Prueba de los fondos por rendir (ADR-0362, fase 6 · actividades 1 y 2): `20261013181000_fondos_por_rendir_esquema.sql`,
+ * `20261013182000_fondos_por_rendir_funciones.sql` y `20261013212000_fondos_pagar_desde_mi_fondo.sql`.
  *
  * QUÉ PROMETE
  *   · El módulo es la llave: sin «Fondos por rendir» no se lee ni se escribe nada (42501).
@@ -17,8 +17,14 @@
  *     la dueña y el tipo de un fondo no cambian y no se archiva.
  *   · La firma de la decisión 39: con la cuenta de una persona y el responsable obligatorio encendido, sin la clave de la acción no se
  *     guarda (responsable_requerido); con la clave, firma ella.
+ *   · Actividad 2, pagar desde «Mi fondo»: la dueña paga un comprobante en Por pagar (y en «Pagar juntos») desde su fondo; baja su
+ *     fondo, no toca ninguna caja, y el Diario lo saca de la 1413 (no de la 101). Si no alcanza, paga igual y el fondo queda en
+ *     negativo: «CAYLA le debe» (decisión 32). Solo la dueña, con su cuenta y firmando ella: ni otra persona (tampoco el líder), ni
+ *     eligiendo a otra en «Responsable», ni desde una terminal; con tarjeta, no. El fondo no sirve para ningún otro pago (el candado
+ *     de la cuenta lo rechaza). Una entrega de la que ya se pagó no se anula, y el mensaje no pasa de lo entregado. `fn_mi_fondo`
+ *     le dice a cada persona su fondo y su saldo; a quien no tiene, nada; a una terminal, nada.
  *
- * CÓMO. Igual que `ordenes_compra.mjs`: carga las dos migraciones dentro de cada caso (se pueden pegar dos veces), sesión simulada con
+ * CÓMO. Igual que `ordenes_compra.mjs`: carga las migraciones dentro de cada caso (se pueden pegar dos veces), sesión simulada con
  * `request.jwt.claim.sub` y ROLLBACK siempre: nada queda escrito.
  *
  * USO
@@ -38,13 +44,20 @@ const arg = (nombre, porDefecto) => {
 };
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
-const MIGRACION = ["20261013181000_fondos_por_rendir_esquema.sql", "20261013182000_fondos_por_rendir_funciones.sql"]
+const MIGRACION = [
+  "20261013181000_fondos_por_rendir_esquema.sql",
+  "20261013182000_fondos_por_rendir_funciones.sql",
+  "20261013212000_fondos_pagar_desde_mi_fondo.sql",
+]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder
+// Solo de esta prueba: la cuenta de Ana (paga desde su fondo, actividad 2) y una terminal administrativa de Trujillo.
+const ANA = "44444444-4444-4444-8444-0000000000a1";
+const TERMINAL = "44444444-4444-4444-8444-0000000000f1";
 
 function psql(sql) {
   return execFileSync(
@@ -141,7 +154,9 @@ insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_inicial,
 -- Dos personas del equipo solo de esta prueba (Ana y Beto, de Trujillo): reciben la plata. Así nada depende de los fondos que ya
 -- tenga la base (una prueba en el navegador deja fondos de verdad en el banco). Felipe entrega; Micaela, con el módulo, también.
 select p.sede_base_id as sede_base from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
-insert into public.personas (nombres, apellidos, sede_base_id) values ('Ana', 'Prueba Fondos', :'sede_base') returning id as ana_p \\gset
+-- Ana tiene cuenta propia: en la actividad 2 entra ella a pagar desde su fondo.
+insert into auth.users (id, aud, role, email) values ('${ANA}', 'authenticated', 'authenticated', 'ana-fondos@prueba.local');
+insert into public.personas (nombres, apellidos, sede_base_id, auth_user_id) values ('Ana', 'Prueba Fondos', :'sede_base', '${ANA}') returning id as ana_p \\gset
 insert into public.personas (nombres, apellidos, sede_base_id) values ('Beto', 'Prueba Fondos', :'sede_base') returning id as beto_p \\gset
 insert into retail.colaboradores (persona_id, rol, rol_id, ubicacion_asignada_id, estado)
   select x, 'colaborador', retail.fn_rol_por_clave('integrante'), :'tru', 'activo' from unnest(array[:'ana_p', :'beto_p']::uuid[]) x;
@@ -153,6 +168,36 @@ create function pg_temp.dar_fondos_a_micaela() returns void language sql as $f$
   on conflict do nothing;
 $f$;
 `;
+
+// ---------- Actividad 2: pagar desde «Mi fondo» ----------
+// Felipe le entrega S/ 500 a Ana (`:fondo_ana`) y hay un comprobante a crédito de S/ 1,180 (`:compra`) de un proveedor del seed, de
+// Trujillo. Ana tiene Por pagar en su rol, y el responsable obligatorio se apaga: así Ana firma con su cuenta sin marcar asistencia (el
+// candado de la asistencia tiene su propia prueba). `pg_temp.paga` llama a la función de Por pagar: «OK» o «<sqlstate>|<hint>|<mensaje>».
+const ESCENA_PAGO = `${como(FELIPE)}${firma("fondo_entregar")}
+select retail.entregar_fondo(:'ana_p', :'bcp', 500, 'Compras Gamarra', null, null) as entrega_ana \\gset
+select c.id as fondo_ana from retail.cuentas_dinero c where c.tipo = 'fondo' and c.persona_id = :'ana_p' \\gset
+select id as prov from retail.proveedores where nombre = 'Textiles Andina SAC' \\gset
+insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total, naturaleza, ubicacion_gestion_id)
+  values (:'prov', 'factura', 'FFD', substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), retail.fn_hoy_lima() - 2, 'credito',
+          retail.fn_hoy_lima() + 20, 1000, 180, 1180, 'mercaderia', :'tru') returning id as compra \\gset
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'por_pagar') on conflict do nothing;
+update retail.configuracion_empresa set exige_responsable = false;
+create function pg_temp.paga(p_compra uuid, p_cuenta uuid, p_monto numeric, p_metodo text default 'efectivo') returns text
+language plpgsql as $f$
+declare v_estado text; v_hint text; v_msg text;
+begin
+  perform retail.registrar_pagos_compra(p_compra, jsonb_build_array(jsonb_build_object('monto', p_monto, 'metodo', p_metodo, 'cuenta_id', p_cuenta)),
+                                        null, gen_random_uuid());
+  return 'OK';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_msg = message_text;
+  return v_estado || '|' || coalesce(v_hint, '') || '|' || v_msg;
+end;
+$f$;
+${como(ANA)}${sinFirma}`;
+// El asiento del Diario de un pago: «cuenta:debe:haber», en orden de cuenta (lo lee el líder).
+const ASIENTO_DEL_PAGO = (pago) => `(select string_agg(a.cuenta || ':' || a.debe::numeric(12, 2) || ':' || a.haber::numeric(12, 2), ',' order by a.cuenta)
+   from retail.fn_asientos(retail.fn_hoy_lima() - 3, retail.fn_hoy_lima(), null) a where a.asiento = 'pago_proveedor:' || ${pago})`;
 
 // Una entrega directa (cuando el caso necesita el id que devuelve). Por defecto, de Felipe a Ana desde el BCP de la prueba.
 const entrega = (monto, { persona = ":'ana_p'", origen = ":'bcp'", motivo = "'Compras Gamarra'", token = "null", fecha = "null" } = {}) =>
@@ -391,6 +436,132 @@ select 'clave|' || count(*) from retail.acciones_sin_responsable where clave in 
       if (!/^clave\|3$/m.test(s)) e.push(`faltan claves en acciones_sin_responsable — ${linea("clave")(s)}`);
       return e;
     },
+  },
+
+  // ---------- Actividad 2: pagar desde «Mi fondo» ----------
+  {
+    nombre: "la dueña paga desde su fondo en Por pagar: baja su fondo, no toca ninguna caja y el Diario lo saca de la 1413 (no de la 101)",
+    sql: `${ESCENA_PAGO}
+select (retail.registrar_pagos_compra(:'compra', jsonb_build_array(jsonb_build_object('monto', 300, 'metodo', 'efectivo', 'cuenta_id', :'fondo_ana')),
+                                      null, gen_random_uuid()))[1] as pago \\gset
+select 'pago|' || (p.cuenta_dinero_id = :'fondo_ana')::text || '|' || (p.caja_movimiento_id is null)::text || '|' || (p.usuario_id = :'ana_p')::text
+  from retail.compra_pagos p where p.id = :'pago';
+select 'saldo|' || pg_temp.saldo(:'fondo_ana');
+select 'mio|' || count(*) || '|' || coalesce(sum(m.saldo), 0) from retail.fn_mi_fondo() m where m.cuenta_id = :'fondo_ana';
+select 'caja|' || count(*) from retail.caja_movimientos where created_at = now();
+select 'debe|' || c.saldo from retail.compras c where c.id = :'compra';
+${como(FELIPE)}${sinFirma}
+select 'diario|' || ${ASIENTO_DEL_PAGO(":'pago'")};
+select 'glosa|' || a.glosa from retail.fn_asientos(retail.fn_hoy_lima() - 3, retail.fn_hoy_lima(), null) a
+ where a.asiento = 'pago_proveedor:' || :'pago' and a.haber > 0;
+select 'cuadra|' || count(*) from retail.fn_asientos_descuadrados(retail.fn_hoy_lima() - 3, retail.fn_hoy_lima()) d where d.asiento = 'pago_proveedor:' || :'pago';
+select 'tablero|' || f.saldo || '|' || f.entregado || '|' || f.gastado from retail.fn_fondos() f where f.persona_id = :'ana_p';`,
+    revisa: (s) => {
+      const e = [];
+      if (!/^pago\|true\|true\|true$/m.test(s)) e.push(`el pago debía quedar sellado al fondo de Ana, sin egreso de caja y firmado por ella — ${linea("pago")(s)}`);
+      if (!/^saldo\|200\.00$/m.test(s)) e.push(`al fondo le debían quedar 200 — ${linea("saldo")(s)}`);
+      if (!/^mio\|1\|200\.00$/m.test(s)) e.push(`«Mi fondo» debía decir 200 — ${linea("mio")(s)}`);
+      if (!/^caja\|0$/m.test(s)) e.push(`no debía tocar ninguna caja — ${linea("caja")(s)}`);
+      if (!/^debe\|880\.00$/m.test(s)) e.push(`al comprobante le debían quedar 880 por pagar — ${linea("debe")(s)}`);
+      if (!/^diario\|1413:0\.00:300\.00,421:300\.00:0\.00$/m.test(s)) e.push(`el Diario debía sacar el pago de la 1413 — ${linea("diario")(s)}`);
+      if (!/^glosa\|Sale del fondo por rendir \(efectivo\)$/m.test(s)) e.push(`la glosa debía decir que sale del fondo — ${linea("glosa")(s)}`);
+      if (!/^cuadra\|0$/m.test(s)) e.push(`el asiento del pago debía cuadrar — ${linea("cuadra")(s)}`);
+      if (!/^tablero\|200\.00\|500\.00\|300\.00$/m.test(s)) e.push(`el tablero debía decir tiene 200, le entregaron 500 y gastó 300 — ${linea("tablero")(s)}`);
+      return e;
+    },
+  },
+  {
+    nombre: "si no alcanza, paga igual: el fondo queda en negativo (CAYLA le debe), también en «Pagar juntos» con dos medios",
+    sql: `${ESCENA_PAGO}
+select 'paga|' || pg_temp.paga(:'compra', :'fondo_ana', 700);
+select 'saldo|' || pg_temp.saldo(:'fondo_ana');
+select 'juntos|' || (retail.registrar_pago_compras_medios(:'prov', jsonb_build_array(jsonb_build_object('compra_id', :'compra', 'monto', 180)),
+  jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 100, 'cuenta_id', :'fondo_ana'), jsonb_build_object('metodo', 'transferencia', 'monto', 80, 'cuenta_id', :'bcp')),
+  null, gen_random_uuid()) is not null)::text;
+select 'despues|' || pg_temp.saldo(:'fondo_ana') || '|' || pg_temp.saldo(:'bcp');
+select 'mio|' || (select m.saldo from retail.fn_mi_fondo() m);
+${como(FELIPE)}${sinFirma}
+select 'tablero|' || f.saldo || '|' || f.gastado from retail.fn_fondos() f where f.persona_id = :'ana_p';`,
+    revisa: (s) => {
+      const e = [];
+      if (!/^paga\|OK$/m.test(s)) e.push(`pagar más de lo que hay en el fondo no se frena (decisión 32) — ${linea("paga")(s)}`);
+      if (!/^saldo\|-200\.00$/m.test(s)) e.push(`el fondo debía quedar en −200 — ${linea("saldo")(s)}`);
+      if (!/^juntos\|true$/m.test(s)) e.push(`«Pagar juntos» debía aceptar un medio desde el fondo — ${linea("juntos")(s)}`);
+      if (!/^despues\|-300\.00\|/m.test(s)) e.push(`con el Yape desde el fondo debía quedar en −300 — ${linea("despues")(s)}`);
+      if (!/^mio\|-300\.00$/m.test(s)) e.push(`«Mi fondo» debía decir −300 (CAYLA le debe 300) — ${linea("mio")(s)}`);
+      if (!/^tablero\|-300\.00\|800\.00$/m.test(s)) e.push(`el tablero debía decir −300 y gastó 800 — ${linea("tablero")(s)}`);
+      return e;
+    },
+  },
+  {
+    nombre: "solo la dueña paga desde su fondo: ni otra persona (tampoco el líder), ni eligiendo a otra en «Responsable», ni desde una terminal; con tarjeta, no",
+    sql: `${ESCENA_PAGO}
+-- Asistencia de Dynamic: el banco de pruebas no tiene la tabla; en el CI ya existe (actor_firma la usa). Beto y Ana marcaron entrada.
+create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
+select u.sede_dynamic_id as sede_tru from retail.ubicaciones u where u.id = :'tru' \\gset
+insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
+  select x, :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date from unnest(array[:'ana_p', :'beto_p']::uuid[]) x;
+${como(SANDRA)}${sinFirma}
+select 'lider|' || pg_temp.paga(:'compra', :'fondo_ana', 100);
+${como(ANA)}
+select set_config('request.headers', json_build_object('x-responsable', :'beto_p', 'x-ubicacion', :'tru')::text, true) \\g /dev/null
+select 'otro_responsable|' || pg_temp.paga(:'compra', :'fondo_ana', 100);
+insert into auth.users (id, aud, role, email) values ('${TERMINAL}', 'authenticated', 'authenticated', 'terminal-fondos@prueba.local');
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (:'tru', 'ZZ Terminal fondos', retail.fn_rol_por_clave('terminal_administrativa'), '${TERMINAL}');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_administrativa'), 'por_pagar') on conflict do nothing;
+${como(TERMINAL)}
+select set_config('request.headers', json_build_object('x-responsable', :'ana_p')::text, true) \\g /dev/null
+select 'terminal|' || pg_temp.paga(:'compra', :'fondo_ana', 100);
+select 'terminal_mio|' || count(*) from retail.fn_mi_fondo();
+${como(ANA)}${sinFirma}
+select 'tarjeta|' || pg_temp.intento(format('insert into retail.compra_pagos (compra_id, fecha, monto, metodo, cuenta_dinero_id) values (%L, retail.fn_hoy_lima(), 10, %L, %L)',
+  :'compra', 'tarjeta', :'fondo_ana'));
+select 'pagos|' || count(*) from retail.compra_pagos where compra_id = :'compra';`,
+    revisa: (s) => {
+      const e = [];
+      if (!/^lider\|42501\|fondo_ajeno\|Desde un fondo paga solo su dueña: «Fondo · Ana Prueba Fondos» no es el tuyo\.$/m.test(s)) e.push(`lider — ${linea("lider")(s)}`);
+      if (!/^otro_responsable\|42501\|fondo_ajeno\|Desde tu fondo pagas tú: elige tu nombre en «Responsable»\.$/m.test(s)) e.push(`otro_responsable — ${linea("otro_responsable")(s)}`);
+      if (!/^terminal\|42501\|fondo_ajeno\|Desde un fondo se paga solo con la cuenta de su dueña, no desde una terminal\.$/m.test(s)) e.push(`terminal — ${linea("terminal")(s)}`);
+      if (!/^terminal_mio\|0$/m.test(s)) e.push(`una terminal no tiene fondo — ${linea("terminal_mio")(s)}`);
+      if (!/^tarjeta\|P0001\|\|Desde un fondo se paga en efectivo, Yape, Plin, transferencia o depósito\.$/m.test(s)) e.push(`tarjeta — ${linea("tarjeta")(s)}`);
+      if (!/^pagos\|0$/m.test(s)) e.push(`ningún intento debía escribir un pago — ${linea("pagos")(s)}`);
+      return e;
+    },
+  },
+  {
+    nombre: "el fondo no sirve para ningún otro pago (gastos, activos, Producción, lo pasado): el candado de la cuenta lo rechaza",
+    sql: `${ESCENA_PAGO}
+select 'sellada|' || pg_temp.intento(format('select retail.fn_cuenta_sellada(%L, %L, %L, retail.fn_hoy_lima(), %L)', 'pago', 'efectivo', :'tru', :'fondo_ana'));
+select 'yape|' || pg_temp.intento(format('select retail.fn_cuenta_sellada(%L, %L, %L, retail.fn_hoy_lima(), %L)', 'pago', 'yape', :'tru', :'fondo_ana'));
+select 'elegir|' || count(*) from retail.fn_cuentas_para_elegir('pago', :'tru') c where c.tipo = 'fondo';`,
+    revisa: (s) => [
+      !/^sellada\|P0001\|\|En efectivo, la plata sale o entra de un cajón, una caja fuerte o el efectivo por rendir: «Fondo · Ana Prueba Fondos» no guarda efectivo\.$/m.test(s) && `sellada — ${linea("sellada")(s)}`,
+      !/^yape\|P0001\|\|Con Yape, la plata va por un banco o billetera: «Fondo · Ana Prueba Fondos» no lo es\.$/m.test(s) && `yape — ${linea("yape")(s)}`,
+      !/^elegir\|0$/m.test(s) && `«¿De dónde sale la plata?» no lista fondos (los pagos de Compras lo suman con fn_mi_fondo) — ${linea("elegir")(s)}`,
+    ].filter(Boolean),
+  },
+  {
+    nombre: "una entrega de la que ya se pagó no se anula, y el mensaje no pasa de lo entregado",
+    sql: `${ESCENA_PAGO}
+select 'paga|' || pg_temp.paga(:'compra', :'fondo_ana', 700);
+${como(FELIPE)}${firma("fondo_anular")}
+select 'anula|' || pg_temp.anula(:'entrega_ana', 'Fue un error');`,
+    revisa: (s) => [
+      !/^paga\|OK$/m.test(s) && `paga — ${linea("paga")(s)}`,
+      !/^anula\|P0001\|fondo_insuficiente\|De esa entrega ya salieron S\/ 500\.00 \(lo que se devolvió o se pagó con ella\): anularla dejaría el fondo en S\/ -700\.00\.$/m.test(s) &&
+        `anula — ${linea("anula")(s)}`,
+    ].filter(Boolean),
+  },
+  {
+    nombre: "«Mi fondo»: cada persona ve el suyo y su saldo; quien no tiene fondo, nada",
+    sql: `${ESCENA_PAGO}
+select 'ana|' || count(*) || '|' || coalesce(sum(m.saldo), 0) || '|' || string_agg(m.nombre, ',') from retail.fn_mi_fondo() m;
+${como(SANDRA)}${sinFirma}
+select 'sandra|' || count(*) from retail.fn_mi_fondo() m where m.cuenta_id = :'fondo_ana';`,
+    revisa: (s) => [
+      !/^ana\|1\|500\.00\|Fondo · Ana Prueba Fondos$/m.test(s) && `ana — ${linea("ana")(s)}`,
+      !/^sandra\|0$/m.test(s) && `otra persona no ve el fondo de Ana — ${linea("sandra")(s)}`,
+    ].filter(Boolean),
   },
 ];
 

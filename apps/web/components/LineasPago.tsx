@@ -8,7 +8,7 @@ import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } fr
 import { destinoDelMedio } from "@/lib/destino-de-pago";
 import { DestinoDelMedio } from "@/components/DestinoDelMedio";
 import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
-import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 
 /* ====================================================================
@@ -258,6 +258,7 @@ export function LineasPago({
                       valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
                       onValor={(v) => actualizar(i, { cuentaId: v })}
                       deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+                      montoDelFondo={usadoDelFondo(lineas, cuentas.lista, i)}
                     />
                   </div>
                 )}
