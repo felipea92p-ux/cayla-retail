@@ -38,7 +38,7 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
   return (
     <div className="space-y-7">
       <section data-guia="pedidos.pendientes" className="space-y-3">
-        <TituloSeccion dato={<b>{pendientes.length}</b>}>Pendientes</TituloSeccion>
+        <TituloSeccion cuenta={pendientes.length}>Pendientes</TituloSeccion>
         {pendientes.length === 0 ? (
           <p className="text-sm text-tinta/60">Ningún pedido pendiente en esta sede.</p>
         ) : (
@@ -52,7 +52,7 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
 
       {resueltos.length > 0 && (
         <section data-guia="pedidos.resueltos" className="space-y-3">
-          <TituloSeccion dato={<b>{resueltos.length}</b>}>Resueltos</TituloSeccion>
+          <TituloSeccion cuenta={resueltos.length}>Resueltos</TituloSeccion>
           <ul className="divide-y divide-tinta/10 rounded-md border border-tinta/10 opacity-60">
             {resueltos.map((pedido) => (
               <FilaPedido key={pedido.id} pedido={pedido} resolviendo={false} onResolver={undefined} />

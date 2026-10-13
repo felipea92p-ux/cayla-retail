@@ -104,7 +104,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
       </div>
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
-        <TituloSeccion dato={decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}>Para decidir</TituloSeccion>
+        <TituloSeccion cuenta={decisiones.length}>Para decidir</TituloSeccion>
         {decisiones.length === 0 ? (
           <div className="card-cayla">
             <Vacio tamano="chico" icono={<CircleCheck />}>
