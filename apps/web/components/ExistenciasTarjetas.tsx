@@ -184,8 +184,8 @@ export function ExistenciasTarjetas({
   /** «Ajustar stock» del menú «Más», solo si el rol puede: abre el panel de la talla de entrada ya en su paso. */
   puedeAjustar?: boolean;
   onAjustar?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
-  /** «Ver ficha» del menú «Más»: el panel en su ficha. */
-  onFicha?: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** «Ver ficha» del menú «Más»: abre el modal de la prenda (la foto cruza desde la miniatura, `origen`). */
+  onFicha?: (prenda: PrendaAgrupada<FilaExistencias>, origen?: HTMLElement | null) => void;
   /** «Subir a almacén»: igual, del lado contrario. */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   /** «Enviar a otra sede», solo para quien ve Traslados. */
@@ -201,10 +201,10 @@ export function ExistenciasTarjetas({
   /** Con solo «Hoy» o «Condición» puestos, TODAS las tallas del color (las que no cumplen se atenúan, como la maqueta) en vez de
    *  solo las que cumplen. Sin ella, la tarjeta muestra las tallas que dejan los filtros. */
   tallasCompletas?: (prenda: PrendaAgrupada<FilaExistencias>) => FilaExistencias[];
-  /** Tocar la tarjeta (o una talla sin nada en almacén): abre el panel de ESA talla. */
-  onAbrirTalla: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
-  /** Tocar una talla con algo en almacén: abre el panel de ESA talla ya en el paso «Colgar en el piso». */
-  onColgarTalla?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
+  /** Tocar la tarjeta (o una talla sin nada en almacén): abre el modal de ESA talla. `origen` es la miniatura, para que la foto cruce. */
+  onAbrirTalla: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias, origen?: HTMLElement | null) => void;
+  /** Tocar una talla con algo en almacén: abre el modal de ESA talla ya en el paso «Colgar en el piso». */
+  onColgarTalla?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias, origen?: HTMLElement | null) => void;
 }) {
   // El color que se ve en cada tarjeta. Sin elegir, el primero de la lista; si el elegido ya no está (un filtro, un guardado), también.
   const [elegida, setElegida] = useState<Record<string, string>>({});
@@ -236,6 +236,8 @@ export function ExistenciasTarjetas({
               tallasDePrenda?.get(p.clave) ?? p.tallas.length
             );
         const origen = () => tarjetas.current.get(m.clave) ?? document.body;
+        // La miniatura de la tarjeta: la foto del modal cruza desde ahí (ADR-0391).
+        const miniatura = () => tarjetas.current.get(m.clave)?.querySelector<HTMLElement>("[data-miniatura]") ?? null;
         // Algo libre en el almacén de algún color para mandar a otra sede (el traslado sale del almacén; `lineasParaTrasladar`).
         const tallasDelModelo = m.colores.flatMap((c) => c.tallas);
         const hayEnAlmacen = tallasDelModelo.some((t) => (t.almacenDisponible ?? t.disponible) > 0);
@@ -261,7 +263,7 @@ export function ExistenciasTarjetas({
           hayEnAlmacen,
           pedible: agotadaPedible ? (agotadaPedible.talla ?? "Única") : null,
         });
-        const alBoton = () => (boton.tipo === "colgar" ? onColgarVarias(p) : cumplen[0] && onAbrirTalla(p, cumplen[0]));
+        const alBoton = () => (boton.tipo === "colgar" ? onColgarVarias(p) : cumplen[0] && onAbrirTalla(p, cumplen[0], miniatura()));
         const alElegir = (clave: ClaveAccion) => {
           switch (clave) {
             case "subir":
@@ -273,14 +275,14 @@ export function ExistenciasTarjetas({
             case "ajustar":
               return entrada && onAjustar?.(p, entrada);
             case "ficha":
-              return onFicha?.(p);
+              return onFicha?.(p, miniatura());
           }
         };
         // Un toque en cualquier parte de la tarjeta abre el cajón en la talla que más importa (la del filtro, o la primera que falta
         // en el piso, o la primera agotada, o la primera). Tocar una TALLA abre el cajón listo para colgar esa talla (`destinoDeTalla`).
-        const abrirEntrada = () => entrada && onAbrirTalla(p, entrada);
+        const abrirEntrada = () => entrada && onAbrirTalla(p, entrada, miniatura());
         const alTocarTalla = (f: FilaExistencias) =>
-          destinoDeTalla(f, { separa, puedeReponer }) === "colgar" && onColgarTalla ? onColgarTalla(p, f) : onAbrirTalla(p, f);
+          destinoDeTalla(f, { separa, puedeReponer }) === "colgar" && onColgarTalla ? onColgarTalla(p, f, miniatura()) : onAbrirTalla(p, f, miniatura());
         return (
           <article
             key={m.clave}
@@ -308,7 +310,7 @@ export function ExistenciasTarjetas({
           >
             {/* Foto (o su categoría sobre su color), nombre, los colores con el nombre del que se ve (y lo dañado o apartado) y el precio. */}
             <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5">
-              <span className="block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
+              <span data-miniatura className="block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
                 {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={80} height={92} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} />}
               </span>
               <span className="min-w-0">

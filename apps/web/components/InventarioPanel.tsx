@@ -17,9 +17,8 @@ import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
-// mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». `EliminarProductoModal` (ADR-0252,
-// trasplantado de main tras el PR #574) sí: es una función real de la app que el rediseño no debía perder.
-import { EliminarProductoModal } from "@/components/EliminarProductoModal";
+// mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». «Eliminar el producto» (ADR-0252) salió del
+// detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
@@ -289,7 +288,6 @@ export function InventarioPanel({
   // (varias tallas a la vez, enlazar con un conteo).
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
-  const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [viendoApartados, setViendoApartados] = useState(false);
   // «Pendientes»: la ventana con las tareas de «Para hoy» (ya no van en la pantalla).
@@ -322,7 +320,8 @@ export function InventarioPanel({
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; vista?: "ficha" } | null>(() => {
+  // `origen`: la miniatura de la tarjeta desde la que se abrió, para que la foto cruce hasta el modal (ADR-0391).
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; origen?: HTMLElement | null } | null>(() => {
     const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
     return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
   });
@@ -532,8 +531,8 @@ export function InventarioPanel({
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
   const conSeleccion = enSedeActiva;
   const filasMarcadas = useMemo(() => stock.filter((f) => marcadas.has(f.varianteId)), [stock, marcadas]);
-  function abrirPrenda(p: Pick<PrendaAgrupada, "clave">, varianteId?: string) {
-    setAbierta({ clave: p.clave, varianteId });
+  function abrirPrenda(p: Pick<PrendaAgrupada, "clave">, varianteId?: string, origen?: HTMLElement | null) {
+    setAbierta({ clave: p.clave, varianteId, origen });
   }
   /** Las acciones rápidas de la tarjeta y «Colgar primero» (maqueta: «rapida»): abren el panel YA en su paso, en la talla que más
    *  conviene. Colgar: si al modelo le falta algo en el piso, «Colgar varias» (todas sus tallas y colores); si no, la talla con más
@@ -977,7 +976,8 @@ export function InventarioPanel({
             onColgarVarias={(prenda) => setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } })}
             puedeAjustar={puedeAjustarAqui}
             onAjustar={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "ajustar" } })}
-            onFicha={(prenda) => setAbierta({ clave: prenda.clave, vista: "ficha" })}
+            // «Ver ficha» del menú «Más» (ADR-0391): el modal ES la ficha de la prenda en la sede; lo de Catálogo está en su fila de arriba.
+            onFicha={(prenda, origen) => abrirPrenda(prenda, undefined, origen)}
             onSubir={(prenda) => lanzarDesdeTarjeta(prenda, "subir")}
             puedePedir={veTraslados && esTienda && enSedeActiva}
             sedesParaPedir={sedesParaPedir}
@@ -988,9 +988,9 @@ export function InventarioPanel({
             marcaDelFiltro={marcaDelFiltro}
             tallasCompletas={soloHoyOCondicion ? (prenda) => prendaPorClave.get(prenda.clave)?.tallas ?? prenda.tallas : undefined}
             // Tocar una talla abre el panel de ESA talla sin salir de las tarjetas.
-            onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
+            onAbrirTalla={(prenda, fila, origen) => abrirPrenda(prenda, fila.varianteId, origen)}
             // Tocar una talla con algo en almacén: el panel de esa talla, ya en «Colgar en el piso» (Felipe, 2026-10-07).
-            onColgarTalla={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" } })}
+            onColgarTalla={(prenda, fila, origen) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" }, origen })}
           />
           {tarjetasOrdenadas.length > 0 && (
           <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
@@ -1314,16 +1314,6 @@ export function InventarioPanel({
         />
       )}
 
-      {/* ADR-0252: la misma ventana de Catálogo ▸ Productos. No sabe cuántas variantes tiene el producto entero (Existencias
-          mira un color en una sede): el texto dice «todas sus tallas y colores» sin el número, y la base decide. Al borrar,
-          la ventana refresca la pantalla y la prenda desaparece de la lista. */}
-      {eliminando && (
-        <EliminarProductoModal
-          producto={{ productoId: eliminando.productoId, referencia: eliminando.referencia, estado: eliminando.estado, numVariantes: null }}
-          onClose={() => setEliminando(null)}
-        />
-      )}
-
 
       {viendoDanados && (
         <ResolverDanadosModal
@@ -1365,7 +1355,6 @@ export function InventarioPanel({
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
           flujoInicial={abierta?.flujo ?? null}
-          vistaInicial={abierta?.vista}
           ubicacionId={ubicacionId}
           sedeNombre={sedeNombre}
           separa={separa}
@@ -1382,15 +1371,10 @@ export function InventarioPanel({
           sububicacionAlmacenId={sububicacionAlmacen?.id ?? null}
           marcaDelFiltro={marcaDelFiltro}
           enSedeActiva={permisos.etiquetasEHistorial}
-          puedeEliminar={permisos.eliminar}
           puedeReportarDanada={permisos.reportarDanada}
           onAjustarCompleto={(f) => {
             setAbierta(null);
             setAjustando(f);
-          }}
-          onEliminar={() => {
-            setAbierta(null);
-            setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia, estado: prendaAbierta.tallas[0]?.estadoProducto ?? null });
           }}
           onVerApartadas={
             deLaPrenda(apartados, prendaAbierta).length > 0
@@ -1411,6 +1395,8 @@ export function InventarioPanel({
               : undefined
           }
           puedeResolverDanadas={esLider && enSedeActiva}
+          hrefCatalogo={verProductos ? (referencia) => `/productos?q=${encodeURIComponent(referencia)}` : undefined}
+          fotoDesde={abierta?.origen ?? null}
           onCerrar={() => setAbierta(null)}
         />
       )}
