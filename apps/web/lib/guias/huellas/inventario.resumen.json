@@ -1,6 +1,6 @@
 {
   "guia": "inventario.resumen",
-  "ruta": "/inventario/resumen",
+  "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 56,
   "controles": {

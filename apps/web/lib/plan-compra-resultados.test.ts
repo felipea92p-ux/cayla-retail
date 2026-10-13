@@ -323,7 +323,7 @@ describe("el detalle de una categoría: contra lo esperado y contra la campaña 
 
 describe("las señales llevan a Análisis ya buscando la categoría", () => {
   it("pide más → «Se está acabando»; impúlsala → «No se vende»; la categoría va codificada", () => {
-    expect(enlaceAnalisis("pedir", "Aretes")).toBe("/inventario/resumen?vista=acaba&q=Aretes");
-    expect(enlaceAnalisis("impulsar", "Ropa interior/Lencería")).toBe("/inventario/resumen?vista=nose&q=Ropa%20interior%2FLencer%C3%ADa");
+    expect(enlaceAnalisis("pedir", "Aretes")).toBe("/gestion/analisis?vista=acaba&q=Aretes");
+    expect(enlaceAnalisis("impulsar", "Ropa interior/Lencería")).toBe("/gestion/analisis?vista=nose&q=Ropa%20interior%2FLencer%C3%ADa");
   });
 });
