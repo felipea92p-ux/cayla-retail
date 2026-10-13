@@ -1,0 +1,5 @@
+## El mostrador relee el stock solo si cambió: la huella de la sede (2026-10-13, auditoría de 20 puntos, punto 20)
+- [x] **`fn_stock_huella` y el sondeo que la pregunta primero** (Vender, Cambios y Apartados). Prueba `pnpm pruebas:stock-huella` en la lista del CI.
+- [ ] **POR PEGAR en producción, con el OK de Felipe:** `supabase/migrations/20261013153000_huella_del_stock_de_la_sede.sql`, una sola parte, repegable. Verificación: `select length(retail.fn_stock_huella(id)) from retail.ubicaciones limit 1;` → 32. Hasta que se pegue, la web relee como antes (la huella falla y `hayQueReleer` dice «sí»): nada se rompe, solo no ahorra.
+- [ ] **Diccionario:** cuando esté en producción, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) para que `fn_stock_huella` entre a `DICCIONARIO-RETAIL.md`.
+- [ ] **Medir en producción** después de pegar: en TRU con Vender abierto, la pestaña Red debe mostrar `fn_stock_huella` cada 10 s y `stock?select=…` solo cuando alguien vende, repone o aparta.

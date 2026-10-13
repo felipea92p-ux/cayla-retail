@@ -5446,6 +5446,8 @@ export type Database = {
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
+      // 20261013153000: md5 del stock que la cuenta ve en una sede; useStockEnVivo solo relee si cambia.
+      fn_stock_huella: { Args: { p_ubicacion_id: string }; Returns: string }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
       fn_acepta_redondeo_efectivo: { Args: never; Returns: boolean }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }

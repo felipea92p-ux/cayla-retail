@@ -27,3 +27,26 @@ function mismoMapa<V>(a: Map<string, V>, b: Map<string, V>): boolean {
 export function mismoStock(a: StockReleido, b: StockReleido): boolean {
   return mismoMapa(a.cobrable, b.cobrable) && mismoMapa(a.almacen, b.almacen) && mismoMapa(a.apartado, b.apartado);
 }
+
+/**
+ * Lo que se recuerda de la última lectura completa que salió bien: la huella de la sede en ese momento
+ * (`fn_stock_huella`, un md5 de 32 letras) y qué prendas conocía la pantalla. `null` = no hay nada que comparar.
+ */
+export type UltimaHuella = { huella: string; conocidos: string } | null;
+
+/** Las prendas que conoce la pantalla, en un texto que no depende del orden en que llegaron. */
+export function claveDeConocidos(conocidos: readonly string[]): string {
+  return [...conocidos].sort().join(",");
+}
+
+/**
+ * ¿Hay que bajar otra vez todas las filas de la sede? (auditoría 2026-10-13, punto 20). Antes, el sondeo de cada
+ * 10 s releía las 1.507 filas de TRU aunque nadie hubiera vendido nada. Ahora pregunta primero la huella y solo se
+ * salta la relectura si es la MISMA de la última lectura completa Y la pantalla sigue conociendo las mismas prendas:
+ * una prenda recién creada en el catálogo tiene que recibir su número aunque el stock no se haya movido. Sin huella
+ * (la función todavía no existe en esa base, o falló) se relee siempre: más lento, nunca viejo.
+ */
+export function hayQueReleer(ultima: UltimaHuella, huella: string | null, conocidos: string): boolean {
+  if (huella === null || ultima === null) return true;
+  return ultima.huella !== huella || ultima.conocidos !== conocidos;
+}
