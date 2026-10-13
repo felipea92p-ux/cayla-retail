@@ -52,6 +52,7 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013171000_conteo_de_envio.sql",
       "20261013172000_cerrar_conteo_con_pendientes.sql",
       "20261013173000_resolver_pendiente_de_envio.sql",
+      "20261013180000_reabrir_envio.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
