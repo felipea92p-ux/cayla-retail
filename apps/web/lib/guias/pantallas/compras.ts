@@ -35,7 +35,7 @@ export const GUIA_FACTURAS: Guia = {
     {
       id: "exportar",
       ancla: "compras.exportar",
-      titulo: "Exportar el mes",
+      titulo: "Descargar el mes",
       texto: "Descarga un archivo con las facturas del mes, que se abre en Excel, para mandárselo al contador. No cambia nada en el sistema.",
     },
     {
@@ -1118,7 +1118,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.empezar",
       opcional: true,
       titulo: "Por dónde empezar",
-      texto: "Cuando ya hay categorías con plan, al lado sale «Exportar», para imprimirlo o bajarlo a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
+      texto: "Cuando ya hay categorías con plan, al lado sale «Descargar la lista», para imprimirla o bajarla a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
     },
     {
       id: "selector",

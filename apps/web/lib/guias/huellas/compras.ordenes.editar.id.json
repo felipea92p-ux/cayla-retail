@@ -6,7 +6,7 @@
   "controles": {
     "app/(app)/compras/ordenes/editar/[id]/page.tsx": [
       "Volver «; if (falla || !detalle)»",
-      "BotonEnlace «Ver las órdenes de compra»",
+      "BotonEnlace «(sin nombre)»",
       "BotonEnlace «Ver la orden»"
     ],
     "components/ordenes-compra/NuevaOrdenCompra.tsx": [

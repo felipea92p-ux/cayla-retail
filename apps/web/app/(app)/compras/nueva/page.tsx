@@ -55,7 +55,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
               icono={<Building2 />}
               titulo="Todavía no hay proveedores"
               acciones={
-                <BotonEnlace href="/compras/proveedores" peso="primario">
+                <BotonEnlace href="/compras/proveedores" peso="primario">{/* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */}
                   Ir a Proveedores
                 </BotonEnlace>
               }
@@ -67,7 +67,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
               icono={<Shirt />}
               titulo="Todavía no hay productos en el catálogo"
               acciones={
-                <BotonEnlace href="/productos" peso="primario">
+                <BotonEnlace href="/productos" peso="primario">{/* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */}
                   Ir a Productos
                 </BotonEnlace>
               }

@@ -2,10 +2,9 @@
   "guia": "compras",
   "ruta": "/compras",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 51,
+  "total": 50,
   "controles": {
     "app/(app)/compras/page.tsx": [
-      "BotonAncla «compras.exportar»",
       "BotonEnlace «compras.registrar»",
       "Link «{`compras.vista-${p.clave}»",
       "SegmentoEnlaces «(sin nombre)»",

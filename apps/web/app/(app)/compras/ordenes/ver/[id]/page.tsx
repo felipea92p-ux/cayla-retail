@@ -36,7 +36,7 @@ export default async function OrdenCompraPage({ params }: { params: Promise<{ id
               icono={<FileX />}
               titulo="No encontramos esa orden"
               acciones={
-                <BotonEnlace href="/compras/ordenes" peso="primario">
+                <BotonEnlace href="/compras/ordenes" peso="primario">{/* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */}
                   Ver las órdenes de compra
                 </BotonEnlace>
               }

@@ -27,6 +27,7 @@ import {
   type Parte,
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Reportes ▸ Escenarios (ADR-0195 F6), dibujado como el spike aprobado (`vistaEscenarios`, «¿Qué pasa si…?»): a
 // la izquierda las palancas; a la derecha qué pasaría, la utilidad de cada unidad y la caja de las próximas semanas. Es la
@@ -100,9 +101,9 @@ export function EscenariosPanel({
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!proyeccion} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} disabled={!proyeccion} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />

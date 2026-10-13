@@ -30,6 +30,7 @@ import {
   type LineaDiario,
 } from "@/lib/resultados-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
@@ -127,9 +128,9 @@ export function EstadoResultadosPanel({
             ) : (
               <Chip versalitas={false}>{columnas[0]?.nombre ?? "Tu tienda"}</Chip>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!columnas.length} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} disabled={!columnas.length} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />

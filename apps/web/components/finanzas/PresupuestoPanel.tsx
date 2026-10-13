@@ -22,6 +22,7 @@ import {
   unidadesParaVer,
   type FilaPpto,
 } from "@/lib/presupuesto-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Reportes ▸ Presupuesto (ADR-0195, capa «para decidir»), dibujado como el spike aprobado
 // (docs/maquetas/finanzas-2026-09/, `vista-reportes.js` → `vistaPresupuesto`): cabecera «¿Vamos según lo planeado?» con
@@ -109,9 +110,9 @@ export function PresupuestoPanel({
             ) : (
               <Chip versalitas={false}>{tiendaNombre ?? bloques[0]?.nombre ?? "Tu tienda"}</Chip>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!bloques.length} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} disabled={!bloques.length} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />

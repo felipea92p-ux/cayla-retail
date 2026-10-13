@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Download, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
@@ -18,6 +18,7 @@ import {
   type FilaListaCompra,
   type FilaPlan,
 } from "@/lib/plan-compra-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // «Exportar» del plan de campaña (ADR-0349): la lista de compra que se lleva al proveedor, por categoría y por talla, con su total.
 // Se arma en el navegador con lo que la pantalla ya leyó (no toca la base). Una vista previa en papel; «Descargar Excel (CSV)» baja el
@@ -90,15 +91,9 @@ export function ExportarPlan({ planNombre, filas, confianza, onClose }: { planNo
               <Printer aria-hidden className="h-4 w-4" />
               Imprimir
             </Boton>
-            <Boton
-              type="button"
-              peso="primario"
-              disabled={!hayQueComprar}
-              onClick={() => descargarCsv(nombreDelArchivoDeCompra(planNombre), [...ENCABEZADOS_LISTA_COMPRA], filasDelCsvDeCompra(lista))}
-            >
-              <Download aria-hidden className="h-4 w-4" />
-              Descargar Excel (CSV)
-            </Boton>
+            <BotonDescargar peso="primario" disabled={!hayQueComprar} onClick={() => descargarCsv(nombreDelArchivoDeCompra(planNombre), [...ENCABEZADOS_LISTA_COMPRA], filasDelCsvDeCompra(lista))}>
+              Descargar Excel
+            </BotonDescargar>
           </div>
           {/* Lo que sale en papel: pegado a <body> para que, al imprimir, lo demás desaparezca (app/estilos/lista-compra.css). */}
           {typeof document !== "undefined" &&

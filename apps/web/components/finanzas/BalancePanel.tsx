@@ -35,6 +35,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarX, Flag, Scale, Store } from "lucide-react";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0198), dibujado como el spike aprobado (`vista-reportes.js` →
 // `vistaBalance`): cabecera «¿Cuánto vale CAYLA?» → la tarjeta «Antes de dibujarlo, el sistema lo comprueba» con cada
@@ -147,9 +148,9 @@ export function BalancePanel({
                 Saldos de arranque
               </button>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />

@@ -6,8 +6,8 @@
   "controles": {
     "app/(app)/compras/nueva/page.tsx": [
       "Volver «Compras»",
-      "BotonEnlace «Ir a Proveedores»",
-      "BotonEnlace «Ir a Productos»"
+      "BotonEnlace «(sin nombre)»",
+      "BotonEnlace «(sin nombre)» #2"
     ],
     "components/AdjuntosCompra.tsx": [
       "input «input.current?.click()»",

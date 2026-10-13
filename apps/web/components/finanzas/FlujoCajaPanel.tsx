@@ -32,6 +32,7 @@ import {
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Reportes ▸ Flujo de caja (ADR-0195 F6), dibujado como el spike aprobado (`vistaFlujo`, «¿Por qué vendí bien y
 // no hay plata?»): a la izquierda lo que ya pasó (lo que entró por medio, lo que salió por concepto, y semana a semana); a
@@ -77,9 +78,9 @@ export function FlujoCajaPanel({
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!real && !proyeccion} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} disabled={!real && !proyeccion} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />

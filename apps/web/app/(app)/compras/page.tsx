@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Download } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
 import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
@@ -18,11 +17,12 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { BotonAncla, BotonEnlace } from "@/components/ui/campos";
+import { BotonEnlace } from "@/components/ui/campos";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
@@ -114,9 +114,9 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         <div className="flex flex-wrap gap-2.5">
           {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
               quien no es líder exporta lo de sus tiendas). */}
-          <BotonAncla href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} data-guia="compras.exportar">
-            <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
-          </BotonAncla>
+          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+            Descargar el mes
+          </BotonDescargar>
           <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
             + Registrar factura
           </BotonEnlace>
