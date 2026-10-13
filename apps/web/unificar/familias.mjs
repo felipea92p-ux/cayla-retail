@@ -421,8 +421,13 @@ export const DECISIONES = {
     "tambien": ["app/globals.css"],
     "firmas": [
       // Un enlace o un botón sutil teñido de rojo a mano para borrar o anular: va btn-peligro.
-      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo"
+      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo",
+      // Desactivar, eliminar, anular, borrar o archivar escrito como enlace (dentro de una frase): es un <Boton peso="peligro"> en el
+      // pie de la hoja, como en Categorías, Familias, Colores y Proveedores (ronda 9, 2026-10-13). «Archivados (3)», que muestra
+      // lo archivado, no es la acción (`(?!d)`).
+      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?\\n\\s*(?:\\{[^}\\n]*\\?\\s*\")?(?:Desactiv|Elimin|Anul|Borr|Archiv)(?:ar|a)(?!d)\\w*"
     ],
+    "ventana": 4,
     "deuda": []
   },
   "accion.cerrar": {
@@ -614,9 +619,7 @@ export const DECISIONES = {
       // Un encabezado de tabla a mano (sus títulos con `role="columnheader"`): el encabezado es <Encabezado>.
       "role=\"columnheader\""
     ],
-    "deuda": [
-      "components/conteo/ListaConteo.tsx"
-    ],
+    "deuda": [],
     "excepciones": [
       { "archivo": "app/estilos/finanzas.css", "motivo": "ADR-0195: el CSS del kit de Finanzas (su comentario nombra la tabla del spike)" },
       { "archivo": "components/ConfiguracionCargaInicial.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
@@ -663,6 +666,8 @@ export const DECISIONES = {
     "pieza": "components/ui/TituloSeccion.tsx",
     "tambien": ["app/estilos/titulos.css"],
     "firmas": [
+      // Cuántos hay en un bloque, puesto a la derecha como si fuera un resumen: va en `cuenta`, el globito pegado al nombre (ronda 9).
+      "<TituloSeccion\\b(?:[^>]|=>)*?\\bdato=\\{<b>\\{[\\w.]+\\.length\\}<\\/b>\\}",
       // Un título de bloque en serif dibujado a mano (de 18 a 24 px): es <TituloSeccion>.
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\bfont-(?:display|serif)\\b[^\"'`]*\\btext-(?:lg|xl|2xl|\\[(?:1[89]|2[0-4])(?:\\.5)?px\\])",
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:lg|xl|2xl|\\[(?:1[89]|2[0-4])(?:\\.5)?px\\])[^\"'`]*\\bfont-(?:display|serif)\\b",
@@ -724,18 +729,14 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css"],
+    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
     "firmas": [
       // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
       "role=\"combobox\"",
       "role=\"listbox\"",
       "\\blista-flotante\\b"
     ],
-    "deuda": [
-      "components/LlegoMercaderia.tsx",
-      "components/RecepcionEnvio.tsx",
-      "components/RegistrarNotaCreditoModal.tsx"
-    ],
+    "deuda": [],
     "excepciones": [
       { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
       { "archivo": "app/estilos/alta-guia.css", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },

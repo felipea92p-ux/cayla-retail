@@ -644,8 +644,10 @@ body {
     translate: 0 0;
     color: var(--color-tinta);
   }
-  /* 3. La fila recién guardada respira en verde una vez (`data-recien`), como la orden de compra recién guardada. */
-  :where(.fila-cayla[data-recien]):not(.cmp-fila, .inline-block) { animation: cayla-fila-recien 1400ms var(--ease-cayla) both; }
+  /* 3. La fila recién guardada respira en verde una vez (`data-recien`), como la orden de compra recién guardada. En un <table> (la
+     planilla de Contar, ronda 9) respiran sus celdas: el <tr> conserva su entrada, su rayado y su tinte (verde si la talla cuadra). */
+  :where(.fila-cayla[data-recien]):not(.cmp-fila, .inline-block, tr) { animation: cayla-fila-recien 1400ms var(--ease-cayla) both; }
+  tr.fila-cayla[data-recien] > :is(td, th) { animation: cayla-fila-recien 1400ms var(--ease-cayla); }
 }
 @keyframes cayla-fila-recien {
   0% { background-color: color-mix(in srgb, var(--color-verde) 16%, var(--color-papel)); }
@@ -653,7 +655,8 @@ body {
 }
 @layer components {
   @media (prefers-reduced-motion: reduce) {
-    :where(.fila-cayla) { animation-duration: 1ms !important; animation-delay: 0ms !important; }
+    :where(.fila-cayla),
+    tr.fila-cayla[data-recien] > :is(td, th) { animation-duration: 1ms !important; animation-delay: 0ms !important; }
     .fila-cayla,
     .fila-cayla::after { transition-duration: 1ms !important; }
   }
