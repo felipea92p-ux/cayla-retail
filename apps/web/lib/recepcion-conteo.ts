@@ -26,6 +26,8 @@ const faltaLaFuncion = (e: { message: string; code?: string } | null): boolean =
 
 /** Lo contado de un envío. `soportado: false` = la base no tiene ADR-0393 (la pantalla usa la recepción de la fase 4). */
 export async function getConteosDelEnvio(despachoId: string): Promise<{ soportado: boolean; conteos: ConteosDelEnvio | null; falla: string | null }> {
+  // Un id que no es uuid no es un envío (la página ya dice «No encontramos ese envío»): no se le pregunta a la base.
+  if (!/^[0-9a-f-]{36}$/i.test(despachoId)) return { soportado: false, conteos: null, falla: null };
   try {
     const r = await rpc(RPC_CONTEOS_ENVIO, { p_despacho_id: despachoId });
     if (faltaLaFuncion(r.error)) return { soportado: false, conteos: null, falla: null };

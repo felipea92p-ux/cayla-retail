@@ -7,7 +7,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useResponsable } from "@/lib/useResponsable";
-import { mensajeDeLaRecepcion, TEXTO_LA_RECIBE_OTRA, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
+import { TEXTO_LA_RECIBE_OTRA, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
   claveDe,
@@ -20,6 +20,7 @@ import {
   type ConteosDelEnvio,
   type LineaParaContar,
   type Separado,
+  mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
 import { guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
@@ -157,7 +158,7 @@ export function RecibirContando({
       responsable.despues(error);
       if (error || !guardado) {
         setGuardados((g) => ({ ...g, [linea.clave]: "error" }));
-        setErrores((e) => ({ ...e, [linea.clave]: mensajeDeLaRecepcion(error) ?? error?.message ?? "No se pudo guardar lo contado. Revisa la conexión y vuelve a tocar." }));
+        setErrores((e) => ({ ...e, [linea.clave]: mensajeAlGuardar(error, "guardar lo contado") }));
         return null;
       }
       const clave = claveDe(guardado.conteo);

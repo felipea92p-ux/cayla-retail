@@ -9,8 +9,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import { mensajeDeLaRecepcion, type DetalleEnvio } from "@/lib/recepcion-envio-reglas";
-import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
+import { type DetalleEnvio } from "@/lib/recepcion-envio-reglas";
+import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { reabrirEnvio } from "@/lib/recepcion-conteo-acciones";
 
 // Reabrir (ADR-0393, decisión 5): «encontramos las 2 que faltaban». El envío vuelve a contarse; lo que faltó o sobró deja de valer hasta el
@@ -46,7 +46,7 @@ export function ReabrirEnvio({
     responsable.despues(e);
     setGuardando(false);
     if (e) {
-      setError(mensajeDeLaRecepcion(e) ?? e.message ?? "No se pudo reabrir. Vuelve a intentar.");
+      setError(mensajeAlGuardar(e, "reabrir el envío"));
       return;
     }
     avisar.exito(`${detalle.numero} reabierto`, { detalle: "Corrige lo que haga falta y vuelve a cerrarlo." });

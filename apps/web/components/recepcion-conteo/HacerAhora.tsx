@@ -11,7 +11,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
-import { atipicosPorLinea, leerCostoAtipicoRecepcion, mensajeDeLaRecepcion, type CatalogoParaRecibir, type CostoAtipicoRecepcion, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { atipicosPorLinea, leerCostoAtipicoRecepcion, type CatalogoParaRecibir, type CostoAtipicoRecepcion, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import {
   argsResolverPendiente,
   ponerTallas,
@@ -24,6 +24,7 @@ import {
   type PrendaSeparada,
   type Separado,
   type VarianteSeparada,
+  mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
 import { resolverPendiente } from "@/lib/recepcion-conteo-acciones";
 import { HojaTallas } from "./HojaTallas";
@@ -115,7 +116,7 @@ export function HacerAhora({
       }
       // El mismo token en el reintento: si la respuesta se perdió pero la base guardó, devuelve lo mismo sin meter dos veces. Si la base
       // rechazó, no guardó nada y el token sigue libre.
-      setError(mensajeDeLaRecepcion(e) ?? e.message ?? "No se pudo guardar. Vuelve a intentar.");
+      setError(mensajeAlGuardar(e, "guardar"));
       return;
     }
     avisar.exito(resuelto ? textoResuelto(resuelto) : "Listo");

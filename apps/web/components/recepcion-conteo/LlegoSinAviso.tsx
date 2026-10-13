@@ -12,8 +12,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { diaMes } from "@/lib/fechas-lima";
 import { urlContraFactura } from "@/lib/llegada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
-import { mensajeDeLaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
+import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
 
 // «Llegó mercadería sin aviso» (ADR-0393, decisiones 2 y 10): lo que llega sin que Compras lo haya despachado se recibe con el MISMO conteo
@@ -63,7 +62,7 @@ export function LlegoSinAviso({
     responsable.despues(e);
     if (e || !abierto) {
       setAbriendo(false);
-      setError(mensajeDeLaRecepcion(e) ?? e?.message ?? "No se pudo abrir. Vuelve a intentar.");
+      setError(mensajeAlGuardar(e, "abrir el envío"));
       return;
     }
     router.push(`/recibir/envio/${abierto.despachoId}`);

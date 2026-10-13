@@ -11,7 +11,8 @@
 // El vocabulario (ADR-0393): ENVÍO es lo que se cuenta y se cierra; PENDIENTE es lo contado que todavía no está en el stock —sin separar
 // (no se sabe qué prendas son), detalle (se sabe la prenda, faltan tallas y colores) o crear (es nueva)—.
 
-import { leerCantidad } from "./alta-producto";
+import { leerCantidad, limpiarCantidad } from "./alta-producto";
+import { esFalloDeRed, traducirError } from "./error-escritura";
 import type { CampoDeGuia } from "./guia-campos";
 import { leerNumero, aTexto } from "./orden-compra-alta";
 import {
@@ -24,6 +25,7 @@ import {
   type LineaEnvio,
   type PrendaRecepcion,
   type SolucionDanada,
+  mensajeDeLaRecepcion,
 } from "./recepcion-envio-reglas";
 import { opcionReposicion } from "./nos-debe-reglas";
 
@@ -632,7 +634,8 @@ export function camposDelCierre(p: Parameters<typeof faltaParaCerrar>[0]): Campo
       campos.push({
         id: idCampoCierre("costo", l.clave),
         nombre: `Costo · ${nombre}`,
-        requerido: !p.sinAviso,
+        // Sin aviso el costo es opcional, pero uno mal escrito frena: si no, se descartaría en silencio y la persona creería que lo puso.
+        requerido: !p.sinAviso || leerCostoCierre((p.decisiones[l.clave] ?? DECISION_VACIA).costo).problema !== null,
         hecho: !f && (p.sinAviso ? leerCostoCierre((p.decisiones[l.clave] ?? DECISION_VACIA).costo).valor != null : true),
         pendiente: f ? `${f.texto}.` : "Sin costo entra igual: llega con la factura.",
       });
@@ -887,5 +890,35 @@ export function diasDesde(desde: string | null, hoy: Date = new Date()): number 
   return Number.isFinite(t) ? Math.max(0, Math.floor((hoy.getTime() - t) / 86_400_000)) : null;
 }
 
-/** Una cantidad escrita en la caja del contador (vacío es 0; nada que no sea un entero). */
-export const leerContadas = (t: string): number | null => leerCantidad(t);
+/**
+ * Lo que se escribe en la caja del contador. Solo dígitos, hasta 4 (como la matriz: una cantidad imposible ni se puede escribir), así la
+ * caja muestra siempre lo que se guarda. Vacío NO es 0: es «todavía escribiendo», y no se guarda nada (chaos 2026-10-13: borrar para
+ * reescribir guardaba un 0, y una categoría de fuera de la guía en 0 desaparecía de la lista con la persona escribiendo).
+ */
+export function leerContadas(t: string): { texto: string; contadas: number | null } {
+  const texto = limpiarCantidad(t);
+  return { texto, contadas: texto === "" ? null : Number(texto) };
+}
+
+/**
+ * Las categorías que se ven en la lista del conteo: las de la guía, lo de fuera de la guía con algo contado, lo agregado en esta visita
+ * (aunque esté en 0) y la que se está contando (aunque la persona la haya bajado a 0: si se va de la lista, no la puede volver a subir).
+ */
+export function lineasALaVista(lineas: readonly LineaParaContar[], agregados: ReadonlySet<string>, foco: ClaveLinea | null): LineaParaContar[] {
+  return lineas.filter((l) => lineaVisible(l) || agregados.has(l.clave) || l.clave === foco);
+}
+
+/**
+ * El error de un guardado de la recepción en palabras de tienda. La base ya habla castellano (sus pistas `recepcion_*`); la red caída no
+ * se muestra cruda. Como cada guardado lleva su token (un reintento con el mismo token no repite nada), se puede decir que vuelva a
+ * intentar sin miedo, aunque no se sepa si llegó a guardarse.
+ */
+export function mensajeAlGuardar(error: { message?: string | null; hint?: string | null; code?: string | null; details?: string | null } | null | undefined, contexto: string): string {
+  const deLaRecepcion = mensajeDeLaRecepcion(error);
+  if (deLaRecepcion) return deLaRecepcion;
+  const e = error ? { message: error.message ?? "", code: error.code ?? null, details: error.details ?? null, hint: error.hint ?? null } : null;
+  if (e && esFalloDeRed(e)) {
+    return `Se cortó la conexión al ${contexto}: no sabemos si llegó a guardarse. Revisa el internet y vuelve a intentarlo: si ya se guardó, no se repite.`;
+  }
+  return traducirError(e, contexto);
+}

@@ -17,7 +17,6 @@ import { pendienteDe } from "@/lib/nos-debe-reglas";
 import {
   atipicosPorLinea,
   leerCostoAtipicoRecepcion,
-  mensajeDeLaRecepcion,
   type CausaFaltante,
   type CausaSobrante,
   type CostoAtipicoRecepcion,
@@ -40,6 +39,7 @@ import {
   TOPES_CONTEO,
   type DecisionCierre,
   type LineaParaContar,
+  mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
 import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
 
@@ -123,7 +123,7 @@ export function CerrarEnvio({
         return;
       }
       const cambio = e.hint === HINT_CONTEO_CAMBIADO;
-      setError({ texto: mensajeDeLaRecepcion(e) ?? e.message ?? "No se pudo cerrar el envío. Vuelve a intentar.", recargar: cambio || e.hint === "version_cambiada" });
+      setError({ texto: mensajeAlGuardar(e, "cerrar el envío"), recargar: cambio || e.hint === "version_cambiada" });
       if (cambio) onConteoCambiado();
       requestAnimationFrame(() => avisoError.current?.focus());
       return;

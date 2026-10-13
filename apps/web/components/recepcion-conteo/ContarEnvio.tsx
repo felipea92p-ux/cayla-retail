@@ -19,7 +19,7 @@ import {
   idCampoConteo,
   ID_CAMPO_AGREGAR,
   leerContadas,
-  lineaVisible,
+  lineasALaVista,
   ponerTallas,
   textoPrendas,
   totalSeparado,
@@ -84,10 +84,11 @@ export function ContarEnvio({
 }) {
   // Lo agregado en esta visita se ve aunque todavía esté en 0 (lo de fuera de la guía en 0 es «lo quitado»).
   const [agregados, setAgregados] = useState<ReadonlySet<string>>(new Set());
-  const visibles = lineas.filter((l) => lineaVisible(l) || agregados.has(l.clave));
+  const iniciales = lineasALaVista(lineas, agregados, null);
+  const primeraSinContar = iniciales.find((l) => l.linea && !l.conteo)?.clave ?? null;
+  const [foco, setFoco] = useState<ClaveLinea | null>(primeraSinContar ?? iniciales[0]?.clave ?? null);
+  const visibles = lineasALaVista(lineas, agregados, foco);
   const guia = useGuiaCampos(camposDelConteo(visibles), { enModal: false });
-  const primeraSinContar = visibles.find((l) => l.linea && !l.conteo)?.clave ?? null;
-  const [foco, setFoco] = useState<ClaveLinea | null>(primeraSinContar ?? visibles[0]?.clave ?? null);
   const [hoja, setHoja] = useState<Hoja>(null);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
   const linea = visibles.find((l) => l.clave === foco) ?? visibles[0] ?? null;
@@ -411,8 +412,9 @@ function ContadorDeLinea({
             placeholder="0"
             aria-label={`Cuántas ${linea.categoria?.nombre.toLowerCase() ?? "prendas"} llegaron`}
             onChange={(e) => {
-              setEscribiendo(e.target.value);
-              const n = leerContadas(e.target.value);
+              // Solo dígitos: la caja muestra lo que se guarda. Vacío es «todavía escribiendo», no 0.
+              const { texto: limpio, contadas: n } = leerContadas(e.target.value);
+              setEscribiendo(limpio);
               if (n !== null && n >= minimo) onEscribir({ contadas: n });
             }}
             onBlur={() => setEscribiendo(null)}

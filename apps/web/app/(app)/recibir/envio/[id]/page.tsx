@@ -31,7 +31,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
           titulo="Recibir un envío"
-          subtitulo="Lo que llega de una orden de compra, contado talla por talla."
+          subtitulo="Lo que llega a tu sede de una orden de compra o sin aviso."
           volver={<Volver href="/recibir" a="Recibir mercadería" />}
         />
         {datos.falla ? (

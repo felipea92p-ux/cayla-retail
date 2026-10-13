@@ -43,6 +43,9 @@ import {
   type LineaParaContar,
   type Separado,
   necesitaCatalogoAlCerrar,
+  lineasALaVista,
+  leerContadas,
+  mensajeAlGuardar,
   esEnvioSinAviso,
   detalleDeEnvioSinAviso,
 } from "./recepcion-conteo-reglas";
@@ -384,6 +387,56 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(textoAvisoPendientes(leerPendientesDeLaSede(null))).toBeNull();
     expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(7);
     expect(diasDesde(null)).toBeNull();
+  });
+});
+
+describe("chaos 2026-10-13 (semilla 393): lo que la persona escribe es lo que se guarda", () => {
+  it("ENT-02/ENT-06: el contador solo admite dígitos (hasta 4) y lo vacío no es 0: no se guarda nada mientras se escribe", () => {
+    expect(leerContadas("")).toEqual({ texto: "", contadas: null });
+    expect(leerContadas("   ")).toEqual({ texto: "", contadas: null });
+    expect(leerContadas("12")).toEqual({ texto: "12", contadas: 12 });
+    expect(leerContadas("999999999999")).toEqual({ texto: "9999", contadas: 9999 });
+    expect(leerContadas("-5")).toEqual({ texto: "5", contadas: 5 });
+    expect(leerContadas("٣")).toEqual({ texto: "", contadas: null });
+    expect(leerContadas("0")).toEqual({ texto: "0", contadas: 0 });
+  });
+
+  it("ENT-02: la categoría que se está contando no desaparece de la lista aunque quede en 0", () => {
+    const extra = (pos: number, contadas: number): LineaParaContar => ({
+      clave: `extra:${pos}`,
+      linea: null,
+      conteo: leerConteosDelEnvio({ despacho_id: "d", conteos: [conteoCrudo({ extra_posicion: pos, contadas, proveedor: PROV, categoria: CAT, marca: MARCA })] })?.conteos[0] ?? null,
+      categoria: CAT,
+      marca: MARCA,
+      proveedor: PROV,
+      dijeron: null,
+    });
+    const ls = [extra(1, 0), extra(2, 0), extra(3, 4)];
+    expect(lineasALaVista(ls, new Set(), "extra:1").map((l) => l.clave)).toEqual(["extra:1", "extra:3"]);
+    expect(lineasALaVista(ls, new Set(["extra:2"]), null).map((l) => l.clave)).toEqual(["extra:2", "extra:3"]);
+  });
+
+  it("ENT-07: sin aviso, un costo mal escrito frena el cierre (no se descarta en silencio)", () => {
+    const l: LineaParaContar = {
+      clave: "extra:1",
+      linea: null,
+      conteo: leerConteosDelEnvio({ despacho_id: "d", conteos: [conteoCrudo({ extra_posicion: 1, contadas: 3, proveedor: PROV, categoria: CAT, marca: MARCA })] })?.conteos[0] ?? null,
+      categoria: CAT,
+      marca: MARCA,
+      proveedor: PROV,
+      dijeron: null,
+    };
+    const campos = camposDelCierre({ lineas: [l], decisiones: { "extra:1": { ...DECISION_PARA_PRUEBA, costo: "1.299,50" } }, sinAviso: true, responsable: true });
+    expect(campos.find((c) => c.id === "costo-extra-1")).toMatchObject({ requerido: true, hecho: false });
+    const faltan = faltaParaCerrar({ lineas: [l], decisiones: { "extra:1": { ...DECISION_PARA_PRUEBA, costo: "1.299,50" } }, sinAviso: true, responsable: true });
+    expect(campos.filter((c) => c.requerido && !c.hecho).length).toBe(faltan.length);
+  });
+
+  it("RS-01/RS-03: la red caída no se muestra cruda; como cada guardado lleva su token, se puede volver a intentar sin repetir", () => {
+    const red = mensajeAlGuardar({ message: "TypeError: Failed to fetch" }, "cerrar el envío");
+    expect(red).not.toMatch(/TypeError|fetch/);
+    expect(red).toMatch(/no se repite/);
+    expect(mensajeAlGuardar({ message: "De este pendiente quedan 1 y pusiste 2", hint: "recepcion_pendiente_excede" }, "guardar")).toMatch(/quedan 1/);
   });
 });
 
