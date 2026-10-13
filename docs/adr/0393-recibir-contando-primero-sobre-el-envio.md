@@ -120,16 +120,16 @@ La 1 y la 3 las cuida la función bajo un solo candado (la fila del conteo de es
 
 - **`guardar_conteo_envio`** (contar y separar una línea; también agrega lo que no estaba en la guía): con el envío `abierto`, el módulo Recibir y
   la sede. Si otra persona guardó esa línea después de lo que viste, guarda lo tuyo y te devuelve lo que pisaste («Lucía había puesto 38»).
-- **`cerrar_conteo`** (firma quien cierra, combo «Responsable»): costo por línea (decisión 6 y la 18 de ADR-0362), causas de lo que no
+- **`cerrar_conteo_envio`** (firma quien cierra, combo «Responsable»): costo por línea (decisión 6 y la 18 de ADR-0362), causas de lo que no
   cuadró (contadas contra enviadas), nota. Lo separado con tallas y colores entra al stock como hoy (lote por proveedor, movimientos al
   almacén y a la cuarentena, costo promediado, el papel hasta su cupo); el resto se vuelve pendiente. Idempotente por token y huella.
 - **`recibir_despacho` sigue existiendo** con la misma firma y la misma respuesta: escribe los conteos con todo detallado y llama al mismo
   cierre. Un solo camino que escribe stock (el primer commit es el refactor que saca ese camino de `recibir_despacho`; el segundo, los conteos).
-- **`resolver_pendiente`** («Hacer ahora»): separar, poner tallas y colores o crear lo nuevo (con `preparar_prenda_al_recibir`). Entra al
+- **`resolver_pendiente_envio`** («Hacer ahora»): separar, poner tallas y colores o crear lo nuevo (con `preparar_prenda_al_recibir`). Entra al
   stock con el costo fijado al cerrar y el lote de ese envío y proveedor (lo crea si al cerrar no hubo ninguno), y carga el papel hasta el
   cupo que quede. Pedir más de lo pendiente se rechaza: «Contaste 40 y ya separaste 40: si hay más, reabre el conteo». Cambiar el número
   tiene una sola puerta, reabrir.
-- **`reabrir_despacho`**: `cerrado → abierto` mientras ninguna diferencia vigente tenga resolución en «Nos debe» (decisión 5: «hasta que
+- **`reabrir_envio`**: `cerrado → abierto` mientras ninguna diferencia vigente tenga resolución en «Nos debe» (decisión 5: «hasta que
   Compras resuelva»); lo que ya entró al stock no se toca y los pendientes abiertos vuelven al borrador de su línea. La pantalla dice si
   Compras ya tomó la diferencia.
 - **Lecturas:** el detalle del envío suma los conteos (quién contó cada línea), los pendientes y el rastro de cierres; una lectura de
@@ -174,9 +174,9 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
 1. **Contrato** (este ADR) y OK de Felipe; mensaje a la sesión de Órdenes de compra con «La frontera» y los cambios en sus tablas.
 2. **Base · contar guardado:** refactor de `recibir_despacho` (un solo camino de cierre) y `despacho_conteos` + `guardar_conteo_envio` + lecturas;
    pruebas en Postgres (permisos, sede, quien compró, gana el último con aviso, envío anulado o cerrado).
-3. **Base · cerrar con pendientes:** `cerrar_conteo`, `despacho_pendientes`, `resolver_pendiente`, la lectura del número de pendientes;
-   la invariante 1 como prueba y como invariante de `/chaos`.
-4. **Base · reabrir y sin aviso:** `despacho_cierres`, `reabrir_despacho`, el cierre en `despacho_diferencias` con los lectores de «Nos
+3. **Base · cerrar con pendientes:** `cerrar_conteo_envio`, `despacho_pendientes`, `resolver_pendiente_envio`, la lectura del número de
+   pendientes; la invariante 1 como prueba y como candado de la base (ver «Construido»).
+4. **Base · reabrir y sin aviso:** `despacho_cierres`, `reabrir_envio`, el cierre en `despacho_diferencias` con los lectores de «Nos
    debe»; el envío sin orden (si Felipe elige la opción recomendada).
 5. **Web · la cara A:** la puerta de `/recibir` (reemplaza «Llegó mercadería»), ¿Qué llegó? → Contar → Cerrar en `/recibir/envio/[id]`,
    «Para después» con «Hacer ahora», el aviso en Inicio, en la cabecera de Recibir y en Catálogo ▸ Productos ▸ Por crear.
@@ -203,3 +203,45 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
   `fn_recepcion_entrar` que no aplica el stock deja 5 casos de la recepción en rojo. Corridas contra una pila propia (`supabase start`,
   puertos 549xx) con todas las migraciones de la rama.
 - **Nada de esto está en producción.** Se pega con el OK de Felipe, después de 20261013015000.
+
+### Actividad 3 · cerrar con pendientes (2026-10-13)
+
+- **Nombres.** `cerrar_conteo` y `reabrir_conteo` ya eran del conteo de inventario (ADR-0277): las funciones de este ADR terminan en
+  `_envio` (`guardar_conteo_envio`, `cerrar_conteo_envio`, `resolver_pendiente_envio`) y sus internas empiezan con `fn_envio_`. Un
+  commit propio, antes de la actividad, renombró lo de la actividad 2 (no estaba en producción ni lo llamaba la web).
+- **`20261013172000_cerrar_conteo_con_pendientes.sql`.** `despacho_pendientes` (detalle | crear; nace al cerrar o al separar después;
+  solo se agregan filas y su estado avanza), `despacho_recibidos.pendiente_id`, `fn_envio_cuentas` (por línea: contadas, en el stock,
+  en pendientes y sin separar) y **el cierre único `fn_recepcion_cerrar`**: la reposición de la 5a con su texto exacto, la puerta al
+  stock, los pendientes, el saldo, el envío cerrado y la actividad. `recibir_despacho` (misma firma) arma lo de siempre, deja el conteo
+  todo detallado y cierra por ahí; `cerrar_conteo_envio` cierra lo guardado: lo que tiene tallas entra, lo demás queda pendiente, y
+  lo que faltó o sobró se mide con lo **contado** («40 contadas de 40» no es «faltan 28» aunque solo 12 tengan tallas).
+- **`20261013173000_resolver_pendiente_de_envio.sql`.** `resolver_pendiente_envio` («Hacer ahora», con el envío cerrado), con
+  `despacho_separaciones` para el token (un doble clic no entra dos veces); `preparar_prenda_al_recibir` (por ancla) crea o completa
+  una prenda con el envío cerrado mientras le quede algo por detallar; `fn_envio_conteo_json` suma por línea lo que está en el stock,
+  lo sin separar y sus pendientes; `fn_recepcion_pendientes(sede)` es el número de la decisión 4 (por separar, por detallar, por crear,
+  desde cuándo).
+- **Lo que cambió del plan:**
+  - **La invariante 1 y la 3 las cuida la base, no solo las funciones.** Un candado DIFERIDO por línea (`despacho_recibidos_cuadra`,
+    `despacho_pendientes_cuadra`) revisa al confirmar: en el stock + pendientes ≤ contadas, lo que entró por un pendiente no pasa de
+    su cantidad y es de su línea, y resuelto = entró todo. Son cuatro las funciones que escriben ahí (y la actividad 4 suma reabrir);
+    la próxima se olvidaría de validar. Por eso **no va como invariante de `/chaos`**: su regla es no vigilar lo que la base ya
+    impide. En la actividad 4, cuando reabrir deje cambiar lo contado de un envío con stock, el candado se extiende a `despacho_conteos`.
+  - **Quien cierra firma lo que vio:** `cerrar_conteo_envio` recibe la versión de cada conteo; si alguien guardó o agregó una línea
+    después, PT409 `conteo_cambiado` («Blusas cambió mientras cerrabas, lo guardó Lucía»).
+  - **«Hacer ahora» sobre un pendiente solo pone tallas y colores** (cualquier prenda de la categoría y marca de su línea: al detallar se
+    descubre a veces que 3 «Aurora» eran «Lina»); separar en prendas sin tallas o nuevas se hace desde lo sin separar. Un pendiente no
+    tiene hijos, y lo que queda de él es su cantidad menos lo que entró por él.
+  - **La respuesta de `recibir_despacho` suma dos datos:** `contadas` y `por_detallar` (lo que Compras necesita para decir «llegó todo ·
+    15 por detallar»). Lo demás, igual.
+  - **Re-pegar `20261013015000` (la 5a) después de `172000` falla a propósito:** sus dos bloques sobre `recibir_despacho` viven ahora en
+    `fn_recepcion_cerrar`. En producción ya está pegada; `pruebas:nos-debe` dejó de recargarla y recarga esta cadena. **La rama de la
+    fase 7 (`claude/purchase-order-phase7-9b0c82`) recarga la 5a en su `nos_debe.mjs`:** al traer `main` con esto, toma la lista nueva
+    (aviso en `docs/SESIONES-ACTIVAS.md`).
+- **Pruebas:** `pruebas:pendientes-de-envio` (23 casos: cerrar todo detallado y con pendientes, toda línea contada, causas, firmar lo
+  que se vio, fuera de la guía, doble clic, permisos; «Hacer ahora» por partes, nunca más de lo que queda, desde lo sin separar, crear
+  con el envío cerrado, costo atípico, el papel hasta su cupo; el candado escrito a mano; el número de la sede; y **tres casos de dos
+  sesiones reales** con COMMIT, solo en un banco propio o en el CI). Mutaciones detectadas: el cierre sin pendientes (12 rojos), el
+  candado ciego (1), lo que faltó medido con lo detallado (13), «Hacer ahora» sin tope (lo frena el candado diferido) y el envío tomado
+  en modo compartido (el caso de dos sesiones de fuera de la guía). `conteo-de-envio` 16, `recepcion-de-envio` 28 y `nos-debe` 16
+  siguen en verde con las dos migraciones cargadas dos veces.
+- **Nada de esto está en producción.** Se pega con el OK de Felipe, en orden: `170000`, `171000`, `172000`, `173000`.
