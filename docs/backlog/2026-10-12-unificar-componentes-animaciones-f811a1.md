@@ -1,0 +1,8 @@
+## 🧩 /unificar, rondas 6 y 7: propuestas listas (2026-10-12, ADR-0358) — solo documentos y herramientas de /unificar, sin pantallas; rama `claude/unificar-componentes-animaciones-f811a1`
+
+- [x] Ronda 6 (formularios): `campo` + `combo` en una pregunta, la lista del combo, el filtro que se abre, `etiqueta-campo`, `casilla`. Demos vivas en claro y oscuro, movimiento escrito por opción, fotos de hoy. Verificado en el navegador: abrir, elegir con teclado, buscar en la lista, quitar un filtro, el RUC que queda verde, el error de «Registrar gasto», el modo oscuro y la página de elegir (cuenta y «Copiar mi elección») sin errores en la consola.
+- [x] Ronda 7 (leer datos): `tabla` y `titulo-seccion` (bloque, grupo, separador de día). Verificado: ordenar por columna, abrir una fila, la lista que pega su día, el modo oscuro.
+- [x] `apps/web/unificar/elegir.mjs`: las demos dejan escribir y marcar (no bloquea `input`, `textarea`, `select`) y `entera: true` da todo el ancho a una tarjeta.
+- [ ] **Felipe elige** en las dos páginas (9 preguntas). Después, por familia: registro, `DECISIONES` con firmas y deuda, la pieza en `components/ui/`, migrar módulo por módulo y el censo de después.
+- [ ] **Censo de después con la base arriba**: el de hoy se cortó en 47 de 274 vistas (disco lleno → Docker apagado). Repetir con `--escenarios` y la pasada de `terminal-ventas` (antes, `pnpm --filter web tema:cuentas`: la cuenta del mostrador no existía en la base local).
+- [ ] **Liberar disco y volver a levantar Docker** (lo decide Felipe: borrar cachés `.next` de worktrees que no se usan, o limpiar worktrees viejas). Sin eso, nada local que use la base funciona.

@@ -29,7 +29,14 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| — | ninguna por ahora (la barra apilada se decidió el 2026-10-09) | — | — |
+| `campo` + `combo` (ronda 6) | [campo-combo.html](propuestas/campo-combo.html) · [foto](capturas/campo-combo.propuesta.jpg) | 2026-10-12 | UNA pregunta para las dos familias: la recomendada (P1) es la caja hundida de 40 px que se enciende (sube a papel y dibuja el hilo rojo) para todo campo y todo combo de una hoja; P2, el hilo para todo. Incluye la lista del combo ([lista.propuesta.jpg](capturas/lista.propuesta.jpg)): la de Desplegable + ✓ que se dibuja + buscador con lupa |
+| `filtro` (el combo que filtra, ronda 6) | [filtro.html](propuestas/filtro.html) · [foto](capturas/filtro.propuesta.jpg) | 2026-10-12 | P1: la píldora de la ronda 1 con su nombre; puesta, negra con lo elegido y su ✕. P2: la caja con el nombre adentro |
+| `etiqueta-campo` (ronda 6) | [etiqueta-campo.html](propuestas/etiqueta-campo.html) · [foto](capturas/etiqueta-campo.propuesta.jpg) | 2026-10-12 | P1: las versalitas de `Campo` que se oscurecen con su caja, con las marcas de la guía de foco. P2: letra normal de 13 px |
+| `casilla` (ronda 6) | [casilla.html](propuestas/casilla.html) · [foto](capturas/casilla.propuesta.jpg) | 2026-10-12 | P1: la casilla cuyo ✓ se dibuja y el interruptor en tinta (no en rojo) |
+| `tabla` (ronda 7) | [tabla.html](propuestas/tabla.html) · [foto](capturas/tabla.propuesta.jpg) | 2026-10-12 | P1: `<Tabla>` de hoy con movimiento (cascada al cargar, hilo de canto y «›» al apuntar, la fila abierta marcada, la flecha de ordenar). P2: «libro de cuentas», sin banda ni zebra |
+| `titulo-seccion` (ronda 7) | [titulo-seccion.html](propuestas/titulo-seccion.html) · [foto](capturas/titulo-seccion.propuesta.jpg) | 2026-10-12 | Bloque: serif de 21 px con su dato a la derecha (P1) o todo en versalitas (P2). Grupo dentro de una hoja: versalitas con una raya que se dibuja ([grupo](capturas/titulo-seccion.grupo.propuesta.jpg)). Día de una lista: versalitas con su total, pegado arriba ([día](capturas/titulo-seccion.dia.propuesta.jpg)) |
+
+Las páginas para elegir (con todo vivo y las fotos de hoy) se regeneran con [rondas/6-7/](rondas/6-7/README.md).
 
 ## Por analizar (las próximas rondas)
 
@@ -50,12 +57,12 @@ en la página de elegir, nunca por una descripción.
 | ~~3~~ | ~~`vacio`~~ | Decidida el 2026-10-08 (ronda 5): `<Vacio>` | | |
 | ~~4~~ | ~~`aviso`~~ | Decidida el 2026-10-08 (ronda 5): `<Aviso>` en franja, la «i» de la nota, el error en su lugar | | |
 | ~~5~~ | ~~`buscador`~~ | Decidida el 2026-10-08 (ronda 5): `<Buscador>` | | |
-| 6 | `combo` | Desplegables | 26 · 39 | La regla de buscar y paginar ya es una (ADR-0209); falta la cara. `SelectFin` es de Finanzas (ADR-0195) |
-| 7 | `tabla` | Tablas | 30 · 36 | `<Tabla>` existe; la de Finanzas (`fin-tabla`) queda aparte por ADR-0195 |
-| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 12 · 18 / 10 · 34 | Se corre con `--escenarios`: viven en las hojas |
-| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 33 · 54 | Muchas formas; sin pieza del sistema hoy |
+| 6 | `combo` | Desplegables | 42 sin depurar → **7 reales** (las 23 píldoras de filtro son una sola pieza) | **Propuesta lista (ronda 6, 2026-10-12)**: esperando la elección |
+| 7 | `tabla` | Tablas | 39 sin depurar → **4 reales** + `fin-tabla` | **Propuesta lista (ronda 7, 2026-10-12)**: esperando la elección |
+| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 8 / 5 (censo parcial del 2026-10-12) + el código: 5 caras de campo en una misma hoja | **Propuesta lista (ronda 6)**: campo y combo se eligen en UNA pregunta |
+| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Propuesta lista (ronda 7)**: bloque, grupo dentro de una hoja y separador de día |
 | 10 | `accion.ver`, `accion.filtrar`, `accion.exportar`, `accion.eliminar` | Ver el detalle, filtrar, exportar, quitar o anular | 13 / 4 / 4 / 4 | `accion.eliminar` toca dinero y comprobantes cuando anula: migrar no cambia qué hace |
-| 11 | `casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
+| 11 | ~~`casilla`~~ (propuesta lista, ronda 6), `enlace`, `modal`, `grafico`, `paginacion`, `avatar` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
 | 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
 | — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
@@ -75,6 +82,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `1b5ac53a`, cuenta `terminal-ventas` (el mostrador), con escenarios, familias `vacio,aviso,buscador` | 60 de 122 (las demás: sin acceso) | 3 | 6 buscadores en 24 pantallas (Facturación, Historial, Cambios/Devoluciones, Clientes, Proforma), 8 avisos (el de Facturación «más de 1 hora sin llegar a SUNAT», Caja, Sin conexión) y 5 vacíos |
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `63b64ba7`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion` (adelanto de la ronda 6, sin depurar) | 243 de 250 | 3 | 42 formas de combo en 118 pantallas, 39 de tabla en 70, 46 de título de sección en 151. Falta depurar y la pasada del mostrador; queda en `apps/web/unificar/.salida/r6-admin/` (fuera de git) |
 | 2026-10-09 | `claude/keen-feistel-35a4cb` @ `ef8e017e`, cuentas Admin y Admin-Taller, todo el ERP con los escenarios de Compras, familia `grafico` (el motor aprendió a ver una barra apilada hecha con cajas: antes solo veía SVG) | 180 de 188 | 1 | 10 formas de gráfico en el censo; la barra apilada son 4 huellas (dos de ellas, la misma barra vista tras un modal). Quince archivos la dibujan a mano: Notas de crédito, Proformas, Producción, Caja, el cierre y Eficiencia no salen con el seed y se contaron leyendo el código (Facturación e Historial sí salen). Frescura (otra rama) se midió aparte contra su worktree (`--otra-obra`). Después de migrar «Deuda por vencimiento», el censo la muestra con la huella de P; «Deuda por proveedor» sigue a mano |
+| 2026-10-12 | `claude/unificar-componentes-animaciones-f811a1` @ `6bffcd43c`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion,campo,etiqueta-campo,casilla` (rondas 6 y 7) | **47 de 274** (incompleto) | 6 | **Se cortó a la mitad:** el disco se llenó, Docker se apagó solo (`no space left on device`) y la base local cayó; desde ahí todas las rutas mandaban al login. Las rondas 6 y 7 se armaron con este censo parcial (campo, etiqueta-campo, casilla) y con el completo del 2026-10-07 (combo, tabla, titulo-seccion). La pasada de `terminal-ventas` no alcanzó a correr (la cuenta no existía en la base local y `tema:cuentas` necesita Docker) |
 
 ## Cómo se agrega una fila
 
