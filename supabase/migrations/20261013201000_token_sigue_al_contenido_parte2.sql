@@ -2,7 +2,7 @@
 -- 20261013201000_token_sigue_al_contenido_parte2.sql — CAYLA V2 (/chaos 2026-10-13, Felipe 2026-10-13)
 --
 -- Parte 2 de «el token sigue al contenido» (la parte 1 explica el problema y crea `intentos_con_token`,
--- `fn_intento_con_huella` y `fn_resolver_intento`). Aquí, las diez funciones de Ventas y Caja que reciben `p_token`
+-- `fn_intento_con_huella` y `fn_resolver_intento`). Aquí, las once funciones de Ventas y Caja que reciben un token
 -- llaman a `fn_intento_con_huella` ANTES de buscar su token: con el mismo token y otro contenido, rechazan
 -- (`token_reusado`) en vez de devolver lo que guardó el envío anterior.
 --
@@ -11,7 +11,7 @@
 -- un reintento real manda exactamente lo mismo).
 --
 -- CONTRATO (Liskov)
---   PROMETE: cada una de las diez funciones, con un token ya usado y otro contenido, responde `token_reusado` sin
+--   PROMETE: cada una de las once funciones, con un token ya usado y otro contenido, responde `token_reusado` sin
 --            escribir nada; con el mismo contenido, hace lo de siempre (devuelve lo que guardó). Con un token nulo,
 --            nada cambia. Lo demás de cada función queda igual.
 --   ASUME:   la parte 1 (20261013200000).
@@ -141,3 +141,14 @@ select pg_temp.insertar_antes(
     p_venta_item_id, p_ubicacion_id, p_variante_nueva_id, p_cantidad, p_metodo_pago_diferencia, p_motivo, p_condicion)::text));
 $v$,
   $v$fn_intento_con_huella('registrar_cambio'$v$);
+
+-- Apartar una prenda que llegó de otra tienda: busca su token (dentro de `p_datos`) ANTES de llamar a `separar_prendas`, así
+-- que la huella tiene que ir aquí también; si no, otro pedido con el mismo token recibía el apartado del primero.
+select pg_temp.insertar_antes(
+  'retail.separar_pedido_para_apartar(uuid, jsonb)',
+  $v$  if nullif(p_datos ->> 'p_token', '') is not null then$v$, 1,
+  $v$  -- El token sigue al contenido: el mismo token con otro pedido u otros datos se rechaza (token_reusado).
+  perform retail.fn_intento_con_huella('separar_pedido_para_apartar', nullif(p_datos ->> 'p_token', '')::uuid,
+    md5(jsonb_build_array(p_pedido_id, p_datos - 'p_token')::text));
+$v$,
+  $v$fn_intento_con_huella('separar_pedido_para_apartar'$v$);

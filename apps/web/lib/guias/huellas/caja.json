@@ -94,7 +94,7 @@
       "CampoTexto «Serie y número»",
       "button «Usa el formulario completo»",
       "button «Retiro o depósito»",
-      "ComboResponsable «avisoSalida.pedirAccion(ce»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -119,7 +119,7 @@
       "Link «Apartados»",
       "Link «Vender»",
       "button «Retiro o depósito»",
-      "ComboResponsable «avisoSalida»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -129,7 +129,7 @@
       "Desplegable «(sin nombre)»",
       "input «Describe el motivo»",
       "input «N° de operación, voucher, u otra nota»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar»",
       "button «{responsable.motivo ?? undefined}»"
     ],

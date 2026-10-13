@@ -11,21 +11,22 @@
 
 import type { LineaVentaReciente } from "./ventas-v2";
 import type { Seleccion } from "./cambio-reemplazo-reglas";
+import type { InstantaneaIntento } from "./intento-reglas";
 
 /** La key del panel de Cambios: la sede. Otra sede, otro montaje: lo armado en una no pasa a la otra. */
 export function claveDeCambios(ubicacionId: string): string {
   return `cambios:${ubicacionId}`;
 }
 
-/** Lo que queda guardado al cambiar de sede y vuelve al regresar: la venta elegida y lo hecho en el flujo. El token viaja con él: es el
- *  mismo cambio, y reintentarlo no lo duplica. */
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar: la venta elegida y lo hecho en el flujo. La marca del envío viaja con
+ *  él (y si quedó en duda, sigue en duda): es el mismo cambio, y reintentarlo no lo duplica. */
 export type CambioArmado = {
   venta: LineaVentaReciente[];
   lineaInicialId: string | null;
   lineaId: string | null;
   paso: 2 | 3 | 4;
   seleccion: Seleccion | null;
-  token: string;
+  intento: InstantaneaIntento | null;
 };
 
 /** De quién es la venta, para nombrarla en un aviso: el cliente sin su documento («Ana Prueba · DNI …» → «Ana Prueba»), si no su

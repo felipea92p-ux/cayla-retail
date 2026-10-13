@@ -1706,6 +1706,23 @@ html[data-buscando] [data-resultados] {
   .cascada-modal > :nth-child(6), .cascada-modal > form > :nth-child(6) { --k: 5; }
   .cascada-modal > :nth-child(7), .cascada-modal > form > :nth-child(7) { --k: 6; }
   .cascada-modal > :nth-child(n + 8), .cascada-modal > form > :nth-child(n + 8) { --k: 7; }
+  /* Los campos que se congelan juntos (`<fieldset disabled className="campos-congelables min-w-0 space-y-…">`, /chaos 2026-10-13:
+     mientras no se sabe si un envío se guardó, no se tocan). El fieldset no se anima entero (como el form): se animan sus campos,
+     cada uno con su turno, como si fueran hijos del form; lo que viene después (el aviso, los botones) entra al final. Lleva el
+     mismo `space-y-*` que su form, porque el espacio entre sus campos ya no lo pone el form. */
+  .cascada-modal > form > fieldset.campos-congelables { animation: none; }
+  .cascada-modal > form > fieldset.campos-congelables > :not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+  }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(1) { --k: 0; }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(2) { --k: 1; }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(3) { --k: 2; }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(4) { --k: 3; }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(5) { --k: 4; }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(6) { --k: 5; }
+  .cascada-modal > form > fieldset.campos-congelables > :nth-child(n + 7) { --k: 6; }
+  .cascada-modal > form > fieldset.campos-congelables ~ * { --k: 7; }
 
   /* PIE FIJO DE UNA HOJA (2026-09-30, revisión de responsive de Inventario): la hoja de `<Modal>` es la que scrollea, y en un
      laptop de 768 px de alto el botón principal de un formulario largo quedaba bajo el pliegue (Ajustar inventario de 1024 a

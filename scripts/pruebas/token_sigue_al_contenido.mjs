@@ -7,6 +7,7 @@
  * pantalla anunciaba algo que no quedó guardado. Aquí, para cada una de las diez funciones de Ventas y Caja con token:
  *   · el mismo token con el MISMO contenido devuelve lo mismo (el reintento de siempre sigue funcionando);
  *   · el mismo token con OTRO contenido se rechaza con `token_reusado`;
+ * (y `separar_pedido_para_apartar`, que busca su token antes de llamar a `separar_prendas`);
  * con controles (sin la llamada a `fn_intento_con_huella`, la venta y el pedido devuelven lo viejo: el hueco existía), y
  * `fn_resolver_intento`: «hecho» con lo guardado, «no llegó» definitivo (si aparece después, `intento_descartado`), otra
  * tienda no mira, y un resolver que llega mientras el envío todavía guarda espera a que termine.
@@ -49,7 +50,7 @@ function bloqueDe(funcion) {
   return { firma: `retail.${funcion}(${m[1]})`, bloque: m[2] };
 }
 const FUNCIONES = ["registrar_venta", "entregar_separacion", "registrar_movimiento_caja", "registrar_ingreso_caja", "registrar_gasto",
-  "separar_prendas", "abonar_separacion", "editar_separacion", "enviar_pedido_para_apartar", "registrar_cambio"];
+  "separar_prendas", "abonar_separacion", "editar_separacion", "enviar_pedido_para_apartar", "registrar_cambio", "separar_pedido_para_apartar"];
 const sinToken = (funcion) => {
   const { firma, bloque } = bloqueDe(funcion);
   return `do $d$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $b$${bloque}$b$, ''); end $d$;\n`;
@@ -187,6 +188,18 @@ operacion("registrar_cambio", {
   llamar: (como, v) => `select retail.registrar_cambio(:'item', :'ubic', :'w', 1, null, :'tok', '${v === "a" ? "talla_chica" : "talla_grande"}', 'vendible') as ${como} \\gset\n`,
 });
 
+// Apartar lo que llegó de otra tienda: dos pedidos que ya llegaron; el token viaja dentro de `p_datos`.
+const recibirPedido = (ped, tr) => `select retail.enviar_pedido_para_apartar(:'${ped}', now() + interval '1 day') as ${tr} \\gset
+select retail.registrar_recepcion_traslado(:'${tr}', :'v', 1) as _r_${tr} \\gset
+select * from retail.confirmar_traslado(:'${tr}') \\gset
+`;
+operacion("separar_pedido_para_apartar", {
+  prep: `${pedir("p1")}${pedir("p2")}${recibirPedido("p1", "t1")}${recibirPedido("p2", "t2")}`,
+  llamar: (como, v) => `select retail.separar_pedido_para_apartar(:'${v === "a" ? "p1" : "p2"}', jsonb_build_object(
+    'p_ubicacion_id', :'ubic', 'p_items', ${items(1)}, 'p_pagos', ${yape(30)}, 'p_clienta_nombres', 'Ana',
+    'p_clienta_apellidos', 'Lozano', 'p_clienta_celular', '987111222', 'p_devolucion_medio', 'yape', 'p_token', :'tok')) as ${como} \\gset\n`,
+});
+
 // La entrada de plata llama por dentro a registrar_movimiento_caja con el MISMO token: su reintento no se confunde.
 {
   const r = correr(`${preparar()}
@@ -272,7 +285,7 @@ select 'res|' || (retail.fn_resolver_intento('registrar_movimiento_caja', '${TOK
   from pg_get_functiondef('${bloqueDe(f).firma}'::regprocedure) d;`).join("\n");
   const r = correr(`begin;\n${PARTE1}\n${PARTE2}\n${PARTE1}\n${PARTE2}\n${cuenta}`);
   const filas = r.salida.split("\n").filter((l) => FUNCIONES.some((f) => l.startsWith(`${f}|`)));
-  esperar("las dos partes se pueden pegar dos veces: cada función llama UNA vez", r.ok && filas.length === 10 && filas.every((l) => l.endsWith("|1")),
+  esperar("las dos partes se pueden pegar dos veces: cada función llama UNA vez", r.ok && filas.length === FUNCIONES.length && filas.every((l) => l.endsWith("|1")),
     r.ok ? filas.join(" ") : r.error);
 }
 {

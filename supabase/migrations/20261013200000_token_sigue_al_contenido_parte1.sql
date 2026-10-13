@@ -6,7 +6,7 @@
 -- mira el TOKEN, no lo que se manda con él. El 2026-10-13 /chaos lo vio en Vender: la respuesta del cobro se pierde, la
 -- vendedora saca una prenda del ticket (o agrega otra) y vuelve a cobrar; la pantalla reusa el mismo token, la base
 -- devuelve la venta VIEJA y la pantalla anuncia la NUEVA. La boleta, el stock y la caja dicen una cosa; la vendedora y la
--- clienta, otra. Es el mismo defecto en las diez funciones de Ventas y Caja que reciben `p_token`.
+-- clienta, otra. Es el mismo defecto en las once funciones de Ventas y Caja que reciben un token.
 --
 -- LA DECISIÓN. El token sigue al contenido, en la base: la primera vez que llega un token se anota su HUELLA (el md5 de
 -- todo lo que se mandó con él, menos el token) en `intentos_con_token`. Si vuelve el mismo token con la misma huella, es
@@ -16,7 +16,7 @@
 -- definitivo: deja una marca, y si ese envío aparece después (estaba en camino), se rechaza (`intento_descartado`). Así
 -- la pantalla nunca anuncia algo distinto de lo que quedó guardado.
 --
--- Esta parte crea la tabla y las dos funciones; la parte 2 hace que las diez funciones llamen a la primera.
+-- Esta parte crea la tabla y las dos funciones; la parte 2 hace que las once funciones llamen a la primera.
 --
 -- CONTRATO (Liskov)
 --   PROMETE: `fn_intento_con_huella(op, token, huella)` no hace nada con un token nulo; con un token nuevo lo anota; con
@@ -112,7 +112,7 @@ begin
   end if;
   if p_operacion not in ('registrar_venta', 'entregar_separacion', 'registrar_movimiento_caja', 'registrar_ingreso_caja',
                          'registrar_gasto', 'separar_prendas', 'abonar_separacion', 'editar_separacion',
-                         'enviar_pedido_para_apartar', 'registrar_cambio') then
+                         'enviar_pedido_para_apartar', 'registrar_cambio', 'separar_pedido_para_apartar') then
     raise exception 'No sé revisar «%».', p_operacion using errcode = 'P0001', hint = 'operacion_desconocida';
   end if;
 
@@ -153,7 +153,7 @@ begin
       loop
         exit;
       end loop;
-    elsif p_operacion = 'separar_prendas' then
+    elsif p_operacion in ('separar_prendas', 'separar_pedido_para_apartar') then
       for v_id, v_ubicacion, v_datos in
         select s.id, s.ubicacion_id, jsonb_build_object('id', s.id, 'codigo', s.codigo, 'total', s.total, 'creado_en', s.created_at)
           from retail.separaciones s where s.token_cliente = p_token
