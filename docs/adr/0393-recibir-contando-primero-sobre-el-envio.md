@@ -133,6 +133,10 @@ La 1 y la 3 las cuida la función bajo un solo candado (la fila del conteo de es
   Compras ya tomó la diferencia.
 - **Lecturas:** el detalle del envío suma los conteos (quién contó cada línea), los pendientes y el rastro de cierres; una lectura de
   pendientes por sede da el número de la decisión 4 (Inicio, cabecera de Recibir, Catálogo ▸ Productos ▸ Por crear), siempre calculado.
+- **El papel de Compras dice la verdad aunque haya pendientes.** Lo recibido de un comprobante (`compras.recibido_cantidad`) sube con los
+  movimientos, y un pendiente todavía no tiene movimiento: con 15 blusas sin detallar, la factura del proveedor se vería «recibida en
+  parte» aunque todo llegó, y alguien podría reclamarle o retenerle un pago por prendas que están en el almacén. El detalle del envío y del
+  comprobante dicen «llegó todo · 15 por detallar» (lo contado manda para Compras; el stock, para la tienda).
 
 ### Números
 
