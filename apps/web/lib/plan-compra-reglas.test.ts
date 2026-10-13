@@ -393,6 +393,9 @@ describe("momentoDeLaCampana", () => {
     expect(momentoDeLaCampana("2026-12-01", "2026-12-01", "2026-12-31").fuerte).toBe("Día 1 de 31");
     expect(momentoDeLaCampana("2026-12-15", "2026-12-01", "2026-12-31").fuerte).toBe("Día 15 de 31");
     expect(momentoDeLaCampana("2026-12-31", "2026-12-01", "2026-12-31").fuerte).toBe("Día 31 de 31");
+    expect(momentoDeLaCampana("2026-12-31", "2026-12-01", "2026-12-31").resto).toBe("termina hoy");
+    expect(momentoDeLaCampana("2026-12-30", "2026-12-01", "2026-12-31").resto).toBe("termina mañana");
+    expect(momentoDeLaCampana("2026-12-15", "2026-12-01", "2026-12-31").resto).toBe("termina en 16 días");
   });
   it("después: hace cuántos días terminó", () => {
     expect(momentoDeLaCampana("2027-01-08", "2026-12-01", "2026-12-31").fuerte).toBe("Terminó hace 8 días");

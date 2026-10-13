@@ -598,7 +598,11 @@ export function momentoDeLaCampana(hoy: string, desde: string, hasta: string): M
     const n = diasEntre(hoy, desde);
     return { estado, fuerte: n === 1 ? "Falta 1 día" : `Faltan ${n} días`, resto: "para que empiece" };
   }
-  if (estado === "durante") return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: "lo que se vendió hasta hoy va al lado" };
+  if (estado === "durante") {
+    // Lo que queda, no lo que ya dice la tabla («lo que se vendió va al lado» repetía la frase de arriba; prompt maestro 2026-10-13).
+    const quedan = diasEntre(hoy, hasta);
+    return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: quedan === 0 ? "termina hoy" : quedan === 1 ? "termina mañana" : `termina en ${quedan} días` };
+  }
   return { estado, fuerte: `Terminó hace ${dias(diasEntre(hasta, hoy))}`, resto: "mira lo que pasó contra lo que supusiste" };
 }
 

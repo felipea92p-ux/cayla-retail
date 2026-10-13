@@ -10,12 +10,12 @@ import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
-import { AvisoStock } from "@/components/plan-compra/AvisoStock";
+import { AvisoStock, AvisoStockEnLinea } from "@/components/plan-compra/AvisoStock";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
 import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal";
@@ -40,7 +40,6 @@ import {
   campanasArchivadas,
   diasEntre,
   confianzaDelStock,
-  fechaLargaES,
   leerPlan,
   momentoDeLaCampana,
   siguienteSinPlan,
@@ -52,6 +51,7 @@ import {
   type OrdenPlan,
 } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
+import { avisoSinPlan, formaDeLaTabla, proximaCampana, queTocaHoy, subtituloDelPlan } from "@/lib/plan-compra-momento";
 import type { LecturaMotor } from "@/lib/motor-demanda";
 
 // Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: su barra de rango (los tres escenarios contra lo que ya hay y lo que hay
@@ -221,7 +221,10 @@ export function PlanCampana({
     setAbierta(null);
     setHechas([]);
   };
-  const rango = `del ${fechaLargaES(plan.plan.desde)} al ${fechaLargaES(plan.plan.hasta)}`;
+  // Qué pregunta responde la pantalla HOY (prompt maestro 2026-10-13): antes, cuánto comprar; empezada o terminada sin plan, cómo va y la
+  // próxima; con plan, lo planificado contra lo vendido. Y qué columnas tienen algo que decir.
+  const forma = formaDeLaTabla(momento.estado, totales.conPlan);
+  const toca = queTocaHoy(momento.estado, totales.conPlan, campanas ? proximaCampana(campanas.planes, plan.hoy, plan.plan.id) : null);
   const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
   const avisos = avisosDelResumen(confianza);
   const sedesDelPlan = [...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"));
@@ -233,9 +236,7 @@ export function PlanCampana({
         titulo="Plan de campaña"
         subtitulo={
           <>
-            {momento.estado === "antes"
-              ? `Cuánto comprar de cada categoría para ${plan.plan.nombre}, ${rango}. `
-              : `${plan.plan.nombre}, ${rango}: lo que planificaste y, al lado, lo que se vendió de verdad. `}
+            {subtituloDelPlan(momento.estado, totales.conPlan, plan.plan.nombre)}{" "}
             {/* «Cómo se calcula», antes una nota al pie, va en el «!» junto a la frase, como en Resultados e Historial (Felipe 2026-10-12). */}
             <span data-guia="plan.como" className="inline-block align-middle">
               <Ayuda titulo="Cómo se calcula">
@@ -344,6 +345,28 @@ export function PlanCampana({
         </Aviso>
       )}
 
+      {toca.tipo === "sin-plan" &&
+        (() => {
+          const aviso = avisoSinPlan(toca);
+          return (
+            <Aviso tono="info" guia="plan.sin-plan" titulo={aviso.titulo}>
+              {aviso.texto}
+              {/* Los caminos van bajo la frase, no en `accion`: ese lugar es para UN enlace, y aquí hay dos botones (y a 375 px aplastaban
+                  el texto a una palabra por línea). */}
+              <span className="mt-3 flex flex-wrap gap-2">
+                <BotonEnlace peso="primario" href={`/compras/plan/resultados?plan=${plan.plan.id}`}>
+                  {aviso.verResultados}
+                </BotonEnlace>
+                {toca.proxima ? (
+                  <BotonEnlace href={`/compras/plan?plan=${toca.proxima.id}`}>Planificar {toca.proxima.nombre}</BotonEnlace>
+                ) : (
+                  esLider && campanas && <Boton onClick={() => setNuevaCampana(true)}>Nueva campaña</Boton>
+                )}
+              </span>
+            </Aviso>
+          );
+        })()}
+
       {planPedidoNoExiste && (
         <Aviso tono="atencion" titulo="No encontramos esa campaña">
           El enlace pedía una campaña que no existe (puede ser viejo). Te mostramos {plan.plan.nombre}
@@ -435,6 +458,8 @@ export function PlanCampana({
       <ListaCategorias
         filas={filas}
         estado={momento.estado}
+        forma={forma}
+        avisoStock={<AvisoStockEnLinea confianza={confianza} onVer={() => setResumenAbierto(true)} />}
         familias={familias}
         filtro={filtro}
         onFiltro={setFiltro}
