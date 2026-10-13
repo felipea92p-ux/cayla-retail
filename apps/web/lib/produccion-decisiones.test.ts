@@ -7,6 +7,7 @@ import {
   demandaDeInsumos,
   filasDeTela,
   filasPorModelo,
+  resumenDeDecisiones,
   textoDiasDeStock,
   type ContextoDecisiones,
   type InsumoParaDecidir,
@@ -169,11 +170,74 @@ describe("decisionesDeProduccion", () => {
     expect(d.find((x) => x.tipo === "minimo")!.titulo).not.toContain("Insumo hilo");
   });
 
-  it("ordena por severidad y corta en 7 tarjetas", () => {
-    const ordenes = Array.from({ length: 9 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
-    const d = decisionesDeProduccion(contexto({ ordenes, comprobantes: [comp("1", { fechaVencimiento: "2026-09-25" })] }));
-    expect(d).toHaveLength(7);
-    expect(d.every((x, i) => i === 0 || d[i - 1].severidad >= x.severidad)).toBe(true);
+  describe("el tope no corta en silencio (/pantalla produccion, tarea #3)", () => {
+    it("ordena por severidad, y ninguna clase pasa de 3 tarjetas: con 9 entregas vencidas se ven 3 y el pago por vencer también", () => {
+      const ordenes = Array.from({ length: 9 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
+      const r = resumenDeDecisiones(contexto({ ordenes, comprobantes: [comp("1", { fechaVencimiento: "2026-09-25" })] }));
+      expect(r.decisiones.map((x) => x.tipo)).toEqual(["entrega", "entrega", "entrega", "pago"]);
+      expect(r.decisiones.every((x, i) => i === 0 || r.decisiones[i - 1].severidad >= x.severidad)).toBe(true);
+    });
+    it("lo que no cupo se cuenta por clase, con su destino, y el total dice cuántos asuntos hay en realidad", () => {
+      const ordenes = Array.from({ length: 9 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
+      const r = resumenDeDecisiones(contexto({ ordenes, comprobantes: [comp("1", { fechaVencimiento: "2026-09-25" })] }));
+      expect(r.ocultas).toEqual([{ tipo: "entrega", cantidad: 6, texto: "entregas", href: "/produccion/ordenes" }]);
+      expect(r.total).toBe(10);
+      expect(r.decisiones.length + r.ocultas.reduce((n, o) => n + o.cantidad, 0)).toBe(r.total);
+    });
+    it("una sola que no cupo se dice en singular", () => {
+      const ordenes = Array.from({ length: 4 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
+      expect(resumenDeDecisiones(contexto({ ordenes })).ocultas).toEqual([{ tipo: "entrega", cantidad: 1, texto: "entrega", href: "/produccion/ordenes" }]);
+    });
+    it("el tope total de 7 también avisa: lo que queda fuera sale en «ocultas», no desaparece", () => {
+      const insumos = [insumo("i1", { saldo: 10 }), insumo("i2", { saldo: 10 }), insumo("i3", { saldo: 10 }), insumo("bajo", { nombre: "Botón", tono: "bajo", saldo: 5 })];
+      const demanda = new Map(["i1", "i2", "i3"].map((id) => [id, { insumoId: id, necesita: 100, ordenes: ["a"] }]));
+      const ordenes = Array.from({ length: 3 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
+      const r = resumenDeDecisiones(contexto({ ordenes, insumos, demanda, comprobantes: [comp("1", { vencido: true, fechaVencimiento: "2026-09-10", saldo: 500 })] }));
+      expect(r.decisiones).toHaveLength(7);
+      expect(r.ocultas).toEqual([{ tipo: "minimo", cantidad: 1, texto: "insumo bajo el mínimo", href: "/produccion/insumos" }]);
+      expect(r.total).toBe(8);
+    });
+    it("sin nada que no quepa no hay «ocultas»", () => {
+      expect(resumenDeDecisiones(contexto({ ordenes: [orden("a", { fechaEntrega: "2026-09-10" })] })).ocultas).toEqual([]);
+    });
+    it("`decisionesDeProduccion` es lo que se dibuja, igual que `resumenDeDecisiones(...).decisiones`", () => {
+      const c = contexto({ ordenes: Array.from({ length: 5 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" })) });
+      expect(decisionesDeProduccion(c)).toEqual(resumenDeDecisiones(c).decisiones);
+    });
+  });
+
+  describe("muchos modelos por producir se juntan en UNA tarjeta (/pantalla produccion, tarea #3)", () => {
+    const agotado = (i: number, ritmoDia = 1) => ({ d: { varianteId: `v${i}`, productoId: `p${i}`, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, cobertura: { tipo: "medida" as const, dias: 0 }, banda: "critica" as const }, m: { productoId: `p${i}`, referencia: `Modelo ${i}`, variantesIds: [`v${i}`] } });
+    const conAgotados = (n: number) => {
+      const xs = Array.from({ length: n }, (_, i) => agotado(i, 1 + i)); // el 0 se vende menos; el último, más
+      return filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {});
+    };
+
+    it("hasta 3 modelos: una tarjeta cada uno, con su «Abrir orden sugerida»", () => {
+      const d = decisionesDeProduccion(contexto({ modelos: conAgotados(3) }));
+      expect(d).toHaveLength(3);
+      expect(d.every((x) => x.accion.texto === "Abrir orden sugerida")).toBe(true);
+    });
+    it("con 4 o más: UNA tarjeta que dice cuántos son, nombra a los 3 más urgentes (los que más se venden) y manda a la tabla", () => {
+      const d = decisionesDeProduccion(contexto({ modelos: conAgotados(9) }));
+      expect(d).toHaveLength(1);
+      expect(d[0]).toMatchObject({ id: "producir-grupo", tipo: "producir", severidad: 3, titulo: "9 modelos por producir y ninguno tiene orden abierta" });
+      expect(d[0].detalle).toBe("Los más urgentes: «Modelo 8» (ya se agotó, 63 por semana), «Modelo 7» (ya se agotó, 56 por semana), «Modelo 6» (ya se agotó, 49 por semana); y 6 más.");
+      expect(d[0].accion).toEqual({ texto: "Ver los 9 modelos", href: "#produce" });
+    });
+    it("9 modelos por producir y un pago por vencer en 5 días: el pago SÍ aparece, y no queda nada oculto", () => {
+      const r = resumenDeDecisiones(contexto({ modelos: conAgotados(9), comprobantes: [comp("1", { fechaVencimiento: "2026-09-26" })] }));
+      expect(r.decisiones.map((x) => x.tipo)).toEqual(["producir", "pago"]);
+      expect(r.ocultas).toEqual([]);
+      expect(r.total).toBe(2);
+    });
+    it("los modelos con algo de stock se nombran con lo que queda", () => {
+      const xs = [agotado(0, 3), agotado(1, 2), agotado(2, 2), agotado(3, 1)];
+      xs.forEach((x) => (x.d.stockRed = 1)); // 1 en tiendas cada uno: se agota antes el que más vende (1/3 de día)
+      const d = decisionesDeProduccion(contexto({ modelos: filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {}) }));
+      expect(d[0].detalle).toContain("«Modelo 0» (quedan 1, 21 por semana)");
+      expect(d[0].detalle).not.toContain("ya se agotó");
+    });
   });
   it("todo en orden: sin tarjetas", () => {
     expect(decisionesDeProduccion(contexto())).toEqual([]);

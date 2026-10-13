@@ -166,8 +166,72 @@ export type ContextoDecisiones = {
 };
 
 const MAX_TARJETAS = 7;
+/** Ninguna clase de asunto ocupa más de 3 tarjetas: con 9 entregas vencidas se ven 3 y el resto se cuenta en «y N más» (con el pago por vencer a la vista). */
+const MAX_POR_TIPO = 3;
+/** Hasta 3 modelos por producir tienen su propia tarjeta (con su «Abrir orden sugerida»); con más, UNA tarjeta los junta y manda a la tabla de abajo. */
+const MAX_PRODUCIR_INDIVIDUALES = 3;
+/** Cuántos modelos nombra la tarjeta que junta a los que hay que producir. */
+const NOMBRADOS_EN_GRUPO = 3;
 
+/** Los asuntos de una clase que no cupieron, para decir «y N más» y a dónde ir a verlos. */
+export type DecisionesOcultas = { tipo: Decision["tipo"]; cantidad: number; texto: string; href: string };
+
+export type ResumenDeDecisiones = {
+  /** Lo que se dibuja: del más urgente al menos, con los topes de arriba. */
+  decisiones: Decision[];
+  /** Lo que no cupo, por clase. Vacío si todo se ve. */
+  ocultas: DecisionesOcultas[];
+  /** Todos los asuntos que hay (la tarjeta que junta modelos cuenta como uno), se vean o no. */
+  total: number;
+};
+
+const OCULTAS: Record<Decision["tipo"], { uno: string; varios: string; href: string }> = {
+  entrega: { uno: "entrega", varios: "entregas", href: "/produccion/ordenes" },
+  insumo: { uno: "insumo que falta", varios: "insumos que faltan", href: "/produccion/insumos" },
+  recibir: { uno: "tela por recibir", varios: "telas por recibir", href: "/produccion/recibir" },
+  pago: { uno: "pago", varios: "pagos", href: "/produccion/por-pagar" },
+  producir: { uno: "aviso de producir", varios: "avisos de producir", href: "#produce" },
+  sobrestock: { uno: "modelo con sobrestock", varios: "modelos con sobrestock", href: "#produce" },
+  minimo: { uno: "insumo bajo el mínimo", varios: "insumos bajo el mínimo", href: "/produccion/insumos" },
+};
+
+/** «5,1»: lo que se vende por semana (el ritmo es por día). */
+const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 10).toLocaleString("es-PE");
+
+function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
+  return {
+    id: `producir-${m.productoId}`,
+    severidad: 3,
+    tipo: "producir",
+    titulo:
+      m.stockRed <= 0
+        ? `«${m.referencia}» ya se agotó en las tiendas y no hay orden abierta`
+        : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y no hay orden abierta`,
+    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
+    accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
+  };
+}
+
+/** Una sola tarjeta para cuando son muchos: nombra a los más urgentes (la lista ya viene ordenada) y manda a la tabla, donde está cada uno con su botón. */
+function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Decision {
+  const nombrados = ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => `«${m.referencia}» (${m.stockRed <= 0 ? "ya se agotó" : `quedan ${m.stockRed}`}, ${porSemana(m.ritmoDia)} por semana)`);
+  const resto = ms.length - nombrados.length;
+  return {
+    id: "producir-grupo",
+    severidad: 3,
+    tipo: "producir",
+    titulo: `${ms.length} modelos por producir y ninguno tiene orden abierta`,
+    detalle: `Los más urgentes: ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
+    accion: { texto: `Ver los ${ms.length} modelos`, href: "#produce" },
+  };
+}
+
+/** Lo mismo que `resumenDeDecisiones(c).decisiones`: lo que se dibuja. */
 export function decisionesDeProduccion(c: ContextoDecisiones): Decision[] {
+  return resumenDeDecisiones(c).decisiones;
+}
+
+export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones {
   const out: Decision[] = [];
   const porId = new Map(c.insumos.map((i) => [i.id, i]));
 
@@ -248,27 +312,18 @@ export function decisionesDeProduccion(c: ContextoDecisiones): Decision[] {
     });
   }
 
-  // 4 · qué producir
+  // 4 · qué producir: hasta 3 modelos, una tarjeta cada uno; con más, una sola que los junta (los 9 «producir» ya no se comen a lo demás)
+  const porProducir = c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
+  if (porProducir.length > MAX_PRODUCIR_INDIVIDUALES) out.push(tarjetaProducirAgrupada(porProducir));
+  else for (const m of porProducir) out.push(tarjetaProducir(m));
   for (const m of c.modelos) {
-    if (m.estado === "producir_ya" && m.ritmoDia)
-      out.push({
-        id: `producir-${m.productoId}`,
-        severidad: 3,
-        tipo: "producir",
-        titulo:
-          m.stockRed <= 0
-            ? `«${m.referencia}» ya se agotó en las tiendas y no hay orden abierta`
-            : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y no hay orden abierta`,
-        detalle: `Se vende ${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")} por semana y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
-        accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
-      });
     if (m.estado === "sobrestock" && m.ritmoDia)
       out.push({
         id: `sobrestock-${m.productoId}`,
         severidad: 1,
         tipo: "sobrestock",
         titulo: `«${m.referencia}» tiene ${Math.round(m.diasRed ?? 0)} días de stock: no produzcas más`,
-        detalle: `Se vende ${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")} por semana y hay ${m.stockRed} en tiendas y almacenes.`,
+        detalle: `Se vende ${porSemana(m.ritmoDia)} por semana y hay ${m.stockRed} en tiendas y almacenes.`,
         accion: { texto: "Ver qué producir", href: "#produce" },
       });
   }
@@ -285,7 +340,21 @@ export function decisionesDeProduccion(c: ContextoDecisiones): Decision[] {
       accion: { texto: "Ver Insumos", href: "/produccion/insumos" },
     });
 
-  return out.sort((a, b) => b.severidad - a.severidad).slice(0, MAX_TARJETAS);
+  // Del más urgente al menos (el orden es estable: dentro de una severidad quedan en el orden en que se armaron). Se dibuja hasta MAX_TARJETAS y sin
+  // pasar de MAX_POR_TIPO por clase; lo que no cabe NO se pierde en silencio: se cuenta por clase para decir «y N más» y a dónde ir a verlo.
+  const ordenadas = out.sort((a, b) => b.severidad - a.severidad);
+  const decisiones: Decision[] = [];
+  const porTipo = new Map<Decision["tipo"], number>();
+  const fuera = new Map<Decision["tipo"], number>();
+  for (const d of ordenadas) {
+    const n = porTipo.get(d.tipo) ?? 0;
+    if (decisiones.length < MAX_TARJETAS && n < MAX_POR_TIPO) {
+      decisiones.push(d);
+      porTipo.set(d.tipo, n + 1);
+    } else fuera.set(d.tipo, (fuera.get(d.tipo) ?? 0) + 1);
+  }
+  const ocultas: DecisionesOcultas[] = [...fuera].map(([tipo, cantidad]) => ({ tipo, cantidad, texto: cantidad === 1 ? OCULTAS[tipo].uno : OCULTAS[tipo].varios, href: OCULTAS[tipo].href }));
+  return { decisiones, ocultas, total: ordenadas.length };
 }
 
 // ---------------------------------------------------------------------------

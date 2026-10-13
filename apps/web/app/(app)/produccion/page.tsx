@@ -8,7 +8,7 @@ import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { cifrasResumen, decisionesDeProduccion, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { cifrasResumen, resumenDeDecisiones, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
@@ -60,13 +60,13 @@ export default async function ProduccionPage() {
     ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId) })), datos.enProduccion)
     : [];
 
-  const decisiones = decisionesDeProduccion({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo });
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas);
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel decisiones={decisiones} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -31,7 +31,25 @@ const ICONO: Record<Decision["tipo"], string> = {
   minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
 };
 
-export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, falloRed }: { decisiones: Decision[]; cifras: CifrasResumen; modelos: FilaModelo[]; telas: FilaTela[]; falloRed: string | null }) {
+export function ResumenProduccionPanel({
+  decisiones,
+  ocultas,
+  totalAsuntos,
+  cifras,
+  modelos,
+  telas,
+  falloRed,
+}: {
+  decisiones: Decision[];
+  /** Los asuntos que no cupieron, por clase: nunca se cortan en silencio. */
+  ocultas: DecisionesOcultas[];
+  /** Todos los asuntos que hay (los que se ven y los que no). */
+  totalAsuntos: number;
+  cifras: CifrasResumen;
+  modelos: FilaModelo[];
+  telas: FilaTela[];
+  falloRed: string | null;
+}) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
 
   return (
@@ -104,7 +122,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
       </div>
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
-        <TituloSeccion dato={decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}>Para decidir</TituloSeccion>
+        <TituloSeccion dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `${plural(totalAsuntos, "asunto", "asuntos")} · se ven ${decisiones.length}` : plural(totalAsuntos, "asunto", "asuntos")}>Para decidir</TituloSeccion>
         {decisiones.length === 0 ? (
           <div className="card-cayla">
             <Vacio tamano="chico" icono={<CircleCheck />}>
@@ -131,6 +149,20 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
               </li>
             ))}
           </ul>
+        )}
+        {ocultas.length > 0 && (
+          <p data-guia="prod-resumen.mas" className="px-1 text-[13px] text-tinta/70">
+            Y{" "}
+            {ocultas.map((o, i) => (
+              <span key={o.tipo}>
+                {i > 0 && (i === ocultas.length - 1 ? " y " : ", ")}
+                <Link href={o.href} className="btn-enlace">
+                  {o.cantidad} {o.texto}
+                </Link>
+              </span>
+            ))}{" "}
+            más, que no caben aquí.
+          </p>
         )}
       </section>
 

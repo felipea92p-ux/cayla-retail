@@ -48,7 +48,14 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.asunto",
       opcional: true,
       titulo: "Cada asunto",
-      texto: "Arriba, qué pasa («tiene 67 días de stock: no produzcas más»); abajo, el porqué en números. El botón de la derecha te lleva a donde se resuelve. Nadie la borra: la tarjeta desaparece sola cuando el asunto queda resuelto.",
+      texto: "Arriba, qué pasa («tiene 67 días de stock: no produzcas más»); abajo, el porqué en números. El botón de la derecha te lleva a donde se resuelve. Nadie la borra: la tarjeta desaparece sola cuando el asunto queda resuelto. Si son muchos los modelos por producir, una sola tarjeta los junta.",
+    },
+    {
+      id: "mas",
+      ancla: "prod-resumen.mas",
+      opcional: true,
+      titulo: "Lo que no cupo",
+      texto: "Si hay más asuntos de los que caben, aquí dice cuántos faltan y dónde verlos: «6 entregas» te lleva a Órdenes. Nada se corta en silencio.",
     },
     {
       id: "que-producir",
