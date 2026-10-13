@@ -356,7 +356,8 @@ antes. El SQL se puede pegar antes o después de publicar la web.
 **Verificado.** `lib/plan-compra-pedido.test.ts` y `lib/plan-compra-reglas.test.ts` (9 casos nuevos: leer `por_llegar` con la base nueva y la vieja,
 un total que no se inventa a medias, la resta en `armarFilas`, lo que llegó que no se resta dos veces, nunca negativo y las frases); suite de la
 web (461 archivos), `tsc` y las pruebas de `scripts/migraciones`. Casos de base `O2` y `O3` en `scripts/pruebas/plan_compra_historia.mjs`:
-una orden de 30 con un envío recibido (15 llegaron, 3 «No vino» con 1 ya repuesta, 2 perdidas), uno en camino de 6 y uno anulado de 50 da 12
-por llegar; una orden toda recibida da 0. Se corrieron dentro de un rollback sobre la base local, con las cinco tablas de envíos creadas desde
-sus migraciones (a la base local le faltan 38 migraciones y no se tocó); en el CI corren sobre la base completa. La consulta nueva se probó en
+una orden de 30 con un envío recibido de 20 (17 llegaron y 3 «No vino», con 1 ya repuesta), otro recibido de 2 que se perdieron, uno en camino
+de 6 y uno anulado de 50 da 10 por llegar; una orden toda recibida da 0. Se corrieron dentro de un rollback sobre la base local, con las cinco
+tablas de envíos y sus índices creados desde sus migraciones (la primera versión del caso anotaba dos diferencias en la misma línea de un envío,
+que la base no admite: lo encontró el CI) (a la base local le faltan 38 migraciones y no se tocó); en el CI corren sobre la base completa. La consulta nueva se probó en
 producción en solo lectura (compila contra las tablas reales; hoy hay 0 órdenes de compra, así que no cambia ningún número todavía).
