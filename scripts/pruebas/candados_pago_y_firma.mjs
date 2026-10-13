@@ -2,11 +2,11 @@
 /**
  * Prueba de los dos candados de `20261013155000_candados_anticipo_y_hora_declarada.sql` (auditoría 2026-10-13, punto 17):
  *
- * 1. Un pago «anticipo» solo existe en una venta que viene de un apartado (disparador diferido sobre `venta_pagos`). Sin él,
- *    una venta podía «pagarse» con anticipo sin que entrara dinero, y la caja cuadraba igual.
- * 2. La hora declarada (`x-momento`) solo vale en lo que la web encola sin conexión (`registrar_venta` y
- *    `crear_producto_con_stock_inicial`). Para verlo sin depender de marcajes reales, cada caso manda una hora absurda (año
- *    2020): donde la hora vale, la base la rechaza por «fuera de rango»; donde no vale, la ignora y no protesta.
+ * 1. Un pago «anticipo» solo existe en una venta que viene de un apartado (disparador diferido sobre `venta_pagos`).
+ * 2. La hora declarada (`x-momento`) solo vale en lo que la web encola sin conexión: la venta, las recepciones y las altas
+ *    (`registrar_venta`, `recibir_lote`, `recibir_envio`, `crear_producto_con_stock_inicial`, `crear_producto_con_variantes`).
+ *    Para verlo sin depender de marcajes reales, cada caso manda una hora del año 2020: donde la hora vale, la base la rechaza
+ *    por «fuera de rango»; donde no vale, la ignora y no protesta.
  *
  * Cada caso corre en una transacción que TERMINA EN ROLLBACK, con la migración aplicada dentro (o deshecha, en los controles):
  * el Postgres local compartido no cambia. El disparador es diferido, así que cada caso lo fuerza con `set constraints … immediate`.

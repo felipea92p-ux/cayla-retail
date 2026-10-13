@@ -2,10 +2,8 @@
 -- la pantalla filtra»). Una sola parte; sin políticas ni `drop trigger`.
 --
 -- 1. UN PAGO «ANTICIPO» SOLO EXISTE EN LA ENTREGA DE UN APARTADO.
---    EL PROBLEMA. `venta_pagos_metodo_check` admite 'anticipo' (es el adelanto que se descuenta al entregar un apartado,
---    20260923090000) y `registrar_venta` inserta el medio tal como llega. Saltándose la pantalla, una venta podía «pagarse» con
---    anticipo sin que existiera ningún apartado: la prenda sale, se emite la boleta, la caja cuadra (solo espera efectivo) y el
---    dinero nunca entró. A diferencia de un Yape inventado, no hay estado de cuenta con qué cruzarlo.
+--    POR QUÉ. Un anticipo es el adelanto de un apartado: la regla vivía en las pantallas y ahora también la exige la base, para
+--    que ninguna función, hoy o mañana, pueda dejar un pago «anticipo» sin su apartado.
 --    LA SALIDA. Un disparador de restricción DIFERIDO: al confirmar la transacción, toda fila 'anticipo' tiene que pertenecer a
 --    una venta enlazada a un apartado (`separaciones.venta_id`). Diferido porque `entregar_separacion` inserta el anticipo ANTES
 --    de enlazar el apartado con la venta (en la misma transacción); revisarlo al insertar rechazaría las entregas legítimas.
@@ -17,10 +15,8 @@
 --    En producción no hay ninguna fila 'anticipo' hoy (consultado el 2026-10-13): el candado no choca con datos viejos.
 --
 -- 2. LA HORA DECLARADA (`x-momento`) VALE SOLO DONDE SE PUEDE TRABAJAR SIN CONEXIÓN.
---    EL PROBLEMA. `fn_actor_persona_id` acepta la hora que manda el navegador (hasta 7 días atrás) en CUALQUIER operación. Se
---    pensó para la venta sin conexión (Felipe, 2026-09-22: «vale la hora de la venta»), pero servía igual para un retiro de caja
---    o un ajuste de stock: quien opera la tienda podía firmarlo a nombre de una compañera que trabajó cualquier día de esa semana.
---    Eso anula para qué existe el responsable: saber quién fue cuando falta plata o mercadería.
+--    POR QUÉ. La hora declarada existe para subir lo hecho sin internet (Felipe, 2026-09-22: «vale la hora de la venta»): fuera
+--    de eso, una operación firma con la hora real, que es la que dice quién estaba de turno.
 --    LA SALIDA. La hora declarada solo cuenta si la llamada es a una de las funciones que la web encola sin conexión: la venta
 --    (`registrar_venta`, `lib/ventas-offline.ts`) y todo lo que pasa por la cola genérica, que le pone la hora a TODA operación
 --    encolada (`nuevaOperacion`, `lib/cola-offline.ts`): `recibir_lote` y `recibir_envio` (`RPCS_RECIBIR`,
@@ -34,18 +30,14 @@
 --    SE ROMPE SI: se encola sin conexión una función nueva que firma con responsable y no se suma a esta lista: al subir usará la
 --    hora real, y si la persona ya marcó su salida se rechazará. Lo vigila `apps/web/lib/cola-hora-declarada.test.ts`: falla si
 --    una función de `RPCS_RECIBIR` o `RPCS_PRODUCTOS` (o la venta) falta en la lista de esta migración.
---    Lo que queda abierto a propósito: en esas cinco funciones la hora sigue pudiendo ser de hasta 7 días atrás (es lo que
---    permite subir lo hecho sin internet); una venta o una recepción todavía se puede firmar a nombre de quien trabajó días antes.
 --    Si la ruta no se conoce (llamada directa, no por PostgREST), se conserva el comportamiento de antes.
 --
 -- PRODUCCIÓN. Una sola parte, re-pegable. Crear el disparador toma un candado breve sobre `venta_pagos`: con `lock_timeout = 3s`,
 -- si una venta la tiene tomada, falla sin tocar nada y se vuelve a pegar. El parche de `fn_actor_persona_id` es un reemplazo
 -- anclado por TEXTO: si la línea de `x-momento` cambió (no aparece exactamente una vez), aborta sin tocar nada. El cuerpo vivo era
 -- el mismo en local y en producción el 2026-10-13 (md5 b95038c3…), pero el candado mira la línea, no el md5.
--- COMPROBACIÓN EN PRODUCCIÓN (opcional, después de pegar): que `request.path` llegue de verdad. Con sesión, llamar por la API a
--- una función que firme y NO esté en la lista, mandando el encabezado `x-momento` con una hora del año 2020. Si NO responde
--- «La hora de la operación está fuera de rango», la hora se ignoró: la ruta llega y el candado funciona. Si lo responde, la ruta
--- no llega (se conservó el comportamiento de antes): avisar, porque entonces el candado no hace nada.
+-- COMPROBACIÓN EN PRODUCCIÓN: después de pegar, comprobar que `request.path` llega (el paso está en la conversación con Felipe,
+-- no aquí: el repo es público). Si no llegara, se conserva el comportamiento de antes; nada se rompe.
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -109,8 +101,8 @@ begin
 end;
 $f$;
 
--- Si ya está puesta una versión ANTERIOR de este mismo parche (otra lista), se quita primero: si no, el reemplazo anclado de abajo
--- sumaría el bloque nuevo y dejaría el viejo detrás, que volvería a anular la hora (pasó en la base local el 2026-10-13).
+-- Si ya está puesto un bloque de este mismo parche (de cualquier versión), se quita primero: si no, el reemplazo anclado de abajo
+-- sumaría el bloque nuevo y dejaría el viejo detrás (pasó en la base local el 2026-10-13).
 do $quitar$
 declare
   v_def text := pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure);
@@ -118,9 +110,11 @@ declare
   v_cierre text := '    v_texto := null;' || chr(10) || '  end if;' || chr(10);
   v_fin integer;
 begin
-  if v_ini = 0 or position('recibir_lote|recibir_envio|crear_producto_con_stock_inicial' in v_def) > 0 then
-    return; -- no hay parche previo, o ya está el de esta versión
+  if v_ini = 0 then
+    return; -- no hay parche previo
   end if;
+  -- Hay un bloque del punto 17 (de cualquier versión, incluida esta): se quita y el reemplazo de abajo pone el de esta versión.
+  -- Pegar dos veces la misma versión deja lo mismo.
   v_fin := position(v_cierre in substr(v_def, v_ini));
   if v_fin = 0 then
     raise exception 'fn_actor_persona_id tiene un parche previo del punto 17 que no se reconoce: revísala a mano.';
@@ -135,8 +129,8 @@ select pg_temp.reemplazar(
 $viejo$,
   $nuevo$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
   -- Auditoría 2026-10-13, punto 17: la hora declarada solo vale en lo que la web encola sin conexión. En cualquier otra
-  -- función se ignora y firma quien está de turno AHORA (sin esto, un retiro o un ajuste podía firmarse a nombre de quien
-  -- trabajó cualquier día de la semana). Si la ruta no se conoce (llamada directa, no por PostgREST), queda como antes.
+  -- función se ignora y firma quien está de turno AHORA. Si la ruta no se conoce (llamada directa, no por PostgREST), queda
+  -- como antes.
   if v_texto is not null
      and coalesce(current_setting('request.path', true), '') <> ''
      and current_setting('request.path', true)
