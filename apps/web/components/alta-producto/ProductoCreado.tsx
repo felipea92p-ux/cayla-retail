@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
 import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { hrefOrdenDesdeAlta, textoAbrirOrden, tipoDeParametro, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 
 export type { SubidaSinConexion };
@@ -53,7 +54,8 @@ export type ResumenCreado = {
 };
 
 export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }: { creado: ResumenCreado; onOtroParecido: () => void; subida?: SubidaSinConexion }) {
-  const titulo = useRef<HTMLHeadingElement>(null);
+  // El foco va a la caja del título (TituloSeccion no recibe ref): el lector de pantalla lee el título entero.
+  const titulo = useRef<HTMLDivElement>(null);
   const faltanColores = creado.colores.filter((c) => !creado.fotos.coloresConFoto.includes(c.codigo));
   const completas = creado.fotos.fallidas.length === 0 && creado.fotos.subidas > 0 && faltanColores.length === 0;
   const [codigo, setCodigo] = useState<string | null>(null);
@@ -105,9 +107,11 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           </span>
         )}
         <div>
-          <h2 ref={titulo} tabIndex={-1} className="font-display text-xl text-tinta outline-none">
-            {!sinConexion ? `Se creó ${creado.nombre}` : subida === "descartada" ? `${creado.nombre} se descartó` : `${creado.nombre} quedó guardado sin conexión`}
-          </h2>
+          <div ref={titulo} tabIndex={-1} className="outline-none">
+            <TituloSeccion>
+              {!sinConexion ? `Se creó ${creado.nombre}` : subida === "descartada" ? `${creado.nombre} se descartó` : `${creado.nombre} quedó guardado sin conexión`}
+            </TituloSeccion>
+          </div>
           {sinConexion && subida === "esperando" && (
             <Aviso tono="atencion" chico className="mt-1">
               Pendiente de código: lo recibe cuando vuelva el internet y sube solo. Hasta entonces no se puede etiquetar ni vender. No cierres esta pestaña.
@@ -152,7 +156,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                 <>
                   {" "}
                   en{" "}
-                  <Link href={`/productos/${creado.id}/editar#producto-marca`} className="underline underline-offset-2">
+                  <Link href={`/productos/${creado.id}/editar#producto-marca`} className="btn-enlace">
                     Editar el producto
                   </Link>
                 </>
@@ -169,7 +173,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         <div className="card-cayla flex flex-wrap items-center justify-between gap-4 border-tinta/40 p-5">
           <div className="max-w-xl space-y-1">
             <p className="label-cayla text-[11px] text-tinta/70">Venías de una orden de producción</p>
-            <h3 className="text-base font-medium text-tinta">{abrirOrden.titulo}</h3>
+            <TituloSeccion nivel={3}>{abrirOrden.titulo}</TituloSeccion>
             <p className="text-sm text-tinta/70">
               {creado.nombre} ya está en el catálogo con sus {creado.variantes} variante{creado.variantes === 1 ? "" : "s"}. La orden se abre con este modelo elegido y su
               matriz de tallas y colores lista: solo falta decir cuántas de cada una.
@@ -197,9 +201,9 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                   {enEspera === 1 ? "1 foto espera" : `${enEspera} fotos esperan`} en este equipo: suben solas después del producto.
                 </p>
               )}
-              <h3 className="text-base font-medium text-tinta">
+              <TituloSeccion nivel={3}>
                 {creado.fotos.subidas > 0 ? `${creado.fotos.subidas} foto${creado.fotos.subidas === 1 ? "" : "s"} guardada${creado.fotos.subidas === 1 ? "" : "s"}` : "Las fotos"}
-              </h3>
+              </TituloSeccion>
               {creado.fotos.fallidas.length > 0 && (
                 <Aviso tono="error">
                   {creado.fotos.fallidas.length === 1 ? "Una foto no se guardó" : `${creado.fotos.fallidas.length} fotos no se guardaron`}: {creado.fotos.fallidas.join(" · ")}. El producto sí se creó; agrégala desde el producto.
@@ -238,7 +242,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           <div className="card-cayla flex flex-col justify-between gap-4 p-5">
             <div className="space-y-2">
               <p className="label-cayla text-[11px] text-tinta/70">Con la prenda en la mano</p>
-              <h3 className="text-base font-medium text-tinta">Imprimir etiquetas</h3>
+              <TituloSeccion nivel={3}>Imprimir etiquetas</TituloSeccion>
               <p className="text-sm text-tinta/70">
                 {etiquetas.unidades === 1 ? "Sale 1 etiqueta" : `Salen ${etiquetas.unidades} etiquetas`}, una por prenda cargada ({creado.stock?.donde}), con su precio y el QR que lee la caja.
                 Se abren en otra pestaña: esta pantalla te espera para las fotos o para crear otro parecido.
@@ -253,7 +257,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         <div className="card-cayla flex flex-col justify-between gap-4 p-5">
           <div className="space-y-2">
             <p className="label-cayla text-[11px] text-tinta/70">Otra prenda de la colección</p>
-            <h3 className="text-base font-medium text-tinta">Crear otro parecido</h3>
+            <TituloSeccion nivel={3}>Crear otro parecido</TituloSeccion>
             <p className="text-sm text-tinta/70">
               Empiezas con la misma categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y etiquetas. Solo cambias el nombre y los colores.
             </p>
@@ -270,7 +274,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         <div className="card-cayla flex flex-col justify-between gap-4 p-5">
           <div className="space-y-2">
             <p className="label-cayla text-[11px] text-tinta/70">Terminé</p>
-            <h3 className="text-base font-medium text-tinta">Ir a productos</h3>
+            <TituloSeccion nivel={3}>Ir a productos</TituloSeccion>
             <p className="text-sm text-tinta/70">Vuelve a la lista. Las fotos se pueden agregar después desde el producto.</p>
           </div>
           <Link

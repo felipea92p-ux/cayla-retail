@@ -2,7 +2,7 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 74,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -44,11 +44,8 @@
       "CampoFecha «Emitida hasta»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ],
     "components/PagoJuntosModal.tsx": [
       "input «{`Monto a pagar de ${c.documento}»",
@@ -63,7 +60,6 @@
       "Boton «(sin nombre)»"
     ],
     "components/PagoPiezas.tsx": [
-      "Link «Agregarlo en su ficha →»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
@@ -99,9 +95,7 @@
       "button «Comprobante siguiente»"
     ],
     "components/SaldosAFavor.tsx": [
-      "Link «{s.nombre}»",
-      "Link «Pagar con este saldo»",
-      "Link «Ver →»"
+      "Link «{s.nombre}»"
     ],
     "components/SalidasDeCaja.tsx": [
       "input «Caja disponible, para ver hasta dónde alcanza»",

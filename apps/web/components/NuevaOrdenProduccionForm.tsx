@@ -510,7 +510,7 @@ export function NuevaOrdenProduccionForm({
                           const activa = (Number(valor) || 0) > 0;
                           return (
                             <td key={t} className="px-0.5 py-1.5 text-center">
-                              <input
+                              <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
                                 type="number"
                                 inputMode="numeric"
                                 min={0}
@@ -542,7 +542,7 @@ export function NuevaOrdenProduccionForm({
               <p className="text-xs text-tinta/65">
                 ¿Falta una talla o un color? Se agrega en{" "}
                 {puedeEditarCatalogo ? (
-                  <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                  <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
                     Editar producto
                   </Link>
                 ) : (
@@ -704,7 +704,7 @@ export function NuevaOrdenProduccionForm({
         {modelo && !esNuevo && verMargen && precio <= 0 && (
           <p className="-mt-2 text-xs text-tinta/65">
             Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
-            <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+            <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
               Ponle precio en Editar producto
             </Link>
             .

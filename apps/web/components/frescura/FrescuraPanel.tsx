@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Info, Search, X } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import {
   FILTROS_ESTADO,
   SIN_FILTROS,
@@ -337,32 +339,17 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
             <div data-guia="frescura.filtros" className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
-              <div data-guia="frescura.buscador" className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
-                <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-                <input
-                  type="text"
-                  value={filtros.q}
-                  maxLength={80}
-                  onChange={(e) => cambiar({ q: e.target.value })}
-                  placeholder="Prenda, color o código"
-                  aria-label="Buscar prenda, color o código"
-                  autoComplete="off"
-                  className="h-full w-full min-w-0 bg-transparent pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-taupe"
-                  onKeyDown={(e) => {
-                    // Escape borra lo escrito; si no había nada, lo deja pasar (ADR-0136, useEscapeLibre).
-                    if (e.key === "Escape" && filtros.q) {
-                      e.stopPropagation();
-                      cambiar({ q: "" });
-                    }
-                  }}
-                />
-                {filtros.q && (
-                  <button type="button" aria-label="Borrar la búsqueda" onClick={() => cambiar({ q: "" })} className="absolute right-2 rounded p-1 text-taupe hover:text-tinta">
-                    <X aria-hidden className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <Desplegable
+              {/* El buscador del sistema (ADR-0358, ronda 5): su «×» y su Escape borran lo escrito sin cerrar nada de alrededor (ADR-0136). */}
+              <Buscador
+                guia="frescura.buscador"
+                valor={filtros.q}
+                onCambio={(q) => cambiar({ q })}
+                maxLength={80}
+                placeholder="Prenda, color o código"
+                etiqueta="Buscar prenda, color o código"
+                className="min-w-0 flex-[1_1_220px] sm:max-w-[340px]"
+              />
+              <Desplegable // unificar-fijo: filtro de Frescura; su vecino «Estado» usa grupos con título que la píldora no dibuja (decide Felipe)
                 valor={filtros.cat}
                 onValor={(cat) => cambiar({ cat })}
                 opciones={opcionesCategoria}
@@ -370,7 +357,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 etiquetaAccesible="Categoría"
                 className="w-full min-[480px]:w-52"
               />
-              <Desplegable
+              <Desplegable // unificar-fijo: filtro de Frescura con grupos de estado con título, que la píldora no dibuja (decide Felipe)
                 valor={filtros.estado}
                 onValor={(estado) => cambiar({ estado })}
                 opciones={opcionesEstado}
@@ -424,7 +411,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces).
                     Con un solo grupo, su nombre va en esta misma franja y no en una propia (Formidable 2026-10-10 (c): 57 px menos). */}
                 {franjaUnica ? (
-                  <h2 className="text-sm font-semibold text-tinta">
+                  <h2 className="text-sm font-semibold text-tinta">{/* unificar-fijo: la franja compacta de Frescura (Formidable 2026-10-10 c), par del span de al lado */}
                     Esperan tu decisión <span className="font-normal text-taupe">· {grupos[0].nombre}</span>
                   </h2>
                 ) : (
@@ -475,17 +462,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                   <Fragment key={g.categoriaId}>
                     {!franjaUnica && (
                     <div className="border-t border-sand px-4 pb-3 pt-4 sm:px-5">
-                      <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
-                        <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">
-                          {g.nombre}
-                          {/* El conteo del grupo solo cuando hay varios: con uno solo repetía la franja (ley 8). */}
-                          {grupos.length > 1 && (
-                            <span className="ml-1.5 font-sans text-[12.5px] font-medium text-taupe">
-                              {g.prendas.length} {g.prendas.length === 1 ? "prenda" : "prendas"}
-                            </span>
-                          )}
-                        </h2>
-                      </div>
+                      {/* El conteo del grupo solo cuando hay varios: con uno solo repetía la franja (ley 8). */}
+                      <TituloSeccion dato={grupos.length > 1 ? `${g.prendas.length} ${g.prendas.length === 1 ? "prenda" : "prendas"}` : undefined}>{g.nombre}</TituloSeccion>
                     </div>
                     )}
                     <div className="overflow-x-auto [scrollbar-width:thin]">

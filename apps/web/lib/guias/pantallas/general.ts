@@ -403,7 +403,7 @@ export const GUIA_ACTIVIDAD: Guia = {
       id: "sede",
       ancla: "actividad.sede",
       titulo: "La sede",
-      texto: "El líder elige una sede o todas. Si no eres líder, ves la tuya: la caja dice cuál.",
+      texto: "El líder elige una sede o todas. Si no eres líder, ves la tuya: el filtro dice cuál.",
     },
     {
       id: "persona",

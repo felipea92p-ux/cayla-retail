@@ -12,6 +12,7 @@ import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -461,12 +462,15 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
         </section>
 
         <section data-guia="comprobante.renglones" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que dice el papel">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-display text-xl text-tinta">Lo que dice el papel</h2>
-            <p className="text-sm tabular-nums text-taupe">
-              {lineas.length} {lineas.length === 1 ? "renglón" : "renglones"} · {cuantas.toLocaleString("es-PE")} {cuantas === 1 ? "unidad" : "unidades"}
-            </p>
-          </div>
+          <TituloSeccion
+            dato={
+              <span className="tabular-nums">
+                {lineas.length} {lineas.length === 1 ? "renglón" : "renglones"} · {cuantas.toLocaleString("es-PE")} {cuantas === 1 ? "unidad" : "unidades"}
+              </span>
+            }
+          >
+            Lo que dice el papel
+          </TituloSeccion>
 
           {lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>

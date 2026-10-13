@@ -37,6 +37,7 @@ import {
 } from "@/lib/rendimiento-meta-reglas";
 import { EditarMetaModal } from "./EditarMetaModal";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 /* ====================================================================
    El panel de Rendimiento de UNA tienda (ADR-0325, spike docs/maquetas/rendimiento-meta-2026-09/)
@@ -285,7 +286,7 @@ export function PanelRendimiento({
       {/* Cómo va cada persona */}
       <section className="space-y-3" aria-label={t.tabla} data-guia="rendimiento.personas">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="label-cayla text-[11px] font-bold text-taupe">{t.tabla}</h2>
+          <TituloSeccion>{t.tabla}</TituloSeccion>
           <Chip tono="neutro" versalitas={false}>
             Editan la líder de la sede y el Admin
           </Chip>

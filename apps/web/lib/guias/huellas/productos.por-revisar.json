@@ -2,18 +2,15 @@
   "guia": "productos.por-revisar",
   "ruta": "/productos/por-revisar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 16,
   "controles": {
     "app/(app)/productos/por-revisar/page.tsx": [
       "Volver «(sin nombre)»",
       "BotonEnlace «Ir a Productos»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ],
     "components/PorRevisarLista.tsx": [
       "Link «Abrir la ficha de la prenda»",
