@@ -7,8 +7,8 @@
 import { DIAS_RITMO_RECIENTE, UMBRAL_COBERTURA_ALTA_DIAS, UMBRAL_COBERTURA_RIESGO_DIAS, UMBRAL_COBERTURA_SALUDABLE_DIAS, UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import { redondear2, type ComprobanteProduccion } from "./comprobantes-produccion-reglas";
 import { cantidadTexto, type UnidadInsumo } from "./insumos-reglas";
-import { DIAS_ENTREGA_PRONTO, estadoEntrega, etapaActual, etapasDe, type EtapaClave, type EstadoEtapa } from "./produccion-reglas";
-import type { DemandaVariante, Rendimiento } from "./produccion-decision-reglas";
+import { DIAS_ENTREGA_PRONTO, estadoEntrega, etapaActual, etapasDe, urlLlevarATiendas, type EtapaClave, type EstadoEtapa } from "./produccion-reglas";
+import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -37,13 +37,17 @@ export type LlegadaPendiente = { insumoId: string; documento: string; proveedor:
 /** Cantidad neta consumida por orden e insumo (consumo − devolución). */
 export type ConsumoNetoPorOrden = Record<string, Record<string, number>>;
 
-export type ModeloParaDecidir = { productoId: string; referencia: string; variantesIds: string[] };
+/** Cómo se llama una variante (talla y color), para decirlo en pantalla; el dato de stock y ventas viene de `DemandaVariante`. */
+export type RotuloDeVariante = { varianteId: string; talla: string | null; color: string | null; colorHex: string | null };
+
+/** `variantesIds` manda (qué variantes tiene el modelo); `variantes`, si viene, solo les pone nombre: sin él la fila guarda las cifras de cada variante y la talla y el color en `null`. */
+export type ModeloParaDecidir = { productoId: string; referencia: string; variantesIds: string[]; variantes?: RotuloDeVariante[] };
 
 export type Decision = {
   id: string;
   /** 3 = pide acción ya; 2 = conviene mirarlo pronto; 1 = informativo. */
   severidad: 1 | 2 | 3;
-  tipo: "entrega" | "insumo" | "recibir" | "pago" | "producir" | "sobrestock" | "minimo";
+  tipo: "entrega" | "insumo" | "recibir" | "pago" | "producir" | "trasladar" | "sobrestock" | "minimo";
   titulo: string;
   detalle: string;
   accion: { texto: string; href: string };
@@ -83,7 +87,23 @@ export function demandaDeInsumos(ordenes: OrdenParaDecidir[], rendimientoPorMode
 // ¿Qué producir? Una fila por modelo
 // ---------------------------------------------------------------------------
 
-export type EstadoModelo = "producir_ya" | "en_produccion" | "vigilar" | "alcanza" | "sobrestock" | "sin_ritmo";
+export type EstadoModelo = "producir_ya" | "trasladar" | "en_produccion" | "vigilar" | "alcanza" | "sobrestock" | "sin_ritmo";
+
+/** Una talla y color de un modelo, con lo que hay, lo que viene y lo que falta. `trasladar` + `producir` son lo que falta para cubrir `DIAS_OBJETIVO_PRODUCCION` días de venta (`repartirFalta`). */
+export type VarianteDeFila = RotuloDeVariante & {
+  stockRed: number;
+  stockTaller: number;
+  enCamino: number;
+  enProduccion: number;
+  ritmoDia: number | null;
+  /** Ventas netas de la red en la ventana (cuenten o no para el ritmo): con ellas se ve que «se vendió y ya no hay». */
+  ventasNetas: number;
+  ventasBase: number;
+  /** Prendas terminadas del Taller que bastan para llevarlas al piso y cubrir lo que falta. */
+  trasladar: number;
+  /** Prendas que de verdad hay que fabricar, después de contar tiendas, camino, órdenes abiertas y Taller. */
+  producir: number;
+};
 
 export type FilaModelo = {
   productoId: string;
@@ -98,11 +118,18 @@ export type FilaModelo = {
   ventasBase: number;
   /** Días que dura el stock de la red al ritmo medido; `null` sin ritmo. */
   diasRed: number | null;
+  /** Cada talla y color del modelo, con sus cifras: lo que `estado`, `trasladar` y `producir` suman. */
+  variantes: VarianteDeFila[];
+  /** Suma de lo que se resuelve llevando al piso prendas que ya están en el Taller (por variante: lo de una talla no cubre a otra). */
+  trasladar: number;
+  /** Suma de lo que falta fabricar. Es la misma cifra que sugiere «Nueva orden». */
+  producir: number;
   estado: EstadoModelo;
 };
 
 export const ETIQUETA_ESTADO_MODELO: Record<EstadoModelo, string> = {
   producir_ya: "Producir ya",
+  trasladar: "Trasladar al piso",
   en_produccion: "Ya hay orden abierta",
   vigilar: "Vigilar",
   alcanza: "Alcanza",
@@ -130,14 +157,45 @@ export function baseDelRitmo(ventas: number): { pocaBase: boolean; largo: string
   };
 }
 
-/** Suma la red por modelo y lo clasifica con los umbrales de cobertura de Inventario (7, 30 y 60 días). Sin ritmo medido no se opina. */
-export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDecidir[], enProduccionPorVariante: Record<string, number>): FilaModelo[] {
+/**
+ * Suma la red por modelo y lo clasifica. «Producir ya» ya no depende de si existe una orden, sino de si lo que se fabrica ALCANZA: se compara lo que falta para cubrir
+ * `diasObjetivo` días de venta contra lo que hay en tiendas, lo que viene en camino y lo que ya está en órdenes abiertas, talla por talla y color por color (lo que sobra
+ * de una no cubre a otra). Lo que falta se reparte en lo que ya está hecho en el Taller (se traslada) y lo que hay que fabricar. Sin ritmo medido no se opina.
+ *
+ *   - diasRed ≤ 7 y queda algo por fabricar        → «Producir ya» (aunque haya una orden: una de 1 prenda no apaga una falta de 30)
+ *   - diasRed ≤ 30 y lo que falta está en el Taller → «Trasladar al piso»
+ *   - diasRed ≤ 30 con orden abierta               → «Ya hay orden abierta»; sin orden, «Vigilar»
+ *   - más de 30 días                               → «Alcanza» (hasta 60) o «Sobrestock»
+ */
+export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDecidir[], enProduccionPorVariante: Record<string, number>, diasObjetivo: number = DIAS_OBJETIVO_PRODUCCION): FilaModelo[] {
   const porVariante = new Map(demanda.map((d) => [d.varianteId, d]));
   const filas: FilaModelo[] = modelos.map((m) => {
-    let stockRed = 0, stockTaller = 0, enCamino = 0, enProduccion = 0, ritmo = 0, hayRitmo = false, ventasBase = 0;
+    const rotulos = new Map((m.variantes ?? []).map((v) => [v.varianteId, v]));
+    let stockRed = 0, stockTaller = 0, enCamino = 0, enProduccion = 0, ritmo = 0, hayRitmo = false, ventasBase = 0, trasladar = 0, producir = 0;
+    const variantes: VarianteDeFila[] = [];
     for (const id of m.variantesIds) {
-      enProduccion += enProduccionPorVariante[id] ?? 0;
+      const enProd = enProduccionPorVariante[id] ?? 0;
+      enProduccion += enProd;
       const d = porVariante.get(id);
+      const falta = repartirFalta(d, enProd, diasObjetivo);
+      trasladar += falta.trasladar;
+      producir += falta.producir;
+      const r = rotulos.get(id);
+      variantes.push({
+        varianteId: id,
+        talla: r?.talla ?? null,
+        color: r?.color ?? null,
+        colorHex: r?.colorHex ?? null,
+        stockRed: d?.stockRed ?? 0,
+        stockTaller: d?.stockTaller ?? 0,
+        enCamino: d?.enCamino ?? 0,
+        enProduccion: enProd,
+        ritmoDia: d?.ritmoDia ?? null,
+        ventasNetas: d?.ventasNetas ?? 0,
+        ventasBase: d?.ventasBase ?? 0,
+        trasladar: falta.trasladar,
+        producir: falta.producir,
+      });
       if (!d) continue;
       stockRed += d.stockRed;
       stockTaller += d.stockTaller;
@@ -152,13 +210,15 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
     const diasRed = ritmoDia ? stockRed / ritmoDia : null;
     let estado: EstadoModelo;
     if (diasRed === null) estado = "sin_ritmo";
-    else if (diasRed <= UMBRAL_COBERTURA_RIESGO_DIAS) estado = enProduccion > 0 ? "en_produccion" : "producir_ya";
-    else if (diasRed <= UMBRAL_COBERTURA_SALUDABLE_DIAS) estado = enProduccion > 0 ? "en_produccion" : "vigilar";
-    else if (diasRed <= UMBRAL_COBERTURA_ALTA_DIAS) estado = "alcanza";
+    else if (diasRed <= UMBRAL_COBERTURA_SALUDABLE_DIAS) {
+      if (producir > 0 && diasRed <= UMBRAL_COBERTURA_RIESGO_DIAS) estado = "producir_ya";
+      else if (producir === 0 && trasladar > 0) estado = "trasladar";
+      else estado = enProduccion > 0 ? "en_produccion" : "vigilar";
+    } else if (diasRed <= UMBRAL_COBERTURA_ALTA_DIAS) estado = "alcanza";
     else estado = "sobrestock";
-    return { productoId: m.productoId, referencia: m.referencia, stockRed, stockTaller, enCamino, enProduccion, ritmoDia, ventasBase, diasRed, estado };
+    return { productoId: m.productoId, referencia: m.referencia, stockRed, stockTaller, enCamino, enProduccion, ritmoDia, ventasBase, diasRed, variantes, trasladar, producir, estado };
   });
-  const orden: Record<EstadoModelo, number> = { producir_ya: 0, en_produccion: 1, vigilar: 2, alcanza: 3, sobrestock: 4, sin_ritmo: 5 };
+  const orden: Record<EstadoModelo, number> = { producir_ya: 0, trasladar: 1, en_produccion: 2, vigilar: 3, alcanza: 4, sobrestock: 5, sin_ritmo: 6 };
   // Con el stock en 0 todos empatan en 0 días: entre iguales va primero el que más se vende (lo que se pierde por día) y, si también empatan, el
   // nombre. Antes decidía el alfabeto cuál de los agotados llegaba a tener tarjeta.
   return filas.sort(
@@ -168,6 +228,12 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
       (b.ritmoDia ?? 0) - (a.ritmoDia ?? 0) ||
       a.referencia.localeCompare(b.referencia, "es")
   );
+}
+
+/** A dónde lleva «Trasladar al piso»: Mover mercadería con el Taller de origen y las prendas (lo que cubre la falta de cada talla y color) ya puestas. `null` sin Taller o sin nada que llevar. */
+export function urlTrasladarModelo(m: Pick<FilaModelo, "variantes">, tallerId: string | null | undefined): string | null {
+  if (!tallerId) return null;
+  return urlLlevarATiendas(tallerId, m.variantes.filter((v) => v.trasladar > 0).map((v) => ({ varianteId: v.varianteId, cantidadBuenas: v.trasladar })));
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +248,8 @@ export type ContextoDecisiones = {
   demanda: Map<string, DemandaInsumo>;
   comprobantes: ComprobanteProduccion[];
   modelos: FilaModelo[];
+  /** El Taller, de donde salen las prendas que «Trasladar al piso» lleva. Sin él no se dibuja esa tarjeta (la fila de la tabla sí dice el estado). */
+  tallerId?: string | null;
 };
 
 const MAX_TARJETAS = 7;
@@ -210,12 +278,16 @@ const OCULTAS: Record<Decision["tipo"], { uno: string; varios: string; href: str
   recibir: { uno: "tela por recibir", varios: "telas por recibir", href: "/produccion/recibir" },
   pago: { uno: "pago", varios: "pagos", href: "/produccion/por-pagar" },
   producir: { uno: "modelo por producir", varios: "modelos por producir", href: "#produce" },
+  trasladar: { uno: "modelo por trasladar", varios: "modelos por trasladar", href: "#produce" },
   sobrestock: { uno: "modelo con sobrestock", varios: "modelos con sobrestock", href: "#produce" },
   minimo: { uno: "insumo bajo el mínimo", varios: "insumos bajo el mínimo", href: "/produccion/insumos" },
 };
 
 /** «5,1»: lo que se vende por semana (el ritmo es por día). */
 const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 10).toLocaleString("es-PE");
+
+/** «y no hay orden abierta», o, si ya hay una que no alcanza, cuánto falta de verdad: la tarjeta nunca dice «no hay orden» delante de una orden. */
+const frasePorOrden = (m: FilaModelo) => (m.enProduccion > 0 ? `la orden abierta de ${m.enProduccion} no alcanza (faltan ${m.producir})` : "no hay orden abierta");
 
 function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
   return {
@@ -224,8 +296,8 @@ function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
     tipo: "producir",
     titulo:
       m.stockRed <= 0
-        ? `«${m.referencia}» ya se agotó en las tiendas y no hay orden abierta`
-        : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y no hay orden abierta`,
+        ? `«${m.referencia}» ya se agotó en las tiendas y ${frasePorOrden(m)}`
+        : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y ${frasePorOrden(m)}`,
     detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
     accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
     productoIds: [m.productoId],
@@ -236,15 +308,32 @@ function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
 function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Decision {
   const nombrados = ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => `«${m.referencia}» (${m.stockRed <= 0 ? "ya se agotó" : `quedan ${m.stockRed}`}, ${porSemana(m.ritmoDia)} por semana, ${baseDelRitmo(m.ventasBase).corto})`);
   const resto = ms.length - nombrados.length;
+  const conOrden = ms.filter((m) => m.enProduccion > 0).length;
   return {
     id: "producir-grupo",
     severidad: 3,
     tipo: "producir",
-    titulo: `${ms.length} modelos por producir y ninguno tiene orden abierta`,
+    titulo: `${ms.length} modelos por producir ${conOrden === 0 ? "y ninguno tiene orden abierta" : `y en ${conOrden === 1 ? "1" : conOrden} la orden abierta no alcanza`}`,
     detalle: `Los más urgentes (ventas de los últimos ${DIAS_RITMO_RECIENTE} días): ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
     accion: { texto: `Ver los ${ms.length} modelos`, href: "#produce" },
     productoIds: ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => m.productoId),
     asuntos: ms.length,
+  };
+}
+
+/** Lo que falta ya está hecho y guardado en el Taller: no hay que fabricar nada, hay que llevarlo a las tiendas. */
+function tarjetaTrasladar(m: FilaModelo & { ritmoDia: number }, href: string): Decision {
+  return {
+    id: `trasladar-${m.productoId}`,
+    severidad: 3,
+    tipo: "trasladar",
+    titulo:
+      m.stockRed <= 0
+        ? `«${m.referencia}» ya se agotó en las tiendas, pero hay ${m.stockTaller} en el Taller`
+        : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)}, pero hay ${m.stockTaller} en el Taller`,
+    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}). Llevar ${m.trasladar} al piso cubre ${DIAS_OBJETIVO_PRODUCCION} días de venta: no hace falta fabricar.`,
+    accion: { texto: "Trasladar al piso", href },
+    productoIds: [m.productoId],
   };
 }
 
@@ -338,6 +427,11 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   const porProducir = c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
   if (porProducir.length > MAX_PRODUCIR_INDIVIDUALES) out.push(tarjetaProducirAgrupada(porProducir));
   else for (const m of porProducir) out.push(tarjetaProducir(m));
+  // Lo que falta ya está en el Taller: se traslada. Solo cuando de verdad urge (la misma barra que «Producir ya»); más allá de 7 días lo dice la fila de la tabla.
+  for (const m of c.modelos) {
+    const href = urlTrasladarModelo(m, c.tallerId);
+    if (m.estado === "trasladar" && m.ritmoDia && href && (m.diasRed ?? Infinity) <= UMBRAL_COBERTURA_RIESGO_DIAS) out.push(tarjetaTrasladar(m as FilaModelo & { ritmoDia: number }, href));
+  }
   for (const m of c.modelos) {
     if (m.estado === "sobrestock" && m.ritmoDia)
       out.push({

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GUIA_PROD_RESUMEN } from "./guias/pantallas/produccion";
 import { UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import type { ComprobanteProduccion } from "./comprobantes-produccion-reglas";
-import type { DemandaVariante, Rendimiento } from "./produccion-decision-reglas";
+import { sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import {
   cifrasResumen,
   decisionesDeProduccion,
@@ -12,6 +12,7 @@ import {
   baseDelRitmo,
   resumenDeDecisiones,
   textoDiasDeStock,
+  urlTrasladarModelo,
   type ContextoDecisiones,
   type InsumoParaDecidir,
   type OrdenParaDecidir,
@@ -285,9 +286,13 @@ describe("filasPorModelo", () => {
     expect(f.map((x) => [x.referencia, x.estado])).toEqual([["A", "producir_ya"], ["B", "vigilar"], ["C", "alcanza"], ["D", "sobrestock"], ["E", "sin_ritmo"]]);
     expect(f[0].diasRed).toBe(5);
   });
-  it("con una orden abierta el modelo urgente pasa a «ya hay orden»", () => {
+  it("con una orden abierta que cubre lo que falta de cada talla, el modelo urgente pasa a «ya hay orden»", () => {
+    const f = filasPorModelo(demanda, modelos, { a1: 30, a2: 30 });
+    expect(f[0]).toMatchObject({ referencia: "A", estado: "en_produccion", enProduccion: 60, producir: 0 });
+  });
+  it("una orden que solo cubre una de las dos tallas NO apaga la falta de la otra: lo que sobra de una no cubre a la otra", () => {
     const f = filasPorModelo(demanda, modelos, { a1: 30 });
-    expect(f[0]).toMatchObject({ referencia: "A", estado: "en_produccion", enProduccion: 30 });
+    expect(f[0]).toMatchObject({ referencia: "A", estado: "producir_ya", enProduccion: 30, producir: 25 });
   });
   it("sin stock y con ritmo, hay que producir ya", () => {
     expect(filasPorModelo([dem("a1", { stockRed: 0 })], [modelos[0]], {})[0].estado).toBe("producir_ya");
@@ -314,6 +319,128 @@ describe("filasPorModelo", () => {
       {}
     );
     expect(f.map((x) => x.referencia)).toEqual(["B", "A"]);
+  });
+});
+
+describe("«Producir ya» compara lo que falta contra lo que hay y lo que ya se fabrica (/pantalla produccion, tarea #6)", () => {
+  const dem = (id: string, extra: Partial<DemandaVariante> = {}): DemandaVariante => ({ varianteId: id, productoId: "p1", stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: 1, sedesConRitmo: 1, ventasNetas: 30, ventasBase: 30, cobertura: { tipo: "agotado", dias: 0 }, banda: "agotado", ...extra });
+  const modelo = (ids: string[] = ["v1"], extra: Partial<{ referencia: string; productoId: string }> = {}) => ({ productoId: "p1", referencia: "Blusa Encaje", variantesIds: ids, ...extra });
+  const fila = (d: DemandaVariante[], enProd: Record<string, number> = {}, ids?: string[]) => filasPorModelo(d, [modelo(ids ?? d.map((x) => x.varianteId))], enProd)[0];
+  const tarjetas = (f: ReturnType<typeof filasPorModelo>, tallerId: string | null = "T1") => decisionesDeProduccion(contexto({ modelos: f, tallerId }));
+
+  describe("una orden abierta ya no apaga la falta solo por existir", () => {
+    it("una orden de 1 prenda contra una falta de 30: sigue en «Producir ya», faltan 29, y la tarjeta lo dice sin afirmar que no hay orden", () => {
+      const f = fila([dem("v1")], { v1: 1 });
+      expect(f).toMatchObject({ estado: "producir_ya", enProduccion: 1, producir: 29, trasladar: 0 });
+      const t = tarjetas([f]);
+      expect(t).toHaveLength(1);
+      expect(t[0].titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas y la orden abierta de 1 no alcanza (faltan 29)");
+      expect(t[0].titulo).not.toContain("no hay orden abierta");
+    });
+    it("con stock todavía en tiendas dice «se agota en ~N días» y también cuánto falta", () => {
+      const f = fila([dem("v1", { stockRed: 3 })], { v1: 10 });
+      expect(f.estado).toBe("producir_ya");
+      expect(tarjetas([f])[0].titulo).toBe("«Blusa Encaje» se agota en ~3 días y la orden abierta de 10 no alcanza (faltan 17)");
+    });
+    it("una orden que cubre lo que falta lo deja en «Ya hay orden abierta» y sin tarjeta de producir", () => {
+      const f = fila([dem("v1")], { v1: 30 });
+      expect(f).toMatchObject({ estado: "en_produccion", producir: 0 });
+      expect(tarjetas([f])).toEqual([]);
+    });
+    it("sin ninguna orden la tarjeta sigue diciendo «no hay orden abierta»", () => {
+      expect(tarjetas([fila([dem("v1")])])[0].titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas y no hay orden abierta");
+    });
+    it("la tarjeta que junta varios modelos dice si alguna orden no alcanza, en vez de «ninguno tiene orden abierta»", () => {
+      const xs = Array.from({ length: 4 }, (_, i) => ({ d: dem(`v${i}`, { productoId: `p${i}`, ritmoDia: 1 + i }), m: { productoId: `p${i}`, referencia: `M${i}`, variantesIds: [`v${i}`] } }));
+      const f = filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), { v0: 1, v2: 2 });
+      expect(f.every((x) => x.estado === "producir_ya")).toBe(true);
+      expect(tarjetas(f)[0].titulo).toBe("4 modelos por producir y en 2 la orden abierta no alcanza");
+      expect(tarjetas(filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {}))[0].titulo).toBe("4 modelos por producir y ninguno tiene orden abierta");
+    });
+  });
+
+  describe("«Trasladar al piso»: lo que falta ya está hecho y guardado en el Taller", () => {
+    it("agotado en tiendas y con el Taller cubriendo lo que falta: no hay que fabricar, hay que trasladar", () => {
+      const f = fila([dem("v1", { stockTaller: 40 })]);
+      expect(f).toMatchObject({ estado: "trasladar", trasladar: 30, producir: 0 });
+    });
+    it("su tarjeta lleva a Mover mercadería con el Taller de origen y la cantidad ya puestos", () => {
+      const t = tarjetas([fila([dem("v1", { stockTaller: 40 })])]);
+      expect(t).toHaveLength(1);
+      expect(t[0]).toMatchObject({ tipo: "trasladar", severidad: 3, productoIds: ["p1"], accion: { texto: "Trasladar al piso", href: "/inventario/mover?origen=T1&lineas=v1:30" } });
+      expect(t[0].titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas, pero hay 40 en el Taller");
+      expect(t[0].detalle).toContain("Llevar 30 al piso cubre 30 días de venta: no hace falta fabricar.");
+    });
+    it("el Taller cubre solo una parte: sigue siendo «Producir ya», con la parte que se traslada y la que se fabrica", () => {
+      const f = fila([dem("v1", { stockTaller: 10 })]);
+      expect(f).toMatchObject({ estado: "producir_ya", trasladar: 10, producir: 20 });
+      const t = tarjetas([f]);
+      expect(t.map((x) => x.tipo)).toEqual(["producir"]);
+      expect(t[0].detalle).toContain("más 10 en el Taller por trasladar");
+    });
+    it("lo que hay de una talla en el Taller no cubre a otra: la que no tiene en el Taller se produce", () => {
+      const f = fila([dem("a", { ritmoDia: 1 }), dem("b", { ritmoDia: null, stockTaller: 50 })]);
+      expect(f).toMatchObject({ estado: "producir_ya", trasladar: 0, producir: 30 });
+    });
+    it("traslada cada talla lo suyo: la URL lleva solo las variantes con algo que trasladar", () => {
+      const f = fila([dem("a", { stockTaller: 40 }), dem("b", { stockTaller: 5, ritmoDia: 0.5 }), dem("c", { ritmoDia: null, stockTaller: 9 })]);
+      expect(f.variantes.map((v) => [v.varianteId, v.trasladar])).toEqual([["a", 30], ["b", 5], ["c", 0]]);
+      expect(urlTrasladarModelo(f, "T1")).toBe("/inventario/mover?origen=T1&lineas=a:30,b:5");
+    });
+    it("sin Taller conocido o sin nada que llevar no hay URL; la fila igual dice su estado, solo falta la tarjeta", () => {
+      const f = fila([dem("v1", { stockTaller: 40 })]);
+      expect(urlTrasladarModelo(f, null)).toBeNull();
+      expect(urlTrasladarModelo(fila([dem("v1")]), "T1")).toBeNull();
+      expect(f.estado).toBe("trasladar");
+      expect(tarjetas([f], null)).toEqual([]);
+    });
+    it("entre 8 y 30 días de stock también es «Trasladar al piso», pero sin tarjeta: solo lo urgente (hasta 7 días) la tiene", () => {
+      const f = fila([dem("v1", { stockRed: 20, stockTaller: 40 })]);
+      expect(f).toMatchObject({ estado: "trasladar", trasladar: 10, producir: 0 });
+      expect(tarjetas([f])).toEqual([]);
+    });
+    it("va después de «Producir ya» y antes de «Ya hay orden abierta» en la tabla", () => {
+      const xs = [
+        { d: dem("o1", { productoId: "o", stockRed: 4 }), m: { productoId: "o", referencia: "Con orden", variantesIds: ["o1"] } },
+        { d: dem("t1", { productoId: "t", stockRed: 4, stockTaller: 99 }), m: { productoId: "t", referencia: "Con Taller", variantesIds: ["t1"] } },
+        { d: dem("p1", { productoId: "pp", stockRed: 4 }), m: { productoId: "pp", referencia: "Por producir", variantesIds: ["p1"] } },
+      ];
+      const f = filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), { o1: 99 });
+      expect(f.map((x) => [x.referencia, x.estado])).toEqual([["Por producir", "producir_ya"], ["Con Taller", "trasladar"], ["Con orden", "en_produccion"]]);
+    });
+    it("más de 3 modelos para trasladar: 3 tarjetas y el resto se cuenta en «y N más», nunca se pierde", () => {
+      const xs = Array.from({ length: 5 }, (_, i) => ({ d: dem(`v${i}`, { productoId: `p${i}`, stockTaller: 999, ritmoDia: 1 + i }), m: { productoId: `p${i}`, referencia: `M${i}`, variantesIds: [`v${i}`] } }));
+      const r = resumenDeDecisiones(contexto({ modelos: filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {}), tallerId: "T1" }));
+      expect(r.decisiones.map((d) => d.tipo)).toEqual(["trasladar", "trasladar", "trasladar"]);
+      expect(r.ocultas).toEqual([{ tipo: "trasladar", cantidad: 2, texto: "modelos por trasladar", href: "#produce" }]);
+    });
+  });
+
+  describe("lo que viene en camino y lo que no tiene datos", () => {
+    it("con lo que falta ya cubierto por lo que viene en camino no se pide fabricar ni trasladar: queda en «Vigilar»", () => {
+      const f = fila([dem("v1", { stockRed: 2, enCamino: 40 })]);
+      expect(f).toMatchObject({ estado: "vigilar", trasladar: 0, producir: 0 });
+    });
+    it("una variante sin ritmo ni stock no suma nada pero sí está en el detalle del modelo", () => {
+      const f = filasPorModelo([dem("a")], [{ productoId: "p1", referencia: "M", variantesIds: ["a", "sin-datos"] }], {})[0];
+      expect(f.variantes.map((v) => v.varianteId)).toEqual(["a", "sin-datos"]);
+      expect(f.variantes[1]).toMatchObject({ stockRed: 0, stockTaller: 0, enCamino: 0, enProduccion: 0, ritmoDia: null, ventasNetas: 0, trasladar: 0, producir: 0 });
+    });
+    it("la talla y el color salen de lo que se le pasa; sin ello quedan en null (no se inventan)", () => {
+      const m = { productoId: "p1", referencia: "M", variantesIds: ["a", "b"], variantes: [{ varianteId: "a", talla: "S", color: "Negro", colorHex: "#000000" }] };
+      const f = filasPorModelo([dem("a"), dem("b")], [m], {})[0];
+      expect(f.variantes[0]).toMatchObject({ talla: "S", color: "Negro", colorHex: "#000000" });
+      expect(f.variantes[1]).toMatchObject({ talla: null, color: null, colorHex: null });
+    });
+  });
+
+  it("el modelo suma a sus variantes (trasladar y producir) y `producir` es la misma cifra que sugiere «Nueva orden», variante por variante", () => {
+    const d = [dem("a", { stockRed: 3, stockTaller: 5, enCamino: 2, ritmoDia: 0.8 }), dem("b", { stockRed: 0, ritmoDia: 2.3, stockTaller: 100 }), dem("c", { stockRed: 50, ritmoDia: 0.3 }), dem("d", { ritmoDia: null, stockTaller: 7 })];
+    const enProd = { a: 4, c: 1 };
+    const f = fila(d, enProd);
+    expect(f.trasladar).toBe(f.variantes.reduce((s, v) => s + v.trasladar, 0));
+    expect(f.producir).toBe(f.variantes.reduce((s, v) => s + v.producir, 0));
+    for (const v of f.variantes) expect(v.producir).toBe(sugerirVariante(d.find((x) => x.varianteId === v.varianteId), enProd[v.varianteId as "a" | "c"] ?? 0, 30)!.sugerido);
   });
 });
 

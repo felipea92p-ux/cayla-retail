@@ -68,7 +68,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.modelo",
       opcional: true,
       titulo: "Cómo se lee un modelo",
-      texto: "Su foto (sin foto, el ícono de su categoría sobre su color); stock en tiendas; ventas por semana y, debajo, en cuántas se apoyan («Poca base»: 2 o menos); cuántos días le dura (la barra); y el consejo: «Producir ya», «Sobrestock»… Al tocarlo se abre una orden nueva con ese modelo.",
+      texto: "Su foto (sin foto, el ícono de su categoría sobre su color); stock en tiendas; ventas por semana y en cuántas se apoyan («Poca base»: 2 o menos); cuántos días le dura (la barra); y el consejo: «Producir ya», «Trasladar al piso», «Sobrestock»… Al tocarlo se abre la orden nueva o, con «Trasladar al piso», el traslado.",
     },
     {
       id: "tela",

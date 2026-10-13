@@ -7,7 +7,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoDiasDeStock, urlTrasladarModelo, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -20,7 +20,7 @@ import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-const TONO_ESTADO: Record<EstadoModelo, TonoChip> = { producir_ya: "ambar", en_produccion: "neutro", vigilar: "neutro", alcanza: "verde", sobrestock: "neutro", sin_ritmo: "apagado" };
+const TONO_ESTADO: Record<EstadoModelo, TonoChip> = { producir_ya: "ambar", trasladar: "pizarra", en_produccion: "neutro", vigilar: "neutro", alcanza: "verde", sobrestock: "neutro", sin_ritmo: "apagado" };
 
 const BORDE_SEVERIDAD: Record<Decision["severidad"], string> = { 3: "border-l-ambar", 2: "border-l-ambar/45", 1: "border-l-tinta/20" };
 
@@ -30,6 +30,7 @@ const ICONO: Record<Decision["tipo"], string> = {
   recibir: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
   pago: "M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
   producir: "M3 17l6-6 4 4 8-8M15 7h6v6",
+  trasladar: "M5 12h14M13 6l6 6-6 6",
   sobrestock: "M10 5v14M14 5v14",
   minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
 };
@@ -51,6 +52,7 @@ export function ResumenProduccionPanel({
   totalAsuntos,
   cifras,
   modelos,
+  tallerId,
   telas,
   falloRed,
 }: {
@@ -63,6 +65,8 @@ export function ResumenProduccionPanel({
   totalAsuntos: number;
   cifras: CifrasResumen;
   modelos: FilaModelo[];
+  /** El Taller: de ahí salen las prendas que una fila en «Trasladar al piso» lleva a las tiendas. */
+  tallerId: string | null;
   telas: FilaTela[];
   falloRed: string | null;
 }) {
@@ -212,7 +216,7 @@ export function ResumenProduccionPanel({
                 return (
                   <li key={m.productoId} data-guia={i === 0 ? "prod-resumen.modelo" : undefined} className="border-b border-tinta/10 last:border-b-0">
                     <Link
-                      href={`/produccion/ordenes?nueva=${m.productoId}`}
+                      href={(m.estado === "trasladar" && urlTrasladarModelo(m, tallerId)) || `/produccion/ordenes?nueva=${m.productoId}`}
                       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
