@@ -104,6 +104,21 @@ base visible y decía más de lo que sabía. Felipe ordenó las tareas #1 a #5; 
 - **El modelo se reconoce.** Foto de cada modelo (la del primer color con foto, como Catálogo) o, sin foto, el ícono de su categoría sobre su color (ADR-0333), en cada fila
   y tarjeta. La tabla se lee a 1024 px (nombre a dos líneas; «En prod.» entre 1024 y 1279 px solo en la insignia) y la fila tiene el anillo de foco del sistema (ADR-0351).
 
-**Lo que sigue sin hacerse** (el análisis lo ordena, falta el OK de Felipe): que «Producir ya» compare lo que falta contra lo que hay y lo que se fabrica y distinga «trasladar» de
-«producir» (#6); decidir si la unidad es el modelo o el hueco categoría × talla × familia de color (#7, `Replantear`); la hoja «Ver el modelo» con foto por color y lo vendido por
-talla y color (#8); que «Abrir orden sugerida» lleve la cantidad (#9); y el «% de ventas sin prenda», que exige leer la cola de ventas sin registrar de otro módulo.
+**Lo que sigue sin hacerse** (el análisis lo ordena, falta el OK de Felipe): el «% de ventas sin prenda», que exige leer la cola de ventas sin registrar de otro módulo. Lo que aquí figuraba
+como pendiente (#6 a #9) se ordenó después: ver la actualización (b).
+
+## Actualización 2026-10-13 (b): «Producir ya» compara lo que falta, y la unidad de decisión sigue siendo el modelo
+
+Felipe ordenó las tareas #6 a #9 del mismo análisis (`docs/pantallas/produccion.md`).
+
+- **«Producir ya» compara en vez de preguntar si existe una orden (#6).** Por cada talla y color: lo que falta para cubrir `DIAS_OBJETIVO_PRODUCCION` (30) días de venta es `ritmo × 30 − (tiendas + en camino + órdenes
+  abiertas)`; de eso, lo que ya está hecho en el Taller se **traslada** y el resto se **produce** (`repartirFalta`, `lib/produccion-decision-reglas.ts`). `producir` es exactamente lo que sugiere «Nueva orden»
+  (`sugerirVariante`): una sola cifra para las dos pantallas, y una prueba lo exige sobre una rejilla de combinaciones. Una orden de 1 prenda contra una falta de 30 deja el modelo en «Producir ya» (la tarjeta dice
+  «la orden abierta de 1 no alcanza (faltan 29)», nunca «no hay orden abierta» delante de una orden); una orden que cubre lo pasa a «Ya hay orden abierta». **DESCARTÉ** comparar sumando todo el modelo, porque lo que sobra
+  de una talla no cubre la falta de otra: se compara por talla y color.
+- **«Trasladar al piso» es un estado nuevo.** Si lo que falta ya está en el Taller no hay que fabricar nada: la fila y, con 7 días de stock o menos, una tarjeta llevan a Mover mercadería con el Taller de origen y las cantidades puestas
+  (`urlLlevarATiendas`, el mismo contrato de «Siguiente paso: llevarlas a las tiendas», F8). Si el Taller cubre solo una parte, sigue «Producir ya» y la tarjeta nombra lo que hay en el Taller. Más de 3 modelos para trasladar se cuentan en «y N más».
+- **«Se vendían y ya no hay en tiendas» solo avisa.** Una talla o color en 0 con más de `UMBRAL_POCA_BASE_VENTAS` ventas, dentro de un modelo que sí tiene stock, se nombra en su fila; **no cambia el estado ni crea tarjeta** (Felipe: «solo avisar»).
+- **#7 decidida: la unidad es el modelo.** Lo que Producción fabrica es una orden de un modelo (`producciones.producto_id`), y la hoja «Ver el modelo» y la cantidad sugerida se construyen sobre él. El «hueco» (categoría × talla × familia de
+  color) queda como la alternativa que el motor de demanda ya calcula para lo nuevo (ADR-0347) y que Felipe puede traer al Resumen cuando hable; el motor calla en una tienda mientras no cumpla las condiciones de ADR-0346 (14 días seguidos con ≥90 % de ventas con prenda y el piso cuadrado). **Se reabre si** el catálogo se parte en tantos modelos
+  de pocas ventas que casi todos salen «poca base»: ahí el modelo deja de ser una unidad con la que se pueda decidir.
