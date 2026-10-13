@@ -25,6 +25,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -262,9 +263,11 @@ export function EntregarVista({
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
       <aside data-guia="apartados.entregar-detalle" className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
         <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-          <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
-            <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo
-          </h2>
+          <TituloSeccion>
+            <span className="inline-flex items-center gap-2.5">
+              <Wallet className="h-5 w-5 text-tinta/70" aria-hidden /> Saldo
+            </span>
+          </TituloSeccion>
           {a && <span className="font-mono text-xs text-tinta/60">{a.codigo}</span>}
         </div>
         {!a ? (
