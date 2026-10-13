@@ -79,18 +79,35 @@ export function tipoDocDelComprobante(
 }
 
 /**
- * Qué está mal del documento del comprobante, en palabras de la tienda, o null. Frena el cobro (`motivoBloqueoCobro`):
- *   - carné o pasaporte fuera de formato: la base los rechaza (y con ellos, la venta ENTERA);
- *   - una factura con letras en el número: solo pasa si se cambió de boleta a factura con un carné o un pasaporte escrito
- *     (el campo del RUC solo deja tipear dígitos). Saldría a SUNAT como un RUC que no existe.
- * El DNI sigue como siempre (la base no le pone candado en el comprobante, y el campo ya avisa si le faltan dígitos), y la
- * factura sin RUC la cuida `facturaSinRuc`.
+ * Qué está mal del documento del comprobante, en palabras de la tienda, o null. Frena el cobro (`motivoBloqueoCobro`), y la base
+ * rechaza lo mismo (y con ello, la venta ENTERA):
+ *   - carné o pasaporte fuera de formato;
+ *   - una factura con un RUC que no es de 11 dígitos (o con letras: pasa si se cambió de boleta a factura con un carné o un
+ *     pasaporte escrito). Saldría a SUNAT como un RUC que no existe;
+ *   - una boleta con un DNI que no es de 8 dígitos (/chaos 2026-10-13, Felipe: «bloquear, en la pantalla y en la base»;
+ *     `fn_problema_documento_comprobante`, 20261013210000). La nota de venta no va a SUNAT y no se mira.
+ * La factura sin RUC la cuida `facturaSinRuc`.
  */
 export function problemaDocumentoComprobante(tipoComprobante: string, identidad: TipoDocumentoClienta, numero: string): string | null {
-  if (!numero.trim()) return null;
+  const n = numero.trim();
+  if (!n) return null;
   if (tipoComprobante === "factura") {
-    return /\D/.test(numero) ? "El RUC lleva solo dígitos: corrígelo, o vuelve a boleta para el carné o el pasaporte." : null;
+    if (/\D/.test(n)) return "El RUC lleva solo dígitos: corrígelo, o vuelve a boleta para el carné o el pasaporte.";
+    return digitosQueFaltan("RUC", n, 11);
   }
-  if (identidad === "dni") return null;
+  if (identidad === "dni") {
+    if (tipoComprobante !== "boleta") return null;
+    if (/\D/.test(n)) return "El DNI lleva solo dígitos.";
+    return digitosQueFaltan("DNI", n, 8);
+  }
   return problemaDocumento(identidad, numero);
+}
+
+/** «Al DNI le falta 1 dígito: tiene 8.» / «El RUC tiene 11 dígitos: sobra 1.» / null si está justo. */
+function digitosQueFaltan(nombre: "DNI" | "RUC", n: string, largo: number): string | null {
+  const dif = largo - n.length;
+  if (dif === 0) return null;
+  const art = nombre === "DNI" ? "Al DNI" : "Al RUC";
+  if (dif > 0) return `${art} le ${dif === 1 ? "falta 1 dígito" : `faltan ${dif} dígitos`}: tiene ${largo}.`;
+  return `El ${nombre} tiene ${largo} dígitos: ${-dif === 1 ? "sobra 1" : `sobran ${-dif}`}.`;
 }

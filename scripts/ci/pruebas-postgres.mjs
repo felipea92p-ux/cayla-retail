@@ -352,6 +352,11 @@ export const PRUEBAS = [
   // Cada caso: ROLLBACK.
   "pruebas:ventas-montos-validos",
 
+  // El documento del comprobante (/chaos 2026-10-13, decisión de Felipe): boleta con DNI de 8 dígitos y factura con RUC de 11,
+  // en emitir_comprobante y en un disparador de respaldo; una boleta vieja sigue cambiando de estado y emitiendo su nota de
+  // crédito. Con control. Cada caso: ROLLBACK.
+  "pruebas:comprobante-documento-valido",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
