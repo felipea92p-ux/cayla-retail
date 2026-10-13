@@ -68,7 +68,7 @@ select pg_temp.reemplazar(
   1);
 
 comment on function retail.crear_plan_compra(uuid, text, date, date) is
-  'ADR-0372: crea el plan de una campaña de Etiquetas (aprobada, activa, con fechas): uno por etiqueta y por año (el de su fin). Arranca con las fechas que manda la pantalla (las de ese año) o las de la etiqueta. Pide el módulo plan_compra y ser líder; firma el responsable (fn_actor_persona_id(true)).';
+  'ADR-0372: crea el plan de una campaña de Etiquetas (aprobada, activa, con fechas): uno por etiqueta y por año (el de su fin). Arranca con las fechas que manda la pantalla (las de ese año) o las de la etiqueta. Pide el módulo plan_compra (ADR-0387, 2026-10-12: ya no además ser líder); firma el responsable (fn_actor_persona_id(true)).';
 
 -- 3 · fn_planes_compra: todos los planes de cada campaña, con su año; también las campañas sin fechas.
 select pg_temp.reemplazar(
