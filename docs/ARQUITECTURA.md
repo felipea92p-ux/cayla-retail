@@ -944,7 +944,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`; con el selector «Ya existe / Modelo nuevo» y la opción «Modelo nuevo» llama en cambio a
   `abrir_produccion_con_modelo_nuevo`, que crea el modelo, sus variantes y la orden en una transacción con el mismo `p_token`, ADR-0361: reglas puras en
   `lib/modelo-nuevo-reglas.ts`, campos en `ModeloNuevoCampos.tsx`, tallas y colores desde `getVocabularioModeloNuevo` en `lib/produccion.ts`; el enlace a
-  `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). Entra el
+  `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). **Desde ADR-0396 (A1–A2)
+  la hoja abre con el modelo (`components/orden-produccion/ElegirModelo.tsx`, reglas en `lib/orden-modelo-reglas.ts`) y las cantidades se escriben en la MISMA tabla de Nuevo producto
+  (`components/alta-producto/MatrizCantidades.tsx` con `soloCantidades`; puente puro `lib/orden-tabla-reglas.ts`; los colores de un modelo nuevo son filas de esa tabla y
+  `components/orden-produccion/AgregarColor.tsx` suma una; lo que viaja a las RPC no cambia, lo fija `lib/orden-carga-util.test.ts`).** Entra el
   cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, en `lib/menu.ts` y re-exportada por `lib/produccion-menu.ts`;
   un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
 - `/ordenes-insumos` («Órdenes de insumos», ADR-0362 fase 7, decisión 47; módulo `ordenes_insumos`: basta el módulo, NO pide el de

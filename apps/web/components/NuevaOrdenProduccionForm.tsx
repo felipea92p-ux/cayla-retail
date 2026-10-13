@@ -13,10 +13,9 @@ import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
-import type { ModeloProducible, VarianteDeModelo } from "@/lib/produccion";
+import type { ModeloProducible } from "@/lib/produccion";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
 import type { Tolerado } from "@/lib/resultado";
-import { compararTallas } from "@/lib/tallas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -29,7 +28,10 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
+import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
+import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
+import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
 import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
 import type { ColorAlta } from "@/lib/alta-producto";
 import {
@@ -68,6 +70,11 @@ import {
 // ADR-0396 (A1, «el modelo primero»): la primera pregunta es QUÉ se fabrica y se contesta buscando (`ElegirModelo`: arriba los que se están acabando, para el líder; abajo
 // «Crear un modelo nuevo»). Ya no hay dos selectores de pestañas (Tipo y Modelo): el tipo SE DEDUCE de lo que la persona hizo —un modelo que existe es un lote, uno nuevo
 // arranca como muestra (`tipoAlElegir`)— y se corrige con un interruptor que dice qué cambia. Lo que se manda a la base no cambia.
+//
+// ADR-0396 (A2, «la tabla única»): «cuántas por talla y color» se contesta con LA MISMA tabla de Nuevo producto (`MatrizCantidades`, en su modo `soloCantidades`), no con una matriz hecha a
+// mano: una sola pieza para una sola pregunta. Enter y ↓ bajan por la talla, «Llenar todas con» repite un número, el gris de cada celda es lo que sugiere la red, y en un modelo nuevo
+// cada color elegido es una fila con su «×» y «+ Agregar color» suma otra. Lo que se manda a la base NO cambia: `lib/orden-tabla-reglas.ts` arma la tabla desde las mismas celdas y las mismas
+// líneas de siempre, y `lib/orden-carga-util.test.ts` lo fija con los números de antes.
 //
 // El token de idempotencia nace con el formulario (useRef): si el Taller
 // pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
@@ -140,6 +147,7 @@ export function NuevaOrdenProduccionForm({
   const [categoriaNuevaId, setCategoriaNuevaId] = useState("");
   const [tallasNuevas, setTallasNuevas] = useState<string[]>([]);
   const [coloresNuevos, setColoresNuevos] = useState<string[]>([]);
+  const coloresAhora = useRef<string[]>([]);
   const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
   const [precioNuevo, setPrecioNuevo] = useState("");
   // La base dijo «ya existe un modelo así» (o «casi igual»): se muestra con lo que se puede hacer, no como un error cualquiera.
@@ -161,9 +169,18 @@ export function NuevaOrdenProduccionForm({
 
   // Elegido el modelo, el cursor pasa a la primera celda de la tabla: el campo donde se buscaba desaparece (la lista se vuelve una tarjeta) y, sin esto, el cursor quedaba en
   // el aire y la guía de foco seguía diciendo «Sigue aquí» en Modelo (retiene la luz mientras la persona «está» en un campo). Sin desplazar la hoja.
+  // Con un modelo que ya llega elegido (desde el Resumen) la hoja todavía se está pintando cuando corre este efecto: se reintenta unos cuadros hasta que la tabla exista.
   useEffect(() => {
     if (!productoId) return;
-    document.querySelector<HTMLInputElement>('[data-guia="prod-orden-nueva.matriz"] input')?.focus({ preventScroll: true });
+    let cuadros = 0;
+    let id = 0;
+    const poner = () => {
+      const celda = document.querySelector<HTMLInputElement>('[data-guia="prod-orden-nueva.matriz"] input:not([data-sin-cursor])');
+      if (celda) celda.focus({ preventScroll: true });
+      else if (cuadros++ < 20) id = window.requestAnimationFrame(poner);
+    };
+    poner();
+    return () => window.cancelAnimationFrame(id);
   }, [productoId]);
 
   // ----- Modelo nuevo: el borrador, sus celdas y un modelo VIRTUAL para que la matriz, el costo por prenda y el margen lo traten como a cualquier otro -----
@@ -205,30 +222,19 @@ export function NuevaOrdenProduccionForm({
   // Sin categoría y sin tallas no hay matriz que dibujar (la celda única «Sin color» de un borrador vacío confundiría): se explica qué falta.
   const mostrarMatriz = !esNuevo || (categoriaNueva !== null && ordenarTallas(categoriaNueva, tallasNuevas).length > 0);
 
-  // Matriz color × talla, como la grilla de variantes de Shopify: una fila
-  // por color, una columna por talla, y en cada celda cuántas van. Solo
-  // existen las celdas que el catálogo ya tiene como variante — Producción
-  // no inventa tallas ni colores (decisión con Felipe, 2026-09-15: las
-  // variantes nacen en Productos, con su código y su precio, nunca al vuelo desde
-  // una orden; en V1 sí pasaba y dejaba colores duplicados y prendas sin precio).
-  const matriz = useMemo(() => {
-    const variantes = modelo?.variantes ?? [];
-    const tallas = [...new Set(variantes.map((v) => v.talla ?? "Única"))].sort(compararTallas);
-    const filas = new Map<string, { hex: string | null; celdas: Map<string, VarianteDeModelo> }>();
-    for (const v of variantes) {
-      const color = v.color ?? "Sin color";
-      const fila = filas.get(color) ?? { hex: v.colorHex, celdas: new Map() };
-      fila.celdas.set(v.talla ?? "Única", v);
-      filas.set(color, fila);
-    }
-    return { tallas, filas: [...filas.entries()] };
-  }, [modelo]);
+  // La tabla color × talla (una fila por color, una columna por talla, y en cada celda cuántas van). Solo existen las celdas que el catálogo ya tiene como variante — Producción
+  // no inventa tallas ni colores (decisión con Felipe, 2026-09-15: las variantes nacen en Productos, con su código y su precio, nunca al vuelo desde una orden; en V1 sí pasaba y
+  // dejaba colores duplicados y prendas sin precio): una combinación que el modelo no tiene sale rayada. En un modelo nuevo las celdas son las del borrador (ADR-0361).
+  const tabla = useMemo(
+    () =>
+      esNuevo
+        ? tablaDeModeloNuevo({ celdas: celdasNuevas, categoria: categoriaNueva, tallaIds: tallasNuevas, colorCodigos: coloresNuevos, colores: coloresDisponibles })
+        : tablaDeModeloExistente(modeloExistente?.variantes ?? []),
+    [esNuevo, celdasNuevas, categoriaNueva, tallasNuevas, coloresNuevos, coloresDisponibles, modeloExistente]
+  );
+  const variantePorId = useMemo(() => new Map((modeloExistente?.variantes ?? []).map((v) => [v.varianteId, v] as const)), [modeloExistente]);
 
-  const lineas = esNuevo
-    ? []
-    : (modelo?.variantes ?? [])
-        .map((v) => ({ variante_id: v.varianteId, cantidad: Math.floor(Number(cantidades[v.varianteId]) || 0) }))
-        .filter((l) => l.cantidad > 0);
+  const lineas = esNuevo ? [] : lineasDeModeloExistente(modelo?.variantes ?? [], cantidades);
   // Un modelo nuevo lee las cantidades como las lee la base (enteros de 0 a 9999); uno existente, como siempre.
   const total = esNuevo ? resumenNuevo.total : lineas.reduce((s, l) => s + l.cantidad, 0);
   const costoTotal = (Number(tela) || 0) + (Number(avios) || 0) + (Number(maquila) || 0);
@@ -313,12 +319,27 @@ export function NuevaOrdenProduccionForm({
     setTallasNuevas(tallasHabituales(vocab?.categorias.find((cat) => cat.id === id) ?? null));
     setCantidades({});
   }
+  /** Cambia los colores del modelo nuevo y mueve lo escrito si pasa de «sin color» a un color (o al revés): sin eso, el primer color dejaba lo ya escrito en una celda que ya no existe.
+   *  «Antes» se lee de un ref y no del render: dos clics en el mismo ciclo (doble clic en un círculo) no pueden partir del mismo punto. */
+  function ponerColores(despues: string[]) {
+    const antes = coloresAhora.current;
+    coloresAhora.current = despues;
+    setColoresNuevos(despues);
+    const tallasQueSeVen = ordenarTallas(categoriaNueva, tallasNuevas);
+    setCantidades((c) => cantidadesAlCambiarColores(c, tallasQueSeVen, antes, despues));
+  }
   function alternarColor(codigo: string) {
-    setColoresNuevos((prev) => (prev.includes(codigo) ? prev.filter((x) => x !== codigo) : [...prev, codigo]));
+    const antes = coloresAhora.current;
+    ponerColores(antes.includes(codigo) ? antes.filter((x) => x !== codigo) : [...antes, codigo]);
+  }
+  /** El «×» de una fila. Con el teclado la fila donde estaba el foco desaparece: el cursor pasa a la primera celda (si no, Tab volvía al principio de la hoja). */
+  function quitarColor(codigo: string, conTeclado: boolean) {
+    alternarColor(codigo);
+    if (conTeclado) window.requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[data-guia="prod-orden-nueva.matriz"] input:not([data-sin-cursor])')?.focus({ preventScroll: true }));
   }
   function colorCreado(color: ColorAlta) {
     setColoresCreados((prev) => (prev.some((x) => x.codigo === color.codigo) ? prev : [...prev, color]));
-    setColoresNuevos((prev) => (prev.includes(color.codigo) ? prev : [...prev, color.codigo]));
+    if (!coloresAhora.current.includes(color.codigo)) ponerColores([...coloresAhora.current, color.codigo]);
   }
   /** «Ya existe un modelo con ese nombre»: se pasa a ese modelo (las cantidades se escriben otra vez: sus celdas son otras). */
   function usarExistente(id: string) {
@@ -462,7 +483,6 @@ export function NuevaOrdenProduccionForm({
               guia={guia}
               vocabulario={vocab}
               fallo={vocabulario?.fallo ?? null}
-              colores={coloresDisponibles}
               nombre={nombreNuevo}
               onNombre={(v) => {
                 setNombreNuevo(v);
@@ -472,9 +492,6 @@ export function NuevaOrdenProduccionForm({
               onCategoria={cambiarCategoria}
               tallaIds={tallasNuevas}
               onTallas={setTallasNuevas}
-              colorCodigos={coloresNuevos}
-              onAlternarColor={alternarColor}
-              onColorCreado={colorCreado}
               precio={precioNuevo}
               onPrecio={setPrecioNuevo}
               esMuestra={tipo === "muestra"}
@@ -490,67 +507,26 @@ export function NuevaOrdenProduccionForm({
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas por talla y color")}</span>
             {mostrarMatriz ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-tinta/65">
-                    <th className="pb-1.5 pr-3 text-left font-normal">Color</th>
-                    {matriz.tallas.map((t) => (
-                      <th key={t} className="label-cayla pb-1.5 text-center text-[11px]">
-                        {t}
-                      </th>
-                    ))}
-                    <th className="label-cayla pb-1.5 pl-3 text-right text-[11px]">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-tinta/10">
-                  {matriz.filas.map(([color, fila]) => {
-                    const totalFila = [...fila.celdas.values()].reduce((s, v) => s + (Math.floor(Number(cantidades[v.varianteId])) || 0), 0);
-                    return (
-                      <tr key={color}>
-                        <td className="py-1.5 pr-3 text-tinta/80">
-                          <span className="flex items-center gap-1.5 whitespace-nowrap">
-                            {fila.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/15" style={{ background: fila.hex }} />}
-                            {color}
-                          </span>
-                        </td>
-                        {matriz.tallas.map((t) => {
-                          const v = fila.celdas.get(t);
-                          if (!v) {
-                            // El catálogo no tiene esta combinación: no hay variante a la que sumarle stock.
-                            return (
-                              <td key={t} className="py-1.5 text-center text-tinta/30" title="No existe esta talla en este color">
-                                —
-                              </td>
-                            );
-                          }
-                          const valor = cantidades[v.varianteId] ?? "";
-                          const activa = (Number(valor) || 0) > 0;
-                          return (
-                            <td key={t} className="px-0.5 py-1.5 text-center">
-                              <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                placeholder={String(curva.porVariante.get(v.varianteId)?.sugerido || 0)}
-                                aria-label={`${color} ${t}`}
-                                title={[v.sku, curva.porVariante.get(v.varianteId)?.motivo].filter(Boolean).join(" · ")}
-                                value={valor}
-                                onChange={(e) => setCantidades((c) => ({ ...c, [v.varianteId]: e.target.value }))}
-                                className={`w-14 rounded-md border bg-transparent px-1.5 py-1 text-center text-sm tabular-nums text-tinta outline-none transition-colors placeholder:text-tinta/30 focus:border-rojo ${
-                                  activa ? "border-rojo/60 bg-rojo/5" : "border-tinta/15"
-                                }`}
-                              />
-                            </td>
-                          );
-                        })}
-                        <td className="py-1.5 pl-3 text-right tabular-nums text-tinta/80">{totalFila > 0 ? totalFila : ""}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+              <>
+                {esNuevo && vocab && <AgregarColor colores={coloresDisponibles} elegidos={coloresNuevos} onAlternar={alternarColor} onCreado={colorCreado} />}
+                {/* La misma tabla de Nuevo producto (ADR-0396, A2). `key`: «Llenar todas con» arranca vacío al cambiar de modelo o de categoría (las cantidades también se vacían). */}
+                <MatrizCantidades
+                  key={esNuevo ? `nuevo-${categoriaNuevaId}` : productoId}
+                  soloCantidades
+                  teclado
+                  celdas={tabla.celdas}
+                  tallas={tabla.tallas}
+                  colores={tabla.colores}
+                  excluidas={tabla.excluidas}
+                  cantidades={cantidades}
+                  // Funcional a propósito: «Llenar todas con» llama a esto una vez por celda en el mismo ciclo, y cada llamada tiene que partir de lo que dejó la anterior.
+                  onCantidad={(clave, valor) => setCantidades((c) => ({ ...c, [clave]: valor }))}
+                  preguntaCelda="Cuántas prendas de"
+                  fantasma={(clave) => String(curva.porVariante.get(clave)?.sugerido || 0)}
+                  tituloDe={(clave) => [variantePorId.get(clave)?.sku, curva.porVariante.get(clave)?.motivo].filter(Boolean).join(" · ") || undefined}
+                  accionFila={esNuevo ? (color) => <QuitarColor nombre={color.nombre} onQuitar={(conTeclado) => quitarColor(color.codigo, conTeclado)} /> : undefined}
+                />
+              </>
             ) : (
               <Aviso tono="info" chico>
                 Elige la categoría y las tallas, y aquí aparece la matriz: una fila por color y una columna por talla.
@@ -558,6 +534,7 @@ export function NuevaOrdenProduccionForm({
             )}
             {!esNuevo && (
               <p className="text-xs text-tinta/65">
+                {tabla.excluidas.size > 0 && "Una raya (—) es una combinación que este modelo no tiene. "}
                 ¿Falta una talla o un color? Se agrega en{" "}
                 {puedeEditarCatalogo ? (
                   <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">

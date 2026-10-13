@@ -156,7 +156,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "matriz",
       ancla: "prod-orden-nueva.matriz",
       titulo: "Cuántas por talla y color",
-      texto: "Escribe cuántas prendas de cada talla en cada color. El número gris es lo que sugiere la red; una raya es una talla que ese color no tiene. Si falta una talla o un color, se agrega en Productos, no aquí.",
+      texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
       id: "red",

@@ -89,8 +89,9 @@ export function irAlIdCampo(id: IdCampo, opciones: { destello?: boolean; cursor?
   const el = fila(id);
   if (!el) return;
   asegurarVisible(id, { enModal });
-  // El cursor solo a una caja de texto: un combo o un interruptor no se abren solos, la persona elige.
-  if (cursor) el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), textarea:not([disabled])')?.focus({ preventScroll: true });
+  // El cursor solo a una caja de texto: un combo o un interruptor no se abren solos, la persona elige. Una caja que dice `data-sin-cursor` («Llenar todas con» de la tabla de
+  // cantidades de «Nueva orden») es una herramienta, no el dato que falta: el cursor va a la primera celda.
+  if (cursor) el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([data-sin-cursor]), textarea:not([disabled])')?.focus({ preventScroll: true });
   if (!destello) return;
   el.removeAttribute("data-llamado");
   // Reinicia la animación aunque se pida dos veces seguidas.

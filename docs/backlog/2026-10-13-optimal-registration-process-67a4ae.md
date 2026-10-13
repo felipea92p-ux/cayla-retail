@@ -11,3 +11,9 @@
 - [ ] Pasada con 3 a 5 colaboradoras reales del Taller: la ley 1 de `/formidable` no sube de 8 sin ella, y hoy ninguna ha abierto una orden.
 - [ ] Preguntas que no son de esta pantalla (README D5): tercerizar una etapa **al abrir** (y tarifa desde `cotizaciones_maquila`, 0 filas) y los `CHECK` de `variantes` y `producciones` que admiten `NaN` (núcleo).
 - [ ] `abrir_produccion` no valida la fecha de entrega (hoy puede ser el pasado): si se quiere, es del núcleo.
+- [x] **#4 de `/pantalla`** (Escape y clic fuera con trabajo escrito congelaban la pantalla): corregido en Nueva orden y Registrar gasto con `antesDeCerrar` + candado `lib/hojas-salida-sin-guardar.test.ts`; probado en el navegador antes y después.
+- [x] **A2 de ADR-0396**: la tabla única en Nueva orden (hecha; ver ADR «Actualización 2026-10-13 · A2»). Falta: `tema:auditar` y `guias:recorrer` donde haya Chromium.
+- [ ] Enter dentro de Tela, Avíos, Maquila, Nota o Precio todavía ENVÍA la orden (la tabla ya no): es de `/chaos` en A7.
+- [ ] Modo oscuro: la franja y el punto de un color muy oscuro (Negro) casi no se ven sobre el fondo oscuro; es heredado de Nuevo producto (color de dato, ADR-0336 regla 3), no de A2: decide Felipe si cambia en las dos pantallas.
+- [ ] Heredados de `ElegirColores` / Nuevo producto que la revisión de A2 encontró (no son de A2; decide Felipe si se arreglan en las dos pantallas): el foco cae al `<body>` al cerrar la hoja «Nuevo color» (`components/alta-producto/ElegirColores.tsx`); pegar más de 4 caracteres en una celda corta antes de limpiar (`maxLength=4` en `MatrizCantidades.tsx`); en modo oscuro la franja y el punto de un color muy oscuro casi no se ven.
+- [ ] Doble clic rápido en el «×» de una fila quita también la siguiente (sus números quedan guardados y reaparecen si vuelve el color).
