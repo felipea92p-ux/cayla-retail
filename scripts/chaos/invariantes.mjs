@@ -338,16 +338,16 @@ select c.id as caja_id, c.ubicacion_id, e.esperado
   },
   {
     id: "INV-16",
-    nombre: "montos_de_ventas_sin_nan",
+    nombre: "montos_de_ventas_finitos",
     gravedad: 1,
     nivel: "cruzada",
-    dice: "Ningún monto de Ventas o de Caja es `NaN`. En Postgres `'NaN'::numeric` es mayor que cualquier número: pasa los CHECK `>= 0` y, una vez dentro, cualquier suma que lo toque (el esperado de la caja, el total del día) también da NaN. Nació de /chaos 2026-10-13.",
+    dice: "Ningún monto de Ventas o de Caja es `NaN` ni infinito. En Postgres `'NaN'::numeric` es mayor que cualquier número y `'Infinity'` también existe: los dos pasan los CHECK `>= 0` y, una vez dentro, cualquier suma que los toque (el esperado de la caja, el total del día) se rompe. Nació de /chaos 2026-10-13.",
     sql: COLUMNAS_DE_DINERO.map(([tabla, columnas]) =>
-      `select '${tabla}' as tabla, id::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where 'NaN'::numeric in (${columnas.join(", ")})`
+      `select '${tabla}' as tabla, id::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where ${columnas.map((c) => `abs(${c}) >= 'Infinity'`).join(" or ")}`
     ).join("\nunion all\n"),
-    // El candado de la base (`venta_pagos_montos_sin_nan`) se quita dentro de la transacción revertida: sin eso, la
+    // El candado de la base (`venta_pagos_montos_finitos`) se quita dentro de la transacción revertida: sin eso, la
     // corrupción misma rebota y no se puede probar que el detector la ve.
-    corrompe: `alter table retail.venta_pagos drop constraint if exists venta_pagos_montos_sin_nan;
+    corrompe: `alter table retail.venta_pagos drop constraint if exists venta_pagos_montos_finitos;
 update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retail.venta_pagos limit 1);`,
   },
 ];

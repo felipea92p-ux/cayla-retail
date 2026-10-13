@@ -1039,3 +1039,17 @@ describe("sinPrecioParaVender — una prenda de mercadería en S/ 0 no entra al 
     expect(sinPrecioParaVender({ precio: -1, fueraDeMotores: true })).toBe(true);
   });
 });
+
+// /chaos 2026-10-13 (ENT-07): el «recibido» no tenía tope y un millón «recibido» dejaba un vuelto de un millón. Felipe fijó S/ 500.
+describe("el tope del vuelto (S/ 500)", () => {
+  it("S/ 500 de vuelto justo se deja cobrar; un céntimo más, no", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 143.82, recibido: 643.82 }] })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 143.82, recibido: 643.83 }] })).toBe(
+      "El vuelto pasa de S/ 500: revisa con cuánto paga el cliente.",
+    );
+  });
+  it("bajo los billetes, un vuelto de más se marca aparte («excede»)", () => {
+    expect(lecturaDelRecibido(1_000_000, 79.9, 999_920.1)).toEqual({ estado: "excede", monto: 999_920.1 });
+    expect(lecturaDelRecibido(579.9, 79.9, 500)).toEqual({ estado: "vuelto", monto: 500 });
+  });
+});

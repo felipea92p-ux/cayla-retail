@@ -347,6 +347,11 @@ export const PRUEBAS = [
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
 
+  // Montos válidos en Ventas y Caja (/chaos 2026-10-13): ni NaN ni infinito en apertura, cierre (tampoco en blanco), egresos y
+  // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
+  // Cada caso: ROLLBACK.
+  "pruebas:ventas-montos-validos",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.

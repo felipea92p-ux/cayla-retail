@@ -384,6 +384,7 @@ export function EntregarVista({
                     {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
                     {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
                     {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
+                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/ 500: revisa cuánto entregó.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (

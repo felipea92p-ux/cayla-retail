@@ -210,6 +210,7 @@
     "pruebas:anular-venta-misma-sede": "node scripts/pruebas/anular_venta_misma_sede.mjs",
     "pruebas:token-sigue-al-contenido": "node scripts/pruebas/token_sigue_al_contenido.mjs",
     "pruebas:caja-efectivo-no-negativo": "node scripts/pruebas/caja_efectivo_no_negativo.mjs",
+    "pruebas:ventas-montos-validos": "node scripts/pruebas/ventas_montos_validos.mjs",
     "pruebas:actividad-oculta-ventas-de-prueba": "node scripts/pruebas/actividad_oculta_ventas_de_prueba.mjs",
     "pruebas:producto-origen": "node scripts/pruebas/producto_origen.mjs",
     "pruebas:costo-hasta-primera-compra": "node scripts/pruebas/costo_hasta_primera_compra.mjs",

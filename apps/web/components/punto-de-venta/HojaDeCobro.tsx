@@ -29,6 +29,7 @@ const COLOR_RECIBIDO = {
   vuelto: { etiqueta: "text-tinta/70", cifra: "text-tinta" },
   falta: { etiqueta: "text-rojo-profundo", cifra: "text-rojo-profundo" },
   exacto: { etiqueta: "text-verde-profundo", cifra: "text-verde-profundo" },
+  excede: { etiqueta: "text-rojo-profundo", cifra: "text-rojo-profundo" },
 } as const;
 
 /** El monto de un medio como se muestra en un billete o en el monto dentro del cuadrado: sin «.00» si es entero. */
@@ -289,7 +290,7 @@ export function HojaDeCobro({
                         </label>
                       </div>
                       <p className={`hoja-cobro-vuelto flex items-baseline justify-between ${lectura === null ? "invisible" : ""}`} data-recibido={lectura?.estado}>
-                        <span className={`label-cayla text-[13px] ${colorLectura.etiqueta}`}>{lectura?.estado === "vuelto" ? "Vuelto" : lectura?.estado === "falta" ? "Faltan" : "Exacto"}</span>
+                        <span className={`label-cayla text-[13px] ${colorLectura.etiqueta}`}>{lectura?.estado === "vuelto" ? "Vuelto" : lectura?.estado === "falta" ? "Faltan" : lectura?.estado === "excede" ? "Vuelto de más" : "Exacto"}</span>
                         <span
                           key={`${lectura?.estado}-${lectura?.monto}`}
                           className={`hoja-cobro-vuelto-monto ${lectura?.estado === "exacto" ? "es-exacto" : ""} anim-asentar font-display leading-none tabular-nums ${colorLectura.cifra}`}
