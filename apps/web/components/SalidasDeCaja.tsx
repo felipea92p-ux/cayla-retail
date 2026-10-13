@@ -76,17 +76,17 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
         {max > 0 && (
           <label data-guia="por-pagar.caja" className="flex items-center gap-1.5 text-xs text-tinta/65">
             Tengo
-            <span className="relative flex items-center gap-1 border-b border-tinta/25 px-0.5 [&:focus-within>span:last-child]:scale-x-100">
-              S/
+            {/* La caja que se enciende, baja (ADR-0358, ronda 6): antes una raya con su propio hilo. */}
+            <span className="caja-cayla caja-campo caja-campo-baja min-h-8 w-[7.5rem] gap-1 px-2">
+              <span aria-hidden className="text-tinta/55">S/</span>
               <input
                 inputMode="decimal"
                 value={cajaTxt}
                 onChange={(e) => setCajaTxt(e.target.value)}
                 placeholder="caja"
                 aria-label="Caja disponible, para ver hasta dónde alcanza"
-                className="w-[5.25rem] bg-transparent text-right text-[13px] tabular-nums text-tinta outline-none placeholder:text-tinta/40"
+                className="self-stretch py-0 text-right text-[13px] tabular-nums"
               />
-              <span aria-hidden className="absolute inset-x-0 -bottom-px h-0.5 origin-left scale-x-0 bg-rojo transition-transform duration-300 ease-cayla" />
             </span>
           </label>
         )}
