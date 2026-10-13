@@ -1,7 +1,8 @@
 # ADR-0393 · Recibir contando primero: la cara A sobre la recepción de Órdenes de compra
 
-- **Fecha:** 2026-10-13 · **Estado:** PROPUESTO — es el contrato con la sesión de Órdenes de compra (ADR-0362). **No se escribe ninguna
-  tabla hasta el OK de Felipe.** Número reservado con `pnpm reservar adr` (ADR-0381).
+- **Fecha:** 2026-10-13 · **Estado:** ACEPTADO por Felipe el 2026-10-13 (las tres preguntas, con la opción recomendada) — es el contrato
+  con la sesión de Órdenes de compra (ADR-0362), que todavía tiene que leer «La frontera» antes de que se toquen sus tablas. Sin
+  construir. Número reservado con `pnpm reservar adr` (ADR-0381).
 - **Rama:** `claude/recibir-fardo-2026-10-b45438` (trae la maqueta de `claude/receiving-merchandise-design-8a44ec`, que no tiene PR).
 - **Especificación:** `docs/maquetas/recibir-fardo-2026-10/a-camino.html` (cara A, versión 2) y «Las 10 decisiones de Felipe» del README
   de esa carpeta (2026-10-13).
@@ -143,7 +144,16 @@ La 1 y la 3 las cuida la función bajo un solo candado (la fila del conteo de es
 Tres tiendas y Compras: unos 2 a 5 envíos por semana por sede, de 5 a 20 líneas → menos de 5 000 conteos y pendientes al año, y 2 o 3
 personas contando el mismo envío a la vez. No hace falta índice más allá de las llaves y los únicos; el candado por línea basta.
 
-## Lo que decide Felipe
+## Lo que decidió Felipe (2026-10-13)
+
+| # | Pregunta | Decisión |
+|---|---|---|
+| 1 | ¿A reemplaza la recepción de la fase 4? | **Sí, A sobre el mismo envío** |
+| 2 | ¿Cómo se recibe lo que llega sin aviso? | **Un envío sin orden**, con el mismo conteo y los mismos pendientes |
+| 3 | ¿En qué orden con #1014, #1015 y #1017? | **Se fusiona la pila como está y A se construye encima** |
+
+Las preguntas, como se plantearon:
+
 
 1. **¿A reemplaza la recepción de la fase 4 sobre el mismo envío?** (recomendado; el resto de este contrato depende de eso).
 2. **El caso sin aviso.** Recomendado: un **envío sin orden** que la sede abre al llegar (`despachos.origen = 'sin_aviso'`,
