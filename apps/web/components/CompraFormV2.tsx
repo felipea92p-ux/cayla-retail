@@ -76,7 +76,10 @@ let secuenciaLineas = 0;
 // Todo lo numérico con ancho fijo: cada línea es su propia grilla, y una
 // columna `auto` o `fr` en una cifra hacía que "S/ 300,000.00" ensanchara
 // SU fila y no las demás — se descuadraban entre sí y con el encabezado.
-const PLANTILLA_LINEAS = "sm:grid-cols-[1.4fr_1.2fr_5.5rem_7rem_8rem_3.5rem]";
+// `minmax(0, …)` en las dos columnas que crecen: sin él, el texto más largo de «Talla y color» («Sin desglose (se reparte al recibir)»)
+// fijaba el ancho mínimo de su columna y, como la caja de «Producto» sí se deja encoger (ronda 6), Producto quedaba en 78 px sin lugar
+// para escribir (encontrado por el censo de después, 2026-10-13). Así reparten el espacio en su proporción y todas las filas calzan.
+const PLANTILLA_LINEAS = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_5.5rem_7rem_8rem_3.5rem]";
 // Los <input type=number> sin las flechitas del navegador: ocupan espacio,
 // cambian de tamaño según el valor y no aportan nada al tipear una cantidad.
 const NUMERO = "w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
@@ -803,9 +806,9 @@ export function CompraFormV2({
             );
           })}
           <div className="flex items-baseline justify-between">
-            <button type="button" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+            <Boton type="button" peso="discreto" onClick={agregarLinea} className="btn-chico">
               + Agregar línea
-            </button>
+            </Boton>
             <span className="text-xs text-tinta/45">Enter en el costo también agrega una línea.</span>
           </div>
         </section>

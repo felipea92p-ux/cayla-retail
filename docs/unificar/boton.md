@@ -71,3 +71,12 @@ movimiento de todo botón y la onda al clic; lo que **corrige una sola cosa** si
 Cambiar contraseña). No hay firma: la diferencia es lo que hace, no cómo está escrito.
 
 ![El pie de Colores y una acción chica](capturas/pie-y-acciones.ronda9.jpg)
+
+## El censo de después (2026-10-13): los «+ Agregar …» a mano y una fila que se apretaba
+
+Cinco acciones chicas que agregan algo seguían en versalitas grises a mano («+ Agregar otra prenda» al mover mercadería y al pedir a otra
+sede, «+ Agregar línea» en Nueva compra, «+ Agregar prenda fuera de comprobante» y «+ Agregar comprobante» en Recepción): por la regla de la
+ronda 9 son `<Boton peso="discreto">` chico, con el «+» que da su cuarto de vuelta. «Cambiar» de Nuevo producto corrige una sola cosa: pasó a
+`btn-enlace`. Y al abrir la lista de productos de Nueva compra el auditor no encontró la caja: la caja de la ronda 6 se deja encoger, y en la
+fila de líneas la columna «Talla y color» se quedaba con todo el ancho (78 px para Producto). La plantilla de la fila pasó a
+`minmax(0, …)`. Quedan en versalitas a mano «Limpiar», «Cancelar», «Entendido» y «Descargar reporte»: son de familias todavía sin decidir.

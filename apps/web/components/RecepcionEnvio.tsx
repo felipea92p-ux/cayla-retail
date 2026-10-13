@@ -17,7 +17,7 @@ import { avisoConteoGuardado, avisoConteoRetomado, envioContado, mensajeDeSalida
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { usePistola } from "@/components/ui/usePistola";
-import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -1164,15 +1164,9 @@ export function RecepcionEnvio({
                   <p className="label-cayla text-[10.5px] text-tinta/55">Comprobantes de este envío</p>
                   {comprasSinMarcar.length > 0 && (
                     <div ref={menuRef} className="relative">
-                      <button
-                        type="button"
-                        aria-expanded={menuAgregar}
-                        aria-haspopup="menu"
-                        onClick={() => setMenuAgregar((v) => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-[10px] border border-dashed border-tinta/25 px-3 py-1.5 text-[12.5px] text-tinta/65 transition-colors hover:border-rojo hover:text-rojo"
-                      >
+                      <Boton type="button" peso="discreto" aria-expanded={menuAgregar} aria-haspopup="menu" onClick={() => setMenuAgregar((v) => !v)} className="btn-chico">
                         + Agregar comprobante
-                      </button>
+                      </Boton>
                       {menuAgregar && (
                         <div role="menu" className="anim-revelar absolute right-0 top-[calc(100%+6px)] z-10 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-sand bg-papel">
                           {comprasSinMarcar.map((c) => {
@@ -1485,11 +1479,14 @@ export function RecepcionEnvio({
                                 marcador="Proveedor…"
                               />
                             </div>
-                            <label className="flex shrink-0 cursor-pointer items-center gap-2 pb-2 text-sm text-tinta/75">
-                              <input type="checkbox" checked={ex.esRegalo} onChange={(e) => actualizarExtra(i, { esRegalo: e.target.checked, costoUnitario: e.target.checked ? "" : ex.costoUnitario })} className="peer sr-only" />
-                              <span aria-hidden className="relative h-[18px] w-8 rounded-full bg-tinta/25 transition-colors duration-200 after:absolute after:left-0.5 after:top-0.5 after:h-3.5 after:w-3.5 after:rounded-full after:bg-papel after:transition-transform after:duration-[260ms] after:ease-cayla peer-checked:bg-tinta peer-checked:after:translate-x-3.5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo" />
-                              Es un regalo
-                            </label>
+                            {/* El interruptor del sistema (ADR-0358, ronda 6): se prende en tinta y la perilla se estira al presionar. */}
+                            <div className="shrink-0 pb-2">
+                              <Interruptor
+                                activo={ex.esRegalo}
+                                onActivo={(v) => actualizarExtra(i, { esRegalo: v, costoUnitario: v ? "" : ex.costoUnitario })}
+                                etiqueta="Es un regalo"
+                              />
+                            </div>
                             <input
                               type="number"
                               min={0}
@@ -1512,9 +1509,9 @@ export function RecepcionEnvio({
                           </div>
                         );
                       })}
-                      <button type="button" onClick={agregarExtra} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                      <Boton type="button" peso="discreto" onClick={agregarExtra} className="btn-chico self-start">
                         + Agregar prenda fuera de comprobante
-                      </button>
+                      </Boton>
                     </div>
 
                     {/* ADR-0299: lo que manda otra sede de CAYLA no se recibe en este envío. Se cuenta y se confirma en Traslados

@@ -22,6 +22,7 @@ import { detalleSeleccion, etiquetaVence, partirCoincidencia, plazoConsumido, TI
 import { useContar } from "@/lib/useContar";
 import { useFlip } from "@/lib/useFlip";
 import { Vacio } from "@/components/ui/Vacio";
+import { Casilla } from "@/components/ui/Casilla";
 
 // Lista de Por pagar (maqueta 02 y celular de la 11). UNA tabla partida en tramos de urgencia
 // —Vencidas, Vencen esta semana, Más adelante— o, si se prefiere, agrupada por proveedor (para
@@ -644,7 +645,7 @@ function FilaPorPagar({
         </span>
       )}
       <span data-guia="por-pagar.casilla" className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
-        <Casilla marcada={marcada} onAlternar={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
+        <Casilla marcada={marcada} onCambio={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
       </span>
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         <span className="block truncate text-sm text-tinta">
@@ -707,27 +708,5 @@ function FilaPorPagar({
         <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
       </div>
     </div>
-  );
-}
-
-// Casilla de 17 px como la de las maquetas: la marcada en tinta con el check en crema, y el tilde se DIBUJA al marcar
-// (`pathLength="1"` en el trazo). Un input nativo (invisible) sostiene el foco, el teclado y el lector de pantalla.
-function Casilla({ marcada, onAlternar, etiqueta }: { marcada: boolean; onAlternar: () => void; etiqueta: string }) {
-  return (
-    <label className="inline-flex cursor-pointer">
-      <input type="checkbox" checked={marcada} onChange={onAlternar} aria-label={etiqueta} className="peer sr-only" />
-      <span
-        aria-hidden
-        className={`grid h-[17px] w-[17px] place-items-center rounded-[4px] border-[1.5px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo/60 ${
-          marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel hover:border-rojo"
-        }`}
-      >
-        {marcada && (
-          <svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-            <path pathLength={1} d="M20 6 9 17l-5-5" className="trazo-linea anim-tilde" />
-          </svg>
-        )}
-      </span>
-    </label>
   );
 }

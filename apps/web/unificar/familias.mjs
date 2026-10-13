@@ -543,7 +543,10 @@ export const DECISIONES = {
       // CSS (`[type="checkbox"]`) ni el input escondido que solo guarda un estado (`sr-only`, el «ver más» del Inicio).
       "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})(?![^\\n]*\\bsr-only\\b)",
       // Un interruptor hecho a mano (la pieza es <Interruptor>).
-      "(?<!\\[)role=\"switch\""
+      "(?<!\\[)role=\"switch\"",
+      // Una casilla invisible que mueve una cara dibujada a mano con `peer-checked:` (la casilla propia de Por pagar, el «Es un regalo» de
+      // Recepción): es <Casilla> o <Interruptor>. Encontradas al rastrear el censo de después (2026-10-13).
+      "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})[^\\n]*\\bpeer\\b"
     ],
     "excepciones": [
       { "archivo": "components/finanzas/EscenariosPanel.tsx", "motivo": "ADR-0195: Finanzas se dibuja como su spike; la casilla es la de la opción en tarjeta del kit (fin-opcion-esc)" },
